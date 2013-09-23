@@ -6,24 +6,21 @@ import (
 	"os"
 )
 
-var commands = make(map[string]*Command)
+var commands = make(map[string]func(*Command) RunnableCommand)
 
 func Run() {
 	subcommand := SubCommand()
-	cmd, ok := commands[subcommand]
+	basecmd := NewCommand()
+
+	cmdcb, ok := commands[subcommand]
 	if ok {
+		cmd := cmdcb(basecmd)
+		cmd.Setup()
+		cmd.Parse()
 		cmd.Run()
 	} else {
 		missingCommand(subcommand)
 	}
-}
-
-func registerCommand(name string, cmd *Command) {
-	commands[name] = cmd
-}
-
-func missingCommand(cmd string) {
-	fmt.Printf("git-media: '%s' is not a git-media command.  See git-media help.\n", cmd)
 }
 
 func SubCommand() string {
@@ -34,29 +31,37 @@ func SubCommand() string {
 	}
 }
 
-func NewCommand(run func(*Command)) *Command {
+func NewCommand() *Command {
 	var args []string
 	if len(os.Args) > 1 {
 		args = os.Args[2:]
 	}
 
-	return &Command{
-		FlagSet: flag.NewFlagSet(os.Args[0], flag.ExitOnError),
-		Args:    args,
-		run:     run,
-	}
+	return &Command{flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
+}
+
+type RunnableCommand interface {
+	Setup()
+	Parse()
+	Run()
 }
 
 type Command struct {
-	run     func(c *Command)
 	FlagSet *flag.FlagSet
 	Args    []string
 }
 
-func (c *Command) parse() {
+func (c *Command) Parse() {
 	c.FlagSet.Parse(c.Args)
 }
 
-func (c *Command) Run() {
-	c.run(c)
+func (c *Command) Setup() {}
+func (c *Command) Run() {}
+
+func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
+	commands[name] = cmdcb
+}
+
+func missingCommand(cmd string) {
+	fmt.Printf("git-media: '%s' is not a git-media command.  See git-media help.\n", cmd)
 }
