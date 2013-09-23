@@ -1,4 +1,4 @@
-package main
+package gitmedia
 
 import (
 	"fmt"
@@ -7,10 +7,6 @@ import (
 const Version = "0.0.1"
 
 var commands = make(map[string]*Command)
-
-func main() {
-	Run()
-}
 
 func Run() {
 	subcommand := SubCommand()

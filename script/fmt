@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gofmt -w -l *.go githooks/*.go
+gofmt -w -l *.go cmd/*.go
