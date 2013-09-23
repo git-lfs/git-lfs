@@ -18,7 +18,7 @@ func (c *VersionCommand) Run() {
 	if c.LovesComics {
 		fmt.Println("Nothing may see Gah Lak Tus and survive.")
 	} else {
-		fmt.Printf("git-media version %s\n", core.Version)
+		fmt.Printf("%s v%s\n", c.Name, core.Version)
 	}
 }
 

@@ -2,6 +2,7 @@ package gitmedia
 
 import (
 	"fmt"
+	"path/filepath"
 	"flag"
 	"os"
 )
@@ -10,26 +11,27 @@ var commands = make(map[string]func(*Command) RunnableCommand)
 
 func Run() {
 	runcmd := true
-	subcommand := SubCommand(1)
+	subname := SubCommand(1)
 
-	if subcommand == "help" {
+	if subname == "help" {
 		runcmd = false
-		subcommand = SubCommand(2)
+		subname = SubCommand(2)
 	}
 
-	cmdcb, ok := commands[subcommand]
+	cmd := NewCommand(filepath.Base(os.Args[0]), subname)
+	cmdcb, ok := commands[subname]
 	if ok {
-		cmd := cmdcb(NewCommand(subcommand))
-		cmd.Setup()
+		subcmd := cmdcb(cmd)
+		subcmd.Setup()
 
 		if runcmd {
-			cmd.Parse()
-			cmd.Run()
+			subcmd.Parse()
+			subcmd.Run()
 		} else {
-			cmd.Usage()
+			subcmd.Usage()
 		}
 	} else {
-		missingCommand(subcommand)
+		missingCommand(cmd, subname)
 	}
 }
 
@@ -41,13 +43,13 @@ func SubCommand(pos int) string {
 	}
 }
 
-func NewCommand(name string) *Command {
+func NewCommand(name, subname string) *Command {
 	var args []string
 	if len(os.Args) > 1 {
 		args = os.Args[2:]
 	}
 
-	return &Command{name, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
+	return &Command{name, subname, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
 }
 
 type RunnableCommand interface {
@@ -59,12 +61,13 @@ type RunnableCommand interface {
 
 type Command struct {
 	Name string
+	SubCommand string
 	FlagSet *flag.FlagSet
 	Args    []string
 }
 
 func (c *Command) Usage() {
-	fmt.Printf("git-media %s\n", c.Name)
+	fmt.Printf("usage: %s %s\n", c.Name, c.SubCommand)
 	c.FlagSet.PrintDefaults()
 }
 
@@ -79,6 +82,7 @@ func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
 	commands[name] = cmdcb
 }
 
-func missingCommand(cmd string) {
-	fmt.Printf("git-media: '%s' is not a git-media command.  See git-media help.\n", cmd)
+func missingCommand(cmd *Command, subname string) {
+	fmt.Printf("%s: '%s' is not a %s command.  See %s help.\n",
+		cmd.Name, subname, cmd.Name, cmd.Name)
 }
