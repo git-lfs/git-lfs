@@ -9,46 +9,63 @@ import (
 var commands = make(map[string]func(*Command) RunnableCommand)
 
 func Run() {
-	subcommand := SubCommand()
-	basecmd := NewCommand()
+	runcmd := true
+	subcommand := SubCommand(1)
+
+	if subcommand == "help" {
+		runcmd = false
+		subcommand = SubCommand(2)
+	}
 
 	cmdcb, ok := commands[subcommand]
 	if ok {
-		cmd := cmdcb(basecmd)
+		cmd := cmdcb(NewCommand(subcommand))
 		cmd.Setup()
-		cmd.Parse()
-		cmd.Run()
+
+		if runcmd {
+			cmd.Parse()
+			cmd.Run()
+		} else {
+			cmd.Usage()
+		}
 	} else {
 		missingCommand(subcommand)
 	}
 }
 
-func SubCommand() string {
-	if len(os.Args) < 2 {
+func SubCommand(pos int) string {
+	if len(os.Args) < (pos + 1) {
 		return "version"
 	} else {
-		return os.Args[1]
+		return os.Args[pos]
 	}
 }
 
-func NewCommand() *Command {
+func NewCommand(name string) *Command {
 	var args []string
 	if len(os.Args) > 1 {
 		args = os.Args[2:]
 	}
 
-	return &Command{flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
+	return &Command{name, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
 }
 
 type RunnableCommand interface {
 	Setup()
 	Parse()
 	Run()
+	Usage()
 }
 
 type Command struct {
+	Name string
 	FlagSet *flag.FlagSet
 	Args    []string
+}
+
+func (c *Command) Usage() {
+	fmt.Printf("git-media %s\n", c.Name)
+	c.FlagSet.PrintDefaults()
 }
 
 func (c *Command) Parse() {
