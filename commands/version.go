@@ -1,6 +1,9 @@
 package gitmedia
 
-import "fmt"
+import (
+	core ".."
+	"fmt"
+)
 
 func init() {
 	registerCommand("version", NewCommand(func(c *Command) {
@@ -10,7 +13,7 @@ func init() {
 		if *comics {
 			fmt.Println("Nothing may see Gah Lak Tus and survive.")
 		} else {
-			fmt.Printf("git-media version %s\n", Version)
+			fmt.Printf("git-media version %s\n", core.Version)
 		}
 	}))
 }
