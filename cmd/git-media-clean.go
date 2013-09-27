@@ -3,47 +3,30 @@ package main
 import (
 	".."
 	"../clean"
-	"crypto/md5"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 )
 
 func main() {
-	tmp, err := gitmedia.TempFile()
+	cleaned, err := gitmediaclean.Clean(os.Stdin)
 	if err != nil {
-		fmt.Println("Error trying to create temp file")
+		fmt.Println("Error cleaning asset")
 		panic(err)
 	}
 
-	sha1Hash := sha1.New()
-	md5Hash := md5.New()
-	writer := io.MultiWriter(sha1Hash, md5Hash, tmp)
+	writer := ChooseWriter(cleaned)
+	defer writer.Close()
 
-	written, _ := io.Copy(writer, os.Stdin)
-	sha := hex.EncodeToString(sha1Hash.Sum(nil))
-
-	asset := &gitmedia.LargeAsset{
-		MediaType: "application/vnd.github.large-asset",
-		Size:      written,
-		MD5:       hex.EncodeToString(md5Hash.Sum(nil)),
-		SHA1:      sha,
-	}
-
-	output := ChooseWriter(asset, tmp)
-	defer output.Close()
-
-	enc := gitmedia.NewEncoder(output)
-	enc.Encode(asset)
+	enc := gitmedia.NewEncoder(writer)
+	enc.Encode(cleaned.LargeAsset)
 }
 
-func ChooseWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
-	mediafile := gitmedia.LocalMediaPath(asset.SHA1)
+func ChooseWriter(cleaned *gitmediaclean.CleanedAsset) io.WriteCloser {
+	mediafile := gitmedia.LocalMediaPath(cleaned.SHA1)
 	if stat, _ := os.Stat(mediafile); stat == nil {
-		return gitmediaclean.NewWriter(asset, tmp)
+		return gitmediaclean.NewWriter(cleaned.LargeAsset, cleaned.File)
 	} else {
-		return gitmediaclean.NewExistingWriter(asset, tmp)
+		return gitmediaclean.NewExistingWriter(cleaned.LargeAsset, cleaned.File)
 	}
 }
