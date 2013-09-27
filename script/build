@@ -1,0 +1,8 @@
+#!/bin/bash
+
+script/fmt
+
+for i in cmd/*.go ; do
+  base=${i##*/}
+  go build -o bin/${base%.go} $i
+done
