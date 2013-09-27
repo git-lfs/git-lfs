@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -35,9 +34,7 @@ func main() {
 	output := ChooseWriter(asset, tmp)
 	defer output.Close()
 
-	output.Write([]byte(fmt.Sprintf("# %d\n", len(gitmedia.MediaWarning))))
-	output.Write(gitmedia.MediaWarning)
-	enc := json.NewEncoder(output)
+	enc := gitmedia.NewEncoder(output)
 	enc.Encode(asset)
 }
 
