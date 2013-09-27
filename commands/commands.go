@@ -1,10 +1,10 @@
 package gitmedia
 
 import (
-	"fmt"
-	"path/filepath"
 	"flag"
+	"fmt"
 	"os"
+	"path/filepath"
 )
 
 var commands = make(map[string]func(*Command) RunnableCommand)
@@ -60,10 +60,10 @@ type RunnableCommand interface {
 }
 
 type Command struct {
-	Name string
+	Name       string
 	SubCommand string
-	FlagSet *flag.FlagSet
-	Args    []string
+	FlagSet    *flag.FlagSet
+	Args       []string
 }
 
 func (c *Command) Usage() {
@@ -76,7 +76,7 @@ func (c *Command) Parse() {
 }
 
 func (c *Command) Setup() {}
-func (c *Command) Run() {}
+func (c *Command) Run()   {}
 
 func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
 	commands[name] = cmdcb
