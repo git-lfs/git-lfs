@@ -1,14 +1,12 @@
 package main
 
 import (
+	".."
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
-
-const sizelimit = 5 * 1024 * 1024
 
 func main() {
 	wd, err := os.Getwd()
@@ -38,33 +36,21 @@ func check(working, filename string, bad map[string]int64) {
 		os.Exit(1)
 	}
 
-	if filesize := stat.Size(); filesize > sizelimit {
+	if filesize := stat.Size(); int(filesize) > gitmedia.LargeSizeThreshold {
 		bad[filename] = filesize
 	}
 }
 
 func changed(oid string) []string {
-	lines := simpleExec("git", "diff", "--cached", "--name-only", oid)
+	lines := gitmedia.SimpleExec("git", "diff", "--cached", "--name-only", oid)
 	return strings.Split(lines, "\n")
 }
 
 func latest() string {
-	if oid := simpleExec("git", "rev-parse", "--verify", "HEAD"); oid != "" {
+	if oid := gitmedia.SimpleExec("git", "rev-parse", "--verify", "HEAD"); oid != "" {
 		return oid
 	}
 
 	// Initial commit: diff against an empty tree object
 	return "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-}
-
-func simpleExec(name string, arg ...string) string {
-	output, err := exec.Command(name, arg...).Output()
-	if _, ok := err.(*exec.ExitError); ok {
-		return ""
-	} else if err != nil {
-		fmt.Printf("error running: %s %s\n", name, arg)
-		panic(err)
-	}
-
-	return strings.Trim(string(output), " \n")
 }
