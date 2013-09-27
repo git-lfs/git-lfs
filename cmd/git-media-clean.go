@@ -2,6 +2,7 @@ package main
 
 import (
 	".."
+	"../clean"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
@@ -41,60 +42,8 @@ func main() {
 func ChooseWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
 	mediafile := gitmedia.LocalMediaPath(asset.SHA1)
 	if stat, _ := os.Stat(mediafile); stat == nil {
-		return NewGitMediaCleanWriter(asset, tmp)
+		return gitmediaclean.NewWriter(asset, tmp)
 	} else {
-		return NewGitMediaExistingWriter(asset, tmp)
+		return gitmediaclean.NewExistingWriter(asset, tmp)
 	}
-}
-
-type GitMediaExistingWriter struct {
-	tempfile *os.File
-	writer   io.Writer
-}
-
-func NewGitMediaExistingWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
-	return &GitMediaExistingWriter{tmp, os.Stdout}
-}
-
-func (w *GitMediaExistingWriter) Write(buf []byte) (int, error) {
-	return w.writer.Write(buf)
-}
-
-func (w *GitMediaExistingWriter) Close() error {
-	return os.Remove(w.tempfile.Name())
-}
-
-type GitMediaCleanWriter struct {
-	metafile *os.File
-	*GitMediaExistingWriter
-}
-
-func NewGitMediaCleanWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
-	mediafile := gitmedia.LocalMediaPath(asset.SHA1)
-	metafile := mediafile + ".json"
-
-	if err := os.Rename(tmp.Name(), mediafile); err != nil {
-		fmt.Printf("Unable to move %s to %s\n", tmp.Name(), mediafile)
-		panic(err)
-	}
-
-	file, err := os.Create(metafile)
-	if err != nil {
-		fmt.Printf("Unable to create meta data file: %s\n", metafile)
-		panic(err)
-	}
-
-	return &GitMediaCleanWriter{
-		metafile:               file,
-		GitMediaExistingWriter: &GitMediaExistingWriter{tmp, io.MultiWriter(os.Stdout, file)},
-	}
-}
-
-func (w *GitMediaCleanWriter) Write(buf []byte) (int, error) {
-	return w.writer.Write(buf)
-}
-
-func (w *GitMediaCleanWriter) Close() error {
-	w.GitMediaExistingWriter.Close()
-	return w.metafile.Close()
 }
