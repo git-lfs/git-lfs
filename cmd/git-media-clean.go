@@ -39,7 +39,6 @@ func main() {
 		fmt.Printf("Unable to move %s to %s\n", tmp.Name(), mediafile)
 		panic(err)
 	}
-	fmt.Println(tmp.Name())
 
 	file, err := os.Create(metafile)
 	if err != nil {
