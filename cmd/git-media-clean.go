@@ -49,6 +49,9 @@ func main() {
 	defer file.Close()
 	defer func() { os.Remove(tmp.Name()) }()
 
-	enc := json.NewEncoder(io.MultiWriter(os.Stdout, file))
+	writer = io.MultiWriter(os.Stdout, file)
+	writer.Write([]byte(fmt.Sprintf("# %d\n", len(gitmedia.MediaWarning))))
+	writer.Write(gitmedia.MediaWarning)
+	enc := json.NewEncoder(writer)
 	enc.Encode(meta)
 }

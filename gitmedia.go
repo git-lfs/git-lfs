@@ -12,6 +12,7 @@ import (
 const Version = "0.0.1"
 
 var (
+	MediaWarning       = []byte("# This is a placeholder for large media, please install GitHub git-media to retrieve content\n# It is also possible you did not have the media locally, run 'git media sync' to retrieve it\n")
 	LargeSizeThreshold = 5 * 1024 * 1024
 	TempDir            = filepath.Join(os.TempDir(), "git-media")
 	LocalMediaDir      string
