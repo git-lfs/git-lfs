@@ -7,6 +7,9 @@ import (
 	"os"
 )
 
+// git media clean writer that outputs the large asset meta data to stdin, and
+// deletes the temp file.  This is used directly if the large asset has been
+// saved to the git media directory already.
 type ExistingWriter struct {
 	tempfile *os.File
 	writer   io.Writer
@@ -29,6 +32,8 @@ type Writer struct {
 	*ExistingWriter
 }
 
+// a git media clean writer that writes the large asset data to the local
+// git media directory.  Also embeds an ExistingWriter.
 func NewWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
 	mediafile := gitmedia.LocalMediaPath(asset.SHA1)
 	metafile := mediafile + ".json"
