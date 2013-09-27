@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+var MediaWarning = []byte("# This is a placeholder for large media, please install GitHub git-media to retrieve content\n# It is also possible you did not have the media locally, run 'git media sync' to retrieve it\n")
+
 type Encoder struct {
 	writer      io.Writer
 	jsonencoder *json.Encoder
