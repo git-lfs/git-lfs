@@ -2,7 +2,6 @@ package gitmediaclean
 
 import (
 	".."
-	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
 	"io"
@@ -11,7 +10,7 @@ import (
 
 type CleanedAsset struct {
 	File *os.File
-	*gitmedia.LargeAsset
+	Sha  string
 }
 
 func Clean(reader io.Reader) (*CleanedAsset, error) {
@@ -21,18 +20,8 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 	}
 
 	sha1Hash := sha1.New()
-	md5Hash := md5.New()
-	writer := io.MultiWriter(sha1Hash, md5Hash, tmp)
+	writer := io.MultiWriter(sha1Hash, tmp)
+	io.Copy(writer, os.Stdin)
 
-	written, _ := io.Copy(writer, os.Stdin)
-	sha := hex.EncodeToString(sha1Hash.Sum(nil))
-
-	asset := &gitmedia.LargeAsset{
-		MediaType: "application/vnd.github.large-asset",
-		Size:      written,
-		MD5:       hex.EncodeToString(md5Hash.Sum(nil)),
-		SHA1:      sha,
-	}
-
-	return &CleanedAsset{tmp, asset}, nil
+	return &CleanedAsset{tmp, hex.EncodeToString(sha1Hash.Sum(nil))}, nil
 }

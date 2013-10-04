@@ -15,8 +15,8 @@ type ExistingWriter struct {
 	writer   io.Writer
 }
 
-func NewExistingWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
-	return &ExistingWriter{tmp, os.Stdout}
+func NewExistingWriter(cleaned *CleanedAsset) io.WriteCloser {
+	return &ExistingWriter{cleaned.File, os.Stdout}
 }
 
 func (w *ExistingWriter) Write(buf []byte) (int, error) {
@@ -34,12 +34,12 @@ type Writer struct {
 
 // a git media clean writer that writes the large asset data to the local
 // git media directory.  Also embeds an ExistingWriter.
-func NewWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
-	mediafile := gitmedia.LocalMediaPath(asset.SHA1)
-	metafile := mediafile + ".json"
+func NewWriter(cleaned *CleanedAsset) io.WriteCloser {
+	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
+	metafile := mediafile + ".txt"
 
-	if err := os.Rename(tmp.Name(), mediafile); err != nil {
-		fmt.Printf("Unable to move %s to %s\n", tmp.Name(), mediafile)
+	if err := os.Rename(cleaned.File.Name(), mediafile); err != nil {
+		fmt.Printf("Unable to move %s to %s\n", cleaned.File.Name(), mediafile)
 		panic(err)
 	}
 
@@ -51,7 +51,7 @@ func NewWriter(asset *gitmedia.LargeAsset, tmp *os.File) io.WriteCloser {
 
 	return &Writer{
 		metafile:       file,
-		ExistingWriter: &ExistingWriter{tmp, io.MultiWriter(os.Stdout, file)},
+		ExistingWriter: &ExistingWriter{cleaned.File, io.MultiWriter(os.Stdout, file)},
 	}
 }
 

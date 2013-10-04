@@ -17,13 +17,6 @@ var (
 	LocalMediaDir      string
 )
 
-type LargeAsset struct {
-	MediaType string `json:"media_type"`
-	Size      int64  `json:"size"`
-	MD5       string `json:"md5"`
-	SHA1      string `json:"sha1"`
-}
-
 func TempFile() (*os.File, error) {
 	return ioutil.TempFile(TempDir, "")
 }

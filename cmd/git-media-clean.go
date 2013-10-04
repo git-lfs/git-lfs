@@ -17,16 +17,14 @@ func main() {
 
 	writer := ChooseWriter(cleaned)
 	defer writer.Close()
-
-	enc := gitmedia.NewEncoder(writer)
-	enc.Encode(cleaned.LargeAsset)
+	gitmedia.Encode(writer, cleaned.Sha)
 }
 
 func ChooseWriter(cleaned *gitmediaclean.CleanedAsset) io.WriteCloser {
-	mediafile := gitmedia.LocalMediaPath(cleaned.SHA1)
+	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
 	if stat, _ := os.Stat(mediafile); stat == nil {
-		return gitmediaclean.NewWriter(cleaned.LargeAsset, cleaned.File)
+		return gitmediaclean.NewWriter(cleaned)
 	} else {
-		return gitmediaclean.NewExistingWriter(cleaned.LargeAsset, cleaned.File)
+		return gitmediaclean.NewExistingWriter(cleaned)
 	}
 }
