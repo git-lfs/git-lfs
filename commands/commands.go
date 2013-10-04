@@ -53,6 +53,10 @@ func NewCommand(name, subname string) *Command {
 	return &Command{name, subname, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
 }
 
+func PipeMediaCommand(name string, args ...string) error {
+	return PipeCommand("bin/"+name, args...)
+}
+
 func PipeCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin

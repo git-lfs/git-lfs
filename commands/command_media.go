@@ -9,14 +9,14 @@ type SmudgeCommand struct {
 }
 
 func (c *CleanCommand) Run() {
-	err := PipeCommand("bin/git-media-clean")
+	err := PipeMediaCommand("git-media-clean")
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (c *SmudgeCommand) Run() {
-	err := PipeCommand("bin/git-media-smudge")
+	err := PipeMediaCommand("git-media-smudge")
 	if err != nil {
 		panic(err)
 	}
