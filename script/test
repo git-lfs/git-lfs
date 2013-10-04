@@ -1,2 +1,4 @@
 script/fmt
-go test . && script/build
+GOPATH="`pwd`/.gopack/vendor" \
+  go test . &&
+  script/build

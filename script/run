@@ -1,2 +1,2 @@
 script/fmt
-go run cmd/git-media.go "$@"
+GOPATH="`pwd`/.gopack/vendor" go run cmd/git-media.go "$@"
