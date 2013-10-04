@@ -30,6 +30,7 @@ func PutObject(w http.ResponseWriter, r *http.Request) {
 	if stat, _ := os.Stat(localpath); stat != nil {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "OK")
+		return
 	}
 
 	if err = os.Rename(cleaned.File.Name(), localpath); err != nil {
