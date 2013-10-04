@@ -2,29 +2,19 @@ package main
 
 import (
 	".."
-	"../clean"
+	"../filters"
 	"fmt"
-	"io"
 	"os"
 )
 
 func main() {
-	cleaned, err := gitmediaclean.Clean(os.Stdin)
+	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {
 		fmt.Println("Error cleaning asset")
 		panic(err)
 	}
 
-	writer := ChooseWriter(cleaned)
+	writer := cleaned.Writer()
 	defer writer.Close()
 	gitmedia.Encode(writer, cleaned.Sha)
-}
-
-func ChooseWriter(cleaned *gitmediaclean.CleanedAsset) io.WriteCloser {
-	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
-	if stat, _ := os.Stat(mediafile); stat == nil {
-		return gitmediaclean.NewWriter(cleaned)
-	} else {
-		return gitmediaclean.NewExistingWriter(cleaned)
-	}
 }

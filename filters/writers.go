@@ -1,4 +1,4 @@
-package gitmediaclean
+package gitmediafilters
 
 import (
 	".."
