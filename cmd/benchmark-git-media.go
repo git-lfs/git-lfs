@@ -61,9 +61,10 @@ func bench(files []string) {
 		}
 		gitattr.Close()
 
+		debugsuffix := " -debug 2> " + *DestPath + "/.git/media-debug.log"
 		fmt.Println(WorkingDir, filepath.Join(WorkingDir, "bin", "git-media-clean"))
-		safeExec("git", "config", "filter.media.clean", filepath.Join(WorkingDir, "bin", "git-media-clean"))
-		safeExec("git", "config", "filter.media.smudge", filepath.Join(WorkingDir, "bin", "git-media-smudge"))
+		safeExec("git", "config", "filter.media.clean", filepath.Join(WorkingDir, "bin", "git-media-clean"+debugsuffix))
+		safeExec("git", "config", "filter.media.smudge", filepath.Join(WorkingDir, "bin", "git-media-smudge"+debugsuffix))
 	}
 
 	fmt.Printf("Copying %d files...\n", len(files))

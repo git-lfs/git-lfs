@@ -23,7 +23,7 @@ func main() {
 		if stat.Size() != cleaned.Size {
 			gitmedia.Panic(nil, "Files don't match:\n%s\n%s", mediafile, tmpfile)
 		}
-		gitmedia.Debug("%s exists", cleaned.Sha)
+		gitmedia.Debug("%s exists", mediafile)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
 			gitmedia.Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
