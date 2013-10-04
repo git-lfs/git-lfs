@@ -1,8 +1,10 @@
 package gitmedia
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,12 +45,40 @@ func LocalMediaPath(sha string) string {
 	return filepath.Join(path, sha)
 }
 
+func Panic(err error, format string, args ...interface{}) {
+	line := fmt.Sprintf(format, args...)
+	Debug(line)
+	fmt.Println(line)
+
+	if err != nil {
+		Debug(err.Error())
+		panic(err)
+	}
+}
+
+func Debug(format string, args ...interface{}) {
+	if !*debugging {
+		return
+	}
+	log.Printf(format, args...)
+}
+
 func init() {
 	LocalMediaDir = resolveMediaDir()
 
 	if err := os.MkdirAll(TempDir, 0744); err != nil {
 		fmt.Printf("Error trying to create temp directory: %s\n", TempDir)
 		panic(err)
+	}
+}
+
+var debugging = flag.Bool("debug", false, "Turns debugging on")
+
+func SetupDebugging() {
+	flag.Parse()
+
+	if *debugging {
+		log.SetOutput(os.Stderr)
 	}
 }
 

@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	gitmedia.SetupDebugging()
+
 	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {
 		fmt.Println("Error cleaning asset")
@@ -19,13 +21,14 @@ func main() {
 	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
 	if stat, _ := os.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size {
-			panic(fmt.Sprintf("Files don't match:\n%s\n%s", mediafile, tmpfile))
+			gitmedia.Panic(nil, "Files don't match:\n%s\n%s", mediafile, tmpfile)
 		}
+		gitmedia.Debug("%s exists", cleaned.Sha)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
-			fmt.Printf("Unable to move %s to %s\n", tmpfile, mediafile)
-			panic(err)
+			gitmedia.Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
+		gitmedia.Debug("Writing %s", mediafile)
 	}
 
 	gitmedia.Encode(os.Stdout, cleaned.Sha)
