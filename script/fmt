@@ -1,7 +1,9 @@
 #!/bin/bash
 
 gofmt -w -l *.go \
+  client/*.go    \
   cmd/*.go       \
   commands/*.go  \
   filters/*.go   \
   script/*.go    \
+  server/*.go

@@ -22,7 +22,7 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 
 	sha1Hash := sha1.New()
 	writer := io.MultiWriter(sha1Hash, tmp)
-	io.Copy(writer, os.Stdin)
+	io.Copy(writer, reader)
 
 	return &CleanedAsset{tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, nil
 }

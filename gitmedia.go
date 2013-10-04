@@ -44,15 +44,32 @@ func LocalMediaPath(sha string) string {
 }
 
 func init() {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
+	LocalMediaDir = resolveMediaDir()
 
-	LocalMediaDir = filepath.Join(wd, ".git", "media")
-
-	if err = os.MkdirAll(TempDir, 0744); err != nil {
+	if err := os.MkdirAll(TempDir, 0744); err != nil {
 		fmt.Printf("Error trying to create temp directory: %s\n", TempDir)
 		panic(err)
 	}
+}
+
+func resolveMediaDir() string {
+	dir := os.Getenv("GIT_MEDIA_DIR")
+	if len(dir) > 0 {
+		return dir
+	}
+
+	dir = os.Getenv("GIT_DIR")
+	if len(dir) == 0 {
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		dir = wd
+	}
+
+	return resolveGitDir(dir)
+}
+
+func resolveGitDir(dir string) string {
+	return filepath.Join(dir, ".git", "media")
 }
