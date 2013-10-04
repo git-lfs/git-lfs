@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -50,6 +51,14 @@ func NewCommand(name, subname string) *Command {
 	}
 
 	return &Command{name, subname, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
+}
+
+func PipeCommand(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }
 
 type RunnableCommand interface {
