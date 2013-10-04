@@ -9,6 +9,7 @@ import (
 )
 
 type CleanedAsset struct {
+	Size          int64
 	File          *os.File
 	Sha           string
 	mediafilepath string
@@ -22,27 +23,11 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 
 	sha1Hash := sha1.New()
 	writer := io.MultiWriter(sha1Hash, tmp)
-	io.Copy(writer, reader)
+	written, _ := io.Copy(writer, reader)
 
-	return &CleanedAsset{tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, nil
+	return &CleanedAsset{written, tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, nil
 }
 
-func (a *CleanedAsset) Writer(writer io.Writer) io.WriteCloser {
-	if stat := a.Stat(); stat == nil {
-		return NewWriter(a, writer)
-	}
-
-	return NewExistingWriter(a, writer)
-}
-
-func (a *CleanedAsset) Path() string {
-	if len(a.mediafilepath) == 0 {
-		a.mediafilepath = gitmedia.LocalMediaPath(a.Sha)
-	}
-	return a.mediafilepath
-}
-
-func (a *CleanedAsset) Stat() os.FileInfo {
-	stat, _ := os.Stat(a.Path())
-	return stat
+func (a *CleanedAsset) Close() error {
+	return os.Remove(a.File.Name())
 }
