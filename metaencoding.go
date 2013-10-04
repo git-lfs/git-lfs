@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-var MediaWarning = []byte("# This is a placeholder for large media, please install GitHub git-media to retrieve content\n# It is also possible you did not have the media locally, run 'git media sync' to retrieve it\n")
+var MediaWarning = []byte("#!/usr/bin/env git media-smudge\n# This is a placeholder for large media, please install git-media to retrieve content\n# It is also possible you did not have the media locally, run 'git media sync' to retrieve it\n")
 
 func Encode(writer io.Writer, sha string) (int, error) {
 	written, err := writer.Write(MediaWarning)
