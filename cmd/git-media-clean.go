@@ -14,7 +14,7 @@ func main() {
 		panic(err)
 	}
 
-	writer := cleaned.Writer()
+	writer := cleaned.Writer(os.Stdout)
 	defer writer.Close()
 	gitmedia.Encode(writer, cleaned.Sha)
 }

@@ -27,12 +27,12 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 	return &CleanedAsset{tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, nil
 }
 
-func (a *CleanedAsset) Writer() io.WriteCloser {
+func (a *CleanedAsset) Writer(writer io.Writer) io.WriteCloser {
 	if stat := a.Stat(); stat == nil {
-		return NewWriter(a)
+		return NewWriter(a, writer)
 	}
 
-	return NewExistingWriter(a)
+	return NewExistingWriter(a, writer)
 }
 
 func (a *CleanedAsset) Path() string {
