@@ -2,8 +2,8 @@ package main
 
 import (
 	".."
+	"../filters"
 	"fmt"
-	"io"
 	"os"
 )
 
@@ -14,13 +14,11 @@ func main() {
 		panic(err)
 	}
 
-	mediafile := gitmedia.LocalMediaPath(sha)
-	file, err := os.Open(mediafile)
+	smudger := gitmediafilters.LocalSmudger()
+	err = smudger.Smudge(os.Stdout, sha)
 	if err != nil {
-		fmt.Printf("Error reading file from local media dir: %s\n", mediafile)
+		smudgerr := err.(*gitmediafilters.LocalSmudgeError)
+		fmt.Printf("Error reading file from local media dir: %s\n", smudgerr.Filename)
 		panic(err)
 	}
-	defer file.Close()
-
-	io.Copy(os.Stdout, file)
 }
