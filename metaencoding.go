@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-var MediaWarning = []byte("#!/usr/bin/env git media smudge\n# This is a placeholder for large media, please install git-media to retrieve content\n# It is also possible you did not have the media locally, run 'git media sync' to retrieve it\n")
+var MediaWarning = []byte("# external\n")
 
 func Encode(writer io.Writer, sha string) (int, error) {
 	written, err := writer.Write(MediaWarning)
@@ -18,7 +18,7 @@ func Encode(writer io.Writer, sha string) (int, error) {
 }
 
 func Decode(reader io.Reader) (string, error) {
-	buf := make([]byte, 1024)
+	buf := make([]byte, 100)
 	written, err := reader.Read(buf)
 	if err != nil {
 		return "", err
