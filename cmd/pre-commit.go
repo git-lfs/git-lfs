@@ -42,8 +42,9 @@ func check(working, filename string, bad map[string]int64) {
 }
 
 func changed(oid string) []string {
-	lines := gitmedia.SimpleExec("git", "diff", "--cached", "--name-only", oid)
-	return strings.Split(lines, "\n")
+	output := gitmedia.SimpleExec("git", "diff-index", "--name-only", oid, "-z")
+	files := strings.Split(output, "\x00")
+	return files[0 : len(files)-1]
 }
 
 func latest() string {
