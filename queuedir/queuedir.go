@@ -4,9 +4,11 @@
 package queuedir
 
 import (
+	"github.com/streadway/simpleuuid"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type QueueDir struct {
@@ -34,7 +36,12 @@ type Queue struct {
 }
 
 func (q *Queue) Add(reader io.Reader) (string, error) {
-	id := "a" // yea this may change
+	uuid, err := simpleuuid.NewTime(time.Now())
+	if err != nil {
+		return "", err
+	}
+
+	id := uuid.String()
 	file, err := os.Create(filepath.Join(q.Path, id))
 	if err == nil {
 		defer file.Close()
