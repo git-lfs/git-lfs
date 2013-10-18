@@ -1,7 +1,6 @@
 package queuedir
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,7 +11,7 @@ func TestAdd(t *testing.T) {
 	q := Setup(t)
 	defer q.Teardown()
 
-	id, err := q.Queue.Add(bytes.NewBufferString("BOOM"))
+	id, err := q.Queue.AddString("BOOM")
 	if err != nil {
 		t.Fatalf("Cannot add to queue: %s", err)
 	}

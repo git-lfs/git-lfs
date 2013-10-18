@@ -4,6 +4,7 @@
 package queuedir
 
 import (
+	"bytes"
 	"github.com/streadway/simpleuuid"
 	"io"
 	"os"
@@ -48,4 +49,12 @@ func (q *Queue) Add(reader io.Reader) (string, error) {
 		_, err = io.Copy(file, reader)
 	}
 	return id, err
+}
+
+func (q *Queue) AddString(body string) (string, error) {
+	return q.Add(bytes.NewBufferString(body))
+}
+
+func (q *Queue) AddBytes(body []byte) (string, error) {
+	return q.Add(bytes.NewBuffer(body))
 }
