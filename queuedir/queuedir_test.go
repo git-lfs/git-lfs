@@ -86,10 +86,7 @@ func Setup(t *testing.T) *QueueTest {
 		t.Fatalf("Cannot get current working dir: %s", err)
 	}
 
-	qdir, err := New(filepath.Join(wd, "test_queuedir"))
-	if err != nil {
-		t.Fatalf("Cannot create queuedir: %s", err)
-	}
+	qdir := New(filepath.Join(wd, "test_queuedir"))
 
 	q, err := qdir.Queue("test")
 	if err != nil {

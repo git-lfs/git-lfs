@@ -14,15 +14,11 @@ import (
 )
 
 type QueueDir struct {
-	Path      string
-	TempQueue *Queue
+	Path string
 }
 
-func New(path string) (*QueueDir, error) {
-	q := &QueueDir{Path: path}
-	tq, err := q.Queue("tmp")
-	q.TempQueue = tq
-	return q, err
+func New(path string) *QueueDir {
+	return &QueueDir{Path: path}
 }
 
 func (q *QueueDir) Queue(name string) (*Queue, error) {
