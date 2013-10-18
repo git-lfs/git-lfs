@@ -32,6 +32,31 @@ func TestAdd(t *testing.T) {
 	}
 }
 
+func TestMove(t *testing.T) {
+	q := Setup(t)
+	defer q.Teardown()
+
+	id, err := q.Queue.AddString("BOOM")
+	if err != nil {
+		t.Fatalf("Cannot add to queue: %s", err)
+	}
+
+	assertExist(t, q.Queue, id)
+
+	queue2, err := q.Dir.Queue("test2")
+	if err != nil {
+		t.Fatalf("Cannot create %s queue: %s", queue2.Name, err)
+	}
+
+	err = q.Queue.Move(queue2, id)
+	if err != nil {
+		t.Fatalf("Cannot move from queue %s to %s: %s", q.Queue.Name, queue2.Name, err)
+	}
+
+	assertNotExist(t, q.Queue, id)
+	assertExist(t, queue2, id)
+}
+
 func TestDel(t *testing.T) {
 	q := Setup(t)
 	defer q.Teardown()

@@ -60,6 +60,10 @@ func (q *Queue) AddBytes(body []byte) (string, error) {
 	return q.Add(bytes.NewBuffer(body))
 }
 
+func (q *Queue) Move(newqueue *Queue, id string) error {
+	return os.Rename(q.FullPath(id), newqueue.FullPath(id))
+}
+
 func (q *Queue) Del(id string) error {
 	full := q.FullPath(id)
 	stat, err := os.Stat(full)
