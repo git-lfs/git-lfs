@@ -5,6 +5,7 @@ package queuedir
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/streadway/simpleuuid"
 	"io"
 	"os"
@@ -43,7 +44,7 @@ func (q *Queue) Add(reader io.Reader) (string, error) {
 	}
 
 	id := uuid.String()
-	file, err := os.Create(filepath.Join(q.Path, id))
+	file, err := os.Create(q.FullPath(id))
 	if err == nil {
 		defer file.Close()
 		_, err = io.Copy(file, reader)
@@ -57,4 +58,22 @@ func (q *Queue) AddString(body string) (string, error) {
 
 func (q *Queue) AddBytes(body []byte) (string, error) {
 	return q.Add(bytes.NewBuffer(body))
+}
+
+func (q *Queue) Del(id string) error {
+	full := q.FullPath(id)
+	stat, err := os.Stat(full)
+	if err != nil {
+		return err
+	}
+
+	if stat.IsDir() {
+		return fmt.Errorf("%s in %s is a directory", id, q.Path)
+	}
+
+	return os.Remove(full)
+}
+
+func (q *Queue) FullPath(id string) string {
+	return filepath.Join(q.Path, id)
 }

@@ -16,6 +16,7 @@ func TestAdd(t *testing.T) {
 		t.Fatalf("Cannot add to queue: %s", err)
 	}
 
+	assertExist(t, q.Queue, id)
 	file, err := os.Open(filepath.Join(q.Queue.Path, id))
 	if err != nil {
 		t.Fatalf("Cannot open file: %s", err)
@@ -29,6 +30,24 @@ func TestAdd(t *testing.T) {
 	if str := string(by); str != "BOOM" {
 		t.Fatalf("Expected BOOM, got %s", str)
 	}
+}
+
+func TestDel(t *testing.T) {
+	q := Setup(t)
+	defer q.Teardown()
+
+	id, err := q.Queue.AddString("BOOM")
+	if err != nil {
+		t.Fatalf("Cannot add to queue: %s", err)
+	}
+
+	assertExist(t, q.Queue, id)
+
+	err = q.Queue.Del(id)
+	if err != nil {
+		t.Fatalf("Error deleting from queue: %s", err)
+	}
+	assertNotExist(t, q.Queue, id)
 }
 
 type QueueTest struct {
@@ -57,4 +76,21 @@ func Setup(t *testing.T) *QueueTest {
 
 func (t *QueueTest) Teardown() {
 	os.RemoveAll(t.Dir.Path)
+}
+
+func assertExist(t *testing.T, q *Queue, id string) {
+	if !fileExists(q, id) {
+		t.Fatalf("%s does not exist in queue %s", id, q.Name)
+	}
+}
+
+func assertNotExist(t *testing.T, q *Queue, id string) {
+	if fileExists(q, id) {
+		t.Fatalf("%s exists in queue %s", id, q.Name)
+	}
+}
+
+func fileExists(q *Queue, id string) bool {
+	_, err := os.Stat(q.FullPath(id))
+	return err == nil
 }
