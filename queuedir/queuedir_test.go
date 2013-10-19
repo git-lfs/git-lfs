@@ -1,6 +1,7 @@
 package queuedir
 
 import (
+	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -27,8 +28,8 @@ func TestAdd(t *testing.T) {
 		t.Fatalf("Cannot read file: %s", err)
 	}
 
-	if str := string(by); str != "BOOM" {
-		t.Fatalf("Expected BOOM, got %s", str)
+	assert.Equal(t, "BOOM", string(by))
+}
 	}
 }
 
