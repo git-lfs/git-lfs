@@ -30,7 +30,41 @@ func TestAdd(t *testing.T) {
 
 	assert.Equal(t, "BOOM", string(by))
 }
+
+func TestWalk(t *testing.T) {
+	q := Setup(t)
+	defer q.Teardown()
+
+	id1, err := q.Queue.AddString("BOOM0")
+	if err != nil {
+		t.Fatalf("Cannot add to queue: %s", err)
 	}
+
+	id2, err := q.Queue.AddString("BOOM1")
+	if err != nil {
+		t.Fatalf("Cannot add to queue: %s", err)
+	}
+
+	seen := make(map[string]bool)
+
+	q.Queue.Walk(func(id string, body []byte) error {
+		if err != nil {
+			t.Errorf("Error reading queue data for %s: %s", id, err)
+		}
+
+		seen[id] = true
+		if id == id1 {
+			assert.Equal(t, id1, id)
+		} else if id == id2 {
+			assert.Equal(t, id2, id)
+		} else {
+			t.Errorf("Weird ID: %s", id)
+		}
+
+		return nil
+	})
+
+	assert.Equal(t, 2, len(seen))
 }
 
 func TestMove(t *testing.T) {

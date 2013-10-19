@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/streadway/simpleuuid"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -33,6 +34,8 @@ type Queue struct {
 	Dir  *QueueDir
 }
 
+type WalkFunc func(id string, body []byte) error
+
 func (q *Queue) Add(reader io.Reader) (string, error) {
 	uuid, err := simpleuuid.NewTime(time.Now())
 	if err != nil {
@@ -46,6 +49,30 @@ func (q *Queue) Add(reader io.Reader) (string, error) {
 		_, err = io.Copy(file, reader)
 	}
 	return id, err
+}
+
+func (q *Queue) Walk(cb WalkFunc) error {
+	return filepath.Walk(q.Path, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		body, err := ioutil.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		return cb(filepath.Base(path), body)
+	})
 }
 
 func (q *Queue) AddString(body string) (string, error) {
