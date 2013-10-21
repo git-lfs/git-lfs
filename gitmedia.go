@@ -104,7 +104,7 @@ func resolveMediaDir() string {
 func resolveGitDir(dir string) string {
 	base := filepath.Base(dir)
 	gitext := ".git"
-	if base == gitext || filepath.Ext(gitext) == gitext {
+	if base == gitext || filepath.Ext(base) == gitext {
 		return dir
 	}
 	return filepath.Join(dir, gitext)
