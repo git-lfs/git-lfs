@@ -65,6 +65,7 @@ func Debug(format string, args ...interface{}) {
 
 func init() {
 	LocalMediaDir = resolveMediaDir()
+	queueDir = setupQueueDir()
 
 	if err := os.MkdirAll(TempDir, 0744); err != nil {
 		fmt.Printf("Error trying to create temp directory: %s\n", TempDir)
