@@ -25,6 +25,7 @@ func (c *SyncCommand) Run() {
 		if err := q.Del(id); err != nil {
 			gitmedia.Panic(err, "error removing %s from queue", sha)
 		}
+		return nil
 	})
 }
 
