@@ -13,14 +13,19 @@ func (c *SyncCommand) Setup() {
 }
 
 func (c *SyncCommand) Run() {
-	err := gitmedia.UploadQueue().Walk(func(id string, sha []byte) error {
-		path := gitmedia.LocalMediaPath(string(sha))
-		return gitmediaclient.Send(path)
-	})
+	q := gitmedia.UploadQueue()
+	q.Walk(func(id string, body []byte) error {
+		sha := string(body)
+		path := gitmedia.LocalMediaPath(sha)
+		err := gitmediaclient.Send(path)
+		if err != nil {
+			gitmedia.Panic(err, "error uploading file %s", sha)
+		}
 
-	if err != nil {
-		gitmedia.Panic(err, "error uploading file")
-	}
+		if err := q.Del(id); err != nil {
+			gitmedia.Panic(err, "error removing %s from queue", sha)
+		}
+	})
 }
 
 func init() {
