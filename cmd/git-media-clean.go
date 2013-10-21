@@ -3,12 +3,20 @@ package main
 import (
 	".."
 	"../filters"
+	"../queuedir"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func main() {
 	gitmedia.SetupDebugging()
+	qdir := queuedir.New(filepath.Join(gitmedia.LocalMediaDir, "queue"))
+	cleanqueue, err := qdir.Queue("clean")
+	if err != nil {
+		fmt.Println("Error setting up queue")
+		panic(err)
+	}
 
 	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {
@@ -27,6 +35,9 @@ func main() {
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
 			gitmedia.Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
+		}
+		if _, err := cleanqueue.AddString(cleaned.Sha); err != nil {
+			gitmedia.Panic(err, "Unable to add %s to queue", cleaned.Sha)
 		}
 		gitmedia.Debug("Writing %s", mediafile)
 	}
