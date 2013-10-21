@@ -12,6 +12,17 @@ func QueueUpload(sha string) {
 	}
 }
 
+func WalkQueues(cb func(name string, queue *queuedir.Queue) error) error {
+	var err error
+	for name, queuefunc := range queues {
+		err = cb(name, queuefunc())
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
 func getUploadQueue() *queuedir.Queue {
 	if uploadQueue == nil {
 		q, err := queueDir.Queue("upload")
@@ -29,6 +40,9 @@ func setupQueueDir() *queuedir.QueueDir {
 }
 
 var (
+	queues = map[string]func() *queuedir.Queue{
+		"upload": getUploadQueue,
+	}
 	queueDir    *queuedir.QueueDir
 	uploadQueue *queuedir.Queue
 )
