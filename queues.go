@@ -6,7 +6,7 @@ import (
 )
 
 func QueueUpload(sha string) {
-	_, err := getUploadQueue().AddString(sha)
+	_, err := UploadQueue().AddString(sha)
 	if err != nil {
 		Panic(err, "Unable to add %s to queue", sha)
 	}
@@ -23,7 +23,7 @@ func WalkQueues(cb func(name string, queue *queuedir.Queue) error) error {
 	return err
 }
 
-func getUploadQueue() *queuedir.Queue {
+func UploadQueue() *queuedir.Queue {
 	if uploadQueue == nil {
 		q, err := queueDir.Queue("upload")
 		if err != nil {
@@ -41,7 +41,7 @@ func setupQueueDir() *queuedir.QueueDir {
 
 var (
 	queues = map[string]func() *queuedir.Queue{
-		"upload": getUploadQueue,
+		"upload": UploadQueue,
 	}
 	queueDir    *queuedir.QueueDir
 	uploadQueue *queuedir.Queue

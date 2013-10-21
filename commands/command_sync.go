@@ -3,9 +3,6 @@ package gitmedia
 import (
 	".."
 	"../client"
-	"fmt"
-	"os"
-	"path/filepath"
 )
 
 type SyncCommand struct {
@@ -16,22 +13,14 @@ func (c *SyncCommand) Setup() {
 }
 
 func (c *SyncCommand) Run() {
-	filepath.Walk(gitmedia.LocalMediaDir, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
-
-		if ext := filepath.Ext(path); len(ext) > 0 {
-			return nil
-		}
-
-		if err := gitmediaclient.Send(path); err != nil {
-			fmt.Println("Error uploading:", path)
-			panic(err)
-		}
-
-		return nil
+	err := gitmedia.UploadQueue().Walk(func(id string, sha []byte) error {
+		path := gitmedia.LocalMediaPath(string(sha))
+		return gitmediaclient.Send(path)
 	})
+
+	if err != nil {
+		gitmedia.Panic(err, "error uploading file")
+	}
 }
 
 func init() {
