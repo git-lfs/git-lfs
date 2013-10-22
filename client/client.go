@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-func Send(filename string) error {
+func Put(filename string) error {
 	sha := filepath.Base(filename)
 	file, err := os.Open(filename)
 	if err != nil {

@@ -17,7 +17,7 @@ func (c *SyncCommand) Run() {
 	q.Walk(func(id string, body []byte) error {
 		sha := string(body)
 		path := gitmedia.LocalMediaPath(sha)
-		err := gitmediaclient.Send(path)
+		err := gitmediaclient.Put(path)
 		if err != nil {
 			gitmedia.Panic(err, "error uploading file %s", sha)
 		}
