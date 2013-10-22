@@ -14,10 +14,9 @@ func main() {
 		panic(err)
 	}
 
-	smudger := gitmediafilters.LocalSmudger()
-	err = smudger.Smudge(os.Stdout, sha)
+	err = gitmediafilters.Smudge(os.Stdout, sha)
 	if err != nil {
-		smudgerr := err.(*gitmediafilters.LocalSmudgeError)
+		smudgerr := err.(*gitmediafilters.SmudgeError)
 		fmt.Printf("Error reading file from local media dir: %s\n", smudgerr.Filename)
 		panic(err)
 	}
