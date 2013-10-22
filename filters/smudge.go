@@ -2,20 +2,20 @@ package gitmediafilters
 
 import (
 	".."
+	"../client"
 	"io"
-	"os"
 )
 
 func Smudge(writer io.Writer, sha string) error {
 	mediafile := gitmedia.LocalMediaPath(sha)
-	file, err := os.Open(mediafile)
+	reader, err := gitmediaclient.Get(mediafile)
 	if err != nil {
 		return &SmudgeError{sha, mediafile, err.Error()}
 	}
 
-	defer file.Close()
+	defer reader.Close()
 
-	_, err = io.Copy(writer, file)
+	_, err = io.Copy(writer, reader)
 	if err != nil {
 		return &SmudgeError{sha, mediafile, err.Error()}
 	}
