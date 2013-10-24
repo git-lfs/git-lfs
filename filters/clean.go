@@ -23,9 +23,9 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 
 	sha1Hash := sha1.New()
 	writer := io.MultiWriter(sha1Hash, tmp)
-	written, _ := io.Copy(writer, reader)
+	written, err := io.Copy(writer, reader)
 
-	return &CleanedAsset{written, tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, nil
+	return &CleanedAsset{written, tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, err
 }
 
 func (a *CleanedAsset) Close() error {
