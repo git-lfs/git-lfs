@@ -2,10 +2,11 @@ package gitmediafilters
 
 import (
 	".."
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"os"
+	"strconv"
 )
 
 type CleanedAsset struct {
@@ -21,11 +22,11 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 		return nil, err
 	}
 
-	sha1Hash := sha1.New()
-	writer := io.MultiWriter(sha1Hash, tmp)
+	oidHash := sha256.New()
+	writer := io.MultiWriter(oidHash, tmp)
 	written, err := io.Copy(writer, reader)
 
-	return &CleanedAsset{written, tmp, hex.EncodeToString(sha1Hash.Sum(nil)), ""}, err
+	return &CleanedAsset{written, tmp, hex.EncodeToString(oidHash.Sum(nil)), ""}, err
 }
 
 func (a *CleanedAsset) Close() error {
