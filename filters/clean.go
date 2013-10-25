@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
-	"strconv"
 )
 
 type CleanedAsset struct {
@@ -25,7 +24,6 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
 	written, err := io.Copy(writer, reader)
-	oidHash.Write([]byte(strconv.FormatInt(written, 10)))
 
 	return &CleanedAsset{written, tmp, hex.EncodeToString(oidHash.Sum(nil)), ""}, err
 }
