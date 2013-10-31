@@ -10,7 +10,7 @@ import (
 )
 
 func Put(filename string) error {
-	sha := filepath.Base(filename)
+	oid := filepath.Base(filename)
 	stat, err := os.Stat(filename)
 	if err != nil {
 		return err
@@ -21,11 +21,12 @@ func Put(filename string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", objectUrl(sha), file)
-	req.ContentLength = stat.Size()
+	req, err := clientRequest("PUT", oid)
 	if err != nil {
 		return err
 	}
+	req.Body = file
+	req.ContentLength = stat.Size()
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -43,14 +44,14 @@ func Put(filename string) error {
 		return apierr
 	}
 
-	fmt.Printf("Sending %s from %s: %d\n", sha, filename, res.StatusCode)
+	fmt.Printf("Sending %s from %s: %d\n", oid, filename, res.StatusCode)
 	return nil
 }
 
 func Get(filename string) (io.ReadCloser, error) {
-	sha := filepath.Base(filename)
+	oid := filepath.Base(filename)
 	if stat, err := os.Stat(filename); err != nil || stat == nil {
-		req, err := http.NewRequest("GET", objectUrl(sha), nil)
+		req, err := clientRequest("GET", oid)
 		if err != nil {
 			return nil, err
 		}
@@ -67,8 +68,12 @@ func Get(filename string) (io.ReadCloser, error) {
 	return os.Open(filename)
 }
 
-func objectUrl(sha string) string {
-	return "http://localhost:8080/objects/" + sha
+func clientRequest(method, oid string) (*http.Request, error) {
+	return http.NewRequest(method, objectUrl(oid), nil)
+}
+
+func objectUrl(oid string) string {
+	return "http://localhost:8080/objects/" + oid
 }
 
 type Error struct {
