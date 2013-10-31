@@ -61,7 +61,6 @@ func Get(filename string) (io.ReadCloser, error) {
 			return nil, err
 		}
 
-		fmt.Printf("Downloading %s: %d\n", sha, res.StatusCode)
 		return res.Body, nil
 	}
 
