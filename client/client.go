@@ -1,6 +1,7 @@
 package gitmediaclient
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,17 @@ func Put(filename string) error {
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		apierr := &Error{}
+		dec := json.NewDecoder(res.Body)
+		if err = dec.Decode(apierr); err != nil {
+			return err
+		}
+		return apierr
 	}
 
 	fmt.Printf("Sending %s from %s: %d\n", sha, filename, res.StatusCode)
@@ -52,4 +64,13 @@ func Get(filename string) (io.ReadCloser, error) {
 
 func objectUrl(sha string) string {
 	return "http://localhost:8080/objects/" + sha
+}
+
+type Error struct {
+	Message   string `json:"message"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+func (e *Error) Error() string {
+	return e.Message
 }
