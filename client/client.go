@@ -11,12 +11,18 @@ import (
 
 func Put(filename string) error {
 	sha := filepath.Base(filename)
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return err
+	}
+
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
 
 	req, err := http.NewRequest("PUT", objectUrl(sha), file)
+	req.ContentLength = stat.Size()
 	if err != nil {
 		return err
 	}
