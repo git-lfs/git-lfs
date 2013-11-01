@@ -26,7 +26,7 @@ func Put(filename string) error {
 		return err
 	}
 
-	req, err := clientRequest("PUT", oid)
+	req, _, err := clientRequest("PUT", oid)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func Put(filename string) error {
 func Get(filename string) (io.ReadCloser, error) {
 	oid := filepath.Base(filename)
 	if stat, err := os.Stat(filename); err != nil || stat == nil {
-		req, err := clientRequest("GET", oid)
+		req, _, err := clientRequest("GET", oid)
 		if err != nil {
 			return nil, err
 		}
@@ -73,21 +73,22 @@ func Get(filename string) (io.ReadCloser, error) {
 	return os.Open(filename)
 }
 
-func clientRequest(method, oid string) (*http.Request, error) {
+func clientRequest(method, oid string) (*http.Request, map[string]string, error) {
 	u := objectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err == nil {
 		creds, err := credentials(u)
 		if err != nil {
-			return req, err
+			return req, nil, err
 		}
 
 		token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
 		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
 		req.Header.Set("Authorization", auth)
+		return req, creds, nil
 	}
 
-	return req, err
+	return req, nil, err
 }
 
 func objectUrl(oid string) *url.URL {
