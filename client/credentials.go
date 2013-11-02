@@ -8,16 +8,16 @@ import (
 	"strings"
 )
 
-func credentials(u *url.URL) (map[string]string, error) {
-	credInput := fmt.Sprintf("protocol=%s\nhost=%s\n", u.Scheme, u.Host)
-	cmd, err := execCreds(credInput, "fill")
+func credentials(u *url.URL) (Creds, error) {
+	creds := Creds{"protocol": u.Scheme, "host": u.Host}
+	cmd, err := execCreds(creds, "fill")
 	if err != nil {
 		return nil, err
 	}
 	return cmd.Credentials(), nil
 }
 
-func execCreds(input, subCommand string) (*CredentialCmd, error) {
+func execCreds(input Creds, subCommand string) (*CredentialCmd, error) {
 	cmd := NewCommand(input, subCommand)
 	err := cmd.Start()
 	if err == nil {
@@ -38,11 +38,11 @@ type CredentialCmd struct {
 	*exec.Cmd
 }
 
-func NewCommand(input, subCommand string) *CredentialCmd {
+func NewCommand(input Creds, subCommand string) *CredentialCmd {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
-	cmd.Stdin = bytes.NewBufferString(input)
+	cmd.Stdin = input.Buffer()
 	cmd.Stdout = buf1
 	cmd.Stderr = buf2
 	return &CredentialCmd{buf1, buf2, subCommand, cmd}
@@ -56,8 +56,8 @@ func (c *CredentialCmd) StdoutString() string {
 	return c.output.String()
 }
 
-func (c *CredentialCmd) Credentials() map[string]string {
-	creds := make(map[string]string)
+func (c *CredentialCmd) Credentials() Creds {
+	creds := make(Creds)
 
 	for _, line := range strings.Split(c.StdoutString(), "\n") {
 		pieces := strings.SplitN(line, "=", 2)
@@ -68,4 +68,19 @@ func (c *CredentialCmd) Credentials() map[string]string {
 	}
 
 	return creds
+}
+
+type Creds map[string]string
+
+func (c Creds) Buffer() *bytes.Buffer {
+	buf := new(bytes.Buffer)
+
+	for k, v := range c {
+		buf.Write([]byte(k))
+		buf.Write([]byte("="))
+		buf.Write([]byte(v))
+		buf.Write([]byte("\n"))
+	}
+
+	return buf
 }

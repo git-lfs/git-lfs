@@ -23,7 +23,7 @@ func Put(filename string) error {
 		return err
 	}
 
-	req, _, err := clientRequest("PUT", oid)
+	req, creds, err := clientRequest("PUT", oid)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func Put(filename string) error {
 	req.Body = file
 	req.ContentLength = stat.Size()
 
-	res, err := doRequest(req)
+	res, err := doRequest(req, creds)
 	if err != nil {
 		return err
 	}
@@ -43,13 +43,13 @@ func Put(filename string) error {
 func Get(filename string) (io.ReadCloser, error) {
 	oid := filepath.Base(filename)
 	if stat, err := os.Stat(filename); err != nil || stat == nil {
-		req, _, err := clientRequest("GET", oid)
+		req, creds, err := clientRequest("GET", oid)
 		if err != nil {
 			return nil, err
 		}
 
 		req.Header.Set("Accept", "application/vnd.git-media")
-		res, err := doRequest(req)
+		res, err := doRequest(req, creds)
 		if err != nil {
 			return nil, err
 		}
@@ -60,13 +60,15 @@ func Get(filename string) (io.ReadCloser, error) {
 	return os.Open(filename)
 }
 
-func doRequest(req *http.Request) (*http.Response, error) {
+func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := http.DefaultClient.Do(req)
 
 	if err == nil {
 		defer res.Body.Close()
 
 		if res.StatusCode > 299 {
+			execCreds(creds, "reject")
+
 			apierr := &Error{}
 			dec := json.NewDecoder(res.Body)
 			if err := dec.Decode(apierr); err != nil {
@@ -75,12 +77,14 @@ func doRequest(req *http.Request) (*http.Response, error) {
 
 			return res, apierr
 		}
+	} else {
+		execCreds(creds, "approve")
 	}
 
 	return res, err
 }
 
-func clientRequest(method, oid string) (*http.Request, map[string]string, error) {
+func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	u := objectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err == nil {
