@@ -50,6 +50,7 @@ func Get(filename string) (io.ReadCloser, error) {
 
 		req.Header.Set("Accept", "application/vnd.git-media")
 		res, err := doRequest(req, creds)
+
 		if err != nil {
 			return nil, err
 		}
@@ -64,8 +65,6 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := http.DefaultClient.Do(req)
 
 	if err == nil {
-		defer res.Body.Close()
-
 		if res.StatusCode > 299 {
 			execCreds(creds, "reject")
 
