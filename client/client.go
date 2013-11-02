@@ -33,20 +33,9 @@ func Put(filename string) error {
 	req.Body = file
 	req.ContentLength = stat.Size()
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := doRequest(req)
 	if err != nil {
 		return err
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode > 299 {
-		apierr := &Error{}
-		dec := json.NewDecoder(res.Body)
-		if err = dec.Decode(apierr); err != nil {
-			return err
-		}
-		return apierr
 	}
 
 	fmt.Printf("Sending %s from %s: %d\n", oid, filename, res.StatusCode)
@@ -62,7 +51,7 @@ func Get(filename string) (io.ReadCloser, error) {
 		}
 
 		req.Header.Set("Accept", "application/vnd.git-media")
-		res, err := http.DefaultClient.Do(req)
+		res, err := doRequest(req)
 		if err != nil {
 			return nil, err
 		}
@@ -71,6 +60,22 @@ func Get(filename string) (io.ReadCloser, error) {
 	}
 
 	return os.Open(filename)
+}
+
+func doRequest(req *http.Request) (*http.Response, error) {
+	res, err := http.DefaultClient.Do(req)
+	if err == nil {
+		defer res.Body.Close()
+		if res.StatusCode > 299 {
+			apierr := &Error{}
+			dec := json.NewDecoder(res.Body)
+			if err := dec.Decode(apierr); err != nil {
+				return res, err
+			}
+			return res, apierr
+		}
+	}
+	return res, err
 }
 
 func clientRequest(method, oid string) (*http.Request, map[string]string, error) {
