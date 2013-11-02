@@ -20,17 +20,21 @@ func credentials(u *url.URL) (map[string]string, error) {
 func execCreds(input, subCommand string) (*CredentialCmd, error) {
 	cmd := NewCommand(input, subCommand)
 	err := cmd.Start()
-	if err != nil {
-		return cmd, err
+	if err == nil {
+		err = cmd.Wait()
 	}
 
-	err = cmd.Wait()
-	return cmd, err
+	if err != nil {
+		return cmd, fmt.Errorf("'git credential %s' error: %s\n%s", cmd.SubCommand, err.Error(), cmd.StderrString())
+	}
+
+	return cmd, nil
 }
 
 type CredentialCmd struct {
-	bufOut *bytes.Buffer
-	bufErr *bytes.Buffer
+	output     *bytes.Buffer
+	err        *bytes.Buffer
+	SubCommand string
 	*exec.Cmd
 }
 
@@ -41,15 +45,15 @@ func NewCommand(input, subCommand string) *CredentialCmd {
 	cmd.Stdin = bytes.NewBufferString(input)
 	cmd.Stdout = buf1
 	cmd.Stderr = buf2
-	return &CredentialCmd{buf1, buf2, cmd}
+	return &CredentialCmd{buf1, buf2, subCommand, cmd}
 }
 
 func (c *CredentialCmd) StderrString() string {
-	return c.bufErr.String()
+	return c.err.String()
 }
 
 func (c *CredentialCmd) StdoutString() string {
-	return c.bufOut.String()
+	return c.output.String()
 }
 
 func (c *CredentialCmd) Credentials() map[string]string {
