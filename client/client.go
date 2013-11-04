@@ -51,12 +51,23 @@ func Get(filename string) (io.ReadCloser, error) {
 
 		req.Header.Set("Accept", "application/vnd.git-media")
 		res, err := doRequest(req, creds)
+		defer res.Body.Close()
 
 		if err != nil {
 			return nil, err
 		}
 
-		return res.Body, nil
+		mediafile, err := os.Create(filename)
+		defer mediafile.Close()
+
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(mediafile, res.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return os.Open(filename)
