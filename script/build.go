@@ -67,7 +67,10 @@ func build(buildos, buildarch string) {
 	})
 
 	if addenv {
-		setupInstaller(buildos, buildarch, dir)
+		err := setupInstaller(buildos, buildarch, dir)
+		if err != nil {
+			fmt.Println("Error setting up installer:\n", err.Error())
+		}
 	}
 }
 
@@ -103,18 +106,45 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 
 func setupInstaller(buildos, buildarch, dir string) error {
 	if buildos == "windows" {
-		return nil // Click here to install.bat
+		return winInstaller(buildos, buildarch, dir)
+	} else {
+		return unixInstaller(buildos, buildarch, dir)
 	}
+}
 
+func unixInstaller(buildos, buildarch, dir string) error {
 	cmd := exec.Command("cp", "script/install.sh.example", filepath.Join(dir, "install.sh"))
-	fmt.Printf(" - %s\n", strings.Join(cmd.Args, " "))
-	if err := cmd.Run(); err != nil {
+	if err := logAndRun(cmd); err != nil {
 		return err
 	}
 
-	zipName := fmt.Sprintf("git-media-%s-%s-v%s.tar.gz", buildos, buildarch, gitmedia.Version)
-	cmd = exec.Command("tar", "czf", zipName, filepath.Base(dir))
-	fmt.Printf(" - %s\n", strings.Join(cmd.Args, " "))
+	name := zipName(buildos, buildarch) + ".tar.gz"
+	cmd = exec.Command("tar", "czf", name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
+	return logAndRun(cmd)
+}
+
+func winInstaller(buildos, buildarch, dir string) error {
+	cmd := exec.Command("cp", "script/install.bat.example", filepath.Join(dir, "install.bat"))
+	if err := logAndRun(cmd); err != nil {
+		return err
+	}
+
+	name := zipName(buildos, buildarch) + ".zip"
+	cmd = exec.Command("zip", name, filepath.Base(dir)+"/*")
+	cmd.Dir = filepath.Dir(dir)
+	return logAndRun(cmd)
+}
+
+func logAndRun(cmd *exec.Cmd) error {
+	fmt.Printf(" - %s\n", strings.Join(cmd.Args, " "))
+	if len(cmd.Dir) > 0 {
+		fmt.Printf("   - in %s\n", cmd.Dir)
+	}
+
 	return cmd.Run()
+}
+
+func zipName(os, arch string) string {
+	return fmt.Sprintf("git-media-%s-%s-v%s", os, arch, gitmedia.Version)
 }
