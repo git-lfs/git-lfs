@@ -102,7 +102,7 @@ func setupInstaller(buildos, buildarch, dir string) error {
 		return nil // Click here to install.bat
 	}
 
-	cmd := exec.Command("cp", "script/installer.tmpl", filepath.Join(dir, "install.sh"))
+	cmd := exec.Command("cp", "script/install.sh.example", filepath.Join(dir, "install.sh"))
 	fmt.Printf(" - %s\n", strings.Join(cmd.Args, " "))
 	if err := cmd.Run(); err != nil {
 		return err
