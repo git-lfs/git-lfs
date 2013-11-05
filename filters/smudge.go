@@ -4,9 +4,10 @@ import (
 	".."
 	"../client"
 	"io"
+	"os"
 )
 
-func Smudge(writer io.Writer, sha string) error {
+func Smudge(writer io.Writer, sha string) error { // stdout, sha
 	mediafile := gitmedia.LocalMediaPath(sha)
 	reader, err := gitmediaclient.Get(mediafile)
 	if err != nil {
@@ -15,7 +16,16 @@ func Smudge(writer io.Writer, sha string) error {
 
 	defer reader.Close()
 
-	_, err = io.Copy(writer, reader)
+	mediaWriter, err := os.Create(mediafile)
+	defer mediaWriter.Close()
+
+	if err != nil {
+		return &SmudgeError{sha, mediafile, err.Error()}
+	}
+
+	multiWriter := io.MultiWriter(writer, mediaWriter)
+
+	_, err = io.Copy(multiWriter, reader)
 	if err != nil {
 		return &SmudgeError{sha, mediafile, err.Error()}
 	}
