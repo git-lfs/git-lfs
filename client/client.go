@@ -1,6 +1,7 @@
 package gitmediaclient
 
 import (
+	".."
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -102,8 +103,9 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 }
 
 func objectUrl(oid string) *url.URL {
-	u, _ := url.Parse("http://localhost:8080")
-	u.Path = "/objects/" + oid
+	c := gitmedia.Config()
+	u, _ := url.Parse(c.Endpoint)
+	u.Path = filepath.Join(u.Path, "/objects/"+oid)
 	return u
 }
 
