@@ -62,14 +62,14 @@ func build(buildos, buildarch string) {
 func buildCommand(path, buildos, buildarch string) error {
 	base := filepath.Base(path)
 	base = base[0 : len(base)-3]
-	bin := "bin"
+	dir := "bin"
 	addenv := len(buildos) > 0 && len(buildarch) > 0
 
 	if addenv {
-		bin = filepath.Join(bin, buildos+"-"+buildarch, base)
-	} else {
-		bin = filepath.Join(bin, base)
+		dir = filepath.Join(dir, buildos+"-"+buildarch)
 	}
+
+	bin := filepath.Join(dir, base)
 
 	cmd := exec.Command("go", "build", "-o", bin, path)
 	var out bytes.Buffer
