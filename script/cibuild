@@ -1,0 +1,5 @@
+#!/bin/sh
+export GOPACK_SKIP_COLORS=1
+script/bootstrap
+script/test -i
+script/test
