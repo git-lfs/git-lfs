@@ -22,7 +22,6 @@ func Config() *Configuration {
 		readToml(config)
 	}
 
-	panic(config.Endpoint)
 	return config
 }
 
