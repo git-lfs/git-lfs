@@ -1,6 +1,7 @@
 package main
 
 import (
+	".."
 	"bytes"
 	"flag"
 	"fmt"
@@ -46,8 +47,13 @@ func main() {
 }
 
 func build(buildos, buildarch string) {
-	if len(buildos) > 0 && len(buildarch) > 0 {
+	addenv := len(buildos) > 0 && len(buildarch) > 0
+	name := "git-media-v" + gitmedia.Version
+	dir := "bin"
+
+	if addenv {
 		fmt.Printf("Building for %s/%s\n", buildos, buildarch)
+		dir = filepath.Join(dir, "installers", buildos+"-"+buildarch, name)
 	}
 
 	filepath.Walk("cmd", func(path string, info os.FileInfo, err error) error {
@@ -55,21 +61,22 @@ func build(buildos, buildarch string) {
 			return nil
 		}
 
-		return buildCommand(path, buildos, buildarch)
+		cmd := filepath.Base(path)
+		cmd = cmd[0 : len(cmd)-3]
+		return buildCommand(path, dir, buildos, buildarch)
 	})
-}
-
-func buildCommand(path, buildos, buildarch string) error {
-	base := filepath.Base(path)
-	base = base[0 : len(base)-3]
-	dir := "bin"
-	addenv := len(buildos) > 0 && len(buildarch) > 0
 
 	if addenv {
-		dir = filepath.Join(dir, buildos+"-"+buildarch)
+		setupInstaller(buildos, buildarch, dir)
 	}
+}
 
-	bin := filepath.Join(dir, base)
+func buildCommand(path, dir, buildos, buildarch string) error {
+	addenv := len(buildos) > 0 && len(buildarch) > 0
+	name := filepath.Base(path)
+	name = name[0 : len(name)-3]
+
+	bin := filepath.Join(dir, name)
 
 	cmd := exec.Command("go", "build", "-o", bin, path)
 	var out bytes.Buffer
@@ -88,4 +95,22 @@ func buildCommand(path, buildos, buildarch string) error {
 	}
 
 	return nil
+}
+
+func setupInstaller(buildos, buildarch, dir string) error {
+	if buildos == "windows" {
+		return nil // Click here to install.bat
+	}
+
+	cmd := exec.Command("cp", "script/installer.tmpl", filepath.Join(dir, "install.sh"))
+	fmt.Printf(" - %s\n", strings.Join(cmd.Args, " "))
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	zipName := fmt.Sprintf("git-media-%s-%s-v%s.tar.gz", buildos, buildarch, gitmedia.Version)
+	cmd = exec.Command("tar", "czf", zipName, filepath.Base(dir))
+	fmt.Printf(" - %s\n", strings.Join(cmd.Args, " "))
+	cmd.Dir = filepath.Dir(dir)
+	return cmd.Run()
 }
