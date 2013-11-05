@@ -78,6 +78,10 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 
 	bin := filepath.Join(dir, name)
 
+	if buildos == "windows" {
+		bin = bin + ".exe"
+	}
+
 	cmd := exec.Command("go", "build", "-o", bin, path)
 	var out bytes.Buffer
 	cmd.Stderr = &out
