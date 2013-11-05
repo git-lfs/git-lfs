@@ -75,7 +75,7 @@ func buildCommand(path, buildos, buildarch string) error {
 	var out bytes.Buffer
 	cmd.Stderr = &out
 	if addenv {
-		cmd.Env = []string{"GOOS=" + buildos, "GOARCH=" + buildarch}
+		cmd.Env = []string{"GOOS=" + buildos, "GOARCH=" + buildarch, "GOPATH=" + os.Getenv("GOPATH")}
 	}
 
 	if err := cmd.Run(); err != nil {
