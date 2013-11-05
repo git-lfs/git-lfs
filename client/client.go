@@ -85,7 +85,7 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 }
 
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
-	u := objectUrl(oid)
+	u := ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err == nil {
 		creds, err := credentials(u)
@@ -102,7 +102,7 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	return req, nil, err
 }
 
-func objectUrl(oid string) *url.URL {
+func ObjectUrl(oid string) *url.URL {
 	c := gitmedia.Config()
 	u, _ := url.Parse(c.Endpoint)
 	u.Path = filepath.Join(u.Path, "/objects/"+oid)
