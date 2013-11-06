@@ -7,30 +7,45 @@ import (
 	"os"
 )
 
-func Smudge(writer io.Writer, sha string) error { // stdout, sha
+func Smudge(writer io.Writer, sha string) error {
 	mediafile := gitmedia.LocalMediaPath(sha)
-	reader, err := gitmediaclient.Get(mediafile)
-	if err != nil {
-		return &SmudgeError{sha, mediafile, err.Error()}
-	}
 
-	defer reader.Close()
+	if stat, err := os.Stat(mediafile); err != nil || stat == nil {
+		reader, err := gitmediaclient.Get(mediafile)
+		if err != nil {
+			return &SmudgeError{sha, mediafile, err.Error()}
+		}
+		defer reader.Close()
 
-	mediaWriter, err := os.Create(mediafile)
-	defer mediaWriter.Close()
+		mediaWriter, err := os.Create(mediafile)
+		if err != nil {
+			return &SmudgeError{sha, mediafile, err.Error()}
+		}
+		defer mediaWriter.Close()
 
-	if err != nil {
-		return &SmudgeError{sha, mediafile, err.Error()}
-	}
+		if err := copyFile(reader, writer, mediaWriter); err != nil {
+			return &SmudgeError{sha, mediafile, err.Error()}
+		}
+	} else {
+		reader, err := os.Open(mediafile)
+		if err != nil {
+			return &SmudgeError{sha, mediafile, err.Error()}
+		}
+		defer reader.Close()
 
-	multiWriter := io.MultiWriter(writer, mediaWriter)
-
-	_, err = io.Copy(multiWriter, reader)
-	if err != nil {
-		return &SmudgeError{sha, mediafile, err.Error()}
+		if err := copyFile(reader, writer); err != nil {
+			return &SmudgeError{sha, mediafile, err.Error()}
+		}
 	}
 
 	return nil
+}
+
+func copyFile(reader io.ReadCloser, writers ...io.Writer) error {
+	multiWriter := io.MultiWriter(writers...)
+
+	_, err := io.Copy(multiWriter, reader)
+	return err
 }
 
 type SmudgeError struct {
