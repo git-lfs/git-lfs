@@ -127,8 +127,18 @@ func winInstaller(buildos, buildarch, dir string) error {
 	}
 
 	name := zipName(buildos, buildarch) + ".zip"
-	cmd = exec.Command("zip", name, filepath.Base(dir)+"/*")
-	cmd.Dir = filepath.Dir(dir)
+	full := filepath.Join(filepath.Dir(dir), name)
+	matches, err := filepath.Glob(dir + "/*")
+	if err != nil {
+		return err
+	}
+
+	args := make([]string, len(matches)+2)
+	args[0] = "-j" // junk the zip paths
+	args[1] = full
+	copy(args[2:], matches)
+
+	cmd = exec.Command("zip", args...)
 	return logAndRun(cmd)
 }
 
