@@ -115,7 +115,7 @@ func unixInstaller(buildos, buildarch, dir string) error {
 	}
 
 	name := zipName(buildos, buildarch) + ".tar.gz"
-	cmd = exec.Command("tar", "czf", name, filepath.Base(dir))
+	cmd = exec.Command("tar", "czf", "../"+name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
 	return logAndRun(cmd)
 }
@@ -126,8 +126,10 @@ func winInstaller(buildos, buildarch, dir string) error {
 		return err
 	}
 
+	installerPath := filepath.Dir(filepath.Dir(dir))
+
 	name := zipName(buildos, buildarch) + ".zip"
-	full := filepath.Join(filepath.Dir(dir), name)
+	full := filepath.Join(installerPath, name)
 	matches, err := filepath.Glob(dir + "/*")
 	if err != nil {
 		return err
