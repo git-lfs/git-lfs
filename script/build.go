@@ -2,7 +2,6 @@ package main
 
 import (
 	".."
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -86,8 +85,6 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 	}
 
 	cmd := exec.Command("go", "build", "-o", bin, path)
-	var out bytes.Buffer
-	cmd.Stderr = &out
 	if addenv {
 		cmd.Env = []string{
 			"GOOS=" + buildos,
@@ -96,12 +93,11 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 		}
 	}
 
-	if err := cmd.Run(); err != nil {
-		fmt.Println(out.String())
-		return err
+	output, err := cmd.CombinedOutput()
+	if len(output) > 0 {
+		fmt.Println(string(output))
 	}
-
-	return nil
+	return err
 }
 
 func setupInstaller(buildos, buildarch, dir string) error {
@@ -142,7 +138,9 @@ func logAndRun(cmd *exec.Cmd) error {
 		fmt.Printf("   - in %s\n", cmd.Dir)
 	}
 
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	fmt.Println(string(output))
+	return err
 }
 
 func zipName(os, arch string) string {
