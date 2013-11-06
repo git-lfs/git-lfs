@@ -52,7 +52,7 @@ func build(buildos, buildarch string) {
 
 	if addenv {
 		fmt.Printf("Building for %s/%s\n", buildos, buildarch)
-		dir = filepath.Join(dir, "installers", buildos+"-"+buildarch, name)
+		dir = filepath.Join(dir, "releases", buildos+"-"+buildarch, name)
 	}
 
 	filepath.Walk("cmd", func(path string, info os.FileInfo, err error) error {
