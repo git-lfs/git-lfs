@@ -12,7 +12,7 @@ func TestEncode(t *testing.T) {
 		t.Errorf("Error encoding: %s", err)
 	}
 
-	if n != len(MediaWarning)+3 {
+	if n != len(MediaWarning)+4 {
 		t.Errorf("wrong number of written bytes")
 	}
 
