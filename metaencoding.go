@@ -13,7 +13,7 @@ func Encode(writer io.Writer, sha string) (int, error) {
 		return written, err
 	}
 
-	written2, err := writer.Write([]byte(sha))
+	written2, err := writer.Write([]byte(sha + "\n"))
 	return written + written2, err
 }
 
