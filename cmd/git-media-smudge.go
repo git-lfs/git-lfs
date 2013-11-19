@@ -14,7 +14,14 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Downloading media: %s\n", sha)
+	var path string
+	if len(os.Args) > 1 {
+		path = os.Args[1]
+	} else {
+		path = sha
+	}
+
+	fmt.Fprintf(os.Stderr, "Downloading media: %s\n", path)
 
 	err = gitmediafilters.Smudge(os.Stdout, sha)
 	if err != nil {
