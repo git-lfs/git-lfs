@@ -19,7 +19,7 @@ func main() {
 		path = sha
 	}
 
-	gitmedia.Print("Downloading emdia: %s", path)
+	gitmedia.Print("Downloading media: %s", path)
 
 	err = gitmediafilters.Smudge(os.Stdout, sha)
 	if err != nil {

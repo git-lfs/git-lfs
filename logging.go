@@ -24,14 +24,14 @@ func Print(format string, args ...interface{}) {
 	fmt.Fprintln(ErrorWriter, line)
 }
 
-func Panic(err error, format string, args ...interface{}) {
-	defer handlePanic(err)
-	Exit(format, args...)
-}
-
 func Exit(format string, args ...interface{}) {
 	Print(format, args...)
 	os.Exit(2)
+}
+
+func Panic(err error, format string, args ...interface{}) {
+	defer handlePanic(err)
+	Exit(format, args...)
 }
 
 func Debug(format string, args ...interface{}) {
