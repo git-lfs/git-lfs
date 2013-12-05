@@ -10,8 +10,10 @@ type BoomtownCommand struct {
 }
 
 func (c *BoomtownCommand) Run() {
-	err := errors.New("Welcome to Boomtown")
-	core.Panic(err, "Error!")
+	core.Debug("Debug message")
+	err := errors.New("Error!")
+	core.Panic(err, "Welcome to Boomtown")
+	core.Debug("Never seen")
 }
 
 func init() {
