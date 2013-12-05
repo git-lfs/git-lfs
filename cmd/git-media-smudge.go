@@ -3,7 +3,6 @@ package main
 import (
 	".."
 	"../filters"
-	"fmt"
 	"os"
 )
 
@@ -20,7 +19,7 @@ func main() {
 		path = sha
 	}
 
-	fmt.Fprintf(os.Stderr, "Downloading media: %s\n", path)
+	gitmedia.Print("Downloading emdia: %s", path)
 
 	err = gitmediafilters.Smudge(os.Stdout, sha)
 	if err != nil {

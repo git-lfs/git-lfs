@@ -19,15 +19,18 @@ var (
 	ErrorWriter = io.MultiWriter(os.Stderr, ErrorBuffer)
 )
 
+func Print(format string, args ...interface{}) {
+	line := fmt.Sprintf(format, args...)
+	fmt.Fprintln(ErrorWriter, line)
+}
+
 func Panic(err error, format string, args ...interface{}) {
 	defer handlePanic(err)
 	Exit(format, args...)
 }
 
 func Exit(format string, args ...interface{}) {
-	line := fmt.Sprintf(format, args...)
-	fmt.Fprintln(ErrorWriter, line)
-
+	Print(format, args...)
 	os.Exit(2)
 }
 
