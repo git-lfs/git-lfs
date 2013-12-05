@@ -9,18 +9,18 @@ import (
 	"path/filepath"
 )
 
-type ErrorsCommand struct {
+type LogsCommand struct {
 	ClearLogs bool
 	Boomtown  bool
 	*Command
 }
 
-func (c *ErrorsCommand) Setup() {
+func (c *LogsCommand) Setup() {
 	c.FlagSet.BoolVar(&c.ClearLogs, "clear", false, "Clear existing error logs")
 	c.FlagSet.BoolVar(&c.Boomtown, "boomtown", false, "Trigger a panic")
 }
 
-func (c *ErrorsCommand) Run() {
+func (c *LogsCommand) Run() {
 	if c.ClearLogs {
 		c.clear()
 	}
@@ -37,26 +37,26 @@ func (c *ErrorsCommand) Run() {
 
 	switch sub {
 	case "last":
-		c.lastError()
+		c.lastLog()
 	case "":
-		c.listErrors()
+		c.listLogs()
 	default:
-		c.showError(sub)
+		c.showLog(sub)
 	}
 }
 
-func (c *ErrorsCommand) listErrors() {
+func (c *LogsCommand) listLogs() {
 	for _, path := range sortedLogs() {
 		core.Print(path)
 	}
 }
 
-func (c *ErrorsCommand) lastError() {
+func (c *LogsCommand) lastLog() {
 	logs := sortedLogs()
-	c.showError(logs[len(logs)-1])
+	c.showLog(logs[len(logs)-1])
 }
 
-func (c *ErrorsCommand) showError(name string) {
+func (c *LogsCommand) showLog(name string) {
 	by, err := ioutil.ReadFile(filepath.Join(core.LocalLogDir, name))
 	if err != nil {
 		core.Panic(err, "Error reading log: %s", name)
@@ -66,7 +66,7 @@ func (c *ErrorsCommand) showError(name string) {
 	os.Stdout.Write(by)
 }
 
-func (c *ErrorsCommand) clear() {
+func (c *LogsCommand) clear() {
 	err := os.RemoveAll(core.LocalLogDir)
 	if err != nil {
 		core.Panic(err, "Error clearing %s", core.LocalLogDir)
@@ -75,7 +75,7 @@ func (c *ErrorsCommand) clear() {
 	fmt.Println("Cleared", core.LocalLogDir)
 }
 
-func (c *ErrorsCommand) boomtown() {
+func (c *LogsCommand) boomtown() {
 	core.Debug("Debug message")
 	err := errors.New("Error!")
 	core.Panic(err, "Welcome to Boomtown")
@@ -97,7 +97,7 @@ func sortedLogs() []string {
 }
 
 func init() {
-	registerCommand("errors", func(c *Command) RunnableCommand {
-		return &ErrorsCommand{Command: c}
+	registerCommand("logs", func(c *Command) RunnableCommand {
+		return &LogsCommand{Command: c}
 	})
 }
