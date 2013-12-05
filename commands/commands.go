@@ -86,6 +86,7 @@ func (c *Command) Usage() {
 
 func (c *Command) Parse() {
 	core.SetupDebugging(c.FlagSet)
+	c.FlagSet.SetOutput(core.ErrorWriter)
 	c.FlagSet.Parse(c.Args)
 }
 
