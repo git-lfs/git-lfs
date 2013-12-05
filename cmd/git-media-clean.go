@@ -3,11 +3,13 @@ package main
 import (
 	".."
 	"../filters"
+	"flag"
 	"os"
 )
 
 func main() {
-	gitmedia.SetupDebugging()
+	gitmedia.SetupDebugging(nil)
+	flag.Parse()
 
 	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {

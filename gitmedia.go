@@ -55,13 +55,15 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Debug(format string, args ...interface{}) {
-	if !*debugging {
+	if !Debugging {
 		return
 	}
 	log.Printf(format, args...)
 }
 
 func init() {
+	log.SetOutput(os.Stderr)
+
 	LocalMediaDir = resolveMediaDir()
 	queueDir = setupQueueDir()
 
@@ -70,13 +72,13 @@ func init() {
 	}
 }
 
-var debugging = flag.Bool("debug", false, "Turns debugging on")
+var Debugging = false
 
-func SetupDebugging() {
-	flag.Parse()
-
-	if *debugging {
-		log.SetOutput(os.Stderr)
+func SetupDebugging(flagset *flag.FlagSet) {
+	if flagset == nil {
+		flag.BoolVar(&Debugging, "debug", false, "Turns debugging on")
+	} else {
+		flagset.BoolVar(&Debugging, "debug", false, "Turns debugging on")
 	}
 }
 

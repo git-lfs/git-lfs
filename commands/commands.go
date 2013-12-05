@@ -1,6 +1,7 @@
 package gitmedia
 
 import (
+	core ".."
 	"flag"
 	"fmt"
 	"os"
@@ -85,6 +86,7 @@ func (c *Command) Usage() {
 }
 
 func (c *Command) Parse() {
+	core.SetupDebugging(c.FlagSet)
 	c.FlagSet.Parse(c.Args)
 }
 
