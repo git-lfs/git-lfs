@@ -19,22 +19,29 @@ var (
 	ErrorWriter = io.MultiWriter(os.Stderr, ErrorBuffer)
 )
 
+// Print prints a formatted message to Stderr.  It also gets printed to the
+// panic log if one is created for this command.
 func Print(format string, args ...interface{}) {
 	line := fmt.Sprintf(format, args...)
 	fmt.Fprintln(ErrorWriter, line)
 }
 
+// Exit prints a formatted message and exits.
 func Exit(format string, args ...interface{}) {
 	Print(format, args...)
 	os.Exit(2)
 }
 
+// Panic prints a formatted message, and writes a stack trace for the error to
+// a log file before exiting.
 func Panic(err error, format string, args ...interface{}) {
 	Print(format, args...)
 	handlePanic(err)
 	os.Exit(2)
 }
 
+// Debug prints a formatted message if debugging is enabled.  The formatted
+// message also shows up in the panic log, if created.
 func Debug(format string, args ...interface{}) {
 	if !Debugging {
 		return
