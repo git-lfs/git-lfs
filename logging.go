@@ -20,17 +20,14 @@ var (
 )
 
 func Panic(err error, format string, args ...interface{}) {
+	defer handlePanic(err)
+	Exit(format, args...)
+}
+
+func Exit(format string, args ...interface{}) {
 	line := fmt.Sprintf(format, args...)
 	fmt.Fprintln(ErrorWriter, line)
 
-	if err != nil {
-		Debug(err.Error())
-		logErr := logPanic(err)
-		if logErr != nil {
-			fmt.Fprintln(os.Stderr, "Unable to log panic:")
-			panic(logErr)
-		}
-	}
 	os.Exit(2)
 }
 
@@ -46,6 +43,19 @@ func SetupDebugging(flagset *flag.FlagSet) {
 		flag.BoolVar(&Debugging, "debug", false, "Turns debugging on")
 	} else {
 		flagset.BoolVar(&Debugging, "debug", false, "Turns debugging on")
+	}
+}
+
+func handlePanic(err error) {
+	if err == nil {
+		return
+	}
+
+	Debug(err.Error())
+	logErr := logPanic(err)
+	if logErr != nil {
+		fmt.Fprintln(os.Stderr, "Unable to log panic:")
+		panic(logErr)
 	}
 }
 

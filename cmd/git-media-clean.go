@@ -21,7 +21,7 @@ func main() {
 	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
 	if stat, _ := os.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size {
-			gitmedia.Panic(nil, "Files don't match:\n%s\n%s", mediafile, tmpfile)
+			gitmedia.Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
 		}
 		gitmedia.Debug("%s exists", mediafile)
 	} else {
