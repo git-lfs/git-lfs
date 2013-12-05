@@ -11,7 +11,7 @@ func main() {
 	sha, err := gitmedia.Decode(os.Stdin)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error reading git-media meta data from stdin:")
-		panic(err)
+		gitmedia.Panic(err)
 	}
 
 	var path string
@@ -27,6 +27,6 @@ func main() {
 	if err != nil {
 		smudgerr := err.(*gitmediafilters.SmudgeError)
 		fmt.Fprintf(os.Stderr, "Error reading file from local media dir: %s\n", smudgerr.Filename)
-		panic(err)
+		gitmedia.Panic(err)
 	}
 }

@@ -13,7 +13,7 @@ func main() {
 	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {
 		fmt.Println("Error cleaning asset")
-		panic(err)
+		gitmedia.Panic(err)
 	}
 	defer cleaned.Close()
 
