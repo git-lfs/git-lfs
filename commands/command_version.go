@@ -14,10 +14,10 @@ func (c *VersionCommand) Setup() {
 }
 
 func (c *VersionCommand) Run() {
+	core.Print("%s v%s", c.Name, core.Version)
+
 	if c.LovesComics {
 		core.Print("Nothing may see Gah Lak Tus and survive.")
-	} else {
-		core.Print("%s v%s\n", c.Name, core.Version)
 	}
 }
 
