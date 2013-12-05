@@ -59,7 +59,7 @@ func (c *LogsCommand) lastLog() {
 func (c *LogsCommand) showLog(name string) {
 	by, err := ioutil.ReadFile(filepath.Join(core.LocalLogDir, name))
 	if err != nil {
-		core.Panic(err, "Error reading log: %s", name)
+		core.Exit("Error reading log: %s", name)
 	}
 
 	core.Debug("Reading log: %s", name)
@@ -85,7 +85,7 @@ func (c *LogsCommand) boomtown() {
 func sortedLogs() []string {
 	fileinfos, err := ioutil.ReadDir(core.LocalLogDir)
 	if err != nil {
-		core.Panic(err, "Error reading logs directory: %s", core.LocalLogDir)
+		return []string{}
 	}
 
 	names := make([]string, len(fileinfos))
