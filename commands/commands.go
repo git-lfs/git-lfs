@@ -3,7 +3,6 @@ package gitmedia
 import (
 	core ".."
 	"flag"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -81,7 +80,7 @@ type Command struct {
 }
 
 func (c *Command) Usage() {
-	fmt.Printf("usage: %s %s\n", c.Name, c.SubCommand)
+	core.Print("usage: %s %s", c.Name, c.SubCommand)
 	c.FlagSet.PrintDefaults()
 }
 
@@ -98,6 +97,6 @@ func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
 }
 
 func missingCommand(cmd *Command, subname string) {
-	fmt.Printf("%s: '%s' is not a %s command.  See %s help.\n",
+	core.Print("%s: '%s' is not a %s command.  See %s help.",
 		cmd.Name, subname, cmd.Name, cmd.Name)
 }
