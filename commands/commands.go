@@ -50,7 +50,11 @@ func NewCommand(name, subname string) *Command {
 		args = os.Args[2:]
 	}
 
-	return &Command{name, subname, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args, args}
+	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	core.SetupDebugging(fs)
+	fs.SetOutput(core.ErrorWriter)
+
+	return &Command{name, subname, fs, args, args}
 }
 
 func PipeMediaCommand(name string, args ...string) error {
@@ -86,8 +90,6 @@ func (c *Command) Usage() {
 }
 
 func (c *Command) Parse() {
-	core.SetupDebugging(c.FlagSet)
-	c.FlagSet.SetOutput(core.ErrorWriter)
 	c.FlagSet.Parse(c.Args)
 	c.SubCommands = c.FlagSet.Args()
 }
