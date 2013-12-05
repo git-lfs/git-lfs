@@ -65,7 +65,7 @@ func logPanic(loggedError error) error {
 
 	defer file.Close()
 
-	fmt.Fprintf(file, "$ %s", filepath.Base(os.Args[0]))
+	fmt.Fprintf(file, "> %s", filepath.Base(os.Args[0]))
 	if len(os.Args) > 0 {
 		fmt.Fprintf(file, " %s", strings.Join(os.Args[1:], " "))
 	}
