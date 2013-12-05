@@ -44,7 +44,11 @@ func Exit(format string, args ...interface{}) {
 // a log file before exiting.
 func Panic(err error, format string, args ...interface{}) {
 	Error(format, args...)
-	handlePanic(err)
+	file := handlePanic(err)
+
+	if len(file) > 0 {
+		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git media logs last` to view the log.\n", file)
+	}
 	os.Exit(2)
 }
 
@@ -65,22 +69,24 @@ func SetupDebugging(flagset *flag.FlagSet) {
 	}
 }
 
-func handlePanic(err error) {
+func handlePanic(err error) string {
 	if err == nil {
-		return
+		return ""
 	}
 
 	Debug(err.Error())
-	logErr := logPanic(err)
+	logFile, logErr := logPanic(err)
 	if logErr != nil {
 		fmt.Fprintln(os.Stderr, "Unable to log panic:")
 		panic(logErr)
 	}
+
+	return logFile
 }
 
-func logPanic(loggedError error) error {
+func logPanic(loggedError error) (string, error) {
 	if err := os.MkdirAll(LocalLogDir, 0744); err != nil {
-		return err
+		return "", err
 	}
 
 	now := time.Now()
@@ -89,7 +95,7 @@ func logPanic(loggedError error) error {
 
 	file, err := os.Create(full)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer file.Close()
@@ -107,7 +113,7 @@ func logPanic(loggedError error) error {
 	fmt.Fprintln(file, loggedError.Error())
 	file.Write(debug.Stack())
 
-	return nil
+	return full, nil
 }
 
 func init() {
