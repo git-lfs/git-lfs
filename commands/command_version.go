@@ -2,7 +2,6 @@ package gitmedia
 
 import (
 	core ".."
-	"fmt"
 )
 
 type VersionCommand struct {
@@ -16,9 +15,9 @@ func (c *VersionCommand) Setup() {
 
 func (c *VersionCommand) Run() {
 	if c.LovesComics {
-		fmt.Println("Nothing may see Gah Lak Tus and survive.")
+		core.Print("Nothing may see Gah Lak Tus and survive.")
 	} else {
-		fmt.Printf("%s v%s\n", c.Name, core.Version)
+		core.Print("%s v%s\n", c.Name, core.Version)
 	}
 }
 

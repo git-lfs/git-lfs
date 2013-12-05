@@ -14,28 +14,36 @@ import (
 )
 
 var (
-	Debugging   = false
-	ErrorBuffer = &bytes.Buffer{}
-	ErrorWriter = io.MultiWriter(os.Stderr, ErrorBuffer)
+	Debugging    = false
+	ErrorBuffer  = &bytes.Buffer{}
+	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
+	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 )
 
-// Print prints a formatted message to Stderr.  It also gets printed to the
+// Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
-func Print(format string, args ...interface{}) {
+func Error(format string, args ...interface{}) {
 	line := fmt.Sprintf(format, args...)
 	fmt.Fprintln(ErrorWriter, line)
 }
 
+// Print prints a formatted message to Stdout.  It also gets printed to the
+// panic log if one is created for this command.
+func Print(format string, args ...interface{}) {
+	line := fmt.Sprintf(format, args...)
+	fmt.Fprintln(OutputWriter, line)
+}
+
 // Exit prints a formatted message and exits.
 func Exit(format string, args ...interface{}) {
-	Print(format, args...)
+	Error(format, args...)
 	os.Exit(2)
 }
 
 // Panic prints a formatted message, and writes a stack trace for the error to
 // a log file before exiting.
 func Panic(err error, format string, args ...interface{}) {
-	Print(format, args...)
+	Error(format, args...)
 	handlePanic(err)
 	os.Exit(2)
 }

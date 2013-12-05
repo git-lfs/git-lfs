@@ -2,7 +2,6 @@ package gitmedia
 
 import (
 	core ".."
-	"fmt"
 )
 
 type ConfigCommand struct {
@@ -11,7 +10,7 @@ type ConfigCommand struct {
 
 func (c *ConfigCommand) Run() {
 	config := core.Config()
-	fmt.Printf("Endpoint: %s\n", config.Endpoint)
+	core.Print("Endpoint: %s\n", config.Endpoint)
 }
 
 func init() {

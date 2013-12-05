@@ -98,6 +98,6 @@ func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
 }
 
 func missingCommand(cmd *Command, subname string) {
-	core.Print("%s: '%s' is not a %s command.  See %s help.",
+	core.Error("%s: '%s' is not a %s command.  See %s help.",
 		cmd.Name, subname, cmd.Name, cmd.Name)
 }
