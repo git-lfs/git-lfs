@@ -30,8 +30,9 @@ func Exit(format string, args ...interface{}) {
 }
 
 func Panic(err error, format string, args ...interface{}) {
-	defer handlePanic(err)
-	Exit(format, args...)
+	Print(format, args...)
+	handlePanic(err)
+	os.Exit(2)
 }
 
 func Debug(format string, args ...interface{}) {
