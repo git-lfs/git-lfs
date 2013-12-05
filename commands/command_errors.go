@@ -4,7 +4,9 @@ import (
 	core ".."
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 type ErrorsCommand struct {
@@ -27,6 +29,38 @@ func (c *ErrorsCommand) Run() {
 		c.boomtown()
 		return
 	}
+
+	var sub string
+	if len(c.SubCommands) > 0 {
+		sub = c.SubCommands[0]
+	}
+
+	switch sub {
+	case "last":
+		c.lastError()
+	case "":
+		c.listErrors()
+	default:
+		core.Exit("Invalid errors sub command: %s", sub)
+	}
+}
+
+func (c *ErrorsCommand) listErrors() {
+	for _, path := range sortedLogs() {
+		core.Print(path)
+	}
+}
+
+func (c *ErrorsCommand) lastError() {
+	logs := sortedLogs()
+	last := logs[len(logs)-1]
+	by, err := ioutil.ReadFile(filepath.Join(core.LocalLogDir, last))
+	if err != nil {
+		core.Panic(err, "Error reading log: %s", last)
+	}
+
+	core.Debug("Reading log: %s", last)
+	os.Stdout.Write(by)
 }
 
 func (c *ErrorsCommand) clear() {
@@ -43,6 +77,20 @@ func (c *ErrorsCommand) boomtown() {
 	err := errors.New("Error!")
 	core.Panic(err, "Welcome to Boomtown")
 	core.Debug("Never seen")
+}
+
+func sortedLogs() []string {
+	fileinfos, err := ioutil.ReadDir(core.LocalLogDir)
+	if err != nil {
+		core.Panic(err, "Error reading logs directory: %s", core.LocalLogDir)
+	}
+
+	names := make([]string, len(fileinfos))
+	for index, info := range fileinfos {
+		names[index] = info.Name()
+	}
+
+	return names
 }
 
 func init() {

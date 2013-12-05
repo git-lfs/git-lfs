@@ -50,7 +50,7 @@ func NewCommand(name, subname string) *Command {
 		args = os.Args[2:]
 	}
 
-	return &Command{name, subname, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args}
+	return &Command{name, subname, flag.NewFlagSet(os.Args[0], flag.ExitOnError), args, args}
 }
 
 func PipeMediaCommand(name string, args ...string) error {
@@ -73,10 +73,11 @@ type RunnableCommand interface {
 }
 
 type Command struct {
-	Name       string
-	SubCommand string
-	FlagSet    *flag.FlagSet
-	Args       []string
+	Name        string
+	SubCommand  string
+	FlagSet     *flag.FlagSet
+	Args        []string
+	SubCommands []string
 }
 
 func (c *Command) Usage() {
@@ -88,6 +89,7 @@ func (c *Command) Parse() {
 	core.SetupDebugging(c.FlagSet)
 	c.FlagSet.SetOutput(core.ErrorWriter)
 	c.FlagSet.Parse(c.Args)
+	c.SubCommands = c.FlagSet.Args()
 }
 
 func (c *Command) Setup() {}
