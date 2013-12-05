@@ -1,5 +1,9 @@
 package gitmedia
 
+import (
+	".."
+)
+
 type CleanCommand struct {
 	*Command
 }
@@ -11,14 +15,14 @@ type SmudgeCommand struct {
 func (c *CleanCommand) Run() {
 	err := PipeMediaCommand("git-media-clean")
 	if err != nil {
-		panic(err)
+		gitmedia.Panic(err, "Error running 'git media clean'")
 	}
 }
 
 func (c *SmudgeCommand) Run() {
 	err := PipeMediaCommand("git-media-smudge")
 	if err != nil {
-		panic(err)
+		gitmedia.Panic(err, "Error running 'git media smudge'")
 	}
 }
 

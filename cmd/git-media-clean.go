@@ -3,7 +3,6 @@ package main
 import (
 	".."
 	"../filters"
-	"fmt"
 	"os"
 )
 
@@ -12,8 +11,7 @@ func main() {
 
 	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {
-		fmt.Println("Error cleaning asset")
-		gitmedia.Panic(err)
+		gitmedia.Panic(err, "Error cleaning asset")
 	}
 	defer cleaned.Close()
 

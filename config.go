@@ -36,7 +36,7 @@ func readToml(config *Configuration) {
 func tomlFile() string {
 	wd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		Panic(err, "Unable to read working directory")
 	}
 
 	return filepath.Join(wd, ".gitmedia")
@@ -45,7 +45,7 @@ func tomlFile() string {
 func readTomlFile(path string, config *Configuration) {
 	tomlConfig, err := toml.LoadFile(path)
 	if err != nil {
-		panic(err)
+		Panic(err, "Error reading TOML file: %s", path)
 	}
 
 	if endpoint, ok := tomlConfig.Get("endpoint").(string); ok {

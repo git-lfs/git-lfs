@@ -28,8 +28,7 @@ func SimpleExec(name string, arg ...string) string {
 	if _, ok := err.(*exec.ExitError); ok {
 		return ""
 	} else if err != nil {
-		fmt.Printf("error running: %s %s\n", name, arg)
-		panic(err)
+		Panic(err, "Error running %s %s", name, arg)
 	}
 
 	return strings.Trim(string(output), " \n")
@@ -38,8 +37,7 @@ func SimpleExec(name string, arg ...string) string {
 func LocalMediaPath(sha string) string {
 	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
 	if err := os.MkdirAll(path, 0744); err != nil {
-		fmt.Printf("Error trying to create local media directory: %s\n", path)
-		panic(err)
+		Panic(err, "Error trying to create local media directory: %s", path)
 	}
 
 	return filepath.Join(path, sha)
@@ -48,7 +46,7 @@ func LocalMediaPath(sha string) string {
 func Panic(err error, format string, args ...interface{}) {
 	line := fmt.Sprintf(format, args...)
 	Debug(line)
-	fmt.Println(line)
+	fmt.Fprintln(os.Stderr, line)
 
 	if err != nil {
 		Debug(err.Error())
@@ -68,8 +66,7 @@ func init() {
 	queueDir = setupQueueDir()
 
 	if err := os.MkdirAll(TempDir, 0744); err != nil {
-		fmt.Printf("Error trying to create temp directory: %s\n", TempDir)
-		panic(err)
+		Panic(err, "Error trying to create temp directory: %s", TempDir)
 	}
 }
 
@@ -93,7 +90,7 @@ func resolveMediaDir() string {
 	if len(dir) == 0 {
 		wd, err := os.Getwd()
 		if err != nil {
-			panic(err)
+			Panic(err, "Error reading working directory")
 		}
 		dir = wd
 	}
