@@ -41,7 +41,7 @@ func (c *ErrorsCommand) Run() {
 	case "":
 		c.listErrors()
 	default:
-		core.Exit("Invalid errors sub command: %s", sub)
+		c.showError(sub)
 	}
 }
 
@@ -53,13 +53,16 @@ func (c *ErrorsCommand) listErrors() {
 
 func (c *ErrorsCommand) lastError() {
 	logs := sortedLogs()
-	last := logs[len(logs)-1]
-	by, err := ioutil.ReadFile(filepath.Join(core.LocalLogDir, last))
+	c.showError(logs[len(logs)-1])
+}
+
+func (c *ErrorsCommand) showError(name string) {
+	by, err := ioutil.ReadFile(filepath.Join(core.LocalLogDir, name))
 	if err != nil {
-		core.Panic(err, "Error reading log: %s", last)
+		core.Panic(err, "Error reading log: %s", name)
 	}
 
-	core.Debug("Reading log: %s", last)
+	core.Debug("Reading log: %s", name)
 	os.Stdout.Write(by)
 }
 
