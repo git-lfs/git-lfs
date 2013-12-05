@@ -9,9 +9,6 @@ type SyncCommand struct {
 	*Command
 }
 
-func (c *SyncCommand) Setup() {
-}
-
 func (c *SyncCommand) Run() {
 	q := gitmedia.UploadQueue()
 	q.Walk(func(id string, body []byte) error {
