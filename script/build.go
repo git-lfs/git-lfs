@@ -109,8 +109,13 @@ func setupInstaller(buildos, buildarch, dir string) error {
 }
 
 func unixInstaller(buildos, buildarch, dir string) error {
-	cmd := exec.Command("cp", "script/install.sh.example", filepath.Join(dir, "install.sh"))
+	fullInstallPath := filepath.Join(dir, "install.sh")
+	cmd := exec.Command("cp", "script/install.sh.example", fullInstallPath)
 	if err := logAndRun(cmd); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(fullInstallPath, 0755); err != nil {
 		return err
 	}
 
