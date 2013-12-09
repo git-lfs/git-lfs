@@ -12,6 +12,11 @@ import (
 	"path/filepath"
 )
 
+const (
+	gitMediaType     = "application/vnd.git-media"
+	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
+)
+
 func Put(filename string) error {
 	oid := filepath.Base(filename)
 	stat, err := os.Stat(filename)
@@ -29,6 +34,8 @@ func Put(filename string) error {
 		return err
 	}
 
+	req.Header.Set("Content-Type", gitMediaType)
+	req.Header.Set("Accept", gitMediaMetaType)
 	req.Body = file
 	req.ContentLength = stat.Size()
 
@@ -49,7 +56,7 @@ func Get(filename string) (io.ReadCloser, error) {
 			return nil, err
 		}
 
-		req.Header.Set("Accept", "application/vnd.git-media")
+		req.Header.Set("Accept", gitMediaType)
 		res, err := doRequest(req, creds)
 
 		if err != nil {
