@@ -6,5 +6,4 @@ gofmt -w -l *.go \
   commands/*.go  \
   filters/*.go   \
   queuedir/*.go  \
-  script/*.go    \
-  server/*.go
+  script/*.go
