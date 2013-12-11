@@ -10,5 +10,5 @@ for g in git*; do
   cp $g "$prefix/bin/$g"
 done
 
-git config --global filter.media.clean "git-media-clean"
-git config --global filter.media.smudge "git-media-smudge"
+git config --global filter.media.clean "git-media-clean %f"
+git config --global filter.media.smudge "git-media-smudge %f"
