@@ -1,2 +1,5 @@
+#!/bin/sh
+
+script/fmt
 GOPATH="`pwd`/.gopack/vendor" \
   go run script/build.go "$@"

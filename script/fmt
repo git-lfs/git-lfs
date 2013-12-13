@@ -1,9 +1,11 @@
 #!/bin/bash
 
-gofmt -w -l *.go \
-  client/*.go    \
-  cmd/*.go       \
-  commands/*.go  \
-  filters/*.go   \
-  queuedir/*.go  \
-  script/*.go
+gofmt -w -l "$@" *.go
+
+# don't run gofmt in these directories
+ignored=(/bin/ /docs/ /log/ /tmp/)
+for i in */ ; do
+  if [[ ! ${ignored[*]} =~ "/$i" ]]; then
+    gofmt -w -l "$@" "${i%?}"
+  fi
+done
