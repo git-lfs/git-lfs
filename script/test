@@ -1,6 +1,3 @@
 script/fmt
 GOPATH="`pwd`/.gopack/vendor" \
-  go test "$@" \
-  ./queuedir   \
-  ./client   \
-  . && script/build
+  go test ./... && script/build
