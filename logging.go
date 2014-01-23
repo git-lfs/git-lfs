@@ -77,11 +77,24 @@ func handlePanic(err error) string {
 	Debug(err.Error())
 	logFile, logErr := logPanic(err)
 	if logErr != nil {
-		fmt.Fprintln(os.Stderr, "Unable to log panic:")
+		fmt.Fprintf(os.Stderr, "Unable to log panic to %s\n", LocalLogDir)
+		logEnv(os.Stderr)
 		panic(logErr)
 	}
 
 	return logFile
+}
+
+func logEnv(w io.Writer) {
+	fmt.Fprintf(w, "TempDir=%s\n", TempDir)
+	fmt.Fprintf(w, "LocalMediaDir=%s\n", LocalMediaDir)
+
+	for _, env := range os.Environ() {
+		if !strings.Contains(env, "GIT_") {
+			continue
+		}
+		fmt.Fprintln(w, env)
+	}
 }
 
 func logPanic(loggedError error) (string, error) {
@@ -104,11 +117,13 @@ func logPanic(loggedError error) (string, error) {
 	if len(os.Args) > 0 {
 		fmt.Fprintf(file, " %s", strings.Join(os.Args[1:], " "))
 	}
-	fmt.Fprintln(file, "")
-	fmt.Fprintln(file, "")
+	fmt.Fprint(file, "\n")
+
+	logEnv(file)
+	fmt.Fprint(file, "\n")
 
 	file.Write(ErrorBuffer.Bytes())
-	fmt.Fprintln(file, "")
+	fmt.Fprint(file, "\n")
 
 	fmt.Fprintln(file, loggedError.Error())
 	file.Write(debug.Stack())
