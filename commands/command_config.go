@@ -10,7 +10,10 @@ type ConfigCommand struct {
 
 func (c *ConfigCommand) Run() {
 	config := core.Config()
-	core.Print("Endpoint: %s\n", config.Endpoint)
+	core.Print("Endpoint=%s", config.Endpoint)
+	for _, env := range core.Environ() {
+		core.Print(env)
+	}
 }
 
 func init() {

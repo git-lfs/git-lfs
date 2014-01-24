@@ -86,13 +86,7 @@ func handlePanic(err error) string {
 }
 
 func logEnv(w io.Writer) {
-	fmt.Fprintf(w, "TempDir=%s\n", TempDir)
-	fmt.Fprintf(w, "LocalMediaDir=%s\n", LocalMediaDir)
-
-	for _, env := range os.Environ() {
-		if !strings.Contains(env, "GIT_") {
-			continue
-		}
+	for _, env := range Environ() {
 		fmt.Fprintln(w, env)
 	}
 }

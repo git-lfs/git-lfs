@@ -1,6 +1,7 @@
 package gitmedia
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -39,6 +40,24 @@ func LocalMediaPath(sha string) string {
 	}
 
 	return filepath.Join(path, sha)
+}
+
+func Environ() []string {
+	osEnviron := os.Environ()
+	env := make([]string, 2, len(osEnviron)+2)
+	env[0] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
+	env[1] = fmt.Sprintf("TempDir=%s", TempDir)
+
+	i := 2
+	for _, e := range os.Environ() {
+		if !strings.Contains(e, "GIT_") {
+			continue
+		}
+		env[i] = e
+		i += 1
+	}
+
+	return env
 }
 
 func init() {
