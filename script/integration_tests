@@ -1,0 +1,1 @@
+GOPATH="`pwd`/.gopack/vendor" go run integration/tests.go
