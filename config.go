@@ -20,7 +20,7 @@ func (c *Configuration) Endpoint() string {
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) string {
-	if url, ok := c.GitConfig("remote." + remote + ".mediaUrl"); ok {
+	if url, ok := c.GitConfig("remote." + remote + ".media"); ok {
 		return url
 	}
 
