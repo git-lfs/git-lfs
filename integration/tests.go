@@ -23,10 +23,11 @@ func main() {
 			fmt.Println("$ git-media", cmd)
 			actual := gitmedia.SimpleExec(gitMediaBin, cmd)
 			if actual != expected {
-				fmt.Printf("expected:\n%s\n\n", expected)
-				fmt.Printf("actual:\n%s\n", actual)
+				fmt.Printf("- expected\n%s\n\n", expected)
+				fmt.Printf("- actual\n%s\n", actual)
 			}
 		}
+		fmt.Println("")
 	}
 }
 
@@ -47,4 +48,7 @@ func init() {
 			"LocalMediaDir=" + filepath.Join(wd, ".git", "media") + "\n" +
 			"TempDir=" + filepath.Join(os.TempDir(), "git-media"),
 	}
+
+	// tests on the git-media .git dir
+	allCommands[filepath.Join(wd, ".git")] = allCommands[wd]
 }
