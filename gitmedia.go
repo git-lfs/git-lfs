@@ -14,6 +14,8 @@ const Version = "0.0.1"
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
 	TempDir            = filepath.Join(os.TempDir(), "git-media")
+	LocalWorkingDir    string
+	LocalGitDir        string
 	LocalMediaDir      string
 	LocalLogDir        string
 )
@@ -44,9 +46,11 @@ func LocalMediaPath(sha string) string {
 
 func Environ() []string {
 	osEnviron := os.Environ()
-	env := make([]string, 2, len(osEnviron)+2)
-	env[0] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
-	env[1] = fmt.Sprintf("TempDir=%s", TempDir)
+	env := make([]string, 4, len(osEnviron)+4)
+	env[0] = fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir)
+	env[1] = fmt.Sprintf("LocalGitDir=%s", LocalGitDir)
+	env[2] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
+	env[3] = fmt.Sprintf("TempDir=%s", TempDir)
 
 	i := 2
 	for _, e := range os.Environ() {
@@ -61,7 +65,8 @@ func Environ() []string {
 }
 
 func init() {
-	LocalMediaDir = resolveMediaDir()
+	LocalWorkingDir, LocalGitDir = resolveGitDir()
+	LocalMediaDir = filepath.Join(LocalGitDir, "media")
 	LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 	queueDir = setupQueueDir()
 
@@ -70,41 +75,27 @@ func init() {
 	}
 }
 
-func resolveMediaDir() string {
-	dir := os.Getenv("GIT_MEDIA_DIR")
-	if len(dir) > 0 {
-		return dir
+func resolveGitDir() (string, string) {
+	wd, err := os.Getwd()
+	if err != nil {
+		Panic(err, "Error reading working directory")
 	}
 
-	dir = os.Getenv("GIT_DIR")
-	if len(dir) == 0 {
-		wd, err := os.Getwd()
-		if err != nil {
-			Panic(err, "Error reading working directory")
-		}
-		dir = wd
-	}
-
-	return filepath.Join(resolveGitDir(dir), "media")
+	return recursiveResolveGitDir(wd)
 }
 
-func resolveGitDir(dir string) string {
-	base := filepath.Base(dir)
-
-	if base == gitExt || filepath.Ext(base) == gitExt {
-		return dir
+func recursiveResolveGitDir(dir string) (string, string) {
+	if filepath.Base(dir) == gitExt {
+		return filepath.Dir(dir), dir
 	}
 
-	return recursiveResolveGitDir(dir)
-}
-
-func recursiveResolveGitDir(dir string) string {
 	gitDir := filepath.Join(dir, gitExt)
 	if info, err := os.Stat(gitDir); err == nil {
 		if info.IsDir() {
-			return gitDir
+			return dir, gitDir
 		}
 	}
+
 	return recursiveResolveGitDir(filepath.Dir(dir))
 }
 

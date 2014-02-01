@@ -45,6 +45,8 @@ func init() {
 	allCommands[wd] = map[string]string{
 		"version": "git-media v" + gitmedia.Version,
 		"config": "Endpoint=\n" +
+			"LocalWorkingDir=" + wd + "\n" +
+			"LocalGitDir=" + filepath.Join(wd, ".git") + "\n" +
 			"LocalMediaDir=" + filepath.Join(wd, ".git", "media") + "\n" +
 			"TempDir=" + filepath.Join(os.TempDir(), "git-media"),
 	}
