@@ -26,20 +26,11 @@ func Config() *Configuration {
 }
 
 func readToml(config *Configuration) {
-	tomlPath := tomlFile()
+	tomlPath := filepath.Join(LocalWorkingDir, ".gitmedia")
 	stat, _ := os.Stat(tomlPath)
 	if stat != nil {
 		readTomlFile(tomlPath, config)
 	}
-}
-
-func tomlFile() string {
-	wd, err := os.Getwd()
-	if err != nil {
-		Panic(err, "Unable to read working directory")
-	}
-
-	return filepath.Join(wd, ".gitmedia")
 }
 
 func readTomlFile(path string, config *Configuration) {
