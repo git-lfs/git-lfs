@@ -90,9 +90,22 @@ func resolveMediaDir() string {
 
 func resolveGitDir(dir string) string {
 	base := filepath.Base(dir)
-	gitext := ".git"
-	if base == gitext || filepath.Ext(base) == gitext {
+
+	if base == gitExt || filepath.Ext(base) == gitExt {
 		return dir
 	}
-	return filepath.Join(dir, gitext)
+
+	return recursiveResolveGitDir(dir)
 }
+
+func recursiveResolveGitDir(dir string) string {
+	gitDir := filepath.Join(dir, gitExt)
+	if info, err := os.Stat(gitDir); err == nil {
+		if info.IsDir() {
+			return gitDir
+		}
+	}
+	return recursiveResolveGitDir(filepath.Dir(dir))
+}
+
+const gitExt = ".git"

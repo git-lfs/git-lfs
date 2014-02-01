@@ -51,4 +51,7 @@ func init() {
 
 	// tests on the git-media .git dir
 	allCommands[filepath.Join(wd, ".git")] = allCommands[wd]
+
+	// tests on the git-media sub directory
+	allCommands[filepath.Join(wd, "integration")] = allCommands[wd]
 }
