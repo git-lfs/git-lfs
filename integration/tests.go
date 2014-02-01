@@ -44,7 +44,7 @@ func init() {
 	// tests on the git-media repository, which has no actual git-media assets :)
 	allCommands[wd] = map[string]string{
 		"version": "git-media v" + gitmedia.Version,
-		"config": "Endpoint (origin)=https://github.com/github/git-media.git/info/media\n" +
+		"config": "Endpoint=https://github.com/github/git-media.git/info/media\n" +
 			"LocalWorkingDir=" + wd + "\n" +
 			"LocalGitDir=" + filepath.Join(wd, ".git") + "\n" +
 			"LocalMediaDir=" + filepath.Join(wd, ".git", "media") + "\n" +

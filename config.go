@@ -16,7 +16,7 @@ func (c *Configuration) Endpoint() string {
 		return url
 	}
 
-	return ""
+	return c.RemoteEndpoint("origin")
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) string {
@@ -65,17 +65,16 @@ func (c *Configuration) loadGitConfig() {
 
 		keyParts := strings.Split(key, ".")
 		if len(keyParts) > 1 && keyParts[0] == "remote" {
-			uniqRemotes[keyParts[1]] = true
+			remote := keyParts[1]
+			uniqRemotes[remote] = remote == "origin"
 		}
 	}
 
-	c.remotes = make([]string, len(uniqRemotes))
-	i := 0
-	for remote, _ := range uniqRemotes {
-		c.remotes[i] = remote
-		i += 1
+	c.remotes = make([]string, 0, len(uniqRemotes))
+	for remote, isOrigin := range uniqRemotes {
+		if isOrigin {
+			continue
+		}
+		c.remotes = append(c.remotes, remote)
 	}
-}
-
-func init() {
 }
