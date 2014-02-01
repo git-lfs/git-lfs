@@ -1,31 +1,22 @@
 package gitmedia
 
 import (
-	"github.com/pelletier/go-toml"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
 type Configuration struct {
-	Endpoint  string
 	gitConfig map[string]string
 	remotes   []string
 }
 
-var config *Configuration
+var Config = &Configuration{}
 
-// Config gets the git media configuration for the current repository.  It
-// reads .gitmedia, which is a toml file.
-//
-// https://github.com/mojombo/toml
-func Config() *Configuration {
-	if config == nil {
-		config = &Configuration{}
-		readToml(config)
+func (c *Configuration) Endpoint() string {
+	if url, ok := c.GitConfig("media.url"); ok {
+		return url
 	}
 
-	return config
+	return ""
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) string {
@@ -37,7 +28,7 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 		return url + ".git/info/media"
 	}
 
-	return "<unknown>"
+	return ""
 }
 
 func (c *Configuration) Remotes() []string {
@@ -53,6 +44,13 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 	}
 	value, ok := c.gitConfig[key]
 	return value, ok
+}
+
+func (c *Configuration) SetConfig(key, value string) {
+	if c.gitConfig == nil {
+		c.loadGitConfig()
+	}
+	c.gitConfig[key] = value
 }
 
 func (c *Configuration) loadGitConfig() {
@@ -79,21 +77,5 @@ func (c *Configuration) loadGitConfig() {
 	}
 }
 
-func readToml(config *Configuration) {
-	tomlPath := filepath.Join(LocalWorkingDir, ".gitmedia")
-	stat, _ := os.Stat(tomlPath)
-	if stat != nil {
-		readTomlFile(tomlPath, config)
-	}
-}
-
-func readTomlFile(path string, config *Configuration) {
-	tomlConfig, err := toml.LoadFile(path)
-	if err != nil {
-		Panic(err, "Error reading TOML file: %s", path)
-	}
-
-	if endpoint, ok := tomlConfig.Get("endpoint").(string); ok {
-		config.Endpoint = endpoint
-	}
+func init() {
 }

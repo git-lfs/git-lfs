@@ -9,14 +9,14 @@ type ConfigCommand struct {
 }
 
 func (c *ConfigCommand) Run() {
-	config := core.Config()
+	config := core.Config
 
-	if len(config.Endpoint) > 0 {
-		core.Print("Endpoint=%s", config.Endpoint)
-	} else {
-		for _, remote := range config.Remotes() {
-			core.Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
-		}
+	if endpoint := config.Endpoint(); len(endpoint) > 0 {
+		core.Print("Endpoint=%s", endpoint)
+	}
+
+	for _, remote := range config.Remotes() {
+		core.Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
 	}
 
 	for _, env := range core.Environ() {

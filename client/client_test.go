@@ -15,9 +15,9 @@ func TestObjectUrl(t *testing.T) {
 		"http://example.com/foo/": "http://example.com/foo/objects/oid",
 	}
 
-	config := gitmedia.Config()
+	config := gitmedia.Config
 	for endpoint, expected := range tests {
-		config.Endpoint = endpoint
+		config.SetConfig("media.url", endpoint)
 		assert.Equal(t, expected, ObjectUrl(oid).String())
 	}
 }

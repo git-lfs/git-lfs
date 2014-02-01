@@ -110,8 +110,8 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 }
 
 func ObjectUrl(oid string) *url.URL {
-	c := gitmedia.Config()
-	u, _ := url.Parse(c.Endpoint)
+	c := gitmedia.Config
+	u, _ := url.Parse(c.Endpoint())
 	u.Path = filepath.Join(u.Path, "/objects/"+oid)
 	return u
 }
