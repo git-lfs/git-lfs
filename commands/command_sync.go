@@ -3,6 +3,7 @@ package gitmedia
 import (
 	".."
 	"../client"
+	"strings"
 )
 
 type SyncCommand struct {
@@ -12,9 +13,17 @@ type SyncCommand struct {
 func (c *SyncCommand) Run() {
 	q := gitmedia.UploadQueue()
 	q.Walk(func(id string, body []byte) error {
-		sha := string(body)
+		fileInfo := string(body)
+		parts := strings.Split(fileInfo, ":")
+
+		var sha, filename string
+		sha = parts[0]
+		if len(parts) > 1 {
+			filename = parts[1]
+		}
+
 		path := gitmedia.LocalMediaPath(sha)
-		err := gitmediaclient.Put(path)
+		err := gitmediaclient.Put(path, filename)
 		if err != nil {
 			gitmedia.Panic(err, "error uploading file %s", sha)
 		}

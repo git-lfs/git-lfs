@@ -17,14 +17,18 @@ const (
 	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
 )
 
-func Put(filename string) error {
-	oid := filepath.Base(filename)
-	stat, err := os.Stat(filename)
+func Put(filehash, filename string) error {
+	if filename == "" {
+		filename = filehash
+	}
+
+	oid := filepath.Base(filehash)
+	stat, err := os.Stat(filehash)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Open(filename)
+	file, err := os.Open(filehash)
 	if err != nil {
 		return err
 	}
@@ -44,7 +48,7 @@ func Put(filename string) error {
 		return err
 	}
 
-	fmt.Printf("Sending %s from %s: %d\n", oid, filename, res.StatusCode)
+	fmt.Printf("Sending %s: %d\n", filename, res.StatusCode)
 	return nil
 }
 
