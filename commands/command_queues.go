@@ -3,6 +3,7 @@ package gitmedia
 import (
 	".."
 	"../queuedir"
+	"strings"
 )
 
 type QueuesCommand struct {
@@ -13,7 +14,12 @@ func (c *QueuesCommand) Run() {
 	err := gitmedia.WalkQueues(func(name string, queue *queuedir.Queue) error {
 		gitmedia.Print(name)
 		return queue.Walk(func(id string, body []byte) error {
-			gitmedia.Print("  " + string(body))
+			parts := strings.Split(string(body), ":")
+			if len(parts) == 2 {
+				gitmedia.Print("  " + parts[1])
+			} else {
+				gitmedia.Print("  " + parts[0])
+			}
 			return nil
 		})
 	})
