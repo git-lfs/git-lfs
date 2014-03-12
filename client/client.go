@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/cheggaaa/pb"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,17 +40,22 @@ func Put(filehash, filename string) error {
 		return err
 	}
 
+	bar := pb.StartNew(int(stat.Size()))
+	bar.SetUnits(pb.U_BYTES)
+	bar.Start()
+
 	req.Header.Set("Content-Type", gitMediaType)
 	req.Header.Set("Accept", gitMediaMetaType)
-	req.Body = file
+	req.Body = ioutil.NopCloser(bar.NewProxyReader(file))
 	req.ContentLength = stat.Size()
 
-	res, err := doRequest(req, creds)
+	fmt.Printf("Sending %s\n", filename)
+
+	_, err = doRequest(req, creds)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Sending %s: %d\n", filename, res.StatusCode)
 	return nil
 }
 

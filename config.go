@@ -1,6 +1,7 @@
 package gitmedia
 
 import (
+	"os"
 	"strings"
 )
 
@@ -53,13 +54,32 @@ func (c *Configuration) SetConfig(key, value string) {
 	c.gitConfig[key] = value
 }
 
+type AltConfig struct {
+	Remote map[string]*struct {
+		Media string
+	}
+
+	Media struct {
+		Url string
+	}
+}
+
 func (c *Configuration) loadGitConfig() {
 	uniqRemotes := make(map[string]bool)
 
 	c.gitConfig = make(map[string]string)
-	lines := strings.Split(SimpleExec("git", "config", "-l"), "\n")
+
+	var output string
+	output = SimpleExec("git", "config", "-l")
+	output += "\n"
+	output += SimpleExec("git", "config", "-l", "-f", ".gitconfig")
+
+	lines := strings.Split(output, "\n")
 	for _, line := range lines {
 		pieces := strings.SplitN(line, "=", 2)
+		if len(pieces) < 2 {
+			continue
+		}
 		key := pieces[0]
 		c.gitConfig[key] = pieces[1]
 
@@ -77,4 +97,11 @@ func (c *Configuration) loadGitConfig() {
 		}
 		c.remotes = append(c.remotes, remote)
 	}
+}
+
+func configFileExists(filename string) bool {
+	if _, err := os.Stat(filename); err == nil {
+		return true
+	}
+	return false
 }
