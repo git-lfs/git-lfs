@@ -5,8 +5,14 @@ import (
 	"path/filepath"
 )
 
-func QueueUpload(sha string) {
-	_, err := UploadQueue().AddString(sha)
+func QueueUpload(sha, filename string) {
+	fileBody := sha
+
+	if filename != "" {
+		fileBody += ":" + filename
+	}
+
+	_, err := UploadQueue().AddString(fileBody)
 	if err != nil {
 		Panic(err, "Unable to add %s to queue", sha)
 	}

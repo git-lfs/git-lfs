@@ -11,6 +11,13 @@ func main() {
 	gitmedia.SetupDebugging(nil)
 	flag.Parse()
 
+	var filename string
+	if len(os.Args) > 1 {
+		filename = os.Args[1]
+	} else {
+		filename = ""
+	}
+
 	cleaned, err := gitmediafilters.Clean(os.Stdin)
 	if err != nil {
 		gitmedia.Panic(err, "Error cleaning asset")
@@ -29,7 +36,7 @@ func main() {
 			gitmedia.Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
 
-		gitmedia.QueueUpload(cleaned.Sha)
+		gitmedia.QueueUpload(cleaned.Sha, filename)
 		gitmedia.Debug("Writing %s", mediafile)
 	}
 
