@@ -9,9 +9,29 @@ type InitCommand struct {
 	*Command
 }
 
+var (
+	cleanFilterKey  = "filter.media.clean"
+	cleanFilterVal  = "git-media-clean %f"
+	smudgeFilterKey = "filter.media.smudge"
+	smudgeFilterVal = "git-media-smudge %f"
+)
+
 func (c *InitCommand) Run() {
-	verifyAndSet("filter.media.clean", "git-media-clean %f", "clean filter")
-	verifyAndSet("filter.media.smudge", "git-media-smudge %f", "smudge filter")
+	clean := gitconfig.Find(cleanFilterKey)
+	if clean == "" {
+		fmt.Println("Installing clean filter")
+		gitconfig.SetGlobal(cleanFilterKey, cleanFilterVal)
+	} else if clean != cleanFilterVal {
+		fmt.Printf("Clean filter should be \"%s\" but is \"%s\"\n", cleanFilterVal, clean)
+	}
+
+	smudge := gitconfig.Find(smudgeFilterKey)
+	if smudge == "" {
+		fmt.Println("Installing smudge filter")
+		gitconfig.SetGlobal(smudgeFilterKey, smudgeFilterVal)
+	} else if smudge != smudgeFilterVal {
+		fmt.Printf("Smudge filter should be \"%s\" but is \"%s\"\n", smudgeFilterVal, smudge)
+	}
 
 	fmt.Println("git media initialized")
 }
@@ -20,12 +40,4 @@ func init() {
 	registerCommand("init", func(c *Command) RunnableCommand {
 		return &InitCommand{Command: c}
 	})
-}
-
-func verifyAndSet(key, val, name string) {
-	current := gitconfig.Find(key)
-	if current == "" {
-		fmt.Println("Setting up", name)
-		gitconfig.SetGlobal(key, val)
-	}
 }
