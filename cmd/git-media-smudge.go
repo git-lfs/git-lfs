@@ -19,8 +19,6 @@ func main() {
 		path = sha
 	}
 
-	gitmedia.Error("Downloading media: %s", path)
-
 	err = gitmediafilters.Smudge(os.Stdout, sha)
 	if err != nil {
 		smudgerr := err.(*gitmediafilters.SmudgeError)
