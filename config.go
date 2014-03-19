@@ -3,6 +3,7 @@ package gitmedia
 import (
 	"os"
 	"path"
+	"regexp"
 	"strings"
 )
 
@@ -27,6 +28,11 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
+		if !strings.HasPrefix(url, "https://") {
+			re := regexp.MustCompile("^.+@")
+			url = re.ReplaceAllLiteralString(url, "https://")
+		}
+
 		if path.Ext(url) == ".git" {
 			return url + "/info/media"
 		}
