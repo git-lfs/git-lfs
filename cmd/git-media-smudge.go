@@ -12,13 +12,6 @@ func main() {
 		gitmedia.Panic(err, "Error reading git-media meta data from stdin:")
 	}
 
-	var path string
-	if len(os.Args) > 1 {
-		path = os.Args[1]
-	} else {
-		path = sha
-	}
-
 	err = gitmediafilters.Smudge(os.Stdout, sha)
 	if err != nil {
 		smudgerr := err.(*gitmediafilters.SmudgeError)
