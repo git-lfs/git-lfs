@@ -2,6 +2,7 @@ package gitmedia
 
 import (
 	"os"
+	"path"
 	"strings"
 )
 
@@ -26,6 +27,9 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
+		if path.Ext(url) == ".git" {
+			return url + "/info/media"
+		}
 		return url + ".git/info/media"
 	}
 
