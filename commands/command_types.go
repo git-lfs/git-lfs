@@ -4,6 +4,7 @@ import (
 	_ "../gitconfig"
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -22,7 +23,7 @@ func (c *TypesCommand) Run() {
 	case "add":
 		c.addType()
 	case "remove":
-		fmt.Println("Removing type")
+		c.removeType()
 	default:
 		c.listTypes()
 	}
@@ -61,6 +62,48 @@ func (c *TypesCommand) addType() {
 			continue
 		}
 		fmt.Println("Adding type", t)
+	}
+
+	attributesFile.Close()
+}
+
+func (c *TypesCommand) removeType() {
+	if len(c.SubCommands) < 2 {
+		fmt.Println("git meda types remove <type> [type]*")
+		return
+	}
+
+	data, err := ioutil.ReadFile(".gitattributes")
+	if err != nil {
+		return
+	}
+
+	attributes := strings.NewReader(string(data))
+
+	attributesFile, err := os.Create(".gitattributes")
+	if err != nil {
+		fmt.Println("Error opening .gitattributes for writing")
+		return
+	}
+
+	scanner := bufio.NewScanner(attributes)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "filter=media") {
+			fields := strings.Fields(line)
+			removeThisType := false
+			for _, t := range c.SubCommands[1:] {
+				if t == fields[0] {
+					removeThisType = true
+				}
+			}
+
+			if !removeThisType {
+				attributesFile.WriteString(line + "\n")
+			} else {
+				fmt.Println("Removing type", fields[0])
+			}
+		}
 	}
 
 	attributesFile.Close()
