@@ -20,20 +20,66 @@ func (c *TypesCommand) Run() {
 
 	switch sub {
 	case "add":
-		fmt.Println("Adding type")
+		c.addType()
 	case "remove":
 		fmt.Println("Removing type")
 	default:
-		fmt.Println("Listing types")
-		listTypes()
+		c.listTypes()
 	}
 
 }
 
-func listTypes() {
+func (c *TypesCommand) addType() {
+	if len(c.SubCommands) < 2 {
+		fmt.Println("git media types add <type> [type]*")
+		return
+	}
+
+	knownTypes := findTypes()
+	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		fmt.Println("Error opening .gitattributes file")
+		return
+	}
+
+	for _, t := range c.SubCommands[1:] {
+		isKnownType := false
+		for _, k := range knownTypes {
+			if t == k {
+				isKnownType = true
+			}
+		}
+
+		if isKnownType {
+			fmt.Println(t, "already supported")
+			continue
+		}
+
+		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf", t))
+		if err != nil {
+			fmt.Println("Error adding type", t)
+			continue
+		}
+		fmt.Println("Adding type", t)
+	}
+
+	attributesFile.Close()
+}
+
+func (c *TypesCommand) listTypes() {
+	fmt.Println("Listing types")
+	knownTypes := findTypes()
+	for _, t := range knownTypes {
+		fmt.Println("    ", t)
+	}
+}
+
+func findTypes() []string {
+	types := make([]string, 0)
+
 	attributes, err := os.Open(".gitattributes")
 	if err != nil {
-		return // No .gitattibtues == no file types
+		return types // No .gitattibtues == no file types
 	}
 
 	scanner := bufio.NewScanner(attributes)
@@ -45,10 +91,11 @@ func listTypes() {
 
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
-			fmt.Println("   ", fields[0])
+			types = append(types, fields[0])
 		}
 	}
 
+	return types
 }
 
 func init() {
