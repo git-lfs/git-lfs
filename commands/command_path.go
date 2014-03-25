@@ -37,7 +37,7 @@ func (c *PathCommand) addPath() {
 	}
 
 	knownPaths := findPaths()
-	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND, 0660)
+	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		fmt.Println("Error opening .gitattributes file")
 		return
@@ -56,7 +56,7 @@ func (c *PathCommand) addPath() {
 			continue
 		}
 
-		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf", t))
+		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf\n", t))
 		if err != nil {
 			fmt.Println("Error adding path", t)
 			continue
