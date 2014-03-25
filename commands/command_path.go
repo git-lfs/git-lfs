@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-type TypesCommand struct {
+type PathCommand struct {
 	*Command
 }
 
-func (c *TypesCommand) Run() {
+func (c *PathCommand) Run() {
 	var sub string
 	if len(c.SubCommands) > 0 {
 		sub = c.SubCommands[0]
@@ -21,22 +21,22 @@ func (c *TypesCommand) Run() {
 
 	switch sub {
 	case "add":
-		c.addType()
+		c.addPath()
 	case "remove":
-		c.removeType()
+		c.removePath()
 	default:
-		c.listTypes()
+		c.listPaths()
 	}
 
 }
 
-func (c *TypesCommand) addType() {
+func (c *PathCommand) addPath() {
 	if len(c.SubCommands) < 2 {
-		fmt.Println("git media types add <type> [type]*")
+		fmt.Println("git media path add <path> [path]*")
 		return
 	}
 
-	knownTypes := findTypes()
+	knownPaths := findPaths()
 	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND, 0660)
 	if err != nil {
 		fmt.Println("Error opening .gitattributes file")
@@ -44,32 +44,32 @@ func (c *TypesCommand) addType() {
 	}
 
 	for _, t := range c.SubCommands[1:] {
-		isKnownType := false
-		for _, k := range knownTypes {
+		isKnownPath := false
+		for _, k := range knownPaths {
 			if t == k {
-				isKnownType = true
+				isKnownPath = true
 			}
 		}
 
-		if isKnownType {
+		if isKnownPath {
 			fmt.Println(t, "already supported")
 			continue
 		}
 
 		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf", t))
 		if err != nil {
-			fmt.Println("Error adding type", t)
+			fmt.Println("Error adding path", t)
 			continue
 		}
-		fmt.Println("Adding type", t)
+		fmt.Println("Adding path", t)
 	}
 
 	attributesFile.Close()
 }
 
-func (c *TypesCommand) removeType() {
+func (c *PathCommand) removePath() {
 	if len(c.SubCommands) < 2 {
-		fmt.Println("git meda types remove <type> [type]*")
+		fmt.Println("git meda path remove <path> [path]*")
 		return
 	}
 
@@ -91,17 +91,17 @@ func (c *TypesCommand) removeType() {
 		line := scanner.Text()
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
-			removeThisType := false
+			removeThisPath := false
 			for _, t := range c.SubCommands[1:] {
 				if t == fields[0] {
-					removeThisType = true
+					removeThisPath = true
 				}
 			}
 
-			if !removeThisType {
+			if !removeThisPath {
 				attributesFile.WriteString(line + "\n")
 			} else {
-				fmt.Println("Removing type", fields[0])
+				fmt.Println("Removing path", fields[0])
 			}
 		}
 	}
@@ -109,20 +109,20 @@ func (c *TypesCommand) removeType() {
 	attributesFile.Close()
 }
 
-func (c *TypesCommand) listTypes() {
-	fmt.Println("Listing types")
-	knownTypes := findTypes()
-	for _, t := range knownTypes {
+func (c *PathCommand) listPaths() {
+	fmt.Println("Listing paths")
+	knownPaths := findPaths()
+	for _, t := range knownPaths {
 		fmt.Println("    ", t)
 	}
 }
 
-func findTypes() []string {
-	types := make([]string, 0)
+func findPaths() []string {
+	paths := make([]string, 0)
 
 	attributes, err := os.Open(".gitattributes")
 	if err != nil {
-		return types // No .gitattibtues == no file types
+		return paths // No .gitattibtues == no file paths
 	}
 
 	scanner := bufio.NewScanner(attributes)
@@ -134,15 +134,15 @@ func findTypes() []string {
 
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
-			types = append(types, fields[0])
+			paths = append(paths, fields[0])
 		}
 	}
 
-	return types
+	return paths
 }
 
 func init() {
-	registerCommand("types", func(c *Command) RunnableCommand {
-		return &TypesCommand{Command: c}
+	registerCommand("path", func(c *Command) RunnableCommand {
+		return &PathCommand{Command: c}
 	})
 }
