@@ -4,6 +4,7 @@ import (
 	".."
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb"
 	"io"
@@ -17,6 +18,7 @@ import (
 const (
 	gitMediaType     = "application/vnd.git-media"
 	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
+	gitMediaHeader   = "0014 git media v1\n"
 )
 
 func Put(filehash, filename string) error {
@@ -72,6 +74,16 @@ func Get(filename string) (io.ReadCloser, error) {
 
 		if err != nil {
 			return nil, err
+		}
+
+		header := make([]byte, len(gitMediaHeader))
+		_, err = io.ReadAtLeast(res.Body, header, len(gitMediaHeader))
+		if err != nil {
+			return nil, err
+		}
+
+		if string(header) != gitMediaHeader {
+			return nil, errors.New("Invalid header")
 		}
 
 		return res.Body, nil
