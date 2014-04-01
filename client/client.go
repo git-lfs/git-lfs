@@ -21,6 +21,26 @@ const (
 	gitMediaHeader   = "0014 git media v1\n"
 )
 
+func Options(filehash string) error {
+	oid := filepath.Base(filehash)
+	_, err := os.Stat(filehash)
+	if err != nil {
+		return err
+	}
+
+	req, creds, err := clientRequest("OPTIONS", oid)
+	if err != nil {
+		return err
+	}
+
+	_, err = doRequest(req, creds)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Put(filehash, filename string) error {
 	if filename == "" {
 		filename = filehash

@@ -23,7 +23,13 @@ func (c *SyncCommand) Run() {
 		}
 
 		path := gitmedia.LocalMediaPath(sha)
-		err := gitmediaclient.Put(path, filename)
+
+		err := gitmediaclient.Options(path)
+		if err != nil {
+			gitmedia.Panic(err, "error uploading file %s", filename)
+		}
+
+		err = gitmediaclient.Put(path, filename)
 		if err != nil {
 			gitmedia.Panic(err, "error uploading file %s", sha)
 		}
