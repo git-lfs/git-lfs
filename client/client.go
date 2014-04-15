@@ -13,12 +13,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
-	gitMediaType     = "application/vnd.git-media"
-	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
-	gitMediaHeader   = "0014 git media v1\n"
+	gitMediaType      = "application/vnd.git-media"
+	gitMediaMetaType  = gitMediaType + "+json; charset=utf-8"
+	gitMediaHeader    = "--git-media."
+	gitBoundaryLength = 61
 )
 
 func Options(filehash string) error {
@@ -96,13 +98,13 @@ func Get(filename string) (io.ReadCloser, error) {
 			return nil, err
 		}
 
-		header := make([]byte, len(gitMediaHeader))
-		_, err = io.ReadAtLeast(res.Body, header, len(gitMediaHeader))
+		header := make([]byte, len(gitMediaHeader)+gitBoundaryLength)
+		_, err = io.ReadAtLeast(res.Body, header, len(gitMediaHeader)+gitBoundaryLength)
 		if err != nil {
 			return nil, err
 		}
 
-		if string(header) != gitMediaHeader {
+		if !strings.HasPrefix(string(header), gitMediaHeader) {
 			return nil, errors.New("Invalid header")
 		}
 
