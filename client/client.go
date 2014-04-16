@@ -103,34 +103,44 @@ func Get(filename string) (io.ReadCloser, error) {
 			return nil, errors.New("Invalid Content-Type")
 		}
 
-		mediaType, params, err := mime.ParseMediaType(contentType)
-		if err != nil {
-			return nil, errors.New("Invalid Media Type")
-		}
-
-		if mediaType != gitMediaType {
-			return nil, errors.New("Invalid Media Type")
-		}
-
-		givenHeader, ok := params["header"]
-		if !ok {
-			return nil, errors.New("Invalid header")
-		}
-
-		header := make([]byte, len(gitMediaHeader)+gitBoundaryLength)
-		_, err = io.ReadAtLeast(res.Body, header, len(gitMediaHeader)+gitBoundaryLength)
-		if err != nil {
+		if ok, err := validateMediaHeader(contentType, res.Body); !ok {
 			return nil, err
-		}
-
-		if string(header) != givenHeader {
-			return nil, errors.New("Invalid header")
 		}
 
 		return res.Body, nil
 	}
 
 	return os.Open(filename)
+}
+
+func validateMediaHeader(contentType string, reader io.Reader) (bool, error) {
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return false, errors.New("Invalid Media Type")
+	}
+
+	if mediaType != gitMediaType {
+		return false, errors.New("Invalid Media Type")
+	}
+
+	givenHeader, ok := params["header"]
+	if !ok {
+		return false, errors.New("Invalid header")
+	}
+
+	fullGivenHeader := "--" + givenHeader + "\n"
+
+	header := make([]byte, len(fullGivenHeader))
+	_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
+	if err != nil {
+		return false, err
+	}
+
+	if string(header) != fullGivenHeader {
+		return false, errors.New("Invalid header")
+	}
+
+	return true, nil
 }
 
 func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
