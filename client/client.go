@@ -9,11 +9,11 @@ import (
 	"github.com/cheggaaa/pb"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 const (
@@ -98,13 +98,32 @@ func Get(filename string) (io.ReadCloser, error) {
 			return nil, err
 		}
 
+		contentType := res.Header.Get("Content-Type")
+		if contentType == "" {
+			return nil, errors.New("Invalid Content-Type")
+		}
+
+		mediaType, params, err := mime.ParseMediaType(contentType)
+		if err != nil {
+			return nil, errors.New("Invalid Media Type")
+		}
+
+		if mediaType != gitMediaType {
+			return nil, errors.New("Invalid Media Type")
+		}
+
+		givenHeader, ok := params["header"]
+		if !ok {
+			return nil, errors.New("Invalid header")
+		}
+
 		header := make([]byte, len(gitMediaHeader)+gitBoundaryLength)
 		_, err = io.ReadAtLeast(res.Body, header, len(gitMediaHeader)+gitBoundaryLength)
 		if err != nil {
 			return nil, err
 		}
 
-		if !strings.HasPrefix(string(header), gitMediaHeader) {
+		if string(header) != givenHeader {
 			return nil, errors.New("Invalid header")
 		}
 
