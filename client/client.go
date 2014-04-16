@@ -17,10 +17,9 @@ import (
 )
 
 const (
-	gitMediaType      = "application/vnd.git-media"
-	gitMediaMetaType  = gitMediaType + "+json; charset=utf-8"
-	gitMediaHeader    = "--git-media."
-	gitBoundaryLength = 61
+	gitMediaType     = "application/vnd.git-media"
+	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
+	gitMediaHeader   = "--git-media."
 )
 
 func Options(filehash string) error {
