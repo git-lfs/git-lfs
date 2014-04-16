@@ -32,7 +32,14 @@ func TestEncode(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	buf := bytes.NewBufferString("# comment comment\n# comment\n #comment\nabc\n")
+	buf := bytes.NewBufferString("# git-media\nabc\n")
+	if sha, _ := Decode(buf); sha != "abc" {
+		t.Errorf("Invalid SHA: %#v", sha)
+	}
+}
+
+func TestDecodeExternal(t *testing.T) {
+	buf := bytes.NewBufferString("# external\nabc\n")
 	if sha, _ := Decode(buf); sha != "abc" {
 		t.Errorf("Invalid SHA: %#v", sha)
 	}

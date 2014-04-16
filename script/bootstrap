@@ -1,6 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
-location="bin/gopack-darwin-amd64"
-[ -d "/proc" ] && location="bin/gopack-linux-amd64"
+script/fmt
 
-$location version
+rm -r `pwd`/bin/*
+rm -rf `pwd`/.vendor/pkg
+
+GOPATH="`pwd`/.vendor" \
+  go run script/build.go "$@"

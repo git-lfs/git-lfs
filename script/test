@@ -1,3 +1,8 @@
 script/fmt
-GOPATH="`pwd`/.gopack/vendor" \
-  go test ./... && script/build && script/integration_tests
+script/bootstrap
+
+GOPATH="`pwd`/.vendor" \
+  go test ./... -i
+
+GOPATH="`pwd`/.vendor" \
+  go test ./... && script/integration_tests

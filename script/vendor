@@ -1,0 +1,1 @@
+GOPATH="`pwd`/.vendor" script/gpm install
