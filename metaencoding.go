@@ -3,9 +3,10 @@ package gitmedia
 import (
 	"bytes"
 	"io"
+	"regexp"
 )
 
-var MediaWarning = []byte("# external\n")
+var MediaWarning = []byte("# git-media\n")
 
 func Encode(writer io.Writer, sha string) (int, error) {
 	written, err := writer.Write(MediaWarning)
@@ -24,15 +25,15 @@ func Decode(reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	return lastNonEmpty(bytes.Split(buf[0:written], []byte("\n"))), nil
-}
-
-func lastNonEmpty(parts [][]byte) string {
-	idx := len(parts)
-	var part []byte
-	for len(part) == 0 {
-		idx -= 1
-		part = parts[idx]
+	lines := bytes.Split(buf[0:written], []byte("\n"))
+	matched, err := regexp.Match("# (.*git-media|external)", lines[0])
+	if err != nil {
+		return "", err
 	}
-	return string(part)
+
+	if matched {
+		return string(lines[1]), nil
+	}
+
+	return "", nil // error?
 }
