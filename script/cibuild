@@ -1,3 +1,2 @@
 #!/bin/sh
-script/test -i
 script/test
