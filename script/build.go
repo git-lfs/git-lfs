@@ -66,7 +66,13 @@ func build(buildos, buildarch string) {
 	})
 
 	if addenv {
-		err := setupInstaller(buildos, buildarch, dir)
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			fmt.Println("Error setting up installer:\n", err.Error())
+			return
+		}
+
+		err = setupInstaller(buildos, buildarch, dir)
 		if err != nil {
 			fmt.Println("Error setting up installer:\n", err.Error())
 		}
