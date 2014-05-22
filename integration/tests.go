@@ -13,6 +13,8 @@ var (
 )
 
 func main() {
+	exitCode := 0
+
 	for wd, commands := range allCommands {
 		fmt.Println("Integration tests for", wd)
 		for cmd, expected := range commands {
@@ -23,12 +25,15 @@ func main() {
 			fmt.Println("$ git-media", cmd)
 			actual := gitmedia.SimpleExec(gitMediaBin, cmd)
 			if actual != expected {
+				exitCode = 1
 				fmt.Printf("- expected\n%s\n\n", expected)
 				fmt.Printf("- actual\n%s\n", actual)
 			}
 		}
 		fmt.Println("")
 	}
+
+	os.Exit(exitCode)
 }
 
 func init() {
