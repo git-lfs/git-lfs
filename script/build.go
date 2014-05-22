@@ -29,7 +29,7 @@ func main() {
 
 	flag.Parse()
 	if *ShowHelp {
-		fmt.Println("usage: script/build [-os] [-arch] [-all]")
+		fmt.Println("usage: script/bootstrap [-os] [-arch] [-all]")
 		flag.PrintDefaults()
 		return
 	}

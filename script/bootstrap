@@ -2,7 +2,7 @@
 
 script/fmt
 
-rm -r `pwd`/bin/*
+rm -rf `pwd`/bin/*
 rm -rf `pwd`/.vendor/pkg
 
 GOPATH="`pwd`/.vendor" \
