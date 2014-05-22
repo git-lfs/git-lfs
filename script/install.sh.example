@@ -6,6 +6,7 @@ elif [ "$BOXEN_HOME" != "" ] ; then
   prefix=$BOXEN_HOME
 fi
 
+rm -rf $prefix/bin/git-media*
 for g in git*; do
   cp $g "$prefix/bin/$g"
 done
