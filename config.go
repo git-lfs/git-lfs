@@ -1,6 +1,7 @@
 package gitmedia
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"regexp"
@@ -12,7 +13,10 @@ type Configuration struct {
 	remotes   []string
 }
 
-var Config = &Configuration{}
+var (
+	Config       = &Configuration{}
+	httpPrefixRe = regexp.MustCompile("\\Ahttps?://")
+)
 
 func (c *Configuration) Endpoint() string {
 	if url, ok := c.GitConfig("media.url"); ok {
@@ -28,9 +32,10 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		if !strings.HasPrefix(url, "https://") {
-			re := regexp.MustCompile("^.+@")
-			url = re.ReplaceAllLiteralString(url, "https://")
+		if !httpPrefixRe.MatchString(url) {
+			pieces := strings.SplitN(url, ":", 2)
+			hostPieces := strings.SplitN(pieces[0], "@", 2)
+			url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
 		}
 
 		if path.Ext(url) == ".git" {
