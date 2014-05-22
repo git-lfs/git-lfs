@@ -96,6 +96,7 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 			"GOOS=" + buildos,
 			"GOARCH=" + buildarch,
 			"GOPATH=" + os.Getenv("GOPATH"),
+			"GOROOT=" + os.Getenv("GOROOT"),
 		}
 	}
 
