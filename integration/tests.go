@@ -65,9 +65,7 @@ func init() {
 
 	if gitEnv := gitEnviron(); len(gitEnv) > 0 {
 		suffix := "\n" + strings.Join(gitEnv, "\n")
-		for _, commands := range allCommands {
-			commands["config"] += suffix
-		}
+		allCommands[wd]["config"] += suffix
 	}
 }
 
