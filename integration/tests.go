@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var (
@@ -61,4 +62,25 @@ func init() {
 
 	// tests on the git-media sub directory
 	allCommands[filepath.Join(wd, "integration")] = allCommands[wd]
+
+	if gitEnv := gitEnviron(); len(gitEnv) > 0 {
+		suffix := "\n" + strings.Join(gitEnv, "\n")
+		for _, commands := range allCommands {
+			commands["config"] += suffix
+		}
+	}
+}
+
+func gitEnviron() []string {
+	osEnviron := os.Environ()
+	env := make([]string, 0, len(osEnviron))
+
+	for _, e := range osEnviron {
+		if !strings.Contains(e, "GIT_") {
+			continue
+		}
+		env = append(env, e)
+	}
+
+	return env
 }

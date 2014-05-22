@@ -52,7 +52,7 @@ func Environ() []string {
 	env[2] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
 	env[3] = fmt.Sprintf("TempDir=%s", TempDir)
 
-	for _, e := range os.Environ() {
+	for _, e := range osEnviron {
 		if !strings.Contains(e, "GIT_") {
 			continue
 		}
