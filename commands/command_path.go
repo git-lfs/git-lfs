@@ -46,7 +46,7 @@ func (c *PathCommand) addPath() {
 	for _, t := range c.SubCommands[1:] {
 		isKnownPath := false
 		for _, k := range knownPaths {
-			if t == k {
+			if t == k.Path {
 				isKnownPath = true
 			}
 		}
@@ -113,12 +113,17 @@ func (c *PathCommand) listPaths() {
 	fmt.Println("Listing paths")
 	knownPaths := findPaths()
 	for _, t := range knownPaths {
-		fmt.Println("    ", t)
+		fmt.Printf("    %s (%s)\n", t.Path, t.Source)
 	}
 }
 
-func findPaths() []string {
-	paths := make([]string, 0)
+type mediaPath struct {
+	Path   string
+	Source string
+}
+
+func findPaths() []mediaPath {
+	paths := make([]mediaPath, 0)
 
 	attributes, err := os.Open(".gitattributes")
 	if err != nil {
@@ -134,7 +139,7 @@ func findPaths() []string {
 
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
-			paths = append(paths, fields[0])
+			paths = append(paths, mediaPath{Path: fields[0], Source: ".gitattributes"})
 		}
 	}
 
@@ -143,6 +148,9 @@ func findPaths() []string {
 
 func init() {
 	registerCommand("path", func(c *Command) RunnableCommand {
+		return &PathCommand{Command: c}
+	})
+	registerCommand("paths", func(c *Command) RunnableCommand {
 		return &PathCommand{Command: c}
 	})
 }
