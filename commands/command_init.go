@@ -3,6 +3,7 @@ package gitmedia
 import (
 	"../gitconfig"
 	"fmt"
+	"regexp"
 )
 
 type InitCommand struct {
@@ -14,11 +15,12 @@ var (
 	cleanFilterVal  = "git-media-clean %f"
 	smudgeFilterKey = "filter.media.smudge"
 	smudgeFilterVal = "git-media-smudge %f"
+	valueRegexp     = regexp.MustCompile("\\Agit[\\-\\s]media")
 )
 
 func (c *InitCommand) Run() {
 	clean := gitconfig.Find(cleanFilterKey)
-	if clean == "" {
+	if shouldReset(clean) {
 		fmt.Println("Installing clean filter")
 		gitconfig.SetGlobal(cleanFilterKey, cleanFilterVal)
 	} else if clean != cleanFilterVal {
@@ -26,7 +28,7 @@ func (c *InitCommand) Run() {
 	}
 
 	smudge := gitconfig.Find(smudgeFilterKey)
-	if smudge == "" {
+	if shouldReset(smudge) {
 		fmt.Println("Installing smudge filter")
 		gitconfig.SetGlobal(smudgeFilterKey, smudgeFilterVal)
 	} else if smudge != smudgeFilterVal {
@@ -34,6 +36,13 @@ func (c *InitCommand) Run() {
 	}
 
 	fmt.Println("git media initialized")
+}
+
+func shouldReset(value string) bool {
+	if len(value) == 0 {
+		return true
+	}
+	return valueRegexp.MatchString(value)
 }
 
 func init() {
