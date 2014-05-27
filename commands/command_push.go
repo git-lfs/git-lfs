@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-type SyncCommand struct {
+type PushCommand struct {
 	*Command
 }
 
-func (c *SyncCommand) Run() {
+func (c *PushCommand) Run() {
 	q := gitmedia.UploadQueue()
 	q.Walk(func(id string, body []byte) error {
 		fileInfo := string(body)
@@ -42,7 +42,7 @@ func (c *SyncCommand) Run() {
 }
 
 func init() {
-	registerCommand("sync", func(c *Command) RunnableCommand {
-		return &SyncCommand{Command: c}
+	registerCommand("push", func(c *Command) RunnableCommand {
+		return &PushCommand{Command: c}
 	})
 }
