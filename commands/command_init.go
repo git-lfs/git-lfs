@@ -12,9 +12,9 @@ type InitCommand struct {
 
 var (
 	cleanFilterKey  = "filter.media.clean"
-	cleanFilterVal  = "git-media-clean %f"
+	cleanFilterVal  = "git media clean %f"
 	smudgeFilterKey = "filter.media.smudge"
-	smudgeFilterVal = "git-media-smudge %f"
+	smudgeFilterVal = "git media smudge %f"
 	valueRegexp     = regexp.MustCompile("\\Agit[\\-\\s]media")
 )
 
