@@ -48,4 +48,16 @@ git media initialized"
   end
 end
 
+Suite.test Suite.repository(:config_media_url) do |t|
+  t.command "config",
+    <<-END
+Endpoint=http://foo/bar
+LocalWorkingDir=#{config.root}
+LocalGitDir=#{File.join config.root, ".git"}
+LocalMediaDir=#{File.join config.root, ".git", "media"}
+TempDir=#{File.join config.tmp, "git-media"}
+#{config.env_string}
+    END
+end
+
 Suite.run!

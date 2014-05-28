@@ -1,3 +1,5 @@
+require "tmpdir"
+
 class Suite
   class Config < Struct.new(:root)
     def bin
@@ -9,7 +11,7 @@ class Suite
     end
 
     def tmp
-      @tmp ||= cmd(:temp)
+      @tmp ||= Dir.tmpdir
     end
 
     # Gets existing GIT_* env vars
