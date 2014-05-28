@@ -5,4 +5,4 @@ GOPATH="`pwd`/.vendor" \
   go test ./... -i
 
 GOPATH="`pwd`/.vendor" \
-  go test ./... && script/integration_tests
+  go test ./...
