@@ -1,1 +1,1 @@
-ruby integration/tests.rb
+GOPATH="`pwd`/.vendor" ruby integration/tests.rb
