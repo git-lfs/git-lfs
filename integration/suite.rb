@@ -68,8 +68,10 @@ class Suite
       @repositories << path
     end
 
-    def command(cmd, output, &block)
-      @commands << Command.new(cmd, output, &block)
+    def command(cmd, output = nil)
+      c = Command.new(cmd, output)
+      yield c if block_given?
+      @commands << c
     end
 
     def run!
@@ -91,17 +93,23 @@ class Suite
   end
 
   class Command
+    attr_accessor :expected
+
     def initialize(cmd, expected, &block)
       @cmd = cmd
-      @expected = expected.strip
-      @checks = block
+      @expected = expected.strip if expected
+      @after = block
+    end
+
+    def after(&block)
+      @after = block
     end
 
     def run!(repository)
       puts "$ git media #{@cmd}"
       actual = %x{#{Suite.config.bin} #{@cmd}}.strip
 
-      if actual != @expected
+      if @expected && @expected != actual
         puts "- expected"
         puts @expected
         puts
@@ -112,7 +120,7 @@ class Suite
         return false
       end
 
-      if err = @checks && @checks.call
+      if err = @after && @after.call
         puts err
         return false
       end

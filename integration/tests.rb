@@ -23,24 +23,25 @@ TempDir=#{File.join config.tmp, "git-media"}
 #{config.env_string}
     END
 
-  t.command "init",
-    "Installing clean filter
+  t.command "init" do |cmd|
+    cmd.expected = "Installing clean filter
 Installing smudge filter
-git media initialized" do
-    gitconfig = Suite.global_git_config
-    if gitconfig.select { |l| l == "filter.media.clean=git media clean %f" }.size != 1
-      next "bad filter.media.clean configs"
-    end
+git media initialized"
 
-    if gitconfig.select { |l| l == "filter.media.smudge=git media smudge %f" }.size != 1
-      next "bad filter.media.smudge configs"
-    end
+    cmd.after do
+      gitconfig = Suite.global_git_config
+      if gitconfig.select { |l| l == "filter.media.clean=git media clean %f" }.size != 1
+        next "bad filter.media.clean configs"
+      end
 
-    if gitconfig.select { |l| l =~ /\Afilter\.media\./ }.size != 2
-      next "bad filter.media configs"
-    end
+      if gitconfig.select { |l| l == "filter.media.smudge=git media smudge %f" }.size != 1
+        next "bad filter.media.smudge configs"
+      end
 
-    nil
+      if gitconfig.select { |l| l =~ /\Afilter\.media\./ }.size != 2
+        next "bad filter.media configs"
+      end
+    end
   end
 end
 
