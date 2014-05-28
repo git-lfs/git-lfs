@@ -1,1 +1,1 @@
-GOPATH="`pwd`/.vendor" go run integration/tests.go
+ruby integration/tests.rb
