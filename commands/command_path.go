@@ -1,6 +1,7 @@
 package gitmedia
 
 import (
+	gitmedia ".."
 	_ "../gitconfig"
 	"bufio"
 	"fmt"
@@ -126,12 +127,12 @@ type mediaPath struct {
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
-	if _, err := os.Stat(".git/info/attributes"); err == nil {
-		paths = append(paths, ".git/info/attributes")
+	repoAttributes := filepath.Join(gitmedia.LocalGitDir, "info", "attributes")
+	if _, err := os.Stat(repoAttributes); err == nil {
+		paths = append(paths, repoAttributes)
 	}
 
-	// TODO should find the project root, not just .
-	filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(gitmedia.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
