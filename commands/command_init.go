@@ -10,13 +10,7 @@ type InitCommand struct {
 	*Command
 }
 
-var (
-	cleanFilterKey  = "filter.media.clean"
-	cleanFilterVal  = "git media clean %f"
-	smudgeFilterKey = "filter.media.smudge"
-	smudgeFilterVal = "git media smudge %f"
-	valueRegexp     = regexp.MustCompile("\\Agit[\\-\\s]media")
-)
+var valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
 
 func (c *InitCommand) Run() {
 	setFilter("clean")
