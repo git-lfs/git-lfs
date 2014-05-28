@@ -148,6 +148,7 @@ func findAttributeFiles() []string {
 
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
+	wd, _ := os.Getwd()
 
 	for _, path := range findAttributeFiles() {
 		attributes, err := os.Open(path)
@@ -164,7 +165,6 @@ func findPaths() []mediaPath {
 
 			if strings.Contains(line, "filter=media") {
 				fields := strings.Fields(line)
-				wd, _ := os.Getwd()
 				relPath, _ := filepath.Rel(wd, path)
 				paths = append(paths, mediaPath{Path: fields[0], Source: relPath})
 			}
