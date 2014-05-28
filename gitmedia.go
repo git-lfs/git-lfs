@@ -63,7 +63,12 @@ func Environ() []string {
 }
 
 func init() {
-	LocalWorkingDir, LocalGitDir = resolveGitDir()
+	var err error
+	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
+	if err != nil {
+		Exit("Not in a git repository")
+	}
+
 	LocalMediaDir = filepath.Join(LocalGitDir, "media")
 	LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 	queueDir = setupQueueDir()
@@ -73,7 +78,7 @@ func init() {
 	}
 }
 
-func resolveGitDir() (string, string) {
+func resolveGitDir() (string, string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		Panic(err, "Error reading working directory")
@@ -82,15 +87,19 @@ func resolveGitDir() (string, string) {
 	return recursiveResolveGitDir(wd)
 }
 
-func recursiveResolveGitDir(dir string) (string, string) {
+func recursiveResolveGitDir(dir string) (string, string, error) {
+	if len(dir) == 1 && dir[0] == os.PathSeparator {
+		return "", "", fmt.Errorf("Git repository not found")
+	}
+
 	if filepath.Base(dir) == gitExt {
-		return filepath.Dir(dir), dir
+		return filepath.Dir(dir), dir, nil
 	}
 
 	gitDir := filepath.Join(dir, gitExt)
 	if info, err := os.Stat(gitDir); err == nil {
 		if info.IsDir() {
-			return dir, gitDir
+			return dir, gitDir, nil
 		}
 	}
 
