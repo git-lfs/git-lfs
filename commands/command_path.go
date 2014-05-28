@@ -125,6 +125,11 @@ type mediaPath struct {
 
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
+
+	if _, err := os.Stat(".git/info/attributes"); err == nil {
+		paths = append(paths, ".git/info/attributes")
+	}
+
 	// TODO should find the project root, not just .
 	filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -136,6 +141,7 @@ func findAttributeFiles() []string {
 		}
 		return nil
 	})
+
 	return paths
 }
 
