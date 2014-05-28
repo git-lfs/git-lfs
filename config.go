@@ -35,6 +35,9 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 		if !httpPrefixRe.MatchString(url) {
 			pieces := strings.SplitN(url, ":", 2)
 			hostPieces := strings.SplitN(pieces[0], "@", 2)
+			if len(hostPieces) < 2 {
+				return "unknown"
+			}
 			url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
 		}
 
