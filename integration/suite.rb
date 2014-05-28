@@ -44,7 +44,6 @@ class Suite
   end
 
   def self.test(repository)
-
     t = Test.new(repository, "#{repository}/.git")
     yield t if block_given?
     tests << t
@@ -54,6 +53,11 @@ class Suite
     def initialize(*repositories)
       @repositories = repositories
       @commands = []
+      @successful = true
+    end
+
+    def failed?
+      !@successful
     end
 
     def repository(path)
@@ -73,7 +77,11 @@ class Suite
     def run(r)
       puts "Integration tests for #{r}"
       puts
-      @commands.each { |c| c.run!(r) }
+      @commands.each do |c|
+        if !c.run!(r)
+          @successful = false
+        end
+      end
       puts
     end
   end
@@ -95,11 +103,18 @@ class Suite
         puts "- actual"
         puts actual
         puts
+
+        return false
       end
+
+      true
     end
   end
 
   def self.run!
     tests.each { |t| t.run! }
+    if tests.any?(&:failed?)
+      abort "Failed."
+    end
   end
 end
