@@ -1,8 +1,8 @@
 require File.expand_path("../suite", __FILE__)
 
 Suite.test :empty do |t|
-  t.repository File.join(t.path, ".git")
-  t.repository File.join(t.path, "subdir") # sub directory!
+  t.add_path File.join(t.path, ".git")
+  t.add_path File.join(t.path, "subdir") # sub directory!
 
   # really simple test
   t.command "version",

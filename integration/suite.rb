@@ -70,7 +70,7 @@ class Suite
     def initialize(name)
       @repository_name = name
       @path = expand(File.join(Suite.test_tmpdir, name.to_s))
-      @repositories = [@path]
+      @paths = [@path]
       @commands = []
       @successful = true
     end
@@ -92,8 +92,8 @@ class Suite
       !@successful
     end
 
-    def repository(path)
-      @repositories << path
+    def add_path(path)
+      @paths << path
     end
 
     def command(cmd, output = nil)
@@ -103,15 +103,15 @@ class Suite
     end
 
     def run!
-      @repositories.each { |r| run(r) }
+      @paths.each { |p| run(p) }
     end
 
-    def run(r)
-      puts "Integration tests for #{r}"
+    def run(path)
+      puts "Integration tests for #{path}"
       puts
       @commands.each do |c|
-        clone(r) do
-          @successful = false unless c.run!(r)
+        clone(path) do
+          @successful = false unless c.run!
         end
       end
       puts
@@ -170,7 +170,7 @@ class Suite
       @after = block
     end
 
-    def run!(repository)
+    def run!
       puts "$ git media #{@cmd}"
       actual = Suite.exec @cmd
 
