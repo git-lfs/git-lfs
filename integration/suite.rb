@@ -93,7 +93,7 @@ class Suite
     attr_reader :path
 
     def initialize(*repositories)
-      @path = repositories.first
+      @path = expand(repositories.first)
       @repositories = repositories
       @commands = []
       @successful = true
@@ -128,6 +128,28 @@ class Suite
         end
       end
       puts
+    end
+
+  private
+    # expands the /var path which gets symlinked to "private/var" on OSX.
+    def expand(path)
+      pieces = path.split "/"
+      pieces.shift
+      expanded = ""
+      pieces.each do |part|
+        trial = File.join(expanded, part)
+        expanded = if File.symlink?(trial)
+          File.readlink(trial)
+        else
+          trial
+        end
+      end
+
+      if expanded.start_with?("/")
+        expanded
+      else
+        File.join("", expanded)
+      end
     end
   end
 
