@@ -9,3 +9,5 @@ for i in */ ; do
     gofmt -w -l "$@" "${i%?}"
   fi
 done
+
+script/clean-git-test-fixtures > /dev/null
