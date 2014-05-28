@@ -1,3 +1,2 @@
 #!/bin/sh
-script/test
-script/integration_tests
+script/test && script/integration_tests
