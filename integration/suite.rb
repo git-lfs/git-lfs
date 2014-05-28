@@ -76,6 +76,19 @@ class Suite
       @successful = true
     end
 
+    def exist?(*relative_parts)
+      File.exist?(File.join(@path, *relative_parts))
+    end
+
+    def read(*relative_parts)
+      return nil unless exist?(*relative_parts)
+      IO.read(File.join(@path, *relative_parts)).to_s.strip
+    end
+
+    def exec(cmd)
+      %x{#{Suite.config.bin} #{cmd}}.strip
+    end
+
     def failed?
       !@successful
     end

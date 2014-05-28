@@ -49,6 +49,27 @@ git media initialized"
   end
 end
 
+Suite.test :empty do |t|
+  # add a path, make sure its written to .gitattributes, and check `git media path`
+  t.command "path add *.gif", "Adding path *.gif" do |cmd|
+    cmd.after do
+      if t.read(".gitattributes") != "*.gif filter=media -crlf"
+        next ".gitattributes not set"
+      end
+
+      actual = t.exec("path")
+      expected = "Listing paths
+    *.gif (.gitattributes)"
+      if actual != expected
+        next ".git path not shown by 'git media path':\n#{actual}"
+      end
+    end
+  end
+
+  # test the default path output
+  t.command "path", "Listing paths"
+end
+
 Suite.test :config_media_url do |t|
   t.command "config",
     <<-END
