@@ -164,7 +164,9 @@ func findPaths() []mediaPath {
 
 			if strings.Contains(line, "filter=media") {
 				fields := strings.Fields(line)
-				paths = append(paths, mediaPath{Path: fields[0], Source: path})
+				wd, _ := os.Getwd()
+				relPath, _ := filepath.Rel(wd, path)
+				paths = append(paths, mediaPath{Path: fields[0], Source: relPath})
 			}
 		}
 	}
