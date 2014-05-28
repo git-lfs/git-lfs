@@ -18,10 +18,10 @@ Nothing may see Gah Lak Tus and survive.
 
   t.command "config",
     <<-END
-Endpoint=https://github.com/github/git-media.git/info/media
-LocalWorkingDir=#{t.path}
-LocalGitDir=#{File.join t.path, ".git"}
-LocalMediaDir=#{File.join t.path, ".git", "media"}
+Endpoint=https://example.com/git/media.git/info/media
+LocalWorkingDir=#{File.join "/private", t.path}
+LocalGitDir=#{File.join "/private", t.path, ".git"}
+LocalMediaDir=#{File.join "/private", t.path, ".git", "media"}
 TempDir=#{File.join config.tmp, "git-media"}
 #{config.env_string}
     END

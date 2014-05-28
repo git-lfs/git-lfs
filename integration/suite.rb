@@ -73,6 +73,11 @@ class Suite
     dest = File.join(test_tmpdir, name.to_s)
     Dir.chdir File.join(config.root, "integration", "repos") do
       %x{git clone #{name} #{dest}}
+      # set a default origin remote for each test case
+      Dir.chdir dest do
+        `git remote remove origin`
+        `git remote add origin https://example.com/git/media`
+      end
     end
 
     dest
