@@ -64,8 +64,8 @@ class Suite
       @repositories << path
     end
 
-    def command(cmd, &block)
-      @commands << Command.new(cmd, block.call)
+    def command(cmd, output)
+      @commands << Command.new(cmd, output)
     end
 
     def run!
