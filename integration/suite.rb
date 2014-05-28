@@ -2,44 +2,42 @@ require "tmpdir"
 require "fileutils"
 
 class Suite
-  class Config < Struct.new(:root)
-    def bin
-      @bin ||= File.join(root, "bin/git-media")
-    end
+  def self.root
+    @root ||= File.expand_path("../..", __FILE__)
+  end
 
-    def version
-      @version ||= cmd(:version)
-    end
+  def self.bin
+    @bin ||= File.join(root, "bin/git-media")
+  end
 
-    def tmp
-      @tmp ||= Dir.tmpdir
-    end
+  def self.version
+    @version ||= go_cmd(:version)
+  end
 
-    # Gets existing GIT_* env vars
-    def env
-      @env ||= ENV.inject({}) do |memo, (k, v)|
-        if k =~ /\AGIT_/
-          memo.update k => v
-        else
-          memo
-        end
+  def self.tmp
+    @tmp ||= Dir.tmpdir
+  end
+
+  # Gets existing GIT_* env vars
+  def self.env
+    @env ||= ENV.inject({}) do |memo, (k, v)|
+      if k =~ /\AGIT_/
+        memo.update k => v
+      else
+        memo
       end
-    end
-
-    def env_string
-      env.inject [] do |memo, (key, value)|
-        memo << "#{key}=#{value}"
-      end.join("\n")
-    end
-
-  private
-    def cmd(file)
-      %x{go run #{root}/integration/#{file}.go}.strip
     end
   end
 
-  def self.config
-    @config ||= Config.new(File.expand_path("../..", __FILE__))
+  # Packs the ENV values into a string like:
+  #
+  #   ENV_KEY_1=VALUE
+  #   ENV_KEY_2=VALUE
+  #
+  def self.env_string
+    env.inject [] do |memo, (key, value)|
+      memo << "#{key}=#{value}"
+    end.join("\n")
   end
 
   def self.tests
@@ -48,9 +46,9 @@ class Suite
 
   def self.test_tmpdir
     @test_tmpdir ||= begin
-      tmp = File.join(config.tmp, "git-media-tests")
-      FileUtils.rm_rf(tmp)
-      tmp
+      t = File.join(tmp, "git-media-tests")
+      FileUtils.rm_rf(t)
+      t
     end
   end
 
@@ -65,6 +63,7 @@ class Suite
     tests << t
   end
 
+  # Represents a set of tests to run against a repository.
   class Test
     attr_reader :path
 
@@ -86,7 +85,7 @@ class Suite
     end
 
     def exec(cmd)
-      %x{#{Suite.config.bin} #{cmd}}.strip
+      Suite.exec cmd
     end
 
     def failed?
@@ -121,7 +120,7 @@ class Suite
   private
     def clone(path)
       FileUtils.rm_rf @path
-      Dir.chdir File.join(Suite.config.root, "integration", "repos") do
+      Dir.chdir File.join(Suite.root, "integration", "repos") do
         %x{git clone #{@repository_name} #{@path} 2> /dev/null}
         # set a default origin remote for each test case
         Dir.chdir @path do
@@ -157,6 +156,7 @@ class Suite
     end
   end
 
+  # Represents a single git media command to run.
   class Command
     attr_accessor :expected
 
@@ -172,7 +172,7 @@ class Suite
 
     def run!(repository)
       puts "$ git media #{@cmd}"
-      actual = %x{#{Suite.config.bin} #{@cmd}}.strip
+      actual = Suite.exec @cmd
 
       if @expected && @expected != actual
         puts "- expected"
@@ -200,5 +200,14 @@ class Suite
       abort "Failed."
     end
     FileUtils.remove_entry_secure(test_tmpdir)
+  end
+
+  # run a go file to get some data that only go would know
+  def self.go_cmd(file)
+    %x{go run #{root}/integration/#{file}.go}.strip
+  end
+
+  def self.exec(cmd)
+    %x{#{Suite.bin} #{cmd}}.strip
   end
 end
