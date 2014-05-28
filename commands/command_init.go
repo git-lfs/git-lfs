@@ -19,23 +19,24 @@ var (
 )
 
 func (c *InitCommand) Run() {
-	clean := gitconfig.Find(cleanFilterKey)
-	if shouldReset(clean) {
-		fmt.Println("Installing clean filter")
-		gitconfig.SetGlobal(cleanFilterKey, cleanFilterVal)
-	} else if clean != cleanFilterVal {
-		fmt.Printf("Clean filter should be \"%s\" but is \"%s\"\n", cleanFilterVal, clean)
-	}
-
-	smudge := gitconfig.Find(smudgeFilterKey)
-	if shouldReset(smudge) {
-		fmt.Println("Installing smudge filter")
-		gitconfig.SetGlobal(smudgeFilterKey, smudgeFilterVal)
-	} else if smudge != smudgeFilterVal {
-		fmt.Printf("Smudge filter should be \"%s\" but is \"%s\"\n", smudgeFilterVal, smudge)
-	}
+	setFilter("clean")
+	setFilter("smudge")
 
 	fmt.Println("git media initialized")
+}
+
+func setFilter(filterName string) {
+	key := fmt.Sprintf("filter.media.%s", filterName)
+	value := fmt.Sprintf("git media %s %%f", filterName)
+
+	existing := gitconfig.Find(key)
+	if shouldReset(existing) {
+		fmt.Printf("Installing %s filter\n", filterName)
+		gitconfig.UnsetGlobal(key)
+		gitconfig.SetGlobal(key, value)
+	} else if existing != value {
+		fmt.Printf("The %s filter should be \"%s\" but is \"%s\"\n", filterName, value, existing)
+	}
 }
 
 func shouldReset(value string) bool {
