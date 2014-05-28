@@ -43,6 +43,10 @@ class Suite
     @tests ||= []
   end
 
+  def self.global_git_config
+    `git config -l --global`.strip.split("\n")
+  end
+
   def self.test(repository)
     t = Test.new(repository, "#{repository}/.git")
     yield t if block_given?
@@ -64,8 +68,8 @@ class Suite
       @repositories << path
     end
 
-    def command(cmd, output)
-      @commands << Command.new(cmd, output)
+    def command(cmd, output, &block)
+      @commands << Command.new(cmd, output, &block)
     end
 
     def run!
@@ -87,9 +91,10 @@ class Suite
   end
 
   class Command
-    def initialize(cmd, expected)
+    def initialize(cmd, expected, &block)
       @cmd = cmd
       @expected = expected.strip
+      @checks = block
     end
 
     def run!(repository)
@@ -104,6 +109,11 @@ class Suite
         puts actual
         puts
 
+        return false
+      end
+
+      if err = @checks && @checks.call
+        puts err
         return false
       end
 
