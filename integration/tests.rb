@@ -2,7 +2,8 @@ require File.expand_path("../suite", __FILE__)
 config = Suite.config
 
 Suite.test config.root do |t|
-  t.repository File.join(config.root, "integration") # sub directory!
+  t.repository File.join(t.path, ".git")
+  t.repository File.join(t.path, "integration") # sub directory!
 
   # really simple test
   t.command "version",
@@ -18,9 +19,9 @@ Nothing may see Gah Lak Tus and survive.
   t.command "config",
     <<-END
 Endpoint=https://github.com/github/git-media.git/info/media
-LocalWorkingDir=#{config.root}
-LocalGitDir=#{File.join config.root, ".git"}
-LocalMediaDir=#{File.join config.root, ".git", "media"}
+LocalWorkingDir=#{t.path}
+LocalGitDir=#{File.join t.path, ".git"}
+LocalMediaDir=#{File.join t.path, ".git", "media"}
 TempDir=#{File.join config.tmp, "git-media"}
 #{config.env_string}
     END
@@ -52,9 +53,9 @@ Suite.test Suite.repository(:config_media_url) do |t|
   t.command "config",
     <<-END
 Endpoint=http://foo/bar
-LocalWorkingDir=#{config.root}
-LocalGitDir=#{File.join config.root, ".git"}
-LocalMediaDir=#{File.join config.root, ".git", "media"}
+LocalWorkingDir=#{File.join "/private", t.path}
+LocalGitDir=#{File.join "/private", t.path, ".git"}
+LocalMediaDir=#{File.join "/private", t.path, ".git", "media"}
 TempDir=#{File.join config.tmp, "git-media"}
 #{config.env_string}
     END

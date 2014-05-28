@@ -1,4 +1,5 @@
 require "tmpdir"
+require "fileutils"
 
 class Suite
   class Config < Struct.new(:root)
@@ -45,18 +46,46 @@ class Suite
     @tests ||= []
   end
 
+  def self.test_tmpdir
+    @test_tmpdir ||= File.join(config.tmp, "git-media-tests")
+  end
+  FileUtils.rm_rf(test_tmpdir)
+
+  # Gets the global git configuration.
   def self.global_git_config
     `git config -l --global`.strip.split("\n")
   end
 
+  # Clones the sample repository to a test
+  def self.repository(name)
+    path = File.join(config.root, "integration", "repos", name.to_s)
+    if !File.exist?(path)
+      path += ".git"
+    end
+
+    if !File.exist?(path)
+      raise ArgumentError, "No example repository #{name} (#{path.inspect})"
+    end
+
+    dest = File.join(test_tmpdir, name.to_s)
+    Dir.chdir File.join(config.root, "integration", "repos") do
+      %x{git clone #{name} #{dest}}
+    end
+
+    dest
+  end
+
   def self.test(repository)
-    t = Test.new(repository, "#{repository}/.git")
+    t = Test.new(repository)
     yield t if block_given?
     tests << t
   end
 
   class Test
+    attr_reader :path
+
     def initialize(*repositories)
+      @path = repositories.first
       @repositories = repositories
       @commands = []
       @successful = true
@@ -136,5 +165,6 @@ class Suite
     if tests.any?(&:failed?)
       abort "Failed."
     end
+    FileUtils.remove_entry_secure(test_tmpdir)
   end
 end
