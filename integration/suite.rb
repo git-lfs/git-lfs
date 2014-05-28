@@ -59,32 +59,8 @@ class Suite
     `git config -l --global`.strip.split("\n")
   end
 
-  # Clones the sample repository to a test
-  def self.clone(name)
-    path = File.join(config.root, "integration", "repos", name.to_s)
-    if !File.exist?(path)
-      path += ".git"
-    end
-
-    if !File.exist?(path)
-      raise ArgumentError, "No example repository #{name} (#{path.inspect})"
-    end
-
-    dest = File.join(test_tmpdir, name.to_s)
-    Dir.chdir File.join(config.root, "integration", "repos") do
-      %x{git clone #{name} #{dest}}
-      # set a default origin remote for each test case
-      Dir.chdir dest do
-        `git remote remove origin`
-        `git remote add origin https://example.com/git/media`
-      end
-    end
-
-    dest
-  end
-
   def self.test(repo_name)
-    t = Test.new(clone(repo_name))
+    t = Test.new(repo_name)
     yield t if block_given?
     tests << t
   end
@@ -92,9 +68,10 @@ class Suite
   class Test
     attr_reader :path
 
-    def initialize(*repositories)
-      @path = expand(repositories.first)
-      @repositories = repositories
+    def initialize(name)
+      @repository_name = name
+      @path = expand(File.join(Suite.test_tmpdir, name.to_s))
+      @repositories = [@path]
       @commands = []
       @successful = true
     end
@@ -114,23 +91,37 @@ class Suite
     end
 
     def run!
-      @repositories.each do |r|
-        Dir.chdir(r) { run(r) }
-      end
+      @repositories.each { |r| run(r) }
     end
 
     def run(r)
       puts "Integration tests for #{r}"
       puts
       @commands.each do |c|
-        if !c.run!(r)
-          @successful = false
+        clone(r) do
+          @successful = false unless c.run!(r)
         end
       end
       puts
     end
 
   private
+    def clone(path)
+      FileUtils.rm_rf @path
+      Dir.chdir File.join(Suite.config.root, "integration", "repos") do
+        %x{git clone #{@repository_name} #{@path} 2> /dev/null}
+        # set a default origin remote for each test case
+        Dir.chdir @path do
+          `git remote remove origin 2> /dev/null`
+          `git remote add origin https://example.com/git/media 2> /dev/null`
+        end
+      end
+
+      Dir.chdir(path) do
+        yield
+      end
+    end
+
     # expands the /var path which gets symlinked to "private/var" on OSX.
     def expand(path)
       pieces = path.split "/"
