@@ -1,9 +1,9 @@
 require File.expand_path("../suite", __FILE__)
 config = Suite.config
 
-Suite.test config.root do |t|
+Suite.test :empty do |t|
   t.repository File.join(t.path, ".git")
-  t.repository File.join(t.path, "integration") # sub directory!
+  t.repository File.join(t.path, "subdir") # sub directory!
 
   # really simple test
   t.command "version",
@@ -49,7 +49,7 @@ git media initialized"
   end
 end
 
-Suite.test Suite.repository(:config_media_url) do |t|
+Suite.test :config_media_url do |t|
   t.command "config",
     <<-END
 Endpoint=http://foo/bar

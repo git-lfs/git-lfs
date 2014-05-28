@@ -47,9 +47,12 @@ class Suite
   end
 
   def self.test_tmpdir
-    @test_tmpdir ||= File.join(config.tmp, "git-media-tests")
+    @test_tmpdir ||= begin
+      tmp = File.join(config.tmp, "git-media-tests")
+      FileUtils.rm_rf(tmp)
+      tmp
+    end
   end
-  FileUtils.rm_rf(test_tmpdir)
 
   # Gets the global git configuration.
   def self.global_git_config
@@ -57,7 +60,7 @@ class Suite
   end
 
   # Clones the sample repository to a test
-  def self.repository(name)
+  def self.clone(name)
     path = File.join(config.root, "integration", "repos", name.to_s)
     if !File.exist?(path)
       path += ".git"
@@ -75,8 +78,8 @@ class Suite
     dest
   end
 
-  def self.test(repository)
-    t = Test.new(repository)
+  def self.test(repo_name)
+    t = Test.new(clone(repo_name))
     yield t if block_given?
     tests << t
   end

@@ -35,6 +35,7 @@ superfluous_git_files="
     hooks/post-update.sample
     hooks/pre-applypatch.sample
     hooks/pre-commit.sample
+    hooks/pre-push.sample
     hooks/pre-rebase.sample
     hooks/prepare-commit-msg.sample
     hooks/update.sample
