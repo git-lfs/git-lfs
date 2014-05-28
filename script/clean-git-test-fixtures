@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for p in integration/repos/*/ ; do
+  script/clean-git-test-fixture $p
+done
