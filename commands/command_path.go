@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -122,24 +123,42 @@ type mediaPath struct {
 	Source string
 }
 
+func findAttributeFiles() []string {
+	paths := make([]string, 0)
+	// TODO should find the project root, not just .
+	filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && (filepath.Base(path) == ".gitattributes") {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	return paths
+}
+
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
 
-	attributes, err := os.Open(".gitattributes")
-	if err != nil {
-		return paths // No .gitattibtues == no file paths
-	}
-
-	scanner := bufio.NewScanner(attributes)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			continue
+	for _, path := range findAttributeFiles() {
+		attributes, err := os.Open(path)
+		if err != nil {
+			return paths
 		}
 
-		if strings.Contains(line, "filter=media") {
-			fields := strings.Fields(line)
-			paths = append(paths, mediaPath{Path: fields[0], Source: ".gitattributes"})
+		scanner := bufio.NewScanner(attributes)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+
+			if strings.Contains(line, "filter=media") {
+				fields := strings.Fields(line)
+				paths = append(paths, mediaPath{Path: fields[0], Source: path})
+			}
 		}
 	}
 
