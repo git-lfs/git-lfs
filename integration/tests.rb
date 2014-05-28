@@ -4,9 +4,11 @@ config = Suite.config
 Suite.test config.root do |t|
   t.repository File.join(config.root, "integration") # sub directory!
 
+  # really simple test
   t.command "version",
     "git-media v#{config.version}"
 
+  # test against a longer expected output
   t.command "version -comics",
     <<-END
 git-media v#{config.version}
@@ -23,6 +25,7 @@ TempDir=#{File.join config.tmp, "git-media"}
 #{config.env_string}
     END
 
+  # make some other checks besides just the command's output
   t.command "init" do |cmd|
     cmd.expected = "Installing clean filter
 Installing smudge filter
