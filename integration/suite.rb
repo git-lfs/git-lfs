@@ -85,7 +85,7 @@ class Suite
     end
 
     def write(contents, *relative_parts)
-      IO.write(File.join(@path, *relative_parts), contents)
+      File.open(File.join(@path, *relative_parts), "w") { |f| f.write(contents)}
     end
 
     def exec(cmd)
