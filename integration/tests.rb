@@ -92,7 +92,7 @@ Listing paths
 
   t.command "path", output do |cmd|
     cmd.before do
-      t.write(".git", "info", "attributes", "*.mov filter=media -crlf\n")
+      t.write("*.mov filter=media -crlf\n", ".git", "info", "attributes")
     end
   end
 end

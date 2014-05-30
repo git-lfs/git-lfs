@@ -84,7 +84,7 @@ class Suite
       IO.read(File.join(@path, *relative_parts)).to_s.strip
     end
 
-    def write(*relative_parts, contents)
+    def write(contents, *relative_parts)
       IO.write(File.join(@path, *relative_parts), contents)
     end
 
