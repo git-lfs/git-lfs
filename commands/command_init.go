@@ -43,7 +43,7 @@ func requireFilters() {
 		gitconfig.UnsetGlobal(key)
 		gitconfig.SetGlobal(key, value)
 	} else if existing != value {
-		fmt.Printf("Media filter should be required but are not")
+		fmt.Printf("Media filters should be required but are not")
 	}
 }
 
