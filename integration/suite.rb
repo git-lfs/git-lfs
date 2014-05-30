@@ -84,6 +84,10 @@ class Suite
       IO.read(File.join(@path, *relative_parts)).to_s.strip
     end
 
+    def write(*relative_parts, contents)
+      IO.write(File.join(@path, *relative_parts), contents)
+    end
+
     def exec(cmd)
       Suite.exec cmd
     end
@@ -166,12 +170,19 @@ class Suite
       @after = block
     end
 
+    def before(&block)
+      @before = block
+    end
+
     def after(&block)
       @after = block
     end
 
     def run!
       puts "$ git media #{@cmd}"
+
+      @before.call if @before
+
       actual = Suite.exec @cmd
 
       if @expected && @expected != actual

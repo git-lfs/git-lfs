@@ -82,13 +82,19 @@ TempDir=#{File.join Suite.tmp, "git-media"}
 end
 
 Suite.test :attributes do |t|
-  t.command "path",
-  <<-END
+  output =<<-END
 Listing paths
+    *.mov (.git/info/attributes)
     *.jpg (.gitattributes)
     *.gif (a/.gitattributes)
     *.png (a/b/.gitattributes)
     END
+
+  t.command "path", output do |cmd|
+    cmd.before do
+      t.write(".git", "info", "attributes", "*.mov filter=media -crlf\n")
+    end
+  end
 end
 
 Suite.run!
