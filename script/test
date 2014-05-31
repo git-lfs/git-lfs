@@ -1,8 +1,15 @@
+#!/bin/sh
+#/ Usage: script/test          # run all tests
+#/        script/test <subdir> # run just a package's tests
+
+target="./..."
+
+if [[ "$#" != "0" ]]; then
+  target="./$@"
+fi
+
 script/fmt
 script/bootstrap
 
-GOPATH="`pwd`/.vendor" \
-  go test ./... -i
-
-GOPATH="`pwd`/.vendor" \
-  go test ./...
+GOPATH="`pwd`/.vendor" go test $target -i
+GOPATH="`pwd`/.vendor" go test $target
