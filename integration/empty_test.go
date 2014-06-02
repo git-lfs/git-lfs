@@ -36,15 +36,17 @@ func TestEmptyRepository(t *testing.T) {
 
 	cmd.After(func() {
 		configs := GlobalGitConfig(t)
+		fmt.Println(configs)
 		AssertIncludeString(t, "filter.media.clean=git media clean %f", configs)
 		AssertIncludeString(t, "filter.media.smudge=git media smudge %f", configs)
+		AssertIncludeString(t, "filter.media.required=true", configs)
 		found := 0
 		for _, line := range configs {
 			if strings.HasPrefix(line, "filter.media") {
 				found += 1
 			}
 		}
-		assert.Equal(t, 2, found)
+		assert.Equal(t, 3, found)
 	})
 
 	repo.Test()
