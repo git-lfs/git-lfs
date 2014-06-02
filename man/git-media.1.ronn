@@ -24,6 +24,8 @@ commands and low level ("plumbing") commands.
     Display the Git Media environment.
 * git-media-init(1):
     Ensure Git Media is configured properly.
+* git-media-path(1):
+    View and modify Git Media paths in Git attributes.
 * git-media-push(1):
     Push queued large files to the Git Media endpoint.
 

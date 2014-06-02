@@ -1,0 +1,32 @@
+git-media-path(1) - View and modify Git Media paths in Git attributes.
+======================================================================
+
+## SYNOPSIS
+
+`git media path` <command> [path]*
+
+## DESCRIPTION
+
+The "path" command helps view and modify Git attributes for the "media"
+clean and smudge filters.  The "path" argument can be a file extension, or a
+path.
+
+## EXAMPLES
+
+* View the current Git attributes.
+
+    `git media path`
+
+* Configure a path to use the Git Media clean and smudge filters.
+
+    `git media path add *.gif`
+
+* Prevent a path from using Git Media clean and smudge filters.
+
+    `git media path remove *.gif`
+
+## SEE ALSO
+
+git-media-init(1), gitattributes(5).
+
+Part of the git-media(1) suite.
