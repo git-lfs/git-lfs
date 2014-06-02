@@ -15,3 +15,5 @@ clean and smudge filters to store a pointer in Git blobs instead.
 
 * git-media-config(1):
     Display the Git Media environment.
+* git-media-init(1):
+    Ensure Git Media is configured properly.
