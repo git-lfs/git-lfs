@@ -12,4 +12,6 @@ current Git remote.
 
 ## SEE ALSO
 
+git-media-clean(1).
+
 Part of the git-media(1) suite.

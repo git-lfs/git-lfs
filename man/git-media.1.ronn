@@ -26,3 +26,10 @@ commands and low level ("plumbing") commands.
     Ensure Git Media is configured properly.
 * git-media-push(1):
     Push queued large files to the Git Media endpoint.
+
+### Low level commands (plumbing)
+
+* git-media-clean(1):
+    Git clean filter that converts large files to pointers.
+* git-media-smudge(1):
+    Git smudge filter that converts pointer in blobs to the actual content.
