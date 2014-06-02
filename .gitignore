@@ -2,3 +2,6 @@ bin/
 benchmark/
 .vendor/pkg
 servertest
+
+# only allow man/*.\d.ronn files
+man/*
