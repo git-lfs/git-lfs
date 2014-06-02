@@ -1,0 +1,12 @@
+git-media(1) -- Work with large files in Git repositories.
+==========================================================
+
+## SYNOPSIS
+
+`git media` <command> [<args>]
+
+## DESCRIPTION
+
+Git Media is a set of filters and hooks to work with large files in Git
+repositories.  Instead of storing the large files as Git blobs, Git Media uses
+clean and smudge filters to store a pointer in Git blobs instead.
