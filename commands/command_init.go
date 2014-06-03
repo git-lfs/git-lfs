@@ -34,7 +34,7 @@ func (c *InitCommand) Run() {
 
 func (c *InitCommand) runInit() {
 	c.globalInit()
-	if inRepo() {
+	if gitmedia.InRepo() {
 		c.hookInit()
 	}
 }
@@ -47,10 +47,6 @@ func (c *InitCommand) globalInit() {
 
 func (c *InitCommand) hookInit() error {
 	return gitmedia.InstallHooks()
-}
-
-func inRepo() bool {
-	return gitmedia.LocalGitDir != ""
 }
 
 func setFilter(filterName string) {

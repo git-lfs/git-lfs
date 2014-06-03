@@ -63,8 +63,12 @@ func Environ() []string {
 	return env
 }
 
+func InRepo() bool {
+	return LocalWorkingDir != ""
+}
+
 func InstallHooks() error {
-	if LocalWorkingDir == "" {
+	if !InRepo() {
 		return errors.New("Not in a repository")
 	}
 
