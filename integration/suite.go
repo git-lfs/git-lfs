@@ -1,9 +1,9 @@
 package main
 
 import (
-	".."
 	"fmt"
 	"github.com/bmizerany/assert"
+	"github.com/github/git-media/gitmedia"
 	"io/ioutil"
 	"os"
 	"os/exec"

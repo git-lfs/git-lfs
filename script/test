@@ -11,5 +11,5 @@ fi
 script/fmt
 script/bootstrap
 
-GOPATH="`pwd`/.vendor" go test $target -i
-GOPATH="`pwd`/.vendor" go test $target
+GOPATH="$GOPATH:`pwd`/.vendor" go test $target -i
+GOPATH="$GOPATH:`pwd`/.vendor" go test $target

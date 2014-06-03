@@ -1,8 +1,8 @@
 package gitmediaclient
 
 import (
-	".."
 	"github.com/bmizerany/assert"
+	"github.com/github/git-media/gitmedia"
 	"testing"
 )
 
