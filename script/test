@@ -11,5 +11,11 @@ fi
 script/fmt
 script/bootstrap
 
-GOPATH="$GOPATH:`pwd`/.vendor" go test $target -i
-GOPATH="$GOPATH:`pwd`/.vendor" go test $target
+mkdir -p `pwd`/.vendor/src/github.com/github
+rm -f `pwd`/.vendor/src/github.com/github/git-media
+ln -s `pwd` `pwd`/.vendor/src/github.com/github/git-media
+
+GOPATH="`pwd`/.vendor" go test $target -i
+GOPATH="`pwd`/.vendor" go test $target
+
+rm -f `pwd`/.vendor/src/github.com/github/git-media

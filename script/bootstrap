@@ -5,5 +5,11 @@ script/fmt
 rm -rf `pwd`/bin/*
 rm -rf `pwd`/.vendor/pkg
 
-GOPATH="$GOPATH:`pwd`/.vendor" \
+mkdir -p `pwd`/.vendor/src/github.com/github
+rm -f `pwd`/.vendor/src/github.com/github/git-media
+ln -s `pwd` `pwd`/.vendor/src/github.com/github/git-media
+
+GOPATH="`pwd`/.vendor" \
   go run script/build.go "$@"
+
+rm -f `pwd`/.vendor/src/github.com/github/git-media
