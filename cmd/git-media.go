@@ -1,9 +1,9 @@
 package main
 
 import (
-	gitmedia "../commands"
+	"github.com/github/git-media/commands"
 )
 
 func main() {
-	gitmedia.Run()
+	commands.Run()
 }

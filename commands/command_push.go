@@ -1,8 +1,8 @@
-package gitmedia
+package commands
 
 import (
-	".."
-	"../client"
+	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/gitmediaclient"
 	"strings"
 )
 

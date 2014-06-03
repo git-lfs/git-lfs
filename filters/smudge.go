@@ -1,8 +1,8 @@
-package gitmediafilters
+package filters
 
 import (
-	".."
-	"../client"
+	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/gitmediaclient"
 	"io"
 	"os"
 )

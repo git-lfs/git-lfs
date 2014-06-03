@@ -5,5 +5,5 @@ script/fmt
 rm -rf `pwd`/bin/*
 rm -rf `pwd`/.vendor/pkg
 
-GOPATH="`pwd`/.vendor" \
+GOPATH="$GOPATH:`pwd`/.vendor" \
   go run script/build.go "$@"

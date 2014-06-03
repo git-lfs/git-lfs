@@ -1,12 +1,12 @@
 package gitmediaclient
 
 import (
-	".."
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb"
+	"github.com/github/git-media/gitmedia"
 	"io"
 	"io/ioutil"
 	"mime"

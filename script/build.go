@@ -1,9 +1,9 @@
 package main
 
 import (
-	".."
 	"flag"
 	"fmt"
+	"github.com/github/git-media/gitmedia"
 	"os"
 	"os/exec"
 	"path/filepath"

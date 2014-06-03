@@ -1,7 +1,7 @@
-package gitmedia
+package commands
 
 import (
-	core ".."
+	"github.com/github/git-media/gitmedia"
 )
 
 type VersionCommand struct {
@@ -14,10 +14,10 @@ func (c *VersionCommand) Setup() {
 }
 
 func (c *VersionCommand) Run() {
-	core.Print("%s v%s", c.Name, core.Version)
+	gitmedia.Print("%s v%s", c.Name, gitmedia.Version)
 
 	if c.LovesComics {
-		core.Print("Nothing may see Gah Lak Tus and survive.")
+		gitmedia.Print("Nothing may see Gah Lak Tus and survive.")
 	}
 }
 

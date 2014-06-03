@@ -1,8 +1,9 @@
-package gitmedia
+package commands
 
 import (
-	".."
-	"../filters"
+	"github.com/github/git-media/filters"
+	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/metafile"
 	"os"
 )
 
@@ -18,7 +19,7 @@ func (c *CleanCommand) Run() {
 		filename = ""
 	}
 
-	cleaned, err := gitmediafilters.Clean(os.Stdin)
+	cleaned, err := filters.Clean(os.Stdin)
 	if err != nil {
 		gitmedia.Panic(err, "Error cleaning asset")
 	}
@@ -40,7 +41,7 @@ func (c *CleanCommand) Run() {
 		gitmedia.Debug("Writing %s", mediafile)
 	}
 
-	gitmedia.Encode(os.Stdout, cleaned.Sha)
+	metafile.Encode(os.Stdout, cleaned.Sha)
 }
 
 func init() {

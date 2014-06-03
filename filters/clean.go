@@ -1,9 +1,9 @@
-package gitmediafilters
+package filters
 
 import (
-	".."
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/github/git-media/gitmedia"
 	"io"
 	"os"
 )
