@@ -3,3 +3,6 @@ benchmark/
 .vendor/pkg
 servertest
 .vendor/src/github.com/github/git-media
+
+# only allow man/*.\d.ronn files
+man/*

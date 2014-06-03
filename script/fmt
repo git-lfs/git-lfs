@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # don't run gofmt in these directories
-ignored=(/bin/ /docs/ /log/ /tmp/ .vendor)
+ignored=(/bin/ /docs/ /log/ /man/ /tmp/ .vendor)
 for i in */ ; do
   if [[ ! ${ignored[*]} =~ "/$i" ]]; then
     gofmt -w -l "$@" "${i%?}"
