@@ -31,11 +31,11 @@ func setFilter(filterName string) {
 
 	existing := gitconfig.Find(key)
 	if shouldReset(existing) {
-		fmt.Printf("Installing %s filter\n", filterName)
+		gitmedia.Print("Installing %s filter", filterName)
 		gitconfig.UnsetGlobal(key)
 		gitconfig.SetGlobal(key, value)
 	} else if existing != value {
-		fmt.Printf("The %s filter should be \"%s\" but is \"%s\"\n", filterName, value, existing)
+		gitmedia.Print("The %s filter should be \"%s\" but is \"%s\"", filterName, value, existing)
 	}
 }
 
@@ -48,7 +48,7 @@ func requireFilters() {
 		gitconfig.UnsetGlobal(key)
 		gitconfig.SetGlobal(key, value)
 	} else if existing != value {
-		fmt.Printf("Media filters should be required but are not")
+		gitmedia.Print("Media filters should be required but are not.")
 	}
 }
 
