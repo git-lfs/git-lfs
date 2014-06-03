@@ -65,16 +65,14 @@ func Environ() []string {
 func init() {
 	var err error
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
-	if err != nil {
-		Exit("Not in a git repository")
-	}
+	if err == nil {
+		LocalMediaDir = filepath.Join(LocalGitDir, "media")
+		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
+		queueDir = setupQueueDir()
 
-	LocalMediaDir = filepath.Join(LocalGitDir, "media")
-	LocalLogDir = filepath.Join(LocalMediaDir, "logs")
-	queueDir = setupQueueDir()
-
-	if err := os.MkdirAll(TempDir, 0744); err != nil {
-		Panic(err, "Error trying to create temp directory: %s", TempDir)
+		if err := os.MkdirAll(TempDir, 0744); err != nil {
+			Panic(err, "Error trying to create temp directory: %s", TempDir)
+		}
 	}
 }
 

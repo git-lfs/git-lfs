@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/gitmedia"
 	"regexp"
 )
 
@@ -13,11 +14,43 @@ type InitCommand struct {
 var valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
 
 func (c *InitCommand) Run() {
+	var sub string
+	if len(c.SubCommands) > 0 {
+		sub = c.SubCommands[0]
+	}
+
+	switch sub {
+	case "hooks":
+		c.hookInit()
+	default:
+		c.runInit()
+	}
+
+	fmt.Println("git media initialized")
+}
+
+func (c *InitCommand) runInit() {
+	c.globalInit()
+	if inRepo() {
+		c.repoInit()
+	}
+}
+
+func (c *InitCommand) globalInit() {
 	setFilter("clean")
 	setFilter("smudge")
 	requireFilters()
+}
 
-	fmt.Println("git media initialized")
+func (c *InitCommand) repoInit() {
+	c.hookInit()
+}
+
+func (c *InitCommand) hookInit() {
+}
+
+func inRepo() bool {
+	return gitmedia.LocalGitDir != ""
 }
 
 func setFilter(filterName string) {
