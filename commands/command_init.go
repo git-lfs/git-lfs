@@ -21,6 +21,10 @@ func (c *InitCommand) Run() {
 
 	switch sub {
 	case "hooks":
+		if !inRepo() {
+			fmt.Println("Not in a repository")
+			return
+		}
 		c.hookInit()
 	default:
 		c.runInit()
