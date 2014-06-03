@@ -2,3 +2,4 @@ bin/
 benchmark/
 .vendor/pkg
 servertest
+.vendor/src/github.com/github/git-media
