@@ -21,11 +21,10 @@ func (c *InitCommand) Run() {
 
 	switch sub {
 	case "hooks":
-		if !inRepo() {
-			fmt.Println("Not in a repository")
+		if err := c.hookInit(); err != nil {
+			fmt.Println(err)
 			return
 		}
-		c.hookInit()
 	default:
 		c.runInit()
 	}
@@ -36,7 +35,7 @@ func (c *InitCommand) Run() {
 func (c *InitCommand) runInit() {
 	c.globalInit()
 	if inRepo() {
-		c.repoInit()
+		c.hookInit()
 	}
 }
 
@@ -46,11 +45,8 @@ func (c *InitCommand) globalInit() {
 	requireFilters()
 }
 
-func (c *InitCommand) repoInit() {
-	c.hookInit()
-}
-
-func (c *InitCommand) hookInit() {
+func (c *InitCommand) hookInit() error {
+	return gitmedia.InstallHooks()
 }
 
 func inRepo() bool {

@@ -1,6 +1,7 @@
 package gitmedia
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -60,6 +61,14 @@ func Environ() []string {
 	}
 
 	return env
+}
+
+func InstallHooks() error {
+	if LocalWorkingDir == "" {
+		return errors.New("Not in a repository")
+	}
+
+	return nil
 }
 
 func init() {
