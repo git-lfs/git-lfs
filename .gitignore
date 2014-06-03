@@ -6,3 +6,5 @@ servertest
 
 # only allow man/*.\d.ronn files
 man/*
+
+*.test
