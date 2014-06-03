@@ -2,6 +2,7 @@ package gitmedia
 
 import (
 	"fmt"
+	"github.com/github/git-media/gitconfig"
 	"os"
 	"path"
 	"regexp"
@@ -88,9 +89,17 @@ func (c *Configuration) loadGitConfig() {
 	c.gitConfig = make(map[string]string)
 
 	var output string
-	output = SimpleExec("git", "config", "-l")
-	output += "\n"
-	output += SimpleExec("git", "config", "-l", "-f", ".gitconfig")
+	listOutput, err := gitconfig.List()
+	if err != nil {
+		Panic(err, listOutput)
+	}
+
+	fileOutput, err := gitconfig.ListFromFile()
+	if err != nil {
+		Panic(err, fileOutput)
+	}
+
+	output = listOutput + "\n" + fileOutput
 
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {

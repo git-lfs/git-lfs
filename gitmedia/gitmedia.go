@@ -1,11 +1,9 @@
 package gitmedia
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -23,17 +21,6 @@ var (
 
 func TempFile() (*os.File, error) {
 	return ioutil.TempFile(TempDir, "")
-}
-
-func SimpleExec(name string, arg ...string) string {
-	output, err := exec.Command(name, arg...).Output()
-	if _, ok := err.(*exec.ExitError); ok {
-		return ""
-	} else if err != nil {
-		Panic(err, "Error running %s %s", name, arg)
-	}
-
-	return strings.Trim(string(output), " \n")
 }
 
 func LocalMediaPath(sha string) string {
@@ -65,14 +52,6 @@ func Environ() []string {
 
 func InRepo() bool {
 	return LocalWorkingDir != ""
-}
-
-func InstallHooks() error {
-	if !InRepo() {
-		return errors.New("Not in a repository")
-	}
-
-	return nil
 }
 
 func init() {
