@@ -20,7 +20,7 @@ func TestEncode(t *testing.T) {
 	buf.Read(header)
 
 	if head := string(header); head != string(MediaWarning) {
-		t.Errorf("Media warning not read:\n", head)
+		t.Errorf("Media warning not read: %s\n", head)
 	}
 
 	shabytes := make([]byte, 3)
