@@ -3,6 +3,9 @@ package commands
 import (
 	"fmt"
 	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/gitmedia"
+	"io/ioutil"
+	"path/filepath"
 	"regexp"
 )
 
@@ -16,6 +19,7 @@ func (c *InitCommand) Run() {
 	setFilter("clean")
 	setFilter("smudge")
 	requireFilters()
+	writeHooks()
 
 	fmt.Println("git media initialized")
 }
@@ -53,6 +57,13 @@ func shouldReset(value string) bool {
 	}
 	return valueRegexp.MatchString(value)
 }
+
+func writeHooks() {
+	hookPath := filepath.Join(gitmedia.LocalGitDir, "hooks", "pre-push")
+	ioutil.WriteFile(hookPath, prePushHook, 0755)
+}
+
+var prePushHook = []byte("#!/bin/sh\ngit media push\n")
 
 func init() {
 	registerCommand("init", func(c *Command) RunnableCommand {

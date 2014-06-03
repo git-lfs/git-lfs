@@ -35,6 +35,7 @@ func TestEmptyRepository(t *testing.T) {
 		"git media initialized"
 
 	cmd.After(func() {
+		// assert media filter config
 		configs := GlobalGitConfig(t)
 		fmt.Println(configs)
 		AssertIncludeString(t, "filter.media.clean=git media clean %f", configs)
@@ -47,6 +48,12 @@ func TestEmptyRepository(t *testing.T) {
 			}
 		}
 		assert.Equal(t, 3, found)
+
+		// assert hooks
+		prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+		stat, err := os.Stat(prePushHookFile)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, false, stat.IsDir())
 	})
 
 	repo.Test()
