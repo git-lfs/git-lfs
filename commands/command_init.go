@@ -5,6 +5,7 @@ import (
 	"github.com/github/git-media/gitconfig"
 	"github.com/github/git-media/gitmedia"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 )
@@ -60,7 +61,11 @@ func shouldReset(value string) bool {
 
 func writeHooks() {
 	hookPath := filepath.Join(gitmedia.LocalGitDir, "hooks", "pre-push")
-	ioutil.WriteFile(hookPath, prePushHook, 0755)
+	if _, err := os.Stat(hookPath); err == nil {
+		gitmedia.Print("Hook already exists: %s", hookPath)
+	} else {
+		ioutil.WriteFile(hookPath, prePushHook, 0755)
+	}
 }
 
 var prePushHook = []byte("#!/bin/sh\ngit media push\n")

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bmizerany/assert"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +35,8 @@ func TestEmptyRepository(t *testing.T) {
 		"Installing smudge filter\n" +
 		"git media initialized"
 
+	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+
 	cmd.After(func() {
 		// assert media filter config
 		configs := GlobalGitConfig(t)
@@ -50,10 +53,28 @@ func TestEmptyRepository(t *testing.T) {
 		assert.Equal(t, 3, found)
 
 		// assert hooks
-		prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 		stat, err := os.Stat(prePushHookFile)
 		assert.Equal(t, nil, err)
 		assert.Equal(t, false, stat.IsDir())
+	})
+
+	cmd = repo.Command("init")
+	cmd.Output = "Installing clean filter\n" +
+		"Installing smudge filter\n" +
+		"Hook already exists: " +
+		filepath.Join(repo.Path, ".git", "hooks", "pre-push") +
+		"\ngit media initialized"
+
+	customHook := []byte("echo 'yo'")
+	cmd.Before(func() {
+		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
+		assert.Equal(t, nil, err)
+	})
+
+	cmd.After(func() {
+		by, err := ioutil.ReadFile(prePushHookFile)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, string(customHook), string(by))
 	})
 
 	repo.Test()
