@@ -1,8 +1,8 @@
-package gitmedia
+package commands
 
 import (
-	core ".."
 	"flag"
+	"github.com/github/git-media/gitmedia"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,8 +51,8 @@ func NewCommand(name, subname string) *Command {
 	}
 
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	core.SetupDebugging(fs)
-	fs.SetOutput(core.ErrorWriter)
+	gitmedia.SetupDebugging(fs)
+	fs.SetOutput(gitmedia.ErrorWriter)
 
 	return &Command{name, subname, fs, args, args}
 }
@@ -85,7 +85,7 @@ type Command struct {
 }
 
 func (c *Command) Usage() {
-	core.Print("usage: %s %s", c.Name, c.SubCommand)
+	gitmedia.Print("usage: %s %s", c.Name, c.SubCommand)
 	c.FlagSet.PrintDefaults()
 }
 
@@ -102,6 +102,6 @@ func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
 }
 
 func missingCommand(cmd *Command, subname string) {
-	core.Error("%s: '%s' is not a %s command.  See %s help.",
+	gitmedia.Error("%s: '%s' is not a %s command.  See %s help.",
 		cmd.Name, subname, cmd.Name, cmd.Name)
 }

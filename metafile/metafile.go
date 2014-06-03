@@ -1,4 +1,4 @@
-package gitmedia
+package metafile
 
 import (
 	"bytes"

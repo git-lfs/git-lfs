@@ -1,8 +1,8 @@
-package gitmedia
+package commands
 
 import (
-	".."
-	"../queuedir"
+	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/queuedir"
 	"os"
 	"path/filepath"
 	"strings"

@@ -1,7 +1,7 @@
 package gitconfig
 
 import (
-	gitmedia ".."
+	"github.com/github/git-media/gitmedia"
 )
 
 func Find(val string) string {

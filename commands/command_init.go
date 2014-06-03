@@ -1,8 +1,8 @@
-package gitmedia
+package commands
 
 import (
-	"../gitconfig"
 	"fmt"
+	"github.com/github/git-media/gitconfig"
 	"regexp"
 )
 

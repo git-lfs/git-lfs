@@ -1,7 +1,7 @@
 package gitmedia
 
 import (
-	"./queuedir"
+	"github.com/github/git-media/queuedir"
 	"path/filepath"
 )
 

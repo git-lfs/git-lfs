@@ -1,9 +1,9 @@
-package gitmedia
+package commands
 
 import (
-	core ".."
 	"errors"
 	"fmt"
+	"github.com/github/git-media/gitmedia"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,7 +47,7 @@ func (c *LogsCommand) Run() {
 
 func (c *LogsCommand) listLogs() {
 	for _, path := range sortedLogs() {
-		core.Print(path)
+		gitmedia.Print(path)
 	}
 }
 
@@ -57,33 +57,33 @@ func (c *LogsCommand) lastLog() {
 }
 
 func (c *LogsCommand) showLog(name string) {
-	by, err := ioutil.ReadFile(filepath.Join(core.LocalLogDir, name))
+	by, err := ioutil.ReadFile(filepath.Join(gitmedia.LocalLogDir, name))
 	if err != nil {
-		core.Exit("Error reading log: %s", name)
+		gitmedia.Exit("Error reading log: %s", name)
 	}
 
-	core.Debug("Reading log: %s", name)
+	gitmedia.Debug("Reading log: %s", name)
 	os.Stdout.Write(by)
 }
 
 func (c *LogsCommand) clear() {
-	err := os.RemoveAll(core.LocalLogDir)
+	err := os.RemoveAll(gitmedia.LocalLogDir)
 	if err != nil {
-		core.Panic(err, "Error clearing %s", core.LocalLogDir)
+		gitmedia.Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
 	}
 
-	fmt.Println("Cleared", core.LocalLogDir)
+	fmt.Println("Cleared", gitmedia.LocalLogDir)
 }
 
 func (c *LogsCommand) boomtown() {
-	core.Debug("Debug message")
+	gitmedia.Debug("Debug message")
 	err := errors.New("Error!")
-	core.Panic(err, "Welcome to Boomtown")
-	core.Debug("Never seen")
+	gitmedia.Panic(err, "Welcome to Boomtown")
+	gitmedia.Debug("Never seen")
 }
 
 func sortedLogs() []string {
-	fileinfos, err := ioutil.ReadDir(core.LocalLogDir)
+	fileinfos, err := ioutil.ReadDir(gitmedia.LocalLogDir)
 	if err != nil {
 		return []string{}
 	}

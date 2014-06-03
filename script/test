@@ -11,5 +11,10 @@ fi
 script/fmt
 script/bootstrap
 
+export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-media
+mkdir -p `dirname $LOCALSRCDIR`
+rm -f $LOCALSRCDIR
+ln -s `pwd` $LOCALSRCDIR
+
 GOPATH="`pwd`/.vendor" go test $target -i
 GOPATH="`pwd`/.vendor" go test $target

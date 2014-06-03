@@ -1,7 +1,5 @@
 #!/bin/bash
 
-gofmt -w -l "$@" *.go
-
 # don't run gofmt in these directories
 ignored=(/bin/ /docs/ /log/ /man/ /tmp/ .vendor)
 for i in */ ; do

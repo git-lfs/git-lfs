@@ -1,10 +1,9 @@
-package gitmedia
+package commands
 
 import (
-	gitmedia ".."
-	_ "../gitconfig"
 	"bufio"
 	"fmt"
+	"github.com/github/git-media/gitmedia"
 	"io/ioutil"
 	"os"
 	"path/filepath"

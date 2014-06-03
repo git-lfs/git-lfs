@@ -1,8 +1,9 @@
-package gitmedia
+package commands
 
 import (
-	".."
-	"../filters"
+	"github.com/github/git-media/filters"
+	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/metafile"
 	"os"
 )
 
@@ -11,14 +12,14 @@ type SmudgeCommand struct {
 }
 
 func (c *SmudgeCommand) Run() {
-	sha, err := gitmedia.Decode(os.Stdin)
+	sha, err := metafile.Decode(os.Stdin)
 	if err != nil {
 		gitmedia.Panic(err, "Error reading git-media meta data from stdin:")
 	}
 
-	err = gitmediafilters.Smudge(os.Stdout, sha)
+	err = filters.Smudge(os.Stdout, sha)
 	if err != nil {
-		smudgerr := err.(*gitmediafilters.SmudgeError)
+		smudgerr := err.(*filters.SmudgeError)
 		gitmedia.Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)
 	}
 }

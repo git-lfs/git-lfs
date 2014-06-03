@@ -1,7 +1,7 @@
-package gitmedia
+package commands
 
 import (
-	core ".."
+	"github.com/github/git-media/gitmedia"
 )
 
 type ConfigCommand struct {
@@ -9,18 +9,18 @@ type ConfigCommand struct {
 }
 
 func (c *ConfigCommand) Run() {
-	config := core.Config
+	config := gitmedia.Config
 
 	if endpoint := config.Endpoint(); len(endpoint) > 0 {
-		core.Print("Endpoint=%s", endpoint)
+		gitmedia.Print("Endpoint=%s", endpoint)
 	}
 
 	for _, remote := range config.Remotes() {
-		core.Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
+		gitmedia.Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
 	}
 
-	for _, env := range core.Environ() {
-		core.Print(env)
+	for _, env := range gitmedia.Environ() {
+		gitmedia.Print(env)
 	}
 }
 
