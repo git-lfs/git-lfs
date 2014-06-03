@@ -1,0 +1,8 @@
+#!/bin/sh
+ronn=`which ronn`
+
+if [[ -x $ronn ]]; then
+  $ronn man/*.ronn
+else
+  echo "Install the 'ronn' ruby gem to build the man pages."
+fi

@@ -1,0 +1,22 @@
+git-media-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
+==============================================================================================
+
+## SYNOPSIS
+
+`git media smudge` <path>
+
+## DESCRIPTION
+
+Smudge takes a Git Media pointer file in STDIN, parses out the pointer's ID,
+and then dumps the file's contents to STDOUT.  The file will be downloaded from
+the Git Media endpoint if needed. The optional <path> argument is only used for
+a progress bar.
+
+Smudge is typically run by Git's smudge filter, configured by the repository's
+Git attributes.
+
+## SEE ALSO
+
+git-media-init(1), gitattributes(5).
+
+Part of the git-media(1) suite.

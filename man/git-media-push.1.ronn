@@ -1,0 +1,17 @@
+git-media-push(1) -- Push queued large files to the Git Media endpoint.
+=======================================================================
+
+## SYNOPSIS
+
+`git media push`
+
+## DESCRIPTION
+
+Push uploads any queued Git Media files to the configured endpoint for the
+current Git remote.
+
+## SEE ALSO
+
+git-media-clean(1).
+
+Part of the git-media(1) suite.
