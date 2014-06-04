@@ -44,3 +44,10 @@ func TestDecodeExternal(t *testing.T) {
 		t.Errorf("Invalid SHA: %#v", sha)
 	}
 }
+
+func TestDecodeInvalid(t *testing.T) {
+	buf := bytes.NewBufferString("invalid stuff")
+	if _, err := Decode(buf); err == nil {
+		t.Errorf("Decoded invalid sha")
+	}
+}

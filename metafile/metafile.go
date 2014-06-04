@@ -2,6 +2,7 @@ package metafile
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"regexp"
 )
@@ -35,5 +36,5 @@ func Decode(reader io.Reader) (string, error) {
 		return string(lines[1]), nil
 	}
 
-	return "", nil // error?
+	return "", errors.New("Could not decode meta file")
 }
