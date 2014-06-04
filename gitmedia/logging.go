@@ -77,9 +77,8 @@ func handlePanic(err error) string {
 	Debug(err.Error())
 	logFile, logErr := logPanic(err)
 	if logErr != nil {
-		fmt.Fprintf(os.Stderr, "Unable to log panic to %s\n", LocalLogDir)
+		fmt.Fprintf(os.Stderr, "Unable to log panic to %s - %s\n\n", LocalLogDir, err)
 		logEnv(os.Stderr)
-		panic(logErr)
 	}
 
 	return logFile
