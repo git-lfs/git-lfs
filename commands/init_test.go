@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"os"
@@ -25,7 +24,6 @@ func TestInit(t *testing.T) {
 	cmd.After(func() {
 		// assert media filter config
 		configs := GlobalGitConfig(t)
-		fmt.Println(configs)
 		AssertIncludeString(t, "filter.media.clean=git media clean %f", configs)
 		AssertIncludeString(t, "filter.media.smudge=git media smudge %f", configs)
 		AssertIncludeString(t, "filter.media.required=true", configs)

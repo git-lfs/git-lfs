@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bmizerany/assert"
 	"github.com/github/git-media/gitmedia"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -133,6 +134,7 @@ func (r *Repository) cmd(name string, args ...string) string {
 type TestCommand struct {
 	T               *testing.T
 	Args            []string
+	Input           io.Reader
 	Output          string
 	BeforeCallbacks []func()
 	AfterCallbacks  []func()
@@ -146,6 +148,7 @@ func (c *TestCommand) Run() {
 	}
 
 	cmd := exec.Command(Bin, c.Args...)
+	cmd.Stdin = c.Input
 	outputBytes, err := cmd.Output()
 	c.e(err)
 
