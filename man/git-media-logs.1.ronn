@@ -3,10 +3,10 @@ git-media-logs(1) - Show errors from the git-media command.
 
 ## SYNOPSIS
 
-`git media logs`
-`git media logs` <file>
-`git media logs` --clear
-`git media logs` --boomtown
+`git media logs`<br>
+`git media logs` <file><br>
+`git media logs` --clear<br>
+`git media logs` --boomtown<br>
 
 ## DESCRIPTION
 
@@ -18,10 +18,10 @@ crashes, the details are saved to ".git/media/logs".
 Without any options, `git media logs` will simply show the list of error logs.
 
 * <file>:
-  Shows the specified error log.  Use "last" to show the most recent error.
+    Shows the specified error log.  Use "last" to show the most recent error.
 
-* `--clear`:
-  Clears all of the existing logged errors.
+* `--clear` :
+    Clears all of the existing logged errors.
 
 * `--boomtown`:
-  Triggers a dummy exception.
+    Triggers a dummy exception.
