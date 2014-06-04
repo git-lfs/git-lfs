@@ -32,6 +32,10 @@ func Decode(reader io.Reader) (string, error) {
 		return "", err
 	}
 
+	if len(lines) < 2 {
+		return "", errors.New("No sha in meta file")
+	}
+
 	if matched {
 		return string(lines[1]), nil
 	}

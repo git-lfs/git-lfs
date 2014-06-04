@@ -51,3 +51,10 @@ func TestDecodeInvalid(t *testing.T) {
 		t.Errorf("Decoded invalid sha")
 	}
 }
+
+func TestDecodeWithValidHeaderNoSha(t *testing.T) {
+	buf := bytes.NewBufferString("# git-media")
+	if _, err := Decode(buf); err == nil {
+		t.Errorf("Decoded with header but no sha")
+	}
+}
