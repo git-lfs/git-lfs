@@ -10,6 +10,7 @@ import (
 
 func TestClean(t *testing.T) {
 	repo := NewRepository(t, "empty")
+	defer repo.Test()
 
 	content := "HI\n"
 	oid := "f712374589a4f37f0fd6b941a104c7ccf43f68b1fdecb4d5cd88b80acbf98fc2"
@@ -28,6 +29,4 @@ func TestClean(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, oid, string(by))
 	})
-
-	repo.Test()
 }

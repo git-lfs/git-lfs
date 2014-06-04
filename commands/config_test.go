@@ -8,6 +8,8 @@ import (
 
 func TestConfig(t *testing.T) {
 	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
 	repo.AddPath(repo.Path, ".git")
 	repo.AddPath(repo.Path, "subdir")
 
@@ -19,12 +21,11 @@ func TestConfig(t *testing.T) {
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
 		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
 	})
-
-	repo.Test()
 }
 
 func TestConfigWithMediaUrl(t *testing.T) {
 	repo := NewRepository(t, "config_media_url")
+	defer repo.Test()
 
 	cmd := repo.Command("config")
 	SetConfigOutput(cmd, map[string]string{
@@ -34,6 +35,4 @@ func TestConfigWithMediaUrl(t *testing.T) {
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
 		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
 	})
-
-	repo.Test()
 }

@@ -11,6 +11,8 @@ import (
 
 func TestInit(t *testing.T) {
 	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
 	repo.AddPath(repo.Path, ".git")
 	repo.AddPath(repo.Path, "subdir")
 
@@ -59,6 +61,4 @@ func TestInit(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, string(customHook), string(by))
 	})
-
-	repo.Test()
 }

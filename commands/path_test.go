@@ -8,6 +8,7 @@ import (
 
 func TestPath(t *testing.T) {
 	repo := NewRepository(t, "attributes")
+	defer repo.Test()
 
 	cmd := repo.Command("path")
 	cmd.Output = "Listing paths\n" +
@@ -20,12 +21,11 @@ func TestPath(t *testing.T) {
 		path := filepath.Join(".git", "info", "attributes")
 		repo.WriteFile(path, "*.mov filter=media -crlf\n")
 	})
-
-	repo.Test()
 }
 
 func TestPathOnEmptyRepository(t *testing.T) {
 	repo := NewRepository(t, "empty")
+	defer repo.Test()
 
 	cmd := repo.Command("path", "add", "*.gif")
 	cmd.Output = "Adding path *.gif"
@@ -39,6 +39,4 @@ func TestPathOnEmptyRepository(t *testing.T) {
 
 	cmd = repo.Command("path")
 	cmd.Output = "Listing paths"
-
-	repo.Test()
 }
