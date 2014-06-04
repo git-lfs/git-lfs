@@ -37,4 +37,19 @@ func TestClean(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, false, stat.IsDir())
 	})
+
+	cmd = repo.Command("clean")
+	cmd.Input = bytes.NewBufferString(content)
+	cmd.Output = "# git-media\n" + oid
+	customHook := []byte("echo 'yo'")
+	cmd.Before(func() {
+		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
+		assert.Equal(t, nil, err)
+	})
+
+	cmd.After(func() {
+		by, err := ioutil.ReadFile(prePushHookFile)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, string(customHook), string(by))
+	})
 }

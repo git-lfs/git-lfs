@@ -12,7 +12,7 @@ type CleanCommand struct {
 }
 
 func (c *CleanCommand) Run() {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	var filename string
 	if len(c.Args) > 1 {

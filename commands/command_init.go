@@ -39,7 +39,7 @@ func (c *InitCommand) globalInit() {
 }
 
 func (c *InitCommand) hookInit() error {
-	return gitmedia.InstallHooks()
+	return gitmedia.InstallHooks(true)
 }
 
 func init() {

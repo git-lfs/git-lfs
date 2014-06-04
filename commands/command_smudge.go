@@ -12,7 +12,7 @@ type SmudgeCommand struct {
 }
 
 func (c *SmudgeCommand) Run() {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	sha, err := metafile.Decode(os.Stdin)
 	if err != nil {
