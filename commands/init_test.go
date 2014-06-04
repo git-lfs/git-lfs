@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -10,27 +10,12 @@ import (
 	"testing"
 )
 
-func TestEmptyRepository(t *testing.T) {
+func TestInit(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	repo.AddPath(filepath.Join(repo.Path, ".git"))
 	repo.AddPath(filepath.Join(repo.Path, "subdir"))
 
-	cmd := repo.Command("version")
-	cmd.Output = fmt.Sprintf("git-media v%s", Version)
-
-	cmd = repo.Command("version", "-comics")
-	cmd.Output = fmt.Sprintf("git-media v%s\nNothing may see Gah Lak Tus and survive.", Version)
-
-	cmd = repo.Command("config")
-	SetConfigOutput(cmd, map[string]string{
-		"Endpoint":        "https://example.com/git/media.git/info/media",
-		"LocalWorkingDir": repo.Path,
-		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
-	})
-
-	cmd = repo.Command("init")
+	cmd := repo.Command("init")
 	cmd.Output = "Installing clean filter\n" +
 		"Installing smudge filter\n" +
 		"git media initialized"
@@ -76,25 +61,6 @@ func TestEmptyRepository(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, string(customHook), string(by))
 	})
-
-	repo.Test()
-}
-
-func TestAttributesOnEmptyRepository(t *testing.T) {
-	repo := NewRepository(t, "empty")
-
-	cmd := repo.Command("path", "add", "*.gif")
-	cmd.Output = "Adding path *.gif"
-	cmd.After(func() {
-		assert.Equal(t, "*.gif filter=media -crlf\n", repo.ReadFile(".gitattributes"))
-
-		expected := "Listing paths\n    *.gif (.gitattributes)\n"
-
-		assert.Equal(t, expected, repo.MediaCmd("path"))
-	})
-
-	cmd = repo.Command("path")
-	cmd.Output = "Listing paths"
 
 	repo.Test()
 }

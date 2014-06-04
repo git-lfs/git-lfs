@@ -1,5 +1,5 @@
 #!/bin/bash
 
-for p in integration/repos/*/ ; do
+for p in commands/repos/*/ ; do
   script/clean-git-test-fixture $p
 done
