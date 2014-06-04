@@ -16,6 +16,6 @@ Git attributes.
 
 ## SEE ALSO
 
-git-media-init(1), git-media-push(1), gitattributes(5).
+git-media-init(1), git-media-push(1), git-media-queues(1), gitattributes(5).
 
 Part of the git-media(1) suite.

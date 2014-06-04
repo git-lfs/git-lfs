@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ func NewRepository(t *testing.T, name string) *Repository {
 		Name:     name,
 		Path:     path,
 		Paths:    []string{path},
-		Commands: make([]*Command, 0),
+		Commands: make([]*TestCommand, 0),
 	}
 	r.clone()
 	r.Path = expand(path)
@@ -50,7 +50,7 @@ func GlobalGitConfig(t *testing.T) []string {
 	return strings.Split(o, "\n")
 }
 
-func SetConfigOutput(c *Command, keys map[string]string) {
+func SetConfigOutput(c *TestCommand, keys map[string]string) {
 	pieces := make([]string, 0, len(keys))
 	for key, value := range keys {
 		pieces = append(pieces, key+"="+value)
@@ -67,16 +67,16 @@ type Repository struct {
 	Name             string
 	Path             string
 	Paths            []string
-	Commands         []*Command
+	Commands         []*TestCommand
 	expandedTempPath bool
 }
 
-func (r *Repository) AddPath(path string) {
-	r.Paths = append(r.Paths, path)
+func (r *Repository) AddPath(paths ...string) {
+	r.Paths = append(r.Paths, filepath.Join(paths...))
 }
 
-func (r *Repository) Command(args ...string) *Command {
-	cmd := &Command{
+func (r *Repository) Command(args ...string) *TestCommand {
+	cmd := &TestCommand{
 		T:               r.T,
 		Args:            args,
 		BeforeCallbacks: make([]func(), 0),
@@ -110,7 +110,7 @@ func (r *Repository) Test() {
 }
 
 func (r *Repository) test(path string) {
-	fmt.Println("Integration tests for\n", path)
+	fmt.Println("Command tests for\n", path)
 	for _, cmd := range r.Commands {
 		r.clone()
 		r.e(os.Chdir(path))
@@ -130,7 +130,7 @@ func (r *Repository) cmd(name string, args ...string) string {
 	return cmd(r.T, name, args...)
 }
 
-type Command struct {
+type TestCommand struct {
 	T               *testing.T
 	Args            []string
 	Output          string
@@ -138,7 +138,7 @@ type Command struct {
 	AfterCallbacks  []func()
 }
 
-func (c *Command) Run() {
+func (c *TestCommand) Run() {
 	fmt.Println("$ git media", strings.Join(c.Args, " "))
 
 	for _, cb := range c.BeforeCallbacks {
@@ -158,15 +158,15 @@ func (c *Command) Run() {
 	}
 }
 
-func (c *Command) Before(f func()) {
+func (c *TestCommand) Before(f func()) {
 	c.BeforeCallbacks = append(c.BeforeCallbacks, f)
 }
 
-func (c *Command) After(f func()) {
+func (c *TestCommand) After(f func()) {
 	c.AfterCallbacks = append(c.AfterCallbacks, f)
 }
 
-func (c *Command) e(err error) {
+func (c *TestCommand) e(err error) {
 	e(c.T, err)
 }
 
@@ -200,7 +200,7 @@ func expand(path string) string {
 func clone(t *testing.T, name, path string) {
 	e(t, os.RemoveAll(path))
 
-	reposPath := filepath.Join(Root, "integration", "repos")
+	reposPath := filepath.Join(Root, "commands", "repos")
 	e(t, os.Chdir(reposPath))
 	cmd(t, "git", "clone", name, path)
 	e(t, os.Chdir(path))

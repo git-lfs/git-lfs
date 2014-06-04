@@ -1,0 +1,18 @@
+git-media-queues(1) - View queued content to be pushed.
+=======================================================
+
+## SYNOPSIS
+
+`git media queues`
+
+## DESCRIPTION
+
+The "queues" command displays this list of objects waiting to be pushed to the
+remote Git Media endpoint.  These objects are usually added by
+git-media-clean(1).
+
+## SEE ALSO
+
+git-media-clean(1).
+
+Part of the git-media(1) suite.
