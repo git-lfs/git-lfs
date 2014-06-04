@@ -10,6 +10,7 @@ git-media-init(1) -- Ensure Git Media is configured properly.
 Init performs the following actions to ensure Git Media is setup properly:
 
 * Sets up the clean and smudge filters under the name "media".
+* Installs a pre-push hook to run git-media-push(1)
 
 ## SEE ALSO
 
