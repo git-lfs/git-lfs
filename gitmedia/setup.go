@@ -4,14 +4,27 @@ import (
 	"errors"
 	"fmt"
 	"github.com/github/git-media/gitconfig"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 )
 
-var valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
+var (
+	valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
+	prePushHook = []byte("#!/bin/sh\ngit media push\n")
+)
 
 func InstallHooks() error {
 	if !InRepo() {
 		return errors.New("Not in a repository")
+	}
+
+	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
+	if _, err := os.Stat(hookPath); err == nil {
+		Print("Hook already exists: %s", hookPath)
+	} else {
+		ioutil.WriteFile(hookPath, prePushHook, 0755)
 	}
 
 	return nil
@@ -46,7 +59,7 @@ func requireFilters() {
 		gitconfig.UnsetGlobal(key)
 		gitconfig.SetGlobal(key, value)
 	} else if existing != value {
-		Print("Media filters should be required but are not")
+		Print("Media filters should be required but are not.")
 	}
 }
 
