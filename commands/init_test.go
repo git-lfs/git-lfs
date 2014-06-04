@@ -12,8 +12,8 @@ import (
 
 func TestInit(t *testing.T) {
 	repo := NewRepository(t, "empty")
-	repo.AddPath(filepath.Join(repo.Path, ".git"))
-	repo.AddPath(filepath.Join(repo.Path, "subdir"))
+	repo.AddPath(repo.Path, ".git")
+	repo.AddPath(repo.Path, "subdir")
 
 	cmd := repo.Command("init")
 	cmd.Output = "Installing clean filter\n" +

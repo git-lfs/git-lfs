@@ -71,8 +71,8 @@ type Repository struct {
 	expandedTempPath bool
 }
 
-func (r *Repository) AddPath(path string) {
-	r.Paths = append(r.Paths, path)
+func (r *Repository) AddPath(paths ...string) {
+	r.Paths = append(r.Paths, filepath.Join(paths...))
 }
 
 func (r *Repository) Command(args ...string) *TestCommand {
