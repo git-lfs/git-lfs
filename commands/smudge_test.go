@@ -11,6 +11,7 @@ import (
 
 func TestSmudge(t *testing.T) {
 	repo := NewRepository(t, "empty")
+  defer repo.Test()
 
 	cmd := repo.Command("smudge")
 	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
@@ -22,6 +23,4 @@ func TestSmudge(t *testing.T) {
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
 	})
-
-	repo.Test()
 }
