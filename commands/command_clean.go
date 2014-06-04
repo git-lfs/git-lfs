@@ -12,6 +12,8 @@ type CleanCommand struct {
 }
 
 func (c *CleanCommand) Run() {
+	gitmedia.InstallHooks()
+
 	var filename string
 	if len(c.Args) > 1 {
 		filename = c.Args[1]
