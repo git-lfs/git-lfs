@@ -1,57 +1,45 @@
 package commands
 
 import (
-	"fmt"
-	"github.com/github/git-media/gitconfig"
-	"regexp"
+	"github.com/github/git-media/gitmedia"
 )
 
 type InitCommand struct {
 	*Command
 }
 
-var valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
-
 func (c *InitCommand) Run() {
-	setFilter("clean")
-	setFilter("smudge")
-	requireFilters()
+	var sub string
+	if len(c.SubCommands) > 0 {
+		sub = c.SubCommands[0]
+	}
 
-	fmt.Println("git media initialized")
+	switch sub {
+	case "hooks":
+		if err := c.hookInit(); err != nil {
+			gitmedia.Print("%s", err)
+			return
+		}
+	default:
+		c.runInit()
+	}
+
+	gitmedia.Print("git media initialized")
 }
 
-func setFilter(filterName string) {
-	key := fmt.Sprintf("filter.media.%s", filterName)
-	value := fmt.Sprintf("git media %s %%f", filterName)
-
-	existing := gitconfig.Find(key)
-	if shouldReset(existing) {
-		fmt.Printf("Installing %s filter\n", filterName)
-		gitconfig.UnsetGlobal(key)
-		gitconfig.SetGlobal(key, value)
-	} else if existing != value {
-		fmt.Printf("The %s filter should be \"%s\" but is \"%s\"\n", filterName, value, existing)
+func (c *InitCommand) runInit() {
+	c.globalInit()
+	if gitmedia.InRepo() {
+		c.hookInit()
 	}
 }
 
-func requireFilters() {
-	key := "filter.media.required"
-	value := "true"
-
-	existing := gitconfig.Find(key)
-	if shouldReset(existing) {
-		gitconfig.UnsetGlobal(key)
-		gitconfig.SetGlobal(key, value)
-	} else if existing != value {
-		fmt.Printf("Media filters should be required but are not")
-	}
+func (c *InitCommand) globalInit() {
+	gitmedia.InstallFilters()
 }
 
-func shouldReset(value string) bool {
-	if len(value) == 0 {
-		return true
-	}
-	return valueRegexp.MatchString(value)
+func (c *InitCommand) hookInit() error {
+	return gitmedia.InstallHooks()
 }
 
 func init() {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -22,17 +21,6 @@ var (
 
 func TempFile() (*os.File, error) {
 	return ioutil.TempFile(TempDir, "")
-}
-
-func SimpleExec(name string, arg ...string) string {
-	output, err := exec.Command(name, arg...).Output()
-	if _, ok := err.(*exec.ExitError); ok {
-		return ""
-	} else if err != nil {
-		Panic(err, "Error running %s %s", name, arg)
-	}
-
-	return strings.Trim(string(output), " \n")
 }
 
 func LocalMediaPath(sha string) string {
@@ -62,19 +50,21 @@ func Environ() []string {
 	return env
 }
 
+func InRepo() bool {
+	return LocalWorkingDir != ""
+}
+
 func init() {
 	var err error
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
-	if err != nil {
-		Exit("Not in a git repository")
-	}
+	if err == nil {
+		LocalMediaDir = filepath.Join(LocalGitDir, "media")
+		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
+		queueDir = setupQueueDir()
 
-	LocalMediaDir = filepath.Join(LocalGitDir, "media")
-	LocalLogDir = filepath.Join(LocalMediaDir, "logs")
-	queueDir = setupQueueDir()
-
-	if err := os.MkdirAll(TempDir, 0744); err != nil {
-		Panic(err, "Error trying to create temp directory: %s", TempDir)
+		if err := os.MkdirAll(TempDir, 0744); err != nil {
+			Panic(err, "Error trying to create temp directory: %s", TempDir)
+		}
 	}
 }
 
