@@ -7,27 +7,27 @@ import (
 )
 
 func Find(val string) string {
-	output, _ := SimpleExec("git", "config", val)
+	output, _ := simpleExec("git", "config", val)
 	return output
 }
 
 func SetGlobal(key, val string) {
-	SimpleExec("git", "config", "--global", "--add", key, val)
+	simpleExec("git", "config", "--global", "--add", key, val)
 }
 
 func UnsetGlobal(key string) {
-	SimpleExec("git", "config", "--global", "--unset", key)
+	simpleExec("git", "config", "--global", "--unset", key)
 }
 
 func List() (string, error) {
-	return SimpleExec("git", "config", "-l")
+	return simpleExec("git", "config", "-l")
 }
 
 func ListFromFile() (string, error) {
-	return SimpleExec("git", "config", "-l", "-f", ".gitconfig")
+	return simpleExec("git", "config", "-l", "-f", ".gitconfig")
 }
 
-func SimpleExec(name string, arg ...string) (string, error) {
+func simpleExec(name string, arg ...string) (string, error) {
 	output, err := exec.Command(name, arg...).Output()
 	if _, ok := err.(*exec.ExitError); ok {
 		return "", nil
