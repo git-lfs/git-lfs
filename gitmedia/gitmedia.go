@@ -71,7 +71,7 @@ func init() {
 func resolveGitDir() (string, string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		panic(fmt.Errorf("Error reading working directory: %s", err))
+		return "", "", err
 	}
 
 	return recursiveResolveGitDir(wd)
