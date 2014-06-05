@@ -14,10 +14,10 @@ func (c *VersionCommand) Setup() {
 }
 
 func (c *VersionCommand) Run() {
-	gitmedia.Print("%s v%s", c.Name, gitmedia.Version)
+	Print("%s v%s", c.Name, gitmedia.Version)
 
 	if c.LovesComics {
-		gitmedia.Print("Nothing may see Gah Lak Tus and survive.")
+		Print("Nothing may see Gah Lak Tus and survive.")
 	}
 }
 

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"os"
@@ -12,20 +11,19 @@ import (
 
 func TestInit(t *testing.T) {
 	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
 	repo.AddPath(repo.Path, ".git")
 	repo.AddPath(repo.Path, "subdir")
 
 	cmd := repo.Command("init")
-	cmd.Output = "Installing clean filter\n" +
-		"Installing smudge filter\n" +
-		"git media initialized"
+	cmd.Output = "git media initialized"
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.After(func() {
 		// assert media filter config
 		configs := GlobalGitConfig(t)
-		fmt.Println(configs)
 		AssertIncludeString(t, "filter.media.clean=git media clean %f", configs)
 		AssertIncludeString(t, "filter.media.smudge=git media smudge %f", configs)
 		AssertIncludeString(t, "filter.media.required=true", configs)
@@ -44,11 +42,7 @@ func TestInit(t *testing.T) {
 	})
 
 	cmd = repo.Command("init")
-	cmd.Output = "Installing clean filter\n" +
-		"Installing smudge filter\n" +
-		"Hook already exists: " +
-		filepath.Join(repo.Path, ".git", "hooks", "pre-push") +
-		"\ngit media initialized"
+	cmd.Output = "Hook already exists: pre-push\ngit media initialized"
 
 	customHook := []byte("echo 'yo'")
 	cmd.Before(func() {
@@ -61,6 +55,4 @@ func TestInit(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, string(customHook), string(by))
 	})
-
-	repo.Test()
 }
