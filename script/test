@@ -17,4 +17,4 @@ rm -f $LOCALSRCDIR
 ln -s `pwd` $LOCALSRCDIR
 
 GOPATH="`pwd`/.vendor" go test $target -i
-GOPATH="`pwd`/.vendor" go test $target
+GOPATH="`pwd`/.vendor" go test $target -cover
