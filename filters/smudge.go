@@ -8,7 +8,10 @@ import (
 )
 
 func Smudge(writer io.Writer, sha string) error {
-	mediafile := gitmedia.LocalMediaPath(sha)
+	mediafile, err := gitmedia.LocalMediaPath(sha)
+	if err != nil {
+		return err
+	}
 
 	if stat, err := os.Stat(mediafile); err != nil || stat == nil {
 		reader, err := gitmediaclient.Get(mediafile)

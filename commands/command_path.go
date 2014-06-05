@@ -15,7 +15,7 @@ type PathCommand struct {
 }
 
 func (c *PathCommand) Run() {
-	gitmedia.InstallHooks(false)
+	gitmedia.InstallHooks()
 
 	var sub string
 	if len(c.SubCommands) > 0 {

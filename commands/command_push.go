@@ -11,7 +11,11 @@ type PushCommand struct {
 }
 
 func (c *PushCommand) Run() {
-	q := gitmedia.UploadQueue()
+	q, err := gitmedia.UploadQueue()
+	if err != nil {
+		Panic(err, "Error setting up the queue")
+	}
+
 	q.Walk(func(id string, body []byte) error {
 		fileInfo := string(body)
 		parts := strings.Split(fileInfo, ":")
@@ -22,20 +26,21 @@ func (c *PushCommand) Run() {
 			filename = parts[1]
 		}
 
-		path := gitmedia.LocalMediaPath(sha)
-
-		err := gitmediaclient.Options(path)
+		path, err := gitmedia.LocalMediaPath(sha)
+		if err == nil {
+			err = gitmediaclient.Options(path)
+		}
 		if err != nil {
-			gitmedia.Panic(err, "error uploading file %s", filename)
+			Panic(err, "error uploading file %s/%s", sha, filename)
 		}
 
 		err = gitmediaclient.Put(path, filename)
 		if err != nil {
-			gitmedia.Panic(err, "error uploading file %s", sha)
+			Panic(err, "error uploading file %s/%s", sha, filename)
 		}
 
 		if err := q.Del(id); err != nil {
-			gitmedia.Panic(err, "error removing %s from queue", sha)
+			Panic(err, "error removing %s from queue", sha)
 		}
 		return nil
 	})

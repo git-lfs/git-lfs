@@ -149,7 +149,7 @@ func (c *TestCommand) Run() {
 
 	cmd := exec.Command(Bin, c.Args...)
 	cmd.Stdin = c.Input
-	outputBytes, err := cmd.Output()
+	outputBytes, err := cmd.CombinedOutput()
 	c.e(err)
 
 	if len(c.Output) > 0 {

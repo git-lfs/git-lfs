@@ -12,17 +12,17 @@ type SmudgeCommand struct {
 }
 
 func (c *SmudgeCommand) Run() {
-	gitmedia.InstallHooks(false)
+	gitmedia.InstallHooks()
 
 	sha, err := metafile.Decode(os.Stdin)
 	if err != nil {
-		gitmedia.Panic(err, "Error reading git-media meta data from stdin:")
+		Panic(err, "Error reading git-media meta data from stdin:")
 	}
 
 	err = filters.Smudge(os.Stdout, sha)
 	if err != nil {
 		smudgerr := err.(*filters.SmudgeError)
-		gitmedia.Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)
+		Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)
 	}
 }
 

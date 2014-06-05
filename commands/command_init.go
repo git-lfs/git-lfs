@@ -16,15 +16,12 @@ func (c *InitCommand) Run() {
 
 	switch sub {
 	case "hooks":
-		if err := c.hookInit(); err != nil {
-			gitmedia.Print("%s", err)
-			return
-		}
+		c.hookInit()
 	default:
 		c.runInit()
 	}
 
-	gitmedia.Print("git media initialized")
+	Print("git media initialized")
 }
 
 func (c *InitCommand) runInit() {
@@ -35,11 +32,15 @@ func (c *InitCommand) runInit() {
 }
 
 func (c *InitCommand) globalInit() {
-	gitmedia.InstallFilters()
+	if err := gitmedia.InstallFilters(); err != nil {
+		Error(err.Error())
+	}
 }
 
-func (c *InitCommand) hookInit() error {
-	return gitmedia.InstallHooks(true)
+func (c *InitCommand) hookInit() {
+	if err := gitmedia.InstallHooks(); err != nil {
+		Error(err.Error())
+	}
 }
 
 func init() {
