@@ -4,11 +4,11 @@ import (
 	"github.com/github/git-media/gitmedia"
 )
 
-type ConfigCommand struct {
+type EnvCommand struct {
 	*Command
 }
 
-func (c *ConfigCommand) Run() {
+func (c *EnvCommand) Run() {
 	config := gitmedia.Config
 
 	if endpoint := config.Endpoint(); len(endpoint) > 0 {
@@ -25,7 +25,7 @@ func (c *ConfigCommand) Run() {
 }
 
 func init() {
-	registerCommand("config", func(c *Command) RunnableCommand {
-		return &ConfigCommand{Command: c}
+	registerCommand("env", func(c *Command) RunnableCommand {
+		return &EnvCommand{Command: c}
 	})
 }

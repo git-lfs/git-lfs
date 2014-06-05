@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-func TestConfig(t *testing.T) {
+func TestEnv(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
 	repo.AddPath(repo.Path, ".git")
 	repo.AddPath(repo.Path, "subdir")
 
-	cmd := repo.Command("config")
+	cmd := repo.Command("env")
 	SetConfigOutput(cmd, map[string]string{
 		"Endpoint":        "https://example.com/git/media.git/info/media",
 		"LocalWorkingDir": repo.Path,
@@ -23,11 +23,11 @@ func TestConfig(t *testing.T) {
 	})
 }
 
-func TestConfigWithMediaUrl(t *testing.T) {
+func TestEnvWithMediaUrl(t *testing.T) {
 	repo := NewRepository(t, "config_media_url")
 	defer repo.Test()
 
-	cmd := repo.Command("config")
+	cmd := repo.Command("env")
 	SetConfigOutput(cmd, map[string]string{
 		"Endpoint":        "http://foo/bar",
 		"LocalWorkingDir": repo.Path,
