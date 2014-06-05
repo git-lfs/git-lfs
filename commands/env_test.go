@@ -20,7 +20,7 @@ func TestEnv(t *testing.T) {
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
 	})
 }
 
@@ -34,7 +34,7 @@ func TestEnvWithMediaUrl(t *testing.T) {
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
 	})
 }
 
@@ -48,7 +48,7 @@ func TestEnvWithSubmoduleFromRepository(t *testing.T) {
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
 	})
 
 	cmd.Before(func() {
@@ -73,7 +73,7 @@ func TestEnvWithSubmoduleFromSubmodule(t *testing.T) {
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
 	})
 
 	cmd.Before(func() {
