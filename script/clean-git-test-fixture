@@ -11,13 +11,6 @@ if [ -z "$path" ]
     exit 1
 fi
 
-# check path ends in .git
-if ! echo "$path" | grep -q '.git$'
-    then
-    echo "$(basename $0): $path is not a bare repository path" 1>&2
-    exit 1
-fi
-
 # make sure the repo we're cleaning already exists.
 if ! [ -d "$path" ]
     then
@@ -59,8 +52,5 @@ do
             rm "$filepath"
             echo "Deleted file at $filepath"
         fi
-    else
-        # If there's nothing at $filepath, still echo something.
-        echo "Skipped nonexistent file at $filepath"
     fi
 done

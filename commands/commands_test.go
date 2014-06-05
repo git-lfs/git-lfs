@@ -114,8 +114,7 @@ func (r *Repository) test(path string) {
 	fmt.Println("Command tests for\n", path)
 	for _, cmd := range r.Commands {
 		r.clone()
-		r.e(os.Chdir(path))
-		cmd.Run()
+		cmd.Run(path)
 	}
 }
 
@@ -140,12 +139,14 @@ type TestCommand struct {
 	AfterCallbacks  []func()
 }
 
-func (c *TestCommand) Run() {
+func (c *TestCommand) Run(path string) {
 	fmt.Println("$ git media", strings.Join(c.Args, " "))
 
 	for _, cb := range c.BeforeCallbacks {
 		cb()
 	}
+
+	c.e(os.Chdir(path))
 
 	cmd := exec.Command(Bin, c.Args...)
 	cmd.Stdin = c.Input
