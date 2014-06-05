@@ -30,7 +30,7 @@ func (c *QueuesCommand) Run() {
 	})
 
 	if err != nil {
-		gitmedia.Panic(err, "Error walking queues")
+		Panic(err, "Error walking queues")
 	}
 }
 

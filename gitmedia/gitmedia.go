@@ -26,7 +26,7 @@ func TempFile() (*os.File, error) {
 func LocalMediaPath(sha string) string {
 	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
 	if err := os.MkdirAll(path, 0744); err != nil {
-		Panic(err, "Error trying to create local media directory: %s", path)
+		panic(fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err))
 	}
 
 	return filepath.Join(path, sha)
@@ -63,7 +63,7 @@ func init() {
 		queueDir = setupQueueDir()
 
 		if err := os.MkdirAll(TempDir, 0744); err != nil {
-			Panic(err, "Error trying to create temp directory: %s", TempDir)
+			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 	}
 }
@@ -71,7 +71,7 @@ func init() {
 func resolveGitDir() (string, string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		Panic(err, "Error reading working directory")
+		panic(fmt.Errorf("Error reading working directory: %s", err))
 	}
 
 	return recursiveResolveGitDir(wd)

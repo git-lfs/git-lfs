@@ -91,12 +91,12 @@ func (c *Configuration) loadGitConfig() {
 	var output string
 	listOutput, err := gitconfig.List()
 	if err != nil {
-		Panic(err, listOutput)
+		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
 
 	fileOutput, err := gitconfig.ListFromFile()
 	if err != nil {
-		Panic(err, fileOutput)
+		panic(fmt.Errorf("Error listing git config from file: %s", err))
 	}
 
 	output = listOutput + "\n" + fileOutput

@@ -12,7 +12,7 @@ type CleanCommand struct {
 }
 
 func (c *CleanCommand) Run() {
-	gitmedia.InstallHooks(false)
+	gitmedia.InstallHooks()
 
 	var filename string
 	if len(c.Args) > 1 {
@@ -23,7 +23,7 @@ func (c *CleanCommand) Run() {
 
 	cleaned, err := filters.Clean(os.Stdin)
 	if err != nil {
-		gitmedia.Panic(err, "Error cleaning asset")
+		Panic(err, "Error cleaning asset")
 	}
 	defer cleaned.Close()
 
@@ -36,10 +36,12 @@ func (c *CleanCommand) Run() {
 		Debug("%s exists", mediafile)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
-			gitmedia.Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
+			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
 
-		gitmedia.QueueUpload(cleaned.Sha, filename)
+		if err = gitmedia.QueueUpload(cleaned.Sha, filename); err != nil {
+			Panic(err, "Unable to add %s to queue", cleaned.Sha)
+		}
 		Debug("Writing %s", mediafile)
 	}
 

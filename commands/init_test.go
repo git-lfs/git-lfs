@@ -17,9 +17,7 @@ func TestInit(t *testing.T) {
 	repo.AddPath(repo.Path, "subdir")
 
 	cmd := repo.Command("init")
-	cmd.Output = "Installing clean filter\n" +
-		"Installing smudge filter\n" +
-		"git media initialized"
+	cmd.Output = "git media initialized"
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
@@ -44,11 +42,7 @@ func TestInit(t *testing.T) {
 	})
 
 	cmd = repo.Command("init")
-	cmd.Output = "Installing clean filter\n" +
-		"Installing smudge filter\n" +
-		"Hook already exists: " +
-		filepath.Join(repo.Path, ".git", "hooks", "pre-push") +
-		"\ngit media initialized"
+	cmd.Output = "Hook already exists: pre-push\ngit media initialized"
 
 	customHook := []byte("echo 'yo'")
 	cmd.Before(func() {

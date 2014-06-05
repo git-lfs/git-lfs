@@ -106,7 +106,7 @@ func NewCommand(name, subname string) *Command {
 
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	setupDebugging(fs)
-	fs.SetOutput(gitmedia.ErrorWriter)
+	fs.SetOutput(ErrorWriter)
 
 	return &Command{name, subname, fs, args, args}
 }
@@ -139,7 +139,7 @@ type Command struct {
 }
 
 func (c *Command) Usage() {
-	gitmedia.Print("usage: %s %s", c.Name, c.SubCommand)
+	Print("usage: %s %s", c.Name, c.SubCommand)
 	c.FlagSet.PrintDefaults()
 }
 
@@ -156,7 +156,7 @@ func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
 }
 
 func missingCommand(cmd *Command, subname string) {
-	gitmedia.Error("%s: '%s' is not a %s command.  See %s help.",
+	Error("%s: '%s' is not a %s command.  See %s help.",
 		cmd.Name, subname, cmd.Name, cmd.Name)
 }
 

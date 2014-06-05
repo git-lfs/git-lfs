@@ -69,7 +69,7 @@ func (c *LogsCommand) showLog(name string) {
 func (c *LogsCommand) clear() {
 	err := os.RemoveAll(gitmedia.LocalLogDir)
 	if err != nil {
-		gitmedia.Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
+		Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
 	}
 
 	fmt.Println("Cleared", gitmedia.LocalLogDir)
@@ -78,7 +78,7 @@ func (c *LogsCommand) clear() {
 func (c *LogsCommand) boomtown() {
 	Debug("Debug message")
 	err := errors.New("Error!")
-	gitmedia.Panic(err, "Welcome to Boomtown")
+	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }
 

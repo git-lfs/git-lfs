@@ -5,23 +5,29 @@ import (
 	"path/filepath"
 )
 
-func QueueUpload(sha, filename string) {
+func QueueUpload(sha, filename string) error {
 	fileBody := sha
 
 	if filename != "" {
 		fileBody += ":" + filename
 	}
 
-	_, err := UploadQueue().AddString(fileBody)
+	q, err := UploadQueue()
 	if err != nil {
-		Panic(err, "Unable to add %s to queue", sha)
+		return err
 	}
+
+	_, err = q.AddString(fileBody)
+	return err
 }
 
 func WalkQueues(cb func(name string, queue *queuedir.Queue) error) error {
 	var err error
 	for name, queuefunc := range queues {
-		err = cb(name, queuefunc())
+		q, err := queuefunc()
+		if err == nil {
+			err = cb(name, q)
+		}
 		if err != nil {
 			return err
 		}
@@ -29,16 +35,16 @@ func WalkQueues(cb func(name string, queue *queuedir.Queue) error) error {
 	return err
 }
 
-func UploadQueue() *queuedir.Queue {
+func UploadQueue() (*queuedir.Queue, error) {
 	if uploadQueue == nil {
 		q, err := queueDir.Queue("upload")
 		if err != nil {
-			Panic(err, "Error setting up queue")
+			return nil, err
 		}
 		uploadQueue = q
 	}
 
-	return uploadQueue
+	return uploadQueue, nil
 }
 
 func setupQueueDir() *queuedir.QueueDir {
@@ -46,7 +52,7 @@ func setupQueueDir() *queuedir.QueueDir {
 }
 
 var (
-	queues = map[string]func() *queuedir.Queue{
+	queues = map[string]func() (*queuedir.Queue, error){
 		"upload": UploadQueue,
 	}
 	queueDir    *queuedir.QueueDir
