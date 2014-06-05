@@ -15,14 +15,16 @@ var (
 	prePushHook = []byte("#!/bin/sh\ngit media push\n")
 )
 
-func InstallHooks() error {
+func InstallHooks(verbose bool) error {
 	if !InRepo() {
 		return errors.New("Not in a repository")
 	}
 
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
 	if _, err := os.Stat(hookPath); err == nil {
-		Print("Hook already exists: %s", hookPath)
+		if verbose {
+			Print("Hook already exists: %s", hookPath)
+		}
 	} else {
 		ioutil.WriteFile(hookPath, prePushHook, 0755)
 	}

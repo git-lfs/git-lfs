@@ -12,6 +12,8 @@ type SmudgeCommand struct {
 }
 
 func (c *SmudgeCommand) Run() {
+	gitmedia.InstallHooks(false)
+
 	sha, err := metafile.Decode(os.Stdin)
 	if err != nil {
 		gitmedia.Panic(err, "Error reading git-media meta data from stdin:")
