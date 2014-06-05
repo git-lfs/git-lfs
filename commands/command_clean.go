@@ -28,7 +28,11 @@ func (c *CleanCommand) Run() {
 	defer cleaned.Close()
 
 	tmpfile := cleaned.File.Name()
-	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
+	mediafile, err := gitmedia.LocalMediaPath(cleaned.Sha)
+	if err != nil {
+		Panic(err, "Unable to get local media path.")
+	}
+
 	if stat, _ := os.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size {
 			Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)

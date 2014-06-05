@@ -23,13 +23,13 @@ func TempFile() (*os.File, error) {
 	return ioutil.TempFile(TempDir, "")
 }
 
-func LocalMediaPath(sha string) string {
+func LocalMediaPath(sha string) (string, error) {
 	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
 	if err := os.MkdirAll(path, 0744); err != nil {
-		panic(fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err))
+		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
 	}
 
-	return filepath.Join(path, sha)
+	return filepath.Join(path, sha), nil
 }
 
 func Environ() []string {

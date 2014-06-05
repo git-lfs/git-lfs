@@ -26,16 +26,17 @@ func (c *PushCommand) Run() {
 			filename = parts[1]
 		}
 
-		path := gitmedia.LocalMediaPath(sha)
-
-		err := gitmediaclient.Options(path)
+		path, err := gitmedia.LocalMediaPath(sha)
+		if err == nil {
+			err = gitmediaclient.Options(path)
+		}
 		if err != nil {
-			Panic(err, "error uploading file %s", filename)
+			Panic(err, "error uploading file %s/%s", sha, filename)
 		}
 
 		err = gitmediaclient.Put(path, filename)
 		if err != nil {
-			Panic(err, "error uploading file %s", sha)
+			Panic(err, "error uploading file %s/%s", sha, filename)
 		}
 
 		if err := q.Del(id); err != nil {
