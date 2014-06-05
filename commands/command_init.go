@@ -17,14 +17,14 @@ func (c *InitCommand) Run() {
 	switch sub {
 	case "hooks":
 		if err := c.hookInit(); err != nil {
-			gitmedia.Print("%s", err)
+			Print("%s", err)
 			return
 		}
 	default:
 		c.runInit()
 	}
 
-	gitmedia.Print("git media initialized")
+	Print("git media initialized")
 }
 
 func (c *InitCommand) runInit() {

@@ -47,7 +47,7 @@ func (c *LogsCommand) Run() {
 
 func (c *LogsCommand) listLogs() {
 	for _, path := range sortedLogs() {
-		gitmedia.Print(path)
+		Print(path)
 	}
 }
 
@@ -59,10 +59,10 @@ func (c *LogsCommand) lastLog() {
 func (c *LogsCommand) showLog(name string) {
 	by, err := ioutil.ReadFile(filepath.Join(gitmedia.LocalLogDir, name))
 	if err != nil {
-		gitmedia.Exit("Error reading log: %s", name)
+		Exit("Error reading log: %s", name)
 	}
 
-	gitmedia.Debug("Reading log: %s", name)
+	Debug("Reading log: %s", name)
 	os.Stdout.Write(by)
 }
 
@@ -76,10 +76,10 @@ func (c *LogsCommand) clear() {
 }
 
 func (c *LogsCommand) boomtown() {
-	gitmedia.Debug("Debug message")
+	Debug("Debug message")
 	err := errors.New("Error!")
 	gitmedia.Panic(err, "Welcome to Boomtown")
-	gitmedia.Debug("Never seen")
+	Debug("Never seen")
 }
 
 func sortedLogs() []string {

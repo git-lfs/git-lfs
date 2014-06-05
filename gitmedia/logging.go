@@ -2,7 +2,6 @@ package gitmedia
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -59,14 +58,6 @@ func Debug(format string, args ...interface{}) {
 		return
 	}
 	log.Printf(format, args...)
-}
-
-func SetupDebugging(flagset *flag.FlagSet) {
-	if flagset == nil {
-		flag.BoolVar(&Debugging, "debug", false, "Turns debugging on")
-	} else {
-		flagset.BoolVar(&Debugging, "debug", false, "Turns debugging on")
-	}
 }
 
 func handlePanic(err error) string {

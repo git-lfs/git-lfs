@@ -15,15 +15,15 @@ type QueuesCommand struct {
 func (c *QueuesCommand) Run() {
 	err := gitmedia.WalkQueues(func(name string, queue *queuedir.Queue) error {
 		wd, _ := os.Getwd()
-		gitmedia.Print(name)
+		Print(name)
 		return queue.Walk(func(id string, body []byte) error {
 			parts := strings.Split(string(body), ":")
 			if len(parts) == 2 {
 				absPath := filepath.Join(gitmedia.LocalWorkingDir, parts[1])
 				relPath, _ := filepath.Rel(wd, absPath)
-				gitmedia.Print("  " + relPath)
+				Print("  " + relPath)
 			} else {
-				gitmedia.Print("  " + parts[0])
+				Print("  " + parts[0])
 			}
 			return nil
 		})
