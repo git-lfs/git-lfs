@@ -53,6 +53,10 @@ func (c *LogsCommand) listLogs() {
 
 func (c *LogsCommand) lastLog() {
 	logs := sortedLogs()
+	if len(logs) < 1 {
+		Print("No logs to show")
+		return
+	}
 	c.showLog(logs[len(logs)-1])
 }
 

@@ -15,8 +15,8 @@ func (c *CleanCommand) Run() {
 	gitmedia.InstallHooks()
 
 	var filename string
-	if len(c.Args) > 1 {
-		filename = c.Args[1]
+	if len(c.Args) > 0 {
+		filename = c.Args[0]
 	} else {
 		filename = ""
 	}

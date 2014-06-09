@@ -2,6 +2,7 @@ package metafile
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"regexp"
 )
@@ -31,9 +32,13 @@ func Decode(reader io.Reader) (string, error) {
 		return "", err
 	}
 
+	if len(lines) < 2 {
+		return "", errors.New("No sha in meta file")
+	}
+
 	if matched {
 		return string(lines[1]), nil
 	}
 
-	return "", nil // error?
+	return "", errors.New("Could not decode meta file")
 }
