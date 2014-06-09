@@ -11,46 +11,63 @@ import (
 )
 
 var (
-	valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
-	prePushHook = []byte("#!/bin/sh\ngit media push\n")
+	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
+	prePushHook           = []byte("#!/bin/sh\ngit media push\n")
+	NotInARepositoryError = errors.New("Not in a repository")
 )
+
+type HookExists struct {
+	Name string
+	Path string
+}
+
+func (e *HookExists) Error() string {
+	return fmt.Sprintf("Hook already exists: %s", e.Name)
+}
 
 func InstallHooks() error {
 	if !InRepo() {
-		return errors.New("Not in a repository")
+		return NotInARepositoryError
 	}
 
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
 	if _, err := os.Stat(hookPath); err == nil {
-		Print("Hook already exists: %s", hookPath)
+		return &HookExists{"pre-push", hookPath}
 	} else {
-		ioutil.WriteFile(hookPath, prePushHook, 0755)
+		return ioutil.WriteFile(hookPath, prePushHook, 0755)
 	}
 
 	return nil
 }
 
-func InstallFilters() {
-	setFilter("clean")
-	setFilter("smudge")
-	requireFilters()
+func InstallFilters() error {
+	var err error
+	err = setFilter("clean")
+	if err == nil {
+		err = setFilter("smudge")
+	}
+	if err == nil {
+		err = requireFilters()
+	}
+	return err
 }
 
-func setFilter(filterName string) {
+func setFilter(filterName string) error {
 	key := fmt.Sprintf("filter.media.%s", filterName)
 	value := fmt.Sprintf("git media %s %%f", filterName)
 
 	existing := gitconfig.Find(key)
 	if shouldReset(existing) {
-		Print("Installing %s filter", filterName)
 		gitconfig.UnsetGlobal(key)
 		gitconfig.SetGlobal(key, value)
 	} else if existing != value {
-		Print("The %s filter should be \"%s\" but is \"%s\"", filterName, value, existing)
+		return fmt.Errorf("The %s filter should be \"%s\" but is \"%s\"", filterName, value, existing)
 	}
+
+	return nil
 }
 
-func requireFilters() {
+func requireFilters() error {
 	key := "filter.media.required"
 	value := "true"
 
@@ -59,8 +76,10 @@ func requireFilters() {
 		gitconfig.UnsetGlobal(key)
 		gitconfig.SetGlobal(key, value)
 	} else if existing != value {
-		Print("Media filters should be required but are not.")
+		return errors.New("Media filters should be required but are not.")
 	}
+
+	return nil
 }
 
 func shouldReset(value string) bool {

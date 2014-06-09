@@ -12,6 +12,8 @@ type CleanCommand struct {
 }
 
 func (c *CleanCommand) Run() {
+	gitmedia.InstallHooks()
+
 	var filename string
 	if len(c.Args) > 0 {
 		filename = c.Args[0]
@@ -21,24 +23,30 @@ func (c *CleanCommand) Run() {
 
 	cleaned, err := filters.Clean(os.Stdin)
 	if err != nil {
-		gitmedia.Panic(err, "Error cleaning asset")
+		Panic(err, "Error cleaning asset")
 	}
 	defer cleaned.Close()
 
 	tmpfile := cleaned.File.Name()
-	mediafile := gitmedia.LocalMediaPath(cleaned.Sha)
+	mediafile, err := gitmedia.LocalMediaPath(cleaned.Sha)
+	if err != nil {
+		Panic(err, "Unable to get local media path.")
+	}
+
 	if stat, _ := os.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size {
-			gitmedia.Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
+			Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
 		}
-		gitmedia.Debug("%s exists", mediafile)
+		Debug("%s exists", mediafile)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
-			gitmedia.Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
+			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
 
-		gitmedia.QueueUpload(cleaned.Sha, filename)
-		gitmedia.Debug("Writing %s", mediafile)
+		if err = gitmedia.QueueUpload(cleaned.Sha, filename); err != nil {
+			Panic(err, "Unable to add %s to queue", cleaned.Sha)
+		}
+		Debug("Writing %s", mediafile)
 	}
 
 	metafile.Encode(os.Stdout, cleaned.Sha)
