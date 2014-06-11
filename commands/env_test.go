@@ -67,12 +67,10 @@ func TestEnvWithSubmoduleFromSubmodule(t *testing.T) {
 
 	cmd := repo.Command("env")
 	SetConfigOutput(cmd, map[string]string{
-		// having trouble guessing the media endpoint from the submodule's origin
-		// on the local filesystem.
 		"Endpoint":        "unknown",
-		"LocalWorkingDir": repo.Path,
-		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
+		"LocalWorkingDir": filepath.Join(repo.Path, "attributes", "a"),
+		"LocalGitDir":     "../.git/modules/attributes",
+		"LocalMediaDir":   "../.git/modules/attributes/media",
 		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
 	})
 

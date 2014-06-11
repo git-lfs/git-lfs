@@ -90,10 +90,31 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 	if info, err := os.Stat(gitDir); err == nil {
 		if info.IsDir() {
 			return dir, gitDir, nil
+		} else {
+			return processDotGitFile(gitDir)
 		}
 	}
 
 	return recursiveResolveGitDir(filepath.Dir(dir))
 }
 
-const gitExt = ".git"
+func processDotGitFile(file string) (string, string, error) {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", "", err
+	}
+
+	contents := string(data)
+	wd, _ := os.Getwd()
+	if strings.HasPrefix(contents, gitPtrPrefix) {
+		absDir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
+		return wd, absDir, nil
+	}
+
+	return wd, "", nil
+}
+
+const (
+	gitExt       = ".git"
+	gitPtrPrefix = "gitdir: "
+)
