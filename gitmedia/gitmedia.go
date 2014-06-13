@@ -60,6 +60,7 @@ func init() {
 	if err == nil {
 		LocalMediaDir = filepath.Join(LocalGitDir, "media")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
+		TempDir = filepath.Join(LocalMediaDir, "tmp")
 		queueDir = setupQueueDir()
 
 		if err := os.MkdirAll(TempDir, 0744); err != nil {
