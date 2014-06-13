@@ -82,3 +82,28 @@ func TestEnvWithSubmoduleFromSubmodule(t *testing.T) {
 		exec.Command("git", "checkout", "-b", "whatevs").Run()
 	})
 }
+
+func TestEnvWithConfiguredSubmodule(t *testing.T) {
+	repo := NewRepository(t, "submodule")
+	defer repo.Test()
+
+	repo.AddPath(repo.Path, "config_media_url")
+	repo.Paths = repo.Paths[1:]
+
+	cmd := repo.Command("env")
+	SetConfigOutput(cmd, map[string]string{
+		"Endpoint":        "http://foo/bar",
+		"LocalWorkingDir": filepath.Join(repo.Path, "config_media_url"),
+		"LocalGitDir":     "../.git/modules/config_media_url",
+		"LocalMediaDir":   "../.git/modules/config_media_url/media",
+		"TempDir":         filepath.Join(os.TempDir(), "git-media"),
+	})
+
+	cmd.Before(func() {
+		submodPath := filepath.Join(Root, "commands", "repos", "config_media_url.git")
+		exec.Command("git", "submodule", "add", submodPath).Run()
+		exec.Command("git", "submodule", "update").Run()
+		os.Chdir("config_media_url")
+		exec.Command("git", "checkout", "-b", "whatevs").Run()
+	})
+}
