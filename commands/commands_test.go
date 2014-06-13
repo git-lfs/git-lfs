@@ -20,7 +20,7 @@ var (
 	GitEnv       []string
 	JoinedGitEnv string
 	Version      = gitmedia.Version
-	configKeys   = [...]string{"Endpoint", "LocalWorkingDir", "LocalGitDir", "LocalMediaDir", "TempDir"}
+	configKeys   = []string{"Endpoint", "LocalWorkingDir", "LocalGitDir", "LocalMediaDir", "TempDir"}
 )
 
 func NewRepository(t *testing.T, name string) *Repository {
