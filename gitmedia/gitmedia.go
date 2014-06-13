@@ -99,12 +99,20 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 }
 
 func processDotGitFile(file string) (string, string, error) {
-	data, err := ioutil.ReadFile(file)
+	f, err := os.Open(file)
+	defer f.Close()
+
 	if err != nil {
 		return "", "", err
 	}
 
-	contents := string(data)
+	data := make([]byte, 512)
+	n, err := f.Read(data)
+	if err != nil {
+		return "", "", err
+	}
+
+	contents := string(data[0:n])
 	wd, _ := os.Getwd()
 	if strings.HasPrefix(contents, gitPtrPrefix) {
 		absDir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
