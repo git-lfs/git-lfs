@@ -29,7 +29,7 @@ git media initialized
 
 ### Installing the man pages
 
-You'll need ruby and rubygems to install the `ron` gem:
+You'll need ruby and rubygems to install the `ronn` gem:
 
 
 ```
@@ -41,5 +41,3 @@ sudo cp man/*.1 /usr/local/share/man/man1
 ```
 
 `git help media` should show the git-media manpage now.
-
-
