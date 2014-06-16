@@ -83,12 +83,13 @@ func TestEnvWithConfiguredSubmodule(t *testing.T) {
 	repo.Paths = repo.Paths[1:]
 
 	cmd := repo.Command("env")
+
 	SetConfigOutput(cmd, map[string]string{
 		"Endpoint":        "http://foo/bar",
 		"LocalWorkingDir": filepath.Join(repo.Path, "config_media_url"),
-		"LocalGitDir":     "../.git/modules/config_media_url",
-		"LocalMediaDir":   "../.git/modules/config_media_url/media",
-		"TempDir":         "../.git/modules/config_media_url/media/tmp",
+		"LocalGitDir":     filepath.Join(repo.Path, ".git", "modules", "config_media_url"),
+		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "modules", "config_media_url", "media"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "modules", "config_media_url", "media", "tmp"),
 	})
 
 	cmd.Before(func() {
