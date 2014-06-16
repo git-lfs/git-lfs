@@ -20,6 +20,7 @@ var (
 	GitEnv       []string
 	JoinedGitEnv string
 	Version      = gitmedia.Version
+	configKeys   = []string{"Endpoint", "LocalWorkingDir", "LocalGitDir", "LocalMediaDir", "TempDir"}
 )
 
 func NewRepository(t *testing.T, name string) *Repository {
@@ -53,9 +54,13 @@ func GlobalGitConfig(t *testing.T) []string {
 
 func SetConfigOutput(c *TestCommand, keys map[string]string) {
 	pieces := make([]string, 0, len(keys))
-	for key, value := range keys {
-		pieces = append(pieces, key+"="+value)
+
+	for _, key := range configKeys {
+		if v, ok := keys[key]; ok {
+			pieces = append(pieces, key+"="+v)
+		}
 	}
+
 	c.Output = strings.Join(pieces, "\n")
 
 	if len(JoinedGitEnv) > 0 {
