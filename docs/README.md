@@ -10,20 +10,16 @@ file from a Git Media server.
   * [Commands](../man)
 * The Server
   * [API](api.md)
-* Very early [v1 launch blog post](v1-blog-post.md)
-* UXR Study: [Super-size me][ux].
-
-[ux]: http://uxr.githubapp.com/2013/09/24/supersize-me/
 
 ## Getting Started
 
 The client lives in [github/git-media](https://github.com/github/git-media).
 
-Download the [latest release](https://github.com/github/git-media/releases/tag/v0.0.1).  Below
+Download the [latest release](https://github.com/github/git-media/releases/tag/v0.1.0).  Below
 are the linked Git Media binaries for Mac and Windows:
 
-* [Mac](https://github.com/github/git-media/releases/download/v0.0.1/git-media-darwin-amd64-v0.0.1.tar.gz)
-* [Windows](https://github.com/github/git-media/releases/download/v0.0.1/git-media-windows-amd64-v0.0.1.zip) (amd64)
+* [Mac](https://github.com/github/git-media/releases/download/v0.1.0/git-media-darwin-amd64-0.1.0.tar.gz)
+* [Windows](https://github.com/github/git-media/releases/download/v0.1.0/git-media-windows-amd64-0.1.0.zip) (amd64)
 
 ### Configure Git
 
