@@ -120,9 +120,16 @@ normal.  After committing, `git show` will show the file's meta data:
     +84ff327f80500d3266bd830891ede1e4fd18b9169936a066573f9b230597a696
     \ No newline at end of file
 
-Now, you can run the `git media sync` command.  This uploads any queued files to
-the Git Media endpoint.
+Now, when you run `git push`, all queued files to will be synced to the
+Git Media endpoint.
 
-    $ git media sync
+    $ git push origin master
     Sending my.zip
-    12.00 MB / 12.00 MB [========================================================] 100.00 %
+    12.58 MB / 12.58 MB  100.00 %
+    Counting objects: 2, done.
+    Delta compression using up to 8 threads.
+    Compressing objects: 100% (5/5), done.
+    Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
+    Total 5 (delta 1), reused 0 (delta 0)
+    To https://github.com/github/gitmediatest
+       67fcf6a..47b2002  master -> master
