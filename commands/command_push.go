@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
 	"strings"
@@ -38,10 +39,12 @@ func (c *PushCommand) Run() {
 		if err != nil {
 			Panic(err, "error uploading file %s/%s", sha, filename)
 		}
+		fmt.Printf("\n")
 
 		if err := q.Del(id); err != nil {
 			Panic(err, "error removing %s from queue", sha)
 		}
+
 		return nil
 	})
 }
