@@ -29,6 +29,7 @@ are the linked Git Media binaries for Mac and Windows:
 
 Run `git media init` to set up global Git configuration settings for Git Media.
 
+    # automatically run by the install script.
     $ git media init
     git media initialized
 

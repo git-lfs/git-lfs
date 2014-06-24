@@ -107,3 +107,5 @@ $ cat .gitattributes
 *.mp3 filter=media -crlf
 *.zip filter=media -crlf
 ```
+
+Use the `git media path` command to view and add to `.gitattributes`.
