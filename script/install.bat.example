@@ -1,2 +1,1 @@
-git config --global filter.media.clean "git-media-clean %f"
-git config --global filter.media.smudge "git-media-smudge %f"
+git media init
