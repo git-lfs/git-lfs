@@ -38,7 +38,7 @@ the Git Media server.  Here's a sample one that saves zips and mp3s:
 
 Git media can help you manage your `.gitattributes` paths:
 
-    $ git media path add "*.mp3"
+    $ git media paths add "*.mp3"
     Adding path *.mp3
 
     $ git media paths add "*.zip"
