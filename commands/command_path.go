@@ -17,28 +17,34 @@ var (
 		Short: "Manipulate .gitattributes",
 		Run:   pathCommand,
 	}
+
+	pathAddCmd = &cobra.Command{
+		Use:   "add",
+		Short: "Add an entry to .gitattributes",
+		Run:   pathAddCommand,
+	}
+
+	pathRemoveCmd = &cobra.Command{
+		Use:   "remove",
+		Short: "Remove an entry from .gitattributes",
+		Run:   pathRemoveCommand,
+	}
 )
 
 func pathCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
-	var sub string
-	if len(args) > 0 {
-		sub = args[0]
-	}
-
-	switch sub {
-	case "add":
-		addPath(args)
-	case "remove":
-		removePath(args)
-	default:
-		listPaths()
+	fmt.Println("Listing paths")
+	knownPaths := findPaths()
+	for _, t := range knownPaths {
+		fmt.Printf("    %s (%s)\n", t.Path, t.Source)
 	}
 }
 
-func addPath(args []string) {
-	if len(args) < 2 {
+func pathAddCommand(cmd *cobra.Command, args []string) {
+	gitmedia.InstallHooks()
+
+	if len(args) < 1 {
 		fmt.Println("git media path add <path> [path]*")
 		return
 	}
@@ -50,7 +56,7 @@ func addPath(args []string) {
 		return
 	}
 
-	for _, t := range args[1:] {
+	for _, t := range args {
 		isKnownPath := false
 		for _, k := range knownPaths {
 			if t == k.Path {
@@ -74,9 +80,11 @@ func addPath(args []string) {
 	attributesFile.Close()
 }
 
-func removePath(args []string) {
-	if len(args) < 2 {
-		fmt.Println("git meda path remove <path> [path]*")
+func pathRemoveCommand(cmd *cobra.Command, args []string) {
+	gitmedia.InstallHooks()
+
+	if len(args) < 1 {
+		fmt.Println("git media path remove <path> [path]*")
 		return
 	}
 
@@ -99,7 +107,7 @@ func removePath(args []string) {
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
 			removeThisPath := false
-			for _, t := range args[1:] {
+			for _, t := range args {
 				if t == fields[0] {
 					removeThisPath = true
 				}
@@ -114,14 +122,6 @@ func removePath(args []string) {
 	}
 
 	attributesFile.Close()
-}
-
-func listPaths() {
-	fmt.Println("Listing paths")
-	knownPaths := findPaths()
-	for _, t := range knownPaths {
-		fmt.Printf("    %s (%s)\n", t.Path, t.Source)
-	}
 }
 
 type mediaPath struct {
@@ -180,5 +180,6 @@ func findPaths() []mediaPath {
 }
 
 func init() {
+	pathCmd.AddCommand(pathAddCmd, pathRemoveCmd)
 	RootCmd.AddCommand(pathCmd)
 }
