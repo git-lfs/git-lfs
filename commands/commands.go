@@ -73,41 +73,7 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Run() {
-	if err := RootCmd.Execute(); err == nil {
-		return
-	}
-
-	runcmd := true
-	subname := SubCommand(1)
-
-	if subname == "help" {
-		runcmd = false
-		subname = SubCommand(2)
-	}
-
-	cmd := NewCommand(filepath.Base(os.Args[0]), subname)
-	cmdcb, ok := commands[subname]
-	if ok {
-		subcmd := cmdcb(cmd)
-		subcmd.Setup()
-
-		if runcmd {
-			subcmd.Parse()
-			subcmd.Run()
-		} else {
-			subcmd.Usage()
-		}
-	} else {
-		missingCommand(cmd, subname)
-	}
-}
-
-func SubCommand(pos int) string {
-	if len(os.Args) < (pos + 1) {
-		return "version"
-	} else {
-		return os.Args[pos]
-	}
+	RootCmd.Execute()
 }
 
 func NewCommand(name, subname string) *Command {
