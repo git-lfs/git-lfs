@@ -4,63 +4,64 @@ import (
 	"errors"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
-type LogsCommand struct {
-	ClearLogs bool
-	Boomtown  bool
-	*Command
-}
+var (
+	clearLogsFlag bool
+	boomtownFlag  bool
 
-func (c *LogsCommand) Setup() {
-	c.FlagSet.BoolVar(&c.ClearLogs, "clear", false, "Clear existing error logs")
-	c.FlagSet.BoolVar(&c.Boomtown, "boomtown", false, "Trigger a panic")
-}
+	logsCmd = &cobra.Command{
+		Use:   "logs",
+		Short: "View error logs.",
+		Run:   logsCommand,
+	}
+)
 
-func (c *LogsCommand) Run() {
-	if c.ClearLogs {
-		c.clear()
+func logsCommand(cmd *cobra.Command, args []string) {
+	if clearLogsFlag {
+		clearLogs()
 	}
 
-	if c.Boomtown {
-		c.boomtown()
+	if boomtownFlag {
+		boomtown()
 		return
 	}
 
 	var sub string
-	if len(c.SubCommands) > 0 {
-		sub = c.SubCommands[0]
+	if len(args) > 0 {
+		sub = args[0]
 	}
 
 	switch sub {
 	case "last":
-		c.lastLog()
+		lastLog()
 	case "":
-		c.listLogs()
+		listLogs()
 	default:
-		c.showLog(sub)
+		showLog(sub)
 	}
 }
 
-func (c *LogsCommand) listLogs() {
+func listLogs() {
 	for _, path := range sortedLogs() {
 		Print(path)
 	}
 }
 
-func (c *LogsCommand) lastLog() {
+func lastLog() {
 	logs := sortedLogs()
 	if len(logs) < 1 {
 		Print("No logs to show")
 		return
 	}
-	c.showLog(logs[len(logs)-1])
+	showLog(logs[len(logs)-1])
 }
 
-func (c *LogsCommand) showLog(name string) {
+func showLog(name string) {
 	by, err := ioutil.ReadFile(filepath.Join(gitmedia.LocalLogDir, name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
@@ -70,7 +71,7 @@ func (c *LogsCommand) showLog(name string) {
 	os.Stdout.Write(by)
 }
 
-func (c *LogsCommand) clear() {
+func clearLogs() {
 	err := os.RemoveAll(gitmedia.LocalLogDir)
 	if err != nil {
 		Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
@@ -79,7 +80,7 @@ func (c *LogsCommand) clear() {
 	fmt.Println("Cleared", gitmedia.LocalLogDir)
 }
 
-func (c *LogsCommand) boomtown() {
+func boomtown() {
 	Debug("Debug message")
 	err := errors.New("Error!")
 	Panic(err, "Welcome to Boomtown")
@@ -101,7 +102,7 @@ func sortedLogs() []string {
 }
 
 func init() {
-	registerCommand("logs", func(c *Command) RunnableCommand {
-		return &LogsCommand{Command: c}
-	})
+	logsCmd.Flags().BoolVarP(&clearLogsFlag, "clear", "c", false, "Clear existing error logs")
+	logsCmd.Flags().BoolVarP(&boomtownFlag, "boomtown", "b", false, "Trigger a panic")
+	RootCmd.AddCommand(logsCmd)
 }
