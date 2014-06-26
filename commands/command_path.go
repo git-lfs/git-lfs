@@ -17,11 +17,6 @@ var (
 		Short: "Manipulate .gitattributes",
 		Run:   pathCommand,
 	}
-	pathsCmd = &cobra.Command{
-		Use:   "paths",
-		Short: pathCmd.Short,
-		Run:   pathCommand,
-	}
 )
 
 func pathCommand(cmd *cobra.Command, args []string) {
@@ -186,5 +181,4 @@ func findPaths() []mediaPath {
 
 func init() {
 	RootCmd.AddCommand(pathCmd)
-	RootCmd.AddCommand(pathsCmd)
 }
