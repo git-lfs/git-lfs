@@ -11,44 +11,33 @@ var (
 		Short: "Initialize the default Git Media configuration",
 		Run:   initCommand,
 	}
+
+	initHooksCmd = &cobra.Command{
+		Use:   "hooks",
+		Short: "Initialize hooks for the current repository",
+		Run:   initHooksCommand,
+	}
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	var sub string
-	if len(args) > 0 {
-		sub = args[0]
+	if err := gitmedia.InstallFilters(); err != nil {
+		Error(err.Error())
 	}
 
-	switch sub {
-	case "hooks":
-		hookInit()
-	default:
-		runInit()
+	if gitmedia.InRepo() {
+		initHooksCommand(cmd, args)
 	}
 
 	Print("git media initialized")
 }
 
-func runInit() {
-	globalInit()
-
-	if gitmedia.InRepo() {
-		hookInit()
-	}
-}
-
-func globalInit() {
-	if err := gitmedia.InstallFilters(); err != nil {
-		Error(err.Error())
-	}
-}
-
-func hookInit() {
+func initHooksCommand(cmd *cobra.Command, args []string) {
 	if err := gitmedia.InstallHooks(); err != nil {
 		Error(err.Error())
 	}
 }
 
 func init() {
+	initCmd.AddCommand(initHooksCmd)
 	RootCmd.AddCommand(initCmd)
 }
