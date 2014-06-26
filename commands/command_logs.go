@@ -11,57 +11,60 @@ import (
 )
 
 var (
-	clearLogsFlag bool
-	boomtownFlag  bool
-
 	logsCmd = &cobra.Command{
 		Use:   "logs",
 		Short: "View error logs",
 		Run:   logsCommand,
 	}
+
+	logsLastCmd = &cobra.Command{
+		Use:   "last",
+		Short: "View latest error log",
+		Run:   logsLastCommand,
+	}
+
+	logsShowCmd = &cobra.Command{
+		Use:   "show",
+		Short: "View a single error log",
+		Run:   logsShowCommand,
+	}
+
+	logsClearCmd = &cobra.Command{
+		Use:   "clear",
+		Short: "Clear all logs",
+		Run:   logsClearCommand,
+	}
+
+	logsBoomtownCmd = &cobra.Command{
+		Use:   "boomtown",
+		Short: "Trigger a sample error",
+		Run:   logsBoomtownCommand,
+	}
 )
 
 func logsCommand(cmd *cobra.Command, args []string) {
-	if clearLogsFlag {
-		clearLogs()
-	}
-
-	if boomtownFlag {
-		boomtown()
-		return
-	}
-
-	var sub string
-	if len(args) > 0 {
-		sub = args[0]
-	}
-
-	switch sub {
-	case "last":
-		lastLog()
-	case "":
-		listLogs()
-	default:
-		showLog(sub)
-	}
-}
-
-func listLogs() {
 	for _, path := range sortedLogs() {
 		Print(path)
 	}
 }
 
-func lastLog() {
+func logsLastCommand(cmd *cobra.Command, args []string) {
 	logs := sortedLogs()
 	if len(logs) < 1 {
 		Print("No logs to show")
 		return
 	}
-	showLog(logs[len(logs)-1])
+
+	logsShowCommand(cmd, logs[len(logs)-1:])
 }
 
-func showLog(name string) {
+func logsShowCommand(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		Print("Supply a log name.")
+		return
+	}
+
+	name := args[0]
 	by, err := ioutil.ReadFile(filepath.Join(gitmedia.LocalLogDir, name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
@@ -71,7 +74,7 @@ func showLog(name string) {
 	os.Stdout.Write(by)
 }
 
-func clearLogs() {
+func logsClearCommand(cmd *cobra.Command, args []string) {
 	err := os.RemoveAll(gitmedia.LocalLogDir)
 	if err != nil {
 		Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
@@ -80,7 +83,7 @@ func clearLogs() {
 	fmt.Println("Cleared", gitmedia.LocalLogDir)
 }
 
-func boomtown() {
+func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
 	err := errors.New("Error!")
 	Panic(err, "Welcome to Boomtown")
@@ -102,7 +105,6 @@ func sortedLogs() []string {
 }
 
 func init() {
-	logsCmd.Flags().BoolVarP(&clearLogsFlag, "clear", "c", false, "Clear existing error logs")
-	logsCmd.Flags().BoolVarP(&boomtownFlag, "boomtown", "b", false, "Trigger a panic")
+	logsCmd.AddCommand(logsLastCmd, logsShowCmd, logsClearCmd, logsBoomtownCmd)
 	RootCmd.AddCommand(logsCmd)
 }
