@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 	"io"
 	"log"
 	"os"
@@ -21,6 +22,13 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	commands     = make(map[string]func(*Command) RunnableCommand)
+	RootCmd      = &cobra.Command{
+		Use:   "git-media",
+		Short: "Git Media provides large file support to Git.",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Git Media, yo")
+		},
+	}
 )
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -65,6 +73,10 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Run() {
+	if err := RootCmd.Execute(); err == nil {
+		return
+	}
+
 	runcmd := true
 	subname := SubCommand(1)
 

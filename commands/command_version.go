@@ -2,27 +2,28 @@ package commands
 
 import (
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 )
 
-type VersionCommand struct {
-	LovesComics bool
-	*Command
-}
+var (
+	lovesComics bool
 
-func (c *VersionCommand) Setup() {
-	c.FlagSet.BoolVar(&c.LovesComics, "comics", false, "easter egg")
-}
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Show the version number",
+		Run:   versionCommand,
+	}
+)
 
-func (c *VersionCommand) Run() {
-	Print("%s v%s", c.Name, gitmedia.Version)
+func versionCommand(cmd *cobra.Command, args []string) {
+	Print("%s v%s", cmd.Parent().Name(), gitmedia.Version)
 
-	if c.LovesComics {
-		Print("Nothing may see Gah Lak Tus and survive.")
+	if lovesComics {
+		Print("Nothing may see Gah Lak Tus and survive!")
 	}
 }
 
 func init() {
-	registerCommand("version", func(c *Command) RunnableCommand {
-		return &VersionCommand{Command: c}
-	})
+	versionCmd.Flags().BoolVarP(&lovesComics, "comics", "c", false, "easter egg")
+	RootCmd.AddCommand(versionCmd)
 }
