@@ -4,14 +4,19 @@ import (
 	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
+	"github.com/spf13/cobra"
 	"strings"
 )
 
-type PushCommand struct {
-	*Command
-}
+var (
+	pushCmd = &cobra.Command{
+		Use:   "push",
+		Short: "Push files to the media endpoint.",
+		Run:   pushCommand,
+	}
+)
 
-func (c *PushCommand) Run() {
+func pushCommand(cmd *cobra.Command, args []string) {
 	q, err := gitmedia.UploadQueue()
 	if err != nil {
 		Panic(err, "Error setting up the queue")
@@ -50,7 +55,5 @@ func (c *PushCommand) Run() {
 }
 
 func init() {
-	registerCommand("push", func(c *Command) RunnableCommand {
-		return &PushCommand{Command: c}
-	})
+	RootCmd.AddCommand(pushCmd)
 }
