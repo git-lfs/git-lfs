@@ -4,37 +4,46 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-type PathCommand struct {
-	*Command
-}
+var (
+	pathCmd = &cobra.Command{
+		Use:   "path",
+		Short: "Manipulate .gitattributes",
+		Run:   pathCommand,
+	}
+	pathsCmd = &cobra.Command{
+		Use:   "paths",
+		Short: pathCmd.Short,
+		Run:   pathCommand,
+	}
+)
 
-func (c *PathCommand) Run() {
+func pathCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
 	var sub string
-	if len(c.SubCommands) > 0 {
-		sub = c.SubCommands[0]
+	if len(args) > 0 {
+		sub = args[0]
 	}
 
 	switch sub {
 	case "add":
-		c.addPath()
+		addPath(args)
 	case "remove":
-		c.removePath()
+		removePath(args)
 	default:
-		c.listPaths()
+		listPaths()
 	}
-
 }
 
-func (c *PathCommand) addPath() {
-	if len(c.SubCommands) < 2 {
+func addPath(args []string) {
+	if len(args) < 2 {
 		fmt.Println("git media path add <path> [path]*")
 		return
 	}
@@ -46,7 +55,7 @@ func (c *PathCommand) addPath() {
 		return
 	}
 
-	for _, t := range c.SubCommands[1:] {
+	for _, t := range args[1:] {
 		isKnownPath := false
 		for _, k := range knownPaths {
 			if t == k.Path {
@@ -70,8 +79,8 @@ func (c *PathCommand) addPath() {
 	attributesFile.Close()
 }
 
-func (c *PathCommand) removePath() {
-	if len(c.SubCommands) < 2 {
+func removePath(args []string) {
+	if len(args) < 2 {
 		fmt.Println("git meda path remove <path> [path]*")
 		return
 	}
@@ -95,7 +104,7 @@ func (c *PathCommand) removePath() {
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
 			removeThisPath := false
-			for _, t := range c.SubCommands[1:] {
+			for _, t := range args[1:] {
 				if t == fields[0] {
 					removeThisPath = true
 				}
@@ -112,7 +121,7 @@ func (c *PathCommand) removePath() {
 	attributesFile.Close()
 }
 
-func (c *PathCommand) listPaths() {
+func listPaths() {
 	fmt.Println("Listing paths")
 	knownPaths := findPaths()
 	for _, t := range knownPaths {
@@ -176,10 +185,6 @@ func findPaths() []mediaPath {
 }
 
 func init() {
-	registerCommand("path", func(c *Command) RunnableCommand {
-		return &PathCommand{Command: c}
-	})
-	registerCommand("paths", func(c *Command) RunnableCommand {
-		return &PathCommand{Command: c}
-	})
+	RootCmd.AddCommand(pathCmd)
+	RootCmd.AddCommand(pathsCmd)
 }
