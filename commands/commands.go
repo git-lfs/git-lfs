@@ -24,7 +24,8 @@ var (
 		Use:   "git-media",
 		Short: "Git Media provides large file support to Git.",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Git Media, yo")
+			versionCommand(cmd, args)
+			cmd.Help()
 		},
 	}
 )
