@@ -3,16 +3,21 @@ package commands
 import (
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/queuedir"
+	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-type QueuesCommand struct {
-	*Command
-}
+var (
+	queuesCmd = &cobra.Command{
+		Use:   "queues",
+		Short: "Show the status of the internal Git Media queues.",
+		Run:   queuesCommand,
+	}
+)
 
-func (c *QueuesCommand) Run() {
+func queuesCommand(cmd *cobra.Command, args []string) {
 	err := gitmedia.WalkQueues(func(name string, queue *queuedir.Queue) error {
 		wd, _ := os.Getwd()
 		Print(name)
@@ -35,7 +40,5 @@ func (c *QueuesCommand) Run() {
 }
 
 func init() {
-	registerCommand("queues", func(c *Command) RunnableCommand {
-		return &QueuesCommand{Command: c}
-	})
+	RootCmd.AddCommand(queuesCmd)
 }
