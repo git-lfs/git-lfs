@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/spf13/cobra"
@@ -21,7 +20,6 @@ var (
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
-	commands     = make(map[string]func(*Command) RunnableCommand)
 	RootCmd      = &cobra.Command{
 		Use:   "git-media",
 		Short: "Git Media provides large file support to Git.",
@@ -76,19 +74,6 @@ func Run() {
 	RootCmd.Execute()
 }
 
-func NewCommand(name, subname string) *Command {
-	var args []string
-	if len(os.Args) > 1 {
-		args = os.Args[2:]
-	}
-
-	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	setupDebugging(fs)
-	fs.SetOutput(ErrorWriter)
-
-	return &Command{name, subname, fs, args, args}
-}
-
 func PipeMediaCommand(name string, args ...string) error {
 	return PipeCommand("bin/"+name, args...)
 }
@@ -99,51 +84,6 @@ func PipeCommand(name string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	return cmd.Run()
-}
-
-type RunnableCommand interface {
-	Setup()
-	Parse()
-	Run()
-	Usage()
-}
-
-type Command struct {
-	Name        string
-	SubCommand  string
-	FlagSet     *flag.FlagSet
-	Args        []string
-	SubCommands []string
-}
-
-func (c *Command) Usage() {
-	Print("usage: %s %s", c.Name, c.SubCommand)
-	c.FlagSet.PrintDefaults()
-}
-
-func (c *Command) Parse() {
-	c.FlagSet.Parse(c.Args)
-	c.SubCommands = c.FlagSet.Args()
-}
-
-func (c *Command) Setup() {}
-func (c *Command) Run()   {}
-
-func registerCommand(name string, cmdcb func(*Command) RunnableCommand) {
-	commands[name] = cmdcb
-}
-
-func missingCommand(cmd *Command, subname string) {
-	Error("%s: '%s' is not a %s command.  See %s help.",
-		cmd.Name, subname, cmd.Name, cmd.Name)
-}
-
-func setupDebugging(flagset *flag.FlagSet) {
-	if flagset == nil {
-		flag.BoolVar(&Debugging, "debug", false, "Turns debugging on")
-	} else {
-		flagset.BoolVar(&Debugging, "debug", false, "Turns debugging on")
-	}
 }
 
 func handlePanic(err error) string {
