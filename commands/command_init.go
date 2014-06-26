@@ -2,49 +2,53 @@ package commands
 
 import (
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 )
 
-type InitCommand struct {
-	*Command
-}
+var (
+	initCmd = &cobra.Command{
+		Use:   "init",
+		Short: "Initialize the default Git Media configuration.",
+		Run:   initCommand,
+	}
+)
 
-func (c *InitCommand) Run() {
+func initCommand(cmd *cobra.Command, args []string) {
 	var sub string
-	if len(c.SubCommands) > 0 {
-		sub = c.SubCommands[0]
+	if len(args) > 0 {
+		sub = args[0]
 	}
 
 	switch sub {
 	case "hooks":
-		c.hookInit()
+		hookInit()
 	default:
-		c.runInit()
+		runInit()
 	}
 
 	Print("git media initialized")
 }
 
-func (c *InitCommand) runInit() {
-	c.globalInit()
+func runInit() {
+	globalInit()
+
 	if gitmedia.InRepo() {
-		c.hookInit()
+		hookInit()
 	}
 }
 
-func (c *InitCommand) globalInit() {
+func globalInit() {
 	if err := gitmedia.InstallFilters(); err != nil {
 		Error(err.Error())
 	}
 }
 
-func (c *InitCommand) hookInit() {
+func hookInit() {
 	if err := gitmedia.InstallHooks(); err != nil {
 		Error(err.Error())
 	}
 }
 
 func init() {
-	registerCommand("init", func(c *Command) RunnableCommand {
-		return &InitCommand{Command: c}
-	})
+	RootCmd.AddCommand(initCmd)
 }
