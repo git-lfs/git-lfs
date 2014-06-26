@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -80,7 +79,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
 	}
 
-	fmt.Println("Cleared", gitmedia.LocalLogDir)
+	Print("Cleared %s", gitmedia.LocalLogDir)
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {

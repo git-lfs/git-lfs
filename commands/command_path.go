@@ -34,10 +34,10 @@ var (
 func pathCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
-	fmt.Println("Listing paths")
+	Print("Listing paths")
 	knownPaths := findPaths()
 	for _, t := range knownPaths {
-		fmt.Printf("    %s (%s)\n", t.Path, t.Source)
+		Print("    %s (%s)", t.Path, t.Source)
 	}
 }
 
@@ -45,14 +45,14 @@ func pathAddCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
 	if len(args) < 1 {
-		fmt.Println("git media path add <path> [path]*")
+		Print("git media path add <path> [path]*")
 		return
 	}
 
 	knownPaths := findPaths()
 	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
-		fmt.Println("Error opening .gitattributes file")
+		Print("Error opening .gitattributes file")
 		return
 	}
 
@@ -65,16 +65,16 @@ func pathAddCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if isKnownPath {
-			fmt.Println(t, "already supported")
+			Print("%s already supported", t)
 			continue
 		}
 
 		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf\n", t))
 		if err != nil {
-			fmt.Println("Error adding path", t)
+			Print("Error adding path %s", t)
 			continue
 		}
-		fmt.Println("Adding path", t)
+		Print("Adding path %s", t)
 	}
 
 	attributesFile.Close()
@@ -84,7 +84,7 @@ func pathRemoveCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
 	if len(args) < 1 {
-		fmt.Println("git media path remove <path> [path]*")
+		Print("git media path remove <path> [path]*")
 		return
 	}
 
@@ -97,7 +97,7 @@ func pathRemoveCommand(cmd *cobra.Command, args []string) {
 
 	attributesFile, err := os.Create(".gitattributes")
 	if err != nil {
-		fmt.Println("Error opening .gitattributes for writing")
+		Print("Error opening .gitattributes for writing")
 		return
 	}
 
@@ -116,7 +116,7 @@ func pathRemoveCommand(cmd *cobra.Command, args []string) {
 			if !removeThisPath {
 				attributesFile.WriteString(line + "\n")
 			} else {
-				fmt.Println("Removing path", fields[0])
+				Print("Removing path %s", fields[0])
 			}
 		}
 	}
