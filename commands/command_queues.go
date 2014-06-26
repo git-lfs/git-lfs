@@ -12,7 +12,7 @@ import (
 var (
 	queuesCmd = &cobra.Command{
 		Use:   "queues",
-		Short: "Show the status of the internal Git Media queues.",
+		Short: "Show the status of the internal Git Media queues",
 		Run:   queuesCommand,
 	}
 )

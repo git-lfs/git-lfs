@@ -11,7 +11,7 @@ import (
 var (
 	pushCmd = &cobra.Command{
 		Use:   "push",
-		Short: "Push files to the media endpoint.",
+		Short: "Push files to the media endpoint",
 		Run:   pushCommand,
 	}
 )

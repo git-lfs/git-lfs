@@ -10,7 +10,7 @@ var (
 
 	versionCmd = &cobra.Command{
 		Use:   "version",
-		Short: "Show the version number.",
+		Short: "Show the version number",
 		Run:   versionCommand,
 	}
 )

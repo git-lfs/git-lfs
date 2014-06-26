@@ -16,7 +16,7 @@ var (
 
 	logsCmd = &cobra.Command{
 		Use:   "logs",
-		Short: "View error logs.",
+		Short: "View error logs",
 		Run:   logsCommand,
 	}
 )
