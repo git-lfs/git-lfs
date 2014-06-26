@@ -4,14 +4,19 @@ import (
 	"github.com/github/git-media/filters"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/metafile"
+	"github.com/spf13/cobra"
 	"os"
 )
 
-type SmudgeCommand struct {
-	*Command
-}
+var (
+	smudgeCmd = &cobra.Command{
+		Use:   "smudge",
+		Short: "Implements the Git smudge filter.",
+		Run:   smudgeCommand,
+	}
+)
 
-func (c *SmudgeCommand) Run() {
+func smudgeCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
 	sha, err := metafile.Decode(os.Stdin)
@@ -27,7 +32,5 @@ func (c *SmudgeCommand) Run() {
 }
 
 func init() {
-	registerCommand("smudge", func(c *Command) RunnableCommand {
-		return &SmudgeCommand{Command: c}
-	})
+	RootCmd.AddCommand(smudgeCmd)
 }
