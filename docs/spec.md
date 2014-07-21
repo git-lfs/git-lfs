@@ -10,13 +10,18 @@ The core Git Media idea is that instead of writing large blobs to a Git reposito
 only a pointer file is written.
 
 ```
-# git-media
-4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+[git-media]
+version=http://git-media.io/v/2
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=12345
 (ending \n)
 ```
 
-The pointer file should be small (less than 100 bytes), and consist of only
-ASCII characters.  Here's some ruby code to parse this out.
+The pointer file should be small (less than 200 bytes), and consist of only
+ASCII characters.  Any INI library should be able to parse it.
+
+Note: Earlier versions only contained the OID, with a `# comment` above it.
+Here's some ruby code to parse older pointer files.
 
 ```
 # data is a string of the content
@@ -29,9 +34,6 @@ lines = data.
 # We look for a comment line, and the phrase `git-media` somewhere
 lines[0] =~ /# (.*git-media|external)/ && lines.last
 ```
-
-Note: An early version of git-media used "external" instead of "git-media" in the
-pointer file.  The regex in the code will match both.
 
 That code returns the OID, which should be on the last line.  The OID is
 generated from the SHA-256 signature of the file's contents.
