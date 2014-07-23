@@ -17,7 +17,7 @@ pointed to objects.
 Without any additional options, `git media ls` [path]* will show all the
 information it has about each path.
 
-* `--size` :
+* `--size`:
     Shows only the size of the object.
 
 * `--path`:
