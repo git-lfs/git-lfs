@@ -1,0 +1,31 @@
+git-media-ls(1) - View Git Media object information.
+======================================================================
+
+## SYNOPSIS
+
+`git media ls` [path]*<br>
+`git media ls` --size [path]*<br>
+`git media ls` --path [path]*<br>
+
+## DESCRIPTION
+
+Ls takes paths to Git Media pointer files and displays information about the
+pointed to objects.
+
+## OPTIONS
+
+Without any additional options, `git media ls` [path]* will show all the
+information it has about each path.
+
+* `--size` :
+    Shows only the size of the object.
+
+* `--path`:
+    Shows only the path to the on-disk object. If the object does not exist on
+    disk yet, it does not show anything.
+
+## SEE ALSO
+
+git-media-init(1), gitattributes(5).
+
+Part of the git-media(1) suite.
