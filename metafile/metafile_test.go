@@ -36,7 +36,7 @@ func TestEncode(t *testing.T) {
 
 func TestIniV2Decode(t *testing.T) {
 	ex := `[git-media]
-version="http://git-media.io/v/2"
+version=http://git-media.io/v/2
 oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size=12345`
 
@@ -66,7 +66,48 @@ func TestAlphaDecode(t *testing.T) {
 func TestDecodeInvalid(t *testing.T) {
 	examples := []string{
 		"invalid stuff",
+
+		// no sha
 		"# git-media",
+
+		// invalid section
+		`[git-media2]
+version=http://git-media.io/v/2
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=12345`,
+
+		// bad oid type
+		`[git-media]
+version=http://git-media.io/v/2
+oid=shazam:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=12345`,
+
+		// no oid
+		`[git-media]
+version=http://git-media.io/v/2
+size=12345`,
+
+		// bad version
+		`[git-media]
+version=http://git-media.io/v/whatever
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=12345`,
+
+		// no version
+		`[git-media]
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=12345`,
+
+		// bad size
+		`[git-media]
+version=http://git-media.io/v/2
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=fif`,
+
+		// no size
+		`[git-media2]
+version=http://git-media.io/v/2
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
 	}
 
 	for _, ex := range examples {
