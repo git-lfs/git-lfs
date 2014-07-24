@@ -2,6 +2,7 @@ package metafile
 
 import (
 	"bytes"
+	"github.com/bmizerany/assert"
 	"testing"
 )
 
@@ -30,6 +31,20 @@ func TestEncode(t *testing.T) {
 	if sha := string(shabytes); sha != "abc" {
 		t.Errorf("Invalid sha: %#v", sha)
 	}
+}
+
+func TestIniDecode(t *testing.T) {
+	buf := bytes.NewBufferString(`[git-media]
+version="http://git-media.io/v/2"
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=12345
+`)
+
+	p, err := Decode(buf)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, latest, p.Version)
+	assert.Equal(t, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
+	assert.Equal(t, int64(12345), p.Size)
 }
 
 func TestAlphaDecode(t *testing.T) {
