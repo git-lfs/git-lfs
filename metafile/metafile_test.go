@@ -3,6 +3,7 @@ package metafile
 import (
 	"bytes"
 	"github.com/bmizerany/assert"
+	"strings"
 	"testing"
 )
 
@@ -33,44 +34,49 @@ func TestEncode(t *testing.T) {
 	}
 }
 
-func TestIniDecode(t *testing.T) {
-	buf := bytes.NewBufferString(`[git-media]
+func TestIniV2Decode(t *testing.T) {
+	ex := `[git-media]
 version="http://git-media.io/v/2"
 oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=12345
-`)
+size=12345`
 
-	p, err := Decode(buf)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, latest, p.Version)
-	assert.Equal(t, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
-	assert.Equal(t, int64(12345), p.Size)
+	p, err := Decode(bytes.NewBufferString(ex))
+	assertEqualWithExample(t, ex, nil, err)
+	assertEqualWithExample(t, ex, latest, p.Version)
+	assertEqualWithExample(t, ex, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
+	assertEqualWithExample(t, ex, int64(12345), p.Size)
 }
 
 func TestAlphaDecode(t *testing.T) {
-	buf := bytes.NewBufferString("# git-media\nabc\n")
-	if pointer, _ := Decode(buf); pointer.Oid != "abc" {
-		t.Errorf("Invalid SHA: %#v", pointer.Oid)
+	examples := []string{
+		"# git-media\nabc\n",
+		"# external\nabc\n",
 	}
-}
 
-func TestAlphaDecodeExternal(t *testing.T) {
-	buf := bytes.NewBufferString("# external\nabc\n")
-	if pointer, _ := Decode(buf); pointer.Oid != "abc" {
-		t.Errorf("Invalid SHA: %#v", pointer.Oid)
+	for _, ex := range examples {
+		p, err := Decode(bytes.NewBufferString(ex))
+		assertEqualWithExample(t, ex, nil, err)
+		assertEqualWithExample(t, ex, "abc", p.Oid)
+		assertEqualWithExample(t, ex, int64(0), p.Size)
+		assertEqualWithExample(t, ex, "sha256", p.OidType)
+		assertEqualWithExample(t, ex, alpha, p.Version)
 	}
 }
 
 func TestDecodeInvalid(t *testing.T) {
-	buf := bytes.NewBufferString("invalid stuff")
-	if _, err := Decode(buf); err == nil {
-		t.Errorf("Decoded invalid sha")
+	examples := []string{
+		"invalid stuff",
+		"# git-media",
+	}
+
+	for _, ex := range examples {
+		p, err := Decode(bytes.NewBufferString(ex))
+		if err == nil {
+			t.Errorf("No error decoding: %v\nFrom:\n%s", p, strings.TrimSpace(ex))
+		}
 	}
 }
 
-func TestAlphaDecodeWithValidHeaderNoSha(t *testing.T) {
-	buf := bytes.NewBufferString("# git-media")
-	if _, err := Decode(buf); err == nil {
-		t.Errorf("Decoded with header but no sha")
-	}
+func assertEqualWithExample(t *testing.T, example string, expected, actual interface{}) {
+	assert.Equalf(t, expected, actual, "Example:\n%s", strings.TrimSpace(example))
 }
