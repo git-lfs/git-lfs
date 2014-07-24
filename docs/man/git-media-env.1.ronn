@@ -1,0 +1,14 @@
+git-media-env(1) -- Display the Git Media environment.
+=========================================================
+
+## SYNOPSIS
+
+`git media env`
+
+## DESCRIPTION
+
+Displays the current Git Media environment.
+
+## SEE ALSO
+
+Part of the git-media(1) suite.
