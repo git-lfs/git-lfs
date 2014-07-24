@@ -4,5 +4,5 @@ github.com/kr/pretty            088c856450c08c03eb32f7a6c221e6eefaa10e6f
 github.com/kr/text              6807e777504f54ad073ecef66747de158294b639
 github.com/olekukonko/ts        ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 github.com/spf13/cobra          10a8494a87448bf5003222d9974f166437e7f042
-github.com/spf13/pflag          94e98a55fb412fcbcfc302555cb990f5e1590627
+github.com/spf13/pflag          463bdc838f2b35e9307e91d480878bda5fff7232
 github.com/streadway/simpleuuid 6617b501e485b77e61b98cd533aefff9e258b5a7
