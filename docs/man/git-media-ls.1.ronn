@@ -9,8 +9,8 @@ git-media-ls(1) - View Git Media object information.
 
 ## DESCRIPTION
 
-Ls takes paths to Git Media pointer files and displays information about the
-pointed to objects.
+The "ls" command takes paths to Git Media pointer files and displays information
+about the referenced objects in ``.git/media`.
 
 ## OPTIONS
 
@@ -26,6 +26,6 @@ information it has about each path.
 
 ## SEE ALSO
 
-git-media-init(1), gitattributes(5).
+git-media-path(1).
 
 Part of the git-media(1) suite.
