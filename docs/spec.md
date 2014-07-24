@@ -18,7 +18,17 @@ size=12345
 ```
 
 The pointer file should be small (less than 200 bytes), and consist of only
-ASCII characters.  Any INI library should be able to parse it.
+ASCII characters.  Any INI library should be able to parse it.  Libraries that
+generate this should write the file identically, so that different
+implementations write consistent pointers that translate to the same Git blob
+OID.  This means:
+
+* A "git-media" section.
+* Use properties "version", "oid", and "size" in that order.
+* No white space around the key, `=` separator, or value.
+* Oid has a "sha256:" prefix.  No other hashing methods are currently supported
+for Git Media oids.
+* Size is in bytes.
 
 Note: Earlier versions only contained the OID, with a `# comment` above it.
 Here's some ruby code to parse older pointer files.
