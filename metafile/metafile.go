@@ -18,13 +18,17 @@ type Pointer struct {
 	Size    int64
 }
 
-func Encode(writer io.Writer, sha string) (int, error) {
+func NewPointer(oid string, size int64) *Pointer {
+	return &Pointer{alpha, oid, size}
+}
+
+func Encode(writer io.Writer, pointer *Pointer) (int, error) {
 	written, err := writer.Write(MediaWarning)
 	if err != nil {
 		return written, err
 	}
 
-	written2, err := writer.Write([]byte(sha + "\n"))
+	written2, err := writer.Write([]byte(pointer.Oid + "\n"))
 	return written + written2, err
 }
 

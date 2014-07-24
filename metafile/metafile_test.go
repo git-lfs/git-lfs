@@ -7,7 +7,8 @@ import (
 
 func TestEncode(t *testing.T) {
 	var buf bytes.Buffer
-	n, err := Encode(&buf, "abc")
+	pointer := NewPointer("abc", 0)
+	n, err := Encode(&buf, pointer)
 	if err != nil {
 		t.Errorf("Error encoding: %s", err)
 	}
