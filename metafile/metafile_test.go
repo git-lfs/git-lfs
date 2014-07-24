@@ -31,17 +31,17 @@ func TestEncode(t *testing.T) {
 	}
 }
 
-func TestDecode(t *testing.T) {
+func TestAlphaDecode(t *testing.T) {
 	buf := bytes.NewBufferString("# git-media\nabc\n")
-	if sha, _ := Decode(buf); sha != "abc" {
-		t.Errorf("Invalid SHA: %#v", sha)
+	if pointer, _ := Decode(buf); pointer.Oid != "abc" {
+		t.Errorf("Invalid SHA: %#v", pointer.Oid)
 	}
 }
 
-func TestDecodeExternal(t *testing.T) {
+func TestAlphaDecodeExternal(t *testing.T) {
 	buf := bytes.NewBufferString("# external\nabc\n")
-	if sha, _ := Decode(buf); sha != "abc" {
-		t.Errorf("Invalid SHA: %#v", sha)
+	if pointer, _ := Decode(buf); pointer.Oid != "abc" {
+		t.Errorf("Invalid SHA: %#v", pointer.Oid)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestDecodeInvalid(t *testing.T) {
 	}
 }
 
-func TestDecodeWithValidHeaderNoSha(t *testing.T) {
+func TestAlphaDecodeWithValidHeaderNoSha(t *testing.T) {
 	buf := bytes.NewBufferString("# git-media")
 	if _, err := Decode(buf); err == nil {
 		t.Errorf("Decoded with header but no sha")

@@ -7,7 +7,16 @@ import (
 	"regexp"
 )
 
-var MediaWarning = []byte("# git-media\n")
+var (
+	MediaWarning = []byte("# git-media\n")
+	alpha        = "http://git-media.io/v/1"
+)
+
+type Pointer struct {
+	Version string
+	Oid     string
+	Size    int64
+}
 
 func Encode(writer io.Writer, sha string) (int, error) {
 	written, err := writer.Write(MediaWarning)
@@ -19,26 +28,26 @@ func Encode(writer io.Writer, sha string) (int, error) {
 	return written + written2, err
 }
 
-func Decode(reader io.Reader) (string, error) {
+func Decode(reader io.Reader) (*Pointer, error) {
 	buf := make([]byte, 100)
 	written, err := reader.Read(buf)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	lines := bytes.Split(buf[0:written], []byte("\n"))
 	matched, err := regexp.Match("# (.*git-media|external)", lines[0])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(lines) < 2 {
-		return "", errors.New("No sha in meta file")
+		return nil, errors.New("No sha in meta file")
 	}
 
 	if matched {
-		return string(lines[1]), nil
+		return &Pointer{alpha, string(lines[1]), 0}, nil
 	}
 
-	return "", errors.New("Could not decode meta file")
+	return nil, errors.New("Could not decode meta file")
 }
