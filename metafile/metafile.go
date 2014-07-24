@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	ini "github.com/glacjay/goini"
 	"io"
 	"regexp"
@@ -17,6 +18,11 @@ var (
 	latest        = "http://git-media.io/v/2"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
+	template      = `[git-media]
+version=%s
+oid=sha256:%s
+size=%d
+`
 )
 
 type Pointer struct {
@@ -31,13 +37,8 @@ func NewPointer(oid string, size int64) *Pointer {
 }
 
 func Encode(writer io.Writer, pointer *Pointer) (int, error) {
-	written, err := writer.Write(MediaWarning)
-	if err != nil {
-		return written, err
-	}
-
-	written2, err := writer.Write([]byte(pointer.Oid + "\n"))
-	return written + written2, err
+	return writer.Write([]byte(fmt.Sprintf(template,
+		latest, pointer.Oid, pointer.Size)))
 }
 
 func Decode(reader io.Reader) (*Pointer, error) {

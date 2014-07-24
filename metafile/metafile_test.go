@@ -1,6 +1,7 @@
 package metafile
 
 import (
+	"bufio"
 	"bytes"
 	"github.com/bmizerany/assert"
 	"strings"
@@ -9,29 +10,27 @@ import (
 
 func TestEncode(t *testing.T) {
 	var buf bytes.Buffer
-	pointer := NewPointer("abc", 0)
-	n, err := Encode(&buf, pointer)
-	if err != nil {
-		t.Errorf("Error encoding: %s", err)
+	pointer := NewPointer("booya", 12345)
+	_, err := Encode(&buf, pointer)
+	assert.Equal(t, nil, err)
+
+	bufReader := bufio.NewReader(&buf)
+	assertLine(t, bufReader, "[git-media]\n")
+	assertLine(t, bufReader, "version=http://git-media.io/v/2\n")
+	assertLine(t, bufReader, "oid=sha256:booya\n")
+	assertLine(t, bufReader, "size=12345\n")
+
+	line, err := bufReader.ReadString('\n')
+	if err == nil {
+		t.Fatalf("More to read: %s", line)
 	}
+	assert.Equal(t, "EOF", err.Error())
+}
 
-	if n != len(MediaWarning)+4 {
-		t.Errorf("wrong number of written bytes")
-	}
-
-	header := make([]byte, len(MediaWarning))
-	buf.Read(header)
-
-	if head := string(header); head != string(MediaWarning) {
-		t.Errorf("Media warning not read: %s\n", head)
-	}
-
-	shabytes := make([]byte, 3)
-	buf.Read(shabytes)
-
-	if sha := string(shabytes); sha != "abc" {
-		t.Errorf("Invalid sha: %#v", sha)
-	}
+func assertLine(t *testing.T, r *bufio.Reader, expected string) {
+	actual, err := r.ReadString('\n')
+	assert.Equal(t, nil, err)
+	assert.Equal(t, expected, actual)
 }
 
 func TestIniV2Decode(t *testing.T) {
