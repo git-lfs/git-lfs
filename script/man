@@ -2,7 +2,11 @@
 ronn=`which ronn`
 
 if [ -x $ronn ]; then
+  mkdir -p man
+  rm -rf man/*.ronn
+  cp docs/man/*.ronn man
   $ronn man/*.ronn
+  rm -rf man/*.ronn
 else
   echo "Install the 'ronn' ruby gem to build the man pages."
 fi
