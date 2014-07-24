@@ -25,6 +25,14 @@ import (
 	"text/template"
 )
 
+var initializers []func()
+
+func OnInitialize(y ...func()) {
+	for _, x := range y {
+		initializers = append(initializers, x)
+	}
+}
+
 func Gt(a interface{}, b interface{}) bool {
 	var left, right int64
 	av := reflect.ValueOf(a)

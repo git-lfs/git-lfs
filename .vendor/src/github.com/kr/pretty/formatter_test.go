@@ -19,6 +19,7 @@ type LongStructTypeName struct {
 
 type SA struct {
 	t *T
+	v T
 }
 
 type T struct {
@@ -55,9 +56,10 @@ var gosyntax = []test{
 	},
 	{F(5), "pretty.F(5)"},
 	{
-		SA{&T{1, 2}},
+		SA{&T{1, 2}, T{3, 4}},
 		`pretty.SA{
     t:  &pretty.T{x:1, y:2},
+    v:  pretty.T{x:3, y:4},
 }`,
 	},
 	{

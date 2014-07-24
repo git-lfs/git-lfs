@@ -7,13 +7,14 @@ package pflag_test
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
-	. "github.com/ogier/pflag"
+	. "github.com/spf13/pflag"
 )
 
 var (
@@ -97,7 +98,7 @@ func TestEverything(t *testing.T) {
 func TestUsage(t *testing.T) {
 	called := false
 	ResetForTesting(func() { called = true })
-	if CommandLine().Parse([]string{"--x"}) == nil {
+	if GetCommandLine().Parse([]string{"--x"}) == nil {
 		t.Error("parse did not fail for unknown flag")
 	}
 	if !called {
@@ -195,8 +196,9 @@ func TestShorthand(t *testing.T) {
 		"--",
 		notaflag,
 	}
-	if err := f.Parse(args); err != nil {
-		t.Fatal(err)
+	f.SetOutput(ioutil.Discard)
+	if err := f.Parse(args); err == nil {
+		t.Error("--i-look-like-a-flag should throw an error")
 	}
 	if !f.Parsed() {
 		t.Error("f.Parse() = false after Parse")
@@ -224,7 +226,7 @@ func TestShorthand(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	ResetForTesting(func() { t.Error("bad parse") })
-	testParse(CommandLine(), t)
+	testParse(GetCommandLine(), t)
 }
 
 func TestFlagSetParse(t *testing.T) {
@@ -279,7 +281,7 @@ func TestChangingArgs(t *testing.T) {
 	defer func() { os.Args = oldArgs }()
 	os.Args = []string{"cmd", "--before", "subcmd"}
 	before := Bool("before", false, "")
-	if err := CommandLine().Parse(os.Args[1:]); err != nil {
+	if err := GetCommandLine().Parse(os.Args[1:]); err != nil {
 		t.Fatal(err)
 	}
 	cmd := Arg(0)
