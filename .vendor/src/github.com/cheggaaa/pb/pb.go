@@ -25,8 +25,13 @@ var (
 
 // Create new progress bar object
 func New(total int) (pb *ProgressBar) {
+	return New64(int64(total))
+}
+
+// Create new progress bar object uding int64 as total
+func New64(total int64) (pb *ProgressBar) {
 	pb = &ProgressBar{
-		Total:        int64(total),
+		Total:        total,
 		RefreshRate:  DEFAULT_REFRESH_RATE,
 		ShowPercent:  true,
 		ShowCounters: true,

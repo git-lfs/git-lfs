@@ -2,65 +2,68 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
-type LogsCommand struct {
-	ClearLogs bool
-	Boomtown  bool
-	*Command
-}
-
-func (c *LogsCommand) Setup() {
-	c.FlagSet.BoolVar(&c.ClearLogs, "clear", false, "Clear existing error logs")
-	c.FlagSet.BoolVar(&c.Boomtown, "boomtown", false, "Trigger a panic")
-}
-
-func (c *LogsCommand) Run() {
-	if c.ClearLogs {
-		c.clear()
+var (
+	logsCmd = &cobra.Command{
+		Use:   "logs",
+		Short: "View error logs",
+		Run:   logsCommand,
 	}
 
-	if c.Boomtown {
-		c.boomtown()
-		return
+	logsLastCmd = &cobra.Command{
+		Use:   "last",
+		Short: "View latest error log",
+		Run:   logsLastCommand,
 	}
 
-	var sub string
-	if len(c.SubCommands) > 0 {
-		sub = c.SubCommands[0]
+	logsShowCmd = &cobra.Command{
+		Use:   "show",
+		Short: "View a single error log",
+		Run:   logsShowCommand,
 	}
 
-	switch sub {
-	case "last":
-		c.lastLog()
-	case "":
-		c.listLogs()
-	default:
-		c.showLog(sub)
+	logsClearCmd = &cobra.Command{
+		Use:   "clear",
+		Short: "Clear all logs",
+		Run:   logsClearCommand,
 	}
-}
 
-func (c *LogsCommand) listLogs() {
+	logsBoomtownCmd = &cobra.Command{
+		Use:   "boomtown",
+		Short: "Trigger a sample error",
+		Run:   logsBoomtownCommand,
+	}
+)
+
+func logsCommand(cmd *cobra.Command, args []string) {
 	for _, path := range sortedLogs() {
 		Print(path)
 	}
 }
 
-func (c *LogsCommand) lastLog() {
+func logsLastCommand(cmd *cobra.Command, args []string) {
 	logs := sortedLogs()
 	if len(logs) < 1 {
 		Print("No logs to show")
 		return
 	}
-	c.showLog(logs[len(logs)-1])
+
+	logsShowCommand(cmd, logs[len(logs)-1:])
 }
 
-func (c *LogsCommand) showLog(name string) {
+func logsShowCommand(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		Print("Supply a log name.")
+		return
+	}
+
+	name := args[0]
 	by, err := ioutil.ReadFile(filepath.Join(gitmedia.LocalLogDir, name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
@@ -70,16 +73,16 @@ func (c *LogsCommand) showLog(name string) {
 	os.Stdout.Write(by)
 }
 
-func (c *LogsCommand) clear() {
+func logsClearCommand(cmd *cobra.Command, args []string) {
 	err := os.RemoveAll(gitmedia.LocalLogDir)
 	if err != nil {
 		Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
 	}
 
-	fmt.Println("Cleared", gitmedia.LocalLogDir)
+	Print("Cleared %s", gitmedia.LocalLogDir)
 }
 
-func (c *LogsCommand) boomtown() {
+func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
 	err := errors.New("Error!")
 	Panic(err, "Welcome to Boomtown")
@@ -101,7 +104,6 @@ func sortedLogs() []string {
 }
 
 func init() {
-	registerCommand("logs", func(c *Command) RunnableCommand {
-		return &LogsCommand{Command: c}
-	})
+	logsCmd.AddCommand(logsLastCmd, logsShowCmd, logsClearCmd, logsBoomtownCmd)
+	RootCmd.AddCommand(logsCmd)
 }

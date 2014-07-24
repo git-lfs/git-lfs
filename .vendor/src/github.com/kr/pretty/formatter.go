@@ -2,11 +2,12 @@ package pretty
 
 import (
 	"fmt"
-	"github.com/kr/text"
 	"io"
 	"reflect"
 	"strconv"
 	"text/tabwriter"
+
+	"github.com/kr/text"
 )
 
 const (
@@ -156,7 +157,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 					if expand {
 						writeByte(pp, '\t')
 					}
-					showTypeInStruct = f.Type.Kind() == reflect.Interface
+					showTypeInStruct = labelType(f.Type)
 				}
 				pp.printValue(getField(v, i), showTypeInStruct, true)
 				if expand {
@@ -270,6 +271,14 @@ func canExpand(t reflect.Type) bool {
 	case reflect.Map, reflect.Struct,
 		reflect.Interface, reflect.Array, reflect.Slice,
 		reflect.Ptr:
+		return true
+	}
+	return false
+}
+
+func labelType(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Interface, reflect.Struct:
 		return true
 	}
 	return false

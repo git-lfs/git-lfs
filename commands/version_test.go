@@ -15,6 +15,9 @@ func TestVersionOnEmptyRepository(t *testing.T) {
 	cmd := repo.Command("version")
 	cmd.Output = fmt.Sprintf("git-media v%s", Version)
 
-	cmd = repo.Command("version", "-comics")
-	cmd.Output = fmt.Sprintf("git-media v%s\nNothing may see Gah Lak Tus and survive.", Version)
+	cmd = repo.Command("version", "--comics")
+	cmd.Output = fmt.Sprintf("git-media v%s\nNothing may see Gah Lak Tus and survive!", Version)
+
+	cmd = repo.Command("version", "-c")
+	cmd.Output = fmt.Sprintf("git-media v%s\nNothing may see Gah Lak Tus and survive!", Version)
 }

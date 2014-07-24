@@ -2,13 +2,18 @@ package commands
 
 import (
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 )
 
-type EnvCommand struct {
-	*Command
-}
+var (
+	envCmd = &cobra.Command{
+		Use:   "env",
+		Short: "Show the current environment",
+		Run:   envCommand,
+	}
+)
 
-func (c *EnvCommand) Run() {
+func envCommand(cmd *cobra.Command, args []string) {
 	config := gitmedia.Config
 
 	if endpoint := config.Endpoint(); len(endpoint) > 0 {
@@ -25,7 +30,5 @@ func (c *EnvCommand) Run() {
 }
 
 func init() {
-	registerCommand("env", func(c *Command) RunnableCommand {
-		return &EnvCommand{Command: c}
-	})
+	RootCmd.AddCommand(envCmd)
 }

@@ -4,19 +4,24 @@ import (
 	"github.com/github/git-media/filters"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/metafile"
+	"github.com/spf13/cobra"
 	"os"
 )
 
-type CleanCommand struct {
-	*Command
-}
+var (
+	cleanCmd = &cobra.Command{
+		Use:   "clean",
+		Short: "Implements the Git clean filter",
+		Run:   cleanCommand,
+	}
+)
 
-func (c *CleanCommand) Run() {
+func cleanCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
 	var filename string
-	if len(c.Args) > 0 {
-		filename = c.Args[0]
+	if len(args) > 0 {
+		filename = args[0]
 	} else {
 		filename = ""
 	}
@@ -53,7 +58,5 @@ func (c *CleanCommand) Run() {
 }
 
 func init() {
-	registerCommand("clean", func(c *Command) RunnableCommand {
-		return &CleanCommand{Command: c}
-	})
+	RootCmd.AddCommand(cleanCmd)
 }
