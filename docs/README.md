@@ -41,18 +41,18 @@ Git media can help you manage your `.gitattributes` paths:
     $ git media path add "*.mp3"
     Adding path *.mp3
 
-    $ git media paths add "*.zip"
+    $ git media path add "*.zip"
     Adding path *.zip
 
-    $ git media paths
+    $ git media path
     Listing paths
         *.mp3 (.gitattributes)
         *.zip (.gitattributes)
 
-    $ git media paths remove "*.zip"
+    $ git media path remove "*.zip"
     Removing path *.zip
 
-    $ git media paths
+    $ git media path
     Listing paths
         *.mp3 (.gitattributes)
 

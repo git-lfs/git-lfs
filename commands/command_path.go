@@ -4,49 +4,59 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-type PathCommand struct {
-	*Command
-}
+var (
+	pathCmd = &cobra.Command{
+		Use:   "path",
+		Short: "Manipulate .gitattributes",
+		Run:   pathCommand,
+	}
 
-func (c *PathCommand) Run() {
+	pathAddCmd = &cobra.Command{
+		Use:   "add",
+		Short: "Add an entry to .gitattributes",
+		Run:   pathAddCommand,
+	}
+
+	pathRemoveCmd = &cobra.Command{
+		Use:   "remove",
+		Short: "Remove an entry from .gitattributes",
+		Run:   pathRemoveCommand,
+	}
+)
+
+func pathCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
-	var sub string
-	if len(c.SubCommands) > 0 {
-		sub = c.SubCommands[0]
+	Print("Listing paths")
+	knownPaths := findPaths()
+	for _, t := range knownPaths {
+		Print("    %s (%s)", t.Path, t.Source)
 	}
-
-	switch sub {
-	case "add":
-		c.addPath()
-	case "remove":
-		c.removePath()
-	default:
-		c.listPaths()
-	}
-
 }
 
-func (c *PathCommand) addPath() {
-	if len(c.SubCommands) < 2 {
-		fmt.Println("git media path add <path> [path]*")
+func pathAddCommand(cmd *cobra.Command, args []string) {
+	gitmedia.InstallHooks()
+
+	if len(args) < 1 {
+		Print("git media path add <path> [path]*")
 		return
 	}
 
 	knownPaths := findPaths()
 	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
-		fmt.Println("Error opening .gitattributes file")
+		Print("Error opening .gitattributes file")
 		return
 	}
 
-	for _, t := range c.SubCommands[1:] {
+	for _, t := range args {
 		isKnownPath := false
 		for _, k := range knownPaths {
 			if t == k.Path {
@@ -55,24 +65,26 @@ func (c *PathCommand) addPath() {
 		}
 
 		if isKnownPath {
-			fmt.Println(t, "already supported")
+			Print("%s already supported", t)
 			continue
 		}
 
 		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf\n", t))
 		if err != nil {
-			fmt.Println("Error adding path", t)
+			Print("Error adding path %s", t)
 			continue
 		}
-		fmt.Println("Adding path", t)
+		Print("Adding path %s", t)
 	}
 
 	attributesFile.Close()
 }
 
-func (c *PathCommand) removePath() {
-	if len(c.SubCommands) < 2 {
-		fmt.Println("git meda path remove <path> [path]*")
+func pathRemoveCommand(cmd *cobra.Command, args []string) {
+	gitmedia.InstallHooks()
+
+	if len(args) < 1 {
+		Print("git media path remove <path> [path]*")
 		return
 	}
 
@@ -85,7 +97,7 @@ func (c *PathCommand) removePath() {
 
 	attributesFile, err := os.Create(".gitattributes")
 	if err != nil {
-		fmt.Println("Error opening .gitattributes for writing")
+		Print("Error opening .gitattributes for writing")
 		return
 	}
 
@@ -95,7 +107,7 @@ func (c *PathCommand) removePath() {
 		if strings.Contains(line, "filter=media") {
 			fields := strings.Fields(line)
 			removeThisPath := false
-			for _, t := range c.SubCommands[1:] {
+			for _, t := range args {
 				if t == fields[0] {
 					removeThisPath = true
 				}
@@ -104,20 +116,12 @@ func (c *PathCommand) removePath() {
 			if !removeThisPath {
 				attributesFile.WriteString(line + "\n")
 			} else {
-				fmt.Println("Removing path", fields[0])
+				Print("Removing path %s", fields[0])
 			}
 		}
 	}
 
 	attributesFile.Close()
-}
-
-func (c *PathCommand) listPaths() {
-	fmt.Println("Listing paths")
-	knownPaths := findPaths()
-	for _, t := range knownPaths {
-		fmt.Printf("    %s (%s)\n", t.Path, t.Source)
-	}
 }
 
 type mediaPath struct {
@@ -176,10 +180,6 @@ func findPaths() []mediaPath {
 }
 
 func init() {
-	registerCommand("path", func(c *Command) RunnableCommand {
-		return &PathCommand{Command: c}
-	})
-	registerCommand("paths", func(c *Command) RunnableCommand {
-		return &PathCommand{Command: c}
-	})
+	pathCmd.AddCommand(pathAddCmd, pathRemoveCmd)
+	RootCmd.AddCommand(pathCmd)
 }
