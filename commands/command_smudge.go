@@ -33,12 +33,10 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 
 		stat, err := os.Stat(localPath)
 		if err != nil {
-			localPath = "--"
 			Print("%d --", pointer.Size)
-			return
+		} else {
+			Print("%d %s", stat.Size(), localPath)
 		}
-
-		Print("%d %s", stat.Size(), localPath)
 		return
 	}
 
