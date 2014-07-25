@@ -20,7 +20,7 @@ Without any options, `git media logs` will simply show the list of error logs.
 * <file>:
     Shows the specified error log.  Use "last" to show the most recent error.
 
-* `--clear` :
+* `--clear`:
     Clears all of the existing logged errors.
 
 * `--boomtown`:
