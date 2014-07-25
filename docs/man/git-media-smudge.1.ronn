@@ -15,6 +15,15 @@ a progress bar.
 Smudge is typically run by Git's smudge filter, configured by the repository's
 Git attributes.
 
+## OPTIONS
+
+Without any options, `git media smudge` will output the raw media content to
+STDOUT.
+
+* `--info`:
+    Displays the file size, and the local path to the media file.  If the file
+    does not exist, `--` is shown.
+
 ## SEE ALSO
 
 git-media-init(1), gitattributes(5).
