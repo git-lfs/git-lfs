@@ -33,7 +33,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	defer cleaned.Close()
 
 	tmpfile := cleaned.File.Name()
-	mediafile, err := gitmedia.LocalMediaPath(cleaned.Sha)
+	mediafile, err := gitmedia.LocalMediaPath(cleaned.Oid)
 	if err != nil {
 		Panic(err, "Unable to get local media path.")
 	}
@@ -48,13 +48,13 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
 
-		if err = gitmedia.QueueUpload(cleaned.Sha, filename); err != nil {
-			Panic(err, "Unable to add %s to queue", cleaned.Sha)
+		if err = gitmedia.QueueUpload(cleaned.Oid, filename); err != nil {
+			Panic(err, "Unable to add %s to queue", cleaned.Oid)
 		}
 		Debug("Writing %s", mediafile)
 	}
 
-	metafile.Encode(os.Stdout, cleaned.Sha)
+	metafile.Encode(os.Stdout, cleaned.Pointer)
 }
 
 func init() {

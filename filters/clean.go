@@ -4,15 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/metafile"
 	"io"
 	"os"
 )
 
 type CleanedAsset struct {
-	Size          int64
 	File          *os.File
-	Sha           string
 	mediafilepath string
+	*metafile.Pointer
 }
 
 func Clean(reader io.Reader) (*CleanedAsset, error) {
@@ -25,7 +25,8 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 	writer := io.MultiWriter(oidHash, tmp)
 	written, err := io.Copy(writer, reader)
 
-	return &CleanedAsset{written, tmp, hex.EncodeToString(oidHash.Sum(nil)), ""}, err
+	pointer := metafile.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
+	return &CleanedAsset{tmp, "", pointer}, err
 }
 
 func (a *CleanedAsset) Close() error {
