@@ -71,7 +71,7 @@ func TestSmudgeInfo(t *testing.T) {
 	// smudge --info with old pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
 	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
-	cmd.Output = "0 " + mediaFile
+	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {
 		assert.Equal(t, nil, os.MkdirAll(mediaPath, 0755))
@@ -86,7 +86,7 @@ func TestSmudgeInfo(t *testing.T) {
 	// smudge --info with ini pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
 	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=123\n")
-	cmd.Output = "123 " + mediaFile
+	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {
 		assert.Equal(t, nil, os.MkdirAll(mediaPath, 0755))

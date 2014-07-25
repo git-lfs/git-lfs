@@ -31,12 +31,14 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			Exit(err.Error())
 		}
 
-		_, err = os.Stat(localPath)
+		stat, err := os.Stat(localPath)
 		if err != nil {
 			localPath = "--"
+			Print("%d --", pointer.Size)
+			return
 		}
 
-		Print("%d %s", pointer.Size, localPath)
+		Print("%d %s", stat.Size(), localPath)
 		return
 	}
 
