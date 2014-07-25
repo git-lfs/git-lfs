@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	smudgeCmd = &cobra.Command{
+	smudgeInfo = false
+	smudgeCmd  = &cobra.Command{
 		Use:   "smudge",
 		Short: "Implements the Git smudge filter",
 		Run:   smudgeCommand,
@@ -24,6 +25,21 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error reading git-media meta data from stdin:")
 	}
 
+	if smudgeInfo {
+		localPath, err := gitmedia.LocalMediaPath(pointer.Oid)
+		if err != nil {
+			Exit(err.Error())
+		}
+
+		stat, err := os.Stat(localPath)
+		if err != nil {
+			Print("%d --", pointer.Size)
+		} else {
+			Print("%d %s", stat.Size(), localPath)
+		}
+		return
+	}
+
 	err = filters.Smudge(os.Stdout, pointer.Oid)
 	if err != nil {
 		smudgerr := err.(*filters.SmudgeError)
@@ -32,5 +48,6 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "whatever")
 	RootCmd.AddCommand(smudgeCmd)
 }

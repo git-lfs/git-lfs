@@ -15,6 +15,7 @@ func TestSmudge(t *testing.T) {
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
+	// simple smudge example
 	cmd := repo.Command("smudge")
 	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
 	cmd.Output = "whatever"
@@ -27,12 +28,13 @@ func TestSmudge(t *testing.T) {
 	})
 
 	cmd.After(func() {
-		// assert hooks
+		// assert hook is created
 		stat, err := os.Stat(prePushHookFile)
 		assert.Equal(t, nil, err)
 		assert.Equal(t, false, stat.IsDir())
 	})
 
+	// smudge with custom hook
 	cmd = repo.Command("smudge")
 	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
 	cmd.Output = "whatever"
@@ -47,8 +49,47 @@ func TestSmudge(t *testing.T) {
 	})
 
 	cmd.After(func() {
+		// assert custom hook is not overwritten
 		by, err := ioutil.ReadFile(prePushHookFile)
 		assert.Equal(t, nil, err)
 		assert.Equal(t, string(customHook), string(by))
+	})
+}
+
+func TestSmudgeInfo(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	mediaPath := filepath.Join(repo.Path, ".git", "media", "SO", "ME")
+	mediaFile := filepath.Join(mediaPath, "SOMEOID")
+
+	// smudge --info with old pointer format, without local file
+	cmd := repo.Command("smudge", "--info")
+	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
+	cmd.Output = "0 --"
+
+	// smudge --info with old pointer format, with local file
+	cmd = repo.Command("smudge", "--info")
+	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
+	cmd.Output = "9 " + mediaFile
+
+	cmd.Before(func() {
+		assert.Equal(t, nil, os.MkdirAll(mediaPath, 0755))
+		assert.Equal(t, nil, ioutil.WriteFile(mediaFile, []byte("whatever\n"), 0755))
+	})
+
+	// smudge --info with ini pointer format, without local file
+	cmd = repo.Command("smudge", "--info")
+	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=123\n")
+	cmd.Output = "123 --"
+
+	// smudge --info with ini pointer format, with local file
+	cmd = repo.Command("smudge", "--info")
+	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=123\n")
+	cmd.Output = "9 " + mediaFile
+
+	cmd.Before(func() {
+		assert.Equal(t, nil, os.MkdirAll(mediaPath, 0755))
+		assert.Equal(t, nil, ioutil.WriteFile(mediaFile, []byte("whatever\n"), 0755))
 	})
 }
