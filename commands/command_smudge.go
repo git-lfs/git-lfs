@@ -19,12 +19,12 @@ var (
 func smudgeCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
-	sha, err := metafile.Decode(os.Stdin)
+	pointer, err := metafile.Decode(os.Stdin)
 	if err != nil {
 		Panic(err, "Error reading git-media meta data from stdin:")
 	}
 
-	err = filters.Smudge(os.Stdout, sha)
+	err = filters.Smudge(os.Stdout, pointer.Oid)
 	if err != nil {
 		smudgerr := err.(*filters.SmudgeError)
 		Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)

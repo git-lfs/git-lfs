@@ -1,0 +1,17 @@
+git-media-ls(1) - View Git Media object information.
+======================================================================
+
+## SYNOPSIS
+
+`git media ls` [path]
+
+## DESCRIPTION
+
+The "ls" command takes paths to Git Media pointer files and returns the local
+path to the media file.
+
+## SEE ALSO
+
+git-media-path(1).
+
+Part of the git-media(1) suite.

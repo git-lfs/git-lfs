@@ -27,6 +27,6 @@ path.
 
 ## SEE ALSO
 
-git-media-init(1), gitattributes(5).
+git-media-init(1), gitattributes(5), git-media-ls(1).
 
 Part of the git-media(1) suite.
