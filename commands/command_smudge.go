@@ -41,6 +41,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 
 	err = pointer.Smudge(os.Stdout, ptr.Oid)
 	if err != nil {
+		pointer.Encode(os.Stdout, ptr)
 		smudgerr := err.(*pointer.SmudgeError)
 		Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)
 	}
