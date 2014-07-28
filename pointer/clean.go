@@ -8,13 +8,13 @@ import (
 	"os"
 )
 
-type CleanedAsset struct {
+type cleanedAsset struct {
 	File          *os.File
 	mediafilepath string
 	*Pointer
 }
 
-func Clean(reader io.Reader) (*CleanedAsset, error) {
+func Clean(reader io.Reader) (*cleanedAsset, error) {
 	tmp, err := gitmedia.TempFile()
 	if err != nil {
 		return nil, err
@@ -25,9 +25,9 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 	written, err := io.Copy(writer, reader)
 
 	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
-	return &CleanedAsset{tmp, "", pointer}, err
+	return &cleanedAsset{tmp, "", pointer}, err
 }
 
-func (a *CleanedAsset) Close() error {
+func (a *cleanedAsset) Close() error {
 	return os.Remove(a.File.Name())
 }
