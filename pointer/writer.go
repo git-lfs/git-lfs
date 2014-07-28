@@ -43,6 +43,7 @@ func (w *consistentFileWriter) Write(p []byte) (int, error) {
 
 func (w *consistentFileWriter) Close() error {
 	defer func() {
+		w.file.Close()
 		w.tmpFile.Close()
 		os.RemoveAll(w.tmpFile.Name())
 	}()
