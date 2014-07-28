@@ -1,9 +1,8 @@
 package commands
 
 import (
-	"github.com/github/git-media/filters"
 	"github.com/github/git-media/gitmedia"
-	"github.com/github/git-media/metafile"
+	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -20,29 +19,29 @@ var (
 func smudgeCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
-	pointer, err := metafile.Decode(os.Stdin)
+	ptr, err := pointer.Decode(os.Stdin)
 	if err != nil {
 		Panic(err, "Error reading git-media meta data from stdin:")
 	}
 
 	if smudgeInfo {
-		localPath, err := gitmedia.LocalMediaPath(pointer.Oid)
+		localPath, err := gitmedia.LocalMediaPath(ptr.Oid)
 		if err != nil {
 			Exit(err.Error())
 		}
 
 		stat, err := os.Stat(localPath)
 		if err != nil {
-			Print("%d --", pointer.Size)
+			Print("%d --", ptr.Size)
 		} else {
 			Print("%d %s", stat.Size(), localPath)
 		}
 		return
 	}
 
-	err = filters.Smudge(os.Stdout, pointer.Oid)
+	err = pointer.Smudge(os.Stdout, ptr.Oid)
 	if err != nil {
-		smudgerr := err.(*filters.SmudgeError)
+		smudgerr := err.(*pointer.SmudgeError)
 		Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)
 	}
 }

@@ -1,10 +1,9 @@
-package filters
+package pointer
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/github/git-media/gitmedia"
-	"github.com/github/git-media/metafile"
 	"io"
 	"os"
 )
@@ -12,7 +11,7 @@ import (
 type CleanedAsset struct {
 	File          *os.File
 	mediafilepath string
-	*metafile.Pointer
+	*Pointer
 }
 
 func Clean(reader io.Reader) (*CleanedAsset, error) {
@@ -25,7 +24,7 @@ func Clean(reader io.Reader) (*CleanedAsset, error) {
 	writer := io.MultiWriter(oidHash, tmp)
 	written, err := io.Copy(writer, reader)
 
-	pointer := metafile.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
+	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
 	return &CleanedAsset{tmp, "", pointer}, err
 }
 

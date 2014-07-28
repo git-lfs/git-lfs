@@ -1,4 +1,4 @@
-package filters
+package pointer
 
 import (
 	"github.com/github/git-media/gitmedia"

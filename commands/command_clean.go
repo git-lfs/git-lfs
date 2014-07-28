@@ -1,9 +1,8 @@
 package commands
 
 import (
-	"github.com/github/git-media/filters"
 	"github.com/github/git-media/gitmedia"
-	"github.com/github/git-media/metafile"
+	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -26,7 +25,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		filename = ""
 	}
 
-	cleaned, err := filters.Clean(os.Stdin)
+	cleaned, err := pointer.Clean(os.Stdin)
 	if err != nil {
 		Panic(err, "Error cleaning asset")
 	}
@@ -54,7 +53,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		Debug("Writing %s", mediafile)
 	}
 
-	metafile.Encode(os.Stdout, cleaned.Pointer)
+	pointer.Encode(os.Stdout, cleaned.Pointer)
 }
 
 func init() {
