@@ -14,7 +14,7 @@ func Smudge(writer io.Writer, oid string) error {
 	}
 
 	if stat, err := os.Stat(mediafile); err != nil || stat == nil {
-		err = downloadFile(writer, mediafile)
+		err = downloadFile(writer, oid, mediafile)
 	} else {
 		err = readLocalFile(writer, mediafile)
 	}
@@ -26,20 +26,30 @@ func Smudge(writer io.Writer, oid string) error {
 	}
 }
 
-func downloadFile(writer io.Writer, mediafile string) error {
+func downloadFile(writer io.Writer, oid, mediafile string) error {
 	reader, err := gitmediaclient.Get(mediafile)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
 
-	mediaWriter, err := os.Create(mediafile)
+	mediaWriter, err := newFile(mediafile, oid)
 	if err != nil {
 		return err
 	}
-	defer mediaWriter.Close()
 
-	return copyFile(reader, writer, mediaWriter)
+	copyErr := copyFile(reader, writer, mediaWriter)
+	closeErr := mediaWriter.Close()
+
+	if copyErr != nil {
+		return copyErr
+	}
+
+	if closeErr != nil {
+		return closeErr
+	}
+
+	return nil
 }
 
 func readLocalFile(writer io.Writer, mediafile string) error {
