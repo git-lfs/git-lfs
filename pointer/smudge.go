@@ -1,6 +1,7 @@
 package pointer
 
 import (
+	"errors"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
 	"io"
@@ -29,24 +30,24 @@ func Smudge(writer io.Writer, oid string) error {
 func downloadFile(writer io.Writer, oid, mediafile string) error {
 	reader, err := gitmediaclient.Get(mediafile)
 	if err != nil {
-		return err
+		return errors.New("client: " + err.Error())
 	}
 	defer reader.Close()
 
 	mediaWriter, err := newFile(mediafile, oid)
 	if err != nil {
-		return err
+		return errors.New("open: " + err.Error())
 	}
 
 	copyErr := copyFile(reader, writer, mediaWriter)
 	closeErr := mediaWriter.Close()
 
 	if copyErr != nil {
-		return copyErr
+		return errors.New("write: " + copyErr.Error())
 	}
 
 	if closeErr != nil {
-		return closeErr
+		return errors.New("close: " + closeErr.Error())
 	}
 
 	return nil
