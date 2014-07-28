@@ -39,7 +39,7 @@ func downloadFile(writer io.Writer, oid, mediafile string) error {
 		return errors.New("open: " + err.Error())
 	}
 
-	copyErr := copyFile(reader, writer, mediaWriter)
+	_, copyErr := io.Copy(mediaWriter, reader)
 	closeErr := mediaWriter.Close()
 
 	if copyErr != nil {
@@ -50,7 +50,13 @@ func downloadFile(writer io.Writer, oid, mediafile string) error {
 		return errors.New("close: " + closeErr.Error())
 	}
 
-	return nil
+	file, err := os.Open(mediaWriter.Path)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(writer, file)
+	return err
 }
 
 func readLocalFile(writer io.Writer, mediafile string) error {
@@ -60,13 +66,7 @@ func readLocalFile(writer io.Writer, mediafile string) error {
 	}
 	defer reader.Close()
 
-	return copyFile(reader, writer)
-}
-
-func copyFile(reader io.ReadCloser, writers ...io.Writer) error {
-	multiWriter := io.MultiWriter(writers...)
-
-	_, err := io.Copy(multiWriter, reader)
+	_, err = io.Copy(writer, reader)
 	return err
 }
 
