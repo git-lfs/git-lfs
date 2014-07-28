@@ -13,7 +13,7 @@ func Smudge(writer io.Writer, oid string) error {
 		return err
 	}
 
-	if stat, err := os.Stat(mediafile); err != nil || stat == nil {
+	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
 		err = downloadFile(writer, oid, mediafile)
 	} else {
 		err = readLocalFile(writer, mediafile)
