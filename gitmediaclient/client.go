@@ -157,7 +157,7 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 
 			return res, apierr
 		}
-	} else {
+
 		execCreds(creds, "approve")
 	}
 
