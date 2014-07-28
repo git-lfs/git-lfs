@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-func Smudge(writer io.Writer, sha string) error {
-	mediafile, err := gitmedia.LocalMediaPath(sha)
+func Smudge(writer io.Writer, oid string) error {
+	mediafile, err := gitmedia.LocalMediaPath(oid)
 	if err != nil {
 		return err
 	}
@@ -20,7 +20,7 @@ func Smudge(writer io.Writer, sha string) error {
 	}
 
 	if err != nil {
-		return &SmudgeError{sha, mediafile, err.Error()}
+		return &SmudgeError{oid, mediafile, err.Error()}
 	} else {
 		return nil
 	}
@@ -60,7 +60,7 @@ func copyFile(reader io.ReadCloser, writers ...io.Writer) error {
 }
 
 type SmudgeError struct {
-	Sha          string
+	Oid          string
 	Filename     string
 	ErrorMessage string
 }
