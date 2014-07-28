@@ -14,34 +14,42 @@ func Smudge(writer io.Writer, sha string) error {
 	}
 
 	if stat, err := os.Stat(mediafile); err != nil || stat == nil {
-		reader, err := gitmediaclient.Get(mediafile)
-		if err != nil {
-			return &SmudgeError{sha, mediafile, err.Error()}
-		}
-		defer reader.Close()
-
-		mediaWriter, err := os.Create(mediafile)
-		if err != nil {
-			return &SmudgeError{sha, mediafile, err.Error()}
-		}
-		defer mediaWriter.Close()
-
-		if err := copyFile(reader, writer, mediaWriter); err != nil {
-			return &SmudgeError{sha, mediafile, err.Error()}
-		}
+		err = downloadFile(writer, mediafile)
 	} else {
-		reader, err := os.Open(mediafile)
-		if err != nil {
-			return &SmudgeError{sha, mediafile, err.Error()}
-		}
-		defer reader.Close()
-
-		if err := copyFile(reader, writer); err != nil {
-			return &SmudgeError{sha, mediafile, err.Error()}
-		}
+		err = readLocalFile(writer, mediafile)
 	}
 
-	return nil
+	if err != nil {
+		return &SmudgeError{sha, mediafile, err.Error()}
+	} else {
+		return nil
+	}
+}
+
+func downloadFile(writer io.Writer, mediafile string) error {
+	reader, err := gitmediaclient.Get(mediafile)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	mediaWriter, err := os.Create(mediafile)
+	if err != nil {
+		return err
+	}
+	defer mediaWriter.Close()
+
+	return copyFile(reader, writer, mediaWriter)
+}
+
+func readLocalFile(writer io.Writer, mediafile string) error {
+	reader, err := os.Open(mediafile)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	return copyFile(reader, writer)
 }
 
 func copyFile(reader io.ReadCloser, writers ...io.Writer) error {
