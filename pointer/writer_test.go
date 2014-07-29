@@ -38,8 +38,37 @@ func TestAttemptWriteToExistingFile(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	_, err = newFile(filename, "sha")
-	if !strings.Contains(err.Error(), "file exists") {
+	if err == nil {
+		t.Fatalf("Expected error!")
+	}
+
+	if !strings.Contains(err.Error(), "File exists") {
 		t.Fatalf("No problem trying to write to %s", filename)
+	}
+}
+
+func TestAttemptCloseWithExistingFile(t *testing.T) {
+	path, close := SetupConsistentWriter()
+	defer close()
+
+	filename := filepath.Join(path, "existing")
+
+	file, err := newFile(filename, "e9058ab198f6908f702111b0c0fb5b36f99d00554521886c40e2891b349dc7a1")
+	assert.Equal(t, nil, err)
+
+	n, err := file.Write([]byte("yo"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, n)
+
+	err = ioutil.WriteFile(filename, []byte("yo"), 0777)
+	assert.Equal(t, nil, err)
+
+	err = file.Close()
+	if err == nil {
+		t.Fatalf("Expected error!")
+	}
+	if errMsg := err.Error(); !strings.Contains(errMsg, "file exists") {
+		t.Fatalf("Unexpected problem trying to write to %s\n%s", filename, errMsg)
 	}
 }
 
@@ -59,6 +88,12 @@ func TestAttemptWriteWithInvalidSHA(t *testing.T) {
 	if !strings.Contains(err.Error(), "Unexpected SHA-256") {
 		t.Fatalf("No problem trying to write to %s", filename)
 	}
+
+	stat, err := os.Stat(filename)
+	if err == nil {
+		t.Fatalf(".git media file should not exist: %s", filename)
+	}
+	assert.Equal(t, nil, stat)
 }
 
 func SetupConsistentWriter() (string, func()) {

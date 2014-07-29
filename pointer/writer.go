@@ -16,15 +16,14 @@ type consistentFileWriter struct {
 	Path    string
 	Sha256  string
 	writer  io.Writer
-	file    *os.File
 	tmpFile *os.File
 	hasher  hash.Hash
 }
 
 func newFile(path, sha256Sig string) (*consistentFileWriter, error) {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0660)
-	if err != nil {
-		return nil, err
+	_, err := os.Stat(path)
+	if err == nil {
+		return nil, fmt.Errorf("File exists: %s", path)
 	}
 
 	tmpFile, err := ioutil.TempFile("", sha256Sig)
@@ -34,7 +33,7 @@ func newFile(path, sha256Sig string) (*consistentFileWriter, error) {
 
 	h := sha256.New()
 	w := io.MultiWriter(tmpFile, h)
-	return &consistentFileWriter{path, sha256Sig, w, file, tmpFile, h}, nil
+	return &consistentFileWriter{path, sha256Sig, w, tmpFile, h}, nil
 }
 
 func (w *consistentFileWriter) Write(p []byte) (int, error) {
@@ -43,7 +42,6 @@ func (w *consistentFileWriter) Write(p []byte) (int, error) {
 
 func (w *consistentFileWriter) Close() error {
 	defer func() {
-		w.file.Close()
 		w.tmpFile.Close()
 		os.RemoveAll(w.tmpFile.Name())
 	}()
@@ -62,7 +60,13 @@ func (w *consistentFileWriter) Close() error {
 		return fmt.Errorf("Expected offset 0, go %d", offset)
 	}
 
-	_, err = io.Copy(w.file, w.tmpFile)
+	file, err := os.OpenFile(w.Path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0660)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, w.tmpFile)
 	if err != nil {
 		os.RemoveAll(w.Path)
 	}
