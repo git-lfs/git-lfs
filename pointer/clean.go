@@ -15,7 +15,7 @@ type cleanedAsset struct {
 }
 
 func Clean(reader io.Reader) (*cleanedAsset, error) {
-	tmp, err := gitmedia.TempFile()
+	tmp, err := gitmedia.TempFile("")
 	if err != nil {
 		return nil, err
 	}

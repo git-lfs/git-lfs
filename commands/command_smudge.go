@@ -5,6 +5,7 @@ import (
 	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -41,9 +42,22 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 
 	err = pointer.Smudge(os.Stdout, ptr.Oid)
 	if err != nil {
-		smudgerr := err.(*pointer.SmudgeError)
-		Panic(err, "Error reading file from local media dir: %s", smudgerr.Filename)
+		pointer.Encode(os.Stdout, ptr)
+		filename := smudgeFilename(args, err)
+		Error("Error accessing media: %s (%s)", filename, ptr.Oid)
 	}
+}
+
+func smudgeFilename(args []string, err error) string {
+	if len(args) > 0 {
+		return args[0]
+	}
+
+	if smudgeErr, ok := err.(*pointer.SmudgeError); ok {
+		return filepath.Base(smudgeErr.Filename)
+	}
+
+	return "<unknown file>"
 }
 
 func init() {

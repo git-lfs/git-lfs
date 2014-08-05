@@ -17,10 +17,23 @@ var (
 	LocalGitDir        string
 	LocalMediaDir      string
 	LocalLogDir        string
+	checkedTempDir     string
 )
 
-func TempFile() (*os.File, error) {
-	return ioutil.TempFile(TempDir, "")
+func TempFile(prefix string) (*os.File, error) {
+	if checkedTempDir != TempDir {
+		if err := os.MkdirAll(TempDir, 0774); err != nil {
+			return nil, err
+		}
+		checkedTempDir = TempDir
+	}
+
+	return ioutil.TempFile(TempDir, prefix)
+}
+
+func ResetTempDir() error {
+	checkedTempDir = ""
+	return os.RemoveAll(TempDir)
 }
 
 func LocalMediaPath(sha string) (string, error) {

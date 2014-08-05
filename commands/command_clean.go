@@ -26,10 +26,10 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	}
 
 	cleaned, err := pointer.Clean(os.Stdin)
+	defer cleaned.Close()
 	if err != nil {
 		Panic(err, "Error cleaning asset")
 	}
-	defer cleaned.Close()
 
 	tmpfile := cleaned.File.Name()
 	mediafile, err := gitmedia.LocalMediaPath(cleaned.Oid)

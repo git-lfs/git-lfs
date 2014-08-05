@@ -84,32 +84,28 @@ func Put(filehash, filename string) error {
 
 func Get(filename string) (io.ReadCloser, error) {
 	oid := filepath.Base(filename)
-	if stat, err := os.Stat(filename); err != nil || stat == nil {
-		req, creds, err := clientRequest("GET", oid)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Accept", gitMediaType)
-		res, err := doRequest(req, creds)
-
-		if err != nil {
-			return nil, err
-		}
-
-		contentType := res.Header.Get("Content-Type")
-		if contentType == "" {
-			return nil, errors.New("Invalid Content-Type")
-		}
-
-		if ok, err := validateMediaHeader(contentType, res.Body); !ok {
-			return nil, err
-		}
-
-		return res.Body, nil
+	req, creds, err := clientRequest("GET", oid)
+	if err != nil {
+		return nil, err
 	}
 
-	return os.Open(filename)
+	req.Header.Set("Accept", gitMediaType)
+	res, err := doRequest(req, creds)
+
+	if err != nil {
+		return nil, err
+	}
+
+	contentType := res.Header.Get("Content-Type")
+	if contentType == "" {
+		return nil, errors.New("Invalid Content-Type")
+	}
+
+	if ok, err := validateMediaHeader(contentType, res.Body); !ok {
+		return nil, err
+	}
+
+	return res.Body, nil
 }
 
 func validateMediaHeader(contentType string, reader io.Reader) (bool, error) {
@@ -157,7 +153,7 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 
 			return res, apierr
 		}
-	} else {
+
 		execCreds(creds, "approve")
 	}
 
