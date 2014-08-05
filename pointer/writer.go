@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/github/git-media/gitmedia"
 	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -26,7 +26,7 @@ func newFile(path, sha256Sig string) (*consistentFileWriter, error) {
 		return nil, fmt.Errorf("File exists: %s", path)
 	}
 
-	tmpFile, err := ioutil.TempFile("", sha256Sig)
+	tmpFile, err := gitmedia.TempFile(sha256Sig)
 	if err != nil {
 		return nil, err
 	}
@@ -41,10 +41,7 @@ func (w *consistentFileWriter) Write(p []byte) (int, error) {
 }
 
 func (w *consistentFileWriter) Close() error {
-	defer func() {
-		w.tmpFile.Close()
-		os.RemoveAll(w.tmpFile.Name())
-	}()
+	defer os.RemoveAll(w.tmpFile.Name())
 
 	writtenSha := hex.EncodeToString(w.hasher.Sum(nil))
 	if writtenSha != w.Sha256 {
@@ -60,15 +57,6 @@ func (w *consistentFileWriter) Close() error {
 		return fmt.Errorf("Expected offset 0, go %d", offset)
 	}
 
-	file, err := os.OpenFile(w.Path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0660)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, w.tmpFile)
-	if err != nil {
-		os.RemoveAll(w.Path)
-	}
-	return err
+	w.tmpFile.Close()
+	return os.Rename(w.tmpFile.Name(), w.Path)
 }
