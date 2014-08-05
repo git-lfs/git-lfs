@@ -82,11 +82,16 @@ func SetupConsistentWriter() (string, func()) {
 	}
 
 	path := filepath.Join(wd, "test")
+	oldTempDir := gitmedia.TempDir
 	gitmedia.TempDir = filepath.Join(path, "tmp")
 	err = os.MkdirAll(path, 0777)
 	if err != nil {
 		panic(err)
 	}
 
-	return path, func() { os.RemoveAll(path); gitmedia.ResetTempDir() }
+	return path, func() {
+		os.RemoveAll(path)
+		gitmedia.ResetTempDir()
+		gitmedia.TempDir = oldTempDir
+	}
 }
