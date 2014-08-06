@@ -21,6 +21,11 @@ func TestInit(t *testing.T) {
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
+	cmd.Before(func() {
+		err := os.RemoveAll(filepath.Join(repo.Path, ".git", "hooks"))
+		assert.Equal(t, nil, err)
+	})
+
 	cmd.After(func() {
 		// assert media filter config
 		configs := GlobalGitConfig(t)
