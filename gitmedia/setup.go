@@ -30,6 +30,10 @@ func InstallHooks() error {
 		return NotInARepositoryError
 	}
 
+	if err := os.MkdirAll(filepath.Join(LocalGitDir, "hooks"), 0755); err != nil {
+		return err
+	}
+
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
 	if _, err := os.Stat(hookPath); err == nil {
 		return &HookExists{"pre-push", hookPath}
