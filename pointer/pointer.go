@@ -36,6 +36,14 @@ func NewPointer(oid string, size int64) *Pointer {
 	return &Pointer{latest, oid, size, oidType}
 }
 
+func (p *Pointer) Smudge(writer io.Writer) error {
+	return Smudge(writer, p)
+}
+
+func (p *Pointer) Encode(writer io.Writer) (int, error) {
+	return Encode(writer, p)
+}
+
 func Encode(writer io.Writer, pointer *Pointer) (int, error) {
 	return writer.Write([]byte(fmt.Sprintf(template,
 		latest, pointer.Oid, pointer.Size)))

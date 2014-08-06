@@ -40,9 +40,9 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = pointer.Smudge(os.Stdout, ptr.Oid)
+	err = ptr.Smudge(os.Stdout)
 	if err != nil {
-		pointer.Encode(os.Stdout, ptr)
+		ptr.Encode(os.Stdout)
 		filename := smudgeFilename(args, err)
 		Error("Error accessing media: %s (%s)", filename, ptr.Oid)
 	}
