@@ -22,6 +22,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error setting up the queue")
 	}
 
+	count, err := q.Count()
+	i := 1
+
 	q.Walk(func(id string, body []byte) error {
 		fileInfo := string(body)
 		parts := strings.SplitN(fileInfo, ":", 2)
@@ -32,9 +35,10 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			filename = parts[1]
 		}
 
-		if wErr := pushAsset(oid, filename); wErr != nil {
+		if wErr := pushAsset(oid, filename, i, count); wErr != nil {
 			Panic(wErr.Inner, wErr.Message)
 		}
+		i += 1
 
 		fmt.Printf("\n")
 
@@ -46,14 +50,14 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	})
 }
 
-func pushAsset(oid, filename string) *wrappedError {
+func pushAsset(oid, filename string, index, totalFiles int) *wrappedError {
 	path, err := gitmedia.LocalMediaPath(oid)
 	if err == nil {
 		err = gitmediaclient.Options(path)
 	}
 
 	if err == nil {
-		cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, 1, 1)
+		cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, index, totalFiles)
 		if cbErr != nil {
 			Error(cbErr.Error())
 		}

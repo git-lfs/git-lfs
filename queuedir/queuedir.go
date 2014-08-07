@@ -51,6 +51,24 @@ func (q *Queue) Add(reader io.Reader) (string, error) {
 	return id, err
 }
 
+func (q *Queue) Count() (int, error) {
+	total := 0
+	err := filepath.Walk(q.Path, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		total += 1
+		return nil
+	})
+
+	return total, err
+}
+
 func (q *Queue) Walk(cb WalkFunc) error {
 	return filepath.Walk(q.Path, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
