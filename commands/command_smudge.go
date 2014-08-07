@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
@@ -42,38 +41,9 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	filename := smudgeFilename(args, err)
-	var cb gitmedia.CopyCallback
-	var file *os.File
-
-	if cbFile := os.Getenv("GIT_MEDIA_PROGRESS"); len(cbFile) > 0 {
-		cbDir := filepath.Dir(cbFile)
-		if err = os.MkdirAll(cbDir, 0755); err != nil {
-			Error("Error writing Git Media progress to %s: %s", cbFile, err.Error())
-		}
-
-		file, err = os.OpenFile(cbFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-		if err = os.MkdirAll(cbDir, 0755); err != nil {
-			Error("Error writing Git Media progress to %s: %s", cbFile, err.Error())
-		}
-
-		var prevProgress int
-		var progress int
-
-		cb = gitmedia.CopyCallback(func(total int64, written int64) error {
-			progress = 0
-			if total > 0 {
-				progress = int(float64(written) / float64(total) * 100)
-			}
-
-			if progress != prevProgress {
-				_, err := file.Write([]byte(fmt.Sprintf("smudge %d %s\n", progress, filename)))
-				prevProgress = progress
-				return err
-			}
-
-			return nil
-		})
-		file.Write([]byte(fmt.Sprintf("smudge 0 %s\n", filename)))
+	cb, file, err := gitmedia.CopyCallbackFile("smudge", filename)
+	if err != nil {
+		Error(err.Error())
 	}
 
 	err = ptr.Smudge(os.Stdout, cb)
