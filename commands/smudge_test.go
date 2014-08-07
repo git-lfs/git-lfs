@@ -18,7 +18,7 @@ func TestSmudge(t *testing.T) {
 
 	// simple smudge example
 	cmd := repo.Command("smudge", "somefile")
-	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
+	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=9\n")
 	cmd.Output = "whatever"
 	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS="+progressFile)
 
