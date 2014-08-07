@@ -111,7 +111,7 @@ func logPanic(loggedError error, recursive bool) string {
 	}
 
 	now := time.Now()
-	name := now.Format("2006-01-02T15:04:05.999999999")
+	name := now.Format("20060102T150405.999999999")
 	full := filepath.Join(gitmedia.LocalLogDir, name+".log")
 
 	file, err := os.Create(full)
