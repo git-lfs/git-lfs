@@ -57,7 +57,10 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		}
 
 		cb = gitmedia.CopyCallback(func(total int64, written int64) error {
-			p := int((float64(written) / float64(total) * 100))
+			var p uint64
+			if total > 0 {
+				p = uint64(float64(written) / float64(total) * 100)
+			}
 			_, err := file.Write([]byte(fmt.Sprintf("\n%s %d", filename, p)))
 			return err
 		})
