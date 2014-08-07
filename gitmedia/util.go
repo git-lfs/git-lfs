@@ -51,12 +51,12 @@ func CopyCallbackFile(event, filename string) (CopyCallback, *os.File, error) {
 
 	cbDir := filepath.Dir(cbFilename)
 	if err := os.MkdirAll(cbDir, 0755); err != nil {
-		return nil, nil, wrapProgressError(err, cbFilename)
+		return nil, nil, wrapProgressError(err, event, cbFilename)
 	}
 
 	file, err := os.OpenFile(cbFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, file, wrapProgressError(err, cbFilename)
+		return nil, file, wrapProgressError(err, event, cbFilename)
 	}
 
 	var prevProgress int
@@ -71,7 +71,7 @@ func CopyCallbackFile(event, filename string) (CopyCallback, *os.File, error) {
 		if progress != prevProgress {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d %s\n", event, progress, filename)))
 			prevProgress = progress
-			return wrapProgressError(err, cbFilename)
+			return wrapProgressError(err, event, cbFilename)
 		}
 
 		return nil
@@ -81,10 +81,10 @@ func CopyCallbackFile(event, filename string) (CopyCallback, *os.File, error) {
 	return cb, file, nil
 }
 
-func wrapProgressError(err error, filename string) error {
+func wrapProgressError(err error, event, filename string) error {
 	if err == nil {
 		return nil
 	}
 
-	return fmt.Errorf("Error writing Git Media progress to %s: %s", filename, err.Error())
+	return fmt.Errorf("Error writing Git Media %s progress to %s: %s", event, filename, err.Error())
 }

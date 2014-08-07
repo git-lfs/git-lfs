@@ -48,12 +48,13 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 	}
 
 	oid := filepath.Base(filehash)
-	stat, err := os.Stat(filehash)
+	file, err := os.Open(filehash)
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
-	file, err := os.Open(filehash)
+	stat, err := file.Stat()
 	if err != nil {
 		return err
 	}
@@ -63,14 +64,21 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 		return err
 	}
 
-	bar := pb.StartNew(int(stat.Size()))
+	fileSize := stat.Size()
+	reader := &gitmedia.CallbackReader{
+		C:         cb,
+		TotalSize: fileSize,
+		Reader:    file,
+	}
+
+	bar := pb.StartNew(int(fileSize))
 	bar.SetUnits(pb.U_BYTES)
 	bar.Start()
 
 	req.Header.Set("Content-Type", gitMediaType)
 	req.Header.Set("Accept", gitMediaMetaType)
-	req.Body = ioutil.NopCloser(bar.NewProxyReader(file))
-	req.ContentLength = stat.Size()
+	req.Body = ioutil.NopCloser(bar.NewProxyReader(reader))
+	req.ContentLength = fileSize
 
 	fmt.Printf("Sending %s\n", filename)
 
