@@ -21,8 +21,6 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	var filename string
 	if len(args) > 0 {
 		filename = args[0]
-	} else {
-		filename = ""
 	}
 
 	cleaned, err := pointer.Clean(os.Stdin)
