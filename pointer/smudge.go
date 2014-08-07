@@ -8,33 +8,37 @@ import (
 	"os"
 )
 
-func Smudge(writer io.Writer, oid string) error {
-	mediafile, err := gitmedia.LocalMediaPath(oid)
+func Smudge(writer io.Writer, ptr *Pointer, cb gitmedia.CopyCallback) error {
+	mediafile, err := gitmedia.LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
 	}
 
 	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
-		err = downloadFile(writer, oid, mediafile)
+		err = downloadFile(writer, ptr, mediafile, cb)
 	} else {
-		err = readLocalFile(writer, mediafile)
+		err = readLocalFile(writer, ptr, mediafile, cb)
 	}
 
 	if err != nil {
-		return &SmudgeError{oid, mediafile, err.Error()}
+		return &SmudgeError{ptr.Oid, mediafile, err.Error()}
 	} else {
 		return nil
 	}
 }
 
-func downloadFile(writer io.Writer, oid, mediafile string) error {
-	reader, err := gitmediaclient.Get(mediafile)
+func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) error {
+	reader, size, err := gitmediaclient.Get(mediafile)
 	if err != nil {
 		return errors.New("client: " + err.Error())
 	}
 	defer reader.Close()
 
-	mediaWriter, err := newFile(mediafile, oid)
+	if ptr.Size == 0 {
+		ptr.Size = size
+	}
+
+	mediaWriter, err := newFile(mediafile, ptr.Oid)
 	if err != nil {
 		return errors.New("open: " + err.Error())
 	}
@@ -55,18 +59,24 @@ func downloadFile(writer io.Writer, oid, mediafile string) error {
 		return err
 	}
 
-	_, err = io.Copy(writer, file)
+	_, err = gitmedia.CopyWithCallback(writer, file, ptr.Size, cb)
 	return err
 }
 
-func readLocalFile(writer io.Writer, mediafile string) error {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) error {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
 
-	_, err = io.Copy(writer, reader)
+	if ptr.Size == 0 {
+		if stat, _ := os.Stat(mediafile); stat != nil {
+			ptr.Size = stat.Size()
+		}
+	}
+
+	_, err = gitmedia.CopyWithCallback(writer, reader, ptr.Size, cb)
 	return err
 }
 

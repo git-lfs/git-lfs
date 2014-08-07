@@ -87,6 +87,7 @@ func (r *Repository) Command(args ...string) *TestCommand {
 		Args:            args,
 		BeforeCallbacks: make([]func(), 0),
 		AfterCallbacks:  make([]func(), 0),
+		Env:             make([]string, 0),
 	}
 	r.Commands = append(r.Commands, cmd)
 	return cmd
@@ -138,6 +139,7 @@ func (r *Repository) cmd(name string, args ...string) string {
 type TestCommand struct {
 	T               *testing.T
 	Args            []string
+	Env             []string
 	Input           io.Reader
 	Output          string
 	BeforeCallbacks []func()
@@ -155,6 +157,9 @@ func (c *TestCommand) Run(path string) {
 
 	cmd := exec.Command(Bin, c.Args...)
 	cmd.Stdin = c.Input
+	if c.Env != nil && len(c.Env) > 0 {
+		cmd.Env = c.Env
+	}
 	outputBytes, err := cmd.CombinedOutput()
 	c.e(err)
 

@@ -40,10 +40,19 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = pointer.Smudge(os.Stdout, ptr.Oid)
+	filename := smudgeFilename(args, err)
+	cb, file, err := gitmedia.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
-		pointer.Encode(os.Stdout, ptr)
-		filename := smudgeFilename(args, err)
+		Error(err.Error())
+	}
+
+	err = ptr.Smudge(os.Stdout, cb)
+	if file != nil {
+		file.Close()
+	}
+
+	if err != nil {
+		ptr.Encode(os.Stdout)
 		Error("Error accessing media: %s (%s)", filename, ptr.Oid)
 	}
 }

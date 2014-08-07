@@ -22,36 +22,65 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error setting up the queue")
 	}
 
+	count, err := q.Count()
+	i := 1
+
 	q.Walk(func(id string, body []byte) error {
 		fileInfo := string(body)
-		parts := strings.Split(fileInfo, ":")
+		parts := strings.SplitN(fileInfo, ":", 2)
 
-		var sha, filename string
-		sha = parts[0]
+		var oid, filename string
+		oid = parts[0]
 		if len(parts) > 1 {
 			filename = parts[1]
 		}
 
-		path, err := gitmedia.LocalMediaPath(sha)
-		if err == nil {
-			err = gitmediaclient.Options(path)
+		if wErr := pushAsset(oid, filename, i, count); wErr != nil {
+			Panic(wErr.Inner, wErr.Message)
 		}
-		if err != nil {
-			Panic(err, "error uploading file %s/%s", sha, filename)
-		}
+		i += 1
 
-		err = gitmediaclient.Put(path, filename)
-		if err != nil {
-			Panic(err, "error uploading file %s/%s", sha, filename)
-		}
 		fmt.Printf("\n")
 
 		if err := q.Del(id); err != nil {
-			Panic(err, "error removing %s from queue", sha)
+			Panic(err, "error removing %s from queue", oid)
 		}
 
 		return nil
 	})
+}
+
+func pushAsset(oid, filename string, index, totalFiles int) *wrappedError {
+	path, err := gitmedia.LocalMediaPath(oid)
+	if err == nil {
+		err = gitmediaclient.Options(path)
+	}
+
+	if err == nil {
+		cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, index, totalFiles)
+		if cbErr != nil {
+			Error(cbErr.Error())
+		}
+
+		err = gitmediaclient.Put(path, filename, cb)
+		if file != nil {
+			file.Close()
+		}
+	}
+
+	if err != nil {
+		return &wrappedError{
+			Message: fmt.Sprintf("error uploading file %s/%s", oid, filename),
+			Inner:   err,
+		}
+	}
+
+	return nil
+}
+
+type wrappedError struct {
+	Message string
+	Inner   error
 }
 
 func init() {
