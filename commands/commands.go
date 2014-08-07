@@ -93,7 +93,7 @@ func handlePanic(err error) string {
 	}
 
 	Debug(err.Error())
-	return logPanic(err)
+	return logPanic(err, false)
 }
 
 func logEnv(w io.Writer) {
@@ -102,7 +102,7 @@ func logEnv(w io.Writer) {
 	}
 }
 
-func logPanic(loggedError error) string {
+func logPanic(loggedError error, recursive bool) string {
 	var fmtWriter io.Writer = os.Stderr
 
 	if err := os.MkdirAll(gitmedia.LocalLogDir, 0755); err != nil {
@@ -115,9 +115,7 @@ func logPanic(loggedError error) string {
 	full := filepath.Join(gitmedia.LocalLogDir, name+".log")
 
 	file, err := os.Create(full)
-	if err != nil {
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
-	} else {
+	if err == nil {
 		fmtWriter = file
 		defer file.Close()
 	}
@@ -136,6 +134,11 @@ func logPanic(loggedError error) string {
 
 	fmt.Fprintln(fmtWriter, loggedError.Error())
 	fmtWriter.Write(debug.Stack())
+
+	if err != nil && !recursive {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
+		logPanic(err, true)
+	}
 
 	return full
 }
