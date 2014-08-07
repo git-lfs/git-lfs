@@ -39,8 +39,8 @@ func TestSmudge(t *testing.T) {
 		assert.Equal(t, nil, err)
 		progLines := bytes.Split(progress, []byte("\n"))
 		assert.Equal(t, 3, len(progLines))
-		assert.Equal(t, "somefile 0", string(progLines[0]))
-		assert.Equal(t, "somefile 100", string(progLines[1]))
+		assert.Equal(t, "0 somefile", string(progLines[0]))
+		assert.Equal(t, "100 somefile", string(progLines[1]))
 		assert.Equal(t, "", string(progLines[2]))
 	})
 

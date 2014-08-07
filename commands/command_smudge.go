@@ -56,23 +56,24 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			Error("Error writing Git Media progress to %s: %s", cbFile, err.Error())
 		}
 
-		var prevProgress uint64
-		var progress uint64
+		var prevProgress int
+		var progress int
+
 		cb = gitmedia.CopyCallback(func(total int64, written int64) error {
 			progress = 0
 			if total > 0 {
-				progress = uint64(float64(written) / float64(total) * 100)
+				progress = int(float64(written) / float64(total) * 100)
 			}
 
 			if progress != prevProgress {
-				_, err := file.Write([]byte(fmt.Sprintf("%s %d\n", filename, progress)))
+				_, err := file.Write([]byte(fmt.Sprintf("%d %s\n", progress, filename)))
 				prevProgress = progress
 				return err
 			}
 
 			return nil
 		})
-		file.Write([]byte(fmt.Sprintf("%s 0\n", filename)))
+		file.Write([]byte(fmt.Sprintf("0 %s\n", filename)))
 	}
 
 	err = ptr.Smudge(os.Stdout, cb)
