@@ -28,11 +28,15 @@ func Smudge(writer io.Writer, ptr *Pointer, cb gitmedia.CopyCallback) error {
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) error {
-	reader, err := gitmediaclient.Get(mediafile)
+	reader, size, err := gitmediaclient.Get(mediafile)
 	if err != nil {
 		return errors.New("client: " + err.Error())
 	}
 	defer reader.Close()
+
+	if ptr.Size == 0 {
+		ptr.Size = size
+	}
 
 	mediaWriter, err := newFile(mediafile, ptr.Oid)
 	if err != nil {
@@ -65,6 +69,12 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia
 		return err
 	}
 	defer reader.Close()
+
+	if ptr.Size == 0 {
+		if stat, _ := os.Stat(mediafile); stat != nil {
+			ptr.Size = stat.Size()
+		}
+	}
 
 	_, err = gitmedia.CopyWithCallback(writer, reader, ptr.Size, cb)
 	return err

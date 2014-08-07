@@ -82,30 +82,30 @@ func Put(filehash, filename string) error {
 	return nil
 }
 
-func Get(filename string) (io.ReadCloser, error) {
+func Get(filename string) (io.ReadCloser, int64, error) {
 	oid := filepath.Base(filename)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	req.Header.Set("Accept", gitMediaType)
 	res, err := doRequest(req, creds)
 
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	contentType := res.Header.Get("Content-Type")
 	if contentType == "" {
-		return nil, errors.New("Invalid Content-Type")
+		return nil, 0, errors.New("Invalid Content-Type")
 	}
 
 	if ok, err := validateMediaHeader(contentType, res.Body); !ok {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return res.Body, nil
+	return res.Body, res.ContentLength, nil
 }
 
 func validateMediaHeader(contentType string, reader io.Reader) (bool, error) {
