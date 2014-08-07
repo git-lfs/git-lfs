@@ -19,11 +19,31 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
 	var filename string
+	var cb gitmedia.CopyCallback
+	var file *os.File
+	var fileSize int64
 	if len(args) > 0 {
 		filename = args[0]
+
+		stat, err := os.Stat(filename)
+		if err == nil && stat != nil {
+			fileSize = stat.Size()
+
+			localCb, localFile, err := gitmedia.CopyCallbackFile("clean", filename)
+			if err != nil {
+				Error(err.Error())
+			} else {
+				cb = localCb
+				file = localFile
+			}
+		}
 	}
 
-	cleaned, err := pointer.Clean(os.Stdin)
+	cleaned, err := pointer.Clean(os.Stdin, fileSize, cb)
+	if file != nil {
+		file.Close()
+	}
+
 	defer cleaned.Close()
 	if err != nil {
 		Panic(err, "Error cleaning asset")

@@ -35,6 +35,7 @@ func TestSmudge(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, false, stat.IsDir())
 
+		// assert progress file
 		progress, err := ioutil.ReadFile(progressFile)
 		assert.Equal(t, nil, err)
 		progLines := bytes.Split(progress, []byte("\n"))
