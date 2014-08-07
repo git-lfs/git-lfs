@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/github/git-media/gitmedia"
 	ini "github.com/glacjay/goini"
 	"io"
 	"regexp"
@@ -36,8 +37,8 @@ func NewPointer(oid string, size int64) *Pointer {
 	return &Pointer{latest, oid, size, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer) error {
-	return Smudge(writer, p)
+func (p *Pointer) Smudge(writer io.Writer, cb gitmedia.CopyCallback) error {
+	return Smudge(writer, p, cb)
 }
 
 func (p *Pointer) Encode(writer io.Writer) (int, error) {

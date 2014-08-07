@@ -14,11 +14,13 @@ func TestSmudge(t *testing.T) {
 	defer repo.Test()
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+	progressFile := filepath.Join(repo.Path, ".git", "progress")
 
 	// simple smudge example
-	cmd := repo.Command("smudge")
+	cmd := repo.Command("smudge", "somefile")
 	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
 	cmd.Output = "whatever"
+	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS="+progressFile)
 
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, ".git", "media", "SO", "ME")
@@ -32,6 +34,13 @@ func TestSmudge(t *testing.T) {
 		stat, err := os.Stat(prePushHookFile)
 		assert.Equal(t, nil, err)
 		assert.Equal(t, false, stat.IsDir())
+
+		progress, err := ioutil.ReadFile(progressFile)
+		assert.Equal(t, nil, err)
+		progLines := bytes.Split(progress, []byte("\n"))
+		assert.Equal(t, 2, len(progLines))
+		assert.Equal(t, "somefile 0", string(progLines[0]))
+		assert.Equal(t, "somefile 100", string(progLines[1]))
 	})
 
 	// smudge with custom hook

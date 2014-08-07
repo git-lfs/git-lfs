@@ -11,6 +11,8 @@ type CallbackWriter struct {
 	io.Writer
 }
 
+type CopyCallback func(int64, int64) error
+
 func (w *CallbackWriter) Write(p []byte) (int, error) {
 	n, err := w.Writer.Write(p)
 
@@ -25,7 +27,11 @@ func (w *CallbackWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb func(int64, int64) error) (int64, error) {
+func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb CopyCallback) (int64, error) {
+	if cb == nil {
+		return io.Copy(writer, reader)
+	}
+
 	cbWriter := &CallbackWriter{
 		C:         cb,
 		TotalSize: totalSize,
