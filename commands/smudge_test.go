@@ -38,9 +38,10 @@ func TestSmudge(t *testing.T) {
 		progress, err := ioutil.ReadFile(progressFile)
 		assert.Equal(t, nil, err)
 		progLines := bytes.Split(progress, []byte("\n"))
-		assert.Equal(t, 2, len(progLines))
+		assert.Equal(t, 3, len(progLines))
 		assert.Equal(t, "somefile 0", string(progLines[0]))
 		assert.Equal(t, "somefile 100", string(progLines[1]))
+		assert.Equal(t, "", string(progLines[2]))
 	})
 
 	// smudge with custom hook

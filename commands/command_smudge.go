@@ -61,10 +61,10 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			if total > 0 {
 				p = uint64(float64(written) / float64(total) * 100)
 			}
-			_, err := file.Write([]byte(fmt.Sprintf("\n%s %d", filename, p)))
+			_, err := file.Write([]byte(fmt.Sprintf("%s %d\n", filename, p)))
 			return err
 		})
-		file.Write([]byte(fmt.Sprintf("%s 0", filename)))
+		file.Write([]byte(fmt.Sprintf("%s 0\n", filename)))
 	}
 
 	err = ptr.Smudge(os.Stdout, cb)
