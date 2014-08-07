@@ -42,7 +42,7 @@ func Options(filehash string) error {
 	return nil
 }
 
-func Put(filehash, filename string) error {
+func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 	if filename == "" {
 		filename = filehash
 	}

@@ -7,24 +7,24 @@ import (
 	"path/filepath"
 )
 
-type CallbackWriter struct {
-	C           func(int64, int64) error
-	TotalSize   int64
-	WrittenSize int64
-	io.Writer
+type CallbackReader struct {
+	C         CopyCallback
+	TotalSize int64
+	ReadSize  int64
+	io.Reader
 }
 
 type CopyCallback func(int64, int64) error
 
-func (w *CallbackWriter) Write(p []byte) (int, error) {
-	n, err := w.Writer.Write(p)
+func (w *CallbackReader) Read(p []byte) (int, error) {
+	n, err := w.Reader.Read(p)
 
 	if n > 0 {
-		w.WrittenSize += int64(n)
+		w.ReadSize += int64(n)
 	}
 
 	if err == nil && w.C != nil {
-		err = w.C(w.TotalSize, w.WrittenSize)
+		err = w.C(w.TotalSize, w.ReadSize)
 	}
 
 	return n, err
@@ -35,12 +35,12 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 		return io.Copy(writer, reader)
 	}
 
-	cbWriter := &CallbackWriter{
+	cbReader := &CallbackReader{
 		C:         cb,
 		TotalSize: totalSize,
-		Writer:    writer,
+		Reader:    reader,
 	}
-	return io.Copy(cbWriter, reader)
+	return io.Copy(writer, cbReader)
 }
 
 func CopyCallbackFile(event, filename string) (CopyCallback, *os.File, error) {

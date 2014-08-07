@@ -8,29 +8,33 @@ import (
 )
 
 func TestWriterWithCallback(t *testing.T) {
-	buf := &bytes.Buffer{}
-
 	called := 0
-	calledWritten := make([]int64, 0, 2)
+	calledRead := make([]int64, 0, 2)
 
-	writer := &CallbackWriter{
+	reader := &CallbackReader{
 		TotalSize: 5,
-		Writer:    buf,
-		C: func(total int64, written int64) error {
+		Reader:    bytes.NewBufferString("BOOYA"),
+		C: func(total int64, read int64) error {
 			called += 1
-			calledWritten = append(calledWritten, written)
+			calledRead = append(calledRead, read)
 			assert.Equal(t, 5, int(total))
 			return nil
 		},
 	}
 
-	writer.Write([]byte("BOO"))
-	writer.Write([]byte("YA"))
+	readBuf := make([]byte, 3)
+	n, err := reader.Read(readBuf)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "BOO", string(readBuf[0:n]))
+
+	n, err = reader.Read(readBuf)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "YA", string(readBuf[0:n]))
 
 	assert.Equal(t, 2, called)
-	assert.Equal(t, 2, len(calledWritten))
-	assert.Equal(t, 3, int(calledWritten[0]))
-	assert.Equal(t, 5, int(calledWritten[1]))
+	assert.Equal(t, 2, len(calledRead))
+	assert.Equal(t, 3, int(calledRead[0]))
+	assert.Equal(t, 5, int(calledRead[1]))
 }
 
 func TestCopyWithCallback(t *testing.T) {

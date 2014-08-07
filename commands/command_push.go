@@ -53,7 +53,7 @@ func pushAsset(oid, filename string) *wrappedError {
 	}
 
 	if err == nil {
-		err = gitmediaclient.Put(path, filename)
+		err = gitmediaclient.Put(path, filename, nil)
 	}
 
 	if err != nil {
