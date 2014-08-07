@@ -66,14 +66,14 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			}
 
 			if progress != prevProgress {
-				_, err := file.Write([]byte(fmt.Sprintf("%d %s\n", progress, filename)))
+				_, err := file.Write([]byte(fmt.Sprintf("smudge %d %s\n", progress, filename)))
 				prevProgress = progress
 				return err
 			}
 
 			return nil
 		})
-		file.Write([]byte(fmt.Sprintf("0 %s\n", filename)))
+		file.Write([]byte(fmt.Sprintf("smudge 0 %s\n", filename)))
 	}
 
 	err = ptr.Smudge(os.Stdout, cb)
