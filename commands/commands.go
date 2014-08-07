@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -139,7 +138,13 @@ func logPanic(loggedError error, recursive bool) string {
 	fmt.Fprint(fmtWriter, "\n")
 
 	fmt.Fprintln(fmtWriter, loggedError.Error())
-	fmtWriter.Write(debug.Stack())
+
+	if wErr, ok := loggedError.(*gitmedia.WrappedError); ok {
+		fmt.Fprintln(fmtWriter, wErr.Err.Error())
+		fmtWriter.Write(wErr.Stack)
+	} else {
+		fmtWriter.Write(gitmedia.Stack())
+	}
 
 	if err != nil && !recursive {
 		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)

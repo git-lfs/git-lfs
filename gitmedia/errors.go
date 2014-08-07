@@ -16,13 +16,10 @@ func Error(err error) *WrappedError {
 }
 
 func Errorf(err error, format string, args ...interface{}) *WrappedError {
-	stackBuf := make([]byte, 1024*1024)
-	written := runtime.Stack(stackBuf, false)
-
 	e := &WrappedError{
 		Err:     err,
 		Message: err.Error(),
-		Stack:   stackBuf[:written],
+		Stack:   Stack(),
 	}
 
 	if len(format) > 0 {
@@ -38,4 +35,10 @@ func (e *WrappedError) Error() string {
 
 func (e *WrappedError) Errorf(format string, args ...interface{}) {
 	e.Message = fmt.Sprintf(format, args...)
+}
+
+func Stack() []byte {
+	stackBuf := make([]byte, 1024*1024)
+	written := runtime.Stack(stackBuf, false)
+	return stackBuf[:written]
 }
