@@ -28,9 +28,10 @@ func Smudge(writer io.Writer, ptr *Pointer, cb gitmedia.CopyCallback) error {
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) error {
-	reader, size, err := gitmediaclient.Get(mediafile)
-	if err != nil {
-		return errors.New("client: " + err.Error())
+	reader, size, wErr := gitmediaclient.Get(mediafile)
+	if wErr != nil {
+		wErr.Errorf("Error downloading %s", mediafile)
+		return wErr
 	}
 	defer reader.Close()
 

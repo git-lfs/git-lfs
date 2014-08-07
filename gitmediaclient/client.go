@@ -90,27 +90,27 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 	return nil
 }
 
-func Get(filename string) (io.ReadCloser, int64, error) {
+func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
 	oid := filepath.Base(filename)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, gitmedia.Error(err)
 	}
 
 	req.Header.Set("Accept", gitMediaType)
 	res, err := doRequest(req, creds)
 
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, gitmedia.Error(err)
 	}
 
 	contentType := res.Header.Get("Content-Type")
 	if contentType == "" {
-		return nil, 0, errors.New("Invalid Content-Type")
+		return nil, 0, gitmedia.Error(errors.New("Invalid Content-Type"))
 	}
 
 	if ok, err := validateMediaHeader(contentType, res.Body); !ok {
-		return nil, 0, err
+		return nil, 0, gitmedia.Error(err)
 	}
 
 	return res.Body, res.ContentLength, nil
