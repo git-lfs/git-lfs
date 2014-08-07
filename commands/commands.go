@@ -93,13 +93,7 @@ func handlePanic(err error) string {
 	}
 
 	Debug(err.Error())
-	logFile, logErr := logPanic(err)
-	if logErr != nil {
-		fmt.Fprintf(os.Stderr, "Unable to log panic to %s - %s\n\n", gitmedia.LocalLogDir, err)
-		logEnv(os.Stderr)
-	}
-
-	return logFile
+	return logPanic(err)
 }
 
 func logEnv(w io.Writer) {
@@ -108,9 +102,12 @@ func logEnv(w io.Writer) {
 	}
 }
 
-func logPanic(loggedError error) (string, error) {
-	if err := os.MkdirAll(gitmedia.LocalLogDir, 0744); err != nil {
-		return "", err
+func logPanic(loggedError error) string {
+	var fmtWriter io.Writer = os.Stderr
+
+	if err := os.MkdirAll(gitmedia.LocalLogDir, 0755); err != nil {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", gitmedia.LocalLogDir, err.Error())
+		return ""
 	}
 
 	now := time.Now()
@@ -119,27 +116,28 @@ func logPanic(loggedError error) (string, error) {
 
 	file, err := os.Create(full)
 	if err != nil {
-		return "", err
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
+	} else {
+		fmtWriter = file
+		defer file.Close()
 	}
 
-	defer file.Close()
-
-	fmt.Fprintf(file, "> %s", filepath.Base(os.Args[0]))
+	fmt.Fprintf(fmtWriter, "> %s", filepath.Base(os.Args[0]))
 	if len(os.Args) > 0 {
-		fmt.Fprintf(file, " %s", strings.Join(os.Args[1:], " "))
+		fmt.Fprintf(fmtWriter, " %s", strings.Join(os.Args[1:], " "))
 	}
-	fmt.Fprint(file, "\n")
+	fmt.Fprint(fmtWriter, "\n")
 
-	logEnv(file)
-	fmt.Fprint(file, "\n")
+	logEnv(fmtWriter)
+	fmt.Fprint(fmtWriter, "\n")
 
-	file.Write(ErrorBuffer.Bytes())
-	fmt.Fprint(file, "\n")
+	fmtWriter.Write(ErrorBuffer.Bytes())
+	fmt.Fprint(fmtWriter, "\n")
 
-	fmt.Fprintln(file, loggedError.Error())
-	file.Write(debug.Stack())
+	fmt.Fprintln(fmtWriter, loggedError.Error())
+	fmtWriter.Write(debug.Stack())
 
-	return full, nil
+	return full
 }
 
 func init() {
