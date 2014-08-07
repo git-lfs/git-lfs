@@ -59,15 +59,21 @@ func Debug(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-// Panic prints a formatted message, and writes a stack trace for the error to
-// a log file before exiting.
-func Panic(err error, format string, args ...interface{}) {
+// LoggedError prints a formatted message to Stderr and writes a stack trace for
+// the error to a log file without exiting.
+func LoggedError(err error, format string, args ...interface{}) {
 	Error(format, args...)
 	file := handlePanic(err)
 
 	if len(file) > 0 {
 		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git media logs last` to view the log.\n", file)
 	}
+}
+
+// Panic prints a formatted message, and writes a stack trace for the error to
+// a log file before exiting.
+func Panic(err error, format string, args ...interface{}) {
+	LoggedError(err, format, args...)
 	os.Exit(2)
 }
 
