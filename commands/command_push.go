@@ -53,7 +53,7 @@ func pushAsset(oid, filename string) *wrappedError {
 	}
 
 	if err == nil {
-		cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename)
+		cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, 1, 1)
 		if cbErr != nil {
 			Error(cbErr.Error())
 		}

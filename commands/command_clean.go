@@ -29,7 +29,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		if err == nil && stat != nil {
 			fileSize = stat.Size()
 
-			localCb, localFile, err := gitmedia.CopyCallbackFile("clean", filename)
+			localCb, localFile, err := gitmedia.CopyCallbackFile("clean", filename, 1, 1)
 			if err != nil {
 				Error(err.Error())
 			} else {

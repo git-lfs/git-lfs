@@ -41,7 +41,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	filename := smudgeFilename(args, err)
-	cb, file, err := gitmedia.CopyCallbackFile("smudge", filename)
+	cb, file, err := gitmedia.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
 		Error(err.Error())
 	}

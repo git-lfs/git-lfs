@@ -43,7 +43,7 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 	return io.Copy(writer, cbReader)
 }
 
-func CopyCallbackFile(event, filename string) (CopyCallback, *os.File, error) {
+func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
 	cbFilename := os.Getenv("GIT_MEDIA_PROGRESS")
 	if len(cbFilename) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
@@ -69,14 +69,14 @@ func CopyCallbackFile(event, filename string) (CopyCallback, *os.File, error) {
 		}
 
 		if progress != prevProgress {
-			_, err := file.Write([]byte(fmt.Sprintf("%s %d %s\n", event, progress, filename)))
+			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d %s\n", event, index, totalFiles, progress, filename)))
 			prevProgress = progress
 			return wrapProgressError(err, event, cbFilename)
 		}
 
 		return nil
 	})
-	file.Write([]byte(fmt.Sprintf("%s 0 %s\n", event, filename)))
+	file.Write([]byte(fmt.Sprintf("%s %d/%d 0 %s\n", event, index, totalFiles, filename)))
 
 	return cb, file, nil
 }
