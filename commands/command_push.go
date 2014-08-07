@@ -24,34 +24,51 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	q.Walk(func(id string, body []byte) error {
 		fileInfo := string(body)
-		parts := strings.Split(fileInfo, ":")
+		parts := strings.SplitN(fileInfo, ":", 2)
 
-		var sha, filename string
-		sha = parts[0]
+		var oid, filename string
+		oid = parts[0]
 		if len(parts) > 1 {
 			filename = parts[1]
 		}
 
-		path, err := gitmedia.LocalMediaPath(sha)
-		if err == nil {
-			err = gitmediaclient.Options(path)
-		}
-		if err != nil {
-			Panic(err, "error uploading file %s/%s", sha, filename)
+		if wErr := pushAsset(oid, filename); wErr != nil {
+			Panic(wErr.Inner, wErr.Message)
 		}
 
-		err = gitmediaclient.Put(path, filename)
-		if err != nil {
-			Panic(err, "error uploading file %s/%s", sha, filename)
-		}
 		fmt.Printf("\n")
 
 		if err := q.Del(id); err != nil {
-			Panic(err, "error removing %s from queue", sha)
+			Panic(err, "error removing %s from queue", oid)
 		}
 
 		return nil
 	})
+}
+
+func pushAsset(oid, filename string) *wrappedError {
+	path, err := gitmedia.LocalMediaPath(oid)
+	if err == nil {
+		err = gitmediaclient.Options(path)
+	}
+
+	if err == nil {
+		err = gitmediaclient.Put(path, filename)
+	}
+
+	if err != nil {
+		return &wrappedError{
+			Message: fmt.Sprintf("error uploading file %s/%s", oid, filename),
+			Inner:   err,
+		}
+	}
+
+	return nil
+}
+
+type wrappedError struct {
+	Message string
+	Inner   error
 }
 
 func init() {
