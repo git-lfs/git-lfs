@@ -97,7 +97,6 @@ func handlePanic(err error) string {
 		return ""
 	}
 
-	Debug(err.Error())
 	return logPanic(err, false)
 }
 

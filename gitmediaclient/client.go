@@ -35,9 +35,9 @@ func Options(filehash string) error {
 		return err
 	}
 
-	_, err = doRequest(req, creds)
-	if err != nil {
-		return err
+	_, wErr := doRequest(req, creds)
+	if wErr != nil {
+		return wErr
 	}
 
 	return nil
@@ -83,9 +83,9 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 
 	fmt.Printf("Sending %s\n", filename)
 
-	_, err = doRequest(req, creds)
-	if err != nil {
-		return err
+	_, wErr := doRequest(req, creds)
+	if wErr != nil {
+		return wErr
 	}
 
 	return nil
