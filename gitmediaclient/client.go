@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 )
 
 const (
@@ -222,7 +223,11 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 func ObjectUrl(oid string) *url.URL {
 	c := gitmedia.Config
 	u, _ := url.Parse(c.Endpoint())
-	u.Path = path.Join(u.Path, "/objects/"+oid)
+	if strings.HasSuffix(u.Path, "/") {
+		u.Path = fmt.Sprintf("%sobjects/%s", u.Path, oid)
+	} else {
+		u.Path = fmt.Sprintf("%s/objects/%s", u.Path, oid)
+	}
 	return u
 }
 
