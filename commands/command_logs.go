@@ -84,7 +84,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := errors.New("Error!")
+	err := gitmedia.Errorf(errors.New("Inner error message!"), "Error!")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }

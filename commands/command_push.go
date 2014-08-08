@@ -36,7 +36,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if wErr := pushAsset(oid, filename, i, count); wErr != nil {
-			Panic(wErr.Inner, wErr.Message)
+			Panic(wErr.Err, wErr.Error())
 		}
 		i += 1
 
@@ -50,7 +50,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	})
 }
 
-func pushAsset(oid, filename string, index, totalFiles int) *wrappedError {
+func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedError {
 	path, err := gitmedia.LocalMediaPath(oid)
 	if err == nil {
 		err = gitmediaclient.Options(path)
@@ -69,18 +69,10 @@ func pushAsset(oid, filename string, index, totalFiles int) *wrappedError {
 	}
 
 	if err != nil {
-		return &wrappedError{
-			Message: fmt.Sprintf("error uploading file %s/%s", oid, filename),
-			Inner:   err,
-		}
+		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	return nil
-}
-
-type wrappedError struct {
-	Message string
-	Inner   error
 }
 
 func init() {

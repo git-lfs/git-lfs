@@ -44,9 +44,10 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		file.Close()
 	}
 
-	defer cleaned.Close()
+	cleaned.Close()
+	defer cleaned.Teardown()
 	if err != nil {
-		Panic(err, "Error cleaning asset")
+		Panic(err, "Error cleaning asset.")
 	}
 
 	tmpfile := cleaned.File.Name()

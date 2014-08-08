@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -59,15 +58,21 @@ func Debug(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-// Panic prints a formatted message, and writes a stack trace for the error to
-// a log file before exiting.
-func Panic(err error, format string, args ...interface{}) {
+// LoggedError prints a formatted message to Stderr and writes a stack trace for
+// the error to a log file without exiting.
+func LoggedError(err error, format string, args ...interface{}) {
 	Error(format, args...)
 	file := handlePanic(err)
 
 	if len(file) > 0 {
 		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git media logs last` to view the log.\n", file)
 	}
+}
+
+// Panic prints a formatted message, and writes a stack trace for the error to
+// a log file before exiting.
+func Panic(err error, format string, args ...interface{}) {
+	LoggedError(err, format, args...)
 	os.Exit(2)
 }
 
@@ -92,14 +97,7 @@ func handlePanic(err error) string {
 		return ""
 	}
 
-	Debug(err.Error())
-	logFile, logErr := logPanic(err)
-	if logErr != nil {
-		fmt.Fprintf(os.Stderr, "Unable to log panic to %s - %s\n\n", gitmedia.LocalLogDir, err)
-		logEnv(os.Stderr)
-	}
-
-	return logFile
+	return logPanic(err, false)
 }
 
 func logEnv(w io.Writer) {
@@ -108,38 +106,60 @@ func logEnv(w io.Writer) {
 	}
 }
 
-func logPanic(loggedError error) (string, error) {
-	if err := os.MkdirAll(gitmedia.LocalLogDir, 0744); err != nil {
-		return "", err
+func logPanic(loggedError error, recursive bool) string {
+	var fmtWriter io.Writer = os.Stderr
+
+	if err := os.MkdirAll(gitmedia.LocalLogDir, 0755); err != nil {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", gitmedia.LocalLogDir, err.Error())
+		return ""
 	}
 
 	now := time.Now()
-	name := now.Format("2006-01-02T15:04:05.999999999")
+	name := now.Format("20060102T150405.999999999")
 	full := filepath.Join(gitmedia.LocalLogDir, name+".log")
 
 	file, err := os.Create(full)
-	if err != nil {
-		return "", err
+	if err == nil {
+		fmtWriter = file
+		defer file.Close()
 	}
 
-	defer file.Close()
-
-	fmt.Fprintf(file, "> %s", filepath.Base(os.Args[0]))
+	fmt.Fprintf(fmtWriter, "> %s", filepath.Base(os.Args[0]))
 	if len(os.Args) > 0 {
-		fmt.Fprintf(file, " %s", strings.Join(os.Args[1:], " "))
+		fmt.Fprintf(fmtWriter, " %s", strings.Join(os.Args[1:], " "))
 	}
-	fmt.Fprint(file, "\n")
+	fmt.Fprint(fmtWriter, "\n")
 
-	logEnv(file)
-	fmt.Fprint(file, "\n")
+	logEnv(fmtWriter)
+	fmt.Fprint(fmtWriter, "\n")
 
-	file.Write(ErrorBuffer.Bytes())
-	fmt.Fprint(file, "\n")
+	fmtWriter.Write(ErrorBuffer.Bytes())
+	fmt.Fprint(fmtWriter, "\n")
 
-	fmt.Fprintln(file, loggedError.Error())
-	file.Write(debug.Stack())
+	fmt.Fprintln(fmtWriter, loggedError.Error())
 
-	return full, nil
+	if wErr, ok := loggedError.(ErrorWithStack); ok {
+		fmt.Fprintln(fmtWriter, wErr.InnerError())
+		for key, value := range wErr.Context() {
+			fmt.Fprintf(fmtWriter, "%s=%s\n", key, value)
+		}
+		fmtWriter.Write(wErr.Stack())
+	} else {
+		fmtWriter.Write(gitmedia.Stack())
+	}
+
+	if err != nil && !recursive {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
+		logPanic(err, true)
+	}
+
+	return full
+}
+
+type ErrorWithStack interface {
+	Context() map[string]string
+	InnerError() string
+	Stack() []byte
 }
 
 func init() {

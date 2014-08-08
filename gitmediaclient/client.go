@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -34,9 +35,9 @@ func Options(filehash string) error {
 		return err
 	}
 
-	_, err = doRequest(req, creds)
-	if err != nil {
-		return err
+	_, wErr := doRequest(req, creds)
+	if wErr != nil {
+		return wErr
 	}
 
 	return nil
@@ -82,53 +83,56 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 
 	fmt.Printf("Sending %s\n", filename)
 
-	_, err = doRequest(req, creds)
-	if err != nil {
-		return err
+	_, wErr := doRequest(req, creds)
+	if wErr != nil {
+		return wErr
 	}
 
 	return nil
 }
 
-func Get(filename string) (io.ReadCloser, int64, error) {
+func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
 	oid := filepath.Base(filename)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, gitmedia.Error(err)
 	}
 
 	req.Header.Set("Accept", gitMediaType)
-	res, err := doRequest(req, creds)
+	res, wErr := doRequest(req, creds)
 
-	if err != nil {
-		return nil, 0, err
+	if wErr != nil {
+		return nil, 0, wErr
 	}
 
 	contentType := res.Header.Get("Content-Type")
 	if contentType == "" {
-		return nil, 0, errors.New("Invalid Content-Type")
+		wErr = gitmedia.Error(errors.New("Empty Content-Type"))
+		setErrorResponseContext(wErr, res)
+		return nil, 0, wErr
 	}
 
-	if ok, err := validateMediaHeader(contentType, res.Body); !ok {
-		return nil, 0, err
+	if ok, wErr := validateMediaHeader(contentType, res.Body); !ok {
+		setErrorResponseContext(wErr, res)
+		return nil, 0, wErr
 	}
 
 	return res.Body, res.ContentLength, nil
 }
 
-func validateMediaHeader(contentType string, reader io.Reader) (bool, error) {
+func validateMediaHeader(contentType string, reader io.Reader) (bool, *gitmedia.WrappedError) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return false, errors.New("Invalid Media Type")
+		return false, gitmedia.Errorf(err, "Invalid Media Type: %s", contentType)
 	}
 
 	if mediaType != gitMediaType {
-		return false, errors.New("Invalid Media Type")
+		return false, gitmedia.Error(fmt.Errorf("Invalid Media Type: %s expected, got %s", gitMediaType, mediaType))
 	}
 
 	givenHeader, ok := params["header"]
 	if !ok {
-		return false, errors.New("Invalid header")
+		return false, gitmedia.Error(fmt.Errorf("Missing Git Media header in %s", contentType))
 	}
 
 	fullGivenHeader := "--" + givenHeader + "\n"
@@ -136,36 +140,78 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, error) {
 	header := make([]byte, len(fullGivenHeader))
 	_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
 	if err != nil {
-		return false, err
+		return false, gitmedia.Errorf(err, "Error reading response body.")
 	}
 
 	if string(header) != fullGivenHeader {
-		return false, errors.New("Invalid header")
+		return false, gitmedia.Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
 	}
 
 	return true, nil
 }
 
-func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
+func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.WrappedError) {
 	res, err := http.DefaultClient.Do(req)
+
+	var wErr *gitmedia.WrappedError
 
 	if err == nil {
 		if res.StatusCode > 299 {
-			execCreds(creds, "reject")
+			// An auth error should be 403.  Could be 404 also.
+			if res.StatusCode < 405 {
+				execCreds(creds, "reject")
+			}
 
 			apierr := &Error{}
 			dec := json.NewDecoder(res.Body)
 			if err := dec.Decode(apierr); err != nil {
-				return res, err
+				wErr = gitmedia.Errorf(err, "Error decoding JSON from response")
+			} else {
+				wErr = gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
 			}
-
-			return res, apierr
+		} else {
+			execCreds(creds, "approve")
 		}
-
-		execCreds(creds, "approve")
+	} else {
+		wErr = gitmedia.Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
 
-	return res, err
+	if wErr != nil {
+		if res != nil {
+			setErrorResponseContext(wErr, res)
+		} else {
+			setErrorRequestContext(wErr, req)
+		}
+	}
+
+	return res, wErr
+}
+
+var hiddenHeaders = map[string]bool{
+	"Authorization": true,
+}
+
+func setErrorRequestContext(err *gitmedia.WrappedError, req *http.Request) {
+	err.Set("Endpoint", gitmedia.Config.Endpoint())
+	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+	setErrorHeaderContext(err, "Response", req.Header)
+}
+
+func setErrorResponseContext(err *gitmedia.WrappedError, res *http.Response) {
+	err.Set("Status", res.Status)
+	setErrorHeaderContext(err, "Request", res.Header)
+	setErrorRequestContext(err, res.Request)
+}
+
+func setErrorHeaderContext(err *gitmedia.WrappedError, prefix string, head http.Header) {
+	for key, _ := range head {
+		contextKey := fmt.Sprintf("%s:%s", prefix, key)
+		if _, skip := hiddenHeaders[key]; skip {
+			err.Set(contextKey, "--")
+		} else {
+			err.Set(contextKey, head.Get(key))
+		}
+	}
 }
 
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
@@ -189,7 +235,11 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 func ObjectUrl(oid string) *url.URL {
 	c := gitmedia.Config
 	u, _ := url.Parse(c.Endpoint())
-	u.Path = filepath.Join(u.Path, "/objects/"+oid)
+	if strings.HasSuffix(u.Path, "/") {
+		u.Path = fmt.Sprintf("%sobjects/%s", u.Path, oid)
+	} else {
+		u.Path = fmt.Sprintf("%s/objects/%s", u.Path, oid)
+	}
 	return u
 }
 

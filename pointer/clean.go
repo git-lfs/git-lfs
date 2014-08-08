@@ -34,5 +34,9 @@ func Clean(reader io.Reader, size int64, cb gitmedia.CopyCallback) (*cleanedAsse
 }
 
 func (a *cleanedAsset) Close() error {
+	return a.File.Close()
+}
+
+func (a *cleanedAsset) Teardown() error {
 	return os.Remove(a.File.Name())
 }
