@@ -151,7 +151,10 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 
 	if err == nil {
 		if res.StatusCode > 299 {
-			execCreds(creds, "reject")
+			// An auth error should be 403.  Could be 404 also.
+			if res.StatusCode < 405 {
+				execCreds(creds, "reject")
+			}
 
 			apierr := &Error{}
 			dec := json.NewDecoder(res.Body)
