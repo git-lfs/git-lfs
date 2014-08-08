@@ -29,11 +29,14 @@ func Smudge(writer io.Writer, ptr *Pointer, cb gitmedia.CopyCallback) error {
 
 func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) *gitmedia.WrappedError {
 	reader, size, wErr := gitmediaclient.Get(mediafile)
+	if reader != nil {
+		defer reader.Close()
+	}
+
 	if wErr != nil {
 		wErr.Errorf("Error downloading %s.", mediafile)
 		return wErr
 	}
-	defer reader.Close()
 
 	if ptr.Size == 0 {
 		ptr.Size = size
