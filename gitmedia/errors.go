@@ -8,7 +8,7 @@ import (
 type WrappedError struct {
 	Err     error
 	Message string
-	Stack   []byte
+	stack   []byte
 }
 
 func Error(err error) *WrappedError {
@@ -16,10 +16,14 @@ func Error(err error) *WrappedError {
 }
 
 func Errorf(err error, format string, args ...interface{}) *WrappedError {
+	if err == nil {
+		return nil
+	}
+
 	e := &WrappedError{
 		Err:     err,
 		Message: err.Error(),
-		Stack:   Stack(),
+		stack:   Stack(),
 	}
 
 	if len(format) > 0 {
@@ -35,6 +39,14 @@ func (e *WrappedError) Error() string {
 
 func (e *WrappedError) Errorf(format string, args ...interface{}) {
 	e.Message = fmt.Sprintf(format, args...)
+}
+
+func (e *WrappedError) InnerError() string {
+	return e.Err.Error()
+}
+
+func (e *WrappedError) Stack() []byte {
+	return e.stack
 }
 
 func Stack() []byte {

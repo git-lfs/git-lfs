@@ -1,7 +1,6 @@
 package pointer
 
 import (
-	"errors"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
 	"io"
@@ -14,23 +13,24 @@ func Smudge(writer io.Writer, ptr *Pointer, cb gitmedia.CopyCallback) error {
 		return err
 	}
 
+	var wErr *gitmedia.WrappedError
 	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
-		err = downloadFile(writer, ptr, mediafile, cb)
+		wErr = downloadFile(writer, ptr, mediafile, cb)
 	} else {
-		err = readLocalFile(writer, ptr, mediafile, cb)
+		wErr = readLocalFile(writer, ptr, mediafile, cb)
 	}
 
-	if err != nil {
-		return &SmudgeError{ptr.Oid, mediafile, err.Error()}
+	if wErr != nil {
+		return &SmudgeError{ptr.Oid, mediafile, wErr}
 	} else {
 		return nil
 	}
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) error {
+func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) *gitmedia.WrappedError {
 	reader, size, wErr := gitmediaclient.Get(mediafile)
 	if wErr != nil {
-		wErr.Errorf("Error downloading %s", mediafile)
+		wErr.Errorf("Error downloading %s.", mediafile)
 		return wErr
 	}
 	defer reader.Close()
@@ -41,33 +41,27 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 
 	mediaWriter, err := newFile(mediafile, ptr.Oid)
 	if err != nil {
-		return errors.New("open: " + err.Error())
+		return gitmedia.Errorf(err, "Error opening media file buffer.")
 	}
 
 	_, copyErr := io.Copy(mediaWriter, reader)
 	closeErr := mediaWriter.Close()
 
 	if copyErr != nil {
-		return errors.New("write: " + copyErr.Error())
+		return gitmedia.Errorf(copyErr, "Error buffering media file.")
 	}
 
 	if closeErr != nil {
-		return errors.New("close: " + closeErr.Error())
+		return gitmedia.Errorf(closeErr, "Error closing saved media file bubfer.")
 	}
 
-	file, err := os.Open(mediaWriter.Path)
-	if err != nil {
-		return err
-	}
-
-	_, err = gitmedia.CopyWithCallback(writer, file, ptr.Size, cb)
-	return err
+	return readLocalFile(writer, ptr, mediaWriter.Path, cb)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) error {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) *gitmedia.WrappedError {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return err
+		return gitmedia.Errorf(err, "Error opening media file.")
 	}
 	defer reader.Close()
 
@@ -78,15 +72,11 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia
 	}
 
 	_, err = gitmedia.CopyWithCallback(writer, reader, ptr.Size, cb)
-	return err
+	return gitmedia.Errorf(err, "Error reading from media file.")
 }
 
 type SmudgeError struct {
-	Oid          string
-	Filename     string
-	ErrorMessage string
-}
-
-func (e *SmudgeError) Error() string {
-	return e.ErrorMessage
+	Oid      string
+	Filename string
+	*gitmedia.WrappedError
 }
