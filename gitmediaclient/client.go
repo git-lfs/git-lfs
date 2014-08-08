@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 )
 
 func Options(filehash string) error {
-	oid := filepath.Base(filehash)
+	oid := path.Base(filehash)
 	_, err := os.Stat(filehash)
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 		filename = filehash
 	}
 
-	oid := filepath.Base(filehash)
+	oid := path.Base(filehash)
 	file, err := os.Open(filehash)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 }
 
 func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
-	oid := filepath.Base(filename)
+	oid := path.Base(filename)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
 		return nil, 0, gitmedia.Error(err)
@@ -222,7 +222,7 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 func ObjectUrl(oid string) *url.URL {
 	c := gitmedia.Config
 	u, _ := url.Parse(c.Endpoint())
-	u.Path = filepath.Join(u.Path, "/objects/"+oid)
+	u.Path = path.Join(u.Path, "/objects/"+oid)
 	return u
 }
 
