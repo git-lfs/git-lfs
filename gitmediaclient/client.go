@@ -98,10 +98,10 @@ func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
 	}
 
 	req.Header.Set("Accept", gitMediaType)
-	res, err := doRequest(req, creds)
+	res, wErr := doRequest(req, creds)
 
 	if err != nil {
-		return nil, 0, gitmedia.Error(err)
+		return nil, 0, wErr
 	}
 
 	contentType := res.Header.Get("Content-Type")
@@ -146,7 +146,7 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, error) {
 	return true, nil
 }
 
-func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
+func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.WrappedError) {
 	res, err := http.DefaultClient.Do(req)
 
 	if err == nil {
@@ -159,16 +159,21 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, error) {
 			apierr := &Error{}
 			dec := json.NewDecoder(res.Body)
 			if err := dec.Decode(apierr); err != nil {
-				return res, err
+				return res, gitmedia.Errorf(err, "Error decoding JSON from response")
 			}
 
-			return res, apierr
+			return res, gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
 		}
 
 		execCreds(creds, "approve")
 	}
 
-	return res, err
+	wErr := gitmedia.Errorf(err, "Error sending HTTP request to %s", req.URL.String())
+	wErr.Set("URL", req.URL.String())
+	for key, _ := range req.Header {
+		wErr.Set(key, req.Header.Get(key))
+	}
+	return res, wErr
 }
 
 func clientRequest(method, oid string) (*http.Request, Creds, error) {

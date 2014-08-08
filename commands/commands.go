@@ -141,6 +141,9 @@ func logPanic(loggedError error, recursive bool) string {
 
 	if wErr, ok := loggedError.(ErrorWithStack); ok {
 		fmt.Fprintln(fmtWriter, wErr.InnerError())
+		for key, value := range wErr.Context() {
+			fmt.Fprintf(fmtWriter, "%s=%s\n", key, value)
+		}
 		fmtWriter.Write(wErr.Stack())
 	} else {
 		fmtWriter.Write(gitmedia.Stack())
@@ -155,6 +158,7 @@ func logPanic(loggedError error, recursive bool) string {
 }
 
 type ErrorWithStack interface {
+	Context() map[string]string
 	InnerError() string
 	Stack() []byte
 }

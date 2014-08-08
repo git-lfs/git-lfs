@@ -9,6 +9,7 @@ type WrappedError struct {
 	Err     error
 	Message string
 	stack   []byte
+	context map[string]string
 }
 
 func Error(err error) *WrappedError {
@@ -33,6 +34,27 @@ func Errorf(err error, format string, args ...interface{}) *WrappedError {
 	return e
 }
 
+func (e *WrappedError) Set(key, value string) {
+	if e.context == nil {
+		e.context = make(map[string]string)
+	}
+	e.context[key] = value
+}
+
+func (e *WrappedError) Get(key string) string {
+	if e.context == nil {
+		return ""
+	}
+	return e.context[key]
+}
+
+func (e *WrappedError) Del(key string) {
+	if e.context == nil {
+		return
+	}
+	delete(e.context, key)
+}
+
 func (e *WrappedError) Error() string {
 	return e.Message
 }
@@ -47,6 +69,13 @@ func (e *WrappedError) InnerError() string {
 
 func (e *WrappedError) Stack() []byte {
 	return e.stack
+}
+
+func (e *WrappedError) Context() map[string]string {
+	if e.context == nil {
+		e.context = make(map[string]string)
+	}
+	return e.context
 }
 
 func Stack() []byte {
