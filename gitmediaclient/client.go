@@ -187,20 +187,31 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.Wrappe
 	return res, wErr
 }
 
+var hiddenHeaders = map[string]bool{
+	"Authorization": true,
+}
+
 func setErrorRequestContext(err *gitmedia.WrappedError, req *http.Request) {
 	err.Set("Endpoint", gitmedia.Config.Endpoint())
-	err.Set("URL", req.URL.String())
-	for key, _ := range req.Header {
-		err.Set("Request:"+key, req.Header.Get(key))
-	}
+	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+	setErrorHeaderContext(err, "Response", req.Header)
 }
 
 func setErrorResponseContext(err *gitmedia.WrappedError, res *http.Response) {
 	err.Set("Status", res.Status)
-	for key, _ := range res.Header {
-		err.Set("Response:"+key, res.Header.Get(key))
-	}
+	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
+}
+
+func setErrorHeaderContext(err *gitmedia.WrappedError, prefix string, head http.Header) {
+	for key, _ := range head {
+		contextKey := fmt.Sprintf("%s:%s", prefix, key)
+		if _, skip := hiddenHeaders[key]; skip {
+			err.Set(contextKey, "--")
+		} else {
+			err.Set(contextKey, head.Get(key))
+		}
+	}
 }
 
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
