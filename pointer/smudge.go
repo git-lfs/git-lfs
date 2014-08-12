@@ -47,7 +47,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 		return gitmedia.Errorf(err, "Error opening media file buffer.")
 	}
 
-	_, copyErr := io.Copy(mediaWriter, reader)
+	_, copyErr := gitmedia.CopyWithCallback(writer, reader, ptr.Size, cb)
 	closeErr := mediaWriter.Close()
 
 	if copyErr != nil {
@@ -58,7 +58,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 		return gitmedia.Errorf(closeErr, "Error closing saved media file bubfer.")
 	}
 
-	return readLocalFile(writer, ptr, mediaWriter.Path, cb)
+	return readLocalFile(writer, ptr, mediaWriter.Path, nil)
 }
 
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) *gitmedia.WrappedError {
