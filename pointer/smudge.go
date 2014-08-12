@@ -47,7 +47,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 		return gitmedia.Errorf(err, "Error opening media file buffer.")
 	}
 
-	_, copyErr := gitmedia.CopyWithCallback(writer, reader, ptr.Size, cb)
+	_, copyErr := gitmedia.CopyWithCallback(mediaWriter, reader, ptr.Size, cb)
 	closeErr := mediaWriter.Close()
 
 	if copyErr != nil {
