@@ -70,6 +70,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 
 		if progress != prevProgress {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d %s\n", event, index, totalFiles, progress, filename)))
+			file.Sync()
 			prevProgress = progress
 			return wrapProgressError(err, event, cbFilename)
 		}
