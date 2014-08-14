@@ -3,6 +3,7 @@ package gitmedia
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -44,8 +45,22 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 }
 
 func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
-	cbFilename := os.Getenv("GIT_MEDIA_PROGRESS")
-	if len(cbFilename) == 0 || len(filename) == 0 || len(event) == 0 {
+	rawurl := os.Getenv("GIT_MEDIA_PROGRESS")
+	if len(rawurl) == 0 || len(filename) == 0 || len(event) == 0 {
+		return nil, nil, nil
+	}
+
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if u.Scheme != "file" {
+		return nil, nil, fmt.Errorf("Invalid scheme for GIT_MEDIA_PROGRESS: %s", u.Scheme)
+	}
+
+	cbFilename := u.Path
+	if len(cbFilename) == 0 {
 		return nil, nil, nil
 	}
 
