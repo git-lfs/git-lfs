@@ -103,6 +103,17 @@ size=fif`,
 		`version=http://wat.io/v/2
 oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size=fif`,
+
+		// extra key
+		`version http://git-media.io/v/2
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+wat wat`,
+
+		// keys out of order
+		`version http://git-media.io/v/2
+size 12345
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
 	}
 
 	for _, ex := range examples {

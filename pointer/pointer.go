@@ -22,6 +22,8 @@ var (
 oid sha256:%s
 size %d
 `
+	matcher     = []byte("git-media")
+	pointerKeys = []string{"version", "oid", "size"}
 )
 
 type Pointer struct {
@@ -116,14 +118,30 @@ func decodeKVData(data []byte) (map[string]string, error) {
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))
 	line := 0
+	numKeys := len(pointerKeys)
 	for scanner.Scan() {
-		line += 1
-		parts := strings.SplitN(scanner.Text(), " ", 2)
-		if len(parts) < 2 {
-			return m, fmt.Errorf("Error reading line %d", line)
+		text := scanner.Text()
+		if len(text) == 0 {
+			continue
 		}
 
-		m[parts[0]] = parts[1]
+		parts := strings.SplitN(text, " ", 2)
+		key := parts[0]
+
+		if numKeys <= line {
+			return m, fmt.Errorf("Extra line: %s", text)
+		}
+
+		if expected := pointerKeys[line]; key != expected {
+			return m, fmt.Errorf("Expected key %s, got %s", expected, key)
+		}
+
+		line += 1
+		if len(parts) < 2 {
+			return m, fmt.Errorf("Error reading line %d: %s", line, text)
+		}
+
+		m[key] = parts[1]
 	}
 
 	return m, scanner.Err()
@@ -138,5 +156,3 @@ func decodeAlpha(data []byte) (*Pointer, error) {
 
 	return &Pointer{alpha, string(lines[last]), 0, oidType}, nil
 }
-
-var matcher = []byte("git-media")
