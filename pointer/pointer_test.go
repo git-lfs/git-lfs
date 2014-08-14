@@ -15,10 +15,9 @@ func TestEncode(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	bufReader := bufio.NewReader(&buf)
-	assertLine(t, bufReader, "[git-media]\n")
-	assertLine(t, bufReader, "version=http://git-media.io/v/2\n")
-	assertLine(t, bufReader, "oid=sha256:booya\n")
-	assertLine(t, bufReader, "size=12345\n")
+	assertLine(t, bufReader, "version http://git-media.io/v/2\n")
+	assertLine(t, bufReader, "oid sha256:booya\n")
+	assertLine(t, bufReader, "size 12345\n")
 
 	line, err := bufReader.ReadString('\n')
 	if err == nil {
@@ -34,10 +33,9 @@ func assertLine(t *testing.T, r *bufio.Reader, expected string) {
 }
 
 func TestIniV2Decode(t *testing.T) {
-	ex := `[git-media]
-version=http://git-media.io/v/2
-oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=12345`
+	ex := `version http://git-media.io/v/2
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`
 
 	p, err := Decode(bytes.NewBufferString(ex))
 	assertEqualWithExample(t, ex, nil, err)
@@ -69,44 +67,37 @@ func TestDecodeInvalid(t *testing.T) {
 		// no sha
 		"# git-media",
 
-		// invalid section
-		`[git-media2]
-version=http://git-media.io/v/2
-oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=12345`,
-
 		// bad oid type
-		`[git-media]
-version=http://git-media.io/v/2
-oid=shazam:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=12345`,
+		`version http://git-media.io/v/2
+oid shazam:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
 
 		// no oid
-		`[git-media]
-version=http://git-media.io/v/2
-size=12345`,
+		`version http://git-media.io/v/2
+size 12345`,
 
 		// bad version
-		`[git-media]
-version=http://git-media.io/v/whatever
-oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=12345`,
+		`version http://git-media.io/v/whatever
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
 
 		// no version
-		`[git-media]
-oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=12345`,
+		`oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
 
 		// bad size
-		`[git-media]
-version=http://git-media.io/v/2
-oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size=fif`,
+		`version http://git-media.io/v/2
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size fif`,
 
 		// no size
-		`[git-media2]
-version=http://git-media.io/v/2
-oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
+		`version http://git-media.io/v/2
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
+
+		// bad `key value` format
+		`version=http://git-media.io/v/2
+oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size=fif`,
 	}
 
 	for _, ex := range examples {

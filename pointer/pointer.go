@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
-	ini "github.com/glacjay/goini"
 	"io"
 	"regexp"
 	"strconv"
@@ -19,10 +18,9 @@ var (
 	latest        = "http://git-media.io/v/2"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
-	template      = `[git-media]
-version=%s
-oid=sha256:%s
-size=%d
+	template      = `version %s
+oid sha256:%s
+size %d
 `
 )
 
@@ -62,17 +60,17 @@ func Decode(reader io.Reader) (*Pointer, error) {
 	if alphaHeaderRE.Match(data) {
 		return decodeAlpha(data)
 	} else {
-		return decodeIni(data)
+		return decodeKV(data)
 	}
 }
 
-func decodeIni(data []byte) (*Pointer, error) {
-	dict, err := ini.LoadReader(bufio.NewReader(bytes.NewReader(data)))
+func decodeKV(data []byte) (*Pointer, error) {
+	parsed, err := decodeKVData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	v, ok := dict.GetString("git-media", "version")
+	v, ok := parsed["version"]
 	if !ok || v != latest {
 		if len(v) == 0 {
 			v = "--"
@@ -81,7 +79,7 @@ func decodeIni(data []byte) (*Pointer, error) {
 		return nil, errors.New("Invalid version: " + v)
 	}
 
-	oidValue, ok := dict.GetString("git-media", "oid")
+	oidValue, ok := parsed["oid"]
 	if !ok {
 		return nil, errors.New("Invalid Oid")
 	}
@@ -96,7 +94,7 @@ func decodeIni(data []byte) (*Pointer, error) {
 	oid := oidParts[1]
 
 	var size int64
-	sizeStr, ok := dict.GetString("git-media", "size")
+	sizeStr, ok := parsed["size"]
 	if !ok {
 		return nil, errors.New("Invalid Oid")
 	} else {
@@ -107,6 +105,22 @@ func decodeIni(data []byte) (*Pointer, error) {
 	}
 
 	return NewPointer(oid, size), nil
+}
+
+func decodeKVData(data []byte) (map[string]string, error) {
+	m := make(map[string]string)
+	scanner := bufio.NewScanner(bytes.NewBuffer(data))
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), " ", 2)
+		var v string
+		if len(parts) > 1 {
+			v = parts[1]
+		}
+
+		m[parts[0]] = v
+	}
+
+	return m, scanner.Err()
 }
 
 func decodeAlpha(data []byte) (*Pointer, error) {
