@@ -86,7 +86,6 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 
 		return nil
 	})
-	file.Write([]byte(fmt.Sprintf("%s %d/%d 0/0 %s\n", event, index, totalFiles, filename)))
 
 	return cb, file, nil
 }
