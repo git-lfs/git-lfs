@@ -59,25 +59,19 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 		return nil, file, wrapProgressError(err, event, cbFilename)
 	}
 
-	var prevProgress int
-	var progress int
+	var prevWritten int64
 
 	cb := CopyCallback(func(total int64, written int64) error {
-		progress = 0
-		if total > 0 {
-			progress = int(float64(written) / float64(total) * 100)
-		}
-
-		if progress != prevProgress {
-			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d %s\n", event, index, totalFiles, progress, filename)))
+		if written != prevWritten {
+			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()
-			prevProgress = progress
+			prevWritten = written
 			return wrapProgressError(err, event, cbFilename)
 		}
 
 		return nil
 	})
-	file.Write([]byte(fmt.Sprintf("%s %d/%d 0 %s\n", event, index, totalFiles, filename)))
+	file.Write([]byte(fmt.Sprintf("%s %d/%d 0/0 %s\n", event, index, totalFiles, filename)))
 
 	return cb, file, nil
 }
