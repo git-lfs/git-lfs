@@ -109,15 +109,21 @@ func decodeKV(data []byte) (*Pointer, error) {
 
 func decodeKVData(data []byte) (map[string]string, error) {
 	m := make(map[string]string)
+
+	if !bytes.Contains(data, matcher) {
+		return m, fmt.Errorf("Not a valid Git Media pointer file.")
+	}
+
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))
+	line := 0
 	for scanner.Scan() {
+		line += 1
 		parts := strings.SplitN(scanner.Text(), " ", 2)
-		var v string
-		if len(parts) > 1 {
-			v = parts[1]
+		if len(parts) < 2 {
+			return m, fmt.Errorf("Error reading line %d", line)
 		}
 
-		m[parts[0]] = v
+		m[parts[0]] = parts[1]
 	}
 
 	return m, scanner.Err()
@@ -127,8 +133,10 @@ func decodeAlpha(data []byte) (*Pointer, error) {
 	lines := bytes.Split(data, []byte("\n"))
 	last := len(lines) - 1
 	if last == 0 {
-		return nil, errors.New("No sha in pointer file")
+		return nil, errors.New("No OID in pointer file")
 	}
 
 	return &Pointer{alpha, string(lines[last]), 0, oidType}, nil
 }
+
+var matcher = []byte("git-media")
