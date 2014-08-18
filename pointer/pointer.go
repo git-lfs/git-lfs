@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
-	ini "github.com/glacjay/goini"
 	"io"
 	"regexp"
 	"strconv"
@@ -19,11 +18,12 @@ var (
 	latest        = "http://git-media.io/v/2"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
-	template      = `[git-media]
-version=%s
-oid=sha256:%s
-size=%d
+	template      = `version %s
+oid sha256:%s
+size %d
 `
+	matcher     = []byte("git-media")
+	pointerKeys = []string{"version", "oid", "size"}
 )
 
 type Pointer struct {
@@ -62,17 +62,17 @@ func Decode(reader io.Reader) (*Pointer, error) {
 	if alphaHeaderRE.Match(data) {
 		return decodeAlpha(data)
 	} else {
-		return decodeIni(data)
+		return decodeKV(data)
 	}
 }
 
-func decodeIni(data []byte) (*Pointer, error) {
-	dict, err := ini.LoadReader(bufio.NewReader(bytes.NewReader(data)))
+func decodeKV(data []byte) (*Pointer, error) {
+	parsed, err := decodeKVData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	v, ok := dict.GetString("git-media", "version")
+	v, ok := parsed["version"]
 	if !ok || v != latest {
 		if len(v) == 0 {
 			v = "--"
@@ -81,7 +81,7 @@ func decodeIni(data []byte) (*Pointer, error) {
 		return nil, errors.New("Invalid version: " + v)
 	}
 
-	oidValue, ok := dict.GetString("git-media", "oid")
+	oidValue, ok := parsed["oid"]
 	if !ok {
 		return nil, errors.New("Invalid Oid")
 	}
@@ -96,7 +96,7 @@ func decodeIni(data []byte) (*Pointer, error) {
 	oid := oidParts[1]
 
 	var size int64
-	sizeStr, ok := dict.GetString("git-media", "size")
+	sizeStr, ok := parsed["size"]
 	if !ok {
 		return nil, errors.New("Invalid Oid")
 	} else {
@@ -109,11 +109,49 @@ func decodeIni(data []byte) (*Pointer, error) {
 	return NewPointer(oid, size), nil
 }
 
+func decodeKVData(data []byte) (map[string]string, error) {
+	m := make(map[string]string)
+
+	if !bytes.Contains(data, matcher) {
+		return m, fmt.Errorf("Not a valid Git Media pointer file.")
+	}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(data))
+	line := 0
+	numKeys := len(pointerKeys)
+	for scanner.Scan() {
+		text := scanner.Text()
+		if len(text) == 0 {
+			continue
+		}
+
+		parts := strings.SplitN(text, " ", 2)
+		key := parts[0]
+
+		if numKeys <= line {
+			return m, fmt.Errorf("Extra line: %s", text)
+		}
+
+		if expected := pointerKeys[line]; key != expected {
+			return m, fmt.Errorf("Expected key %s, got %s", expected, key)
+		}
+
+		line += 1
+		if len(parts) < 2 {
+			return m, fmt.Errorf("Error reading line %d: %s", line, text)
+		}
+
+		m[key] = parts[1]
+	}
+
+	return m, scanner.Err()
+}
+
 func decodeAlpha(data []byte) (*Pointer, error) {
 	lines := bytes.Split(data, []byte("\n"))
 	last := len(lines) - 1
 	if last == 0 {
-		return nil, errors.New("No sha in pointer file")
+		return nil, errors.New("No OID in pointer file")
 	}
 
 	return &Pointer{alpha, string(lines[last]), 0, oidType}, nil

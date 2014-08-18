@@ -19,10 +19,9 @@ func TestClean(t *testing.T) {
 
 	cmd := repo.Command("clean", "somefile")
 	cmd.Input = bytes.NewBufferString(content)
-	cmd.Output = `[git-media]
-version=http://git-media.io/v/2
-oid=sha256:` + oid + `
-size=3`
+	cmd.Output = `version http://git-media.io/v/2
+oid sha256:` + oid + `
+size 3`
 
 	cmd.After(func() {
 		// assert file gets queued
@@ -43,10 +42,9 @@ size=3`
 
 	cmd = repo.Command("clean")
 	cmd.Input = bytes.NewBufferString(content)
-	cmd.Output = `[git-media]
-version=http://git-media.io/v/2
-oid=sha256:` + oid + `
-size=3`
+	cmd.Output = `version http://git-media.io/v/2
+oid sha256:` + oid + `
+size 3`
 	customHook := []byte("echo 'yo'")
 	cmd.Before(func() {
 		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)

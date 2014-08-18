@@ -18,7 +18,7 @@ func TestSmudge(t *testing.T) {
 
 	// simple smudge example
 	cmd := repo.Command("smudge", "somefile")
-	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=9\n")
+	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:SOMEOID\nsize 9\n")
 	cmd.Output = "whatever"
 	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS="+progressFile)
 
@@ -91,12 +91,12 @@ func TestSmudgeInfo(t *testing.T) {
 
 	// smudge --info with ini pointer format, without local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=123\n")
+	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:SOMEOID\nsize 123\n")
 	cmd.Output = "123 --"
 
 	// smudge --info with ini pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("[git-media]\nversion=http://git-media.io/v/2\noid=sha256:SOMEOID\nsize=123\n")
+	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:SOMEOID\nsize 123\n")
 	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {
