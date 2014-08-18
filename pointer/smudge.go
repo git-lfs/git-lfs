@@ -3,6 +3,7 @@ package pointer
 import (
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
+	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
 )
@@ -42,23 +43,26 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 		ptr.Size = size
 	}
 
-	mediaWriter, err := newFile(mediafile, ptr.Oid)
+	mediaFile, err := contentaddressable.NewFile(mediafile)
 	if err != nil {
 		return gitmedia.Errorf(err, "Error opening media file buffer.")
 	}
 
-	_, copyErr := gitmedia.CopyWithCallback(mediaWriter, reader, ptr.Size, cb)
-	closeErr := mediaWriter.Close()
+	_, err = gitmedia.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
+	if err != nil {
+		err = mediaFile.Accept()
+	}
+	closeErr := mediaFile.Close()
 
-	if copyErr != nil {
-		return gitmedia.Errorf(copyErr, "Error buffering media file.")
+	if err != nil {
+		return gitmedia.Errorf(err, "Error buffering media file.")
 	}
 
 	if closeErr != nil {
 		return gitmedia.Errorf(closeErr, "Error closing saved media file buffer.")
 	}
 
-	return readLocalFile(writer, ptr, mediaWriter.Path, nil)
+	return readLocalFile(writer, ptr, mediafile, nil)
 }
 
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.CopyCallback) *gitmedia.WrappedError {
