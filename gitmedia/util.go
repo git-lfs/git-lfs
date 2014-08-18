@@ -3,6 +3,7 @@ package gitmedia
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -44,8 +45,22 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 }
 
 func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
-	cbFilename := os.Getenv("GIT_MEDIA_PROGRESS")
-	if len(cbFilename) == 0 || len(filename) == 0 || len(event) == 0 {
+	rawurl := os.Getenv("GIT_MEDIA_PROGRESS")
+	if len(rawurl) == 0 || len(filename) == 0 || len(event) == 0 {
+		return nil, nil, nil
+	}
+
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if u.Scheme != "file" {
+		return nil, nil, fmt.Errorf("Invalid scheme for GIT_MEDIA_PROGRESS: %s", u.Scheme)
+	}
+
+	cbFilename := u.Path
+	if len(cbFilename) == 0 {
 		return nil, nil, nil
 	}
 
@@ -59,25 +74,18 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 		return nil, file, wrapProgressError(err, event, cbFilename)
 	}
 
-	var prevProgress int
-	var progress int
+	var prevWritten int64
 
 	cb := CopyCallback(func(total int64, written int64) error {
-		progress = 0
-		if total > 0 {
-			progress = int(float64(written) / float64(total) * 100)
-		}
-
-		if progress != prevProgress {
-			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d %s\n", event, index, totalFiles, progress, filename)))
+		if written != prevWritten {
+			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()
-			prevProgress = progress
+			prevWritten = written
 			return wrapProgressError(err, event, cbFilename)
 		}
 
 		return nil
 	})
-	file.Write([]byte(fmt.Sprintf("%s %d/%d 0 %s\n", event, index, totalFiles, filename)))
 
 	return cb, file, nil
 }
