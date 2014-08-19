@@ -49,7 +49,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 	}
 
 	_, err = gitmedia.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
-	if err != nil {
+	if err == nil {
 		err = mediaFile.Accept()
 	}
 	closeErr := mediaFile.Close()
