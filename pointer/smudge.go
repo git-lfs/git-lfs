@@ -52,14 +52,10 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb gitmedia.
 	if err == nil {
 		err = mediaFile.Accept()
 	}
-	closeErr := mediaFile.Close()
+	mediaFile.Close()
 
 	if err != nil {
 		return gitmedia.Errorf(err, "Error buffering media file.")
-	}
-
-	if closeErr != nil {
-		return gitmedia.Errorf(closeErr, "Error closing saved media file buffer.")
 	}
 
 	return readLocalFile(writer, ptr, mediafile, nil)
