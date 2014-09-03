@@ -92,7 +92,8 @@ func resolveGitDir() (string, string, error) {
 }
 
 func recursiveResolveGitDir(dir string) (string, string, error) {
-	if len(dir) == 1 && dir[0] == os.PathSeparator {
+	var cleanDir = filepath.Clean(dir)
+	if cleanDir[len(cleanDir)-1] == os.PathSeparator {
 		return "", "", fmt.Errorf("Git repository not found")
 	}
 
