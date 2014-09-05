@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
@@ -11,11 +12,23 @@ import (
 )
 
 var (
-	BuildOS   = flag.String("os", "", "OS to target: darwin, freebsd, linux, windows")
-	BuildArch = flag.String("arch", "", "Arch to target: 386, amd64")
-	BuildAll  = flag.Bool("all", false, "Builds all architectures")
-	ShowHelp  = flag.Bool("help", false, "Shows help")
+	BuildOS    = flag.String("os", "", "OS to target: darwin, freebsd, linux, windows")
+	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
+	BuildAll   = flag.Bool("all", false, "Builds all architectures")
+	ShowHelp   = flag.Bool("help", false, "Shows help")
+	matrixKeys = map[string]string{
+		"darwin":  "Mac",
+		"freebsd": "FreeBSD",
+		"linux":   "Linux",
+		"windows": "Windows",
+		"amd64":   "AMD64",
+	}
 )
+
+type Release struct {
+	Label    string
+	Filename string
+}
 
 func main() {
 	cmd, err := exec.Command("script/fmt").Output()
@@ -34,18 +47,51 @@ func main() {
 		return
 	}
 
+	buildMatrix := make(map[string]Release)
+
+	errored := false
+
 	if *BuildAll {
 		for _, buildos := range []string{"darwin", "freebsd", "linux", "windows"} {
 			for _, buildarch := range []string{"386", "amd64"} {
-				build(buildos, buildarch)
+				if err := build(buildos, buildarch, buildMatrix); err != nil {
+					errored = true
+				}
 			}
 		}
 	} else {
-		build(*BuildOS, *BuildArch)
+		build(*BuildOS, *BuildArch, buildMatrix)
+		errored = true // skip build matrix stuff
+	}
+
+	if !errored {
+		by, err := json.Marshal(buildMatrix)
+		if err != nil {
+			fmt.Println("Error encoding build matrix to json:", err)
+			return
+		}
+
+		file, err := os.Create("bin/releases/build_matrix.json")
+		if err != nil {
+			fmt.Println("Error creating build_matrix.json:", err)
+			return
+		}
+
+		written, err := file.Write(by)
+		file.Close()
+
+		if err != nil {
+			fmt.Println("Error writing build_matrix.json", err)
+			return
+		}
+
+		if jsonSize := len(by); written != jsonSize {
+			fmt.Printf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
+		}
 	}
 }
 
-func build(buildos, buildarch string) {
+func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
 	name := "git-media-" + gitmedia.Version
 	dir := "bin"
@@ -69,14 +115,17 @@ func build(buildos, buildarch string) {
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
 			fmt.Println("Error setting up installer:\n", err.Error())
-			return
+			return err
 		}
 
-		err = setupInstaller(buildos, buildarch, dir)
+		err = setupInstaller(buildos, buildarch, dir, buildMatrix)
 		if err != nil {
 			fmt.Println("Error setting up installer:\n", err.Error())
+			return err
 		}
 	}
+
+	return nil
 }
 
 func buildCommand(path, dir, buildos, buildarch string) error {
@@ -107,15 +156,15 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 	return err
 }
 
-func setupInstaller(buildos, buildarch, dir string) error {
+func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
 	if buildos == "windows" {
-		return winInstaller(buildos, buildarch, dir)
+		return winInstaller(buildos, buildarch, dir, buildMatrix)
 	} else {
-		return unixInstaller(buildos, buildarch, dir)
+		return unixInstaller(buildos, buildarch, dir, buildMatrix)
 	}
 }
 
-func unixInstaller(buildos, buildarch, dir string) error {
+func unixInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
 	fullInstallPath := filepath.Join(dir, "install.sh")
 	cmd := exec.Command("cp", "script/install.sh.example", fullInstallPath)
 	if err := logAndRun(cmd); err != nil {
@@ -127,12 +176,22 @@ func unixInstaller(buildos, buildarch, dir string) error {
 	}
 
 	name := zipName(buildos, buildarch) + ".tar.gz"
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+
 	cmd = exec.Command("tar", "czf", "../"+name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
 	return logAndRun(cmd)
 }
 
-func winInstaller(buildos, buildarch, dir string) error {
+func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string) {
+	buildMatrix[fmt.Sprintf("%s-%s", buildos, buildarch)] = Release{
+		Label:    releaseLabel(buildos, buildarch),
+		Filename: name,
+	}
+}
+
+func winInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
 	cmd := exec.Command("cp", "script/install.bat.example", filepath.Join(dir, "install.bat"))
 	if err := logAndRun(cmd); err != nil {
 		return err
@@ -146,6 +205,8 @@ func winInstaller(buildos, buildarch, dir string) error {
 	if err != nil {
 		return err
 	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
 
 	args := make([]string, len(matches)+2)
 	args[0] = "-j" // junk the zip paths
@@ -169,4 +230,15 @@ func logAndRun(cmd *exec.Cmd) error {
 
 func zipName(os, arch string) string {
 	return fmt.Sprintf("git-media-%s-%s-%s", os, arch, gitmedia.Version)
+}
+
+func releaseLabel(buildos, buildarch string) string {
+	return fmt.Sprintf("%s %s", key(buildos), key(buildarch))
+}
+
+func key(k string) string {
+	if s, ok := matrixKeys[k]; ok {
+		return s
+	}
+	return k
 }
