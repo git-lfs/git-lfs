@@ -103,3 +103,12 @@ func TestSmudgeInfo(t *testing.T) {
 		assert.Equal(t, nil, ioutil.WriteFile(mediaFile, []byte("whatever\n"), 0755))
 	})
 }
+
+func TestSmudgePassesInvalidData(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("smudge", "somefile")
+	cmd.Input = bytes.NewBufferString("this is not a pointer file\n")
+	cmd.Output = "this is not a pointer file"
+}
