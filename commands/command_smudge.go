@@ -28,7 +28,10 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	ptr, err := pointer.Decode(r)
 	if err != nil {
 		mr := io.MultiReader(b, os.Stdin)
-		io.Copy(os.Stdout, mr)
+		_, err := io.Copy(os.Stdout, mr)
+		if err != nil {
+			Panic(err, "Error writing data to stdout:")
+		}
 		return
 	}
 
