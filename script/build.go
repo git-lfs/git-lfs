@@ -68,13 +68,13 @@ func main() {
 		by, err := json.Marshal(buildMatrix)
 		if err != nil {
 			fmt.Println("Error encoding build matrix to json:", err)
-			return
+			os.Exit(1)
 		}
 
 		file, err := os.Create("bin/releases/build_matrix.json")
 		if err != nil {
 			fmt.Println("Error creating build_matrix.json:", err)
-			return
+			os.Exit(1)
 		}
 
 		written, err := file.Write(by)
@@ -82,11 +82,12 @@ func main() {
 
 		if err != nil {
 			fmt.Println("Error writing build_matrix.json", err)
-			return
+			os.Exit(1)
 		}
 
 		if jsonSize := len(by); written != jsonSize {
 			fmt.Printf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
+			os.Exit(1)
 		}
 	}
 }
