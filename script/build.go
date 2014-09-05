@@ -25,12 +25,7 @@ var (
 	}
 )
 
-type Release struct {
-	Label    string
-	Filename string
-}
-
-func main() {
+func mainBuild() {
 	cmd, err := exec.Command("script/fmt").Output()
 	if err != nil {
 		panic(err)
@@ -40,7 +35,6 @@ func main() {
 		fmt.Println(string(cmd))
 	}
 
-	flag.Parse()
 	if *ShowHelp {
 		fmt.Println("usage: script/bootstrap [-os] [-arch] [-all]")
 		flag.PrintDefaults()

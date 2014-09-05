@@ -1,4 +1,4 @@
 #!/bin/sh
 script/fmt
 GOPATH="`pwd`/.vendor" \
-  go run script/release.go "$@"
+  go run script/*.go -cmd release "$@"

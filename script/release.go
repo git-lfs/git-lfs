@@ -9,19 +9,12 @@ import (
 	"os/exec"
 )
 
-type Release struct {
-	Label    string
-	Filename string
-}
-
 var (
 	ReleaseId    = flag.Int("id", 0, "github/git-media Release ID")
 	uploadUrlFmt = "https://uploads.github.com/repos/github/git-media/releases/%d/assets?%s"
 )
 
-func main() {
-	flag.Parse()
-
+func mainRelease() {
 	if *ReleaseId < 1 {
 		fmt.Println("Need a valid github/git-media release id.")
 		fmt.Println("usage: script/release -id")
