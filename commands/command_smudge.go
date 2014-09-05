@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"bytes"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -20,9 +22,14 @@ var (
 func smudgeCommand(cmd *cobra.Command, args []string) {
 	gitmedia.InstallHooks()
 
-	ptr, err := pointer.Decode(os.Stdin)
+	b := &bytes.Buffer{}
+	r := io.TeeReader(os.Stdin, b)
+
+	ptr, err := pointer.Decode(r)
 	if err != nil {
-		Panic(err, "Error reading git-media meta data from stdin:")
+		mr := io.MultiReader(b, os.Stdin)
+		io.Copy(os.Stdout, mr)
+		return
 	}
 
 	if smudgeInfo {
