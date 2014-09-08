@@ -11,4 +11,4 @@ rm -f $LOCALSRCDIR
 ln -s `pwd` $LOCALSRCDIR
 
 GOPATH="`pwd`/.vendor" \
-  go run script/build.go "$@"
+  go run script/*.go -cmd build "$@"
