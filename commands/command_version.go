@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/github/git-media/gitconfig"
 	"github.com/github/git-media/gitmedia"
 	"github.com/spf13/cobra"
 )
@@ -16,14 +17,14 @@ var (
 )
 
 func versionCommand(cmd *cobra.Command, args []string) {
-	var parent *cobra.Command
-	if p := cmd.Parent(); p != nil {
-		parent = p
-	} else {
-		parent = cmd
-	}
+	Print(gitmedia.UserAgent)
 
-	Print("%s v%s", parent.Name(), gitmedia.Version)
+	v, err := gitconfig.Version()
+	if err != nil {
+		Print("Error getting git version: %s", err.Error())
+	} else {
+		Print(v)
+	}
 
 	if lovesComics {
 		Print("Nothing may see Gah Lak Tus and survive!")

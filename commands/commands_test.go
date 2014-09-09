@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"github.com/bmizerany/assert"
-	"github.com/github/git-media/gitmedia"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,7 +18,6 @@ var (
 	TempDir      string
 	GitEnv       []string
 	JoinedGitEnv string
-	Version      = gitmedia.Version
 	configKeys   = []string{"Endpoint", "LocalWorkingDir", "LocalGitDir", "LocalMediaDir", "TempDir"}
 )
 

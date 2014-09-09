@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/gitmedia"
 	"testing"
 )
 
@@ -12,12 +14,19 @@ func TestVersionOnEmptyRepository(t *testing.T) {
 	repo.AddPath(repo.Path, ".git")
 	repo.AddPath(repo.Path, "subdir")
 
+	v, err := gitconfig.Version()
+	if err != nil {
+		t.Fatalf("Error getting git version: %s", err)
+	}
+
+	basicVersion := fmt.Sprintf("%s\n%s", gitmedia.UserAgent, v)
+
 	cmd := repo.Command("version")
-	cmd.Output = fmt.Sprintf("git-media v%s", Version)
+	cmd.Output = basicVersion
 
 	cmd = repo.Command("version", "--comics")
-	cmd.Output = fmt.Sprintf("git-media v%s\nNothing may see Gah Lak Tus and survive!", Version)
+	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", basicVersion)
 
 	cmd = repo.Command("version", "-c")
-	cmd.Output = fmt.Sprintf("git-media v%s\nNothing may see Gah Lak Tus and survive!", Version)
+	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", basicVersion)
 }
