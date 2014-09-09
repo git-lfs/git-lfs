@@ -16,14 +16,7 @@ var (
 )
 
 func versionCommand(cmd *cobra.Command, args []string) {
-	var parent *cobra.Command
-	if p := cmd.Parent(); p != nil {
-		parent = p
-	} else {
-		parent = cmd
-	}
-
-	Print("%s v%s", parent.Name(), gitmedia.Version)
+	Print(gitmedia.UserAgent)
 
 	if lovesComics {
 		Print("Nothing may see Gah Lak Tus and survive!")

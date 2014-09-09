@@ -217,6 +217,7 @@ func setErrorHeaderContext(err *gitmedia.WrappedError, prefix string, head http.
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	u := ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
+	req.Header.Set("User-Agent", gitmedia.UserAgent)
 	if err == nil {
 		creds, err := credentials(u)
 		if err != nil {

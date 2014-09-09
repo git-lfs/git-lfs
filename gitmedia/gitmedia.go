@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -13,6 +14,7 @@ const Version = "0.2.1"
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
 	TempDir            = filepath.Join(os.TempDir(), "git-media")
+	UserAgent          string
 	LocalWorkingDir    string
 	LocalGitDir        string
 	LocalMediaDir      string
@@ -80,6 +82,9 @@ func init() {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 	}
+
+	UserAgent = fmt.Sprintf("Git Media v%s (Go v%s)", Version,
+		strings.Replace(runtime.Version(), "go", "", 1))
 }
 
 func resolveGitDir() (string, string, error) {
