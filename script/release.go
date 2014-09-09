@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var (
@@ -38,6 +39,7 @@ func mainRelease() {
 
 	for _, rel := range buildMatrix {
 		release(rel)
+		fmt.Println()
 	}
 }
 
@@ -46,11 +48,17 @@ func release(rel Release) {
 	query.Add("name", rel.Filename)
 	query.Add("label", rel.Label)
 
-	cmd := exec.Command("curl", "-in",
+	args := []string{
+		"-in",
 		"-H", "Content-Type: application/octet-stream",
 		"-X", "POST",
-		"-d", "@bin/releases/"+rel.Filename,
-		fmt.Sprintf(uploadUrlFmt, *ReleaseId, query.Encode()))
+		"--data-binary", "@bin/releases/" + rel.Filename,
+		fmt.Sprintf(uploadUrlFmt, *ReleaseId, query.Encode()),
+	}
+
+	fmt.Println("curl", strings.Join(args, " "))
+
+	cmd := exec.Command("curl", args...)
 
 	by, err := cmd.Output()
 	if err != nil {
