@@ -27,6 +27,10 @@ func ListFromFile() (string, error) {
 	return simpleExec("git", "config", "-l", "-f", ".gitconfig")
 }
 
+func Version() (string, error) {
+	return simpleExec("git", "version")
+}
+
 func simpleExec(name string, arg ...string) (string, error) {
 	output, err := exec.Command(name, arg...).Output()
 	if _, ok := err.(*exec.ExitError); ok {

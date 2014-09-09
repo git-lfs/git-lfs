@@ -83,7 +83,7 @@ func init() {
 		}
 	}
 
-	UserAgent = fmt.Sprintf("Git Media v%s (Go v%s)", Version,
+	UserAgent = fmt.Sprintf("git media v%s (go v%s)", Version,
 		strings.Replace(runtime.Version(), "go", "", 1))
 }
 
