@@ -43,8 +43,12 @@ func NewCommand(input Creds, subCommand string) *CredentialCmd {
 	buf2 := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
 	cmd.Stdin = input.Buffer()
-	cmd.Stdout = buf1
-	cmd.Stderr = buf2
+
+	if commandHasOutput(subCommand) {
+		cmd.Stdout = buf1
+		cmd.Stderr = buf2
+	}
+
 	return &CredentialCmd{buf1, buf2, subCommand, cmd}
 }
 
@@ -68,6 +72,16 @@ func (c *CredentialCmd) Credentials() Creds {
 	}
 
 	return creds
+}
+
+// commandHasOutput returns true if the command that's being run
+// produces output. Of the three current subcommands `fill`, `approve`,
+// and `reject`, only `fill` produces output. There is a bug in the way
+// the git credential helpers launch the daemon if it is not already running
+// such that the stderr of the grandchild does not appear to be getting closed,
+// causing the git media client to not receive EOF on the pipe and wait forever.
+func commandHasOutput(command string) bool {
+	return command == "fill"
 }
 
 type Creds map[string]string
