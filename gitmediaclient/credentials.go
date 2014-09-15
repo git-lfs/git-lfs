@@ -25,7 +25,7 @@ func execCreds(input Creds, subCommand string) (*CredentialCmd, error) {
 	}
 
 	if err != nil {
-		return cmd, fmt.Errorf("'git credential %s' error: %s\n%s", cmd.SubCommand, err.Error(), cmd.StderrString())
+		return cmd, fmt.Errorf("'git credential %s' error: %s\n", cmd.SubCommand, err.Error())
 	}
 
 	return cmd, nil
@@ -33,23 +33,26 @@ func execCreds(input Creds, subCommand string) (*CredentialCmd, error) {
 
 type CredentialCmd struct {
 	output     *bytes.Buffer
-	err        *bytes.Buffer
 	SubCommand string
 	*exec.Cmd
 }
 
 func NewCommand(input Creds, subCommand string) *CredentialCmd {
 	buf1 := new(bytes.Buffer)
-	buf2 := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
+
 	cmd.Stdin = input.Buffer()
 	cmd.Stdout = buf1
-	cmd.Stderr = buf2
-	return &CredentialCmd{buf1, buf2, subCommand, cmd}
-}
+	/*
+		There is a reason we don't hook up stderr here:
+		Git's credential cache daemon helper does not close its stderr, so if this
+		process is the process that fires up the daemon, it will wait forever
+		(until the daemon exits, really) trying to read from stderr.
 
-func (c *CredentialCmd) StderrString() string {
-	return c.err.String()
+		See https://github.com/github/git-media/issues/117 for more details.
+	*/
+
+	return &CredentialCmd{buf1, subCommand, cmd}
 }
 
 func (c *CredentialCmd) StdoutString() string {
