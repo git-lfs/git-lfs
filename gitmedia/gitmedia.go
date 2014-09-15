@@ -89,7 +89,7 @@ func init() {
 		gitVersion = "unknown"
 	}
 
-	UserAgent = fmt.Sprintf("git-media/%s (%s %s; git %s; go %s)", Version,
+	UserAgent = fmt.Sprintf("git-media/%s (GitHub; %s %s; git %s; go %s)", Version,
 		runtime.GOOS,
 		runtime.GOARCH,
 		strings.Replace(gitVersion, "git version ", "", 1),
