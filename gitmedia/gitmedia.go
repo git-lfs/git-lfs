@@ -2,6 +2,7 @@ package gitmedia
 
 import (
 	"fmt"
+	"github.com/github/git-media/gitconfig"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -83,7 +84,15 @@ func init() {
 		}
 	}
 
-	UserAgent = fmt.Sprintf("git media v%s (go v%s)", Version,
+	gitVersion, err := gitconfig.Version()
+	if err != nil {
+		gitVersion = "unknown"
+	}
+
+	UserAgent = fmt.Sprintf("git-media/%s (GitHub; %s %s; git %s; go %s)", Version,
+		runtime.GOOS,
+		runtime.GOARCH,
+		strings.Replace(gitVersion, "git version ", "", 1),
 		strings.Replace(runtime.Version(), "go", "", 1))
 }
 

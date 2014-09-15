@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/github/git-media/gitconfig"
 	"github.com/github/git-media/gitmedia"
 	"github.com/spf13/cobra"
 )
@@ -18,13 +17,6 @@ var (
 
 func versionCommand(cmd *cobra.Command, args []string) {
 	Print(gitmedia.UserAgent)
-
-	v, err := gitconfig.Version()
-	if err != nil {
-		Print("Error getting git version: %s", err.Error())
-	} else {
-		Print(v)
-	}
 
 	if lovesComics {
 		Print("Nothing may see Gah Lak Tus and survive!")
