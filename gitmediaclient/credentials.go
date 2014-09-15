@@ -25,7 +25,7 @@ func execCreds(input Creds, subCommand string) (*CredentialCmd, error) {
 	}
 
 	if err != nil {
-		return cmd, fmt.Errorf("'git credential %s' error: %s\n%s", cmd.SubCommand, err.Error(), cmd.StderrString())
+		return cmd, fmt.Errorf("'git credential %s' error: %s\n", cmd.SubCommand, err.Error())
 	}
 
 	return cmd, nil
@@ -33,27 +33,26 @@ func execCreds(input Creds, subCommand string) (*CredentialCmd, error) {
 
 type CredentialCmd struct {
 	output     *bytes.Buffer
-	err        *bytes.Buffer
 	SubCommand string
 	*exec.Cmd
 }
 
 func NewCommand(input Creds, subCommand string) *CredentialCmd {
 	buf1 := new(bytes.Buffer)
-	buf2 := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
+
 	cmd.Stdin = input.Buffer()
+	cmd.Stdout = buf1
+	/*
+		There is a reason we don't hook up stderr here:
+		Git's credential cache daemon helper does not close its stderr, so if this
+		process is the process that fires up the daemon, it will wait forever
+		(until the daemon exits, really) trying to read from stderr.
 
-	if commandHasOutput(subCommand) {
-		cmd.Stdout = buf1
-		cmd.Stderr = buf2
-	}
+		See https://github.com/github/git-media/issues/117 for more details.
+	*/
 
-	return &CredentialCmd{buf1, buf2, subCommand, cmd}
-}
-
-func (c *CredentialCmd) StderrString() string {
-	return c.err.String()
+	return &CredentialCmd{buf1, subCommand, cmd}
 }
 
 func (c *CredentialCmd) StdoutString() string {
@@ -72,16 +71,6 @@ func (c *CredentialCmd) Credentials() Creds {
 	}
 
 	return creds
-}
-
-// commandHasOutput returns true if the command that's being run
-// produces output. Of the three current subcommands `fill`, `approve`,
-// and `reject`, only `fill` produces output. There is a bug in the way
-// the git credential helpers launch the daemon if it is not already running
-// such that the stderr of the grandchild does not appear to be getting closed,
-// causing the git media client to not receive EOF on the pipe and wait forever.
-func commandHasOutput(command string) bool {
-	return command == "fill"
 }
 
 type Creds map[string]string
