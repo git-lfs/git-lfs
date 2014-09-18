@@ -20,6 +20,7 @@ var (
 	LocalGitDir        string
 	LocalMediaDir      string
 	LocalLogDir        string
+	LocalLinkDir       string
 	checkedTempDir     string
 )
 
@@ -46,6 +47,15 @@ func LocalMediaPath(sha string) (string, error) {
 	}
 
 	return filepath.Join(path, sha), nil
+}
+
+func LocalLinkPath(sha string) (string, error) {
+	path := filepath.Join(LocalLinkDir, sha[0:2])
+	if err := os.MkdirAll(path, 0744); err != nil {
+		return "", fmt.Errorf("Error trying to create local object directory in '%s': %s", path, err)
+	}
+
+	return filepath.Join(path, sha[2:len(sha)]), nil
 }
 
 func Environ() []string {
@@ -76,11 +86,16 @@ func init() {
 	if err == nil {
 		LocalMediaDir = filepath.Join(LocalGitDir, "media")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
+		LocalLinkDir = filepath.Join(LocalMediaDir, "objects")
 		TempDir = filepath.Join(LocalMediaDir, "tmp")
 		queueDir = setupQueueDir()
 
 		if err := os.MkdirAll(TempDir, 0744); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
+		}
+
+		if err := os.MkdirAll(LocalLinkDir, 0744); err != nil {
+			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalLinkDir, err))
 		}
 	}
 

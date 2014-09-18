@@ -14,7 +14,7 @@ type GitHash struct {
 	hash   string
 }
 
-func NewGitHash(r io.Reader) (*GitHash, error) {
+func NewGitHash() (*GitHash, error) {
 	cmd := exec.Command("git", "hash-object", "--stdin")
 	gitHashWriter, err := cmd.StdinPipe()
 	if err != nil {

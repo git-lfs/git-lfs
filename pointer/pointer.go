@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,9 +46,30 @@ func (p *Pointer) Encode(writer io.Writer) (int, error) {
 	return Encode(writer, p)
 }
 
+func (p *Pointer) Encoded() string {
+	return fmt.Sprintf(template, latest, p.Oid, p.Size)
+}
+
+func (p *Pointer) CreateLink() error {
+	gitHash, err := gitmedia.NewGitHash()
+	if err != nil {
+		return err
+	}
+
+	gitHash.Write([]byte(p.Encoded()))
+	gitHash.Close()
+	hash := gitHash.Hash()
+
+	linkFile, err := gitmedia.LocalLinkPath(hash)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(linkFile, []byte(p.Oid), 0644)
+}
+
 func Encode(writer io.Writer, pointer *Pointer) (int, error) {
-	return writer.Write([]byte(fmt.Sprintf(template,
-		latest, pointer.Oid, pointer.Size)))
+	return writer.Write([]byte(pointer.Encoded()))
 }
 
 func Decode(reader io.Reader) (*Pointer, error) {

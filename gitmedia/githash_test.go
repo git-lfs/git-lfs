@@ -10,7 +10,7 @@ import (
 func TestGitHash(t *testing.T) {
 	reader := bytes.NewBufferString("hello, world\n")
 
-	gitHash, _ := NewGitHash(reader)
+	gitHash, _ := NewGitHash()
 	io.Copy(gitHash, reader)
 	gitHash.Close()
 
