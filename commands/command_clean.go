@@ -66,9 +66,6 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
 
-		if err = gitmedia.QueueUpload(cleaned.Oid, filename); err != nil {
-			Panic(err, "Unable to add %s to queue", cleaned.Oid)
-		}
 		Debug("Writing %s", mediafile)
 	}
 
