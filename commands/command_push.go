@@ -29,16 +29,24 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error reading refs on stdin")
 	}
 
-	// TODO handle nothing on stdin sanely
 	if len(refsData) == 0 {
 		return
 	}
 
+	// TODO let's pull this into a nice iteratable thing like the queue provides
 	refs := strings.Split(strings.TrimSpace(string(refsData)), " ")
 
-	output, err := exec.Command("git", "rev-list", "--objects", refs[1], "^"+refs[3]).Output()
+	refArgs := []string{"rev-list", "--objects"}
+	if len(refs) > 1 {
+		refArgs = append(refArgs, refs[1])
+	}
+	if len(refs) > 3 && refs[3] != z40 {
+		refArgs = append(refArgs, "^"+refs[3])
+	}
+
+	output, err := exec.Command("git", refArgs...).Output()
 	if err != nil {
-		Panic(err, "Error running git rev-list")
+		Panic(err, "Error running git rev-list --objects %v", refArgs)
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(output))
