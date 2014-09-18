@@ -1,10 +1,16 @@
 package commands
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
 	"github.com/spf13/cobra"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,40 +20,51 @@ var (
 		Short: "Push files to the media endpoint",
 		Run:   pushCommand,
 	}
+	z40 = "0000000000000000000000000000000000000000"
 )
 
 func pushCommand(cmd *cobra.Command, args []string) {
-	q, err := gitmedia.UploadQueue()
+	refsData, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
-		Panic(err, "Error setting up the queue")
+		Panic(err, "Error reading refs on stdin")
 	}
 
-	count, err := q.Count()
-	i := 1
+	// TODO handle nothing on stdin sanely
+	if len(refsData) == 0 {
+		return
+	}
 
-	q.Walk(func(id string, body []byte) error {
-		fileInfo := string(body)
-		parts := strings.SplitN(fileInfo, ":", 2)
+	refs := strings.Split(strings.TrimSpace(string(refsData)), " ")
 
-		var oid, filename string
-		oid = parts[0]
-		if len(parts) > 1 {
-			filename = parts[1]
+	output, err := exec.Command("git", "rev-list", "--objects", refs[1], "^"+refs[3]).Output()
+	if err != nil {
+		Panic(err, "Error running git rev-list")
+	}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(output))
+	blobOids := make([]string, 0)
+
+	for scanner.Scan() {
+		line := strings.Split(scanner.Text(), " ")
+		sha1 := line[0]
+
+		linkPath := filepath.Join(gitmedia.LocalLinkDir, sha1[0:2], sha1[2:len(sha1)])
+		if _, err := os.Stat(linkPath); err == nil {
+			oid, err := ioutil.ReadFile(linkPath)
+			if err != nil {
+				Panic(err, "Error reading link file")
+			}
+			blobOids = append(blobOids, string(oid))
 		}
+	}
 
-		if wErr := pushAsset(oid, filename, i, count); wErr != nil {
+	// TODO - filename
+	for i, oid := range blobOids {
+		if wErr := pushAsset(oid, "", i+1, len(blobOids)); wErr != nil {
 			Panic(wErr.Err, wErr.Error())
 		}
-		i += 1
-
 		fmt.Printf("\n")
-
-		if err := q.Del(id); err != nil {
-			Panic(err, "error removing %s from queue", oid)
-		}
-
-		return nil
-	})
+	}
 }
 
 func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedError {
