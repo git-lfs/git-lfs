@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"github.com/bmizerany/assert"
+	"github.com/github/git-media/pointer"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,9 +32,11 @@ size 3`
 		assert.Equal(t, nil, err)
 		assert.Equal(t, 1, len(files))
 
-		by, err := ioutil.ReadFile(filepath.Join(linkDir, files[0].Name()))
+		file, err := os.Open(filepath.Join(linkDir, files[0].Name()))
 		assert.Equal(t, nil, err)
-		assert.Equal(t, oid, string(by))
+		link, err := pointer.DecodeLink(file)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, oid, link.Oid)
 
 		// assert hooks
 		stat, err := os.Stat(prePushHookFile)

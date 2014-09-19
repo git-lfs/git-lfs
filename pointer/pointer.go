@@ -73,7 +73,7 @@ func (p *Pointer) CreateLink(filename string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(linkFile, []byte(fmt.Sprintf(linkTemplate, latest, p.Oid, filename)), 0644)
+	return ioutil.WriteFile(linkFile, []byte(fmt.Sprintf(linkTemplate, p.Oid, filename)), 0644)
 }
 
 func Encode(writer io.Writer, pointer *Pointer) (int, error) {
