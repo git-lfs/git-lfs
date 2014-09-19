@@ -69,7 +69,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		Debug("Writing %s", mediafile)
 	}
 
-	err = cleaned.CreateLink()
+	err = cleaned.CreateLink(filename)
 	if err != nil {
 		Panic(err, "Unable to write link file %s", err)
 	}

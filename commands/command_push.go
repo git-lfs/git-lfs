@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
+	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -57,29 +58,33 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(output))
-	blobOids := make([]string, 0)
+	links := make([]*pointer.Link, 0)
 
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), " ")
 		sha1 := line[0]
 
 		linkPath := filepath.Join(gitmedia.LocalLinkDir, sha1[0:2], sha1[2:len(sha1)])
-		if _, err := os.Stat(linkPath); err == nil {
-			oid, err := ioutil.ReadFile(linkPath)
-			if err != nil {
-				Panic(err, "Error reading link file")
-			}
-			blobOids = append(blobOids, string(oid))
-		}
-	}
 
-	// TODO - filename
-	for i, oid := range blobOids {
-		if dryRun {
-			fmt.Println("push", oid)
+		linkFile, err := os.Open(linkPath)
+		if err != nil {
 			continue
 		}
-		if wErr := pushAsset(oid, "", i+1, len(blobOids)); wErr != nil {
+
+		link, err := pointer.DecodeLink(linkFile)
+		if err != nil {
+			Panic(err, "Error decoding link file") // don't panic
+		}
+
+		links = append(links, link)
+	}
+
+	for i, link := range links {
+		if dryRun {
+			fmt.Println("push", link.Oid, link.Name)
+			continue
+		}
+		if wErr := pushAsset(link.Oid, link.Name, i+1, len(links)); wErr != nil {
 			Panic(wErr.Err, wErr.Error())
 		}
 		fmt.Printf("\n")
