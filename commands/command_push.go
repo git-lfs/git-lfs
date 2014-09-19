@@ -20,10 +20,12 @@ var (
 		Short: "Push files to the media endpoint",
 		Run:   pushCommand,
 	}
-	z40 = "0000000000000000000000000000000000000000"
+	dryRun = false
+	z40    = "0000000000000000000000000000000000000000"
 )
 
 func pushCommand(cmd *cobra.Command, args []string) {
+	// TODO handle (delete) case, not sending anything
 	refsData, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		Panic(err, "Error reading refs on stdin")
@@ -68,6 +70,10 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	// TODO - filename
 	for i, oid := range blobOids {
+		if dryRun {
+			fmt.Println("push", oid)
+			continue
+		}
 		if wErr := pushAsset(oid, "", i+1, len(blobOids)); wErr != nil {
 			Panic(wErr.Err, wErr.Error())
 		}
@@ -101,5 +107,6 @@ func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedErr
 }
 
 func init() {
+	pushCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 	RootCmd.AddCommand(pushCmd)
 }
