@@ -20,8 +20,9 @@ var (
 		Short: "Push files to the media endpoint",
 		Run:   pushCommand,
 	}
-	dryRun = false
-	z40    = "0000000000000000000000000000000000000000"
+	dryRun       = false
+	z40          = "0000000000000000000000000000000000000000"
+	deleteBranch = "(delete)"
 )
 
 func pushCommand(cmd *cobra.Command, args []string) {
@@ -37,6 +38,10 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	// TODO let's pull this into a nice iteratable thing like the queue provides
 	refs := strings.Split(strings.TrimSpace(string(refsData)), " ")
+
+	if refs[0] == deleteBranch {
+		return
+	}
 
 	refArgs := []string{"rev-list", "--objects"}
 	if len(refs) > 1 {
