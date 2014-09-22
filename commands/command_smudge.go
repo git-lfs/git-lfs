@@ -61,6 +61,11 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		file.Close()
 	}
 
+	err = ptr.CreateLink(filename)
+	if err != nil {
+		Panic(err, "Unable to write link file %s", err)
+	}
+
 	if err != nil {
 		ptr.Encode(os.Stdout)
 		LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
