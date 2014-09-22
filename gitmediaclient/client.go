@@ -23,24 +23,24 @@ const (
 	gitMediaHeader   = "--git-media."
 )
 
-func Options(filehash string) error {
+func Options(filehash string) (int, error) {
 	oid := filepath.Base(filehash)
 	_, err := os.Stat(filehash)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	req, creds, err := clientRequest("OPTIONS", oid)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	_, wErr := doRequest(req, creds)
+	resp, wErr := doRequest(req, creds)
 	if wErr != nil {
-		return wErr
+		return 0, wErr
 	}
 
-	return nil
+	return resp.StatusCode, nil
 }
 
 func Put(filehash, filename string, cb gitmedia.CopyCallback) error {

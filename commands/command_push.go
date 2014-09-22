@@ -93,24 +93,27 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedError {
 	path, err := gitmedia.LocalMediaPath(oid)
-	if err == nil {
-		err = gitmediaclient.Options(path)
-	}
-
-	if err == nil {
-		cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, index, totalFiles)
-		if cbErr != nil {
-			Error(cbErr.Error())
-		}
-
-		err = gitmediaclient.Put(path, filename, cb)
-		if file != nil {
-			file.Close()
-		}
-	}
-
 	if err != nil {
 		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	status, err := gitmediaclient.Options(path)
+	if err != nil {
+		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	if status == 200 {
+		return nil
+	}
+
+	cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, index, totalFiles)
+	if cbErr != nil {
+		Error(cbErr.Error())
+	}
+
+	err = gitmediaclient.Put(path, filename, cb)
+	if file != nil {
+		file.Close()
 	}
 
 	return nil
