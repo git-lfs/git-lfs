@@ -50,6 +50,9 @@ func LocalMediaPath(sha string) (string, error) {
 }
 
 func LocalLinkPath(sha string) (string, error) {
+	if len(sha) == 0 {
+		return "", fmt.Errorf("Error trying to create local object directory, invalid sha: '%s'", sha)
+	}
 	path := filepath.Join(LocalLinkDir, sha[0:2])
 	if err := os.MkdirAll(path, 0744); err != nil {
 		return "", fmt.Errorf("Error trying to create local object directory in '%s': %s", path, err)

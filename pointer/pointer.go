@@ -64,7 +64,11 @@ func (p *Pointer) CreateLink(filename string) error {
 		return err
 	}
 
-	gitHash.Write([]byte(p.Encoded()))
+	_, err = gitHash.Write([]byte(p.Encoded()))
+	if err != nil {
+		return err
+	}
+
 	gitHash.Close()
 	hash := gitHash.Hash()
 
