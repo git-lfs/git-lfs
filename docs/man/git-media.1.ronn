@@ -30,8 +30,6 @@ commands and low level ("plumbing") commands.
     View and modify Git Media paths in Git attributes.
 * git-media-push(1):
     Push queued large files to the Git Media endpoint.
-* git-media-queues(1):
-    View queued content to be pushed.
 
 ### Low level commands (plumbing)
 

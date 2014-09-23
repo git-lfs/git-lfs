@@ -91,7 +91,6 @@ func init() {
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		LocalLinkDir = filepath.Join(LocalMediaDir, "objects")
 		TempDir = filepath.Join(LocalMediaDir, "tmp")
-		queueDir = setupQueueDir()
 
 		if err := os.MkdirAll(TempDir, 0744); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))

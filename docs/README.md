@@ -91,13 +91,12 @@ Now, add a file:
 ```
 $ git add my.zip
 
-# confirm the zip was added to the "upload" queue
-$ git media queues
-upload
-  my.zip
+# confirm the zip was added to git media
+$ git media ls-files
+my.zip
 ```
 
-When you can see files being added to the upload queue, you can commit like
+When you can see files being added to git media, you can commit like
 normal.  After committing, `git show` will show the file's meta data:
 
     $ git show
@@ -117,7 +116,7 @@ normal.  After committing, `git show` will show the file's meta data:
     +84ff327f80500d3266bd830891ede1e4fd18b9169936a066573f9b230597a696
     \ No newline at end of file
 
-Now, when you run `git push`, all queued files to will be synced to the
+Now, when you run `git push`, added media files will be synced to the
 Git Media endpoint.
 
     $ git push origin master
