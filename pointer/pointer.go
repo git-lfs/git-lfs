@@ -5,10 +5,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,11 +22,8 @@ var (
 oid sha256:%s
 size %d
 `
-	matcher      = []byte("git-media")
-	pointerKeys  = []string{"version", "oid", "size"}
-	linkTemplate = `oid %s
-name %s
-`
+	matcher     = []byte("git-media")
+	pointerKeys = []string{"version", "oid", "size"}
 )
 
 type Pointer struct {
@@ -36,11 +31,6 @@ type Pointer struct {
 	Oid     string
 	Size    int64
 	OidType string
-}
-
-type Link struct {
-	Oid  string
-	Name string
 }
 
 func NewPointer(oid string, size int64) *Pointer {
@@ -57,20 +47,6 @@ func (p *Pointer) Encode(writer io.Writer) (int, error) {
 
 func (p *Pointer) Encoded() string {
 	return fmt.Sprintf(template, latest, p.Oid, p.Size)
-}
-
-func (p *Pointer) CreateLink(filename string) error {
-	hash, err := git.NewHashObject([]byte(p.Encoded()))
-	if err != nil {
-		return err
-	}
-
-	linkFile, err := gitmedia.LocalLinkPath(hash)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(linkFile, []byte(fmt.Sprintf(linkTemplate, p.Oid, filename)), 0644)
 }
 
 func Encode(writer io.Writer, pointer *Pointer) (int, error) {
@@ -91,32 +67,6 @@ func Decode(reader io.Reader) (*Pointer, error) {
 	} else {
 		return decodeKV(data)
 	}
-}
-
-func DecodeLink(reader io.Reader) (*Link, error) {
-	link := &Link{}
-
-	m := make(map[string]string)
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if len(text) == 0 {
-			continue
-		}
-
-		parts := strings.SplitN(text, " ", 2)
-		key := parts[0]
-		m[key] = parts[1]
-	}
-
-	oid, ok := m["oid"]
-	if !ok {
-		return nil, errors.New("No Oid in link file")
-	}
-
-	link.Oid = oid
-	link.Name = m["name"]
-	return link, nil
 }
 
 func decodeKV(data []byte) (*Pointer, error) {

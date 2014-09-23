@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -56,16 +55,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	links := make([]*pointer.Link, 0)
 	for _, sha1 := range revList {
-		linkPath := filepath.Join(gitmedia.LocalLinkDir, sha1[0:2], sha1[2:len(sha1)])
-
-		linkFile, err := os.Open(linkPath)
+		link, err := pointer.FindLink(sha1)
 		if err != nil {
 			continue
-		}
-
-		link, err := pointer.DecodeLink(linkFile)
-		if err != nil {
-			Panic(err, "Error decoding link file")
 		}
 
 		links = append(links, link)
