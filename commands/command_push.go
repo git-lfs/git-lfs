@@ -100,8 +100,8 @@ func linksFromRefs(left, right string) []*pointer.Link {
 	}
 
 	links := make([]*pointer.Link, 0)
-	for _, sha1 := range revList {
-		link, err := pointer.FindLink(sha1)
+	for _, object := range revList {
+		link, err := pointer.FindLink(object.Sha1)
 		if err != nil {
 			continue
 		}

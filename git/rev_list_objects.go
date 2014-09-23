@@ -10,8 +10,13 @@ import (
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-func RevListObjects(left, right string) ([]string, error) {
-	objects := make([]string, 0)
+type GitObject struct {
+	Sha1 string
+	Name string
+}
+
+func RevListObjects(left, right string) ([]*GitObject, error) {
+	objects := make([]*GitObject, 0)
 
 	refArgs := []string{"rev-list", "--objects"}
 
@@ -33,7 +38,7 @@ func RevListObjects(left, right string) ([]string, error) {
 	scanner := bufio.NewScanner(bytes.NewBufferString(output))
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), " ")
-		objects = append(objects, line[0])
+		objects = append(objects, &GitObject{line[0], strings.Join(line[1:len(line)], " ")})
 	}
 
 	return objects, nil
