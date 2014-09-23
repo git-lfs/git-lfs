@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"io"
 	"io/ioutil"
@@ -59,7 +60,7 @@ func (p *Pointer) Encoded() string {
 }
 
 func (p *Pointer) CreateLink(filename string) error {
-	gitHash, err := gitmedia.NewGitHash()
+	gitHash, err := git.NewHashObject()
 	if err != nil {
 		return err
 	}

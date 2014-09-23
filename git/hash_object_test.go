@@ -1,4 +1,4 @@
-package gitmedia
+package git
 
 import (
 	"bytes"
@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-func TestGitHash(t *testing.T) {
+func TestHashObject(t *testing.T) {
 	reader := bytes.NewBufferString("hello, world\n")
 
-	gitHash, _ := NewGitHash()
+	gitHash, _ := NewHashObject()
 	io.Copy(gitHash, reader)
 	gitHash.Close()
 

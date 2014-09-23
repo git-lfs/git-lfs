@@ -1,4 +1,4 @@
-package gitmedia
+package git
 
 import (
 	"io"
@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-type GitHash struct {
+type HashObject struct {
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	stdout io.ReadCloser
 	hash   string
 }
 
-func NewGitHash() (*GitHash, error) {
+func NewHashObject() (*HashObject, error) {
 	cmd := exec.Command("git", "hash-object", "--stdin")
 	gitHashWriter, err := cmd.StdinPipe()
 	if err != nil {
@@ -27,14 +27,14 @@ func NewGitHash() (*GitHash, error) {
 
 	cmd.Start()
 
-	return &GitHash{cmd, gitHashWriter, gitHashReader, ""}, nil
+	return &HashObject{cmd, gitHashWriter, gitHashReader, ""}, nil
 }
 
-func (gh *GitHash) Write(p []byte) (int, error) {
+func (gh *HashObject) Write(p []byte) (int, error) {
 	return gh.stdin.Write(p)
 }
 
-func (gh *GitHash) Close() error {
+func (gh *HashObject) Close() error {
 	err := gh.stdin.Close()
 	if err == nil {
 		hashBytes, err := ioutil.ReadAll(gh.stdout)
@@ -46,6 +46,6 @@ func (gh *GitHash) Close() error {
 	return err
 }
 
-func (gh *GitHash) Hash() string {
+func (gh *HashObject) Hash() string {
 	return gh.hash
 }

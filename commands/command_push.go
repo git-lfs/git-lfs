@@ -1,16 +1,14 @@
 package commands
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
+	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
 	"github.com/github/git-media/pointer"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -22,12 +20,10 @@ var (
 		Run:   pushCommand,
 	}
 	dryRun       = false
-	z40          = "0000000000000000000000000000000000000000"
 	deleteBranch = "(delete)"
 )
 
 func pushCommand(cmd *cobra.Command, args []string) {
-	// TODO handle (delete) case, not sending anything
 	refsData, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		Panic(err, "Error reading refs on stdin")
@@ -37,33 +33,29 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// TODO let's pull this into a nice iteratable thing like the queue provides
 	refs := strings.Split(strings.TrimSpace(string(refsData)), " ")
 
 	if refs[0] == deleteBranch {
 		return
 	}
 
-	refArgs := []string{"rev-list", "--objects"}
+	var left, right string
+
 	if len(refs) > 1 {
-		refArgs = append(refArgs, refs[1])
-	}
-	if len(refs) > 3 && refs[3] != z40 {
-		refArgs = append(refArgs, "^"+refs[3])
+		left = refs[1]
 	}
 
-	output, err := exec.Command("git", refArgs...).Output()
+	if len(refs) > 3 {
+		right = "^" + refs[3]
+	}
+
+	revList, err := git.RevListObjects(left, right)
 	if err != nil {
-		Panic(err, "Error running git rev-list --objects %v", refArgs)
+		Panic(err, "Error running git rev-list --objects %s %s", left, right)
 	}
 
-	scanner := bufio.NewScanner(bytes.NewBuffer(output))
 	links := make([]*pointer.Link, 0)
-
-	for scanner.Scan() {
-		line := strings.Split(scanner.Text(), " ")
-		sha1 := line[0]
-
+	for _, sha1 := range revList {
 		linkPath := filepath.Join(gitmedia.LocalLinkDir, sha1[0:2], sha1[2:len(sha1)])
 
 		linkFile, err := os.Open(linkPath)
@@ -73,7 +65,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 		link, err := pointer.DecodeLink(linkFile)
 		if err != nil {
-			Panic(err, "Error decoding link file") // don't panic
+			Panic(err, "Error decoding link file")
 		}
 
 		links = append(links, link)
@@ -87,7 +79,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		if wErr := pushAsset(link.Oid, link.Name, i+1, len(links)); wErr != nil {
 			Panic(wErr.Err, wErr.Error())
 		}
-		fmt.Printf("\n")
 	}
 }
 
