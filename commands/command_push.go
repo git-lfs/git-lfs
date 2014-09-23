@@ -32,20 +32,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	refs := strings.Split(strings.TrimSpace(string(refsData)), " ")
-
-	if refs[0] == deleteBranch {
+	left, right := decodeRefs(string(refsData))
+	if left == deleteBranch {
 		return
-	}
-
-	var left, right string
-
-	if len(refs) > 1 {
-		left = refs[1]
-	}
-
-	if len(refs) > 3 {
-		right = "^" + refs[3]
 	}
 
 	revList, err := git.RevListObjects(left, right)
@@ -100,6 +89,21 @@ func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedErr
 	}
 
 	return nil
+}
+
+func decodeRefs(input string) (string, string) {
+	refs := strings.Split(strings.TrimSpace(input), " ")
+	var left, right string
+
+	if len(refs) > 1 {
+		left = refs[1]
+	}
+
+	if len(refs) > 3 {
+		right = "^" + refs[3]
+	}
+
+	return left, right
 }
 
 func init() {
