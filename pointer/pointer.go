@@ -60,18 +60,10 @@ func (p *Pointer) Encoded() string {
 }
 
 func (p *Pointer) CreateLink(filename string) error {
-	gitHash, err := git.NewHashObject()
+	hash, err := git.NewHashObject([]byte(p.Encoded()))
 	if err != nil {
 		return err
 	}
-
-	_, err = gitHash.Write([]byte(p.Encoded()))
-	if err != nil {
-		return err
-	}
-
-	gitHash.Close()
-	hash := gitHash.Hash()
 
 	linkFile, err := gitmedia.LocalLinkPath(hash)
 	if err != nil {

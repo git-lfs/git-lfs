@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -26,12 +25,12 @@ func RevListObjects(left, right string) ([]string, error) {
 		refArgs = append(refArgs, right)
 	}
 
-	output, err := exec.Command("git", refArgs...).Output()
+	output, err := simpleExec(nil, "git", refArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	scanner := bufio.NewScanner(bytes.NewBuffer(output))
+	scanner := bufio.NewScanner(bytes.NewBufferString(output))
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), " ")
 		objects = append(objects, line[0])

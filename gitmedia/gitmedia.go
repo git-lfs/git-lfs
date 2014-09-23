@@ -2,7 +2,7 @@ package gitmedia
 
 import (
 	"fmt"
-	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/git"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -101,7 +101,7 @@ func init() {
 		}
 	}
 
-	gitVersion, err := gitconfig.Version()
+	gitVersion, err := git.Config.Version()
 	if err != nil {
 		gitVersion = "unknown"
 	}

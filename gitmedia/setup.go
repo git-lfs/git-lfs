@@ -3,7 +3,7 @@ package gitmedia
 import (
 	"errors"
 	"fmt"
-	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/git"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -40,8 +40,6 @@ func InstallHooks() error {
 	} else {
 		return ioutil.WriteFile(hookPath, prePushHook, 0755)
 	}
-
-	return nil
 }
 
 func InstallFilters() error {
@@ -60,10 +58,10 @@ func setFilter(filterName string) error {
 	key := fmt.Sprintf("filter.media.%s", filterName)
 	value := fmt.Sprintf("git media %s %%f", filterName)
 
-	existing := gitconfig.Find(key)
+	existing := git.Config.Find(key)
 	if shouldReset(existing) {
-		gitconfig.UnsetGlobal(key)
-		gitconfig.SetGlobal(key, value)
+		git.Config.UnsetGlobal(key)
+		git.Config.SetGlobal(key, value)
 	} else if existing != value {
 		return fmt.Errorf("The %s filter should be \"%s\" but is \"%s\"", filterName, value, existing)
 	}
@@ -75,10 +73,10 @@ func requireFilters() error {
 	key := "filter.media.required"
 	value := "true"
 
-	existing := gitconfig.Find(key)
+	existing := git.Config.Find(key)
 	if shouldReset(existing) {
-		gitconfig.UnsetGlobal(key)
-		gitconfig.SetGlobal(key, value)
+		git.Config.UnsetGlobal(key)
+		git.Config.SetGlobal(key, value)
 	} else if existing != value {
 		return errors.New("Media filters should be required but are not.")
 	}
