@@ -37,20 +37,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	revList, err := git.RevListObjects(left, right)
-	if err != nil {
-		Panic(err, "Error running git rev-list --objects %s %s", left, right)
-	}
-
-	links := make([]*pointer.Link, 0)
-	for _, sha1 := range revList {
-		link, err := pointer.FindLink(sha1)
-		if err != nil {
-			continue
-		}
-
-		links = append(links, link)
-	}
+	links := linksFromRefs(left, right)
 
 	for i, link := range links {
 		if dryRun {
@@ -104,6 +91,25 @@ func decodeRefs(input string) (string, string) {
 	}
 
 	return left, right
+}
+
+func linksFromRefs(left, right string) []*pointer.Link {
+	revList, err := git.RevListObjects(left, right)
+	if err != nil {
+		Panic(err, "Error running git rev-list --objects %s %s", left, right)
+	}
+
+	links := make([]*pointer.Link, 0)
+	for _, sha1 := range revList {
+		link, err := pointer.FindLink(sha1)
+		if err != nil {
+			continue
+		}
+
+		links = append(links, link)
+	}
+
+	return links
 }
 
 func init() {
