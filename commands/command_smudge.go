@@ -20,7 +20,7 @@ var (
 )
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)

@@ -25,7 +25,7 @@ func (e *HookExists) Error() string {
 	return fmt.Sprintf("Hook already exists: %s", e.Name)
 }
 
-func InstallHooks() error {
+func InstallHooks(force bool) error {
 	if !InRepo() {
 		return NotInARepositoryError
 	}
@@ -35,7 +35,7 @@ func InstallHooks() error {
 	}
 
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
-	if _, err := os.Stat(hookPath); err == nil {
+	if _, err := os.Stat(hookPath); err == nil && !force {
 		return &HookExists{"pre-push", hookPath}
 	} else {
 		return ioutil.WriteFile(hookPath, prePushHook, 0755)

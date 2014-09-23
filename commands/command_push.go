@@ -94,7 +94,7 @@ func decodeRefs(input string) (string, string) {
 }
 
 func linksFromRefs(left, right string) []*pointer.Link {
-	revList, err := git.RevListObjects(left, right)
+	revList, err := git.RevListObjects(left, right, false)
 	if err != nil {
 		Panic(err, "Error running git rev-list --objects %s %s", left, right)
 	}

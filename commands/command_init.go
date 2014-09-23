@@ -32,7 +32,7 @@ func initCommand(cmd *cobra.Command, args []string) {
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
-	if err := gitmedia.InstallHooks(); err != nil {
+	if err := gitmedia.InstallHooks(false); err != nil {
 		Error(err.Error())
 	}
 }

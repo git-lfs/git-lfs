@@ -16,7 +16,7 @@ var (
 )
 
 func cleanCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	var filename string
 	var cb gitmedia.CopyCallback
