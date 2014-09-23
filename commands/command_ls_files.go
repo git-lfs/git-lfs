@@ -19,8 +19,9 @@ var (
 func lsFilesCommand(cmd *cobra.Command, args []string) {
 	filepath.Walk(gitmedia.LocalLinkDir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			firstTwo := filepath.Dir(path)
-			rest := filepath.Base(path)
+			base, _ := filepath.Rel(gitmedia.LocalLinkDir, path)
+			firstTwo := filepath.Dir(base)
+			rest := filepath.Base(base)
 
 			link, err := pointer.FindLink(firstTwo + rest)
 			if err != nil {
