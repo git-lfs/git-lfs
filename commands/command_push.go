@@ -23,25 +23,42 @@ var (
 )
 
 func pushCommand(cmd *cobra.Command, args []string) {
-	refsData, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		Panic(err, "Error reading refs on stdin")
-	}
+	var left, right string
 
-	if len(refsData) == 0 {
-		return
-	}
+	if dryRun {
+		if len(args) != 2 {
+			Print("Usage: git media push --dry-run <repo> <refspec>")
+			return
+		}
 
-	left, right := decodeRefs(string(refsData))
-	if left == deleteBranch {
-		return
+		ref, err := gitmedia.CurrentRef()
+		if err != nil {
+			Panic(err, "Error getting current ref")
+		}
+		left = ref
+		right = fmt.Sprintf("^%s/%s", args[0], args[1])
+	} else {
+		refsData, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			Panic(err, "Error reading refs on stdin")
+		}
+
+		if len(refsData) == 0 {
+			return
+		}
+
+		left, right = decodeRefs(string(refsData))
+		if left == deleteBranch {
+			return
+		}
+
 	}
 
 	links := linksFromRefs(left, right)
 
 	for i, link := range links {
 		if dryRun {
-			fmt.Println("push", link.Oid, link.Name)
+			Print("push %s", link.Name)
 			continue
 		}
 		if wErr := pushAsset(link.Oid, link.Name, i+1, len(links)); wErr != nil {
