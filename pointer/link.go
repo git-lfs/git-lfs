@@ -25,7 +25,7 @@ type Link struct {
 }
 
 func (p *Pointer) CreateLink(filename string) error {
-	hash, err := git.NewHashObject([]byte(p.Encoded()))
+	hash, err := git.HashObject([]byte(p.Encoded()))
 	if err != nil {
 		return err
 	}

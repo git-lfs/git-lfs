@@ -19,7 +19,7 @@ func Grep(pattern string) (string, error) {
 	return simpleExec(nil, "git", "grep", "--full-name", "--name-only", "--cached", pattern)
 }
 
-func NewHashObject(data []byte) (string, error) {
+func HashObject(data []byte) (string, error) {
 	buf := bytes.NewBuffer(data)
 	return simpleExec(buf, "git", "hash-object", "--stdin")
 }
