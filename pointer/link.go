@@ -19,11 +19,17 @@ name %s
 `
 )
 
+// Link provides a link between a git sha1 and a git media oid. Link files
+// are stored under .git/media/objects in a structure similar to that of
+// .git/objects. The link file contains the git media oid and the name of
+// file if it was available when created.
 type Link struct {
 	Oid  string
 	Name string
 }
 
+// CreateLink will create a link file from a Pointer. The filename passed
+// in is what will be stored in the link contents.
 func (p *Pointer) CreateLink(filename string) error {
 	hash, err := git.HashObject([]byte(p.Encoded()))
 	if err != nil {
@@ -38,6 +44,11 @@ func (p *Pointer) CreateLink(filename string) error {
 	return ioutil.WriteFile(linkFile, []byte(fmt.Sprintf(linkTemplate, p.Oid, filename)), 0644)
 }
 
+// FindLink takes a git sha1 and attempts to find the link file associated
+// with it. While this can be used to determine whether the git object is
+// a git media object, it should not be considered authoritative. While a link
+// file's presence is an indicator that it is a git media file, its absence does
+// not mean that it is not a git media file.
 func FindLink(sha1 string) (*Link, error) {
 	linkPath := filepath.Join(gitmedia.LocalLinkDir, sha1[0:2], sha1[2:len(sha1)])
 
