@@ -7,7 +7,6 @@ import (
 	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,8 +39,22 @@ func (p *Pointer) CreateLink(filename string) error {
 	if err != nil {
 		return err
 	}
+	linkLock := linkFile + ".lock"
 
-	return ioutil.WriteFile(linkFile, []byte(fmt.Sprintf(linkTemplate, p.Oid, filename)), 0644)
+	file, err := os.OpenFile(linkLock, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.WriteString(fmt.Sprintf(linkTemplate, p.Oid, filename))
+	if err != nil {
+		os.Remove(linkLock)
+		return err
+	}
+
+	file.Close()
+
+	return os.Rename(linkLock, linkFile)
 }
 
 // FindLink takes a git sha1 and attempts to find the link file associated
