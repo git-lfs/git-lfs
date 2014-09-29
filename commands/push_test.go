@@ -41,7 +41,7 @@ func TestPushToNewBranch(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	cmd := repo.Command("push", "--dry-run", "origin")
+	cmd := repo.Command("push", "--dry-run", "origin", "newbranch")
 	cmd.Output = "push a.dat\npush b.dat"
 
 	cmd.Before(func() {

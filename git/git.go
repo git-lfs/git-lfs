@@ -29,6 +29,17 @@ func HashObject(data []byte) (string, error) {
 	return simpleExec(buf, "git", "hash-object", "--stdin")
 }
 
+func LsRemote(repo, refspec string) (string, error) {
+	if repo == "" {
+		return "", errors.New("repo required")
+	}
+	if refspec == "" {
+		return simpleExec(nil, "git", "ls-remote", repo)
+
+	}
+	return simpleExec(nil, "git", "ls-remote", repo, refspec)
+}
+
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
 type GitObject struct {

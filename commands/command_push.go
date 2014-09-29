@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
@@ -57,18 +56,31 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	var left, right string
 
 	if dryRun {
+		var repo, refspec string
+
 		if len(args) < 1 {
 			Print("Usage: git media push --dry-run <repo> [refspec]")
 			return
 		}
 
-		ref, err := gitmedia.CurrentRef()
-		if err != nil {
-			Panic(err, "Error getting current ref")
-		}
-		left = ref
+		repo = args[0]
 		if len(args) == 2 {
-			right = fmt.Sprintf("^%s/%s", args[0], args[1])
+			refspec = args[1]
+		}
+
+		localRef, err := gitmedia.CurrentRef()
+		if err != nil {
+			Panic(err, "Error getting local ref")
+		}
+		left = localRef
+
+		remoteRef, err := git.LsRemote(repo, refspec)
+		if err != nil {
+			Panic(err, "Error getting remote ref")
+		}
+
+		if remoteRef != "" {
+			right = strings.Split(remoteRef, "\t")[0]
 		}
 	} else {
 		refsData, err := ioutil.ReadAll(os.Stdin)
