@@ -57,8 +57,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	var left, right string
 
 	if dryRun {
-		if len(args) != 2 {
-			Print("Usage: git media push --dry-run <repo> <refspec>")
+		if len(args) < 1 {
+			Print("Usage: git media push --dry-run <repo> [refspec]")
 			return
 		}
 
@@ -67,7 +67,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Error getting current ref")
 		}
 		left = ref
-		right = fmt.Sprintf("^%s/%s", args[0], args[1])
+		if len(args) == 2 {
+			right = fmt.Sprintf("^%s/%s", args[0], args[1])
+		}
 	} else {
 		refsData, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
