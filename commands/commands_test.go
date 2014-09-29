@@ -108,6 +108,10 @@ func (r *Repository) MediaCmd(args ...string) string {
 	return r.cmd(Bin, args...)
 }
 
+func (r *Repository) GitCmd(args ...string) string {
+	return r.cmd("git", args...)
+}
+
 func (r *Repository) Test() {
 	for _, path := range r.Paths {
 		r.test(path)
