@@ -80,7 +80,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if remoteRef != "" {
-			right = strings.Split(remoteRef, "\t")[0]
+			right = "^" + strings.Split(remoteRef, "\t")[0]
 		}
 	} else {
 		refsData, err := ioutil.ReadAll(os.Stdin)
