@@ -9,7 +9,7 @@ func TestPushWithEmptyQueue(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	cmd := repo.Command("push")
+	cmd := repo.Command("push", "origin", "master")
 	cmd.Output = ""
 }
 
