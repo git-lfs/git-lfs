@@ -84,6 +84,7 @@ contents.
 < HTTP/1.1 200 OK
 ```
 
-* 200 - The user is able to send the file.
+* 200 - The user is able to send the file but the server already has it.
+* 204 - The user is able to send the file and the server does not have it.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.

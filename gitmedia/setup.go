@@ -3,7 +3,7 @@ package gitmedia
 import (
 	"errors"
 	"fmt"
-	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/git"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,7 +12,7 @@ import (
 
 var (
 	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
-	prePushHook           = []byte("#!/bin/sh\ngit media push\n")
+	prePushHook           = []byte("#!/bin/sh\ngit media push --stdin $*\n")
 	NotInARepositoryError = errors.New("Not in a repository")
 )
 
@@ -25,7 +25,7 @@ func (e *HookExists) Error() string {
 	return fmt.Sprintf("Hook already exists: %s", e.Name)
 }
 
-func InstallHooks() error {
+func InstallHooks(force bool) error {
 	if !InRepo() {
 		return NotInARepositoryError
 	}
@@ -35,13 +35,11 @@ func InstallHooks() error {
 	}
 
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
-	if _, err := os.Stat(hookPath); err == nil {
+	if _, err := os.Stat(hookPath); err == nil && !force {
 		return &HookExists{"pre-push", hookPath}
 	} else {
 		return ioutil.WriteFile(hookPath, prePushHook, 0755)
 	}
-
-	return nil
 }
 
 func InstallFilters() error {
@@ -60,10 +58,10 @@ func setFilter(filterName string) error {
 	key := fmt.Sprintf("filter.media.%s", filterName)
 	value := fmt.Sprintf("git media %s %%f", filterName)
 
-	existing := gitconfig.Find(key)
+	existing := git.Config.Find(key)
 	if shouldReset(existing) {
-		gitconfig.UnsetGlobal(key)
-		gitconfig.SetGlobal(key, value)
+		git.Config.UnsetGlobal(key)
+		git.Config.SetGlobal(key, value)
 	} else if existing != value {
 		return fmt.Errorf("The %s filter should be \"%s\" but is \"%s\"", filterName, value, existing)
 	}
@@ -75,10 +73,10 @@ func requireFilters() error {
 	key := "filter.media.required"
 	value := "true"
 
-	existing := gitconfig.Find(key)
+	existing := git.Config.Find(key)
 	if shouldReset(existing) {
-		gitconfig.UnsetGlobal(key)
-		gitconfig.SetGlobal(key, value)
+		git.Config.UnsetGlobal(key)
+		git.Config.SetGlobal(key, value)
 	} else if existing != value {
 		return errors.New("Media filters should be required but are not.")
 	}

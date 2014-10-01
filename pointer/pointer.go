@@ -45,9 +45,12 @@ func (p *Pointer) Encode(writer io.Writer) (int, error) {
 	return Encode(writer, p)
 }
 
+func (p *Pointer) Encoded() string {
+	return fmt.Sprintf(template, latest, p.Oid, p.Size)
+}
+
 func Encode(writer io.Writer, pointer *Pointer) (int, error) {
-	return writer.Write([]byte(fmt.Sprintf(template,
-		latest, pointer.Oid, pointer.Size)))
+	return writer.Write([]byte(pointer.Encoded()))
 }
 
 func Decode(reader io.Reader) (*Pointer, error) {

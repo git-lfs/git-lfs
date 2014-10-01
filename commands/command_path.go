@@ -32,7 +32,7 @@ var (
 )
 
 func pathCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	Print("Listing paths")
 	knownPaths := findPaths()
@@ -42,7 +42,7 @@ func pathCommand(cmd *cobra.Command, args []string) {
 }
 
 func pathAddCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	if len(args) < 1 {
 		Print("git media path add <path> [path]*")
@@ -81,7 +81,7 @@ func pathAddCommand(cmd *cobra.Command, args []string) {
 }
 
 func pathRemoveCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	if len(args) < 1 {
 		Print("git media path remove <path> [path]*")

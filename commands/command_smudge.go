@@ -20,7 +20,7 @@ var (
 )
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks()
+	gitmedia.InstallHooks(false)
 
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
@@ -59,6 +59,11 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	err = ptr.Smudge(os.Stdout, cb)
 	if file != nil {
 		file.Close()
+	}
+
+	err = ptr.CreateLink(filename)
+	if err != nil {
+		Panic(err, "Unable to write link file %s", err)
 	}
 
 	if err != nil {

@@ -108,6 +108,10 @@ func (r *Repository) MediaCmd(args ...string) string {
 	return r.cmd(Bin, args...)
 }
 
+func (r *Repository) GitCmd(args ...string) string {
+	return r.cmd("git", args...)
+}
+
 func (r *Repository) Test() {
 	for _, path := range r.Paths {
 		r.test(path)
@@ -156,7 +160,7 @@ func (c *TestCommand) Run(path string) {
 	cmd := exec.Command(Bin, c.Args...)
 	cmd.Stdin = c.Input
 	if c.Env != nil && len(c.Env) > 0 {
-		cmd.Env = c.Env
+		cmd.Env = append(os.Environ(), c.Env...)
 	}
 	outputBytes, err := cmd.CombinedOutput()
 	c.e(err)

@@ -1,11 +1,13 @@
 package gitmedia
 
 import (
+	"errors"
 	"fmt"
-	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/git"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -20,6 +22,7 @@ var (
 	LocalGitDir        string
 	LocalMediaDir      string
 	LocalLogDir        string
+	LocalLinkDir       string
 	checkedTempDir     string
 )
 
@@ -48,6 +51,18 @@ func LocalMediaPath(sha string) (string, error) {
 	return filepath.Join(path, sha), nil
 }
 
+func LocalLinkPath(sha string) (string, error) {
+	if len(sha) == 0 {
+		return "", fmt.Errorf("Error trying to create local object directory, invalid sha: '%s'", sha)
+	}
+	path := filepath.Join(LocalLinkDir, sha[0:2])
+	if err := os.MkdirAll(path, 0744); err != nil {
+		return "", fmt.Errorf("Error trying to create local object directory in '%s': %s", path, err)
+	}
+
+	return filepath.Join(path, sha[2:len(sha)]), nil
+}
+
 func Environ() []string {
 	osEnviron := os.Environ()
 	env := make([]string, 4, len(osEnviron)+4)
@@ -70,21 +85,52 @@ func InRepo() bool {
 	return LocalWorkingDir != ""
 }
 
+var shaMatcher = regexp.MustCompile(`^[0-9a-f]{40}`)
+
+func CurrentRef() (string, error) {
+	head, err := ioutil.ReadFile(filepath.Join(LocalGitDir, "HEAD"))
+	if err != nil {
+		return "", err
+	}
+
+	if shaMatcher.Match(head) {
+		return strings.TrimSpace(string(head)), nil
+	}
+
+	headString := string(head)
+	parts := strings.Split(headString, " ")
+	if len(parts) != 2 {
+		return "", errors.New("Unable to parse HEAD")
+	}
+
+	refFile := strings.TrimSpace(parts[1])
+	sha, err := ioutil.ReadFile(filepath.Join(LocalGitDir, refFile))
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(sha)), nil
+}
+
 func init() {
 	var err error
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
 		LocalMediaDir = filepath.Join(LocalGitDir, "media")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
+		LocalLinkDir = filepath.Join(LocalMediaDir, "objects")
 		TempDir = filepath.Join(LocalMediaDir, "tmp")
-		queueDir = setupQueueDir()
 
 		if err := os.MkdirAll(TempDir, 0744); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
+
+		if err := os.MkdirAll(LocalLinkDir, 0744); err != nil {
+			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalLinkDir, err))
+		}
 	}
 
-	gitVersion, err := gitconfig.Version()
+	gitVersion, err := git.Config.Version()
 	if err != nil {
 		gitVersion = "unknown"
 	}

@@ -2,7 +2,7 @@ package gitmedia
 
 import (
 	"fmt"
-	"github.com/github/git-media/gitconfig"
+	"github.com/github/git-media/git"
 	"os"
 	"path"
 	"regexp"
@@ -89,12 +89,12 @@ func (c *Configuration) loadGitConfig() {
 	c.gitConfig = make(map[string]string)
 
 	var output string
-	listOutput, err := gitconfig.List()
+	listOutput, err := git.Config.List()
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
 
-	fileOutput, err := gitconfig.ListFromFile()
+	fileOutput, err := git.Config.ListFromFile()
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config from file: %s", err))
 	}
