@@ -56,6 +56,11 @@ var (
 func pushCommand(cmd *cobra.Command, args []string) {
 	var left, right string
 
+	if len(args) == 0 {
+		Print("The git media pre-push hook is out of date. Please run `git media update`")
+		os.Exit(1)
+	}
+
 	if useStdin {
 		refsData, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
