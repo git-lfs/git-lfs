@@ -12,7 +12,7 @@ import (
 
 var (
 	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
-	prePushHook           = []byte("#!/bin/sh\ngit media push $*\n")
+	prePushHook           = []byte("#!/bin/sh\ngit media push --stdin $*\n")
 	NotInARepositoryError = errors.New("Not in a repository")
 )
 

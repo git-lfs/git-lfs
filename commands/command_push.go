@@ -18,6 +18,7 @@ var (
 		Run:   pushCommand,
 	}
 	dryRun       = false
+	useStdin     = false
 	deleteBranch = "(delete)"
 )
 
@@ -55,7 +56,21 @@ var (
 func pushCommand(cmd *cobra.Command, args []string) {
 	var left, right string
 
-	if dryRun {
+	if useStdin {
+		refsData, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			Panic(err, "Error reading refs on stdin")
+		}
+
+		if len(refsData) == 0 {
+			return
+		}
+
+		left, right = decodeRefs(string(refsData))
+		if left == deleteBranch {
+			return
+		}
+	} else {
 		var repo, refspec string
 
 		if len(args) < 1 {
@@ -81,20 +96,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 		if remoteRef != "" {
 			right = "^" + strings.Split(remoteRef, "\t")[0]
-		}
-	} else {
-		refsData, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			Panic(err, "Error reading refs on stdin")
-		}
-
-		if len(refsData) == 0 {
-			return
-		}
-
-		left, right = decodeRefs(string(refsData))
-		if left == deleteBranch {
-			return
 		}
 	}
 
@@ -183,5 +184,6 @@ func linksFromRefs(left, right string) []*pointer.Link {
 
 func init() {
 	pushCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do everything except actually send the updates")
+	pushCmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
 	RootCmd.AddCommand(pushCmd)
 }
