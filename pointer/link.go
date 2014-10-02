@@ -54,6 +54,8 @@ func (p *Pointer) CreateLink(filename string) error {
 
 	file.Close()
 
+	os.Remove(linkFile) // Remove the link file if it already existed
+
 	return os.Rename(linkLock, linkFile)
 }
 
