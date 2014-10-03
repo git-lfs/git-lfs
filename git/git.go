@@ -47,14 +47,6 @@ func Grep(pattern string) (string, error) {
 	return simpleExec(nil, "git", "grep", "--full-name", "--name-only", "--cached", pattern)
 }
 
-func GrepBlob(blob, pattern string) (bool, error) {
-	output, err := simpleExec(nil, "git", "grep", pattern, blob)
-	if err != nil {
-		return false, err
-	}
-	return output != "", nil
-}
-
 // HashObject is equivalent to `git hash-object --stdin` where data is passed
 // to stdin.
 func HashObject(data []byte) (string, error) {

@@ -34,11 +34,7 @@ func scanCommand(cmd *cobra.Command, args []string) {
 	var mediaObjects bytes.Buffer
 	for _, o := range objects {
 		if o.Type == "blob" && o.Size < 200 {
-			// Grep these objects for a git-media pointer indicator. This one is crude, do better.
-			isMedia, _ := git.GrepBlob(o.Sha1, "git-media") // Need a better pattern (must match all pointer versions)
-			if isMedia {
-				mediaObjects.WriteString(o.Sha1 + "\n")
-			}
+			mediaObjects.WriteString(o.Sha1 + "\n")
 		}
 	}
 
@@ -68,11 +64,9 @@ func scanCommand(cmd *cobra.Command, args []string) {
 		}
 
 		p, err := pointer.Decode(bytes.NewBuffer(nbuf))
-		if err != nil {
-			fmt.Println("Cannot decode file :(")
-			break
+		if err == nil {
+			pointers = append(pointers, p)
 		}
-		pointers = append(pointers, p)
 
 		_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
 		if err != nil {
