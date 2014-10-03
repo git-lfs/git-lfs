@@ -7,11 +7,19 @@ import (
 	"strconv"
 )
 
-func Scan(ref string) ([]*pointer.Pointer, error) {
+type ScannedPointer struct {
+	Name string
+	*pointer.Pointer
+}
+
+func Scan(ref string) ([]*ScannedPointer, error) {
+	fileNameMap := make(map[string]string, 0)
+
 	// Gets all objects git knows about
 	var buf bytes.Buffer
 	objects, _ := git.RevListObjects(ref, "", ref == "")
 	for _, o := range objects {
+		fileNameMap[o.Sha1] = o.Name
 		buf.WriteString(o.Sha1 + "\n")
 	}
 
@@ -36,14 +44,15 @@ func Scan(ref string) ([]*pointer.Pointer, error) {
 
 	r := bytes.NewBufferString(data)
 
-	pointers := make([]*pointer.Pointer, 0)
+	pointers := make([]*ScannedPointer, 0)
 	for {
 		l, err := r.ReadBytes('\n')
 		if err != nil { // Probably check for EOF
 			break
 		}
 
-		s, _ := strconv.Atoi(string(bytes.Fields(l)[2]))
+		fields := bytes.Fields(l)
+		s, _ := strconv.Atoi(string(fields[2]))
 
 		nbuf := make([]byte, s)
 		_, err = r.Read(nbuf)
@@ -51,9 +60,12 @@ func Scan(ref string) ([]*pointer.Pointer, error) {
 			return nil, err // Legit errors
 		}
 
+		sha1 := string(fields[0])
+		name := fileNameMap[sha1]
+
 		p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 		if err == nil {
-			pointers = append(pointers, p)
+			pointers = append(pointers, &ScannedPointer{name, p})
 		}
 
 		_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
