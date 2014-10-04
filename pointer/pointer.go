@@ -18,6 +18,7 @@ var (
 	latest        = "http://git-media.io/v/2"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
+	oidRE         = regexp.MustCompile(`\A[0-9a-fA-F]{64}`)
 	template      = `version %s
 oid sha256:%s
 size %d
@@ -155,6 +156,9 @@ func decodeAlpha(data []byte) (*Pointer, error) {
 	last := len(lines) - 1
 	if last == 0 {
 		return nil, errors.New("No OID in pointer file")
+	}
+	if !oidRE.Match(lines[last]) {
+		return nil, errors.New("Invalid OID in pointer file")
 	}
 
 	return &Pointer{alpha, string(lines[last]), 0, oidType}, nil
