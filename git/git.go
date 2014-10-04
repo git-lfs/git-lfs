@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/github/git-media/trace"
+	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"regexp"
@@ -150,7 +150,7 @@ func (c *gitConfig) Version() (string, error) {
 // simpleExec is a small wrapper around os/exec.Command. If the passed stdin
 // is not nil it will be hooked up to the subprocess stdin.
 func simpleExec(stdin io.Reader, name string, arg ...string) (string, error) {
-	trace.Trace("run_command: '%s' %s", name, strings.Join(arg, " "))
+	tracerx.Printf("run_command: '%s' %s", name, strings.Join(arg, " "))
 	cmd := exec.Command(name, arg...)
 	if stdin != nil {
 		cmd.Stdin = stdin
