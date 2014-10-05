@@ -14,6 +14,9 @@
 // By default, messages will be prefixed with "trace: ". This prefix can be
 // modified by setting Prefix.
 //
+// Each key can have an associated performance key, e.g. TRACERX_TRACE_PERFORMANCE.
+// If this key is 1 or "true" performance output will be written to the same output
+// as the tracing output.
 package tracerx
 
 import (
@@ -24,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -34,8 +38,9 @@ var (
 )
 
 type tracer struct {
-	enabled bool
-	w       io.Writer
+	enabled     bool
+	performance bool
+	w           io.Writer
 }
 
 // Printf writes a trace message for the DefaultKey
@@ -45,16 +50,27 @@ func Printf(format string, args ...interface{}) {
 
 // PrintfKey writes a trace message for the given key
 func PrintfKey(key, format string, args ...interface{}) {
-	uppedKey := strings.ToUpper(key)
-
-	tracer, ok := tracers[uppedKey]
-	if !ok {
-		tracer = initializeTracer(uppedKey)
-	}
-
+	tracer := getTracer(key)
 	if tracer.enabled {
 		fmt.Fprintf(tracer.w, Prefix+format+"\n", args...)
 		return
+	}
+}
+
+// PerformanceSince writes out the time since the given time, if
+// tracing for the default key is enabled and the performance key is set
+func PerformanceSince(what string, t time.Time) {
+	PerformanceSinceKey(DefaultKey, what, t)
+}
+
+// PerformanceSince writes out the time since the given time, if
+// tracing for the given key is enabled and the performance key is set
+func PerformanceSinceKey(key, what string, t time.Time) {
+	tracer := getTracer(key)
+
+	if tracer.enabled && tracer.performance {
+		since := time.Since(t)
+		fmt.Fprintf(tracer.w, "performance %s: %.9f s\n", what, since.Seconds())
 	}
 }
 
@@ -76,20 +92,34 @@ func Enable(key string) {
 	}
 }
 
+func getTracer(key string) *tracer {
+	uppedKey := strings.ToUpper(key)
+	tracer, ok := tracers[uppedKey]
+	if !ok {
+		tracer = initializeTracer(uppedKey)
+	}
+	return tracer
+}
+
 func initializeTracer(key string) *tracer {
 	tracerLock.Lock()
 	defer tracerLock.Unlock()
 
 	if tracer, ok := tracers[key]; ok {
-		return tracer
+		return tracer // Someone else initialized while we were blocked
 	}
 
-	tracer := &tracer{false, os.Stderr}
+	tracer := &tracer{false, false, os.Stderr}
 	tracers[key] = tracer
 
 	trace := os.Getenv(fmt.Sprintf("%s_TRACE", key))
 	if trace == "" || strings.ToLower(trace) == "false" {
 		return tracer
+	}
+
+	perf := os.Getenv(fmt.Sprintf("%s_TRACE_PERFORMANCE", key))
+	if perf == "1" || strings.ToLower(perf) == "true" {
+		tracer.performance = true
 	}
 
 	fd, err := strconv.Atoi(trace)

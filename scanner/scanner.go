@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"github.com/github/git-media/git"
 	"github.com/github/git-media/pointer"
+	"github.com/rubyist/tracerx"
 	"strconv"
+	"time"
 )
 
 type ScannedPointer struct {
@@ -17,14 +19,19 @@ func Scan(ref string) ([]*ScannedPointer, error) {
 
 	// Gets all objects git knows about
 	var buf bytes.Buffer
+	t := time.Now()
 	objects, _ := git.RevListObjects(ref, "", ref == "")
+	tracerx.PerformanceSince("rev-list --objects", t)
+
 	for _, o := range objects {
 		fileNameMap[o.Sha1] = o.Name
 		buf.WriteString(o.Sha1 + "\n")
 	}
 
 	// Get type and size info for all objects
+	t = time.Now()
 	objects, _ = git.CatFileBatchCheck(&buf)
+	tracerx.PerformanceSince("cat-file --batch-check", t)
 
 	// Pull out git objects that are type blob and size < 200 bytes.
 	// These are the likely git media pointer files
@@ -40,11 +47,14 @@ func Scan(ref string) ([]*ScannedPointer, error) {
 	// <sha1> <type> <size><LF>
 	// <contents><LF>
 	// This string contains all the data, so we parse it out below
+	t = time.Now()
 	data, _ := git.CatFileBatch(&mediaObjects)
+	tracerx.PerformanceSince("cat-file --batch", t)
 
 	r := bytes.NewBufferString(data)
 
 	pointers := make([]*ScannedPointer, 0)
+	t = time.Now()
 	for {
 		l, err := r.ReadBytes('\n')
 		if err != nil { // Probably check for EOF
@@ -73,5 +83,6 @@ func Scan(ref string) ([]*ScannedPointer, error) {
 			break
 		}
 	}
+	tracerx.PerformanceSince("decode pointers", t)
 	return pointers, nil
 }

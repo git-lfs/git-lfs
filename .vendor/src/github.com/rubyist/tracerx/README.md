@@ -18,6 +18,10 @@ tracerx.DefaultKey = "FOO"
 tracerx.Printf("send message")
 
 tracerx.PrintfKey("BAR", "do a thing")
+
+t := time.Now()
+// Do some stuff
+tracerx.PerformanceSince("BAR", "command x", t)
 ```
 
 This example will send tracing output based on the environment variables `FOO_TRACE` and `BAR_TRACE`.
@@ -30,6 +34,9 @@ unset, 0, or "false":   no output
 absolute path:          output will be written to the file
 3 - 10:                 output will be written to that file descriptor
 ```
+
+If an associated `BAR_TRACE_PERFORMANCE` is set to 1 or "true", the `PerformanceSince` line will
+output timing information.
 
 Keys can also be disabled. See the GoDoc for full API documentation.
 
