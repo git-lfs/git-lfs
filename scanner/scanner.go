@@ -15,8 +15,10 @@ var (
 	stdoutBufSize  = 16384
 )
 
+// Scan takes a ref and returns a slice of pointer.Pointer objects
+// for all git media pointers it finds for that ref.
 func Scan(ref string) ([]*pointer.Pointer, error) {
-	revs, _ := revListStream(ref, ref == "")
+	revs, _ := revListShas(ref, ref == "")
 	smallShas, _ := catFileBatchCheck(revs)
 	pointerc, _ := catFileBatch(smallShas)
 
@@ -28,7 +30,10 @@ func Scan(ref string) ([]*pointer.Pointer, error) {
 	return pointers, nil
 }
 
-func revListStream(ref string, all bool) (chan string, error) {
+// revListShas uses git rev-list to return the list of object sha1s
+// for the given ref. If all is true, ref is ignored. It returns a
+// channel from which sha1 strings can be read.
+func revListShas(ref string, all bool) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
 	if all {
 		refArgs = append(refArgs, "--all")
@@ -56,6 +61,11 @@ func revListStream(ref string, all bool) (chan string, error) {
 	return revs, nil
 }
 
+// catFileBatchCheck uses git cat-file --batch-check to get the type
+// and size of a git object. Any object that isn't of type blob and
+// under the blobSizeCutoff will be ignored. revs is a channel over
+// which strings containing git sha1s will be sent. It returns a channel
+// from which sha1 strings can be read.
 func catFileBatchCheck(revs chan string) (chan string, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch-check")
 	if err != nil {
@@ -91,6 +101,11 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 	return smallRevs, nil
 }
 
+// catFileBatch uses git cat-file --batch to get the object contents
+// of a git object, given its sha1. The contents will be decoded into
+// a git media pointer. revs is a channel over which strings containing
+// git sha1s will be sent. It returns a channel from which point.Pointers
+// can be read.
 func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
@@ -147,6 +162,9 @@ type wrappedCmd struct {
 	*exec.Cmd
 }
 
+// startCommand starts up a command and creates a stdin pipe and a buffered
+// stdout pipe, wrapped in a wrappedCmd. The stdout buffer wille be of stdoutBufSize
+// bytes.
 func startCommand(command string, args ...string) (*wrappedCmd, error) {
 	cmd := exec.Command(command, args...)
 	stdout, err := cmd.StdoutPipe()
