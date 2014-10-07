@@ -15,6 +15,7 @@ import (
 var (
 	blobSizeCutoff = 125
 	stdoutBufSize  = 16384
+	chanBufSize    = 100
 )
 
 type wrappedPointer struct {
@@ -27,9 +28,20 @@ type wrappedPointer struct {
 func Scan(ref string) ([]*wrappedPointer, error) {
 	start := time.Now()
 
-	revs, _ := revListShas(ref, ref == "")
-	smallShas, _ := catFileBatchCheck(revs)
-	pointerc, _ := catFileBatch(smallShas)
+	revs, err := revListShas(ref, ref == "")
+	if err != nil {
+		return nil, err
+	}
+
+	smallShas, err := catFileBatchCheck(revs)
+	if err != nil {
+		return nil, err
+	}
+
+	pointerc, err := catFileBatch(smallShas)
+	if err != nil {
+		return nil, err
+	}
 
 	pointers := make([]*wrappedPointer, 0)
 	for p := range pointerc {
@@ -60,7 +72,7 @@ func revListShas(ref string, all bool) (chan string, error) {
 
 	cmd.Stdin.Close()
 
-	revs := make(chan string)
+	revs := make(chan string, chanBufSize)
 
 	go func() {
 		scanner := bufio.NewScanner(cmd.Stdout)
@@ -84,12 +96,16 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 		return nil, err
 	}
 
-	smallRevs := make(chan string)
+	smallRevs := make(chan string, chanBufSize)
 
 	go func() {
 		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
+			// Format is:
+			// <sha1> <type> <size>
+			// type is at a fixed spot, if we see that it's "blob", we can avoid
+			// splitting the line just to get the size.
 			if line[41:45] == "blob" {
 				size, err := strconv.Atoi(line[46:len(line)])
 				if err != nil {
@@ -124,12 +140,12 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 		return nil, err
 	}
 
-	pointers := make(chan *wrappedPointer)
+	pointers := make(chan *wrappedPointer, chanBufSize)
 
 	go func() {
 		for {
 			l, err := cmd.Stdout.ReadBytes('\n')
-			if err != nil { // Probably check for EOF
+			if err != nil {
 				break
 			}
 
@@ -150,7 +166,7 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
-			if err != nil {                     // Probably check for EOF
+			if err != nil {
 				break
 			}
 		}
