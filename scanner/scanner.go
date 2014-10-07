@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/github/git-media/pointer"
-	// "github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"strconv"
+	"strings"
+	"time"
 )
 
 var (
@@ -23,6 +25,8 @@ type wrappedPointer struct {
 // Scan takes a ref and returns a slice of pointer.Pointer objects
 // for all git media pointers it finds for that ref.
 func Scan(ref string) ([]*wrappedPointer, error) {
+	start := time.Now()
+
 	revs, _ := revListShas(ref, ref == "")
 	smallShas, _ := catFileBatchCheck(revs)
 	pointerc, _ := catFileBatch(smallShas)
@@ -31,6 +35,8 @@ func Scan(ref string) ([]*wrappedPointer, error) {
 	for p := range pointerc {
 		pointers = append(pointers, p)
 	}
+
+	tracerx.PerformanceSince("scan", start)
 
 	return pointers, nil
 }
@@ -151,7 +157,6 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 		close(pointers)
 	}()
 
-	// writes shas to cat-file stdin
 	go func() {
 		for r := range revs {
 			cmd.Stdin.Write([]byte(r + "\n"))
@@ -183,6 +188,7 @@ func startCommand(command string, args ...string) (*wrappedCmd, error) {
 		return nil, err
 	}
 
+	tracerx.Printf("run_command: %s %s", command, strings.Join(args, " "))
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
