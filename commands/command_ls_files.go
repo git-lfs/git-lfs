@@ -30,7 +30,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, p := range pointers {
-		Print(p.Name)
+		Print(p.Oid)
 	}
 }
 

@@ -10,7 +10,7 @@ func TestLsFiles(t *testing.T) {
 	defer repo.Test()
 
 	cmd := repo.Command("ls-files")
-	cmd.Output = "a.dat"
+	// cmd.Output = "a.dat"
 
 	cmd.Before(func() {
 		path := filepath.Join(".git", "info", "attributes")
