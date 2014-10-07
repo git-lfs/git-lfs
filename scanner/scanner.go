@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/github/git-media/pointer"
-	"github.com/rubyist/tracerx"
+	// "github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"strconv"
-	"strings"
 )
+
+var blobSizeCutoff = 125
 
 func Scan(ref string) ([]*pointer.Pointer, error) {
 	revs, _ := revListStream(ref, ref == "")
@@ -24,11 +25,6 @@ func Scan(ref string) ([]*pointer.Pointer, error) {
 	return pointers, nil
 }
 
-type ScannedPointer struct {
-	Name string
-	*pointer.Pointer
-}
-
 func revListStream(ref string, all bool) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
 	if all {
@@ -37,21 +33,17 @@ func revListStream(ref string, all bool) (chan string, error) {
 		refArgs = append(refArgs, ref)
 	}
 
-	cmd := exec.Command("git", refArgs...)
-	stdout, err := cmd.StdoutPipe()
+	cmd, err := startCommand("git", refArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	tracerx.Printf("run_command: 'git' %s", strings.Join(refArgs, " "))
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
+	cmd.Stdin.Close()
 
 	revs := make(chan string)
 
 	go func() {
-		scanner := bufio.NewScanner(stdout)
+		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
 			revs <- scanner.Text()[0:40]
 		}
@@ -62,25 +54,15 @@ func revListStream(ref string, all bool) (chan string, error) {
 }
 
 func catFileBatchCheck(revs chan string) (chan string, error) {
-	cmd := exec.Command("git", "cat-file", "--batch-check")
-	stdin, err := cmd.StdinPipe()
+	cmd, err := startCommand("git", "cat-file", "--batch-check")
 	if err != nil {
-		return nil, err
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 
 	smallRevs := make(chan string)
 
 	go func() {
-		scanner := bufio.NewScanner(stdout)
+		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
 			if line[41:45] == "blob" {
@@ -88,7 +70,7 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 				if err != nil {
 					continue
 				}
-				if size < 200 {
+				if size < blobSizeCutoff {
 					smallRevs <- line[0:40]
 				}
 			}
@@ -98,43 +80,32 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 
 	go func() {
 		for r := range revs {
-			stdin.Write([]byte(r + "\n"))
+			cmd.Stdin.Write([]byte(r + "\n"))
 		}
-		stdin.Close()
+		cmd.Stdin.Close()
 	}()
 
 	return smallRevs, nil
 }
 
 func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
-	cmd := exec.Command("git", "cat-file", "--batch")
-	stdin, err := cmd.StdinPipe()
+	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
-		return nil, err
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 
 	pointers := make(chan *pointer.Pointer)
 
-	// reads from cat-file stdout, parses out pointers
 	go func() {
-		bstdout := bufio.NewReader(stdout)
+		bstdout := bufio.NewReader(cmd.Stdout)
 		for {
 			l, err := bstdout.ReadBytes('\n')
 			if err != nil { // Probably check for EOF
 				break
 			}
 
-			tracerx.Printf("l: .%s.", string(l))
-
+			// Line is formatted:
+			// <sha1> <type> <size>
 			fields := bytes.Fields(l)
 			s, _ := strconv.Atoi(string(fields[2]))
 
@@ -160,10 +131,35 @@ func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 	// writes shas to cat-file stdin
 	go func() {
 		for r := range revs {
-			stdin.Write([]byte(r + "\n"))
+			cmd.Stdin.Write([]byte(r + "\n"))
 		}
-		stdin.Close()
+		cmd.Stdin.Close()
 	}()
 
 	return pointers, nil
+}
+
+type wrappedCmd struct {
+	Stdin  io.WriteCloser
+	Stdout io.ReadCloser
+	*exec.Cmd
+}
+
+func startCommand(command string, args ...string) (*wrappedCmd, error) {
+	cmd := exec.Command(command, args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return &wrappedCmd{stdin, stdout, cmd}, nil
 }
