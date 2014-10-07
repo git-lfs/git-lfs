@@ -15,14 +15,19 @@ var (
 	stdoutBufSize  = 16384
 )
 
+type wrappedPointer struct {
+	Sha1 string
+	*pointer.Pointer
+}
+
 // Scan takes a ref and returns a slice of pointer.Pointer objects
 // for all git media pointers it finds for that ref.
-func Scan(ref string) ([]*pointer.Pointer, error) {
+func Scan(ref string) ([]*wrappedPointer, error) {
 	revs, _ := revListShas(ref, ref == "")
 	smallShas, _ := catFileBatchCheck(revs)
 	pointerc, _ := catFileBatch(smallShas)
 
-	pointers := make([]*pointer.Pointer, 0)
+	pointers := make([]*wrappedPointer, 0)
 	for p := range pointerc {
 		pointers = append(pointers, p)
 	}
@@ -106,13 +111,13 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 // a git media pointer. revs is a channel over which strings containing
 // git sha1s will be sent. It returns a channel from which point.Pointers
 // can be read.
-func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
+func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
 		return nil, err
 	}
 
-	pointers := make(chan *pointer.Pointer)
+	pointers := make(chan *wrappedPointer)
 
 	go func() {
 		for {
@@ -134,7 +139,7 @@ func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 
 			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- p
+				pointers <- &wrappedPointer{string(fields[0]), p}
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
