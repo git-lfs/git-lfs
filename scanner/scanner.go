@@ -43,6 +43,7 @@ func revListShas(ref string, all bool) (chan string, error) {
 	if all {
 		refArgs = append(refArgs, "--all")
 	} else {
+		refArgs = append(refArgs, "--no-walk")
 		refArgs = append(refArgs, ref)
 	}
 
