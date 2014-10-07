@@ -10,7 +10,10 @@ import (
 	"strconv"
 )
 
-var blobSizeCutoff = 125
+var (
+	blobSizeCutoff = 125
+	stdoutBufSize  = 16384
+)
 
 func Scan(ref string) ([]*pointer.Pointer, error) {
 	revs, _ := revListStream(ref, ref == "")
@@ -97,9 +100,8 @@ func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 	pointers := make(chan *pointer.Pointer)
 
 	go func() {
-		bstdout := bufio.NewReader(cmd.Stdout)
 		for {
-			l, err := bstdout.ReadBytes('\n')
+			l, err := cmd.Stdout.ReadBytes('\n')
 			if err != nil { // Probably check for EOF
 				break
 			}
@@ -110,7 +112,7 @@ func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 			s, _ := strconv.Atoi(string(fields[2]))
 
 			nbuf := make([]byte, s)
-			_, err = io.ReadFull(bstdout, nbuf)
+			_, err = io.ReadFull(cmd.Stdout, nbuf)
 			if err != nil {
 				break // Legit errors
 			}
@@ -120,8 +122,8 @@ func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 				pointers <- p
 			}
 
-			_, err = bstdout.ReadBytes('\n') // Extra \n inserted by cat-file
-			if err != nil {                  // Probably check for EOF
+			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
+			if err != nil {                     // Probably check for EOF
 				break
 			}
 		}
@@ -141,7 +143,7 @@ func catFileBatch(revs chan string) (chan *pointer.Pointer, error) {
 
 type wrappedCmd struct {
 	Stdin  io.WriteCloser
-	Stdout io.ReadCloser
+	Stdout *bufio.Reader
 	*exec.Cmd
 }
 
@@ -161,5 +163,5 @@ func startCommand(command string, args ...string) (*wrappedCmd, error) {
 		return nil, err
 	}
 
-	return &wrappedCmd{stdin, stdout, cmd}, nil
+	return &wrappedCmd{stdin, bufio.NewReaderSize(stdout, stdoutBufSize), cmd}, nil
 }
