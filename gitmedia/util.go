@@ -3,7 +3,6 @@ package gitmedia
 import (
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -45,33 +44,23 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 }
 
 func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
-	rawurl := os.Getenv("GIT_MEDIA_PROGRESS")
-	if len(rawurl) == 0 || len(filename) == 0 || len(event) == 0 {
+	logPath := os.Getenv("GIT_MEDIA_PROGRESS")
+	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}
 
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return nil, nil, err
+	if !filepath.IsAbs(logPath) {
+		return nil, nil, fmt.Errorf("GIT_MEDIA_PROGRESS must be an absolute path")
 	}
 
-	if u.Scheme != "file" {
-		return nil, nil, fmt.Errorf("Invalid scheme for GIT_MEDIA_PROGRESS: %s", u.Scheme)
-	}
-
-	cbFilename := u.Path
-	if len(cbFilename) == 0 {
-		return nil, nil, nil
-	}
-
-	cbDir := filepath.Dir(cbFilename)
+	cbDir := filepath.Dir(logPath)
 	if err := os.MkdirAll(cbDir, 0755); err != nil {
-		return nil, nil, wrapProgressError(err, event, cbFilename)
+		return nil, nil, wrapProgressError(err, event, logPath)
 	}
 
-	file, err := os.OpenFile(cbFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, file, wrapProgressError(err, event, cbFilename)
+		return nil, file, wrapProgressError(err, event, logPath)
 	}
 
 	var prevWritten int64
@@ -81,7 +70,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()
 			prevWritten = written
-			return wrapProgressError(err, event, cbFilename)
+			return wrapProgressError(err, event, logPath)
 		}
 
 		return nil

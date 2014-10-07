@@ -20,7 +20,7 @@ func TestSmudge(t *testing.T) {
 	cmd := repo.Command("smudge", "somefile")
 	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:SOMEOID\nsize 9\n")
 	cmd.Output = "whatever"
-	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS=file://"+progressFile)
+	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS="+progressFile)
 
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, ".git", "media", "SO", "ME")
