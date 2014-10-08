@@ -12,6 +12,7 @@ var (
 		Short: "Scan for git media files",
 		Run:   scanCommand,
 	}
+	createLinks = false
 )
 
 func scanCommand(cmd *cobra.Command, args []string) {
@@ -27,10 +28,14 @@ func scanCommand(cmd *cobra.Command, args []string) {
 	// ?
 	// Profit
 	for _, p := range pointers {
-		fmt.Println("Git Media OID:", p.Oid)
+		fmt.Println("Git Media OID:", p.Name)
+		if createLinks {
+			p.CreateLink(p.Name)
+		}
 	}
 }
 
 func init() {
+	scanCmd.Flags().BoolVarP(&createLinks, "create-links", "l", false, "Create git media link files")
 	RootCmd.AddCommand(scanCmd)
 }
