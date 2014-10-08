@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	blobSizeCutoff = 125
+	blobSizeCutoff = 130
 	stdoutBufSize  = 16384
 	chanBufSize    = 100
 )
