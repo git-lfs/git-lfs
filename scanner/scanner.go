@@ -20,15 +20,17 @@ var (
 
 type wrappedPointer struct {
 	Sha1 string
+	Name string
 	*pointer.Pointer
 }
 
 // Scan takes a ref and returns a slice of pointer.Pointer objects
 // for all git media pointers it finds for that ref.
 func Scan(ref string) ([]*wrappedPointer, error) {
+	nameMap := make(map[string]string, 0)
 	start := time.Now()
 
-	revs, err := revListShas(ref, ref == "")
+	revs, err := revListShas(ref, ref == "", nameMap)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +47,9 @@ func Scan(ref string) ([]*wrappedPointer, error) {
 
 	pointers := make([]*wrappedPointer, 0)
 	for p := range pointerc {
+		if name, ok := nameMap[p.Sha1]; ok {
+			p.Name = name
+		}
 		pointers = append(pointers, p)
 	}
 
@@ -56,7 +61,7 @@ func Scan(ref string) ([]*wrappedPointer, error) {
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
-func revListShas(ref string, all bool) (chan string, error) {
+func revListShas(ref string, all bool, nameMap map[string]string) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
 	if all {
 		refArgs = append(refArgs, "--all")
@@ -77,7 +82,12 @@ func revListShas(ref string, all bool) (chan string, error) {
 	go func() {
 		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
-			revs <- scanner.Text()[0:40]
+			line := strings.TrimSpace(scanner.Text())
+			sha1 := line[0:40]
+			if len(line) > 40 {
+				nameMap[sha1] = line[41:len(line)]
+			}
+			revs <- sha1
 		}
 		close(revs)
 	}()
@@ -162,7 +172,7 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 
 			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- &wrappedPointer{string(fields[0]), p}
+				pointers <- &wrappedPointer{string(fields[0]), "", p}
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file

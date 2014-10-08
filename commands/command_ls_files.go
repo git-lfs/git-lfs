@@ -2,7 +2,6 @@ package commands
 
 import (
 	"github.com/github/git-media/gitmedia"
-	"github.com/github/git-media/pointer"
 	"github.com/github/git-media/scanner"
 	"github.com/spf13/cobra"
 )
@@ -31,11 +30,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, p := range pointers {
-		if link, err := pointer.FindLink(p.Sha1); err == nil {
-			Print(link.Name)
-		} else {
-			Print("<unknown> (%s) (%s)", p.Oid, p.Sha1)
-		}
+		Print(p.Name)
 	}
 }
 
