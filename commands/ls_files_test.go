@@ -27,5 +27,3 @@ func TestLsFiles(t *testing.T) {
 		repo.GitCmd("commit", "-m", "hi")
 	})
 }
-
-// Go from git media oid to sha1
