@@ -10,37 +10,12 @@ import (
 	"io"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
 // CatFile is equivalent to `git cat-file -p <sha1>`
 func CatFile(sha1 string) (string, error) {
 	return simpleExec(nil, "git", "cat-file", "-p", sha1)
-}
-
-func CatFileBatchCheck(r io.Reader) ([]*GitObject, error) {
-	objects := make([]*GitObject, 0)
-
-	output, err := simpleExec(r, "git", "cat-file", "--batch-check")
-	if err != nil {
-		return nil, err
-	}
-	scanner := bufio.NewScanner(bytes.NewBufferString(output))
-	for scanner.Scan() {
-		line := strings.Split(scanner.Text(), " ")
-		size, err := strconv.Atoi(line[2])
-		if err != nil {
-			return nil, err
-		}
-		objects = append(objects, &GitObject{Sha1: line[0], Type: line[1], Size: size})
-	}
-
-	return objects, nil
-}
-
-func CatFileBatch(r io.Reader) (string, error) {
-	return simpleExec(r, "git", "cat-file", "--batch")
 }
 
 // Grep is equivalent to `git grep --full-name --name-only --cached <pattern>`
