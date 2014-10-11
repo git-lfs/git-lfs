@@ -15,13 +15,16 @@ var (
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
-	ref, err := gitmedia.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not ls-files")
-	}
+	var ref string
+	var err error
 
 	if len(args) == 1 {
 		ref = args[0]
+	} else {
+		ref, err = gitmedia.CurrentRef()
+		if err != nil {
+			Panic(err, "Could not ls-files")
+		}
 	}
 
 	pointers, err := scanner.Scan(ref)

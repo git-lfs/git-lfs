@@ -12,12 +12,15 @@ import (
 	"time"
 )
 
-var (
+const (
 	blobSizeCutoff = 130
 	stdoutBufSize  = 16384
 	chanBufSize    = 100
 )
 
+// wrappedPointer wraps a pointer.Pointer and provides the git sha1
+// and the file name associated with the object, taken from the
+// rev-list output.
 type wrappedPointer struct {
 	Sha1 string
 	Name string
@@ -83,6 +86,10 @@ func revListShas(ref string, all bool, nameMap map[string]string) (chan string, 
 		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
+			if len(line) < 40 {
+				continue
+			}
+
 			sha1 := line[0:40]
 			if len(line) > 40 {
 				nameMap[sha1] = line[41:len(line)]
