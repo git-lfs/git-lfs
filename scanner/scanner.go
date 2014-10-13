@@ -13,9 +13,16 @@ import (
 )
 
 const (
+	// blobSizeCutoff is used to determine which files to scan for git media pointers.
+	// Any file with a size below this cutoff will be scanned.
 	blobSizeCutoff = 130
-	stdoutBufSize  = 16384
-	chanBufSize    = 100
+
+	// stdoutBufSize is the size of the buffers given to a sub-process stdout
+	stdoutBufSize = 16384
+
+	// chanBufSize is the size of the channels used to pass data from one sub-process
+	// to another.
+	chanBufSize = 100
 )
 
 // wrappedPointer wraps a pointer.Pointer and provides the git sha1
