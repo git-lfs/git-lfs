@@ -46,14 +46,14 @@ size 12345`
 
 func TestAlphaDecode(t *testing.T) {
 	examples := []string{
-		"# git-media\nabc\n",
-		"# external\nabc\n",
+		"# git-media\n4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\n",
+		"# external\n4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\n",
 	}
 
 	for _, ex := range examples {
 		p, err := Decode(bytes.NewBufferString(ex))
 		assertEqualWithExample(t, ex, nil, err)
-		assertEqualWithExample(t, ex, "abc", p.Oid)
+		assertEqualWithExample(t, ex, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
 		assertEqualWithExample(t, ex, int64(0), p.Size)
 		assertEqualWithExample(t, ex, "sha256", p.OidType)
 		assertEqualWithExample(t, ex, alpha, p.Version)

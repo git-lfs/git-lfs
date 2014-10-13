@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"regexp"
@@ -45,6 +46,8 @@ var z40 = regexp.MustCompile(`\^?0{40}`)
 type GitObject struct {
 	Sha1 string
 	Name string
+	Type string
+	Size int
 }
 
 // RevListObjects has two modes:
@@ -77,7 +80,7 @@ func RevListObjects(left, right string, all bool) ([]*GitObject, error) {
 	scanner := bufio.NewScanner(bytes.NewBufferString(output))
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), " ")
-		objects = append(objects, &GitObject{line[0], strings.Join(line[1:len(line)], " ")})
+		objects = append(objects, &GitObject{Sha1: line[0], Name: strings.Join(line[1:len(line)], " ")})
 	}
 
 	return objects, nil
@@ -122,6 +125,7 @@ func (c *gitConfig) Version() (string, error) {
 // simpleExec is a small wrapper around os/exec.Command. If the passed stdin
 // is not nil it will be hooked up to the subprocess stdin.
 func simpleExec(stdin io.Reader, name string, arg ...string) (string, error) {
+	tracerx.Printf("run_command: '%s' %s", name, strings.Join(arg, " "))
 	cmd := exec.Command(name, arg...)
 	if stdin != nil {
 		cmd.Stdin = stdin

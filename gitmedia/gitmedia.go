@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/github/git-media/git"
+	"github.com/rubyist/tracerx"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -114,6 +115,10 @@ func CurrentRef() (string, error) {
 
 func init() {
 	var err error
+
+	tracerx.DefaultKey = "GIT"
+	tracerx.Prefix = "trace media: "
+
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
 		LocalMediaDir = filepath.Join(LocalGitDir, "media")

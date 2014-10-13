@@ -5,6 +5,7 @@ import (
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
 	"github.com/github/git-media/pointer"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -122,6 +123,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 // git media endpoint already has a git media object for that oid. The object will
 // not be pushed again.
 func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedError {
+	tracerx.Printf("push_asset: %s %s %d/%d", oid, filename, index, totalFiles)
 	path, err := gitmedia.LocalMediaPath(oid)
 	if err != nil {
 		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)

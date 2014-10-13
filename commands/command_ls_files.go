@@ -2,10 +2,8 @@ package commands
 
 import (
 	"github.com/github/git-media/gitmedia"
-	"github.com/github/git-media/pointer"
+	"github.com/github/git-media/scanner"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
 )
 
 var (
@@ -17,21 +15,26 @@ var (
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
-	filepath.Walk(gitmedia.LocalLinkDir, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			base, _ := filepath.Rel(gitmedia.LocalLinkDir, path)
-			firstTwo := filepath.Dir(base)
-			rest := filepath.Base(base)
+	var ref string
+	var err error
 
-			link, err := pointer.FindLink(firstTwo + rest)
-			if err != nil {
-				return nil
-			}
-			Print(link.Name)
+	if len(args) == 1 {
+		ref = args[0]
+	} else {
+		ref, err = gitmedia.CurrentRef()
+		if err != nil {
+			Panic(err, "Could not ls-files")
 		}
-		return nil
-	})
+	}
 
+	pointers, err := scanner.Scan(ref)
+	if err != nil {
+		Panic(err, "Could not scan for git media files")
+	}
+
+	for _, p := range pointers {
+		Print(p.Name)
+	}
 }
 
 func init() {

@@ -46,13 +46,13 @@ func TestSmudge(t *testing.T) {
 
 	// smudge with custom hook
 	cmd = repo.Command("smudge")
-	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
+	cmd.Input = bytes.NewBufferString("# git-media\n4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 	cmd.Output = "whatever"
 	customHook := []byte("echo 'yo'")
 
 	cmd.Before(func() {
-		path := filepath.Join(repo.Path, ".git", "media", "SO", "ME")
-		file := filepath.Join(path, "SOMEOID")
+		path := filepath.Join(repo.Path, ".git", "media", "4d", "7a")
+		file := filepath.Join(path, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(prePushHookFile, customHook, 0755))
@@ -70,17 +70,17 @@ func TestSmudgeInfo(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	mediaPath := filepath.Join(repo.Path, ".git", "media", "SO", "ME")
-	mediaFile := filepath.Join(mediaPath, "SOMEOID")
+	mediaPath := filepath.Join(repo.Path, ".git", "media", "4d", "7a")
+	mediaFile := filepath.Join(mediaPath, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 
 	// smudge --info with old pointer format, without local file
 	cmd := repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
+	cmd.Input = bytes.NewBufferString("# git-media\n4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 	cmd.Output = "0 --"
 
 	// smudge --info with old pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("# git-media\nSOMEOID")
+	cmd.Input = bytes.NewBufferString("# git-media\n4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {
@@ -90,12 +90,12 @@ func TestSmudgeInfo(t *testing.T) {
 
 	// smudge --info with ini pointer format, without local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:SOMEOID\nsize 123\n")
+	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
 	cmd.Output = "123 --"
 
 	// smudge --info with ini pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:SOMEOID\nsize 123\n")
+	cmd.Input = bytes.NewBufferString("version http://git-media.io/v/2\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
 	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {
