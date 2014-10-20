@@ -4,7 +4,7 @@ import (
 	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/gitmediaclient"
-	"github.com/github/git-media/pointer"
+	"github.com/github/git-media/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -105,14 +105,18 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	links := linksFromRefs(left, right)
+	// Just use scanner here
+	pointers, err := scanner.Scan(left, right)
+	if err != nil {
+		Panic(err, "Error scanning for media files")
+	}
 
-	for i, link := range links {
+	for i, pointer := range pointers {
 		if dryRun {
-			Print("push %s", link.Name)
+			Print("push %s", pointer.Name)
 			continue
 		}
-		if wErr := pushAsset(link.Oid, link.Name, i+1, len(links)); wErr != nil {
+		if wErr := pushAsset(pointer.Oid, pointer.Name, i+1, len(pointers)); wErr != nil {
 			Panic(wErr.Err, wErr.Error())
 		}
 	}
@@ -166,27 +170,6 @@ func decodeRefs(input string) (string, string) {
 	}
 
 	return left, right
-}
-
-// linksFromRefs runs git.RevListObjects for the passed refs and builds
-// a slice of pointer.Link's for any object that has an associated git media file.
-func linksFromRefs(left, right string) []*pointer.Link {
-	revList, err := git.RevListObjects(left, right, false)
-	if err != nil {
-		Panic(err, "Error running git rev-list --objects %s %s", left, right)
-	}
-
-	links := make([]*pointer.Link, 0)
-	for _, object := range revList {
-		link, err := pointer.FindLink(object.Sha1)
-		if err != nil {
-			continue
-		}
-
-		links = append(links, link)
-	}
-
-	return links
 }
 
 func init() {
