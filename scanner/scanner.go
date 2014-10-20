@@ -7,6 +7,7 @@ import (
 	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -34,13 +35,15 @@ type wrappedPointer struct {
 	*pointer.Pointer
 }
 
+var z40 = regexp.MustCompile(`\^?0{40}`)
+
 // Scan takes a ref and returns a slice of pointer.Pointer objects
 // for all git media pointers it finds for that ref.
-func Scan(ref string) ([]*wrappedPointer, error) {
+func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
 	start := time.Now()
 
-	revs, err := revListShas(ref, ref == "", nameMap)
+	revs, err := revListShas(refLeft, refRight, refLeft == "", nameMap)
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +74,16 @@ func Scan(ref string) ([]*wrappedPointer, error) {
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
-func revListShas(ref string, all bool, nameMap map[string]string) (chan string, error) {
+func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
 	if all {
 		refArgs = append(refArgs, "--all")
 	} else {
 		refArgs = append(refArgs, "--no-walk")
-		refArgs = append(refArgs, ref)
+		refArgs = append(refArgs, refLeft)
+		if refRight != "" && !z40.MatchString(refRight) {
+			refArgs = append(refArgs, refRight)
+		}
 	}
 
 	cmd, err := startCommand("git", refArgs...)

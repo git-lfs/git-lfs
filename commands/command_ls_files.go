@@ -27,7 +27,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	pointers, err := scanner.Scan(ref)
+	pointers, err := scanner.Scan(ref, "")
 	if err != nil {
 		Panic(err, "Could not scan for git media files")
 	}
