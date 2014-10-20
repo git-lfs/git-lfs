@@ -16,12 +16,27 @@ size 12345
 (ending \n)
 ```
 
+There are a couple optional keywords for encryption and compression.  Here is
+a sample pointer file:
+
+```
+version http://git-media.io/v/2
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+compression TBD
+encryption TBD
+(ending \n)
+```
+
+The OID should match the content AFTER compression and encryption, if specified.
+
 The pointer file should be small (less than 200 bytes), and consist of only
 ASCII characters.  Libraries that generate this should write the file
 identically, so that different implementations write consistent pointers that
 translate to the same Git blob OID.  This means:
 
-* Use properties "version", "oid", and "size" in that order.
+* Use properties "version", "oid", and "size" in that order.  Add "compression"
+or "encryption" if necessary, in that order.
 * Separate the property from its value with a single space.
 * Oid has a "sha256:" prefix.  No other hashing methods are currently supported
 for Git Media oids.
@@ -52,7 +67,7 @@ can have different media endpoints for different remotes.  Here is the list
 of rules that Git Media uses to determine a repository's Git Media server:
 
 1. The `media.url` string.
-2. The `remote.{name}.media` string.
+2. The `remote.{name}.media.url` string.
 3. Append `/info/media` to the remote URL.  Only works with HTTPS URLs.
 
 Here's a sample Git config file with the optional remote and media configuration
