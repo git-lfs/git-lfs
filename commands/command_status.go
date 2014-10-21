@@ -17,7 +17,7 @@ var (
 func statusCommand(cmd *cobra.Command, args []string) {
 	ref, err := gitmedia.CurrentRef()
 	if err != nil {
-		Panic(err, "Could not ls-files")
+		Panic(err, "Could not calculate status")
 	}
 
 	pointers, err := scanner.Scan(ref, "^origin/HEAD")
