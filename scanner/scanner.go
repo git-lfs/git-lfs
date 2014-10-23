@@ -32,6 +32,7 @@ const (
 type wrappedPointer struct {
 	Sha1 string
 	Name string
+	Size int
 	*pointer.Pointer
 }
 
@@ -192,7 +193,7 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 
 			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- &wrappedPointer{string(fields[0]), "", p}
+				pointers <- &wrappedPointer{string(fields[0]), "", s, p}
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file

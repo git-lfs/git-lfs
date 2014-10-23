@@ -26,7 +26,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, p := range pointers {
-		Print(p.Name)
+		Print("%s %d", p.Name, p.Size)
 	}
 }
 
