@@ -66,9 +66,17 @@ Git Media needs a URL endpoint to talk to a remote server.  A Git repository
 can have different media endpoints for different remotes.  Here is the list
 of rules that Git Media uses to determine a repository's Git Media server:
 
-1. The `media.url` string.
-2. The `remote.{name}.media.url` string.
-3. Append `/info/media` to the remote URL.  Only works with HTTPS URLs.
+1. The `remote.{name}.media_url` config specifies the URL for a single remote.
+2. The `media.url` config specifies the URL for any other remotes.
+3. If no configuration is set, append `/info/media` to the remote URL.  Only
+works with HTTPS URLs.
+
+The default Git Media transport is "https", for the [HTTPS API](./api.md).  The
+transport can be changed with either configuration option:
+
+1. The `remote.{name}.media_transport` config specifies the transport for a
+remote.
+2. The `media.transport` config specifies the transport for other remotes.
 
 Here's a sample Git config file with the optional remote and media configuration
 options:
@@ -77,11 +85,13 @@ options:
 [core]
   repositoryformatversion = 0
 [media]
-  endpoint = "https://github.com/github/assets-team/info/media"
+  url = "https://github.com/github/assets-team/info/media"
+  transport = "https"
 [remote "origin"]
   url = https://github.com/github/assets-team
   fetch = +refs/heads/*:refs/remotes/origin/*
-  media = "https://github.com/github/assets-team/info/media"
+  media_url = "https://github.com/github/assets-team/info/media"
+  media_transport = "https"
 ```
 
 Git Media uses `git credential` to fetch credentials for HTTPS requests.  Setup
