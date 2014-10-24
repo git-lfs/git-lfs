@@ -34,7 +34,7 @@ The server can return a 302 response to redirect to another HTTP resource.  A
 common use case is to defer to another storage host like S3.
 
 The client should follow the redirect immediately, transferring important
-headers such as "Range".  If the redirection isn't to the exact same host and
+headers such as "Range".  If the redirection is to the exact same host and
 scheme, "Authorization" should be passed too.
 
 ### JSON Response
