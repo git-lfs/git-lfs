@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/github/git-media/git"
 	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/scanner"
@@ -64,17 +65,17 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	Print("Media file changes to be pushed to %s:\n", remote)
 	for _, p := range pointers {
-		Print("\t%s (%d bytes)", p.Name, p.Size)
+		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 	}
 
 	Print("\nMedia file changes to be committed:\n")
 	for _, p := range stagedPointers {
 		switch p.Status {
 		case "R", "C":
-			Print("\t%s -> %s (%d bytes)", p.SrcName, p.Name, p.Size)
+			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
 		case "M":
 		default:
-			Print("\t%s (%d bytes)", p.Name, p.Size)
+			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
 	}
 
@@ -86,6 +87,23 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 
 	Print("")
+}
+
+func humanizeBytes(bytes int64) string {
+	units := []string{"B", "KB", "MB", "GB", "TB"}
+	size := float64(bytes)
+
+	if bytes < 1024 {
+		return fmt.Sprintf("%d B", bytes)
+	}
+
+	for _, unit := range units {
+		if size < 1024.0 {
+			return fmt.Sprintf("%3.1f %s", size, unit)
+		}
+		size /= 1024.0
+	}
+	return fmt.Sprintf("%d B", bytes)
 }
 
 func init() {
