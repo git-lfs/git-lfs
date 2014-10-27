@@ -21,6 +21,10 @@ func LsRemote(repo, refspec string) (string, error) {
 	return simpleExec(nil, "git", "ls-remote", repo, refspec)
 }
 
+func CurrentBranch() (string, error) {
+	return simpleExec(nil, "git", "rev-parse", "--abbrev-ref", "HEAD")
+}
+
 type gitConfig struct {
 }
 

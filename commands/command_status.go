@@ -20,7 +20,12 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not calculate status")
 	}
 
-	pointers, err := scanner.Scan(ref, "^origin/HEAD")
+	remoteRef, err := gitmedia.CurrentRemoteRef()
+	if err != nil {
+		Panic(err, "Could not calculate status")
+	}
+
+	pointers, err := scanner.Scan(ref, "^"+remoteRef)
 	if err != nil {
 		Panic(err, "Could not scan for git media files")
 	}

@@ -113,6 +113,30 @@ func CurrentRef() (string, error) {
 	return strings.TrimSpace(string(sha)), nil
 }
 
+func CurrentRemoteRef() (string, error) {
+	branch, err := git.CurrentBranch()
+	if err != nil {
+		return "", err
+	}
+
+	if branch == "HEAD" {
+		return "", errors.New("not on a branch")
+	}
+
+	remote := git.Config.Find(fmt.Sprintf("branch.%s.remote", branch))
+	if remote == "" {
+		return "", errors.New("remote not found")
+	}
+
+	remoteSha, err := ioutil.ReadFile(filepath.Join(LocalGitDir, "refs", "remotes", remote, branch))
+	if err != nil {
+		// Sometimes the file doesn't exist, but <remote>/<branch> will be good enough
+		return fmt.Sprintf("%s/%s", remote, branch), nil
+	}
+
+	return strings.TrimSpace(string(remoteSha)), nil
+}
+
 func init() {
 	var err error
 
