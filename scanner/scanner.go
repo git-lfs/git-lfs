@@ -30,10 +30,11 @@ const (
 // and the file name associated with the object, taken from the
 // rev-list output.
 type wrappedPointer struct {
-	Sha1   string
-	Name   string
-	Size   int64
-	Status string
+	Sha1    string
+	Name    string
+	SrcName string
+	Size    int64
+	Status  string
 	*pointer.Pointer
 }
 
@@ -74,8 +75,9 @@ func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 }
 
 type indexFile struct {
-	Name   string
-	Status string
+	Name    string
+	SrcName string
+	Status  string
 }
 
 func ScanIndex() ([]*wrappedPointer, error) {
@@ -102,6 +104,7 @@ func ScanIndex() ([]*wrappedPointer, error) {
 		if e, ok := nameMap[p.Sha1]; ok {
 			p.Name = e.Name
 			p.Status = e.Status
+			p.SrcName = e.SrcName
 		}
 		pointers = append(pointers, p)
 	}
@@ -182,12 +185,12 @@ func revListIndex(nameMap map[string]*indexFile) (chan string, error) {
 			files := parts[1:len(parts)]
 
 			if len(description) >= 5 {
-				status := description[4]
+				status := description[4][0:1]
 				sha1 := description[3]
 				if status == "M" {
 					sha1 = description[2] // This one is modified but not added
 				}
-				nameMap[sha1] = &indexFile{files[len(files)-1], status}
+				nameMap[sha1] = &indexFile{files[len(files)-1], files[0], status}
 				revs <- sha1
 			}
 		}
@@ -274,7 +277,11 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 
 			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- &wrappedPointer{string(fields[0]), "", p.Size, "", p}
+				pointers <- &wrappedPointer{
+					Sha1:    string(fields[0]),
+					Size:    p.Size,
+					Pointer: p,
+				}
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file

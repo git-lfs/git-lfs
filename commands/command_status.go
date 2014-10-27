@@ -13,6 +13,7 @@ var (
 		Short: "Show information about git media files that would be pushed",
 		Run:   statusCommand,
 	}
+	porcelain = false
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
@@ -36,6 +37,20 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not scan staging for git media files")
 	}
 
+	if porcelain {
+		for _, p := range stagedPointers {
+			switch p.Status {
+			case "R", "C":
+				Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
+			case "M":
+				Print(" %s %s %d", p.Status, p.Name, p.Size)
+			default:
+				Print("%s  %s %d", p.Status, p.Name, p.Size)
+			}
+		}
+		return
+	}
+
 	branch, err := git.CurrentBranch()
 	if err != nil {
 		Panic(err, "Could not get current branch")
@@ -54,7 +69,11 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	Print("\nMedia file changes to be committed:\n")
 	for _, p := range stagedPointers {
-		if p.Status != "M" {
+		switch p.Status {
+		case "R", "C":
+			Print("\t%s -> %s (%d bytes)", p.SrcName, p.Name, p.Size)
+		case "M":
+		default:
 			Print("\t%s (%d bytes)", p.Name, p.Size)
 		}
 	}
@@ -70,5 +89,6 @@ func statusCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	statusCmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
 	RootCmd.AddCommand(statusCmd)
 }
