@@ -89,21 +89,24 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	Print("")
 }
 
+var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}
+
 func humanizeBytes(bytes int64) string {
-	units := []string{"B", "KB", "MB", "GB", "TB"}
+	var output string
 	size := float64(bytes)
 
 	if bytes < 1024 {
 		return fmt.Sprintf("%d B", bytes)
 	}
 
-	for _, unit := range units {
+	for _, unit := range byteUnits {
 		if size < 1024.0 {
-			return fmt.Sprintf("%3.1f %s", size, unit)
+			output = fmt.Sprintf("%3.1f %s", size, unit)
+			break
 		}
 		size /= 1024.0
 	}
-	return fmt.Sprintf("%d B", bytes)
+	return output
 }
 
 func init() {
