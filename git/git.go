@@ -25,6 +25,24 @@ func CurrentBranch() (string, error) {
 	return simpleExec(nil, "git", "rev-parse", "--abbrev-ref", "HEAD")
 }
 
+func CurrentRemote() (string, error) {
+	branch, err := CurrentBranch()
+	if err != nil {
+		return "", err
+	}
+
+	if branch == "HEAD" {
+		return "", errors.New("not on a branch")
+	}
+
+	remote := Config.Find(fmt.Sprintf("branch.%s.remote", branch))
+	if remote == "" {
+		return "", errors.New("remote not found")
+	}
+
+	return remote + "/" + branch, nil
+}
+
 type gitConfig struct {
 }
 

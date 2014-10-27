@@ -176,7 +176,7 @@ func revListStaging(nameMap map[string]string) (chan string, error) {
 
 			if len(description) >= 4 {
 				sha1 := description[3]
-				nameMap[sha1] = files[0] // Need to check status, this is wrong for copies / renames
+				nameMap[sha1] = files[len(files)-1]
 				revs <- sha1
 			}
 		}
