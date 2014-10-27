@@ -72,6 +72,39 @@ func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	return pointers, nil
 }
 
+func ScanStaging() ([]*wrappedPointer, error) {
+	nameMap := make(map[string]string, 0)
+	start := time.Now()
+
+	revs, err := revListStaging(nameMap)
+	if err != nil {
+		return nil, err
+	}
+
+	smallShas, err := catFileBatchCheck(revs)
+	if err != nil {
+		return nil, err
+	}
+
+	pointerc, err := catFileBatch(smallShas)
+	if err != nil {
+		return nil, err
+	}
+
+	pointers := make([]*wrappedPointer, 0)
+	for p := range pointerc {
+		if name, ok := nameMap[p.Sha1]; ok {
+			p.Name = name
+		}
+		pointers = append(pointers, p)
+	}
+
+	tracerx.PerformanceSince("scan-staging", start)
+
+	return pointers, nil
+
+}
+
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
@@ -109,6 +142,43 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 				nameMap[sha1] = line[41:len(line)]
 			}
 			revs <- sha1
+		}
+		close(revs)
+	}()
+
+	return revs, nil
+}
+
+func revListStaging(nameMap map[string]string) (chan string, error) {
+	cmd, err := startCommand("git", "diff-index", "--cached", "HEAD")
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin.Close()
+
+	revs := make(chan string, chanBufSize)
+
+	go func() {
+		scanner := bufio.NewScanner(cmd.Stdout)
+		for scanner.Scan() {
+			// Format is:
+			// :100644 100644 c5b3d83a7542255ec7856487baa5e83d65b1624c 9e82ac1b514be060945392291b5b3108c22f6fe3 M foo.gif
+			// :<old mode> <new mode> <old sha1> <new sha1> <status>\t<file name>[\t <file name>]
+			line := scanner.Text()
+			parts := strings.Split(line, "\t")
+			if len(parts) < 2 {
+				continue
+			}
+
+			description := strings.Split(parts[0], " ")
+			files := parts[1:len(parts)]
+
+			if len(description) >= 4 {
+				sha1 := description[3]
+				nameMap[sha1] = files[0] // Need to check status, this is wrong for copies / renames
+				revs <- sha1
+			}
 		}
 		close(revs)
 	}()

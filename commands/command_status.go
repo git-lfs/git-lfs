@@ -33,7 +33,18 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	for _, p := range pointers {
 		Print("%s %d", p.Name, p.Size)
 	}
+
+	pointers, err = scanner.ScanStaging()
+	if err != nil {
+		Panic(err, "Could not scan staging for git media files")
+	}
+
+	for _, p := range pointers {
+		Print("%s %d", p.Name, p.Size)
+	}
 }
+
+// hi
 
 func init() {
 	RootCmd.AddCommand(statusCmd)
