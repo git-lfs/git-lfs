@@ -31,7 +31,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not scan for git media files")
 	}
 
-	stagedPointers, err := scanner.ScanStaging()
+	stagedPointers, err := scanner.ScanIndex()
 	if err != nil {
 		Panic(err, "Could not scan staging for git media files")
 	}
@@ -46,16 +46,26 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Panic(err, "Could not get current remote branch")
 	}
-	Print("Files to be pushed to %s\n", remote)
+
+	Print("Media file changes to be pushed to %s:\n", remote)
 	for _, p := range pointers {
 		Print("\t%s (%d bytes)", p.Name, p.Size)
 	}
 
-	Print("\nFiles to be committed\n")
-
+	Print("\nMedia file changes to be committed:\n")
 	for _, p := range stagedPointers {
-		Print("\t%s (%d bytes)", p.Name, p.Size)
+		if p.Status != "M" {
+			Print("\t%s (%d bytes)", p.Name, p.Size)
+		}
 	}
+
+	Print("\nMedia file changes not staged for commit:\n")
+	for _, p := range stagedPointers {
+		if p.Status == "M" {
+			Print("\t%s", p.Name)
+		}
+	}
+
 	Print("")
 }
 

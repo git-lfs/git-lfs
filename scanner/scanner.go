@@ -30,9 +30,10 @@ const (
 // and the file name associated with the object, taken from the
 // rev-list output.
 type wrappedPointer struct {
-	Sha1 string
-	Name string
-	Size int64
+	Sha1   string
+	Name   string
+	Size   int64
+	Status string
 	*pointer.Pointer
 }
 
@@ -72,11 +73,16 @@ func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	return pointers, nil
 }
 
-func ScanStaging() ([]*wrappedPointer, error) {
-	nameMap := make(map[string]string, 0)
+type indexFile struct {
+	Name   string
+	Status string
+}
+
+func ScanIndex() ([]*wrappedPointer, error) {
+	nameMap := make(map[string]*indexFile, 0)
 	start := time.Now()
 
-	revs, err := revListStaging(nameMap)
+	revs, err := revListIndex(nameMap)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +99,9 @@ func ScanStaging() ([]*wrappedPointer, error) {
 
 	pointers := make([]*wrappedPointer, 0)
 	for p := range pointerc {
-		if name, ok := nameMap[p.Sha1]; ok {
-			p.Name = name
+		if e, ok := nameMap[p.Sha1]; ok {
+			p.Name = e.Name
+			p.Status = e.Status
 		}
 		pointers = append(pointers, p)
 	}
@@ -149,8 +156,8 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 	return revs, nil
 }
 
-func revListStaging(nameMap map[string]string) (chan string, error) {
-	cmd, err := startCommand("git", "diff-index", "--cached", "HEAD")
+func revListIndex(nameMap map[string]*indexFile) (chan string, error) {
+	cmd, err := startCommand("git", "diff-index", "-M", "HEAD")
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +171,7 @@ func revListStaging(nameMap map[string]string) (chan string, error) {
 		for scanner.Scan() {
 			// Format is:
 			// :100644 100644 c5b3d83a7542255ec7856487baa5e83d65b1624c 9e82ac1b514be060945392291b5b3108c22f6fe3 M foo.gif
-			// :<old mode> <new mode> <old sha1> <new sha1> <status>\t<file name>[\t <file name>]
+			// :<old mode> <new mode> <old sha1> <new sha1> <status>\t<file name>[\t<file name>]
 			line := scanner.Text()
 			parts := strings.Split(line, "\t")
 			if len(parts) < 2 {
@@ -174,9 +181,13 @@ func revListStaging(nameMap map[string]string) (chan string, error) {
 			description := strings.Split(parts[0], " ")
 			files := parts[1:len(parts)]
 
-			if len(description) >= 4 {
+			if len(description) >= 5 {
+				status := description[4]
 				sha1 := description[3]
-				nameMap[sha1] = files[len(files)-1]
+				if status == "M" {
+					sha1 = description[2] // This one is modified but not added
+				}
+				nameMap[sha1] = &indexFile{files[len(files)-1], status}
 				revs <- sha1
 			}
 		}
@@ -263,7 +274,7 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 
 			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- &wrappedPointer{string(fields[0]), "", p.Size, p}
+				pointers <- &wrappedPointer{string(fields[0]), "", p.Size, "", p}
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
