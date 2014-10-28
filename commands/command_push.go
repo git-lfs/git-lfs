@@ -89,7 +89,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			refspec = args[1]
 		}
 
-		localRef, err := gitmedia.CurrentRef()
+		localRef, err := git.CurrentRef()
 		if err != nil {
 			Panic(err, "Error getting local ref")
 		}

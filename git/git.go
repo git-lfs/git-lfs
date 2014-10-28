@@ -21,8 +21,21 @@ func LsRemote(repo, refspec string) (string, error) {
 	return simpleExec(nil, "git", "ls-remote", repo, refspec)
 }
 
+func CurrentRef() (string, error) {
+	return simpleExec(nil, "git", "rev-parse", "HEAD")
+}
+
 func CurrentBranch() (string, error) {
 	return simpleExec(nil, "git", "rev-parse", "--abbrev-ref", "HEAD")
+}
+
+func CurrentRemoteRef() (string, error) {
+	remote, err := CurrentRemote()
+	if err != nil {
+		return "", err
+	}
+
+	return simpleExec(nil, "git", "rev-parse", remote)
 }
 
 func CurrentRemote() (string, error) {

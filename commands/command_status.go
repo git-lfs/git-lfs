@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"github.com/github/git-media/git"
-	"github.com/github/git-media/gitmedia"
 	"github.com/github/git-media/scanner"
 	"github.com/spf13/cobra"
 )
@@ -18,19 +17,9 @@ var (
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
-	ref, err := gitmedia.CurrentRef()
+	ref, err := git.CurrentRef()
 	if err != nil {
-		Panic(err, "Could not calculate status")
-	}
-
-	remoteRef, err := gitmedia.CurrentRemoteRef()
-	if err != nil {
-		Panic(err, "Could not calculate status")
-	}
-
-	pointers, err := scanner.Scan(ref, "^"+remoteRef)
-	if err != nil {
-		Panic(err, "Could not scan for git media files")
+		Panic(err, "Could not get the current ref")
 	}
 
 	stagedPointers, err := scanner.ScanIndex()
@@ -58,14 +47,23 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 	Print("On branch %s", branch)
 
-	remote, err := git.CurrentRemote()
-	if err != nil {
-		Panic(err, "Could not get current remote branch")
-	}
+	remoteRef, err := git.CurrentRemoteRef()
+	if err == nil {
 
-	Print("Media file changes to be pushed to %s:\n", remote)
-	for _, p := range pointers {
-		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+		pointers, err := scanner.Scan(ref, "^"+remoteRef)
+		if err != nil {
+			Panic(err, "Could not scan for git media files")
+		}
+
+		remote, err := git.CurrentRemote()
+		if err != nil {
+			Panic(err, "Could not get current remote branch")
+		}
+
+		Print("Media file changes to be pushed to %s:\n", remote)
+		for _, p := range pointers {
+			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+		}
 	}
 
 	Print("\nMedia file changes to be committed:\n")
