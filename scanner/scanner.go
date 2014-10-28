@@ -38,9 +38,18 @@ type wrappedPointer struct {
 	*pointer.Pointer
 }
 
+// indexFile is used when scanning the index. It stores the name of
+// the file, the status of the file in the index, and, in the case of
+// a moved or copied file, the original name of the file.
+type indexFile struct {
+	Name    string
+	SrcName string
+	Status  string
+}
+
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-// Scan takes a ref and returns a slice of pointer.Pointer objects
+// Scan takes a ref and returns a slice of wrappedPointer objects
 // for all git media pointers it finds for that ref.
 func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
@@ -74,12 +83,8 @@ func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	return pointers, nil
 }
 
-type indexFile struct {
-	Name    string
-	SrcName string
-	Status  string
-}
-
+// ScanIndex returns a slice of wrappedPointer objects for all
+// git media pointers it finds in the index.
 func ScanIndex() ([]*wrappedPointer, error) {
 	nameMap := make(map[string]*indexFile, 0)
 	start := time.Now()
@@ -159,6 +164,9 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 	return revs, nil
 }
 
+// revListIndex uses git diff-index to return the list of object sha1s
+// for in the indexf. It returns a channel from which sha1 strings can be read.
+// The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
 func revListIndex(nameMap map[string]*indexFile) (chan string, error) {
 	cmd, err := startCommand("git", "diff-index", "-M", "HEAD")
 	if err != nil {
