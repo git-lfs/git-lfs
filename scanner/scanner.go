@@ -89,12 +89,34 @@ func ScanIndex() ([]*wrappedPointer, error) {
 	nameMap := make(map[string]*indexFile, 0)
 	start := time.Now()
 
-	revs, err := revListIndex(nameMap)
+	revs, err := revListIndex(false, nameMap)
 	if err != nil {
 		return nil, err
 	}
 
-	smallShas, err := catFileBatchCheck(revs)
+	cachedRevs, err := revListIndex(true, nameMap)
+	if err != nil {
+		return nil, err
+	}
+
+	allRevs := make(chan string)
+	go func() {
+		seenRevs := make(map[string]bool, 0)
+
+		for rev := range revs {
+			seenRevs[rev] = true
+			allRevs <- rev
+		}
+
+		for rev := range cachedRevs {
+			if _, ok := seenRevs[rev]; !ok {
+				allRevs <- rev
+			}
+		}
+		close(allRevs)
+	}()
+
+	smallShas, err := catFileBatchCheck(allRevs)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +189,14 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 // revListIndex uses git diff-index to return the list of object sha1s
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
-func revListIndex(nameMap map[string]*indexFile) (chan string, error) {
-	cmd, err := startCommand("git", "diff-index", "-M", "HEAD")
+func revListIndex(cache bool, nameMap map[string]*indexFile) (chan string, error) {
+	cmdArgs := []string{"diff-index", "-M"}
+	if cache {
+		cmdArgs = append(cmdArgs, "--cached")
+	}
+	cmdArgs = append(cmdArgs, "HEAD")
+
+	cmd, err := startCommand("git", cmdArgs...)
 	if err != nil {
 		return nil, err
 	}

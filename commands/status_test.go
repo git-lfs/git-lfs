@@ -10,7 +10,7 @@ func TestStatus(t *testing.T) {
 	defer repo.Test()
 
 	cmd := repo.Command("status", "--porcelain")
-	cmd.Output = " M file1.dat 9\nA  file2.dat 10"
+	cmd.Output = " M file1.dat 9\nA  file2.dat 10\nA  file3.dat 10"
 
 	cmd.Before(func() {
 		path := filepath.Join(".git", "info", "attributes")
@@ -25,6 +25,8 @@ func TestStatus(t *testing.T) {
 		repo.WriteFile(filepath.Join(repo.Path, "file2.dat"), "file2 data")
 		repo.GitCmd("add", "file2.dat")
 
-		// BUG: `git add` then modify file - doesn't show up
+		repo.WriteFile(filepath.Join(repo.Path, "file3.dat"), "file3 data")
+		repo.GitCmd("add", "file3.dat")
+		repo.WriteFile(filepath.Join(repo.Path, "file3.dat"), "file3 other data")
 	})
 }
