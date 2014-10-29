@@ -1,14 +1,12 @@
 package gitmedia
 
 import (
-	"errors"
 	"fmt"
 	"github.com/github/git-media/git"
 	"github.com/rubyist/tracerx"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 )
@@ -84,33 +82,6 @@ func Environ() []string {
 
 func InRepo() bool {
 	return LocalWorkingDir != ""
-}
-
-var shaMatcher = regexp.MustCompile(`^[0-9a-f]{40}`)
-
-func CurrentRef() (string, error) {
-	head, err := ioutil.ReadFile(filepath.Join(LocalGitDir, "HEAD"))
-	if err != nil {
-		return "", err
-	}
-
-	if shaMatcher.Match(head) {
-		return strings.TrimSpace(string(head)), nil
-	}
-
-	headString := string(head)
-	parts := strings.Split(headString, " ")
-	if len(parts) != 2 {
-		return "", errors.New("Unable to parse HEAD")
-	}
-
-	refFile := strings.TrimSpace(parts[1])
-	sha, err := ioutil.ReadFile(filepath.Join(LocalGitDir, refFile))
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(sha)), nil
 }
 
 func init() {

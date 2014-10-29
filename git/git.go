@@ -21,6 +21,41 @@ func LsRemote(repo, refspec string) (string, error) {
 	return simpleExec(nil, "git", "ls-remote", repo, refspec)
 }
 
+func CurrentRef() (string, error) {
+	return simpleExec(nil, "git", "rev-parse", "HEAD")
+}
+
+func CurrentBranch() (string, error) {
+	return simpleExec(nil, "git", "rev-parse", "--abbrev-ref", "HEAD")
+}
+
+func CurrentRemoteRef() (string, error) {
+	remote, err := CurrentRemote()
+	if err != nil {
+		return "", err
+	}
+
+	return simpleExec(nil, "git", "rev-parse", remote)
+}
+
+func CurrentRemote() (string, error) {
+	branch, err := CurrentBranch()
+	if err != nil {
+		return "", err
+	}
+
+	if branch == "HEAD" {
+		return "", errors.New("not on a branch")
+	}
+
+	remote := Config.Find(fmt.Sprintf("branch.%s.remote", branch))
+	if remote == "" {
+		return "", errors.New("remote not found")
+	}
+
+	return remote + "/" + branch, nil
+}
+
 type gitConfig struct {
 }
 

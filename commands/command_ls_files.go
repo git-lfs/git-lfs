@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/git"
 	"github.com/github/git-media/scanner"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 1 {
 		ref = args[0]
 	} else {
-		ref, err = gitmedia.CurrentRef()
+		ref, err = git.CurrentRef()
 		if err != nil {
 			Panic(err, "Could not ls-files")
 		}

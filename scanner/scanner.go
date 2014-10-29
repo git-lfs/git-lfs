@@ -30,14 +30,26 @@ const (
 // and the file name associated with the object, taken from the
 // rev-list output.
 type wrappedPointer struct {
-	Sha1 string
-	Name string
+	Sha1    string
+	Name    string
+	SrcName string
+	Size    int64
+	Status  string
 	*pointer.Pointer
+}
+
+// indexFile is used when scanning the index. It stores the name of
+// the file, the status of the file in the index, and, in the case of
+// a moved or copied file, the original name of the file.
+type indexFile struct {
+	Name    string
+	SrcName string
+	Status  string
 }
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-// Scan takes a ref and returns a slice of pointer.Pointer objects
+// Scan takes a ref and returns a slice of wrappedPointer objects
 // for all git media pointers it finds for that ref.
 func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
@@ -69,6 +81,65 @@ func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	tracerx.PerformanceSince("scan", start)
 
 	return pointers, nil
+}
+
+// ScanIndex returns a slice of wrappedPointer objects for all
+// git media pointers it finds in the index.
+func ScanIndex() ([]*wrappedPointer, error) {
+	nameMap := make(map[string]*indexFile, 0)
+	start := time.Now()
+
+	revs, err := revListIndex(false, nameMap)
+	if err != nil {
+		return nil, err
+	}
+
+	cachedRevs, err := revListIndex(true, nameMap)
+	if err != nil {
+		return nil, err
+	}
+
+	allRevs := make(chan string)
+	go func() {
+		seenRevs := make(map[string]bool, 0)
+
+		for rev := range revs {
+			seenRevs[rev] = true
+			allRevs <- rev
+		}
+
+		for rev := range cachedRevs {
+			if _, ok := seenRevs[rev]; !ok {
+				allRevs <- rev
+			}
+		}
+		close(allRevs)
+	}()
+
+	smallShas, err := catFileBatchCheck(allRevs)
+	if err != nil {
+		return nil, err
+	}
+
+	pointerc, err := catFileBatch(smallShas)
+	if err != nil {
+		return nil, err
+	}
+
+	pointers := make([]*wrappedPointer, 0)
+	for p := range pointerc {
+		if e, ok := nameMap[p.Sha1]; ok {
+			p.Name = e.Name
+			p.Status = e.Status
+			p.SrcName = e.SrcName
+		}
+		pointers = append(pointers, p)
+	}
+
+	tracerx.PerformanceSince("scan-staging", start)
+
+	return pointers, nil
+
 }
 
 // revListShas uses git rev-list to return the list of object sha1s
@@ -108,6 +179,56 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 				nameMap[sha1] = line[41:len(line)]
 			}
 			revs <- sha1
+		}
+		close(revs)
+	}()
+
+	return revs, nil
+}
+
+// revListIndex uses git diff-index to return the list of object sha1s
+// for in the indexf. It returns a channel from which sha1 strings can be read.
+// The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
+func revListIndex(cache bool, nameMap map[string]*indexFile) (chan string, error) {
+	cmdArgs := []string{"diff-index", "-M"}
+	if cache {
+		cmdArgs = append(cmdArgs, "--cached")
+	}
+	cmdArgs = append(cmdArgs, "HEAD")
+
+	cmd, err := startCommand("git", cmdArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin.Close()
+
+	revs := make(chan string, chanBufSize)
+
+	go func() {
+		scanner := bufio.NewScanner(cmd.Stdout)
+		for scanner.Scan() {
+			// Format is:
+			// :100644 100644 c5b3d83a7542255ec7856487baa5e83d65b1624c 9e82ac1b514be060945392291b5b3108c22f6fe3 M foo.gif
+			// :<old mode> <new mode> <old sha1> <new sha1> <status>\t<file name>[\t<file name>]
+			line := scanner.Text()
+			parts := strings.Split(line, "\t")
+			if len(parts) < 2 {
+				continue
+			}
+
+			description := strings.Split(parts[0], " ")
+			files := parts[1:len(parts)]
+
+			if len(description) >= 5 {
+				status := description[4][0:1]
+				sha1 := description[3]
+				if status == "M" {
+					sha1 = description[2] // This one is modified but not added
+				}
+				nameMap[sha1] = &indexFile{files[len(files)-1], files[0], status}
+				revs <- sha1
+			}
 		}
 		close(revs)
 	}()
@@ -192,7 +313,11 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 
 			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- &wrappedPointer{string(fields[0]), "", p}
+				pointers <- &wrappedPointer{
+					Sha1:    string(fields[0]),
+					Size:    p.Size,
+					Pointer: p,
+				}
 			}
 
 			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
