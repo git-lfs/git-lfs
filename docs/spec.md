@@ -16,12 +16,27 @@ size 12345
 (ending \n)
 ```
 
+There are a couple optional keywords for encryption and compression.  Here is
+a sample pointer file:
+
+```
+version http://git-media.io/v/2
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+compression TBD
+encryption TBD
+(ending \n)
+```
+
+The OID should match the content AFTER compression and encryption, if specified.
+
 The pointer file should be small (less than 200 bytes), and consist of only
 ASCII characters.  Libraries that generate this should write the file
 identically, so that different implementations write consistent pointers that
 translate to the same Git blob OID.  This means:
 
-* Use properties "version", "oid", and "size" in that order.
+* Use properties "version", "oid", and "size" in that order.  Add "compression"
+or "encryption" if necessary, in that order.
 * Separate the property from its value with a single space.
 * Oid has a "sha256:" prefix.  No other hashing methods are currently supported
 for Git Media oids.
@@ -51,9 +66,17 @@ Git Media needs a URL endpoint to talk to a remote server.  A Git repository
 can have different media endpoints for different remotes.  Here is the list
 of rules that Git Media uses to determine a repository's Git Media server:
 
-1. The `media.url` string.
-2. The `remote.{name}.media` string.
-3. Append `/info/media` to the remote URL.  Only works with HTTPS URLs.
+1. The `remote.{name}.media_url` config specifies the URL for a single remote.
+2. The `media.url` config specifies the URL for any other remotes.
+3. If no configuration is set, append `/info/media` to the remote URL.  Only
+works with HTTPS URLs.
+
+The default Git Media transport is "https", for the [HTTPS API](./api.md).  The
+transport can be changed with either configuration option:
+
+1. The `remote.{name}.media_transport` config specifies the transport for a
+remote.
+2. The `media.transport` config specifies the transport for other remotes.
 
 Here's a sample Git config file with the optional remote and media configuration
 options:
@@ -62,11 +85,13 @@ options:
 [core]
   repositoryformatversion = 0
 [media]
-  endpoint = "https://github.com/github/assets-team/info/media"
+  url = "https://github.com/github/assets-team/info/media"
+  transport = "https"
 [remote "origin"]
   url = https://github.com/github/assets-team
   fetch = +refs/heads/*:refs/remotes/origin/*
-  media = "https://github.com/github/assets-team/info/media"
+  media_url = "https://github.com/github/assets-team/info/media"
+  media_transport = "https"
 ```
 
 Git Media uses `git credential` to fetch credentials for HTTPS requests.  Setup

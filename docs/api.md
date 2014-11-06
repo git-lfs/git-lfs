@@ -28,6 +28,17 @@ identifies a unique header that the server writes before sending the content.
 
 The server returns a 404 if the file is not found.
 
+### Redirects
+
+The server can return a 302 response to redirect to another HTTP resource.  A
+common use case is to defer to another storage host like S3.
+
+The client should follow the redirect immediately, transferring important
+headers such as "Range".  If the redirection is to the exact same host and
+scheme, "Authorization" should be passed too.
+
+### JSON Response
+
 You can also request just the JSON meta data of the files:
 
 ```
