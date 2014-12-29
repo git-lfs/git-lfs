@@ -16,12 +16,31 @@ size 12345
 (ending \n)
 ```
 
-The pointer file should be small (less than 200 bytes), and consist of only
+There are a couple optional keywords for encryption and compression.  Here is
+a sample pointer file:
+
+```
+version http://git-media.io/v/2
+oid sha256:3d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+compression type=gzip oid=sha256:1d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+encryption type=aes256 oid=sha256:2d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+(ending \n)
+```
+
+The OID should match the content AFTER compression and encryption, if specified.
+In the example above, a file with an SHA256 signature of `1d7a214` gets added
+to a repository.  After compression, the signature is now `2d7a214`.  It then
+gets encrypted using the original OID as the key, resulting in a file with the
+signature of `3d7a214`.  This is the only OID that the server tracks.
+
+The pointer file should be small (less than 400 bytes), and consist of only
 ASCII characters.  Libraries that generate this should write the file
 identically, so that different implementations write consistent pointers that
 translate to the same Git blob OID.  This means:
 
-* Use properties "version", "oid", and "size" in that order.
+* Use properties "version", "oid", and "size" in that order.  Add "compression"
+or "encryption" if necessary, in that order.
 * Separate the property from its value with a single space.
 * Oid has a "sha256:" prefix.  No other hashing methods are currently supported
 for Git Media oids.
