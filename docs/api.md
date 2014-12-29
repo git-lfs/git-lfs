@@ -15,10 +15,8 @@ value from the object pointer.
 ### Getting the content
 
 To download the object content, send an Accept header of `application/vnd.git-media`.
-There are two content types that the server can return.  It is up to the server
-to decide how to send the data back.  Clients should support every content type.
-The easiest is just `application/octet-stream`, which returns the raw content of
-the file.
+The server returns the raw content back with a `Content-Type` of
+`application/octet-stream`.
 
 ```
 > GET objects/{oid} HTTP/1.1
@@ -31,17 +29,19 @@ the file.
 < {binary contents}
 ```
 
-The server can also use the `application/vnd.git-media` type, which adds a
-random header to the content.  This is similar to the boundary property of
-multipart forms.
+The server can also redirect to another location.  This is useful in cases where
+you do not want to render user content on a domain with important cookies.  
+Request headers like `Range` or `Accept` should be passed through.  The
+`Authorization` header must _not_ be passed through if the location's host or
+scheme differs from the original request uri.
 
 ```
 > GET objects/{oid} HTTP/1.1
 > Accept: application/vnd.git-media
 > Authorization: Basic ... (if authentication is needed)
 >
-< HTTP/1.1 200 OK
-< Content-Type: application/vnd.git-media; header=git-media.265b3cb3f0530aae9010780a30d92a898400a5582081b21a099d51941eff
+< HTTP/1.1 302 Found
+< Location: https://some-other-site.com/{oid}
 <
 < --git-media.265b3cb3f0530aae9010780a30d92a898400a5582081b21a099d51941eff
 < {binary contents}
@@ -51,9 +51,6 @@ multipart forms.
 
 * 200 - The object contents or meta data is in the response.
 * 302 - Temporary redirect to a new location.
-  Git Media clients should follow the location and pass headers like `Range` or
-  `Accept`.  The `Authorization` header must _not_ be passed through if the
-  location's host or scheme differs from the original request uri.
 * 404 - The user does not have access to the object, or it does not exist.
 
 ### Getting meta data.
