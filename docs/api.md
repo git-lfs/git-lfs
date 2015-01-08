@@ -19,7 +19,7 @@ The server returns the raw content back with a `Content-Type` of
 `application/octet-stream`.
 
 ```
-> GET objects/{oid} HTTP/1.1
+> GET https://git-media-server.com/objects/{oid} HTTP/1.1
 > Accept: application/vnd.git-media
 > Authorization: Basic ... (if authentication is needed)
 >
@@ -30,18 +30,18 @@ The server returns the raw content back with a `Content-Type` of
 ```
 
 The server can also redirect to another location.  This is useful in cases where
-you do not want to render user content on a domain with important cookies.  
+you do not want to render user content on a domain with important cookies.
 Request headers like `Range` or `Accept` should be passed through.  The
 `Authorization` header must _not_ be passed through if the location's host or
 scheme differs from the original request uri.
 
 ```
-> GET objects/{oid} HTTP/1.1
+> GET https://git-media-server.com/objects/{oid} HTTP/1.1
 > Accept: application/vnd.git-media
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 302 Found
-< Location: https://some-other-site.com/{oid}
+< Location: https://storage-server.com/{oid}
 <
 < {binary contents}
 ```
@@ -58,7 +58,7 @@ You can also request just the JSON meta data with an `Accept` header of
 `application/vnd.git-media+json`.
 
 ```
-> GET objects/{OID} HTTP/1.1
+> GET https://git-media-server.com/objects/{OID} HTTP/1.1
 > Accept: application/vnd.git-media+json
 > Authorization: Basic ... (if authentication is needed)
 >
@@ -81,7 +81,7 @@ with custom properties.
 This writes the object contents to the Git Media server.
 
 ```
-> PUT objects/{oid} HTTP/1.1
+> PUT https://git-media-server.com/objects/{oid} HTTP/1.1
 > Accept: application/vnd.git-media
 > Content-Type: application/octet-stream
 > Authorization: Basic ...
@@ -131,7 +131,7 @@ headers by setting response headers with this prefix.
 > {binary contents}
 >
 < HTTP/1.1 307 Temporary Redirect
-< Location: https://simple-storage-service.com/objects/{oid}
+< Location: https://storage-server.com/objects/{oid}
 < Git-Media-Callback: https://git-media-server.com/callback
 < Git-Media-Set-Authorization: simple-storage-service-authentication-token
 ```
@@ -139,7 +139,7 @@ headers by setting response headers with this prefix.
 ##### Example client redirection
 
 ```
-> PUT https://simple-storage-service.com/objects/{oid}
+> PUT https://storage-server.com/objects/{oid}
 > Authorization: simple-storage-service-authentication-token
 > Content-Type: application/octet-stream
 > Content-Length: 123
