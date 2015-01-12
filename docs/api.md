@@ -93,7 +93,7 @@ it:
 > Accept: application/vnd.git-media+json
 > Authorization: Basic ... (if authentication is needed)
 >
-< HTTP/1.1 204 OK
+< HTTP/1.1 200 OK
 < Content-Type: application/vnd.git-media+json
 <
 < {
@@ -139,8 +139,7 @@ Here's a sample response for a request with an authorization error:
 
 There are what the HTTP status codes mean:
 
-* 200 - The user is able to send the object but the server already has it.
-* 204 - The user is able to send the object and the server does not have it.
+* 200 - The user is able to read the object.
 * 404 - The repository does not exist for the user, or the user does not have
 access to it.
 
@@ -188,7 +187,7 @@ it:
 > Accept: application/vnd.git-media+json
 > Authorization: Basic ... (if authentication is needed)
 >
-< HTTP/1.1 204 OK
+< HTTP/1.1 200 OK
 < Content-Type: application/vnd.git-media+json
 <
 < {
@@ -234,8 +233,8 @@ Here's a sample response for a request with an authorization error:
 
 There are what the HTTP status codes mean:
 
-* 200 - The user is able to send the object but the server already has it.
-* 204 - The user is able to send the object and the server does not have it.
+* 200 - The user is able to read the object.
+* 204 - The user is able to PUT the object to the same URL.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
 
