@@ -55,7 +55,7 @@ scheme differs from the original request uri.
 ### Getting meta data.
 
 You can also request just the JSON meta data with an `Accept` header of
-`application/vnd.git-media+json`.
+`application/vnd.git-media+json`.  Here's an example successful request:
 
 ```
 > GET https://git-media-server.com/objects/{OID} HTTP/1.1
@@ -68,13 +68,81 @@ You can also request just the JSON meta data with an `Accept` header of
 < {
 <   "oid": "the-sha-256-signature",
 <   "size": 123456,
-<   "md5": "the-md5-signature",
-<   "sha1": "the-sha1-signature"
+<   "_links": {
+<     "download": {
+<       "href": "https://some-download.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
 < }
 ```
 
-The `oid` and `size` properties are required.  The server can extend the output
-with custom properties.
+The `oid` and `size` properties are required.  If the download link differs from
+the current URL, then a hypermedia `_links` section is included with a `download`
+link relation.  All links include an `href` property, and an optional `header`
+property if necessary.  A download link relation's `href` property should match
+the URL that is the target of a normal GET redirection.
+
+If the object does not exist on the server, the payload describes how to upload
+it:
+
+```
+> GET https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 204 OK
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "oid": "the-sha-256-signature",
+<   "_links": {
+<     "upload": {
+<       "href": "https://some-upload.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     },
+<     "callback": {
+<       "href": "https://some-callback.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
+< }
+```
+
+The `oid` property is required.  A response can include one of multiple link
+relations, each with an `href` property and an optional `header` property.
+
+* `upload` - This relation describes how to upload the object.
+* `callback` - The server can specify a URL for the client to hit after
+successfully uploading an object.
+
+Here's a sample response for a request with an authorization error:
+
+```
+> GET https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 404 OK
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "message": "Unauthorized"
+< }
+```
+
+There are what the HTTP status codes mean:
+
+* 200 - The user is able to send the object but the server already has it.
+* 204 - The user is able to send the object and the server does not have it.
+* 404 - The repository does not exist for the user, or the user does not have
+access to it.
 
 ## PUT objects/{oid}
 
@@ -167,15 +235,92 @@ URL with:
 ## OPTIONS objects/{oid}
 
 This is a pre-flight request to verify credentials before sending the file
-contents.
+contents.  Note: The `OPTIONS` method is only supported in pre-1.0 Git Media
+clients.  After 1.0, clients should use the `GET` with the
+`application/vnd.git-media+json` Accept header.
+
+Here's an example successful request:
 
 ```
-> OPTIONS objects/{oid} HTTP/1.1
-> Accept: application/vnd.git-media
-> Authorization: Basic ...
+> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "oid": "the-sha-256-signature",
+<   "size": 123456,
+<   "_links": {
+<     "download": {
+<       "href": "https://some-download.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
+< }
 ```
+
+The `oid` and `size` properties are required.  If the download link differs from
+the current URL, then a hypermedia `_links` section is included with a `download`
+link relation.  All links include an `href` property, and an optional `header`
+property if necessary.
+
+If the object does not exist on the server, the payload describes how to upload
+it:
+
+```
+> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 204 OK
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "oid": "the-sha-256-signature",
+<   "_links": {
+<     "upload": {
+<       "href": "https://some-upload.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     },
+<     "callback": {
+<       "href": "https://some-callback.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
+< }
+```
+
+The `oid` property is required.  A response can include one of multiple link
+relations, each with an `href` property and an optional `header` property.
+
+* `upload` - This relation describes how to upload the object.
+* `callback` - The server can specify a URL for the client to hit after
+successfully uploading an object.
+
+Here's a sample response for a request with an authorization error:
+
+```
+> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 404 OK
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "message": "Unauthorized"
+< }
+```
+
+There are what the HTTP status codes mean:
 
 * 200 - The user is able to send the object but the server already has it.
 * 204 - The user is able to send the object and the server does not have it.
