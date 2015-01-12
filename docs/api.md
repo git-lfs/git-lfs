@@ -144,94 +144,6 @@ There are what the HTTP status codes mean:
 * 404 - The repository does not exist for the user, or the user does not have
 access to it.
 
-## PUT objects/{oid}
-
-This writes the object contents to the Git Media server.
-
-```
-> PUT https://git-media-server.com/objects/{oid} HTTP/1.1
-> Accept: application/vnd.git-media
-> Content-Type: application/octet-stream
-> Authorization: Basic ...
-> Content-Length: 123
->
-> {binary contents}
->
-< HTTP/1.1 200 OK
-```
-
-### Responses
-
-* 200 - The object already exists.
-* 201 - The object was uploaded successfully.
-* 307 - The server is returning a different location to send the object.  Clients
-  should retry the PUT against the URL.  See the Redirection section below.
-
-  The `Authorization` header must _not_ be
-  passed through if the location's host or scheme differs from the original
-  request uri.
-* 409 - The object contents do not match the OID.
-* 403 - The user has **read**, but not **write** access.
-* 404 - The repository does not exist for the user.
-
-#### PUT Redirection
-
-The Git Media API supports offloading storage concerns to a separate storage
-API.  In addition to a 307 response, the Git Media API needs to return one or
-more headers so the client knows how to retry the request.
-
-* `Location` (required) - This is an absolute URL of the new location to send
-the object.
-* `Git-Media-Callback` (optional) - This is an absolute URL of a location to POST
-with the success or failure of the redirected request.
-* `Git-Media-Set-*` (optional) - Instruct the Git Media client for setting other
-headers by setting response headers with this prefix.
-
-##### Example client request
-
-```
-> PUT https://git-media-server.com/objects/{oid}
-> Accept: application/vnd.git-media
-> Content-Type: application/octet-stream
-> Authorization: Basic ...
-> Content-Length: 123
->
-> {binary contents}
->
-< HTTP/1.1 307 Temporary Redirect
-< Location: https://storage-server.com/objects/{oid}
-< Git-Media-Callback: https://git-media-server.com/callback
-< Git-Media-Set-Authorization: simple-storage-service-authentication-token
-```
-
-##### Example client redirection
-
-```
-> PUT https://storage-server.com/objects/{oid}
-> Authorization: simple-storage-service-authentication-token
-> Content-Type: application/octet-stream
-> Content-Length: 123
-```
-
-##### Example client callback
-
-The client callback is only made if the 307 redirection returned a
-`Git-Media-Callback` header.  The Git Media client then makes a POST to that
-URL with:
-
-* `oid` - The String OID of the Git Media object.
-* `status` - The HTTP status of the redirected PUT request.
-* `body` - The response body from the redirected PUT request.
-
-```
-> POST https://git-media-server.com/callback
-> Accept: application/vnd.git-media
-> Content-Type: application/vnd.git-media
-> Content-Length: 123
->
-> {"oid": "{oid}", "status": 200, "body": "ok"}
-```
-
 ## OPTIONS objects/{oid}
 
 This is a pre-flight request to verify credentials before sending the file
@@ -326,3 +238,45 @@ There are what the HTTP status codes mean:
 * 204 - The user is able to send the object and the server does not have it.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
+
+## PUT objects/{oid}
+
+This writes the object contents to the Git Media server.
+
+```
+> PUT https://git-media-server.com/objects/{oid} HTTP/1.1
+> Accept: application/vnd.git-media
+> Content-Type: application/octet-stream
+> Authorization: Basic ...
+> Content-Length: 123
+>
+> {binary contents}
+>
+< HTTP/1.1 200 OK
+```
+
+### Responses
+
+* 200 - The object already exists.
+* 201 - The object was uploaded successfully.
+* 403 - The user has **read**, but not **write** access.
+* 404 - The repository does not exist for the user.
+
+## Callbacks
+
+Git Media clients issue a GET or OPTIONS preflight request, which can potentially
+return a "callback" link relation.  If given, The Git Media server expects a
+POST to the callback href after a successful upload.  Git Media clients send:
+
+* `oid` - The String OID of the Git Media object.
+* `status` - The HTTP status of the redirected PUT request.
+* `body` - The response body from the redirected PUT request.
+
+```
+> POST https://git-media-server.com/callback
+> Accept: application/vnd.git-media
+> Content-Type: application/vnd.git-media+json
+> Content-Length: 123
+>
+> {"oid": "{oid}", "status": 200, "body": "ok"}
+```
