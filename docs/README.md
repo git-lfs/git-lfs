@@ -7,7 +7,7 @@ file from a Git Media server.
 
 * The Client
   * [Specification](spec.md)
-  * [Commands](../man)
+  * [Commands](man)
 * The Server
   * [API](api.md)
 
