@@ -1,7 +1,6 @@
 package gitmediaclient
 
 import (
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -151,25 +150,8 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, *gitmedia.
 	return true, nil
 }
 
-var httpClient *http.Client
-
-func getHttpClient() *http.Client {
-	if httpClient == nil {
-		if len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-			httpClient = &http.Client{Transport: tr}
-		} else {
-			httpClient = http.DefaultClient
-		}
-	}
-
-	return httpClient
-}
-
 func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.WrappedError) {
-	res, err := getHttpClient().Do(req)
+	res, err := gitmedia.HttpClient().Do(req)
 
 	var wErr *gitmedia.WrappedError
 
