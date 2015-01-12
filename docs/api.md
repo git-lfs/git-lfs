@@ -261,6 +261,8 @@ This writes the object contents to the Git Media server.
 * 201 - The object was uploaded successfully.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
+* 405 - PUT method is not allowed.  Use an OPTIONS or GET pre-flight request to
+get the current URL to send a file.
 
 ## Callbacks
 
