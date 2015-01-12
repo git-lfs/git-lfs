@@ -97,7 +97,7 @@ my.zip
 ```
 
 When you can see files being added to git media, you can commit like
-normal.  After committing, `git show` will show the file's meta data:
+normal.  After committing, `git show` will show the file's metadata:
 
     $ git show
     commit 47b2002173ae56f6a30c67ec46858a932e8f7511
