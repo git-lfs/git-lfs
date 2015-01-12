@@ -1,8 +1,10 @@
 package gitmedia
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/github/git-media/git"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -10,14 +12,31 @@ import (
 )
 
 type Configuration struct {
-	gitConfig map[string]string
-	remotes   []string
+	gitConfig  map[string]string
+	remotes    []string
+	httpClient *http.Client
 }
 
 var (
 	Config       = &Configuration{}
 	httpPrefixRe = regexp.MustCompile("\\Ahttps?://")
 )
+
+func HttpClient() *http.Client {
+	return Config.HttpClient()
+}
+
+func (c *Configuration) HttpClient() *http.Client {
+	if c.httpClient == nil {
+		tr := &http.Transport{}
+		sslVerify, _ := c.GitConfig("http.sslverify")
+		if len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 || sslVerify == "false" {
+			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+		c.httpClient = &http.Client{Transport: tr}
+	}
+	return c.httpClient
+}
 
 func (c *Configuration) Endpoint() string {
 	if url, ok := c.GitConfig("media.url"); ok {
@@ -62,7 +81,7 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 	if c.gitConfig == nil {
 		c.loadGitConfig()
 	}
-	value, ok := c.gitConfig[key]
+	value, ok := c.gitConfig[strings.ToLower(key)]
 	return value, ok
 }
 
@@ -107,7 +126,7 @@ func (c *Configuration) loadGitConfig() {
 		if len(pieces) < 2 {
 			continue
 		}
-		key := pieces[0]
+		key := strings.ToLower(pieces[0])
 		c.gitConfig[key] = pieces[1]
 
 		keyParts := strings.Split(key, ".")

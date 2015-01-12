@@ -151,7 +151,7 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, *gitmedia.
 }
 
 func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.WrappedError) {
-	res, err := http.DefaultClient.Do(req)
+	res, err := gitmedia.HttpClient().Do(req)
 
 	var wErr *gitmedia.WrappedError
 
