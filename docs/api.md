@@ -129,11 +129,11 @@ Here's a sample response for a request with an authorization error:
 > Accept: application/vnd.git-media+json
 > Authorization: Basic ... (if authentication is needed)
 >
-< HTTP/1.1 404 OK
+< HTTP/1.1 404 Not found
 < Content-Type: application/vnd.git-media+json
 <
 < {
-<   "message": "Unauthorized"
+<   "message": "Not found"
 < }
 ```
 
@@ -158,77 +158,8 @@ Here's an example successful request:
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
-< Content-Type: application/vnd.git-media+json
-<
-< {
-<   "oid": "the-sha-256-signature",
-<   "size": 123456,
-<   "_links": {
-<     "download": {
-<       "href": "https://some-download.com",
-<       "header": {
-<         "Key": "value"
-<       }
-<     }
-<   }
-< }
-```
 
-The `oid` and `size` properties are required.  If the download link differs from
-the current URL, then a hypermedia `_links` section is included with a `download`
-link relation.  All links include an `href` property, and an optional `header`
-property if necessary.
-
-If the object does not exist on the server, the payload describes how to upload
-it:
-
-```
-> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.git-media+json
-> Authorization: Basic ... (if authentication is needed)
->
-< HTTP/1.1 200 OK
-< Content-Type: application/vnd.git-media+json
-<
-< {
-<   "oid": "the-sha-256-signature",
-<   "_links": {
-<     "upload": {
-<       "href": "https://some-upload.com",
-<       "header": {
-<         "Key": "value"
-<       }
-<     },
-<     "callback": {
-<       "href": "https://some-callback.com",
-<       "header": {
-<         "Key": "value"
-<       }
-<     }
-<   }
-< }
-```
-
-The `oid` property is required.  A response can include one of multiple link
-relations, each with an `href` property and an optional `header` property.
-
-* `upload` - This relation describes how to upload the object.
-* `callback` - The server can specify a URL for the client to hit after
-successfully uploading an object.
-
-Here's a sample response for a request with an authorization error:
-
-```
-> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.git-media+json
-> Authorization: Basic ... (if authentication is needed)
->
-< HTTP/1.1 404 OK
-< Content-Type: application/vnd.git-media+json
-<
-< {
-<   "message": "Unauthorized"
-< }
+(no response body)
 ```
 
 There are what the HTTP status codes mean:
@@ -237,6 +168,8 @@ There are what the HTTP status codes mean:
 * 204 - The user is able to PUT the object to the same URL.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
+* 405 - OPTIONS not supported, use a GET request with a `application/vnd.git-media+json`
+Accept header.
 
 ## PUT objects/{oid}
 
