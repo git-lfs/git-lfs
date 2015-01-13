@@ -7,7 +7,7 @@ Git repositories that use Git Media will specify a URI endpoint.  See the
 Use that endpoint as a base, and append the following relative paths to upload
 and download from the Git Media server.
 
-## GET objects/{oid}
+## GET /objects/{oid}
 
 This gets either the object content, or the object's meta data.  The OID is the
 value from the object pointer.
@@ -20,7 +20,7 @@ The server returns the raw content back with a `Content-Type` of
 
 ```
 > GET https://git-media-server.com/objects/{oid} HTTP/1.1
-> Accept: application/vnd.git-media
+> Accept: application/octet-stream
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
@@ -79,48 +79,11 @@ You can also request just the JSON meta data with an `Accept` header of
 < }
 ```
 
-The `oid` and `size` properties are required.  If the download link differs from
-the current URL, then a hypermedia `_links` section is included with a `download`
-link relation.  All links include an `href` property, and an optional `header`
-property if necessary.  A download link relation's `href` property should match
-the URL that is the target of a normal GET redirection.
-
-If the object does not exist on the server, the payload describes how to upload
-it:
-
-```
-> GET https://git-media-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.git-media+json
-> Authorization: Basic ... (if authentication is needed)
->
-< HTTP/1.1 200 OK
-< Content-Type: application/vnd.git-media+json
-<
-< {
-<   "oid": "the-sha-256-signature",
-<   "_links": {
-<     "upload": {
-<       "href": "https://some-upload.com",
-<       "header": {
-<         "Key": "value"
-<       }
-<     },
-<     "callback": {
-<       "href": "https://some-callback.com",
-<       "header": {
-<         "Key": "value"
-<       }
-<     }
-<   }
-< }
-```
-
-The `oid` property is required.  A response can include one of multiple link
-relations, each with an `href` property and an optional `header` property.
-
-* `upload` - This relation describes how to upload the object.
-* `callback` - The server can specify a URL for the client to hit after
-successfully uploading an object.
+The `oid` and `size` properties are required.  A hypermedia `_links` section is
+included with a `download` link relation, which describes how to download the
+object content.  If the GET request to download an object (with `Accept:
+application/octet-stream`) redirects somewhere else, a similar URL should be
+used with the `download` relation.
 
 Here's a sample response for a request with an authorization error:
 
@@ -143,7 +106,7 @@ There are what the HTTP status codes mean:
 * 404 - The repository does not exist for the user, or the user does not have
 access to it.
 
-## OPTIONS objects/{oid}
+## OPTIONS /objects/{oid}
 
 This is a pre-flight request to verify credentials before sending the file
 contents.  Note: The `OPTIONS` method is only supported in pre-1.0 Git Media
@@ -171,7 +134,60 @@ There are what the HTTP status codes mean:
 * 405 - OPTIONS not supported, use a GET request with a `application/vnd.git-media+json`
 Accept header.
 
-## PUT objects/{oid}
+## POST /objects
+
+This request initiates the upload of an object, given a JSON body with the oid
+and size of the object to upload.
+
+```
+> POST https://git-media-server.com/objects/ HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Content-Type: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+> {
+>   "oid": "1111111",
+>   "size": 123
+> }
+>
+< HTTP/1.1 201 Created
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "_links": {
+<     "upload": {
+<       "href": "https://some-upload.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     },
+<     "callback": {
+<       "href": "https://some-callback.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
+< }
+```
+
+A response can include one of multiple link relations, each with an `href`
+property and an optional `header` property.
+
+* `upload` - This relation describes how to upload the object.
+* `callback` - The server can specify a URL for the client to hit after
+successfully uploading an object.
+* `download` - This relation describes how to download the object content.
+
+### Responses
+
+* 200 - The object already exists.  Don't bother re-uploading.
+* 201 - The object is ready to be uploaded.  Follow the "upload" and optional
+"callback" links.
+* 403 - The user has **read**, but not **write** access.
+* 404 - The repository does not exist for the user.
+
+## PUT /objects/{oid}
 
 This writes the object contents to the Git Media server.
 
