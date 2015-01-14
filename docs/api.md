@@ -214,9 +214,10 @@ get the current URL to send a file.
 
 ## Callbacks
 
-Git Media clients issue a GET or OPTIONS preflight request, which can potentially
-return a "callback" link relation.  If given, The Git Media server expects a
-POST to the callback href after a successful upload.  Git Media clients send:
+When Git Media clients issue a POST request to initiate an object upload, the
+response can potentially return a "callback" link relation.  If given, The Git
+Media server expects a POST to the callback href after a successful upload.  Git
+Media clients send:
 
 * `oid` - The String OID of the Git Media object.
 * `status` - The HTTP status of the redirected PUT request.
@@ -229,4 +230,6 @@ POST to the callback href after a successful upload.  Git Media clients send:
 > Content-Length: 123
 >
 > {"oid": "{oid}", "status": 200, "body": "ok"}
+>
+< HTTP/1.1 200 OK
 ```
