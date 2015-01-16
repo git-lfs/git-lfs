@@ -15,7 +15,8 @@ file from a Git Media server.
 
 The client lives in [github/git-media](https://github.com/github/git-media).
 
-Download the [latest release](https://github.com/github/git-media/releases).
+Download the [latest release](https://github.com/github/git-media/releases) and run the
+included `install.sh` script.
 
 ### Configure Git
 
