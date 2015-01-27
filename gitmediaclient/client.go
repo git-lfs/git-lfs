@@ -15,8 +15,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
-	"strings"
 )
 
 const (
@@ -295,14 +295,14 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.Wrappe
 			// An auth error should be 403.  Could be 404 also.
 			if res.StatusCode < 405 {
 				execCreds(creds, "reject")
-			}
 
-			apierr := &Error{}
-			dec := json.NewDecoder(res.Body)
-			if err := dec.Decode(apierr); err != nil {
-				wErr = gitmedia.Errorf(err, "Error decoding JSON from response")
-			} else {
-				wErr = gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
+				apierr := &Error{}
+				dec := json.NewDecoder(res.Body)
+				if err := dec.Decode(apierr); err != nil {
+					wErr = gitmedia.Errorf(err, "Error decoding JSON from response")
+				} else {
+					wErr = gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
+				}
 			}
 		} else {
 			execCreds(creds, "approve")
@@ -371,11 +371,7 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 func ObjectUrl(oid string) *url.URL {
 	c := gitmedia.Config
 	u, _ := url.Parse(c.Endpoint())
-	if strings.HasSuffix(u.Path, "/") {
-		u.Path = fmt.Sprintf("%sobjects/%s", u.Path, oid)
-	} else {
-		u.Path = fmt.Sprintf("%s/objects/%s", u.Path, oid)
-	}
+	u.Path = path.Join(u.Path, "objects", oid)
 	return u
 }
 
