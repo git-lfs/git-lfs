@@ -170,8 +170,6 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallba
 		d := fmt.Sprintf(`{"oid":"%s", "size":%d, "status":%d, "body":"%s"}`, oid, fileSize, res.StatusCode, string(body))
 		cbreq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
 
-		cbreq.Header.Set("Accept", gitMediaMetaType) // Should this come from the client
-
 		tracerx.Printf("callback: %s %s", oid, cb.Href)
 		cbres, err := http.DefaultClient.Do(cbreq)
 		if err != nil {
