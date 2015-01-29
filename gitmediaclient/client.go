@@ -47,13 +47,13 @@ func Options(filehash string) (int, error) {
 		return 0, err
 	}
 
-	resp, wErr := doRequest(req, creds)
+	res, wErr := doRequest(req, creds)
 	if wErr != nil {
 		return 0, wErr
 	}
-	tracerx.Printf("api_options_status: %d", resp.StatusCode)
+	tracerx.Printf("api_options_status: %d", res.StatusCode)
 
-	return resp.StatusCode, nil
+	return res.StatusCode, nil
 }
 
 func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
@@ -97,11 +97,11 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 	fmt.Printf("Sending %s\n", filename)
 
 	tracerx.Printf("api_put: %s %s", oid, filename)
-	resp, wErr := doRequest(req, creds)
+	res, wErr := doRequest(req, creds)
 	if wErr != nil {
 		return wErr
 	}
-	tracerx.Printf("api_put_status: %d", resp.StatusCode)
+	tracerx.Printf("api_put_status: %d", res.StatusCode)
 
 	return nil
 }
