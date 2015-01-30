@@ -1,9 +1,9 @@
-# Git Media
+# Hawser
 
-Git Media is a system for handling large blobs in Git repositories.  Instead of
+Hawser is a system for handling large blobs in Git repositories.  Instead of
 saving the full content of a blob to Git, a pointer file with an ID is written.
-A Git Media client can use the ID in the pointer file to download the actual
-file from a Git Media server.
+A Hawser client can use the ID in the pointer file to download the actual
+file from a Hawser server.
 
 * The Client
   * [Specification](spec.md)
@@ -13,50 +13,50 @@ file from a Git Media server.
 
 ## Getting Started
 
-The client lives in [github/git-media](https://github.com/github/git-media).
+The client lives in [github/hawser](https://github.com/github/hawser).
 
-Download the [latest release](https://github.com/github/git-media/releases) and run the
+Download the [latest release](https://github.com/github/hawser/releases) and run the
 included `install.sh` script.
 
 ### Configure Git
 
-Run `git media init` to set up global Git configuration settings for Git Media.
+Run `git hawser init` to set up global Git configuration settings for Hawser.
 
     # automatically run by the install script.
-    $ git media init
-    git media initialized
+    $ git hawser init
+    git hawser initialized
 
 Git repositories use `.gitattributes` files to configure which files are inserted into
-the Git Media server.  Here's a sample one that saves zips and mp3s:
+the Hawser server.  Here's a sample one that saves zips and mp3s:
 
     $ cat .gitattributes
     *.mp3 filter=media -crlf
     *.zip filter=media -crlf
 
-Git media can help you manage your `.gitattributes` paths:
+Hawser can help you manage your `.gitattributes` paths:
 
-    $ git media path add "*.mp3"
+    $ git hawser path add "*.mp3"
     Adding path *.mp3
 
-    $ git media path add "*.zip"
+    $ git hawser path add "*.zip"
     Adding path *.zip
 
-    $ git media path
+    $ git hawser path
     Listing paths
         *.mp3 (.gitattributes)
         *.zip (.gitattributes)
 
-    $ git media path remove "*.zip"
+    $ git hawser path remove "*.zip"
     Removing path *.zip
 
-    $ git media path
+    $ git hawser path
     Listing paths
         *.mp3 (.gitattributes)
 
 ### Push a new commit
 
 Once everything is setup, you can clone or create a new repository that uses
-Git Media.
+Hawser.
 
 ```
 $ git clone https://github.com/github/gitmediatest
@@ -67,7 +67,7 @@ remote: Total 22 (delta 2), reused 22 (delta 2)
 Unpacking objects: 100% (22/22), done.
 ```
 
-There will be a pause after the objects have been unpacked, while Git Media
+There will be a pause after the objects have been unpacked, while Hawser
 downloads the files.  You can tell it worked if the file contains the actual
 content, and not a tiny external pointer file:
 
@@ -88,12 +88,12 @@ Now, add a file:
 ```
 $ git add my.zip
 
-# confirm the zip was added to git media
-$ git media ls-files
+# confirm the zip was added to hawser
+$ git hawser ls-files
 my.zip
 ```
 
-When you can see files being added to git media, you can commit like
+When you can see files being added to hawser, you can commit like
 normal.  After committing, `git show` will show the file's metadata:
 
     $ git show
@@ -114,7 +114,7 @@ normal.  After committing, `git show` will show the file's metadata:
     \ No newline at end of file
 
 Now, when you run `git push`, added media files will be synced to the
-Git Media endpoint.
+Hawser endpoint.
 
     $ git push origin master
     Sending my.zip
