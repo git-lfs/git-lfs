@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	gitMediaType     = "application/vnd.git-media"
+	gitMediaType     = "application/vnd.hawser"
 	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
 	gitMediaHeader   = "--git-media."
 )
