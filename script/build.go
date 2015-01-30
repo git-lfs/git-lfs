@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -3,7 +3,7 @@ package pointer
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"io"
 	"os"
 )

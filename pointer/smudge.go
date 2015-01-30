@@ -1,8 +1,8 @@
 package pointer
 
 import (
-	"github.com/github/git-media/hawser"
-	"github.com/github/git-media/hawserclient"
+	"github.com/hawser/git-hawser/hawser"
+	"github.com/hawser/git-hawser/hawserclient"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"

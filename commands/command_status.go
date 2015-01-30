@@ -2,8 +2,8 @@ package commands
 
 import (
 	"fmt"
-	"github.com/github/git-media/git"
-	"github.com/github/git-media/scanner"
+	"github.com/hawser/git-hawser/git"
+	"github.com/hawser/git-hawser/scanner"
 	"github.com/spf13/cobra"
 )
 

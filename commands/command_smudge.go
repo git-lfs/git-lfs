@@ -2,8 +2,8 @@ package commands
 
 import (
 	"bytes"
-	"github.com/github/git-media/hawser"
-	"github.com/github/git-media/pointer"
+	"github.com/hawser/git-hawser/hawser"
+	"github.com/hawser/git-hawser/pointer"
 	"github.com/spf13/cobra"
 	"io"
 	"os"

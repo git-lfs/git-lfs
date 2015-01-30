@@ -3,7 +3,7 @@ package hawser
 import (
 	"errors"
 	"fmt"
-	"github.com/github/git-media/git"
+	"github.com/hawser/git-hawser/git"
 	"io/ioutil"
 	"os"
 	"path/filepath"

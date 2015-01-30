@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"github.com/github/git-media/git"
-	"github.com/github/git-media/hawser"
-	"github.com/github/git-media/hawserclient"
-	"github.com/github/git-media/scanner"
+	"github.com/hawser/git-hawser/git"
+	"github.com/hawser/git-hawser/hawser"
+	"github.com/hawser/git-hawser/hawserclient"
+	"github.com/hawser/git-hawser/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"

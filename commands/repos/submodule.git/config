@@ -6,10 +6,10 @@
 	ignorecase = true
 	precomposeunicode = true
 [remote "origin"]
-	url = /Users/rick/github/git-media/commands/repos/submodule.git
+	url = /Users/rick/hawser/git-hawser/commands/repos/submodule.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "master"]
 	remote = origin
 	merge = refs/heads/master
 [submodule "attributes"]
-	url = /Users/rick/github/git-media/commands/repos/attributes.git
+	url = /Users/rick/hawser/git-hawser/commands/repos/attributes.git

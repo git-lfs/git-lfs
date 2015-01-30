@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"io"
 	"regexp"
 	"strconv"

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"github.com/spf13/cobra"
 )
 

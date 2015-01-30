@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"

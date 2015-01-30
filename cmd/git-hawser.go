@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/github/git-media/commands"
+	"github.com/hawser/git-hawser/commands"
 )
 
 func main() {

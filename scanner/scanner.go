@@ -3,7 +3,7 @@ package scanner
 import (
 	"bufio"
 	"bytes"
-	"github.com/github/git-media/pointer"
+	"github.com/hawser/git-hawser/pointer"
 	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"

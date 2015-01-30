@@ -3,7 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"github.com/spf13/cobra"
 	"io"
 	"log"

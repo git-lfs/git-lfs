@@ -3,7 +3,7 @@ package hawser
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/github/git-media/git"
+	"github.com/hawser/git-hawser/git"
 	"net/http"
 	"os"
 	"path"

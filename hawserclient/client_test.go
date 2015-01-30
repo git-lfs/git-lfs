@@ -2,7 +2,7 @@ package hawserclient
 
 import (
 	"github.com/bmizerany/assert"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"testing"
 )
 

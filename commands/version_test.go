@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"github.com/github/git-media/hawser"
+	"github.com/hawser/git-hawser/hawser"
 	"testing"
 )
 

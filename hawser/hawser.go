@@ -2,7 +2,7 @@ package hawser
 
 import (
 	"fmt"
-	"github.com/github/git-media/git"
+	"github.com/hawser/git-hawser/git"
 	"github.com/rubyist/tracerx"
 	"io/ioutil"
 	"os"
