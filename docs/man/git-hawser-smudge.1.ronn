@@ -1,9 +1,9 @@
-git-media-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
+git-hawser-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
 ==============================================================================================
 
 ## SYNOPSIS
 
-`git media smudge` <path>
+`git hawser smudge` <path>
 
 ## DESCRIPTION
 
@@ -17,7 +17,7 @@ Git attributes.
 
 ## OPTIONS
 
-Without any options, `git media smudge` will output the raw media content to
+Without any options, `git hawser smudge` will output the raw media content to
 STDOUT.
 
 * `--info`:
@@ -26,6 +26,6 @@ STDOUT.
 
 ## SEE ALSO
 
-git-media-init(1), gitattributes(5).
+git-hawser-init(1), gitattributes(5).
 
-Part of the git-media(1) suite.
+Part of the git-hawser(1) suite.

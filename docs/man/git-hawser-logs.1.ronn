@@ -1,21 +1,21 @@
-git-media-logs(1) - Show errors from the git-media command.
+git-hawser-logs(1) - Show errors from the git-hawser command.
 ===========================================================
 
 ## SYNOPSIS
 
-`git media logs`<br>
-`git media logs` <file><br>
-`git media logs` --clear<br>
-`git media logs` --boomtown<br>
+`git hawser logs`<br>
+`git hawser logs` <file><br>
+`git hawser logs` --clear<br>
+`git hawser logs` --boomtown<br>
 
 ## DESCRIPTION
 
-The "logs" command displays errors from the git-media command.  Any time it
+The "logs" command displays errors from the git-hawser command.  Any time it
 crashes, the details are saved to ".git/media/logs".
 
 ## OPTIONS
 
-Without any options, `git media logs` will simply show the list of error logs.
+Without any options, `git hawser logs` will simply show the list of error logs.
 
 * <file>:
     Shows the specified error log.  Use "last" to show the most recent error.

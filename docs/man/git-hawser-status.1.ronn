@@ -1,14 +1,14 @@
-git-media-status(1) -- Show the status of git media files in the working tree
-=============================================================================
+git-hawser-status(1) -- Show the status of hawser files in the working tree
+============================================================================
 
 ## SYNOPSIS
 
-`git media status` [<options>]
+`git hawser status` [<options>]
 
 ## DESCRIPTION
 
-Displays paths of git media files that have not been pushed to the git media
-server, have differences between the index file and the current HEAD commit,
+Displays paths of hawser files that have not been pushed to the hawser server,
+have differences between the index file and the current HEAD commit,
 and paths that have differences between the working tree and the index file.
 Thi first are what you would push by running git push; the second are what
 you would commit by running git commit; the third are what you could commit
@@ -21,6 +21,6 @@ by running git add before running git commit.
 
 ## SEE ALSO
 
-git-media-ls-files(1).
+git-hawser-ls-files(1).
 
-Part of the git-media(1) suite.
+Part of the git-hawser(1) suite.
