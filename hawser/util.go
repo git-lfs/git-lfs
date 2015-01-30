@@ -44,13 +44,13 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 }
 
 func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
-	logPath := os.Getenv("GIT_MEDIA_PROGRESS")
+	logPath := os.Getenv("HAWSER_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}
 
 	if !filepath.IsAbs(logPath) {
-		return nil, nil, fmt.Errorf("GIT_MEDIA_PROGRESS must be an absolute path")
+		return nil, nil, fmt.Errorf("HAWSER_PROGRESS must be an absolute path")
 	}
 
 	cbDir := filepath.Dir(logPath)
