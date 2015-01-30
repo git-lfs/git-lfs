@@ -19,8 +19,8 @@ func TestEnv(t *testing.T) {
 		"Endpoint":        "https://example.com/git/media.git/info/media",
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
+		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "hawser", "objects"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "hawser", "tmp"),
 	})
 }
 
@@ -33,8 +33,8 @@ func TestEnvWithMediaUrl(t *testing.T) {
 		"Endpoint":        "http://foo/bar",
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
+		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "hawser", "objects"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "hawser", "tmp"),
 	})
 }
 
@@ -47,8 +47,8 @@ func TestEnvWithSubmoduleFromRepository(t *testing.T) {
 		"Endpoint":        "https://example.com/git/media.git/info/media",
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "media"),
-		"TempDir":         filepath.Join(repo.Path, ".git", "media", "tmp"),
+		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "hawser", "objects"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "hawser", "tmp"),
 	})
 
 	cmd.Before(func() {
@@ -88,8 +88,8 @@ func TestEnvWithConfiguredSubmodule(t *testing.T) {
 		"Endpoint":        "http://foo/bar",
 		"LocalWorkingDir": filepath.Join(repo.Path, "config_media_url"),
 		"LocalGitDir":     filepath.Join(repo.Path, ".git", "modules", "config_media_url"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "modules", "config_media_url", "media"),
-		"TempDir":         filepath.Join(repo.Path, ".git", "modules", "config_media_url", "media", "tmp"),
+		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "modules", "config_media_url", "hawser", "objects"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "modules", "config_media_url", "hawser", "tmp"),
 	})
 
 	cmd.Before(func() {

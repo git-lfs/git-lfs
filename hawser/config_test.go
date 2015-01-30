@@ -7,7 +7,7 @@ import (
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {
 	config := &Configuration{
-		gitConfig: map[string]string{"remote.origin.media": "abc"},
+		gitConfig: map[string]string{"remote.origin.hawser": "abc"},
 		remotes:   []string{},
 	}
 
@@ -17,8 +17,8 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 func TestEndpointOverridesOrigin(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"media.url":           "abc",
-			"remote.origin.media": "def",
+			"hawser.url":           "abc",
+			"remote.origin.hawser": "def",
 		},
 		remotes: []string{},
 	}

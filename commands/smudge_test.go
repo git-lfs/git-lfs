@@ -23,7 +23,7 @@ func TestSmudge(t *testing.T) {
 	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS="+progressFile)
 
 	cmd.Before(func() {
-		path := filepath.Join(repo.Path, ".git", "media", "SO", "ME")
+		path := filepath.Join(repo.Path, ".git", "hawser", "objects", "SO", "ME")
 		file := filepath.Join(path, "SOMEOID")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
@@ -51,7 +51,7 @@ func TestSmudge(t *testing.T) {
 	customHook := []byte("echo 'yo'")
 
 	cmd.Before(func() {
-		path := filepath.Join(repo.Path, ".git", "media", "4d", "7a")
+		path := filepath.Join(repo.Path, ".git", "hawser", "objects", "4d", "7a")
 		file := filepath.Join(path, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
@@ -70,7 +70,7 @@ func TestSmudgeInfo(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	mediaPath := filepath.Join(repo.Path, ".git", "media", "4d", "7a")
+	mediaPath := filepath.Join(repo.Path, ".git", "hawser", "objects", "4d", "7a")
 	mediaFile := filepath.Join(mediaPath, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 
 	// smudge --info with old pointer format, without local file

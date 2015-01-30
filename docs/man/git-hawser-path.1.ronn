@@ -1,4 +1,4 @@
-git-hawser-path(1) - View and modify Git Media paths in Git attributes.
+git-hawser-path(1) - View and modify Hawser paths in Git attributes.
 ======================================================================
 
 ## SYNOPSIS
@@ -7,7 +7,7 @@ git-hawser-path(1) - View and modify Git Media paths in Git attributes.
 
 ## DESCRIPTION
 
-The "path" command helps view and modify Git attributes for the "media"
+The "path" command helps view and modify Git attributes for the "hawser"
 clean and smudge filters.  The "path" argument can be a file extension, or a
 path.
 
@@ -17,11 +17,11 @@ path.
 
     `git hawser path`
 
-* Configure a path to use the Git Media clean and smudge filters.
+* Configure a path to use the Hawser clean and smudge filters.
 
     `git hawser path add *.gif`
 
-* Prevent a path from using Git Media clean and smudge filters.
+* Prevent a path from using Hawser clean and smudge filters.
 
     `git hawser path remove *.gif`
 

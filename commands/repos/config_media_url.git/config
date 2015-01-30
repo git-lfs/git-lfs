@@ -5,3 +5,9 @@
 	logallrefupdates = true
 	ignorecase = true
 	precomposeunicode = true
+[remote "origin"]
+	url = /Users/scott/github/git-hawser/commands/repos/config_media_url.git/
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master

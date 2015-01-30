@@ -39,7 +39,7 @@ func (c *Configuration) HttpClient() *http.Client {
 }
 
 func (c *Configuration) Endpoint() string {
-	if url, ok := c.GitConfig("media.url"); ok {
+	if url, ok := c.GitConfig("hawser.url"); ok {
 		return url
 	}
 
@@ -47,7 +47,7 @@ func (c *Configuration) Endpoint() string {
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) string {
-	if url, ok := c.GitConfig("remote." + remote + ".media"); ok {
+	if url, ok := c.GitConfig("remote." + remote + ".hawser"); ok {
 		return url
 	}
 

@@ -10,7 +10,7 @@ import (
 var (
 	statusCmd = &cobra.Command{
 		Use:   "status",
-		Short: "Show information about git media files that would be pushed",
+		Short: "Show information about hawser files that would be pushed",
 		Run:   statusCommand,
 	}
 	porcelain = false
@@ -24,7 +24,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	stagedPointers, err := scanner.ScanIndex()
 	if err != nil {
-		Panic(err, "Could not scan staging for git media files")
+		Panic(err, "Could not scan staging for hawser files")
 	}
 
 	if porcelain {
@@ -52,7 +52,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 		pointers, err := scanner.Scan(ref, "^"+remoteRef)
 		if err != nil {
-			Panic(err, "Could not scan for git media files")
+			Panic(err, "Could not scan for hawser files")
 		}
 
 		remote, err := git.CurrentRemote()
@@ -60,13 +60,13 @@ func statusCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Could not get current remote branch")
 		}
 
-		Print("Media file changes to be pushed to %s:\n", remote)
+		Print("Hawser file changes to be pushed to %s:\n", remote)
 		for _, p := range pointers {
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
 	}
 
-	Print("\nMedia file changes to be committed:\n")
+	Print("\nHawser file changes to be committed:\n")
 	for _, p := range stagedPointers {
 		switch p.Status {
 		case "R", "C":
@@ -77,7 +77,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	Print("\nMedia file changes not staged for commit:\n")
+	Print("\nHawser file changes not staged for commit:\n")
 	for _, p := range stagedPointers {
 		if p.Status == "M" {
 			Print("\t%s", p.Name)

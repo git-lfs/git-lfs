@@ -17,7 +17,7 @@ func TestObjectUrl(t *testing.T) {
 
 	config := hawser.Config
 	for endpoint, expected := range tests {
-		config.SetConfig("media.url", endpoint)
+		config.SetConfig("hawser.url", endpoint)
 		assert.Equal(t, expected, ObjectUrl(oid).String())
 	}
 }

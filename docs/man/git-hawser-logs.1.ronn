@@ -11,7 +11,7 @@ git-hawser-logs(1) - Show errors from the git-hawser command.
 ## DESCRIPTION
 
 The "logs" command displays errors from the git-hawser command.  Any time it
-crashes, the details are saved to ".git/media/logs".
+crashes, the details are saved to ".git/hawser/logs".
 
 ## OPTIONS
 

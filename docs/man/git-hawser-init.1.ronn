@@ -1,4 +1,4 @@
-git-hawser-init(1) -- Ensure Git Media is configured properly.
+git-hawser-init(1) -- Ensure Hawser is configured properly.
 =============================================================
 
 ## SYNOPSIS
@@ -7,9 +7,9 @@ git-hawser-init(1) -- Ensure Git Media is configured properly.
 
 ## DESCRIPTION
 
-Init performs the following actions to ensure Git Media is setup properly:
+Init performs the following actions to ensure Hawser is setup properly:
 
-* Sets up the clean and smudge filters under the name "media".
+* Sets up the clean and smudge filters under the name "hawser".
 * Installs a pre-push hook to run git-hawser-push(1)
 
 ## SEE ALSO
