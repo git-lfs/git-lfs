@@ -56,7 +56,7 @@ func InstallFilters() error {
 
 func setFilter(filterName string) error {
 	key := fmt.Sprintf("filter.media.%s", filterName)
-	value := fmt.Sprintf("git media %s %%f", filterName)
+	value := fmt.Sprintf("git hawser %s %%f", filterName)
 
 	existing := git.Config.Find(key)
 	if shouldReset(existing) {

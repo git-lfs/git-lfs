@@ -28,7 +28,7 @@ func initCommand(cmd *cobra.Command, args []string) {
 		initHooksCommand(cmd, args)
 	}
 
-	Print("git media initialized")
+	Print("git hawser initialized")
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {

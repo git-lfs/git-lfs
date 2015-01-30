@@ -20,8 +20,8 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	RootCmd      = &cobra.Command{
-		Use:   "git-media",
-		Short: "Git Media provides large file support to Git.",
+		Use:   "git-hawser",
+		Short: "Hawser provides large file support to Git.",
 		Run: func(cmd *cobra.Command, args []string) {
 			versionCommand(cmd, args)
 			cmd.Usage()

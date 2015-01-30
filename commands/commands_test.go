@@ -149,7 +149,7 @@ type TestCommand struct {
 }
 
 func (c *TestCommand) Run(path string) {
-	fmt.Println("$ git media", strings.Join(c.Args, " "))
+	fmt.Println("$ git hawser", strings.Join(c.Args, " "))
 
 	for _, cb := range c.BeforeCallbacks {
 		cb()
@@ -231,7 +231,7 @@ func init() {
 	}
 
 	Root = filepath.Join(wd, "..")
-	Bin = filepath.Join(Root, "bin", "git-media")
+	Bin = filepath.Join(Root, "bin", "git-hawser")
 	TempDir = filepath.Join(os.TempDir(), "git-media-tests")
 
 	env := os.Environ()
