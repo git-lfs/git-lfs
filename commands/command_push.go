@@ -127,29 +127,51 @@ func pushCommand(cmd *cobra.Command, args []string) {
 // git media endpoint already has a git media object for that oid. The object will
 // not be pushed again.
 func pushAsset(oid, filename string, index, totalFiles int) *gitmedia.WrappedError {
-	tracerx.Printf("push_asset: %s %s %d/%d", oid, filename, index, totalFiles)
+	tracerx.Printf("checking_asset: %s %s %d/%d", oid, filename, index, totalFiles)
 	path, err := gitmedia.LocalMediaPath(oid)
 	if err != nil {
 		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	status, err := gitmediaclient.Options(path)
+	linkMeta, status, err := gitmediaclient.Post(path, filename)
 	if err != nil {
-		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
-	}
-
-	if status == 200 {
-		return nil
+		return gitmedia.Errorf(err, "Error starting file upload %s (%s)", filename, oid)
 	}
 
 	cb, file, cbErr := gitmedia.CopyCallbackFile("push", filename, index, totalFiles)
 	if cbErr != nil {
 		Error(cbErr.Error())
 	}
-
-	err = gitmediaclient.Put(path, filename, cb)
 	if file != nil {
-		file.Close()
+		defer file.Close()
+	}
+
+	if status == 405 {
+		// Do the old style OPTIONS + PUT
+		status, err := gitmediaclient.Options(path)
+		if err != nil {
+			return gitmedia.Errorf(err, "Error getting options for file %s (%s)", filename, oid)
+		}
+
+		if status == 200 {
+			return nil
+		}
+
+		err = gitmediaclient.Put(path, filename, cb)
+		if err != nil {
+			return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		}
+
+		return nil
+	} // End old style
+
+	if status != 201 {
+		return nil
+	}
+
+	err = gitmediaclient.ExternalPut(path, filename, linkMeta, cb)
+	if err != nil {
+		return gitmedia.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	return nil

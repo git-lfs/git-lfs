@@ -1,20 +1,22 @@
 package gitmediaclient
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb"
 	"github.com/github/git-media/gitmedia"
+	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
-	"strings"
 )
 
 const (
@@ -23,6 +25,15 @@ const (
 	gitMediaHeader   = "--git-media."
 )
 
+type linkMeta struct {
+	Links map[string]*link `json:"_links,omitempty"`
+}
+
+type link struct {
+	Href   string            `json:"href"`
+	Header map[string]string `json:"header,omitempty"`
+}
+
 func Options(filehash string) (int, error) {
 	oid := filepath.Base(filehash)
 	_, err := os.Stat(filehash)
@@ -30,17 +41,19 @@ func Options(filehash string) (int, error) {
 		return 0, err
 	}
 
+	tracerx.Printf("api_options: %s", oid)
 	req, creds, err := clientRequest("OPTIONS", oid)
 	if err != nil {
 		return 0, err
 	}
 
-	resp, wErr := doRequest(req, creds)
+	res, wErr := doRequest(req, creds)
 	if wErr != nil {
 		return 0, wErr
 	}
+	tracerx.Printf("api_options_status: %d", res.StatusCode)
 
-	return resp.StatusCode, nil
+	return res.StatusCode, nil
 }
 
 func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
@@ -83,12 +96,134 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 
 	fmt.Printf("Sending %s\n", filename)
 
-	_, wErr := doRequest(req, creds)
+	tracerx.Printf("api_put: %s %s", oid, filename)
+	res, wErr := doRequest(req, creds)
 	if wErr != nil {
 		return wErr
 	}
+	tracerx.Printf("api_put_status: %d", res.StatusCode)
 
 	return nil
+}
+
+func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallback) error {
+	link, ok := lm.Links["upload"]
+	if !ok {
+		return gitmedia.Error(errors.New("No upload link provided"))
+	}
+
+	file, err := os.Open(filehash)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	fileSize := stat.Size()
+	reader := &gitmedia.CallbackReader{
+		C:         cb,
+		TotalSize: fileSize,
+		Reader:    file,
+	}
+
+	req, err := http.NewRequest("PUT", link.Href, nil)
+	if err != nil {
+		return gitmedia.Error(err)
+	}
+	for h, v := range link.Header {
+		req.Header.Set(h, v)
+	}
+
+	bar := pb.StartNew(int(fileSize))
+	bar.SetUnits(pb.U_BYTES)
+	bar.Start()
+
+	req.Body = ioutil.NopCloser(bar.NewProxyReader(reader))
+	req.ContentLength = fileSize
+
+	tracerx.Printf("external_put: %s %s", filepath.Base(filehash), req.URL)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return gitmedia.Error(err)
+	}
+	tracerx.Printf("external_put_status: %d", res.StatusCode)
+
+	// Run the callback
+	if cb, ok := lm.Links["callback"]; ok {
+		oid := filepath.Base(filehash)
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return gitmedia.Error(err)
+		}
+
+		cbreq, err := http.NewRequest("POST", cb.Href, nil)
+		if err != nil {
+			return gitmedia.Error(err)
+		}
+		for h, v := range cb.Header {
+			cbreq.Header.Set(h, v)
+		}
+
+		d := fmt.Sprintf(`{"oid":"%s", "size":%d, "status":%d, "body":"%s"}`, oid, fileSize, res.StatusCode, string(body))
+		cbreq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
+
+		tracerx.Printf("callback: %s %s", oid, cb.Href)
+		cbres, err := http.DefaultClient.Do(cbreq)
+		if err != nil {
+			return gitmedia.Error(err)
+		}
+		tracerx.Printf("callback_status: %d", cbres.StatusCode)
+	}
+
+	return nil
+}
+
+func Post(filehash, filename string) (*linkMeta, int, error) {
+	oid := filepath.Base(filehash)
+	req, creds, err := clientRequest("POST", "")
+	if err != nil {
+		return nil, 0, gitmedia.Error(err)
+	}
+
+	file, err := os.Open(filehash)
+	if err != nil {
+		return nil, 0, gitmedia.Error(err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, 0, gitmedia.Error(err)
+	}
+	fileSize := stat.Size()
+
+	d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
+	req.Body = ioutil.NopCloser(bytes.NewBufferString(d))
+
+	req.Header.Set("Accept", gitMediaMetaType)
+
+	tracerx.Printf("api_post: %s %s", oid, filename)
+	res, wErr := doRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+	tracerx.Printf("api_post_status: %d", res.StatusCode)
+
+	if res.StatusCode == 201 {
+		var lm linkMeta
+		dec := json.NewDecoder(res.Body)
+		err := dec.Decode(&lm)
+		if err != nil {
+			return nil, res.StatusCode, gitmedia.Error(err)
+		}
+
+		return &lm, res.StatusCode, nil
+	}
+
+	return nil, res.StatusCode, nil
 }
 
 func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
@@ -126,27 +261,25 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, *gitmedia.
 		return false, gitmedia.Errorf(err, "Invalid Media Type: %s", contentType)
 	}
 
-	if mediaType != gitMediaType {
-		return false, gitmedia.Error(fmt.Errorf("Invalid Media Type: %s expected, got %s", gitMediaType, mediaType))
+	if mediaType == gitMediaType {
+
+		givenHeader, ok := params["header"]
+		if !ok {
+			return false, gitmedia.Error(fmt.Errorf("Missing Git Media header in %s", contentType))
+		}
+
+		fullGivenHeader := "--" + givenHeader + "\n"
+
+		header := make([]byte, len(fullGivenHeader))
+		_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
+		if err != nil {
+			return false, gitmedia.Errorf(err, "Error reading response body.")
+		}
+
+		if string(header) != fullGivenHeader {
+			return false, gitmedia.Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
+		}
 	}
-
-	givenHeader, ok := params["header"]
-	if !ok {
-		return false, gitmedia.Error(fmt.Errorf("Missing Git Media header in %s", contentType))
-	}
-
-	fullGivenHeader := "--" + givenHeader + "\n"
-
-	header := make([]byte, len(fullGivenHeader))
-	_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
-	if err != nil {
-		return false, gitmedia.Errorf(err, "Error reading response body.")
-	}
-
-	if string(header) != fullGivenHeader {
-		return false, gitmedia.Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
-	}
-
 	return true, nil
 }
 
@@ -160,14 +293,14 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.Wrappe
 			// An auth error should be 403.  Could be 404 also.
 			if res.StatusCode < 405 {
 				execCreds(creds, "reject")
-			}
 
-			apierr := &Error{}
-			dec := json.NewDecoder(res.Body)
-			if err := dec.Decode(apierr); err != nil {
-				wErr = gitmedia.Errorf(err, "Error decoding JSON from response")
-			} else {
-				wErr = gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
+				apierr := &Error{}
+				dec := json.NewDecoder(res.Body)
+				if err := dec.Decode(apierr); err != nil {
+					wErr = gitmedia.Errorf(err, "Error decoding JSON from response")
+				} else {
+					wErr = gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
+				}
 			}
 		} else {
 			execCreds(creds, "approve")
@@ -236,11 +369,7 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 func ObjectUrl(oid string) *url.URL {
 	c := gitmedia.Config
 	u, _ := url.Parse(c.Endpoint())
-	if strings.HasSuffix(u.Path, "/") {
-		u.Path = fmt.Sprintf("%sobjects/%s", u.Path, oid)
-	} else {
-		u.Path = fmt.Sprintf("%s/objects/%s", u.Path, oid)
-	}
+	u.Path = path.Join(u.Path, "objects", oid)
 	return u
 }
 
