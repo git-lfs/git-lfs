@@ -15,7 +15,8 @@ import (
 var (
 	MediaWarning  = []byte("# git-media\n")
 	alpha         = "http://git-media.io/v/1"
-	latest        = "http://git-media.io/v/2"
+	beta          = "http://git-media.io/v/2"
+	latest        = "http://hawser.github.com/spec/v1"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
 	oidRE         = regexp.MustCompile(`\A[0-9a-fA-F]{64}`)
@@ -23,7 +24,7 @@ var (
 oid sha256:%s
 size %d
 `
-	matcher     = []byte("git-media")
+	matcherRE   = regexp.MustCompile("git-media|hawser")
 	pointerKeys = []string{"version", "oid", "size"}
 )
 
@@ -77,11 +78,10 @@ func decodeKV(data []byte) (*Pointer, error) {
 	}
 
 	v, ok := parsed["version"]
-	if !ok || v != latest {
+	if !ok || (v != latest && v != beta) {
 		if len(v) == 0 {
 			v = "--"
 		}
-
 		return nil, errors.New("Invalid version: " + v)
 	}
 
@@ -116,7 +116,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 func decodeKVData(data []byte) (map[string]string, error) {
 	m := make(map[string]string)
 
-	if !bytes.Contains(data, matcher) {
+	if !matcherRE.Match(data) {
 		return m, fmt.Errorf("Not a valid Git Media pointer file.")
 	}
 

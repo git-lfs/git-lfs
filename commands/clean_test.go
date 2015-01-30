@@ -19,7 +19,7 @@ func TestClean(t *testing.T) {
 
 	cmd := repo.Command("clean", "somefile")
 	cmd.Input = bytes.NewBufferString(content)
-	cmd.Output = `version http://git-media.io/v/2
+	cmd.Output = `version http://hawser.github.com/spec/v1
 oid sha256:` + oid + `
 size 3`
 
@@ -32,7 +32,7 @@ size 3`
 
 	cmd = repo.Command("clean")
 	cmd.Input = bytes.NewBufferString(content)
-	cmd.Output = `version http://git-media.io/v/2
+	cmd.Output = `version http://hawser.github.com/spec/v1
 oid sha256:` + oid + `
 size 3`
 	customHook := []byte("echo 'yo'")
