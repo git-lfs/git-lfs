@@ -88,7 +88,7 @@ func init() {
 	var err error
 
 	tracerx.DefaultKey = "GIT"
-	tracerx.Prefix = "trace media: "
+	tracerx.Prefix = "trace hawser: "
 
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
@@ -111,7 +111,7 @@ func init() {
 		gitVersion = "unknown"
 	}
 
-	UserAgent = fmt.Sprintf("git-media/%s (GitHub; %s %s; git %s; go %s)", Version,
+	UserAgent = fmt.Sprintf("git-hawser/%s (GitHub; %s %s; git %s; go %s)", Version,
 		runtime.GOOS,
 		runtime.GOARCH,
 		strings.Replace(gitVersion, "git version ", "", 1),
