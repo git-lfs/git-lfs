@@ -55,7 +55,7 @@ func InstallFilters() error {
 }
 
 func setFilter(filterName string) error {
-	key := fmt.Sprintf("filter.media.%s", filterName)
+	key := fmt.Sprintf("filter.hawser.%s", filterName)
 	value := fmt.Sprintf("git hawser %s %%f", filterName)
 
 	existing := git.Config.Find(key)
@@ -70,7 +70,7 @@ func setFilter(filterName string) error {
 }
 
 func requireFilters() error {
-	key := "filter.media.required"
+	key := "filter.hawser.required"
 	value := "true"
 
 	existing := git.Config.Find(key)
@@ -78,7 +78,7 @@ func requireFilters() error {
 		git.Config.UnsetGlobal(key)
 		git.Config.SetGlobal(key, value)
 	} else if existing != value {
-		return errors.New("Media filters should be required but are not.")
+		return errors.New("Hawser filters should be required but are not.")
 	}
 
 	return nil

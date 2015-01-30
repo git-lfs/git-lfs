@@ -28,9 +28,9 @@ func TestPushToMaster(t *testing.T) {
 
 		repo.GitCmd("fetch")
 
-		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=media -crlf\n")
+		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=hawser -crlf\n")
 
-		// Add a git media file
+		// Add a hawser file
 		repo.WriteFile(filepath.Join(repo.Path, "a.dat"), "some data")
 		repo.GitCmd("add", "a.dat")
 		repo.GitCmd("commit", "-m", "a")
@@ -52,11 +52,11 @@ func TestPushToNewBranch(t *testing.T) {
 
 		repo.GitCmd("fetch")
 
-		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=media -crlf\n")
+		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=hawser -crlf\n")
 		repo.GitCmd("add", ".gitattributes")
 		repo.GitCmd("commit", "-m", "attributes")
 
-		// Add a git media file
+		// Add a hawser file
 		repo.WriteFile(filepath.Join(repo.Path, "a.dat"), "some data")
 		repo.GitCmd("add", "a.dat")
 		repo.GitCmd("commit", "-m", "a")

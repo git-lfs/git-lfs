@@ -113,8 +113,8 @@ runs all mp3 and zip files through Git Media:
 
 ```
 $ cat .gitattributes
-*.mp3 filter=media -crlf
-*.zip filter=media -crlf
+*.mp3 filter=hawser -crlf
+*.zip filter=hawser -crlf
 ```
 
 Use the `git hawser path` command to view and add to `.gitattributes`.

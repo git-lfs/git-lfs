@@ -45,7 +45,7 @@ func pathAddCommand(cmd *cobra.Command, args []string) {
 	hawser.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git media path add <path> [path]*")
+		Print("git hawser path add <path> [path]*")
 		return
 	}
 
@@ -69,7 +69,7 @@ func pathAddCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=media -crlf\n", t))
+		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=hawser -crlf\n", t))
 		if err != nil {
 			Print("Error adding path %s", t)
 			continue
@@ -84,7 +84,7 @@ func pathRemoveCommand(cmd *cobra.Command, args []string) {
 	hawser.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git media path remove <path> [path]*")
+		Print("git hawser path remove <path> [path]*")
 		return
 	}
 
@@ -104,7 +104,7 @@ func pathRemoveCommand(cmd *cobra.Command, args []string) {
 	scanner := bufio.NewScanner(attributes)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "filter=media") {
+		if strings.Contains(line, "filter=hawser") {
 			fields := strings.Fields(line)
 			removeThisPath := false
 			for _, t := range args {
@@ -168,7 +168,7 @@ func findPaths() []mediaPath {
 				continue
 			}
 
-			if strings.Contains(line, "filter=media") {
+			if strings.Contains(line, "filter=hawser") {
 				fields := strings.Fields(line)
 				relPath, _ := filepath.Rel(wd, path)
 				paths = append(paths, mediaPath{Path: fields[0], Source: relPath})

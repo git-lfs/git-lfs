@@ -27,14 +27,14 @@ func TestInit(t *testing.T) {
 	})
 
 	cmd.After(func() {
-		// assert media filter config
+		// assert hawser filter config
 		configs := GlobalGitConfig(t)
-		AssertIncludeString(t, "filter.media.clean=git hawser clean %f", configs)
-		AssertIncludeString(t, "filter.media.smudge=git hawser smudge %f", configs)
-		AssertIncludeString(t, "filter.media.required=true", configs)
+		AssertIncludeString(t, "filter.hawser.clean=git hawser clean %f", configs)
+		AssertIncludeString(t, "filter.hawser.smudge=git hawser smudge %f", configs)
+		AssertIncludeString(t, "filter.hawser.required=true", configs)
 		found := 0
 		for _, line := range configs {
-			if strings.HasPrefix(line, "filter.media") {
+			if strings.HasPrefix(line, "filter.hawser") {
 				found += 1
 			}
 		}

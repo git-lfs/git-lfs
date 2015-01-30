@@ -30,8 +30,8 @@ Git repositories use `.gitattributes` files to configure which files are inserte
 the Hawser server.  Here's a sample one that saves zips and mp3s:
 
     $ cat .gitattributes
-    *.mp3 filter=media -crlf
-    *.zip filter=media -crlf
+    *.mp3 filter=hawser -crlf
+    *.zip filter=hawser -crlf
 
 Hawser can help you manage your `.gitattributes` paths:
 
