@@ -94,17 +94,17 @@ func Enable(key string) {
 
 func getTracer(key string) *tracer {
 	uppedKey := strings.ToUpper(key)
+
+	tracerLock.Lock()
 	tracer, ok := tracers[uppedKey]
 	if !ok {
 		tracer = initializeTracer(uppedKey)
 	}
+	tracerLock.Unlock()
 	return tracer
 }
 
 func initializeTracer(key string) *tracer {
-	tracerLock.Lock()
-	defer tracerLock.Unlock()
-
 	if tracer, ok := tracers[key]; ok {
 		return tracer // Someone else initialized while we were blocked
 	}
