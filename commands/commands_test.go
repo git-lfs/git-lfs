@@ -221,7 +221,7 @@ func clone(t *testing.T, name, path string) {
 	cmd(t, "git", "clone", name, path)
 	e(t, os.Chdir(path))
 	cmd(t, "git", "remote", "remove", "origin")
-	cmd(t, "git", "remote", "add", "origin", "https://example.com/git/media")
+	cmd(t, "git", "remote", "add", "origin", "https://example.com/git/hawser")
 }
 
 func init() {

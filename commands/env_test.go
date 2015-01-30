@@ -16,7 +16,7 @@ func TestEnv(t *testing.T) {
 
 	cmd := repo.Command("env")
 	SetConfigOutput(cmd, map[string]string{
-		"Endpoint":        "https://example.com/git/media.git/info/media",
+		"Endpoint":        "https://example.com/git/hawser.git/info/media",
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "hawser", "objects"),
@@ -44,7 +44,7 @@ func TestEnvWithSubmoduleFromRepository(t *testing.T) {
 
 	cmd := repo.Command("env")
 	SetConfigOutput(cmd, map[string]string{
-		"Endpoint":        "https://example.com/git/media.git/info/media",
+		"Endpoint":        "https://example.com/git/hawser.git/info/media",
 		"LocalWorkingDir": repo.Path,
 		"LocalGitDir":     filepath.Join(repo.Path, ".git"),
 		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "hawser", "objects"),

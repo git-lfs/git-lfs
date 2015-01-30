@@ -65,7 +65,7 @@ func LoggedError(err error, format string, args ...interface{}) {
 	file := handlePanic(err)
 
 	if len(file) > 0 {
-		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git media logs last` to view the log.\n", file)
+		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git hawser logs last` to view the log.\n", file)
 	}
 }
 

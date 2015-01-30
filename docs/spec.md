@@ -48,25 +48,25 @@ generated from the SHA-256 signature of the file's contents.
 ## The Server
 
 Hawser needs a URL endpoint to talk to a remote server.  A Git repository
-can have different media endpoints for different remotes.  Here is the list
+can have different hawser endpoints for different remotes.  Here is the list
 of rules that Git Media uses to determine a repository's Git Media server:
 
-1. The `media.url` string.
-2. The `remote.{name}.media` string.
+1. The `hawser.url` string.
+2. The `remote.{name}.hawser` string.
 3. Append `/info/media` to the remote URL.  Only works with HTTPS URLs.
 
-Here's a sample Git config file with the optional remote and media configuration
+Here's a sample Git config file with the optional remote and hawser configuration
 options:
 
 ```
 [core]
   repositoryformatversion = 0
-[media]
+[hawser]
   endpoint = "https://github.com/github/assets-team/info/media"
 [remote "origin"]
   url = https://github.com/github/assets-team
   fetch = +refs/heads/*:refs/remotes/origin/*
-  media = "https://github.com/github/assets-team/info/media"
+  hawser = "https://github.com/github/assets-team/info/media"
 ```
 
 Hawser uses `git credential` to fetch credentials for HTTPS requests.  Setup
@@ -87,10 +87,10 @@ to Git as STDOUT.
 
 * Stream binary content from STDIN to a temp file, while calculating its SHA-256
 signature.
-* Check for the file at `.git/media/{OID}`.
+* Check for the file at `.git/hawser/objects/{OID}`.
 * If it does not exist:
   * Queue the OID to be uploaded.
-  * Move the temp file to `.git/media/{OID}`.
+  * Move the temp file to `.git/hawser/objects/{OID}`.
 * Delete the temp file.
 * Write the pointer file to STDOUT.
 
@@ -103,7 +103,7 @@ expects the content to write to the working directory as STDOUT.
 
 * Read 100 bytes.
 * If the content is ASCII and matches the pointer file format:
-  * Look for the file in `.git/media/{OID}`.
+  * Look for the file in `.git/hawser/objects/{OID}`.
   * If it's not there, download it from the server.
   * Read its contents to STDOUT
 * Otherwise, simply pass the STDIN out through STDOUT.
