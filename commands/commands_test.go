@@ -232,7 +232,7 @@ func init() {
 
 	Root = filepath.Join(wd, "..")
 	Bin = filepath.Join(Root, "bin", "git-hawser")
-	TempDir = filepath.Join(os.TempDir(), "git-media-tests")
+	TempDir = filepath.Join(os.TempDir(), "hawser-tests")
 
 	env := os.Environ()
 	GitEnv = make([]string, 0, len(env))

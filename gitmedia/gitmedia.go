@@ -15,7 +15,7 @@ const Version = "0.3.5"
 
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
-	TempDir            = filepath.Join(os.TempDir(), "git-media")
+	TempDir            = filepath.Join(os.TempDir(), "hawser")
 	UserAgent          string
 	LocalWorkingDir    string
 	LocalGitDir        string
