@@ -1,8 +1,8 @@
-package gitmediaclient
+package hawserclient
 
 import (
 	"github.com/bmizerany/assert"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"testing"
 )
 
@@ -15,7 +15,7 @@ func TestObjectUrl(t *testing.T) {
 		"http://example.com/foo/": "http://example.com/foo/objects/oid",
 	}
 
-	config := gitmedia.Config
+	config := hawser.Config
 	for endpoint, expected := range tests {
 		config.SetConfig("media.url", endpoint)
 		assert.Equal(t, expected, ObjectUrl(oid).String())

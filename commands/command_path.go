@@ -3,7 +3,7 @@ package commands
 import (
 	"bufio"
 	"fmt"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -32,7 +32,7 @@ var (
 )
 
 func pathCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks(false)
+	hawser.InstallHooks(false)
 
 	Print("Listing paths")
 	knownPaths := findPaths()
@@ -42,7 +42,7 @@ func pathCommand(cmd *cobra.Command, args []string) {
 }
 
 func pathAddCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks(false)
+	hawser.InstallHooks(false)
 
 	if len(args) < 1 {
 		Print("git media path add <path> [path]*")
@@ -81,7 +81,7 @@ func pathAddCommand(cmd *cobra.Command, args []string) {
 }
 
 func pathRemoveCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks(false)
+	hawser.InstallHooks(false)
 
 	if len(args) < 1 {
 		Print("git media path remove <path> [path]*")
@@ -132,12 +132,12 @@ type mediaPath struct {
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
-	repoAttributes := filepath.Join(gitmedia.LocalGitDir, "info", "attributes")
+	repoAttributes := filepath.Join(hawser.LocalGitDir, "info", "attributes")
 	if _, err := os.Stat(repoAttributes); err == nil {
 		paths = append(paths, repoAttributes)
 	}
 
-	filepath.Walk(gitmedia.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(hawser.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"github.com/spf13/cobra"
 	"io"
 	"log"
@@ -101,7 +101,7 @@ func handlePanic(err error) string {
 }
 
 func logEnv(w io.Writer) {
-	for _, env := range gitmedia.Environ() {
+	for _, env := range hawser.Environ() {
 		fmt.Fprintln(w, env)
 	}
 }
@@ -109,14 +109,14 @@ func logEnv(w io.Writer) {
 func logPanic(loggedError error, recursive bool) string {
 	var fmtWriter io.Writer = os.Stderr
 
-	if err := os.MkdirAll(gitmedia.LocalLogDir, 0755); err != nil {
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", gitmedia.LocalLogDir, err.Error())
+	if err := os.MkdirAll(hawser.LocalLogDir, 0755); err != nil {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", hawser.LocalLogDir, err.Error())
 		return ""
 	}
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(gitmedia.LocalLogDir, name+".log")
+	full := filepath.Join(hawser.LocalLogDir, name+".log")
 
 	file, err := os.Create(full)
 	if err == nil {
@@ -145,7 +145,7 @@ func logPanic(loggedError error, recursive bool) string {
 		}
 		fmtWriter.Write(wErr.Stack())
 	} else {
-		fmtWriter.Write(gitmedia.Stack())
+		fmtWriter.Write(hawser.Stack())
 	}
 
 	if err != nil && !recursive {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -88,7 +88,7 @@ func mainBuild() {
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := "hawser-" + gitmedia.Version
+	name := "hawser-" + hawser.Version
 	dir := "bin"
 
 	if addenv {
@@ -224,7 +224,7 @@ func logAndRun(cmd *exec.Cmd) error {
 }
 
 func zipName(os, arch string) string {
-	return fmt.Sprintf("hawser-%s-%s-%s", os, arch, gitmedia.Version)
+	return fmt.Sprintf("hawser-%s-%s-%s", os, arch, hawser.Version)
 }
 
 func releaseLabel(buildos, buildarch string) string {

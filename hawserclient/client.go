@@ -1,4 +1,4 @@
-package gitmediaclient
+package hawserclient
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
@@ -56,7 +56,7 @@ func Options(filehash string) (int, error) {
 	return res.StatusCode, nil
 }
 
-func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
+func Put(filehash, filename string, cb hawser.CopyCallback) error {
 	if filename == "" {
 		filename = filehash
 	}
@@ -79,7 +79,7 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 	}
 
 	fileSize := stat.Size()
-	reader := &gitmedia.CallbackReader{
+	reader := &hawser.CallbackReader{
 		C:         cb,
 		TotalSize: fileSize,
 		Reader:    file,
@@ -106,10 +106,10 @@ func Put(filehash, filename string, cb gitmedia.CopyCallback) error {
 	return nil
 }
 
-func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallback) error {
+func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback) error {
 	link, ok := lm.Links["upload"]
 	if !ok {
-		return gitmedia.Error(errors.New("No upload link provided"))
+		return hawser.Error(errors.New("No upload link provided"))
 	}
 
 	file, err := os.Open(filehash)
@@ -123,7 +123,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallba
 		return err
 	}
 	fileSize := stat.Size()
-	reader := &gitmedia.CallbackReader{
+	reader := &hawser.CallbackReader{
 		C:         cb,
 		TotalSize: fileSize,
 		Reader:    file,
@@ -131,7 +131,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallba
 
 	req, err := http.NewRequest("PUT", link.Href, nil)
 	if err != nil {
-		return gitmedia.Error(err)
+		return hawser.Error(err)
 	}
 	for h, v := range link.Header {
 		req.Header.Set(h, v)
@@ -147,7 +147,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallba
 	tracerx.Printf("external_put: %s %s", filepath.Base(filehash), req.URL)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return gitmedia.Error(err)
+		return hawser.Error(err)
 	}
 	tracerx.Printf("external_put_status: %d", res.StatusCode)
 
@@ -156,12 +156,12 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallba
 		oid := filepath.Base(filehash)
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return gitmedia.Error(err)
+			return hawser.Error(err)
 		}
 
 		cbreq, err := http.NewRequest("POST", cb.Href, nil)
 		if err != nil {
-			return gitmedia.Error(err)
+			return hawser.Error(err)
 		}
 		for h, v := range cb.Header {
 			cbreq.Header.Set(h, v)
@@ -173,7 +173,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb gitmedia.CopyCallba
 		tracerx.Printf("callback: %s %s", oid, cb.Href)
 		cbres, err := http.DefaultClient.Do(cbreq)
 		if err != nil {
-			return gitmedia.Error(err)
+			return hawser.Error(err)
 		}
 		tracerx.Printf("callback_status: %d", cbres.StatusCode)
 	}
@@ -185,18 +185,18 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 	oid := filepath.Base(filehash)
 	req, creds, err := clientRequest("POST", "")
 	if err != nil {
-		return nil, 0, gitmedia.Error(err)
+		return nil, 0, hawser.Error(err)
 	}
 
 	file, err := os.Open(filehash)
 	if err != nil {
-		return nil, 0, gitmedia.Error(err)
+		return nil, 0, hawser.Error(err)
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return nil, 0, gitmedia.Error(err)
+		return nil, 0, hawser.Error(err)
 	}
 	fileSize := stat.Size()
 
@@ -217,7 +217,7 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 		dec := json.NewDecoder(res.Body)
 		err := dec.Decode(&lm)
 		if err != nil {
-			return nil, res.StatusCode, gitmedia.Error(err)
+			return nil, res.StatusCode, hawser.Error(err)
 		}
 
 		return &lm, res.StatusCode, nil
@@ -226,11 +226,11 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 	return nil, res.StatusCode, nil
 }
 
-func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
+func Get(filename string) (io.ReadCloser, int64, *hawser.WrappedError) {
 	oid := filepath.Base(filename)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
-		return nil, 0, gitmedia.Error(err)
+		return nil, 0, hawser.Error(err)
 	}
 
 	req.Header.Set("Accept", gitMediaType)
@@ -242,7 +242,7 @@ func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
 
 	contentType := res.Header.Get("Content-Type")
 	if contentType == "" {
-		wErr = gitmedia.Error(errors.New("Empty Content-Type"))
+		wErr = hawser.Error(errors.New("Empty Content-Type"))
 		setErrorResponseContext(wErr, res)
 		return nil, 0, wErr
 	}
@@ -255,17 +255,17 @@ func Get(filename string) (io.ReadCloser, int64, *gitmedia.WrappedError) {
 	return res.Body, res.ContentLength, nil
 }
 
-func validateMediaHeader(contentType string, reader io.Reader) (bool, *gitmedia.WrappedError) {
+func validateMediaHeader(contentType string, reader io.Reader) (bool, *hawser.WrappedError) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return false, gitmedia.Errorf(err, "Invalid Media Type: %s", contentType)
+		return false, hawser.Errorf(err, "Invalid Media Type: %s", contentType)
 	}
 
 	if mediaType == gitMediaType {
 
 		givenHeader, ok := params["header"]
 		if !ok {
-			return false, gitmedia.Error(fmt.Errorf("Missing Git Media header in %s", contentType))
+			return false, hawser.Error(fmt.Errorf("Missing Git Media header in %s", contentType))
 		}
 
 		fullGivenHeader := "--" + givenHeader + "\n"
@@ -273,20 +273,20 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, *gitmedia.
 		header := make([]byte, len(fullGivenHeader))
 		_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
 		if err != nil {
-			return false, gitmedia.Errorf(err, "Error reading response body.")
+			return false, hawser.Errorf(err, "Error reading response body.")
 		}
 
 		if string(header) != fullGivenHeader {
-			return false, gitmedia.Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
+			return false, hawser.Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
 		}
 	}
 	return true, nil
 }
 
-func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.WrappedError) {
-	res, err := gitmedia.HttpClient().Do(req)
+func doRequest(req *http.Request, creds Creds) (*http.Response, *hawser.WrappedError) {
+	res, err := hawser.HttpClient().Do(req)
 
-	var wErr *gitmedia.WrappedError
+	var wErr *hawser.WrappedError
 
 	if err == nil {
 		if res.StatusCode > 299 {
@@ -297,16 +297,16 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *gitmedia.Wrappe
 				apierr := &Error{}
 				dec := json.NewDecoder(res.Body)
 				if err := dec.Decode(apierr); err != nil {
-					wErr = gitmedia.Errorf(err, "Error decoding JSON from response")
+					wErr = hawser.Errorf(err, "Error decoding JSON from response")
 				} else {
-					wErr = gitmedia.Errorf(apierr, "Invalid response: %d", res.StatusCode)
+					wErr = hawser.Errorf(apierr, "Invalid response: %d", res.StatusCode)
 				}
 			}
 		} else {
 			execCreds(creds, "approve")
 		}
 	} else {
-		wErr = gitmedia.Errorf(err, "Error sending HTTP request to %s", req.URL.String())
+		wErr = hawser.Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
 
 	if wErr != nil {
@@ -324,19 +324,19 @@ var hiddenHeaders = map[string]bool{
 	"Authorization": true,
 }
 
-func setErrorRequestContext(err *gitmedia.WrappedError, req *http.Request) {
-	err.Set("Endpoint", gitmedia.Config.Endpoint())
+func setErrorRequestContext(err *hawser.WrappedError, req *http.Request) {
+	err.Set("Endpoint", hawser.Config.Endpoint())
 	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
-func setErrorResponseContext(err *gitmedia.WrappedError, res *http.Response) {
+func setErrorResponseContext(err *hawser.WrappedError, res *http.Response) {
 	err.Set("Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
 }
 
-func setErrorHeaderContext(err *gitmedia.WrappedError, prefix string, head http.Header) {
+func setErrorHeaderContext(err *hawser.WrappedError, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
@@ -350,7 +350,7 @@ func setErrorHeaderContext(err *gitmedia.WrappedError, prefix string, head http.
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	u := ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
-	req.Header.Set("User-Agent", gitmedia.UserAgent)
+	req.Header.Set("User-Agent", hawser.UserAgent)
 	if err == nil {
 		creds, err := credentials(u)
 		if err != nil {
@@ -367,7 +367,7 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 }
 
 func ObjectUrl(oid string) *url.URL {
-	c := gitmedia.Config
+	c := hawser.Config
 	u, _ := url.Parse(c.Endpoint())
 	u.Path = path.Join(u.Path, "objects", oid)
 	return u

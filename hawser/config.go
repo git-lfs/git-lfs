@@ -1,4 +1,4 @@
-package gitmedia
+package hawser
 
 import (
 	"crypto/tls"

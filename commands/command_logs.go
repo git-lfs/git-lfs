@@ -2,7 +2,7 @@ package commands
 
 import (
 	"errors"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -64,7 +64,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 	}
 
 	name := args[0]
-	by, err := ioutil.ReadFile(filepath.Join(gitmedia.LocalLogDir, name))
+	by, err := ioutil.ReadFile(filepath.Join(hawser.LocalLogDir, name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
 	}
@@ -74,23 +74,23 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 }
 
 func logsClearCommand(cmd *cobra.Command, args []string) {
-	err := os.RemoveAll(gitmedia.LocalLogDir)
+	err := os.RemoveAll(hawser.LocalLogDir)
 	if err != nil {
-		Panic(err, "Error clearing %s", gitmedia.LocalLogDir)
+		Panic(err, "Error clearing %s", hawser.LocalLogDir)
 	}
 
-	Print("Cleared %s", gitmedia.LocalLogDir)
+	Print("Cleared %s", hawser.LocalLogDir)
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := gitmedia.Errorf(errors.New("Inner error message!"), "Error!")
+	err := hawser.Errorf(errors.New("Inner error message!"), "Error!")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }
 
 func sortedLogs() []string {
-	fileinfos, err := ioutil.ReadDir(gitmedia.LocalLogDir)
+	fileinfos, err := ioutil.ReadDir(hawser.LocalLogDir)
 	if err != nil {
 		return []string{}
 	}

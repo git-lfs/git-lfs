@@ -1,4 +1,4 @@
-package gitmediaclient
+package hawserclient
 
 import (
 	"bytes"

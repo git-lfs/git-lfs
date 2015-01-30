@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"io"
 	"regexp"
 	"strconv"
@@ -39,7 +39,7 @@ func NewPointer(oid string, size int64) *Pointer {
 	return &Pointer{latest, oid, size, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, cb gitmedia.CopyCallback) error {
+func (p *Pointer) Smudge(writer io.Writer, cb hawser.CopyCallback) error {
 	return Smudge(writer, p, cb)
 }
 

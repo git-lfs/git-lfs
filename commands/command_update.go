@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
@@ -24,7 +24,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 
 // updatePrePushHook will force an update of the pre-push hook.
 func updatePrePushHook() {
-	gitmedia.InstallHooks(true)
+	hawser.InstallHooks(true)
 	Print("Updated pre-push hook")
 }
 
@@ -33,7 +33,7 @@ func updatePrePushHook() {
 // .git/media and create pointer links for them under .git/media/objects.
 // After doing so it will remove the upload queue directory.
 func removeSyncQueue() {
-	queuePath := filepath.Join(gitmedia.LocalMediaDir, "queue")
+	queuePath := filepath.Join(hawser.LocalMediaDir, "queue")
 	if _, err := os.Stat(queuePath); os.IsNotExist(err) {
 		return
 	}

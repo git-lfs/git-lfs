@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-media/gitmedia"
+	"github.com/github/git-media/hawser"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +20,11 @@ var (
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	if err := gitmedia.InstallFilters(); err != nil {
+	if err := hawser.InstallFilters(); err != nil {
 		Error(err.Error())
 	}
 
-	if gitmedia.InRepo() {
+	if hawser.InRepo() {
 		initHooksCommand(cmd, args)
 	}
 
@@ -32,7 +32,7 @@ func initCommand(cmd *cobra.Command, args []string) {
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
-	if err := gitmedia.InstallHooks(false); err != nil {
+	if err := hawser.InstallHooks(false); err != nil {
 		Error(err.Error())
 	}
 }
