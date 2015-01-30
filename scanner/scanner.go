@@ -16,7 +16,7 @@ import (
 const (
 	// blobSizeCutoff is used to determine which files to scan for hawser pointers.
 	// Any file with a size below this cutoff will be scanned.
-	blobSizeCutoff = 130
+	blobSizeCutoff = 140
 
 	// stdoutBufSize is the size of the buffers given to a sub-process stdout
 	stdoutBufSize = 16384
