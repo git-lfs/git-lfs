@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	ReleaseId    = flag.Int("id", 0, "github/git-media Release ID")
-	uploadUrlFmt = "https://uploads.github.com/repos/github/git-media/releases/%d/assets?%s"
+	ReleaseId    = flag.Int("id", 0, "github/hawser Release ID")
+	uploadUrlFmt = "https://uploads.github.com/repos/github/hawser/releases/%d/assets?%s"
 )
 
 func mainRelease() {
 	if *ReleaseId < 1 {
-		fmt.Println("Need a valid github/git-media release id.")
+		fmt.Println("Need a valid github/hawser release id.")
 		fmt.Println("usage: script/release -id")
 		os.Exit(1)
 	}

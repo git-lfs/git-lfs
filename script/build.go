@@ -88,7 +88,7 @@ func mainBuild() {
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := "git-media-" + gitmedia.Version
+	name := "hawser-" + gitmedia.Version
 	dir := "bin"
 
 	if addenv {
@@ -224,7 +224,7 @@ func logAndRun(cmd *exec.Cmd) error {
 }
 
 func zipName(os, arch string) string {
-	return fmt.Sprintf("git-media-%s-%s-%s", os, arch, gitmedia.Version)
+	return fmt.Sprintf("hawser-%s-%s-%s", os, arch, gitmedia.Version)
 }
 
 func releaseLabel(buildos, buildarch string) string {
