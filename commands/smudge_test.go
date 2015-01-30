@@ -18,7 +18,7 @@ func TestSmudge(t *testing.T) {
 
 	// simple smudge example
 	cmd := repo.Command("smudge", "somefile")
-	cmd.Input = bytes.NewBufferString("version http://hawser.github.com/spec/v1\noid sha256:SOMEOID\nsize 9\n")
+	cmd.Input = bytes.NewBufferString("version https://hawser.github.com/spec/v1\noid sha256:SOMEOID\nsize 9\n")
 	cmd.Output = "whatever"
 	cmd.Env = append(cmd.Env, "GIT_MEDIA_PROGRESS="+progressFile)
 
@@ -105,12 +105,12 @@ func TestSmudgeInfo(t *testing.T) {
 
 	// smudge --info with hawser pointer format, without local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("version http://hawser.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
+	cmd.Input = bytes.NewBufferString("version https://hawser.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
 	cmd.Output = "123 --"
 
 	// smudge --info with hawser pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("version http://hawser.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
+	cmd.Input = bytes.NewBufferString("version https://hawser.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
 	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {

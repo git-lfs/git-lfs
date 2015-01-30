@@ -15,7 +15,7 @@ func TestEncode(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	bufReader := bufio.NewReader(&buf)
-	assertLine(t, bufReader, "version http://hawser.github.com/spec/v1\n")
+	assertLine(t, bufReader, "version https://hawser.github.com/spec/v1\n")
 	assertLine(t, bufReader, "oid sha256:booya\n")
 	assertLine(t, bufReader, "size 12345\n")
 
@@ -33,7 +33,7 @@ func assertLine(t *testing.T, r *bufio.Reader, expected string) {
 }
 
 func TestHawserIniDecode(t *testing.T) {
-	ex := `version http://hawser.github.com/spec/v1
+	ex := `version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345`
 
@@ -80,12 +80,12 @@ func TestDecodeInvalid(t *testing.T) {
 		"# git-media",
 
 		// bad oid type
-		`version http://hawser.github.com/spec/v1
+		`version https://hawser.github.com/spec/v1
 oid shazam:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345`,
 
 		// no oid
-		`version http://hawser.github.com/spec/v1
+		`version https://hawser.github.com/spec/v1
 size 12345`,
 
 		// bad version
@@ -98,16 +98,16 @@ size 12345`,
 size 12345`,
 
 		// bad size
-		`version http://hawser.github.com/spec/v1
+		`version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size fif`,
 
 		// no size
-		`version http://hawser.github.com/spec/v1
+		`version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
 
 		// bad `key value` format
-		`version=http://hawser.github.com/spec/v1
+		`version=https://hawser.github.com/spec/v1
 oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size=fif`,
 
@@ -117,13 +117,13 @@ oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size=fif`,
 
 		// extra key
-		`version http://hawser.github.com/spec/v1
+		`version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345
 wat wat`,
 
 		// keys out of order
-		`version http://hawser.github.com/spec/v1
+		`version https://hawser.github.com/spec/v1
 size 12345
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
 	}

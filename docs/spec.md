@@ -10,7 +10,7 @@ The core Hawser idea is that instead of writing large blobs to a Git repository,
 only a pointer file is written.
 
 ```
-version http://hawser.github.com/spec/v1
+version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345
 (ending \n)

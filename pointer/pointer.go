@@ -16,7 +16,7 @@ var (
 	MediaWarning  = []byte("# git-media\n")
 	alpha         = "http://git-media.io/v/1"
 	beta          = "http://git-media.io/v/2"
-	latest        = "http://hawser.github.com/spec/v1"
+	latest        = "https://hawser.github.com/spec/v1"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
 	oidRE         = regexp.MustCompile(`\A[0-9a-fA-F]{64}`)
