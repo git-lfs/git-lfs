@@ -7,31 +7,58 @@ Git repositories that use Git Media will specify a URI endpoint.  See the
 Use that endpoint as a base, and append the following relative paths to upload
 and download from the Git Media server.
 
-## GET objects/{oid}
+## GET /objects/{oid}
 
-The OID is the value from the pointer file.
+This gets either the object content, or the object's meta data.  The OID is the
+value from the object pointer.
+
+### Getting the content
+
+To download the object content, send an Accept header of `application/vnd.git-media`.
+The server returns the raw content back with a `Content-Type` of
+`application/octet-stream`.
 
 ```
-> GET objects/{oid} HTTP/1.1
-> Accept: application/vnd.git-media
+> GET https://git-media-server.com/objects/{oid} HTTP/1.1
+> Accept: application/octet-stream
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
-< Content-Type: application/vnd.git-media; header=git-media.265b3cb3f0530aae9010780a30d92a898400a5582081b21a099d51941eff
+< Content-Type: application/octet-stream
 <
-< --git-media.265b3cb3f0530aae9010780a30d92a898400a5582081b21a099d51941eff
 < {binary contents}
 ```
 
-The `Content-Type` header in the response will add a `header` parameter.  This
-identifies a unique header that the server writes before sending the content.
-
-The server returns a 404 if the file is not found.
-
-You can also request just the JSON meta data of the files:
+The server can also redirect to another location.  This is useful in cases where
+you do not want to render user content on a domain with important cookies.
+Request headers like `Range` or `Accept` should be passed through.  The
+`Authorization` header must _not_ be passed through if the location's host or
+scheme differs from the original request uri.
 
 ```
-> GET objects/{OID} HTTP/1.1
+> GET https://git-media-server.com/objects/{oid} HTTP/1.1
+> Accept: application/vnd.git-media
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 302 Found
+< Location: https://storage-server.com/{oid}
+<
+< {binary contents}
+```
+
+### Responses
+
+* 200 - The object contents or meta data is in the response.
+* 302 - Temporary redirect to a new location.
+* 404 - The user does not have access to the object, or it does not exist.
+
+### Getting meta data.
+
+You can also request just the JSON meta data with an `Accept` header of
+`application/vnd.git-media+json`.  Here's an example successful request:
+
+```
+> GET https://git-media-server.com/objects/{OID} HTTP/1.1
 > Accept: application/vnd.git-media+json
 > Authorization: Basic ... (if authentication is needed)
 >
@@ -40,19 +67,132 @@ You can also request just the JSON meta data of the files:
 <
 < {
 <   "oid": "the-sha-256-signature",
-<   "size": 123456
+<   "size": 123456,
+<   "_links": {
+<     "download": {
+<       "href": "https://some-download.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
 < }
 ```
 
-The `oid` and `size` properties are required.  The server can extend the output
-with custom properties.
+The `oid` and `size` properties are required.  A hypermedia `_links` section is
+included with a `download` link relation, which describes how to download the
+object content.  If the GET request to download an object (with `Accept:
+application/octet-stream`) redirects somewhere else, a similar URL should be
+used with the `download` relation.
 
-## PUT objects/{oid}
-
-This writes the file contents to the Git Media server.
+Here's a sample response for a request with an authorization error:
 
 ```
-> PUT objects/{oid} HTTP/1.1
+> GET https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 404 Not found
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "message": "Not found"
+< }
+```
+
+There are what the HTTP status codes mean:
+
+* 200 - The user is able to read the object.
+* 404 - The repository does not exist for the user, or the user does not have
+access to it.
+
+## OPTIONS /objects/{oid}
+
+This is a pre-flight request to verify credentials before sending the file
+contents.  Note: The `OPTIONS` method is only supported in pre-1.0 Git Media
+clients.  After 1.0, clients should use the `GET` with the
+`application/vnd.git-media+json` Accept header.
+
+Here's an example successful request:
+
+```
+> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+< HTTP/1.1 200 OK
+
+(no response body)
+```
+
+There are what the HTTP status codes mean:
+
+* 200 - The user is able to read the object.
+* 204 - The user is able to PUT the object to the same URL.
+* 403 - The user has **read**, but not **write** access.
+* 404 - The repository does not exist for the user.
+* 405 - OPTIONS not supported, use a GET request with a `application/vnd.git-media+json`
+Accept header.
+
+## POST /objects
+
+This request initiates the upload of an object, given a JSON body with the oid
+and size of the object to upload.
+
+```
+> POST https://git-media-server.com/objects/ HTTP/1.1
+> Accept: application/vnd.git-media+json
+> Content-Type: application/vnd.git-media+json
+> Authorization: Basic ... (if authentication is needed)
+>
+> {
+>   "oid": "1111111",
+>   "size": 123
+> }
+>
+< HTTP/1.1 201 Created
+< Content-Type: application/vnd.git-media+json
+<
+< {
+<   "_links": {
+<     "upload": {
+<       "href": "https://some-upload.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     },
+<     "callback": {
+<       "href": "https://some-callback.com",
+<       "header": {
+<         "Key": "value"
+<       }
+<     }
+<   }
+< }
+```
+
+A response can include one of multiple link relations, each with an `href`
+property and an optional `header` property.
+
+* `upload` - This relation describes how to upload the object.
+* `callback` - The server can specify a URL for the client to hit after
+successfully uploading an object.
+* `download` - This relation describes how to download the object content.
+
+### Responses
+
+* 200 - The object already exists.  Don't bother re-uploading.
+* 201 - The object is ready to be uploaded.  Follow the "upload" and optional
+"callback" links.
+* 403 - The user has **read**, but not **write** access.
+* 404 - The repository does not exist for the user.
+
+## PUT /objects/{oid}
+
+This writes the object contents to the Git Media server.
+
+```
+> PUT https://git-media-server.com/objects/{oid} HTTP/1.1
 > Accept: application/vnd.git-media
 > Content-Type: application/octet-stream
 > Authorization: Basic ...
@@ -63,28 +203,33 @@ This writes the file contents to the Git Media server.
 < HTTP/1.1 200 OK
 ```
 
-Responses:
+### Responses
 
-* 200 - The file already exists.
-* 201 - The file was uploaded successfully.
-* 409 - The file contents do not match the OID.
+* 200 - The object already exists.
+* 201 - The object was uploaded successfully.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
+* 405 - PUT method is not allowed.  Use an OPTIONS or GET pre-flight request to
+get the current URL to send a file.
 
-## OPTIONS objects/{oid}
+## Callbacks
 
-This is a pre-flight request to verify credentials before sending the file
-contents.
+When Git Media clients issue a POST request to initiate an object upload, the
+response can potentially return a "callback" link relation.  If given, The Git
+Media server expects a POST to the callback href after a successful upload.  Git
+Media clients send:
+
+* `oid` - The String OID of the Git Media object.
+* `status` - The HTTP status of the redirected PUT request.
+* `body` - The response body from the redirected PUT request.
 
 ```
-> OPTIONS objects/{oid} HTTP/1.1
+> POST https://git-media-server.com/callback
 > Accept: application/vnd.git-media
-> Authorization: Basic ...
+> Content-Type: application/vnd.git-media+json
+> Content-Length: 123
+>
+> {"oid": "{oid}", "status": 200, "body": "ok"}
 >
 < HTTP/1.1 200 OK
 ```
-
-* 200 - The user is able to send the file but the server already has it.
-* 204 - The user is able to send the file and the server does not have it.
-* 403 - The user has **read**, but not **write** access.
-* 404 - The repository does not exist for the user.
