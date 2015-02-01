@@ -12,7 +12,7 @@ import (
 
 var (
 	ReleaseId    = flag.Int("id", 0, "github/hawser Release ID")
-	uploadUrlFmt = "https://uploads.github.com/repos/github/hawser/releases/%d/assets?%s"
+	uploadUrlFmt = "https://uploads.github.com/repos/hawser/git-hawser/releases/%d/assets?%s"
 )
 
 func mainRelease() {
