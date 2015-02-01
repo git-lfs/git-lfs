@@ -287,6 +287,10 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *hawser.WrappedE
 
 	var wErr *hawser.WrappedError
 
+	if err == hawser.RedirectError {
+		err = nil
+	}
+
 	if err == nil {
 		if res.StatusCode > 299 {
 			// An auth error should be 403.  Could be 404 also.
@@ -304,7 +308,7 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *hawser.WrappedE
 		} else {
 			execCreds(creds, "approve")
 		}
-	} else {
+	} else if res.StatusCode != 302 { // hack for pre-release
 		wErr = hawser.Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
 

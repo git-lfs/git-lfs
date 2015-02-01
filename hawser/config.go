@@ -18,8 +18,9 @@ type Configuration struct {
 }
 
 var (
-	Config       = &Configuration{}
-	httpPrefixRe = regexp.MustCompile("\\Ahttps?://")
+	Config        = &Configuration{}
+	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
+	RedirectError = fmt.Errorf("Unexpected redirection")
 )
 
 func HttpClient() *http.Client {
@@ -34,6 +35,9 @@ func (c *Configuration) HttpClient() *http.Client {
 			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 		c.httpClient = &http.Client{Transport: tr}
+		c.httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return RedirectError
+		}
 	}
 	return c.httpClient
 }
