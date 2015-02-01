@@ -7,7 +7,7 @@
 	ignorecase = true
 	precomposeunicode = true
 [remote "origin"]
-	url = /Users/rick/github/git-media/commands/repos/attributes.git
+	url = /Users/rick/hawser/git-hawser/commands/repos/attributes.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "master"]
 	remote = origin

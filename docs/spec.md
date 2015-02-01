@@ -1,16 +1,16 @@
-# Git Media Specification
+# Hawser Specification
 
-This is a general guide for Git Media clients.  Typically it should be
-implemented by a command line `git-media` tool, but the details may be useful
+This is a general guide for Hawser clients.  Typically it should be
+implemented by a command line `git-hawser` tool, but the details may be useful
 for other tools.
 
 ## The Pointer
 
-The core Git Media idea is that instead of writing large blobs to a Git repository,
+The core Hawser idea is that instead of writing large blobs to a Git repository,
 only a pointer file is written.
 
 ```
-version http://git-media.io/v/2
+version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345
 (ending \n)
@@ -24,7 +24,7 @@ translate to the same Git blob OID.  This means:
 * Use properties "version", "oid", and "size" in that order.
 * Separate the property from its value with a single space.
 * Oid has a "sha256:" prefix.  No other hashing methods are currently supported
-for Git Media oids.
+for Hawser oids.
 * Size is in bytes.
 
 Note: Earlier versions only contained the OID, with a `# comment` above it.
@@ -47,38 +47,38 @@ generated from the SHA-256 signature of the file's contents.
 
 ## The Server
 
-Git Media needs a URL endpoint to talk to a remote server.  A Git repository
-can have different media endpoints for different remotes.  Here is the list
+Hawser needs a URL endpoint to talk to a remote server.  A Git repository
+can have different hawser endpoints for different remotes.  Here is the list
 of rules that Git Media uses to determine a repository's Git Media server:
 
-1. The `media.url` string.
-2. The `remote.{name}.media` string.
+1. The `hawser.url` string.
+2. The `remote.{name}.hawser` string.
 3. Append `/info/media` to the remote URL.  Only works with HTTPS URLs.
 
-Here's a sample Git config file with the optional remote and media configuration
+Here's a sample Git config file with the optional remote and hawser configuration
 options:
 
 ```
 [core]
   repositoryformatversion = 0
-[media]
+[hawser]
   endpoint = "https://github.com/github/assets-team/info/media"
 [remote "origin"]
   url = https://github.com/github/assets-team
   fetch = +refs/heads/*:refs/remotes/origin/*
-  media = "https://github.com/github/assets-team/info/media"
+  hawser = "https://github.com/github/assets-team/info/media"
 ```
 
-Git Media uses `git credential` to fetch credentials for HTTPS requests.  Setup
+Hawser uses `git credential` to fetch credentials for HTTPS requests.  Setup
 a credential cache helper to save passwords for future users.
 
 ## Intercepting Git
 
-Git Media uses the `clean` and `smudge` filters to decide which files use
-Git Media.  The global filters can be set up with `git media init`:
+Hawser uses the `clean` and `smudge` filters to decide which files use
+Hawser.  The global filters can be set up with `git hawser init`:
 
 ```
-$ git media init
+$ git hawser init
 ```
 
 The `clean` filter runs as files are added to repositories.  Git sends the
@@ -87,15 +87,15 @@ to Git as STDOUT.
 
 * Stream binary content from STDIN to a temp file, while calculating its SHA-256
 signature.
-* Check for the file at `.git/media/{OID}`.
+* Check for the file at `.git/hawser/objects/{OID}`.
 * If it does not exist:
   * Queue the OID to be uploaded.
-  * Move the temp file to `.git/media/{OID}`.
+  * Move the temp file to `.git/hawser/objects/{OID}`.
 * Delete the temp file.
 * Write the pointer file to STDOUT.
 
 Note that the `clean` filter does not push the file to the server.  Use the
-`git media sync` command to do that.
+`git hawser sync` command to do that.
 
 The `smudge` filter runs as files are being checked out from the Git repository
 to the working directory.  Git sends the content of the Git blob as STDIN, and
@@ -103,7 +103,7 @@ expects the content to write to the working directory as STDOUT.
 
 * Read 100 bytes.
 * If the content is ASCII and matches the pointer file format:
-  * Look for the file in `.git/media/{OID}`.
+  * Look for the file in `.git/hawser/objects/{OID}`.
   * If it's not there, download it from the server.
   * Read its contents to STDOUT
 * Otherwise, simply pass the STDIN out through STDOUT.
@@ -113,8 +113,8 @@ runs all mp3 and zip files through Git Media:
 
 ```
 $ cat .gitattributes
-*.mp3 filter=media -crlf
-*.zip filter=media -crlf
+*.mp3 filter=hawser -crlf
+*.zip filter=hawser -crlf
 ```
 
-Use the `git media path` command to view and add to `.gitattributes`.
+Use the `git hawser path` command to view and add to `.gitattributes`.

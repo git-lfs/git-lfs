@@ -1,0 +1,31 @@
+git-hawser-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
+==============================================================================================
+
+## SYNOPSIS
+
+`git hawser smudge` <path>
+
+## DESCRIPTION
+
+Smudge takes a Hawser pointer file in STDIN, parses out the pointer's ID,
+and then dumps the file's contents to STDOUT.  The file will be downloaded from
+the Hawser endpoint if needed. The optional <path> argument is only used for
+a progress bar.
+
+Smudge is typically run by Git's smudge filter, configured by the repository's
+Git attributes.
+
+## OPTIONS
+
+Without any options, `git hawser smudge` will output the raw hawser content to
+STDOUT.
+
+* `--info`:
+    Displays the file size, and the local path to the hawser file.  If the file
+    does not exist, `--` is shown.
+
+## SEE ALSO
+
+git-hawser-init(1), gitattributes(5).
+
+Part of the git-hawser(1) suite.

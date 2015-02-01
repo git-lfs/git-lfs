@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/github/git-media/gitmedia"
-	"github.com/github/git-media/pointer"
+	"github.com/hawser/git-hawser/hawser"
+	"github.com/hawser/git-hawser/pointer"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -16,10 +16,10 @@ var (
 )
 
 func cleanCommand(cmd *cobra.Command, args []string) {
-	gitmedia.InstallHooks(false)
+	hawser.InstallHooks(false)
 
 	var filename string
-	var cb gitmedia.CopyCallback
+	var cb hawser.CopyCallback
 	var file *os.File
 	var fileSize int64
 	if len(args) > 0 {
@@ -29,7 +29,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		if err == nil && stat != nil {
 			fileSize = stat.Size()
 
-			localCb, localFile, err := gitmedia.CopyCallbackFile("clean", filename, 1, 1)
+			localCb, localFile, err := hawser.CopyCallbackFile("clean", filename, 1, 1)
 			if err != nil {
 				Error(err.Error())
 			} else {
@@ -51,7 +51,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	}
 
 	tmpfile := cleaned.File.Name()
-	mediafile, err := gitmedia.LocalMediaPath(cleaned.Oid)
+	mediafile, err := hawser.LocalMediaPath(cleaned.Oid)
 	if err != nil {
 		Panic(err, "Unable to get local media path.")
 	}

@@ -1,0 +1,27 @@
+git-hawser-logs(1) - Show errors from the git-hawser command.
+===========================================================
+
+## SYNOPSIS
+
+`git hawser logs`<br>
+`git hawser logs` <file><br>
+`git hawser logs` --clear<br>
+`git hawser logs` --boomtown<br>
+
+## DESCRIPTION
+
+The "logs" command displays errors from the git-hawser command.  Any time it
+crashes, the details are saved to ".git/hawser/logs".
+
+## OPTIONS
+
+Without any options, `git hawser logs` will simply show the list of error logs.
+
+* <file>:
+    Shows the specified error log.  Use "last" to show the most recent error.
+
+* `--clear`:
+    Clears all of the existing logged errors.
+
+* `--boomtown`:
+    Triggers a dummy exception.

@@ -1,0 +1,30 @@
+git-hawser-push(1) -- Push queued large files to the Git Media endpoint.
+=======================================================================
+
+## SYNOPSIS
+
+`git hawser push` <repo> [refspec]
+
+## DESCRIPTION
+
+Push uploads Git Media files to the configured endpoint for the current
+Git remote.
+
+Push is typically run by Git's pre-push hook.
+
+## OPTIONS
+
+* `--dry-run`:
+    Prints the files that would be pushed, without actually pushing them.
+
+* `--stdin`:
+    Read the repo and refspec on stdin. This is used in conjunction with
+    the pre-push hook and must be in the format used by the pre-push hook:
+    <local ref> <local sha1> <remote ref> <remote sha1>. If --stdin is used
+    the command line arguments will be ignored.
+
+## SEE ALSO
+
+git-hawser-clean(1).
+
+Part of the git-hawser(1) suite.

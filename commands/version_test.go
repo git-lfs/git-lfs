@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"github.com/github/git-media/gitmedia"
+	"github.com/hawser/git-hawser/hawser"
 	"testing"
 )
 
@@ -14,11 +14,11 @@ func TestVersionOnEmptyRepository(t *testing.T) {
 	repo.AddPath(repo.Path, "subdir")
 
 	cmd := repo.Command("version")
-	cmd.Output = gitmedia.UserAgent
+	cmd.Output = hawser.UserAgent
 
 	cmd = repo.Command("version", "--comics")
-	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", gitmedia.UserAgent)
+	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", hawser.UserAgent)
 
 	cmd = repo.Command("version", "-c")
-	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", gitmedia.UserAgent)
+	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", hawser.UserAgent)
 }

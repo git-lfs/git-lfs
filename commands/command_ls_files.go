@@ -1,15 +1,15 @@
 package commands
 
 import (
-	"github.com/github/git-media/git"
-	"github.com/github/git-media/scanner"
+	"github.com/hawser/git-hawser/git"
+	"github.com/hawser/git-hawser/scanner"
 	"github.com/spf13/cobra"
 )
 
 var (
 	lsFilesCmd = &cobra.Command{
 		Use:   "ls-files",
-		Short: "Show information about git media files",
+		Short: "Show information about hawser files",
 		Run:   lsFilesCommand,
 	}
 )
@@ -29,7 +29,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 
 	pointers, err := scanner.Scan(ref, "")
 	if err != nil {
-		Panic(err, "Could not scan for git media files")
+		Panic(err, "Could not scan for hawser files")
 	}
 
 	for _, p := range pointers {

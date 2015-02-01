@@ -3,7 +3,7 @@ package scanner
 import (
 	"bufio"
 	"bytes"
-	"github.com/github/git-media/pointer"
+	"github.com/hawser/git-hawser/pointer"
 	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	// blobSizeCutoff is used to determine which files to scan for git media pointers.
+	// blobSizeCutoff is used to determine which files to scan for hawser pointers.
 	// Any file with a size below this cutoff will be scanned.
-	blobSizeCutoff = 130
+	blobSizeCutoff = 140
 
 	// stdoutBufSize is the size of the buffers given to a sub-process stdout
 	stdoutBufSize = 16384
@@ -50,7 +50,7 @@ type indexFile struct {
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
 // Scan takes a ref and returns a slice of wrappedPointer objects
-// for all git media pointers it finds for that ref.
+// for all hawser pointers it finds for that ref.
 func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
 	start := time.Now()
@@ -84,7 +84,7 @@ func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
 }
 
 // ScanIndex returns a slice of wrappedPointer objects for all
-// git media pointers it finds in the index.
+// hawser pointers it finds in the index.
 func ScanIndex() ([]*wrappedPointer, error) {
 	nameMap := make(map[string]*indexFile, 0)
 	start := time.Now()
@@ -282,7 +282,7 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 
 // catFileBatch uses git cat-file --batch to get the object contents
 // of a git object, given its sha1. The contents will be decoded into
-// a git media pointer. revs is a channel over which strings containing
+// a hawser pointer. revs is a channel over which strings containing
 // git sha1s will be sent. It returns a channel from which point.Pointers
 // can be read.
 func catFileBatch(revs chan string) (chan *wrappedPointer, error) {

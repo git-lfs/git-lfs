@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-media/gitmedia"
+	"github.com/hawser/git-hawser/hawser"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ var (
 )
 
 func envCommand(cmd *cobra.Command, args []string) {
-	config := gitmedia.Config
+	config := hawser.Config
 
 	if endpoint := config.Endpoint(); len(endpoint) > 0 {
 		Print("Endpoint=%s", endpoint)
@@ -24,7 +24,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
 	}
 
-	for _, env := range gitmedia.Environ() {
+	for _, env := range hawser.Environ() {
 		Print(env)
 	}
 }

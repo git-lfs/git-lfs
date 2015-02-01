@@ -1,11 +1,11 @@
-# Git Media API
+# Hawser API
 
 The server implements a simple API for uploading and downloading binary content.
-Git repositories that use Git Media will specify a URI endpoint.  See the
+Git repositories that use Hawser will specify a URI endpoint.  See the
 [specification](spec.md) for how Git Media determines the server endpoint to use.
 
 Use that endpoint as a base, and append the following relative paths to upload
-and download from the Git Media server.
+and download from the Hawser server.
 
 ## GET /objects/{oid}
 
@@ -14,12 +14,12 @@ value from the object pointer.
 
 ### Getting the content
 
-To download the object content, send an Accept header of `application/vnd.git-media`.
+To download the object content, send an Accept header of `application/vnd.hawser`.
 The server returns the raw content back with a `Content-Type` of
 `application/octet-stream`.
 
 ```
-> GET https://git-media-server.com/objects/{oid} HTTP/1.1
+> GET https://hawser-server.com/objects/{oid} HTTP/1.1
 > Accept: application/octet-stream
 > Authorization: Basic ... (if authentication is needed)
 >
@@ -36,8 +36,8 @@ Request headers like `Range` or `Accept` should be passed through.  The
 scheme differs from the original request uri.
 
 ```
-> GET https://git-media-server.com/objects/{oid} HTTP/1.1
-> Accept: application/vnd.git-media
+> GET https://hawser-server.com/objects/{oid} HTTP/1.1
+> Accept: application/vnd.hawser
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 302 Found
@@ -55,15 +55,15 @@ scheme differs from the original request uri.
 ### Getting meta data.
 
 You can also request just the JSON meta data with an `Accept` header of
-`application/vnd.git-media+json`.  Here's an example successful request:
+`application/vnd.hawser+json`.  Here's an example successful request:
 
 ```
-> GET https://git-media-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.git-media+json
+> GET https://hawser-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.hawser+json
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
-< Content-Type: application/vnd.git-media+json
+< Content-Type: application/vnd.hawser+json
 <
 < {
 <   "oid": "the-sha-256-signature",
@@ -88,12 +88,12 @@ used with the `download` relation.
 Here's a sample response for a request with an authorization error:
 
 ```
-> GET https://git-media-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.git-media+json
+> GET https://hawser-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.hawser+json
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 404 Not found
-< Content-Type: application/vnd.git-media+json
+< Content-Type: application/vnd.hawser+json
 <
 < {
 <   "message": "Not found"
@@ -109,15 +109,15 @@ access to it.
 ## OPTIONS /objects/{oid}
 
 This is a pre-flight request to verify credentials before sending the file
-contents.  Note: The `OPTIONS` method is only supported in pre-1.0 Git Media
+contents.  Note: The `OPTIONS` method is only supported in pre-1.0 Hawser
 clients.  After 1.0, clients should use the `GET` with the
-`application/vnd.git-media+json` Accept header.
+`application/vnd.hawser+json` Accept header.
 
 Here's an example successful request:
 
 ```
-> OPTIONS https://git-media-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.git-media+json
+> OPTIONS https://hawser-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.hawser+json
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
@@ -131,7 +131,7 @@ There are what the HTTP status codes mean:
 * 204 - The user is able to PUT the object to the same URL.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
-* 405 - OPTIONS not supported, use a GET request with a `application/vnd.git-media+json`
+* 405 - OPTIONS not supported, use a GET request with a `application/vnd.hawser+json`
 Accept header.
 
 ## POST /objects
@@ -140,9 +140,9 @@ This request initiates the upload of an object, given a JSON body with the oid
 and size of the object to upload.
 
 ```
-> POST https://git-media-server.com/objects/ HTTP/1.1
-> Accept: application/vnd.git-media+json
-> Content-Type: application/vnd.git-media+json
+> POST https://hawser-server.com/objects/ HTTP/1.1
+> Accept: application/vnd.hawser+json
+> Content-Type: application/vnd.hawser+json
 > Authorization: Basic ... (if authentication is needed)
 >
 > {
@@ -151,7 +151,7 @@ and size of the object to upload.
 > }
 >
 < HTTP/1.1 201 Created
-< Content-Type: application/vnd.git-media+json
+< Content-Type: application/vnd.hawser+json
 <
 < {
 <   "_links": {
@@ -192,8 +192,8 @@ successfully uploading an object.
 This writes the object contents to the Git Media server.
 
 ```
-> PUT https://git-media-server.com/objects/{oid} HTTP/1.1
-> Accept: application/vnd.git-media
+> PUT https://hawser-server.com/objects/{oid} HTTP/1.1
+> Accept: application/vnd.hawser
 > Content-Type: application/octet-stream
 > Authorization: Basic ...
 > Content-Length: 123
@@ -214,19 +214,19 @@ get the current URL to send a file.
 
 ## Callbacks
 
-When Git Media clients issue a POST request to initiate an object upload, the
-response can potentially return a "callback" link relation.  If given, The Git
-Media server expects a POST to the callback href after a successful upload.  Git
-Media clients send:
+When Hawser clients issue a POST request to initiate an object upload, the
+response can potentially return a "callback" link relation.  If given, The Hawser
+server expects a POST to the callback href after a successful upload.  Hawser
+clients send:
 
 * `oid` - The String OID of the Git Media object.
 * `status` - The HTTP status of the redirected PUT request.
 * `body` - The response body from the redirected PUT request.
 
 ```
-> POST https://git-media-server.com/callback
-> Accept: application/vnd.git-media
-> Content-Type: application/vnd.git-media+json
+> POST https://hawser-server.com/callback
+> Accept: application/vnd.hawser
+> Content-Type: application/vnd.hawser+json
 > Content-Length: 123
 >
 > {"oid": "{oid}", "status": 200, "body": "ok"}

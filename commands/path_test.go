@@ -25,7 +25,7 @@ func TestPath(t *testing.T) {
 	cmd.Before(func() {
 		// write attributes file in .git
 		path := filepath.Join(".git", "info", "attributes")
-		repo.WriteFile(path, "*.mov filter=media -crlf\n")
+		repo.WriteFile(path, "*.mov filter=hawser -crlf\n")
 
 		// add hook
 		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
@@ -49,7 +49,7 @@ func TestPathOnEmptyRepository(t *testing.T) {
 	cmd.Output = "Adding path *.gif"
 	cmd.After(func() {
 		// assert path was added
-		assert.Equal(t, "*.gif filter=media -crlf\n", repo.ReadFile(".gitattributes"))
+		assert.Equal(t, "*.gif filter=hawser -crlf\n", repo.ReadFile(".gitattributes"))
 
 		expected := "Listing paths\n    *.gif (.gitattributes)\n"
 
