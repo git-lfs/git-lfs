@@ -1,9 +1,9 @@
-git-hawser-path(1) - View Hawser paths in Git attributes.
+git-hawser-remove(1) - Remove Hawser paths from Git Attributes.
 ======================================================================
 
 ## SYNOPSIS
 
-`git hawser path`
+`git hawser remove` [path]*
 
 ## DESCRIPTION
 
@@ -13,12 +13,12 @@ path.
 
 ## EXAMPLES
 
-* View the current Git attributes.
+* Prevent a path from using Hawser clean and smudge filters.
 
-    `git hawser path`
+    `git hawser remove *.gif`
 
 ## SEE ALSO
 
-git-hawser-add(1), git-hawser-remove(1), git-hawser-init(1), gitattributes(5).
+git-hawser-add(1), git-hawser-path(1), git-hawser-init(1), gitattributes(5).
 
 Part of the git-hawser(1) suite.

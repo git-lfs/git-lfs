@@ -45,7 +45,7 @@ func TestPathOnEmptyRepository(t *testing.T) {
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
-	cmd := repo.Command("path", "add", "*.gif")
+	cmd := repo.Command("add", "*.gif")
 	cmd.Output = "Adding path *.gif"
 	cmd.After(func() {
 		// assert path was added
