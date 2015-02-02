@@ -15,13 +15,19 @@ var (
 		Short: "Remove an entry from .gitattributes",
 		Run:   removeCommand,
 	}
+
+	rmCmd = &cobra.Command{
+		Use:   "rm",
+		Short: "Remove an entry from .gitattributes",
+		Run:   removeCommand,
+	}
 )
 
 func removeCommand(cmd *cobra.Command, args []string) {
 	hawser.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git hawser path remove <path> [path]*")
+		Print("git hawser path rm <path> [path]*")
 		return
 	}
 
@@ -62,5 +68,6 @@ func removeCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	RootCmd.AddCommand(rmCmd)
 	RootCmd.AddCommand(removeCmd)
 }

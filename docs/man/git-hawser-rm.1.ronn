@@ -1,9 +1,9 @@
-git-hawser-remove(1) - Remove Hawser paths from Git Attributes.
+git-hawser-rm(1) - Remove Hawser paths from Git Attributes.
 ======================================================================
 
 ## SYNOPSIS
 
-`git hawser remove` [path]*
+`git hawser rm` [path]*
 
 ## DESCRIPTION
 
@@ -15,7 +15,7 @@ path.
 
 * Prevent a path from using Hawser clean and smudge filters.
 
-    `git hawser remove *.gif`
+    `git hawser rm *.gif`
 
 ## SEE ALSO
 
