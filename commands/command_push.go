@@ -134,8 +134,12 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 	}
 
 	linkMeta, status, err := hawserclient.Post(path, filename)
-	if err != nil {
+	if err != nil && status != 302 {
 		return hawser.Errorf(err, "Error starting file upload %s (%s)", filename, oid)
+	}
+
+	if status == 200 {
+		return nil
 	}
 
 	cb, file, cbErr := hawser.CopyCallbackFile("push", filename, index, totalFiles)
@@ -146,7 +150,7 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 		defer file.Close()
 	}
 
-	if status == 405 {
+	if status == 405 || status == 302 {
 		// Do the old style OPTIONS + PUT
 		status, err := hawserclient.Options(path)
 		if err != nil {
@@ -166,7 +170,7 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 	} // End old style
 
 	if status != 201 {
-		return nil
+		return hawser.Errorf(err, "Unexpected HTTP response: %d for %s (%s)", status, filename, oid)
 	}
 
 	err = hawserclient.ExternalPut(path, filename, linkMeta, cb)
