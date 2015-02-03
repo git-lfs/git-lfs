@@ -85,10 +85,6 @@ Now, add a file:
 
 ```
 $ git add my.zip
-
-# confirm the zip was added to hawser
-$ git hawser ls-files
-my.zip
 ```
 
 When you can see files being added to hawser, you can commit like
@@ -110,6 +106,14 @@ normal.  After committing, `git show` will show the file's metadata:
     +# git-media
     +84ff327f80500d3266bd830891ede1e4fd18b9169936a066573f9b230597a696
     \ No newline at end of file
+
+You can also run `git hawser ls-files` to confirm that the file was added with Hawser.
+
+```
+# confirm the zip was added to hawser
+$ git hawser ls-files
+my.zip
+```
 
 Now, when you run `git push`, added media files will be synced to the
 Hawser endpoint.
