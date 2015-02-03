@@ -85,6 +85,7 @@ Now, add a file:
 
 ```
 $ git add my.zip
+$ git commit -m "Add my zip file."
 
 # confirm the zip was added to hawser
 $ git hawser ls-files
