@@ -13,9 +13,7 @@ file from a Hawser server.
 
 ## Getting Started
 
-The client lives in [github/hawser](https://github.com/github/hawser).
-
-Download the [latest release](https://github.com/github/hawser/releases) and run the
+Download the [latest client](https://github.com/hawser/git-hawser/releases) and run the
 included `install.sh` script.
 
 ### Configure Git

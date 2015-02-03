@@ -49,7 +49,7 @@ func NewCommand(input Creds, subCommand string) *CredentialCmd {
 		process is the process that fires up the daemon, it will wait forever
 		(until the daemon exits, really) trying to read from stderr.
 
-		See https://github.com/github/hawser/issues/117 for more details.
+		See https://github.com/hawser/git-hawser/issues/117 for more details.
 	*/
 
 	return &CredentialCmd{buf1, subCommand, cmd}
