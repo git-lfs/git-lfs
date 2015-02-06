@@ -1,1 +1,8 @@
-git hawser init
+set HAWSER_BIN_PATH="%LOCALAPPDATA%\Hawser\bin"
+mkdir %HAWSER_BIN_PATH%
+
+del %HAWSER_BIN_PATH%\git-hawser*
+
+xcopy /s git-hawser %HAWSER_BIN_PATH%\git-hawser
+
+setx PATH "%PATH%;%HAWSER_BIN_PATH%" /M
