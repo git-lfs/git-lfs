@@ -3,8 +3,9 @@ mkdir %HAWSER_BIN_PATH%
 
 del %HAWSER_BIN_PATH%\git-hawser*
 
-xcopy /s git-hawser %HAWSER_BIN_PATH%\git-hawser
+xcopy /s git-hawser.exe %HAWSER_BIN_PATH%\git-hawser.exe
 
-setx PATH "%PATH%;%HAWSER_BIN_PATH%" /M
+set PATH "%PATH%%HAWSER_BIN_PATH:"=%"
+setx PATH "%PATH%%HAWSER_BIN_PATH:"=%" /M
 
 git hawser init
