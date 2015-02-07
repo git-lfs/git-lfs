@@ -12,5 +12,8 @@ ln -s `pwd` $LOCALSRCDIR
 
 GOPATH="`pwd`/.vendor"
 SUITE="./${1:-"..."}"
-PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE -i
-PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE
+if [ $# -gt 0 ]; then
+  shift
+fi
+PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE -i "$@"
+PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE "$@"
