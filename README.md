@@ -22,7 +22,7 @@ configuration settings for Hawser.
 ### Configuration
 
 Hawser uses `.gitattributes` files to configure which are managed by Hawser.
-Here is a smaple one that saves zips and mp3s:
+Here is a sample one that saves zips and mp3s:
 
     $ cat .gitattributes
     *.mp3 filter=hawser -crlf
