@@ -1,2 +1,5 @@
+$ git hawser path
+Listing paths
+
 $ whoami
 gah lac tus

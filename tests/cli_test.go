@@ -37,7 +37,9 @@ func NewSuite(now time.Time, path string) *cliSuite {
 		return s
 	}
 
-	s.TempDir = filepath.Join(os.TempDir(), "hawser-tests", fmt.Sprintf("%d-%s", now.Unix(), s.Name))
+	testDir := filepath.Join(os.TempDir(), "hawser-tests")
+	os.RemoveAll(testDir)
+	s.TempDir = filepath.Join(testDir, fmt.Sprintf("%d-%s", now.Unix(), s.Name))
 
 	if s.Name == "empty" {
 		s.Logf("# Initializing empty repository")
@@ -90,15 +92,18 @@ func (s *cliSuite) Errorf(format string, args ...interface{}) {
 
 func (t *cliTest) Run(s *cliSuite) {
 	s.Logf("$ %s", t.Command)
+	cmd := t.Command
 	if strings.HasPrefix(t.Command, "git hawser ") {
-		return
+		cmd = Bin + " " + t.Command[11:]
 	}
 
-	parts := strings.Split(t.Command, " ")
+	parts := strings.Split(cmd, " ")
 	output := s.Exec(parts[0], parts[1:]...)
 
 	if output != t.Expected {
 		s.Errorf("expected this instead:\n%s", t.Expected)
+	} else {
+		s.Logf("")
 	}
 }
 
