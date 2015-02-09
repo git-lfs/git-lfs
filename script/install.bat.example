@@ -30,9 +30,8 @@ setlocal & cd /d %~dp0
 set GIT_MEDIA_BIN_PATH="%LOCALAPPDATA%\GitMedia\bin"
 mkdir %GIT_MEDIA_BIN_PATH%
 
-:: Delete any existing git-media or git-hawser programs
+:: Delete any existing git-media programs
 del /q %GIT_MEDIA_BIN_PATH%\git-media*
-del /q %GIT_MEDIA_BIN_PATH%\git-hawser*
 
 copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
 
