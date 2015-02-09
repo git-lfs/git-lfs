@@ -37,9 +37,9 @@ mkdir %GIT_MEDIA_BIN_PATH%
 :DIRECTORY_EXISTS
 
 :: Delete any existing git-media programs
-del /q %GIT_MEDIA_BIN_PATH%\git-media*
+2>NUL del /q %GIT_MEDIA_BIN_PATH%\git-media*
 
-copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
+1>NUL copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
 
 set PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%"
 setx PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%" /M
