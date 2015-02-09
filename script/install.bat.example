@@ -32,7 +32,9 @@ exit /B
 setlocal & cd /d %~dp0
 
 set GIT_MEDIA_BIN_PATH="%LOCALAPPDATA%\GitMedia\bin"
+IF EXIST %GIT_MEDIA_BIN_PATH% GOTO DIRECTORY_EXISTS
 mkdir %GIT_MEDIA_BIN_PATH%
+:DIRECTORY_EXISTS
 
 :: Delete any existing git-media programs
 del /q %GIT_MEDIA_BIN_PATH%\git-media*
