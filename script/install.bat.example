@@ -41,7 +41,7 @@ mkdir %GIT_MEDIA_BIN_PATH%
 
 1>NUL copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
 
-set PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%"
+set PATH="%PATH%%GIT_MEDIA_BIN_PATH:"=%"
 setx PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%" /M
 
 git media init
