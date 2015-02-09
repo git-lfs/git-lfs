@@ -4,6 +4,10 @@
 @echo off
 CLS
 
+:: Check if git.exe is in the user's path before continuing
+where /q git.exe
+if %errorlevel% neq 0 (ECHO Unable to find git.exe, exiting... & EXIT /b %errorlevel%)
+
 :checkPrivileges
 NET FILE 1>NUL 2>NUL
 if '%errorlevel%' == '0' ( goto gotPrivileges ) else ( goto getPrivileges )
