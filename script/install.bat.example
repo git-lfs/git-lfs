@@ -1,11 +1,44 @@
-set HAWSER_BIN_PATH="%LOCALAPPDATA%\Hawser\bin"
-mkdir %HAWSER_BIN_PATH%
+:::::::::::::::::::::::::::::::::::::::::
+:: Automatically check & get admin rights
+:::::::::::::::::::::::::::::::::::::::::
+@echo off
+CLS
 
-del %HAWSER_BIN_PATH%\git-hawser*
+:checkPrivileges
+NET FILE 1>NUL 2>NUL
+if '%errorlevel%' == '0' ( goto gotPrivileges ) else ( goto getPrivileges )
 
-xcopy /s git-hawser.exe %HAWSER_BIN_PATH%\git-hawser.exe
+:getPrivileges
+if '%1'=='ELEV' (shift & goto gotPrivileges)
+echo.
+echo **************************************
+echo Installing Git Media as Administrator
+echo **************************************
 
-set PATH "%PATH%%HAWSER_BIN_PATH:"=%"
-setx PATH "%PATH%%HAWSER_BIN_PATH:"=%" /M
+setlocal DisableDelayedExpansion
+set "batchPath=%~0"
+setlocal EnableDelayedExpansion
+echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\OEgetPrivileges.vbs"
+echo UAC.ShellExecute "!batchPath!", "ELEV", "", "runas", 1 >> "%temp%\OEgetPrivileges.vbs"
+"%temp%\OEgetPrivileges.vbs"
+exit /B
 
-git hawser init
+:gotPrivileges
+
+setlocal & cd /d %~dp0
+
+set GIT_MEDIA_BIN_PATH="%LOCALAPPDATA%\GitMedia\bin"
+mkdir %GIT_MEDIA_BIN_PATH%
+
+:: Delete any existing git-media or git-hawser programs
+del /q %GIT_MEDIA_BIN_PATH%\git-media*
+del /q %GIT_MEDIA_BIN_PATH%\git-hawser*
+
+copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
+
+set PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%"
+setx PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%" /M
+
+git media init
+
+cmd /k
