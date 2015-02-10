@@ -34,15 +34,14 @@ setlocal & cd /d %~dp0
 set GIT_MEDIA_BIN_PATH="%LOCALAPPDATA%\GitMedia\bin"
 IF EXIST %GIT_MEDIA_BIN_PATH% GOTO DIRECTORY_EXISTS
 mkdir %GIT_MEDIA_BIN_PATH%
+set PATH="%PATH%;%GIT_MEDIA_BIN_PATH:"=%"
+setx PATH "%PATH%;%GIT_MEDIA_BIN_PATH:"=%" /M
 :DIRECTORY_EXISTS
 
 :: Delete any existing git-media programs
 2>NUL del /q %GIT_MEDIA_BIN_PATH%\git-media*
 
 1>NUL copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
-
-set PATH="%PATH%%GIT_MEDIA_BIN_PATH:"=%"
-setx PATH "%PATH%%GIT_MEDIA_BIN_PATH:"=%" /M
 
 git media init
 
