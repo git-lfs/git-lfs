@@ -11,11 +11,49 @@ import (
 	"testing"
 )
 
+func TestPut(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	tmp := tempdir(t)
+	defer server.Close()
+	defer os.RemoveAll(tmp)
+
+	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			by, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				t.Errorf("Error reading request body: %s", err)
+			}
+
+			r.Body.Close()
+			if body := string(by); body != "test" {
+				t.Errorf("Unexpected body: %s", body)
+			}
+
+			w.WriteHeader(200)
+			return
+		}
+
+		w.WriteHeader(405)
+	})
+
+	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	oidPath := filepath.Join(tmp, "oid")
+	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
+		t.Fatalf("Unable to write oid file: %s", err)
+	}
+
+	if err := Put(oidPath, "", nil); err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+}
+
 func TestOptions(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
+	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(TmpPath)
+	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
@@ -26,7 +64,7 @@ func TestOptions(t *testing.T) {
 	})
 
 	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
-	oidPath := filepath.Join(TmpPath, "oid")
+	oidPath := filepath.Join(tmp, "oid")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatalf("Unable to write oid file: %s", err)
 	}
@@ -68,20 +106,18 @@ func TestObjectUrl(t *testing.T) {
 	}
 }
 
-var TmpPath string
-
 func init() {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	TmpPath = filepath.Join(wd, "..", "tmp", "hawserclient")
-	os.MkdirAll(TmpPath, 0755)
-
 	execCreds = func(input Creds, subCommand string) (credentialFetcher, error) {
 		return &testCredentialFetcher{input}, nil
 	}
+}
+
+func tempdir(t *testing.T) string {
+	dir, err := ioutil.TempDir("", "hawser-test-hawserclient")
+	if err != nil {
+		t.Fatalf("Error getting temp dir: %s", err)
+	}
+	return dir
 }
 
 type testCredentialFetcher struct {
