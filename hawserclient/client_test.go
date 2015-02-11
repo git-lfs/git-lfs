@@ -3,10 +3,54 @@ package hawserclient
 import (
 	"github.com/bmizerany/assert"
 	"github.com/hawser/git-hawser/hawser"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestOptions(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	defer os.RemoveAll(TmpPath)
+
+	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(200)
+		} else {
+			w.WriteHeader(405)
+		}
+	})
+
+	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	oidPath := filepath.Join(TmpPath, "oid")
+	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
+		t.Fatalf("Unable to write oid file: %s", err)
+	}
+
+	status, err := Options(oidPath)
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+
+	if status != 200 {
+		t.Errorf("unexpected status: %d", status)
+	}
+}
+
+func TestOptionsWithoutExistingObject(t *testing.T) {
+	status, err := Options("/this/better/not/work")
+	if err == nil {
+		t.Errorf("expected an error to be returned")
+	}
+
+	if status != 0 {
+		t.Errorf("unexpected status: %d", status)
+	}
+}
 
 func TestObjectUrl(t *testing.T) {
 	oid := "oid"
