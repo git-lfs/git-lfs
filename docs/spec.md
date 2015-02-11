@@ -16,16 +16,40 @@ size 12345
 (ending \n)
 ```
 
-The pointer file should be small (less than 200 bytes), and consist of only
+There are a couple optional keywords for encryption and compression.  Here is
+a sample pointer file:
+
+```
+version http://git-media.io/v/2
+oid sha256:1d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+compression type=gzip oid=sha256:2d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393 size=1234
+encryption type=aes256 oid=sha256:3d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393 size=123
+(ending \n)
+```
+
+In this example, `1d7a214` is the OID of the file before compression and 
+encryption.  The object is then compressed with gzip, resulting in an OID
+of `2d7a214`, and a size of 1234.  Then, it is encrypted with the aes256 
+algorithm using the full `1d7a214` OID as the key, resulting in an OID of 
+`3d7a214`, and a size of 123.  This final OID is used for the Git Media API 
+requests.  Git Media will then runthese steps in reverse after downloading 
+the object from the Git Media API.   Files can be compressed, encrypted, or
+both (but always in that order).
+
+The pointer file should be small (less than 400 bytes), and consist of only
 ASCII characters.  Libraries that generate this should write the file
 identically, so that different implementations write consistent pointers that
 translate to the same Git blob OID.  This means:
 
-* Use properties "version", "oid", and "size" in that order.
+* Use properties "version", "oid", and "size" in that order.  Add "compression"
+or "encryption" if necessary, in that order.
 * Separate the property from its value with a single space.
 * Oid has a "sha256:" prefix.  No other hashing methods are currently supported
 for Hawser oids.
 * Size is in bytes.
+* Only gzip compression is supported.
+* Only the aes256 algorithm for encryption is supported.
 
 Note: Earlier versions only contained the OID, with a `# comment` above it.
 Here's some ruby code to parse older pointer files.
