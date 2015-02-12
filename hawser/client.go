@@ -1,4 +1,4 @@
-package hawserclient
+package hawser
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/hawser/git-hawser/hawser"
 	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
@@ -36,13 +35,13 @@ type link struct {
 type UploadRequest struct {
 	OidPath      string
 	Filename     string
-	CopyCallback hawser.CopyCallback
+	CopyCallback CopyCallback
 }
 
-func Upload(upload *UploadRequest) *hawser.WrappedError {
+func Upload(upload *UploadRequest) *WrappedError {
 	linkMeta, status, err := Post(upload.OidPath, upload.Filename)
 	if err != nil && status != 302 {
-		return hawser.Errorf(err, "Error starting file upload.")
+		return Errorf(err, "Error starting file upload.")
 	}
 
 	oid := filepath.Base(upload.OidPath)
@@ -53,22 +52,22 @@ func Upload(upload *UploadRequest) *hawser.WrappedError {
 		// Do the old style OPTIONS + PUT
 		status, err := Options(upload.OidPath)
 		if err != nil {
-			return hawser.Errorf(err, "Error getting options for file %s (%s)", upload.Filename, oid)
+			return Errorf(err, "Error getting options for file %s (%s)", upload.Filename, oid)
 		}
 
 		if status != 200 {
 			err = Put(upload.OidPath, upload.Filename, upload.CopyCallback)
 			if err != nil {
-				return hawser.Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
+				return Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
 			}
 		}
 	case 201:
 		err = ExternalPut(upload.OidPath, upload.Filename, linkMeta, upload.CopyCallback)
 		if err != nil {
-			return hawser.Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
+			return Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
 		}
 	default:
-		return hawser.Errorf(err, "Unexpected HTTP response: %d", status)
+		return Errorf(err, "Unexpected HTTP response: %d", status)
 	}
 
 	return nil
@@ -96,7 +95,7 @@ func Options(filehash string) (int, error) {
 	return res.StatusCode, nil
 }
 
-func Put(filehash, filename string, cb hawser.CopyCallback) error {
+func Put(filehash, filename string, cb CopyCallback) error {
 	if filename == "" {
 		filename = filehash
 	}
@@ -119,7 +118,7 @@ func Put(filehash, filename string, cb hawser.CopyCallback) error {
 	}
 
 	fileSize := stat.Size()
-	reader := &hawser.CallbackReader{
+	reader := &CallbackReader{
 		C:         cb,
 		TotalSize: fileSize,
 		Reader:    file,
@@ -146,10 +145,10 @@ func Put(filehash, filename string, cb hawser.CopyCallback) error {
 	return nil
 }
 
-func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback) error {
+func ExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) error {
 	link, ok := lm.Links["upload"]
 	if !ok {
-		return hawser.Error(errors.New("No upload link provided"))
+		return Error(errors.New("No upload link provided"))
 	}
 
 	file, err := os.Open(filehash)
@@ -163,7 +162,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback
 		return err
 	}
 	fileSize := stat.Size()
-	reader := &hawser.CallbackReader{
+	reader := &CallbackReader{
 		C:         cb,
 		TotalSize: fileSize,
 		Reader:    file,
@@ -171,7 +170,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback
 
 	req, err := http.NewRequest("PUT", link.Href, nil)
 	if err != nil {
-		return hawser.Error(err)
+		return Error(err)
 	}
 	for h, v := range link.Header {
 		req.Header.Set(h, v)
@@ -187,7 +186,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback
 	tracerx.Printf("external_put: %s %s", filepath.Base(filehash), req.URL)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return hawser.Error(err)
+		return Error(err)
 	}
 	tracerx.Printf("external_put_status: %d", res.StatusCode)
 
@@ -196,12 +195,12 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback
 		oid := filepath.Base(filehash)
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return hawser.Error(err)
+			return Error(err)
 		}
 
 		cbreq, err := http.NewRequest("POST", cb.Href, nil)
 		if err != nil {
-			return hawser.Error(err)
+			return Error(err)
 		}
 		for h, v := range cb.Header {
 			cbreq.Header.Set(h, v)
@@ -213,7 +212,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb hawser.CopyCallback
 		tracerx.Printf("callback: %s %s", oid, cb.Href)
 		cbres, err := http.DefaultClient.Do(cbreq)
 		if err != nil {
-			return hawser.Error(err)
+			return Error(err)
 		}
 		tracerx.Printf("callback_status: %d", cbres.StatusCode)
 	}
@@ -225,18 +224,18 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 	oid := filepath.Base(filehash)
 	req, creds, err := clientRequest("POST", "")
 	if err != nil {
-		return nil, 0, hawser.Error(err)
+		return nil, 0, Error(err)
 	}
 
 	file, err := os.Open(filehash)
 	if err != nil {
-		return nil, 0, hawser.Error(err)
+		return nil, 0, Error(err)
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return nil, 0, hawser.Error(err)
+		return nil, 0, Error(err)
 	}
 	fileSize := stat.Size()
 
@@ -257,7 +256,7 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 		dec := json.NewDecoder(res.Body)
 		err := dec.Decode(&lm)
 		if err != nil {
-			return nil, res.StatusCode, hawser.Errorf(err, "Error decoding JSON from %s %s.", req.Method, req.URL)
+			return nil, res.StatusCode, Errorf(err, "Error decoding JSON from %s %s.", req.Method, req.URL)
 		}
 
 		return &lm, res.StatusCode, nil
@@ -266,11 +265,11 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 	return nil, res.StatusCode, nil
 }
 
-func Get(filename string) (io.ReadCloser, int64, *hawser.WrappedError) {
+func Get(filename string) (io.ReadCloser, int64, *WrappedError) {
 	oid := filepath.Base(filename)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
-		return nil, 0, hawser.Error(err)
+		return nil, 0, Error(err)
 	}
 
 	req.Header.Set("Accept", gitMediaType)
@@ -282,7 +281,7 @@ func Get(filename string) (io.ReadCloser, int64, *hawser.WrappedError) {
 
 	contentType := res.Header.Get("Content-Type")
 	if contentType == "" {
-		wErr = hawser.Error(errors.New("Empty Content-Type"))
+		wErr = Error(errors.New("Empty Content-Type"))
 		setErrorResponseContext(wErr, res)
 		return nil, 0, wErr
 	}
@@ -295,17 +294,17 @@ func Get(filename string) (io.ReadCloser, int64, *hawser.WrappedError) {
 	return res.Body, res.ContentLength, nil
 }
 
-func validateMediaHeader(contentType string, reader io.Reader) (bool, *hawser.WrappedError) {
+func validateMediaHeader(contentType string, reader io.Reader) (bool, *WrappedError) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return false, hawser.Errorf(err, "Invalid Media Type: %s", contentType)
+		return false, Errorf(err, "Invalid Media Type: %s", contentType)
 	}
 
 	if mediaType == gitMediaType {
 
 		givenHeader, ok := params["header"]
 		if !ok {
-			return false, hawser.Error(fmt.Errorf("Missing Git Media header in %s", contentType))
+			return false, Error(fmt.Errorf("Missing Git Media header in %s", contentType))
 		}
 
 		fullGivenHeader := "--" + givenHeader + "\n"
@@ -313,22 +312,22 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, *hawser.Wr
 		header := make([]byte, len(fullGivenHeader))
 		_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
 		if err != nil {
-			return false, hawser.Errorf(err, "Error reading response body.")
+			return false, Errorf(err, "Error reading response body.")
 		}
 
 		if string(header) != fullGivenHeader {
-			return false, hawser.Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
+			return false, Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
 		}
 	}
 	return true, nil
 }
 
-func doRequest(req *http.Request, creds Creds) (*http.Response, *hawser.WrappedError) {
-	res, err := hawser.HttpClient().Do(req)
+func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+	res, err := HttpClient().Do(req)
 
-	var wErr *hawser.WrappedError
+	var wErr *WrappedError
 
-	if err == hawser.RedirectError {
+	if err == RedirectError {
 		err = nil
 	}
 
@@ -338,19 +337,19 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *hawser.WrappedE
 			if res.StatusCode < 405 {
 				execCreds(creds, "reject")
 
-				apierr := &Error{}
+				apierr := &ClientError{}
 				dec := json.NewDecoder(res.Body)
 				if err := dec.Decode(apierr); err != nil {
-					wErr = hawser.Errorf(err, "Error decoding JSON from response")
+					wErr = Errorf(err, "Error decoding JSON from response")
 				} else {
-					wErr = hawser.Errorf(apierr, "Invalid response: %d", res.StatusCode)
+					wErr = Errorf(apierr, "Invalid response: %d", res.StatusCode)
 				}
 			}
 		} else {
 			execCreds(creds, "approve")
 		}
 	} else if res.StatusCode != 302 { // hack for pre-release
-		wErr = hawser.Errorf(err, "Error sending HTTP request to %s", req.URL.String())
+		wErr = Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
 
 	if wErr != nil {
@@ -368,19 +367,19 @@ var hiddenHeaders = map[string]bool{
 	"Authorization": true,
 }
 
-func setErrorRequestContext(err *hawser.WrappedError, req *http.Request) {
-	err.Set("Endpoint", hawser.Config.Endpoint())
+func setErrorRequestContext(err *WrappedError, req *http.Request) {
+	err.Set("Endpoint", Config.Endpoint())
 	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
-func setErrorResponseContext(err *hawser.WrappedError, res *http.Response) {
+func setErrorResponseContext(err *WrappedError, res *http.Response) {
 	err.Set("Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
 }
 
-func setErrorHeaderContext(err *hawser.WrappedError, prefix string, head http.Header) {
+func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
@@ -394,7 +393,7 @@ func setErrorHeaderContext(err *hawser.WrappedError, prefix string, head http.He
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	u := ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
-	req.Header.Set("User-Agent", hawser.UserAgent)
+	req.Header.Set("User-Agent", UserAgent)
 	if err == nil {
 		creds, err := credentials(u)
 		if err != nil {
@@ -411,17 +410,17 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 }
 
 func ObjectUrl(oid string) *url.URL {
-	c := hawser.Config
+	c := Config
 	u, _ := url.Parse(c.Endpoint())
 	u.Path = path.Join(u.Path, "objects", oid)
 	return u
 }
 
-type Error struct {
+type ClientError struct {
 	Message   string `json:"message"`
 	RequestId string `json:"request_id,omitempty"`
 }
 
-func (e *Error) Error() string {
+func (e *ClientError) Error() string {
 	return e.Message
 }

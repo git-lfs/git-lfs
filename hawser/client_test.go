@@ -1,9 +1,8 @@
-package hawserclient
+package hawser
 
 import (
 	"encoding/json"
 	"github.com/bmizerany/assert"
-	"github.com/hawser/git-hawser/hawser"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -32,7 +31,7 @@ func TestGet(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
-	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	Config.SetConfig("hawser.url", server.URL+"/media")
 	reader, size, wErr := Get("whatever/oid")
 	if wErr != nil {
 		t.Fatalf("unexpected error: %s", wErr)
@@ -67,7 +66,7 @@ func TestExternalPut(t *testing.T) {
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
-	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	Config.SetConfig("hawser.url", server.URL+"/media")
 	oidPath := filepath.Join(tmp, "oid")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatalf("Unable to write oid file: %s", err)
@@ -214,7 +213,7 @@ func TestPost(t *testing.T) {
 			}`))
 	})
 
-	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	Config.SetConfig("hawser.url", server.URL+"/media")
 	oidPath := filepath.Join(tmp, "oid")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatalf("Unable to write oid file: %s", err)
@@ -285,7 +284,7 @@ func TestPut(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
-	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	Config.SetConfig("hawser.url", server.URL+"/media")
 	oidPath := filepath.Join(tmp, "oid")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatalf("Unable to write oid file: %s", err)
@@ -312,7 +311,7 @@ func TestOptions(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
-	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	Config.SetConfig("hawser.url", server.URL+"/media")
 	oidPath := filepath.Join(tmp, "oid")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatalf("Unable to write oid file: %s", err)
@@ -348,7 +347,7 @@ func TestObjectUrl(t *testing.T) {
 		"http://example.com/foo/": "http://example.com/foo/objects/oid",
 	}
 
-	config := hawser.Config
+	config := Config
 	for endpoint, expected := range tests {
 		config.SetConfig("hawser.url", endpoint)
 		assert.Equal(t, expected, ObjectUrl(oid).String())
@@ -362,7 +361,7 @@ func init() {
 }
 
 func tempdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "hawser-test-hawserclient")
+	dir, err := ioutil.TempDir("", "hawser-test-hawser")
 	if err != nil {
 		t.Fatalf("Error getting temp dir: %s", err)
 	}

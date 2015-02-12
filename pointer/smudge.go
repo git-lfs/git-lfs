@@ -2,7 +2,6 @@ package pointer
 
 import (
 	"github.com/hawser/git-hawser/hawser"
-	"github.com/hawser/git-hawser/hawserclient"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
@@ -29,7 +28,7 @@ func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.CopyCallback) *hawser.WrappedError {
-	reader, size, wErr := hawserclient.Get(mediafile)
+	reader, size, wErr := hawser.Get(mediafile)
 	if reader != nil {
 		defer reader.Close()
 	}

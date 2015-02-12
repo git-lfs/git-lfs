@@ -3,7 +3,6 @@ package commands
 import (
 	"github.com/hawser/git-hawser/git"
 	"github.com/hawser/git-hawser/hawser"
-	"github.com/hawser/git-hawser/hawserclient"
 	"github.com/hawser/git-hawser/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -141,7 +140,7 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 		defer file.Close()
 	}
 
-	return hawserclient.Upload(&hawserclient.UploadRequest{
+	return hawser.Upload(&hawser.UploadRequest{
 		OidPath:      path,
 		Filename:     filename,
 		CopyCallback: cb,
