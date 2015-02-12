@@ -33,6 +33,47 @@ type link struct {
 	Header map[string]string `json:"header,omitempty"`
 }
 
+type UploadRequest struct {
+	OidPath      string
+	Filename     string
+	CopyCallback hawser.CopyCallback
+}
+
+func Upload(upload *UploadRequest) *hawser.WrappedError {
+	linkMeta, status, err := Post(upload.OidPath, upload.Filename)
+	if err != nil && status != 302 {
+		return hawser.Errorf(err, "Error starting file upload.")
+	}
+
+	oid := filepath.Base(upload.OidPath)
+
+	switch status {
+	case 200:
+	case 405, 302:
+		// Do the old style OPTIONS + PUT
+		status, err := Options(upload.OidPath)
+		if err != nil {
+			return hawser.Errorf(err, "Error getting options for file %s (%s)", upload.Filename, oid)
+		}
+
+		if status != 200 {
+			err = Put(upload.OidPath, upload.Filename, upload.CopyCallback)
+			if err != nil {
+				return hawser.Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
+			}
+		}
+	case 201:
+		err = ExternalPut(upload.OidPath, upload.Filename, linkMeta, upload.CopyCallback)
+		if err != nil {
+			return hawser.Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
+		}
+	default:
+		return hawser.Errorf(err, "Unexpected HTTP response: %d", status)
+	}
+
+	return nil
+}
+
 func Options(filehash string) (int, error) {
 	oid := filepath.Base(filehash)
 	_, err := os.Stat(filehash)
