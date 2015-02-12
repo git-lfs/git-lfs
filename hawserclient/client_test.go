@@ -20,16 +20,16 @@ func TestGet(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			head := w.Header()
-			head.Set("Content-Type", "application/octet-stream")
-			head.Set("Content-Length", "4")
-			w.WriteHeader(200)
-			w.Write([]byte("test"))
+		if r.Method != "GET" {
+			w.WriteHeader(405)
 			return
 		}
 
-		w.WriteHeader(405)
+		head := w.Header()
+		head.Set("Content-Type", "application/octet-stream")
+		head.Set("Content-Length", "4")
+		w.WriteHeader(200)
+		w.Write([]byte("test"))
 	})
 
 	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
@@ -180,24 +180,28 @@ func TestPost(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			postReq := &postRequest{}
-			if err := json.NewDecoder(r.Body).Decode(postReq); err != nil {
-				t.Errorf("Error parsing json: %s", err)
-			}
-			r.Body.Close()
+		if r.Method != "POST" {
+			w.WriteHeader(405)
+			return
+		}
 
-			if postReq.Size != 4 {
-				t.Errorf("Unexpected size: %d", postReq.Size)
-			}
+		postReq := &postRequest{}
+		if err := json.NewDecoder(r.Body).Decode(postReq); err != nil {
+			t.Errorf("Error parsing json: %s", err)
+		}
+		r.Body.Close()
 
-			if postReq.Oid != "oid" {
-				t.Errorf("unexpected oid: %s", postReq.Oid)
-			}
+		if postReq.Size != 4 {
+			t.Errorf("Unexpected size: %d", postReq.Size)
+		}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(201)
-			w.Write([]byte(`{
+		if postReq.Oid != "oid" {
+			t.Errorf("unexpected oid: %s", postReq.Oid)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(201)
+		w.Write([]byte(`{
 				"_links": {
 					"abc": {
 						"href": "def",
@@ -208,10 +212,6 @@ func TestPost(t *testing.T) {
 					}
 				}
 			}`))
-			return
-		}
-
-		w.WriteHeader(405)
 	})
 
 	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
@@ -267,22 +267,22 @@ func TestPut(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" {
-			by, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				t.Errorf("Error reading request body: %s", err)
-			}
-
-			r.Body.Close()
-			if body := string(by); body != "test" {
-				t.Errorf("Unexpected body: %s", body)
-			}
-
-			w.WriteHeader(200)
+		if r.Method != "PUT" {
+			w.WriteHeader(405)
 			return
 		}
 
-		w.WriteHeader(405)
+		by, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("Error reading request body: %s", err)
+		}
+
+		r.Body.Close()
+		if body := string(by); body != "test" {
+			t.Errorf("Unexpected body: %s", body)
+		}
+
+		w.WriteHeader(200)
 	})
 
 	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
@@ -304,11 +304,12 @@ func TestOptions(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(200)
-		} else {
+		if r.Method != "OPTIONS" {
 			w.WriteHeader(405)
+			return
 		}
+
+		w.WriteHeader(200)
 	})
 
 	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
