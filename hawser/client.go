@@ -12,9 +12,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -395,7 +393,7 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 }
 
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
-	u := ObjectUrl(oid)
+	u := Config.ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
 	req.Header.Set("User-Agent", UserAgent)
 	if err == nil {
@@ -411,13 +409,6 @@ func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	}
 
 	return req, nil, err
-}
-
-func ObjectUrl(oid string) *url.URL {
-	c := Config
-	u, _ := url.Parse(c.Endpoint())
-	u.Path = path.Join(u.Path, "objects", oid)
-	return u
 }
 
 type ClientError struct {

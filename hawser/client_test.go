@@ -347,10 +347,9 @@ func TestObjectUrl(t *testing.T) {
 		"http://example.com/foo/": "http://example.com/foo/objects/oid",
 	}
 
-	config := Config
 	for endpoint, expected := range tests {
-		config.SetConfig("hawser.url", endpoint)
-		assert.Equal(t, expected, ObjectUrl(oid).String())
+		Config.SetConfig("hawser.url", endpoint)
+		assert.Equal(t, expected, Config.ObjectUrl(oid).String())
 	}
 }
 
