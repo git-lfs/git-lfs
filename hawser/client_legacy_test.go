@@ -111,7 +111,7 @@ func TestExternalPut(t *testing.T) {
 		},
 	}
 
-	if err := ExternalPut(oidPath, "", link, nil); err != nil {
+	if err := callExternalPut(oidPath, "", link, nil); err != nil {
 		t.Error(err)
 	}
 
@@ -177,7 +177,7 @@ func TestPost(t *testing.T) {
 		t.Fatalf("Unable to write oid file: %s", err)
 	}
 
-	link, status, err := Post(oidPath, "")
+	link, status, err := callPost(oidPath, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -248,7 +248,7 @@ func TestPut(t *testing.T) {
 		t.Fatalf("Unable to write oid file: %s", err)
 	}
 
-	if err := Put(oidPath, "", nil); err != nil {
+	if err := callPut(oidPath, "", nil); err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
 }
@@ -275,7 +275,7 @@ func TestOptions(t *testing.T) {
 		t.Fatalf("Unable to write oid file: %s", err)
 	}
 
-	status, err := Options(oidPath)
+	status, err := callOptions(oidPath)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -286,7 +286,7 @@ func TestOptions(t *testing.T) {
 }
 
 func TestOptionsWithoutExistingObject(t *testing.T) {
-	status, err := Options("/this/better/not/work")
+	status, err := callOptions("/this/better/not/work")
 	if err == nil {
 		t.Errorf("expected an error to be returned")
 	}

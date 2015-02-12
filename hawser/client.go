@@ -70,7 +70,7 @@ func Download(download *DownloadRequest) (io.ReadCloser, int64, *WrappedError) {
 }
 
 func Upload(upload *UploadRequest) *WrappedError {
-	linkMeta, status, err := Post(upload.OidPath, upload.Filename)
+	linkMeta, status, err := callPost(upload.OidPath, upload.Filename)
 	if err != nil && status != 302 {
 		return Errorf(err, "Error starting file upload.")
 	}
@@ -81,19 +81,19 @@ func Upload(upload *UploadRequest) *WrappedError {
 	case 200:
 	case 405, 302:
 		// Do the old style OPTIONS + PUT
-		status, err := Options(upload.OidPath)
+		status, err := callOptions(upload.OidPath)
 		if err != nil {
 			return Errorf(err, "Error getting options for file %s (%s)", upload.Filename, oid)
 		}
 
 		if status != 200 {
-			err = Put(upload.OidPath, upload.Filename, upload.CopyCallback)
+			err = callPut(upload.OidPath, upload.Filename, upload.CopyCallback)
 			if err != nil {
 				return Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
 			}
 		}
 	case 201:
-		err = ExternalPut(upload.OidPath, upload.Filename, linkMeta, upload.CopyCallback)
+		err = callExternalPut(upload.OidPath, upload.Filename, linkMeta, upload.CopyCallback)
 		if err != nil {
 			return Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
 		}
@@ -104,7 +104,7 @@ func Upload(upload *UploadRequest) *WrappedError {
 	return nil
 }
 
-func Options(filehash string) (int, error) {
+func callOptions(filehash string) (int, error) {
 	oid := filepath.Base(filehash)
 	_, err := os.Stat(filehash)
 	if err != nil {
@@ -126,7 +126,7 @@ func Options(filehash string) (int, error) {
 	return res.StatusCode, nil
 }
 
-func Put(filehash, filename string, cb CopyCallback) error {
+func callPut(filehash, filename string, cb CopyCallback) error {
 	if filename == "" {
 		filename = filehash
 	}
@@ -176,7 +176,7 @@ func Put(filehash, filename string, cb CopyCallback) error {
 	return nil
 }
 
-func ExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) error {
+func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) error {
 	link, ok := lm.Links["upload"]
 	if !ok {
 		return Error(errors.New("No upload link provided"))
@@ -251,7 +251,7 @@ func ExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) error
 	return nil
 }
 
-func Post(filehash, filename string) (*linkMeta, int, error) {
+func callPost(filehash, filename string) (*linkMeta, int, error) {
 	oid := filepath.Base(filehash)
 	req, creds, err := clientRequest("POST", "")
 	if err != nil {
