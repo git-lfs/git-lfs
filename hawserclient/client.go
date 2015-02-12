@@ -216,7 +216,7 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 		dec := json.NewDecoder(res.Body)
 		err := dec.Decode(&lm)
 		if err != nil {
-			return nil, res.StatusCode, hawser.Error(err)
+			return nil, res.StatusCode, hawser.Errorf(err, "Error decoding JSON from %s %s: %s", req.Method, req.URL, err)
 		}
 
 		return &lm, res.StatusCode, nil
