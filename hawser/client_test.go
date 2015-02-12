@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestGet(t *testing.T) {
+func TestDownload(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -32,7 +32,7 @@ func TestGet(t *testing.T) {
 	})
 
 	Config.SetConfig("hawser.url", server.URL+"/media")
-	reader, size, wErr := Get("whatever/oid")
+	reader, size, wErr := Download(&DownloadRequest{"whatever/oid"})
 	if wErr != nil {
 		t.Fatalf("unexpected error: %s", wErr)
 	}

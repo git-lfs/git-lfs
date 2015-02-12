@@ -28,7 +28,7 @@ func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.CopyCallback) *hawser.WrappedError {
-	reader, size, wErr := hawser.Get(mediafile)
+	reader, size, wErr := hawser.Download(&hawser.DownloadRequest{OidPath: mediafile})
 	if reader != nil {
 		defer reader.Close()
 	}

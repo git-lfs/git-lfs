@@ -38,6 +38,39 @@ type UploadRequest struct {
 	CopyCallback CopyCallback
 }
 
+type DownloadRequest struct {
+	OidPath string
+}
+
+func Download(download *DownloadRequest) (io.ReadCloser, int64, *WrappedError) {
+	oid := filepath.Base(download.OidPath)
+	req, creds, err := clientRequest("GET", oid)
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	req.Header.Set("Accept", gitMediaType)
+	res, wErr := doRequest(req, creds)
+
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	contentType := res.Header.Get("Content-Type")
+	if contentType == "" {
+		wErr = Error(errors.New("Empty Content-Type"))
+		setErrorResponseContext(wErr, res)
+		return nil, 0, wErr
+	}
+
+	if ok, wErr := validateMediaHeader(contentType, res.Body); !ok {
+		setErrorResponseContext(wErr, res)
+		return nil, 0, wErr
+	}
+
+	return res.Body, res.ContentLength, nil
+}
+
 func Upload(upload *UploadRequest) *WrappedError {
 	linkMeta, status, err := Post(upload.OidPath, upload.Filename)
 	if err != nil && status != 302 {
@@ -263,35 +296,6 @@ func Post(filehash, filename string) (*linkMeta, int, error) {
 	}
 
 	return nil, res.StatusCode, nil
-}
-
-func Get(filename string) (io.ReadCloser, int64, *WrappedError) {
-	oid := filepath.Base(filename)
-	req, creds, err := clientRequest("GET", oid)
-	if err != nil {
-		return nil, 0, Error(err)
-	}
-
-	req.Header.Set("Accept", gitMediaType)
-	res, wErr := doRequest(req, creds)
-
-	if wErr != nil {
-		return nil, 0, wErr
-	}
-
-	contentType := res.Header.Get("Content-Type")
-	if contentType == "" {
-		wErr = Error(errors.New("Empty Content-Type"))
-		setErrorResponseContext(wErr, res)
-		return nil, 0, wErr
-	}
-
-	if ok, wErr := validateMediaHeader(contentType, res.Body); !ok {
-		setErrorResponseContext(wErr, res)
-		return nil, 0, wErr
-	}
-
-	return res.Body, res.ContentLength, nil
 }
 
 func validateMediaHeader(contentType string, reader io.Reader) (bool, *WrappedError) {
