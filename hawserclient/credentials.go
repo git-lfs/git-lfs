@@ -8,6 +8,14 @@ import (
 	"strings"
 )
 
+type credentialFetcher interface {
+	Credentials() Creds
+}
+
+type credentialFunc func(Creds, string) (credentialFetcher, error)
+
+var execCreds credentialFunc
+
 func credentials(u *url.URL) (Creds, error) {
 	creds := Creds{"protocol": u.Scheme, "host": u.Host}
 	cmd, err := execCreds(creds, "fill")
@@ -15,20 +23,6 @@ func credentials(u *url.URL) (Creds, error) {
 		return nil, err
 	}
 	return cmd.Credentials(), nil
-}
-
-func execCreds(input Creds, subCommand string) (*CredentialCmd, error) {
-	cmd := NewCommand(input, subCommand)
-	err := cmd.Start()
-	if err == nil {
-		err = cmd.Wait()
-	}
-
-	if err != nil {
-		return cmd, fmt.Errorf("'git credential %s' error: %s\n", cmd.SubCommand, err.Error())
-	}
-
-	return cmd, nil
 }
 
 type CredentialCmd struct {
@@ -86,4 +80,20 @@ func (c Creds) Buffer() *bytes.Buffer {
 	}
 
 	return buf
+}
+
+func init() {
+	execCreds = func(input Creds, subCommand string) (credentialFetcher, error) {
+		cmd := NewCommand(input, subCommand)
+		err := cmd.Start()
+		if err == nil {
+			err = cmd.Wait()
+		}
+
+		if err != nil {
+			return cmd, fmt.Errorf("'git credential %s' error: %s\n", cmd.SubCommand, err.Error())
+		}
+
+		return cmd, nil
+	}
 }
