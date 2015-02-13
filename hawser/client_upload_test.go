@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestUploadWithCallback(t *testing.T) {
+func TestUploadWithVerify(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -49,8 +49,8 @@ func TestUploadWithCallback(t *testing.T) {
 					Href:   server.URL + "/media/objects/oid",
 					Header: map[string]string{"a": "1"},
 				},
-				"callback": {
-					Href:   server.URL + "/media/objects/callback",
+				"verify": {
+					Href:   server.URL + "/media/objects/verify",
 					Header: map[string]string{"b": "2"},
 				},
 			},
@@ -64,7 +64,7 @@ func TestUploadWithCallback(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(201)
+		w.WriteHeader(202)
 		w.Write(by)
 	})
 
@@ -98,7 +98,7 @@ func TestUploadWithCallback(t *testing.T) {
 		w.Write([]byte("yup"))
 	})
 
-	mux.HandleFunc("/media/objects/callback", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/verify", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(405)
 			return
@@ -110,7 +110,7 @@ func TestUploadWithCallback(t *testing.T) {
 
 		putReq := &putRequest{}
 		if err := json.NewDecoder(r.Body).Decode(putReq); err != nil {
-			t.Errorf("error decoding callback request json: %s", err)
+			t.Errorf("error decoding verify request json: %s", err)
 		}
 
 		if putReq.Oid != "oid" {
@@ -118,15 +118,7 @@ func TestUploadWithCallback(t *testing.T) {
 		}
 
 		if putReq.Size != 4 {
-			t.Errorf("bad size: %s", putReq.Oid)
-		}
-
-		if putReq.Status != 201 {
-			t.Errorf("bad status: %s", putReq.Oid)
-		}
-
-		if putReq.Body != "yup" {
-			t.Errorf("bad body: %s", putReq.Oid)
+			t.Errorf("bad size: %d", putReq.Size)
 		}
 
 		verified = true
@@ -153,6 +145,6 @@ func TestUploadWithCallback(t *testing.T) {
 	}
 
 	if !verified {
-		t.Error("callback never called")
+		t.Error("verify request never called")
 	}
 }
