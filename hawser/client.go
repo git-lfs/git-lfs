@@ -66,12 +66,13 @@ func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 		return nil, 0, wErr
 	}
 
-	if ok, wErr := validateMediaHeader(contentType, res.Body); !ok {
+	ok, headerSize, wErr := validateMediaHeader(contentType, res.Body)
+	if !ok {
 		setErrorResponseContext(wErr, res)
 		return nil, 0, wErr
 	}
 
-	return res.Body, res.ContentLength, nil
+	return res.Body, res.ContentLength - int64(headerSize), nil
 }
 
 func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
@@ -302,32 +303,35 @@ func callPost(filehash, filename string) (*linkMeta, int, error) {
 	return nil, res.StatusCode, nil
 }
 
-func validateMediaHeader(contentType string, reader io.Reader) (bool, *WrappedError) {
+func validateMediaHeader(contentType string, reader io.Reader) (bool, int, *WrappedError) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
+	var headerSize int
+
 	if err != nil {
-		return false, Errorf(err, "Invalid Media Type: %s", contentType)
+		return false, headerSize, Errorf(err, "Invalid Media Type: %s", contentType)
 	}
 
 	if mediaType == gitMediaType {
 
 		givenHeader, ok := params["header"]
 		if !ok {
-			return false, Error(fmt.Errorf("Missing Git Media header in %s", contentType))
+			return false, headerSize, Error(fmt.Errorf("Missing Git Media header in %s", contentType))
 		}
 
 		fullGivenHeader := "--" + givenHeader + "\n"
+		headerSize = len(fullGivenHeader)
 
-		header := make([]byte, len(fullGivenHeader))
+		header := make([]byte, headerSize)
 		_, err = io.ReadAtLeast(reader, header, len(fullGivenHeader))
 		if err != nil {
-			return false, Errorf(err, "Error reading response body.")
+			return false, headerSize, Errorf(err, "Error reading response body.")
 		}
 
 		if string(header) != fullGivenHeader {
-			return false, Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
+			return false, headerSize, Error(fmt.Errorf("Invalid header: %s expected, got %s", fullGivenHeader, header))
 		}
 	}
-	return true, nil
+	return true, headerSize, nil
 }
 
 func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
