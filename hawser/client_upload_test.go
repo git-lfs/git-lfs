@@ -139,7 +139,7 @@ func TestUploadWithCallback(t *testing.T) {
 		t.Fatalf("Unable to write oid file: %s", err)
 	}
 
-	err := Upload(&UploadRequest{OidPath: oidPath})
+	err := Upload(oidPath, "", nil)
 	if err != nil {
 		t.Error(err)
 	}
