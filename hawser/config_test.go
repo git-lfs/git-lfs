@@ -79,3 +79,18 @@ func TestBareHTTPEndpointAddsMediaSuffix(t *testing.T) {
 
 	assert.Equal(t, "http://example.com/foo/bar.git/info/media", config.Endpoint())
 }
+
+func TestObjectUrl(t *testing.T) {
+	oid := "oid"
+	tests := map[string]string{
+		"http://example.com":      "http://example.com/objects/oid",
+		"http://example.com/":     "http://example.com/objects/oid",
+		"http://example.com/foo":  "http://example.com/foo/objects/oid",
+		"http://example.com/foo/": "http://example.com/foo/objects/oid",
+	}
+
+	for endpoint, expected := range tests {
+		Config.SetConfig("hawser.url", endpoint)
+		assert.Equal(t, expected, Config.ObjectUrl(oid).String())
+	}
+}
