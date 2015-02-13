@@ -136,15 +136,12 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 	if cbErr != nil {
 		Error(cbErr.Error())
 	}
+
 	if file != nil {
 		defer file.Close()
 	}
 
-	return hawser.Upload(&hawser.UploadRequest{
-		OidPath:      path,
-		Filename:     filename,
-		CopyCallback: cb,
-	})
+	return hawser.Upload(path, filename, cb)
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push

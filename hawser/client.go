@@ -45,12 +45,8 @@ type UploadRequest struct {
 	CopyCallback CopyCallback
 }
 
-type DownloadRequest struct {
-	OidPath string
-}
-
-func Download(download *DownloadRequest) (io.ReadCloser, int64, *WrappedError) {
-	oid := filepath.Base(download.OidPath)
+func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
+	oid := filepath.Base(oidPath)
 	req, creds, err := clientRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
@@ -78,34 +74,34 @@ func Download(download *DownloadRequest) (io.ReadCloser, int64, *WrappedError) {
 	return res.Body, res.ContentLength, nil
 }
 
-func Upload(upload *UploadRequest) *WrappedError {
-	linkMeta, status, err := callPost(upload.OidPath, upload.Filename)
+func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
+	linkMeta, status, err := callPost(oidPath, filename)
 	if err != nil && status != 302 {
 		return Errorf(err, "Error starting file upload.")
 	}
 
-	oid := filepath.Base(upload.OidPath)
+	oid := filepath.Base(oidPath)
 
 	switch status {
 	case 200: // object exists on the server
 	case 405, 302:
 		// Do the old style OPTIONS + PUT
-		status, err := callOptions(upload.OidPath)
+		status, err := callOptions(oidPath)
 		if err != nil {
-			return Errorf(err, "Error getting options for file %s (%s)", upload.Filename, oid)
+			return Errorf(err, "Error getting options for file %s (%s)", filename, oid)
 		}
 
 		if status != 200 {
-			err = callPut(upload.OidPath, upload.Filename, upload.CopyCallback)
+			err = callPut(oidPath, filename, cb)
 			if err != nil {
-				return Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
+				return Errorf(err, "Error uploading file %s (%s)", filename, oid)
 			}
 		}
 	case 202:
 		// the server responded with hypermedia links to upload and verify the object.
-		err = callExternalPut(upload.OidPath, upload.Filename, linkMeta, upload.CopyCallback)
+		err = callExternalPut(oidPath, filename, linkMeta, cb)
 		if err != nil {
-			return Errorf(err, "Error uploading file %s (%s)", upload.Filename, oid)
+			return Errorf(err, "Error uploading file %s (%s)", filename, oid)
 		}
 	default:
 		return Errorf(err, "Unexpected HTTP response: %d", status)

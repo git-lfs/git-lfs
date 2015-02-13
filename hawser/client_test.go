@@ -32,7 +32,7 @@ func TestDownload(t *testing.T) {
 	})
 
 	Config.SetConfig("hawser.url", server.URL+"/media")
-	reader, size, wErr := Download(&DownloadRequest{"whatever/oid"})
+	reader, size, wErr := Download("whatever/oid")
 	if wErr != nil {
 		t.Fatalf("unexpected error: %s", wErr)
 	}
