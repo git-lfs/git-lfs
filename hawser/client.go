@@ -226,7 +226,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 	req.ContentLength = fileSize
 
 	tracerx.Printf("external_put: %s %s", filepath.Base(filehash), req.URL)
-	res, err := http.DefaultClient.Do(req)
+	res, err := DoHTTP(Config, req)
 	if err != nil {
 		return Error(err)
 	}
@@ -248,7 +248,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 		cbreq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
 
 		tracerx.Printf("verify: %s %s", oid, cb.Href)
-		cbres, err := http.DefaultClient.Do(cbreq)
+		cbres, err := DoHTTP(Config, cbreq)
 		if err != nil {
 			return Error(err)
 		}
@@ -335,7 +335,7 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, int, *Wrap
 }
 
 func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := HttpClient().Do(req)
+	res, err := DoHTTP(Config, req)
 
 	var wErr *WrappedError
 

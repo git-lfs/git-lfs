@@ -1,7 +1,6 @@
 package hawser
 
 import (
-	"crypto/tls"
 	"fmt"
 	"github.com/hawser/git-hawser/git"
 	"net/http"
@@ -13,9 +12,10 @@ import (
 )
 
 type Configuration struct {
-	gitConfig  map[string]string
-	remotes    []string
-	httpClient *http.Client
+	gitConfig             map[string]string
+	remotes               []string
+	httpClient            *http.Client
+	redirectingHttpClient *http.Client
 }
 
 var (
@@ -23,25 +23,6 @@ var (
 	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
 	RedirectError = fmt.Errorf("Unexpected redirection")
 )
-
-func HttpClient() *http.Client {
-	return Config.HttpClient()
-}
-
-func (c *Configuration) HttpClient() *http.Client {
-	if c.httpClient == nil {
-		tr := &http.Transport{}
-		sslVerify, _ := c.GitConfig("http.sslverify")
-		if len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 || sslVerify == "false" {
-			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		}
-		c.httpClient = &http.Client{Transport: tr}
-		c.httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return RedirectError
-		}
-	}
-	return c.httpClient
-}
 
 func (c *Configuration) Endpoint() string {
 	if url, ok := c.GitConfig("hawser.url"); ok {
