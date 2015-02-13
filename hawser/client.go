@@ -25,6 +25,15 @@ type linkMeta struct {
 	Links map[string]*link `json:"_links,omitempty"`
 }
 
+func (l *linkMeta) Rel(name string) (*link, bool) {
+	if l.Links == nil {
+		return nil, false
+	}
+
+	lnk, ok := l.Links[name]
+	return lnk, ok
+}
+
 type link struct {
 	Href   string            `json:"href"`
 	Header map[string]string `json:"header,omitempty"`
@@ -74,7 +83,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	oid := filepath.Base(oidPath)
 
 	switch status {
-	case 200:
+	case 200: // object exists on the server
 	case 405, 302:
 		// Do the old style OPTIONS + PUT
 		status, err := callOptions(oidPath)
@@ -88,7 +97,8 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 				return Errorf(err, "Error uploading file %s (%s)", filename, oid)
 			}
 		}
-	case 201:
+	case 202:
+		// the server responded with hypermedia links to upload and verify the object.
 		err = callExternalPut(oidPath, filename, linkMeta, cb)
 		if err != nil {
 			return Errorf(err, "Error uploading file %s (%s)", filename, oid)
@@ -173,7 +183,11 @@ func callPut(filehash, filename string, cb CopyCallback) error {
 }
 
 func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) error {
-	link, ok := lm.Links["upload"]
+	if lm == nil {
+		return Error(errors.New("No hypermedia links provided"))
+	}
+
+	link, ok := lm.Rel("upload")
 	if !ok {
 		return Error(errors.New("No upload link provided"))
 	}
@@ -217,13 +231,9 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 	}
 	tracerx.Printf("external_put_status: %d", res.StatusCode)
 
-	// Run the callback
-	if cb, ok := lm.Links["callback"]; ok {
+	// Run the verify callback
+	if cb, ok := lm.Rel("verify"); ok {
 		oid := filepath.Base(filehash)
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return Error(err)
-		}
 
 		cbreq, err := http.NewRequest("POST", cb.Href, nil)
 		if err != nil {
@@ -233,15 +243,15 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 			cbreq.Header.Set(h, v)
 		}
 
-		d := fmt.Sprintf(`{"oid":"%s", "size":%d, "status":%d, "body":"%s"}`, oid, fileSize, res.StatusCode, string(body))
+		d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
 		cbreq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
 
-		tracerx.Printf("callback: %s %s", oid, cb.Href)
+		tracerx.Printf("verify: %s %s", oid, cb.Href)
 		cbres, err := http.DefaultClient.Do(cbreq)
 		if err != nil {
 			return Error(err)
 		}
-		tracerx.Printf("callback_status: %d", cbres.StatusCode)
+		tracerx.Printf("verify_status: %d", cbres.StatusCode)
 	}
 
 	return nil
@@ -278,15 +288,15 @@ func callPost(filehash, filename string) (*linkMeta, int, error) {
 	}
 	tracerx.Printf("api_post_status: %d", res.StatusCode)
 
-	if res.StatusCode == 201 {
-		var lm linkMeta
+	if res.StatusCode == 202 {
+		lm := &linkMeta{}
 		dec := json.NewDecoder(res.Body)
-		err := dec.Decode(&lm)
+		err := dec.Decode(lm)
 		if err != nil {
 			return nil, res.StatusCode, Errorf(err, "Error decoding JSON from %s %s.", req.Method, req.URL)
 		}
 
-		return &lm, res.StatusCode, nil
+		return lm, res.StatusCode, nil
 	}
 
 	return nil, res.StatusCode, nil

@@ -150,7 +150,7 @@ and size of the object to upload.
 >   "size": 123
 > }
 >
-< HTTP/1.1 201 Created
+< HTTP/1.1 202 Accepted
 < Content-Type: application/vnd.hawser+json
 <
 < {
@@ -161,7 +161,7 @@ and size of the object to upload.
 <         "Key": "value"
 <       }
 <     },
-<     "callback": {
+<     "verify": {
 <       "href": "https://some-callback.com",
 <       "header": {
 <         "Key": "value"
@@ -175,15 +175,15 @@ A response can include one of multiple link relations, each with an `href`
 property and an optional `header` property.
 
 * `upload` - This relation describes how to upload the object.
-* `callback` - The server can specify a URL for the client to hit after
+* `verify` - The server can specify a URL for the client to hit after
 successfully uploading an object.
 * `download` - This relation describes how to download the object content.
 
 ### Responses
 
 * 200 - The object already exists.  Don't bother re-uploading.
-* 201 - The object is ready to be uploaded.  Follow the "upload" and optional
-"callback" links.
+* 202 - The object is ready to be uploaded.Follow the "upload" and optional
+"verify" links.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
 
@@ -212,16 +212,15 @@ This writes the object contents to the Git Media server.
 * 405 - PUT method is not allowed.  Use an OPTIONS or GET pre-flight request to
 get the current URL to send a file.
 
-## Callbacks
+## Verification
 
 When Hawser clients issue a POST request to initiate an object upload, the
-response can potentially return a "callback" link relation.  If given, The Hawser
-server expects a POST to the callback href after a successful upload.  Hawser
+response can potentially return a "verify" link relation.  If given, The Hawser
+server expects a POST to the href after a successful upload.  Hawser
 clients send:
 
 * `oid` - The String OID of the Git Media object.
-* `status` - The HTTP status of the redirected PUT request.
-* `body` - The response body from the redirected PUT request.
+* `size` - The integer size of the Git Media object.
 
 ```
 > POST https://hawser-server.com/callback
@@ -229,7 +228,9 @@ clients send:
 > Content-Type: application/vnd.hawser+json
 > Content-Length: 123
 >
-> {"oid": "{oid}", "status": 200, "body": "ok"}
+> {"oid": "{oid}", "size": 10000}
 >
 < HTTP/1.1 200 OK
 ```
+
+A 200 response means that the object exists on the server.
