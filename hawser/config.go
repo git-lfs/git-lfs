@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hawser/git-hawser/git"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -94,6 +95,12 @@ func (c *Configuration) SetConfig(key, value string) {
 		c.loadGitConfig()
 	}
 	c.gitConfig[key] = value
+}
+
+func (c *Configuration) ObjectUrl(oid string) *url.URL {
+	u, _ := url.Parse(c.Endpoint())
+	u.Path = path.Join(u.Path, "objects", oid)
+	return u
 }
 
 type AltConfig struct {

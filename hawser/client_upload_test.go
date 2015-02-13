@@ -1,8 +1,7 @@
-package hawserclient
+package hawser
 
 import (
 	"encoding/json"
-	"github.com/hawser/git-hawser/hawser"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -134,7 +133,7 @@ func TestUploadWithCallback(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
-	hawser.Config.SetConfig("hawser.url", server.URL+"/media")
+	Config.SetConfig("hawser.url", server.URL+"/media")
 	oidPath := filepath.Join(tmp, "oid")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatalf("Unable to write oid file: %s", err)

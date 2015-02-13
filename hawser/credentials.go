@@ -1,4 +1,4 @@
-package hawserclient
+package hawser
 
 import (
 	"bytes"
