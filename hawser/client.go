@@ -47,7 +47,7 @@ type UploadRequest struct {
 
 func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 	oid := filepath.Base(oidPath)
-	req, creds, err := clientRequest("GET", oid)
+	req, creds, err := request("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
 	}
@@ -119,7 +119,7 @@ func callOptions(filehash string) (int, *WrappedError) {
 	}
 
 	tracerx.Printf("api_options: %s", oid)
-	req, creds, err := clientRequest("OPTIONS", oid)
+	req, creds, err := request("OPTIONS", oid)
 	if err != nil {
 		return 0, Errorf(err, "Unable to build OPTIONS request for %s", oid)
 	}
@@ -150,7 +150,7 @@ func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 		return Errorf(err, "Internal object does not exist: %s", filehash)
 	}
 
-	req, creds, err := clientRequest("PUT", oid)
+	req, creds, err := request("PUT", oid)
 	if err != nil {
 		return Errorf(err, "Unable to build PUT request for %s", oid)
 	}
@@ -217,6 +217,11 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 		req.Header.Set(h, v)
 	}
 
+	creds, err := setRequestHeaders(req)
+	if err != nil {
+		return Errorf(err, "Error attempting to PUT %s", filename)
+	}
+
 	bar := pb.StartNew(int(fileSize))
 	bar.SetUnits(pb.U_BYTES)
 	bar.Start()
@@ -230,28 +235,36 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 	tracerx.Printf("external_put_status: %d", res.StatusCode)
+	saveCredentials(creds, res)
 
 	// Run the verify callback
 	if cb, ok := lm.Rel("verify"); ok {
 		oid := filepath.Base(filehash)
 
-		cbreq, err := http.NewRequest("POST", cb.Href, nil)
-		if err != nil {
-			return Error(err)
-		}
-		for h, v := range cb.Header {
-			cbreq.Header.Set(h, v)
-		}
-
-		d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
-		cbreq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
-
-		tracerx.Printf("verify: %s %s", oid, cb.Href)
-		cbres, err := DoHTTP(Config, cbreq)
+		verifyReq, err := http.NewRequest("POST", cb.Href, nil)
 		if err != nil {
 			return Errorf(err, "Error attempting to verify %s", filename)
 		}
-		tracerx.Printf("verify_status: %d", cbres.StatusCode)
+
+		for h, v := range cb.Header {
+			verifyReq.Header.Set(h, v)
+		}
+
+		verifyCreds, err := setRequestHeaders(req)
+		if err != nil {
+			return Errorf(err, "Error attempting to verify %s", filename)
+		}
+
+		d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
+		verifyReq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
+
+		tracerx.Printf("verify: %s %s", oid, cb.Href)
+		verifyRes, err := DoHTTP(Config, verifyReq)
+		if err != nil {
+			return Errorf(err, "Error attempting to verify %s", filename)
+		}
+		tracerx.Printf("verify_status: %d", verifyRes.StatusCode)
+		saveCredentials(verifyCreds, verifyRes)
 	}
 
 	return nil
@@ -259,7 +272,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 
 func callPost(filehash, filename string) (*linkMeta, int, *WrappedError) {
 	oid := filepath.Base(filehash)
-	req, creds, err := clientRequest("POST", "")
+	req, creds, err := request("POST", "")
 	if err != nil {
 		return nil, 0, Errorf(err, "Error attempting to POST %s", filename)
 	}
@@ -395,6 +408,10 @@ func handleResponseError(res *http.Response) *WrappedError {
 }
 
 func saveCredentials(creds Creds, res *http.Response) {
+	if creds == nil {
+		return
+	}
+
 	if res.StatusCode < 300 {
 		execCreds(creds, "approve")
 		return
@@ -432,23 +449,33 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 	}
 }
 
-func clientRequest(method, oid string) (*http.Request, Creds, error) {
+func request(method, oid string) (*http.Request, Creds, error) {
 	u := Config.ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
-	req.Header.Set("User-Agent", UserAgent)
-	if err == nil {
-		creds, err := credentials(u)
-		if err != nil {
-			return req, nil, err
-		}
-
-		token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
-		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
-		req.Header.Set("Authorization", auth)
-		return req, creds, nil
+	if err != nil {
+		return req, nil, err
 	}
 
-	return req, nil, err
+	creds, err := setRequestHeaders(req)
+	return req, creds, err
+}
+
+func setRequestHeaders(req *http.Request) (Creds, error) {
+	req.Header.Set("User-Agent", UserAgent)
+
+	if _, ok := req.Header["Authorization"]; ok {
+		return nil, nil
+	}
+
+	creds, err := credentials(req.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
+	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	req.Header.Set("Authorization", auth)
+	return creds, nil
 }
 
 type ClientError struct {
