@@ -371,6 +371,7 @@ func saveCredentials(creds Creds, res *http.Response) *WrappedError {
 		} else {
 			wErr = Errorf(apierr, "Invalid response: %d", res.StatusCode)
 		}
+		wErr.Panic = false
 	}
 
 	return wErr
