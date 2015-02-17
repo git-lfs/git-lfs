@@ -250,7 +250,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 			verifyReq.Header.Set(h, v)
 		}
 
-		verifyCreds, err := setRequestHeaders(req)
+		verifyCreds, err := setRequestHeaders(verifyReq)
 		if err != nil {
 			return Errorf(err, "Error attempting to verify %s", filename)
 		}
