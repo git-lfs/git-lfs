@@ -8,6 +8,7 @@ import (
 type WrappedError struct {
 	Err     error
 	Message string
+	Panic   bool
 	stack   []byte
 	context map[string]string
 }
@@ -24,6 +25,7 @@ func Errorf(err error, format string, args ...interface{}) *WrappedError {
 	e := &WrappedError{
 		Err:     err,
 		Message: err.Error(),
+		Panic:   true,
 		stack:   Stack(),
 	}
 

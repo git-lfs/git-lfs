@@ -87,9 +87,9 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	case 200: // object exists on the server
 	case 405, 302:
 		// Do the old style OPTIONS + PUT
-		status, err := callOptions(oidPath)
-		if err != nil {
-			return Errorf(err, "Error getting options for file %s (%s)", filename, oid)
+		status, wErr := callOptions(oidPath)
+		if wErr != nil {
+			return wErr
 		}
 
 		if status != 200 {
@@ -111,17 +111,17 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	return nil
 }
 
-func callOptions(filehash string) (int, error) {
+func callOptions(filehash string) (int, *WrappedError) {
 	oid := filepath.Base(filehash)
 	_, err := os.Stat(filehash)
 	if err != nil {
-		return 0, err
+		return 0, Errorf(err, "Internal object does not exist: %s", filehash)
 	}
 
 	tracerx.Printf("api_options: %s", oid)
 	req, creds, err := clientRequest("OPTIONS", oid)
 	if err != nil {
-		return 0, err
+		return 0, Errorf(err, "Unable to build OPTIONS request for %s", oid)
 	}
 
 	res, wErr := doRequest(req, creds)
@@ -133,7 +133,7 @@ func callOptions(filehash string) (int, error) {
 	return res.StatusCode, nil
 }
 
-func callPut(filehash, filename string, cb CopyCallback) error {
+func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 	if filename == "" {
 		filename = filehash
 	}
@@ -141,18 +141,18 @@ func callPut(filehash, filename string, cb CopyCallback) error {
 	oid := filepath.Base(filehash)
 	file, err := os.Open(filehash)
 	if err != nil {
-		return err
+		return Errorf(err, "Internal object does not exist: %s", filehash)
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return err
+		return Errorf(err, "Internal object does not exist: %s", filehash)
 	}
 
 	req, creds, err := clientRequest("PUT", oid)
 	if err != nil {
-		return err
+		return Errorf(err, "Unable to build PUT request for %s", oid)
 	}
 
 	fileSize := stat.Size()
@@ -175,33 +175,32 @@ func callPut(filehash, filename string, cb CopyCallback) error {
 
 	tracerx.Printf("api_put: %s %s", oid, filename)
 	res, wErr := doRequest(req, creds)
-	if wErr != nil {
-		return wErr
-	}
 	tracerx.Printf("api_put_status: %d", res.StatusCode)
 
-	return nil
+	return wErr
 }
 
-func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) error {
+func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *WrappedError {
 	if lm == nil {
-		return Error(errors.New("No hypermedia links provided"))
+		return Errorf(errors.New("No hypermedia links provided"),
+			"Error attempting to PUT %s", filename)
 	}
 
 	link, ok := lm.Rel("upload")
 	if !ok {
-		return Error(errors.New("No upload link provided"))
+		return Errorf(errors.New("No upload link provided"),
+			"Error attempting to PUT %s", filename)
 	}
 
 	file, err := os.Open(filehash)
 	if err != nil {
-		return err
+		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return err
+		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 	fileSize := stat.Size()
 	reader := &CallbackReader{
@@ -212,7 +211,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 
 	req, err := http.NewRequest("PUT", link.Href, nil)
 	if err != nil {
-		return Error(err)
+		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 	for h, v := range link.Header {
 		req.Header.Set(h, v)
@@ -228,7 +227,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 	tracerx.Printf("external_put: %s %s", filepath.Base(filehash), req.URL)
 	res, err := DoHTTP(Config, req)
 	if err != nil {
-		return Error(err)
+		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 	tracerx.Printf("external_put_status: %d", res.StatusCode)
 
@@ -250,7 +249,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 		tracerx.Printf("verify: %s %s", oid, cb.Href)
 		cbres, err := DoHTTP(Config, cbreq)
 		if err != nil {
-			return Error(err)
+			return Errorf(err, "Error attempting to verify %s", filename)
 		}
 		tracerx.Printf("verify_status: %d", cbres.StatusCode)
 	}
@@ -258,22 +257,22 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) e
 	return nil
 }
 
-func callPost(filehash, filename string) (*linkMeta, int, error) {
+func callPost(filehash, filename string) (*linkMeta, int, *WrappedError) {
 	oid := filepath.Base(filehash)
 	req, creds, err := clientRequest("POST", "")
 	if err != nil {
-		return nil, 0, Error(err)
+		return nil, 0, Errorf(err, "Error attempting to POST %s", filename)
 	}
 
 	file, err := os.Open(filehash)
 	if err != nil {
-		return nil, 0, Error(err)
+		return nil, 0, Errorf(err, "Error attempting to POST %s", filename)
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return nil, 0, Error(err)
+		return nil, 0, Errorf(err, "Error attempting to POST %s", filename)
 	}
 	fileSize := stat.Size()
 
@@ -344,22 +343,11 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	}
 
 	if err == nil {
-		if res.StatusCode > 299 {
-			// An auth error should be 403.  Could be 404 also.
-			if res.StatusCode < 405 {
-				execCreds(creds, "reject")
-
-				apierr := &ClientError{}
-				dec := json.NewDecoder(res.Body)
-				if err := dec.Decode(apierr); err != nil {
-					wErr = Errorf(err, "Error decoding JSON from response")
-				} else {
-					wErr = Errorf(apierr, "Invalid response: %d", res.StatusCode)
-				}
-			}
-		} else {
-			execCreds(creds, "approve")
+		if creds != nil {
+			saveCredentials(creds, res)
 		}
+
+		wErr = handleResponseError(res)
 	} else if res.StatusCode != 302 { // hack for pre-release
 		wErr = Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
@@ -373,6 +361,48 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	}
 
 	return res, wErr
+}
+
+func handleResponseError(res *http.Response) *WrappedError {
+	if res.StatusCode < 400 || res.StatusCode == 405 {
+		return nil
+	}
+
+	var wErr *WrappedError
+	apiErr := &ClientError{}
+	dec := json.NewDecoder(res.Body)
+	if err := dec.Decode(apiErr); err != nil {
+		wErr = Errorf(err, "Error decoding JSON from response")
+	} else {
+		var msg string
+		switch res.StatusCode {
+		case 401, 403:
+			msg = fmt.Sprintf("Authorization error: %s\nCheck that you have proper access to the repository.", res.Request.URL)
+		case 404:
+			msg = fmt.Sprintf("Repository not found: %s\nCheck that it exists and that you have proper access to it.", res.Request.URL)
+		default:
+			msg = fmt.Sprintf("Invalid response: %d", res.StatusCode)
+		}
+
+		wErr = Errorf(apiErr, msg)
+	}
+
+	if res.StatusCode < 500 {
+		wErr.Panic = false
+	}
+
+	return wErr
+}
+
+func saveCredentials(creds Creds, res *http.Response) {
+	if res.StatusCode < 300 {
+		execCreds(creds, "approve")
+		return
+	}
+
+	if res.StatusCode < 405 {
+		execCreds(creds, "reject")
+	}
 }
 
 var hiddenHeaders = map[string]bool{

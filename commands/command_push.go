@@ -118,7 +118,11 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 		if wErr := pushAsset(pointer.Oid, pointer.Name, i+1, len(pointers)); wErr != nil {
-			Panic(wErr.Err, wErr.Error())
+			if Debugging || wErr.Panic {
+				Panic(wErr.Err, wErr.Error())
+			} else {
+				Exit(wErr.Error())
+			}
 		}
 	}
 }
