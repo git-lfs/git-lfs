@@ -13,15 +13,17 @@ import (
 )
 
 type Configuration struct {
-	gitConfig  map[string]string
-	remotes    []string
-	httpClient *http.Client
+	CurrentRemote string
+	gitConfig     map[string]string
+	remotes       []string
+	httpClient    *http.Client
 }
 
 var (
-	Config        = &Configuration{}
-	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
+	Config        = &Configuration{CurrentRemote: defaultRemote}
 	RedirectError = fmt.Errorf("Unexpected redirection")
+	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
+	defaultRemote = "origin"
 )
 
 func HttpClient() *http.Client {
@@ -48,10 +50,20 @@ func (c *Configuration) Endpoint() string {
 		return url
 	}
 
-	return c.RemoteEndpoint("origin")
+	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
+		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint) > 0 {
+			return endpoint
+		}
+	}
+
+	return c.RemoteEndpoint(defaultRemote)
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) string {
+	if len(remote) == 0 {
+		remote = defaultRemote
+	}
+
 	if url, ok := c.GitConfig("remote." + remote + ".hawser"); ok {
 		return url
 	}

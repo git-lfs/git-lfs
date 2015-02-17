@@ -26,6 +26,32 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 	assert.Equal(t, "abc", config.Endpoint())
 }
 
+func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"remote.origin.hawser": "abc",
+			"remote.other.hawser":  "def",
+		},
+		remotes: []string{},
+	}
+
+	assert.Equal(t, "abc", config.Endpoint())
+}
+
+func TestEndpointUseAlternateRemote(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"remote.origin.hawser": "abc",
+			"remote.other.hawser":  "def",
+		},
+		remotes: []string{},
+	}
+
+	config.CurrentRemote = "other"
+
+	assert.Equal(t, "def", config.Endpoint())
+}
+
 func TestEndpointAddsMediaSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "https://example.com/foo/bar"},
