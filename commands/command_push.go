@@ -61,6 +61,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	hawser.Config.CurrentRemote = args[0]
+
 	if useStdin {
 		refsData, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
