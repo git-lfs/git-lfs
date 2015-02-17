@@ -344,7 +344,7 @@ func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 
 	if err == nil {
 		wErr = saveCredentials(creds, res)
-	} else {
+	} else if res.StatusCode != 302 { // hack for pre-release
 		wErr = Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
 
