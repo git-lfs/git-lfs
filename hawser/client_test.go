@@ -206,24 +206,10 @@ func TestPost(t *testing.T) {
 	}
 }
 
-func init() {
-	execCreds = func(input Creds, subCommand string) (credentialFetcher, error) {
-		return &testCredentialFetcher{input}, nil
-	}
-}
-
 func tempdir(t *testing.T) string {
 	dir, err := ioutil.TempDir("", "hawser-test-hawser")
 	if err != nil {
 		t.Fatalf("Error getting temp dir: %s", err)
 	}
 	return dir
-}
-
-type testCredentialFetcher struct {
-	Creds Creds
-}
-
-func (c *testCredentialFetcher) Credentials() Creds {
-	return c.Creds
 }

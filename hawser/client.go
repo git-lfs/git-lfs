@@ -453,12 +453,12 @@ func request(method, oid string) (*http.Request, Creds, error) {
 	u := Config.ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
 	req.Header.Set("User-Agent", UserAgent)
-	if err == nil {
-		creds, err := getRequestCreds(req)
-		return req, creds, err
+	if err != nil {
+		return req, nil, err
 	}
 
-	return req, nil, err
+	creds, err := getRequestCreds(req)
+	return req, creds, err
 }
 
 func getRequestCreds(req *http.Request) (Creds, error) {
