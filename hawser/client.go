@@ -85,6 +85,12 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 	switch status {
 	case 200: // object exists on the server
+	case 202:
+		// the server responded with hypermedia links to upload and verify the object.
+		err = callExternalPut(oidPath, filename, linkMeta, cb)
+		if err != nil {
+			return Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		}
 	case 405, 302:
 		// Do the old style OPTIONS + PUT
 		status, err := callOptions(oidPath)
@@ -97,12 +103,6 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 			if err != nil {
 				return Errorf(err, "Error uploading file %s (%s)", filename, oid)
 			}
-		}
-	case 202:
-		// the server responded with hypermedia links to upload and verify the object.
-		err = callExternalPut(oidPath, filename, linkMeta, cb)
-		if err != nil {
-			return Errorf(err, "Error uploading file %s (%s)", filename, oid)
 		}
 	default:
 		return Errorf(err, "Unexpected HTTP response: %d", status)
@@ -336,43 +336,56 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, int, *Wrap
 
 func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	res, err := DoHTTP(Config, req)
-
-	var wErr *WrappedError
-
 	if err == RedirectError {
 		err = nil
 	}
 
-	if err == nil {
-		if res.StatusCode > 299 {
-			// An auth error should be 403.  Could be 404 also.
-			if res.StatusCode < 405 {
-				execCreds(creds, "reject")
+	var wErr *WrappedError
 
-				apierr := &ClientError{}
-				dec := json.NewDecoder(res.Body)
-				if err := dec.Decode(apierr); err != nil {
-					wErr = Errorf(err, "Error decoding JSON from response")
-				} else {
-					wErr = Errorf(apierr, "Invalid response: %d", res.StatusCode)
-				}
-			}
-		} else {
-			execCreds(creds, "approve")
-		}
-	} else if res.StatusCode != 302 { // hack for pre-release
+	if err == nil {
+		wErr = saveCredentials(creds, res)
+	} else {
 		wErr = Errorf(err, "Error sending HTTP request to %s", req.URL.String())
 	}
 
-	if wErr != nil {
-		if res != nil {
-			setErrorResponseContext(wErr, res)
+	setErrorContext(wErr, req, res)
+
+	return res, wErr
+}
+
+func saveCredentials(creds Creds, res *http.Response) *WrappedError {
+	if res.StatusCode < 300 {
+		execCreds(creds, "approve")
+		return nil
+	}
+
+	var wErr *WrappedError
+
+	if res.StatusCode < 405 {
+		execCreds(creds, "reject")
+
+		apierr := &ClientError{}
+		dec := json.NewDecoder(res.Body)
+		if err := dec.Decode(apierr); err != nil {
+			wErr = Errorf(err, "Error decoding JSON from response")
 		} else {
-			setErrorRequestContext(wErr, req)
+			wErr = Errorf(apierr, "Invalid response: %d", res.StatusCode)
 		}
 	}
 
-	return res, wErr
+	return wErr
+}
+
+func setErrorContext(wErr *WrappedError, req *http.Request, res *http.Response) {
+	if wErr == nil {
+		return
+	}
+
+	if res != nil {
+		setErrorResponseContext(wErr, res)
+	} else {
+		setErrorRequestContext(wErr, req)
+	}
 }
 
 var hiddenHeaders = map[string]bool{
@@ -405,20 +418,19 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 func clientRequest(method, oid string) (*http.Request, Creds, error) {
 	u := Config.ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
-	req.Header.Set("User-Agent", UserAgent)
-	if err == nil {
-		creds, err := credentials(u)
-		if err != nil {
-			return req, nil, err
-		}
-
-		token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
-		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
-		req.Header.Set("Authorization", auth)
-		return req, creds, nil
+	if err != nil {
+		return req, nil, err
 	}
 
-	return req, nil, err
+	creds, err := credentials(u)
+	if err != nil {
+		return req, nil, err
+	}
+
+	token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
+	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	req.Header.Set("Authorization", auth)
+	return req, creds, nil
 }
 
 type ClientError struct {
