@@ -12,7 +12,7 @@ func TestGetCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getRequestCreds(req)
+	creds, err := setRequestHeaders(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestGetCredentialsWithPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getRequestCreds(req)
+	creds, err := setRequestHeaders(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestGetCredentialsWithAuthorization(t *testing.T) {
 	}
 	req.Header.Set("Authorization", "")
 
-	creds, err := getRequestCreds(req)
+	creds, err := setRequestHeaders(req)
 	if err != nil {
 		t.Fatal(err)
 	}

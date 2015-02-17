@@ -217,7 +217,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 		req.Header.Set(h, v)
 	}
 
-	creds, err := getRequestCreds(req)
+	creds, err := setRequestHeaders(req)
 	if err != nil {
 		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
@@ -250,7 +250,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 			verifyReq.Header.Set(h, v)
 		}
 
-		verifyCreds, err := getRequestCreds(req)
+		verifyCreds, err := setRequestHeaders(req)
 		if err != nil {
 			return Errorf(err, "Error attempting to verify %s", filename)
 		}
@@ -452,16 +452,17 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 func request(method, oid string) (*http.Request, Creds, error) {
 	u := Config.ObjectUrl(oid)
 	req, err := http.NewRequest(method, u.String(), nil)
-	req.Header.Set("User-Agent", UserAgent)
 	if err != nil {
 		return req, nil, err
 	}
 
-	creds, err := getRequestCreds(req)
+	creds, err := setRequestHeaders(req)
 	return req, creds, err
 }
 
-func getRequestCreds(req *http.Request) (Creds, error) {
+func setRequestHeaders(req *http.Request) (Creds, error) {
+	req.Header.Set("User-Agent", UserAgent)
+
 	if _, ok := req.Header["Authorization"]; ok {
 		return nil, nil
 	}
