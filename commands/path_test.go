@@ -47,11 +47,51 @@ func TestPathOnEmptyRepository(t *testing.T) {
 
 	cmd := repo.Command("add", "*.gif")
 	cmd.Output = "Adding path *.gif"
+
+	cmd.Before(func() {
+		// write attributes file in .git
+		path := filepath.Join(".gitattributes")
+		repo.WriteFile(path, "*.mov filter=hawser -crlf\n")
+	})
+
 	cmd.After(func() {
 		// assert path was added
-		assert.Equal(t, "*.gif filter=hawser -crlf\n", repo.ReadFile(".gitattributes"))
+		assert.Equal(t, "*.mov filter=hawser -crlf\n*.gif filter=hawser -crlf\n", repo.ReadFile(".gitattributes"))
 
-		expected := "Listing paths\n    *.gif (.gitattributes)\n"
+		expected := "Listing paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
+
+		assert.Equal(t, expected, repo.MediaCmd("path"))
+
+		// assert hook was created
+		stat, err := os.Stat(prePushHookFile)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, false, stat.IsDir())
+	})
+
+	cmd = repo.Command("path")
+	cmd.Output = "Listing paths"
+}
+
+func TestAddPathWithoutTrailingLinebreak(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+
+	cmd := repo.Command("add", "*.gif")
+	cmd.Output = "Adding path *.gif"
+
+	cmd.Before(func() {
+		// write attributes file in .git
+		path := filepath.Join(".gitattributes")
+		repo.WriteFile(path, "*.mov filter=hawser -crlf")
+	})
+
+	cmd.After(func() {
+		// assert path was added
+		assert.Equal(t, "*.mov filter=hawser -crlf\n*.gif filter=hawser -crlf\n", repo.ReadFile(".gitattributes"))
+
+		expected := "Listing paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 
 		assert.Equal(t, expected, repo.MediaCmd("path"))
 
