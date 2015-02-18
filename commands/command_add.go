@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/hawser/git-hawser/hawser"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
+	"strings"
 )
 
 var (
@@ -23,11 +25,18 @@ func addCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	addTrailingLinebreak := needsTrailingLinebreak(".gitattributes")
 	knownPaths := findPaths()
 	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		Print("Error opening .gitattributes file")
 		return
+	}
+
+	if addTrailingLinebreak {
+		if _, err := attributesFile.WriteString("\n"); err != nil {
+			Print("Error writing to .gitattributes")
+		}
 	}
 
 	for _, t := range args {
@@ -52,6 +61,28 @@ func addCommand(cmd *cobra.Command, args []string) {
 	}
 
 	attributesFile.Close()
+}
+
+func needsTrailingLinebreak(filename string) bool {
+	file, err := os.Open(filename)
+	if err != nil {
+		return false
+	}
+
+	defer file.Close()
+	buf := make([]byte, 16384)
+	bytesRead := 0
+	for {
+		n, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return false
+		}
+		bytesRead = n
+	}
+
+	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
 }
 
 func init() {
