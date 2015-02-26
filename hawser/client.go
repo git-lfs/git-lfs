@@ -43,12 +43,6 @@ type link struct {
 	Header map[string]string `json:"header,omitempty"`
 }
 
-type UploadRequest struct {
-	OidPath      string
-	Filename     string
-	CopyCallback CopyCallback
-}
-
 func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 	oid := filepath.Base(oidPath)
 	req, creds, err := request("GET", oid)
