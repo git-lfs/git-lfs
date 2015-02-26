@@ -17,7 +17,11 @@ import (
 )
 
 const (
-	gitMediaType     = "application/vnd.git-media"
+	// Legacy type
+	gitMediaType = "application/vnd.git-media"
+
+	// Adds the extra mime params.  Use this when sending the type in an HTTP
+	// request.
 	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
 )
 
