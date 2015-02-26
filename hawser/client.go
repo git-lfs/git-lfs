@@ -97,6 +97,26 @@ type objectResource struct {
 	Links map[string]*linkRelation `json:"_links,omitempty"`
 }
 
+var objectRelationDoesNotExist = errors.New("relation does not exist")
+
+func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
+	rel, ok := o.Rel(relation)
+	if !ok {
+		return nil, objectRelationDoesNotExist
+	}
+
+	req, err := http.NewRequest(method, rel.Href, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for h, v := range rel.Header {
+		req.Header.Set(h, v)
+	}
+
+	return req, nil
+}
+
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
 	if o.Links == nil {
 		return nil, false
@@ -186,10 +206,14 @@ func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCall
 			"Error attempting to PUT %s", filename)
 	}
 
-	link, ok := obj.Rel("upload")
-	if !ok {
+	req, err := obj.NewRequest("upload", "PUT")
+	if err == objectRelationDoesNotExist {
 		return Errorf(errors.New("No upload link provided"),
 			"Error attempting to PUT %s", filename)
+	}
+
+	if err != nil {
+		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 
 	file, err := os.Open(filehash)
@@ -207,14 +231,6 @@ func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCall
 		C:         cb,
 		TotalSize: fileSize,
 		Reader:    file,
-	}
-
-	req, err := http.NewRequest("PUT", link.Href, nil)
-	if err != nil {
-		return Errorf(err, "Error attempting to PUT %s", filename)
-	}
-	for h, v := range link.Header {
-		req.Header.Set(h, v)
 	}
 
 	creds, err := setRequestHeaders(req)
@@ -238,34 +254,31 @@ func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCall
 	saveCredentials(creds, res)
 
 	// Run the verify callback
-	if cb, ok := obj.Rel("verify"); ok {
-		oid := filepath.Base(filehash)
-
-		verifyReq, err := http.NewRequest("POST", cb.Href, nil)
-		if err != nil {
-			return Errorf(err, "Error attempting to verify %s", filename)
-		}
-
-		for h, v := range cb.Header {
-			verifyReq.Header.Set(h, v)
-		}
-
-		verifyCreds, err := setRequestHeaders(verifyReq)
-		if err != nil {
-			return Errorf(err, "Error attempting to verify %s", filename)
-		}
-
-		d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
-		verifyReq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
-
-		tracerx.Printf("verify: %s %s", oid, cb.Href)
-		verifyRes, err := DoHTTP(Config, verifyReq)
-		if err != nil {
-			return Errorf(err, "Error attempting to verify %s", filename)
-		}
-		tracerx.Printf("verify_status: %d", verifyRes.StatusCode)
-		saveCredentials(verifyCreds, verifyRes)
+	verifyReq, err := obj.NewRequest("verify", "POST")
+	if err == objectRelationDoesNotExist {
+		return nil
 	}
+
+	if err != nil {
+		return Errorf(err, "Error attempting to verify %s", filename)
+	}
+
+	verifyCreds, err := setRequestHeaders(verifyReq)
+	if err != nil {
+		return Errorf(err, "Error attempting to verify %s", filename)
+	}
+
+	oid := filepath.Base(filehash)
+	d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
+	verifyReq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
+
+	tracerx.Printf("verify: %s %s", oid, verifyReq.URL.String())
+	verifyRes, err := DoHTTP(Config, verifyReq)
+	if err != nil {
+		return Errorf(err, "Error attempting to verify %s", filename)
+	}
+	tracerx.Printf("verify_status: %d", verifyRes.StatusCode)
+	saveCredentials(verifyCreds, verifyRes)
 
 	return nil
 }
