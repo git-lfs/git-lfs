@@ -88,8 +88,8 @@ func TestExternalPut(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
-	link := &linkMeta{
-		Links: map[string]*link{
+	obj := &objectResource{
+		Links: map[string]*linkRelation{
 			"upload": {
 				Href:   server.URL + "/media/objects/oid",
 				Header: map[string]string{"a": "1"},
@@ -101,7 +101,7 @@ func TestExternalPut(t *testing.T) {
 		},
 	}
 
-	if err := callExternalPut(oidPath, "", link, nil); err != nil {
+	if err := callExternalPut(oidPath, "", obj, nil); err != nil {
 		t.Error(err)
 	}
 

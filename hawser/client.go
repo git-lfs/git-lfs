@@ -25,24 +25,6 @@ const (
 	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
 )
 
-type linkMeta struct {
-	Links map[string]*link `json:"_links,omitempty"`
-}
-
-func (l *linkMeta) Rel(name string) (*link, bool) {
-	if l.Links == nil {
-		return nil, false
-	}
-
-	lnk, ok := l.Links[name]
-	return lnk, ok
-}
-
-type link struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
-}
-
 func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 	oid := filepath.Base(oidPath)
 	req, creds, err := request("GET", oid)
@@ -107,6 +89,26 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	}
 
 	return nil
+}
+
+type objectResource struct {
+	Oid   string                   `json:"oid,omitempty"`
+	Size  int64                    `json:"size,omitempty"`
+	Links map[string]*linkRelation `json:"_links,omitempty"`
+}
+
+func (o *objectResource) Rel(name string) (*linkRelation, bool) {
+	if o.Links == nil {
+		return nil, false
+	}
+
+	rel, ok := o.Links[name]
+	return rel, ok
+}
+
+type linkRelation struct {
+	Href   string            `json:"href"`
+	Header map[string]string `json:"header,omitempty"`
 }
 
 func callOptions(filehash string) (int, *WrappedError) {
@@ -178,13 +180,13 @@ func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 	return wErr
 }
 
-func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *WrappedError {
-	if lm == nil {
+func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCallback) *WrappedError {
+	if obj == nil {
 		return Errorf(errors.New("No hypermedia links provided"),
 			"Error attempting to PUT %s", filename)
 	}
 
-	link, ok := lm.Rel("upload")
+	link, ok := obj.Rel("upload")
 	if !ok {
 		return Errorf(errors.New("No upload link provided"),
 			"Error attempting to PUT %s", filename)
@@ -236,7 +238,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 	saveCredentials(creds, res)
 
 	// Run the verify callback
-	if cb, ok := lm.Rel("verify"); ok {
+	if cb, ok := obj.Rel("verify"); ok {
 		oid := filepath.Base(filehash)
 
 		verifyReq, err := http.NewRequest("POST", cb.Href, nil)
@@ -268,7 +270,7 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 	return nil
 }
 
-func callPost(filehash, filename string) (*linkMeta, int, *WrappedError) {
+func callPost(filehash, filename string) (*objectResource, int, *WrappedError) {
 	oid := filepath.Base(filehash)
 	req, creds, err := request("POST", "")
 	if err != nil {
@@ -300,14 +302,13 @@ func callPost(filehash, filename string) (*linkMeta, int, *WrappedError) {
 	tracerx.Printf("api_post_status: %d", res.StatusCode)
 
 	if res.StatusCode == 202 {
-		lm := &linkMeta{}
-		dec := json.NewDecoder(res.Body)
-		err := dec.Decode(lm)
+		obj := &objectResource{}
+		err := json.NewDecoder(res.Body).Decode(obj)
 		if err != nil {
 			return nil, res.StatusCode, Errorf(err, "Error decoding JSON from %s %s.", req.Method, req.URL)
 		}
 
-		return lm, res.StatusCode, nil
+		return obj, res.StatusCode, nil
 	}
 
 	return nil, res.StatusCode, nil
