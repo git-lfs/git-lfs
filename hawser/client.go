@@ -14,15 +14,20 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
 	// Legacy type
 	gitMediaType = "application/vnd.git-media"
 
+	// The main type, sub type, and suffix.  Use this when ensuring the type from
+	// an HTTP response is correct.
+	gitMediaMetaTypePrefix = gitMediaType + "+json"
+
 	// Adds the extra mime params.  Use this when sending the type in an HTTP
 	// request.
-	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
+	gitMediaMetaType = gitMediaMetaTypePrefix + "; charset=utf-8"
 )
 
 func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
@@ -44,6 +49,47 @@ func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 		wErr = Error(errors.New("Empty Content-Type"))
 		setErrorResponseContext(wErr, res)
 		return nil, 0, wErr
+	}
+
+	if strings.HasPrefix(contentType, gitMediaMetaTypePrefix) {
+		obj := &objectResource{}
+		err := json.NewDecoder(res.Body).Decode(obj)
+		res.Body.Close()
+		if err != nil {
+			wErr := Error(err)
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		dlReq, err := obj.NewRequest("download", "GET")
+		if err != nil {
+			wErr := Error(err)
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		dlCreds, err := setRequestHeaders(dlReq)
+		if err != nil {
+			return nil, 0, Errorf(err, "Error attempting to GET %s", oidPath)
+		}
+
+		dlRes, err := DoHTTP(Config, dlReq)
+		if err != nil {
+			wErr := Error(err)
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		saveCredentials(dlCreds, dlRes)
+
+		contentType := dlRes.Header.Get("Content-Type")
+		if contentType == "" {
+			wErr = Error(errors.New("Empty Content-Type"))
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		res = dlRes
 	}
 
 	ok, headerSize, wErr := validateMediaHeader(contentType, res.Body)
