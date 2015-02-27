@@ -67,9 +67,8 @@ This gets the object's meta data.  The OID is the value from the object pointer.
 ```
 
 The `oid` and `size` properties are required.  A hypermedia `_links` section is
-included link relations for the object.  An object will either return a
-`download` or an `upload` link.  The `verify` link is optional, and depends on
-the server's configuration.  See the "Hypermedia" section above for more.
+included with a `download` link relation.  Clients can follow this link to
+access the object content. See the "Hypermedia" section above for more.
 
 Here's a sample response for a request with an authorization error:
 
@@ -88,10 +87,7 @@ Here's a sample response for a request with an authorization error:
 
 ### Responses
 
-* 200 - The object contents or meta data is in the response.  Follow the
-`download` link to access the object content.
-* 202 - The object does not exist, but can be created by following the `upload`
-link.
+* 200 - The object exists and the user has access to download it.
 * 404 - The user does not have access to the object, or it does not exist.
 
 ## POST /objects
