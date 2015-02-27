@@ -91,12 +91,6 @@ Here's a sample response for a request with an authorization error:
 * 200 - The object contents or meta data is in the response.
 * 404 - The user does not have access to the object, or it does not exist.
 
-There are what the HTTP status codes mean:
-
-* 200 - The user is able to read the object.
-* 404 - The repository does not exist for the user, or the user does not have
-access to it.
-
 ## POST /objects
 
 This request initiates the upload of an object, given a JSON body with the oid
