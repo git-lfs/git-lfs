@@ -31,7 +31,7 @@ store that the Hawser API is using.
 The Hawser client will automatically send the same credentials to the followed
 link relation as Basic Authentication IF:
 
-* The url scheme and host match the Hawser API endpoint.
+* The url scheme, host, and port all match the Hawser API endpoint's.
 * The link relation does not specify an Authorization header.
 
 If the host name is different, the Hawser API needs to send enough information
