@@ -88,7 +88,10 @@ Here's a sample response for a request with an authorization error:
 
 ### Responses
 
-* 200 - The object contents or meta data is in the response.
+* 200 - The object contents or meta data is in the response.  Follow the
+`download` link to access the object content.
+* 202 - The object does not exist, but can be created by following the `upload`
+link.
 * 404 - The user does not have access to the object, or it does not exist.
 
 ## POST /objects
