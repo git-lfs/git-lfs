@@ -16,7 +16,7 @@ The Hawser API uses hypermedia hints to instruct the client what to do next.
 These links are included in a `_links` property.  Possible relations for objects
 include:
 
-* `self` - This points to the object's canonical URL.
+* `self` - This points to the object's canonical API URL.
 * `download` - Follow this link with a GET and the optional header values to
 download the object content.
 * `upload` - Upload the object content to this link with a PUT.
