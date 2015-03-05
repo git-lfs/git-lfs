@@ -17,14 +17,23 @@ type Configuration struct {
 	remotes               []string
 	httpClient            *http.Client
 	redirectingHttpClient *http.Client
+	isTracingHttp         bool
 }
 
 var (
-	Config        = &Configuration{CurrentRemote: defaultRemote}
+	Config        = NewConfig()
 	RedirectError = fmt.Errorf("Unexpected redirection")
 	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
 	defaultRemote = "origin"
 )
+
+func NewConfig() *Configuration {
+	c := &Configuration{
+		CurrentRemote: defaultRemote,
+		isTracingHttp: len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
+	}
+	return c
+}
 
 func (c *Configuration) Endpoint() string {
 	if url, ok := c.GitConfig("hawser.url"); ok {
@@ -69,24 +78,18 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 }
 
 func (c *Configuration) Remotes() []string {
-	if c.remotes == nil {
-		c.loadGitConfig()
-	}
+	c.loadGitConfig()
 	return c.remotes
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
-	if c.gitConfig == nil {
-		c.loadGitConfig()
-	}
+	c.loadGitConfig()
 	value, ok := c.gitConfig[strings.ToLower(key)]
 	return value, ok
 }
 
 func (c *Configuration) SetConfig(key, value string) {
-	if c.gitConfig == nil {
-		c.loadGitConfig()
-	}
+	c.loadGitConfig()
 	c.gitConfig[key] = value
 }
 
@@ -107,6 +110,10 @@ type AltConfig struct {
 }
 
 func (c *Configuration) loadGitConfig() {
+	if c.gitConfig != nil {
+		return
+	}
+
 	uniqRemotes := make(map[string]bool)
 
 	c.gitConfig = make(map[string]string)
@@ -147,11 +154,4 @@ func (c *Configuration) loadGitConfig() {
 		}
 		c.remotes = append(c.remotes, remote)
 	}
-}
-
-func configFileExists(filename string) bool {
-	if _, err := os.Stat(filename); err == nil {
-		return true
-	}
-	return false
 }
