@@ -21,11 +21,19 @@ type Configuration struct {
 }
 
 var (
-	Config        = &Configuration{CurrentRemote: defaultRemote}
+	Config        = NewConfig()
 	RedirectError = fmt.Errorf("Unexpected redirection")
 	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
 	defaultRemote = "origin"
 )
+
+func NewConfig() *Configuration {
+	c := &Configuration{CurrentRemote: defaultRemote}
+	if len(os.Getenv("GIT_CURL_VERBOSE")) > 0 || len(os.Getenv("GIT_HTTP_VERBOSE")) > 0 {
+		c.isTracingHttp = true
+	}
+	return c
+}
 
 func (c *Configuration) Endpoint() string {
 	if url, ok := c.GitConfig("hawser.url"); ok {
@@ -104,10 +112,6 @@ type AltConfig struct {
 func (c *Configuration) loadGitConfig() {
 	if c.gitConfig != nil {
 		return
-	}
-
-	if len(os.Getenv("GIT_CURL_VERBOSE")) > 0 || len(os.Getenv("GIT_HTTP_VERBOSE")) > 0 {
-		c.isTracingHttp = true
 	}
 
 	uniqRemotes := make(map[string]bool)

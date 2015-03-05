@@ -57,7 +57,6 @@ var tracedTypes = []string{"json", "text", "xml", "html"}
 func traceHttpRequest(c *Configuration, req *http.Request) {
 	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
 
-	c.loadGitConfig()
 	if c.isTracingHttp == false {
 		return
 	}
@@ -71,7 +70,6 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 func traceHttpResponse(c *Configuration, res *http.Response) {
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	c.loadGitConfig()
 	if c.isTracingHttp == false {
 		return
 	}
