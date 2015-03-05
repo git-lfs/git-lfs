@@ -17,6 +17,7 @@ type Configuration struct {
 	remotes               []string
 	httpClient            *http.Client
 	redirectingHttpClient *http.Client
+	isTracingHttp         bool
 }
 
 var (
@@ -69,24 +70,18 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 }
 
 func (c *Configuration) Remotes() []string {
-	if c.remotes == nil {
-		c.loadGitConfig()
-	}
+	c.loadGitConfig()
 	return c.remotes
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
-	if c.gitConfig == nil {
-		c.loadGitConfig()
-	}
+	c.loadGitConfig()
 	value, ok := c.gitConfig[strings.ToLower(key)]
 	return value, ok
 }
 
 func (c *Configuration) SetConfig(key, value string) {
-	if c.gitConfig == nil {
-		c.loadGitConfig()
-	}
+	c.loadGitConfig()
 	c.gitConfig[key] = value
 }
 
@@ -107,6 +102,14 @@ type AltConfig struct {
 }
 
 func (c *Configuration) loadGitConfig() {
+	if c.gitConfig != nil {
+		return
+	}
+
+	if len(os.Getenv("GIT_CURL_VERBOSE")) > 0 || len(os.Getenv("GIT_HTTP_VERBOSE")) > 0 {
+		c.isTracingHttp = true
+	}
+
 	uniqRemotes := make(map[string]bool)
 
 	c.gitConfig = make(map[string]string)

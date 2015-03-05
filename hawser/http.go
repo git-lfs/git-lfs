@@ -2,16 +2,19 @@ package hawser
 
 import (
 	"crypto/tls"
+	"fmt"
 	"github.com/rubyist/tracerx"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 	var res *http.Response
 	var err error
 
-	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
+	traceHttpRequest(c, req)
 
 	switch req.Method {
 	case "GET", "HEAD":
@@ -20,7 +23,7 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 		res, err = c.HttpClient().Do(req)
 	}
 
-	tracerx.Printf("HTTP: %d", res.StatusCode)
+	traceHttpResponse(c, res)
 
 	return res, err
 }
@@ -47,4 +50,65 @@ func (c *Configuration) RedirectingHttpClient() *http.Client {
 		c.redirectingHttpClient = &http.Client{Transport: tr}
 	}
 	return c.redirectingHttpClient
+}
+
+var tracedTypes = []string{"json", "text", "xml", "html"}
+
+func traceHttpRequest(c *Configuration, req *http.Request) {
+	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
+
+	c.loadGitConfig()
+	if c.isTracingHttp == false {
+		return
+	}
+
+	fmt.Println(">", req.Method, req.URL.RequestURI(), req.Proto)
+	for key, _ := range req.Header {
+		fmt.Printf("> %s: %s\n", key, req.Header.Get(key))
+	}
+}
+
+func traceHttpResponse(c *Configuration, res *http.Response) {
+	tracerx.Printf("HTTP: %d", res.StatusCode)
+
+	c.loadGitConfig()
+	if c.isTracingHttp == false {
+		return
+	}
+
+	fmt.Println("<", res.Proto, res.Status)
+	for key, _ := range res.Header {
+		fmt.Printf("< %s: %s\n", key, res.Header.Get(key))
+	}
+
+	traceBody := false
+	ctype := strings.ToLower(strings.SplitN(res.Header.Get("Content-Type"), ";", 2)[0])
+	for _, tracedType := range tracedTypes {
+		if strings.Contains(ctype, tracedType) {
+			traceBody = true
+		}
+	}
+
+	if traceBody {
+		fmt.Println()
+		res.Body = newTracedBody(res.Body)
+	}
+}
+
+type tracedBody struct {
+	body io.ReadCloser
+}
+
+func (r *tracedBody) Read(p []byte) (int, error) {
+	n, err := r.body.Read(p)
+	fmt.Println(string(p[0:n]))
+	return n, err
+}
+
+func (r *tracedBody) Close() error {
+	return r.body.Close()
+}
+
+func newTracedBody(body io.ReadCloser) *tracedBody {
+	return &tracedBody{body}
 }
