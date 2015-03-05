@@ -38,7 +38,7 @@ func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 	}
 
 	req.Header.Set("Accept", gitMediaType)
-	res, wErr := doRequest(req, creds)
+	res, wErr := doHTTPWithCreds(req, creds)
 
 	if wErr != nil {
 		return nil, 0, wErr
@@ -190,7 +190,7 @@ func callOptions(filehash string) (int, *WrappedError) {
 		return 0, Errorf(err, "Unable to build OPTIONS request for %s", oid)
 	}
 
-	res, wErr := doRequest(req, creds)
+	res, wErr := doHTTPWithCreds(req, creds)
 	if wErr != nil {
 		return 0, wErr
 	}
@@ -239,7 +239,7 @@ func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 	fmt.Printf("Sending %s\n", filename)
 
 	tracerx.Printf("api_put: %s %s", oid, filename)
-	_, wErr := doRequest(req, creds)
+	_, wErr := doHTTPWithCreds(req, creds)
 
 	return wErr
 }
@@ -350,7 +350,7 @@ func callPost(filehash, filename string) (*objectResource, int, *WrappedError) {
 	req.Header.Set("Accept", gitMediaMetaType)
 
 	tracerx.Printf("api_post: %s %s", oid, filename)
-	res, wErr := doRequest(req, creds)
+	res, wErr := doHTTPWithCreds(req, creds)
 	if wErr != nil {
 		return nil, 0, wErr
 	}
@@ -399,7 +399,9 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, int, *Wrap
 	return true, headerSize, nil
 }
 
-func doRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+// Wraps DoHTTP(), and saves or removes credentials from the git credential
+// store based on the response.
+func doHTTPWithCreds(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	res, err := DoHTTP(Config, req)
 
 	var wErr *WrappedError
