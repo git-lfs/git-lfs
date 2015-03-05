@@ -3,7 +3,6 @@ package hawser
 import (
 	"fmt"
 	"github.com/hawser/git-hawser/git"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,7 +13,6 @@ import (
 
 type Configuration struct {
 	CurrentRemote         string
-	OutputWriter          io.Writer
 	gitConfig             map[string]string
 	remotes               []string
 	httpClient            *http.Client
@@ -32,10 +30,7 @@ var (
 func NewConfig() *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
-		OutputWriter:  os.Stderr,
-	}
-	if len(os.Getenv("GIT_CURL_VERBOSE")) > 0 || len(os.Getenv("GIT_HTTP_VERBOSE")) > 0 {
-		c.isTracingHttp = true
+		isTracingHttp: len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
 	}
 	return c
 }
