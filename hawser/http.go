@@ -102,6 +102,8 @@ func traceHttpResponse(c *Configuration, res *http.Response, counter *countingBo
 		fmt.Fprintf(os.Stderr, "\n")
 		res.Body = newTracedBody(res.Body)
 	}
+
+	fmt.Fprintf(os.Stderr, "\n")
 }
 
 type countingBody struct {
