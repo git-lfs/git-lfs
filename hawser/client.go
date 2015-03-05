@@ -14,36 +14,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
-	gitMediaType     = "application/vnd.git-media"
-	gitMediaMetaType = gitMediaType + "+json; charset=utf-8"
+	// Legacy type
+	gitMediaType = "application/vnd.git-media"
+
+	// The main type, sub type, and suffix.  Use this when ensuring the type from
+	// an HTTP response is correct.
+	gitMediaMetaTypePrefix = gitMediaType + "+json"
+
+	// Adds the extra mime params.  Use this when sending the type in an HTTP
+	// request.
+	gitMediaMetaType = gitMediaMetaTypePrefix + "; charset=utf-8"
 )
-
-type linkMeta struct {
-	Links map[string]*link `json:"_links,omitempty"`
-}
-
-func (l *linkMeta) Rel(name string) (*link, bool) {
-	if l.Links == nil {
-		return nil, false
-	}
-
-	lnk, ok := l.Links[name]
-	return lnk, ok
-}
-
-type link struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
-}
-
-type UploadRequest struct {
-	OidPath      string
-	Filename     string
-	CopyCallback CopyCallback
-}
 
 func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 	oid := filepath.Base(oidPath)
@@ -64,6 +49,47 @@ func Download(oidPath string) (io.ReadCloser, int64, *WrappedError) {
 		wErr = Error(errors.New("Empty Content-Type"))
 		setErrorResponseContext(wErr, res)
 		return nil, 0, wErr
+	}
+
+	if strings.HasPrefix(contentType, gitMediaMetaTypePrefix) {
+		obj := &objectResource{}
+		err := json.NewDecoder(res.Body).Decode(obj)
+		res.Body.Close()
+		if err != nil {
+			wErr := Error(err)
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		dlReq, err := obj.NewRequest("download", "GET")
+		if err != nil {
+			wErr := Error(err)
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		dlCreds, err := setRequestHeaders(dlReq)
+		if err != nil {
+			return nil, 0, Errorf(err, "Error attempting to GET %s", oidPath)
+		}
+
+		dlRes, err := DoHTTP(Config, dlReq)
+		if err != nil {
+			wErr := Error(err)
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		saveCredentials(dlCreds, dlRes)
+
+		contentType := dlRes.Header.Get("Content-Type")
+		if contentType == "" {
+			wErr = Error(errors.New("Empty Content-Type"))
+			setErrorResponseContext(wErr, res)
+			return nil, 0, wErr
+		}
+
+		res = dlRes
 	}
 
 	ok, headerSize, wErr := validateMediaHeader(contentType, res.Body)
@@ -109,6 +135,46 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	}
 
 	return nil
+}
+
+type objectResource struct {
+	Oid   string                   `json:"oid,omitempty"`
+	Size  int64                    `json:"size,omitempty"`
+	Links map[string]*linkRelation `json:"_links,omitempty"`
+}
+
+var objectRelationDoesNotExist = errors.New("relation does not exist")
+
+func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
+	rel, ok := o.Rel(relation)
+	if !ok {
+		return nil, objectRelationDoesNotExist
+	}
+
+	req, err := http.NewRequest(method, rel.Href, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for h, v := range rel.Header {
+		req.Header.Set(h, v)
+	}
+
+	return req, nil
+}
+
+func (o *objectResource) Rel(name string) (*linkRelation, bool) {
+	if o.Links == nil {
+		return nil, false
+	}
+
+	rel, ok := o.Links[name]
+	return rel, ok
+}
+
+type linkRelation struct {
+	Href   string            `json:"href"`
+	Header map[string]string `json:"header,omitempty"`
 }
 
 func callOptions(filehash string) (int, *WrappedError) {
@@ -180,16 +246,20 @@ func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 	return wErr
 }
 
-func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *WrappedError {
-	if lm == nil {
+func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCallback) *WrappedError {
+	if obj == nil {
 		return Errorf(errors.New("No hypermedia links provided"),
 			"Error attempting to PUT %s", filename)
 	}
 
-	link, ok := lm.Rel("upload")
-	if !ok {
+	req, err := obj.NewRequest("upload", "PUT")
+	if err == objectRelationDoesNotExist {
 		return Errorf(errors.New("No upload link provided"),
 			"Error attempting to PUT %s", filename)
+	}
+
+	if err != nil {
+		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
 
 	file, err := os.Open(filehash)
@@ -207,14 +277,6 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 		C:         cb,
 		TotalSize: fileSize,
 		Reader:    file,
-	}
-
-	req, err := http.NewRequest("PUT", link.Href, nil)
-	if err != nil {
-		return Errorf(err, "Error attempting to PUT %s", filename)
-	}
-	for h, v := range link.Header {
-		req.Header.Set(h, v)
 	}
 
 	creds, err := setRequestHeaders(req)
@@ -238,39 +300,36 @@ func callExternalPut(filehash, filename string, lm *linkMeta, cb CopyCallback) *
 	saveCredentials(creds, res)
 
 	// Run the verify callback
-	if cb, ok := lm.Rel("verify"); ok {
-		oid := filepath.Base(filehash)
-
-		verifyReq, err := http.NewRequest("POST", cb.Href, nil)
-		if err != nil {
-			return Errorf(err, "Error attempting to verify %s", filename)
-		}
-
-		for h, v := range cb.Header {
-			verifyReq.Header.Set(h, v)
-		}
-
-		verifyCreds, err := setRequestHeaders(verifyReq)
-		if err != nil {
-			return Errorf(err, "Error attempting to verify %s", filename)
-		}
-
-		d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
-		verifyReq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
-
-		tracerx.Printf("verify: %s %s", oid, cb.Href)
-		verifyRes, err := DoHTTP(Config, verifyReq)
-		if err != nil {
-			return Errorf(err, "Error attempting to verify %s", filename)
-		}
-		tracerx.Printf("verify_status: %d", verifyRes.StatusCode)
-		saveCredentials(verifyCreds, verifyRes)
+	verifyReq, err := obj.NewRequest("verify", "POST")
+	if err == objectRelationDoesNotExist {
+		return nil
 	}
+
+	if err != nil {
+		return Errorf(err, "Error attempting to verify %s", filename)
+	}
+
+	verifyCreds, err := setRequestHeaders(verifyReq)
+	if err != nil {
+		return Errorf(err, "Error attempting to verify %s", filename)
+	}
+
+	oid := filepath.Base(filehash)
+	d := fmt.Sprintf(`{"oid":"%s", "size":%d}`, oid, fileSize)
+	verifyReq.Body = ioutil.NopCloser(bytes.NewBufferString(d))
+
+	tracerx.Printf("verify: %s %s", oid, verifyReq.URL.String())
+	verifyRes, err := DoHTTP(Config, verifyReq)
+	if err != nil {
+		return Errorf(err, "Error attempting to verify %s", filename)
+	}
+	tracerx.Printf("verify_status: %d", verifyRes.StatusCode)
+	saveCredentials(verifyCreds, verifyRes)
 
 	return nil
 }
 
-func callPost(filehash, filename string) (*linkMeta, int, *WrappedError) {
+func callPost(filehash, filename string) (*objectResource, int, *WrappedError) {
 	oid := filepath.Base(filehash)
 	req, creds, err := request("POST", "")
 	if err != nil {
@@ -302,14 +361,13 @@ func callPost(filehash, filename string) (*linkMeta, int, *WrappedError) {
 	tracerx.Printf("api_post_status: %d", res.StatusCode)
 
 	if res.StatusCode == 202 {
-		lm := &linkMeta{}
-		dec := json.NewDecoder(res.Body)
-		err := dec.Decode(lm)
+		obj := &objectResource{}
+		err := json.NewDecoder(res.Body).Decode(obj)
 		if err != nil {
 			return nil, res.StatusCode, Errorf(err, "Error decoding JSON from %s %s.", req.Method, req.URL)
 		}
 
-		return lm, res.StatusCode, nil
+		return obj, res.StatusCode, nil
 	}
 
 	return nil, res.StatusCode, nil

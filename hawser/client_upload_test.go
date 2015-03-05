@@ -43,8 +43,8 @@ func TestUploadWithVerify(t *testing.T) {
 
 		posted = true
 
-		link := &linkMeta{
-			Links: map[string]*link{
+		obj := &objectResource{
+			Links: map[string]*linkRelation{
 				"upload": {
 					Href:   server.URL + "/media/objects/oid",
 					Header: map[string]string{"a": "1"},
@@ -56,9 +56,9 @@ func TestUploadWithVerify(t *testing.T) {
 			},
 		}
 
-		by, err := json.Marshal(link)
+		by, err := json.Marshal(obj)
 		if err != nil {
-			t.Errorf("Error marshaling link json: %s", link)
+			t.Errorf("Error marshaling link json: %s", obj)
 			w.WriteHeader(500)
 			return
 		}
