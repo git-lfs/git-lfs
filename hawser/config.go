@@ -32,7 +32,7 @@ var (
 func NewConfig() *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
-		OutputWriter:  os.Stdout,
+		OutputWriter:  os.Stderr,
 	}
 	if len(os.Getenv("GIT_CURL_VERBOSE")) > 0 || len(os.Getenv("GIT_HTTP_VERBOSE")) > 0 {
 		c.isTracingHttp = true
