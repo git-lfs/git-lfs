@@ -155,10 +155,3 @@ func (c *Configuration) loadGitConfig() {
 		c.remotes = append(c.remotes, remote)
 	}
 }
-
-func configFileExists(filename string) bool {
-	if _, err := os.Stat(filename); err == nil {
-		return true
-	}
-	return false
-}
