@@ -26,7 +26,7 @@ commands and low level ("plumbing") commands.
     Ensure Git Media is configured properly.
 * git-hawser-logs(1):
     Show errors from the git-hawser command.
-* git-hawser-path(1):
+* git-hawser-track(1):
     View and modify Git Media paths in Git attributes.
 * git-hawser-push(1):
     Push queued large files to the Git Media endpoint.

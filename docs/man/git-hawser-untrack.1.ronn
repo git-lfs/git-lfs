@@ -1,0 +1,22 @@
+git-hawser-untrack(1) - Remove Hawser paths from Git Attributes.
+======================================================================
+
+## SYNOPSIS
+
+`git hawser untrack` [path]*
+
+## DESCRIPTION
+
+The "untrack" command removes paths from the repository's Git attributes.
+
+## EXAMPLES
+
+* Prevent a path from using Hawser clean and smudge filters.
+
+    `git hawser untrack "*.gif"`
+
+## SEE ALSO
+
+git-hawser-track(1), git-hawser-init(1), gitattributes(5).
+
+Part of the git-hawser(1) suite.
