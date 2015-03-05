@@ -39,18 +39,12 @@ func (c *Configuration) HttpClient() *http.Client {
 
 func (c *Configuration) RedirectingHttpClient() *http.Client {
 	if c.redirectingHttpClient == nil {
-		c.redirectingHttpClient = &http.Client{
-			Transport: httpTransportFor(c),
+		tr := &http.Transport{}
+		sslVerify, _ := c.GitConfig("http.sslverify")
+		if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
+			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
+		c.redirectingHttpClient = &http.Client{Transport: tr}
 	}
 	return c.redirectingHttpClient
-}
-
-func httpTransportFor(c *Configuration) *http.Transport {
-	tr := &http.Transport{}
-	sslVerify, _ := c.GitConfig("http.sslverify")
-	if len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 || sslVerify == "false" {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	return tr
 }
