@@ -10,24 +10,30 @@ import (
 )
 
 var (
+	untrackCmd = &cobra.Command{
+		Use:   "untrack",
+		Short: "Remove an entry from .gitattributes",
+		Run:   untrackCommand,
+	}
+
 	removeCmd = &cobra.Command{
 		Use:   "remove",
 		Short: "Remove an entry from .gitattributes",
-		Run:   removeCommand,
+		Run:   untrackCommand,
 	}
 
 	rmCmd = &cobra.Command{
 		Use:   "rm",
 		Short: "Remove an entry from .gitattributes",
-		Run:   removeCommand,
+		Run:   untrackCommand,
 	}
 )
 
-func removeCommand(cmd *cobra.Command, args []string) {
+func untrackCommand(cmd *cobra.Command, args []string) {
 	hawser.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git hawser path rm <path> [path]*")
+		Print("git hawser untrack <path> [path]*")
 		return
 	}
 
@@ -68,6 +74,7 @@ func removeCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	RootCmd.AddCommand(untrackCmd)
 	RootCmd.AddCommand(rmCmd)
 	RootCmd.AddCommand(removeCmd)
 }

@@ -46,7 +46,7 @@ func TestPathOnEmptyRepository(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd := repo.Command("add", "*.gif")
-	cmd.Output = "Adding path *.gif"
+	cmd.Output = "Tracking path *.gif"
 
 	cmd.Before(func() {
 		// write attributes file in .git
@@ -79,7 +79,7 @@ func TestAddPathWithoutTrailingLinebreak(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd := repo.Command("add", "*.gif")
-	cmd.Output = "Adding path *.gif"
+	cmd.Output = "Tracking path *.gif"
 
 	cmd.Before(func() {
 		// write attributes file in .git
