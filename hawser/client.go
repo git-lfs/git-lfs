@@ -194,7 +194,6 @@ func callOptions(filehash string) (int, *WrappedError) {
 	if wErr != nil {
 		return 0, wErr
 	}
-	tracerx.Printf("api_options_status: %d", res.StatusCode)
 
 	return res.StatusCode, nil
 }
@@ -240,8 +239,7 @@ func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 	fmt.Printf("Sending %s\n", filename)
 
 	tracerx.Printf("api_put: %s %s", oid, filename)
-	res, wErr := doRequest(req, creds)
-	tracerx.Printf("api_put_status: %d", res.StatusCode)
+	_, wErr := doRequest(req, creds)
 
 	return wErr
 }
@@ -296,7 +294,6 @@ func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCall
 	if err != nil {
 		return Errorf(err, "Error attempting to PUT %s", filename)
 	}
-	tracerx.Printf("external_put_status: %d", res.StatusCode)
 	saveCredentials(creds, res)
 
 	// Run the verify callback
@@ -323,7 +320,6 @@ func callExternalPut(filehash, filename string, obj *objectResource, cb CopyCall
 	if err != nil {
 		return Errorf(err, "Error attempting to verify %s", filename)
 	}
-	tracerx.Printf("verify_status: %d", verifyRes.StatusCode)
 	saveCredentials(verifyCreds, verifyRes)
 
 	return nil
@@ -358,7 +354,6 @@ func callPost(filehash, filename string) (*objectResource, int, *WrappedError) {
 	if wErr != nil {
 		return nil, 0, wErr
 	}
-	tracerx.Printf("api_post_status: %d", res.StatusCode)
 
 	if res.StatusCode == 202 {
 		obj := &objectResource{}

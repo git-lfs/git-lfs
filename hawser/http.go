@@ -2,17 +2,27 @@ package hawser
 
 import (
 	"crypto/tls"
+	"github.com/rubyist/tracerx"
 	"net/http"
 	"os"
 )
 
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
+	var res *http.Response
+	var err error
+
+	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
+
 	switch req.Method {
 	case "GET", "HEAD":
-		return c.RedirectingHttpClient().Do(req)
+		res, err = c.RedirectingHttpClient().Do(req)
 	default:
-		return c.HttpClient().Do(req)
+		res, err = c.HttpClient().Do(req)
 	}
+
+	tracerx.Printf("HTTP: %d", res.StatusCode)
+
+	return res, err
 }
 
 func (c *Configuration) HttpClient() *http.Client {
