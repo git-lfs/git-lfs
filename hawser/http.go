@@ -61,9 +61,9 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 		return
 	}
 
-	fmt.Println(">", req.Method, req.URL.RequestURI(), req.Proto)
+	fmt.Fprintf(c.OutputWriter, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
 	for key, _ := range req.Header {
-		fmt.Printf("> %s: %s\n", key, req.Header.Get(key))
+		fmt.Fprintf(c.OutputWriter, "> %s: %s\n", key, req.Header.Get(key))
 	}
 }
 
