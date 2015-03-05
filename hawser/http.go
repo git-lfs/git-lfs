@@ -74,9 +74,9 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 		return
 	}
 
-	fmt.Println("<", res.Proto, res.Status)
+	fmt.Fprintf(c.OutputWriter, "< %s %s\n", res.Proto, res.Status)
 	for key, _ := range res.Header {
-		fmt.Printf("< %s: %s\n", key, res.Header.Get(key))
+		fmt.Fprintf(c.OutputWriter, "< %s: %s\n", key, res.Header.Get(key))
 	}
 
 	traceBody := false
@@ -88,18 +88,19 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 	}
 
 	if traceBody {
-		fmt.Println()
-		res.Body = newTracedBody(res.Body)
+		fmt.Fprintf(c.OutputWriter, "\n")
+		res.Body = newTracedBody(res.Body, c.OutputWriter)
 	}
 }
 
 type tracedBody struct {
-	body io.ReadCloser
+	body   io.ReadCloser
+	output io.Writer
 }
 
 func (r *tracedBody) Read(p []byte) (int, error) {
 	n, err := r.body.Read(p)
-	fmt.Println(string(p[0:n]))
+	fmt.Fprintf(r.output, "%s\n", string(p[0:n]))
 	return n, err
 }
 
@@ -107,6 +108,6 @@ func (r *tracedBody) Close() error {
 	return r.body.Close()
 }
 
-func newTracedBody(body io.ReadCloser) *tracedBody {
-	return &tracedBody{body}
+func newTracedBody(body io.ReadCloser, output io.Writer) *tracedBody {
+	return &tracedBody{body, output}
 }

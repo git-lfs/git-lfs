@@ -163,5 +163,6 @@ type ErrorWithStack interface {
 }
 
 func init() {
+	hawser.Config.OutputWriter = OutputWriter
 	log.SetOutput(ErrorWriter)
 }
