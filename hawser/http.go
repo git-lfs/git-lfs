@@ -61,9 +61,9 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(c.OutputWriter, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
+	fmt.Fprintf(os.Stderr, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
 	for key, _ := range req.Header {
-		fmt.Fprintf(c.OutputWriter, "> %s: %s\n", key, req.Header.Get(key))
+		fmt.Fprintf(os.Stderr, "> %s: %s\n", key, req.Header.Get(key))
 	}
 }
 
@@ -74,9 +74,9 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 		return
 	}
 
-	fmt.Fprintf(c.OutputWriter, "< %s %s\n", res.Proto, res.Status)
+	fmt.Fprintf(os.Stderr, "< %s %s\n", res.Proto, res.Status)
 	for key, _ := range res.Header {
-		fmt.Fprintf(c.OutputWriter, "< %s: %s\n", key, res.Header.Get(key))
+		fmt.Fprintf(os.Stderr, "< %s: %s\n", key, res.Header.Get(key))
 	}
 
 	traceBody := false
@@ -88,19 +88,18 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 	}
 
 	if traceBody {
-		fmt.Fprintf(c.OutputWriter, "\n")
-		res.Body = newTracedBody(res.Body, c.OutputWriter)
+		fmt.Fprintf(os.Stderr, "\n")
+		res.Body = newTracedBody(res.Body)
 	}
 }
 
 type tracedBody struct {
-	body   io.ReadCloser
-	output io.Writer
+	body io.ReadCloser
 }
 
 func (r *tracedBody) Read(p []byte) (int, error) {
 	n, err := r.body.Read(p)
-	fmt.Fprintf(r.output, "%s\n", string(p[0:n]))
+	fmt.Fprintf(os.Stderr, "%s\n", string(p[0:n]))
 	return n, err
 }
 
@@ -108,6 +107,6 @@ func (r *tracedBody) Close() error {
 	return r.body.Close()
 }
 
-func newTracedBody(body io.ReadCloser, output io.Writer) *tracedBody {
-	return &tracedBody{body, output}
+func newTracedBody(body io.ReadCloser) *tracedBody {
+	return &tracedBody{body}
 }
