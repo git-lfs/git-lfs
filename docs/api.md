@@ -130,10 +130,13 @@ and size of the object to upload.
 A response can include one of multiple link relations, each with an `href`
 property and an optional `header` property.
 
-* `upload` - This relation describes how to upload the object.
+* `upload` - This relation describes how to upload the object.  Expect this with
+a 202 status.
 * `verify` - The server can specify a URL for the client to hit after
-successfully uploading an object.
-* `download` - This relation describes how to download the object content.
+successfully uploading an object.  This is an optional relation for a 202
+status.
+* `download` - This relation describes how to download the object content.  This
+only appears on a 200 status.
 
 ### Responses
 
