@@ -1,13 +1,16 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/hawser/git-hawser/git"
 	"github.com/hawser/git-hawser/hawser"
+	"github.com/hawser/git-hawser/pointer"
 	"github.com/hawser/git-hawser/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -138,6 +141,10 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 		return hawser.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
+	if err := ensureFile(filename, path); err != nil {
+		return hawser.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
 	cb, file, cbErr := hawser.CopyCallbackFile("push", filename, index, totalFiles)
 	if cbErr != nil {
 		Error(cbErr.Error())
@@ -148,6 +155,41 @@ func pushAsset(oid, filename string, index, totalFiles int) *hawser.WrappedError
 	}
 
 	return hawser.Upload(path, filename, cb)
+}
+
+// ensureFile makes sure that the cleanPath exists before pushing it.  If it
+// does not exist, it attempts to clean it by reading the file at smudgePath.
+func ensureFile(smudgePath, cleanPath string) error {
+	if _, err := os.Stat(cleanPath); err == nil {
+		return nil
+	}
+
+	expectedOid := filepath.Base(cleanPath)
+	localPath := filepath.Join(hawser.LocalWorkingDir, smudgePath)
+	file, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	cleaned, err := pointer.Clean(file, stat.Size(), nil)
+	if err != nil {
+		return err
+	}
+
+	cleaned.Close()
+
+	if expectedOid != cleaned.Oid {
+		return fmt.Errorf("Expected %s to have an OID of %s, got %s", smudgePath, expectedOid, cleaned.Oid)
+	}
+
+	return nil
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
