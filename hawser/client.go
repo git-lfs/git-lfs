@@ -472,7 +472,7 @@ func saveCredentials(creds Creds, res *http.Response) {
 		return
 	}
 
-	if res.StatusCode < 405 {
+	if res.StatusCode < 404 {
 		execCreds(creds, "reject")
 	}
 }
@@ -534,10 +534,18 @@ func setRequestHeaders(req *http.Request) (Creds, error) {
 }
 
 type ClientError struct {
-	Message   string `json:"message"`
-	RequestId string `json:"request_id,omitempty"`
+	Message          string `json:"message"`
+	DocumentationUrl string `json:"documentation_url,omitempty"`
+	RequestId        string `json:"request_id,omitempty"`
 }
 
 func (e *ClientError) Error() string {
-	return e.Message
+	msg := e.Message
+	if len(e.DocumentationUrl) > 0 {
+		msg += "\nDocs: " + e.DocumentationUrl
+	}
+	if len(e.RequestId) > 0 {
+		msg += "\nRequest ID: " + e.RequestId
+	}
+	return msg
 }
