@@ -19,6 +19,8 @@ trigger specific error messages from the client.
 * 200 - The request completed successfully.
 * 202 - An upload request has been accepted.  Clients should follow hypermedia
 links to actually upload the content.
+* 400 - General error with the client's request.  Invalid JSON formatting, for
+example.
 * 401 - The authentication credentials are incorrect.
 * 403 - The requesting user has access to see the repository, but not to push
 changes to it.
@@ -26,10 +28,8 @@ changes to it.
 repository or requested object does not exist.
 
 The following status codes can optionally be returned from the API, depending on
-the implementation.
+the server implementation.
 
-* 400 - General error with the client's request.  Invalid JSON formatting, for
-example.
 * 406 - The Accept header is invalid.  It should be `application/vnd.hawser+json`.
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
@@ -42,6 +42,24 @@ track usage.
 
 Some server errors may trigger the client to retry requests, such as 500, 502,
 503, and 504.
+
+If the server returns a JSON error object, the client can display this message
+to users.
+
+```
+> GET https://hawser-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.hawser+json
+>
+< HTTP/1.1 200 OK
+< Content-Type: application/vnd.hawser+json
+<
+< {
+<   "message": "Bad credentials",
+<   "documentation_url": "https://hawser-server.com/docs/errors"
+< }
+```
+
+The `documentation_url` property is optional.
 
 ## Hypermedia
 
