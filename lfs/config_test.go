@@ -126,3 +126,24 @@ func TestObjectUrl(t *testing.T) {
 		}
 	}
 }
+
+func TestObjectsUrl(t *testing.T) {
+	tests := map[string]string{
+		"http://example.com":      "http://example.com/objects",
+		"http://example.com/":     "http://example.com/objects",
+		"http://example.com/foo":  "http://example.com/foo/objects",
+		"http://example.com/foo/": "http://example.com/foo/objects",
+	}
+
+	for endpoint, expected := range tests {
+		Config.SetConfig("lfs.url", endpoint)
+		u, err := Config.ObjectUrl("")
+		if err != nil {
+			t.Errorf("Error building URL for %s: %s", endpoint, err)
+		} else {
+			if actual := u.String(); expected != actual {
+				t.Errorf("Expected %s, got %s", expected, u.String())
+			}
+		}
+	}
+}

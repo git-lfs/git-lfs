@@ -99,7 +99,10 @@ func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "objects", oid)
+	u.Path = path.Join(u.Path, "objects")
+	if len(oid) > 0 {
+		u.Path = path.Join(u.Path, oid)
+	}
 	return u, nil
 }
 
