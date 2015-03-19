@@ -107,7 +107,6 @@ func TestBareHTTPEndpointAddsMediaSuffix(t *testing.T) {
 }
 
 func TestObjectUrl(t *testing.T) {
-	oid := "oid"
 	tests := map[string]string{
 		"http://example.com":      "http://example.com/objects/oid",
 		"http://example.com/":     "http://example.com/objects/oid",
@@ -117,6 +116,13 @@ func TestObjectUrl(t *testing.T) {
 
 	for endpoint, expected := range tests {
 		Config.SetConfig("lfs.url", endpoint)
-		assert.Equal(t, expected, Config.ObjectUrl(oid).String())
+		u, err := Config.ObjectUrl("oid")
+		if err != nil {
+			t.Errorf("Error building URL for %s: %s", endpoint, err)
+		} else {
+			if actual := u.String(); expected != actual {
+				t.Errorf("Expected %s, got %s", expected, u.String())
+			}
+		}
 	}
 }

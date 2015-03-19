@@ -505,7 +505,11 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 }
 
 func request(method, oid string) (*http.Request, Creds, error) {
-	u := Config.ObjectUrl(oid)
+	u, err := Config.ObjectUrl(oid)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err != nil {
 		return req, nil, err

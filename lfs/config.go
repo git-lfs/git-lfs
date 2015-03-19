@@ -93,10 +93,14 @@ func (c *Configuration) SetConfig(key, value string) {
 	c.gitConfig[key] = value
 }
 
-func (c *Configuration) ObjectUrl(oid string) *url.URL {
-	u, _ := url.Parse(c.Endpoint())
+func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
+	u, err := url.Parse(c.Endpoint())
+	if err != nil {
+		return nil, err
+	}
+
 	u.Path = path.Join(u.Path, "objects", oid)
-	return u
+	return u, nil
 }
 
 type AltConfig struct {
