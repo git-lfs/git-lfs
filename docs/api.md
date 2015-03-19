@@ -7,55 +7,95 @@ Git repositories that use Hawser will specify a URI endpoint.  See the
 Use that endpoint as a base, and append the following relative paths to upload
 and download from the Hawser server.
 
-## GET /objects/{oid}
+All requests should send an Accept header of `application/vnd.hawser+json`.
+This may change in the future as the API evolves.
 
-This gets either the object content, or the object's meta data.  The OID is the
-value from the object pointer.
+## API Responses
 
-### Getting the content
+This specification defines what status codes that API can return.  Look at each
+individual API method for more details.  Some of the specific status codes may
+trigger specific error messages from the client.
 
-To download the object content, send an Accept header of `application/vnd.hawser`.
-The server returns the raw content back with a `Content-Type` of
-`application/octet-stream`.
+* 200 - The request completed successfully.
+* 202 - An upload request has been accepted.  Clients should follow hypermedia
+links to actually upload the content.
+* 400 - General error with the client's request.  Invalid JSON formatting, for
+example.
+* 401 - The authentication credentials are incorrect.
+* 403 - The requesting user has access to see the repository, but not to push
+changes to it.
+* 404 - Either the user does not have access to see the repository, or the
+repository or requested object does not exist.
+
+The following status codes can optionally be returned from the API, depending on
+the server implementation.
+
+* 406 - The Accept header is invalid.  It should be `application/vnd.hawser+json`.
+* 429 - The user has hit a rate limit with the server.  Though the API does not
+specify any rate limits, implementors are encouraged to set some for
+availability reasons.
+* 501 - The server has not implemented the current method.  Reserved for future
+use.
+* 509 - Returned if the bandwidth limit for the user or repository has been
+exceeded.  The API does not specify any bandwidth limit, but implementors may
+track usage.
+
+Some server errors may trigger the client to retry requests, such as 500, 502,
+503, and 504.
+
+If the server returns a JSON error object, the client can display this message
+to users.
 
 ```
-> GET https://hawser-server.com/objects/{oid} HTTP/1.1
-> Accept: application/octet-stream
-> Authorization: Basic ... (if authentication is needed)
+> GET https://hawser-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.hawser+json
 >
 < HTTP/1.1 200 OK
-< Content-Type: application/octet-stream
+< Content-Type: application/vnd.hawser+json
 <
-< {binary contents}
+< {
+<   "message": "Bad credentials",
+<   "documentation_url": "https://hawser-server.com/docs/errors",
+<   "request_id": "123"
+< }
 ```
 
-The server can also redirect to another location.  This is useful in cases where
-you do not want to render user content on a domain with important cookies.
-Request headers like `Range` or `Accept` should be passed through.  The
-`Authorization` header must _not_ be passed through if the location's host or
-scheme differs from the original request uri.
+The `documentation_url` and `request_id` properties are optional.  If given,
+they are displayed to the user.
 
-```
-> GET https://hawser-server.com/objects/{oid} HTTP/1.1
-> Accept: application/vnd.hawser
-> Authorization: Basic ... (if authentication is needed)
->
-< HTTP/1.1 302 Found
-< Location: https://storage-server.com/{oid}
-<
-< {binary contents}
-```
+## Hypermedia
 
-### Responses
+The Hawser API uses hypermedia hints to instruct the client what to do next.
+These links are included in a `_links` property.  Possible relations for objects
+include:
 
-* 200 - The object contents or meta data is in the response.
-* 302 - Temporary redirect to a new location.
-* 404 - The user does not have access to the object, or it does not exist.
+* `self` - This points to the object's canonical API URL.
+* `download` - Follow this link with a GET and the optional header values to
+download the object content.
+* `upload` - Upload the object content to this link with a PUT.
+* `verify` - Optional link for the client to POST after an upload.  If
+included, the client assumes this step is required after uploading an object.
+See the "Verification" section below for more.
 
-### Getting meta data.
+Link relations specify the `href`, and optionally a collection of header values
+to set for the request.  These are optional, and depend on the backing object
+store that the Hawser API is using.  
 
-You can also request just the JSON meta data with an `Accept` header of
-`application/vnd.hawser+json`.  Here's an example successful request:
+The Hawser client will automatically send the same credentials to the followed
+link relation as Basic Authentication IF:
+
+* The url scheme, host, and port all match the Hawser API endpoint's.
+* The link relation does not specify an Authorization header.
+
+If the host name is different, the Hawser API needs to send enough information
+through the href query or header values to authenticate the request.
+
+The Hawser client expects a 200 or 201 response from these hypermedia requests.
+Any other response code is treated as an error.
+
+## GET /objects/{oid}
+
+This gets the object's meta data.  The OID is the value from the object pointer.
 
 ```
 > GET https://hawser-server.com/objects/{OID} HTTP/1.1
@@ -69,6 +109,9 @@ You can also request just the JSON meta data with an `Accept` header of
 <   "oid": "the-sha-256-signature",
 <   "size": 123456,
 <   "_links": {
+<     "self": {
+<       "href": "https://hawser-server.com/objects/OID",
+<     },
 <     "download": {
 <       "href": "https://some-download.com",
 <       "header": {
@@ -80,10 +123,8 @@ You can also request just the JSON meta data with an `Accept` header of
 ```
 
 The `oid` and `size` properties are required.  A hypermedia `_links` section is
-included with a `download` link relation, which describes how to download the
-object content.  If the GET request to download an object (with `Accept:
-application/octet-stream`) redirects somewhere else, a similar URL should be
-used with the `download` relation.
+included with a `download` link relation.  Clients can follow this link to
+access the object content. See the "Hypermedia" section above for more.
 
 Here's a sample response for a request with an authorization error:
 
@@ -100,39 +141,11 @@ Here's a sample response for a request with an authorization error:
 < }
 ```
 
-There are what the HTTP status codes mean:
+### Responses
 
-* 200 - The user is able to read the object.
-* 404 - The repository does not exist for the user, or the user does not have
-access to it.
-
-## OPTIONS /objects/{oid}
-
-This is a pre-flight request to verify credentials before sending the file
-contents.  Note: The `OPTIONS` method is only supported in pre-1.0 Hawser
-clients.  After 1.0, clients should use the `GET` with the
-`application/vnd.hawser+json` Accept header.
-
-Here's an example successful request:
-
-```
-> OPTIONS https://hawser-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.hawser+json
-> Authorization: Basic ... (if authentication is needed)
->
-< HTTP/1.1 200 OK
-
-(no response body)
-```
-
-There are what the HTTP status codes mean:
-
-* 200 - The user is able to read the object.
-* 204 - The user is able to PUT the object to the same URL.
-* 403 - The user has **read**, but not **write** access.
-* 404 - The repository does not exist for the user.
-* 405 - OPTIONS not supported, use a GET request with a `application/vnd.hawser+json`
-Accept header.
+* 200 - The object exists and the user has access to download it.
+* 401 - The authentication credentials are incorrect.
+* 404 - The user does not have access to the object, or it does not exist.
 
 ## POST /objects
 
@@ -174,43 +187,22 @@ and size of the object to upload.
 A response can include one of multiple link relations, each with an `href`
 property and an optional `header` property.
 
-* `upload` - This relation describes how to upload the object.
+* `upload` - This relation describes how to upload the object.  Expect this with
+a 202 status.
 * `verify` - The server can specify a URL for the client to hit after
-successfully uploading an object.
-* `download` - This relation describes how to download the object content.
+successfully uploading an object.  This is an optional relation for a 202
+status.
+* `download` - This relation describes how to download the object content.  This
+only appears on a 200 status.
 
 ### Responses
 
 * 200 - The object already exists.  Don't bother re-uploading.
-* 202 - The object is ready to be uploaded.Follow the "upload" and optional
+* 202 - The object is ready to be uploaded.  Follow the "upload" and optional
 "verify" links.
+* 401 - The authentication credentials are incorrect.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
-
-## PUT /objects/{oid}
-
-This writes the object contents to the Git Media server.
-
-```
-> PUT https://hawser-server.com/objects/{oid} HTTP/1.1
-> Accept: application/vnd.hawser
-> Content-Type: application/octet-stream
-> Authorization: Basic ...
-> Content-Length: 123
->
-> {binary contents}
->
-< HTTP/1.1 200 OK
-```
-
-### Responses
-
-* 200 - The object already exists.
-* 201 - The object was uploaded successfully.
-* 403 - The user has **read**, but not **write** access.
-* 404 - The repository does not exist for the user.
-* 405 - PUT method is not allowed.  Use an OPTIONS or GET pre-flight request to
-get the current URL to send a file.
 
 ## Verification
 
