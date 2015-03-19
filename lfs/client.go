@@ -2,10 +2,13 @@ package lfs
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"regexp"
 )
 
 const (
@@ -13,9 +16,18 @@ const (
 )
 
 var (
+	mediaTypeRE                = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
 	objectRelationDoesNotExist = errors.New("relation does not exist")
 	hiddenHeaders              = map[string]bool{
 		"Authorization": true,
+	}
+
+	// 401 and 403 print the same default error message
+	defaultErrors = map[int]string{
+		400: "Client error: %s",
+		401: "Authorization error: %s\nCheck that you have proper access to the repository",
+		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
+		500: "Server error: %s",
 	}
 )
 
@@ -80,6 +92,86 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 func Upload(oid, filename string, cb CopyCallback) *WrappedError {
 	return nil
+}
+
+func doApiRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+	res, err := DoHTTP(Config, req)
+
+	var wErr *WrappedError
+
+	if err != nil {
+		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
+	} else {
+		if creds != nil {
+			saveCredentials(creds, res)
+		}
+
+		wErr = handleResponse(res)
+	}
+
+	if wErr != nil {
+		if res != nil {
+			setErrorResponseContext(wErr, res)
+		} else {
+			setErrorRequestContext(wErr, req)
+		}
+	}
+
+	return res, wErr
+}
+
+func handleResponse(res *http.Response) *WrappedError {
+	if res.StatusCode < 400 {
+		return nil
+	}
+
+	defer func() {
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+	}()
+
+	var wErr *WrappedError
+
+	if mediaTypeRE.MatchString(res.Header.Get("Content-Type")) {
+		cliErr := &ClientError{}
+		err := json.NewDecoder(res.Body).Decode(cliErr)
+		if err != nil {
+			return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
+		}
+
+		wErr = Error(cliErr)
+	} else {
+		wErr = defaultError(res)
+	}
+
+	wErr.Panic = res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509
+	return wErr
+}
+
+func defaultError(res *http.Response) *WrappedError {
+	var msgFmt string
+
+	if f, ok := defaultErrors[res.StatusCode]; ok {
+		msgFmt = f
+	} else if res.StatusCode < 500 {
+		msgFmt = defaultErrors[400] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
+	} else {
+		msgFmt = defaultErrors[500] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
+	}
+
+	return Error(fmt.Errorf(msgFmt, res.Request.URL))
+}
+
+func saveCredentials(creds Creds, res *http.Response) {
+	if creds == nil {
+		return
+	}
+
+	if res.StatusCode < 300 {
+		execCreds(creds, "approve")
+	} else if res.StatusCode == 401 {
+		execCreds(creds, "reject")
+	}
 }
 
 func newApiRequest(method, oid string) (*http.Request, Creds, error) {
@@ -153,4 +245,8 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 			err.Set(contextKey, head.Get(key))
 		}
 	}
+}
+
+func init() {
+	defaultErrors[403] = defaultErrors[401]
 }
