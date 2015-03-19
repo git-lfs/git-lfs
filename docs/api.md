@@ -55,11 +55,13 @@ to users.
 <
 < {
 <   "message": "Bad credentials",
-<   "documentation_url": "https://hawser-server.com/docs/errors"
+<   "documentation_url": "https://hawser-server.com/docs/errors",
+<   "request_id": "123"
 < }
 ```
 
-The `documentation_url` property is optional.
+The `documentation_url` and `request_id` properties are optional.  If given,
+they are displayed to the user.
 
 ## Hypermedia
 
