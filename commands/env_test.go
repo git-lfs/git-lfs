@@ -25,7 +25,7 @@ func TestEnv(t *testing.T) {
 }
 
 func TestEnvWithMediaUrl(t *testing.T) {
-	repo := NewRepository(t, "config_media_url")
+	repo := NewRepository(t, "config_lfs_url")
 	defer repo.Test()
 
 	cmd := repo.Command("env")
@@ -79,24 +79,24 @@ func TestEnvWithConfiguredSubmodule(t *testing.T) {
 	repo := NewRepository(t, "submodule")
 	defer repo.Test()
 
-	repo.AddPath(repo.Path, "config_media_url")
+	repo.AddPath(repo.Path, "config_lfs_url")
 	repo.Paths = repo.Paths[1:]
 
 	cmd := repo.Command("env")
 
 	SetConfigOutput(cmd, map[string]string{
 		"Endpoint":        "http://foo/bar",
-		"LocalWorkingDir": filepath.Join(repo.Path, "config_media_url"),
-		"LocalGitDir":     filepath.Join(repo.Path, ".git", "modules", "config_media_url"),
-		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "modules", "config_media_url", "lfs", "objects"),
-		"TempDir":         filepath.Join(repo.Path, ".git", "modules", "config_media_url", "lfs", "tmp"),
+		"LocalWorkingDir": filepath.Join(repo.Path, "config_lfs_url"),
+		"LocalGitDir":     filepath.Join(repo.Path, ".git", "modules", "config_lfs_url"),
+		"LocalMediaDir":   filepath.Join(repo.Path, ".git", "modules", "config_lfs_url", "lfs", "objects"),
+		"TempDir":         filepath.Join(repo.Path, ".git", "modules", "config_lfs_url", "lfs", "tmp"),
 	})
 
 	cmd.Before(func() {
-		submodPath := filepath.Join(Root, "commands", "repos", "config_media_url.git")
+		submodPath := filepath.Join(Root, "commands", "repos", "config_lfs_url.git")
 		exec.Command("git", "submodule", "add", submodPath).Run()
 		exec.Command("git", "submodule", "update").Run()
-		os.Chdir("config_media_url")
+		os.Chdir("config_lfs_url")
 		exec.Command("git", "checkout", "-b", "whatevs").Run()
 	})
 }
