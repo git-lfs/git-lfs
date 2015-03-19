@@ -1,9 +1,9 @@
-git-hawser-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
+git-lfs-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
 ==============================================================================================
 
 ## SYNOPSIS
 
-`git hawser smudge` <path>
+`git lfs smudge` <path>
 
 ## DESCRIPTION
 
@@ -17,7 +17,7 @@ Git attributes.
 
 ## OPTIONS
 
-Without any options, `git hawser smudge` will output the raw hawser content to
+Without any options, `git lfs smudge` will output the raw hawser content to
 STDOUT.
 
 * `--info`:
@@ -26,6 +26,6 @@ STDOUT.
 
 ## SEE ALSO
 
-git-hawser-init(1), gitattributes(5).
+git-lfs-init(1), gitattributes(5).
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.

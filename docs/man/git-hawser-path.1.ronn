@@ -1,13 +1,13 @@
-git-hawser-path(1) - View Hawser paths in Git attributes.
+git-lfs-path(1) - View Git LFS paths in Git attributes.
 ======================================================================
 
 ## SYNOPSIS
 
-`git hawser path`
+`git lfs path`
 
 ## DESCRIPTION
 
-The "path" command helps view and modify Git attributes for the "hawser"
+The "path" command helps view and modify Git attributes for the "lfs"
 clean and smudge filters.  The "path" argument can be a file extension, or a
 path.
 
@@ -15,10 +15,10 @@ path.
 
 * View the current Git attributes.
 
-    `git hawser path`
+    `git lfs path`
 
 ## SEE ALSO
 
-git-hawser-add(1), git-hawser-rm(1), git-hawser-init(1), gitattributes(5).
+git-lfs-add(1), git-lfs-rm(1), git-lfs-init(1), gitattributes(5).
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.

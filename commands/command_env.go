@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ var (
 )
 
 func envCommand(cmd *cobra.Command, args []string) {
-	config := hawser.Config
+	config := lfs.Config
 
 	if endpoint := config.Endpoint(); len(endpoint) > 0 {
 		Print("Endpoint=%s", endpoint)
@@ -24,7 +24,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
 	}
 
-	for _, env := range hawser.Environ() {
+	for _, env := range lfs.Environ() {
 		Print(env)
 	}
 }

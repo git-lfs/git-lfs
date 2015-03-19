@@ -2,7 +2,7 @@ package commands
 
 import (
 	"bufio"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -24,10 +24,10 @@ var (
 )
 
 func removeCommand(cmd *cobra.Command, args []string) {
-	hawser.InstallHooks(false)
+	lfs.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git hawser path rm <path> [path]*")
+		Print("git lfs path rm <path> [path]*")
 		return
 	}
 
@@ -47,7 +47,7 @@ func removeCommand(cmd *cobra.Command, args []string) {
 	scanner := bufio.NewScanner(attributes)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "filter=hawser") {
+		if strings.Contains(line, "filter=lfs") {
 			fields := strings.Fields(line)
 			removeThisPath := false
 			for _, t := range args {

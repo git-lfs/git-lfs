@@ -1,24 +1,24 @@
-git-hawser-add(1) - Add Hawser paths to Git Attributes.
+git-lfs-add(1) - Add Git LFS paths to Git Attributes.
 ======================================================================
 
 ## SYNOPSIS
 
-`git hawser add` [path]*
+`git lfs add` [path]*
 
 ## DESCRIPTION
 
-The "path" command helps view and modify Git attributes for the "hawser"
+The "path" command helps view and modify Git attributes for the "lfs"
 clean and smudge filters.  The "path" argument can be a file extension, or a
 path.
 
 ## EXAMPLES
 
-* Configure a path to use the Hawser clean and smudge filters.
+* Configure a path to use the Git LFS clean and smudge filters.
 
-    `git hawser add *.gif`
+    `git lfs add *.gif`
 
 ## SEE ALSO
 
-git-hawser-rm(1), git-hawser-path(1), git-hawser-init(1), gitattributes(5).
+git-lfs-rm(1), git-lfs-path(1), git-lfs-init(1), gitattributes(5).
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.

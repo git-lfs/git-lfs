@@ -25,7 +25,7 @@ func TestPath(t *testing.T) {
 	cmd.Before(func() {
 		// write attributes file in .git
 		path := filepath.Join(".git", "info", "attributes")
-		repo.WriteFile(path, "*.mov filter=hawser -crlf\n")
+		repo.WriteFile(path, "*.mov filter=lfs -crlf\n")
 
 		// add hook
 		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
@@ -51,12 +51,12 @@ func TestPathOnEmptyRepository(t *testing.T) {
 	cmd.Before(func() {
 		// write attributes file in .git
 		path := filepath.Join(".gitattributes")
-		repo.WriteFile(path, "*.mov filter=hawser -crlf\n")
+		repo.WriteFile(path, "*.mov filter=lfs -crlf\n")
 	})
 
 	cmd.After(func() {
 		// assert path was added
-		assert.Equal(t, "*.mov filter=hawser -crlf\n*.gif filter=hawser -crlf\n", repo.ReadFile(".gitattributes"))
+		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs -crlf\n", repo.ReadFile(".gitattributes"))
 
 		expected := "Listing paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 
@@ -84,12 +84,12 @@ func TestAddPathWithoutTrailingLinebreak(t *testing.T) {
 	cmd.Before(func() {
 		// write attributes file in .git
 		path := filepath.Join(".gitattributes")
-		repo.WriteFile(path, "*.mov filter=hawser -crlf")
+		repo.WriteFile(path, "*.mov filter=lfs -crlf")
 	})
 
 	cmd.After(func() {
 		// assert path was added
-		assert.Equal(t, "*.mov filter=hawser -crlf\n*.gif filter=hawser -crlf\n", repo.ReadFile(".gitattributes"))
+		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs -crlf\n", repo.ReadFile(".gitattributes"))
 
 		expected := "Listing paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 

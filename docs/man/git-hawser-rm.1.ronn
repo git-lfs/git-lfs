@@ -1,24 +1,24 @@
-git-hawser-rm(1) - Remove Hawser paths from Git Attributes.
+git-lfs-rm(1) - Remove Git LFS paths from Git Attributes.
 ======================================================================
 
 ## SYNOPSIS
 
-`git hawser rm` [path]*
+`git lfs rm` [path]*
 
 ## DESCRIPTION
 
-The "path" command helps view and modify Git attributes for the "hawser"
+The "path" command helps view and modify Git attributes for the "lfs"
 clean and smudge filters.  The "path" argument can be a file extension, or a
 path.
 
 ## EXAMPLES
 
-* Prevent a path from using Hawser clean and smudge filters.
+* Prevent a path from using Git LFS clean and smudge filters.
 
-    `git hawser rm *.gif`
+    `git lfs rm *.gif`
 
 ## SEE ALSO
 
-git-hawser-add(1), git-hawser-path(1), git-hawser-init(1), gitattributes(5).
+git-lfs-add(1), git-lfs-path(1), git-lfs-init(1), gitattributes(5).
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -18,10 +18,10 @@ var (
 )
 
 func addCommand(cmd *cobra.Command, args []string) {
-	hawser.InstallHooks(false)
+	lfs.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git hawser path add <path> [path]*")
+		Print("git lfs path add <path> [path]*")
 		return
 	}
 
@@ -52,7 +52,7 @@ func addCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=hawser -crlf\n", t))
+		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs -crlf\n", t))
 		if err != nil {
 			Print("Error adding path %s", t)
 			continue

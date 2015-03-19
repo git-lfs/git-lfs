@@ -1,50 +1,50 @@
-Git Hawser
+Git Large File Storage
 ======
 
-Git command line extension for managing large files.  Hawser replaces large
-files with text pointers inside Git, while storing the actual files in a remote
-Hawser server.
+Git LFS is a command line extension for managing large files.  It replaces
+large files with text pointers inside Git, while storing the actual files in a
+remote Git LFS server.
 
-The Git Hawser client is written in Go, with pre-compiled binaries available for
+The Git LFS client is written in Go, with pre-compiled binaries available for
 Mac, Windows, Linux, and FreeBSD.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Hawser and sending
-patches.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
+sending patches.
 
 ## Getting Started
 
 Download the [latest client][rel] and run the included install script.  The
-installer should run `git hawser init` for you, which sets up Git's global
-configuration settings for Hawser.
+installer should run `git lfs init` for you, which sets up Git's global
+configuration settings for Git LFS.
 
-[rel]: https://github.com/hawser/git-hawser/releases
+[rel]: https://github.com/github/git-lfs/releases
 
 ### Configuration
 
-Hawser uses `.gitattributes` files to configure which are managed by Hawser.
+Git LFS uses `.gitattributes` files to configure which are managed by Git LFS.
 Here is a sample one that saves zips and mp3s:
 
     $ cat .gitattributes
-    *.mp3 filter=hawser -crlf
-    *.zip filter=hawser -crlf
+    *.mp3 filter=lfs -crlf
+    *.zip filter=lfs -crlf
 
-Hawser can help manage the paths:
+Git LFS can help manage the paths:
 
-    $ git hawser add "*.mp3"
+    $ git lfs add "*.mp3"
     Adding path *.mp3
 
-    $ git hawser add "*.zip"
+    $ git lfs add "*.zip"
     Adding path *.zip
 
-    $ git hawser path
+    $ git lfs path
     Listing paths
         *.mp3 (.gitattributes)
         *.zip (.gitattributes)
 
-    $ git hawser remove "*.zip"
+    $ git lfs remove "*.zip"
     Removing path *.zip
 
-    $ git hawser path
+    $ git lfs path
     Listing paths
         *.mp3 (.gitattributes)
 
@@ -55,9 +55,9 @@ Once setup, you're ready to push some commits.
     $ git add my.zip
     $ git commit -m "add zip"
 
-You can confirm that Hawser is managing your zip file:
+You can confirm that Git LFS is managing your zip file:
 
-    $ git hawser ls-files
+    $ git lfs ls-files
     my.zip
 
 Once you've made your commits, push your files to the Git remote.
@@ -70,7 +70,7 @@ Once you've made your commits, push your files to the Git remote.
     Compressing objects: 100% (5/5), done.
     Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
     Total 5 (delta 1), reused 0 (delta 0)
-    To https://github.com/hawser/hawser-test
+    To https://github.com/github/git-lfs-test
        67fcf6a..47b2002  master -> master
 
-See the [Hawser overview](https://github.com/hawser/git-hawser/tree/master/docs) and [man pages](https://github.com/hawser/git-hawser/tree/master/docs/man).
+See the [Git LFS overview](https://github.com/github/git-lfs/tree/master/docs) and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).

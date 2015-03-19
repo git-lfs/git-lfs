@@ -8,9 +8,9 @@ fi
 
 mkdir -p $prefix/bin
 
-rm -rf $prefix/bin/git-hawser*
+rm -rf $prefix/bin/git-lfs*
 for g in git*; do
   cp $g "$prefix/bin/$g"
 done
 
-git hawser init
+git lfs init

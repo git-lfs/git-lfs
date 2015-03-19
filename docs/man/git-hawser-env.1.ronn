@@ -1,9 +1,9 @@
-git-hawser-env(1) -- Display the Git Media environment.
+git-lfs-env(1) -- Display the Git Media environment.
 =========================================================
 
 ## SYNOPSIS
 
-`git hawser env`
+`git lfs env`
 
 ## DESCRIPTION
 
@@ -11,4 +11,4 @@ Displays the current Git Media environment.
 
 ## SEE ALSO
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.

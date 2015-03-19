@@ -1,9 +1,9 @@
-git-hawser-push(1) -- Push queued large files to the Git Media endpoint.
+git-lfs-push(1) -- Push queued large files to the Git Media endpoint.
 =======================================================================
 
 ## SYNOPSIS
 
-`git hawser push` <repo> [refspec]
+`git lfs push` <repo> [refspec]
 
 ## DESCRIPTION
 
@@ -25,6 +25,6 @@ Push is typically run by Git's pre-push hook.
 
 ## SEE ALSO
 
-git-hawser-clean(1).
+git-lfs-clean(1).
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.

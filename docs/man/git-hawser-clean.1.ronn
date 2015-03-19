@@ -1,21 +1,21 @@
-git-hawser-clean(1) -- Git clean filter that converts large files to pointers.
+git-lfs-clean(1) -- Git clean filter that converts large files to pointers.
 =============================================================================
 
 ## SYNOPSIS
 
-`git hawser clean` <path>
+`git lfs clean` <path>
 
 ## DESCRIPTION
 
 Clean calculates a SHA-256 signature of the data from STDOUT, and outputs a
 Git Media pointer file.  It also queues the file to be pushed by
-git-hawser-push(1).
+git-lfs-push(1).
 
 Clean is typicall run by Git's clean filter, configured by the repository's
 Git attributes.
 
 ## SEE ALSO
 
-git-hawser-init(1), git-hawser-push(1), gitattributes(5).
+git-lfs-init(1), git-lfs-push(1), gitattributes(5).
 
-Part of the git-hawser(1) suite.
+Part of the git-lfs(1) suite.
