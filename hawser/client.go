@@ -485,5 +485,12 @@ type ClientError struct {
 }
 
 func (e *ClientError) Error() string {
-	return e.Message
+	msg := e.Message
+	if len(e.DocumentationUrl) > 0 {
+		msg += "\nDocs: " + e.DocumentationUrl
+	}
+	if len(e.RequestId) > 0 {
+		msg += "\nRequest ID: " + e.RequestId
+	}
+	return msg
 }
