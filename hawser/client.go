@@ -479,8 +479,9 @@ func setRequestHeaders(req *http.Request) (Creds, error) {
 }
 
 type ClientError struct {
-	Message   string `json:"message"`
-	RequestId string `json:"request_id,omitempty"`
+	Message          string `json:"message"`
+	DocumentationUrl string `json:"documentation_url,omitempty"`
+	RequestId        string `json:"request_id,omitempty"`
 }
 
 func (e *ClientError) Error() string {
