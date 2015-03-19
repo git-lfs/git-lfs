@@ -69,9 +69,9 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 		}
 
 		if path.Ext(url) == ".git" {
-			return url + "/info/media"
+			return url + "/info/lfs"
 		}
-		return url + ".git/info/media"
+		return url + ".git/info/lfs"
 	}
 
 	return ""

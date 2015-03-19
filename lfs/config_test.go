@@ -58,7 +58,7 @@ func TestEndpointAddsMediaSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/media", config.Endpoint())
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
 func TestBareEndpointAddsMediaSuffix(t *testing.T) {
@@ -67,7 +67,7 @@ func TestBareEndpointAddsMediaSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/media", config.Endpoint())
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
 func TestSSHEndpointAddsMediaSuffix(t *testing.T) {
@@ -76,7 +76,7 @@ func TestSSHEndpointAddsMediaSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/media", config.Endpoint())
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
 func TestBareSSHEndpointAddsMediaSuffix(t *testing.T) {
@@ -85,7 +85,7 @@ func TestBareSSHEndpointAddsMediaSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/media", config.Endpoint())
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
 func TestHTTPEndpointAddsMediaSuffix(t *testing.T) {
@@ -94,7 +94,7 @@ func TestHTTPEndpointAddsMediaSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "http://example.com/foo/bar.git/info/media", config.Endpoint())
+	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
 func TestBareHTTPEndpointAddsMediaSuffix(t *testing.T) {
@@ -103,7 +103,7 @@ func TestBareHTTPEndpointAddsMediaSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "http://example.com/foo/bar.git/info/media", config.Endpoint())
+	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
 func TestObjectUrl(t *testing.T) {
