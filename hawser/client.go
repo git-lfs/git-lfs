@@ -417,7 +417,7 @@ func saveCredentials(creds Creds, res *http.Response) {
 		return
 	}
 
-	if res.StatusCode < 405 {
+	if res.StatusCode < 404 {
 		execCreds(creds, "reject")
 	}
 }
