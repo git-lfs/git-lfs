@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -147,6 +148,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 
+	tracerx.Printf("api: uploading %s (%s)", filename, oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
 		return wErr
@@ -165,7 +167,6 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
 	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
-	fmt.Println(req.Header)
 	req.Body = file
 
 	res, wErr = doHttpRequest(req, creds)
@@ -193,8 +194,8 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	fmt.Printf("HTTP %s %s\n", req.Method, req.URL)
-	fmt.Printf("HTTP HEADER: %v\n", req.Header)
+	tracerx.Printf("api: %s %s", req.Method, req.URL)
+
 	res, err := DoHTTP(Config, req)
 
 	var wErr *WrappedError
@@ -202,7 +203,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
-		fmt.Printf("HTTP Status %d\n", res.StatusCode)
+		tracerx.Printf("api status: %d", res.StatusCode)
 		if creds != nil {
 			saveCredentials(creds, res)
 		}
