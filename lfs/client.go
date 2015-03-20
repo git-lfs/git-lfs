@@ -152,6 +152,10 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		return wErr
 	}
 
+	if res.StatusCode == 202 {
+		return nil
+	}
+
 	req, creds, err = obj.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
