@@ -5,11 +5,6 @@ import (
 	"testing"
 )
 
-type putRequest struct {
-	Oid  string
-	Size int
-}
-
 func tempdir(t *testing.T) string {
 	dir, err := ioutil.TempDir("", "git-lfs-test")
 	if err != nil {
