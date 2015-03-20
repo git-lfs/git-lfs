@@ -39,8 +39,8 @@ func NewPointer(oid string, size int64) *Pointer {
 	return &Pointer{latest, oid, size, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, cb hawser.CopyCallback) error {
-	return Smudge(writer, p, cb)
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, cb hawser.CopyCallback) error {
+	return Smudge(writer, p, workingfile, cb)
 }
 
 func (p *Pointer) Encode(writer io.Writer) (int, error) {
