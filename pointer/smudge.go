@@ -49,18 +49,13 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		return hawser.Errorf(err, "Error opening media file buffer.")
 	}
 
-	bar := pb.New64(size)
-	bar.SetUnits(pb.U_BYTES)
-	bar.Output = os.Stderr
-	bar.Start()
+	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
-	_, err = hawser.CopyWithCallback(mediaFile, bar.NewProxyReader(reader), ptr.Size, cb)
+	_, err = hawser.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
 	if err == nil {
 		err = mediaFile.Accept()
 	}
 	mediaFile.Close()
-
-	fmt.Fprintf(os.Stderr, "\nDownloaded %s\n", workingfile)
 
 	if err != nil {
 		return hawser.Errorf(err, "Error buffering media file.")
