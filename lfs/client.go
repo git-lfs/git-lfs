@@ -174,7 +174,8 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		TotalSize: reqObj.Size,
 		Reader:    file,
 	}
-	bar := pb.StartNew(int(reqObj.Size))
+
+	bar := pb.New64(reqObj.Size)
 	bar.SetUnits(pb.U_BYTES)
 	bar.Start()
 
