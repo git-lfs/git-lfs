@@ -227,7 +227,7 @@ func callPut(filehash, filename string, cb CopyCallback) *WrappedError {
 		Reader:    file,
 	}
 
-	bar := pb.StartNew(int(fileSize))
+	bar := pb.New64(fileSize)
 	bar.SetUnits(pb.U_BYTES)
 	bar.Start()
 
