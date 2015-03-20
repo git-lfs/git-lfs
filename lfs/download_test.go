@@ -153,7 +153,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", "application/json; charset=utf-8")
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
