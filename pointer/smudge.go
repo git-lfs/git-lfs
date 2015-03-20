@@ -5,6 +5,7 @@ import (
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 func Smudge(writer io.Writer, ptr *Pointer, cb lfs.CopyCallback) error {
@@ -28,7 +29,7 @@ func Smudge(writer io.Writer, ptr *Pointer, cb lfs.CopyCallback) error {
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
-	reader, size, wErr := lfs.Download(mediafile)
+	reader, size, wErr := lfs.Download(filepath.Base(mediafile))
 	if reader != nil {
 		defer reader.Close()
 	}
