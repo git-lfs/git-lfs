@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cheggaaa/pb"
 	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
@@ -167,7 +168,17 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
 	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
-	req.Body = file
+
+	reader := &CallbackReader{
+		C:         cb,
+		TotalSize: reqObj.Size,
+		Reader:    file,
+	}
+	bar := pb.StartNew(int(reqObj.Size))
+	bar.SetUnits(pb.U_BYTES)
+	bar.Start()
+
+	req.Body = ioutil.NopCloser(bar.NewProxyReader(reader))
 
 	res, wErr = doHttpRequest(req, creds)
 	if wErr != nil {

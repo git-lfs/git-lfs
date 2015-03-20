@@ -104,7 +104,14 @@ func TestExistingUpload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
+	// stores callbacks
+	calls := make([][]int64, 0, 5)
+	cb := func(total int64, written int64) error {
+		calls = append(calls, []int64{total, written})
+		return nil
+	}
+
+	wErr := Upload(oidPath, "", cb)
 	if wErr != nil {
 		t.Fatal(wErr)
 	}
@@ -119,6 +126,10 @@ func TestExistingUpload(t *testing.T) {
 
 	if verifyCalled {
 		t.Errorf("verify not skipped")
+	}
+
+	if len(calls) > 0 {
+		t.Errorf("CopyCallback was used")
 	}
 }
 
@@ -270,7 +281,14 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
+	// stores callbacks
+	calls := make([][]int64, 0, 5)
+	cb := func(total int64, written int64) error {
+		calls = append(calls, []int64{total, written})
+		return nil
+	}
+
+	wErr := Upload(oidPath, "", cb)
 	if wErr != nil {
 		t.Fatal(wErr)
 	}
@@ -285,6 +303,17 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 	if !verifyCalled {
 		t.Errorf("verify not called")
+	}
+
+	t.Logf("CopyCallback: %v", calls)
+
+	if len(calls) < 1 {
+		t.Errorf("CopyCallback was not used")
+	}
+
+	lastCall := calls[len(calls)-1]
+	if lastCall[0] != 4 || lastCall[1] != 4 {
+		t.Errorf("Last CopyCallback call should be the total")
 	}
 }
 
