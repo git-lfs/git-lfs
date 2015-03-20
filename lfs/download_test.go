@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -305,5 +306,97 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
+	}
+}
+
+func TestDownloadAPIError(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	tmp := tempdir(t)
+	defer server.Close()
+	defer os.RemoveAll(tmp)
+
+	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+
+	Config.SetConfig("lfs.url", server.URL+"/media")
+	_, _, wErr := Download("oid")
+	if wErr == nil {
+		t.Fatal("no error?")
+	}
+
+	if wErr.Panic {
+		t.Fatal("should not panic")
+	}
+
+	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects/oid") {
+		t.Fatalf("Unexpected error: %s", wErr.Error())
+	}
+}
+
+func TestDownloadStorageError(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	tmp := tempdir(t)
+	defer server.Close()
+	defer os.RemoveAll(tmp)
+
+	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server: %s %s", r.Method, r.URL)
+		t.Logf("request header: %v", r.Header)
+
+		if r.Method != "GET" {
+			w.WriteHeader(405)
+			return
+		}
+
+		if r.Header.Get("Accept") != mediaType {
+			t.Error("Invalid Accept")
+		}
+
+		if r.Header.Get("Authorization") != expectedAuth(t, server) {
+			t.Error("Invalid Authorization")
+		}
+
+		obj := &objectResource{
+			Oid:  "oid",
+			Size: 4,
+			Links: map[string]*linkRelation{
+				"download": &linkRelation{
+					Href:   server.URL + "/download",
+					Header: map[string]string{"A": "1"},
+				},
+			},
+		}
+
+		by, err := json.Marshal(obj)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		head := w.Header()
+		head.Set("Content-Type", mediaType)
+		head.Set("Content-Length", strconv.Itoa(len(by)))
+		w.WriteHeader(200)
+		w.Write(by)
+	})
+
+	mux.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+	})
+
+	Config.SetConfig("lfs.url", server.URL+"/media")
+	_, _, wErr := Download("oid")
+	if wErr == nil {
+		t.Fatal("no error?")
+	}
+
+	if !wErr.Panic {
+		t.Fatal("should panic")
+	}
+
+	if wErr.Error() != fmt.Sprintf(defaultErrors[500], server.URL+"/download") {
+		t.Fatalf("Unexpected error: %s", wErr.Error())
 	}
 }
