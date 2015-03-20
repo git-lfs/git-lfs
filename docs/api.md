@@ -7,8 +7,9 @@ Git repositories that use Git LFS will specify a URI endpoint.  See the
 Use that endpoint as a base, and append the following relative paths to upload
 and download from the Git LFS server.
 
-All requests should send an Accept header of `application/vnd.git-lfs+json`.
-This may change in the future as the API evolves.
+API requests require an Accept header of `application/vnd.git-lfs+json`. The
+upload and verify requests need a `application/vnd.git-lfs+json` Content-Type
+too.
 
 ## API Responses
 
@@ -153,7 +154,7 @@ This request initiates the upload of an object, given a JSON body with the oid
 and size of the object to upload.
 
 ```
-> POST https://git-lfs-server.com/objects/ HTTP/1.1
+> POST https://git-lfs-server.com/objects HTTP/1.1
 > Accept: application/vnd.git-lfs+json
 > Content-Type: application/vnd.git-lfs+json
 > Authorization: Basic ... (if authentication is needed)
@@ -215,7 +216,7 @@ API expects a POST to the href after a successful upload.  Git LFS clients send:
 
 ```
 > POST https://git-lfs-server.com/callback
-> Accept: application/vnd.git-lfs
+> Accept: application/vnd.git-lfs+json
 > Content-Type: application/vnd.git-lfs+json
 > Content-Length: 123
 >

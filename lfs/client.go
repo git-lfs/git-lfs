@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strconv"
 )
 
 const (
@@ -37,22 +41,22 @@ type objectResource struct {
 	Links map[string]*linkRelation `json:"_links,omitempty"`
 }
 
-func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
+func (o *objectResource) NewRequest(relation, method string) (*http.Request, Creds, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, objectRelationDoesNotExist
+		return nil, nil, objectRelationDoesNotExist
 	}
 
-	req, err := http.NewRequest(method, rel.Href, nil)
+	req, creds, err := newClientRequest(method, rel.Href)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for h, v := range rel.Header {
 		req.Header.Set(h, v)
 	}
 
-	return req, nil
+	return req, creds, nil
 }
 
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
@@ -87,14 +91,105 @@ func (e *ClientError) Error() string {
 }
 
 func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
-	return nil, 0, nil
+	req, creds, err := newApiRequest("GET", oid)
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, obj, wErr := doApiRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	req, creds, err = obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, wErr = doHttpRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	return res.Body, res.ContentLength, nil
 }
 
-func Upload(oid, filename string, cb CopyCallback) *WrappedError {
-	return nil
+func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
+	oid := filepath.Base(oidPath)
+	file, err := os.Open(oidPath)
+	if err != nil {
+		return Error(err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return Error(err)
+	}
+
+	reqObj := &objectResource{
+		Oid:  oid,
+		Size: stat.Size(),
+	}
+
+	by, err := json.Marshal(reqObj)
+	if err != nil {
+		return Error(err)
+	}
+
+	req, creds, err := newApiRequest("POST", "")
+	if err != nil {
+		return Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.Body = ioutil.NopCloser(bytes.NewReader(by))
+
+	res, obj, wErr := doApiRequest(req, creds)
+	if wErr != nil {
+		return wErr
+	}
+
+	req, creds, err = obj.NewRequest("upload", "PUT")
+	if err != nil {
+		return Error(err)
+	}
+
+	if len(req.Header.Get("Content-Type")) == 0 {
+		req.Header.Set("Content-Type", "application/octet-stream")
+	}
+	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
+	fmt.Println(req.Header)
+	req.Body = file
+
+	res, wErr = doHttpRequest(req, creds)
+	if wErr != nil {
+		return wErr
+	}
+
+	if res.StatusCode > 299 {
+		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+	}
+
+	req, creds, err = obj.NewRequest("verify", "POST")
+	if err == objectRelationDoesNotExist {
+		return nil
+	} else if err != nil {
+		return Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.Body = ioutil.NopCloser(bytes.NewReader(by))
+	_, wErr = doHttpRequest(req, creds)
+
+	return wErr
 }
 
-func doApiRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+	fmt.Printf("HTTP %s %s\n", req.Method, req.URL)
+	fmt.Printf("HTTP HEADER: %v\n", req.Header)
 	res, err := DoHTTP(Config, req)
 
 	var wErr *WrappedError
@@ -102,6 +197,7 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
+		fmt.Printf("HTTP Status %d\n", res.StatusCode)
 		if creds != nil {
 			saveCredentials(creds, res)
 		}
@@ -120,6 +216,22 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError
 	return res, wErr
 }
 
+func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
+	res, wErr := doHttpRequest(req, creds)
+	if wErr != nil {
+		return res, nil, wErr
+	}
+
+	obj := &objectResource{}
+	wErr = decodeApiResponse(res, obj)
+
+	if wErr != nil {
+		setErrorResponseContext(wErr, res)
+	}
+
+	return res, obj, wErr
+}
+
 func handleResponse(res *http.Response) *WrappedError {
 	if res.StatusCode < 400 {
 		return nil
@@ -130,22 +242,31 @@ func handleResponse(res *http.Response) *WrappedError {
 		res.Body.Close()
 	}()
 
-	var wErr *WrappedError
-
-	if mediaTypeRE.MatchString(res.Header.Get("Content-Type")) {
-		cliErr := &ClientError{}
-		err := json.NewDecoder(res.Body).Decode(cliErr)
-		if err != nil {
-			return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
+	cliErr := &ClientError{}
+	wErr := decodeApiResponse(res, cliErr)
+	if wErr == nil {
+		if len(cliErr.Message) == 0 {
+			wErr = defaultError(res)
+		} else {
+			wErr = Error(cliErr)
 		}
-
-		wErr = Error(cliErr)
-	} else {
-		wErr = defaultError(res)
 	}
 
 	wErr.Panic = res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509
 	return wErr
+}
+
+func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
+	if !mediaTypeRE.MatchString(res.Header.Get("Content-Type")) {
+		return nil
+	}
+
+	err := json.NewDecoder(res.Body).Decode(obj)
+	if err != nil {
+		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
+	}
+
+	return nil
 }
 
 func defaultError(res *http.Response) *WrappedError {
