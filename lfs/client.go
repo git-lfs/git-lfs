@@ -147,6 +147,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 	req.Header.Set("Content-Type", mediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 
 	tracerx.Printf("api: uploading %s (%s)", filename, oid)
@@ -200,6 +201,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 	req.Header.Set("Content-Type", mediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 	_, wErr = doHttpRequest(req, creds)
 
