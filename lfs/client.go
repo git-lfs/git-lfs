@@ -207,8 +207,6 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	tracerx.Printf("api: %s %s", req.Method, req.URL)
-
 	res, err := DoHTTP(Config, req)
 
 	var wErr *WrappedError
@@ -216,7 +214,6 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
-		tracerx.Printf("api status: %d", res.StatusCode)
 		if creds != nil {
 			saveCredentials(creds, res)
 		}
