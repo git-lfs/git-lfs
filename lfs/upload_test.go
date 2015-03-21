@@ -81,7 +81,7 @@ func TestExistingUpload(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", mediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(202)
+		w.WriteHeader(200)
 		w.Write(by)
 	})
 
@@ -200,7 +200,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", mediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(200)
+		w.WriteHeader(202)
 		w.Write(by)
 	})
 
@@ -218,6 +218,14 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		if r.Header.Get("Content-Type") != "application/octet-stream" {
 			t.Error("Invalid Content-Type")
+		}
+
+		if r.Header.Get("Content-Length") != "4" {
+			t.Error("Invalid Content-Length")
+		}
+
+		if r.Header.Get("Transfer-Encoding") != "" {
+			t.Fatal("Transfer-Encoding is set")
 		}
 
 		by, err := ioutil.ReadAll(r.Body)
@@ -379,7 +387,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", mediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(200)
+		w.WriteHeader(202)
 		w.Write(by)
 	})
 
@@ -397,6 +405,14 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 
 		if r.Header.Get("Content-Type") != "application/octet-stream" {
 			t.Error("Invalid Content-Type")
+		}
+
+		if r.Header.Get("Content-Length") != "4" {
+			t.Error("Invalid Content-Length")
+		}
+
+		if r.Header.Get("Transfer-Encoding") != "" {
+			t.Fatal("Transfer-Encoding is set")
 		}
 
 		by, err := ioutil.ReadAll(r.Body)
@@ -541,7 +557,7 @@ func TestUploadStorageError(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", mediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(200)
+		w.WriteHeader(202)
 		w.Write(by)
 	})
 
@@ -646,7 +662,7 @@ func TestUploadVerifyError(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", mediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(200)
+		w.WriteHeader(202)
 		w.Write(by)
 	})
 

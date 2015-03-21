@@ -155,7 +155,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		return wErr
 	}
 
-	if res.StatusCode == 202 {
+	if res.StatusCode == 200 {
 		return nil
 	}
 
@@ -168,6 +168,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
 	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
+	req.ContentLength = reqObj.Size
 
 	reader := &CallbackReader{
 		C:         cb,
