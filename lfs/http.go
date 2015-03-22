@@ -107,36 +107,36 @@ func traceHttpResponse(c *Configuration, res *http.Response, counter *countingBo
 }
 
 type countingBody struct {
-	body io.ReadCloser
 	Size int64
+	io.ReadCloser
 }
 
 func (r *countingBody) Read(p []byte) (int, error) {
-	n, err := r.body.Read(p)
+	n, err := r.ReadCloser.Read(p)
 	r.Size += int64(n)
 	return n, err
 }
 
 func (r *countingBody) Close() error {
-	return r.body.Close()
+	return r.ReadCloser.Close()
 }
 
 func newCountingBody(body io.ReadCloser) *countingBody {
-	return &countingBody{body, 0}
+	return &countingBody{0, body}
 }
 
 type tracedBody struct {
-	body io.ReadCloser
+	io.ReadCloser
 }
 
 func (r *tracedBody) Read(p []byte) (int, error) {
-	n, err := r.body.Read(p)
+	n, err := r.ReadCloser.Read(p)
 	fmt.Fprintf(os.Stderr, "%s\n", string(p[0:n]))
 	return n, err
 }
 
 func (r *tracedBody) Close() error {
-	return r.body.Close()
+	return r.ReadCloser.Close()
 }
 
 func newTracedBody(body io.ReadCloser) *tracedBody {
