@@ -192,6 +192,9 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
 	}
 
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
 	req, creds, err = obj.NewRequest("verify", "POST")
 	if err == objectRelationDoesNotExist {
 		return nil
@@ -203,7 +206,10 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	_, wErr = doHttpRequest(req, creds)
+	res, wErr = doHttpRequest(req, creds)
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
 
 	return wErr
 }
@@ -281,6 +287,9 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	}
 
 	err := json.NewDecoder(res.Body).Decode(obj)
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
 	if err != nil {
 		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
 	}
