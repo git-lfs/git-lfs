@@ -15,7 +15,7 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 	var err error
 
 	if req.Body != nil {
-		req.Body = newCountingBody(req.Body)
+		req.Body = newCountedRequest(req)
 	}
 
 	traceHttpRequest(c, req)
@@ -79,7 +79,6 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 	}
 
 	fmt.Fprintf(os.Stderr, "\n")
-
 	fmt.Fprintf(os.Stderr, "< %s %s\n", res.Proto, res.Status)
 	for key, _ := range res.Header {
 		fmt.Fprintf(os.Stderr, "< %s: %s\n", key, res.Header.Get(key))
@@ -93,16 +92,22 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 		}
 	}
 
+	res.Body = newCountedResponse(res)
 	if traceBody {
-		fmt.Fprintf(os.Stderr, "\n")
 		res.Body = newTracedBody(res.Body)
 	}
 
 	fmt.Fprintf(os.Stderr, "\n")
 }
 
+const (
+	countingUpload = iota
+	countingDownload
+)
+
 type countingBody struct {
-	Size int64
+	Direction int
+	Size      int64
 	io.ReadCloser
 }
 
@@ -113,12 +118,20 @@ func (r *countingBody) Read(p []byte) (int, error) {
 }
 
 func (r *countingBody) Close() error {
-	fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n", r.Size)
+	if r.Direction == countingUpload {
+		fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n", r.Size)
+	} else {
+		fmt.Fprintf(os.Stderr, "* downloaded %d bytes\n", r.Size)
+	}
 	return r.ReadCloser.Close()
 }
 
-func newCountingBody(body io.ReadCloser) *countingBody {
-	return &countingBody{0, body}
+func newCountedResponse(res *http.Response) *countingBody {
+	return &countingBody{countingDownload, 0, res.Body}
+}
+
+func newCountedRequest(req *http.Request) *countingBody {
+	return &countingBody{countingUpload, 0, req.Body}
 }
 
 type tracedBody struct {
