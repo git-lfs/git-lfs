@@ -54,7 +54,7 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 		remote = defaultRemote
 	}
 
-	if url, ok := c.GitConfig("remote." + remote + ".lfs"); ok {
+	if url, ok := c.GitConfig("remote." + remote + ".lfs_url"); ok {
 		return url
 	}
 

@@ -7,7 +7,7 @@ import (
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {
 	config := &Configuration{
-		gitConfig: map[string]string{"remote.origin.lfs": "abc"},
+		gitConfig: map[string]string{"remote.origin.lfs_url": "abc"},
 		remotes:   []string{},
 	}
 
@@ -17,8 +17,8 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 func TestEndpointOverridesOrigin(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"lfs.url":           "abc",
-			"remote.origin.lfs": "def",
+			"lfs.url":               "abc",
+			"remote.origin.lfs_url": "def",
 		},
 		remotes: []string{},
 	}
@@ -29,8 +29,8 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"remote.origin.lfs": "abc",
-			"remote.other.lfs":  "def",
+			"remote.origin.lfs_url": "abc",
+			"remote.other.lfs_url":  "def",
 		},
 		remotes: []string{},
 	}
@@ -41,8 +41,8 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 func TestEndpointUseAlternateRemote(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"remote.origin.lfs": "abc",
-			"remote.other.lfs":  "def",
+			"remote.origin.lfs_url": "abc",
+			"remote.other.lfs_url":  "def",
 		},
 		remotes: []string{},
 	}
