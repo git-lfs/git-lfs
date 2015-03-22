@@ -1,13 +1,15 @@
 package pointer
 
 import (
+	"fmt"
+	"github.com/cheggaaa/pb"
 	"github.com/hawser/git-hawser/hawser"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
 )
 
-func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
+func Smudge(writer io.Writer, ptr *Pointer, workingfile string, cb hawser.CopyCallback) error {
 	mediafile, err := hawser.LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
@@ -15,7 +17,7 @@ func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
 
 	var wErr *hawser.WrappedError
 	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
-		wErr = downloadFile(writer, ptr, mediafile, cb)
+		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
 		wErr = readLocalFile(writer, ptr, mediafile, cb)
 	}
@@ -27,7 +29,7 @@ func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
 	}
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.CopyCallback) *hawser.WrappedError {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb hawser.CopyCallback) *hawser.WrappedError {
 	reader, size, wErr := hawser.Download(mediafile)
 	if reader != nil {
 		defer reader.Close()
@@ -46,6 +48,8 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.Co
 	if err != nil {
 		return hawser.Errorf(err, "Error opening media file buffer.")
 	}
+
+	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
 	_, err = hawser.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
 	if err == nil {
