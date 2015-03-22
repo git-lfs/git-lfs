@@ -14,10 +14,6 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 	var res *http.Response
 	var err error
 
-	if req.Body != nil {
-		req.Body = newCountedRequest(req)
-	}
-
 	traceHttpRequest(c, req)
 
 	switch req.Method {
@@ -63,6 +59,10 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 
 	if c.isTracingHttp == false {
 		return
+	}
+
+	if req.Body != nil {
+		req.Body = newCountedRequest(req)
 	}
 
 	fmt.Fprintf(os.Stderr, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
