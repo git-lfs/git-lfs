@@ -14,10 +14,8 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 	var res *http.Response
 	var err error
 
-	var counter *countingBody
 	if req.Body != nil {
-		counter = newCountingBody(req.Body)
-		req.Body = counter
+		req.Body = newCountingBody(req.Body)
 	}
 
 	traceHttpRequest(c, req)
@@ -29,7 +27,7 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 		res, err = c.HttpClient().Do(req)
 	}
 
-	traceHttpResponse(c, res, counter)
+	traceHttpResponse(c, res)
 
 	return res, err
 }
@@ -73,16 +71,13 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 	}
 }
 
-func traceHttpResponse(c *Configuration, res *http.Response, counter *countingBody) {
+func traceHttpResponse(c *Configuration, res *http.Response) {
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
 	if c.isTracingHttp == false {
 		return
 	}
 
-	if counter != nil {
-		fmt.Fprintf(os.Stderr, "* upload sent off: %d bytes\n", counter.Size)
-	}
 	fmt.Fprintf(os.Stderr, "\n")
 
 	fmt.Fprintf(os.Stderr, "< %s %s\n", res.Proto, res.Status)
@@ -118,6 +113,7 @@ func (r *countingBody) Read(p []byte) (int, error) {
 }
 
 func (r *countingBody) Close() error {
+	fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n", r.Size)
 	return r.ReadCloser.Close()
 }
 
