@@ -23,7 +23,7 @@ const (
 
 var (
 	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
-	mediaMediaTypeRE           = regexp.MustCompile(`\Aapplication/json(;|\z)`)
+	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
 	objectRelationDoesNotExist = errors.New("relation does not exist")
 	hiddenHeaders              = map[string]bool{
 		"Authorization": true,
@@ -282,7 +282,7 @@ func handleResponse(res *http.Response) *WrappedError {
 
 func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	ctype := res.Header.Get("Content-Type")
-	if !(lfsMediaTypeRE.MatchString(ctype) || mediaMediaTypeRE.MatchString(ctype)) {
+	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
 	}
 
