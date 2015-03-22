@@ -2,7 +2,7 @@
 
 The server implements a simple API for uploading and downloading binary content.
 Git repositories that use Git LFS will specify a URI endpoint.  See the
-[specification](spec.md) for how Git Media determines the server endpoint to use.
+[specification](spec.md) for how Git LFS determines the server endpoint to use.
 
 Use that endpoint as a base, and append the following relative paths to upload
 and download from the Git LFS server.
@@ -211,8 +211,8 @@ When Git LFS clients issue a POST request to initiate an object upload, the
 response can potentially return a "verify" link relation.  If given, The Git LFS
 API expects a POST to the href after a successful upload.  Git LFS clients send:
 
-* `oid` - The String OID of the Git Media object.
-* `size` - The integer size of the Git Media object.
+* `oid` - The String OID of the Git LFS object.
+* `size` - The integer size of the Git LFS object.
 
 ```
 > POST https://git-lfs-server.com/callback

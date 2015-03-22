@@ -1,4 +1,4 @@
-git-lfs-push(1) -- Push queued large files to the Git Media endpoint.
+git-lfs-push(1) -- Push queued large files to the Git LFS endpoint.
 =======================================================================
 
 ## SYNOPSIS
@@ -7,7 +7,7 @@ git-lfs-push(1) -- Push queued large files to the Git Media endpoint.
 
 ## DESCRIPTION
 
-Push uploads Git Media files to the configured endpoint for the current
+Push uploads Git LFS files to the configured endpoint for the current
 Git remote.
 
 Push is typically run by Git's pre-push hook.

@@ -16,7 +16,7 @@ if '%errorlevel%' == '0' ( goto gotPrivileges ) else ( goto getPrivileges )
 if '%1'=='ELEV' (shift & goto gotPrivileges)
 echo.
 echo **************************************
-echo Installing Git Media as Administrator
+echo Installing Git LFS as Administrator
 echo **************************************
 
 setlocal DisableDelayedExpansion
@@ -43,6 +43,6 @@ set "path=%PATH%;%GIT_MEDIA_BIN_PATH:"=%"
 
 1>NUL copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
 
-git media init
+git lfs init
 
 cmd /k
