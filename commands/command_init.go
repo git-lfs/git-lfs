@@ -8,7 +8,7 @@ import (
 var (
 	initCmd = &cobra.Command{
 		Use:   "init",
-		Short: "Initialize the default Git Media configuration",
+		Short: "Initialize the default Git LFS configuration",
 		Run:   initCommand,
 	}
 

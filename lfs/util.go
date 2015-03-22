@@ -84,5 +84,5 @@ func wrapProgressError(err error, event, filename string) error {
 		return nil
 	}
 
-	return fmt.Errorf("Error writing Git Media %s progress to %s: %s", event, filename, err.Error())
+	return fmt.Errorf("Error writing Git LFS %s progress to %s: %s", event, filename, err.Error())
 }

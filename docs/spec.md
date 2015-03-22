@@ -49,7 +49,7 @@ generated from the SHA-256 signature of the file's contents.
 
 Git LFS needs a URL endpoint to talk to a remote server.  A Git repository
 can have different Git LFS endpoints for different remotes.  Here is the list
-of rules that Git Media uses to determine a repository's Git Media server:
+of rules that Git LFS uses to determine a repository's Git LFS server:
 
 1. The `lfs.url` string.
 2. The `remote.{name}.lfs` string.
@@ -109,7 +109,7 @@ expects the content to write to the working directory as STDOUT.
 * Otherwise, simply pass the STDIN out through STDOUT.
 
 The `.gitattributes` file controls when the filters run.  Here's a sample file
-runs all mp3 and zip files through Git Media:
+runs all mp3 and zip files through Git LFS:
 
 ```
 $ cat .gitattributes
