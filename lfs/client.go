@@ -380,7 +380,7 @@ func validateMediaHeader(contentType string, reader io.Reader) (bool, int, *Wrap
 
 		givenHeader, ok := params["header"]
 		if !ok {
-			return false, headerSize, Error(fmt.Errorf("Missing Git Media header in %s", contentType))
+			return false, headerSize, Error(fmt.Errorf("Missing Git LFS header in %s", contentType))
 		}
 
 		fullGivenHeader := "--" + givenHeader + "\n"

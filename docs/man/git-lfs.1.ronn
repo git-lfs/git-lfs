@@ -7,29 +7,29 @@ git-lfs(1) -- Work with large files in Git repositories.
 
 ## DESCRIPTION
 
-Git Media is a set of filters and hooks to work with large files in Git
-repositories.  Instead of storing the large files as Git blobs, Git Media uses
+Git LFS is a set of filters and hooks to work with large files in Git
+repositories.  Instead of storing the large files as Git blobs, Git LFS uses
 clean and smudge filters to store a pointer in Git blobs instead.  The actual
-file gets pushed to a Git Media HTTPS endpoint, and downloaded automatically
-when a Git branch is checked out.
+file gets pushed to a Git LFS API, and downloaded automatically when a Git
+branch is checked out.
 
 ## COMMANDS
 
-Like Git, Git Media commands are separated into high level ("porcelain")
+Like Git, Git LFS commands are separated into high level ("porcelain")
 commands and low level ("plumbing") commands.
 
 ### High-level commands (porcelain)
 
 * git-lfs-config(1):
-    Display the Git Media environment.
+    Display the Git LFS environment.
 * git-lfs-init(1):
-    Ensure Git Media is configured properly.
+    Ensure Git LFS is configured properly.
 * git-lfs-logs(1):
     Show errors from the git-lfs command.
 * git-lfs-path(1):
-    View and modify Git Media paths in Git attributes.
+    View and modify Git LFS paths in Git attributes.
 * git-lfs-push(1):
-    Push queued large files to the Git Media endpoint.
+    Push queued large files to the Git LFS endpoint.
 
 ### Low level commands (plumbing)
 
