@@ -2,7 +2,7 @@ package commands
 
 import (
 	"bufio"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
@@ -18,7 +18,7 @@ var (
 )
 
 func pathCommand(cmd *cobra.Command, args []string) {
-	hawser.InstallHooks(false)
+	lfs.InstallHooks(false)
 
 	Print("Listing paths")
 	knownPaths := findPaths()
@@ -35,12 +35,12 @@ type mediaPath struct {
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
-	repoAttributes := filepath.Join(hawser.LocalGitDir, "info", "attributes")
+	repoAttributes := filepath.Join(lfs.LocalGitDir, "info", "attributes")
 	if _, err := os.Stat(repoAttributes); err == nil {
 		paths = append(paths, repoAttributes)
 	}
 
-	filepath.Walk(hawser.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(lfs.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ func findPaths() []mediaPath {
 				continue
 			}
 
-			if strings.Contains(line, "filter=hawser") {
+			if strings.Contains(line, "filter=lfs") {
 				fields := strings.Fields(line)
 				relPath, _ := filepath.Rel(wd, path)
 				paths = append(paths, mediaPath{Path: fields[0], Source: relPath})

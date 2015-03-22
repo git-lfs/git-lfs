@@ -1,4 +1,4 @@
-## Contributing to Git Hawser
+## Contributing to Git Large File Storage
 
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
@@ -27,7 +27,7 @@ them as separate pull requests.
 
 0. Update `Godeps`.
 0. Run `script/vendor` to update the code in the `.vendor/src` directory.
-0. Commit the change.  Hawser vendors the full source code in the repository.
+0. Commit the change.  Git LFS vendors the full source code in the repository.
 0. Submit a pull request.
 
 ## Resources
@@ -36,6 +36,6 @@ them as separate pull requests.
 - [Using Pull Requests](https://help.github.com/articles/using-pull-requests/)
 - [GitHub Help](https://help.github.com)
 
-[fork]: https://github.com/hawser/git-hawser/fork
-[pr]: https://github.com/hawser/git-hawser/compare
+[fork]: https://github.com/github/git-lfs/fork
+[pr]: https://github.com/github/git-lfs/compare
 [style]: https://github.com/golang/go/wiki/CodeReviewComments

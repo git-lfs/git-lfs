@@ -1,0 +1,17 @@
+git-lfs-init(1) -- Ensure Git LFS is configured properly.
+=============================================================
+
+## SYNOPSIS
+
+`git lfs init`
+
+## DESCRIPTION
+
+Init performs the following actions to ensure Git LFS is setup properly:
+
+* Sets up the clean and smudge filters under the name "lfs".
+* Installs a pre-push hook to run git-lfs-push(1)
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.

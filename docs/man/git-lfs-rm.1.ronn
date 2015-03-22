@@ -1,0 +1,24 @@
+git-lfs-rm(1) - Remove Git LFS paths from Git Attributes.
+======================================================================
+
+## SYNOPSIS
+
+`git lfs rm` [path]*
+
+## DESCRIPTION
+
+The "path" command helps view and modify Git attributes for the "lfs"
+clean and smudge filters.  The "path" argument can be a file extension, or a
+path.
+
+## EXAMPLES
+
+* Prevent a path from using Git LFS clean and smudge filters.
+
+    `git lfs rm *.gif`
+
+## SEE ALSO
+
+git-lfs-add(1), git-lfs-path(1), git-lfs-init(1), gitattributes(5).
+
+Part of the git-lfs(1) suite.

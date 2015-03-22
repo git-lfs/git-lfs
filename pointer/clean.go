@@ -3,7 +3,7 @@ package pointer
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"io"
 	"os"
 )
@@ -14,8 +14,8 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-func Clean(reader io.Reader, size int64, cb hawser.CopyCallback) (*cleanedAsset, error) {
-	tmp, err := hawser.TempFile("")
+func Clean(reader io.Reader, size int64, cb lfs.CopyCallback) (*cleanedAsset, error) {
+	tmp, err := lfs.TempFile("")
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func Clean(reader io.Reader, size int64, cb hawser.CopyCallback) (*cleanedAsset,
 		cb = nil
 	}
 
-	written, err := hawser.CopyWithCallback(writer, reader, size, cb)
+	written, err := lfs.CopyWithCallback(writer, reader, size, cb)
 
 	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
 	return &cleanedAsset{tmp, "", pointer}, err

@@ -28,7 +28,7 @@ func TestPushToMaster(t *testing.T) {
 
 		repo.GitCmd("fetch")
 
-		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=hawser -crlf\n")
+		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=lfs -crlf\n")
 
 		// Add a hawser file
 		repo.WriteFile(filepath.Join(repo.Path, "a.dat"), "some data")
@@ -52,7 +52,7 @@ func TestPushToNewBranch(t *testing.T) {
 
 		repo.GitCmd("fetch")
 
-		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=hawser -crlf\n")
+		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.dat filter=lfs -crlf\n")
 		repo.GitCmd("add", ".gitattributes")
 		repo.GitCmd("commit", "-m", "attributes")
 

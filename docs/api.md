@@ -1,13 +1,13 @@
-# Hawser API
+# Git LFS API
 
 The server implements a simple API for uploading and downloading binary content.
-Git repositories that use Hawser will specify a URI endpoint.  See the
-[specification](spec.md) for how Git Media determines the server endpoint to use.
+Git repositories that use Git LFS will specify a URI endpoint.  See the
+[specification](spec.md) for how Git LFS determines the server endpoint to use.
 
 Use that endpoint as a base, and append the following relative paths to upload
-and download from the Hawser server.
+and download from the Git LFS server.
 
-All requests should send an Accept header of `application/vnd.hawser+json`.
+All requests should send an Accept header of `application/vnd.git-lfs+json`.
 This may change in the future as the API evolves.
 
 ## API Responses
@@ -30,7 +30,7 @@ repository or requested object does not exist.
 The following status codes can optionally be returned from the API, depending on
 the server implementation.
 
-* 406 - The Accept header is invalid.  It should be `application/vnd.hawser+json`.
+* 406 - The Accept header is invalid.  It should be `application/vnd.git-lfs+json`.
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
 availability reasons.
@@ -47,15 +47,15 @@ If the server returns a JSON error object, the client can display this message
 to users.
 
 ```
-> GET https://hawser-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.hawser+json
+> GET https://git-lfs-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-lfs+json
 >
 < HTTP/1.1 200 OK
-< Content-Type: application/vnd.hawser+json
+< Content-Type: application/vnd.git-lfs+json
 <
 < {
 <   "message": "Bad credentials",
-<   "documentation_url": "https://hawser-server.com/docs/errors",
+<   "documentation_url": "https://git-lfs-server.com/docs/errors",
 <   "request_id": "123"
 < }
 ```
@@ -65,7 +65,7 @@ they are displayed to the user.
 
 ## Hypermedia
 
-The Hawser API uses hypermedia hints to instruct the client what to do next.
+The Git LFS API uses hypermedia hints to instruct the client what to do next.
 These links are included in a `_links` property.  Possible relations for objects
 include:
 
@@ -79,18 +79,18 @@ See the "Verification" section below for more.
 
 Link relations specify the `href`, and optionally a collection of header values
 to set for the request.  These are optional, and depend on the backing object
-store that the Hawser API is using.  
+store that the Git LFS API is using.  
 
-The Hawser client will automatically send the same credentials to the followed
+The Git LFS client will automatically send the same credentials to the followed
 link relation as Basic Authentication IF:
 
-* The url scheme, host, and port all match the Hawser API endpoint's.
+* The url scheme, host, and port all match the Git LFS API endpoint's.
 * The link relation does not specify an Authorization header.
 
-If the host name is different, the Hawser API needs to send enough information
+If the host name is different, the Git LFS API needs to send enough information
 through the href query or header values to authenticate the request.
 
-The Hawser client expects a 200 or 201 response from these hypermedia requests.
+The Git LFS client expects a 200 or 201 response from these hypermedia requests.
 Any other response code is treated as an error.
 
 ## GET /objects/{oid}
@@ -98,19 +98,19 @@ Any other response code is treated as an error.
 This gets the object's meta data.  The OID is the value from the object pointer.
 
 ```
-> GET https://hawser-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.hawser+json
+> GET https://git-lfs-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-lfs+json
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 200 OK
-< Content-Type: application/vnd.hawser+json
+< Content-Type: application/vnd.git-lfs+json
 <
 < {
 <   "oid": "the-sha-256-signature",
 <   "size": 123456,
 <   "_links": {
 <     "self": {
-<       "href": "https://hawser-server.com/objects/OID",
+<       "href": "https://git-lfs-server.com/objects/OID",
 <     },
 <     "download": {
 <       "href": "https://some-download.com",
@@ -129,12 +129,12 @@ access the object content. See the "Hypermedia" section above for more.
 Here's a sample response for a request with an authorization error:
 
 ```
-> GET https://hawser-server.com/objects/{OID} HTTP/1.1
-> Accept: application/vnd.hawser+json
+> GET https://git-lfs-server.com/objects/{OID} HTTP/1.1
+> Accept: application/vnd.git-lfs+json
 > Authorization: Basic ... (if authentication is needed)
 >
 < HTTP/1.1 404 Not found
-< Content-Type: application/vnd.hawser+json
+< Content-Type: application/vnd.git-lfs+json
 <
 < {
 <   "message": "Not found"
@@ -153,9 +153,9 @@ This request initiates the upload of an object, given a JSON body with the oid
 and size of the object to upload.
 
 ```
-> POST https://hawser-server.com/objects/ HTTP/1.1
-> Accept: application/vnd.hawser+json
-> Content-Type: application/vnd.hawser+json
+> POST https://git-lfs-server.com/objects/ HTTP/1.1
+> Accept: application/vnd.git-lfs+json
+> Content-Type: application/vnd.git-lfs+json
 > Authorization: Basic ... (if authentication is needed)
 >
 > {
@@ -164,7 +164,7 @@ and size of the object to upload.
 > }
 >
 < HTTP/1.1 202 Accepted
-< Content-Type: application/vnd.hawser+json
+< Content-Type: application/vnd.git-lfs+json
 <
 < {
 <   "_links": {
@@ -206,18 +206,17 @@ only appears on a 200 status.
 
 ## Verification
 
-When Hawser clients issue a POST request to initiate an object upload, the
-response can potentially return a "verify" link relation.  If given, The Hawser
-server expects a POST to the href after a successful upload.  Hawser
-clients send:
+When Git LFS clients issue a POST request to initiate an object upload, the
+response can potentially return a "verify" link relation.  If given, The Git LFS
+API expects a POST to the href after a successful upload.  Git LFS clients send:
 
-* `oid` - The String OID of the Git Media object.
-* `size` - The integer size of the Git Media object.
+* `oid` - The String OID of the Git LFS object.
+* `size` - The integer size of the Git LFS object.
 
 ```
-> POST https://hawser-server.com/callback
-> Accept: application/vnd.hawser
-> Content-Type: application/vnd.hawser+json
+> POST https://git-lfs-server.com/callback
+> Accept: application/vnd.git-lfs
+> Content-Type: application/vnd.git-lfs+json
 > Content-Length: 123
 >
 > {"oid": "{oid}", "size": 10000}

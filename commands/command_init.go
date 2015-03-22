@@ -1,14 +1,14 @@
 package commands
 
 import (
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
 var (
 	initCmd = &cobra.Command{
 		Use:   "init",
-		Short: "Initialize the default Git Media configuration",
+		Short: "Initialize the default Git LFS configuration",
 		Run:   initCommand,
 	}
 
@@ -20,19 +20,19 @@ var (
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	if err := hawser.InstallFilters(); err != nil {
+	if err := lfs.InstallFilters(); err != nil {
 		Error(err.Error())
 	}
 
-	if hawser.InRepo() {
+	if lfs.InRepo() {
 		initHooksCommand(cmd, args)
 	}
 
-	Print("git hawser initialized")
+	Print("git lfs initialized")
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
-	if err := hawser.InstallHooks(false); err != nil {
+	if err := lfs.InstallHooks(false); err != nil {
 		Error(err.Error())
 	}
 }

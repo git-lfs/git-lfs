@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"io"
 	"regexp"
 	"strconv"
@@ -16,7 +16,7 @@ var (
 	MediaWarning  = []byte("# git-media\n")
 	alpha         = "http://git-media.io/v/1"
 	beta          = "http://git-media.io/v/2"
-	latest        = "https://hawser.github.com/spec/v1"
+	latest        = "https://git-lfs.github.com/spec/v1"
 	oidType       = "sha256"
 	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
 	oidRE         = regexp.MustCompile(`\A[0-9a-fA-F]{64}`)
@@ -24,7 +24,7 @@ var (
 oid sha256:%s
 size %d
 `
-	matcherRE   = regexp.MustCompile("git-media|hawser")
+	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
 	pointerKeys = []string{"version", "oid", "size"}
 )
 
@@ -39,7 +39,7 @@ func NewPointer(oid string, size int64) *Pointer {
 	return &Pointer{latest, oid, size, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, cb hawser.CopyCallback) error {
+func (p *Pointer) Smudge(writer io.Writer, cb lfs.CopyCallback) error {
 	return Smudge(writer, p, cb)
 }
 
@@ -117,7 +117,7 @@ func decodeKVData(data []byte) (map[string]string, error) {
 	m := make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		return m, fmt.Errorf("Not a valid Git Media pointer file.")
+		return m, fmt.Errorf("Not a valid Git LFS pointer file.")
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))

@@ -18,12 +18,12 @@ func TestSmudge(t *testing.T) {
 
 	// simple smudge example
 	cmd := repo.Command("smudge", "somefile")
-	cmd.Input = bytes.NewBufferString("version https://hawser.github.com/spec/v1\noid sha256:SOMEOID\nsize 9\n")
+	cmd.Input = bytes.NewBufferString("version https://git-lfs.github.com/spec/v1\noid sha256:SOMEOID\nsize 9\n")
 	cmd.Output = "whatever"
-	cmd.Env = append(cmd.Env, "HAWSER_PROGRESS="+progressFile)
+	cmd.Env = append(cmd.Env, "GIT_LFS_PROGRESS="+progressFile)
 
 	cmd.Before(func() {
-		path := filepath.Join(repo.Path, ".git", "hawser", "objects", "SO", "ME")
+		path := filepath.Join(repo.Path, ".git", "lfs", "objects", "SO", "ME")
 		file := filepath.Join(path, "SOMEOID")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
@@ -51,7 +51,7 @@ func TestSmudge(t *testing.T) {
 	customHook := []byte("echo 'yo'")
 
 	cmd.Before(func() {
-		path := filepath.Join(repo.Path, ".git", "hawser", "objects", "4d", "7a")
+		path := filepath.Join(repo.Path, ".git", "lfs", "objects", "4d", "7a")
 		file := filepath.Join(path, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
 		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
@@ -70,7 +70,7 @@ func TestSmudgeInfo(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	mediaPath := filepath.Join(repo.Path, ".git", "hawser", "objects", "4d", "7a")
+	mediaPath := filepath.Join(repo.Path, ".git", "lfs", "objects", "4d", "7a")
 	mediaFile := filepath.Join(mediaPath, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 
 	// smudge --info with old pointer format, without local file
@@ -103,14 +103,14 @@ func TestSmudgeInfo(t *testing.T) {
 		assert.Equal(t, nil, ioutil.WriteFile(mediaFile, []byte("whatever\n"), 0755))
 	})
 
-	// smudge --info with hawser pointer format, without local file
+	// smudge --info with Git LFS pointer format, without local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("version https://hawser.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
+	cmd.Input = bytes.NewBufferString("version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
 	cmd.Output = "123 --"
 
-	// smudge --info with hawser pointer format, with local file
+	// smudge --info with Git LFS pointer format, with local file
 	cmd = repo.Command("smudge", "--info")
-	cmd.Input = bytes.NewBufferString("version https://hawser.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
+	cmd.Input = bytes.NewBufferString("version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 123\n")
 	cmd.Output = "9 " + mediaFile
 
 	cmd.Before(func() {

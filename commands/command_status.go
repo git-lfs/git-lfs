@@ -2,15 +2,15 @@ package commands
 
 import (
 	"fmt"
-	"github.com/hawser/git-hawser/git"
-	"github.com/hawser/git-hawser/scanner"
+	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/scanner"
 	"github.com/spf13/cobra"
 )
 
 var (
 	statusCmd = &cobra.Command{
 		Use:   "status",
-		Short: "Show information about hawser files that would be pushed",
+		Short: "Show information about Git LFS objects that would be pushed",
 		Run:   statusCommand,
 	}
 	porcelain = false
@@ -24,7 +24,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	stagedPointers, err := scanner.ScanIndex()
 	if err != nil {
-		Panic(err, "Could not scan staging for hawser files")
+		Panic(err, "Could not scan staging for Git LFS objects")
 	}
 
 	if porcelain {
@@ -52,7 +52,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 		pointers, err := scanner.Scan(ref, "^"+remoteRef)
 		if err != nil {
-			Panic(err, "Could not scan for hawser files")
+			Panic(err, "Could not scan for Git LFS objects")
 		}
 
 		remote, err := git.CurrentRemote()
@@ -60,13 +60,13 @@ func statusCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Could not get current remote branch")
 		}
 
-		Print("Hawser file changes to be pushed to %s:\n", remote)
+		Print("Git LFS objects to be pushed to %s:\n", remote)
 		for _, p := range pointers {
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
 	}
 
-	Print("\nHawser file changes to be committed:\n")
+	Print("\nGit LFS objects to be committed:\n")
 	for _, p := range stagedPointers {
 		switch p.Status {
 		case "R", "C":
@@ -77,7 +77,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	Print("\nHawser file changes not staged for commit:\n")
+	Print("\nGit LFS objects not staged for commit:\n")
 	for _, p := range stagedPointers {
 		if p.Status == "M" {
 			Print("\t%s", p.Name)
