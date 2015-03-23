@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const Version = "0.4.1"
+const Version = "0.4.2"
 
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
