@@ -1,9 +1,9 @@
 Git Large File Storage
 ======
 
-Git LFS is a command line extension for managing large files.  It replaces
+Git LFS is a command line extension and [specification](docs/spec.md) for managing large files with Git.  It replaces
 large files with text pointers inside Git, while storing the actual files in a
-remote Git LFS server.
+remote [Git LFS server](docs/api.md).
 
 The Git LFS client is written in Go, with pre-compiled binaries available for
 Mac, Windows, Linux, and FreeBSD.
