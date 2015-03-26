@@ -117,6 +117,14 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 	return res.Body, res.ContentLength, nil
 }
 
+type byteCloser struct {
+	*bytes.Reader
+}
+
+func (b *byteCloser) Close() error {
+	return nil
+}
+
 func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	oid := filepath.Base(oidPath)
 	file, err := os.Open(oidPath)
@@ -148,7 +156,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Type", mediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
-	req.Body = ioutil.NopCloser(bytes.NewReader(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: uploading %s (%s)", filename, oid)
 	res, obj, wErr := doApiRequest(req, creds)
@@ -240,8 +248,45 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 	return res, wErr
 }
 
-func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
+func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
+	fmt.Println("doApiRequest:", req)
 	res, wErr := doHttpRequest(req, creds)
+	if wErr != nil {
+		return res, wErr
+	}
+
+	if res.StatusCode == 307 {
+		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
+		if err != nil {
+			return res, Errorf(err, err.Error())
+		}
+
+		via = append(via, req)
+		fmt.Println("via:", via)
+		if seeker, ok := req.Body.(io.Seeker); ok {
+			_, err := seeker.Seek(0, 0)
+			if err != nil {
+				return res, Error(err)
+			}
+			redirectedReq.Body = req.Body
+			redirectedReq.ContentLength = req.ContentLength
+		} else {
+			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+		}
+
+		if err = checkRedirect(redirectedReq, via); err != nil {
+			return res, Errorf(err, err.Error())
+		}
+
+		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
+	}
+
+	return res, wErr
+}
+
+func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
+	via := make([]*http.Request, 0, 4)
+	res, wErr := doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
 		return res, nil, wErr
 	}

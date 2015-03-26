@@ -14,6 +14,9 @@ import (
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 	traceHttpRequest(c, req)
 	res, err := c.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{StatusCode: 0, Header: make(http.Header), Request: req}
+	}
 	traceHttpResponse(c, res)
 	return res, err
 }
@@ -48,6 +51,8 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 		req.Header.Set(key, oldest.Header.Get(key))
 	}
 
+	tracerx.Printf("api: redirect %s %s to %s", oldest.Method, oldest.URL, req.URL)
+
 	return nil
 }
 
@@ -71,6 +76,10 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 }
 
 func traceHttpResponse(c *Configuration, res *http.Response) {
+	if res == nil {
+		return
+	}
+
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
 	if c.isTracingHttp == false {

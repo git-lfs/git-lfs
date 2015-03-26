@@ -133,6 +133,109 @@ func TestExistingUpload(t *testing.T) {
 	}
 }
 
+func TestUploadWithRedirect(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	tmp := tempdir(t)
+	defer server.Close()
+	defer os.RemoveAll(tmp)
+
+	mux.HandleFunc("/redirect/objects", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server: %s %s", r.Method, r.URL)
+
+		if r.Method != "POST" {
+			w.WriteHeader(405)
+			return
+		}
+
+		w.Header().Set("Location", server.URL+"/redirect2/objects")
+		w.WriteHeader(307)
+	})
+
+	mux.HandleFunc("/redirect2/objects", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server: %s %s", r.Method, r.URL)
+
+		if r.Method != "POST" {
+			w.WriteHeader(405)
+			return
+		}
+
+		w.Header().Set("Location", server.URL+"/media/objects")
+		w.WriteHeader(307)
+	})
+
+	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server: %s %s", r.Method, r.URL)
+
+		if r.Method != "POST" {
+			w.WriteHeader(405)
+			return
+		}
+
+		if r.Header.Get("Accept") != mediaType {
+			t.Errorf("Invalid Accept")
+		}
+
+		if r.Header.Get("Content-Type") != mediaType {
+			t.Errorf("Invalid Content-Type")
+		}
+
+		buf := &bytes.Buffer{}
+		tee := io.TeeReader(r.Body, buf)
+		reqObj := &objectResource{}
+		err := json.NewDecoder(tee).Decode(reqObj)
+		t.Logf("request header: %v", r.Header)
+		t.Logf("request body: %s", buf.String())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if reqObj.Oid != "oid" {
+			t.Errorf("invalid oid from request: %s", reqObj.Oid)
+		}
+
+		if reqObj.Size != 4 {
+			t.Errorf("invalid size from request: %d", reqObj.Size)
+		}
+
+		obj := &objectResource{
+			Links: map[string]*linkRelation{
+				"upload": &linkRelation{
+					Href:   server.URL + "/upload",
+					Header: map[string]string{"A": "1"},
+				},
+				"verify": &linkRelation{
+					Href:   server.URL + "/verify",
+					Header: map[string]string{"B": "2"},
+				},
+			},
+		}
+
+		by, err := json.Marshal(obj)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		head := w.Header()
+		head.Set("Content-Type", mediaType)
+		head.Set("Content-Length", strconv.Itoa(len(by)))
+		w.WriteHeader(200)
+		w.Write(by)
+	})
+
+	Config.SetConfig("lfs.url", server.URL+"/redirect")
+
+	oidPath := filepath.Join(tmp, "oid")
+	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
+		t.Fatal(err)
+	}
+
+	wErr := Upload(oidPath, "", nil)
+	if wErr != nil {
+		t.Fatal(wErr)
+	}
+}
+
 func TestSuccessfulUploadWithVerify(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)

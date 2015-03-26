@@ -20,6 +20,10 @@ trigger specific error messages from the client.
 * 200 - The request completed successfully.
 * 202 - An upload request has been accepted.  Clients should follow hypermedia
 links to actually upload the content.
+* 301 - A permanent redirect.  Only supported for GET/HEAD requests.
+* 302 - A temporary redirect.  Only supported for GET/HEAD requests.
+* 303 - A temporary redirect.  Only supported for GET/HEAD requests.
+* 307 - A temporary redirect.  Keeps the original request method intact.
 * 400 - General error with the client's request.  Invalid JSON formatting, for
 example.
 * 401 - The authentication credentials are incorrect.
@@ -63,6 +67,23 @@ to users.
 
 The `documentation_url` and `request_id` properties are optional.  If given,
 they are displayed to the user.
+
+## Redirections
+
+The Git LFS client follows redirections on the core Git LFS API methods only.
+Any of the hypermedia hrefs that are returned should be for the current location.
+The client will pass all of the original request headers to the redirected
+request, only changing the URL based on the redirect location.  The only
+exception is the Authorization header, which is only passed through if the
+original request and the new location have a matching URL scheme, host, and
+port.
+
+The client will automatically follow redirections for GET or HEAD requests on
+a 301, 302, 303, or 307 HTTP status.  It only automatically follows redirections
+for other HTTP verbs on a 307 HTTP status.
+
+Note: the 308 HTTP status is not official, and has conflicting proposals for its
+intended use.  It is not supported as a redirection.
 
 ## Hypermedia
 
