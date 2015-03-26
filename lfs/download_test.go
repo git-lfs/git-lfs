@@ -129,9 +129,23 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			return
 		}
 
-		w.Header().Set("Location", server.URL+"/media/objects/oid")
+		w.Header().Set("Location", server.URL+"/redirect2/objects/oid")
 		w.WriteHeader(redirectCodes[redirectIndex])
 		t.Logf("redirect with %d", redirectCodes[redirectIndex])
+	})
+
+	mux.HandleFunc("/redirect2/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server: %s %s", r.Method, r.URL)
+		t.Logf("request header: %v", r.Header)
+
+		if r.Method != "GET" {
+			w.WriteHeader(405)
+			return
+		}
+
+		w.Header().Set("Location", server.URL+"/media/objects/oid")
+		w.WriteHeader(redirectCodes[redirectIndex])
+		t.Logf("redirect again with %d", redirectCodes[redirectIndex])
 		redirectIndex += 1
 	})
 
