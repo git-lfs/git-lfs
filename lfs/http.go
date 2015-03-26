@@ -11,45 +11,22 @@ import (
 )
 
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
-	var res *http.Response
-	var err error
-
 	traceHttpRequest(c, req)
-
-	switch req.Method {
-	case "GET", "HEAD":
-		res, err = c.RedirectingHttpClient().Do(req)
-	default:
-		res, err = c.HttpClient().Do(req)
-	}
-
+	res, err := c.HttpClient().Do(req)
 	traceHttpResponse(c, res)
-
 	return res, err
 }
 
 func (c *Configuration) HttpClient() *http.Client {
 	if c.httpClient == nil {
-		c.httpClient = &http.Client{
-			Transport: c.RedirectingHttpClient().Transport,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return RedirectError
-			},
-		}
-	}
-	return c.httpClient
-}
-
-func (c *Configuration) RedirectingHttpClient() *http.Client {
-	if c.redirectingHttpClient == nil {
 		tr := &http.Transport{}
 		sslVerify, _ := c.GitConfig("http.sslverify")
 		if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
 			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
-		c.redirectingHttpClient = &http.Client{Transport: tr}
+		c.httpClient = &http.Client{Transport: tr}
 	}
-	return c.redirectingHttpClient
+	return c.httpClient
 }
 
 var tracedTypes = []string{"json", "text", "xml", "html"}
