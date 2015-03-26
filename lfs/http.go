@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"github.com/rubyist/tracerx"
 	"io"
@@ -24,9 +25,25 @@ func (c *Configuration) HttpClient() *http.Client {
 		if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
 			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
-		c.httpClient = &http.Client{Transport: tr}
+		c.httpClient = &http.Client{
+			Transport:     tr,
+			CheckRedirect: checkRedirect,
+		}
 	}
 	return c.httpClient
+}
+
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 3 {
+		return errors.New("stopped after 3 redirects")
+	}
+
+	oldest := via[0]
+	for key, _ := range oldest.Header {
+		req.Header.Set(key, oldest.Header.Get(key))
+	}
+
+	return nil
 }
 
 var tracedTypes = []string{"json", "text", "xml", "html"}
