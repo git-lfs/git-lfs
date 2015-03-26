@@ -22,7 +22,6 @@ type Configuration struct {
 
 var (
 	Config        = NewConfig()
-	RedirectError = fmt.Errorf("Unexpected redirection")
 	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
 	defaultRemote = "origin"
 )
