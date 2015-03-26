@@ -249,7 +249,6 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 }
 
 func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
-	fmt.Println("doApiRequest:", req)
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
 		return res, wErr
@@ -262,7 +261,6 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 		}
 
 		via = append(via, req)
-		fmt.Println("via:", via)
 		if seeker, ok := req.Body.(io.Seeker); ok {
 			_, err := seeker.Seek(0, 0)
 			if err != nil {
