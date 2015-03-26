@@ -443,6 +443,140 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	}
 }
 
+// nearly identical to TestSuccessfulDownload
+// download is served from a second server
+func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	mux2 := http.NewServeMux()
+	server2 := httptest.NewServer(mux2)
+	mux3 := http.NewServeMux()
+	server3 := httptest.NewServer(mux3)
+	tmp := tempdir(t)
+	defer server.Close()
+	defer server2.Close()
+	defer server3.Close()
+	defer os.RemoveAll(tmp)
+
+	// all of these should work for GET requests
+	redirectCodes := []int{301, 302, 303, 307}
+	redirectIndex := 0
+
+	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server 1: %s %s", r.Method, r.URL)
+		t.Logf("request header: %v", r.Header)
+
+		if r.Method != "GET" {
+			w.WriteHeader(405)
+			return
+		}
+
+		if r.Header.Get("Accept") != mediaType {
+			t.Error("Invalid Accept")
+		}
+
+		if r.Header.Get("Authorization") != expectedAuth(t, server) {
+			t.Error("Invalid Authorization")
+		}
+
+		w.Header().Set("Location", server2.URL+"/media/objects/oid")
+		w.WriteHeader(redirectCodes[redirectIndex])
+		t.Logf("redirect with %d", redirectCodes[redirectIndex])
+		redirectIndex += 1
+	})
+
+	mux2.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server 2: %s %s", r.Method, r.URL)
+		t.Logf("request header: %v", r.Header)
+
+		if r.Method != "GET" {
+			w.WriteHeader(405)
+			return
+		}
+
+		if r.Header.Get("Accept") != mediaType {
+			t.Error("Invalid Accept")
+		}
+
+		if r.Header.Get("Authorization") != "" {
+			t.Error("Invalid Authorization")
+		}
+
+		obj := &objectResource{
+			Oid:  "oid",
+			Size: 4,
+			Links: map[string]*linkRelation{
+				"download": &linkRelation{
+					Href:   server3.URL + "/download",
+					Header: map[string]string{"A": "1"},
+				},
+			},
+		}
+
+		by, err := json.Marshal(obj)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		head := w.Header()
+		head.Set("Content-Type", mediaType)
+		head.Set("Content-Length", strconv.Itoa(len(by)))
+		w.WriteHeader(200)
+		w.Write(by)
+	})
+
+	mux3.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("Server 3: %s %s", r.Method, r.URL)
+		t.Logf("request header: %v", r.Header)
+
+		if r.Method != "GET" {
+			w.WriteHeader(405)
+			return
+		}
+
+		if r.Header.Get("Accept") != "" {
+			t.Error("Invalid Accept")
+		}
+
+		if r.Header.Get("Authorization") != "" {
+			t.Error("Invalid Authorization")
+		}
+
+		if r.Header.Get("A") != "1" {
+			t.Error("invalid A")
+		}
+
+		head := w.Header()
+		head.Set("Content-Type", "application/octet-stream")
+		head.Set("Content-Length", "4")
+		w.WriteHeader(200)
+		w.Write([]byte("test"))
+	})
+
+	Config.SetConfig("lfs.url", server.URL+"/media")
+
+	for _, redirect := range redirectCodes {
+		reader, size, wErr := Download("oid")
+		if wErr != nil {
+			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
+		}
+		defer reader.Close()
+
+		if size != 4 {
+			t.Errorf("unexpected size for %d status: %d", redirect, size)
+		}
+
+		by, err := ioutil.ReadAll(reader)
+		if err != nil {
+			t.Fatalf("unexpected error for %d status: %s", redirect, err)
+		}
+
+		if body := string(by); body != "test" {
+			t.Errorf("unexpected body for %d status: %s", redirect, body)
+		}
+	}
+}
+
 func TestDownloadAPIError(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)

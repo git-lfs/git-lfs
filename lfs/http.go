@@ -40,6 +40,11 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 
 	oldest := via[0]
 	for key, _ := range oldest.Header {
+		if key == "Authorization" {
+			if req.URL.Scheme != oldest.URL.Scheme || req.URL.Host != oldest.URL.Host {
+				continue
+			}
+		}
 		req.Header.Set(key, oldest.Header.Get(key))
 	}
 
