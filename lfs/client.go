@@ -29,10 +29,10 @@ var (
 		"Authorization": true,
 	}
 
-	// 401 and 403 print the same default error message
 	defaultErrors = map[int]string{
 		400: "Client error: %s",
 		401: "Authorization error: %s\nCheck that you have proper access to the repository",
+		403: "Authorization error: %s\nCheck that you have proper access to the repository",
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
 	}
@@ -437,8 +437,4 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 			err.Set(contextKey, head.Get(key))
 		}
 	}
-}
-
-func init() {
-	defaultErrors[403] = defaultErrors[401]
 }
