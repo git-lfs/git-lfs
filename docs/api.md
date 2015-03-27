@@ -18,7 +18,7 @@ individual API method for more details.  Some of the specific status codes may
 trigger specific error messages from the client.
 
 * 200 - The request completed successfully.
-* 202 - An upload request has been accepted.  Clients should follow hypermedia
+* 202 - An upload request has been accepted.  Clients must follow hypermedia
 links to actually upload the content.
 * 301 - A permanent redirect.  Only supported for GET/HEAD requests.
 * 302 - A temporary redirect.  Only supported for GET/HEAD requests.
@@ -35,7 +35,7 @@ repository or requested object does not exist.
 The following status codes can optionally be returned from the API, depending on
 the server implementation.
 
-* 406 - The Accept header is invalid.  It should be `application/vnd.git-lfs+json`.
+* 406 - The Accept header needs to be `application/vnd.git-lfs+json`.
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
 availability reasons.
@@ -71,7 +71,7 @@ they are displayed to the user.
 ## Redirections
 
 The Git LFS client follows redirections on the core Git LFS API methods only.
-Any of the hypermedia hrefs that are returned should be for the current location.
+Any of the hypermedia hrefs that are returned must be for the current location.
 The client will pass all of the original request headers to the redirected
 request, only changing the URL based on the redirect location.  The only
 exception is the Authorization header, which is only passed through if the
