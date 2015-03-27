@@ -16,12 +16,21 @@ var (
 func envCommand(cmd *cobra.Command, args []string) {
 	config := lfs.Config
 
-	if endpoint := config.Endpoint(); len(endpoint) > 0 {
-		Print("Endpoint=%s", endpoint)
+	endpoint := config.Endpoint()
+
+	if len(endpoint.Url) > 0 {
+		Print("Endpoint=%s", endpoint.Url)
+		if len(endpoint.SshUserAndHost) > 0 {
+			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
+		}
 	}
 
 	for _, remote := range config.Remotes() {
-		Print("Endpoint (%s)=%s", remote, config.RemoteEndpoint(remote))
+		remoteEndpoint := config.RemoteEndpoint(remote)
+		Print("Endpoint (%s)=%s", remote, remoteEndpoint.Url)
+		if len(endpoint.SshUserAndHost) > 0 {
+			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
+		}
 	}
 
 	for _, env := range lfs.Environ() {

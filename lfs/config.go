@@ -20,6 +20,12 @@ type Configuration struct {
 	isTracingHttp         bool
 }
 
+type Endpoint struct {
+	Url            string
+	SshUserAndHost string
+	SshPath        string
+}
+
 var (
 	Config        = NewConfig()
 	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
@@ -34,13 +40,13 @@ func NewConfig() *Configuration {
 	return c
 }
 
-func (c *Configuration) Endpoint() string {
+func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return url
+		return Endpoint{Url: url}
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint) > 0 {
+		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
 			return endpoint
 		}
 	}
@@ -48,32 +54,41 @@ func (c *Configuration) Endpoint() string {
 	return c.RemoteEndpoint(defaultRemote)
 }
 
-func (c *Configuration) RemoteEndpoint(remote string) string {
+func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".lfs_url"); ok {
-		return url
+		return Endpoint{Url: url}
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
+		endpoint := Endpoint{Url: url}
+
 		if !httpPrefixRe.MatchString(url) {
 			pieces := strings.SplitN(url, ":", 2)
 			hostPieces := strings.SplitN(pieces[0], "@", 2)
 			if len(hostPieces) < 2 {
-				return "unknown"
+				endpoint.Url = "<unknown>"
+				return endpoint
 			}
-			url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
+
+			endpoint.SshUserAndHost = pieces[0]
+			endpoint.SshPath = pieces[1]
+			endpoint.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
 		}
 
 		if path.Ext(url) == ".git" {
-			return url + "/info/lfs"
+			endpoint.Url += "/info/lfs"
+		} else {
+			endpoint.Url += ".git/info/lfs"
 		}
-		return url + ".git/info/lfs"
+
+		return endpoint
 	}
 
-	return ""
+	return Endpoint{}
 }
 
 func (c *Configuration) Remotes() []string {
@@ -93,7 +108,7 @@ func (c *Configuration) SetConfig(key, value string) {
 }
 
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
-	u, err := url.Parse(c.Endpoint())
+	u, err := url.Parse(c.Endpoint().Url)
 	if err != nil {
 		return nil, err
 	}

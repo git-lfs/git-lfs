@@ -417,7 +417,7 @@ func getCreds(req *http.Request) (Creds, error) {
 }
 
 func setErrorRequestContext(err *WrappedError, req *http.Request) {
-	err.Set("Endpoint", Config.Endpoint())
+	err.Set("Endpoint", Config.Endpoint().Url)
 	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
