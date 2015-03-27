@@ -52,7 +52,7 @@ func TestEndpointUseAlternateRemote(t *testing.T) {
 	assert.Equal(t, "def", config.Endpoint())
 }
 
-func TestEndpointAddsMediaSuffix(t *testing.T) {
+func TestEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "https://example.com/foo/bar"},
 		remotes:   []string{},
@@ -61,7 +61,7 @@ func TestEndpointAddsMediaSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
-func TestBareEndpointAddsMediaSuffix(t *testing.T) {
+func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "https://example.com/foo/bar.git"},
 		remotes:   []string{},
@@ -70,7 +70,7 @@ func TestBareEndpointAddsMediaSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
-func TestSSHEndpointAddsMediaSuffix(t *testing.T) {
+func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "git@example.com:foo/bar"},
 		remotes:   []string{},
@@ -79,7 +79,7 @@ func TestSSHEndpointAddsMediaSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
-func TestBareSSHEndpointAddsMediaSuffix(t *testing.T) {
+func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "git@example.com:foo/bar.git"},
 		remotes:   []string{},
@@ -88,7 +88,7 @@ func TestBareSSHEndpointAddsMediaSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
-func TestHTTPEndpointAddsMediaSuffix(t *testing.T) {
+func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "http://example.com/foo/bar"},
 		remotes:   []string{},
@@ -97,7 +97,7 @@ func TestHTTPEndpointAddsMediaSuffix(t *testing.T) {
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", config.Endpoint())
 }
 
-func TestBareHTTPEndpointAddsMediaSuffix(t *testing.T) {
+func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "http://example.com/foo/bar.git"},
 		remotes:   []string{},
