@@ -26,8 +26,10 @@ commands and low level ("plumbing") commands.
     Ensure Git LFS is configured properly.
 * git-lfs-logs(1):
     Show errors from the git-lfs command.
-* git-lfs-path(1):
-    View and modify Git LFS paths in Git attributes.
+* git-lfs-track(1):
+    View or add Git LFS paths to Git attributes.
+* git-lfs-untrack(1):
+    Remove Git LFS paths from Git Attributes.
 * git-lfs-push(1):
     Push queued large files to the Git LFS endpoint.
 

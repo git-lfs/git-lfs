@@ -1,13 +1,16 @@
 package pointer
 
 import (
+	"fmt"
+	"github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/lfs"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
+	"path/filepath"
 )
 
-func Smudge(writer io.Writer, ptr *Pointer, cb lfs.CopyCallback) error {
+func Smudge(writer io.Writer, ptr *Pointer, workingfile string, cb lfs.CopyCallback) error {
 	mediafile, err := lfs.LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
@@ -15,7 +18,7 @@ func Smudge(writer io.Writer, ptr *Pointer, cb lfs.CopyCallback) error {
 
 	var wErr *lfs.WrappedError
 	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
-		wErr = downloadFile(writer, ptr, mediafile, cb)
+		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
 		wErr = readLocalFile(writer, ptr, mediafile, cb)
 	}
@@ -27,8 +30,9 @@ func Smudge(writer io.Writer, ptr *Pointer, cb lfs.CopyCallback) error {
 	}
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
-	reader, size, wErr := lfs.Download(mediafile)
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
+	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
+	reader, size, wErr := lfs.Download(filepath.Base(mediafile))
 	if reader != nil {
 		defer reader.Close()
 	}

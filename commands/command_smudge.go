@@ -56,7 +56,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	err = ptr.Smudge(os.Stdout, cb)
+	err = ptr.Smudge(os.Stdout, filename, cb)
 	if file != nil {
 		file.Close()
 	}

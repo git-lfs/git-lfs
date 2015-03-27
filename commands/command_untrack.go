@@ -10,24 +10,18 @@ import (
 )
 
 var (
-	removeCmd = &cobra.Command{
-		Use:   "remove",
+	untrackCmd = &cobra.Command{
+		Use:   "untrack",
 		Short: "Remove an entry from .gitattributes",
-		Run:   removeCommand,
-	}
-
-	rmCmd = &cobra.Command{
-		Use:   "rm",
-		Short: "Remove an entry from .gitattributes",
-		Run:   removeCommand,
+		Run:   untrackCommand,
 	}
 )
 
-func removeCommand(cmd *cobra.Command, args []string) {
+func untrackCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
 	if len(args) < 1 {
-		Print("git lfs path rm <path> [path]*")
+		Print("git lfs untrack <path> [path]*")
 		return
 	}
 
@@ -59,7 +53,7 @@ func removeCommand(cmd *cobra.Command, args []string) {
 			if !removeThisPath {
 				attributesFile.WriteString(line + "\n")
 			} else {
-				Print("Removing path %s", fields[0])
+				Print("Untracking %s", fields[0])
 			}
 		}
 	}
@@ -68,6 +62,5 @@ func removeCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RootCmd.AddCommand(rmCmd)
-	RootCmd.AddCommand(removeCmd)
+	RootCmd.AddCommand(untrackCmd)
 }
