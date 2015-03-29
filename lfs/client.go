@@ -148,7 +148,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		return Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", "")
+	req, creds, err := newApiRequest("POST", oid)
 	if err != nil {
 		return Error(err)
 	}
@@ -367,7 +367,15 @@ func saveCredentials(creds Creds, res *http.Response) {
 }
 
 func newApiRequest(method, oid string) (*http.Request, Creds, error) {
-	u, err := Config.ObjectUrl(oid)
+	endpoint := Config.Endpoint()
+	objectOid := oid
+	operation := "download"
+	if method == "POST" {
+		objectOid = ""
+		operation = "upload"
+	}
+
+	u, err := ObjectUrl(endpoint, objectOid)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -375,6 +383,7 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	req, creds, err := newClientRequest(method, u.String())
 	if err == nil {
 		req.Header.Set("Accept", mediaType)
+		err = mergeSshHeader(req.Header, endpoint, operation, oid)
 	}
 	return req, creds, err
 }
