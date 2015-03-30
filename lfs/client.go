@@ -383,7 +383,11 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	req, creds, err := newClientRequest(method, u.String())
 	if err == nil {
 		req.Header.Set("Accept", mediaType)
-		err = mergeSshHeader(req.Header, endpoint, operation, oid)
+		if err := mergeSshHeader(req.Header, endpoint, operation, oid); err != nil {
+			tracerx.Printf("ssh: attempted with %s.  Error: %s",
+				endpoint.SshUserAndHost, err.Error(),
+			)
+		}
 	}
 	return req, creds, err
 }

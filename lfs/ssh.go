@@ -14,7 +14,6 @@ type sshAuthResponse struct {
 }
 
 func mergeSshHeader(header http.Header, endpoint Endpoint, operation, oid string) error {
-	tracerx.Printf("endpoint: %s / %s", endpoint.SshUserAndHost, endpoint.SshPath)
 	if len(endpoint.SshUserAndHost) == 0 {
 		return nil
 	}
@@ -34,7 +33,7 @@ func mergeSshHeader(header http.Header, endpoint Endpoint, operation, oid string
 }
 
 func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse, error) {
-	tracerx.Printf("ssh %s git-lfs-authenticate %s %s %s",
+	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s %s",
 		endpoint.SshUserAndHost, endpoint.SshPath, operation, oid)
 	cmd := exec.Command("ssh", endpoint.SshUserAndHost,
 		"git-lfs-authenticate",
@@ -43,7 +42,6 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 	)
 
 	out, err := cmd.CombinedOutput()
-	tracerx.Printf("ssh: %s", string(out))
 	res := sshAuthResponse{}
 
 	if err != nil {
