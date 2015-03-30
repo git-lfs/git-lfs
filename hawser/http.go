@@ -74,6 +74,10 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 }
 
 func traceHttpResponse(c *Configuration, res *http.Response, counter *countingBody) {
+	if res == nil {
+		return
+	}
+
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
 	if c.isTracingHttp == false {
