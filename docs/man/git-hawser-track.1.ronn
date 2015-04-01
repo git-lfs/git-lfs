@@ -1,0 +1,28 @@
+git-hawser-track(1) - Add Hawser paths to Git Attributes.
+======================================================================
+
+## SYNOPSIS
+
+`git hawser track` [path]*
+
+## DESCRIPTION
+
+The "track" command helps view and modify Git attributes for the "hawser"
+clean and smudge filters.  The "path" argument can be a file extension, or a
+path.  If no "path" argument is given, this lists the paths that Hawser tracks.
+
+## EXAMPLES
+
+* View the current Git attributes.
+
+    `git hawser track`
+
+* Configure a path to use the Hawser clean and smudge filters.
+
+    `git hawser track "*.gif"`
+
+## SEE ALSO
+
+git-hawser-untrack(1), git-hawser-init(1), gitattributes(5).
+
+Part of the git-hawser(1) suite.
