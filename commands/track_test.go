@@ -8,15 +8,15 @@ import (
 	"testing"
 )
 
-func TestPath(t *testing.T) {
+func TestTrack(t *testing.T) {
 	repo := NewRepository(t, "attributes")
 	defer repo.Test()
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 	customHook := []byte("echo 'yo'")
 
-	cmd := repo.Command("path")
-	cmd.Output = "Listing paths\n" +
+	cmd := repo.Command("track")
+	cmd.Output = "Listing tracked paths\n" +
 		"    *.mov (.git/info/attributes)\n" +
 		"    *.jpg (.gitattributes)\n" +
 		"    *.gif (a/.gitattributes)\n" +
@@ -39,14 +39,14 @@ func TestPath(t *testing.T) {
 	})
 }
 
-func TestPathOnEmptyRepository(t *testing.T) {
+func TestTrackOnEmptyRepository(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
-	cmd := repo.Command("add", "*.gif")
-	cmd.Output = "Adding path *.gif"
+	cmd := repo.Command("track", "*.gif")
+	cmd.Output = "Tracking *.gif"
 
 	cmd.Before(func() {
 		// write attributes file in .git
@@ -58,9 +58,9 @@ func TestPathOnEmptyRepository(t *testing.T) {
 		// assert path was added
 		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs -crlf\n", repo.ReadFile(".gitattributes"))
 
-		expected := "Listing paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
+		expected := "Listing tracked paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 
-		assert.Equal(t, expected, repo.MediaCmd("path"))
+		assert.Equal(t, expected, repo.MediaCmd("track"))
 
 		// assert hook was created
 		stat, err := os.Stat(prePushHookFile)
@@ -68,18 +68,18 @@ func TestPathOnEmptyRepository(t *testing.T) {
 		assert.Equal(t, false, stat.IsDir())
 	})
 
-	cmd = repo.Command("path")
-	cmd.Output = "Listing paths"
+	cmd = repo.Command("track")
+	cmd.Output = "Listing tracked paths"
 }
 
-func TestAddPathWithoutTrailingLinebreak(t *testing.T) {
+func TestTrackWithoutTrailingLinebreak(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
-	cmd := repo.Command("add", "*.gif")
-	cmd.Output = "Adding path *.gif"
+	cmd := repo.Command("track", "*.gif")
+	cmd.Output = "Tracking *.gif"
 
 	cmd.Before(func() {
 		// write attributes file in .git
@@ -91,9 +91,9 @@ func TestAddPathWithoutTrailingLinebreak(t *testing.T) {
 		// assert path was added
 		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs -crlf\n", repo.ReadFile(".gitattributes"))
 
-		expected := "Listing paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
+		expected := "Listing tracked paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 
-		assert.Equal(t, expected, repo.MediaCmd("path"))
+		assert.Equal(t, expected, repo.MediaCmd("track"))
 
 		// assert hook was created
 		stat, err := os.Stat(prePushHookFile)
@@ -101,6 +101,6 @@ func TestAddPathWithoutTrailingLinebreak(t *testing.T) {
 		assert.Equal(t, false, stat.IsDir())
 	})
 
-	cmd = repo.Command("path")
-	cmd.Output = "Listing paths"
+	cmd = repo.Command("track")
+	cmd.Output = "Listing tracked paths"
 }

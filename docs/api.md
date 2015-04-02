@@ -7,8 +7,9 @@ Git repositories that use Git LFS will specify a URI endpoint.  See the
 Use that endpoint as a base, and append the following relative paths to upload
 and download from the Git LFS server.
 
-All requests should send an Accept header of `application/vnd.git-lfs+json`.
-This may change in the future as the API evolves.
+API requests require an Accept header of `application/vnd.git-lfs+json`. The
+upload and verify requests need a `application/vnd.git-lfs+json` Content-Type
+too.
 
 ## API Responses
 
@@ -17,8 +18,12 @@ individual API method for more details.  Some of the specific status codes may
 trigger specific error messages from the client.
 
 * 200 - The request completed successfully.
-* 202 - An upload request has been accepted.  Clients should follow hypermedia
+* 202 - An upload request has been accepted.  Clients must follow hypermedia
 links to actually upload the content.
+* 301 - A permanent redirect.  Only supported for GET/HEAD requests.
+* 302 - A temporary redirect.  Only supported for GET/HEAD requests.
+* 303 - A temporary redirect.  Only supported for GET/HEAD requests.
+* 307 - A temporary redirect.  Keeps the original request method intact.
 * 400 - General error with the client's request.  Invalid JSON formatting, for
 example.
 * 401 - The authentication credentials are incorrect.
@@ -30,7 +35,7 @@ repository or requested object does not exist.
 The following status codes can optionally be returned from the API, depending on
 the server implementation.
 
-* 406 - The Accept header is invalid.  It should be `application/vnd.git-lfs+json`.
+* 406 - The Accept header needs to be `application/vnd.git-lfs+json`.
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
 availability reasons.
@@ -62,6 +67,23 @@ to users.
 
 The `documentation_url` and `request_id` properties are optional.  If given,
 they are displayed to the user.
+
+## Redirections
+
+The Git LFS client follows redirections on the core Git LFS API methods only.
+Any of the hypermedia hrefs that are returned must be for the current location.
+The client will pass all of the original request headers to the redirected
+request, only changing the URL based on the redirect location.  The only
+exception is the Authorization header, which is only passed through if the
+original request and the new location have a matching URL scheme, host, and
+port.
+
+The client will automatically follow redirections for GET or HEAD requests on
+a 301, 302, 303, or 307 HTTP status.  It only automatically follows redirections
+for other HTTP verbs on a 307 HTTP status.
+
+Note: the 308 HTTP status is not official, and has conflicting proposals for its
+intended use.  It is not supported as a redirection.
 
 ## Hypermedia
 
@@ -153,7 +175,7 @@ This request initiates the upload of an object, given a JSON body with the oid
 and size of the object to upload.
 
 ```
-> POST https://git-lfs-server.com/objects/ HTTP/1.1
+> POST https://git-lfs-server.com/objects HTTP/1.1
 > Accept: application/vnd.git-lfs+json
 > Content-Type: application/vnd.git-lfs+json
 > Authorization: Basic ... (if authentication is needed)
@@ -215,7 +237,7 @@ API expects a POST to the href after a successful upload.  Git LFS clients send:
 
 ```
 > POST https://git-lfs-server.com/callback
-> Accept: application/vnd.git-lfs
+> Accept: application/vnd.git-lfs+json
 > Content-Type: application/vnd.git-lfs+json
 > Content-Length: 123
 >

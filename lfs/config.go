@@ -22,7 +22,6 @@ type Configuration struct {
 
 var (
 	Config        = NewConfig()
-	RedirectError = fmt.Errorf("Unexpected redirection")
 	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
 	defaultRemote = "origin"
 )
@@ -54,7 +53,7 @@ func (c *Configuration) RemoteEndpoint(remote string) string {
 		remote = defaultRemote
 	}
 
-	if url, ok := c.GitConfig("remote." + remote + ".lfs"); ok {
+	if url, ok := c.GitConfig("remote." + remote + ".lfs_url"); ok {
 		return url
 	}
 
@@ -99,7 +98,10 @@ func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "objects", oid)
+	u.Path = path.Join(u.Path, "objects")
+	if len(oid) > 0 {
+		u.Path = path.Join(u.Path, oid)
+	}
 	return u, nil
 }
 
