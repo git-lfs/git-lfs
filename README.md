@@ -28,24 +28,24 @@ Here is a sample one that saves zips and mp3s:
     *.mp3 filter=lfs -crlf
     *.zip filter=lfs -crlf
 
-Git LFS can help manage the paths:
+Git LFS can manage `.gitattributes` for you:
 
-    $ git lfs add "*.mp3"
-    Adding path *.mp3
+    $ git lfs track "*.mp3"
+    Tracking *.mp3
 
-    $ git lfs add "*.zip"
-    Adding path *.zip
+    $ git lfs track "*.zip"
+    Tracking *.zip
 
-    $ git lfs path
-    Listing paths
+    $ git lfs track
+    Listing tracked paths
         *.mp3 (.gitattributes)
         *.zip (.gitattributes)
 
-    $ git lfs remove "*.zip"
-    Removing path *.zip
+    $ git lfs untrack "*.zip"
+    Untracking *.zip
 
-    $ git lfs path
-    Listing paths
+    $ git lfs track
+    Listing tracked paths
         *.mp3 (.gitattributes)
 
 ### Pushing commits
