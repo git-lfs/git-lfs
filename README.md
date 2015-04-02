@@ -27,7 +27,7 @@ so you are not limited in where you push your Git repository.
 local repository doesn't carry the weight of every version of every file when it
 is not needed.
 
-* The metatadata stored in Git is extensible for future use. It currently
+* The meta data stored in Git is extensible for future use. It currently
 includes a hash of the contents of the file, and the file size so clients can
 display a progress bar while downloading or opt out of a large download.
 
