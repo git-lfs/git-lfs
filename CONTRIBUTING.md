@@ -30,6 +30,23 @@ them as separate pull requests.
 0. Commit the change.  Git LFS vendors the full source code in the repository.
 0. Submit a pull request.
 
+## Releasing
+
+If you are the current maintainer:
+
+* Create a [new draft Release](https://github.com/github/git-lfs/releases/new).
+List any changes with links to related PRs.
+* Make sure your local dependencies are up to date: `script/bootstrap`
+* Ensure that tests are green: `script/test`
+* Bump the version in `lfs/lfs.go`, [like this](https://github.com/github/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
+* Build for all platforms with `script/bootstrap -all` (you need Go setup for
+cross compiling with Mac, Linux, FreeBSD, and Windows support).
+* Test the command locally.  The compiled version will be in `bin/releases/{os}-{arch}/git-lfs-{version}/git-lfs`
+* Get the draft Release ID from the GitHub API: `curl -in https://api.github.com/repos/github/git-lfs/releases`
+* Run `script/release -id {id}` to upload all of the compiled binaries to the
+release.
+* Publish the Release on GitHub.
+
 ## Resources
 
 - [Contributing to Open Source on GitHub](https://guides.github.com/activities/contributing-to-open-source/)
