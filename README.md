@@ -11,8 +11,8 @@ contains every version of every file. This is a core feature of a distributed
 version control system. But for some types of projects, this is not reasonable
 or even practical. Multiple revisions of a large file take up space quickly,
 slowing down repository operations and making clones, fetches, and pulls
-unwieldy. The Git LFS overcomes this limitation by storing the metadata for
-large files in Git and syncing the actual file contents to a configurable [Git
+unwieldy. Git LFS overcomes this limitation by storing the metadata for
+large files in Git and syncing the file contents to a configurable [Git
 LFS server](docs/api.md).
 
 Some of the key features include:
