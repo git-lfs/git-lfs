@@ -17,7 +17,7 @@ Git attributes.
 
 ## OPTIONS
 
-Without any options, `git lfs smudge` will output the raw hawser content to
+Without any options, `git lfs smudge` will output the raw Git LFS content to
 STDOUT.
 
 * `--info`:
