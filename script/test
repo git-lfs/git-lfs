@@ -5,8 +5,8 @@
 script/fmt
 script/bootstrap
 
-git config user.name || git config user.name "Git LFS Tests"
-git config user.email || git config user.email "git-lfs@example.com"
+git config user.name || git config --global user.name "Git LFS Tests"
+git config user.email || git config --global user.email "git-lfs@example.com"
 
 export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
 mkdir -p `dirname $LOCALSRCDIR`
