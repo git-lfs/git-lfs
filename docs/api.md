@@ -11,6 +11,38 @@ API requests require an Accept header of `application/vnd.git-lfs+json`. The
 upload and verify requests need a `application/vnd.git-lfs+json` Content-Type
 too.
 
+## Authentication
+
+The Git LFS API uses [git credentials](http://git-scm.com/docs/gitcredentials) to
+access the API username and password.  If the Git LFS domain matches the Git
+remote's, Git LFS will not prompt you again to enter the password.
+
+If the Git remote is using SSH, Git LFS will execute the `git-lfs-authenticate`
+command.  It passes the SSH path, the Git LFS operation (upload or download),
+and the object OID as arguments. A successful result outputs a JSON header
+object to STDOUT.  This is applied to any Git LFS API request before git
+credentials are accessed.
+
+```
+# remote: git@github.com:user/repo.git
+$ ssh git@github.com git-lfs-authenticate user/repo.git download {oid}
+{
+  "header": {
+    "Authorization": "Basic ..."
+  }
+}
+```
+
+If Git LFS detects a non-zero exit status, it displays the command's STDERR:
+
+```
+$ ssh git@github.com git-lfs-authenticate user/repo.git wat {oid}
+Invalid LFS operation: "wat"
+```
+
+NOTE: The Git LFS client currently does not cache the headers from the SSH
+command.  This is being considered for a future release.
+
 ## API Responses
 
 This specification defines what status codes that API can return.  Look at each
