@@ -265,7 +265,7 @@ response can potentially return a "verify" link relation.  If given, The Git LFS
 API expects a POST to the href after a successful upload.  Git LFS clients send:
 
 * `oid` - The String OID of the Git LFS object.
-* `size` - The integer size of the Git LFS object.
+* `size` - The integer size of the Git LFS object, in bytes.
 
 ```
 > POST https://git-lfs-server.com/callback
