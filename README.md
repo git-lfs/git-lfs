@@ -4,8 +4,6 @@ Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
 binaries available for Mac, Windows, Linux, and FreeBSD.
 
-**Support for Git LFS on GitHub.com is coming soon!**
-
 ## Features
 
 By design, every git repository contains every version of every file. But
@@ -34,6 +32,11 @@ display a progress bar while downloading or opt out of a large download.
 * Clients and servers can make use of all the features of HTTPS, such as caching
 content locally on a CDN, resumable uploads and downloads, or performing
 requests in parallel for faster transfers.
+
+## Known Implementations
+
+- [GitHub.com](https://github.com/early_access/large_file_storage) (support coming soon!)
+- [github/lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
 
 ## Getting Started
 
