@@ -36,7 +36,7 @@ requests in parallel for faster transfers.
 ## Known Implementations
 
 - [GitHub.com](github.com/early_access/large_file_storage) (support coming soon!)
-- [lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
+- [github/lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
 
 ## Getting Started
 
