@@ -1,15 +1,37 @@
-Git Large File Storage
-======
+# Git Large File Storage
 
-Git LFS is a command line extension for managing large files.  It replaces
-large files with text pointers inside Git, while storing the actual files in a
-remote Git LFS server.
+Git LFS is a command line extension and [specification](docs/spec.md) for
+managing large files with Git. The client is written in Go, with pre-compiled
+binaries available for Mac, Windows, Linux, and FreeBSD.
 
-The Git LFS client is written in Go, with pre-compiled binaries available for
-Mac, Windows, Linux, and FreeBSD.
+## Features
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
-sending patches.
+By design, every git repository contains every version of every file. But
+for some types of projects, this is not reasonable or even practical.
+Multiple revisions of a large file take up space quickly, slowing down
+repository operations and making fetches unwieldy.
+
+Git LFS overcomes this limitation by storing the metadata for large files in
+Git and syncing the file contents to a configurable [Git LFS
+server](docs/api.md). Some of the key features include:
+
+* Tight integration with Git means you don't have to change your workflow after
+the initial configuration.
+
+* Large files are synced separately to a configurable Git LFS server over HTTPS,
+so you are not limited in where you push your Git repository.
+
+* Large files are only synced from the server when they are checked out, so your
+local repository doesn't carry the weight of every version of every file when it
+is not needed.
+
+* The meta data stored in Git is extensible for future use. It currently
+includes a hash of the contents of the file, and the file size so clients can
+display a progress bar while downloading or opt out of a large download.
+
+* Clients and servers can make use of all the features of HTTPS, such as caching
+content locally on a CDN, resumable uploads and downloads, or performing
+requests in parallel for faster transfers.
 
 ## Getting Started
 
@@ -73,4 +95,10 @@ Once you've made your commits, push your files to the Git remote.
     To https://github.com/github/git-lfs-test
        67fcf6a..47b2002  master -> master
 
-See the [Git LFS overview](https://github.com/github/git-lfs/tree/master/docs) and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
+See the [Git LFS overview](https://github.com/github/git-lfs/tree/master/docs)
+and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
+sending patches.
