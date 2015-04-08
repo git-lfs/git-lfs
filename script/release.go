@@ -12,7 +12,7 @@ import (
 
 var (
 	ReleaseId    = flag.Int("id", 0, "github/git-lfs Release ID")
-	uploadUrlFmt = "https://uploads.github.com/repos/github/git-lfs-interim/releases/%d/assets?%s"
+	uploadUrlFmt = "https://uploads.github.com/repos/github/git-lfs/releases/%d/assets?%s"
 )
 
 func mainRelease() {
