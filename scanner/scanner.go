@@ -344,7 +344,7 @@ type wrappedCmd struct {
 }
 
 // startCommand starts up a command and creates a stdin pipe and a buffered
-// stdout pipe, wrapped in a wrappedCmd. The stdout buffer wille be of stdoutBufSize
+// stdout pipe, wrapped in a wrappedCmd. The stdout buffer will be of stdoutBufSize
 // bytes.
 func startCommand(command string, args ...string) (*wrappedCmd, error) {
 	cmd := exec.Command(command, args...)
