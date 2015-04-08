@@ -77,7 +77,7 @@ Git LFS can manage `.gitattributes` for you:
 
 ### Pushing commits
 
-Once setup, you're ready to push some commits.
+Once setup, you're ready to push some commits:
 
     $ git add my.zip
     $ git commit -m "add zip"
@@ -87,7 +87,7 @@ You can confirm that Git LFS is managing your zip file:
     $ git lfs ls-files
     my.zip
 
-Once you've made your commits, push your files to the Git remote.
+Once you've made your commits, push your files to the Git remote:
 
     $ git push origin master
     Sending my.zip
