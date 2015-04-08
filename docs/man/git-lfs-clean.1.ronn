@@ -11,7 +11,7 @@ Clean calculates a SHA-256 signature of the data from STDOUT, and outputs a
 Git LFS pointer file.  It also queues the file to be pushed by
 git-lfs-push(1).
 
-Clean is typicall run by Git's clean filter, configured by the repository's
+Clean is typically run by Git's clean filter, configured by the repository's
 Git attributes.
 
 ## SEE ALSO
