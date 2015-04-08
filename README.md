@@ -4,8 +4,6 @@ Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
 binaries available for Mac, Windows, Linux, and FreeBSD.
 
-**Support for Git LFS on GitHub.com is coming soon!**
-
 ## Features
 
 By design, every git repository contains every version of every file. But
@@ -104,3 +102,9 @@ and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
 sending patches.
+
+## Early access to Git LFS support on GitHub.com
+
+We're ready to roll out Git LFS support to a select group of users. If you'd like to be one of the first to try it out on GitHub.com, [sign up for early access][signup] using your GitHub account.
+
+In the next few months, every repository on GitHub.com will support Git LFS by default.
