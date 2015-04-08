@@ -1,6 +1,5 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
 script: script/cibuild
-sudo: required
 notifications:
   email: false
