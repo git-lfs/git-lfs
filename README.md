@@ -33,6 +33,11 @@ display a progress bar while downloading or opt out of a large download.
 content locally on a CDN, resumable uploads and downloads, or performing
 requests in parallel for faster transfers.
 
+## Known Implementations
+
+- [GitHub.com](github.com/early_access/large_file_storage) (support coming soon!)
+- [lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
+
 ## Getting Started
 
 Download the [latest client][rel] and run the included install script.  The
@@ -102,9 +107,3 @@ and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
 sending patches.
-
-## Early access to Git LFS support on GitHub.com
-
-We're ready to roll out Git LFS support to a select group of users. If you'd like to be one of the first to try it out on GitHub.com, [sign up for early access][signup] using your GitHub account.
-
-In the next few months, every repository on GitHub.com will support Git LFS by default.
