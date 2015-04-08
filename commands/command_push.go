@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/pointer"
@@ -137,6 +138,11 @@ func pushAsset(oid, filename string, index, totalFiles int) *lfs.WrappedError {
 		return lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
 	cb, file, cbErr := lfs.CopyCallbackFile("push", filename, index, totalFiles)
 	if cbErr != nil {
 		Error(cbErr.Error())
@@ -146,6 +152,7 @@ func pushAsset(oid, filename string, index, totalFiles int) *lfs.WrappedError {
 		defer file.Close()
 	}
 
+	fmt.Fprintf(os.Stderr, "Uploading %s (%s)\n", filename, pb.FormatBytes(stat.Size()))
 	return lfs.Upload(path, filename, cb)
 }
 
