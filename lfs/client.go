@@ -148,7 +148,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		return Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", "")
+	req, creds, err := newApiRequest("POST", oid)
 	if err != nil {
 		return Error(err)
 	}
@@ -367,7 +367,15 @@ func saveCredentials(creds Creds, res *http.Response) {
 }
 
 func newApiRequest(method, oid string) (*http.Request, Creds, error) {
-	u, err := Config.ObjectUrl(oid)
+	endpoint := Config.Endpoint()
+	objectOid := oid
+	operation := "download"
+	if method == "POST" {
+		objectOid = ""
+		operation = "upload"
+	}
+
+	u, err := ObjectUrl(endpoint, objectOid)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -375,6 +383,11 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	req, creds, err := newClientRequest(method, u.String())
 	if err == nil {
 		req.Header.Set("Accept", mediaType)
+		if err := mergeSshHeader(req.Header, endpoint, operation, oid); err != nil {
+			tracerx.Printf("ssh: attempted with %s.  Error: %s",
+				endpoint.SshUserAndHost, err.Error(),
+			)
+		}
 	}
 	return req, creds, err
 }
@@ -417,7 +430,7 @@ func getCreds(req *http.Request) (Creds, error) {
 }
 
 func setErrorRequestContext(err *WrappedError, req *http.Request) {
-	err.Set("Endpoint", Config.Endpoint())
+	err.Set("Endpoint", Config.Endpoint().Url)
 	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }

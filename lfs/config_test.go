@@ -11,7 +11,10 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "abc", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "abc", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
 func TestEndpointOverridesOrigin(t *testing.T) {
@@ -23,7 +26,10 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 		remotes: []string{},
 	}
 
-	assert.Equal(t, "abc", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "abc", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
@@ -35,7 +41,10 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 		remotes: []string{},
 	}
 
-	assert.Equal(t, "abc", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "abc", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
 func TestEndpointUseAlternateRemote(t *testing.T) {
@@ -49,61 +58,97 @@ func TestEndpointUseAlternateRemote(t *testing.T) {
 
 	config.CurrentRemote = "other"
 
-	assert.Equal(t, "def", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "def", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
-func TestEndpointAddsMediaSuffix(t *testing.T) {
+func TestEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "https://example.com/foo/bar"},
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
-func TestBareEndpointAddsMediaSuffix(t *testing.T) {
+func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "https://example.com/foo/bar.git"},
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
-func TestSSHEndpointAddsMediaSuffix(t *testing.T) {
+func TestSSHEndpointOverridden(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"remote.origin.url":     "git@example.com:foo/bar",
+			"remote.origin.lfs_url": "lfs",
+		},
+		remotes: []string{},
+	}
+
+	endpoint := config.Endpoint()
+	assert.Equal(t, "lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+}
+
+func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "git@example.com:foo/bar"},
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
+	assert.Equal(t, "foo/bar", endpoint.SshPath)
 }
 
-func TestBareSSHEndpointAddsMediaSuffix(t *testing.T) {
+func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "git@example.com:foo/bar.git"},
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
+	assert.Equal(t, "foo/bar.git", endpoint.SshPath)
 }
 
-func TestHTTPEndpointAddsMediaSuffix(t *testing.T) {
+func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "http://example.com/foo/bar"},
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
-func TestBareHTTPEndpointAddsMediaSuffix(t *testing.T) {
+func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "http://example.com/foo/bar.git"},
 		remotes:   []string{},
 	}
 
-	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", config.Endpoint())
+	endpoint := config.Endpoint()
+	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
 }
 
 func TestObjectUrl(t *testing.T) {
