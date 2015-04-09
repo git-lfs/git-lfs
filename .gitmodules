@@ -22,3 +22,6 @@
 [submodule ".vendor/src/github.com/spf13/pflag"]
 	path = .vendor/src/github.com/spf13/pflag
 	url = git://github.com/spf13/pflag.git
+[submodule ".vendor/src/github.com/technoweenie/go-contentaddressable"]
+	path = .vendor/src/github.com/technoweenie/go-contentaddressable
+	url = git://github.com/technoweenie/go-contentaddressable.git
