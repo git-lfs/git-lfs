@@ -4,3 +4,6 @@
 [submodule ".vendor/src/github.com/bmizerany/assert"]
 	path = .vendor/src/github.com/bmizerany/assert
 	url = git://github.com/bmizerany/assert.git
+[submodule ".vendor/src/github.com/kr/pretty"]
+	path = .vendor/src/github.com/kr/pretty
+	url = git://github.com/kr/pretty.git
