@@ -13,3 +13,6 @@
 [submodule ".vendor/src/github.com/olekukonko/ts"]
 	path = .vendor/src/github.com/olekukonko/ts
 	url = git://github.com/olekukonko/ts.git
+[submodule ".vendor/src/github.com/rubyist/tracerx"]
+	path = .vendor/src/github.com/rubyist/tracerx
+	url = git://github.com/rubyist/tracerx.git
