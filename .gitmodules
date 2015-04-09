@@ -7,3 +7,6 @@
 [submodule ".vendor/src/github.com/kr/pretty"]
 	path = .vendor/src/github.com/kr/pretty
 	url = git://github.com/kr/pretty.git
+[submodule ".vendor/src/github.com/kr/text"]
+	path = .vendor/src/github.com/kr/text
+	url = git://github.com/kr/text.git
