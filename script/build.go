@@ -96,7 +96,7 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 		dir = filepath.Join(dir, "releases", buildos+"-"+buildarch, name)
 	}
 
-	filepath.Walk("cmd", func(path string, info os.FileInfo, err error) error {
+	filepath.Walk("cmd/git-lfs", func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
