@@ -1,0 +1,3 @@
+[submodule ".vendor/src/github.com/cheggaaa/pb"]
+	path = .vendor/src/github.com/cheggaaa/pb
+	url = git://github.com/cheggaaa/pb.git
