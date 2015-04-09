@@ -10,3 +10,6 @@
 [submodule ".vendor/src/github.com/kr/text"]
 	path = .vendor/src/github.com/kr/text
 	url = git://github.com/kr/text.git
+[submodule ".vendor/src/github.com/olekukonko/ts"]
+	path = .vendor/src/github.com/olekukonko/ts
+	url = git://github.com/olekukonko/ts.git
