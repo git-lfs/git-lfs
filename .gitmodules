@@ -16,3 +16,6 @@
 [submodule ".vendor/src/github.com/rubyist/tracerx"]
 	path = .vendor/src/github.com/rubyist/tracerx
 	url = git://github.com/rubyist/tracerx.git
+[submodule ".vendor/src/github.com/spf13/cobra"]
+	path = .vendor/src/github.com/spf13/cobra
+	url = git://github.com/spf13/cobra.git
