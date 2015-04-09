@@ -1,3 +1,6 @@
 [submodule ".vendor/src/github.com/cheggaaa/pb"]
 	path = .vendor/src/github.com/cheggaaa/pb
 	url = git://github.com/cheggaaa/pb.git
+[submodule ".vendor/src/github.com/bmizerany/assert"]
+	path = .vendor/src/github.com/bmizerany/assert
+	url = git://github.com/bmizerany/assert.git
