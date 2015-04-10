@@ -49,6 +49,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		for _, k := range knownPaths {
 			if t == k.Path {
 				isKnownPath = true
+				break
 			}
 		}
 
