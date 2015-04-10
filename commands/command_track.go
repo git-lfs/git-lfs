@@ -133,6 +133,9 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	defer file.Close()
+
+	// Reading the file in chuncks of 16384 bytes,
+	// to avoid holding the entire file's content in memory
 	buf := make([]byte, 16384)
 	bytesRead := 0
 	for {
