@@ -124,6 +124,8 @@ func findPaths() []mediaPath {
 	return paths
 }
 
+// needsTrailingLinebreak returns 'true' if a file doesn't end in a newline,
+// 'false' otherwise (even if an error occures).
 func needsTrailingLinebreak(filename string) bool {
 	file, err := os.Open(filename)
 	if err != nil {
