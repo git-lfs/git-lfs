@@ -21,10 +21,10 @@ var (
 
 func trackCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
+	knownPaths := findPaths()
 
 	if len(args) == 0 {
 		Print("Listing tracked paths")
-		knownPaths := findPaths()
 		for _, t := range knownPaths {
 			Print("    %s (%s)", t.Path, t.Source)
 		}
@@ -32,7 +32,6 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	addTrailingLinebreak := needsTrailingLinebreak(".gitattributes")
-	knownPaths := findPaths()
 	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		Print("Error opening .gitattributes file")
@@ -50,6 +49,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		for _, k := range knownPaths {
 			if t == k.Path {
 				isKnownPath = true
+				break
 			}
 		}
 
