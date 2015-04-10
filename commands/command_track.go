@@ -74,7 +74,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 // mediaPath represents a tracked path.
 type mediaPath struct {
 	Path   string // the tracked path
-	Source string // the source attribute file
+	Source string // the source attributes file
 }
 
 // findAttributeFiles returns the(existing) paths of the attributes files
@@ -102,7 +102,7 @@ func findAttributeFiles() []string {
 	return paths
 }
 
-// findPaths parsers the existing attribute files, and extracts the tracked paths
+// findPaths parsers the existing attributes files, and extracts the tracked paths
 // as an array of mediaPaths.
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
