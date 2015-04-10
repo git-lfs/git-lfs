@@ -27,6 +27,37 @@ EOF
     if [[ ${COMP_CWORD} -eq 2 ]] ; then
       __gitcomp "$cmds"
       return 0
+    elif [[ ${COMP_CWORD} -eq 3 ]] ; then
+      case "${prev}" in
+        clean|smudge)
+          _filedir -f
+          return
+          ;;
+        logs)
+          sub_cmds='--clear --boomtown'
+          _git_branch
+          ;;
+        ls-files)
+          sub_cmds="$(__git_refs)"
+          ;;
+        push)
+          sub_cmds="--dry-run --stdin $(__git_refs)"
+          ;;
+        status)
+          sub_cmds="--porcelain"
+          ;;
+        *)
+          sub_cmds=''
+          ;;
+      esac
+      __gitcomp "$sub_cmds"
+      return
+    elif [[ ${COMP_CWORD} -eq 4 ]] ; then
+      case "${prev}" in
+        --boomtown|--clear)
+          _git_branch
+        ;;
+      esac
     fi
   }
 fi
