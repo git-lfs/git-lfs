@@ -87,12 +87,14 @@ to Git as STDOUT.
 
 * Stream binary content from STDIN to a temp file, while calculating its SHA-256
 signature.
-* Check for the file at `.git/lfs/objects/{OID}`.
+* Check for the file at `.git/lfs/objects/{OID-PATH}`.
 * If it does not exist:
   * Queue the OID to be uploaded.
-  * Move the temp file to `.git/lfs/objects/{OID}`.
+  * Move the temp file to `.git/lfs/objects/{OID-PATH}`.
 * Delete the temp file.
 * Write the pointer file to STDOUT.
+
+`{OID-PATH}` is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`.
 
 Note that the `clean` filter does not push the file to the server.  Use the
 `git lfs sync` command to do that.
@@ -103,7 +105,7 @@ expects the content to write to the working directory as STDOUT.
 
 * Read 100 bytes.
 * If the content is ASCII and matches the pointer file format:
-  * Look for the file in `.git/lfs/objects/{OID}`.
+  * Look for the file in `.git/lfs/objects/{OID-PATH}`.
   * If it's not there, download it from the server.
   * Read its contents to STDOUT
 * Otherwise, simply pass the STDIN out through STDOUT.
