@@ -69,7 +69,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	attributesFile.Close()
 }
 
-// mediaPath represents a tracked path
+// mediaPath represents a tracked path.
 type mediaPath struct {
 	Path   string // the tracked path
 	Source string // the source attribute file
