@@ -100,6 +100,8 @@ func findAttributeFiles() []string {
 	return paths
 }
 
+// findPaths parsers the existing attribute files, and extracts the tracked paths
+// as an array of mediaPaths.
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
 	wd, _ := os.Getwd()
