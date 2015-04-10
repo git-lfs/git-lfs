@@ -74,6 +74,9 @@ type mediaPath struct {
 	Source string
 }
 
+// findAttributeFiles returns the(existing) paths of the attributes files
+// (./.git/info/attributes, ./.gitattributes).
+// Which is where the tracked paths are configured.
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
