@@ -31,7 +31,7 @@ exit /B
 
 setlocal & cd /d %~dp0
 
-set GIT_LFS_BIN_PATH="%LOCALAPPDATA%\GitMedia\bin"
+set GIT_LFS_BIN_PATH="%LOCALAPPDATA%\GitLFS\bin"
 IF EXIST %GIT_LFS_BIN_PATH% GOTO DIRECTORY_EXISTS
 mkdir %GIT_LFS_BIN_PATH%
 set "path=%PATH%;%GIT_LFS_BIN_PATH:"=%"
