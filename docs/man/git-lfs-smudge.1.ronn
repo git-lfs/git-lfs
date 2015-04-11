@@ -7,8 +7,8 @@ git-lfs-smudge(1) -- Git smudge filter that converts pointer in blobs to the act
 
 ## DESCRIPTION
 
-Smudge takes a Git LFS pointer file in STDIN, parses out the pointer's ID,
-and then dumps the file's contents to STDOUT.  The file will be downloaded from
+Read a Git LFS pointer file from STDIN, parse out the pointer's ID,
+and then dump the file's contents to STDOUT.  Download the file from
 the Git LFS endpoint if needed. The optional <path> argument is only used for
 a progress bar.
 
@@ -17,12 +17,12 @@ Git attributes.
 
 ## OPTIONS
 
-Without any options, `git lfs smudge` will output the raw Git LFS content to
+Without any options, `git lfs smudge` outputs the raw Git LFS content to
 STDOUT.
 
 * `--info`:
-    Displays the file size, and the local path to the Git LFS file.  If the file
-    does not exist, `--` is shown.
+    Display the file size and the local path to the Git LFS file.  If the file
+    does not exist, show `--`.
 
 ## SEE ALSO
 

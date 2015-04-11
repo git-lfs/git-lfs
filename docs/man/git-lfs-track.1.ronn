@@ -7,9 +7,9 @@ git-lfs-track(1) - View or add Git LFS paths to Git attributes
 
 ## DESCRIPTION
 
-The "track" command starts the given path(s) through Git LFS.  The "path" \
-argument can be a file extension, or a file path.  If no paths are provided,
-this will simply list the tracked paths.
+Start tracking the given path(s) through Git LFS.  The "path"
+argument can be a file extension or a file path.  If no paths are provided,
+simply list the tracked paths.
 
 ## EXAMPLES
 
