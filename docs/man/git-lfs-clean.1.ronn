@@ -7,7 +7,7 @@ git-lfs-clean(1) -- Git clean filter that converts large files to pointers
 
 ## DESCRIPTION
 
-Calculate a SHA-256 signature of the data from standard output, and output a
+Calculate a SHA-256 signature of the data from standard input, and output a
 Git LFS pointer file.  Also queue the file to be pushed by
 git-lfs-push(1).
 
