@@ -20,7 +20,7 @@ var (
 )
 
 // trackCommand takes a list of paths as an argument, and adds each path to the default
-// attribtues file (.gitattributes), if it's not already exists.
+// attribtues file (.gitattributes), if it's not already exist.
 func trackCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 	knownPaths := findPaths()
