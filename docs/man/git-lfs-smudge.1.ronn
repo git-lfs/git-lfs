@@ -1,5 +1,5 @@
-git-lfs-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content.
-==============================================================================================
+git-lfs-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content
+===========================================================================================
 
 ## SYNOPSIS
 

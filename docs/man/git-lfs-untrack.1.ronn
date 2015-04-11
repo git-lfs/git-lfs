@@ -1,5 +1,5 @@
-git-lfs-untrack(1) - Remove Git LFS paths from Git Attributes.
-======================================================================
+git-lfs-untrack(1) - Remove Git LFS paths from Git Attributes
+=============================================================
 
 ## SYNOPSIS
 

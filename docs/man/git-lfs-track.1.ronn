@@ -1,5 +1,5 @@
-git-lfs-track(1) - View or add Git LFS paths to Git attributes.
-======================================================================
+git-lfs-track(1) - View or add Git LFS paths to Git attributes
+==============================================================
 
 ## SYNOPSIS
 

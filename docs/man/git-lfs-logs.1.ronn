@@ -1,5 +1,5 @@
-git-lfs-logs(1) - Show errors from the git-lfs command.
-===========================================================
+git-lfs-logs(1) - Show errors from the git-lfs command
+======================================================
 
 ## SYNOPSIS
 

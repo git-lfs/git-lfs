@@ -1,5 +1,5 @@
-git-lfs-clean(1) -- Git clean filter that converts large files to pointers.
-=============================================================================
+git-lfs-clean(1) -- Git clean filter that converts large files to pointers
+==========================================================================
 
 ## SYNOPSIS
 

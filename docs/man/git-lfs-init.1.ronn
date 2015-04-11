@@ -1,5 +1,5 @@
-git-lfs-init(1) -- Ensure Git LFS is configured properly.
-=============================================================
+git-lfs-init(1) -- Ensure Git LFS is configured properly
+========================================================
 
 ## SYNOPSIS
 
