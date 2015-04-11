@@ -41,6 +41,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	scanner := bufio.NewScanner(attributes)
+	
 	// Iterate through each line of the attributes file and rewrite it(!),
 	// if the path was meant to be untracked, omit it and print a message instead.
 	for scanner.Scan() {
