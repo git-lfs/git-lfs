@@ -17,7 +17,7 @@ func TestInit(t *testing.T) {
 	repo.AddPath(repo.Path, "subdir")
 
 	cmd := repo.Command("init")
-	cmd.Output = "git hawser initialized"
+	cmd.Output = "git lfs initialized"
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
@@ -27,14 +27,14 @@ func TestInit(t *testing.T) {
 	})
 
 	cmd.After(func() {
-		// assert hawser filter config
+		// assert filter config
 		configs := GlobalGitConfig(t)
-		AssertIncludeString(t, "filter.hawser.clean=git hawser clean %f", configs)
-		AssertIncludeString(t, "filter.hawser.smudge=git hawser smudge %f", configs)
-		AssertIncludeString(t, "filter.hawser.required=true", configs)
+		AssertIncludeString(t, "filter.lfs.clean=git lfs clean %f", configs)
+		AssertIncludeString(t, "filter.lfs.smudge=git lfs smudge %f", configs)
+		AssertIncludeString(t, "filter.lfs.required=true", configs)
 		found := 0
 		for _, line := range configs {
-			if strings.HasPrefix(line, "filter.hawser") {
+			if strings.HasPrefix(line, "filter.lfs") {
 				found += 1
 			}
 		}
@@ -47,7 +47,7 @@ func TestInit(t *testing.T) {
 	})
 
 	cmd = repo.Command("init")
-	cmd.Output = "Hook already exists: pre-push\ngit hawser initialized"
+	cmd.Output = "Hook already exists: pre-push\ngit lfs initialized"
 
 	customHook := []byte("echo 'yo'")
 	cmd.Before(func() {

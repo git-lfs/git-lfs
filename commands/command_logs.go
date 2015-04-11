@@ -2,7 +2,7 @@ package commands
 
 import (
 	"errors"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -64,7 +64,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 	}
 
 	name := args[0]
-	by, err := ioutil.ReadFile(filepath.Join(hawser.LocalLogDir, name))
+	by, err := ioutil.ReadFile(filepath.Join(lfs.LocalLogDir, name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
 	}
@@ -74,23 +74,23 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 }
 
 func logsClearCommand(cmd *cobra.Command, args []string) {
-	err := os.RemoveAll(hawser.LocalLogDir)
+	err := os.RemoveAll(lfs.LocalLogDir)
 	if err != nil {
-		Panic(err, "Error clearing %s", hawser.LocalLogDir)
+		Panic(err, "Error clearing %s", lfs.LocalLogDir)
 	}
 
-	Print("Cleared %s", hawser.LocalLogDir)
+	Print("Cleared %s", lfs.LocalLogDir)
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := hawser.Errorf(errors.New("Inner error message!"), "Error!")
+	err := lfs.Errorf(errors.New("Inner error message!"), "Error!")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }
 
 func sortedLogs() []string {
-	fileinfos, err := ioutil.ReadDir(hawser.LocalLogDir)
+	fileinfos, err := ioutil.ReadDir(lfs.LocalLogDir)
 	if err != nil {
 		return []string{}
 	}

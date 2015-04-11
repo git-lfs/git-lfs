@@ -1,21 +1,24 @@
 package pointer
 
 import (
-	"github.com/hawser/git-hawser/hawser"
+	"fmt"
+	"github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/lfs"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
+	"path/filepath"
 )
 
-func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
-	mediafile, err := hawser.LocalMediaPath(ptr.Oid)
+func Smudge(writer io.Writer, ptr *Pointer, workingfile string, cb lfs.CopyCallback) error {
+	mediafile, err := lfs.LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
 	}
 
-	var wErr *hawser.WrappedError
+	var wErr *lfs.WrappedError
 	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
-		wErr = downloadFile(writer, ptr, mediafile, cb)
+		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
 		wErr = readLocalFile(writer, ptr, mediafile, cb)
 	}
@@ -27,8 +30,9 @@ func Smudge(writer io.Writer, ptr *Pointer, cb hawser.CopyCallback) error {
 	}
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.CopyCallback) *hawser.WrappedError {
-	reader, size, wErr := hawser.Download(mediafile)
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
+	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
+	reader, size, wErr := lfs.Download(filepath.Base(mediafile))
 	if reader != nil {
 		defer reader.Close()
 	}
@@ -44,26 +48,26 @@ func downloadFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.Co
 
 	mediaFile, err := contentaddressable.NewFile(mediafile)
 	if err != nil {
-		return hawser.Errorf(err, "Error opening media file buffer.")
+		return lfs.Errorf(err, "Error opening media file buffer.")
 	}
 
-	_, err = hawser.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
+	_, err = lfs.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
 	if err == nil {
 		err = mediaFile.Accept()
 	}
 	mediaFile.Close()
 
 	if err != nil {
-		return hawser.Errorf(err, "Error buffering media file.")
+		return lfs.Errorf(err, "Error buffering media file.")
 	}
 
 	return readLocalFile(writer, ptr, mediafile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.CopyCallback) *hawser.WrappedError {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return hawser.Errorf(err, "Error opening media file.")
+		return lfs.Errorf(err, "Error opening media file.")
 	}
 	defer reader.Close()
 
@@ -73,12 +77,12 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb hawser.C
 		}
 	}
 
-	_, err = hawser.CopyWithCallback(writer, reader, ptr.Size, cb)
-	return hawser.Errorf(err, "Error reading from media file.")
+	_, err = lfs.CopyWithCallback(writer, reader, ptr.Size, cb)
+	return lfs.Errorf(err, "Error reading from media file.")
 }
 
 type SmudgeError struct {
 	Oid      string
 	Filename string
-	*hawser.WrappedError
+	*lfs.WrappedError
 }

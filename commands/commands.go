@@ -3,7 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 	"io"
 	"log"
@@ -20,8 +20,8 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	RootCmd      = &cobra.Command{
-		Use:   "git-hawser",
-		Short: "Hawser provides large file support to Git.",
+		Use:   "git-lfs",
+		Short: "Git LFS provides large file storage to Git.",
 		Run: func(cmd *cobra.Command, args []string) {
 			versionCommand(cmd, args)
 			cmd.Usage()
@@ -65,7 +65,7 @@ func LoggedError(err error, format string, args ...interface{}) {
 	file := handlePanic(err)
 
 	if len(file) > 0 {
-		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git hawser logs last` to view the log.\n", file)
+		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git lfs logs last` to view the log.\n", file)
 	}
 }
 
@@ -101,7 +101,7 @@ func handlePanic(err error) string {
 }
 
 func logEnv(w io.Writer) {
-	for _, env := range hawser.Environ() {
+	for _, env := range lfs.Environ() {
 		fmt.Fprintln(w, env)
 	}
 }
@@ -109,14 +109,14 @@ func logEnv(w io.Writer) {
 func logPanic(loggedError error, recursive bool) string {
 	var fmtWriter io.Writer = os.Stderr
 
-	if err := os.MkdirAll(hawser.LocalLogDir, 0755); err != nil {
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", hawser.LocalLogDir, err.Error())
+	if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
 		return ""
 	}
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(hawser.LocalLogDir, name+".log")
+	full := filepath.Join(lfs.LocalLogDir, name+".log")
 
 	file, err := os.Create(full)
 	if err == nil {
@@ -145,7 +145,7 @@ func logPanic(loggedError error, recursive bool) string {
 		}
 		fmtWriter.Write(wErr.Stack())
 	} else {
-		fmtWriter.Write(hawser.Stack())
+		fmtWriter.Write(lfs.Stack())
 	}
 
 	if err != nil && !recursive {

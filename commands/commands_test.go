@@ -149,7 +149,7 @@ type TestCommand struct {
 }
 
 func (c *TestCommand) Run(path string) {
-	fmt.Println("$ git hawser", strings.Join(c.Args, " "))
+	fmt.Println("$ git lfs", strings.Join(c.Args, " "))
 
 	for _, cb := range c.BeforeCallbacks {
 		cb()
@@ -221,7 +221,7 @@ func clone(t *testing.T, name, path string) {
 	cmd(t, "git", "clone", name, path)
 	e(t, os.Chdir(path))
 	cmd(t, "git", "remote", "remove", "origin")
-	cmd(t, "git", "remote", "add", "origin", "https://example.com/git/hawser")
+	cmd(t, "git", "remote", "add", "origin", "https://example.com/git/lfs")
 }
 
 func init() {
@@ -231,8 +231,8 @@ func init() {
 	}
 
 	Root = filepath.Join(wd, "..")
-	Bin = filepath.Join(Root, "bin", "git-hawser")
-	TempDir = filepath.Join(os.TempDir(), "hawser-tests")
+	Bin = filepath.Join(Root, "bin", "git-lfs")
+	TempDir = filepath.Join(os.TempDir(), "git-lfs-tests")
 
 	env := os.Environ()
 	GitEnv = make([]string, 0, len(env))

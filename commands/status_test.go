@@ -14,9 +14,9 @@ func TestStatus(t *testing.T) {
 
 	cmd.Before(func() {
 		path := filepath.Join(".git", "info", "attributes")
-		repo.WriteFile(path, "*.dat filter=hawser -crlf\n")
+		repo.WriteFile(path, "*.dat filter=lfs -crlf\n")
 
-		// Add a hawser file
+		// Add a Git LFS file
 		repo.WriteFile(filepath.Join(repo.Path, "file1.dat"), "some data")
 		repo.GitCmd("add", "file1.dat")
 		repo.GitCmd("commit", "-m", "a")

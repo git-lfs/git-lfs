@@ -1,0 +1,26 @@
+git-lfs-status(1) -- Show the status of Git LFS files in the working tree
+============================================================================
+
+## SYNOPSIS
+
+`git lfs status` [<options>]
+
+## DESCRIPTION
+
+Displays paths of Git LFS objects that have not been pushed to the Git LFS
+server, have differences between the index file and the current HEAD commit,
+and paths that have differences between the working tree and the index file.
+Thi first are what you would push by running git push; the second are what
+you would commit by running git commit; the third are what you could commit
+by running git add before running git commit.
+
+## OPTIONS
+
+* `--porcelain`:
+    Give the output in an easy-to-parse format for scripts.
+
+## SEE ALSO
+
+git-lfs-ls-files(1).
+
+Part of the git-lfs(1) suite.

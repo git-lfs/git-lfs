@@ -16,7 +16,7 @@ if '%errorlevel%' == '0' ( goto gotPrivileges ) else ( goto getPrivileges )
 if '%1'=='ELEV' (shift & goto gotPrivileges)
 echo.
 echo **************************************
-echo Installing Git Media as Administrator
+echo Installing Git LFS as Administrator
 echo **************************************
 
 setlocal DisableDelayedExpansion
@@ -31,18 +31,18 @@ exit /B
 
 setlocal & cd /d %~dp0
 
-set GIT_MEDIA_BIN_PATH="%LOCALAPPDATA%\GitMedia\bin"
-IF EXIST %GIT_MEDIA_BIN_PATH% GOTO DIRECTORY_EXISTS
-mkdir %GIT_MEDIA_BIN_PATH%
-set "path=%PATH%;%GIT_MEDIA_BIN_PATH:"=%"
+set GIT_LFS_BIN_PATH="%LOCALAPPDATA%\GitLFS\bin"
+IF EXIST %GIT_LFS_BIN_PATH% GOTO DIRECTORY_EXISTS
+mkdir %GIT_LFS_BIN_PATH%
+set "path=%PATH%;%GIT_LFS_BIN_PATH:"=%"
 1>NUL setx PATH "%PATH%" /M
 :DIRECTORY_EXISTS
 
-:: Delete any existing git-media programs
-2>NUL del /q %GIT_MEDIA_BIN_PATH%\git-media*
+:: Delete any existing git-lfs programs
+2>NUL del /q %GIT_LFS_BIN_PATH%\git-lfs*
 
-1>NUL copy git-media.exe %GIT_MEDIA_BIN_PATH%\git-media.exe
+1>NUL copy git-lfs.exe %GIT_LFS_BIN_PATH%\git-lfs.exe
 
-git media init
+git lfs init
 
 cmd /k

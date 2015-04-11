@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -88,7 +88,7 @@ func mainBuild() {
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := "hawser-" + hawser.Version
+	name := "git-lfs-" + lfs.Version
 	dir := "bin"
 
 	if addenv {
@@ -96,7 +96,7 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 		dir = filepath.Join(dir, "releases", buildos+"-"+buildarch, name)
 	}
 
-	filepath.Walk("cmd", func(path string, info os.FileInfo, err error) error {
+	filepath.Walk("cmd/git-lfs", func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
@@ -224,7 +224,7 @@ func logAndRun(cmd *exec.Cmd) error {
 }
 
 func zipName(os, arch string) string {
-	return fmt.Sprintf("hawser-%s-%s-%s", os, arch, hawser.Version)
+	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, lfs.Version)
 }
 
 func releaseLabel(buildos, buildarch string) string {

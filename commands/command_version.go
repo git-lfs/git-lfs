@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/hawser/git-hawser/hawser"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ var (
 )
 
 func versionCommand(cmd *cobra.Command, args []string) {
-	Print(hawser.UserAgent)
+	Print(lfs.UserAgent)
 
 	if lovesComics {
 		Print("Nothing may see Gah Lak Tus and survive!")

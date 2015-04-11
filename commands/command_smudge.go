@@ -2,8 +2,8 @@ package commands
 
 import (
 	"bytes"
-	"github.com/hawser/git-hawser/hawser"
-	"github.com/hawser/git-hawser/pointer"
+	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/pointer"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -20,7 +20,7 @@ var (
 )
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
-	hawser.InstallHooks(false)
+	lfs.InstallHooks(false)
 
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
@@ -36,7 +36,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if smudgeInfo {
-		localPath, err := hawser.LocalMediaPath(ptr.Oid)
+		localPath, err := lfs.LocalMediaPath(ptr.Oid)
 		if err != nil {
 			Exit(err.Error())
 		}
@@ -51,12 +51,12 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	filename := smudgeFilename(args, err)
-	cb, file, err := hawser.CopyCallbackFile("smudge", filename, 1, 1)
+	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
 		Error(err.Error())
 	}
 
-	err = ptr.Smudge(os.Stdout, cb)
+	err = ptr.Smudge(os.Stdout, filename, cb)
 	if file != nil {
 		file.Close()
 	}

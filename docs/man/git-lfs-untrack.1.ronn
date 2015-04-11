@@ -1,0 +1,23 @@
+git-lfs-untrack(1) - Remove Git LFS paths from Git Attributes.
+======================================================================
+
+## SYNOPSIS
+
+`git lfs untrack` [path]*
+
+## DESCRIPTION
+
+The "untrack" command stops tracking the given path(s) through Git LFS. The
+"path" argument can be a file extension, or a file path.
+
+## EXAMPLES
+
+* Prevent a path from using Git LFS clean and smudge filters.
+
+    `git lfs untrack '*.gif'`
+
+## SEE ALSO
+
+git-lfs-track(1), git-lfs-init(1), gitattributes(5).
+
+Part of the git-lfs(1) suite.

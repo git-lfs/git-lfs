@@ -5,7 +5,7 @@ script/fmt
 rm -rf `pwd`/bin/*
 rm -rf `pwd`/.vendor/pkg
 
-export LOCALSRCDIR=`pwd`/.vendor/src/github.com/hawser/git-hawser
+export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
 mkdir -p `dirname $LOCALSRCDIR`
 rm -f $LOCALSRCDIR
 ln -s `pwd` $LOCALSRCDIR

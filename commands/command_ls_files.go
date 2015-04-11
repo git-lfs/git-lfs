@@ -1,15 +1,15 @@
 package commands
 
 import (
-	"github.com/hawser/git-hawser/git"
-	"github.com/hawser/git-hawser/scanner"
+	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/scanner"
 	"github.com/spf13/cobra"
 )
 
 var (
 	lsFilesCmd = &cobra.Command{
 		Use:   "ls-files",
-		Short: "Show information about hawser files",
+		Short: "Show information about Git LFS files",
 		Run:   lsFilesCommand,
 	}
 )
@@ -29,7 +29,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 
 	pointers, err := scanner.Scan(ref, "")
 	if err != nil {
-		Panic(err, "Could not scan for hawser files")
+		Panic(err, "Could not scan for Git LFS files")
 	}
 
 	for _, p := range pointers {

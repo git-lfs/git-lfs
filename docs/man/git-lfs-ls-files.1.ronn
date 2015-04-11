@@ -1,0 +1,17 @@
+git-lfs-ls-files(1) -- Show information about git lfs files in the index and working tree
+=============================================================================================
+
+## SYNOPSIS
+
+`git lfs ls-files` [refspec]
+
+## DESCRIPTION
+
+Displays paths of Git LFS files that are found in the refspec. If no refspec is given,
+the current checked out branch will be scanned.
+
+## SEE ALSO
+
+git-lfs-status(1).
+
+Part of the git-lfs(1) suite.
