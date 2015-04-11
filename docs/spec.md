@@ -81,6 +81,11 @@ global filters can be set up with `git lfs init`:
 $ git lfs init
 ```
 
+These filters ensure that large files aren't written into the repository proper,
+instead being stored locally at `.git/lfs/objects/{OID-PATH}` (where `{OID-PATH}`
+is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`), synchronized with
+the remote LFS server as necessary.
+
 The `clean` filter runs as files are added to repositories.  Git sends the
 content of the file being added as STDIN, and expects the content to write
 to Git as STDOUT.
@@ -93,8 +98,6 @@ signature.
   * Move the temp file to `.git/lfs/objects/{OID-PATH}`.
 * Delete the temp file.
 * Write the pointer file to STDOUT.
-
-`{OID-PATH}` is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`.
 
 Note that the `clean` filter does not push the file to the server.  Use the
 `git lfs sync` command to do that.
