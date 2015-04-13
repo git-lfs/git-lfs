@@ -29,7 +29,7 @@ commands and low level ("plumbing") commands.
 
 ### High-level commands (porcelain)
 
-* git-lfs-config(1):
+* git-lfs-env(1):
     Display the Git LFS environment.
 * git-lfs-init(1):
     Ensure Git LFS is configured properly.
