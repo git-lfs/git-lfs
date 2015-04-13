@@ -20,7 +20,7 @@ Push is typically run by Git's pre-push hook.
 * `--stdin`:
     Read the repo and refspec on stdin. This is used in conjunction with
     the pre-push hook and must be in the format used by the pre-push hook:
-    <local ref> <local sha1> <remote ref> <remote sha1>. If --stdin is used
+    <local-ref> <local-sha1> <remote-ref> <remote-sha1>. If --stdin is used
     the command line arguments are ignored.
 
 ## SEE ALSO
