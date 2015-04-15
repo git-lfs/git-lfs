@@ -84,7 +84,7 @@ $ git lfs init
 These filters ensure that large files aren't written into the repository proper,
 instead being stored locally at `.git/lfs/objects/{OID-PATH}` (where `{OID-PATH}`
 is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`), synchronized with
-the remote LFS server as necessary.
+the Git LFS server as necessary.
 
 The `clean` filter runs as files are added to repositories.  Git sends the
 content of the file being added as STDIN, and expects the content to write
