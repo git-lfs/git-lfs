@@ -81,16 +81,21 @@ global filters can be set up with `git lfs init`:
 $ git lfs init
 ```
 
+These filters ensure that large files aren't written into the repository proper,
+instead being stored locally at `.git/lfs/objects/{OID-PATH}` (where `{OID-PATH}`
+is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`), synchronized with
+the remote LFS server as necessary.
+
 The `clean` filter runs as files are added to repositories.  Git sends the
 content of the file being added as STDIN, and expects the content to write
 to Git as STDOUT.
 
 * Stream binary content from STDIN to a temp file, while calculating its SHA-256
 signature.
-* Check for the file at `.git/lfs/objects/{OID}`.
+* Check for the file at `.git/lfs/objects/{OID-PATH}`.
 * If it does not exist:
   * Queue the OID to be uploaded.
-  * Move the temp file to `.git/lfs/objects/{OID}`.
+  * Move the temp file to `.git/lfs/objects/{OID-PATH}`.
 * Delete the temp file.
 * Write the pointer file to STDOUT.
 
@@ -103,7 +108,7 @@ expects the content to write to the working directory as STDOUT.
 
 * Read 100 bytes.
 * If the content is ASCII and matches the pointer file format:
-  * Look for the file in `.git/lfs/objects/{OID}`.
+  * Look for the file in `.git/lfs/objects/{OID-PATH}`.
   * If it's not there, download it from the server.
   * Read its contents to STDOUT
 * Otherwise, simply pass the STDIN out through STDOUT.
