@@ -52,7 +52,7 @@ can have different Git LFS endpoints for different remotes.  Here is the list
 of rules that Git LFS uses to determine a repository's Git LFS server:
 
 1. The `lfs.url` string.
-2. The `remote.{name}.lfs_url` string.
+2. The `remote.{name}.lfsurl` string.
 3. Append `/info/lfs` to the remote URL.  Only works with HTTPS URLs.
 
 Here's a sample Git config file with the optional remote and Git LFS

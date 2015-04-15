@@ -7,7 +7,7 @@ import (
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {
 	config := &Configuration{
-		gitConfig: map[string]string{"remote.origin.lfs_url": "abc"},
+		gitConfig: map[string]string{"remote.origin.lfsurl": "abc"},
 		remotes:   []string{},
 	}
 
@@ -20,8 +20,8 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 func TestEndpointOverridesOrigin(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"lfs.url":               "abc",
-			"remote.origin.lfs_url": "def",
+			"lfs.url":              "abc",
+			"remote.origin.lfsurl": "def",
 		},
 		remotes: []string{},
 	}
@@ -35,8 +35,8 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"remote.origin.lfs_url": "abc",
-			"remote.other.lfs_url":  "def",
+			"remote.origin.lfsurl": "abc",
+			"remote.other.lfsurl":  "def",
 		},
 		remotes: []string{},
 	}
@@ -50,8 +50,8 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 func TestEndpointUseAlternateRemote(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"remote.origin.lfs_url": "abc",
-			"remote.other.lfs_url":  "def",
+			"remote.origin.lfsurl": "abc",
+			"remote.other.lfsurl":  "def",
 		},
 		remotes: []string{},
 	}
@@ -91,8 +91,8 @@ func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 func TestSSHEndpointOverridden(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"remote.origin.url":     "git@example.com:foo/bar",
-			"remote.origin.lfs_url": "lfs",
+			"remote.origin.url":    "git@example.com:foo/bar",
+			"remote.origin.lfsurl": "lfs",
 		},
 		remotes: []string{},
 	}
