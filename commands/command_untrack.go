@@ -17,6 +17,8 @@ var (
 	}
 )
 
+// untrackCommand takes a list of paths as an argument, and removes each path from the
+// default attribtues file (.gitattributes), if it exists.
 func untrackCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
@@ -39,6 +41,9 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	scanner := bufio.NewScanner(attributes)
+
+	// Iterate through each line of the attributes file and rewrite it,
+	// if the path was meant to be untracked, omit it, and print a message instead.
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "filter=lfs") {
