@@ -146,6 +146,7 @@ func pushAsset(oid, filename string, index, totalFiles int) *lfs.WrappedError {
 		defer file.Close()
 	}
 
+	fmt.Fprintf(os.Stderr, "Uploading %s\n", filename)
 	return lfs.Upload(path, filename, cb)
 }
 

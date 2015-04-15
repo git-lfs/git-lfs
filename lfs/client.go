@@ -192,6 +192,7 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.Body = ioutil.NopCloser(bar.NewProxyReader(reader))
 
 	res, wErr = doHttpRequest(req, creds)
+	bar.Finish()
 	if wErr != nil {
 		return wErr
 	}
