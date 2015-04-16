@@ -7,14 +7,15 @@ current state of the feature.
 
 ## v1.0
 
-These are the features that we feel are important for a v1 release of Git LFS.
+These are the features that we feel are important for a v1 release of Git LFS,
+and we have a good idea how they could work.
 
 * Resumable, chunked downloads
 * Resumable, chunked uploads
 * Concurrent uploads. Though chunking may take care of this.
 * New command for replacing pointers with large files outside of the Git smudge
-and clean filters (`git lfs get path/to/file`)
-* Automatic GC for the `.git/lfs/objects` directory
+and clean filters (`git lfs get path/to/file`).
+* Automatic GC for the `.git/lfs/objects` directory.
 * Client side metrics reporting, so the Git LFS server can optionally track
 how clients are performing.
 
@@ -33,5 +34,6 @@ automatically.
 
 These are items that don't affect Git LFS end users.
 
-* Cross platform integration tests in shell
+* Cross platform integration tests in shell.
 * Build and CI servers for Linux, Windows, and Mac.
+* Automatic updates for the `git-lfs` client.
