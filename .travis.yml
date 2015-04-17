@@ -1,5 +1,6 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
+install: true
 script: script/cibuild
 notifications:
   email: false
