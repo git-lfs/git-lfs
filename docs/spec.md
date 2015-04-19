@@ -9,6 +9,27 @@ for other tools.
 The core Git LFS idea is that instead of writing large blobs to a Git repository,
 only a pointer file is written.
 
+* Pointer files are text files which MUST contain only UTF-8 characters.
+* Each line MUST be of the format `{key} {value}\n` (trailing unix newline).
+* Only a single space character between `{key}` and `{value}`.
+* Keys MUST only use the characters `[a-z] [0-9] . -`.  
+* The first key is _always_ `version`.
+* Lines of key/value pairs MUST be sorted alphabetically in ascending order
+(with the exception of `version`, which is always first).
+* Values MUST NOT contain return or newline characters.
+* Pointer files SHOULD not have the executable bit set when checked-in in Git.
+
+The required keys are:
+
+* `version` is a URL that identifies the pointer file spec.  Parsers MUST use
+simple string comparison on the version, without any URL parsing or
+normalization.  It is case sensitive, and %-encoding is discouraged.
+* `oid` tracks the unique object id for the file, prefixed by its hashing
+method.  Currently, only `sha256` is supported.
+* `size` is in bytes.
+
+Example of a v1 text pointer:
+
 ```
 version https://git-lfs.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
@@ -16,16 +37,15 @@ size 12345
 (ending \n)
 ```
 
-The pointer file should be small (less than 200 bytes), and consist of only
-ASCII characters.  Libraries that generate this should write the file
-identically, so that different implementations write consistent pointers that
-translate to the same Git blob OID.  This means:
+For testing compliance of any tool generating its own pointer files, the
+reference is this official Git LFS tool:
 
-* Use properties "version", "oid", and "size" in that order.
-* Separate the property from its value with a single space.
-* Oid has a "sha256:" prefix.  No other hashing methods are currently supported
-for Git LFS oids.
-* Size is in bytes.
+NOTE: exact pointer command behavior TBD!
+
+* Run `git lfs pointer` to generate a pointer file for the given local file.
+* Run `git lfs pointer` to compare the blob OID of the generated pointer files.
+* Tools that parse and regenerate pointer files MUST preserve keys that they
+don't know or care about.
 
 Note: Earlier versions only contained the OID, with a `# comment` above it.
 Here's some ruby code to parse older pointer files.
