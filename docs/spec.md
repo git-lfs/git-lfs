@@ -55,6 +55,14 @@ of rules that Git LFS uses to determine a repository's Git LFS server:
 2. The `remote.{name}.lfsurl` string.
 3. Append `/info/lfs` to the remote URL.  Only works with HTTPS URLs.
 
+Git LFS runs two `git config` commands to build up the list of values that it
+uses:
+
+1. `git config -l -f .gitconfig` - This file is checked into the repository and
+can set defaults for every user that clones the repository.
+2. `git config -l` - A user's local git configuration can override any settings
+from `.gitconfig`.
+
 Here's a sample Git config file with the optional remote and Git LFS
 configuration options:
 
