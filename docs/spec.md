@@ -142,4 +142,4 @@ $ cat .gitattributes
 *.zip filter=lfs -crlf
 ```
 
-Use the `git lfs path` command to view and add to `.gitattributes`.
+Use the `git lfs track` command to view and add to `.gitattributes`.
