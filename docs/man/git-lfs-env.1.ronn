@@ -1,5 +1,5 @@
-git-lfs-env(1) -- Display the Git LFS environment.
-=========================================================
+git-lfs-env(1) -- Display the Git LFS environment
+=================================================
 
 ## SYNOPSIS
 
@@ -7,7 +7,7 @@ git-lfs-env(1) -- Display the Git LFS environment.
 
 ## DESCRIPTION
 
-Displays the current Git LFS environment.
+Display the current Git LFS environment.
 
 ## SEE ALSO
 
