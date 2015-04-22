@@ -58,24 +58,6 @@ NOTE: exact pointer command behavior TBD!
 * Tools that parse and regenerate pointer files MUST preserve keys that they
 don't know or care about.
 
-Note: Earlier versions only contained the OID, with a `# comment` above it.
-Here's some ruby code to parse older pointer files.
-
-```
-# data is a string of the content
-# last full line contains the oid
-return nil unless data.size < 100
-lines = data.
-  strip.      # strip ending whitespace
-  split("\n") # split by line breaks
-
-# We look for a comment line, and the phrase `git-media` somewhere
-lines[0] =~ /# (.*git-media|external)/ && lines.last
-```
-
-That code returns the OID, which should be on the last line.  The OID is
-generated from the SHA-256 signature of the file's contents.
-
 ## The Server
 
 Git LFS needs a URL endpoint to talk to a remote server.  A Git repository
