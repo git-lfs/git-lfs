@@ -154,7 +154,7 @@ func (c *Configuration) loadGitConfig() {
 		panic(fmt.Errorf("Error listing git config from file: %s", err))
 	}
 
-	output = listOutput + "\n" + fileOutput
+	output = fileOutput + "\n" + listOutput
 
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
