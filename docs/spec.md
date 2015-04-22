@@ -37,6 +37,17 @@ size 12345
 (ending \n)
 ```
 
+Blobs created with the pre-release version of the tool will generated files with
+a different version URL.  Git LFS can read these files, but writes them using
+the version URL above.
+
+```
+version https://hawser.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+(ending \n)
+```
+
 For testing compliance of any tool generating its own pointer files, the
 reference is this official Git LFS tool:
 
