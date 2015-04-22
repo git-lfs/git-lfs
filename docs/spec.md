@@ -25,7 +25,7 @@ The required keys are:
 simple string comparison on the version, without any URL parsing or
 normalization.  It is case sensitive, and %-encoding is discouraged.
 * `oid` tracks the unique object id for the file, prefixed by its hashing
-method.  Currently, only `sha256` is supported.
+method: `{hash-method}:{hash}`.  Currently, only `sha256` is supported.
 * `size` is in bytes.
 
 Example of a v1 text pointer:
