@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/github/git-lfs/pointer"
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ import (
 var (
 	pointerFile    string
 	pointerCompare string
+	pointerStdin   bool
 	pointerCmd     = &cobra.Command{
 		Use:   "pointer",
 		Short: "Build and compare pointers between different Git LFS implementations",
@@ -28,7 +30,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 	buildOid := ""
 	compareOid := ""
 
-	if len(pointerCompare) > 0 {
+	if len(pointerCompare) > 0 || pointerStdin {
 		comparing = true
 	}
 
@@ -62,9 +64,9 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		comparing = false
 	}
 
-	if len(pointerCompare) > 0 {
+	if len(pointerCompare) > 0 || pointerStdin {
 		something = true
-		compFile, err := os.Open(pointerCompare)
+		compFile, err := pointerReader()
 		if err != nil {
 			Error(err.Error())
 			os.Exit(1)
@@ -75,7 +77,11 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		_, err = pointer.Decode(tee)
 		compFile.Close()
 
-		fmt.Printf("Pointer from %s\n\n", pointerCompare)
+		pointerName := "STDIN"
+		if !pointerStdin {
+			pointerName = pointerCompare
+		}
+		fmt.Printf("Pointer from %s\n\n", pointerName)
 
 		if err != nil {
 			Error(err.Error())
@@ -100,6 +106,18 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
+func pointerReader() (io.ReadCloser, error) {
+	if len(pointerCompare) > 0 {
+		if pointerStdin {
+			return nil, errors.New("Cannot read from STDIN and --pointer.")
+		}
+
+		return os.Open(pointerCompare)
+	}
+
+	return os.Stdin, nil
+}
+
 func gitHashObject(by []byte) string {
 	cmd := exec.Command("git", "hash-object", "--stdin")
 	cmd.Stdin = bytes.NewReader(by)
@@ -116,5 +134,6 @@ func init() {
 	flags := pointerCmd.Flags()
 	flags.StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
 	flags.StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
+	flags.BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
 	RootCmd.AddCommand(pointerCmd)
 }

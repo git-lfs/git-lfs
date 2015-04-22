@@ -5,8 +5,93 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func TestPointerWithBuildAndCompareStdinMismatch(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	pointer := "version https://git-lfs.github.com/spec/v1\n" +
+		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
+		"size 123"
+
+	cmd := repo.Command("pointer", "--file=some/file", "--stdin")
+	cmd.Unsuccessful = true
+	cmd.Input = strings.NewReader(pointer + "\n")
+	cmd.Before(func() {
+		path := filepath.Join(repo.Path, "some")
+		assert.Equal(t, nil, os.MkdirAll(path, 0755))
+		assert.Equal(t, nil, ioutil.WriteFile(filepath.Join(path, "file"), []byte("simple\n"), 0755))
+	})
+
+	cmd.Output = "Git LFS pointer for some/file\n\n" +
+		"version https://git-lfs.github.com/spec/v1\n" +
+		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
+		"size 7\n\n" +
+		"Git blob OID: e18acd45d7e3ce0451d1d637f9697aa508e07dee\n\n" +
+		"Pointer from STDIN\n\n" +
+		pointer + "\n\n" +
+		"Git blob OID: 905bcc24b5dc074ab870f9944178e398eec3b470\n\n" +
+		"Pointers do not match"
+}
+
+func TestPointerWithBuildAndCompareStdin(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	pointer := "version https://git-lfs.github.com/spec/v1\n" +
+		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
+		"size 7"
+
+	cmd := repo.Command("pointer", "--file=some/file", "--stdin")
+	cmd.Input = strings.NewReader(pointer + "\n")
+	cmd.Before(func() {
+		path := filepath.Join(repo.Path, "some")
+		assert.Equal(t, nil, os.MkdirAll(path, 0755))
+		assert.Equal(t, nil, ioutil.WriteFile(filepath.Join(path, "file"), []byte("simple\n"), 0755))
+	})
+
+	cmd.Output = "Git LFS pointer for some/file\n\n" +
+		pointer + "\n\n" +
+		"Git blob OID: e18acd45d7e3ce0451d1d637f9697aa508e07dee\n\n" +
+		"Pointer from STDIN\n\n" +
+		pointer + "\n\n" +
+		"Git blob OID: e18acd45d7e3ce0451d1d637f9697aa508e07dee"
+}
+
+func TestPointerWithCompareStdin(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	pointer := "version https://git-lfs.github.com/spec/v1\n" +
+		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
+		"size 7"
+
+	cmd := repo.Command("pointer", "--stdin")
+	cmd.Input = strings.NewReader(pointer + "\n")
+	cmd.Output = "Pointer from STDIN\n\n" + pointer
+}
+
+func TestPointerWithInvalidCompareStdin(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("pointer", "--stdin")
+	cmd.Output = "Pointer from STDIN\n\nEOF"
+	cmd.Unsuccessful = true
+}
+
+func TestPointerWithNonPointerCompareStdin(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("pointer", "--stdin")
+	cmd.Input = strings.NewReader("not a pointer")
+	cmd.Output = "Pointer from STDIN\n\nNot a valid Git LFS pointer file."
+	cmd.Unsuccessful = true
+}
 
 func TestPointerWithBuildAndCompareMismatch(t *testing.T) {
 	repo := NewRepository(t, "empty")
