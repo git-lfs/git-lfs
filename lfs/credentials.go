@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -88,6 +89,13 @@ func init() {
 		err := cmd.Start()
 		if err == nil {
 			err = cmd.Wait()
+		}
+
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr.ProcessState.Success() == false && os.Getenv("GIT_TERMINAL_PROMPT") == "0" {
+				return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
+					input["protocol"], input["host"])
+			}
 		}
 
 		if err != nil {

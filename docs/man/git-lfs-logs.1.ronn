@@ -1,5 +1,5 @@
-git-lfs-logs(1) - Show errors from the git-lfs command.
-===========================================================
+git-lfs-logs(1) - Show errors from the git-lfs command
+======================================================
 
 ## SYNOPSIS
 
@@ -10,12 +10,12 @@ git-lfs-logs(1) - Show errors from the git-lfs command.
 
 ## DESCRIPTION
 
-The "logs" command displays errors from the git-lfs command.  Any time it
+Display errors from the git-lfs command.  Any time it
 crashes, the details are saved to ".git/lfs/logs".
 
 ## OPTIONS
 
-Without any options, `git lfs logs` will simply show the list of error logs.
+Without any options, `git lfs logs` simply shows the list of error logs.
 
 * <file>:
     Shows the specified error log.  Use "last" to show the most recent error.

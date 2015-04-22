@@ -55,6 +55,14 @@ of rules that Git LFS uses to determine a repository's Git LFS server:
 2. The `remote.{name}.lfsurl` string.
 3. Append `/info/lfs` to the remote URL.  Only works with HTTPS URLs.
 
+Git LFS runs two `git config` commands to build up the list of values that it
+uses:
+
+1. `git config -l -f .gitconfig` - This file is checked into the repository and
+can set defaults for every user that clones the repository.
+2. `git config -l` - A user's local git configuration can override any settings
+from `.gitconfig`.
+
 Here's a sample Git config file with the optional remote and Git LFS
 configuration options:
 
@@ -84,7 +92,9 @@ $ git lfs init
 These filters ensure that large files aren't written into the repository proper,
 instead being stored locally at `.git/lfs/objects/{OID-PATH}` (where `{OID-PATH}`
 is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`), synchronized with
-the Git LFS server as necessary.
+the Git LFS server as necessary.  Here is a sample path to a
+
+    .git/lfs/objects/4d/7a/4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 
 The `clean` filter runs as files are added to repositories.  Git sends the
 content of the file being added as STDIN, and expects the content to write
@@ -92,10 +102,8 @@ to Git as STDOUT.
 
 * Stream binary content from STDIN to a temp file, while calculating its SHA-256
 signature.
-* Check for the file at `.git/lfs/objects/{OID-PATH}`.
-* If it does not exist:
-  * Queue the OID to be uploaded.
-  * Move the temp file to `.git/lfs/objects/{OID-PATH}`.
+* Atomically move the temp file to `.git/lfs/objects/{OID-PATH}` if it does not
+exist, and the sha-256 signature of the contents matches the given OID.
 * Delete the temp file.
 * Write the pointer file to STDOUT.
 
