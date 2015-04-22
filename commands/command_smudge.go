@@ -80,6 +80,6 @@ func smudgeFilename(args []string, err error) string {
 }
 
 func init() {
-	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "whatever")
+	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "Display the local path and size of the smudged file.")
 	RootCmd.AddCommand(smudgeCmd)
 }
