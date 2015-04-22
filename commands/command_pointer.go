@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	pointerBuild   string
+	pointerFile    string
 	pointerCompare string
 	pointerCmd     = &cobra.Command{
 		Use:   "pointer",
@@ -32,9 +32,9 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		comparing = true
 	}
 
-	if len(pointerBuild) > 0 {
+	if len(pointerFile) > 0 {
 		something = true
-		buildFile, err := os.Open(pointerBuild)
+		buildFile, err := os.Open(pointerFile)
 		if err != nil {
 			Error(err.Error())
 			os.Exit(1)
@@ -50,7 +50,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		}
 
 		ptr := pointer.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size)
-		fmt.Printf("Git LFS pointer for %s\n\n", pointerBuild)
+		fmt.Printf("Git LFS pointer for %s\n\n", pointerFile)
 		buf := &bytes.Buffer{}
 		pointer.Encode(io.MultiWriter(os.Stdout, buf), ptr)
 
@@ -114,7 +114,7 @@ func gitHashObject(by []byte) string {
 
 func init() {
 	flags := pointerCmd.Flags()
-	flags.StringVarP(&pointerBuild, "build", "b", "", "Path to a local file to generate the pointer from.")
-	flags.StringVarP(&pointerCompare, "compare", "c", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
+	flags.StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
+	flags.StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
 	RootCmd.AddCommand(pointerCmd)
 }

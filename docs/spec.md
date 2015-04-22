@@ -58,7 +58,7 @@ don't know or care about.
 * Run the `pointer` command to generate a pointer file for the given local
 file:
 
-        $ git lfs pointer --build=path/to/file
+        $ git lfs pointer --file=path/to/file
         Git LFS pointer for path/to/file:
 
         version https://git-lfs.github.com/spec/v1
@@ -70,7 +70,7 @@ a pointer built by another tool.
 
   * Write the other implementation's pointer to "other/pointer/file":
 
-        $ git lfs pointer --build=path/to/file --compare=other/pointer/file
+        $ git lfs pointer --file=path/to/file --pointer=other/pointer/file
         Git LFS pointer for path/to/file:
 
         version https://git-lfs.github.com/spec/v1
@@ -90,7 +90,7 @@ a pointer built by another tool.
 
   * It can also read STDIN to get the other implementation's pointer:
 
-        $ cat other/pointer/file | git lfs pointer --build=path/to/file --stdin
+        $ cat other/pointer/file | git lfs pointer --file=path/to/file --stdin
         Git LFS pointer for path/to/file:
 
         version https://git-lfs.github.com/spec/v1

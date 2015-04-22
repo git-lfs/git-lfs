@@ -16,7 +16,7 @@ func TestPointerWithBuildAndCompareMismatch(t *testing.T) {
 		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
 		"size 123"
 
-	cmd := repo.Command("pointer", "--build=some/file", "--compare=some/pointer")
+	cmd := repo.Command("pointer", "--file=some/file", "--pointer=some/pointer")
 	cmd.Unsuccessful = true
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, "some")
@@ -44,7 +44,7 @@ func TestPointerWithBuildAndCompare(t *testing.T) {
 		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
 		"size 7"
 
-	cmd := repo.Command("pointer", "--build=some/file", "--compare=some/pointer")
+	cmd := repo.Command("pointer", "--file=some/file", "--pointer=some/pointer")
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, "some")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
@@ -68,7 +68,7 @@ func TestPointerWithCompare(t *testing.T) {
 		"oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868\n" +
 		"size 7"
 
-	cmd := repo.Command("pointer", "--compare=some/pointer")
+	cmd := repo.Command("pointer", "--pointer=some/pointer")
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, "some")
 		filename := filepath.Join(path, "pointer")
@@ -83,7 +83,7 @@ func TestPointerWithInvalidCompare(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	cmd := repo.Command("pointer", "--compare=some/pointer")
+	cmd := repo.Command("pointer", "--pointer=some/pointer")
 	cmd.Output = "open some/pointer: no such file or directory"
 	cmd.Unsuccessful = true
 }
@@ -92,7 +92,7 @@ func TestPointerWithNonPointerCompare(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	cmd := repo.Command("pointer", "--compare=some/pointer")
+	cmd := repo.Command("pointer", "--pointer=some/pointer")
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, "some")
 		assert.Equal(t, nil, os.MkdirAll(path, 0755))
@@ -107,7 +107,7 @@ func TestPointerWithBuild(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	cmd := repo.Command("pointer", "--build=some/file")
+	cmd := repo.Command("pointer", "--file=some/file")
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, "some")
 		filename := filepath.Join(path, "file")
@@ -125,7 +125,7 @@ func TestPointerWithInvalidBuild(t *testing.T) {
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
-	cmd := repo.Command("pointer", "--build=some/file")
+	cmd := repo.Command("pointer", "--file=some/file")
 	cmd.Output = "open some/file: no such file or directory"
 	cmd.Unsuccessful = true
 }
