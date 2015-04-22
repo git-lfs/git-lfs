@@ -33,6 +33,8 @@ display a progress bar while downloading or opt out of a large download.
 content locally on a CDN, resumable uploads and downloads, or performing
 requests in parallel for faster transfers.
 
+See the [ROADMAP](ROADMAP.md) for other planned and desired features.
+
 ## Known Implementations
 
 - [GitHub.com](https://github.com/early_access/large_file_storage) (support coming soon!)
