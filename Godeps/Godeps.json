@@ -1,0 +1,68 @@
+{
+	"ImportPath": "git-lfs",
+	"GoVersion": "go1.4.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/bmizerany/assert",
+			"Comment": "release.r60-6-ge17e998",
+			"Rev": "e17e99893cb6509f428e1728281c2ad60a6b31e3"
+		},
+		{
+			"ImportPath": "github.com/cheggaaa/pb",
+			"Rev": "3544a53d32f49584597eb8fa0ed3b0873a7bf94a"
+		},
+		{
+			"ImportPath": "github.com/github/git-lfs/commands",
+			"Comment": "v0.5.0-92-g301131e",
+			"Rev": "301131ebae72923b14ed308606feb02de7b199b7"
+		},
+		{
+			"ImportPath": "github.com/github/git-lfs/git",
+			"Comment": "v0.5.0-92-g301131e",
+			"Rev": "301131ebae72923b14ed308606feb02de7b199b7"
+		},
+		{
+			"ImportPath": "github.com/github/git-lfs/lfs",
+			"Comment": "v0.5.0-92-g301131e",
+			"Rev": "301131ebae72923b14ed308606feb02de7b199b7"
+		},
+		{
+			"ImportPath": "github.com/github/git-lfs/pointer",
+			"Comment": "v0.5.0-92-g301131e",
+			"Rev": "301131ebae72923b14ed308606feb02de7b199b7"
+		},
+		{
+			"ImportPath": "github.com/github/git-lfs/scanner",
+			"Comment": "v0.5.0-92-g301131e",
+			"Rev": "301131ebae72923b14ed308606feb02de7b199b7"
+		},
+		{
+			"ImportPath": "github.com/kr/pretty",
+			"Comment": "go.weekly.2011-12-22-20-g088c856",
+			"Rev": "088c856450c08c03eb32f7a6c221e6eefaa10e6f"
+		},
+		{
+			"ImportPath": "github.com/kr/text",
+			"Rev": "6807e777504f54ad073ecef66747de158294b639"
+		},
+		{
+			"ImportPath": "github.com/rubyist/tracerx",
+			"Rev": "f6aa9369b3277bc21384878e8279642da722f407"
+		},
+		{
+			"ImportPath": "github.com/spf13/cobra",
+			"Rev": "864687ae689edc28688c67edef47e3d2ad651a1b"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Rev": "463bdc838f2b35e9307e91d480878bda5fff7232"
+		},
+		{
+			"ImportPath": "github.com/technoweenie/go-contentaddressable",
+			"Rev": "38171def3cd15e3b76eb156219b3d48704643899"
+		}
+	]
+}
