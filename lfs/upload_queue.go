@@ -7,13 +7,14 @@ import (
 	"sync"
 )
 
+// Uploadable describes a file that can be uploaded.
 type Uploadable struct {
 	OIDPath  string
 	Filename string
 	CB       CopyCallback
 }
 
-// pushAsset pushes the asset with the given oid to the Git LFS API.
+// NewUploadable builds the Uploadable from the given information.
 func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *WrappedError) {
 	path, err := LocalMediaPath(oid)
 	if err != nil {
@@ -38,6 +39,7 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 	return &Uploadable{path, filename, cb}, nil
 }
 
+// UploadQueue provides a queue that will allow concurrent uploads.
 type UploadQueue struct {
 	uc     chan *Uploadable
 	ec     chan *WrappedError
@@ -45,6 +47,7 @@ type UploadQueue struct {
 	errors []*WrappedError
 }
 
+// NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
 func NewUploadQueue(workers int) *UploadQueue {
 	q := &UploadQueue{uc: make(chan *Uploadable, workers), ec: make(chan *WrappedError)}
 
@@ -71,16 +74,21 @@ func NewUploadQueue(workers int) *UploadQueue {
 	return q
 }
 
+// Upload adds an Uploadable to the upload queue. Uploads may start immediately
+// when added to the queue.
 func (q *UploadQueue) Upload(u *Uploadable) {
 	q.uc <- u
 }
 
+// Wait waits for the upload queue to finish. Once Wait() is called, Upload() must
+// not be called.
 func (q *UploadQueue) Wait() {
 	close(q.uc)
 	q.wg.Wait()
 	close(q.ec)
 }
 
+// Errors returns any errors encountered during uploading.
 func (q *UploadQueue) Errors() []*WrappedError {
 	return q.errors
 }
