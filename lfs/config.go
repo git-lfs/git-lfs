@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -67,6 +68,19 @@ func (c *Configuration) Endpoint() Endpoint {
 	}
 
 	return c.RemoteEndpoint(defaultRemote)
+}
+
+func (c *Configuration) ConcurrentUploads() int {
+	uploads := 3
+
+	if v, ok := c.GitConfig("lfs.concurrentuploads"); ok {
+		n, err := strconv.Atoi(v)
+		if err == nil {
+			uploads = n
+		}
+	}
+
+	return uploads
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {

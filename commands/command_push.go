@@ -110,7 +110,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	uploadQueue := lfs.NewUploadQueue(3)
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentUploads())
 
 	for i, pointer := range pointers {
 		if dryRun {
