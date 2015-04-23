@@ -17,7 +17,7 @@ import (
 var (
 	prePushCmd = &cobra.Command{
 		Use:   "pre-push",
-		Short: "Implement Git's pre-push hook",
+		Short: "Implements Git's pre-push hook",
 		Run:   prePushCommand,
 	}
 	dryRun       = false
