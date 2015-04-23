@@ -110,31 +110,53 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
+	uploadQueue := lfs.NewUploadQueue(3)
+
 	for i, pointer := range pointers {
 		if dryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
-		if wErr := pushAsset(pointer.Oid, pointer.Name, i+1, len(pointers)); wErr != nil {
+		u, wErr := pushAsset(pointer.Oid, pointer.Name, i+1, len(pointers))
+		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
 			} else {
 				Exit(wErr.Error())
 			}
 		}
+		uploadQueue.Upload(u.Path, u.Filename, u.CB)
+	}
+
+	uploadQueue.Wait()
+	if errs := uploadQueue.Errors(); len(errs) > 0 {
+		// TODO: how to display multiple errors
+		if Debugging || errs[0].Panic {
+			Panic(errs[0].Err, errs[0].Error())
+		} else {
+			Exit(errs[0].Error())
+		}
 	}
 }
 
+// TODO: unify this with the `upload` struct in client.go
+type upload struct {
+	Path     string
+	Filename string
+	CB       lfs.CopyCallback
+}
+
+// TODO: rename this
 // pushAsset pushes the asset with the given oid to the Git LFS API.
-func pushAsset(oid, filename string, index, totalFiles int) *lfs.WrappedError {
+func pushAsset(oid, filename string, index, totalFiles int) (*upload, *lfs.WrappedError) {
 	tracerx.Printf("checking_asset: %s %s %d/%d", oid, filename, index, totalFiles)
 	path, err := lfs.LocalMediaPath(oid)
 	if err != nil {
-		return lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	if err := ensureFile(filename, path); err != nil {
-		return lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	cb, file, cbErr := lfs.CopyCallbackFile("push", filename, index, totalFiles)
@@ -147,7 +169,7 @@ func pushAsset(oid, filename string, index, totalFiles int) *lfs.WrappedError {
 	}
 
 	fmt.Fprintf(os.Stderr, "Uploading %s\n", filename)
-	return lfs.Upload(path, filename, cb)
+	return &upload{path, filename, cb}, nil
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it

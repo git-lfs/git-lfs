@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type Configuration struct {
@@ -18,6 +19,7 @@ type Configuration struct {
 	httpClient            *http.Client
 	redirectingHttpClient *http.Client
 	isTracingHttp         bool
+	loading               sync.Mutex
 }
 
 type Endpoint struct {
@@ -135,6 +137,9 @@ type AltConfig struct {
 }
 
 func (c *Configuration) loadGitConfig() {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
 	if c.gitConfig != nil {
 		return
 	}
