@@ -2,7 +2,6 @@ package commands
 
 import (
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/pointer"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -39,7 +38,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	cleaned, err := pointer.Clean(os.Stdin, fileSize, cb)
+	cleaned, err := lfs.PointerClean(os.Stdin, fileSize, cb)
 	if file != nil {
 		file.Close()
 	}
@@ -69,7 +68,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		Debug("Writing %s", mediafile)
 	}
 
-	pointer.Encode(os.Stdout, cleaned.Pointer)
+	lfs.EncodePointer(os.Stdout, cleaned.Pointer)
 }
 
 func init() {

@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/scanner"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not get the current ref")
 	}
 
-	stagedPointers, err := scanner.ScanIndex()
+	stagedPointers, err := lfs.ScanIndex()
 	if err != nil {
 		Panic(err, "Could not scan staging for Git LFS objects")
 	}
@@ -50,7 +50,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	remoteRef, err := git.CurrentRemoteRef()
 	if err == nil {
 
-		pointers, err := scanner.Scan(ref, "^"+remoteRef)
+		pointers, err := lfs.Scan(ref, "^"+remoteRef)
 		if err != nil {
 			Panic(err, "Could not scan for Git LFS objects")
 		}

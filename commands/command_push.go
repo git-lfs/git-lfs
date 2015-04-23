@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/pointer"
-	"github.com/github/git-lfs/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -105,7 +103,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Just use scanner here
-	pointers, err := scanner.Scan(left, right)
+	pointers, err := lfs.Scan(left, right)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
@@ -193,7 +191,7 @@ func ensureFile(smudgePath, cleanPath string) error {
 		return err
 	}
 
-	cleaned, err := pointer.Clean(file, stat.Size(), nil)
+	cleaned, err := lfs.PointerClean(file, stat.Size(), nil)
 	if err != nil {
 		return err
 	}
