@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"sync"
 )
 
 const (
@@ -124,58 +123,6 @@ type byteCloser struct {
 
 func (b *byteCloser) Close() error {
 	return nil
-}
-
-type upload struct {
-	OIDPath  string
-	Filename string
-	CB       CopyCallback
-}
-
-type UploadQueue struct {
-	uc     chan upload
-	ec     chan *WrappedError
-	wg     sync.WaitGroup
-	errors []*WrappedError
-}
-
-func NewUploadQueue(workers int) *UploadQueue {
-	q := &UploadQueue{uc: make(chan upload, workers), ec: make(chan *WrappedError)}
-
-	go func() {
-		for err := range q.ec {
-			q.errors = append(q.errors, err)
-		}
-	}()
-
-	for i := 0; i < workers; i++ {
-		go func(n int) {
-			for upload := range q.uc {
-				q.wg.Add(1)
-				err := Upload(upload.OIDPath, upload.Filename, upload.CB)
-				if err != nil {
-					q.ec <- err
-				}
-				q.wg.Done()
-			}
-		}(i)
-	}
-
-	return q
-}
-
-func (q *UploadQueue) Upload(oidPath, filename string, cb CopyCallback) {
-	q.uc <- upload{oidPath, filename, cb}
-}
-
-func (q *UploadQueue) Wait() {
-	close(q.uc)
-	q.wg.Wait()
-	close(q.ec)
-}
-
-func (q *UploadQueue) Errors() []*WrappedError {
-	return q.errors
 }
 
 func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
