@@ -41,30 +41,28 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 
 // UploadQueue provides a queue that will allow concurrent uploads.
 type UploadQueue struct {
-	uc     chan *Uploadable
-	ec     chan *WrappedError
-	wg     sync.WaitGroup
-	errors []*WrappedError
+	uploadc chan *Uploadable
+	errorc  chan *WrappedError
+	errors  []*WrappedError
+	wg      sync.WaitGroup
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
 func NewUploadQueue(workers int) *UploadQueue {
-	q := &UploadQueue{uc: make(chan *Uploadable, workers), ec: make(chan *WrappedError)}
+	q := &UploadQueue{uploadc: make(chan *Uploadable, workers), errorc: make(chan *WrappedError)}
 
 	go func() {
-		for err := range q.ec {
+		for err := range q.errorc {
 			q.errors = append(q.errors, err)
 		}
 	}()
 
 	for i := 0; i < workers; i++ {
 		go func(n int) {
-			for upload := range q.uc {
-				q.wg.Add(1)
-				fmt.Fprintf(os.Stderr, "Uploading %s\n", upload.Filename)
+			for upload := range q.uploadc {
 				err := Upload(upload.OIDPath, upload.Filename, upload.CB)
 				if err != nil {
-					q.ec <- err
+					q.errorc <- err
 				}
 				q.wg.Done()
 			}
@@ -77,15 +75,16 @@ func NewUploadQueue(workers int) *UploadQueue {
 // Upload adds an Uploadable to the upload queue. Uploads may start immediately
 // when added to the queue.
 func (q *UploadQueue) Upload(u *Uploadable) {
-	q.uc <- u
+	q.wg.Add(1)
+	q.uploadc <- u
 }
 
 // Wait waits for the upload queue to finish. Once Wait() is called, Upload() must
 // not be called.
 func (q *UploadQueue) Wait() {
-	close(q.uc)
+	close(q.uploadc)
 	q.wg.Wait()
-	close(q.ec)
+	close(q.errorc)
 }
 
 // Errors returns any errors encountered during uploading.
