@@ -1,9 +1,9 @@
-git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
-==================================================================
+git-lfs-pre-push(1) -- Push queued large files to the Git LFS endpoint
+======================================================================
 
 ## SYNOPSIS
 
-`git lfs push` <repo> [refspec]
+`git lfs pre-push` <repo> [refspec]
 
 ## DESCRIPTION
 
