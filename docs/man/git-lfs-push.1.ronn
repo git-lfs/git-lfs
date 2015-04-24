@@ -10,8 +10,6 @@ git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
 Upload Git LFS files to the configured endpoint for the current
 Git remote.
 
-Push is typically run by Git's pre-push hook.
-
 ## OPTIONS
 
 * `--dry-run`:
@@ -21,7 +19,8 @@ Push is typically run by Git's pre-push hook.
     Read the repo and refspec on stdin. This is used in conjunction with
     the pre-push hook and must be in the format used by the pre-push hook:
     <local-ref> <local-sha1> <remote-ref> <remote-sha1>. If --stdin is used
-    the command line arguments are ignored.
+    the command line arguments are ignored.  NOTE: This is deprecated in favor
+    of the `pre-push` command.
 
 ## SEE ALSO
 
