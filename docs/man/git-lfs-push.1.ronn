@@ -3,7 +3,7 @@ git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
 
 ## SYNOPSIS
 
-`git lfs push` <repo> [refspec]
+`git lfs push` <remote> [branch]
 
 ## DESCRIPTION
 
@@ -25,6 +25,6 @@ Push is typically run by Git's pre-push hook.
 
 ## SEE ALSO
 
-git-lfs-clean(1).
+git-lfs-clean(1), git-lfs-pre-push(1).
 
 Part of the git-lfs(1) suite.
