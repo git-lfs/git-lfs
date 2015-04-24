@@ -10,8 +10,8 @@ git-lfs-logs(1) - Show errors from the git-lfs command
 
 ## DESCRIPTION
 
-Display errors from the git-lfs command.  Any time it
-crashes, the details are saved to ".git/lfs/logs".
+Display errors from the git-lfs command.  Any time it crashes, the details are
+saved to ".git/lfs/logs".
 
 ## OPTIONS
 
@@ -25,3 +25,7 @@ Without any options, `git lfs logs` simply shows the list of error logs.
 
 * `--boomtown`:
     Triggers a dummy exception.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.
