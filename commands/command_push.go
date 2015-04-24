@@ -36,7 +36,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	var left, right string
 
 	if len(args) == 0 {
-		Print("The git lfs pre-push hook is out of date. Please run `git lfs update`")
+		Print("Specify a remote and a remote branch name (`git lfs push origin master`)")
 		os.Exit(1)
 	}
 
