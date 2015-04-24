@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bmizerany/assert"
 	"io"
@@ -143,6 +144,7 @@ type TestCommand struct {
 	Args            []string
 	Env             []string
 	Input           io.Reader
+	Unsuccessful    bool
 	Output          string
 	BeforeCallbacks []func()
 	AfterCallbacks  []func()
@@ -163,7 +165,18 @@ func (c *TestCommand) Run(path string) {
 		cmd.Env = append(os.Environ(), c.Env...)
 	}
 	outputBytes, err := cmd.CombinedOutput()
-	c.e(err)
+
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr.ProcessState.Success() == c.Unsuccessful {
+			c.e(err)
+		}
+	} else if err == nil {
+		if c.Unsuccessful {
+			c.e(errors.New("Command was successful"))
+		}
+	} else {
+		c.e(err)
+	}
 
 	if len(c.Output) > 0 {
 		assert.Equal(c.T, c.Output+"\n", string(outputBytes))

@@ -1,0 +1,30 @@
+git-lfs-pointer(1) -- Build and compare pointers
+================================================
+
+## SYNOPSIS
+
+`git lfs pointer --file=path/to/file`<br>
+`git lfs pointer --file=path/to/file --pointer=path/to/pointer`<br>
+`git lfs pointer --file=path/to/file --stdin`
+
+## Description
+
+Builds and optionally compares generated pointer files to ensure consistency
+between different Git LFS implementations.
+
+## OPTIONS
+
+* `--file`:
+    A local file to build the pointer from.
+
+* `--pointer`:
+    A local file including the contents of a pointer generated from another
+    implementation.  This is compared to the pointer generated from `--file`.
+
+* `--stdin`:
+    Reads the pointer from STDIN to compare with the pointer generated from
+    `--file`.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.

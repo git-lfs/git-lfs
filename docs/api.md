@@ -19,9 +19,9 @@ remote's, Git LFS will not prompt you again to enter the password.
 
 If the Git remote is using SSH, Git LFS will execute the `git-lfs-authenticate`
 command.  It passes the SSH path, the Git LFS operation (upload or download),
-and the object OID as arguments. A successful result outputs a JSON header
-object to STDOUT.  This is applied to any Git LFS API request before git
-credentials are accessed.
+and the object OID as arguments. A successful result outputs a JSON link object
+to STDOUT.  This is applied to any Git LFS API request before git credentials
+are accessed.
 
 ```
 # remote: git@github.com:user/repo.git
@@ -30,6 +30,10 @@ $ ssh git@github.com git-lfs-authenticate user/repo.git download {oid}
   "header": {
     "Authorization": "Basic ..."
   }
+  // OPTIONAL key only needed if the Git LFS server is not hosted at the default
+  // URL from the Git remote:
+  //   https://github.com/user/repo.git/info/lfs/objects
+  "href": "https://other-server.com/user/repo/objects",
 }
 ```
 

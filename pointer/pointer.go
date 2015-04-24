@@ -13,14 +13,15 @@ import (
 )
 
 var (
-	MediaWarning  = []byte("# git-media\n")
-	alpha         = "http://git-media.io/v/1"
-	beta          = "http://git-media.io/v/2"
-	latest        = "https://git-lfs.github.com/spec/v1"
-	oidType       = "sha256"
-	alphaHeaderRE = regexp.MustCompile(`\A# (.*git-media|external)`)
-	oidRE         = regexp.MustCompile(`\A[0-9a-fA-F]{64}`)
-	template      = `version %s
+	v1Aliases = []string{
+		"https://hawser.github.com/spec/v1",  // pre-release
+		"https://git-lfs.github.com/spec/v1", // public launch
+	}
+	latest = "https://git-lfs.github.com/spec/v1"
+
+	oidType  = "sha256"
+	oidRE    = regexp.MustCompile(`\A[0-9a-fA-F]{64}`)
+	template = `version %s
 oid sha256:%s
 size %d
 `
@@ -62,13 +63,21 @@ func Decode(reader io.Reader) (*Pointer, error) {
 		return nil, err
 	}
 
-	data := bytes.TrimSpace(buf[0:written])
+	return decodeKV(bytes.TrimSpace(buf[0:written]))
+}
 
-	if alphaHeaderRE.Match(data) {
-		return decodeAlpha(data)
-	} else {
-		return decodeKV(data)
+func verifyVersion(version string) error {
+	if len(version) == 0 {
+		return errors.New("Missing version")
 	}
+
+	for _, v := range v1Aliases {
+		if v == version {
+			return nil
+		}
+	}
+
+	return errors.New("Invalid version: " + version)
 }
 
 func decodeKV(data []byte) (*Pointer, error) {
@@ -77,12 +86,8 @@ func decodeKV(data []byte) (*Pointer, error) {
 		return nil, err
 	}
 
-	v, ok := parsed["version"]
-	if !ok || (v != latest && v != beta) {
-		if len(v) == 0 {
-			v = "--"
-		}
-		return nil, errors.New("Invalid version: " + v)
+	if err := verifyVersion(parsed["version"]); err != nil {
+		return nil, err
 	}
 
 	oidValue, ok := parsed["oid"]
@@ -149,17 +154,4 @@ func decodeKVData(data []byte) (map[string]string, error) {
 	}
 
 	return m, scanner.Err()
-}
-
-func decodeAlpha(data []byte) (*Pointer, error) {
-	lines := bytes.Split(data, []byte("\n"))
-	last := len(lines) - 1
-	if last == 0 {
-		return nil, errors.New("No OID in pointer file")
-	}
-	if !oidRE.Match(lines[last]) {
-		return nil, errors.New("Invalid OID in pointer file")
-	}
-
-	return &Pointer{alpha, string(lines[last]), 0, oidType}, nil
 }
