@@ -20,6 +20,7 @@ var (
 )
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
+	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
 	b := &bytes.Buffer{}

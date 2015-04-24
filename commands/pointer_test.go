@@ -79,7 +79,7 @@ func TestPointerWithInvalidCompareStdin(t *testing.T) {
 	defer repo.Test()
 
 	cmd := repo.Command("pointer", "--stdin")
-	cmd.Output = "Pointer from STDIN\n\nEOF"
+	cmd.Output = "Cannot read from STDIN. The --stdin flag expects a pointer file from STDIN."
 	cmd.Unsuccessful = true
 }
 
