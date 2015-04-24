@@ -33,12 +33,10 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	cb, file, _ := CopyCallbackFile("push", filename, index, totalFiles)
-	// TODO: fix this, Error() is in `commands`. This is not a fatal error, it should display
-	// but not return.
-	// if cbErr != nil {
-	// 	Error(cbErr.Error())
-	// }
+	cb, file, cbErr := CopyCallbackFile("push", filename, index, totalFiles)
+	if cbErr != nil {
+		fmt.Fprintln(os.Stderr, cbErr.Error())
+	}
 
 	if file != nil {
 		defer file.Close()
