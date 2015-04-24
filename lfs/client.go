@@ -370,6 +370,17 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 		operation = "upload"
 	}
 
+	res, err := sshAuthenticate(endpoint, operation, oid)
+	if err != nil {
+		tracerx.Printf("ssh: attempted with %s.  Error: %s",
+			endpoint.SshUserAndHost, err.Error(),
+		)
+	}
+
+	if len(res.Href) > 0 {
+		endpoint.Url = res.Href
+	}
+
 	u, err := ObjectUrl(endpoint, objectOid)
 	if err != nil {
 		return nil, nil, err
@@ -378,10 +389,10 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	req, creds, err := newClientRequest(method, u.String())
 	if err == nil {
 		req.Header.Set("Accept", mediaType)
-		if err := mergeSshHeader(req.Header, endpoint, operation, oid); err != nil {
-			tracerx.Printf("ssh: attempted with %s.  Error: %s",
-				endpoint.SshUserAndHost, err.Error(),
-			)
+		if res.Header != nil {
+			for key, value := range res.Header {
+				req.Header.Set(key, value)
+			}
 		}
 	}
 	return req, creds, err

@@ -9,6 +9,27 @@ for other tools.
 The core Git LFS idea is that instead of writing large blobs to a Git repository,
 only a pointer file is written.
 
+* Pointer files are text files which MUST contain only UTF-8 characters.
+* Each line MUST be of the format `{key} {value}\n` (trailing unix newline).
+* Only a single space character between `{key}` and `{value}`.
+* Keys MUST only use the characters `[a-z] [0-9] . -`.  
+* The first key is _always_ `version`.
+* Lines of key/value pairs MUST be sorted alphabetically in ascending order
+(with the exception of `version`, which is always first).
+* Values MUST NOT contain return or newline characters.
+* Pointer files SHOULD NOT have the executable bit set when checked out from Git.
+
+The required keys are:
+
+* `version` is a URL that identifies the pointer file spec.  Parsers MUST use
+simple string comparison on the version, without any URL parsing or
+normalization.  It is case sensitive, and %-encoding is discouraged.
+* `oid` tracks the unique object id for the file, prefixed by its hashing
+method: `{hash-method}:{hash}`.  Currently, only `sha256` is supported.
+* `size` is in bytes.
+
+Example of a v1 text pointer:
+
 ```
 version https://git-lfs.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
@@ -16,34 +37,76 @@ size 12345
 (ending \n)
 ```
 
-The pointer file should be small (less than 200 bytes), and consist of only
-ASCII characters.  Libraries that generate this should write the file
-identically, so that different implementations write consistent pointers that
-translate to the same Git blob OID.  This means:
-
-* Use properties "version", "oid", and "size" in that order.
-* Separate the property from its value with a single space.
-* Oid has a "sha256:" prefix.  No other hashing methods are currently supported
-for Git LFS oids.
-* Size is in bytes.
-
-Note: Earlier versions only contained the OID, with a `# comment` above it.
-Here's some ruby code to parse older pointer files.
+Blobs created with the pre-release version of the tool will generated files with
+a different version URL.  Git LFS can read these files, but writes them using
+the version URL above.
 
 ```
-# data is a string of the content
-# last full line contains the oid
-return nil unless data.size < 100
-lines = data.
-  strip.      # strip ending whitespace
-  split("\n") # split by line breaks
-
-# We look for a comment line, and the phrase `git-media` somewhere
-lines[0] =~ /# (.*git-media|external)/ && lines.last
+version https://hawser.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+(ending \n)
 ```
 
-That code returns the OID, which should be on the last line.  The OID is
-generated from the SHA-256 signature of the file's contents.
+For testing compliance of any tool generating its own pointer files, the
+reference is this official Git LFS tool:
+
+NOTE: exact pointer command behavior TBD!
+
+* Tools that parse and regenerate pointer files MUST preserve keys that they
+don't know or care about.
+* Run the `pointer` command to generate a pointer file for the given local
+file:
+
+        $ git lfs pointer --file=path/to/file
+        Git LFS pointer for path/to/file:
+
+        version https://git-lfs.github.com/spec/v1
+        oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+        size 12345
+
+* Run `pointer` to compare the blob OID of a pointer file built by Git LFS with
+a pointer built by another tool.
+
+  * Write the other implementation's pointer to "other/pointer/file":
+
+        $ git lfs pointer --file=path/to/file --pointer=other/pointer/file
+        Git LFS pointer for path/to/file:
+
+        version https://git-lfs.github.com/spec/v1
+        oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+        size 12345
+
+        Blob OID: 60c8d8ab2adcf57a391163a7eeb0cdb8bf348e44
+
+        Pointer from other/pointer/file
+        version https://git-lfs.github.com/spec/v1
+        oid sha256 4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+        size 12345
+
+        Blob OID: 08e593eeaa1b6032e971684825b4b60517e0638d
+
+        Pointers do not match!
+
+  * It can also read STDIN to get the other implementation's pointer:
+
+        $ cat other/pointer/file | git lfs pointer --file=path/to/file --stdin
+        Git LFS pointer for path/to/file:
+
+        version https://git-lfs.github.com/spec/v1
+        oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+        size 12345
+
+        Blob OID: 60c8d8ab2adcf57a391163a7eeb0cdb8bf348e44
+
+        Pointer from STDIN
+        version https://git-lfs.github.com/spec/v1
+        oid sha256 4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+        size 12345
+
+        Blob OID: 08e593eeaa1b6032e971684825b4b60517e0638d
+
+        Pointers do not match!
 
 ## The Server
 
@@ -130,4 +193,4 @@ $ cat .gitattributes
 *.zip filter=lfs -crlf
 ```
 
-Use the `git lfs path` command to view and add to `.gitattributes`.
+Use the `git lfs track` command to view and add to `.gitattributes`.
