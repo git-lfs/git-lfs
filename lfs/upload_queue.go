@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"fmt"
+	"github.com/cheggaaa/pb"
 	"os"
 	"path/filepath"
 	"sync"
@@ -12,6 +13,7 @@ type Uploadable struct {
 	OIDPath  string
 	Filename string
 	CB       CopyCallback
+	Size     int64
 }
 
 // NewUploadable builds the Uploadable from the given information.
@@ -22,6 +24,11 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 	}
 
 	if err := ensureFile(filename, path); err != nil {
+		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	fi, err := os.Stat(filename)
+	if err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
@@ -36,7 +43,7 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 		defer file.Close()
 	}
 
-	return &Uploadable{path, filename, cb}, nil
+	return &Uploadable{path, filename, cb, fi.Size()}, nil
 }
 
 // UploadQueue provides a queue that will allow concurrent uploads.
@@ -45,11 +52,31 @@ type UploadQueue struct {
 	errorc  chan *WrappedError
 	errors  []*WrappedError
 	wg      sync.WaitGroup
+	workers int
+	size    int64
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(workers int) *UploadQueue {
-	q := &UploadQueue{uploadc: make(chan *Uploadable, workers), errorc: make(chan *WrappedError)}
+func NewUploadQueue(workers, files int) *UploadQueue {
+	return &UploadQueue{
+		uploadc: make(chan *Uploadable, files),
+		errorc:  make(chan *WrappedError),
+		workers: workers,
+	}
+}
+
+// Upload adds an Uploadable to the upload queue.
+func (q *UploadQueue) Upload(u *Uploadable) {
+	q.wg.Add(1)
+	q.size += u.Size
+	q.uploadc <- u
+}
+
+// Process starts the upload queue and displays a progress bar.
+func (q *UploadQueue) Process() {
+	bar := pb.New64(q.size)
+	bar.SetUnits(pb.U_BYTES)
+	bar.Start()
 
 	go func() {
 		for err := range q.errorc {
@@ -57,10 +84,19 @@ func NewUploadQueue(workers int) *UploadQueue {
 		}
 	}()
 
-	for i := 0; i < workers; i++ {
+	for i := 0; i < q.workers; i++ {
 		go func(n int) {
 			for upload := range q.uploadc {
-				err := Upload(upload.OIDPath, upload.Filename, upload.CB)
+
+				cb := func(total, read int64, current int) error {
+					bar.Add(current)
+					if upload.CB != nil {
+						return upload.CB(total, read, current)
+					}
+					return nil
+				}
+
+				err := Upload(upload.OIDPath, upload.Filename, cb)
 				if err != nil {
 					q.errorc <- err
 				}
@@ -69,22 +105,11 @@ func NewUploadQueue(workers int) *UploadQueue {
 		}(i)
 	}
 
-	return q
-}
-
-// Upload adds an Uploadable to the upload queue. Uploads may start immediately
-// when added to the queue.
-func (q *UploadQueue) Upload(u *Uploadable) {
-	q.wg.Add(1)
-	q.uploadc <- u
-}
-
-// Wait waits for the upload queue to finish. Once Wait() is called, Upload() must
-// not be called.
-func (q *UploadQueue) Wait() {
 	close(q.uploadc)
 	q.wg.Wait()
 	close(q.errorc)
+
+	bar.Finish()
 }
 
 // Errors returns any errors encountered during uploading.

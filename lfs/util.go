@@ -14,7 +14,7 @@ type CallbackReader struct {
 	io.Reader
 }
 
-type CopyCallback func(int64, int64) error
+type CopyCallback func(int64, int64, int) error
 
 func (w *CallbackReader) Read(p []byte) (int, error) {
 	n, err := w.Reader.Read(p)
@@ -24,7 +24,7 @@ func (w *CallbackReader) Read(p []byte) (int, error) {
 	}
 
 	if err == nil && w.C != nil {
-		err = w.C(w.TotalSize, w.ReadSize)
+		err = w.C(w.TotalSize, w.ReadSize, n)
 	}
 
 	return n, err
@@ -65,7 +65,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 
 	var prevWritten int64
 
-	cb := CopyCallback(func(total int64, written int64) error {
+	cb := CopyCallback(func(total int64, written int64, current int) error {
 		if written != prevWritten {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()
