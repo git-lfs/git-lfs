@@ -14,7 +14,7 @@ func TestWriterWithCallback(t *testing.T) {
 	reader := &CallbackReader{
 		TotalSize: 5,
 		Reader:    bytes.NewBufferString("BOOYA"),
-		C: func(total int64, read int64) error {
+		C: func(total int64, read int64, current int) error {
 			called += 1
 			calledRead = append(calledRead, read)
 			assert.Equal(t, 5, int(total))
@@ -43,7 +43,7 @@ func TestCopyWithCallback(t *testing.T) {
 	called := 0
 	calledWritten := make([]int64, 0, 2)
 
-	n, err := CopyWithCallback(ioutil.Discard, buf, 5, func(total int64, written int64) error {
+	n, err := CopyWithCallback(ioutil.Discard, buf, 5, func(total int64, written int64, current int) error {
 		called += 1
 		calledWritten = append(calledWritten, written)
 		assert.Equal(t, 5, int(total))

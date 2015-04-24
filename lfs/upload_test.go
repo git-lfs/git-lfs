@@ -106,7 +106,7 @@ func TestExistingUpload(t *testing.T) {
 
 	// stores callbacks
 	calls := make([][]int64, 0, 5)
-	cb := func(total int64, written int64) error {
+	cb := func(total int64, written int64, current int) error {
 		calls = append(calls, []int64{total, written})
 		return nil
 	}
@@ -394,7 +394,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 	// stores callbacks
 	calls := make([][]int64, 0, 5)
-	cb := func(total int64, written int64) error {
+	cb := func(total int64, written int64, current int) error {
 		calls = append(calls, []int64{total, written})
 		return nil
 	}
