@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/pointer"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -51,10 +51,10 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		ptr := pointer.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size)
+		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size)
 		fmt.Printf("Git LFS pointer for %s\n\n", pointerFile)
 		buf := &bytes.Buffer{}
-		pointer.Encode(io.MultiWriter(os.Stdout, buf), ptr)
+		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
 		if comparing {
 			buildOid = gitHashObject(buf.Bytes())
@@ -74,7 +74,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(compFile, buf)
-		_, err = pointer.Decode(tee)
+		_, err = lfs.DecodePointer(tee)
 		compFile.Close()
 
 		pointerName := "STDIN"
