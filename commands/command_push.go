@@ -128,13 +128,16 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	if !dryRun {
 		uploadQueue.Process()
-		if errs := uploadQueue.Errors(); len(errs) > 0 {
-			// TODO: how to display multiple errors
-			if Debugging || errs[0].Panic {
-				Panic(errs[0].Err, errs[0].Error())
+		for _, err := range uploadQueue.Errors() {
+			if Debugging || err.Panic {
+				LoggedError(err.Err, err.Error())
 			} else {
-				Exit(errs[0].Error())
+				Error(err.Error())
 			}
+		}
+
+		if len(uploadQueue.Errors()) > 0 {
+			os.Exit(2)
 		}
 	}
 }
