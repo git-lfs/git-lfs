@@ -62,6 +62,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	lfs.Config.CurrentRemote = args[0]
 
 	if useStdin {
+		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
 		refsData, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			Panic(err, "Error reading refs on stdin")

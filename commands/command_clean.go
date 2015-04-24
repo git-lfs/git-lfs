@@ -16,6 +16,7 @@ var (
 )
 
 func cleanCommand(cmd *cobra.Command, args []string) {
+	requireStdin("This command should be run by the Git 'clean' filter")
 	lfs.InstallHooks(false)
 
 	var filename string
