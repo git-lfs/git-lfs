@@ -16,8 +16,8 @@ Git remote.
     Print the files that would be pushed, without actually pushing them.
 
 * `--stdin`:
-    Read the repo and refspec on stdin. This is used in conjunction with
-    the pre-push hook and must be in the format used by the pre-push hook:
+    Read the remote and branch on stdin. This is used in conjunction with the
+    pre-push hook and must be in the format used by the pre-push hook:
     <local-ref> <local-sha1> <remote-ref> <remote-sha1>. If --stdin is used
     the command line arguments are ignored.  NOTE: This is deprecated in favor
     of the `pre-push` command.
