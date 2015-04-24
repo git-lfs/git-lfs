@@ -43,6 +43,10 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	lfs.Config.CurrentRemote = args[0]
 
 	if useStdin {
+		// called from a pre-push hook!  Update the existing pre-push hook if it's
+		// one that git-lfs set.
+		lfs.InstallHooks(false)
+
 		refsData, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			Panic(err, "Error reading refs on stdin")
