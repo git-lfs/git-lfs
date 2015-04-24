@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 )
 
 // Uploadable describes a file that can be uploaded.
@@ -48,12 +49,14 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 
 // UploadQueue provides a queue that will allow concurrent uploads.
 type UploadQueue struct {
-	uploadc chan *Uploadable
-	errorc  chan *WrappedError
-	errors  []*WrappedError
-	wg      sync.WaitGroup
-	workers int
-	size    int64
+	uploadc  chan *Uploadable
+	errorc   chan *WrappedError
+	errors   []*WrappedError
+	wg       sync.WaitGroup
+	workers  int
+	files    int
+	finished int64
+	size     int64
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
@@ -62,6 +65,7 @@ func NewUploadQueue(workers, files int) *UploadQueue {
 		uploadc: make(chan *Uploadable, files),
 		errorc:  make(chan *WrappedError),
 		workers: workers,
+		files:   files,
 	}
 }
 
@@ -76,6 +80,8 @@ func (q *UploadQueue) Upload(u *Uploadable) {
 func (q *UploadQueue) Process() {
 	bar := pb.New64(q.size)
 	bar.SetUnits(pb.U_BYTES)
+	bar.ShowBar = false
+	bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
 	bar.Start()
 
 	go func() {
@@ -87,7 +93,6 @@ func (q *UploadQueue) Process() {
 	for i := 0; i < q.workers; i++ {
 		go func(n int) {
 			for upload := range q.uploadc {
-
 				cb := func(total, read int64, current int) error {
 					bar.Add(current)
 					if upload.CB != nil {
@@ -100,6 +105,8 @@ func (q *UploadQueue) Process() {
 				if err != nil {
 					q.errorc <- err
 				}
+				f := atomic.AddInt64(&q.finished, 1)
+				bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
 				q.wg.Done()
 			}
 		}(i)
