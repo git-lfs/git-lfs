@@ -43,6 +43,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	lfs.Config.CurrentRemote = args[0]
 
 	if useStdin {
+		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
+
 		// called from a pre-push hook!  Update the existing pre-push hook if it's
 		// one that git-lfs set.
 		lfs.InstallHooks(false)
