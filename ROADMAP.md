@@ -18,6 +18,7 @@ and clean filters (`git lfs get path/to/file`).
 * Automatic GC for the `.git/lfs/objects` directory.
 * Client side metrics reporting, so the Git LFS server can optionally track
 how clients are performing.
+* Ability to remove objects from the command line through the API.
 
 ## Possible Features
 
