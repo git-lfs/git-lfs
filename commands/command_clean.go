@@ -50,6 +50,11 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		defer cleaned.Teardown()
 	}
 
+	if cpErr, ok := err.(*pointer.CleanedPointerError); ok {
+		os.Stdout.Write(cpErr.Bytes)
+		return
+	}
+
 	if err != nil {
 		Panic(err, "Error cleaning asset.")
 	}
