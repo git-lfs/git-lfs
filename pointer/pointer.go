@@ -14,6 +14,7 @@ import (
 
 var (
 	v1Aliases = []string{
+		"http://git-media.io/v/2",            // alpha
 		"https://hawser.github.com/spec/v1",  // pre-release
 		"https://git-lfs.github.com/spec/v1", // public launch
 	}
