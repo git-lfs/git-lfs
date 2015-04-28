@@ -21,6 +21,7 @@ func TestCleanSmallFile(t *testing.T) {
 		"size 9"
 
 	path := filepath.Join(repo.Path, ".git", "lfs", "objects")
+	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.Before(func() {
 		_, err := os.Open(path)
@@ -39,6 +40,16 @@ func TestCleanSmallFile(t *testing.T) {
 		contents := string(by)
 		if contents != "whatever\n" {
 			t.Fatalf("wrong contents: '%v'", contents)
+		}
+
+		by, err = ioutil.ReadFile(prePushHookFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		pattern := "git lfs push"
+		if !bytes.Contains(by, []byte(pattern)) {
+			t.Errorf("hook does not contain %s:\n%s", pattern, string(by))
 		}
 	})
 }
@@ -202,7 +213,56 @@ func TestCleanPointer(t *testing.T) {
 			t.Errorf("objects were written to .git/lfs/objects")
 		})
 	}
+}
 
+func TestCleanWithCustomHook(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("clean")
+	cmd.Input = bytes.NewBufferString("whatever\n")
+	cmd.Output = "version https://git-lfs.github.com/spec/v1\n" +
+		"oid sha256:cd293be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411\n" +
+		"size 9"
+
+	path := filepath.Join(repo.Path, ".git", "lfs", "objects")
+	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+	customHook := []byte("test")
+
+	cmd.Before(func() {
+		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = os.Open(path)
+		if _, ok := err.(*os.PathError); !ok {
+			t.Fatalf("'%s' should not exist", path)
+		}
+	})
+
+	file := filepath.Join(path, "cd", "29", "cd293be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411")
+	cmd.After(func() {
+		by, err := ioutil.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		contents := string(by)
+		if contents != "whatever\n" {
+			t.Fatalf("wrong contents: '%v'", contents)
+		}
+
+		by, err = ioutil.ReadFile(prePushHookFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(by) != string(customHook) {
+			t.Logf(string(by))
+			t.Errorf("Hook does not contain custom hook")
+		}
+	})
 }
 
 func randomReader(n int64) io.Reader {
