@@ -28,10 +28,10 @@ func (c *Configuration) HttpClient() *http.Client {
 		tr := &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
+				Timeout:   5 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
-			TLSHandshakeTimeout: 30 * time.Second,
+			TLSHandshakeTimeout: 5 * time.Second,
 		}
 		sslVerify, _ := c.GitConfig("http.sslverify")
 		if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
