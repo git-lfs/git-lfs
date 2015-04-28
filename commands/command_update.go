@@ -11,6 +11,8 @@ var (
 		Short: "Update local Git LFS configuration",
 		Run:   updateCommand,
 	}
+
+	updateForce = false
 )
 
 // updateCommand is used for updating parts of Git LFS that reside under
@@ -21,10 +23,16 @@ func updateCommand(cmd *cobra.Command, args []string) {
 
 // updatePrePushHook will force an update of the pre-push hook.
 func updatePrePushHook() {
-	lfs.InstallHooks(true)
-	Print("Updated pre-push hook")
+	if err := lfs.InstallHooks(updateForce); err != nil {
+		Error(err.Error())
+		Print("Run `git lfs update --force` to overwrite this hook.")
+	} else {
+		Print("Updated pre-push hook")
+	}
+
 }
 
 func init() {
+	updateCmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite hooks.")
 	RootCmd.AddCommand(updateCmd)
 }

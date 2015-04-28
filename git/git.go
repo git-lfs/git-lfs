@@ -10,15 +10,15 @@ import (
 	"strings"
 )
 
-func LsRemote(repo, refspec string) (string, error) {
-	if repo == "" {
-		return "", errors.New("repo required")
+func LsRemote(remote, remoteRef string) (string, error) {
+	if remote == "" {
+		return "", errors.New("remote required")
 	}
-	if refspec == "" {
-		return simpleExec(nil, "git", "ls-remote", repo)
+	if remoteRef == "" {
+		return simpleExec(nil, "git", "ls-remote", remote)
 
 	}
-	return simpleExec(nil, "git", "ls-remote", repo, refspec)
+	return simpleExec(nil, "git", "ls-remote", remote, remoteRef)
 }
 
 func CurrentRef() (string, error) {

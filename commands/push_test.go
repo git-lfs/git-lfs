@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -69,4 +71,60 @@ func TestPushToNewBranch(t *testing.T) {
 		repo.GitCmd("commit", "-m", "b")
 	})
 
+}
+
+func TestPushStdin(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("push", "--stdin", "--dry-run", "origin", "https://git-remote.com")
+	cmd.Input = strings.NewReader("refs/heads/master master refs/heads/master 2206c37dddba83f58b1ada72709a6b60cf8b058e")
+	cmd.Output = ""
+
+	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+	cmd.Before(func() {
+		err := ioutil.WriteFile(prePushHookFile, []byte("#!/bin/sh\ngit lfs push --stdin \"$@\"\n"), 0755)
+		if err != nil {
+			t.Fatalf("Error writing pre-push in Before(): %s", err)
+		}
+	})
+
+	cmd.After(func() {
+		by, err := ioutil.ReadFile(prePushHookFile)
+		if err != nil {
+			t.Fatalf("Error writing pre-push in After(): %s", err)
+		}
+
+		if string(by) != "#!/bin/sh\ngit lfs pre-push \"$@\"\n" {
+			t.Errorf("Unexpected pre-push hook:\n%s", string(by))
+		}
+	})
+}
+
+func TestPushStdinWithUnexpectedHook(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("push", "--stdin", "--dry-run", "origin", "https://git-remote.com")
+	cmd.Input = strings.NewReader("refs/heads/master master refs/heads/master 2206c37dddba83f58b1ada72709a6b60cf8b058e")
+	cmd.Output = ""
+
+	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
+	cmd.Before(func() {
+		err := ioutil.WriteFile(prePushHookFile, []byte("sup\n"), 0755)
+		if err != nil {
+			t.Fatalf("Error writing pre-push in Before(): %s", err)
+		}
+	})
+
+	cmd.After(func() {
+		by, err := ioutil.ReadFile(prePushHookFile)
+		if err != nil {
+			t.Fatalf("Error writing pre-push in After(): %s", err)
+		}
+
+		if string(by) != "sup\n" {
+			t.Errorf("Unexpected pre-push hook:\n%s", string(by))
+		}
+	})
 }
