@@ -39,7 +39,7 @@ See the [ROADMAP](ROADMAP.md) for other planned and desired features.
 
 - [GitHub.com](https://github.com/early_access/large_file_storage) (support coming soon!)
 - [github/lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
-- [meltingice/git-lfs-s3](https://git-lfs.github.com) (store large files in Amazon S3)
+- [meltingice/git-lfs-s3](https://github.com/meltingice/git-lfs-s3) (store large files in Amazon S3)
 
 ## Getting Started
 
