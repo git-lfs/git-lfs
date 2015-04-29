@@ -114,7 +114,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 				Exit(wErr.Error())
 			}
 		}
-		uploadQueue.Upload(u)
+		uploadQueue.Add(u)
 	}
 
 	if !pushDryRun {

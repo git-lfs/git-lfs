@@ -20,6 +20,8 @@ const (
 	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
 )
 
+// The apiEvent* statuses (and the apiEvent channel) are used by
+// UploadQueue to know when it is OK to process uploads concurrently.
 const (
 	apiEventFail = iota
 	apiEventSuccess
@@ -167,11 +169,11 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	tracerx.Printf("api: uploading %s (%s)", filename, oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
-		triggerApiEvent(apiEventFail)
+		sendApiEvent(apiEventFail)
 		return wErr
 	}
 
-	triggerApiEvent(apiEventSuccess)
+	sendApiEvent(apiEventSuccess)
 
 	if res.StatusCode == 200 {
 		return nil
@@ -468,7 +470,7 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 	}
 }
 
-func triggerApiEvent(event int) {
+func sendApiEvent(event int) {
 	select {
 	case apiEvent <- event:
 	default:

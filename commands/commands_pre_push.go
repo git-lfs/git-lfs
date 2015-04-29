@@ -87,7 +87,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		uploadQueue.Upload(u)
+		uploadQueue.Add(u)
 	}
 
 	if !prePushDryRun {

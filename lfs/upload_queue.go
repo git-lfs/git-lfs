@@ -73,8 +73,8 @@ func NewUploadQueue(workers, files int) *UploadQueue {
 	}
 }
 
-// Upload adds an Uploadable to the upload queue.
-func (q *UploadQueue) Upload(u *Uploadable) {
+// Add adds an Uploadable to the upload queue.
+func (q *UploadQueue) Add(u *Uploadable) {
 	q.wg.Add(1)
 	q.size += u.Size
 	q.uploadc <- u
@@ -88,33 +88,43 @@ func (q *UploadQueue) Process() {
 	bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
 	bar.Start()
 
+	// This goroutine collects errors returned from uploads
 	go func() {
 		for err := range q.errorc {
 			q.errors = append(q.errors, err)
 		}
 	}()
 
+	// This goroutine watches for apiEvents. In order to prevent multiple
+	// credential requests from happening, the queue is processed sequentially
+	// until an API request succeeds (meaning authenication has happened successfully).
+	// Once the an API request succeeds, all worker goroutines are woken up and allowed
+	// to process uploads. Once a success happens, this goroutine exits.
 	go func() {
 		for {
 			event := <-apiEvent
 			switch event {
-			case apiEventFail:
-				q.authCond.Signal() // Wake the next goroutine
 			case apiEventSuccess:
 				atomic.StoreInt32(&clientAuthorized, 1)
 				q.authCond.Broadcast() // Wake all remaining goroutines
 				return
+			case apiEventFail:
+				q.authCond.Signal() // Wake the next goroutine
 			}
 		}
 	}()
 
+	// This will block Process() until the worker goroutines are spun up and ready
+	// to process uploads.
 	workersReady := make(chan int, q.workers)
 
 	for i := 0; i < q.workers; i++ {
+		// These are the worker goroutines that process uploads
 		go func(n int) {
 			workersReady <- 1
 
 			for upload := range q.uploadc {
+				// If an API authorization has not occured, we wait until we're woken up.
 				q.authCond.L.Lock()
 				if atomic.LoadInt32(&clientAuthorized) == 0 {
 					q.authCond.Wait()
