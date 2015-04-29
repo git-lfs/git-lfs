@@ -47,7 +47,7 @@ func TestCleanSmallFile(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		pattern := "git lfs push"
+		pattern := "git lfs pre-push"
 		if !bytes.Contains(by, []byte(pattern)) {
 			t.Errorf("hook does not contain %s:\n%s", pattern, string(by))
 		}
