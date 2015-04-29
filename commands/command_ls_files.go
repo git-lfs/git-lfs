@@ -27,7 +27,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	pointers, err := lfs.Scan(ref, "")
+	pointers, err := lfs.ScanRefs(ref, "")
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}

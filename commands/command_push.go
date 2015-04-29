@@ -92,7 +92,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Just use scanner here
-	pointers, err := lfs.Scan(left, right)
+	pointers, err := lfs.ScanRefs(left, right)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}

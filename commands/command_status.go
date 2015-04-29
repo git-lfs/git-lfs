@@ -50,7 +50,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	remoteRef, err := git.CurrentRemoteRef()
 	if err == nil {
 
-		pointers, err := lfs.Scan(ref, "^"+remoteRef)
+		pointers, err := lfs.ScanRefs(ref, "^"+remoteRef)
 		if err != nil {
 			Panic(err, "Could not scan for Git LFS objects")
 		}

@@ -48,9 +48,9 @@ type indexFile struct {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-// Scan takes a ref and returns a slice of wrappedPointer objects
+// ScanRefs takes a ref and returns a slice of wrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
-func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
+func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
 	start := time.Now()
 
