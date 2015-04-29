@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	clientAuthorized = 0
+	clientAuthorized = int32(0)
 )
 
 // Uploadable describes a file that can be uploaded.
@@ -94,6 +94,20 @@ func (q *UploadQueue) Process() {
 		}
 	}()
 
+	go func() {
+		for {
+			event := <-apiEvent
+			switch event {
+			case apiEventFail:
+				q.authCond.Signal() // Wake the next goroutine
+			case apiEventSuccess:
+				atomic.StoreInt32(&clientAuthorized, 1)
+				q.authCond.Broadcast() // Wake all remaining goroutines
+				return
+			}
+		}
+	}()
+
 	workersReady := make(chan int, q.workers)
 
 	for i := 0; i < q.workers; i++ {
@@ -102,7 +116,7 @@ func (q *UploadQueue) Process() {
 
 			for upload := range q.uploadc {
 				q.authCond.L.Lock()
-				if clientAuthorized == 0 {
+				if atomic.LoadInt32(&clientAuthorized) == 0 {
 					q.authCond.Wait()
 				}
 				q.authCond.L.Unlock()
@@ -118,12 +132,6 @@ func (q *UploadQueue) Process() {
 				err := Upload(upload.OIDPath, upload.Filename, cb)
 				if err != nil {
 					q.errorc <- err
-					// This one failed, send a Signal() to wake up the next one
-					q.authCond.Signal()
-				} else {
-					// This one succeeded, set the auth condition to 1 and Broadcast()
-					clientAuthorized = 1
-					q.authCond.Broadcast()
 				}
 
 				f := atomic.AddInt64(&q.finished, 1)

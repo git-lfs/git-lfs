@@ -20,6 +20,11 @@ const (
 	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
 )
 
+const (
+	apiEventFail = iota
+	apiEventSuccess
+)
+
 var (
 	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
 	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
@@ -35,6 +40,8 @@ var (
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
 	}
+
+	apiEvent = make(chan int)
 )
 
 type objectResource struct {
@@ -160,8 +167,11 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	tracerx.Printf("api: uploading %s (%s)", filename, oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
+		triggerApiEvent(apiEventFail)
 		return wErr
 	}
+
+	triggerApiEvent(apiEventSuccess)
 
 	if res.StatusCode == 200 {
 		return nil
@@ -455,5 +465,12 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 		} else {
 			err.Set(contextKey, head.Get(key))
 		}
+	}
+}
+
+func triggerApiEvent(event int) {
+	select {
+	case apiEvent <- event:
+	default:
 	}
 }
