@@ -51,12 +51,12 @@ func TestTrackOnEmptyRepository(t *testing.T) {
 	cmd.Before(func() {
 		// write attributes file in .git
 		path := filepath.Join(".gitattributes")
-		repo.WriteFile(path, "*.mov filter=lfs -crlf\n")
+		repo.WriteFile(path, "*.mov filter=lfs diff=lfs merge=lfs -crlf\n")
 	})
 
 	cmd.After(func() {
 		// assert path was added
-		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs -crlf\n", repo.ReadFile(".gitattributes"))
+		assert.Equal(t, "*.mov filter=lfs diff=lfs merge=lfs -crlf\n*.gif filter=lfs diff=lfs merge=lfs -crlf\n", repo.ReadFile(".gitattributes"))
 
 		expected := "Listing tracked paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 
@@ -82,14 +82,12 @@ func TestTrackWithoutTrailingLinebreak(t *testing.T) {
 	cmd.Output = "Tracking *.gif"
 
 	cmd.Before(func() {
-		// write attributes file in .git
-		path := filepath.Join(".gitattributes")
-		repo.WriteFile(path, "*.mov filter=lfs -crlf")
+		repo.WriteFile(".gitattributes", "*.mov filter=lfs -crlf")
 	})
 
 	cmd.After(func() {
 		// assert path was added
-		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs -crlf\n", repo.ReadFile(".gitattributes"))
+		assert.Equal(t, "*.mov filter=lfs -crlf\n*.gif filter=lfs diff=lfs merge=lfs -crlf\n", repo.ReadFile(".gitattributes"))
 
 		expected := "Listing tracked paths\n    *.mov (.gitattributes)\n    *.gif (.gitattributes)\n"
 

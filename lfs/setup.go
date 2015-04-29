@@ -4,25 +4,33 @@ import (
 	"errors"
 	"fmt"
 	"github.com/github/git-lfs/git"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 var (
 	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
-	prePushHook           = []byte("#!/bin/sh\ngit lfs push --stdin \"$@\"\n")
 	NotInARepositoryError = errors.New("Not in a repository")
+
+	prePushHook     = "#!/bin/sh\ngit lfs pre-push \"$@\""
+	prePushUpgrades = map[string]bool{
+		"#!/bin/sh\ngit lfs push --stdin $*":     true,
+		"#!/bin/sh\ngit lfs push --stdin \"$@\"": true,
+	}
 )
 
 type HookExists struct {
-	Name string
-	Path string
+	Name     string
+	Path     string
+	Contents string
 }
 
 func (e *HookExists) Error() string {
-	return fmt.Sprintf("Hook already exists: %s", e.Name)
+	return fmt.Sprintf("Hook already exists: %s\n\n%s\n", e.Name, e.Contents)
 }
 
 func InstallHooks(force bool) error {
@@ -36,10 +44,36 @@ func InstallHooks(force bool) error {
 
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
 	if _, err := os.Stat(hookPath); err == nil && !force {
-		return &HookExists{"pre-push", hookPath}
+		return upgradeHookOrError(hookPath, "pre-push", prePushHook, prePushUpgrades)
 	} else {
-		return ioutil.WriteFile(hookPath, prePushHook, 0755)
+		return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 	}
+
+	return nil
+}
+
+func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {
+	file, err := os.Open(hookPath)
+	if err != nil {
+		return err
+	}
+
+	by, err := ioutil.ReadAll(io.LimitReader(file, 1024))
+	file.Close()
+	if err != nil {
+		return err
+	}
+
+	contents := strings.TrimSpace(string(by))
+	if contents == hook {
+		return nil
+	}
+
+	if upgrades[contents] {
+		return ioutil.WriteFile(hookPath, []byte(hook+"\n"), 0755)
+	}
+
+	return &HookExists{hookName, hookPath, contents}
 }
 
 func InstallFilters() error {

@@ -7,8 +7,8 @@ git-lfs-ls-files(1) -- Show information about git lfs files in the index and wor
 
 ## DESCRIPTION
 
-Display paths of Git LFS files that are found in the given reference.  If no reference is 
-given, scan the currently checked-out branch.
+Display paths of Git LFS files that are found in the given reference.  If no
+reference is given, scan the currently checked-out branch.
 
 ## SEE ALSO
 

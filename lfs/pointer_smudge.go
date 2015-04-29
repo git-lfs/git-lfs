@@ -3,6 +3,7 @@ package lfs
 import (
 	"fmt"
 	"github.com/cheggaaa/pb"
+	"github.com/rubyist/tracerx"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
@@ -15,8 +16,18 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 		return err
 	}
 
+	stat, statErr := os.Stat(mediafile)
+	if statErr == nil && stat != nil {
+		fileSize := stat.Size()
+		if fileSize == 0 || fileSize != ptr.Size {
+			tracerx.Printf("Removing %s, size %d is invalid", mediafile, fileSize)
+			os.RemoveAll(mediafile)
+			stat = nil
+		}
+	}
+
 	var wErr *WrappedError
-	if stat, statErr := os.Stat(mediafile); statErr != nil || stat == nil {
+	if statErr != nil || stat == nil {
 		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
 		wErr = readLocalFile(writer, ptr, mediafile, cb)

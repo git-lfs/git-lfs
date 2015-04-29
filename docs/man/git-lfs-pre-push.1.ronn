@@ -1,0 +1,21 @@
+git-lfs-pre-push(1) -- Git pre-push hook implementation
+=======================================================
+
+## SYNOPSIS
+
+`git lfs pre-push` <remote> [remoteurl]
+
+## DESCRIPTION
+
+Responds to Git pre-hook events. It reads the range of commits from STDIN, in
+the following format:
+
+    <local-ref> SP <local-sha1> SP <remote-ref> SP <remote-sha1> \n
+
+It also takes the remote name and URL as arguments.
+
+## SEE ALSO
+
+git-lfs-clean(1), git-lfs-push(1).
+
+Part of the git-lfs(1) suite.

@@ -47,7 +47,7 @@ func TestInit(t *testing.T) {
 	})
 
 	cmd = repo.Command("init")
-	cmd.Output = "Hook already exists: pre-push\ngit lfs initialized"
+	cmd.Output = "Hook already exists: pre-push\n\necho 'yo'\n\ngit lfs initialized"
 
 	customHook := []byte("echo 'yo'")
 	cmd.Before(func() {

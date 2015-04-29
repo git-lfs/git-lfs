@@ -15,6 +15,7 @@ var (
 )
 
 func cleanCommand(cmd *cobra.Command, args []string) {
+	requireStdin("This command should be run by the Git 'clean' filter")
 	lfs.InstallHooks(false)
 
 	var filename string
@@ -46,6 +47,11 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	if cleaned != nil {
 		cleaned.Close()
 		defer cleaned.Teardown()
+	}
+
+	if cpErr, ok := err.(*lfs.CleanedPointerError); ok {
+		os.Stdout.Write(cpErr.Bytes)
+		return
 	}
 
 	if err != nil {

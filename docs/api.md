@@ -72,6 +72,8 @@ The following status codes can optionally be returned from the API, depending on
 the server implementation.
 
 * 406 - The Accept header needs to be `application/vnd.git-lfs+json`.
+* 410 - The requested object used to exist, but was deleted.  The message should
+state why (user initiated, legal issues, etc).
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
 availability reasons.
@@ -204,6 +206,8 @@ Here's a sample response for a request with an authorization error:
 * 200 - The object exists and the user has access to download it.
 * 401 - The authentication credentials are incorrect.
 * 404 - The user does not have access to the object, or it does not exist.
+* 410 - The object used to exist, but was deleted. The message should state why
+(user initiated, legal issues, etc).
 
 ## POST /objects
 

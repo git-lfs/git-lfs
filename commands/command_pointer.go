@@ -115,6 +115,8 @@ func pointerReader() (io.ReadCloser, error) {
 		return os.Open(pointerCompare)
 	}
 
+	requireStdin("The --stdin flag expects a pointer file from STDIN.")
+
 	return os.Stdin, nil
 }
 

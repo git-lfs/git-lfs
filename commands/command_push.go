@@ -13,51 +13,42 @@ import (
 var (
 	pushCmd = &cobra.Command{
 		Use:   "push",
-		Short: "Push files to the Git LFS endpoint",
+		Short: "Push files to the Git LFS server",
 		Run:   pushCommand,
 	}
-	dryRun       = false
-	useStdin     = false
-	deleteBranch = "(delete)"
+	pushDryRun       = false
+	pushDeleteBranch = "(delete)"
+	useStdin         = false
+
+	// shares some global vars and functions with commmands_pre_push.go
 )
 
-// pushCommand is the command that's run via `git lfs push`. It has two modes
-// of operation. The primary mode is run via the git pre-push hook. The pre-push
-// hook passes two arguments on the command line:
-//   1. Name of the remote to which the push is being done
-//   2. URL to which the push is being done
+// pushCommand pushes local objects to a Git LFS server.  It takes two
+// arguments:
 //
-// The hook receives commit information on stdin in the form:
-//   <local ref> <local sha1> <remote ref> <remote sha1>
+//   `<remote> <remote ref>`
 //
-// In the typical case, pushCommand will get a list of git objects being pushed
-// by using the following:
-//    git rev-list --objects <local sha1> ^<remote sha1>
+// Both a remote name ("origin") or a remote URL are accepted.
 //
-// If any of those git objects are associated with Git LFS objects, those
-// objects will be pushed to the Git LFS API.
-//
-// In the case of pushing a new branch, the list of git objects will be all of
-// the git objects in this branch.
-//
-// In the case of deleting a branch, no attempts to push Git LFS objects will be
-// made.
-//
-// The other mode of operation is the dry run mode. In this mode, the repo
-// and refspec are passed on the command line. pushCommand will calculate the
-// git objects that would be pushed in a similar manner as above and will print
-// out each file name.
+// pushCommand calculates the git objects to send by looking comparing the range
+// of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	var left, right string
 
 	if len(args) == 0 {
-		Print("The git lfs pre-push hook is out of date. Please run `git lfs update`")
+		Print("Specify a remote and a remote branch name (`git lfs push origin master`)")
 		os.Exit(1)
 	}
 
 	lfs.Config.CurrentRemote = args[0]
 
 	if useStdin {
+		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
+
+		// called from a pre-push hook!  Update the existing pre-push hook if it's
+		// one that git-lfs set.
+		lfs.InstallHooks(false)
+
 		refsData, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			Panic(err, "Error reading refs on stdin")
@@ -68,20 +59,20 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		left, right = decodeRefs(string(refsData))
-		if left == deleteBranch {
+		if left == pushDeleteBranch {
 			return
 		}
 	} else {
-		var repo, refspec string
+		var remoteArg, refArg string
 
 		if len(args) < 1 {
-			Print("Usage: git lfs push --dry-run <repo> [refspec]")
+			Print("Usage: git lfs push --dry-run <remote> [ref]")
 			return
 		}
 
-		repo = args[0]
+		remoteArg = args[0]
 		if len(args) == 2 {
-			refspec = args[1]
+			refArg = args[1]
 		}
 
 		localRef, err := git.CurrentRef()
@@ -90,7 +81,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 		left = localRef
 
-		remoteRef, err := git.LsRemote(repo, refspec)
+		remoteRef, err := git.LsRemote(remoteArg, refArg)
 		if err != nil {
 			Panic(err, "Error getting remote ref")
 		}
@@ -109,7 +100,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentUploads(), len(pointers))
 
 	for i, pointer := range pointers {
-		if dryRun {
+		if pushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
@@ -126,7 +117,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		uploadQueue.Upload(u)
 	}
 
-	if !dryRun {
+	if !pushDryRun {
 		uploadQueue.Process()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || err.Panic {
@@ -142,25 +133,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-// decodeRefs pulls the sha1s out of the line read from the pre-push
-// hook's stdin.
-func decodeRefs(input string) (string, string) {
-	refs := strings.Split(strings.TrimSpace(input), " ")
-	var left, right string
-
-	if len(refs) > 1 {
-		left = refs[1]
-	}
-
-	if len(refs) > 3 {
-		right = "^" + refs[3]
-	}
-
-	return left, right
-}
-
 func init() {
-	pushCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do everything except actually send the updates")
+	pushCmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 	pushCmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
 	RootCmd.AddCommand(pushCmd)
 }

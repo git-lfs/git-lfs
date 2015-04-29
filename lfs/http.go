@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/rubyist/tracerx"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
@@ -23,7 +25,14 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 
 func (c *Configuration) HttpClient() *http.Client {
 	if c.httpClient == nil {
-		tr := &http.Transport{}
+		tr := &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   5 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 5 * time.Second,
+		}
 		sslVerify, _ := c.GitConfig("http.sslverify")
 		if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
 			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}

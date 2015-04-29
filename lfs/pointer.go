@@ -13,6 +13,7 @@ import (
 
 var (
 	v1Aliases = []string{
+		"http://git-media.io/v/2",            // alpha
 		"https://hawser.github.com/spec/v1",  // pre-release
 		"https://git-lfs.github.com/spec/v1", // public launch
 	}
@@ -56,13 +57,20 @@ func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 }
 
 func DecodePointer(reader io.Reader) (*Pointer, error) {
-	buf := make([]byte, 200)
+	_, p, err := DecodeFrom(reader)
+	return p, err
+}
+
+func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
+	buf := make([]byte, 512)
 	written, err := reader.Read(buf)
 	if err != nil {
-		return nil, err
+		return buf, nil, err
 	}
 
-	return decodeKV(bytes.TrimSpace(buf[0:written]))
+	output := buf[0:written]
+	p, err := decodeKV(bytes.TrimSpace(output))
+	return output, p, err
 }
 
 func verifyVersion(version string) error {

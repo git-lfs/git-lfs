@@ -1,0 +1,15 @@
+git-lfs-update(1) -- Update Git hooks
+=====================================
+
+## SYNOPSIS
+
+`git lfs update` [--force]
+
+## DESCRIPTION
+
+Updates the Git hooks used by Git LFS. Silently upgrades known hook contents.
+Pass `--force` to upgrade the hooks, clobbering any existing contents.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.
