@@ -1,13 +1,10 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/github/git-lfs/lfs"
-	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -73,80 +70,40 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentUploads(), len(pointers))
+
 	for i, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
 
-		if wErr := pushAsset(pointer.Oid, pointer.Name, i+1, len(pointers)); wErr != nil {
+		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name, i+1, len(pointers))
+		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
 			} else {
 				Exit(wErr.Error())
 			}
 		}
-	}
-}
 
-// pushAsset pushes the asset with the given oid to the Git LFS API.
-func pushAsset(oid, filename string, index, totalFiles int) *lfs.WrappedError {
-	tracerx.Printf("checking_asset: %s %s %d/%d", oid, filename, index, totalFiles)
-	path, err := lfs.LocalMediaPath(oid)
-	if err != nil {
-		return lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		uploadQueue.Upload(u)
 	}
 
-	if err := ensureFile(filename, path); err != nil {
-		return lfs.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+	if !prePushDryRun {
+		uploadQueue.Process()
+		for _, err := range uploadQueue.Errors() {
+			if Debugging || err.Panic {
+				LoggedError(err.Err, err.Error())
+			} else {
+				Error(err.Error())
+			}
+		}
+
+		if len(uploadQueue.Errors()) > 0 {
+			os.Exit(2)
+		}
 	}
-
-	cb, file, cbErr := lfs.CopyCallbackFile("push", filename, index, totalFiles)
-	if cbErr != nil {
-		Error(cbErr.Error())
-	}
-
-	if file != nil {
-		defer file.Close()
-	}
-
-	fmt.Fprintf(os.Stderr, "Uploading %s\n", filename)
-	return lfs.Upload(path, filename, cb)
-}
-
-// ensureFile makes sure that the cleanPath exists before pushing it.  If it
-// does not exist, it attempts to clean it by reading the file at smudgePath.
-func ensureFile(smudgePath, cleanPath string) error {
-	if _, err := os.Stat(cleanPath); err == nil {
-		return nil
-	}
-
-	expectedOid := filepath.Base(cleanPath)
-	localPath := filepath.Join(lfs.LocalWorkingDir, smudgePath)
-	file, err := os.Open(localPath)
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	cleaned, err := lfs.PointerClean(file, stat.Size(), nil)
-	if err != nil {
-		return err
-	}
-
-	cleaned.Close()
-
-	if expectedOid != cleaned.Oid {
-		return fmt.Errorf("Expected %s to have an OID of %s, got %s", smudgePath, expectedOid, cleaned.Oid)
-	}
-
-	return nil
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
