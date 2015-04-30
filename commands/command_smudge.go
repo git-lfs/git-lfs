@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/pointer"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -26,7 +25,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
 
-	ptr, err := pointer.Decode(r)
+	ptr, err := lfs.DecodePointer(r)
 	if err != nil {
 		mr := io.MultiReader(b, os.Stdin)
 		_, err := io.Copy(os.Stdout, mr)
@@ -73,7 +72,7 @@ func smudgeFilename(args []string, err error) string {
 		return args[0]
 	}
 
-	if smudgeErr, ok := err.(*pointer.SmudgeError); ok {
+	if smudgeErr, ok := err.(*lfs.SmudgeError); ok {
 		return filepath.Base(smudgeErr.Filename)
 	}
 

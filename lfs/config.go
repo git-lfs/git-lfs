@@ -8,7 +8,9 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 )
 
 type Configuration struct {
@@ -18,6 +20,7 @@ type Configuration struct {
 	httpClient            *http.Client
 	redirectingHttpClient *http.Client
 	isTracingHttp         bool
+	loading               sync.Mutex
 }
 
 type Endpoint struct {
@@ -65,6 +68,19 @@ func (c *Configuration) Endpoint() Endpoint {
 	}
 
 	return c.RemoteEndpoint(defaultRemote)
+}
+
+func (c *Configuration) ConcurrentUploads() int {
+	uploads := 3
+
+	if v, ok := c.GitConfig("lfs.concurrentuploads"); ok {
+		n, err := strconv.Atoi(v)
+		if err == nil {
+			uploads = n
+		}
+	}
+
+	return uploads
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
@@ -135,6 +151,9 @@ type AltConfig struct {
 }
 
 func (c *Configuration) loadGitConfig() {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
 	if c.gitConfig != nil {
 		return
 	}

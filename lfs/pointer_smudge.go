@@ -1,9 +1,8 @@
-package pointer
+package lfs
 
 import (
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/github/git-lfs/lfs"
 	"github.com/rubyist/tracerx"
 	"github.com/technoweenie/go-contentaddressable"
 	"io"
@@ -11,8 +10,8 @@ import (
 	"path/filepath"
 )
 
-func Smudge(writer io.Writer, ptr *Pointer, workingfile string, cb lfs.CopyCallback) error {
-	mediafile, err := lfs.LocalMediaPath(ptr.Oid)
+func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCallback) error {
+	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
 	}
@@ -27,7 +26,7 @@ func Smudge(writer io.Writer, ptr *Pointer, workingfile string, cb lfs.CopyCallb
 		}
 	}
 
-	var wErr *lfs.WrappedError
+	var wErr *WrappedError
 	if statErr != nil || stat == nil {
 		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
@@ -41,9 +40,9 @@ func Smudge(writer io.Writer, ptr *Pointer, workingfile string, cb lfs.CopyCallb
 	}
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) *WrappedError {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, wErr := lfs.Download(filepath.Base(mediafile))
+	reader, size, wErr := Download(filepath.Base(mediafile))
 	if reader != nil {
 		defer reader.Close()
 	}
@@ -59,26 +58,26 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 
 	mediaFile, err := contentaddressable.NewFile(mediafile)
 	if err != nil {
-		return lfs.Errorf(err, "Error opening media file buffer.")
+		return Errorf(err, "Error opening media file buffer.")
 	}
 
-	_, err = lfs.CopyWithCallback(mediaFile, reader, ptr.Size, cb)
+	_, err = CopyWithCallback(mediaFile, reader, ptr.Size, cb)
 	if err == nil {
 		err = mediaFile.Accept()
 	}
 	mediaFile.Close()
 
 	if err != nil {
-		return lfs.Errorf(err, "Error buffering media file.")
+		return Errorf(err, "Error buffering media file.")
 	}
 
 	return readLocalFile(writer, ptr, mediafile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb lfs.CopyCallback) *lfs.WrappedError {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb CopyCallback) *WrappedError {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return lfs.Errorf(err, "Error opening media file.")
+		return Errorf(err, "Error opening media file.")
 	}
 	defer reader.Close()
 
@@ -88,12 +87,12 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb lfs.Copy
 		}
 	}
 
-	_, err = lfs.CopyWithCallback(writer, reader, ptr.Size, cb)
-	return lfs.Errorf(err, "Error reading from media file.")
+	_, err = CopyWithCallback(writer, reader, ptr.Size, cb)
+	return Errorf(err, "Error reading from media file.")
 }
 
 type SmudgeError struct {
 	Oid      string
 	Filename string
-	*lfs.WrappedError
+	*WrappedError
 }

@@ -1,11 +1,10 @@
-package pointer
+package lfs
 
 import (
 	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/lfs"
 	"io"
 	"regexp"
 	"strconv"
@@ -41,23 +40,23 @@ func NewPointer(oid string, size int64) *Pointer {
 	return &Pointer{latest, oid, size, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, cb lfs.CopyCallback) error {
-	return Smudge(writer, p, workingfile, cb)
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, cb CopyCallback) error {
+	return PointerSmudge(writer, p, workingfile, cb)
 }
 
 func (p *Pointer) Encode(writer io.Writer) (int, error) {
-	return Encode(writer, p)
+	return EncodePointer(writer, p)
 }
 
 func (p *Pointer) Encoded() string {
 	return fmt.Sprintf(template, latest, p.Oid, p.Size)
 }
 
-func Encode(writer io.Writer, pointer *Pointer) (int, error) {
+func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 	return writer.Write([]byte(pointer.Encoded()))
 }
 
-func Decode(reader io.Reader) (*Pointer, error) {
+func DecodePointer(reader io.Reader) (*Pointer, error) {
 	_, p, err := DecodeFrom(reader)
 	return p, err
 }

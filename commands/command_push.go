@@ -3,7 +3,7 @@ package commands
 import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/scanner"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -92,22 +92,43 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Just use scanner here
-	pointers, err := scanner.Scan(left, right)
+	pointers, err := lfs.ScanRefs(left, right)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentUploads(), len(pointers))
 
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
-		if wErr := pushAsset(pointer.Oid, pointer.Name, i+1, len(pointers)); wErr != nil {
+		tracerx.Printf("checking_asset: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
+
+		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name, i+1, len(pointers))
+		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
 			} else {
 				Exit(wErr.Error())
 			}
+		}
+		uploadQueue.Add(u)
+	}
+
+	if !pushDryRun {
+		uploadQueue.Process()
+		for _, err := range uploadQueue.Errors() {
+			if Debugging || err.Panic {
+				LoggedError(err.Err, err.Error())
+			} else {
+				Error(err.Error())
+			}
+		}
+
+		if len(uploadQueue.Errors()) > 0 {
+			os.Exit(2)
 		}
 	}
 }

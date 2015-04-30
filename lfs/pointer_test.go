@@ -1,4 +1,4 @@
-package pointer
+package lfs
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 func TestEncode(t *testing.T) {
 	var buf bytes.Buffer
 	pointer := NewPointer("booya", 12345)
-	_, err := Encode(&buf, pointer)
+	_, err := EncodePointer(&buf, pointer)
 	assert.Equal(t, nil, err)
 
 	bufReader := bufio.NewReader(&buf)
@@ -37,7 +37,7 @@ func TestLFSIniDecode(t *testing.T) {
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345`
 
-	p, err := Decode(bytes.NewBufferString(ex))
+	p, err := DecodePointer(bytes.NewBufferString(ex))
 	assertEqualWithExample(t, ex, nil, err)
 	assertEqualWithExample(t, ex, latest, p.Version)
 	assertEqualWithExample(t, ex, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
@@ -49,7 +49,7 @@ func TestPreReleaseDecode(t *testing.T) {
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345`
 
-	p, err := Decode(bytes.NewBufferString(ex))
+	p, err := DecodePointer(bytes.NewBufferString(ex))
 	assertEqualWithExample(t, ex, nil, err)
 	assertEqualWithExample(t, ex, latest, p.Version)
 	assertEqualWithExample(t, ex, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
@@ -113,7 +113,7 @@ oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
 	}
 
 	for _, ex := range examples {
-		p, err := Decode(bytes.NewBufferString(ex))
+		p, err := DecodePointer(bytes.NewBufferString(ex))
 		if err == nil {
 			t.Errorf("No error decoding: %v\nFrom:\n%s", p, strings.TrimSpace(ex))
 		}

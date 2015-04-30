@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/pb"
 	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
@@ -19,6 +18,13 @@ import (
 
 const (
 	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
+)
+
+// The apiEvent* statuses (and the apiEvent channel) are used by
+// UploadQueue to know when it is OK to process uploads concurrently.
+const (
+	apiEventFail = iota
+	apiEventSuccess
 )
 
 var (
@@ -36,6 +42,8 @@ var (
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
 	}
+
+	apiEvent = make(chan int)
 )
 
 type objectResource struct {
@@ -161,10 +169,21 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	tracerx.Printf("api: uploading %s (%s)", filename, oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
+		sendApiEvent(apiEventFail)
 		return wErr
 	}
 
+	sendApiEvent(apiEventSuccess)
+
+	reader := &CallbackReader{
+		C:         cb,
+		TotalSize: reqObj.Size,
+		Reader:    file,
+	}
+
 	if res.StatusCode == 200 {
+		// Drain the reader to update any progress bars
+		io.Copy(ioutil.Discard, reader)
 		return nil
 	}
 
@@ -179,20 +198,9 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
 	req.ContentLength = reqObj.Size
 
-	reader := &CallbackReader{
-		C:         cb,
-		TotalSize: reqObj.Size,
-		Reader:    file,
-	}
-
-	bar := pb.New64(reqObj.Size)
-	bar.SetUnits(pb.U_BYTES)
-	bar.Start()
-
-	req.Body = ioutil.NopCloser(bar.NewProxyReader(reader))
+	req.Body = ioutil.NopCloser(reader)
 
 	res, wErr = doHttpRequest(req, creds)
-	bar.Finish()
 	if wErr != nil {
 		return wErr
 	}
@@ -461,5 +469,12 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 		} else {
 			err.Set(contextKey, head.Get(key))
 		}
+	}
+}
+
+func sendApiEvent(event int) {
+	select {
+	case apiEvent <- event:
+	default:
 	}
 }

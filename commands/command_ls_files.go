@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/scanner"
+	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	pointers, err := scanner.Scan(ref, "")
+	pointers, err := lfs.ScanRefs(ref, "")
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}

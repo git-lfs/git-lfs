@@ -1,10 +1,9 @@
-package pointer
+package lfs
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/github/git-lfs/lfs"
 	"io"
 	"os"
 )
@@ -23,8 +22,8 @@ func (e *CleanedPointerError) Error() string {
 	return "Cannot clean a Git LFS pointer.  Skipping."
 }
 
-func Clean(reader io.Reader, size int64, cb lfs.CopyCallback) (*cleanedAsset, error) {
-	tmp, err := lfs.TempFile("")
+func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset, error) {
+	tmp, err := TempFile("")
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +41,7 @@ func Clean(reader io.Reader, size int64, cb lfs.CopyCallback) (*cleanedAsset, er
 	}
 
 	multi := io.MultiReader(bytes.NewReader(by), reader)
-	written, err := lfs.CopyWithCallback(writer, multi, size, cb)
+	written, err := CopyWithCallback(writer, multi, size, cb)
 
 	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
 	return &cleanedAsset{tmp, "", pointer}, err

@@ -1,5 +1,7 @@
-// +build linux darwin freebsd openbsd
+// +build linux darwin freebsd netbsd openbsd
 
 package pb
 
-const sys_ioctl = 16
+import "syscall"
+
+const sys_ioctl = syscall.SYS_IOCTL

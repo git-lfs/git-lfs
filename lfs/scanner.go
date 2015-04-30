@@ -1,9 +1,8 @@
-package scanner
+package lfs
 
 import (
 	"bufio"
 	"bytes"
-	"github.com/github/git-lfs/pointer"
 	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
@@ -35,7 +34,7 @@ type wrappedPointer struct {
 	SrcName string
 	Size    int64
 	Status  string
-	*pointer.Pointer
+	*Pointer
 }
 
 // indexFile is used when scanning the index. It stores the name of
@@ -49,9 +48,9 @@ type indexFile struct {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-// Scan takes a ref and returns a slice of wrappedPointer objects
+// ScanRefs takes a ref and returns a slice of wrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
-func Scan(refLeft, refRight string) ([]*wrappedPointer, error) {
+func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
 	start := time.Now()
 
@@ -310,7 +309,7 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 				break // Legit errors
 			}
 
-			p, err := pointer.Decode(bytes.NewBuffer(nbuf))
+			p, err := DecodePointer(bytes.NewBuffer(nbuf))
 			if err == nil {
 				pointers <- &wrappedPointer{
 					Sha1:    string(fields[0]),
