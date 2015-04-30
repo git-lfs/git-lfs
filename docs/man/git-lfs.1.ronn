@@ -35,16 +35,26 @@ commands and low level ("plumbing") commands.
     Ensure Git LFS is configured properly.
 * git-lfs-logs(1):
     Show errors from the git-lfs command.
+* git-lfs-ls-files(1):
+    Show information about Git LFS files in the index and working tree.
+* git-lfs-push(1):
+    Push queued large files to the Git LFS endpoint.
+* git-lfs-status(1):
+    Show the status of Git LFS files in the working tree.
 * git-lfs-track(1):
     View or add Git LFS paths to Git attributes.
 * git-lfs-untrack(1):
     Remove Git LFS paths from Git Attributes.
-* git-lfs-push(1):
-    Push queued large files to the Git LFS endpoint.
+* git-lfs-update(1):
+    Update Git hooks for the current Git repository.
 
 ### Low level commands (plumbing)
 
 * git-lfs-clean(1):
     Git clean filter that converts large files to pointers.
+* git-lfs-pointer(1):
+    Build and compare pointers.
+* git-lfs-pre-push(1):
+    Git pre-push hook implementation.
 * git-lfs-smudge(1):
     Git smudge filter that converts pointer in blobs to the actual content.

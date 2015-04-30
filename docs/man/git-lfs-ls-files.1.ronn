@@ -1,4 +1,4 @@
-git-lfs-ls-files(1) -- Show information about git lfs files in the index and working tree
+git-lfs-ls-files(1) -- Show information about Git LFS files in the index and working tree
 =========================================================================================
 
 ## SYNOPSIS
