@@ -1,5 +1,7 @@
 # Git LFS Changelog
 
+* Fix Windows install.bat script.  #223 (@PeterDaveHello)
+
 * Fix bug where `git lfs clean` will clean Git LFS pointers too #271 (@technoweenie)
 
 * Better timeouts for the HTTP client #215 (@Mistobaan)
