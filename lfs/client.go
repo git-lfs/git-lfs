@@ -175,7 +175,15 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 	sendApiEvent(apiEventSuccess)
 
+	reader := &CallbackReader{
+		C:         cb,
+		TotalSize: reqObj.Size,
+		Reader:    file,
+	}
+
 	if res.StatusCode == 200 {
+		// Drain the reader to update any progress bars
+		io.Copy(ioutil.Discard, reader)
 		return nil
 	}
 
@@ -189,12 +197,6 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	}
 	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
 	req.ContentLength = reqObj.Size
-
-	reader := &CallbackReader{
-		C:         cb,
-		TotalSize: reqObj.Size,
-		Reader:    file,
-	}
 
 	req.Body = ioutil.NopCloser(reader)
 

@@ -127,10 +127,6 @@ func TestExistingUpload(t *testing.T) {
 	if verifyCalled {
 		t.Errorf("verify not skipped")
 	}
-
-	if len(calls) > 0 {
-		t.Errorf("CopyCallback was used")
-	}
 }
 
 func TestUploadWithRedirect(t *testing.T) {
