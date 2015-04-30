@@ -7,8 +7,10 @@ git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
 
 ## DESCRIPTION
 
-Upload Git LFS files to the configured endpoint for the current
-Git remote.
+Upload Git LFS files to the configured endpoint for the current Git remote.
+
+This command shouldn't be necessary since Git LFS automatically sets up a
+pre-push hook for each repository.
 
 ## OPTIONS
 
