@@ -104,7 +104,7 @@ func (r *Repository) ReadFile(paths ...string) string {
 
 func (r *Repository) WriteFile(filename, output string) {
 	if !filepath.IsAbs(filename) {
-		r.T.Fatalf("filename %v must be absolute path")
+		r.T.Fatalf("filename %v must be absolute path", filename)
 	}
 	r.e(os.MkdirAll(filepath.Dir(filename), 0755))
 	r.e(ioutil.WriteFile(filename, []byte(output), 0755))
