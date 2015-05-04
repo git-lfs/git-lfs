@@ -173,6 +173,7 @@ func (c *TestCommand) Run(path string) {
 
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		if exitErr.ProcessState.Success() == c.Unsuccessful {
+			c.T.Log(string(outputBytes))
 			c.e(err)
 		}
 	} else if err == nil {
