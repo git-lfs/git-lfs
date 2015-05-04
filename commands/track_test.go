@@ -13,7 +13,7 @@ func TestTrack(t *testing.T) {
 	defer repo.Test()
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
-	customHook := []byte("echo 'yo'")
+	customHook := "echo 'yo'"
 
 	cmd := repo.Command("track")
 	cmd.Output = "Listing tracked paths\n" +
@@ -24,12 +24,11 @@ func TestTrack(t *testing.T) {
 
 	cmd.Before(func() {
 		// write attributes file in .git
-		path := filepath.Join(".git", "info", "attributes")
+		path := filepath.Join(repo.Path, ".git", "info", "attributes")
 		repo.WriteFile(path, "*.mov filter=lfs -crlf\n")
 
 		// add hook
-		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
-		assert.Equal(t, nil, err)
+		repo.WriteFile(prePushHookFile, customHook)
 	})
 
 	cmd.After(func() {
@@ -50,7 +49,7 @@ func TestTrackOnEmptyRepository(t *testing.T) {
 
 	cmd.Before(func() {
 		// write attributes file in .git
-		path := filepath.Join(".gitattributes")
+		path := filepath.Join(repo.Path, ".gitattributes")
 		repo.WriteFile(path, "*.mov filter=lfs diff=lfs merge=lfs -crlf\n")
 	})
 
@@ -82,7 +81,7 @@ func TestTrackWithoutTrailingLinebreak(t *testing.T) {
 	cmd.Output = "Tracking *.gif"
 
 	cmd.Before(func() {
-		repo.WriteFile(".gitattributes", "*.mov filter=lfs -crlf")
+		repo.WriteFile(filepath.Join(repo.Path, ".gitattributes"), "*.mov filter=lfs -crlf")
 	})
 
 	cmd.After(func() {
