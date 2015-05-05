@@ -269,7 +269,7 @@ only appears on a 200 status.
 ## POST /objects/batch
 
 This request retrieves the metadata for a batch of objects, given a JSON body
-containing an array of objects with the oid and size of each object.
+containing an object with an array of objects with the oid and size of each object.
 
 ```
 > POST https://git-lfs-server.com/objects/batch HTTP/1.1
@@ -277,18 +277,20 @@ containing an array of objects with the oid and size of each object.
 > Content-Type: application/vnd.git-lfs+json
 > Authorization: Basic ... (if authentication is needed)
 >
-> [
->   {
->     "oid": "1111111",
->     "size": 123
->   }
-> ]
+> {
+>   "objects": [
+>     {
+>       "oid": "1111111",
+>       "size": 123
+>     }
+>   ]
+> }
 >
 < HTTP/1.1 200 Accepted
 < Content-Type: application/vnd.git-lfs+json
 <
-< [
-<   {
+< {
+<   "objects": [
 <     "oid": "1111111",
 <     "_links": {
 <       "upload": {
@@ -304,12 +306,13 @@ containing an array of objects with the oid and size of each object.
 <         }
 <       }
 <     }
-<   }
-< ]
+<   ]
+< }
 ```
 
-The response will be an array of objects containing one of multiple link relations,
-each with an `href` property and an optional `header` property.
+The response will be an object containing an array of objects with one of
+multiple link relations, each with an `href` property and an optional `header`
+property.
 
 * `upload` - This relation describes how to upload the object.  Expect this with
 when the object has not been previously uploaded.
