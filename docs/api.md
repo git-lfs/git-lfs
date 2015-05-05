@@ -32,8 +32,8 @@ $ ssh git@github.com git-lfs-authenticate user/repo.git download {oid}
   }
   // OPTIONAL key only needed if the Git LFS server is not hosted at the default
   // URL from the Git remote:
-  //   https://github.com/user/repo.git/info/lfs/
-  "href": "https://other-server.com/user/repo/",
+  //   https://github.com/user/repo.git/info/lfs
+  "href": "https://other-server.com/user/repo",
 }
 ```
 
