@@ -1,4 +1,7 @@
 # http://docs.travis-ci.com/user/languages/go/
+os:
+  - linux
+  - osx
 language: go
 install: true
 script: script/cibuild
