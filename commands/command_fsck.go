@@ -61,7 +61,7 @@ func doFsck(localGitDir string) error {
 		if err != nil {
 			return err
 		}
-		_ = f.Close()
+		f.Close()
 
 		recalculatedOid := hex.EncodeToString(oidHash.Sum(nil))
 		if recalculatedOid != p.Pointer.Oid {
@@ -85,7 +85,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Panic(err, "Could not fsck Git LFS files")
 	}
-	Print("LFS fsck OK")
+	Print("Git LFS fsck OK")
 }
 
 func init() {

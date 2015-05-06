@@ -15,7 +15,7 @@ func TestFsck(t *testing.T) {
 	defer repo.Test()
 
 	cmd := repo.Command("fsck")
-	cmd.Output = "LFS fsck OK"
+	cmd.Output = "Git LFS fsck OK"
 
 	testFileContent := "test data"
 	h := sha256.New()
