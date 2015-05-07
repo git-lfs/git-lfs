@@ -55,15 +55,16 @@ func TestFsck(t *testing.T) {
 			if e2 != nil {
 				t.Errorf("e2 = %v, want %v", e2, nil)
 			}
-			t.Fatal(err)
-		}
-
-		// Corrupt the LFS object and verify that fsck detects corruption
-		repo.WriteFile(lfsObjectPath, testFileContent+"CORRUPTION")
-		err := doFsck(filepath.Join(repo.Path, ".git"))
-		wantErr := &fsckError{"a.dat", wantOid}
-		if !reflect.DeepEqual(err, wantErr) {
-			t.Fatalf("err = %v, want %v", err, wantErr)
+			// XXX changed this from t.Fatal to t.Error so I can get more debug output
+			t.Error(err)
+		} else {
+			// Corrupt the LFS object and verify that fsck detects corruption
+			repo.WriteFile(lfsObjectPath, testFileContent+"CORRUPTION")
+			err := doFsck(filepath.Join(repo.Path, ".git"))
+			wantErr := &fsckError{"a.dat", wantOid}
+			if !reflect.DeepEqual(err, wantErr) {
+				t.Fatalf("err = %v, want %v", err, wantErr)
+			}
 		}
 	})
 }
