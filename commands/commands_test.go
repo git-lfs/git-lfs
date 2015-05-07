@@ -235,6 +235,7 @@ func expand(path string) string {
 }
 
 func clone(t *testing.T, name, path string) {
+	debug.PrintStack()
 	t.Logf("[TMP-DEBUG] removing path %v", path)
 	e(t, os.RemoveAll(path))
 

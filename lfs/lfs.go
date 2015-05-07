@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const Version = "0.5.1"
+const Version = "0.5.1_LFS_FSCK_DEBUG"
 
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024

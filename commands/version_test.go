@@ -15,6 +15,7 @@ func TestVersionOnEmptyRepository(t *testing.T) {
 
 	cmd := repo.Command("version")
 	cmd.Output = lfs.UserAgent
+	t.Logf("Git LFS version = %v", lfs.UserAgent)
 
 	cmd = repo.Command("version", "--comics")
 	cmd.Output = fmt.Sprintf("%s\nNothing may see Gah Lak Tus and survive!", lfs.UserAgent)
