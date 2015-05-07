@@ -227,9 +227,11 @@ func (q *UploadQueue) Process() {
 		}(i)
 	}
 
-	// Assume batch for now
-	//q.processBatch()
-	q.processIndividual()
+	if Config.BatchTransfer() {
+		q.processBatch()
+	} else {
+		q.processIndividual()
+	}
 
 	q.wg.Wait()
 	close(q.errorc)

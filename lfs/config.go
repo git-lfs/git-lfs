@@ -83,6 +83,13 @@ func (c *Configuration) ConcurrentUploads() int {
 	return uploads
 }
 
+func (c *Configuration) BatchTransfer() bool {
+	if v, ok := c.GitConfig("lfs.batch"); ok {
+		return v == "true"
+	}
+	return false
+}
+
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
