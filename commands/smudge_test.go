@@ -48,14 +48,13 @@ func TestSmudge(t *testing.T) {
 	cmd = repo.Command("smudge")
 	cmd.Input = bytes.NewBufferString("version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 9")
 	cmd.Output = "whatever"
-	customHook := []byte("echo 'yo'")
+	customHook := "echo 'yo'"
 
 	cmd.Before(func() {
 		path := filepath.Join(repo.Path, ".git", "lfs", "objects", "4d", "7a")
 		file := filepath.Join(path, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
-		assert.Equal(t, nil, os.MkdirAll(path, 0755))
-		assert.Equal(t, nil, ioutil.WriteFile(file, []byte("whatever\n"), 0755))
-		assert.Equal(t, nil, ioutil.WriteFile(prePushHookFile, customHook, 0755))
+		repo.WriteFile(file, "whatever\n")
+		repo.WriteFile(prePushHookFile, customHook)
 	})
 
 	cmd.After(func() {

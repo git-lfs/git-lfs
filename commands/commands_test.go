@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
@@ -102,6 +103,10 @@ func (r *Repository) ReadFile(paths ...string) string {
 }
 
 func (r *Repository) WriteFile(filename, output string) {
+	if !filepath.IsAbs(filename) {
+		r.T.Fatalf("filename %v must be absolute path", filename)
+	}
+	r.e(os.MkdirAll(filepath.Dir(filename), 0755))
 	r.e(ioutil.WriteFile(filename, []byte(output), 0755))
 }
 
@@ -168,6 +173,7 @@ func (c *TestCommand) Run(path string) {
 
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		if exitErr.ProcessState.Success() == c.Unsuccessful {
+			c.T.Log(string(outputBytes))
 			c.e(err)
 		}
 	} else if err == nil {
@@ -203,6 +209,7 @@ func cmd(t *testing.T, name string, args ...string) string {
 	cmd := exec.Command(name, args...)
 	o, err := cmd.CombinedOutput()
 	if err != nil {
+		debug.PrintStack()
 		t.Fatalf(
 			"Error running command:\n$ %s\n\n%s",
 			strings.Join(cmd.Args, " "),
@@ -214,6 +221,7 @@ func cmd(t *testing.T, name string, args ...string) string {
 
 func e(t *testing.T, err error) {
 	if err != nil {
+		debug.PrintStack()
 		t.Fatal(err.Error())
 	}
 }

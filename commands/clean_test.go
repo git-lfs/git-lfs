@@ -227,15 +227,12 @@ func TestCleanWithCustomHook(t *testing.T) {
 
 	path := filepath.Join(repo.Path, ".git", "lfs", "objects")
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
-	customHook := []byte("test")
+	customHook := "test"
 
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
-		if err != nil {
-			t.Fatal(err)
-		}
+		repo.WriteFile(prePushHookFile, customHook)
 
-		_, err = os.Open(path)
+		_, err := os.Open(path)
 		if _, ok := err.(*os.PathError); !ok {
 			t.Fatalf("'%s' should not exist", path)
 		}
