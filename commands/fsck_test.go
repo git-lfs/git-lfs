@@ -47,7 +47,7 @@ func TestFsck(t *testing.T) {
 					// ignore dirs
 					return nil
 				}
-				t.Logf("[file=%v]", file)
+				t.Logf("[file=%v] size=%v", file, info.Size())
 				return nil
 			})
 			if e2 != nil {
