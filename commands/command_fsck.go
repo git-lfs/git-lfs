@@ -83,7 +83,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 
 	err := doFsck(lfs.LocalGitDir)
 	if err != nil {
-		Panic(err, "Could not fsck Git LFS files")
+		Panic(err, "Git LFS fsck failed")
 	}
 	Print("Git LFS fsck OK")
 }

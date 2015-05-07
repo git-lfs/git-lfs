@@ -56,7 +56,7 @@ func TestFsck(t *testing.T) {
 				t.Errorf("e2 = %v, want %v", e2, nil)
 			}
 			// XXX changed this from t.Fatal to t.Error so I can get more debug output
-			////t.Error(err)
+			t.Error(err)
 		} else {
 			// Corrupt the LFS object and verify that fsck detects corruption
 			repo.WriteFile(lfsObjectPath, testFileContent+"CORRUPTION")
@@ -67,8 +67,4 @@ func TestFsck(t *testing.T) {
 			}
 		}
 	})
-}
-
-func TestFsckWillFail(t *testing.T) {
-	t.Fatal("don't integrate pull request yet!")
 }
