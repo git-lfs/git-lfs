@@ -3,6 +3,7 @@ package commands
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/github/git-lfs/lfs"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestFsck(t *testing.T) {
+	t.Logf("TestFsck() Git LFS version = %v", lfs.UserAgent)
 	repo := NewRepository(t, "empty")
 	defer repo.Test()
 
