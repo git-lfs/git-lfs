@@ -235,7 +235,6 @@ func expand(path string) string {
 }
 
 func clone(t *testing.T, name, path string) {
-	debug.PrintStack()
 	e(t, os.RemoveAll(path))
 
 	reposPath := filepath.Join(Root, "commands", "repos")
