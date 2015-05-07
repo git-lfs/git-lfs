@@ -206,6 +206,7 @@ func (c *TestCommand) e(err error) {
 }
 
 func cmd(t *testing.T, name string, args ...string) string {
+	fmt.Printf("  $ %v %v\n", name, strings.Join(args, " "))
 	cmd := exec.Command(name, args...)
 	o, err := cmd.CombinedOutput()
 	if err != nil {
