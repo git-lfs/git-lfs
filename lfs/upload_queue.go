@@ -15,10 +15,12 @@ var (
 
 // Uploadable describes a file that can be uploaded.
 type Uploadable struct {
+	OID      string
 	OIDPath  string
 	Filename string
 	CB       CopyCallback
 	Size     int64
+	object   *objectResource
 }
 
 // NewUploadable builds the Uploadable from the given information.
@@ -46,47 +48,130 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 		defer file.Close()
 	}
 
-	return &Uploadable{path, filename, cb, fi.Size()}, nil
+	return &Uploadable{OID: oid, OIDPath: path, Filename: filename, CB: cb, Size: fi.Size()}, nil
 }
 
 // UploadQueue provides a queue that will allow concurrent uploads.
 type UploadQueue struct {
-	uploadc  chan *Uploadable
-	errorc   chan *WrappedError
-	errors   []*WrappedError
-	wg       sync.WaitGroup
-	workers  int
-	files    int
-	finished int64
-	size     int64
-	authCond *sync.Cond
+	uploadc     chan *Uploadable
+	errorc      chan *WrappedError
+	errors      []*WrappedError
+	wg          sync.WaitGroup
+	workers     int
+	files       int
+	finished    int64
+	size        int64
+	authCond    *sync.Cond
+	uploadables map[string]*Uploadable
+	bar         *pb.ProgressBar
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
 func NewUploadQueue(workers, files int) *UploadQueue {
 	return &UploadQueue{
-		uploadc:  make(chan *Uploadable, files),
-		errorc:   make(chan *WrappedError),
-		workers:  workers,
-		files:    files,
-		authCond: sync.NewCond(&sync.Mutex{}),
+		uploadc:     make(chan *Uploadable, files),
+		errorc:      make(chan *WrappedError),
+		workers:     workers,
+		files:       files,
+		authCond:    sync.NewCond(&sync.Mutex{}),
+		uploadables: make(map[string]*Uploadable),
 	}
 }
 
 // Add adds an Uploadable to the upload queue.
 func (q *UploadQueue) Add(u *Uploadable) {
-	q.wg.Add(1)
-	q.size += u.Size
-	q.uploadc <- u
+	q.uploadables[u.OID] = u
+}
+
+// apiWorker processes the queue, making the POST calls and
+// feeding the results to uploadWorkers
+func (q *UploadQueue) processIndividual() {
+	apic := make(chan *Uploadable, q.workers)
+	workersReady := make(chan int, q.workers)
+	var wg sync.WaitGroup
+
+	for i := 0; i < q.workers; i++ {
+		go func() {
+			workersReady <- 1
+			for u := range apic {
+				// If an API authorization has not occured, we wait until we're woken up.
+				q.authCond.L.Lock()
+				if atomic.LoadInt32(&clientAuthorized) == 0 {
+					q.authCond.Wait()
+				}
+				q.authCond.L.Unlock()
+
+				obj, err := UploadCheck(u.OIDPath)
+				if err != nil {
+					q.errorc <- err
+					wg.Done()
+					continue
+				}
+				if obj != nil {
+					q.wg.Add(1)
+					u.object = obj
+					q.uploadc <- u
+				}
+				wg.Done()
+			}
+		}()
+	}
+
+	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, len(q.uploadables)))
+	q.bar.Start()
+
+	for _, u := range q.uploadables {
+		wg.Add(1)
+		apic <- u
+	}
+
+	<-workersReady
+	q.authCond.Signal() // Signal the first goroutine to run
+	close(apic)
+	wg.Wait()
+
+	close(q.uploadc)
+}
+
+// batchWorker makes the batch POST call, feeding the results
+// to the uploadWorkers
+func (q *UploadQueue) processBatch() {
+	q.files = 0
+	uploads := make([]*Uploadable, 0, len(q.uploadables))
+	for _, u := range q.uploadables {
+		uploads = append(uploads, u)
+	}
+
+	objects, err := Batch(uploads)
+	if err != nil {
+		q.errorc <- err
+		sendApiEvent(apiEventFail)
+		return
+	}
+
+	for _, o := range objects {
+		if _, ok := o.Links["upload"]; ok {
+			// This object needs to be uploaded
+			if uploadable, ok := q.uploadables[o.Oid]; ok {
+				q.files++
+				q.wg.Add(1)
+				uploadable.object = o
+				q.uploadc <- uploadable
+			}
+		}
+	}
+
+	close(q.uploadc)
+	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
+	q.bar.Start()
+	sendApiEvent(apiEventSuccess) // Wake up upload workers
 }
 
 // Process starts the upload queue and displays a progress bar.
 func (q *UploadQueue) Process() {
-	bar := pb.New64(q.size)
-	bar.SetUnits(pb.U_BYTES)
-	bar.ShowBar = false
-	bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
-	bar.Start()
+	q.bar = pb.New64(q.size)
+	q.bar.SetUnits(pb.U_BYTES)
+	q.bar.ShowBar = false
 
 	// This goroutine collects errors returned from uploads
 	go func() {
@@ -116,48 +201,40 @@ func (q *UploadQueue) Process() {
 
 	// This will block Process() until the worker goroutines are spun up and ready
 	// to process uploads.
-	workersReady := make(chan int, q.workers)
 
 	for i := 0; i < q.workers; i++ {
 		// These are the worker goroutines that process uploads
 		go func(n int) {
-			workersReady <- 1
 
 			for upload := range q.uploadc {
-				// If an API authorization has not occured, we wait until we're woken up.
-				q.authCond.L.Lock()
-				if atomic.LoadInt32(&clientAuthorized) == 0 {
-					q.authCond.Wait()
-				}
-				q.authCond.L.Unlock()
-
 				cb := func(total, read int64, current int) error {
-					bar.Add(current)
+					q.bar.Add(current)
 					if upload.CB != nil {
 						return upload.CB(total, read, current)
 					}
 					return nil
 				}
 
-				err := Upload(upload.OIDPath, upload.Filename, cb)
+				err := UploadObject(upload.object, cb)
 				if err != nil {
 					q.errorc <- err
 				}
 
 				f := atomic.AddInt64(&q.finished, 1)
-				bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
+				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
 				q.wg.Done()
 			}
 		}(i)
 	}
 
-	close(q.uploadc)
-	<-workersReady
-	q.authCond.Signal() // Signal the first goroutine to run
+	// Assume batch for now
+	//q.processBatch()
+	q.processIndividual()
+
 	q.wg.Wait()
 	close(q.errorc)
 
-	bar.Finish()
+	q.bar.Finish()
 }
 
 // Errors returns any errors encountered during uploading.

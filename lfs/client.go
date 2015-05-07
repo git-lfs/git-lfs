@@ -133,6 +133,46 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
+func Batch(uploads []*Uploadable) ([]*objectResource, *WrappedError) {
+	type objects struct {
+		Objects []*objectResource `json:"objects"`
+	}
+
+	o := &objects{make([]*objectResource, 0, len(uploads))}
+	for _, u := range uploads {
+		o.Objects = append(o.Objects, &objectResource{Oid: u.OID, Size: u.Size})
+	}
+
+	by, err := json.Marshal(o)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	req, creds, err := newApiRequest("POST", "batch")
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
+
+	tracerx.Printf("api: batch %d files", len(uploads))
+	res, objs, wErr := doApiBatchRequest(req, creds)
+	if wErr != nil {
+		sendApiEvent(apiEventFail)
+		return nil, wErr
+	}
+
+	sendApiEvent(apiEventSuccess)
+	if res.StatusCode != 200 {
+		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+	}
+
+	return objs, nil
+}
+
 func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	oid := filepath.Base(oidPath)
 	file, err := os.Open(oidPath)
@@ -231,6 +271,126 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	return wErr
 }
 
+func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
+	oid := filepath.Base(oidPath)
+	file, err := os.Open(oidPath)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat() // Stat without opening TODO
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
+	}
+
+	reqObj := &objectResource{
+		Oid:  oid,
+		Size: stat.Size(),
+	}
+
+	by, err := json.Marshal(reqObj)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
+	}
+
+	req, creds, err := newApiRequest("POST", oid)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
+
+	tracerx.Printf("api: uploading (%s)", oid)
+	res, obj, wErr := doApiRequest(req, creds)
+	if wErr != nil {
+		sendApiEvent(apiEventFail)
+		return nil, wErr
+	}
+
+	sendApiEvent(apiEventSuccess)
+
+	if res.StatusCode == 200 {
+		return nil, nil
+	}
+
+	return obj, nil
+}
+
+func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
+	path, err := LocalMediaPath(o.Oid)
+	if err != nil {
+		return Error(err)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return Error(err)
+	}
+	defer file.Close()
+
+	reader := &CallbackReader{
+		C:         cb,
+		TotalSize: o.Size,
+		Reader:    file,
+	}
+
+	req, creds, err := o.NewRequest("upload", "PUT")
+	if err != nil {
+		return Error(err)
+	}
+
+	if len(req.Header.Get("Content-Type")) == 0 {
+		req.Header.Set("Content-Type", "application/octet-stream")
+	}
+	req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	req.ContentLength = o.Size
+
+	req.Body = ioutil.NopCloser(reader)
+
+	res, wErr := doHttpRequest(req, creds)
+	if wErr != nil {
+		return wErr
+	}
+
+	if res.StatusCode > 299 {
+		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+	}
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	req, creds, err = o.NewRequest("verify", "POST")
+	if err == objectRelationDoesNotExist {
+		return nil
+	} else if err != nil {
+		return Error(err)
+	}
+
+	by, err := json.Marshal(o)
+	if err != nil {
+		return Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = ioutil.NopCloser(bytes.NewReader(by))
+	res, wErr = doHttpRequest(req, creds)
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	return wErr
+}
+
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	res, err := DoHTTP(Config, req)
 
@@ -308,6 +468,27 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	return res, obj, wErr
 }
 
+func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
+	via := make([]*http.Request, 0, 4)
+	res, wErr := doApiRequestWithRedirects(req, creds, via)
+	if wErr != nil {
+		return res, nil, wErr
+	}
+
+	type ro struct {
+		Objects []*objectResource `json:"objects"`
+	}
+
+	var objs ro
+	wErr = decodeApiResponse(res, &objs)
+
+	if wErr != nil {
+		setErrorResponseContext(wErr, res)
+	}
+
+	return res, objs.Objects, wErr
+}
+
 func handleResponse(res *http.Response) *WrappedError {
 	if res.StatusCode < 400 {
 		return nil
@@ -343,6 +524,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	res.Body.Close()
 
 	if err != nil {
+		fmt.Printf("DECODE ERROR: %s\n", err)
 		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
 	}
 
@@ -380,8 +562,10 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	objectOid := oid
 	operation := "download"
 	if method == "POST" {
-		objectOid = ""
-		operation = "upload"
+		if oid != "batch" {
+			objectOid = ""
+			operation = "upload"
+		}
 	}
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
