@@ -36,6 +36,23 @@ func TestFsck(t *testing.T) {
 		// Verify test file exists as LFS object
 		lfsObjectPath := filepath.Join(repo.Path, ".git", "lfs", "objects", wantOid[0:2], wantOid[2:4], wantOid)
 		if _, err := os.Stat(lfsObjectPath); err != nil {
+			//// DEBUG... recursively print out everything under repo.Path...
+			e2 := filepath.Walk(repo.Path, func(file string, info os.FileInfo, e3 error) error {
+				if e3 != nil {
+					t.Logf("[file=%v] e3 = %v, want %v", file, e3, nil)
+					return e3
+				}
+				if info.IsDir() {
+					t.Logf("[file=%v] IsDirectory==true")
+					// ignore dirs
+					return nil
+				}
+				t.Logf("[file=%v]", file)
+				return nil
+			})
+			if e2 != nil {
+				t.Errorf("e2 = %v, want %v", e2, nil)
+			}
 			t.Fatal(err)
 		}
 
