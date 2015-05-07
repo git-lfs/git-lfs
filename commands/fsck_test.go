@@ -43,7 +43,7 @@ func TestFsck(t *testing.T) {
 					return e3
 				}
 				if info.IsDir() {
-					t.Logf("[file=%v] IsDirectory==true")
+					t.Logf("[file=%v] IsDirectory==true", file)
 					// ignore dirs
 					return nil
 				}
