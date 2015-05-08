@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	fsckDryRun bool
+
 	fsckCmd = &cobra.Command{
 		Use:   "fsck",
 		Short: "Verifies validity of Git LFS files",
@@ -68,7 +70,9 @@ func doFsck(localGitDir string) (bool, error) {
 		if recalculatedOid != p.Pointer.Oid {
 			ok = false
 			Print("Object %s (%s) is corrupt", p.Name, p.Oid)
-			os.RemoveAll(path)
+			if !fsckDryRun {
+				os.RemoveAll(path)
+			}
 		}
 	}
 	return ok, nil
@@ -94,5 +98,6 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	fsckCmd.Flags().BoolVarP(&fsckDryRun, "dry-run", "d", false, "List corrupt objects without deleting them.")
 	RootCmd.AddCommand(fsckCmd)
 }
