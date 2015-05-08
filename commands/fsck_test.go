@@ -13,7 +13,7 @@ func TestFsck(t *testing.T) {
 	defer repo.Test()
 
 	cmd := repo.Command("fsck")
-	cmd.Output = "Could not fsck Git LFS files"
+	cmd.Output = "Object a.dat (916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9) is corrupt"
 
 	testFileContent := "test data"
 	h := sha256.New()

@@ -11,14 +11,6 @@ import (
 	"path/filepath"
 )
 
-type fsckError struct {
-	name, oid string
-}
-
-func (e *fsckError) Error() string {
-	return "Object " + e.name + " (" + e.oid + ") is corrupt"
-}
-
 var (
 	fsckCmd = &cobra.Command{
 		Use:   "fsck",
@@ -27,25 +19,27 @@ var (
 	}
 )
 
-func doFsck(localGitDir string) error {
+func doFsck(localGitDir string) (bool, error) {
 	ref, err := git.CurrentRef()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	pointers, err := lfs.ScanRefs(ref, "")
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// TODO(zeroshirts): do we want to look for LFS stuff in past commits?
 	p2, err := lfs.ScanIndex()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// zeroshirts: assuming no duplicates...
 	pointers = append(pointers, p2...)
+
+	ok := true
 
 	for _, p := range pointers {
 		path := filepath.Join(localGitDir, "lfs", "objects", p.Pointer.Oid[0:2], p.Pointer.Oid[2:4], p.Pointer.Oid)
@@ -54,23 +48,23 @@ func doFsck(localGitDir string) error {
 
 		f, err := os.Open(path)
 		if err != nil {
-			return err
+			return false, err
 		}
 		defer f.Close()
 
 		oidHash := sha256.New()
 		_, err = io.Copy(oidHash, f)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		recalculatedOid := hex.EncodeToString(oidHash.Sum(nil))
 		if recalculatedOid != p.Pointer.Oid {
-			return &fsckError{p.Name, p.Pointer.Oid}
+			ok = false
+			Print("Object %s (%s) is corrupt", p.Name, p.Oid)
 		}
-		Debug("%v (%v) intact", p.Name, path)
 	}
-	return nil
+	return ok, nil
 }
 
 // TODO(zeroshirts): 'git fsck' reports status (percentage, current#/total) as
@@ -82,11 +76,14 @@ func doFsck(localGitDir string) error {
 func fsckCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
-	err := doFsck(lfs.LocalGitDir)
+	ok, err := doFsck(lfs.LocalGitDir)
 	if err != nil {
-		Panic(err, "Could not fsck Git LFS files")
+		Panic(err, "Error checking Git LFS files")
 	}
-	Print("Git LFS fsck OK")
+
+	if ok {
+		Print("Git LFS fsck OK")
+	}
 }
 
 func init() {
