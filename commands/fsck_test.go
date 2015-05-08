@@ -39,6 +39,7 @@ func TestFsckDefault(t *testing.T) {
 		repo.GitCmd("add", "*.dat")
 		repo.GitCmd("commit", "-m", "a")
 		repo.WriteFile(lfsObjectPath, testFileContent+"CORRUPTION")
+		repo.WriteFile(lfsObject2Path, testFile2Content)
 	})
 
 	cmd.After(func() {
@@ -90,6 +91,7 @@ func TestFsckDryRun(t *testing.T) {
 		repo.GitCmd("add", "*.dat")
 		repo.GitCmd("commit", "-m", "a")
 		repo.WriteFile(lfsObjectPath, testFileContent+"CORRUPTION")
+		repo.WriteFile(lfsObject2Path, testFile2Content)
 	})
 
 	cmd.After(func() {
@@ -147,6 +149,8 @@ func TestFsckClean(t *testing.T) {
 		repo.WriteFile(filepath.Join(repo.Path, "b.dat"), testFile2Content)
 		repo.GitCmd("add", "*.dat")
 		repo.GitCmd("commit", "-m", "a")
+		repo.WriteFile(lfsObjectPath, testFileContent)
+		repo.WriteFile(lfsObject2Path, testFile2Content)
 	})
 
 	cmd.After(func() {
