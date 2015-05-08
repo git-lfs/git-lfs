@@ -27,9 +27,17 @@ func doFsck(localGitDir string) (bool, error) {
 		return false, err
 	}
 
+	// The LFS scanner methods return unexported *lfs.wrappedPointer objects.
+	// All we care about is the pointer OID and file name
+	pointerIndex := make(map[string]string)
+
 	pointers, err := lfs.ScanRefs(ref, "")
 	if err != nil {
 		return false, err
+	}
+
+	for _, p := range pointers {
+		pointerIndex[p.Oid] = p.Name
 	}
 
 	// TODO(zeroshirts): do we want to look for LFS stuff in past commits?
@@ -38,15 +46,16 @@ func doFsck(localGitDir string) (bool, error) {
 		return false, err
 	}
 
-	// zeroshirts: assuming no duplicates...
-	pointers = append(pointers, p2...)
+	for _, p := range p2 {
+		pointerIndex[p.Oid] = p.Name
+	}
 
 	ok := true
 
-	for _, p := range pointers {
-		path := filepath.Join(localGitDir, "lfs", "objects", p.Pointer.Oid[0:2], p.Pointer.Oid[2:4], p.Pointer.Oid)
+	for oid, name := range pointerIndex {
+		path := filepath.Join(localGitDir, "lfs", "objects", oid[0:2], oid[2:4], oid)
 
-		Debug("Examining %v (%v)", p.Name, path)
+		Debug("Examining %v (%v)", name, path)
 
 		f, err := os.Open(path)
 		if err != nil {
@@ -61,9 +70,9 @@ func doFsck(localGitDir string) (bool, error) {
 		}
 
 		recalculatedOid := hex.EncodeToString(oidHash.Sum(nil))
-		if recalculatedOid != p.Pointer.Oid {
+		if recalculatedOid != oid {
 			ok = false
-			Print("Object %s (%s) is corrupt", p.Name, p.Oid)
+			Print("Object %s (%s) is corrupt", name, oid)
 			if !fsckDryRun {
 				os.RemoveAll(path)
 			}
