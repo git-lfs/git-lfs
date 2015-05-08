@@ -23,11 +23,12 @@ type runner struct {
 	*testing.T
 }
 
-// Git executes a Git command.
+// Git executes a Git command and returns the combined STDOUT and STDERR.
 func (r *runner) Git(args ...string) string {
 	return r.exec("git", args...)
 }
 
+// GitBlob gets the blob OID of the given path at the given commit.
 func (r *runner) GitBlob(commitish, path string) string {
 	out := r.Git("ls-tree", commitish)
 	lines := strings.Split(out, "\n")
