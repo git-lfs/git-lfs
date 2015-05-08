@@ -63,6 +63,7 @@ func doFsck(localGitDir string) (bool, error) {
 		if recalculatedOid != p.Pointer.Oid {
 			ok = false
 			Print("Object %s (%s) is corrupt", p.Name, p.Oid)
+			os.RemoveAll(path)
 		}
 	}
 	return ok, nil
