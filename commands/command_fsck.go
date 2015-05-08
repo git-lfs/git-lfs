@@ -43,6 +43,7 @@ func doFsck(localGitDir string) error {
 	if err != nil {
 		return err
 	}
+
 	// zeroshirts: assuming no duplicates...
 	pointers = append(pointers, p2...)
 
@@ -55,13 +56,13 @@ func doFsck(localGitDir string) error {
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 
 		oidHash := sha256.New()
 		_, err = io.Copy(oidHash, f)
 		if err != nil {
 			return err
 		}
-		f.Close()
 
 		recalculatedOid := hex.EncodeToString(oidHash.Sum(nil))
 		if recalculatedOid != p.Pointer.Oid {
