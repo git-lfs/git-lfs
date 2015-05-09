@@ -18,8 +18,9 @@ var (
 )
 
 type runner struct {
-	tempDir string
-	repoDir string
+	dir      string
+	repos    map[string]*repo
+	repoName string
 	*testing.T
 }
 
@@ -116,11 +117,12 @@ func (r *runner) logCmd(name string, args ...string) {
 
 func (r *runner) repoPath(path string) string {
 	cleaned := filepath.Clean(path)
+	repo := r.repo()
 	if strings.HasPrefix(cleaned, ".") || strings.HasPrefix(cleaned, "/") {
-		r.Fatalf("%q is not relative to %q", path, r.repoDir)
+		r.Fatalf("%q is not relative to %q", path, repo.dir)
 	}
 
-	return filepath.Join(r.repoDir, cleaned)
+	return filepath.Join(repo.dir, cleaned)
 }
 
 func Setup(t *testing.T) *runner {
@@ -132,19 +134,24 @@ func Setup(t *testing.T) *runner {
 	}
 
 	r := &runner{
-		tempDir: dir,
-		T:       t,
+		dir:   dir,
+		repos: make(map[string]*repo),
+		T:     t,
 	}
 
 	r.Logf("temp: %s", dir)
-	r.initRepo("repo")
+	r.InitRepo("repo")
 
 	return r
 }
 
 func (r *runner) Teardown() {
+	for _, repo := range r.repos {
+		repo.Teardown()
+	}
+
 	if !r.T.Failed() {
-		os.RemoveAll(r.tempDir)
+		os.RemoveAll(r.dir)
 	}
 }
 
