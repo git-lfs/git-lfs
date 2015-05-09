@@ -133,20 +133,11 @@ func Setup(t *testing.T) *runner {
 
 	r := &runner{
 		tempDir: dir,
-		repoDir: filepath.Join(dir, "repo"),
 		T:       t,
 	}
 
-	if err := os.MkdirAll(r.repoDir, 0777); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.Chdir(r.repoDir); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("temp: %s", r.tempDir)
-	r.Git("init")
+	r.Logf("temp: %s", dir)
+	r.initRepo("repo")
 
 	return r
 }
@@ -165,7 +156,6 @@ func init() {
 	}
 
 	rootDir = filepath.Join(wd, "..")
-
 	testDir = filepath.Join(rootDir, "tmp")
 	if err := os.MkdirAll(testDir, 0755); err != nil {
 		fmt.Println(err)
