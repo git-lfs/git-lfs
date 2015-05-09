@@ -77,9 +77,8 @@ type mediaPath struct {
 	Source string // the source attributes file
 }
 
-// findAttributeFiles returns the(existing) paths of the attributes files
-// (./.git/info/attributes, ./.gitattributes).
-// Which is where the tracked paths are configured.
+// findAttributeFiles returns the absolute paths to files 
+// in the current repository that Git uses to track attributes.
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
@@ -102,8 +101,7 @@ func findAttributeFiles() []string {
 	return paths
 }
 
-// findPaths parsers the existing attributes files, and extracts the tracked paths
-// as an array of mediaPaths.
+// findPaths extracts the paths tracked by Git LFS from the existing Git attributes files.
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
 	wd, _ := os.Getwd()
