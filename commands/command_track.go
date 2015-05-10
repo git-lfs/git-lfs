@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -22,6 +23,12 @@ var (
 func trackCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 	knownPaths := findPaths()
+
+	workingInsideGit := workingInsideGit()
+	if !workingInsideGit {
+		Print("Git LFS cannot perform outside git repository.")
+		return
+	}
 
 	if len(args) == 0 {
 		Print("Listing tracked paths")
@@ -144,6 +151,17 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
+}
+
+func workingInsideGit() bool {
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	if err := cmd.Start(); err != nil {
+		return false
+	}
+	if err := cmd.Wait(); err != nil {
+		return false
+	}
+	return true
 }
 
 func init() {
