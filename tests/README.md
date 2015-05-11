@@ -8,12 +8,10 @@ The default environment should include the following:
 
 * An empty Git repository in a random test directory, so test files can safely
 run in parallel.
-* An HTTPS endpoint for the Git repository.
-* An SSH endpoint for the Git repository too.
-* Git LFS compiled from the current ref.
+* Git LFS compiled from the current ref/
 * Git clean/smudge filters configured for the empty repository and the Git LFS
 binary compiled for the test.
-* A simple Git LFS server.
+* A Git Smart HTTP server for each repository, with a Git LFS server.
 
 ## Why not shell?
 
