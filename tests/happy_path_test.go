@@ -30,5 +30,9 @@ func TestHappyPath(t *testing.T) {
 		"master", "a.dat",
 	)
 
-	t.Log(run.Git("push", "origin", "master"))
+	AssertCommandContains(t,
+		run.Git("push", "origin", "master"),
+		"(1 of 1 files) 1 B / 1 B  100.00 %",
+		"* [new branch]      master -> master",
+	)
 }
