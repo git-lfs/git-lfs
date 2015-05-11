@@ -295,7 +295,7 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
-		return res, nil, wErr
+		return nil, nil, wErr
 	}
 
 	obj := &objectResource{}
@@ -303,9 +303,10 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 
 	if wErr != nil {
 		setErrorResponseContext(wErr, res)
+		return nil, nil, wErr
 	}
 
-	return res, obj, wErr
+	return res, obj, nil
 }
 
 func handleResponse(res *http.Response) *WrappedError {
