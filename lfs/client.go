@@ -260,35 +260,35 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
-		return res, wErr
+		return nil, wErr
 	}
 
 	if res.StatusCode == 307 {
 		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
 		if err != nil {
-			return res, Errorf(err, err.Error())
+			return nil, Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
 		if seeker, ok := req.Body.(io.Seeker); ok {
 			_, err := seeker.Seek(0, 0)
 			if err != nil {
-				return res, Error(err)
+				return nil, Error(err)
 			}
 			redirectedReq.Body = req.Body
 			redirectedReq.ContentLength = req.ContentLength
 		} else {
-			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+			return nil, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
 		if err = checkRedirect(redirectedReq, via); err != nil {
-			return res, Errorf(err, err.Error())
+			return nil, Errorf(err, err.Error())
 		}
 
 		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
 	}
 
-	return res, wErr
+	return res, nil
 }
 
 func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
