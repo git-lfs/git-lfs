@@ -12,6 +12,41 @@ import (
 	"strings"
 )
 
+// Git executes a Git command and returns the combined STDOUT and STDERR.
+func (r *runner) Git(args ...string) string {
+	name := "git"
+	if args != nil && len(args) > 0 && args[0] == "lfs" {
+		name = bin
+		args = args[1:len(args)]
+	}
+
+	cmd := exec.Command(name, args...)
+	return r.execCmd(cmd)
+}
+
+// GitBlob gets the blob OID of the given path at the given commit.
+func (r *runner) GitBlob(commitish, path string) string {
+	out := r.Git("ls-tree", commitish)
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		tabs := strings.Split(line, "\t")
+		if len(tabs) < 2 {
+			continue
+		}
+
+		attrs := strings.Split(tabs[0], " ")
+		if len(attrs) < 3 {
+			continue
+		}
+
+		if tabs[1] == path {
+			return attrs[2]
+		}
+	}
+
+	return ""
+}
+
 // SetRepo changes the current test to the repository's working directory.  The
 // given name refers to the subdirectory in the runner temp directory that the
 // repository lives.
