@@ -24,6 +24,41 @@ type runner struct {
 	*testing.T
 }
 
+// WriteFile writes the byte contents to the given path, which should be
+// relative to this test's repository directory.
+func (r *runner) WriteFile(path string, contents []byte) {
+	err := ioutil.WriteFile(r.repoPath(path), contents, 0755)
+	if err != nil {
+		r.Fatal(err)
+	}
+}
+
+// ReadFile reads the byte contents of the given path, which should be relative
+// to this test's repository directory.
+func (r *runner) ReadFile(path string) []byte {
+	by, err := ioutil.ReadFile(r.repoPath(path))
+	if err != nil {
+		r.Fatal(err)
+	}
+	return by
+}
+
+func (r *runner) Cd(path string) {
+	fullPath := r.repoPath(path)
+	r.Logf("$ cd %s", fullPath)
+	if err := os.Chdir(fullPath); err != nil {
+		r.Fatal(err)
+	}
+}
+
+func (r *runner) MkdirP(path string) {
+	fullPath := r.repoPath(path)
+	r.Logf("$ mkdir -p %s", fullPath)
+	if err := os.MkdirAll(fullPath, 0755); err != nil {
+		r.Fatal(err)
+	}
+}
+
 // Git executes a Git command and returns the combined STDOUT and STDERR.
 func (r *runner) Git(args ...string) string {
 	return r.exec("git", args...)
@@ -50,25 +85,6 @@ func (r *runner) GitBlob(commitish, path string) string {
 	}
 
 	return ""
-}
-
-// WriteFile writes the byte contents to the given path, which should be
-// relative to this test's repository directory.
-func (r *runner) WriteFile(path string, contents []byte) {
-	err := ioutil.WriteFile(r.repoPath(path), contents, 0755)
-	if err != nil {
-		r.Fatal(err)
-	}
-}
-
-// ReadFile reads the byte contents of the given path, which should be relative
-// to this test's repository directory.
-func (r *runner) ReadFile(path string) []byte {
-	by, err := ioutil.ReadFile(r.repoPath(path))
-	if err != nil {
-		r.Fatal(err)
-	}
-	return by
 }
 
 func (r *runner) exec(name string, args ...string) string {
