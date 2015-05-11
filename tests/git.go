@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -89,7 +88,6 @@ func (r *runner) CloneTo(name string) string {
 
 	cmdName := "git"
 	args := []string{"clone", repository.serverURL, name}
-	r.logCmd(cmdName, args...)
 
 	cmd := exec.Command(cmdName, args...)
 	currEnv := os.Environ()
@@ -100,13 +98,8 @@ func (r *runner) CloneTo(name string) string {
 
 	// ensures that filter.lfs.* config settings point to the test's git-lfs.
 	cmd.Env[len(cmd.Env)-1] = "GIT_CONFIG=" + repository.configFile
-	out := &bytes.Buffer{}
-	cmd.Stdout = out
-	cmd.Stderr = out
 
-	if err := cmd.Run(); err != nil {
-		r.Fatalf("%s\n\n%s", err, out.String())
-	}
+	out := r.execCmd(cmd)
 
 	r.repos[name] = &repo{
 		runner:       r,
@@ -120,7 +113,7 @@ func (r *runner) CloneTo(name string) string {
 	r.SetRepo(name)
 	r.Git("config", "filter.lfs.smudge", fmt.Sprintf("%s smudge %%f", bin))
 	r.Git("config", "filter.lfs.clean", fmt.Sprintf("%s clean %%f", bin))
-	return out.String()
+	return out
 }
 
 func (r *runner) repo() *repo {
@@ -138,14 +131,9 @@ func (r *runner) setupCredentials(rawurl string) {
 	}
 
 	input := fmt.Sprintf("protocol=http\nhost=%s\nusername=a\npassword=b", u.Host)
-	out := &bytes.Buffer{}
 	cmd := exec.Command("git", "credential", "approve")
 	cmd.Stdin = strings.NewReader(input)
-	cmd.Stdout = out
-	cmd.Stderr = out
-	if err := cmd.Run(); err != nil {
-		r.Fatalf("%s\n\n%s", err, out.String())
-	}
+	r.execCmd(cmd)
 }
 
 func (run *runner) httpHandler(repository *repo) http.Handler {
@@ -185,12 +173,7 @@ func (r *repo) Teardown() {
 	}
 
 	input := fmt.Sprintf("protocol=http\nhost=%s", u.Host)
-	out := &bytes.Buffer{}
 	cmd := exec.Command("git", "credential", "reject")
 	cmd.Stdin = strings.NewReader(input)
-	cmd.Stdout = out
-	cmd.Stderr = out
-	if err := cmd.Run(); err != nil {
-		r.runner.Fatalf("%s\n\n%s", err, out.String())
-	}
+	cmd.Run()
 }

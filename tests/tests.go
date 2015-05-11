@@ -59,11 +59,6 @@ func (r *runner) MkdirP(path string) {
 	}
 }
 
-// Git executes a Git command and returns the combined STDOUT and STDERR.
-func (r *runner) Git(args ...string) string {
-	return r.exec("git", args...)
-}
-
 // GitBlob gets the blob OID of the given path at the given commit.
 func (r *runner) GitBlob(commitish, path string) string {
 	out := r.Git("ls-tree", commitish)
@@ -87,16 +82,21 @@ func (r *runner) GitBlob(commitish, path string) string {
 	return ""
 }
 
-func (r *runner) exec(name string, args ...string) string {
-	// replace standard "git lfs" commands with the compiled binary in ./bin
-	if name == "git" && len(args) > 0 && args[0] == "lfs" {
+// Git executes a Git command and returns the combined STDOUT and STDERR.
+func (r *runner) Git(args ...string) string {
+	name := "git"
+	if args != nil && len(args) > 0 && args[0] == "lfs" {
 		name = bin
 		args = args[1:len(args)]
 	}
 
-	r.logCmd(name, args...)
-
 	cmd := exec.Command(name, args...)
+	return r.execCmd(cmd)
+}
+
+func (r *runner) execCmd(cmd *exec.Cmd) string {
+	r.logCmd(cmd.Args[0], cmd.Args[1:len(cmd.Args)]...)
+
 	out := &bytes.Buffer{}
 	cmd.Stdout = out
 	cmd.Stderr = out
