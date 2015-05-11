@@ -70,7 +70,35 @@ func (run *runner) lfsPostHandler(repository *repo, w http.ResponseWriter, r *ht
 }
 
 func (run *runner) lfsGetHandler(repository *repo, w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(500)
+	parts := strings.Split(r.URL.Path, "/")
+	oid := parts[len(parts)-1]
+
+	if by, ok := repository.largeObjects[oid]; ok {
+		obj := &lfsObject{
+			Oid:  oid,
+			Size: int64(len(by)),
+			Links: map[string]lfsLink{
+				"download": lfsLink{
+					Href: repository.server.URL + "/storage/" + oid,
+				},
+			},
+		}
+
+		by, err := json.Marshal(obj)
+		if err != nil {
+			run.Fatal(err)
+		}
+
+		run.Log("RESPONSE: 200")
+		run.Log(string(by))
+
+		w.WriteHeader(200)
+		w.Write(by)
+
+		return
+	}
+
+	w.WriteHeader(404)
 }
 
 // handles any /storage/{oid} requests
@@ -91,7 +119,15 @@ func (run *runner) storageHandler(repository *repo) http.HandlerFunc {
 			repository.largeObjects[oid] = buf.Bytes()
 
 		case "GET":
-			w.WriteHeader(500)
+			parts := strings.Split(r.URL.Path, "/")
+			oid := parts[len(parts)-1]
+
+			if by, ok := repository.largeObjects[oid]; ok {
+				w.Write(by)
+				return
+			}
+
+			w.WriteHeader(404)
 		default:
 			w.WriteHeader(500)
 		}

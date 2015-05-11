@@ -52,3 +52,24 @@ func AssertCommandContains(t *testing.T, output string, parts ...string) {
 		t.Fatalf("Got:\n%s", output)
 	}
 }
+
+// RefuteServerObject ensures that the given object has not been uploaded to
+// the current Git LFS server.
+func RefuteServerObject(r *runner, oid string) {
+	_, ok := r.repo().largeObjects[oid]
+	if ok {
+		r.Fatalf("object found: %s", oid)
+	}
+}
+
+// AssertServerObject ensures that the given object has been sucessfully
+// uploaded to the current Git LFS server.
+func AssertServerObject(r *runner, oid string, contents []byte) {
+	repo := r.repo()
+	by, ok := repo.largeObjects[oid]
+	if !ok {
+		r.Fatalf("object not found: %s", oid)
+	}
+
+	AssertString(r.T, string(contents), string(by))
+}
