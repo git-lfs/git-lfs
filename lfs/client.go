@@ -419,12 +419,16 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
-		return req, nil, err
+		return nil, nil, err
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
 	creds, err := getCreds(req)
-	return req, creds, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return req, creds, nil
 }
 
 func getCreds(req *http.Request) (Creds, error) {
