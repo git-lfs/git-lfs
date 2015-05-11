@@ -270,15 +270,16 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 		}
 
 		via = append(via, req)
-		if seeker, ok := req.Body.(io.Seeker); ok {
-			if _, err := seeker.Seek(0, 0); err != nil {
-				return nil, Error(err)
-			}
-			redirectedReq.Body = req.Body
-			redirectedReq.ContentLength = req.ContentLength
-		} else {
+		seeker, ok := req.Body.(io.Seeker)
+		if !ok {
 			return nil, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
+
+		if _, err := seeker.Seek(0, 0); err != nil {
+			return nil, Error(err)
+		}
+		redirectedReq.Body = req.Body
+		redirectedReq.ContentLength = req.ContentLength
 
 		if err = checkRedirect(redirectedReq, via); err != nil {
 			return nil, Errorf(err, err.Error())
