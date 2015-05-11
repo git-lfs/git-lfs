@@ -402,15 +402,18 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	}
 
 	req, creds, err := newClientRequest(method, u.String())
-	if err == nil {
-		req.Header.Set("Accept", mediaType)
-		if res.Header != nil {
-			for key, value := range res.Header {
-				req.Header.Set(key, value)
-			}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("Accept", mediaType)
+	if res.Header != nil {
+		for key, value := range res.Header {
+			req.Header.Set(key, value)
 		}
 	}
-	return req, creds, err
+
+	return req, creds, nil
 }
 
 func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
