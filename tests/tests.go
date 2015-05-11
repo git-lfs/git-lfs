@@ -105,7 +105,7 @@ func (r *runner) exec(name string, args ...string) string {
 		r.Fatalf("%s\n\n%s", err, out.String())
 	}
 
-	return out.String()
+	return strings.TrimSpace(out.String())
 }
 
 func (r *runner) logCmd(name string, args ...string) {

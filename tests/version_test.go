@@ -17,6 +17,11 @@ func TestVersion(t *testing.T) {
 	)
 
 	run.Cd(".git")
+	AssertCommand(t,
+		run.Git("lfs", "version"),
+		userAgent,
+	)
+
 	AssertCommandContains(t,
 		run.Git("lfs", "version", "--comics"),
 		userAgent,
@@ -26,9 +31,9 @@ func TestVersion(t *testing.T) {
 	run.MkdirP("subDir")
 	run.Cd("subDir")
 
-	AssertString(t,
-		userAgent,
+	AssertCommand(t,
 		run.Git("lfs", "version"),
+		userAgent,
 	)
 
 	AssertCommandContains(t,
