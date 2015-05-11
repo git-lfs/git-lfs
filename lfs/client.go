@@ -271,8 +271,7 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 
 		via = append(via, req)
 		if seeker, ok := req.Body.(io.Seeker); ok {
-			_, err := seeker.Seek(0, 0)
-			if err != nil {
+			if _, err := seeker.Seek(0, 0); err != nil {
 				return nil, Error(err)
 			}
 			redirectedReq.Body = req.Body
