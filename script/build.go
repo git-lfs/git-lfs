@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/github/git-lfs/lfs"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -61,27 +62,23 @@ func mainBuild() {
 	if !errored {
 		by, err := json.Marshal(buildMatrix)
 		if err != nil {
-			fmt.Println("Error encoding build matrix to json:", err)
-			os.Exit(1)
+			log.Fatalln("Error encoding build matrix to json:", err)
 		}
 
 		file, err := os.Create("bin/releases/build_matrix.json")
 		if err != nil {
-			fmt.Println("Error creating build_matrix.json:", err)
-			os.Exit(1)
+			log.Fatalln("Error creating build_matrix.json:", err)
 		}
 
 		written, err := file.Write(by)
 		file.Close()
 
 		if err != nil {
-			fmt.Println("Error writing build_matrix.json", err)
-			os.Exit(1)
+			log.Fatalln("Error writing build_matrix.json", err)
 		}
 
 		if jsonSize := len(by); written != jsonSize {
-			fmt.Printf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
-			os.Exit(1)
+			log.Fatalf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
 		}
 	}
 }
@@ -109,13 +106,13 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	if addenv {
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
-			fmt.Println("Error setting up installer:\n", err.Error())
+			log.Println("Error setting up installer:\n", err.Error())
 			return err
 		}
 
 		err = setupInstaller(buildos, buildarch, dir, buildMatrix)
 		if err != nil {
-			fmt.Println("Error setting up installer:\n", err.Error())
+			log.Println("Error setting up installer:\n", err.Error())
 			return err
 		}
 	}
