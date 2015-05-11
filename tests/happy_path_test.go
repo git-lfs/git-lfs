@@ -24,10 +24,11 @@ func TestHappyPath(t *testing.T) {
 	)
 
 	AssertString(t, "a", string(run.ReadFile("a.dat")))
-	run.Git("push", "origin", "master")
 
 	AssertPointerBlob(run,
 		"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", 1,
 		"master", "a.dat",
 	)
+
+	t.Log(run.Git("push", "origin", "master"))
 }

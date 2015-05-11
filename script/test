@@ -2,6 +2,7 @@
 #/ Usage: script/test          # run all tests
 #/        script/test <subdir> # run just a package's tests
 
+rm -rf tmp/integration-test-*
 script/fmt
 script/bootstrap
 

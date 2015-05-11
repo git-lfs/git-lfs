@@ -72,6 +72,7 @@ func (r *runner) ReadFile(path string) []byte {
 }
 
 func (r *runner) exec(name string, args ...string) string {
+	// replace standard "git lfs" commands with the compiled binary in ./bin
 	if name == "git" && len(args) > 0 && args[0] == "lfs" {
 		name = bin
 		args = args[1:len(args)]
@@ -118,7 +119,7 @@ func (r *runner) logCmd(name string, args ...string) {
 func (r *runner) repoPath(path string) string {
 	cleaned := filepath.Clean(path)
 	repo := r.repo()
-	if strings.HasPrefix(cleaned, ".") || strings.HasPrefix(cleaned, "/") {
+	if strings.HasPrefix(cleaned, "/") {
 		r.Fatalf("%q is not relative to %q", path, repo.dir)
 	}
 
