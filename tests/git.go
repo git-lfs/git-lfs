@@ -108,8 +108,7 @@ func (r *runner) InitRepo(name string) {
 	r.SetRepo(name)
 	r.Git("init")
 	r.Git("remote", "add", "origin", repo.server.URL+"/"+name+".server")
-	r.Git("config", "filter.lfs.smudge", fmt.Sprintf("%s smudge %%f", bin))
-	r.Git("config", "filter.lfs.clean", fmt.Sprintf("%s clean %%f", bin))
+	r.configRepo()
 	r.setupCredentials(repo.server.URL)
 	r.WriteFile(".git/hooks/pre-push", []byte("#!/bin/sh\n"+bin+` pre-push "$@"`+"\n"))
 	r.Logf("git init: %s", dir)
@@ -146,9 +145,15 @@ func (r *runner) CloneTo(name string) string {
 	}
 
 	r.SetRepo(name)
+	r.configRepo()
+	return out
+}
+
+func (r *runner) configRepo() {
 	r.Git("config", "filter.lfs.smudge", fmt.Sprintf("%s smudge %%f", bin))
 	r.Git("config", "filter.lfs.clean", fmt.Sprintf("%s clean %%f", bin))
-	return out
+	r.Git("config", "user.name", "Git LFS Tests")
+	r.Git("config", "user.email", "example@git-lfs.com")
 }
 
 func (r *runner) repo() *repo {
