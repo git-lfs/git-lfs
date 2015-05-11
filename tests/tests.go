@@ -143,7 +143,6 @@ func (r *runner) repoPath(path string) string {
 }
 
 func Setup(t *testing.T) *runner {
-	t.Parallel()
 	t.Logf("working directory: %s", testDir)
 	dir, err := ioutil.TempDir(testDir, "integration-test-")
 	if err != nil {
