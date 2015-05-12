@@ -24,24 +24,29 @@ func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
 }
 
 func (c *Configuration) HttpClient() *http.Client {
-	if c.httpClient == nil {
-		tr := &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
-				Timeout:   5 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 5 * time.Second,
-		}
-		sslVerify, _ := c.GitConfig("http.sslverify")
-		if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
-			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		}
-		c.httpClient = &http.Client{
-			Transport:     tr,
-			CheckRedirect: checkRedirect,
-		}
+	if c.httpClient != nil {
+		return c.httpClient
 	}
+
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+
+	sslVerify, _ := c.GitConfig("http.sslverify")
+	if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	c.httpClient = &http.Client{
+		Transport:     tr,
+		CheckRedirect: checkRedirect,
+	}
+
 	return c.httpClient
 }
 
