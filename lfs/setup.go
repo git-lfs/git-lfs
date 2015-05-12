@@ -75,15 +75,16 @@ func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]boo
 }
 
 func InstallFilters() error {
-	var err error
-	err = setFilter("clean")
-	if err == nil {
-		err = setFilter("smudge")
+	if err := setFilter("clean"); err != nil {
+		return err
 	}
-	if err == nil {
-		err = requireFilters()
+	if err := setFilter("smudge"); err != nil {
+		return err
 	}
-	return err
+	if err := requireFilters(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func setFilter(filterName string) error {
