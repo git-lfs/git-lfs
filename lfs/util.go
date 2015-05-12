@@ -80,9 +80,9 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 }
 
 func wrapProgressError(err error, event, filename string) error {
-	if err == nil {
-		return nil
+	if err != nil {
+		return fmt.Errorf("Error writing Git LFS %s progress to %s: %s", event, filename, err.Error())
 	}
 
-	return fmt.Errorf("Error writing Git LFS %s progress to %s: %s", event, filename, err.Error())
+	return nil
 }
