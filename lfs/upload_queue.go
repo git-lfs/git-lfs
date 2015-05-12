@@ -137,9 +137,9 @@ func (q *UploadQueue) processIndividual() {
 // to the uploadWorkers
 func (q *UploadQueue) processBatch() {
 	q.files = 0
-	uploads := make([]*Uploadable, 0, len(q.uploadables))
+	uploads := make([]*objectResource, 0, len(q.uploadables))
 	for _, u := range q.uploadables {
-		uploads = append(uploads, u)
+		uploads = append(uploads, &objectResource{Oid: u.OID, Size: u.Size})
 	}
 
 	objects, err := Batch(uploads)
@@ -198,9 +198,6 @@ func (q *UploadQueue) Process() {
 			}
 		}
 	}()
-
-	// This will block Process() until the worker goroutines are spun up and ready
-	// to process uploads.
 
 	for i := 0; i < q.workers; i++ {
 		// These are the worker goroutines that process uploads

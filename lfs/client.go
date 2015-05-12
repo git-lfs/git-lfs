@@ -133,15 +133,12 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(uploads []*Uploadable) ([]*objectResource, *WrappedError) {
-	type objects struct {
+func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+	type objres struct {
 		Objects []*objectResource `json:"objects"`
 	}
 
-	o := &objects{make([]*objectResource, 0, len(uploads))}
-	for _, u := range uploads {
-		o.Objects = append(o.Objects, &objectResource{Oid: u.OID, Size: u.Size})
-	}
+	o := &objres{objects}
 
 	by, err := json.Marshal(o)
 	if err != nil {
@@ -158,7 +155,7 @@ func Batch(uploads []*Uploadable) ([]*objectResource, *WrappedError) {
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
-	tracerx.Printf("api: batch %d files", len(uploads))
+	tracerx.Printf("api: batch %d files", len(objects))
 	res, objs, wErr := doApiBatchRequest(req, creds)
 	if wErr != nil {
 		sendApiEvent(apiEventFail)
