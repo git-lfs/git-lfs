@@ -45,11 +45,9 @@ func InstallHooks(force bool) error {
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
 	if _, err := os.Stat(hookPath); err == nil && !force {
 		return upgradeHookOrError(hookPath, "pre-push", prePushHook, prePushUpgrades)
-	} else {
-		return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 	}
 
-	return nil
+	return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 }
 
 func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {

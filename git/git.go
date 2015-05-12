@@ -104,7 +104,8 @@ func simpleExec(stdin io.Reader, name string, arg ...string) (string, error) {
 	output, err := cmd.Output()
 	if _, ok := err.(*exec.ExitError); ok {
 		return "", nil
-	} else if err != nil {
+	}
+	if err != nil {
 		return fmt.Sprintf("Error running %s %s", name, arg), err
 	}
 
