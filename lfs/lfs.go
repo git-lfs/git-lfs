@@ -129,15 +129,16 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 	}
 
 	gitDir := filepath.Join(dir, gitExt)
-	if info, err := os.Stat(gitDir); err == nil {
-		if info.IsDir() {
-			return dir, gitDir, nil
-		} else {
-			return processDotGitFile(gitDir)
-		}
+	info, err := os.Stat(gitDir)
+	if err != nil {
+		return recursiveResolveGitDir(filepath.Dir(dir))
 	}
 
-	return recursiveResolveGitDir(filepath.Dir(dir))
+	if info.IsDir() {
+		return dir, gitDir, nil
+	}
+
+	return processDotGitFile(gitDir)
 }
 
 func processDotGitFile(file string) (string, string, error) {
