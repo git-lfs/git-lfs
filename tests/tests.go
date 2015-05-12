@@ -73,6 +73,8 @@ func (r *runner) repoPath(path string) string {
 }
 
 func Setup(t *testing.T) *runner {
+	t.Logf("project directory: %s", rootDir)
+	t.Logf("git-lfs binary: %s", bin)
 	t.Logf("working directory: %s", testDir)
 	dir, err := ioutil.TempDir(testDir, "integration-test-")
 	if err != nil {
