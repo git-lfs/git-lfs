@@ -70,10 +70,10 @@ func (c *Configuration) Endpoint() Endpoint {
 	return c.RemoteEndpoint(defaultRemote)
 }
 
-func (c *Configuration) ConcurrentUploads() int {
+func (c *Configuration) ConcurrentTransfers() int {
 	uploads := 3
 
-	if v, ok := c.GitConfig("lfs.concurrentuploads"); ok {
+	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
 		n, err := strconv.Atoi(v)
 		if err == nil {
 			uploads = n
