@@ -44,6 +44,10 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		file.Close()
 	}
 
+	if err != nil {
+		Panic(err, "Error cleaning asset.")
+	}
+
 	if cleaned != nil {
 		cleaned.Close()
 		defer cleaned.Teardown()
