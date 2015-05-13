@@ -3,8 +3,6 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"log"
 	"os"
@@ -12,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (

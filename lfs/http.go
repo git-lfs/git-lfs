@@ -4,13 +4,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/rubyist/tracerx"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/rubyist/tracerx"
 )
 
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {

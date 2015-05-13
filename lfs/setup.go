@@ -3,13 +3,14 @@ package lfs
 import (
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/git"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/github/git-lfs/git"
 )
 
 var (

@@ -1,12 +1,13 @@
 package commands
 
 import (
-	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestPointerWithBuildAndCompareStdinMismatch(t *testing.T) {

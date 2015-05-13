@@ -1,10 +1,16 @@
 #!/bin/bash
 
+hash goimports 2>/dev/null || {
+  echo "Installing goimports"
+  echo "go get golang.org/x/tools/cmd/goimports"
+  go get golang.org/x/tools/cmd/goimports
+}
+
 # don't run gofmt in these directories
 ignored=(/bin/ /docs/ /log/ /man/ /tmp/ .vendor)
 for i in */ ; do
   if [[ ! ${ignored[*]} =~ "/$i" ]]; then
-    gofmt -w -l "$@" "${i%?}"
+    goimports -w -l "$@" "${i%?}"
   fi
 done
 

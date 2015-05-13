@@ -2,13 +2,14 @@ package lfs
 
 import (
 	"fmt"
-	"github.com/github/git-lfs/git"
-	"github.com/rubyist/tracerx"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/github/git-lfs/git"
+	"github.com/rubyist/tracerx"
 )
 
 const Version = "0.5.1"

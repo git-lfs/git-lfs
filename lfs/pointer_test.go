@@ -3,9 +3,10 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"github.com/bmizerany/assert"
 	"strings"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestEncode(t *testing.T) {

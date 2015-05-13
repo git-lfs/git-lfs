@@ -2,11 +2,12 @@ package commands
 
 import (
 	"bufio"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (

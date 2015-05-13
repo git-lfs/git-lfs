@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+
+	"github.com/rubyist/tracerx"
 )
 
 const (

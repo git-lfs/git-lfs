@@ -4,10 +4,11 @@ package git
 import (
 	"errors"
 	"fmt"
-	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"strings"
+
+	"github.com/rubyist/tracerx"
 )
 
 func LsRemote(remote, remoteRef string) (string, error) {

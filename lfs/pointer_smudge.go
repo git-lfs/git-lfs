@@ -2,12 +2,12 @@ package lfs
 
 import (
 	"fmt"
-	"github.com/cheggaaa/pb"
-	"github.com/rubyist/tracerx"
-	"github.com/technoweenie/go-contentaddressable"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/cheggaaa/pb"
+	"github.com/rubyist/tracerx"
 )
 
 func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCallback) error {
