@@ -35,9 +35,9 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 
 	if wErr != nil {
 		return &SmudgeError{ptr.Oid, mediafile, wErr}
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) *WrappedError {
