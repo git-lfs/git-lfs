@@ -9,10 +9,6 @@ import (
 	"sync/atomic"
 )
 
-var (
-	clientAuthorized = int32(0)
-)
-
 // Uploadable describes a file that can be uploaded.
 type Uploadable struct {
 	OID      string
@@ -53,17 +49,18 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 
 // UploadQueue provides a queue that will allow concurrent uploads.
 type UploadQueue struct {
-	uploadc     chan *Uploadable
-	errorc      chan *WrappedError
-	errors      []*WrappedError
-	wg          sync.WaitGroup
-	workers     int
-	files       int
-	finished    int64
-	size        int64
-	authCond    *sync.Cond
-	uploadables map[string]*Uploadable
-	bar         *pb.ProgressBar
+	uploadc          chan *Uploadable
+	errorc           chan *WrappedError
+	errors           []*WrappedError
+	wg               sync.WaitGroup
+	workers          int
+	files            int
+	finished         int64
+	size             int64
+	authCond         *sync.Cond
+	uploadables      map[string]*Uploadable
+	bar              *pb.ProgressBar
+	clientAuthorized int32
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
@@ -96,7 +93,7 @@ func (q *UploadQueue) processIndividual() {
 			for u := range apic {
 				// If an API authorization has not occured, we wait until we're woken up.
 				q.authCond.L.Lock()
-				if atomic.LoadInt32(&clientAuthorized) == 0 {
+				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
 					q.authCond.Wait()
 				}
 				q.authCond.L.Unlock()
@@ -190,7 +187,7 @@ func (q *UploadQueue) Process() {
 			event := <-apiEvent
 			switch event {
 			case apiEventSuccess:
-				atomic.StoreInt32(&clientAuthorized, 1)
+				atomic.StoreInt32(&q.clientAuthorized, 1)
 				q.authCond.Broadcast() // Wake all remaining goroutines
 				return
 			case apiEventFail:

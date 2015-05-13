@@ -7,10 +7,6 @@ import (
 	"sync/atomic"
 )
 
-var (
-	downloadClientAuthorized = int32(0)
-)
-
 type Downloadable struct {
 	OID      string
 	Size     int64
@@ -21,17 +17,18 @@ type Downloadable struct {
 
 // DownloadQueue provides a queue that will allow concurrent uploads.
 type DownloadQueue struct {
-	downloadc     chan *Downloadable
-	errorc        chan *WrappedError
-	errors        []*WrappedError
-	wg            sync.WaitGroup
-	workers       int
-	files         int
-	finished      int64
-	size          int64
-	authCond      *sync.Cond
-	downloadables map[string]*Downloadable
-	bar           *pb.ProgressBar
+	downloadc        chan *Downloadable
+	errorc           chan *WrappedError
+	errors           []*WrappedError
+	wg               sync.WaitGroup
+	workers          int
+	files            int
+	finished         int64
+	size             int64
+	authCond         *sync.Cond
+	downloadables    map[string]*Downloadable
+	bar              *pb.ProgressBar
+	clientAuthorized int32
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
@@ -65,7 +62,7 @@ func (q *DownloadQueue) processIndividual() {
 			for d := range apic {
 				// If an API authorization has not occured, we wait until we're woken up.
 				q.authCond.L.Lock()
-				if atomic.LoadInt32(&downloadClientAuthorized) == 0 {
+				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
 					q.authCond.Wait()
 				}
 				q.authCond.L.Unlock()
@@ -159,7 +156,7 @@ func (q *DownloadQueue) Process() {
 			event := <-apiEvent
 			switch event {
 			case apiEventSuccess:
-				atomic.StoreInt32(&downloadClientAuthorized, 1)
+				atomic.StoreInt32(&q.clientAuthorized, 1)
 				q.authCond.Broadcast() // Wake all remaining goroutines
 				return
 			case apiEventFail:
