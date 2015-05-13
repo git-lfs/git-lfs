@@ -11,7 +11,7 @@ fi
 
 yum install -y bison git golang make man
 cd /tmp
-[ -d git-lfs ] || git clone https://github.com/jsh/git-lfs
+[ -d git-lfs ] || git clone https://github.com/github/git-lfs
 cd git-lfs
 ./script/bootstrap
 install -D bin/git-lfs /usr/local/bin

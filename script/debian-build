@@ -19,7 +19,7 @@ if [[ $go_version < 1.3.1 ]]; then
 fi
 
 cd /tmp
-[ -d git-lfs ] || git clone https://github.com/jsh/git-lfs
+[ -d git-lfs ] || git clone https://github.com/github/git-lfs
 cd git-lfs
 ./script/bootstrap
 install -D bin/git-lfs /usr/local/bin
@@ -34,7 +34,7 @@ elif grep -q Ubuntu /etc/issue; then
   rm -fr /usr/bin/gem && sudo ln -s /usr/bin/gem2.0 /usr/bin/gem
 else
   {
-    echo "unknown Debian release" 
+    echo "unknown Debian release"
     cat /etc/issue
   } >&2
   exit 1
@@ -47,4 +47,3 @@ install man/*.1 /usr/local/share/man/man1
 git help lfs > /dev/null
 
 echo SUCCESS
-
