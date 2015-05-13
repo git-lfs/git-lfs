@@ -1,16 +1,15 @@
 #!/bin/bash
 
-hash goimports 2>/dev/null || {
-  echo "Installing goimports"
-  echo "go get golang.org/x/tools/cmd/goimports"
-  go get golang.org/x/tools/cmd/goimports
+formatter=gofmt
+hash goimports 2>/dev/null && {
+  formatter=goimports
 }
 
 # don't run gofmt in these directories
 ignored=(/bin/ /docs/ /log/ /man/ /tmp/ .vendor)
 for i in */ ; do
   if [[ ! ${ignored[*]} =~ "/$i" ]]; then
-    goimports -w -l "$@" "${i%?}"
+    $formatter -w -l "$@" "${i%?}"
   fi
 done
 
