@@ -129,6 +129,34 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
+func DownloadCheck(oid string) (*objectResource, *WrappedError) {
+	req, creds, err := newApiRequest("GET", oid)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	_, obj, wErr := doApiRequest(req, creds)
+	if wErr != nil {
+		return nil, wErr
+	}
+
+	return obj, nil
+}
+
+func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+	req, creds, err := obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, wErr := doHttpRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	return res.Body, res.ContentLength, nil
+}
+
 func (b *byteCloser) Close() error {
 	return nil
 }
