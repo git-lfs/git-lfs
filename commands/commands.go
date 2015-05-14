@@ -109,12 +109,6 @@ func handlePanic(err error) string {
 	return logPanic(err, false)
 }
 
-func logEnv(w io.Writer) {
-	for _, env := range lfs.Environ() {
-		fmt.Fprintln(w, env)
-	}
-}
-
 func logPanic(loggedError error, recursive bool) string {
 	var fmtWriter io.Writer = os.Stderr
 
@@ -166,6 +160,12 @@ func logPanic(loggedError error, recursive bool) string {
 	}
 
 	return full
+}
+
+func logEnv(w io.Writer) {
+	for _, env := range lfs.Environ() {
+		fmt.Fprintln(w, env)
+	}
 }
 
 type ErrorWithStack interface {
