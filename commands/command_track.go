@@ -3,14 +3,12 @@ package commands
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 var (
@@ -155,11 +153,7 @@ func needsTrailingLinebreak(filename string) bool {
 }
 
 func workingInsideGit() bool {
-	cmd := exec.Command("git", "rev-parse", "--git-dir")
-	if err := cmd.Start(); err != nil {
-		return false
-	}
-	if err := cmd.Wait(); err != nil {
+	if lfs.LocalGitDir == "" {
 		return false
 	}
 	return true
