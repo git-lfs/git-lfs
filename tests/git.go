@@ -87,6 +87,9 @@ func (r *runner) InitRepo(name string) {
 	smudge = %s smudge %%f
 	clean = %s clean %%f
 
+[credential]
+helper = cache
+
 [remote "origin"]
 	url = %s
 	fetch = +refs/heads/*:refs/remotes/origin/*
@@ -154,6 +157,7 @@ func (r *runner) configRepo() {
 	r.Git("config", "filter.lfs.clean", fmt.Sprintf("%s clean %%f", bin))
 	r.Git("config", "user.name", "Git LFS Tests")
 	r.Git("config", "user.email", "example@git-lfs.com")
+	r.Git("config", "credential.helper", "cache")
 }
 
 func (r *runner) repo() *repo {
