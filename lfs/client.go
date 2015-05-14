@@ -109,8 +109,11 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
+		sendApiEvent(apiEventFail)
 		return nil, 0, wErr
 	}
+
+	sendApiEvent(apiEventSuccess)
 
 	req, creds, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -138,6 +141,11 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 	_, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
 		return nil, wErr
+	}
+
+	_, _, err = obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, Error(err)
 	}
 
 	return obj, nil

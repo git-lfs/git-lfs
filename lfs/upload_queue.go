@@ -83,7 +83,7 @@ func (q *UploadQueue) Add(u *Uploadable) {
 // apiWorker processes the queue, making the POST calls and
 // feeding the results to uploadWorkers
 func (q *UploadQueue) processIndividual() {
-	apic := make(chan *Uploadable, q.workers)
+	apic := make(chan *Uploadable, q.files)
 	workersReady := make(chan int, q.workers)
 	var wg sync.WaitGroup
 

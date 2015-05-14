@@ -2,22 +2,17 @@ package lfs
 
 import (
 	"fmt"
-	"github.com/cheggaaa/pb"
+	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
-)
 
-type Downloadable struct {
-	OID      string
-	Size     int64
-	Filename string
-	CB       CopyCallback
-	object   *objectResource
-}
+	"github.com/cheggaaa/pb"
+)
 
 // DownloadQueue provides a queue that will allow concurrent uploads.
 type DownloadQueue struct {
-	downloadc        chan *Downloadable
+	downloadc        chan *wrappedPointer
 	errorc           chan *WrappedError
 	errors           []*WrappedError
 	wg               sync.WaitGroup
@@ -26,7 +21,7 @@ type DownloadQueue struct {
 	finished         int64
 	size             int64
 	authCond         *sync.Cond
-	downloadables    map[string]*Downloadable
+	pointers         []*wrappedPointer
 	bar              *pb.ProgressBar
 	clientAuthorized int32
 }
@@ -34,32 +29,30 @@ type DownloadQueue struct {
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
 func NewDownloadQueue(workers, files int) *DownloadQueue {
 	return &DownloadQueue{
-		downloadc:     make(chan *Downloadable, files),
-		errorc:        make(chan *WrappedError),
-		workers:       workers,
-		files:         files,
-		authCond:      sync.NewCond(&sync.Mutex{}),
-		downloadables: make(map[string]*Downloadable),
+		downloadc: make(chan *wrappedPointer, files),
+		errorc:    make(chan *WrappedError),
+		workers:   workers,
+		files:     files,
+		authCond:  sync.NewCond(&sync.Mutex{}),
 	}
 }
 
 // Add adds an object to the download queue.
-func (q *DownloadQueue) Add(oid, filename string, size int64) {
-	// TODO create the callback and such
-	q.downloadables[oid] = &Downloadable{OID: oid, Filename: filename, Size: size}
+func (q *DownloadQueue) Add(p *wrappedPointer) {
+	q.pointers = append(q.pointers, p)
 }
 
 // apiWorker processes the queue, making the POST calls and
 // feeding the results to uploadWorkers
 func (q *DownloadQueue) processIndividual() {
-	apic := make(chan *Downloadable, q.workers)
+	apic := make(chan *wrappedPointer, q.files)
 	workersReady := make(chan int, q.workers)
 	var wg sync.WaitGroup
 
 	for i := 0; i < q.workers; i++ {
 		go func() {
 			workersReady <- 1
-			for d := range apic {
+			for p := range apic {
 				// If an API authorization has not occured, we wait until we're woken up.
 				q.authCond.L.Lock()
 				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
@@ -67,28 +60,26 @@ func (q *DownloadQueue) processIndividual() {
 				}
 				q.authCond.L.Unlock()
 
-				obj, err := DownloadCheck(d.OID)
+				_, err := DownloadCheck(p.Oid)
 				if err != nil {
 					q.errorc <- err
 					wg.Done()
 					continue
 				}
-				if obj != nil {
-					q.wg.Add(1)
-					d.object = obj
-					q.downloadc <- d
-				}
+
+				q.wg.Add(1)
+				q.downloadc <- p
 				wg.Done()
 			}
 		}()
 	}
 
-	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, len(q.downloadables)))
+	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, len(q.pointers)))
 	q.bar.Start()
 
-	for _, d := range q.downloadables {
+	for _, p := range q.pointers {
 		wg.Add(1)
-		apic <- d
+		apic <- p
 	}
 
 	<-workersReady
@@ -97,40 +88,6 @@ func (q *DownloadQueue) processIndividual() {
 	wg.Wait()
 
 	close(q.downloadc)
-}
-
-// batchWorker makes the batch POST call, feeding the results
-// to the uploadWorkers
-func (q *DownloadQueue) processBatch() {
-	q.files = 0
-	downloads := make([]*objectResource, 0, len(q.downloadables))
-	for _, d := range q.downloadables {
-		downloads = append(downloads, &objectResource{Oid: d.OID, Size: d.Size})
-	}
-
-	objects, err := Batch(downloads)
-	if err != nil {
-		q.errorc <- err
-		sendApiEvent(apiEventFail)
-		return
-	}
-
-	for _, o := range objects {
-		if _, ok := o.Links["download"]; ok {
-			// This object can be downloaded
-			if downloadable, ok := q.downloadables[o.Oid]; ok {
-				q.files++
-				q.wg.Add(1)
-				downloadable.object = o
-				q.downloadc <- downloadable
-			}
-		}
-	}
-
-	close(q.downloadc)
-	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
-	q.bar.Start()
-	sendApiEvent(apiEventSuccess) // Wake up download workers
 }
 
 // Process starts the download queue and displays a progress bar.
@@ -169,13 +126,25 @@ func (q *DownloadQueue) Process() {
 		// These are the worker goroutines that process uploads
 		go func(n int) {
 
-			for download := range q.downloadc {
-				_, _, err := DownloadObject(download.object)
+			for ptr := range q.downloadc {
+				fullPath := filepath.Join(LocalWorkingDir, ptr.Name)
+				output, err := os.Create(fullPath)
 				if err != nil {
-					q.errorc <- err
+					q.errorc <- Error(err)
+					f := atomic.AddInt64(&q.finished, 1)
+					q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
+					q.wg.Done()
+					continue
 				}
 
-				// TODO: Process the download
+				cb := func(total, read int64, current int) error {
+					q.bar.Add(current)
+					return nil
+				}
+				// TODO need a callback
+				if err := PointerSmudge(output, ptr.Pointer, ptr.Name, cb); err != nil {
+					q.errorc <- Error(err)
+				}
 
 				f := atomic.AddInt64(&q.finished, 1)
 				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
@@ -184,11 +153,11 @@ func (q *DownloadQueue) Process() {
 		}(i)
 	}
 
-	if Config.BatchTransfer() {
-		q.processBatch()
-	} else {
-		q.processIndividual()
-	}
+	//	if Config.BatchTransfer() {
+	//		q.processBatch()
+	//	} else {
+	q.processIndividual()
+	//	}
 
 	q.wg.Wait()
 	close(q.errorc)
