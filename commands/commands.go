@@ -135,31 +135,35 @@ func logPanic(loggedError error, recursive bool) string {
 		}
 	}
 
-	fmt.Fprintf(fmtWriter, "> %s", filepath.Base(os.Args[0]))
-	if len(os.Args) > 0 {
-		fmt.Fprintf(fmtWriter, " %s", strings.Join(os.Args[1:], " "))
-	}
-	fmt.Fprintln(fmtWriter)
-
-	logEnv(fmtWriter)
-	fmt.Fprintln(fmtWriter)
-
-	fmtWriter.Write(ErrorBuffer.Bytes())
-	fmt.Fprintln(fmtWriter)
-
-	fmt.Fprintln(fmtWriter, loggedError.Error())
-
-	if wErr, ok := loggedError.(ErrorWithStack); ok {
-		fmt.Fprintln(fmtWriter, wErr.InnerError())
-		for key, value := range wErr.Context() {
-			fmt.Fprintf(fmtWriter, "%s=%s\n", key, value)
-		}
-		fmtWriter.Write(wErr.Stack())
-	} else {
-		fmtWriter.Write(lfs.Stack())
-	}
+	logPanicToWriter(fmtWriter, loggedError)
 
 	return full
+}
+
+func logPanicToWriter(w io.Writer, loggedError error) {
+	fmt.Fprintf(w, "> %s", filepath.Base(os.Args[0]))
+	if len(os.Args) > 0 {
+		fmt.Fprintf(w, " %s", strings.Join(os.Args[1:], " "))
+	}
+	fmt.Fprintln(w)
+
+	logEnv(w)
+	fmt.Fprintln(w)
+
+	w.Write(ErrorBuffer.Bytes())
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, loggedError.Error())
+
+	if wErr, ok := loggedError.(ErrorWithStack); ok {
+		fmt.Fprintln(w, wErr.InnerError())
+		for key, value := range wErr.Context() {
+			fmt.Fprintf(w, "%s=%s\n", key, value)
+		}
+		w.Write(wErr.Stack())
+	} else {
+		w.Write(lfs.Stack())
+	}
 }
 
 func logEnv(w io.Writer) {
