@@ -1,10 +1,15 @@
 #!/bin/bash
 
+formatter=gofmt
+hash goimports 2>/dev/null && {
+  formatter=goimports
+}
+
 # don't run gofmt in these directories
 ignored=(/bin/ /docs/ /log/ /man/ /tmp/ .vendor)
 for i in */ ; do
   if [[ ! ${ignored[*]} =~ "/$i" ]]; then
-    gofmt -w -l "$@" "${i%?}"
+    $formatter -w -l "$@" "${i%?}"
   fi
 done
 

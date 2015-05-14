@@ -2,11 +2,12 @@ package lfs
 
 import (
 	"fmt"
-	"github.com/cheggaaa/pb"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+
+	"github.com/cheggaaa/pb"
 )
 
 var (

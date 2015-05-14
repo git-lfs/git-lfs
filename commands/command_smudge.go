@@ -2,11 +2,12 @@ package commands
 
 import (
 	"bytes"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (

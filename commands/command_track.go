@@ -3,13 +3,14 @@ package commands
 import (
 	"bufio"
 	"fmt"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (

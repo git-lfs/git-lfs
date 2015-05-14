@@ -1,11 +1,12 @@
 package commands
 
 import (
-	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestTrack(t *testing.T) {

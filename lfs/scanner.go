@@ -3,13 +3,14 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rubyist/tracerx"
 )
 
 const (

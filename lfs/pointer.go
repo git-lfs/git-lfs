@@ -115,11 +115,11 @@ func decodeKV(data []byte) (*Pointer, error) {
 	sizeStr, ok := parsed["size"]
 	if !ok {
 		return nil, errors.New("Invalid Oid")
-	} else {
-		size, err = strconv.ParseInt(sizeStr, 10, 0)
-		if err != nil {
-			return nil, errors.New("Invalid size: " + sizeStr)
-		}
+	}
+
+	size, err = strconv.ParseInt(sizeStr, 10, 0)
+	if err != nil {
+		return nil, errors.New("Invalid size: " + sizeStr)
 	}
 
 	return NewPointer(oid, size), nil

@@ -2,11 +2,12 @@ package commands
 
 import (
 	"errors"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (

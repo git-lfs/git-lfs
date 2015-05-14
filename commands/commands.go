@@ -3,8 +3,6 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"log"
 	"os"
@@ -12,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -136,13 +137,13 @@ func logPanic(loggedError error, recursive bool) string {
 	if len(os.Args) > 0 {
 		fmt.Fprintf(fmtWriter, " %s", strings.Join(os.Args[1:], " "))
 	}
-	fmt.Fprint(fmtWriter, "\n")
+	fmt.Fprintln(fmtWriter)
 
 	logEnv(fmtWriter)
-	fmt.Fprint(fmtWriter, "\n")
+	fmt.Fprintln(fmtWriter)
 
 	fmtWriter.Write(ErrorBuffer.Bytes())
-	fmt.Fprint(fmtWriter, "\n")
+	fmt.Fprintln(fmtWriter)
 
 	fmt.Fprintln(fmtWriter, loggedError.Error())
 
