@@ -129,8 +129,10 @@ func logPanic(loggedError error, recursive bool) string {
 
 	if file, err := os.Create(full); err != nil {
 		if !recursive {
+			filename := full
+			full = ""
 			defer func() {
-				fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
+				fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
 				logPanic(err, true)
 			}()
 		}
