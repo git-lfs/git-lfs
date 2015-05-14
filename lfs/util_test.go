@@ -2,9 +2,10 @@ package lfs
 
 import (
 	"bytes"
-	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestWriterWithCallback(t *testing.T) {

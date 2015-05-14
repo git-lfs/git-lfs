@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"fmt"
-	"github.com/github/git-lfs/git"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/github/git-lfs/git"
 )
 
 type Configuration struct {

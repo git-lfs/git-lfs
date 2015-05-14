@@ -2,8 +2,9 @@ package lfs
 
 import (
 	"encoding/json"
-	"github.com/rubyist/tracerx"
 	"os/exec"
+
+	"github.com/rubyist/tracerx"
 )
 
 type sshAuthResponse struct {

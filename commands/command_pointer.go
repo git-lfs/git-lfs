@@ -6,11 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 )
 
 var (
