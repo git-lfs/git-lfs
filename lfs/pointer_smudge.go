@@ -37,9 +37,75 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 
 	if wErr != nil {
 		return &SmudgeError{ptr.Oid, mediafile, wErr}
-	} else {
-		return nil
 	}
+
+	return nil
+}
+
+func PointerSmudgeObject(writer io.Writer, ptr *Pointer, obj *objectResource, cb CopyCallback) error {
+	mediafile, err := LocalMediaPath(obj.Oid)
+	if err != nil {
+		return err
+	}
+
+	stat, statErr := os.Stat(mediafile)
+	if statErr == nil && stat != nil {
+		fileSize := stat.Size()
+		if fileSize == 0 || fileSize != obj.Size {
+			tracerx.Printf("Removing %s, size %d is invalid", mediafile, fileSize)
+			os.RemoveAll(mediafile)
+			stat = nil
+		}
+	}
+
+	var wErr *WrappedError
+	if statErr != nil || stat == nil {
+		wErr = downloadObject(writer, ptr, obj, mediafile, cb)
+	} else {
+		wErr = readLocalFile(writer, ptr, mediafile, cb)
+	}
+
+	if wErr != nil {
+		sendApiEvent(apiEventFail)
+		return &SmudgeError{obj.Oid, mediafile, wErr}
+	}
+
+	sendApiEvent(apiEventSuccess)
+	return nil
+}
+
+func downloadObject(writer io.Writer, ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) *WrappedError {
+	reader, size, wErr := DownloadObject(obj)
+	if reader != nil {
+		defer reader.Close()
+	}
+
+	// TODO this can be unified with the same code in downloadFile
+	if wErr != nil {
+		wErr.Errorf("Error downloading %s.", mediafile)
+		return wErr
+	}
+
+	if ptr.Size == 0 {
+		ptr.Size = size
+	}
+
+	mediaFile, err := contentaddressable.NewFile(mediafile)
+	if err != nil {
+		return Errorf(err, "Error opening media file buffer.")
+	}
+
+	_, err = CopyWithCallback(mediaFile, reader, ptr.Size, cb)
+	if err == nil {
+		err = mediaFile.Accept()
+	}
+	mediaFile.Close()
+
+	if err != nil {
+		return Errorf(err, "Error buffering media file.")
+	}
+
+	return readLocalFile(writer, ptr, mediafile, nil)
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) *WrappedError {
