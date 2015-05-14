@@ -8,6 +8,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 	"github.com/rubyist/tracerx"
+	contentaddressable "github.com/technoweenie/go-contentaddressable"
 )
 
 func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCallback) error {
