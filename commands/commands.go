@@ -106,33 +106,31 @@ func handlePanic(err error) string {
 		return ""
 	}
 
-	return logPanic(err, false)
+	return logPanic(err)
 }
 
-func logPanic(loggedError error, recursive bool) string {
+func logPanic(loggedError error) string {
 	var fmtWriter io.Writer = os.Stderr
 
-	if !recursive {
-		if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
-			fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
-			return ""
-		}
+	if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
+		return ""
+	}
 
-		now := time.Now()
-		name := now.Format("20060102T150405.999999999")
-		full := filepath.Join(lfs.LocalLogDir, name+".log")
+	now := time.Now()
+	name := now.Format("20060102T150405.999999999")
+	full := filepath.Join(lfs.LocalLogDir, name+".log")
 
-		if file, err := os.Create(full); err != nil {
-			filename := full
-			full = ""
-			defer func() {
-				fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
-				logPanic(err, true)
-			}()
-		} else {
-			fmtWriter = file
-			defer file.Close()
-		}
+	if file, err := os.Create(full); err != nil {
+		filename := full
+		full = ""
+		defer func() {
+			fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
+			logPanicToWriter(fmtWriter, err)
+		}()
+	} else {
+		fmtWriter = file
+		defer file.Close()
 	}
 
 	logPanicToWriter(fmtWriter, loggedError)
