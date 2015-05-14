@@ -8,3 +8,6 @@ servertest
 man/*
 
 *.test
+
+tests/remote
+tests/local
