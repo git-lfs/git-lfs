@@ -127,8 +127,14 @@ func logPanic(loggedError error, recursive bool) string {
 	name := now.Format("20060102T150405.999999999")
 	full := filepath.Join(lfs.LocalLogDir, name+".log")
 
-	file, err := os.Create(full)
-	if err == nil {
+	if file, err := os.Create(full); err != nil {
+		if !recursive {
+			defer func() {
+				fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
+				logPanic(err, true)
+			}()
+		}
+	} else {
 		fmtWriter = file
 		defer file.Close()
 	}
@@ -155,11 +161,6 @@ func logPanic(loggedError error, recursive bool) string {
 		fmtWriter.Write(wErr.Stack())
 	} else {
 		fmtWriter.Write(lfs.Stack())
-	}
-
-	if err != nil && !recursive {
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
-		logPanic(err, true)
 	}
 
 	return full
