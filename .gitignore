@@ -9,5 +9,5 @@ man/*
 
 *.test
 
-tests/remote
-tests/local
+test/remote
+test/local

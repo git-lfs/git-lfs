@@ -16,10 +16,10 @@ wait_for_file() {
 }
 
 # cleanup
-rm -rf "tests/remote"
-rm -rf "tests/local"
-mkdir -p "tests/remote"
-mkdir -p "tests/local"
+rm -rf "test/remote"
+rm -rf "test/local"
+mkdir -p "test/remote"
+mkdir -p "test/local"
 ROOTDIR=`pwd`
 
 echo "compile git-lfs"
@@ -27,9 +27,9 @@ script/bootstrap
 GITLFS="`pwd`/bin/git-lfs"
 
 echo "spin up test server"
-LFSTEST_URL=tests/remote/url go run tests/cmd/lfstest-gitserver.go &
-wait_for_file tests/remote/url
-GITSERVER=$(cat tests/remote/url)
+LFSTEST_URL="test/remote/url" go run "test/cmd/lfstest-gitserver.go" &
+wait_for_file "test/remote/url"
+GITSERVER=$(cat "test/remote/url")
 echo $GITSERVER
 
 echo "set up 'remote' git repository"
