@@ -106,63 +106,66 @@ func handlePanic(err error) string {
 		return ""
 	}
 
-	return logPanic(err, false)
+	return logPanic(err)
+}
+
+func logPanic(loggedError error) string {
+	var fmtWriter io.Writer = os.Stderr
+
+	now := time.Now()
+	name := now.Format("20060102T150405.999999999")
+	full := filepath.Join(lfs.LocalLogDir, name+".log")
+
+	if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
+		full = ""
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
+	} else if file, err := os.Create(full); err != nil {
+		filename := full
+		full = ""
+		defer func() {
+			fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
+			logPanicToWriter(fmtWriter, err)
+		}()
+	} else {
+		fmtWriter = file
+		defer file.Close()
+	}
+
+	logPanicToWriter(fmtWriter, loggedError)
+
+	return full
+}
+
+func logPanicToWriter(w io.Writer, loggedError error) {
+	fmt.Fprintf(w, "> %s", filepath.Base(os.Args[0]))
+	if len(os.Args) > 0 {
+		fmt.Fprintf(w, " %s", strings.Join(os.Args[1:], " "))
+	}
+	fmt.Fprintln(w)
+
+	logEnv(w)
+	fmt.Fprintln(w)
+
+	w.Write(ErrorBuffer.Bytes())
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, loggedError.Error())
+
+	if wErr, ok := loggedError.(ErrorWithStack); ok {
+		fmt.Fprintln(w, wErr.InnerError())
+		for key, value := range wErr.Context() {
+			fmt.Fprintf(w, "%s=%s\n", key, value)
+		}
+		w.Write(wErr.Stack())
+	} else {
+		w.Write(lfs.Stack())
+	}
 }
 
 func logEnv(w io.Writer) {
 	for _, env := range lfs.Environ() {
 		fmt.Fprintln(w, env)
 	}
-}
-
-func logPanic(loggedError error, recursive bool) string {
-	var fmtWriter io.Writer = os.Stderr
-
-	if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
-		return ""
-	}
-
-	now := time.Now()
-	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(lfs.LocalLogDir, name+".log")
-
-	file, err := os.Create(full)
-	if err == nil {
-		fmtWriter = file
-		defer file.Close()
-	}
-
-	fmt.Fprintf(fmtWriter, "> %s", filepath.Base(os.Args[0]))
-	if len(os.Args) > 0 {
-		fmt.Fprintf(fmtWriter, " %s", strings.Join(os.Args[1:], " "))
-	}
-	fmt.Fprintln(fmtWriter)
-
-	logEnv(fmtWriter)
-	fmt.Fprintln(fmtWriter)
-
-	fmtWriter.Write(ErrorBuffer.Bytes())
-	fmt.Fprintln(fmtWriter)
-
-	fmt.Fprintln(fmtWriter, loggedError.Error())
-
-	if wErr, ok := loggedError.(ErrorWithStack); ok {
-		fmt.Fprintln(fmtWriter, wErr.InnerError())
-		for key, value := range wErr.Context() {
-			fmt.Fprintf(fmtWriter, "%s=%s\n", key, value)
-		}
-		fmtWriter.Write(wErr.Stack())
-	} else {
-		fmtWriter.Write(lfs.Stack())
-	}
-
-	if err != nil && !recursive {
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", full)
-		logPanic(err, true)
-	}
-
-	return full
 }
 
 type ErrorWithStack interface {
