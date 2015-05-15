@@ -12,11 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 
 	"github.com/rubyist/tracerx"
 )
 
+// SJS MOVE LATER move all this to http specific file
+// not moved for now to make merging easier
 const (
 	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
 )
@@ -47,19 +48,19 @@ var (
 	apiEvent = make(chan int)
 )
 
-type objectResource struct {
+type httpObjectResource struct {
 	Oid   string                   `json:"oid,omitempty"`
 	Size  int64                    `json:"size,omitempty"`
 	Links map[string]*linkRelation `json:"_links,omitempty"`
 }
 
-func (o *objectResource) NewRequest(relation, method string) (*http.Request, Creds, error) {
+func (o *httpObjectResource) NewRequest(ctx *HttpApiContext, relation, method string) (*http.Request, Creds, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
 		return nil, nil, objectRelationDoesNotExist
 	}
 
-	req, creds, err := newClientRequest(method, rel.Href)
+	req, creds, err := ctx.newClientRequest(method, rel.Href)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,7 +72,7 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, Cre
 	return req, creds, nil
 }
 
-func (o *objectResource) Rel(name string) (*linkRelation, bool) {
+func (o *httpObjectResource) Rel(name string) (*linkRelation, bool) {
 	if o.Links == nil {
 		return nil, false
 	}
@@ -102,28 +103,12 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
+// SJS MOVE LATER: end section that needs relocating to http-specific source file
+
 func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
-	req, creds, err := newApiRequest("GET", oid)
-	if err != nil {
-		return nil, 0, Error(err)
-	}
 
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
-	}
-
-	req, creds, err = obj.NewRequest("download", "GET")
-	if err != nil {
-		return nil, 0, Error(err)
-	}
-
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
-	}
-
-	return res.Body, res.ContentLength, nil
+	ctx := GetApiContext(Config.Endpoint())
+	return ctx.Download(oid)
 }
 
 type byteCloser struct {
@@ -147,92 +132,14 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 		return Error(err)
 	}
 
-	reqObj := &objectResource{
-		Oid:  oid,
-		Size: stat.Size(),
-	}
-
-	by, err := json.Marshal(reqObj)
-	if err != nil {
-		return Error(err)
-	}
-
-	req, creds, err := newApiRequest("POST", oid)
-	if err != nil {
-		return Error(err)
-	}
-
-	req.Header.Set("Content-Type", mediaType)
-	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
-	req.ContentLength = int64(len(by))
-	req.Body = &byteCloser{bytes.NewReader(by)}
-
 	tracerx.Printf("api: uploading %s (%s)", filename, oid)
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		sendApiEvent(apiEventFail)
-		return wErr
-	}
+	ctx := GetApiContext(Config.Endpoint())
+	return ctx.Upload(oid, stat.Size(), file, cb)
 
-	sendApiEvent(apiEventSuccess)
-
-	reader := &CallbackReader{
-		C:         cb,
-		TotalSize: reqObj.Size,
-		Reader:    file,
-	}
-
-	if res.StatusCode == 200 {
-		// Drain the reader to update any progress bars
-		io.Copy(ioutil.Discard, reader)
-		return nil
-	}
-
-	req, creds, err = obj.NewRequest("upload", "PUT")
-	if err != nil {
-		return Error(err)
-	}
-
-	if len(req.Header.Get("Content-Type")) == 0 {
-		req.Header.Set("Content-Type", "application/octet-stream")
-	}
-	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
-	req.ContentLength = reqObj.Size
-
-	req.Body = ioutil.NopCloser(reader)
-
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return wErr
-	}
-
-	if res.StatusCode > 299 {
-		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
-	}
-
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	req, creds, err = obj.NewRequest("verify", "POST")
-	if err == objectRelationDoesNotExist {
-		return nil
-	} else if err != nil {
-		return Error(err)
-	}
-
-	req.Header.Set("Content-Type", mediaType)
-	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
-	req.ContentLength = int64(len(by))
-	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doHttpRequest(req, creds)
-
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	return wErr
 }
 
-func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	res, err := DoHTTP(Config, req)
 
 	var wErr *WrappedError
@@ -244,28 +151,29 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 			saveCredentials(creds, res)
 		}
 
-		wErr = handleResponse(res)
+		wErr = self.handleResponse(res)
 	}
 
 	if wErr != nil {
 		if res != nil {
-			setErrorResponseContext(wErr, res)
+			self.setErrorResponseContext(wErr, res)
 		} else {
-			setErrorRequestContext(wErr, req)
+			self.setErrorRequestContext(wErr, req)
 		}
 	}
 
 	return res, wErr
 }
 
-func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
-	res, wErr := doHttpRequest(req, creds)
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
+	res, wErr := self.doHttpRequest(req, creds)
 	if wErr != nil {
 		return nil, wErr
 	}
 
 	if res.StatusCode == 307 {
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
+		redirectedReq, redirectedCreds, err := self.newClientRequest(req.Method, res.Header.Get("Location"))
 		if err != nil {
 			return nil, Errorf(err, err.Error())
 		}
@@ -286,31 +194,35 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 			return nil, Errorf(err, err.Error())
 		}
 
-		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
+		return self.doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
 	}
 
 	return res, nil
 }
 
-func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.Response, *httpObjectResource, *WrappedError) {
+	// SJS This whole function needs to be be using abstractions of requests / responses so non-HTTPS will work
+
 	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, creds, via)
+	res, wErr := self.doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
 		return nil, nil, wErr
 	}
 
-	obj := &objectResource{}
-	wErr = decodeApiResponse(res, obj)
+	obj := &httpObjectResource{}
+	wErr = self.decodeApiResponse(res, obj)
 
 	if wErr != nil {
-		setErrorResponseContext(wErr, res)
+		self.setErrorResponseContext(wErr, res)
 		return nil, nil, wErr
 	}
 
 	return res, obj, nil
 }
 
-func handleResponse(res *http.Response) *WrappedError {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) handleResponse(res *http.Response) *WrappedError {
 	if res.StatusCode < 400 {
 		return nil
 	}
@@ -321,10 +233,10 @@ func handleResponse(res *http.Response) *WrappedError {
 	}()
 
 	cliErr := &ClientError{}
-	wErr := decodeApiResponse(res, cliErr)
+	wErr := self.decodeApiResponse(res, cliErr)
 	if wErr == nil {
 		if len(cliErr.Message) == 0 {
-			wErr = defaultError(res)
+			wErr = self.defaultError(res)
 		} else {
 			wErr = Error(cliErr)
 		}
@@ -334,7 +246,8 @@ func handleResponse(res *http.Response) *WrappedError {
 	return wErr
 }
 
-func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
@@ -351,7 +264,8 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	return nil
 }
 
-func defaultError(res *http.Response) *WrappedError {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) defaultError(res *http.Response) *WrappedError {
 	var msgFmt string
 
 	if f, ok := defaultErrors[res.StatusCode]; ok {
@@ -377,8 +291,9 @@ func saveCredentials(creds Creds, res *http.Response) {
 	}
 }
 
-func newApiRequest(method, oid string) (*http.Request, Creds, error) {
-	endpoint := Config.Endpoint()
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) newApiRequest(method, oid string) (*http.Request, Creds, error) {
+	endpoint := self.Endpoint()
 	objectOid := oid
 	operation := "download"
 	if method == "POST" {
@@ -386,6 +301,8 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 		operation = "upload"
 	}
 
+	// SJS at this point we should do more than just use SSH as an auth path
+	// SJS could leave this here as a fallback even though it wastes an SSH connection
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
@@ -402,7 +319,10 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 		return nil, nil, err
 	}
 
-	req, creds, err := newClientRequest(method, u.String())
+	// SJS at this point it becomes implicitly HTTPS
+	// Here is where we need to abstract, and in return type
+
+	req, creds, err := self.newClientRequest(method, u.String())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -417,7 +337,8 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	return req, creds, nil
 }
 
-func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
 		return nil, nil, err
@@ -458,19 +379,22 @@ func getCreds(req *http.Request) (Creds, error) {
 	return nil, nil
 }
 
-func setErrorResponseContext(err *WrappedError, res *http.Response) {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) setErrorResponseContext(err *WrappedError, res *http.Response) {
 	err.Set("Status", res.Status)
-	setErrorHeaderContext(err, "Request", res.Header)
-	setErrorRequestContext(err, res.Request)
+	self.setErrorHeaderContext(err, "Request", res.Header)
+	self.setErrorRequestContext(err, res.Request)
 }
 
-func setErrorRequestContext(err *WrappedError, req *http.Request) {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) setErrorRequestContext(err *WrappedError, req *http.Request) {
 	err.Set("Endpoint", Config.Endpoint().Url)
 	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
-	setErrorHeaderContext(err, "Response", req.Header)
+	self.setErrorHeaderContext(err, "Response", req.Header)
 }
 
-func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
+func (self *HttpApiContext) setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {

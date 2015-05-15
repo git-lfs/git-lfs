@@ -15,6 +15,12 @@ type sshAuthResponse struct {
 }
 
 func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse, error) {
+
+	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
+	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
+	// SJS TODO - however still needs upgrading to support Windows, PuTTY & Tortoise like mainline Git
+	//            respect GIT_SSH etc
+
 	res := sshAuthResponse{}
 	if len(endpoint.SshUserAndHost) == 0 {
 		return res, nil

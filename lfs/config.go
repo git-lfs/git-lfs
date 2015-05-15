@@ -97,13 +97,15 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 		endpoint := Endpoint{Url: url}
 
 		if !httpPrefixRe.MatchString(url) {
+			// SJS this is where SSH URLs are detected
 			pieces := strings.SplitN(url, ":", 2)
 			hostPieces := strings.SplitN(pieces[0], "@", 2)
 			if len(hostPieces) < 2 {
 				endpoint.Url = "<unknown>"
 				return endpoint
 			}
-
+			// SJS turned into a HTTPS URL of just host.com/path
+			// SJS SSH values are kept to perform just auth test
 			endpoint.SshUserAndHost = pieces[0]
 			endpoint.SshPath = pieces[1]
 			endpoint.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
