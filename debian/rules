@@ -1,0 +1,37 @@
+#!/usr/bin/make -f
+
+export DH_OPTIONS
+
+BUILD_DIR := obj-$(DEB_BUILD_GNU_TYPE)
+export DH_GOPKG := github.com/github/git-lfs
+export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
+
+%:
+	dh $@ --buildsystem=golang --with=golang
+
+override_dh_clean:
+	rm -f debian/debhelper.log
+	rm -rf man
+	dh_clean
+
+override_dh_auto_build:
+	for dir in .vendor/src/github.com/*; do \
+		ln -s ../../../$$dir $(BUILD_DIR)/src/github.com/; \
+	done
+	dh_auto_build
+	rm $(BUILD_DIR)/bin/script
+	./script/man
+
+override_dh_strip:
+	# strip disabled as golang upstream doesn't support it and it makes go
+	# crash. See https://launchpad.net/bugs/1200255.
+
+override_dh_auto_install:
+	mkdir -p debian/git-lfs/usr/bin
+	cp $(BUILD_DIR)/bin/git-lfs debian/git-lfs/usr/bin/
+
+override_dh_auto_test:
+	ln -s ../../../../../../commands/repos $(BUILD_DIR)/src/github.com/github/git-lfs/commands/repos
+	ln -s ../../../../bin $(BUILD_DIR)/src/github.com/github/git-lfs/bin
+	dh_auto_test
+	rm $(BUILD_DIR)/src/github.com/github/git-lfs/commands/repos $(BUILD_DIR)/src/github.com/github/git-lfs/bin
