@@ -1,17 +1,37 @@
 #!/usr/bin/env bash
 #
 # This script works with CentOS 6 or 7
-# The CentOS 5 kernel is too old for go's liking.
+# The CentOS 5 kernel is too old for go's liking, but this script works on CentOS 5
 
 set -eu
 
 trap 'echo FAIL' ERR
 
-if grep -q ' 6' /etc/redhat-release; then
-  rpm -q epel-release || rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-fi
+if grep -q ' 5' /etc/redhat-release; then
+  pushd /tmp
+  #No clue why rpm -Uvh {url} doesn't work... it doesn't
+  if ! rpm -q epel-release; then
+    yum install -y curl.x86_64 #Centos 5 isn't as smart about not downloading 32 bit
+    curl -L -O http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm 
+    rpm -Uvh epel-release-5-4.noarch.rpm
+  fi
+  yum install -y bison git make man which tar
+  #wget https://storage.googleapis.com/golang/go1.4.2.src.tar.gz --no-check-certificate
+  #wget https://storage.googleapis.com/golang/go1.4.2.linux-386.tar.gz --no-check-certificate
+  if [ ! -d /tmp/go ]; then
+    curl -L -O https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz
+    tar -zxf go1.4.2.linux-amd64.tar.gz
+  fi
+  export GOROOT=/tmp/go
+  export PATH=${PATH}:${GOROOT}/bin
+  popd
+else
+  if grep -q ' 6' /etc/redhat-release; then
+    rpm -q epel-release || rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+  fi
 
-yum install -y bison git golang make man which
+  yum install -y bison git golang make man which
+fi
 
 cd $(dirname ${BASH_SOURCE[0]})
 if git rev-parse; then
@@ -38,14 +58,18 @@ else
 fi
 
 if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if grep -q ' 6' /etc/redhat-release; then
+  if grep -q ' 6' /etc/redhat-release ||  grep -q ' 5' /etc/redhat-release; then
     yum install -y tar
-    gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
-    curl -L get.rvm.io | bash -s stable --ruby
+    if grep -q ' 6' /etc/redhat-release; then
+      gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+    fi
+    set +e #For CentOS 5
+    curl -L get.rvm.io | bash -s stable
     set +u
     source /usr/local/rvm/scripts/rvm
+    rvm install ruby
     rvm use ruby
-    set -u
+    set -ue
   elif grep -q ' 7' /etc/redhat-release; then
     yum install ruby ruby-devel
   fi
