@@ -43,10 +43,7 @@ func TestUpdateWithLatestPrePushHook(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("#!/bin/sh\ngit lfs pre-push \"$@\"\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "#!/bin/sh\ngit lfs pre-push \"$@\"\n")
 	})
 
 	cmd.After(func() {
@@ -74,10 +71,7 @@ func TestUpdateForce(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("sup\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "sup\n")
 	})
 
 	cmd.After(func() {
@@ -107,10 +101,7 @@ func TestUpdateWithUnexpectedPrePushHook(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("test\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "test\n")
 	})
 
 	cmd.After(func() {
@@ -138,10 +129,7 @@ func TestUpdateWithOldPrePushHook_1(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("#!/bin/sh\ngit lfs push --stdin $*\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "#!/bin/sh\ngit lfs push --stdin $*\n")
 	})
 
 	cmd.After(func() {
@@ -169,10 +157,7 @@ func TestUpdateWithOldPrePushHook_2(t *testing.T) {
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("#!/bin/sh\ngit lfs push --stdin \"$@\"\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "#!/bin/sh\ngit lfs push --stdin \"$@\"\n")
 	})
 
 	cmd.After(func() {

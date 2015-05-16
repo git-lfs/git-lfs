@@ -13,7 +13,7 @@ func TestStatus(t *testing.T) {
 	cmd.Output = " M file1.dat 9\nA  file2.dat 10\nA  file3.dat 10"
 
 	cmd.Before(func() {
-		path := filepath.Join(".git", "info", "attributes")
+		path := filepath.Join(repo.Path, ".git", "info", "attributes")
 		repo.WriteFile(path, "*.dat filter=lfs -crlf\n")
 
 		// Add a Git LFS file

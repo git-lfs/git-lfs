@@ -12,7 +12,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-const Version = "0.5.1"
+const Version = "0.5.1_LFS_FSCK_DEBUG"
 
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024

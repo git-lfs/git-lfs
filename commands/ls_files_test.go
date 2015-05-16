@@ -13,7 +13,7 @@ func TestLsFiles(t *testing.T) {
 	cmd.Output = "a.dat"
 
 	cmd.Before(func() {
-		path := filepath.Join(".git", "info", "attributes")
+		path := filepath.Join(repo.Path, ".git", "info", "attributes")
 		repo.WriteFile(path, "*.dat filter=lfs -crlf\n")
 
 		// Add a Git LFS object
