@@ -1,7 +1,9 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 #
 # This script works with CentOS 6 or 7
 # The CentOS 5 kernel is too old for go's liking.
+
+set -eu
 
 trap 'echo FAIL' ERR
 
@@ -9,7 +11,7 @@ if grep -q ' 6' /etc/redhat-release; then
   rpm -q epel-release || rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 fi
 
-yum install -y bison git golang make man
+yum install -y bison git golang make man which
 cd /tmp
 [ -d git-lfs ] || git clone https://github.com/github/git-lfs
 cd git-lfs
@@ -17,13 +19,32 @@ cd git-lfs
 install -D bin/git-lfs /usr/local/bin
 git lfs init
 
-# I don't know how to install ruby2.0 on CentOS6 yet
-if grep -q ' 7' /etc/redhat-release; then
-  yum install ruby ruby-devel
-  gem install ronn
-  ./script/man
-  install -D man/*.1 /usr/local/share/man/man1
-  git help lfs > /dev/null
+if which ruby > /dev/null 2>&1; then
+  IFS_OLD=${IFS}
+  IFS=.
+  RUBY_VERSION=($(ruby -e "print RUBY_VERSION"))
+  IFS=${IFS_OLD}
+else
+  RUBY_VERSION=(0 0 0) #Thanks -u!
 fi
+
+if [[ ${RUBY_VERSION[0]} < 2 ]]; then
+  if grep -q ' 6' /etc/redhat-release; then
+    yum install -y tar
+    gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+    curl -L get.rvm.io | bash -s stable --ruby
+    set +u
+    source /usr/local/rvm/scripts/rvm
+    rvm use ruby
+    set -u
+  elif grep -q ' 7' /etc/redhat-release; then
+    yum install ruby ruby-devel
+  fi
+fi
+
+gem install ronn
+./script/man
+install -D man/*.1 /usr/local/share/man/man1
+git help lfs > /dev/null
 
 echo SUCCESS
