@@ -14,13 +14,12 @@ if grep -q ' 5' /etc/redhat-release; then
     yum install -y curl.x86_64 #Centos 5 isn't as smart about not downloading 32 bit
     curl -L -O http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm 
     rpm -Uvh epel-release-5-4.noarch.rpm
+    rm epel-release-5-4.noarch.rpm
   fi
   yum install -y bison git make man which tar
-  #wget https://storage.googleapis.com/golang/go1.4.2.src.tar.gz --no-check-certificate
-  #wget https://storage.googleapis.com/golang/go1.4.2.linux-386.tar.gz --no-check-certificate
   if [ ! -d /tmp/go ]; then
-    curl -L -O https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz
-    tar -zxf go1.4.2.linux-amd64.tar.gz
+    curl -L -O https://github.com/andyneff/go4cento5/raw/master/go-1.4.2-rhel6.tgz
+    tar -zxf go-1.4.2-rhel6.tgz
   fi
   export GOROOT=/tmp/go
   export PATH=${PATH}:${GOROOT}/bin
@@ -36,7 +35,7 @@ fi
 cd $(dirname ${BASH_SOURCE[0]})
 if git rev-parse; then
   cd $(git rev-parse --show-toplevel)
-elif [ -e ../bin/git-lfs ] && [ -d ../docs/man ] && [ -e bootstrap ];then
+elif [ -d ../docs/man ] && [ -e bootstrap ];then
   cd ..
 else
   cd /tmp
@@ -60,8 +59,11 @@ fi
 if [[ ${RUBY_VERSION[0]} < 2 ]]; then
   if grep -q ' 6' /etc/redhat-release ||  grep -q ' 5' /etc/redhat-release; then
     yum install -y tar
+    #if gpg isn't installed, everything actually works. if it is, the key must be added or rvm won't work
     if grep -q ' 6' /etc/redhat-release; then
-      gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+      gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 | true
+    else
+      gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 | true
     fi
     set +e #For CentOS 5
     curl -L get.rvm.io | bash -s stable
