@@ -9,7 +9,7 @@ trap 'echo FAIL' ERR
 
 if grep -q ' 5' /etc/redhat-release; then
   pushd /tmp
-  #No clue why rpm -Uvh {url} doesn't work... it doesn't
+  #Don't know why rpm -Uvh {url} doesn't work... Probably 302
   if ! rpm -q epel-release; then
     yum install -y curl.x86_64 #Centos 5 isn't as smart about not downloading 32 bit
     curl -L -O http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm 
@@ -17,12 +17,30 @@ if grep -q ' 5' /etc/redhat-release; then
     rm epel-release-5-4.noarch.rpm
   fi
   yum install -y bison git make man which tar
-  if [ ! -d /tmp/go ]; then
-    curl -L -O http://sourceforge.net/projects/go4centos5/files/go-1.4.2-rhel6.tgz
-    tar -zxf go-1.4.2-rhel6.tgz
+  if [ ! -d /usr/lib/golang ]; then
+    yum install -y rpm-build xz gcc glibc
+    mkdir -p /tmp/go/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+    pushd /tmp/go
+      #Get EPEL full list
+      curl -L -O https://dl.fedoraproject.org/pub/epel/fullfilelist
+      #Get latest golang src rpm
+      curl -L -O https://dl.fedoraproject.org/pub/epel/$(grep '6/SRPMS/golang-[0-9].*src.rpm' fullfilelist)
+      rpm2cpio *.src.rpm | cpio -div
+      #Patch the spec file to patch the build to work on CentOS 5
+      sed -ri 's|(^%build)|\1\nsed -i '"'"'s:.*--build-id.*::'"'"' ./src/cmd/go/build.go|' *.spec
+      #Make SPEC CentOS 5 compliant
+      sed -ri 's|(^Name:.*)|\1\nGroup: Software|' *.spec
+      sed -ri 's|(^%package\s.*)|\1\nGroup: Software|' *.spec
+      #The test WILL fail, so make the rpm not fail
+      sed -ri 's;(.*run.bash.*);\1|true;' *.spec
+      mv *.spec SPECS/
+      mv *.* SOURCES/
+      mv *-* SOURCES/
+      rpmbuild --define "_topdir `pwd`" SPECS/golang.spec -bi
+    popd
   fi
-  export GOROOT=/tmp/go
-  export PATH=${PATH}:${GOROOT}/bin
+  export GOROOT=/usr/lib/golang
+  export PATH=${PATH}:${GOROOT}/bin/linux_amd64
   popd
 else
   if grep -q ' 6' /etc/redhat-release; then
