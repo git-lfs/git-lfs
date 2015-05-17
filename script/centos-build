@@ -18,7 +18,7 @@ if grep -q ' 5' /etc/redhat-release; then
   fi
   yum install -y bison git make man which tar
   if [ ! -d /tmp/go ]; then
-    curl -L -O https://github.com/andyneff/go4cento5/raw/master/go-1.4.2-rhel6.tgz
+    curl -L -O http://sourceforge.net/projects/go4centos5/files/go-1.4.2-rhel6.tgz
     tar -zxf go-1.4.2-rhel6.tgz
   fi
   export GOROOT=/tmp/go
