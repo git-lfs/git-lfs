@@ -22,7 +22,9 @@
 set -e
 
 # Put bin path on PATH
-PATH="$(cd $(dirname "$0")/.. && pwd)/bin:$PATH"
+ROOTDIR=$(cd $(dirname "$0")/.. && pwd)
+BINPATH="$ROOTDIR/bin"
+PATH="$BINPATH:$PATH"
 
 # create a temporary work space
 TMPDIR="$(cd $(dirname "$0")/.. && pwd)"/tmp
@@ -37,9 +39,13 @@ atexit () {
     rm -rf "$TRASHDIR"
     shutdown
 
-    if [ $failures -gt 0 ]
-    then exit 1
-    else exit 0
+    if [ $failures -gt 0 ]; then
+      if [ -s "$TRASHDIR/gitserver.log" ]; then
+        cat "$TRASHDIR/gitserver.log"
+      fi
+      exit 1
+    else
+      exit 0
     fi
 }
 
@@ -49,12 +55,12 @@ mkdir -p "$TRASHDIR"
 
 . "test/testhelpers.sh"
 
-ROOTDIR="`pwd`"
-GITLFS="$ROOTDIR/bin/git-lfs"
+GITLFS="$BINPATH/git-lfs"
 SHUTDOWN_LFS=yes
 GITSERVER=undefined
 REMOTEDIR="$ROOTDIR/test/remote"
 LFS_URL_FILE="$REMOTEDIR/url"
+LFS_CONFIG="$REMOTEDIR/config"
 
 # if the file exists, assume another process started it, and will clean it up
 # when it's done
@@ -66,7 +72,6 @@ fi
 
 GITSERVER=$(cat "$LFS_URL_FILE")
 cd "$TRASHDIR"
-
 
 # Mark the beginning of a test. A subshell should immediately follow this
 # statement.
