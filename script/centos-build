@@ -7,7 +7,9 @@ set -eu
 
 trap 'echo FAIL' ERR
 
-if grep -q ' 5' /etc/redhat-release; then
+REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
+
+if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
   pushd /tmp
   #Don't know why rpm -Uvh {url} doesn't work... Probably 302
   if ! rpm -q epel-release; then
@@ -16,34 +18,10 @@ if grep -q ' 5' /etc/redhat-release; then
     rpm -Uvh epel-release-5-4.noarch.rpm
     rm epel-release-5-4.noarch.rpm
   fi
-  yum install -y bison git make man which tar
-  if [ ! -d /usr/lib/golang ]; then
-    yum install -y rpm-build xz gcc glibc
-    mkdir -p /tmp/go/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-    pushd /tmp/go
-      #Get EPEL full list
-      curl -L -O https://dl.fedoraproject.org/pub/epel/fullfilelist
-      #Get latest golang src rpm
-      curl -L -O https://dl.fedoraproject.org/pub/epel/$(grep '6/SRPMS/golang-[0-9].*src.rpm' fullfilelist)
-      rpm2cpio *.src.rpm | cpio -div
-      #Patch the spec file to patch the build to work on CentOS 5
-      sed -ri 's|(^%build)|\1\nsed -i '"'"'s:.*--build-id.*::'"'"' ./src/cmd/go/build.go|' *.spec
-      #Make SPEC CentOS 5 compliant
-      sed -ri 's|(^Name:.*)|\1\nGroup: Software|' *.spec
-      sed -ri 's|(^%package\s.*)|\1\nGroup: Software|' *.spec
-      #The test WILL fail, so make the rpm not fail
-      sed -ri 's;(.*run.bash.*);\1|true;' *.spec
-      mv *.spec SPECS/
-      mv *.* SOURCES/
-      mv *-* SOURCES/
-      rpmbuild --define "_topdir `pwd`" SPECS/golang.spec -bi
-    popd
-  fi
-  export GOROOT=/usr/lib/golang
-  export PATH=${PATH}:${GOROOT}/bin/linux_amd64
   popd
+  yum install -y bison git make man which
 else
-  if grep -q ' 6' /etc/redhat-release; then
+  if [[ ${REDHAT_VERSION[0]} == 6 ]]; then
     rpm -q epel-release || rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
   fi
 
@@ -61,6 +39,23 @@ else
   cd git-lfs
 fi
 
+if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+  if ! env PATH=${PATH}:`pwd`/go/bin which gofmt > /dev/null 2>&1; then
+    yum install -y gcc glibc
+    curl -L -O https://storage.googleapis.com/golang/go1.4.2.src.tar.gz
+    tar -zxvf go1.4.2.src.tar.gz
+    rm go1.4.2.src.tar.gz
+    pushd ./go/src
+      sed -i 's|.*--build-id.*||' ./cmd/go/build.go
+      ./make.bash
+      #This will have a few failures, but that is expected in CentOS 5
+      ./run.bash | true
+    popd
+  fi
+  export GOROOT=`pwd`/go
+  export PATH=${PATH}:${GOROOT}/bin
+fi
+
 ./script/bootstrap
 install -D bin/git-lfs /usr/local/bin
 git lfs init
@@ -75,14 +70,13 @@ else
 fi
 
 if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if grep -q ' 6' /etc/redhat-release ||  grep -q ' 5' /etc/redhat-release; then
+  if [[ ${REDHAT_VERSION[0]} < 7 ]]; then
     yum install -y tar
     #if gpg isn't installed, everything actually works. if it is, the key must be added or rvm won't work
-    if grep -q ' 6' /etc/redhat-release; then
-      gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 | true
-    else
-      gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 | true
-    fi
+    which gpg2 > /dev/null 2>&1 && 
+      gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+    which gpg > /dev/null 2>&1 &&
+      gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
     set +e #For CentOS 5
     curl -L get.rvm.io | bash -s stable
     set +u
@@ -91,7 +85,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
     rvm use ruby
     set -ue
   elif grep -q ' 7' /etc/redhat-release; then
-    yum install ruby ruby-devel
+    yum install -y ruby ruby-devel
   fi
 fi
 
