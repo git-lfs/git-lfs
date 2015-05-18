@@ -15,7 +15,6 @@ import (
 	"net/textproto"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -26,13 +25,7 @@ var (
 )
 
 func main() {
-	// should be run from project root
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	repoDir = filepath.Join(wd, "tests", "remote")
+	repoDir = os.Getenv("LFSTEST_DIR")
 
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
