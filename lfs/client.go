@@ -306,14 +306,8 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	oid := filepath.Base(oidPath)
-	file, err := os.Open(oidPath)
-	if err != nil {
-		sendApiEvent(apiEventFail)
-		return nil, Error(err)
-	}
-	defer file.Close()
 
-	stat, err := file.Stat() // Stat without opening TODO
+	stat, err := os.Stat(oidPath)
 	if err != nil {
 		sendApiEvent(apiEventFail)
 		return nil, Error(err)
