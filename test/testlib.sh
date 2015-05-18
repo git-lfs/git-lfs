@@ -19,16 +19,8 @@
 #
 # Copyright (c) 2011-13 by Ryan Tomayko <http://tomayko.com>
 # License: MIT
-set -e
 
-# Put bin path on PATH
-ROOTDIR=$(cd $(dirname "$0")/.. && pwd)
-BINPATH="$ROOTDIR/bin"
-PATH="$BINPATH:$PATH"
-
-# create a temporary work space
-TMPDIR="$(cd $(dirname "$0")/.. && pwd)"/tmp
-TRASHDIR="$TMPDIR/$(basename "$0")-$$"
+. "test/testenv.sh"
 
 # keep track of num tests and failures
 tests=0
@@ -47,16 +39,9 @@ atexit () {
 
 # create the trash dir
 trap "atexit" EXIT
-mkdir -p "$TRASHDIR"
 
-. "test/testhelpers.sh"
-
-GITLFS="$BINPATH/git-lfs"
 SHUTDOWN_LFS=yes
 GITSERVER=undefined
-REMOTEDIR="$ROOTDIR/test/remote"
-LFS_URL_FILE="$REMOTEDIR/url"
-LFS_CONFIG="$REMOTEDIR/config"
 
 # if the file exists, assume another process started it, and will clean it up
 # when it's done

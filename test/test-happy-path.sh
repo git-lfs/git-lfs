@@ -6,7 +6,7 @@ begin_test "happy path"
 (
   set -e
 
-  reponame="$(basename "$0")"
+  reponame="$(basename "$0" ".sh")"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" repo

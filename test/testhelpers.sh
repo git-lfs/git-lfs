@@ -106,7 +106,7 @@ setup() {
 }
 
 shutdown() {
-  local failures=$0
+  rm -rf "$TRASHDIR"
 
   if [ "$SHUTDOWN_LFS" == "no" ]; then
     exit 0
@@ -114,16 +114,4 @@ shutdown() {
 
   curl "$GITSERVER/shutdown"
   rm -rf "$LFS_URL_FILE"
-
-  if [ -s "$TRASHDIR/gitserver.log" ]; then
-    echo ""
-    echo "gitserver.log:"
-    cat "$TRASHDIR/gitserver.log"
-  fi
-
-  echo ""
-  echo "env"
-  env
-
-  rm -rf "$TRASHDIR"
 }
