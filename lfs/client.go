@@ -170,11 +170,11 @@ func (b *byteCloser) Close() error {
 }
 
 func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
-	type objres struct {
-		Objects []*objectResource `json:"objects"`
+	if len(objects) == 0 {
+		return nil, nil
 	}
 
-	o := &objres{objects}
+	o := map[string][]*objectResource{"objects": objects}
 
 	by, err := json.Marshal(o)
 	if err != nil {
@@ -508,18 +508,14 @@ func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objec
 		return res, nil, wErr
 	}
 
-	type ro struct {
-		Objects []*objectResource `json:"objects"`
-	}
-
-	var objs ro
+	var objs map[string][]*objectResource
 	wErr = decodeApiResponse(res, &objs)
 
 	if wErr != nil {
 		setErrorResponseContext(wErr, res)
 	}
 
-	return res, objs.Objects, wErr
+	return res, objs["objects"], wErr
 }
 
 func handleResponse(res *http.Response) *WrappedError {
