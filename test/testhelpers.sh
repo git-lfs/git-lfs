@@ -9,12 +9,14 @@ shutdown() {
 
 wait_for_file() {
   local filename=$1
-  for ((n=30; n>0; n--)); do
+  n=0
+  while [ $n -lt 10 ]; do
     if [ -s $filename ]; then
       return 0
     fi
 
     sleep 0.5
+    n=`expr $n + 1`
   done
 
   return 1
