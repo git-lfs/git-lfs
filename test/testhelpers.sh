@@ -101,7 +101,7 @@ setup() {
 
   echo "PATH=$BINPATH:\$PATH"
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
-  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$TRASHDIR/gitserver.log" 2>&1 &
+  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
   wait_for_file "$LFS_URL_FILE"
 }
 
