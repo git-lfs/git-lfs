@@ -21,7 +21,7 @@ fi
 cd $(dirname ${BASH_SOURCE[0]})
 if git rev-parse; then
   cd $(git rev-parse --show-toplevel)
-elif [ -e ../bin/git-lfs ] && [ -d ../docs/man ] && [ -e bootstrap ];then
+elif [ -e bootstrap ];then
   cd ..
 else
   cd /tmp
