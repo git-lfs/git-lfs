@@ -35,7 +35,7 @@ setup_remote_repo() {
 
 setup() {
   cd $ROOTDIR
-  echo "compile git-lfs"
+  echo "compile git-lfs for $0"
   script/bootstrap
 
   rm -rf "test/remote"
