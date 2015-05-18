@@ -66,7 +66,7 @@ func main() {
 	}()
 
 	<-stopch
-	log.Println("done")
+	log.Println("git server done")
 }
 
 type lfsObject struct {

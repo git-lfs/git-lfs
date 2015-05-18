@@ -1,5 +1,4 @@
 #!/bin/sh
-# this should run from the git-lfs project root.
 
 . "test/testlib.sh"
 

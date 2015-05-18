@@ -36,17 +36,13 @@ failures=0
 
 # this runs at process exit
 atexit () {
-    rm -rf "$TRASHDIR"
-    shutdown
+  shutdown
 
-    if [ $failures -gt 0 ]; then
-      if [ -s "$TRASHDIR/gitserver.log" ]; then
-        cat "$TRASHDIR/gitserver.log"
-      fi
-      exit 1
-    else
-      exit 0
-    fi
+  if [ $failures -gt 0 ]; then
+    exit 1
+  else
+    exit 0
+  fi
 }
 
 # create the trash dir
