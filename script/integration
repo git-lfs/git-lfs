@@ -2,32 +2,35 @@
 
 . "test/testenv.sh"
 
+SHUTDOWN_LFS=no
+SHOW_LOGS=yes
+
 atexit() {
-  if [ -s "$REMOTEDIR/gitserver.log" ]; then
+  if [ "$SHOW_LOGS" == "yes" ]; then
+    if [ -s "$REMOTEDIR/gitserver.log" ]; then
+      echo ""
+      echo "gitserver.log:"
+      cat "$REMOTEDIR/gitserver.log"
+    fi
+
     echo ""
-    echo "gitserver.log:"
-    cat "$REMOTEDIR/gitserver.log"
+    echo "env:"
+    env
   fi
 
-  echo ""
-  echo "env:"
-  env
-
-  SHUTDOWN_LFS=yes
-  GITSERVER=$(cat "$LFS_URL_FILE")
   shutdown
-  rm -rf $TRASHDIR
 }
 
 trap "atexit" EXIT
 
 if [ -s "$LFS_URL_FILE" ]; then
+  SHOW_LOGS=no
   echo "$LFS_URL_FILE still exists!"
   exit 1
 fi
 
 setup
 
-echo "run some tests, yo"
-
 test/test-happy-path.sh
+
+SHUTDOWN_LFS=yes

@@ -99,7 +99,6 @@ setup() {
     go build -o "$BINPATH/$(basename $go .go)" "$go"
   done
 
-  echo "PATH=$BINPATH:\$PATH"
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
   wait_for_file "$LFS_URL_FILE"
@@ -112,6 +111,7 @@ shutdown() {
     exit 0
   fi
 
-  curl "$GITSERVER/shutdown"
-  rm -rf "$LFS_URL_FILE"
+  if [ -s "$LFS_URL_FILE" ]; then
+    curl "$(cat "$LFS_URL_FILE")/shutdown"
+  fi
 }
