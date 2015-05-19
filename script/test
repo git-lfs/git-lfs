@@ -2,6 +2,7 @@
 #/ Usage: script/test          # run all tests
 #/        script/test <subdir> # run just a package's tests
 
+rm -rf tmp/integration-test-*
 script/fmt
 script/bootstrap
 
@@ -15,5 +16,6 @@ SUITE="./${1:-"..."}"
 if [ $# -gt 0 ]; then
   shift
 fi
+
 PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE -i "$@"
 PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE "$@"
