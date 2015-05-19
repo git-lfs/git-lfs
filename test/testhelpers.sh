@@ -107,7 +107,7 @@ setup() {
 shutdown() {
   rm -rf "$TRASHDIR"
 
-  if [ "$SHUTDOWN_LFS" == "no" ]; then
+  if [[ "$SHUTDOWN_LFS" == "no" ]]; then
     exit 0
   fi
 

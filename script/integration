@@ -6,7 +6,7 @@ SHUTDOWN_LFS=no
 SHOW_LOGS=yes
 
 atexit() {
-  if [ "$SHOW_LOGS" == "yes" ]; then
+  if [[ "$SHOW_LOGS" == "yes" ]]; then
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
       echo "gitserver.log:"
@@ -26,6 +26,8 @@ trap "atexit" EXIT
 if [ -s "$LFS_URL_FILE" ]; then
   SHOW_LOGS=no
   echo "$LFS_URL_FILE still exists!"
+  echo "Confirm other tests are done, and run:"
+  echo "  $ curl $(cat "$LFS_URL_FILE")/shutdown"
   exit 1
 fi
 
