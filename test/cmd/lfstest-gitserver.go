@@ -83,10 +83,13 @@ type lfsLink struct {
 // handles any requests with "{name}.server.git/info/lfs" in the path
 func lfsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
-	if r.Method == "POST" {
+	switch r.Method {
+	case "POST":
 		lfsPostHandler(w, r)
-	} else {
+	case "GET":
 		lfsGetHandler(w, r)
+	default:
+		w.WriteHeader(405)
 	}
 }
 
@@ -131,32 +134,32 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 
-	if by, ok := largeObjects[oid]; ok {
-		obj := &lfsObject{
-			Oid:  oid,
-			Size: int64(len(by)),
-			Links: map[string]lfsLink{
-				"download": lfsLink{
-					Href: server.URL + "/storage/" + oid,
-				},
-			},
-		}
-
-		by, err := json.Marshal(obj)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		log.Println("RESPONSE: 200")
-		log.Println(string(by))
-
-		w.WriteHeader(200)
-		w.Write(by)
-
+	by, ok := largeObjects[oid]
+	if !ok {
+		w.WriteHeader(404)
 		return
 	}
 
-	w.WriteHeader(404)
+	obj := &lfsObject{
+		Oid:  oid,
+		Size: int64(len(by)),
+		Links: map[string]lfsLink{
+			"download": lfsLink{
+				Href: server.URL + "/storage/" + oid,
+			},
+		},
+	}
+
+	by, err := json.Marshal(obj)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("RESPONSE: 200")
+	log.Println(string(by))
+
+	w.WriteHeader(200)
+	w.Write(by)
 }
 
 // handles any /storage/{oid} requests
@@ -186,7 +189,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(404)
 	default:
-		w.WriteHeader(500)
+		w.WriteHeader(405)
 	}
 }
 
