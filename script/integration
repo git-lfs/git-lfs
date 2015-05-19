@@ -9,6 +9,10 @@ SHOW_LOGS=yes
 atexit() {
   res=${1:-$?}
   SHUTDOWN_LFS=yes
+  if [ "$res" = "0" ]; then
+    SHOW_LOGS=no
+  fi
+
   if [ "$SHOW_LOGS" = "yes" ]; then
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
