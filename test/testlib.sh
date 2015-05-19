@@ -21,6 +21,7 @@
 # License: MIT
 
 . "test/testenv.sh"
+set -e
 
 # keep track of num tests and failures
 tests=0

@@ -1,4 +1,5 @@
 #!/bin/sh
+# Including in script/integration and every test/test-*.sh file.
 
 set -e
 

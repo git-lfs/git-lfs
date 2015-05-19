@@ -1,11 +1,14 @@
 #!/bin/sh
 
 . "test/testenv.sh"
+set -e
 
 SHUTDOWN_LFS=no
 SHOW_LOGS=yes
 
 atexit() {
+  res=${1:-$?}
+  SHUTDOWN_LFS=yes
   if [ "$SHOW_LOGS" = "yes" ]; then
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
@@ -19,6 +22,7 @@ atexit() {
   fi
 
   shutdown
+  exit $res
 }
 
 trap "atexit" EXIT
@@ -33,6 +37,6 @@ fi
 
 setup
 
-test/test-happy-path.sh
-
-SHUTDOWN_LFS=yes
+for file in test/test-*.sh; do
+  echo "0$(cat .$(basename $file).time 2>/dev/null || true) $file"
+done | sort -rnk1 | awk '{ print $2 }' | xargs -I % -P 4 -n 1 /bin/sh -c % --batch
