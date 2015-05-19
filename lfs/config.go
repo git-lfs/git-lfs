@@ -104,8 +104,6 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 				endpoint.Url = "<unknown>"
 				return endpoint
 			}
-			// SJS turned into a HTTPS URL of just host.com/path
-			// SJS SSH values are kept to perform just auth test
 			endpoint.SshUserAndHost = pieces[0]
 			endpoint.SshPath = pieces[1]
 			endpoint.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])

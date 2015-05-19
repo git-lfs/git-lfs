@@ -114,9 +114,6 @@ func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb Copy
 		return Error(err)
 	}
 
-	// SJS change this return from http.Request to something more abstract
-	// SJS or wrap it so HTTP version is created separately
-	// SJS or use http structures throughout but create SSH path capable of relaying
 	req, creds, err := self.newApiRequest("POST", oid)
 	if err != nil {
 		return Error(err)

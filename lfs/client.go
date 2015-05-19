@@ -202,7 +202,6 @@ func (self *HttpApiContext) doApiRequestWithRedirects(req *http.Request, creds C
 
 // SJS MOVE LATER: In the interests of easier merging, this method left in this source file
 func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.Response, *httpObjectResource, *WrappedError) {
-	// SJS This whole function needs to be be using abstractions of requests / responses so non-HTTPS will work
 
 	via := make([]*http.Request, 0, 4)
 	res, wErr := self.doApiRequestWithRedirects(req, creds, via)
@@ -318,9 +317,6 @@ func (self *HttpApiContext) newApiRequest(method, oid string) (*http.Request, Cr
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// SJS at this point it becomes implicitly HTTPS
-	// Here is where we need to abstract, and in return type
 
 	req, creds, err := self.newClientRequest(method, u.String())
 	if err != nil {
