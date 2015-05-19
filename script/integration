@@ -6,7 +6,7 @@ SHUTDOWN_LFS=no
 SHOW_LOGS=yes
 
 atexit() {
-  if [[ "$SHOW_LOGS" == "yes" ]]; then
+  if [ "$SHOW_LOGS" = "yes" ]; then
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
       echo "gitserver.log:"
