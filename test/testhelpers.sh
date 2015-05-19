@@ -107,11 +107,9 @@ setup() {
 shutdown() {
   rm -rf "$TRASHDIR"
 
-  if [ "$SHUTDOWN_LFS" = "no" ]; then
-    exit 0
-  fi
-
-  if [ -s "$LFS_URL_FILE" ]; then
-    curl "$(cat "$LFS_URL_FILE")/shutdown"
+  if [ "$SHUTDOWN_LFS" != "no" ]; then
+    if [ -s "$LFS_URL_FILE" ]; then
+      curl "$(cat "$LFS_URL_FILE")/shutdown"
+    fi
   fi
 }
