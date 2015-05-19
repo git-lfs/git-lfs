@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# assert_pointer confirms that the pointer in the repository for $path in the
+# given $ref matches the given $oid and $size.
+#
+#   $ assert_pointer "master" "path/to/file" "some-oid" 123
 assert_pointer() {
   local ref=$1
   local path=$2
@@ -25,6 +29,10 @@ assert_server_object() {
   echo "assert server object: no-op"
 }
 
+# pointer returns a string Git LFS pointer file.
+#
+#   $ pointer abc-some-oid 123
+#   > version ...
 pointer() {
   local oid=$1
   local size=$2
@@ -34,6 +42,9 @@ size %s
 " "$oid" "$size"
 }
 
+# wait_for_file simply sleeps until a file exists.
+#
+#   $ wait_for_file "path/to/upcoming/file"
 wait_for_file() {
   local filename=$1
   n=0
@@ -49,6 +60,14 @@ wait_for_file() {
   return 1
 }
 
+# setup_remote_repo intializes a bare Git repository that is accessible through
+# the test Git server. The `pwd` is set to the repository's directory, in case
+# further commands need to be run. This server is running for every test in a
+# script/integration run, so every test file should setup its own remote
+# repository to avoid conflicts.
+#
+#   $ setup_remote_repo "some-name"
+#
 setup_remote_repo() {
   local reponame=$1
   echo "set up remote git repository: $reponame"
@@ -60,7 +79,8 @@ setup_remote_repo() {
   git config receive.denyCurrentBranch ignore
 
   # dump a simple git config file so clones use this test's Git LFS command
-  # and the custom credential helper
+  # and the custom credential helper. This overrides any Git config that is
+  # already setup on the system.
   printf "[filter \"lfs\"]
 	required = true
 	smudge = %s smudge %%f
@@ -73,6 +93,8 @@ setup_remote_repo() {
 " "$GITLFS" "$GITLFS" lfstest "$GITSERVER" "$reponame" > "$LFS_CONFIG-$reponame"
 }
 
+# clone_repo clones a repository from the test Git server to the subdirectory
+# $dir under $TRASHDIR. setup_remote_repo() needs to be run first.
 clone_repo() {
   cd "$TRASHDIR"
 
@@ -104,6 +126,7 @@ setup() {
   wait_for_file "$LFS_URL_FILE"
 }
 
+# shutdown cleans the $TRASHDIR and shuts the test Git server down.
 shutdown() {
   rm -rf "$TRASHDIR"
 
