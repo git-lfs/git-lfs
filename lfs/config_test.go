@@ -102,6 +102,7 @@ func TestSSHEndpointOverridden(t *testing.T) {
 	assert.Equal(t, "lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
 }
 
 func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
@@ -114,6 +115,20 @@ func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
 	assert.Equal(t, "foo/bar", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
+}
+
+func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{"remote.origin.url": "ssh://git@example.com:9000/foo/bar"},
+		remotes:   []string{},
+	}
+
+	endpoint := config.Endpoint()
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
+	assert.Equal(t, "foo/bar", endpoint.SshPath)
+	assert.Equal(t, "9000", endpoint.SshPort)
 }
 
 func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
@@ -126,6 +141,7 @@ func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
 	assert.Equal(t, "foo/bar.git", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
 }
 
 func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
@@ -138,6 +154,7 @@ func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
 }
 
 func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
@@ -150,6 +167,7 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
 }
 
 func TestObjectUrl(t *testing.T) {

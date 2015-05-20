@@ -119,14 +119,11 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 			}
 			// Now extract the SSH parts from sanitised u
 			if u.Scheme == "ssh" {
-				// Fallback URL for using HTTPS while still using SSH for git
-				// u.Host includes host & port
-				endpoint.Url = fmt.Sprintf("https://%s%s", u.Host, u.Path)
-
+				var host string
 				// Pull out port now, we need it separately for SSH
 				regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
 				if match := regex.FindStringSubmatch(u.Host); match != nil {
-					host := match[1]
+					host = match[1]
 					if u.User.Username() != "" {
 						endpoint.SshUserAndHost = fmt.Sprintf("%s@%s", u.User.Username(), host)
 					} else {
@@ -135,7 +132,11 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 					if len(match) > 2 {
 						endpoint.SshPort = match[2]
 					}
+				} else {
+					endpoint.Url = "<unknown>"
+					return endpoint
 				}
+
 				// u.Path includes a preceding '/', strip off manually
 				// rooted paths in the URL will be '//path/to/blah'
 				// this is just how Go's URL parsing works
@@ -144,6 +145,9 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 				} else {
 					endpoint.SshPath = u.Path
 				}
+				// Fallback URL for using HTTPS while still using SSH for git
+				// u.Host includes host & port so can't use SSH port
+				endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
 			}
 		} else {
 			endpoint.Url = "<unknown>"
