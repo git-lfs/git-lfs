@@ -108,6 +108,7 @@ clone_repo() {
   echo "$out"
 }
 
+# setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
 

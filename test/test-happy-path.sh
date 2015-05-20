@@ -14,8 +14,12 @@ begin_test "happy path"
   reponame="$(basename "$0" ".sh")"
   setup_remote_repo "$reponame"
 
-  # Clone the repository through the test Git server.  It's cloned to
-  # $TRASHDIR/repo.
+  # Clone the repository from the test Git server.  This is empty, and will be
+  # used to test a "git pull" below. The repo is cloned to $TRASHDIR/clone
+  clone_repo "$reponame" clone
+
+  # Clone the repository again to $TRASHDIR/repo. This will be used to commit
+  # and push objects.
   clone_repo "$reponame" repo
 
   # This executes Git LFS from the local repo that was just cloned.
@@ -52,10 +56,10 @@ begin_test "happy path"
 
   assert_server_object "$contents_oid" "$contents"
 
-  # This clones the repository to another subdirectory of $TRASHDIR
-  out=$(clone_repo "$reponame" clone)
-  echo "$out" | grep "Cloning into 'clone'"
-  echo "$out" | grep "Downloading a.dat (1 B)"
+  # change to the clone's working directory
+  cd ../clone
+
+  git pull 2>&1 | grep "Downloading a.dat (1 B)"
 
   out=$(cat a.dat)
   if [ "$out" != "a" ]; then
