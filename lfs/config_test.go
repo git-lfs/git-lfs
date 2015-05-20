@@ -106,7 +106,7 @@ func TestSSHEndpointOverridden(t *testing.T) {
 
 func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
-		gitConfig: map[string]string{"remote.origin.url": "git@example.com:foo/bar"},
+		gitConfig: map[string]string{"remote.origin.url": "ssh://git@example.com/foo/bar"},
 		remotes:   []string{},
 	}
 
