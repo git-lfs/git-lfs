@@ -1,13 +1,17 @@
 package lfs
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -173,4 +177,133 @@ func (r *tracedBody) Close() error {
 
 func newTracedBody(body io.ReadCloser) *tracedBody {
 	return &tracedBody{body}
+}
+
+// HTTP specific API contect implementation
+// HTTP implementation of ApiContext
+type HttpApiContext struct {
+	endpoint Endpoint
+}
+
+func NewHttpApiContext(endpoint Endpoint) ApiContext {
+	// pretty simple
+	return &HttpApiContext{endpoint}
+}
+
+func (self *HttpApiContext) Endpoint() Endpoint {
+	return self.endpoint
+}
+func (*HttpApiContext) Close() error {
+	// nothing to do
+	return nil
+}
+
+func (self *HttpApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedError) {
+	req, creds, err := self.newApiRequest("GET", oid)
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, obj, wErr := self.doApiRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	req, creds, err = obj.NewRequest(self, "download", "GET")
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, wErr = self.doHttpRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	return res.Body, res.ContentLength, nil
+}
+
+func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb CopyCallback) *WrappedError {
+	reqObj := &httpObjectResource{
+		Oid:  oid,
+		Size: sz,
+	}
+
+	by, err := json.Marshal(reqObj)
+	if err != nil {
+		return Error(err)
+	}
+
+	req, creds, err := self.newApiRequest("POST", oid)
+	if err != nil {
+		return Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
+
+	res, obj, wErr := self.doApiRequest(req, creds)
+	if wErr != nil {
+		sendApiEvent(apiEventFail)
+		return wErr
+	}
+
+	sendApiEvent(apiEventSuccess)
+
+	reader := &CallbackReader{
+		C:         cb,
+		TotalSize: reqObj.Size,
+		Reader:    file,
+	}
+
+	if res.StatusCode == 200 {
+		// Drain the reader to update any progress bars
+		io.Copy(ioutil.Discard, reader)
+		return nil
+	}
+
+	req, creds, err = obj.NewRequest(self, "upload", "PUT")
+	if err != nil {
+		return Error(err)
+	}
+
+	if len(req.Header.Get("Content-Type")) == 0 {
+		req.Header.Set("Content-Type", "application/octet-stream")
+	}
+	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
+	req.ContentLength = reqObj.Size
+
+	req.Body = ioutil.NopCloser(reader)
+
+	res, wErr = self.doHttpRequest(req, creds)
+	if wErr != nil {
+		return wErr
+	}
+
+	if res.StatusCode > 299 {
+		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+	}
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	req, creds, err = obj.NewRequest(self, "verify", "POST")
+	if err == objectRelationDoesNotExist {
+		return nil
+	} else if err != nil {
+		return Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = ioutil.NopCloser(bytes.NewReader(by))
+	res, wErr = self.doHttpRequest(req, creds)
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	return wErr
+
 }
