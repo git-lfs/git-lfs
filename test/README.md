@@ -110,8 +110,8 @@ the functions.  Setup does the following:
 * Compiles Go files in `test/cmd` to `bin`, and adds them the PATH.
 * Spins up a test Git and Git LFS server so the entire push/pull flow can be
 exercised.
-* Sets up `git-credential-lfstest`, a custom Git credentials helper that always
-returns a username and password for a "127.0.0.1:PORT" smart HTTP Git server.
+* Sets up a git credential helper that always returns a set username and
+password.
 
 The test Git server writes a `test/remote/url` file when it's complete.  This
 file is how individual test scripts detect if `script/integration` is being
