@@ -50,10 +50,9 @@ func TestInit(t *testing.T) {
 	cmd = repo.Command("init")
 	cmd.Output = "Hook already exists: pre-push\n\necho 'yo'\n\ngit lfs initialized"
 
-	customHook := []byte("echo 'yo'")
+	customHook := "echo 'yo'"
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, customHook, 0755)
-		assert.Equal(t, nil, err)
+		repo.WriteFile(prePushHookFile, customHook)
 	})
 
 	cmd.After(func() {

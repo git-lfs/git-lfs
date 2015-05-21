@@ -83,10 +83,7 @@ func TestPushStdin(t *testing.T) {
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("#!/bin/sh\ngit lfs push --stdin \"$@\"\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "#!/bin/sh\ngit lfs push --stdin \"$@\"\n")
 	})
 
 	cmd.After(func() {
@@ -111,10 +108,7 @@ func TestPushStdinWithUnexpectedHook(t *testing.T) {
 
 	prePushHookFile := filepath.Join(repo.Path, ".git", "hooks", "pre-push")
 	cmd.Before(func() {
-		err := ioutil.WriteFile(prePushHookFile, []byte("sup\n"), 0755)
-		if err != nil {
-			t.Fatalf("Error writing pre-push in Before(): %s", err)
-		}
+		repo.WriteFile(prePushHookFile, "sup\n")
 	})
 
 	cmd.After(func() {
