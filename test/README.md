@@ -64,6 +64,15 @@ section.
 5. Failing test runs should dump enough information to diagnose the bug.  This
 includes stdout, stderr, any log files, and even the OS environment.
 
+There are a few environment variables that you can set to change the test suite
+behavior:
+
+* `KEEPTRASH=1` - This will leave the local repository data in a `tmp` directory
+and the remote repository data in `test/remote`.
+* `SKIPCOMPILE=1` - This skips the Git LFS compilation step.  Speeds up the
+tests when you're running the same test script multiple times without changing
+any Go code.
+
 ### Test Suite
 
 The `testenv.sh` script includes some global variables used in tests.  This

@@ -115,13 +115,18 @@ setup() {
   rm -rf "test/remote"
   mkdir "test/remote"
 
-  echo "compile git-lfs for $0"
-  script/bootstrap
+  if [ -z "$SKIPCOMPILE" ]; then
+    echo "compile git-lfs for $0"
+    script/bootstrap
+  fi
+
   $GITLFS version
 
-  for go in test/cmd/*.go; do
-    go build -o "$BINPATH/$(basename $go .go)" "$go"
-  done
+  if [ -z "$SKIPCOMPILE" ]; then
+    for go in test/cmd/*.go; do
+      go build -o "$BINPATH/$(basename $go .go)" "$go"
+    done
+  fi
 
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
