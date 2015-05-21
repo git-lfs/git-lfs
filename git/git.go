@@ -21,8 +21,12 @@ func LsRemote(remote, remoteRef string) (string, error) {
 	return simpleExec(nil, "git", "ls-remote", remote, remoteRef)
 }
 
+func ResolveRef(ref string) (string, error) {
+	return simpleExec(nil, "git", "rev-parse", ref)
+}
+
 func CurrentRef() (string, error) {
-	return simpleExec(nil, "git", "rev-parse", "HEAD")
+	return ResolveRef("HEAD")
 }
 
 func CurrentBranch() (string, error) {
@@ -35,7 +39,7 @@ func CurrentRemoteRef() (string, error) {
 		return "", err
 	}
 
-	return simpleExec(nil, "git", "rev-parse", remote)
+	return ResolveRef(remote)
 }
 
 func CurrentRemote() (string, error) {
