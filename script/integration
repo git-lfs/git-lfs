@@ -14,9 +14,6 @@ atexit() {
   fi
 
   if [ "$SHOW_LOGS" = "yes" ]; then
-    echo ""
-    git lfs version
-
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
       echo "gitserver.log:"

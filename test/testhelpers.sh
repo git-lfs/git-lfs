@@ -117,6 +117,7 @@ setup() {
 
   echo "compile git-lfs for $0"
   script/bootstrap
+  $GITLFS version
 
   for go in test/cmd/*.go; do
     go build -o "$BINPATH/$(basename $go .go)" "$go"
