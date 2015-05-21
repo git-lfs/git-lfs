@@ -24,8 +24,6 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
 	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
-	// SJS TODO - however still needs upgrading to support Windows, PuTTY & Tortoise like mainline Git
-	//            respect GIT_SSH etc
 
 	res := sshAuthResponse{}
 	if len(endpoint.SshUserAndHost) == 0 {
@@ -34,11 +32,14 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s %s",
 		endpoint.SshUserAndHost, endpoint.SshPath, operation, oid)
-	cmd := exec.Command("ssh", endpoint.SshUserAndHost,
+
+	exe, args := sshGetExeAndArgs(endpoint)
+	args = append(args,
 		"git-lfs-authenticate",
 		endpoint.SshPath,
-		operation, oid,
-	)
+		operation, oid)
+
+	cmd := exec.Command(exe, args...)
 
 	out, err := cmd.CombinedOutput()
 
@@ -49,6 +50,39 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 	}
 
 	return res, err
+}
+
+// Return the executable name for ssh on this machine and the base args
+// Base args includes port settings, user/host, everything pre the command to execute
+func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
+	if len(endpoint.SshUserAndHost) == 0 {
+		return "", nil
+	}
+
+	ssh := os.Getenv("GIT_SSH")
+	isPlink := strings.EqualFold(filepath.Base(ssh), "plink")
+	isTortoise := strings.EqualFold(filepath.Base(ssh), "tortoiseplink")
+	if ssh == "" {
+		ssh = "ssh"
+	}
+
+	args := make([]string, 0, 4)
+	if isTortoise {
+		// TortoisePlink requires the -batch argument to behave like ssh/plink
+		args = append(args, "-batch")
+	}
+
+	if len(endpoint.SshPort) > 0 {
+		if isPlink {
+			args = append(args, "-P")
+		} else {
+			args = append(args, "-p")
+		}
+		args = append(args, endpoint.SshPort)
+	}
+	args = append(args, endpoint.SshUserAndHost)
+
+	return ssh, args
 }
 
 // Below here is the pure-SSH API interface
@@ -102,31 +136,7 @@ func (self *SshApiContext) Close() error {
 }
 
 func (self *SshApiContext) connect() error {
-	ssh := os.Getenv("GIT_SSH")
-	isPlink := strings.EqualFold(filepath.Base(ssh), "plink")
-	isTortoise := strings.EqualFold(filepath.Base(ssh), "tortoiseplink")
-	if ssh == "" {
-		ssh = "ssh"
-	}
-
-	// Let's invoke ssh
-	args := make([]string, 0, 2)
-	if isTortoise {
-		// TortoisePlink requires the -batch argument to behave like ssh/plink
-		args = append(args, "-batch")
-	}
-	// TODO Extract port if present
-	// lfs doesn't currently handle ports in SSH URLS
-	port := ""
-	if port != "" {
-		if isPlink {
-			args = append(args, "-P")
-		} else {
-			args = append(args, "-p")
-		}
-		args = append(args, port)
-	}
-	args = append(args, self.endpoint.SshUserAndHost)
+	ssh, args := sshGetExeAndArgs(self.endpoint)
 
 	// Now add remote program and path
 	serverCommand := "git-lfs-serve"
