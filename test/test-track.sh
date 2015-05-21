@@ -12,8 +12,24 @@ begin_test "track"
   cd track
   git init
 
-  git lfs track "*.jpg"
-  cat .gitattributes | grep "*.jpg"
+  # track *.jpg once
+  git lfs track "*.jpg" | grep "Tracking \*.jpg"
+  numjpg=$(cat .gitattributes | grep "\*.jpg" | wc -l)
+  if [ "$(printf "%d" "$numjpg")" != "1" ]; then
+    echo "wrong number of jpgs"
+    cat .gitattributes
+    exit 1
+  fi
+
+  # track *.jpg again
+  git lfs track "*.jpg" | grep "*.jpg already supported"
+  numjpg=$(cat .gitattributes | grep "\*.jpg" | wc -l)
+  if [ "$(printf "%d" "$numjpg")" != "1" ]; then
+    echo "wrong number of jpgs"
+    cat .gitattributes
+    exit 1
+  fi
+
   mkdir -p a/b
 
   echo "*.mov filter=lfs -crlf" > .git/info/attributes
