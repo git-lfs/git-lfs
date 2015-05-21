@@ -3,13 +3,14 @@ package lfs
 import (
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/git"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/github/git-lfs/git"
 )
 
 var (
@@ -45,11 +46,9 @@ func InstallHooks(force bool) error {
 	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
 	if _, err := os.Stat(hookPath); err == nil && !force {
 		return upgradeHookOrError(hookPath, "pre-push", prePushHook, prePushUpgrades)
-	} else {
-		return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 	}
 
-	return nil
+	return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 }
 
 func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {
@@ -77,15 +76,16 @@ func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]boo
 }
 
 func InstallFilters() error {
-	var err error
-	err = setFilter("clean")
-	if err == nil {
-		err = setFilter("smudge")
+	if err := setFilter("clean"); err != nil {
+		return err
 	}
-	if err == nil {
-		err = requireFilters()
+	if err := setFilter("smudge"); err != nil {
+		return err
 	}
-	return err
+	if err := requireFilters(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func setFilter(filterName string) error {

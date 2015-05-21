@@ -2,11 +2,12 @@ package commands
 
 import (
 	"bytes"
-	"github.com/bmizerany/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestSmudge(t *testing.T) {

@@ -2,9 +2,10 @@ package lfs
 
 import (
 	"fmt"
-	"github.com/cheggaaa/pb"
 	"sync"
 	"sync/atomic"
+
+	"github.com/cheggaaa/pb"
 )
 
 type Transferable interface {

@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (

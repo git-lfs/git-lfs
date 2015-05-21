@@ -1,13 +1,14 @@
 package commands
 
 import (
+	"io/ioutil"
+	"os"
+	"strings"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"os"
-	"strings"
 )
 
 var (

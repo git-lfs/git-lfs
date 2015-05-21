@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+
+	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -447,42 +448,42 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
-		return res, wErr
+		return nil, wErr
 	}
 
 	if res.StatusCode == 307 {
 		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
 		if err != nil {
-			return res, Errorf(err, err.Error())
+			return nil, Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
-		if seeker, ok := req.Body.(io.Seeker); ok {
-			_, err := seeker.Seek(0, 0)
-			if err != nil {
-				return res, Error(err)
-			}
-			redirectedReq.Body = req.Body
-			redirectedReq.ContentLength = req.ContentLength
-		} else {
-			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+		seeker, ok := req.Body.(io.Seeker)
+		if !ok {
+			return nil, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
+		if _, err := seeker.Seek(0, 0); err != nil {
+			return nil, Error(err)
+		}
+		redirectedReq.Body = req.Body
+		redirectedReq.ContentLength = req.ContentLength
+
 		if err = checkRedirect(redirectedReq, via); err != nil {
-			return res, Errorf(err, err.Error())
+			return nil, Errorf(err, err.Error())
 		}
 
 		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
 	}
 
-	return res, wErr
+	return res, nil
 }
 
 func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
-		return res, nil, wErr
+		return nil, nil, wErr
 	}
 
 	obj := &objectResource{}
@@ -490,9 +491,10 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 
 	if wErr != nil {
 		setErrorResponseContext(wErr, res)
+		return nil, nil, wErr
 	}
 
-	return res, obj, wErr
+	return res, obj, nil
 }
 
 func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
@@ -608,26 +610,33 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	}
 
 	req, creds, err := newClientRequest(method, u.String())
-	if err == nil {
-		req.Header.Set("Accept", mediaType)
-		if res.Header != nil {
-			for key, value := range res.Header {
-				req.Header.Set(key, value)
-			}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("Accept", mediaType)
+	if res.Header != nil {
+		for key, value := range res.Header {
+			req.Header.Set(key, value)
 		}
 	}
-	return req, creds, err
+
+	return req, creds, nil
 }
 
 func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
-		return req, nil, err
+		return nil, nil, err
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
 	creds, err := getCreds(req)
-	return req, creds, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return req, creds, nil
 }
 
 func getCreds(req *http.Request) (Creds, error) {
@@ -656,16 +665,16 @@ func getCreds(req *http.Request) (Creds, error) {
 	return nil, nil
 }
 
-func setErrorRequestContext(err *WrappedError, req *http.Request) {
-	err.Set("Endpoint", Config.Endpoint().Url)
-	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
-	setErrorHeaderContext(err, "Response", req.Header)
-}
-
 func setErrorResponseContext(err *WrappedError, res *http.Response) {
 	err.Set("Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
+}
+
+func setErrorRequestContext(err *WrappedError, req *http.Request) {
+	err.Set("Endpoint", Config.Endpoint().Url)
+	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+	setErrorHeaderContext(err, "Response", req.Header)
 }
 
 func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {

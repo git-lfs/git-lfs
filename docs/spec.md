@@ -171,7 +171,7 @@ exist, and the sha-256 signature of the contents matches the given OID.
 * Write the pointer file to STDOUT.
 
 Note that the `clean` filter does not push the file to the server.  Use the
-`git lfs sync` command to do that.
+`git push` command to do that (lfs files are pushed before commits in a pre-push hook).
 
 The `smudge` filter runs as files are being checked out from the Git repository
 to the working directory.  Git sends the content of the Git blob as STDIN, and

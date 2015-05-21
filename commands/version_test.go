@@ -2,8 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"github.com/github/git-lfs/lfs"
 	"testing"
+
+	"github.com/github/git-lfs/lfs"
 )
 
 func TestVersionOnEmptyRepository(t *testing.T) {

@@ -2,8 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
+	"log"
 )
 
 type Release struct {
@@ -21,7 +20,6 @@ func main() {
 	case "release":
 		mainRelease()
 	default:
-		fmt.Println("Unknown command:", *SubCommand)
-		os.Exit(1)
+		log.Fatalln("Unknown command:", *SubCommand)
 	}
 }

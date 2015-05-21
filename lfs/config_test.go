@@ -1,8 +1,9 @@
 package lfs
 
 import (
-	"github.com/bmizerany/assert"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {

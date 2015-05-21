@@ -3,13 +3,14 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"github.com/rubyist/tracerx"
 	"io"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -52,7 +53,11 @@ var z40 = regexp.MustCompile(`\^?0{40}`)
 // for all Git LFS pointers it finds for that ref.
 func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
+
 	start := time.Now()
+	defer func() {
+		tracerx.PerformanceSince("scan", start)
+	}()
 
 	revs, err := revListShas(refLeft, refRight, refLeft == "", nameMap)
 	if err != nil {
@@ -77,8 +82,6 @@ func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 		pointers = append(pointers, p)
 	}
 
-	tracerx.PerformanceSince("scan", start)
-
 	return pointers, nil
 }
 
@@ -86,7 +89,11 @@ func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 // Git LFS pointers it finds in the index.
 func ScanIndex() ([]*wrappedPointer, error) {
 	nameMap := make(map[string]*indexFile, 0)
+
 	start := time.Now()
+	defer func() {
+		tracerx.PerformanceSince("scan-staging", start)
+	}()
 
 	revs, err := revListIndex(false, nameMap)
 	if err != nil {
@@ -134,8 +141,6 @@ func ScanIndex() ([]*wrappedPointer, error) {
 		}
 		pointers = append(pointers, p)
 	}
-
-	tracerx.PerformanceSince("scan-staging", start)
 
 	return pointers, nil
 
