@@ -51,7 +51,7 @@ begin_test "happy path"
 
   # This pushes to the remote repository set up at the top of the test.
   out=$(git push origin master 2>&1)
-  echo "$out" | grep "(1 of 1 files) 1 B / 1 B  100.00 %"
+  echo "$out" | grep "(1 of 1 files)"
   echo "$out" | grep "master -> master"
 
   assert_server_object "$contents_oid" "$contents"
