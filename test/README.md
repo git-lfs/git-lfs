@@ -56,8 +56,6 @@ LFSTEST_URL=/Users/rick/github/git-lfs/test/remote/url LFSTEST_DIR=/Users/rick/g
 test: happy path ...                                               OK
 ```
 
-### Goals
-
 1. The integration tests should not rely on global system or git config.
 2. The tests should be cross platform (Linux, Mac, Windows).
 3. Tests should bootstrap an isolated, clean environment.  See the Test Suite
@@ -117,5 +115,9 @@ The test Git server writes a `test/remote/url` file when it's complete.  This
 file is how individual test scripts detect if `script/integration` is being
 run.  You can fake this by manually spinning up the Git server using the
 `lfstest-gitserver` line that is output after Git LFS is compiled.
+
+By default, temporary directories in `tmp` and the `test/remote` directory are
+cleared after test runs. Send the "KEEPTRASH" if you want to keep these files
+around for debugging failed tests.
 
 [testlib]: https://gist3.github.com/rtomayko/3877539

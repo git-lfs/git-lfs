@@ -129,9 +129,13 @@ setup() {
 
 # shutdown cleans the $TRASHDIR and shuts the test Git server down.
 shutdown() {
-  rm -rf "$TRASHDIR"
+  # every test/test-*.sh file should cleanup its trashdir
+  [ -z "$KEEPTRASH" ] && rm -rf "$TRASHDIR"
 
   if [ "$SHUTDOWN_LFS" != "no" ]; then
+    # only cleanup test/remote after script/integration done OR a single
+    # test/test-*.sh file is run manually.
+    [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
     if [ -s "$LFS_URL_FILE" ]; then
       curl "$(cat "$LFS_URL_FILE")/shutdown"
     fi
