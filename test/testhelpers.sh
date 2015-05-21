@@ -86,11 +86,11 @@ setup_remote_repo() {
 	smudge = %s smudge %%f
 	clean = %s clean %%f
 [credential]
-	helper = \"!f() { echo \\"username=user\\\\npassword=pass\\"; }; f\"
+	helper = %s
 [remote \"origin\"]
 	url = %s/%s
 	fetch = +refs/heads/*:refs/remotes/origin/*
-" "$GITLFS" "$GITLFS" "$GITSERVER" "$reponame" > "$LFS_CONFIG-$reponame"
+" "$GITLFS" "$GITLFS" lfstest "$GITSERVER" "$reponame" > "$LFS_CONFIG-$reponame"
 }
 
 # clone_repo clones a repository from the test Git server to the subdirectory
@@ -104,7 +104,7 @@ clone_repo() {
   out=$(GIT_CONFIG="$LFS_CONFIG-$reponame" git clone "$GITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
 
-  git config credential.helper '!f() { echo "username=user\npassword=pass"; }; f'
+  git config credential.helper lfstest
   echo "$out"
 }
 
