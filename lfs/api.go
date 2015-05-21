@@ -17,6 +17,11 @@ type ApiContext interface {
 	Download(oid string) (io.ReadCloser, int64, *WrappedError)
 	// Upload a single object
 	Upload(oid string, sz int64, content io.Reader, cb CopyCallback) *WrappedError
+
+	// TODO - incorporate multitransfer branch changes here (batch upload/download)
+	//        must identify that parallel downloads aren't possible with SSH API
+	// TODO - add download/upload resume
+	// TODO - add binary delta support
 }
 
 var (
