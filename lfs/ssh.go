@@ -78,7 +78,7 @@ func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
 	}
 
 	if len(endpoint.SshPort) > 0 {
-		if isPlink {
+		if isPlink || isTortoise {
 			args = append(args, "-P")
 		} else {
 			args = append(args, "-p")
