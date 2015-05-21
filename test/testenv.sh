@@ -13,7 +13,7 @@ BINPATH="$ROOTDIR/bin"
 PATH="$BINPATH:$PATH"
 
 # create a temporary work space
-TMPDIR="$(cd $(dirname "$0")/.. && pwd)"/tmp
+TMPDIR=${GIT_LFS_TEST_DIR:-"$(cd $(dirname "$0")/.. && pwd)/tmp"}
 
 # This is unique to every test file, and cleared after every test run.
 TRASHDIR="$TMPDIR/$(basename "$0")-$$"
