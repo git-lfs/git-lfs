@@ -36,7 +36,7 @@ func getCommand(cmd *cobra.Command, args []string) {
 	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
 
 	for _, p := range pointers {
-		q.Add(p)
+		q.Add(lfs.NewDownloadable(p))
 	}
 
 	q.Process()
