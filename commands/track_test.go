@@ -103,3 +103,24 @@ func TestTrackWithoutTrailingLinebreak(t *testing.T) {
 	cmd = repo.Command("track")
 	cmd.Output = "Listing tracked paths"
 }
+
+func TestTrackInsideGit(t *testing.T) {
+	repo := NewRepository(t, "empty")
+	defer repo.Test()
+
+	cmd := repo.Command("track", "*.gif")
+	cmd.Output = "Git LFS cannot perform outside git repository."
+
+	cmd.Before(func() {
+		// remove git file system
+		err := os.RemoveAll(filepath.Join(repo.Path, ".git"))
+		assert.Equal(t, nil, err)
+		t.Log(filepath.Join(repo.Path, ".git"))
+	})
+
+	cmd.After(func() {
+		// assert Git LFS not operate.
+		expected := "Git LFS cannot perform outside git repository.\n"
+		assert.Equal(t, expected, repo.MediaCmd("track"))
+	})
+}

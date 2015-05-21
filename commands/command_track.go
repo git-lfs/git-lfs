@@ -3,13 +3,12 @@ package commands
 import (
 	"bufio"
 	"fmt"
+	"github.com/github/git-lfs/lfs"
+	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -23,6 +22,12 @@ var (
 func trackCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 	knownPaths := findPaths()
+
+	workingInsideGit := workingInsideGit()
+	if !workingInsideGit {
+		Print("Git LFS cannot perform outside git repository.")
+		return
+	}
 
 	if len(args) == 0 {
 		Print("Listing tracked paths")
@@ -145,6 +150,13 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
+}
+
+func workingInsideGit() bool {
+	if lfs.LocalGitDir == "" {
+		return false
+	}
+	return true
 }
 
 func init() {
