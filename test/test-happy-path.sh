@@ -23,7 +23,7 @@ begin_test "happy path"
   clone_repo "$reponame" repo
 
   # This executes Git LFS from the local repo that was just cloned.
-  out=$($GITLFS track "*.dat" 2>&1)
+  out=$(git lfs track "*.dat" 2>&1)
   echo "$out" | grep "Tracking \*.dat"
 
   contents=$(printf "a")
