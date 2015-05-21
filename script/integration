@@ -41,6 +41,10 @@ fi
 
 setup
 
+parallel=${GIT_LFS_TEST_MAXPROCS:-4}
+
+echo "Running this maxprocs=$parallel"
+
 for file in test/test-*.sh; do
   echo "0$(cat .$(basename $file).time 2>/dev/null || true) $file"
-done | sort -rnk1 | awk '{ print $2 }' | xargs -I % -P 4 -n 1 /bin/sh -c % --batch
+done | sort -rnk1 | awk '{ print $2 }' | xargs -I % -P $parallel -n 1 /bin/sh -c % --batch
