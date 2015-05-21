@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -89,4 +90,34 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 	assert.Equal(t, []string{"-batch", "-P", "8888", "user@foo.com"}, args)
 
 	os.Setenv("GIT_SSH", oldGITSSH)
+}
+
+type TestStruct struct {
+	Name      string
+	Something int
+}
+
+func TestSSHEncodeJSONRequest(t *testing.T) {
+	ctx := &SshApiContext{}
+
+	params := &TestStruct{Name: "Fred", Something: 99}
+	req, err := ctx.NewJsonRequest("TestMethod", params)
+	assert.Equal(t, nil, err)
+	reqbytes, err := json.Marshal(req)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, `{"id":1,"method":"TestMethod","params":{"Name":"Fred","Something":99}}`, string(reqbytes))
+
+}
+
+func TestSSHDecodeJSONResponse(t *testing.T) {
+	ctx := &SshApiContext{}
+	inputstruct := TestStruct{Name: "Fred", Something: 99}
+	resp, err := ctx.NewJsonResponse(1, inputstruct)
+	assert.Equal(t, nil, err)
+	outputstruct := TestStruct{}
+	// Now unmarshal nested result; need to extract json first
+	innerbytes, err := resp.Result.MarshalJSON()
+	assert.Equal(t, nil, err)
+	err = json.Unmarshal(innerbytes, &outputstruct)
+	assert.Equal(t, inputstruct, outputstruct)
 }
