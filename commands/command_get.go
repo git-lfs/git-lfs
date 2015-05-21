@@ -4,6 +4,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var (
@@ -39,6 +40,28 @@ func getCommand(cmd *cobra.Command, args []string) {
 	}
 
 	q.Process()
+
+	target, err := git.ResolveRef(ref)
+	if err != nil {
+	}
+
+	current, err := git.CurrentRef()
+	if err != nil {
+	}
+
+	if target == current {
+		for _, pointer := range pointers {
+			file, err := os.Create(pointer.Name)
+			if err != nil {
+				Panic(err, "Could not create working directory file")
+			}
+
+			err = lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil)
+			if err != nil {
+				Panic(err, "Could not write working directory file")
+			}
+		}
+	}
 }
 
 func init() {
