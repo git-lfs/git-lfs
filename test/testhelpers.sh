@@ -112,8 +112,8 @@ clone_repo() {
 setup() {
   cd "$ROOTDIR"
 
-  rm -rf "test/remote"
-  mkdir "test/remote"
+  rm -rf "$REMOTEDIR"
+  mkdir "$REMOTEDIR"
 
   if [ -z "$SKIPCOMPILE" ]; then
     echo "compile git-lfs for $0"
