@@ -128,6 +128,8 @@ setup() {
     done
   fi
 
+  echo "tmp dir: $TMPDIR"
+  echo "remote git dir: $REMOTEDIR"
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
   wait_for_file "$LFS_URL_FILE"
