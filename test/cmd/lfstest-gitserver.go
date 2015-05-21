@@ -111,6 +111,8 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &lfsObject{
+		Oid:  obj.Oid,
+		Size: obj.Size,
 		Links: map[string]lfsLink{
 			"upload": lfsLink{
 				Href: server.URL + "/storage/" + obj.Oid,
