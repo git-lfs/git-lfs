@@ -14,7 +14,7 @@ type CallbackReader struct {
 	io.Reader
 }
 
-type CopyCallback func(int64, int64, int) error
+type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
 
 func (w *CallbackReader) Read(p []byte) (int, error) {
 	n, err := w.Reader.Read(p)
