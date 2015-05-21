@@ -2,12 +2,9 @@ package lfs
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"github.com/cheggaaa/pb"
 	"sync"
 	"sync/atomic"
-
-	"github.com/cheggaaa/pb"
 )
 
 type Downloadable struct {
@@ -166,21 +163,12 @@ func (q *DownloadQueue) Process() {
 		go func(n int) {
 
 			for d := range q.downloadc {
-				fullPath := filepath.Join(LocalWorkingDir, d.Pointer.Name)
-				output, err := os.Create(fullPath)
-				if err != nil {
-					q.errorc <- Error(err)
-					f := atomic.AddInt64(&q.finished, 1)
-					q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
-					q.wg.Done()
-					continue
-				}
-
 				cb := func(total, read int64, current int) error {
 					q.bar.Add(current)
 					return nil
 				}
-				if err := PointerSmudgeObject(output, d.Pointer.Pointer, d.Object, cb); err != nil {
+
+				if err := PointerSmudgeObject(d.Pointer.Pointer, d.Object, cb); err != nil {
 					q.errorc <- Error(err)
 				}
 

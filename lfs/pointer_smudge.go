@@ -42,7 +42,9 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 	return nil
 }
 
-func PointerSmudgeObject(writer io.Writer, ptr *Pointer, obj *objectResource, cb CopyCallback) error {
+// PointerSmudgeObject uses a Pointer and objectResource to download the object to the
+// media directory. It does not write the file to the working directory.
+func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) error {
 	mediafile, err := LocalMediaPath(obj.Oid)
 	if err != nil {
 		return err
@@ -58,23 +60,20 @@ func PointerSmudgeObject(writer io.Writer, ptr *Pointer, obj *objectResource, cb
 		}
 	}
 
-	var wErr *WrappedError
 	if statErr != nil || stat == nil {
-		wErr = downloadObject(writer, ptr, obj, mediafile, cb)
-	} else {
-		wErr = readLocalFile(writer, ptr, mediafile, cb)
-	}
+		wErr := downloadObject(ptr, obj, mediafile, cb)
 
-	if wErr != nil {
-		sendApiEvent(apiEventFail)
-		return &SmudgeError{obj.Oid, mediafile, wErr}
+		if wErr != nil {
+			sendApiEvent(apiEventFail)
+			return &SmudgeError{obj.Oid, mediafile, wErr}
+		}
 	}
 
 	sendApiEvent(apiEventSuccess)
 	return nil
 }
 
-func downloadObject(writer io.Writer, ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) *WrappedError {
+func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) *WrappedError {
 	reader, size, wErr := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
@@ -105,7 +104,7 @@ func downloadObject(writer io.Writer, ptr *Pointer, obj *objectResource, mediafi
 		return Errorf(err, "Error buffering media file.")
 	}
 
-	return readLocalFile(writer, ptr, mediafile, nil)
+	return nil
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) *WrappedError {
