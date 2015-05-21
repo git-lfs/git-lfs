@@ -300,8 +300,6 @@ func (self *HttpApiContext) newApiRequest(method, oid string) (*http.Request, Cr
 		operation = "upload"
 	}
 
-	// SJS at this point we should do more than just use SSH as an auth path
-	// SJS could leave this here as a fallback even though it wastes an SSH connection
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
