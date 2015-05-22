@@ -5,10 +5,10 @@
 #
 #   $ assert_pointer "master" "path/to/file" "some-oid" 123
 assert_pointer() {
-  local ref=$1
-  local path=$2
-  local oid=$3
-  local size=$4
+  local ref="$1"
+  local path="$2"
+  local oid="$3"
+  local size="$4"
 
   tree=$(git ls-tree -lr "$ref")
   gitblob=$(echo "$tree" | grep "$path" | cut -f 3 -d " ")
@@ -47,7 +47,7 @@ size %s
 #
 #   $ wait_for_file "path/to/upcoming/file"
 wait_for_file() {
-  local filename=$1
+  local filename="$1"
   n=0
   while [ $n -lt 10 ]; do
     if [ -s $filename ]; then
@@ -70,7 +70,7 @@ wait_for_file() {
 #   $ setup_remote_repo "some-name"
 #
 setup_remote_repo() {
-  local reponame=$1
+  local reponame="$1"
   echo "set up remote git repository: $reponame"
   repodir="$REMOTEDIR/$reponame.git"
   mkdir -p "$repodir"
@@ -99,8 +99,8 @@ setup_remote_repo() {
 clone_repo() {
   cd "$TRASHDIR"
 
-  local reponame=$1
-  local dir=$2
+  local reponame="$1"
+  local dir="$2"
   echo "clone local git repository $reponame to $dir"
   out=$(GIT_CONFIG="$LFS_CONFIG-$reponame" git clone "$GITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
