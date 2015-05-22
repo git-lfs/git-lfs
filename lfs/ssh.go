@@ -124,6 +124,8 @@ func (self *SshApiContext) Endpoint() Endpoint {
 }
 
 func (self *SshApiContext) Close() error {
+	// TODO send clean Exit method
+
 	// Docs say "It is incorrect to call Wait before all writes to the pipe have completed."
 	// But that actually means in parallel https://github.com/golang/go/issues/9307 so we're ok here
 	errbytes, readerr := ioutil.ReadAll(self.stderr)
@@ -149,7 +151,7 @@ func (self *SshApiContext) connect() error {
 
 	// Now add remote program and path
 	serverCommand := "git-lfs-serve"
-	if c, ok := Config.GitConfig("lfs.sshserver"); ok {
+	if c, ok := Config.GitConfig("lfs.sshservercmd"); ok {
 		serverCommand = c
 	}
 	args = append(args, serverCommand)
@@ -307,8 +309,7 @@ func LimitReadCloser(r io.Reader, sz int64) io.ReadCloser {
 }
 
 // Perform a JSON request that results in a byte stream as a response
-func (self *SshApiContext) doJSONRequestDownload(method string, params interface{},
-	sz int64) (io.ReadCloser, error) {
+func (self *SshApiContext) doJSONRequestDownload(method string, params interface{}, sz int64) (io.ReadCloser, error) {
 
 	req, err := self.NewJsonRequest(method, params)
 	if err != nil {
@@ -440,10 +441,37 @@ func (self *SshApiContext) sendRawData(sz int64, source io.Reader, callback Copy
 	return nil
 }
 
-func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedError) {
-
-	return nil, 0, nil
+type DownloadInfoRequest struct {
+	Oid string `json:"oid"`
 }
+type DownloadInfoResponse struct {
+	Size int64 `json:"size"`
+}
+type DownloadContentRequest struct {
+	Oid  string `json:"oid"`
+	Size int64  `json:"size"`
+}
+
+func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedError) {
+	infoparams := DownloadInfoRequest{oid}
+	resp := DownloadInfoResponse{}
+	err := self.doFullJSONRequestResponse("DownloadInfo", &infoparams, &resp)
+	if err != nil {
+		return nil, 0, Errorf(err, "Error while downloading %v (DownloadInfo): %v", oid, err)
+	}
+	contentparams := DownloadContentRequest{
+		Oid:  oid,
+		Size: resp.Size,
+	}
+
+	r, err := self.doJSONRequestDownload("Download", &contentparams, resp.Size)
+	if err != nil {
+		return nil, 0, Errorf(err, "Error while downloading %v (Download): %v", oid, err.Error())
+	}
+
+	return r, resp.Size, nil
+}
+
 func (self *SshApiContext) Upload(oid string, sz int64, content io.Reader, cb CopyCallback) *WrappedError {
 	// TODO
 	return nil
