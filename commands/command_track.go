@@ -21,6 +21,11 @@ var (
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
+	if lfs.LocalGitDir == "" {
+		Print("Not a git repository.")
+		os.Exit(128)
+	}
+
 	lfs.InstallHooks(false)
 	knownPaths := findPaths()
 
