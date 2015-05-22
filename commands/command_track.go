@@ -64,7 +64,8 @@ func trackCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -crlf\n", t))
+		encodedArg := strings.Replace(t, " ", "[[:space:]]", -1)
+		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -crlf\n", encodedArg))
 		if err != nil {
 			Print("Error adding path %s", t)
 			continue
