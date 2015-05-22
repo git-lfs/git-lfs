@@ -15,7 +15,7 @@ there is now an alternative.
 When asked to upload or download large file data with an SSH URL (if co-located,
 the git clone URL can be used without having to specify lfs.url in gitconfig), a
 connection is first established with the server and we attempt to invoke the
-full server implementation - by default this is called `git-lfs-serve` but you
+full server implementation - by default this is called `git-lfs-ssh-serve` but you
 can call something else by setting `lfs.sshservercmd` in gitconfig.
 
 If this full SSH server command is not available then this will fail, and we
@@ -24,9 +24,9 @@ authenticate`. If it succeeds, this connection is retained as a context and used
 for all subsequent uploads and downloads until termination of the current
 command.
 
-The only argument passed to the `git-lfs-serve` command is the relative path of
+The only argument passed to the `git-lfs-ssh-serve` command is the relative path of
 the repo, as extracted from the URL. For more information on installing the
-reference server & configuring it, see [git-lfs-serve](git-lfs-serve.md)
+reference server & configuring it, see [git-lfs-ssh-serve](git-lfs-ssh-serve.md)
 
 Authentication is handled in the same way as opening any SSH connection,
 primarily through SSH keys. Manual authentication may be supported via `git

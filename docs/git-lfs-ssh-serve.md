@@ -1,11 +1,11 @@
-# The git-lfs-serve SSH reference server #
+# The git-lfs-ssh-serve SSH reference server #
 
-`git-lfs-serve` is a reference implementation of a pure SSH server for git-lfs.
+`git-lfs-ssh-serve` is a reference implementation of a pure SSH server for git-lfs.
 
 When using an SSH URL (either ssh://user@host/path or user@host:/path), git-lfs
 will automatically open an SSH connection to the host specified and run the
 command specified by the config parameter ```lfs.sshservercmd```, which if not
-specified defaults to ```git-lfs-serve```. Simply copying this program onto your
+specified defaults to ```git-lfs-ssh-serve```. Simply copying this program onto your
 server (no dependencies required, it's stand-alone and works on Windows, Linux
 and Mac servers) and providing authenticated SSH users access to it is enough to
 provide a reference implementation of a pure SSH LFS server on your own host.
@@ -16,8 +16,8 @@ From the root, build the server in whatever architecture you want using gox
 (https://github.com/mitchellh/gox) and upload the binary to your server's path:
 ```
 gox -build-toolchain
-gox -osarch="linux/386" ./git-lfs-serve
-scp git-lfs-serve_linux_386 admin@host.com:/usr/local/bin/git-lfs-serve
+gox -osarch="linux/386" ./git-lfs-ssh-serve
+scp git-lfs-ssh-serve_linux_386 admin@host.com:/usr/local/bin/git-lfs-ssh-serve
 ```
 
 Make sure the user you'll be using to connect has access to this binary and also
@@ -35,7 +35,7 @@ groups, you should edit /etc/pam.d/sshd and add:
 session    optional     pam_umask.so umask=0002
 ```
 
-git-lfs-serve will copy the permissions of the base path when creating new files
+git-lfs-ssh-serve will copy the permissions of the base path when creating new files
 & directories but it can't do that if the umask filters out the write bits. You
 can't fix this with 'umask' in /etc/profile because that only applies to
 interactive ssh terminals, not 'ssh url command' forms.
@@ -50,7 +50,7 @@ just a single path for everything (binaries are immutable so technically can be
 shared between everyone, if permissions aren't an issue).
 
 When given an SSH URL for the remote store, git-lfs will simply strip off the
-path element and pass that as an argument to git-lfs-serve over the SSH
+path element and pass that as an argument to git-lfs-ssh-serve over the SSH
 connection. It's up to you to use an SSH URL that reflects how you want to
 partition up the remote binary store(s).
 
@@ -58,9 +58,9 @@ Examples:
 
 | URL | Server command |
 |-----|----------------|
-|ssh://steve@bighost.com/goteam/repo1|```git-lfs-serve goteam/repo1```|
-|git@thehost.com:projects/newproject|```git-lfs-serve projects/newproject```|
-|ssh://andy@bighost.com//var/shared/rooted/repo|```git-lfs-serve /var/shared/rooted/repo``` (disallowed by default config)|
+|ssh://steve@bighost.com/goteam/repo1|```git-lfs-ssh-serve goteam/repo1```|
+|git@thehost.com:projects/newproject|```git-lfs-ssh-serve projects/newproject```|
+|ssh://andy@bighost.com//var/shared/rooted/repo|```git-lfs-ssh-serve /var/shared/rooted/repo``` (disallowed by default config)|
 
 Rooted paths are disallowed by the default configuration for security, forcing
 all repositories to be under a base path (see below).
@@ -71,13 +71,13 @@ Configuration is via a simple key-value text file placed in the following locati
 
 Windows:
 
-* %USERPROFILE%\git-lfs-serve.ini
-* %PROGRAMDATA%\Atlassian\git-lfs\git-lfs-serve.ini
+* %USERPROFILE%\git-lfs-ssh-serve.ini
+* %PROGRAMDATA%\Atlassian\git-lfs\git-lfs-ssh-serve.ini
 
 Linux/Mac:
 
-* ~/.git-lfs-serve
-* /etc/git-lfs-serve.conf
+* ~/.git-lfs-ssh-serve
+* /etc/git-lfs-ssh-serve.conf
 
 Usually you'll want to use a global config file to avoid each user having to
 configure it themselves, unless you use a generic user name for all connections

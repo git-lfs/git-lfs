@@ -150,7 +150,7 @@ func (self *SshApiContext) connect() error {
 	ssh, args := sshGetExeAndArgs(self.endpoint)
 
 	// Now add remote program and path
-	serverCommand := "git-lfs-serve"
+	serverCommand := "git-lfs-ssh-serve"
 	if c, ok := Config.GitConfig("lfs.sshservercmd"); ok {
 		serverCommand = c
 	}
