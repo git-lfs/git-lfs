@@ -3,8 +3,8 @@
 Git LFS now has 2 ways of handling using SSH git remote URLs:
 
 1. redirect to a HTTPS API URL via a pre-call to `ssh user@host git-lfs-
-authenticate` 2. a pure SSH API implementation of the API (plus reference
-server)
+authenticate` 
+2. a pure SSH API implementation of the API (plus reference server)
 
 Option 1 continues to work if you've chosen to use it, but for people who would
 prefer LFS to consistently use SSH for the upload/download of large files too,
