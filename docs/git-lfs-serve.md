@@ -12,10 +12,13 @@ provide a reference implementation of a pure SSH LFS server on your own host.
 
 ## Installation ##
 
-From the root, build the server in whatever architecture you want using gox
+From the root, build the server in whatever architecture you want using gox 
 (https://github.com/mitchellh/gox) and upload the binary to your server's path:
-``` gox -build-toolchain gox -osarch="linux/386" ./git-lfs-serve scp git-lfs-
-serve_linux_386 admin@host.com:/usr/local/bin/git-lfs-serve ```
+```
+gox -build-toolchain
+gox -osarch="linux/386" ./git-lfs-serve
+scp git-lfs-serve_linux_386 admin@host.com:/usr/local/bin/git-lfs-serve
+```
 
 Make sure the user you'll be using to connect has access to this binary and also
 the base path (see configuration below).
@@ -23,15 +26,19 @@ the base path (see configuration below).
 ## sshd configuration for groups ##
 
 On many Linux distros, 'ssh url command' uses a default umask of 022 which means
-that uploaded file permissions are read only except for the user. If you want
+that uploaded file permissions are read only except for the user. If you want 
 people to use their own username in their SSH url & give permission to files via
-groups, you should edit /etc/pam.d/sshd and add: ``` # Setting UMASK for all ssh
-based connections (ssh, sftp, scp) # always allow group perms session
-optional     pam_umask.so umask=0002 ``` git-lfs-serve will copy the permissions
-of the base path when creating new files & directories but it can't do that if
-the umask filters out the write bits. You can't fix this with 'umask' in
-/etc/profile because that only applies to interactive ssh terminals, not 'ssh
-url command' forms.
+groups, you should edit /etc/pam.d/sshd and add:
+```
+# Setting UMASK for all ssh based connections (ssh, sftp, scp)
+# always allow group perms
+session    optional     pam_umask.so umask=0002
+```
+
+git-lfs-serve will copy the permissions of the base path when creating new files
+& directories but it can't do that if the umask filters out the write bits. You
+can't fix this with 'umask' in /etc/profile because that only applies to
+interactive ssh terminals, not 'ssh url command' forms.
 
 ## Invocation ##
 
