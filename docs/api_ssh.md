@@ -12,11 +12,16 @@ there is now an alternative.
 
 ## The basics
 
-When asked to upload or download large file data with an SSH URL (if co-located, the git clone URL can be used without having to specify lfs.url in gitconfig), a connection is first established with the server and we attempt to invoke the full server implementation - by default this is called `git-lfs-serve` but you can call something else by setting `lfs.sshservercmd` in gitconfig.
+When asked to upload or download large file data with an SSH URL (if co-located,
+the git clone URL can be used without having to specify lfs.url in gitconfig), a
+connection is first established with the server and we attempt to invoke the
+full server implementation - by default this is called `git-lfs-serve` but you
+can call something else by setting `lfs.sshservercmd` in gitconfig.
 
 If this full SSH server command is not available then this will fail, and we
 will fall back on the old way of using HTTPS instead with `git-lfs-
-authenticate`. If it succeeds, this connection is retained as a context and used for all subsequent uploads and downloads until termination of the current
+authenticate`. If it succeeds, this connection is retained as a context and used
+for all subsequent uploads and downloads until termination of the current
 command.
 
 The only argument passed to the `git-lfs-serve` command is the relative path of
@@ -31,7 +36,8 @@ credentials` in future.
 
 As mentioned above a single SSH connection is used for multiple operations,
 avoiding the need to incur the overhead of negotiating afresh on each request.
-Communication simply occurs over the stdin/stdout of the processes at either end of the connection.
+Communication simply occurs over the stdin/stdout of the processes at either end
+of the connection.
 
 The requests and human-readable responses are in JSON format, roughly anagolous
 to JSON-RPC except that we allow raw byte streams to be interleaved with the
@@ -45,7 +51,10 @@ efficient reading of variable-length data within a persistent re-usable stream.
 
 ## The request / response structures
 
-Note that the use of 'id' is mostly for familiarity with JSON-RPC; at this point parallel requests aren't possible (within a single connection), but later on this might come in handy if the server back end uses a message queue or something to aggregate the work of many connections.
+Note that the use of 'id' is mostly for familiarity with JSON-RPC; at this point
+parallel requests aren't possible (within a single connection), but later on
+this might come in handy if the server back end uses a message queue or
+something to aggregate the work of many connections.
 
 | **Request** || 
 |---------|-----------------------------------------------| 
