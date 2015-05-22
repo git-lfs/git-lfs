@@ -14,7 +14,7 @@ begin_test "track"
 
   # track *.jpg once
   git lfs track "*.jpg" | grep "Tracking \*.jpg"
-  numjpg=$(cat .gitattributes | grep "\*.jpg" | wc -l)
+  numjpg=$(grep "\*.jpg" .gitattributes | wc -l)
   if [ "$(printf "%d" "$numjpg")" != "1" ]; then
     echo "wrong number of jpgs"
     cat .gitattributes
@@ -23,7 +23,7 @@ begin_test "track"
 
   # track *.jpg again
   git lfs track "*.jpg" | grep "*.jpg already supported"
-  numjpg=$(cat .gitattributes | grep "\*.jpg" | wc -l)
+  numjpg=$(grep "\*.jpg" .gitattributes | wc -l)
   if [ "$(printf "%d" "$numjpg")" != "1" ]; then
     echo "wrong number of jpgs"
     cat .gitattributes
