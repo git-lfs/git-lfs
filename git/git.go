@@ -61,6 +61,11 @@ func CurrentRemote() (string, error) {
 	return remote + "/" + branch, nil
 }
 
+func UpdateIndex(file string) error {
+	_, err := simpleExec(nil, "git", "update-index", "-q", "--refresh", file)
+	return err
+}
+
 type gitConfig struct {
 }
 

@@ -51,15 +51,20 @@ func getCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if target == current {
+		// We just downloaded the files for the current ref, we can copy them into
+		// the working directory and update the git index
 		for _, pointer := range pointers {
 			file, err := os.Create(pointer.Name)
 			if err != nil {
 				Panic(err, "Could not create working directory file")
 			}
 
-			err = lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil)
-			if err != nil {
+			if err := lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil); err != nil {
 				Panic(err, "Could not write working directory file")
+			}
+
+			if err := git.UpdateIndex(pointer.Name); err != nil {
+				Panic(err, "Could not update index")
 			}
 		}
 	}
