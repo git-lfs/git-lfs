@@ -10,7 +10,8 @@ assert_pointer() {
   local oid=$3
   local size=$4
 
-  gitblob=$(git ls-tree -l $ref | grep $path | cut -f 3 -d " ")
+  tree=$(git ls-tree -lr "$ref")
+  gitblob=$(echo "$tree" | grep "$path" | cut -f 3 -d " ")
   actual=$(git cat-file -p $gitblob)
   expected=$(pointer $oid $size)
 
