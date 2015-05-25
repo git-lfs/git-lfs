@@ -16,7 +16,7 @@
 	pflag under the name "flag" then all code should continue to function
 	with no changes.
 
-		import flag "github.com/github/git-lfs/vendor/_nuts/github.com/ogier/pflag"
+		import flag "github.com/ogier/pflag"
 
 	There is one exception to this: if you directly instantiate the Flag struct
 	there is one more field "Shorthand" that you will need to set.

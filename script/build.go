@@ -94,15 +94,7 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 		dir = filepath.Join(dir, "releases", buildos+"-"+buildarch, name)
 	}
 
-	filepath.Walk("cmd/git-lfs", func(path string, info os.FileInfo, err error) error {
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-
-		cmd := filepath.Base(path)
-		cmd = cmd[0 : len(cmd)-3]
-		return buildCommand(path, dir, buildos, buildarch)
-	})
+	buildCommand(dir, buildos, buildarch)
 
 	if addenv {
 		err := os.MkdirAll(dir, 0755)
@@ -121,18 +113,16 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	return nil
 }
 
-func buildCommand(path, dir, buildos, buildarch string) error {
+func buildCommand(dir, buildos, buildarch string) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := filepath.Base(path)
-	name = name[0 : len(name)-3]
 
-	bin := filepath.Join(dir, name)
+	bin := filepath.Join(dir, "git-lfs")
 
 	if buildos == "windows" {
 		bin = bin + ".exe"
 	}
 
-	cmd := exec.Command("go", "build", "-o", bin, path)
+	cmd := exec.Command("go", "build", "-o", bin, ".")
 	if addenv {
 		cmd.Env = []string{
 			"GOOS=" + buildos,
