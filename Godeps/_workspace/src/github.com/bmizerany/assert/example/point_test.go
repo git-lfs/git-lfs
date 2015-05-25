@@ -1,8 +1,8 @@
 package point
 
 import (
-	"testing"
 	"assert"
+	"testing"
 )
 
 func TestAsserts(t *testing.T) {

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"time"
+
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
 func main() {

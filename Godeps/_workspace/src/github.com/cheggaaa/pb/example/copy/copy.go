@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
 func main() {

@@ -2,6 +2,7 @@ package pretty_test
 
 import (
 	"fmt"
+
 	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/kr/pretty"
 )
 

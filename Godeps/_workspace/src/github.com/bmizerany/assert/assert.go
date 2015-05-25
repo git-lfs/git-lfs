@@ -4,10 +4,11 @@ package assert
 
 import (
 	"fmt"
-	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/kr/pretty"
 	"reflect"
 	"runtime"
 	"testing"
+
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/kr/pretty"
 )
 
 func assert(t *testing.T, result bool, f func(), cd int) {

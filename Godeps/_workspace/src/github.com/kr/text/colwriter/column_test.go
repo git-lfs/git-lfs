@@ -36,7 +36,7 @@ version.go
 windows.go
 `[1:]
 
-var tests = []struct{
+var tests = []struct {
 	wid  int
 	flag uint
 	src  string

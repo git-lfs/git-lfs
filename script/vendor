@@ -1,1 +1,4 @@
+#!/bin/sh
+
 GOPATH="`pwd`/.vendor" script/gpm install
+godep save -r ./...
