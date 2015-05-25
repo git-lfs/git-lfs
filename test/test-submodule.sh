@@ -22,7 +22,10 @@ begin_test "submodule local git dir"
   clone_repo "$reponame" repo
   git submodule add "$GITSERVER/$submodname" sub
   cd sub/dir
-  grep "sub module" README
+  grep "sub module" README || {
+    cat README
+    exit 1
+  }
   git lfs help
 )
 end_test
