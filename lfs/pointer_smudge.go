@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cheggaaa/pb"
-	"github.com/rubyist/tracerx"
-	contentaddressable "github.com/technoweenie/go-contentaddressable"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/rubyist/tracerx"
+	contentaddressable "github.com/github/git-lfs/Godeps/_workspace/src/github.com/technoweenie/go-contentaddressable"
 )
 
 func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCallback) error {

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/bmizerany/assert"
 )
 
 func TestSmudge(t *testing.T) {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"io"
 	"net/http"
 	"os"

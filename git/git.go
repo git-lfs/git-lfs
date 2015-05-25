@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/rubyist/tracerx"
 )
 
 func LsRemote(remote, remoteRef string) (string, error) {
