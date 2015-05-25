@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
+	mediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
 // The apiEvent* statuses (and the apiEvent channel) are used by
