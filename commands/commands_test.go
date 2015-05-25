@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/technoweenie/assert"
 )
 
 var (

@@ -1,8 +1,9 @@
 package assert
+
 // Testing helpers for doozer.
 
 import (
-	"github.com/kr/pretty"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pretty"
 	"reflect"
 	"testing"
 	"runtime"

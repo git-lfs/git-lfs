@@ -3,7 +3,7 @@ package lfs
 import (
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {

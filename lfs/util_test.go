@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestWriterWithCallback(t *testing.T) {

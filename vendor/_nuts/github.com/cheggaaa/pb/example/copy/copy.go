@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"io"
 	"net/http"
 	"os"

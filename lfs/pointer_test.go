@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestEncode(t *testing.T) {

@@ -10,8 +10,8 @@
 package main
 
 import (
-	"github.com/kr/pty"
-	"github.com/kr/text/colwriter"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pty"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/text/colwriter"
 	"io"
 	"log"
 	"os"
