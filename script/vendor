@@ -1,4 +1,8 @@
 #!/bin/sh
 
-GOPATH="`pwd`/.vendor" script/gpm install
+hash godep 2>/dev/null || {
+  echo "installing godeps"
+  go get github.com/tools/godep
+}
+
 godep save -r ./...

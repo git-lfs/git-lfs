@@ -1,8 +1,7 @@
 bin/
 benchmark/
-.vendor/pkg
+Godeps/pkg
 servertest
-.vendor/src/github.com/github/git-lfs
 
 # only allow man/*.\d.ronn files
 man/*
