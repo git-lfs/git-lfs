@@ -2,7 +2,8 @@ package point
 
 import (
 	"testing"
-	"assert"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestAsserts(t *testing.T) {
