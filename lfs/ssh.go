@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os/exec"
 
-	"github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 type sshAuthResponse struct {

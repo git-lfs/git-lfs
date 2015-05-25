@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/technoweenie/assert"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
 func TestSmudge(t *testing.T) {

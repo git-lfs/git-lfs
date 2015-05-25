@@ -20,7 +20,7 @@ Example
 
 	import (
 		"fmt"
-		"github.com/olekukonko/ts"
+		"github.com/github/git-lfs/vendor/_nuts/github.com/olekukonko/ts"
 	)
 
 	func main() {
