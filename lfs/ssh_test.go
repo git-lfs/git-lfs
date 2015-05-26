@@ -1,7 +1,12 @@
 package lfs
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -120,4 +125,176 @@ func TestSSHDecodeJSONResponse(t *testing.T) {
 	assert.Equal(t, nil, err)
 	err = json.Unmarshal(innerbytes, &outputstruct)
 	assert.Equal(t, inputstruct, outputstruct)
+}
+
+var testoid = "00000000001111111111222222222233333333334444444444555555555566666666667777"
+var testcontent = []byte("This is some test content that isn't very large but is just here to prove the codep path")
+
+// Test server function here, just called over a pipe to test
+var testserve = func(conn net.Conn, t *testing.T) {
+	// Man using assertions in a goroutine is much easier with Ginkgo
+	defer func() {
+		e := recover()
+		if e != nil {
+			t.Error(e)
+		}
+	}()
+	defer conn.Close()
+	// Run in a goroutine, be the server you seek
+	// Read a request
+	rdr := bufio.NewReader(conn)
+	// Just for utility methods
+	tempctx := &SshApiContext{}
+	for {
+		jsonbytes, err := rdr.ReadBytes(byte(0))
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			panic(fmt.Sprintf("Test persistent server: unable to read from client: %v", err.Error()))
+		}
+		// slice off the terminator
+		jsonbytes = jsonbytes[:len(jsonbytes)-1]
+		var req JsonRequest
+		err = json.Unmarshal(jsonbytes, &req)
+		if err != nil {
+			panic(fmt.Sprintf("Test persistent server: unable to unmarshal json request from client:%v", string(jsonbytes)))
+		}
+
+		var resp *JsonResponse
+		switch req.Method {
+		case "Upload":
+			upreq := UploadRequest{}
+			tempctx.ExtractStructFromJsonRawMessage(req.Params, &upreq)
+			startresult := UploadResponse{}
+			startresult.OkToSend = true
+			// Send start response immediately
+			resp, err = tempctx.NewJsonResponse(req.Id, startresult)
+			if err != nil {
+				panic("Test persistent server: unable to create response")
+			}
+			responseBytes, err := json.Marshal(resp)
+			if err != nil {
+				panic("Test persistent server: unable to marshal response")
+			}
+			// null terminate response
+			responseBytes = append(responseBytes, byte(0))
+			conn.Write(responseBytes)
+			// Next should by byte stream
+			// Must read from buffered reader since bytes may have been read already
+			receivedresult := UploadCompleteResponse{}
+			receivedresult.ReceivedOk = true
+			var receiveerr error
+			// make pre-sized buffer
+			contentbuf := bytes.NewBuffer(make([]byte, 0, upreq.Size))
+			bytesLeft := upreq.Size
+			for bytesLeft > 0 {
+				c := int64(100)
+				if c > bytesLeft {
+					c = bytesLeft
+				}
+				n, err := io.CopyN(contentbuf, rdr, c)
+				bytesLeft -= int64(n)
+				if err != nil {
+					receivedresult.ReceivedOk = false
+					receiveerr = fmt.Errorf("Test persistent server: unable to read data: %v", err.Error())
+					break
+				}
+			}
+			// Check we received what we expected to receive
+			contentbytes := contentbuf.Bytes()
+			assert.Equal(t, contentbytes, testcontent)
+
+			// After we've read all the content bytes, send received response
+			if receiveerr != nil {
+				resp = tempctx.NewJsonErrorResponse(req.Id, receiveerr.Error())
+			} else {
+				resp, _ = tempctx.NewJsonResponse(req.Id, receivedresult)
+			}
+		case "DownloadInfo":
+			downreq := DownloadInfoRequest{}
+			tempctx.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+			result := DownloadInfoResponse{}
+			if downreq.Oid == testoid {
+				result.Size = int64(len(testcontent))
+				resp, err = tempctx.NewJsonResponse(req.Id, result)
+				if err != nil {
+					panic("Test persistent server: unable to create response")
+				}
+			} else {
+				// Error response for missing item
+				resp = tempctx.NewJsonErrorResponse(req.Id, "Does not exist")
+			}
+		case "Download":
+			// Can't return any error responses here (byte stream response only), have to just fail
+			downreq := DownloadRequest{}
+			tempctx.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+			// there is no response to this
+			sz := int64(len(testcontent))
+			datasrc := bytes.NewReader(testcontent)
+			// confirm size for testing
+			if sz != downreq.Size {
+				panic("Test persistent server: download size incorrect")
+			}
+			bytesLeft := sz
+			for bytesLeft > 0 {
+				c := int64(100)
+				if c > bytesLeft {
+					c = bytesLeft
+				}
+				n, err := io.CopyN(conn, datasrc, c)
+				bytesLeft -= int64(n)
+				if err != nil {
+					panic(fmt.Sprintf("Test persistent server: unable to read data: %v", err))
+				}
+			}
+		case "Exit":
+			break
+		default:
+			resp = tempctx.NewJsonErrorResponse(req.Id, fmt.Sprintf("Unknown method %v", req.Method))
+		}
+		if resp != nil {
+			responseBytes, err := json.Marshal(resp)
+			if err != nil {
+				panic("Test persistent server: unable to marshal response")
+			}
+
+			// null terminate response
+			responseBytes = append(responseBytes, byte(0))
+			conn.Write(responseBytes)
+		}
+	}
+	conn.Close()
+}
+
+func TestSSHDownload(t *testing.T) {
+	cli, srv := net.Pipe()
+	go testserve(srv, t)
+	defer cli.Close()
+	// Create a test SSH context from this which doesn't actually connect in
+	// the traditional way
+	ctx := SshApiContext{
+		stdin:     cli,
+		stdout:    cli,
+		bufReader: bufio.NewReader(cli),
+	}
+	// First test an invalid oid
+	_, sz, err := ctx.Download("00000")
+	// Should be an error in this case
+	assert.NotEqual(t, nil, err)
+	assert.Equal(t, int64(0), sz)
+
+	// Now test valid one
+	rdr, sz, err := ctx.Download(testoid)
+	// for some reason the assert lib doesn't behave correctly for *WrappedError
+	//assert.Equal(t, nil, err)
+	if err != nil {
+		t.Error("Should not be an error calling Download with the correct Oid")
+	}
+	assert.Equal(t, int64(len(testcontent)), sz)
+	var buf bytes.Buffer
+	io.CopyN(&buf, rdr, sz) // must read before assert otherwise will get clogged
+	assert.Equal(t, testcontent, buf.Bytes())
+
+	ctx.Close()
 }

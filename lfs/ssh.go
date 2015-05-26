@@ -469,7 +469,7 @@ type DownloadInfoRequest struct {
 type DownloadInfoResponse struct {
 	Size int64 `json:"size"`
 }
-type DownloadContentRequest struct {
+type DownloadRequest struct {
 	Oid  string `json:"oid"`
 	Size int64  `json:"size"`
 }
@@ -481,7 +481,7 @@ func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedE
 	if err != nil {
 		return nil, 0, Errorf(err, "Error while downloading %v (DownloadInfo): %v", oid, err)
 	}
-	contentparams := DownloadContentRequest{
+	contentparams := DownloadRequest{
 		Oid:  oid,
 		Size: resp.Size,
 	}
