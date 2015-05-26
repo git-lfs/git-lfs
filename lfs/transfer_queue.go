@@ -46,13 +46,15 @@ func newTransferQueue(workers, files int) *TransferQueue {
 	}
 }
 
-// Add adds an Uploadable to the upload queue.
+// Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
 	q.transferables[t.Oid()] = t
 }
 
-// apiWorker processes the queue, making the POST calls and
-// feeding the results to uploadWorkers
+// processIndividual processes the queue of transfers one at a time by making
+// a POST call for each object, feeding the results to the transfer workers.
+// If configured, the object transfers can still happen concurrently, the
+// sequential nature here is only for the meta POST calls.
 func (q *TransferQueue) processIndividual() {
 	apic := make(chan Transferable, q.files)
 	workersReady := make(chan int, q.workers)
@@ -101,8 +103,9 @@ func (q *TransferQueue) processIndividual() {
 	close(q.transferc)
 }
 
-// batchWorker makes the batch POST call, feeding the results
-// to the transfer workers
+// processBatch processes the queue of transfers using the batch endpoint,
+// making only one POST call for all objects. The results are then handed
+// off to the transfer workers.
 func (q *TransferQueue) processBatch() {
 	q.files = 0
 	transfers := make([]*objectResource, 0, len(q.transferables))
@@ -132,16 +135,19 @@ func (q *TransferQueue) processBatch() {
 	close(q.transferc)
 	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
 	q.bar.Start()
-	sendApiEvent(apiEventSuccess) // Wake up upload workers
+	sendApiEvent(apiEventSuccess) // Wake up transfer workers
 }
 
-// Process starts the upload queue and displays a progress bar.
+// Process starts the transfer queue and displays a progress bar. Process will
+// do individual or batch transfers depending on the Config.BatchTransfer() value.
+// Process will transfer files sequentially or concurrently depending on the
+// Concig.ConcurrentTransfers() value.
 func (q *TransferQueue) Process() {
 	q.bar = pb.New64(q.size)
 	q.bar.SetUnits(pb.U_BYTES)
 	q.bar.ShowBar = false
 
-	// This goroutine collects errors returned from uploads
+	// This goroutine collects errors returned from transfers
 	go func() {
 		for err := range q.errorc {
 			q.errors = append(q.errors, err)
@@ -152,7 +158,7 @@ func (q *TransferQueue) Process() {
 	// credential requests from happening, the queue is processed sequentially
 	// until an API request succeeds (meaning authenication has happened successfully).
 	// Once the an API request succeeds, all worker goroutines are woken up and allowed
-	// to process uploads. Once a success happens, this goroutine exits.
+	// to process transfers. Once a success happens, this goroutine exits.
 	go func() {
 		for {
 			event := <-apiEvent
@@ -168,7 +174,7 @@ func (q *TransferQueue) Process() {
 	}()
 
 	for i := 0; i < q.workers; i++ {
-		// These are the worker goroutines that process uploads
+		// These are the worker goroutines that process transfers
 		go func(n int) {
 
 			for transfer := range q.transferc {
@@ -200,7 +206,7 @@ func (q *TransferQueue) Process() {
 	q.bar.Finish()
 }
 
-// Errors returns any errors encountered during uploading.
+// Errors returns any errors encountered during transfer.
 func (q *TransferQueue) Errors() []*WrappedError {
 	return q.errors
 }
