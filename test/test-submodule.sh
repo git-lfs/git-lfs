@@ -36,23 +36,32 @@ begin_test "submodule env"
 
   # using the local clone from the above test
   cd repo
-  expected=$(printf "Endpoint=$GITSERVER/$reponame.git/info/lfs
-LocalWorkingDir=$TRASHDIR/repo
-LocalGitDir=$TRASHDIR/repo/.git
-LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects
-TempDir=$TRASHDIR/repo/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
-")
-  actual=$(git lfs env)
-  [ "$expected" = "$actual" ]
+
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/lfs/tmp" env.log
 
   cd .git
 
-  [ "$expected" = "$actual" ]
+  echo "./.git"
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/lfs/tmp" env.log
 
   cd ../sub
 
-  [ "$expected" = "$actual" ]
+  echo "./sub"
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/modules/sub/lfs/objects" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/modules/sub/lfs/tmp" env.log
 )
 end_test
