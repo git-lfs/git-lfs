@@ -34,7 +34,7 @@ Git LFS objects not staged for commit:
 
 	file1.dat"
 
-  [ "$expected" == "$(git lfs status)" ]
+  [ "$expected" = "$(git lfs status)" ]
 )
 end_test
 
@@ -63,6 +63,6 @@ begin_test "status --porcelain"
 A  file2.dat 11
 A  file3.dat 11"
 
-  [ "$expected" == "$(git lfs status --porcelain)" ]
+  [ "$expected" = "$(git lfs status --porcelain)" ]
 )
 end_test

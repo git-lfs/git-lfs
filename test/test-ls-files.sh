@@ -15,6 +15,6 @@ begin_test "ls-files"
   git add some.dat some.txt
   git commit -m "added some files"
 
-  [ "some.dat" == "$(git lfs ls-files)" ]
+  [ "some.dat" = "$(git lfs ls-files)" ]
 )
 end_test

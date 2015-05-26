@@ -29,7 +29,7 @@ size 7
 
 Git blob OID: e18acd45d7e3ce0451d1d637f9697aa508e07dee"
 
-  [ "$expected" == "$(echo "$input" | git lfs pointer --file=some-file --stdin 2>&1)" ]
+  [ "$expected" = "$(echo "$input" | git lfs pointer --file=some-file --stdin 2>&1)" ]
 )
 end_test
 
@@ -48,7 +48,7 @@ size 123"
   status=$?
   set -e
 
-  [ "1" == "$status" ]
+  [ "1" = "$status" ]
 
   expected="Git LFS pointer for some-file
 
@@ -68,7 +68,7 @@ Git blob OID: 905bcc24b5dc074ab870f9944178e398eec3b470
 
 Pointers do not match"
 
-  [ "$expected" == "$output" ]
+  [ "$expected" = "$output" ]
 )
 end_test
 
@@ -87,7 +87,7 @@ version https://git-lfs.github.com/spec/v1
 oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868
 size 7"
 
-  [ "$expected" == "$output" ]
+  [ "$expected" = "$output" ]
 )
 end_test
 
@@ -100,9 +100,9 @@ begin_test "pointer --stdin without stdin"
 
   expected="Cannot read from STDIN. The --stdin flag expects a pointer file from STDIN."
 
-  [ "$expected" == "$output" ]
+  [ "$expected" = "$output" ]
 
-  [ "1" == "$status" ]
+  [ "1" = "$status" ]
 )
 
 begin_test "pointer --stdin with bad pointer"
@@ -116,9 +116,9 @@ begin_test "pointer --stdin with bad pointer"
 
 Not a valid Git LFS pointer file."
 
-  [ "$expected" == "$output" ]
+  [ "$expected" = "$output" ]
 
-  [ "1" == "$status" ]
+  [ "1" = "$status" ]
 )
 
 begin_test "pointer --file --pointer mismatch"
@@ -152,9 +152,9 @@ Pointers do not match"
   status=$?
   set -e
 
-  [ "1" == "$status" ]
+  [ "1" = "$status" ]
 
-  [ "$expected" == "$output" ]
+  [ "$expected" = "$output" ]
 )
 end_test
 
@@ -183,7 +183,7 @@ size 7
 Git blob OID: e18acd45d7e3ce0451d1d637f9697aa508e07dee"
 
 
-  [ "$expected" == "$(git lfs pointer --file=some-file --pointer=valid-pointer 2>&1)" ]
+  [ "$expected" = "$(git lfs pointer --file=some-file --pointer=valid-pointer 2>&1)" ]
 )
 end_test
 
@@ -201,7 +201,7 @@ version https://git-lfs.github.com/spec/v1
 oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868
 size 7"
 
-  [ "$expected" == "$(git lfs pointer --pointer=valid-pointer 2>&1)" ]
+  [ "$expected" = "$(git lfs pointer --pointer=valid-pointer 2>&1)" ]
 )
 end_test
 
@@ -211,8 +211,8 @@ begin_test "pointer missing --pointer"
   status=$?
   set -e
 
-  [ "1" == "$status" ]
-  [ "open missing-pointer: no such file or directory" == "$output" ]
+  [ "1" = "$status" ]
+  [ "open missing-pointer: no such file or directory" = "$output" ]
 )
 end_test
 
@@ -227,13 +227,13 @@ begin_test "pointer invalid --pointer"
   status=$?
   set -e
 
-  [ "1" == "$status" ]
+  [ "1" = "$status" ]
 
   expected="Pointer from some-pointer
 
 Not a valid Git LFS pointer file."
 
-  [ "$expected" == "$output" ]
+  [ "$expected" = "$output" ]
 )
 end_test
 
@@ -248,7 +248,7 @@ version https://git-lfs.github.com/spec/v1
 oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868
 size 7"
 
-  [ "$expected" == "$(git lfs pointer --file=some-file 2>&1)" ]
+  [ "$expected" = "$(git lfs pointer --file=some-file 2>&1)" ]
 )
 end_test
 
@@ -258,7 +258,7 @@ begin_test "pointer without args"
   status=$?
   set -e
 
-  [ "Nothing to do!" == "$output" ]
-  [ "1" == "$status" ]
+  [ "Nothing to do!" = "$output" ]
+  [ "1" = "$status" ]
 )
 end_test

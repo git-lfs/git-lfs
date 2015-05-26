@@ -49,7 +49,7 @@ begin_test "push dry-run"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  [ "push a.dat" == "$(git lfs push --dry-run origin master 2>&1)" ]
+  [ "push a.dat" = "$(git lfs push --dry-run origin master 2>&1)" ]
 
   git checkout -b push-b
   echo "push b" > b.dat

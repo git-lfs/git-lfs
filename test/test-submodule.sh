@@ -45,14 +45,14 @@ GIT_LFS_TEST_DIR=$TMPDIR
 GIT_LFS_TEST_MAXPROCS=4
 ")
   actual=$(git lfs env)
-  [ "$expected" == "$actual" ]
+  [ "$expected" = "$actual" ]
 
   cd .git
 
-  [ "$expected" == "$actual" ]
+  [ "$expected" = "$actual" ]
 
   cd ../sub
 
-  [ "$expected" == "$actual" ]
+  [ "$expected" = "$actual" ]
 )
 end_test

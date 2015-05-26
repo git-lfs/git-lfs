@@ -82,7 +82,7 @@ begin_test "pre-push dry-run"
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
 
-  [ "" == "$(cat push.log)" ]
+  [ "" = "$(cat push.log)" ]
 
   git lfs track "*.dat"
   echo "dry" > hi.dat
