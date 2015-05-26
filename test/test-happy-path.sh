@@ -26,18 +26,18 @@ begin_test "happy path"
   out=$(git lfs track "*.dat" 2>&1)
   echo "$out" | grep "Tracking \*.dat"
 
-  contents=$(printf "a")
+  contents="a"
   contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
 
   # Regular Git commands can be used.
   printf "$contents" > a.dat
   git add a.dat
   git add .gitattributes
-  out=$(git commit -m "add a.dat" 2>&1)
-  echo "$out" | grep "master (root-commit)"
-  echo "$out" | grep "2 files changed"
-  echo "$out" | grep "create mode 100644 a.dat"
-  echo "$out" | grep "create mode 100644 .gitattributes"
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
 
   out=$(cat a.dat)
   if [ "$out" != "a" ]; then
@@ -50,9 +50,9 @@ begin_test "happy path"
   refute_server_object "$contents_oid"
 
   # This pushes to the remote repository set up at the top of the test.
-  out=$(git push origin master 2>&1)
-  echo "$out" | grep "(1 of 1 files) 1 B / 1 B  100.00 %"
-  echo "$out" | grep "master -> master"
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files) 1 B / 1 B  100.00 %" push.log
+  grep "master -> master" push.log
 
   assert_server_object "$contents_oid" "$contents"
 
