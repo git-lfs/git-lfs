@@ -78,20 +78,6 @@ setup_remote_repo() {
   git init --bare
   git config http.receivepack true
   git config receive.denyCurrentBranch ignore
-
-  # dump a simple git config file so clones use this test's Git LFS command
-  # and the custom credential helper. This overrides any Git config that is
-  # already setup on the system.
-  printf "[filter \"lfs\"]
-	required = true
-	smudge = %s smudge %%f
-	clean = %s clean %%f
-[credential]
-	helper = %s
-[remote \"origin\"]
-	url = %s/%s
-	fetch = +refs/heads/*:refs/remotes/origin/*
-" "$GITLFS" "$GITLFS" lfstest "$GITSERVER" "$reponame" > "$LFS_CONFIG-$reponame"
 }
 
 # clone_repo clones a repository from the test Git server to the subdirectory
@@ -102,7 +88,7 @@ clone_repo() {
   local reponame="$1"
   local dir="$2"
   echo "clone local git repository $reponame to $dir"
-  out=$(GIT_CONFIG="$LFS_CONFIG-$reponame" git clone "$GITSERVER/$reponame" "$dir" 2>&1)
+  out=$(git clone "$GITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
 
   git config credential.helper lfstest
@@ -121,7 +107,8 @@ setup() {
     script/bootstrap
   fi
 
-  $GITLFS version
+  echo "Git LFS: $(which git-lfs)"
+  git lfs version
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
@@ -133,6 +120,13 @@ setup() {
   echo "remote git dir: $REMOTEDIR"
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+
+  mkdir $HOME
+  git config -f "$HOME/.gitconfig" filter.lfs.required true
+  git config -f "$HOME/.gitconfig" filter.lfs.smudge "git lfs smudge %f"
+  git config -f "$HOME/.gitconfig" filter.lfs.clean "git lfs clean %f"
+  git config -f "$HOME/.gitconfig" credential.helper lfstest
+
   wait_for_file "$LFS_URL_FILE"
 }
 
