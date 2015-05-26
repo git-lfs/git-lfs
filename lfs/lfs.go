@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/git"
-	"github.com/rubyist/tracerx"
 )
 
 const Version = "0.5.1"

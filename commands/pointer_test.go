@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/bmizerany/assert"
 )
 
 func TestPointerWithBuildAndCompareStdinMismatch(t *testing.T) {

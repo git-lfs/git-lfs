@@ -1,14 +1,5 @@
 #!/bin/sh
 
 script/fmt
-
 rm -rf `pwd`/bin/*
-rm -rf `pwd`/.vendor/pkg
-
-export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
-mkdir -p `dirname $LOCALSRCDIR`
-rm -f $LOCALSRCDIR
-ln -s `pwd` $LOCALSRCDIR
-
-GOPATH="`pwd`/.vendor" \
-  go run script/*.go -cmd build "$@"
+go run script/*.go -cmd build "$@"

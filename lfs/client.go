@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/rubyist/tracerx"
 )
 
 const (

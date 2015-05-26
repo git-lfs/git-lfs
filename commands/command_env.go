@@ -1,8 +1,8 @@
 package commands
 
 import (
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/spf13/cobra"
 	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 )
 
 var (

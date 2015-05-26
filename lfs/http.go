@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/rubyist/tracerx"
 )
 
 func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {

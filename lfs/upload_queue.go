@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
 var (
