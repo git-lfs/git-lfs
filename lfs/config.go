@@ -76,7 +76,7 @@ func (c *Configuration) ConcurrentTransfers() int {
 
 	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
 		n, err := strconv.Atoi(v)
-		if err == nil {
+		if err == nil && n > 0 {
 			uploads = n
 		}
 	}
@@ -86,7 +86,14 @@ func (c *Configuration) ConcurrentTransfers() int {
 
 func (c *Configuration) BatchTransfer() bool {
 	if v, ok := c.GitConfig("lfs.batch"); ok {
-		return v == "true"
+		if v == "true" || v == "" {
+			return true
+		}
+
+		// Any numeric value except 0 is considered true
+		if n, err := strconv.Atoi(v); err == nil && n != 0 {
+			return true
+		}
 	}
 	return false
 }
