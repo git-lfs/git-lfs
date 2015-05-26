@@ -549,7 +549,6 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	res.Body.Close()
 
 	if err != nil {
-		fmt.Printf("DECODE ERROR: %s\n", err)
 		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
 	}
 
