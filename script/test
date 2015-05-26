@@ -7,4 +7,5 @@ suite="./${1:-"lfs ./commands"}"
 if [ $# -gt 0 ]; then
   shift
 fi
+script/bootstrap
 go test $suite "$@"
