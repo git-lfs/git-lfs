@@ -14,8 +14,7 @@ begin_test "env with no remote"
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
+$(env | grep "^GIT")
 ")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
@@ -36,8 +35,7 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
+$(env | grep "^GIT")
 ")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
@@ -64,8 +62,7 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
+$(env | grep "^GIT")
 ")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
@@ -90,8 +87,7 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
+$(env | grep "^GIT")
 ")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
@@ -119,8 +115,7 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
+$(env | grep "^GIT")
 ")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
@@ -150,8 +145,7 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-GIT_LFS_TEST_DIR=$TMPDIR
-GIT_LFS_TEST_MAXPROCS=4
+$(env | grep "^GIT")
 ")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
