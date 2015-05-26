@@ -56,3 +56,11 @@ func GetApiContext(endpoint Endpoint) ApiContext {
 
 	return ctx
 }
+
+// Shut down any open API contexts
+func ShutdownApiContexts() {
+	for _, ctx := range contextCache {
+		ctx.Close()
+	}
+	contextCache = make(map[string]ApiContext, 0)
+}

@@ -167,6 +167,11 @@ func processDotGitFile(file string) (string, string, error) {
 	return wd, "", nil
 }
 
+// Shut down any cached or otherwise persistent structures
+func Shutdown() {
+	ShutdownApiContexts()
+}
+
 const (
 	gitExt       = ".git"
 	gitPtrPrefix = "gitdir: "
