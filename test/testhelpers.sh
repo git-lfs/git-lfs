@@ -126,6 +126,8 @@ setup() {
   git config -f "$HOME/.gitconfig" filter.lfs.smudge "git lfs smudge %f"
   git config -f "$HOME/.gitconfig" filter.lfs.clean "git lfs clean %f"
   git config -f "$HOME/.gitconfig" credential.helper lfstest
+  git config -f "$HOME/.gitconfig" user.name "Git LFS Tests"
+  git config -f "$HOME/.gitconfig" user.email "git-lfs@example.com"
 
   wait_for_file "$LFS_URL_FILE"
 }
