@@ -298,3 +298,31 @@ func TestSSHDownload(t *testing.T) {
 
 	ctx.Close()
 }
+
+func TestSSHUpload(t *testing.T) {
+	cli, srv := net.Pipe()
+	go testserve(srv, t)
+	defer cli.Close()
+	// Create a test SSH context from this which doesn't actually connect in
+	// the traditional way
+	ctx := SshApiContext{
+		stdin:     cli,
+		stdout:    cli,
+		bufReader: bufio.NewReader(cli),
+	}
+
+	rdr := bytes.NewReader(testcontent)
+	var callbackTotalSize, callbackReadSoFarEnd int64
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		callbackTotalSize = totalSize
+		callbackReadSoFarEnd = readSoFar
+		return nil
+	}
+	err := ctx.Upload(testoid, int64(len(testcontent)), rdr, cb)
+	if err != nil {
+		t.Error("Should not be an error calling Upload with the correct Oid")
+	}
+	assert.Equal(t, int64(len(testcontent)), callbackTotalSize)
+	assert.Equal(t, int64(len(testcontent)), callbackReadSoFarEnd)
+	ctx.Close()
+}
