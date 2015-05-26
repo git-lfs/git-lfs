@@ -19,8 +19,8 @@ full server implementation - by default this is called `git-lfs-ssh-serve` but y
 can call something else by setting `lfs.sshservercmd` in gitconfig.
 
 If this full SSH server command is not available then this will fail, and we
-will fall back on the old way of using HTTPS instead with `git-lfs-
-authenticate`. If it succeeds, this connection is retained as a context and used
+will fall back on the old way of using HTTPS instead with `git-lfs-authenticate`. 
+If it succeeds, this connection is retained as a context and used
 for all subsequent uploads and downloads until termination of the current
 command.
 
