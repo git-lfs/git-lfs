@@ -123,23 +123,45 @@ func (self *SshApiContext) Endpoint() Endpoint {
 	return self.endpoint
 }
 
-func (self *SshApiContext) Close() error {
-	// TODO send clean Exit method
+type ExitRequest struct {
+}
+type ExitResponse struct {
+}
 
-	// Docs say "It is incorrect to call Wait before all writes to the pipe have completed."
-	// But that actually means in parallel https://github.com/golang/go/issues/9307 so we're ok here
-	errbytes, readerr := ioutil.ReadAll(self.stderr)
-	if readerr == nil && len(errbytes) > 0 {
-		// Copy to our stderr for info
-		fmt.Fprintf(os.Stderr, "Messages from SSH server:\n%v", string(errbytes))
+func (self *SshApiContext) Close() error {
+
+	if self.stdin != nil && self.stdout != nil {
+		// terminate server-side
+		params := ExitRequest{}
+		req, err := self.NewJsonRequest("Exit", params)
+		if err != nil {
+			return err
+		}
+		err = self.sendJSONRequest(req)
+		if err != nil {
+			return err
+		}
 	}
-	err := self.cmd.Wait()
-	if err != nil {
-		return fmt.Errorf("Error closing ssh connection: %v\nstderr: %v", err.Error(), string(errbytes))
+	var errbytes []byte
+	if self.stderr != nil {
+		var readerr error
+		errbytes, readerr = ioutil.ReadAll(self.stderr)
+		if readerr == nil && len(errbytes) > 0 {
+			// Copy to our stderr for info
+			fmt.Fprintf(os.Stderr, "Messages from SSH server:\n%v", string(errbytes))
+		}
 	}
-	self.stdin.Close()
-	self.stdout.Close()
-	self.stderr.Close()
+
+	if self.cmd != nil {
+		err := self.cmd.Wait()
+		if err != nil {
+			return fmt.Errorf("Error closing ssh connection: %v\nstderr: %v", err.Error(), string(errbytes))
+		}
+	}
+
+	self.stdin = nil
+	self.stdout = nil
+	self.stderr = nil
 	self.bufReader = nil
 	self.cmd = nil
 
