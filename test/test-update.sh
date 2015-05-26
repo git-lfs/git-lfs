@@ -3,7 +3,7 @@
 . "test/testlib.sh"
 
 
-begin_test "update without pre-push"
+begin_test "update"
 (
   set -e
 
