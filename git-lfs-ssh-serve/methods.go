@@ -59,11 +59,71 @@ func upload(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, p
 }
 
 func downloadInfo(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, path string) *lfs.JsonResponse {
-	// TODO
-	return nil
+	downreq := lfs.DownloadInfoRequest{}
+	err := lfs.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, err.Error())
+	}
+	filename, err := mediaPath(downreq.Oid, config)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Problem determining media path: %v", err))
+	}
+	result := lfs.DownloadInfoResponse{}
+	s, err := os.Stat(filename)
+	if err != nil {
+		// file doesn't exist, this should not have been called
+		return lfs.NewJsonErrorResponse(req.Id, "File doesn't exist")
+	}
+	result.Size = s.Size()
+	resp, err := lfs.NewJsonResponse(req.Id, result)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, err.Error())
+	}
+	return resp
 }
 func download(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, path string) *lfs.JsonResponse {
-	// TODO
+	downreq := lfs.DownloadRequest{}
+	err := lfs.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+	if err != nil {
+		// Serve() copes with converting this to stderr rather than JSON response
+		return lfs.NewJsonErrorResponse(req.Id, err.Error())
+	}
+	filename, err := mediaPath(downreq.Oid, config)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Problem determining the media path: %v", err))
+	}
+	// check size
+	s, err := os.Stat(filename)
+	if err != nil {
+		// file doesn't exist, this should not have been called
+		return lfs.NewJsonErrorResponse(req.Id, "File doesn't exist")
+	}
+	if s.Size() != downreq.Size {
+		// This won't work!
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("File sizes disagree (client: %d server: %d)", downreq.Size, s.Size()))
+	}
+
+	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, err.Error())
+	}
+	defer f.Close()
+
+	n, err := io.Copy(out, f)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Error copying data to output: %v", err.Error()))
+	}
+	if n != s.Size() {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Amount of data copied disagrees (expected: %d actual: %d)", s.Size(), n))
+	}
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Error copying data to output: %v", err.Error()))
+	}
+	if n != s.Size() {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Amount of data copied disagrees (expected: %d actual: %d)", s.Size(), n))
+	}
+
+	// Don't return a response, only response is byte stream above except in error cases
 	return nil
 }
 
