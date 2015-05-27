@@ -19,7 +19,7 @@ import (
 // SJS MOVE LATER move all this to http specific file
 // not moved for now to make merging easier
 const (
-	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
+	mediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
 // The apiEvent* statuses (and the apiEvent channel) are used by

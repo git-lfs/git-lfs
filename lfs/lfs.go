@@ -160,7 +160,16 @@ func processDotGitFile(file string) (string, string, error) {
 	wd, _ := os.Getwd()
 	if strings.HasPrefix(contents, gitPtrPrefix) {
 		dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
-		absDir, _ := filepath.Abs(dir)
+
+		if filepath.IsAbs(dir) {
+			// The .git file contains an absolute path.
+			return wd, dir, nil
+		}
+
+		// The .git file contains a relative path.
+		// Create an absolute path based on the directory the .git file is located in.
+		absDir := filepath.Join(filepath.Dir(file), dir)
+
 		return wd, absDir, nil
 	}
 

@@ -8,3 +8,11 @@ servertest
 man/*
 
 *.test
+tmp
+test/remote
+
+debian/git-lfs/
+debian/*.log
+debian/files
+debian/*.substvars
+obj-*

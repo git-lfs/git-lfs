@@ -1,6 +1,4 @@
 #!/bin/sh
-
-git config user.name || git config --global user.name "Git LFS Tests"
-git config user.email || git config --global user.email "git-lfs@example.com"
-
+set -e
 script/test
+script/integration
