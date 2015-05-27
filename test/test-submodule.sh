@@ -25,7 +25,10 @@ begin_test "submodule local git dir"
   git commit -m "add submodule"
   git push origin master
 
-  grep "sub module" sub/dir/README
+  grep "sub module" sub/dir/README || {
+    cat sub/dir/README
+    exit 1
+  }
 )
 end_test
 
