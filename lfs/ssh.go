@@ -133,7 +133,7 @@ func (self *SshApiContext) Close() error {
 	if self.stdin != nil && self.stdout != nil {
 		// terminate server-side
 		params := ExitRequest{}
-		req, err := self.NewJsonRequest("Exit", params)
+		req, err := NewJsonRequest("Exit", params)
 		if err != nil {
 			return err
 		}
@@ -237,26 +237,26 @@ var (
 	latestRequestId int = 1
 )
 
-func (self *SshApiContext) NewJsonRequest(method string, params interface{}) (*JsonRequest, error) {
+func NewJsonRequest(method string, params interface{}) (*JsonRequest, error) {
 	ret := &JsonRequest{
 		Id:     latestRequestId,
 		Method: method,
 	}
 	var err error
-	ret.Params, err = self.embedStructInJsonRawMessage(params)
+	ret.Params, err = EmbedStructInJsonRawMessage(params)
 	latestRequestId++
 	return ret, err
 }
 
-func (self *SshApiContext) NewJsonResponse(id int, result interface{}) (*JsonResponse, error) {
+func NewJsonResponse(id int, result interface{}) (*JsonResponse, error) {
 	ret := &JsonResponse{
 		Id: id,
 	}
 	var err error
-	ret.Result, err = self.embedStructInJsonRawMessage(result)
+	ret.Result, err = EmbedStructInJsonRawMessage(result)
 	return ret, err
 }
-func (self *SshApiContext) NewJsonErrorResponse(id int, err interface{}) *JsonResponse {
+func NewJsonErrorResponse(id int, err interface{}) *JsonResponse {
 	ret := &JsonResponse{
 		Id:    id,
 		Error: err,
@@ -264,7 +264,7 @@ func (self *SshApiContext) NewJsonErrorResponse(id int, err interface{}) *JsonRe
 	return ret
 }
 
-func (self *SshApiContext) embedStructInJsonRawMessage(in interface{}) (*json.RawMessage, error) {
+func EmbedStructInJsonRawMessage(in interface{}) (*json.RawMessage, error) {
 	// Encode nested struct ready for transmission so that it can be late unmarshalled at the other end
 	// Need to do this & declare as RawMessage rather than interface{} in struct otherwise unmarshalling
 	// at other end will turn it into a simple array/map
@@ -287,7 +287,7 @@ func (self *SshApiContext) embedStructInJsonRawMessage(in interface{}) (*json.Ra
 // Perform a full JSON-RPC style call with JSON request and response
 func (self *SshApiContext) doFullJSONRequestResponse(method string, params interface{}, result interface{}) error {
 
-	req, err := self.NewJsonRequest(method, params)
+	req, err := NewJsonRequest(method, params)
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,7 @@ func LimitReadCloser(r io.Reader, sz int64) io.ReadCloser {
 // Perform a JSON request that results in a byte stream as a response
 func (self *SshApiContext) doJSONRequestDownload(method string, params interface{}, sz int64) (io.ReadCloser, error) {
 
-	req, err := self.NewJsonRequest(method, params)
+	req, err := NewJsonRequest(method, params)
 	if err != nil {
 		return nil, err
 	}

@@ -103,10 +103,8 @@ type TestStruct struct {
 }
 
 func TestSSHEncodeJSONRequest(t *testing.T) {
-	ctx := &SshApiContext{}
-
 	params := &TestStruct{Name: "Fred", Something: 99}
-	req, err := ctx.NewJsonRequest("TestMethod", params)
+	req, err := NewJsonRequest("TestMethod", params)
 	assert.Equal(t, nil, err)
 	reqbytes, err := json.Marshal(req)
 	assert.Equal(t, nil, err)
@@ -115,9 +113,8 @@ func TestSSHEncodeJSONRequest(t *testing.T) {
 }
 
 func TestSSHDecodeJSONResponse(t *testing.T) {
-	ctx := &SshApiContext{}
 	inputstruct := TestStruct{Name: "Fred", Something: 99}
-	resp, err := ctx.NewJsonResponse(1, inputstruct)
+	resp, err := NewJsonResponse(1, inputstruct)
 	assert.Equal(t, nil, err)
 	outputstruct := TestStruct{}
 	// Now unmarshal nested result; need to extract json first
@@ -143,8 +140,6 @@ var testserve = func(conn net.Conn, t *testing.T) {
 	// Run in a goroutine, be the server you seek
 	// Read a request
 	rdr := bufio.NewReader(conn)
-	// Just for utility methods
-	tempctx := &SshApiContext{}
 	for {
 		jsonbytes, err := rdr.ReadBytes(byte(0))
 		if err != nil {
@@ -169,7 +164,7 @@ var testserve = func(conn net.Conn, t *testing.T) {
 			startresult := UploadResponse{}
 			startresult.OkToSend = true
 			// Send start response immediately
-			resp, err = tempctx.NewJsonResponse(req.Id, startresult)
+			resp, err = NewJsonResponse(req.Id, startresult)
 			if err != nil {
 				panic("Test persistent server: unable to create response")
 			}
@@ -207,9 +202,9 @@ var testserve = func(conn net.Conn, t *testing.T) {
 
 			// After we've read all the content bytes, send received response
 			if receiveerr != nil {
-				resp = tempctx.NewJsonErrorResponse(req.Id, receiveerr.Error())
+				resp = NewJsonErrorResponse(req.Id, receiveerr.Error())
 			} else {
-				resp, _ = tempctx.NewJsonResponse(req.Id, receivedresult)
+				resp, _ = NewJsonResponse(req.Id, receivedresult)
 			}
 		case "DownloadInfo":
 			downreq := DownloadInfoRequest{}
@@ -217,13 +212,13 @@ var testserve = func(conn net.Conn, t *testing.T) {
 			result := DownloadInfoResponse{}
 			if downreq.Oid == testoid {
 				result.Size = int64(len(testcontent))
-				resp, err = tempctx.NewJsonResponse(req.Id, result)
+				resp, err = NewJsonResponse(req.Id, result)
 				if err != nil {
 					panic("Test persistent server: unable to create response")
 				}
 			} else {
 				// Error response for missing item
-				resp = tempctx.NewJsonErrorResponse(req.Id, "Does not exist")
+				resp = NewJsonErrorResponse(req.Id, "Does not exist")
 			}
 		case "Download":
 			// Can't return any error responses here (byte stream response only), have to just fail
@@ -251,7 +246,7 @@ var testserve = func(conn net.Conn, t *testing.T) {
 		case "Exit":
 			break
 		default:
-			resp = tempctx.NewJsonErrorResponse(req.Id, fmt.Sprintf("Unknown method %v", req.Method))
+			resp = NewJsonErrorResponse(req.Id, fmt.Sprintf("Unknown method %v", req.Method))
 		}
 		if resp != nil {
 			responseBytes, err := json.Marshal(resp)
