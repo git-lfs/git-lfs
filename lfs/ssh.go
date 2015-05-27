@@ -531,7 +531,7 @@ func (self *SshApiContext) Upload(oid string, sz int64, content io.Reader, cb Co
 		}
 
 	} else {
-		return Errorf(err, "Server rejected request to upload %v (no other error)", oid)
+		return Errorf(fmt.Errorf("Server rejected request to upload %v", oid), "Upload rejected for %v", oid)
 	}
 	return nil
 

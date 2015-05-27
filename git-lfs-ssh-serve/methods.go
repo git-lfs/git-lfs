@@ -15,8 +15,23 @@ func upload(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, p
 	if err != nil {
 		return lfs.NewJsonErrorResponse(req.Id, err.Error())
 	}
+	// Build destination path
+	filename, err := mediaPath(upreq.Oid, config)
+	if err != nil {
+		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Error determining media path. %v", err))
+	}
+	// contentaddressable fails hard when file already exists, let's be nicer
 	startresult := lfs.UploadResponse{}
-	startresult.OkToSend = true
+	_, staterr := os.Stat(filename)
+	var mediaFile *contentaddressable.File
+	if staterr != nil && os.IsNotExist(staterr) {
+		startresult.OkToSend = true
+		// Create file to write to - do this early to allow for fail states
+		mediaFile, err = contentaddressable.NewFile(filename)
+		if err != nil {
+			return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Error opening media file buffer. %v", err))
+		}
+	}
 	// Send start response immediately
 	resp, err := lfs.NewJsonResponse(req.Id, startresult)
 	if err != nil {
@@ -26,19 +41,11 @@ func upload(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, p
 	if err != nil {
 		return lfs.NewJsonErrorResponse(req.Id, err.Error())
 	}
+	if !startresult.OkToSend {
+		return nil
+	}
+
 	// Next from client should be byte stream of exactly the stated number of bytes
-	// Write to temporary file then move to final on success
-	filename, err := mediaPath(upreq.Oid, config)
-	if err != nil {
-		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Error determining media path. %v", err))
-	}
-
-	// Now open temp file to write to
-	mediaFile, err := contentaddressable.NewFile(filename)
-	if err != nil {
-		return lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Error opening media file buffer. %v", err))
-	}
-
 	n, err := io.CopyN(mediaFile, in, upreq.Size)
 	if err == nil {
 		err = mediaFile.Accept()
