@@ -3,7 +3,6 @@
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
-script/bootstrap
 
 export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
 mkdir -p `dirname $LOCALSRCDIR`
@@ -15,5 +14,4 @@ SUITE="./${1:-"lfs"}"
 if [ $# -gt 0 ]; then
   shift
 fi
-PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE -i "$@"
 PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE "$@"
