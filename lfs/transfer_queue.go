@@ -21,6 +21,7 @@ type Transferable interface {
 type TransferQueue struct {
 	transferc        chan Transferable
 	errorc           chan *WrappedError
+	watchers         []chan string
 	errors           []*WrappedError
 	wg               sync.WaitGroup
 	workers          int
@@ -39,6 +40,7 @@ func newTransferQueue(workers, files int) *TransferQueue {
 	return &TransferQueue{
 		transferc:     make(chan Transferable, files),
 		errorc:        make(chan *WrappedError),
+		watchers:      make([]chan string, 0),
 		workers:       workers,
 		files:         files,
 		authCond:      sync.NewCond(&sync.Mutex{}),
@@ -49,6 +51,14 @@ func newTransferQueue(workers, files int) *TransferQueue {
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
 	q.transferables[t.Oid()] = t
+}
+
+// Watch returns a channel where the queue will write the OID of each transfer
+// as it completes. The channel will be closed when the queue finishes processing.
+func (q *TransferQueue) Watch() chan string {
+	c := make(chan string, q.files)
+	q.watchers = append(q.watchers, c)
+	return c
 }
 
 // processIndividual processes the queue of transfers one at a time by making
@@ -185,6 +195,11 @@ func (q *TransferQueue) Process() {
 
 				if err := transfer.Transfer(cb); err != nil {
 					q.errorc <- err
+				} else {
+					oid := transfer.Oid()
+					for _, c := range q.watchers {
+						c <- oid
+					}
 				}
 
 				f := atomic.AddInt64(&q.finished, 1)
@@ -202,6 +217,9 @@ func (q *TransferQueue) Process() {
 
 	q.wg.Wait()
 	close(q.errorc)
+	for _, watcher := range q.watchers {
+		close(watcher)
+	}
 
 	q.bar.Finish()
 }

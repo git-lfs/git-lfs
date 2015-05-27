@@ -26,10 +26,10 @@ const (
 	chanBufSize = 100
 )
 
-// wrappedPointer wraps a pointer.Pointer and provides the git sha1
+// WrappedPointer wraps a pointer.Pointer and provides the git sha1
 // and the file name associated with the object, taken from the
 // rev-list output.
-type wrappedPointer struct {
+type WrappedPointer struct {
 	Sha1    string
 	Name    string
 	SrcName string
@@ -49,9 +49,9 @@ type indexFile struct {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-// ScanRefs takes a ref and returns a slice of wrappedPointer objects
+// ScanRefs takes a ref and returns a slice of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
-func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
+func ScanRefs(refLeft, refRight string) ([]*WrappedPointer, error) {
 	nameMap := make(map[string]string, 0)
 
 	start := time.Now()
@@ -74,7 +74,7 @@ func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 		return nil, err
 	}
 
-	pointers := make([]*wrappedPointer, 0)
+	pointers := make([]*WrappedPointer, 0)
 	for p := range pointerc {
 		if name, ok := nameMap[p.Sha1]; ok {
 			p.Name = name
@@ -85,9 +85,9 @@ func ScanRefs(refLeft, refRight string) ([]*wrappedPointer, error) {
 	return pointers, nil
 }
 
-// ScanIndex returns a slice of wrappedPointer objects for all
+// ScanIndex returns a slice of WrappedPointer objects for all
 // Git LFS pointers it finds in the index.
-func ScanIndex() ([]*wrappedPointer, error) {
+func ScanIndex() ([]*WrappedPointer, error) {
 	nameMap := make(map[string]*indexFile, 0)
 
 	start := time.Now()
@@ -132,7 +132,7 @@ func ScanIndex() ([]*wrappedPointer, error) {
 		return nil, err
 	}
 
-	pointers := make([]*wrappedPointer, 0)
+	pointers := make([]*WrappedPointer, 0)
 	for p := range pointerc {
 		if e, ok := nameMap[p.Sha1]; ok {
 			p.Name = e.Name
@@ -288,13 +288,13 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 // of a git object, given its sha1. The contents will be decoded into
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
-func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
+func catFileBatch(revs chan string) (chan *WrappedPointer, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
 		return nil, err
 	}
 
-	pointers := make(chan *wrappedPointer, chanBufSize)
+	pointers := make(chan *WrappedPointer, chanBufSize)
 
 	go func() {
 		for {
@@ -316,7 +316,7 @@ func catFileBatch(revs chan string) (chan *wrappedPointer, error) {
 
 			p, err := DecodePointer(bytes.NewBuffer(nbuf))
 			if err == nil {
-				pointers <- &wrappedPointer{
+				pointers <- &WrappedPointer{
 					Sha1:    string(fields[0]),
 					Size:    p.Size,
 					Pointer: p,

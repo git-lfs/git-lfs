@@ -1,11 +1,11 @@
 package lfs
 
 type Downloadable struct {
-	Pointer *wrappedPointer
+	Pointer *WrappedPointer
 	object  *objectResource
 }
 
-func NewDownloadable(p *wrappedPointer) *Downloadable {
+func NewDownloadable(p *WrappedPointer) *Downloadable {
 	return &Downloadable{Pointer: p}
 }
 
