@@ -2,9 +2,12 @@ package commands
 
 import (
 	"os"
+	"os/exec"
+	"time"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +43,9 @@ func getCommand(cmd *cobra.Command, args []string) {
 		q.Add(lfs.NewDownloadable(p))
 	}
 
+	processQueue := time.Now()
 	q.Process()
+	tracerx.PerformanceSince("process queue", processQueue)
 
 	target, err := git.ResolveRef(ref)
 	if err != nil {
@@ -53,6 +58,7 @@ func getCommand(cmd *cobra.Command, args []string) {
 	if target == current {
 		// We just downloaded the files for the current ref, we can copy them into
 		// the working directory and update the git index
+		updateWd := time.Now()
 		for _, pointer := range pointers {
 			file, err := os.Create(pointer.Name)
 			if err != nil {
@@ -62,12 +68,28 @@ func getCommand(cmd *cobra.Command, args []string) {
 			if err := lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil); err != nil {
 				Panic(err, "Could not write working directory file")
 			}
-
-			if err := git.UpdateIndex(pointer.Name); err != nil {
-				Panic(err, "Could not update index")
-			}
 		}
+		tracerx.PerformanceSince("update working directory", updateWd)
+
+		updateIndex := time.Now()
+		cmd := exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			Panic(err, "Could not update the index")
+		}
+
+		if err := cmd.Start(); err != nil {
+			Panic(err, "Could not update the index")
+		}
+
+		for _, pointer := range pointers {
+			stdin.Write([]byte(pointer.Name + "\n"))
+		}
+		stdin.Close()
+		cmd.Wait()
+		tracerx.PerformanceSince("update index", updateIndex)
 	}
+
 }
 
 func init() {
