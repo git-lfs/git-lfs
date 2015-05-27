@@ -281,11 +281,7 @@ func TestSSHDownload(t *testing.T) {
 	defer cli.Close()
 	// Create a test SSH context from this which doesn't actually connect in
 	// the traditional way
-	ctx := SshApiContext{
-		stdin:     cli,
-		stdout:    cli,
-		bufReader: bufio.NewReader(cli),
-	}
+	ctx := NewManualSSHApiContext(cli, cli)
 	// First test an invalid oid
 	_, sz, err := ctx.Download("00000")
 	// Should be an error in this case
@@ -313,11 +309,7 @@ func TestSSHUpload(t *testing.T) {
 	defer cli.Close()
 	// Create a test SSH context from this which doesn't actually connect in
 	// the traditional way
-	ctx := SshApiContext{
-		stdin:     cli,
-		stdout:    cli,
-		bufReader: bufio.NewReader(cli),
-	}
+	ctx := NewManualSSHApiContext(cli, cli)
 
 	rdr := bytes.NewReader(testcontent)
 	var callbackTotalSize, callbackReadSoFarEnd int64

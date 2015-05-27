@@ -105,6 +105,16 @@ func NewSshApiContext(endpoint Endpoint) ApiContext {
 	return ctx
 }
 
+// Create a manually initialised API context where I/O is already running
+func NewManualSSHApiContext(in io.WriteCloser, out io.ReadCloser) *SshApiContext {
+	return &SshApiContext{
+		stdin:     in,
+		stdout:    out,
+		bufReader: bufio.NewReader(out),
+	}
+
+}
+
 type SshApiContext struct {
 	// Endpoint which was used to open this connection
 	endpoint Endpoint
