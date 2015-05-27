@@ -54,6 +54,15 @@ type objectResource struct {
 	Links map[string]*linkRelation `json:"_links,omitempty"`
 }
 
+func (o *objectResource) CanDownload() bool {
+	_, ok := o.Rel("download")
+	return ok
+}
+func (o *objectResource) CanUpload() bool {
+	_, ok := o.Rel("upload")
+	return ok
+}
+
 func (o *objectResource) NewRequest(ctx *HttpApiContext, relation, method string) (*http.Request, Creds, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
@@ -106,6 +115,7 @@ func (e *ClientError) Error() string {
 func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	ctx := GetApiContext(Config.Endpoint())
+	defer ReleaseApiContext(ctx)
 	return ctx.Download(oid)
 }
 
@@ -114,38 +124,15 @@ type byteCloser struct {
 }
 
 func DownloadCheck(oid string) (*objectResource, *WrappedError) {
-	// SJS port this to context
-	req, creds, err := newApiRequest("GET", oid)
-	if err != nil {
-		return nil, Error(err)
-	}
-
-	_, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		return nil, wErr
-	}
-
-	_, _, err = obj.NewRequest("download", "GET")
-	if err != nil {
-		return nil, Error(err)
-	}
-
-	return obj, nil
+	ctx := GetApiContext(Config.Endpoint())
+	defer ReleaseApiContext(ctx)
+	return ctx.DownloadCheck(oid)
 }
 
 func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
-	// SJS port this to context
-	req, creds, err := obj.NewRequest("download", "GET")
-	if err != nil {
-		return nil, 0, Error(err)
-	}
-
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
-	}
-
-	return res.Body, res.ContentLength, nil
+	ctx := GetApiContext(Config.Endpoint())
+	defer ReleaseApiContext(ctx)
+	return ctx.DownloadObject(obj)
 }
 
 func (b *byteCloser) Close() error {
@@ -153,67 +140,12 @@ func (b *byteCloser) Close() error {
 }
 
 func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
-
-	// SJS port this to context
-
-	if len(objects) == 0 {
-		return nil, nil
-	}
-
-	o := map[string][]*objectResource{"objects": objects}
-
-	by, err := json.Marshal(o)
-	if err != nil {
-		return nil, Error(err)
-	}
-
-	req, creds, err := newApiRequest("POST", "batch")
-	if err != nil {
-		return nil, Error(err)
-	}
-
-	req.Header.Set("Content-Type", mediaType)
-	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
-	req.ContentLength = int64(len(by))
-	req.Body = &byteCloser{bytes.NewReader(by)}
-
-	tracerx.Printf("api: batch %d files", len(objects))
-	res, objs, wErr := doApiBatchRequest(req, creds)
-	if wErr != nil {
-		sendApiEvent(apiEventFail)
-		return nil, wErr
-	}
-
-	sendApiEvent(apiEventSuccess)
-	if res.StatusCode != 200 {
-		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
-	}
-
-	return objs, nil
-}
-
-func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
-	oid := filepath.Base(oidPath)
-	file, err := os.Open(oidPath)
-	if err != nil {
-		return Error(err)
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return Error(err)
-	}
-
-	tracerx.Printf("api: uploading %s (%s)", filename, oid)
 	ctx := GetApiContext(Config.Endpoint())
-	return ctx.Upload(oid, stat.Size(), file, cb)
-
+	defer ReleaseApiContext(ctx)
+	return ctx.Batch(objects)
 }
 
 func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
-
-	// SJS port this to context
 	oid := filepath.Base(oidPath)
 
 	stat, err := os.Stat(oidPath)
@@ -222,46 +154,13 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 		return nil, Error(err)
 	}
 
-	reqObj := &objectResource{
-		Oid:  oid,
-		Size: stat.Size(),
-	}
-
-	by, err := json.Marshal(reqObj)
-	if err != nil {
-		sendApiEvent(apiEventFail)
-		return nil, Error(err)
-	}
-
-	req, creds, err := newApiRequest("POST", oid)
-	if err != nil {
-		sendApiEvent(apiEventFail)
-		return nil, Error(err)
-	}
-
-	req.Header.Set("Content-Type", mediaType)
-	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
-	req.ContentLength = int64(len(by))
-	req.Body = &byteCloser{bytes.NewReader(by)}
-
-	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		sendApiEvent(apiEventFail)
-		return nil, wErr
-	}
-
-	sendApiEvent(apiEventSuccess)
-
-	if res.StatusCode == 200 {
-		return nil, nil
-	}
-
-	return obj, nil
+	ctx := GetApiContext(Config.Endpoint())
+	defer ReleaseApiContext(ctx)
+	return ctx.UploadCheck(oid, stat.Size())
 }
 
 func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
-	// SJS port this to context
+
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
 		return Error(err)
@@ -279,53 +178,9 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 		Reader:    file,
 	}
 
-	req, creds, err := o.NewRequest("upload", "PUT")
-	if err != nil {
-		return Error(err)
-	}
-
-	if len(req.Header.Get("Content-Type")) == 0 {
-		req.Header.Set("Content-Type", "application/octet-stream")
-	}
-	req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
-	req.ContentLength = o.Size
-
-	req.Body = ioutil.NopCloser(reader)
-
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return wErr
-	}
-
-	if res.StatusCode > 299 {
-		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
-	}
-
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	req, creds, err = o.NewRequest("verify", "POST")
-	if err == objectRelationDoesNotExist {
-		return nil
-	} else if err != nil {
-		return Error(err)
-	}
-
-	by, err := json.Marshal(o)
-	if err != nil {
-		return Error(err)
-	}
-
-	req.Header.Set("Content-Type", mediaType)
-	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
-	req.ContentLength = int64(len(by))
-	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doHttpRequest(req, creds)
-
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	return wErr
+	ctx := GetApiContext(Config.Endpoint())
+	defer ReleaseApiContext(ctx)
+	return ctx.UploadObject(o, reader)
 }
 
 // SJS MOVE LATER: In the interests of easier merging, this method left in this source file
@@ -410,6 +265,7 @@ func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.
 	return res, obj, nil
 }
 
+// SJS MOVE LATER: In the interests of easier merging, this method left in this source file
 func (self *HttpApiContext) doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := self.doApiRequestWithRedirects(req, creds, via)

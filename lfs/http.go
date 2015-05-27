@@ -182,14 +182,18 @@ func newTracedBody(body io.ReadCloser) *tracedBody {
 // HTTP specific API contect implementation
 // HTTP implementation of ApiContext
 type HttpApiContext struct {
+	id       string
 	endpoint Endpoint
 }
 
-func NewHttpApiContext(endpoint Endpoint) ApiContext {
+func NewHttpApiContext(id string, endpoint Endpoint) ApiContext {
 	// pretty simple
-	return &HttpApiContext{endpoint}
+	return &HttpApiContext{id, endpoint}
 }
 
+func (self *HttpApiContext) ID() string {
+	return self.id
+}
 func (self *HttpApiContext) Endpoint() Endpoint {
 	return self.endpoint
 }
@@ -222,20 +226,53 @@ func (self *HttpApiContext) Download(oid string) (io.ReadCloser, int64, *Wrapped
 	return res.Body, res.ContentLength, nil
 }
 
-func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb CopyCallback) *WrappedError {
-	reqObj := &objectResource{
-		Oid:  oid,
-		Size: sz,
+func (self *HttpApiContext) DownloadCheck(oid string) (*objectResource, *WrappedError) {
+	req, creds, err := self.newApiRequest("GET", oid)
+	if err != nil {
+		return nil, Error(err)
 	}
 
-	by, err := json.Marshal(reqObj)
-	if err != nil {
-		return Error(err)
+	_, obj, wErr := self.doApiRequest(req, creds)
+	if wErr != nil {
+		return nil, wErr
 	}
 
-	req, creds, err := self.newApiRequest("POST", oid)
+	if !obj.CanDownload() {
+		return nil, Error(objectRelationDoesNotExist)
+	}
+
+	return obj, nil
+}
+
+func (self *HttpApiContext) DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+	req, creds, err := obj.NewRequest(self, "download", "GET")
 	if err != nil {
-		return Error(err)
+		return nil, 0, Error(err)
+	}
+
+	res, wErr := self.doHttpRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	return res.Body, res.ContentLength, nil
+}
+
+func (self *HttpApiContext) Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
+	o := map[string][]*objectResource{"objects": objects}
+
+	by, err := json.Marshal(o)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	req, creds, err := self.newApiRequest("POST", "batch")
+	if err != nil {
+		return nil, Error(err)
 	}
 
 	req.Header.Set("Content-Type", mediaType)
@@ -243,27 +280,63 @@ func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb Copy
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
+	tracerx.Printf("api: batch %d files", len(objects))
+	res, objs, wErr := self.doApiBatchRequest(req, creds)
+	if wErr != nil {
+		sendApiEvent(apiEventFail)
+		return nil, wErr
+	}
+
+	sendApiEvent(apiEventSuccess)
+	if res.StatusCode != 200 {
+		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+	}
+
+	return objs, nil
+}
+
+func (self *HttpApiContext) UploadCheck(oid string, sz int64) (*objectResource, *WrappedError) {
+
+	reqObj := &objectResource{
+		Oid:  oid,
+		Size: sz,
+	}
+
+	by, err := json.Marshal(reqObj)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
+	}
+
+	req, creds, err := self.newApiRequest("POST", oid)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
+
+	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, wErr := self.doApiRequest(req, creds)
 	if wErr != nil {
 		sendApiEvent(apiEventFail)
-		return wErr
+		return nil, wErr
 	}
 
 	sendApiEvent(apiEventSuccess)
 
-	reader := &CallbackReader{
-		C:         cb,
-		TotalSize: reqObj.Size,
-		Reader:    file,
-	}
-
 	if res.StatusCode == 200 {
-		// Drain the reader to update any progress bars
-		io.Copy(ioutil.Discard, reader)
-		return nil
+		return nil, nil
 	}
 
-	req, creds, err = obj.NewRequest(self, "upload", "PUT")
+	return obj, nil
+}
+
+func (self *HttpApiContext) UploadObject(o *objectResource, reader io.Reader) *WrappedError {
+	req, creds, err := o.NewRequest(self, "upload", "PUT")
 	if err != nil {
 		return Error(err)
 	}
@@ -271,12 +344,12 @@ func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb Copy
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
-	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
-	req.ContentLength = reqObj.Size
+	req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	req.ContentLength = o.Size
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, wErr = self.doHttpRequest(req, creds)
+	res, wErr := self.doHttpRequest(req, creds)
 	if wErr != nil {
 		return wErr
 	}
@@ -288,10 +361,15 @@ func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb Copy
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	req, creds, err = obj.NewRequest(self, "verify", "POST")
+	req, creds, err = o.NewRequest(self, "verify", "POST")
 	if err == objectRelationDoesNotExist {
 		return nil
 	} else if err != nil {
+		return Error(err)
+	}
+
+	by, err := json.Marshal(o)
+	if err != nil {
 		return Error(err)
 	}
 
@@ -305,5 +383,4 @@ func (self *HttpApiContext) Upload(oid string, sz int64, file io.Reader, cb Copy
 	res.Body.Close()
 
 	return wErr
-
 }
