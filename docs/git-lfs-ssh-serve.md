@@ -72,7 +72,7 @@ Configuration is via a simple key-value text file placed in the following locati
 Windows:
 
 * %USERPROFILE%\git-lfs-ssh-serve.ini
-* %PROGRAMDATA%\Atlassian\git-lfs\git-lfs-ssh-serve.ini
+* %PROGRAMDATA%\git-lfs\git-lfs-ssh-serve.ini
 
 Linux/Mac:
 
