@@ -52,11 +52,13 @@ func LocalMediaPath(sha string) (string, error) {
 
 func Environ() []string {
 	osEnviron := os.Environ()
-	env := make([]string, 4, len(osEnviron)+4)
+	env := make([]string, 6, len(osEnviron)+6)
 	env[0] = fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir)
 	env[1] = fmt.Sprintf("LocalGitDir=%s", LocalGitDir)
 	env[2] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
 	env[3] = fmt.Sprintf("TempDir=%s", TempDir)
+	env[4] = fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers())
+	env[5] = fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer())
 
 	for _, e := range osEnviron {
 		if !strings.Contains(e, "GIT_") {
