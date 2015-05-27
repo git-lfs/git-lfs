@@ -489,6 +489,7 @@ func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedE
 	resp := DownloadInfoResponse{}
 	err := self.doFullJSONRequestResponse("DownloadInfo", &infoparams, &resp)
 	if err != nil {
+		sendApiEvent(apiEventFail)
 		return nil, 0, Errorf(err, "Error while downloading %v (DownloadInfo): %v", oid, err)
 	}
 	contentparams := DownloadRequest{
@@ -498,8 +499,11 @@ func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedE
 
 	r, err := self.doJSONRequestDownload("Download", &contentparams, resp.Size)
 	if err != nil {
+		sendApiEvent(apiEventFail)
 		return nil, 0, Errorf(err, "Error while downloading %v (Download): %v", oid, err.Error())
 	}
+
+	sendApiEvent(apiEventSuccess)
 
 	return r, resp.Size, nil
 }
@@ -522,27 +526,34 @@ func (self *SshApiContext) Upload(oid string, sz int64, content io.Reader, cb Co
 	resp := UploadResponse{}
 	err := self.doFullJSONRequestResponse("Upload", &params, &resp)
 	if err != nil {
+		sendApiEvent(apiEventFail)
 		return Errorf(err, "Error while uploading %v (while sending Upload JSON request): %v", oid, err.Error())
 	}
 	if resp.OkToSend {
 		// Send data, this does it in batches and calls back
 		err = self.sendRawData(sz, content, cb)
 		if err != nil {
+			sendApiEvent(apiEventFail)
 			return Errorf(err, "Error while uploading %v (while sending raw content): %v", oid, err.Error())
 		}
 		// Now read response to sent data
 		received := UploadCompleteResponse{}
 		err = self.readFullJSONResponse(nil, &received)
 		if err != nil {
+			sendApiEvent(apiEventFail)
 			return Errorf(err, "Error while uploading %v (response to raw content): %v", oid, err.Error())
 		}
 		if !received.ReceivedOk {
+			sendApiEvent(apiEventFail)
 			return Errorf(err, "Data not fully received while uploading %v", oid)
 		}
 
 	} else {
 		return Errorf(fmt.Errorf("Server rejected request to upload %v", oid), "Upload rejected for %v", oid)
 	}
+
+	sendApiEvent(apiEventSuccess)
+
 	return nil
 
 }
