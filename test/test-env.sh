@@ -14,6 +14,8 @@ begin_test "env with no remote"
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
 $(env | grep "^GIT")
 ")
   actual=$(git lfs env)
@@ -35,6 +37,8 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
 $(env | grep "^GIT")
 ")
   actual=$(git lfs env)
@@ -62,6 +66,8 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
 $(env | grep "^GIT")
 ")
   actual=$(git lfs env)
@@ -87,6 +93,8 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
 $(env | grep "^GIT")
 ")
   actual=$(git lfs env)
@@ -115,6 +123,8 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
 $(env | grep "^GIT")
 ")
   actual=$(git lfs env)
@@ -145,6 +155,42 @@ LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
+$(env | grep "^GIT")
+")
+  actual=$(git lfs env)
+  [ "$expected" = "$actual" ]
+
+  cd .git
+
+  [ "$expected" = "$actual" ]
+)
+end_test
+
+begin_test "env with multiple remotes and lfs url and batch configs"
+(
+  set -e
+  reponame="env-multiple-remotes-lfs-batch-configs"
+  mkdir $reponame
+  cd $reponame
+  git init
+  git remote add origin "$GITSERVER/env-origin-remote"
+  git remote add other "$GITSERVER/env-other-remote"
+  git config lfs.url "http://foo/bar"
+  git config lfs.batch true
+  git config lfs.concurrenttransfers 5
+  git config remote.origin.lfsurl "http://custom/origin"
+  git config remote.other.lfsurl "http://custom/other"
+
+  expected=$(printf "Endpoint=http://foo/bar
+Endpoint (other)=http://custom/other
+LocalWorkingDir=$TRASHDIR/$reponame
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=5
+BatchTransfer=true
 $(env | grep "^GIT")
 ")
   actual=$(git lfs env)
