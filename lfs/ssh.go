@@ -93,8 +93,8 @@ func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
 
 // Below here is the pure-SSH API interface
 // The API is basically the same except there's no need for hypermedia links
-func NewSshApiContext(id string, endpoint Endpoint) ApiContext {
-	ctx := &SshApiContext{id: id, endpoint: endpoint}
+func NewSshApiContext(endpoint Endpoint) ApiContext {
+	ctx := &SshApiContext{endpoint: endpoint}
 
 	err := ctx.connect()
 	if err != nil {
@@ -116,7 +116,6 @@ func NewManualSSHApiContext(in io.WriteCloser, out io.ReadCloser) *SshApiContext
 }
 
 type SshApiContext struct {
-	id string
 	// Endpoint which was used to open this connection
 	endpoint Endpoint
 
@@ -130,9 +129,6 @@ type SshApiContext struct {
 	bufReader *bufio.Reader
 }
 
-func (self *SshApiContext) ID() string {
-	return self.id
-}
 func (self *SshApiContext) Endpoint() Endpoint {
 	return self.endpoint
 }

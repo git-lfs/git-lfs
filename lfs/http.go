@@ -182,18 +182,14 @@ func newTracedBody(body io.ReadCloser) *tracedBody {
 // HTTP specific API contect implementation
 // HTTP implementation of ApiContext
 type HttpApiContext struct {
-	id       string
 	endpoint Endpoint
 }
 
-func NewHttpApiContext(id string, endpoint Endpoint) ApiContext {
+func NewHttpApiContext(endpoint Endpoint) ApiContext {
 	// pretty simple
-	return &HttpApiContext{id, endpoint}
+	return &HttpApiContext{endpoint}
 }
 
-func (self *HttpApiContext) ID() string {
-	return self.id
-}
 func (self *HttpApiContext) Endpoint() Endpoint {
 	return self.endpoint
 }

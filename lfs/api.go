@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"fmt"
 	"io"
 	"sync"
 )
@@ -9,8 +8,6 @@ import (
 // An abstract interface providing state & resource management for a specific Endpoint across
 // potentially multiple requests
 type ApiContext interface {
-	// Get the ID of this context
-	ID() string
 	// Get the endpoint this context was constructed from
 	Endpoint() Endpoint
 	// Close the context & any resources it's using
@@ -48,22 +45,12 @@ var (
 // will receive separate instances which implies separate connections for stateful contexts.
 func GetApiContext(endpoint Endpoint) ApiContext {
 	// construct a string identifier for the Endpoint
-	isSSH := false
-	var id string
-	if len(endpoint.SshUserAndHost) > 0 {
-		isSSH = true
-		// SSH will use a unique connection per path as well as user/host (passed as param)
-		id = fmt.Sprintf("%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
-	} else {
-		// We'll use the same HTTP ID for all, any will do
-		id = "HTTP"
-	}
-
+	isSSH := len(endpoint.SshUserAndHost) > 0
 	contextCacheLock.Lock()
 	defer contextCacheLock.Unlock()
 	var ctx ApiContext
 	for i, c := range contextCache {
-		if c.ID() == id {
+		if c.Endpoint() == endpoint {
 			ctx = c
 			// remove this item
 			contextCache = append(contextCache[:i], contextCache[i+1:]...)
@@ -73,11 +60,11 @@ func GetApiContext(endpoint Endpoint) ApiContext {
 	if ctx == nil {
 		// Construct new
 		if isSSH {
-			ctx = NewSshApiContext(id, endpoint)
+			ctx = NewSshApiContext(endpoint)
 		}
 		// If not SSH, OR if full SSH server isn't supported, use HTTPS with SSH auth only
 		if ctx == nil {
-			ctx = NewHttpApiContext("HTTP", endpoint)
+			ctx = NewHttpApiContext(endpoint)
 		}
 	}
 
