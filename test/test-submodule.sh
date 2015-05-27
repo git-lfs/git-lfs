@@ -8,7 +8,6 @@ begin_test "submodule local git dir"
 (
   set -e
 
-
   setup_remote_repo "$reponame"
   setup_remote_repo "$submodname"
 
@@ -26,7 +25,7 @@ begin_test "submodule local git dir"
   git commit -m "add submodule"
   git push origin master
 
-  cat sub/dir/README | grep "sub module"
+  grep "sub module" sub/dir/README
 )
 end_test
 
