@@ -95,7 +95,7 @@ func TestPushStdin(t *testing.T) {
 			t.Fatalf("Error writing pre-push in After(): %s", err)
 		}
 
-		if string(by) != "#!/bin/sh\ngit lfs pre-push \"$@\"\n" {
+		if string(by) != "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"\n" {
 			t.Errorf("Unexpected pre-push hook:\n%s", string(by))
 		}
 	})
