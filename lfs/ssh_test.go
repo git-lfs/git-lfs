@@ -3,6 +3,8 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -124,8 +126,19 @@ func TestSSHDecodeJSONResponse(t *testing.T) {
 	assert.Equal(t, inputstruct, outputstruct)
 }
 
-var testoid = "00000000001111111111222222222233333333334444444444555555555566666666667777"
-var testcontent = []byte("This is some test content that isn't very large but is just here to prove the codep path")
+// to be intialised
+var (
+	testoid     string
+	testcontent []byte
+)
+
+func init() {
+	testcontent = []byte("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
+	hasher := sha256.New()
+	inbuf := bytes.NewBuffer(testcontent)
+	io.Copy(hasher, inbuf)
+	testoid = hex.EncodeToString(hasher.Sum(nil))
+}
 
 // Test server function here, just called over a pipe to test
 var testserve = func(conn net.Conn, t *testing.T) {
