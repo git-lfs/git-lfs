@@ -82,9 +82,9 @@ STREAM_UP and STREAM_DOWN. In some cases there may be a response to the stream,
 which is marked with 'STREAM Response' and is the same format as other response
 objects.
 
-|**DownloadInfo**|| 
+|**DownloadCheck**|| 
 |-----------|-------------| 
-|Purpose    | Get the size of a large file (if it exists), ready to download |
+|Purpose    | Check if a large file is available to download & report size |
 |Params     | oid (string): the SHA of the large file| 
 |Result     | size (number): size in bytes (or zero and an error if it doesn't exist)|
 
@@ -94,6 +94,13 @@ objects.
 |Params     | oid (string): the SHA of the large file| 
 |           | size (number): the expected size of the stream (server should report an error if this is wrong)| |STREAM_DOWN| Response is a binary stream of exactly 'size' bytes. Client must read all bytes.|
 
+|**UploadCheck**|| 
+|-----------|-------------| 
+|Purpose    | Check to see if server would acceot an upload of a large file | 
+|Params     | oid (string): the SHA of the large file| 
+|           | size (number): size in bytes of the data to upload| 
+|Result     | okToSend (bool): True if the server would accept an upload on this basis| 
+
 |**Upload**|| 
 |-----------|-------------| 
 |Purpose    | Upload the content of a large file | 
@@ -102,6 +109,18 @@ objects.
 |Result     | okToSend (bool): True if the server is ready to receive on this basis| 
 |STREAM_UP  | If server accepted, client should send a stream of exactly size bytes| 
 |STREAM Result| receivedOk: Indicates server received & stored the data successfully|
+
+|**Batch**|| 
+|-----------|-------------| 
+|Purpose    | Check a batch of large file oid's and return whether they're available to upload or download | 
+|Params     | objects: array of|
+|           |  * oid (string): the SHA of the large file| 
+|           |  * size (number): size in bytes of the data (if intending to upload)| 
+|Result     | results: array of|
+|           |  * oid (string): the SHA of the large file| 
+|           |  * action (string): "download" if exists on server or "upload" if not
+|           |  * size (number): size in bytes of the data (new info in case of download| 
+
 
 |**Exit**|| 
 |-----------|-------------| 

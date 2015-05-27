@@ -11,9 +11,9 @@ import (
 type MethodFunc func(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, path string) *lfs.JsonResponse
 
 var methodMap = map[string]MethodFunc{
-	"Upload":       upload,
-	"DownloadInfo": downloadInfo,
-	"Download":     download,
+	"Upload":        upload,
+	"DownloadCheck": downloadCheck,
+	"Download":      download,
 }
 
 // these methods can't return any error responses

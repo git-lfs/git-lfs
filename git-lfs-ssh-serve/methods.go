@@ -65,7 +65,7 @@ func upload(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, p
 
 }
 
-func downloadInfo(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, path string) *lfs.JsonResponse {
+func downloadCheck(req *lfs.JsonRequest, in io.Reader, out io.Writer, config *Config, path string) *lfs.JsonResponse {
 	downreq := lfs.DownloadInfoRequest{}
 	err := lfs.ExtractStructFromJsonRawMessage(req.Params, &downreq)
 	if err != nil {

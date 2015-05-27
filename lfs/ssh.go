@@ -444,43 +444,28 @@ func (self *SshApiContext) readFullJSONResponse(originalReq *JsonRequest, result
 	return nil
 }
 
-const SshApiContextBufferSize = int64(131072)
-
-func (self *SshApiContext) sendRawData(sz int64, source io.Reader, callback CopyCallback) error {
+func (self *SshApiContext) sendRawData(sz int64, source io.Reader) error {
 
 	if sz == 0 {
 		return nil
 	}
 
-	var copysize int64 = 0
-	for {
-		c := SshApiContextBufferSize
-		if (sz - copysize) < c {
-			c = sz - copysize
-		}
-		if c <= 0 {
-			break
-		}
-		n, err := io.CopyN(self.stdin, source, c)
-		copysize += n
-		if n > 0 && callback != nil && sz > 0 {
-			callback(sz, copysize, int(n))
-		}
-		if err != nil {
-			return err
-		}
+	// no need to copy in blocks now since callback is handled in reader now
+	n, err := io.CopyN(self.stdin, source, sz)
+	if err != nil {
+		return err
 	}
-	if copysize != sz {
-		return fmt.Errorf("Transferred bytes did not match expected size; transferred %d, expected %d", copysize, sz)
+	if n != sz {
+		return fmt.Errorf("Transferred bytes did not match expected size; transferred %d, expected %d", n, sz)
 	}
 
 	return nil
 }
 
-type DownloadInfoRequest struct {
+type DownloadCheckRequest struct {
 	Oid string `json:"oid"`
 }
-type DownloadInfoResponse struct {
+type DownloadCheckResponse struct {
 	Size int64 `json:"size"`
 }
 type DownloadRequest struct {
@@ -489,12 +474,12 @@ type DownloadRequest struct {
 }
 
 func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedError) {
-	infoparams := DownloadInfoRequest{oid}
-	resp := DownloadInfoResponse{}
-	err := self.doFullJSONRequestResponse("DownloadInfo", &infoparams, &resp)
+	infoparams := DownloadCheckRequest{oid}
+	resp := DownloadCheckResponse{}
+	err := self.doFullJSONRequestResponse("DownloadCheck", &infoparams, &resp)
 	if err != nil {
 		sendApiEvent(apiEventFail)
-		return nil, 0, Errorf(err, "Error while downloading %v (DownloadInfo): %v", oid, err)
+		return nil, 0, Errorf(err, "Error while downloading %v (DownloadCheck): %v", oid, err)
 	}
 	contentparams := DownloadRequest{
 		Oid:  oid,
@@ -512,6 +497,42 @@ func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedE
 	return r, resp.Size, nil
 }
 
+func (self *SshApiContext) DownloadCheck(oid string) (*objectResource, *WrappedError) {
+	infoparams := DownloadCheckRequest{oid}
+	resp := DownloadCheckResponse{}
+	err := self.doFullJSONRequestResponse("DownloadCheck", &infoparams, &resp)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Errorf(err, "Error calling DownloadCheck for %v: %v", oid, err)
+	}
+
+	sendApiEvent(apiEventSuccess)
+
+	return &objectResource{
+		Oid:   oid,
+		Size:  resp.Size,
+		Links: self.makeDownloadLinks(oid)}, nil
+
+}
+
+func (self *SshApiContext) DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+	contentparams := DownloadRequest{
+		Oid:  obj.Oid,
+		Size: obj.Size,
+	}
+
+	r, err := self.doJSONRequestDownload("Download", &contentparams, obj.Size)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, 0, Errorf(err, "Error while downloading %v: %v", obj.Oid, err.Error())
+	}
+
+	sendApiEvent(apiEventSuccess)
+
+	return r, obj.Size, nil
+
+}
+
 type UploadRequest struct {
 	Oid  string `json:"oid"`
 	Size int64  `json:"size"`
@@ -524,40 +545,118 @@ type UploadCompleteResponse struct {
 	ReceivedOk bool `json:"receivedOk"`
 }
 
-func (self *SshApiContext) Upload(oid string, sz int64, content io.Reader, cb CopyCallback) *WrappedError {
+func (self *SshApiContext) makeUploadLinks(oid string) map[string]*linkRelation {
+	// SSH doesn't need links to upload, but include dummy ones to play nice
+	return map[string]*linkRelation{
+		"upload": &linkRelation{Href: oid},
+		"verify": &linkRelation{Href: oid},
+	}
+}
+func (self *SshApiContext) makeDownloadLinks(oid string) map[string]*linkRelation {
+	// SSH doesn't need links to upload, but include dummy ones to play nice
+	return map[string]*linkRelation{
+		"download": &linkRelation{Href: oid},
+	}
+}
+
+func (self *SshApiContext) UploadCheck(oid string, sz int64) (*objectResource, *WrappedError) {
 	params := UploadRequest{oid, sz}
+
+	resp := UploadResponse{}
+	err := self.doFullJSONRequestResponse("UploadCheck", &params, &resp)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Errorf(err, "Error while uploading %v (while sending Upload JSON request): %v", oid, err.Error())
+	}
+	if !resp.OkToSend {
+		// File already exists, behave like HTTP 200
+		return nil, nil
+	}
+
+	sendApiEvent(apiEventSuccess)
+
+	return &objectResource{
+		Oid:   oid,
+		Size:  sz,
+		Links: self.makeUploadLinks(oid)}, nil
+
+}
+func (self *SshApiContext) UploadObject(o *objectResource, content io.Reader) *WrappedError {
+	params := UploadRequest{o.Oid, o.Size}
 
 	resp := UploadResponse{}
 	err := self.doFullJSONRequestResponse("Upload", &params, &resp)
 	if err != nil {
 		sendApiEvent(apiEventFail)
-		return Errorf(err, "Error while uploading %v (while sending Upload JSON request): %v", oid, err.Error())
+		return Errorf(err, "Error while uploading %v (while sending Upload JSON request): %v", o.Oid, err.Error())
 	}
 	if resp.OkToSend {
 		// Send data, this does it in batches and calls back
-		err = self.sendRawData(sz, content, cb)
+		err = self.sendRawData(o.Size, content)
 		if err != nil {
 			sendApiEvent(apiEventFail)
-			return Errorf(err, "Error while uploading %v (while sending raw content): %v", oid, err.Error())
+			return Errorf(err, "Error while uploading %v (while sending raw content): %v", o.Oid, err.Error())
 		}
 		// Now read response to sent data
 		received := UploadCompleteResponse{}
 		err = self.readFullJSONResponse(nil, &received)
 		if err != nil {
 			sendApiEvent(apiEventFail)
-			return Errorf(err, "Error while uploading %v (response to raw content): %v", oid, err.Error())
+			return Errorf(err, "Error while uploading %v (response to raw content): %v", o.Oid, err.Error())
 		}
 		if !received.ReceivedOk {
 			sendApiEvent(apiEventFail)
-			return Errorf(err, "Data not fully received while uploading %v", oid)
+			return Errorf(err, "Data not fully received while uploading %v", o.Oid)
 		}
 
-	} else {
-		return Errorf(fmt.Errorf("Server rejected request to upload %v", oid), "Upload rejected for %v", oid)
 	}
 
 	sendApiEvent(apiEventSuccess)
 
 	return nil
+
+}
+
+type BatchRequestObject struct {
+	Oid  string `json:"oid"`
+	Size int64  `json:"size"`
+}
+type BatchResponseObject struct {
+	Oid    string `json:"oid"`
+	Action string `json:"action"`
+	Size   int64  `json:"size"`
+}
+type BatchRequest struct {
+	Objects []BatchRequestObject `json:"objects"`
+}
+type BatchResponse struct {
+	Results []BatchResponseObject `json:"results"`
+}
+
+func (self *SshApiContext) Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+	params := BatchRequest{make([]BatchRequestObject, 0, len(objects))}
+	for _, o := range objects {
+		params.Objects = append(params.Objects, BatchRequestObject{o.Oid, o.Size})
+	}
+
+	resp := BatchResponse{}
+	err := self.doFullJSONRequestResponse("Batch", &params, &resp)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Errorf(err, "Error in Batch: %v", err)
+	}
+
+	retObjs := make([]*objectResource, 0, len(resp.Results))
+	for _, r := range resp.Results {
+		newobj := &objectResource{Oid: r.Oid, Size: r.Size}
+		if r.Action == "download" {
+			newobj.Links = self.makeDownloadLinks(r.Oid)
+		} else if r.Action == "upload" {
+			newobj.Links = self.makeUploadLinks(r.Oid)
+		}
+		retObjs = append(retObjs, newobj)
+	}
+
+	return retObjs, nil
 
 }

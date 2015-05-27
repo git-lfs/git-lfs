@@ -219,10 +219,10 @@ var testserve = func(conn net.Conn, t *testing.T) {
 			} else {
 				resp, _ = NewJsonResponse(req.Id, receivedresult)
 			}
-		case "DownloadInfo":
-			downreq := DownloadInfoRequest{}
+		case "DownloadCheck":
+			downreq := DownloadCheckRequest{}
 			ExtractStructFromJsonRawMessage(req.Params, &downreq)
-			result := DownloadInfoResponse{}
+			result := DownloadCheckResponse{}
 			if downreq.Oid == testoid {
 				result.Size = int64(len(testcontent))
 				resp, err = NewJsonResponse(req.Id, result)
@@ -303,7 +303,7 @@ func TestSSHDownload(t *testing.T) {
 	ctx.Close()
 }
 
-func TestSSHUpload(t *testing.T) {
+func TestSSHUploadObject(t *testing.T) {
 	cli, srv := net.Pipe()
 	go testserve(srv, t)
 	defer cli.Close()
@@ -312,17 +312,9 @@ func TestSSHUpload(t *testing.T) {
 	ctx := NewManualSSHApiContext(cli, cli)
 
 	rdr := bytes.NewReader(testcontent)
-	var callbackTotalSize, callbackReadSoFarEnd int64
-	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		callbackTotalSize = totalSize
-		callbackReadSoFarEnd = readSoFar
-		return nil
-	}
-	err := ctx.Upload(testoid, int64(len(testcontent)), rdr, cb)
+	err := ctx.UploadObject(&objectResource{Oid: testoid, Size: int64(len(testcontent))}, rdr)
 	if err != nil {
 		t.Error("Should not be an error calling Upload with the correct Oid")
 	}
-	assert.Equal(t, int64(len(testcontent)), callbackTotalSize)
-	assert.Equal(t, int64(len(testcontent)), callbackReadSoFarEnd)
 	ctx.Close()
 }
