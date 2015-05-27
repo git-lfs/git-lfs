@@ -97,7 +97,7 @@ begin_test "track outside git repo"
     # $ echo "$?"
     # 128
 
-    [ "$?" == "128" ]
+    [ "$?" = "128" ]
     exit 0
   }
 

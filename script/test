@@ -3,9 +3,8 @@
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
-suite="./${1:-"lfs ./commands"}"
+suite="./${1:-"lfs"}"
 if [ $# -gt 0 ]; then
   shift
 fi
-script/bootstrap
 go test $suite "$@"

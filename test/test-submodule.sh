@@ -1,13 +1,13 @@
 #!/bin/sh
 
 . "test/testlib.sh"
+reponame="submodule-test-repo"
+submodname="submodule-test-submodule"
 
 begin_test "submodule local git dir"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
-  submodname="$reponame-submodule"
 
   setup_remote_repo "$reponame"
   setup_remote_repo "$submodname"
@@ -21,8 +21,47 @@ begin_test "submodule local git dir"
 
   clone_repo "$reponame" repo
   git submodule add "$GITSERVER/$submodname" sub
-  cd sub/dir
-  cat README | grep "sub module"
-  git lfs help
+  git submodule update
+  git add .gitmodules sub
+  git commit -m "add submodule"
+  git push origin master
+
+  cat sub/dir/README | grep "sub module"
+)
+end_test
+
+begin_test "submodule env"
+(
+  set -e
+
+  # using the local clone from the above test
+  cd repo
+
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/lfs/tmp" env.log
+
+  cd .git
+
+  echo "./.git"
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/lfs/tmp" env.log
+
+  cd ../sub
+
+  echo "./sub"
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/modules/sub/lfs/objects" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/modules/sub/lfs/tmp" env.log
 )
 end_test
