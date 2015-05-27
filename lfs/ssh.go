@@ -349,7 +349,7 @@ func (self *SshApiContext) doJSONRequestDownload(method string, params interface
 }
 
 // Late-bind a method-specific structure from the raw message
-func (self *SshApiContext) ExtractStructFromJsonRawMessage(raw *json.RawMessage, out interface{}) error {
+func ExtractStructFromJsonRawMessage(raw *json.RawMessage, out interface{}) error {
 	nestedbytes, err := raw.MarshalJSON()
 	if err != nil {
 		return fmt.Errorf("Unable to extract type-specific JSON from: %v\n%v", string(*raw), err.Error())
@@ -423,7 +423,7 @@ func (self *SshApiContext) readFullJSONResponse(originalReq *JsonRequest, result
 	}
 	// response.Result is left as raw since it depends on the type of the expected result
 	// so now unmarshal the nested part
-	err = self.ExtractStructFromJsonRawMessage(response.Result, &result)
+	err = ExtractStructFromJsonRawMessage(response.Result, &result)
 	if err != nil {
 		return err
 	}

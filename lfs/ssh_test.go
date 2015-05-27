@@ -165,7 +165,7 @@ var testserve = func(conn net.Conn, t *testing.T) {
 		switch req.Method {
 		case "Upload":
 			upreq := UploadRequest{}
-			tempctx.ExtractStructFromJsonRawMessage(req.Params, &upreq)
+			ExtractStructFromJsonRawMessage(req.Params, &upreq)
 			startresult := UploadResponse{}
 			startresult.OkToSend = true
 			// Send start response immediately
@@ -213,7 +213,7 @@ var testserve = func(conn net.Conn, t *testing.T) {
 			}
 		case "DownloadInfo":
 			downreq := DownloadInfoRequest{}
-			tempctx.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+			ExtractStructFromJsonRawMessage(req.Params, &downreq)
 			result := DownloadInfoResponse{}
 			if downreq.Oid == testoid {
 				result.Size = int64(len(testcontent))
@@ -228,7 +228,7 @@ var testserve = func(conn net.Conn, t *testing.T) {
 		case "Download":
 			// Can't return any error responses here (byte stream response only), have to just fail
 			downreq := DownloadRequest{}
-			tempctx.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+			ExtractStructFromJsonRawMessage(req.Params, &downreq)
 			// there is no response to this
 			sz := int64(len(testcontent))
 			datasrc := bytes.NewReader(testcontent)
