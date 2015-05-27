@@ -49,9 +49,9 @@ begin_test "batch transfer"
   git config --add --local lfs.batch true
 
   # This pushes to the remote repository set up at the top of the test.
-  out=$(git push origin master 2>&1)
-  echo "$out" | grep "(1 of 1 files)"
-  echo "$out" | grep "master -> master"
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
 
   assert_server_object "$contents_oid" "$contents"
 
