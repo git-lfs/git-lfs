@@ -23,26 +23,23 @@ begin_test "happy path"
   clone_repo "$reponame" repo
 
   # This executes Git LFS from the local repo that was just cloned.
-  out=$($GITLFS track "*.dat" 2>&1)
-  echo "$out" | grep "Tracking \*.dat"
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
 
-  contents=$(printf "a")
+  contents="a"
   contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
 
   # Regular Git commands can be used.
   printf "$contents" > a.dat
   git add a.dat
   git add .gitattributes
-  out=$(git commit -m "add a.dat" 2>&1)
-  echo "$out" | grep "master (root-commit)"
-  echo "$out" | grep "2 files changed"
-  echo "$out" | grep "create mode 100644 a.dat"
-  echo "$out" | grep "create mode 100644 .gitattributes"
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
 
-  out=$(cat a.dat)
-  if [ "$out" != "a" ]; then
-    exit 1
-  fi
+  [ "a" = "$(cat a.dat)" ]
 
   # This is a small shell function that runs several git commands together.
   assert_pointer "master" "a.dat" "$contents_oid" 1
@@ -50,9 +47,9 @@ begin_test "happy path"
   refute_server_object "$contents_oid"
 
   # This pushes to the remote repository set up at the top of the test.
-  out=$(git push origin master 2>&1)
-  echo "$out" | grep "(1 of 1 files)"
-  echo "$out" | grep "master -> master"
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
 
   assert_server_object "$contents_oid" "$contents"
 
@@ -61,10 +58,7 @@ begin_test "happy path"
 
   git pull 2>&1 | grep "Downloading a.dat (1 B)"
 
-  out=$(cat a.dat)
-  if [ "$out" != "a" ]; then
-    exit 1
-  fi
+  [ "a" = "$(cat a.dat)" ]
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
 )

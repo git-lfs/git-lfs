@@ -5,12 +5,13 @@
 #
 #   $ assert_pointer "master" "path/to/file" "some-oid" 123
 assert_pointer() {
-  local ref=$1
-  local path=$2
-  local oid=$3
-  local size=$4
+  local ref="$1"
+  local path="$2"
+  local oid="$3"
+  local size="$4"
 
-  gitblob=$(git ls-tree -l $ref | grep $path | cut -f 3 -d " ")
+  tree=$(git ls-tree -lr "$ref")
+  gitblob=$(echo "$tree" | grep "$path" | cut -f 3 -d " ")
   actual=$(git cat-file -p $gitblob)
   expected=$(pointer $oid $size)
 
@@ -46,7 +47,7 @@ size %s
 #
 #   $ wait_for_file "path/to/upcoming/file"
 wait_for_file() {
-  local filename=$1
+  local filename="$1"
   n=0
   while [ $n -lt 10 ]; do
     if [ -s $filename ]; then
@@ -69,7 +70,7 @@ wait_for_file() {
 #   $ setup_remote_repo "some-name"
 #
 setup_remote_repo() {
-  local reponame=$1
+  local reponame="$1"
   echo "set up remote git repository: $reponame"
   repodir="$REMOTEDIR/$reponame.git"
   mkdir -p "$repodir"
@@ -77,20 +78,6 @@ setup_remote_repo() {
   git init --bare
   git config http.receivepack true
   git config receive.denyCurrentBranch ignore
-
-  # dump a simple git config file so clones use this test's Git LFS command
-  # and the custom credential helper. This overrides any Git config that is
-  # already setup on the system.
-  printf "[filter \"lfs\"]
-	required = true
-	smudge = %s smudge %%f
-	clean = %s clean %%f
-[credential]
-	helper = %s
-[remote \"origin\"]
-	url = %s/%s
-	fetch = +refs/heads/*:refs/remotes/origin/*
-" "$GITLFS" "$GITLFS" lfstest "$GITSERVER" "$reponame" > "$LFS_CONFIG-$reponame"
 }
 
 # clone_repo clones a repository from the test Git server to the subdirectory
@@ -98,10 +85,10 @@ setup_remote_repo() {
 clone_repo() {
   cd "$TRASHDIR"
 
-  local reponame=$1
-  local dir=$2
+  local reponame="$1"
+  local dir="$2"
   echo "clone local git repository $reponame to $dir"
-  out=$(GIT_CONFIG="$LFS_CONFIG-$reponame" git clone "$GITSERVER/$reponame" "$dir" 2>&1)
+  out=$(git clone "$GITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
 
   git config credential.helper lfstest
@@ -112,19 +99,36 @@ clone_repo() {
 setup() {
   cd "$ROOTDIR"
 
-  rm -rf "test/remote"
-  mkdir "test/remote"
+  rm -rf "$REMOTEDIR"
+  mkdir "$REMOTEDIR"
 
-  echo "compile git-lfs for $0"
-  script/bootstrap
-  $GITLFS version
+  if [ -z "$SKIPCOMPILE" ]; then
+    echo "compile git-lfs for $0"
+    script/bootstrap
+  fi
 
-  for go in test/cmd/*.go; do
-    go build -o "$BINPATH/$(basename $go .go)" "$go"
-  done
+  echo "Git LFS: $(which git-lfs)"
+  git lfs version
 
+  if [ -z "$SKIPCOMPILE" ]; then
+    for go in test/cmd/*.go; do
+      go build -o "$BINPATH/$(basename $go .go)" "$go"
+    done
+  fi
+
+  echo "tmp dir: $TMPDIR"
+  echo "remote git dir: $REMOTEDIR"
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+
+  mkdir $HOME
+  git config -f "$HOME/.gitconfig" filter.lfs.required true
+  git config -f "$HOME/.gitconfig" filter.lfs.smudge "git lfs smudge %f"
+  git config -f "$HOME/.gitconfig" filter.lfs.clean "git lfs clean %f"
+  git config -f "$HOME/.gitconfig" credential.helper lfstest
+  git config -f "$HOME/.gitconfig" user.name "Git LFS Tests"
+  git config -f "$HOME/.gitconfig" user.email "git-lfs@example.com"
+
   wait_for_file "$LFS_URL_FILE"
 }
 
