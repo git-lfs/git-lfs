@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/git"
-	"github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 const Version = "0.5.1"
