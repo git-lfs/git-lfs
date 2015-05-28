@@ -20,6 +20,8 @@ var (
 	}
 )
 
+// trackCommand takes a list of paths as an argument, and adds each path to the default
+// attribtues file (.gitattributes), if it's not already exists.
 func trackCommand(cmd *cobra.Command, args []string) {
 	if lfs.LocalGitDir == "" {
 		Print("Not a git repository.")
@@ -76,11 +78,14 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	attributesFile.Close()
 }
 
+// mediaPath represents a tracked path.
 type mediaPath struct {
-	Path   string
-	Source string
+	Path   string // the tracked path
+	Source string // the source attributes file
 }
 
+// findAttributeFiles returns the absolute paths to files 
+// in the current repository that Git uses to track attributes.
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
@@ -103,6 +108,7 @@ func findAttributeFiles() []string {
 	return paths
 }
 
+// findPaths extracts the paths tracked by Git LFS from the existing Git attributes files.
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
 	wd, _ := os.Getwd()
@@ -131,6 +137,8 @@ func findPaths() []mediaPath {
 	return paths
 }
 
+// needsTrailingLinebreak returns 'true' if a file doesn't end in a newline,
+// 'false' otherwise (even if an error occures).
 func needsTrailingLinebreak(filename string) bool {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -138,6 +146,9 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	defer file.Close()
+
+	// Reading the file in chuncks of 16384 bytes,
+	// to avoid holding the entire file in memory.
 	buf := make([]byte, 16384)
 	bytesRead := 0
 	for {
