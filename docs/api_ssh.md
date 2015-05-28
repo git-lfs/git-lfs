@@ -92,7 +92,8 @@ objects.
 |-----------|-------------| 
 |Purpose    | Retrieve the content of a large file as a binary stream | 
 |Params     | oid (string): the SHA of the large file| 
-|           | size (number): the expected size of the stream (server should report an error if this is wrong)| |STREAM_DOWN| Response is a binary stream of exactly 'size' bytes. Client must read all bytes.|
+|           | size (number): the expected size of the stream (server should report an error if this is wrong)| 
+|STREAM_DOWN| Response is a binary stream of exactly 'size' bytes. Client must read all bytes.|
 
 |**UploadCheck**|| 
 |-----------|-------------| 
@@ -114,12 +115,12 @@ objects.
 |-----------|-------------| 
 |Purpose    | Check a batch of large file oid's and return whether they're available to upload or download | 
 |Params     | objects: array of|
-|           |  * oid (string): the SHA of the large file| 
-|           |  * size (number): size in bytes of the data (if intending to upload)| 
+|           | - oid (string): the SHA of the large file| 
+|           | - size (number): size in bytes of the data (if intending to upload)| 
 |Result     | results: array of|
-|           |  * oid (string): the SHA of the large file| 
-|           |  * action (string): "download" if exists on server or "upload" if not
-|           |  * size (number): size in bytes of the data (new info in case of download| 
+|           | - oid (string): the SHA of the large file| 
+|           | - action (string): "download" if exists on server or "upload" if not
+|           | - size (number): size in bytes of the data (new info in case of download| 
 
 
 |**Exit**|| 
