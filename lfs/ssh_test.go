@@ -128,8 +128,11 @@ func TestSSHDecodeJSONResponse(t *testing.T) {
 
 // to be intialised
 var (
-	testoid     string
-	testcontent []byte
+	testoid           string
+	testcontent       []byte
+	batchExpected     map[string]string // oid -> ["upload" | "download"]
+	batchDownloadSize int64             = 500
+	batchUploadSize   int64             = 250
 )
 
 func init() {
@@ -138,6 +141,17 @@ func init() {
 	inbuf := bytes.NewBuffer(testcontent)
 	io.Copy(hasher, inbuf)
 	testoid = hex.EncodeToString(hasher.Sum(nil))
+
+	// Add some expected results for batch call
+	batchExpected = make(map[string]string)
+	batchExpected["111111111"] = "upload"
+	batchExpected["111111112"] = "download"
+	batchExpected["111111113"] = "download"
+	batchExpected["111111114"] = "upload"
+	batchExpected["111111115"] = "upload"
+	batchExpected["111111116"] = "download"
+	batchExpected["111111117"] = "upload"
+
 }
 
 // Test server function here, just called over a pipe to test
@@ -268,6 +282,29 @@ var testserve = func(conn net.Conn, t *testing.T) {
 					panic(fmt.Sprintf("Test persistent server: unable to read data: %v", err))
 				}
 			}
+		case "Batch":
+			batchreq := BatchRequest{}
+			ExtractStructFromJsonRawMessage(req.Params, &batchreq)
+			result := BatchResponse{}
+			for _, o := range batchreq.Objects {
+				op, ok := batchExpected[o.Oid]
+				if ok {
+					var sz int64
+					if op == "download" {
+						sz = batchDownloadSize // would normally be stat()
+					} else {
+						sz = o.Size
+					}
+					result.Results = append(result.Results, BatchResponseObject{o.Oid, op, sz})
+				} else {
+					// Assume upload
+					result.Results = append(result.Results, BatchResponseObject{o.Oid, "upload", o.Size})
+				}
+			}
+			resp, err = NewJsonResponse(req.Id, result)
+			if err != nil {
+				panic("Test persistent server: unable to create response")
+			}
 		case "Exit":
 			break
 		default:
@@ -341,8 +378,6 @@ func TestSSHUploadCheck(t *testing.T) {
 	cli, srv := net.Pipe()
 	go testserve(srv, t)
 	defer cli.Close()
-	// Create a test SSH context from this which doesn't actually connect in
-	// the traditional way
 	ctx := NewManualSSHApiContext(cli, cli)
 
 	// Test one that should work
@@ -364,12 +399,44 @@ func TestSSHUploadObject(t *testing.T) {
 	cli, srv := net.Pipe()
 	go testserve(srv, t)
 	defer cli.Close()
-	// Create a test SSH context from this which doesn't actually connect in
-	// the traditional way
 	ctx := NewManualSSHApiContext(cli, cli)
 
 	rdr := bytes.NewReader(testcontent)
 	err := ctx.UploadObject(&objectResource{Oid: testoid, Size: int64(len(testcontent))}, rdr)
 	assert.Equal(t, (*WrappedError)(nil), err)
 	ctx.Close()
+}
+
+func TestSSHBatch(t *testing.T) {
+	cli, srv := net.Pipe()
+	go testserve(srv, t)
+	defer cli.Close()
+	ctx := NewManualSSHApiContext(cli, cli)
+
+	var objects []*objectResource
+	for oid, op := range batchExpected {
+		var sz int64
+		// only specify size if uploading (otherwise it's a query)
+		if op == "upload" {
+			sz = 250
+		}
+		objects = append(objects, &objectResource{Oid: oid, Size: sz})
+	}
+	retobjs, err := ctx.Batch(objects)
+	assert.Equal(t, (*WrappedError)(nil), err)
+	// Check the results
+	for _, o := range retobjs {
+		expectedop := batchExpected[o.Oid]
+		assert.Equal(t, expectedop == "upload", o.CanUpload())
+		assert.Equal(t, expectedop == "download", o.CanDownload())
+		var expectedSz int64
+		if expectedop == "download" {
+			expectedSz = batchDownloadSize
+		} else {
+			expectedSz = batchUploadSize
+		}
+		assert.Equal(t, expectedSz, o.Size)
+	}
+	ctx.Close()
+
 }
