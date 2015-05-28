@@ -144,6 +144,19 @@ func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", endpoint.SshPort)
 }
 
+func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{"lfs.url": "git@example.com:foo/bar.git"},
+		remotes:   []string{},
+	}
+
+	endpoint := config.Endpoint()
+	assert.Equal(t, "https://example.com/foo/bar.git", endpoint.Url)
+	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
+	assert.Equal(t, "foo/bar.git", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
+}
+
 func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "http://example.com/foo/bar"},
