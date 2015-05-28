@@ -86,7 +86,7 @@ objects.
 |-----------|-------------| 
 |Purpose    | Check if a large file is available to download & report size |
 |Params     | oid (string): the SHA of the large file| 
-|Result     | size (number): size in bytes (or zero if it doesn't exist)|
+|Result     | size (number): size in bytes (or -1 if it doesn't exist)|
 
 |**Download**|| 
 |-----------|-------------| 
