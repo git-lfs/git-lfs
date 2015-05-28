@@ -171,6 +171,18 @@ var testserve = func(conn net.Conn, t *testing.T) {
 
 		var resp *JsonResponse
 		switch req.Method {
+		case "UploadCheck":
+			upreq := UploadRequest{}
+			ExtractStructFromJsonRawMessage(req.Params, &upreq)
+			startresult := UploadResponse{}
+			if upreq.Oid == testoid {
+				startresult.OkToSend = true
+			}
+			resp, err = NewJsonResponse(req.Id, startresult)
+			if err != nil {
+				panic("Test persistent server: unable to create response")
+			}
+
 		case "Upload":
 			upreq := UploadRequest{}
 			ExtractStructFromJsonRawMessage(req.Params, &upreq)
@@ -275,6 +287,30 @@ var testserve = func(conn net.Conn, t *testing.T) {
 	conn.Close()
 }
 
+func TestSSHDownloadCheck(t *testing.T) {
+	cli, srv := net.Pipe()
+	go testserve(srv, t)
+	defer cli.Close()
+	// Create a test SSH context from this which doesn't actually connect in
+	// the traditional way
+	ctx := NewManualSSHApiContext(cli, cli)
+	// First test an invalid oid
+	o, err := ctx.DownloadCheck("0000000000")
+	// Should be a specific error in this case
+	assert.NotEqual(t, (*WrappedError)(nil), err)
+	assert.Equal(t, (*objectResource)(nil), o)
+
+	// Now test valid one
+	o, err = ctx.DownloadCheck(testoid)
+	// for some reason the assert lib doesn't behave correctly for *WrappedError
+	//assert.Equal(t, nil, err)
+	if err != nil {
+		t.Error("Should not be an error calling DownloadCheck with the correct Oid")
+	}
+	assert.Equal(t, int64(len(testcontent)), o.Size)
+	ctx.Close()
+}
+
 func TestSSHDownload(t *testing.T) {
 	cli, srv := net.Pipe()
 	go testserve(srv, t)
@@ -292,13 +328,34 @@ func TestSSHDownload(t *testing.T) {
 	rdr, sz, err := ctx.Download(testoid)
 	// for some reason the assert lib doesn't behave correctly for *WrappedError
 	//assert.Equal(t, nil, err)
-	if err != nil {
-		t.Error("Should not be an error calling Download with the correct Oid")
-	}
+	assert.Equal(t, (*WrappedError)(nil), err)
 	assert.Equal(t, int64(len(testcontent)), sz)
 	var buf bytes.Buffer
 	io.CopyN(&buf, rdr, sz) // must read before assert otherwise will get clogged
 	assert.Equal(t, testcontent, buf.Bytes())
+
+	ctx.Close()
+}
+
+func TestSSHUploadCheck(t *testing.T) {
+	cli, srv := net.Pipe()
+	go testserve(srv, t)
+	defer cli.Close()
+	// Create a test SSH context from this which doesn't actually connect in
+	// the traditional way
+	ctx := NewManualSSHApiContext(cli, cli)
+
+	// Test one that should work
+	o, err := ctx.UploadCheck(testoid, int64(len(testcontent)))
+	assert.Equal(t, (*WrappedError)(nil), err)
+	assert.NotEqual(t, (*objectResource)(nil), o)
+	assert.Equal(t, testoid, o.Oid)
+	assert.Equal(t, int64(len(testcontent)), o.Size)
+
+	// Test one that should reject upload (already exists)
+	o, err = ctx.UploadCheck("0000000000000", int64(len(testcontent)))
+	assert.Equal(t, (*WrappedError)(nil), err)
+	assert.Equal(t, (*objectResource)(nil), o)
 
 	ctx.Close()
 }
@@ -313,8 +370,6 @@ func TestSSHUploadObject(t *testing.T) {
 
 	rdr := bytes.NewReader(testcontent)
 	err := ctx.UploadObject(&objectResource{Oid: testoid, Size: int64(len(testcontent))}, rdr)
-	if err != nil {
-		t.Error("Should not be an error calling Upload with the correct Oid")
-	}
+	assert.Equal(t, (*WrappedError)(nil), err)
 	ctx.Close()
 }
