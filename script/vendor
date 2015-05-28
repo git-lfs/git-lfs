@@ -1,1 +1,2 @@
-GOPATH="`pwd`/.vendor" script/gpm install
+#!/bin/sh
+nut install

@@ -1,2 +1,3 @@
+#!/bin/sh
 script/fmt
-GOPATH="`pwd`/.vendor" go run cmd/git-lfs/git-lfs.go "$@"
+go run ./git-lfs.go "$@"

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // SJS MOVE LATER move all this to http specific file
