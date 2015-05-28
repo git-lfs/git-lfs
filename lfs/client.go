@@ -48,22 +48,22 @@ var (
 	apiEvent = make(chan int)
 )
 
-type objectResource struct {
+type ObjectResource struct {
 	Oid   string                   `json:"oid,omitempty"`
 	Size  int64                    `json:"size,omitempty"`
 	Links map[string]*linkRelation `json:"_links,omitempty"`
 }
 
-func (o *objectResource) CanDownload() bool {
+func (o *ObjectResource) CanDownload() bool {
 	_, ok := o.Rel("download")
 	return ok
 }
-func (o *objectResource) CanUpload() bool {
+func (o *ObjectResource) CanUpload() bool {
 	_, ok := o.Rel("upload")
 	return ok
 }
 
-func (o *objectResource) NewRequest(ctx *HttpApiContext, relation, method string) (*http.Request, Creds, error) {
+func (o *ObjectResource) NewRequest(ctx *HttpApiContext, relation, method string) (*http.Request, Creds, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
 		return nil, nil, objectRelationDoesNotExist
@@ -81,7 +81,7 @@ func (o *objectResource) NewRequest(ctx *HttpApiContext, relation, method string
 	return req, creds, nil
 }
 
-func (o *objectResource) Rel(name string) (*linkRelation, bool) {
+func (o *ObjectResource) Rel(name string) (*linkRelation, bool) {
 	if o.Links == nil {
 		return nil, false
 	}
@@ -123,13 +123,13 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
-func DownloadCheck(oid string) (*objectResource, *WrappedError) {
+func DownloadCheck(oid string) (*ObjectResource, *WrappedError) {
 	ctx := GetApiContext(Config.Endpoint())
 	defer ReleaseApiContext(ctx)
 	return ctx.DownloadCheck(oid)
 }
 
-func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+func DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, *WrappedError) {
 	ctx := GetApiContext(Config.Endpoint())
 	defer ReleaseApiContext(ctx)
 	return ctx.DownloadObject(obj)
@@ -139,13 +139,13 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+func Batch(objects []*ObjectResource) ([]*ObjectResource, *WrappedError) {
 	ctx := GetApiContext(Config.Endpoint())
 	defer ReleaseApiContext(ctx)
 	return ctx.Batch(objects)
 }
 
-func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
+func UploadCheck(oidPath string) (*ObjectResource, *WrappedError) {
 	oid := filepath.Base(oidPath)
 
 	stat, err := os.Stat(oidPath)
@@ -159,7 +159,7 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	return ctx.UploadCheck(oid, stat.Size())
 }
 
-func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
+func UploadObject(o *ObjectResource, cb CopyCallback) *WrappedError {
 
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
@@ -246,7 +246,7 @@ func (self *HttpApiContext) doApiRequestWithRedirects(req *http.Request, creds C
 }
 
 // SJS MOVE LATER: In the interests of easier merging, this method left in this source file
-func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
+func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.Response, *ObjectResource, *WrappedError) {
 
 	via := make([]*http.Request, 0, 4)
 	res, wErr := self.doApiRequestWithRedirects(req, creds, via)
@@ -254,7 +254,7 @@ func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.
 		return nil, nil, wErr
 	}
 
-	obj := &objectResource{}
+	obj := &ObjectResource{}
 	wErr = self.decodeApiResponse(res, obj)
 
 	if wErr != nil {
@@ -266,14 +266,14 @@ func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.
 }
 
 // SJS MOVE LATER: In the interests of easier merging, this method left in this source file
-func (self *HttpApiContext) doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
+func (self *HttpApiContext) doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*ObjectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := self.doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
 		return res, nil, wErr
 	}
 
-	var objs map[string][]*objectResource
+	var objs map[string][]*ObjectResource
 	wErr = self.decodeApiResponse(res, &objs)
 
 	if wErr != nil {

@@ -17,15 +17,15 @@ type ApiContext interface {
 	// Essentially the same as calling DownloadCheck() then DownloadObject()
 	Download(oid string) (io.ReadCloser, int64, *WrappedError)
 	// Check whether an object is available for download and return an object resource if so
-	DownloadCheck(oid string) (*objectResource, *WrappedError)
+	DownloadCheck(oid string) (*ObjectResource, *WrappedError)
 	// Download a single object from an already identified resource from DownloadCheck(), return reader for data, size and any error
-	DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError)
+	DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, *WrappedError)
 	// Check whether an upload would be accepted for an object and return the resource to use if so
-	UploadCheck(oid string, sz int64) (*objectResource, *WrappedError)
+	UploadCheck(oid string, sz int64) (*ObjectResource, *WrappedError)
 	// Perform the actual upload of an object having identified it will be accepted and the resource to use
-	UploadObject(o *objectResource, reader io.Reader) *WrappedError
+	UploadObject(o *ObjectResource, reader io.Reader) *WrappedError
 	// Perform a batch request for a number of objects to determine what can be uploaded/downloaded
-	Batch(objects []*objectResource) ([]*objectResource, *WrappedError)
+	Batch(objects []*ObjectResource) ([]*ObjectResource, *WrappedError)
 
 	// TODO - add download/upload resume
 	// TODO - add binary delta support

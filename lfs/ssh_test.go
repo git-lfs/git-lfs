@@ -335,7 +335,7 @@ func TestSSHDownloadCheck(t *testing.T) {
 	o, err := ctx.DownloadCheck("0000000000")
 	// Should be a specific error in this case
 	assert.NotEqual(t, (*WrappedError)(nil), err)
-	assert.Equal(t, (*objectResource)(nil), o)
+	assert.Equal(t, (*ObjectResource)(nil), o)
 
 	// Now test valid one
 	o, err = ctx.DownloadCheck(testoid)
@@ -383,14 +383,14 @@ func TestSSHUploadCheck(t *testing.T) {
 	// Test one that should work
 	o, err := ctx.UploadCheck(testoid, int64(len(testcontent)))
 	assert.Equal(t, (*WrappedError)(nil), err)
-	assert.NotEqual(t, (*objectResource)(nil), o)
+	assert.NotEqual(t, (*ObjectResource)(nil), o)
 	assert.Equal(t, testoid, o.Oid)
 	assert.Equal(t, int64(len(testcontent)), o.Size)
 
 	// Test one that should reject upload (already exists)
 	o, err = ctx.UploadCheck("0000000000000", int64(len(testcontent)))
 	assert.Equal(t, (*WrappedError)(nil), err)
-	assert.Equal(t, (*objectResource)(nil), o)
+	assert.Equal(t, (*ObjectResource)(nil), o)
 
 	ctx.Close()
 }
@@ -402,7 +402,7 @@ func TestSSHUploadObject(t *testing.T) {
 	ctx := NewManualSSHApiContext(cli, cli)
 
 	rdr := bytes.NewReader(testcontent)
-	err := ctx.UploadObject(&objectResource{Oid: testoid, Size: int64(len(testcontent))}, rdr)
+	err := ctx.UploadObject(&ObjectResource{Oid: testoid, Size: int64(len(testcontent))}, rdr)
 	assert.Equal(t, (*WrappedError)(nil), err)
 	ctx.Close()
 }
@@ -413,14 +413,14 @@ func TestSSHBatch(t *testing.T) {
 	defer cli.Close()
 	ctx := NewManualSSHApiContext(cli, cli)
 
-	var objects []*objectResource
+	var objects []*ObjectResource
 	for oid, op := range batchExpected {
 		var sz int64
 		// only specify size if uploading (otherwise it's a query)
 		if op == "upload" {
 			sz = 250
 		}
-		objects = append(objects, &objectResource{Oid: oid, Size: sz})
+		objects = append(objects, &ObjectResource{Oid: oid, Size: sz})
 	}
 	retobjs, err := ctx.Batch(objects)
 	assert.Equal(t, (*WrappedError)(nil), err)

@@ -222,7 +222,7 @@ func (self *HttpApiContext) Download(oid string) (io.ReadCloser, int64, *Wrapped
 	return res.Body, res.ContentLength, nil
 }
 
-func (self *HttpApiContext) DownloadCheck(oid string) (*objectResource, *WrappedError) {
+func (self *HttpApiContext) DownloadCheck(oid string) (*ObjectResource, *WrappedError) {
 	req, creds, err := self.newApiRequest("GET", oid)
 	if err != nil {
 		return nil, Error(err)
@@ -240,7 +240,7 @@ func (self *HttpApiContext) DownloadCheck(oid string) (*objectResource, *Wrapped
 	return obj, nil
 }
 
-func (self *HttpApiContext) DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+func (self *HttpApiContext) DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, *WrappedError) {
 	req, creds, err := obj.NewRequest(self, "download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
@@ -254,12 +254,12 @@ func (self *HttpApiContext) DownloadObject(obj *objectResource) (io.ReadCloser, 
 	return res.Body, res.ContentLength, nil
 }
 
-func (self *HttpApiContext) Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+func (self *HttpApiContext) Batch(objects []*ObjectResource) ([]*ObjectResource, *WrappedError) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	o := map[string][]*objectResource{"objects": objects}
+	o := map[string][]*ObjectResource{"objects": objects}
 
 	by, err := json.Marshal(o)
 	if err != nil {
@@ -291,9 +291,9 @@ func (self *HttpApiContext) Batch(objects []*objectResource) ([]*objectResource,
 	return objs, nil
 }
 
-func (self *HttpApiContext) UploadCheck(oid string, sz int64) (*objectResource, *WrappedError) {
+func (self *HttpApiContext) UploadCheck(oid string, sz int64) (*ObjectResource, *WrappedError) {
 
-	reqObj := &objectResource{
+	reqObj := &ObjectResource{
 		Oid:  oid,
 		Size: sz,
 	}
@@ -331,7 +331,7 @@ func (self *HttpApiContext) UploadCheck(oid string, sz int64) (*objectResource, 
 	return obj, nil
 }
 
-func (self *HttpApiContext) UploadObject(o *objectResource, reader io.Reader) *WrappedError {
+func (self *HttpApiContext) UploadObject(o *ObjectResource, reader io.Reader) *WrappedError {
 	req, creds, err := o.NewRequest(self, "upload", "PUT")
 	if err != nil {
 		return Error(err)

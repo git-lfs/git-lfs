@@ -35,7 +35,7 @@ func TestSuccessfulDownload(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -166,7 +166,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -267,7 +267,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -371,7 +371,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -502,7 +502,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -627,7 +627,7 @@ func TestDownloadStorageError(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{

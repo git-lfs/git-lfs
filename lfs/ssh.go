@@ -493,7 +493,7 @@ func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedE
 	return r, resp.Size, nil
 }
 
-func (self *SshApiContext) DownloadCheck(oid string) (*objectResource, *WrappedError) {
+func (self *SshApiContext) DownloadCheck(oid string) (*ObjectResource, *WrappedError) {
 	infoparams := DownloadCheckRequest{oid}
 	resp := DownloadCheckResponse{}
 	err := self.doFullJSONRequestResponse("DownloadCheck", &infoparams, &resp)
@@ -505,7 +505,7 @@ func (self *SshApiContext) DownloadCheck(oid string) (*objectResource, *WrappedE
 	sendApiEvent(apiEventSuccess)
 
 	if resp.Size > 0 {
-		return &objectResource{
+		return &ObjectResource{
 			Oid:   oid,
 			Size:  resp.Size,
 			Links: self.makeDownloadLinks(oid)}, nil
@@ -516,7 +516,7 @@ func (self *SshApiContext) DownloadCheck(oid string) (*objectResource, *WrappedE
 
 }
 
-func (self *SshApiContext) DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+func (self *SshApiContext) DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, *WrappedError) {
 	contentparams := DownloadRequest{
 		Oid:  obj.Oid,
 		Size: obj.Size,
@@ -560,7 +560,7 @@ func (self *SshApiContext) makeDownloadLinks(oid string) map[string]*linkRelatio
 	}
 }
 
-func (self *SshApiContext) UploadCheck(oid string, sz int64) (*objectResource, *WrappedError) {
+func (self *SshApiContext) UploadCheck(oid string, sz int64) (*ObjectResource, *WrappedError) {
 	params := UploadRequest{oid, sz}
 
 	resp := UploadResponse{}
@@ -576,13 +576,13 @@ func (self *SshApiContext) UploadCheck(oid string, sz int64) (*objectResource, *
 
 	sendApiEvent(apiEventSuccess)
 
-	return &objectResource{
+	return &ObjectResource{
 		Oid:   oid,
 		Size:  sz,
 		Links: self.makeUploadLinks(oid)}, nil
 
 }
-func (self *SshApiContext) UploadObject(o *objectResource, content io.Reader) *WrappedError {
+func (self *SshApiContext) UploadObject(o *ObjectResource, content io.Reader) *WrappedError {
 	params := UploadRequest{o.Oid, o.Size}
 
 	resp := UploadResponse{}
@@ -634,7 +634,7 @@ type BatchResponse struct {
 	Results []BatchResponseObject `json:"results"`
 }
 
-func (self *SshApiContext) Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+func (self *SshApiContext) Batch(objects []*ObjectResource) ([]*ObjectResource, *WrappedError) {
 	params := BatchRequest{make([]BatchRequestObject, 0, len(objects))}
 	for _, o := range objects {
 		params.Objects = append(params.Objects, BatchRequestObject{o.Oid, o.Size})
@@ -647,9 +647,9 @@ func (self *SshApiContext) Batch(objects []*objectResource) ([]*objectResource, 
 		return nil, Errorf(err, "Error in Batch: %v", err)
 	}
 
-	retObjs := make([]*objectResource, 0, len(resp.Results))
+	retObjs := make([]*ObjectResource, 0, len(resp.Results))
 	for _, r := range resp.Results {
-		newobj := &objectResource{Oid: r.Oid, Size: r.Size}
+		newobj := &ObjectResource{Oid: r.Oid, Size: r.Size}
 		if r.Action == "download" {
 			newobj.Links = self.makeDownloadLinks(r.Oid)
 		} else if r.Action == "upload" {
