@@ -26,7 +26,7 @@ command.
 
 The only argument passed to the `git-lfs-ssh-serve` command is the relative path of
 the repo, as extracted from the URL. For more information on installing the
-reference server & configuring it, see [git-lfs-ssh-serve](git-lfs-ssh-serve.md)
+reference server & configuring it, see [git-lfs-ssh-serve](https://github.com/sinbad/git-lfs-ssh-serve)
 
 Authentication is handled in the same way as opening any SSH connection,
 primarily through SSH keys. Manual authentication may be supported via `git
@@ -97,7 +97,7 @@ objects.
 
 |**UploadCheck**|| 
 |-----------|-------------| 
-|Purpose    | Check to see if server would acceot an upload of a large file | 
+|Purpose    | Check to see if server would accept an upload of a large file | 
 |Params     | oid (string): the SHA of the large file| 
 |           | size (number): size in bytes of the data to upload| 
 |Result     | okToSend (bool): True if the server would accept an upload on this basis| 
