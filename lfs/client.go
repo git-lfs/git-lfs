@@ -110,8 +110,11 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
+		sendApiEvent(apiEventFail)
 		return nil, 0, wErr
 	}
+
+	sendApiEvent(apiEventSuccess)
 
 	req, creds, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -130,21 +133,87 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
+func DownloadCheck(oid string) (*objectResource, *WrappedError) {
+	req, creds, err := newApiRequest("GET", oid)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	_, obj, wErr := doApiRequest(req, creds)
+	if wErr != nil {
+		return nil, wErr
+	}
+
+	_, _, err = obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	return obj, nil
+}
+
+func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+	req, creds, err := obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, wErr := doHttpRequest(req, creds)
+	if wErr != nil {
+		return nil, 0, wErr
+	}
+
+	return res.Body, res.ContentLength, nil
+}
+
 func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
-	oid := filepath.Base(oidPath)
-	file, err := os.Open(oidPath)
-	if err != nil {
-		return Error(err)
+func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+	if len(objects) == 0 {
+		return nil, nil
 	}
-	defer file.Close()
 
-	stat, err := file.Stat()
+	o := map[string][]*objectResource{"objects": objects}
+
+	by, err := json.Marshal(o)
 	if err != nil {
-		return Error(err)
+		return nil, Error(err)
+	}
+
+	req, creds, err := newApiRequest("POST", "batch")
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
+
+	tracerx.Printf("api: batch %d files", len(objects))
+	res, objs, wErr := doApiBatchRequest(req, creds)
+	if wErr != nil {
+		sendApiEvent(apiEventFail)
+		return nil, wErr
+	}
+
+	sendApiEvent(apiEventSuccess)
+	if res.StatusCode != 200 {
+		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+	}
+
+	return objs, nil
+}
+
+func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
+	oid := filepath.Base(oidPath)
+
+	stat, err := os.Stat(oidPath)
+	if err != nil {
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
 	}
 
 	reqObj := &objectResource{
@@ -154,12 +223,14 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		return Error(err)
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
 	}
 
 	req, creds, err := newApiRequest("POST", oid)
 	if err != nil {
-		return Error(err)
+		sendApiEvent(apiEventFail)
+		return nil, Error(err)
 	}
 
 	req.Header.Set("Content-Type", mediaType)
@@ -167,28 +238,41 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
-	tracerx.Printf("api: uploading %s (%s)", filename, oid)
+	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
 		sendApiEvent(apiEventFail)
-		return wErr
+		return nil, wErr
 	}
 
 	sendApiEvent(apiEventSuccess)
 
+	if res.StatusCode == 200 {
+		return nil, nil
+	}
+
+	return obj, nil
+}
+
+func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
+	path, err := LocalMediaPath(o.Oid)
+	if err != nil {
+		return Error(err)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return Error(err)
+	}
+	defer file.Close()
+
 	reader := &CallbackReader{
 		C:         cb,
-		TotalSize: reqObj.Size,
+		TotalSize: o.Size,
 		Reader:    file,
 	}
 
-	if res.StatusCode == 200 {
-		// Drain the reader to update any progress bars
-		io.Copy(ioutil.Discard, reader)
-		return nil
-	}
-
-	req, creds, err = obj.NewRequest("upload", "PUT")
+	req, creds, err := o.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
 	}
@@ -196,12 +280,12 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
-	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
-	req.ContentLength = reqObj.Size
+	req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	req.ContentLength = o.Size
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, wErr = doHttpRequest(req, creds)
+	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
 		return wErr
 	}
@@ -213,10 +297,15 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	req, creds, err = obj.NewRequest("verify", "POST")
+	req, creds, err = o.NewRequest("verify", "POST")
 	if err == objectRelationDoesNotExist {
 		return nil
 	} else if err != nil {
+		return Error(err)
+	}
+
+	by, err := json.Marshal(o)
+	if err != nil {
 		return Error(err)
 	}
 
@@ -310,6 +399,23 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	return res, obj, nil
 }
 
+func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
+	via := make([]*http.Request, 0, 4)
+	res, wErr := doApiRequestWithRedirects(req, creds, via)
+	if wErr != nil {
+		return res, nil, wErr
+	}
+
+	var objs map[string][]*objectResource
+	wErr = decodeApiResponse(res, &objs)
+
+	if wErr != nil {
+		setErrorResponseContext(wErr, res)
+	}
+
+	return res, objs["objects"], wErr
+}
+
 func handleResponse(res *http.Response) *WrappedError {
 	if res.StatusCode < 400 {
 		return nil
@@ -382,8 +488,10 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	objectOid := oid
 	operation := "download"
 	if method == "POST" {
-		objectOid = ""
-		operation = "upload"
+		if oid != "batch" {
+			objectOid = ""
+			operation = "upload"
+		}
 	}
 
 	res, err := sshAuthenticate(endpoint, operation, oid)

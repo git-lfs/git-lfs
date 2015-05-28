@@ -266,6 +266,73 @@ only appears on a 200 status.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
 
+## POST /objects/batch
+
+This request retrieves the metadata for a batch of objects, given a JSON body
+containing an object with an array of objects with the oid and size of each object.
+
+NOTE: This is an experimental API that is subject to change. It will ship disabled
+by default in Git LFS v0.5.2. You can enable it if your Git LFS server supports it
+with `git config lfs.batch true`.
+
+```
+> POST https://git-lfs-server.com/objects/batch HTTP/1.1
+> Accept: application/vnd.git-lfs+json
+> Content-Type: application/vnd.git-lfs+json
+> Authorization: Basic ... (if authentication is needed)
+>
+> {
+>   "objects": [
+>     {
+>       "oid": "1111111",
+>       "size": 123
+>     }
+>   ]
+> }
+>
+< HTTP/1.1 200 Accepted
+< Content-Type: application/vnd.git-lfs+json
+<
+< {
+<   "objects": [
+<     "oid": "1111111",
+<     "_links": {
+<       "upload": {
+<         "href": "https://some-upload.com",
+<         "header": {
+<           "Key": "value"
+<         }
+<       },
+<       "verify": {
+<         "href": "https://some-callback.com",
+<         "header": {
+<           "Key": "value"
+<         }
+<       }
+<     }
+<   ]
+< }
+```
+
+The response will be an object containing an array of objects with one of
+multiple link relations, each with an `href` property and an optional `header`
+property.
+
+* `upload` - This relation describes how to upload the object.  Expect this with
+when the object has not been previously uploaded.
+* `verify` - The server can specify a URL for the client to hit after
+successfully uploading an object.  This is an optional relation for the case that
+the server has not verified the object.
+* `download` - This relation describes how to download the object content.  This
+only appears if an object has been previously uploaded.
+
+### Responses
+
+* 200 - OK
+* 401 - The authentication credentials are incorrect.
+* 403 - The user has **read**, but not **write** access.
+* 404 - The repository does not exist for the user.
+
 ## Verification
 
 When Git LFS clients issue a POST request to initiate an object upload, the

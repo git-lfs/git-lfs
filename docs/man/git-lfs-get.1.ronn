@@ -1,0 +1,31 @@
+git-lfs-get(1) -- Download all Git LFS files for a given ref
+============================================================
+
+## SYNOPSIS
+
+`git lfs get` [<ref>]
+
+## DESCRIPTION
+
+Download any Git LFS objects for a given ref. If no ref is given,
+the currently checked out ref will be used.
+
+If the given ref is the same as the currently checked out ref, the
+files will be written to the working directory.
+
+## EXAMPLES
+
+* Get the LFS objects for the current ref
+
+  `git lfs get`
+
+* Get the LFS objects for a branch
+
+  `git lfs get mybranch`
+
+* Get the LFS objects for a commit
+
+  `git lfs get e445b45c1c9c6282614f201b62778e4c0688b5c8`
+
+Part of the git-lfs(1) suite.
+

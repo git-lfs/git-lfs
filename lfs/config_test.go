@@ -193,3 +193,138 @@ func TestObjectsUrl(t *testing.T) {
 		}
 	}
 }
+
+func TestConcurrentTransfersSetValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.concurrenttransfers": "5",
+		},
+	}
+
+	n := config.ConcurrentTransfers()
+	assert.Equal(t, 5, n)
+}
+
+func TestConcurrentTransfersDefault(t *testing.T) {
+	config := &Configuration{}
+
+	n := config.ConcurrentTransfers()
+	assert.Equal(t, 3, n)
+}
+
+func TestConcurrentTransfersZeroValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.concurrenttransfers": "0",
+		},
+	}
+
+	n := config.ConcurrentTransfers()
+	assert.Equal(t, 3, n)
+}
+
+func TestConcurrentTransfersNonNumeric(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.concurrenttransfers": "elephant",
+		},
+	}
+
+	n := config.ConcurrentTransfers()
+	assert.Equal(t, 3, n)
+}
+
+func TestConcurrentTransfersNegativeValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.concurrenttransfers": "-5",
+		},
+	}
+
+	n := config.ConcurrentTransfers()
+	assert.Equal(t, 3, n)
+}
+
+func TestBatchTrue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "true",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, true, v)
+}
+
+func TestBatchNumeric1IsTrue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "1",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, true, v)
+}
+
+func TestBatchNumeric0IsFalse(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "0",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, false, v)
+}
+
+func TestBatchOtherNumericsAreTrue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "42",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, true, v)
+}
+
+func TestBatchNegativeNumericsAreTrue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "-1",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, true, v)
+}
+
+func TestBatchNonBooleanIsFalse(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "elephant",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, false, v)
+}
+
+func TestBatchPresentButBlankIsTrue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.batch": "",
+		},
+	}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, true, v)
+}
+
+func TestBatchAbsentIsFalse(t *testing.T) {
+	config := &Configuration{}
+
+	v := config.BatchTransfer()
+	assert.Equal(t, false, v)
+}

@@ -16,11 +16,8 @@ begin_test "pre-push"
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
-    tee push.log |
-    grep "(0 of 0 files) 0 B 0" || {
-      cat push.log
-      exit 1
-    }
+    tee push.log
+  grep "(0 of 0 files) 0 B 0" push.log
 
   git lfs track "*.dat"
   echo "hi" > hi.dat
@@ -33,31 +30,23 @@ begin_test "pre-push"
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
     -u "user:pass" \
     -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log |
-    grep "404 Not Found" || {
-      cat http.log
-      exit 1
-    }
+    tee http.log
+
+  grep "404 Not Found" http.log
 
   # push file to the git lfs server
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
-    tee push.log |
-    grep "(1 of 1 files) 3 B / 3 B  100.00 %" || {
-      cat push.log
-      exit 1
-    }
+    tee push.log
+  grep "(1 of 1 files)" push.log
 
   # now the file exists
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
     -u "user:pass" \
     -o lfs.json \
     -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log |
-    grep "200 OK" || {
-      cat http.log
-      exit 1
-    }
+    tee http.log
+  grep "200 OK" http.log
 
   grep "download" lfs.json || {
     cat lfs.json
@@ -95,28 +84,19 @@ begin_test "pre-push dry-run"
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b" \
     -u "user:pass" \
     -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log |
-    grep "404 Not Found" || {
-      cat http.log
-      exit 1
-    }
+    tee http.log
+  grep "404 Not Found" http.log
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
-    tee push.log |
-    grep "push hi.dat" || {
-      cat push.log
-      exit 1
-    }
+    tee push.log
+  grep "push hi.dat" push.log
 
   # file still doesn't exist
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b" \
     -u "user:pass" \
     -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log |
-    grep "404 Not Found" || {
-      cat http.log
-      exit 1
-    }
+    tee http.log
+  grep "404 Not Found" http.log
 )
 end_test
