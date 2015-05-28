@@ -58,9 +58,72 @@ func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
 	return u, nil
 }
 
+func NewEndpoint(urlstr string) Endpoint {
+	endpoint := Endpoint{Url: urlstr}
+	// Check for SSH URLs
+	// Support ssh://user@host.com/path/to/repo and user@host.com:path/to/repo
+	u, err := url.Parse(urlstr)
+	if err == nil {
+		if u.Scheme == "" && u.Path != "" {
+			// This might be a bare SSH URL
+			// Turn it into ssh:// for simplicity of extraction later
+			parts := strings.Split(u.Path, ":")
+			if len(parts) > 1 {
+				// Treat presence of ':' as a bare URL
+				var newPath string
+				if len(parts) > 2 { // port included; really should only ever be 3 parts
+					newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
+				} else {
+					newPath = strings.Join(parts, "/")
+				}
+				newUrlStr := fmt.Sprintf("ssh://%v", newPath)
+				newu, err := url.Parse(newUrlStr)
+				if err == nil {
+					u = newu
+				}
+			}
+		}
+		// Now extract the SSH parts from sanitised u
+		if u.Scheme == "ssh" {
+			var host string
+			// Pull out port now, we need it separately for SSH
+			regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
+			if match := regex.FindStringSubmatch(u.Host); match != nil {
+				host = match[1]
+				if u.User != nil && u.User.Username() != "" {
+					endpoint.SshUserAndHost = fmt.Sprintf("%s@%s", u.User.Username(), host)
+				} else {
+					endpoint.SshUserAndHost = host
+				}
+				if len(match) > 2 {
+					endpoint.SshPort = match[2]
+				}
+			} else {
+				endpoint.Url = "<unknown>"
+				return endpoint
+			}
+
+			// u.Path includes a preceding '/', strip off manually
+			// rooted paths in the URL will be '//path/to/blah'
+			// this is just how Go's URL parsing works
+			if strings.HasPrefix(u.Path, "/") {
+				endpoint.SshPath = u.Path[1:]
+			} else {
+				endpoint.SshPath = u.Path
+			}
+			// Fallback URL for using HTTPS while still using SSH for git
+			// u.Host includes host & port so can't use SSH port
+			endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
+		}
+	} else {
+		endpoint.Url = "<unknown>"
+	}
+	return endpoint
+
+}
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
@@ -105,75 +168,18 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
-	if urlstr, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		endpoint := Endpoint{Url: urlstr}
+	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
+		endpoint := NewEndpoint(url)
 
-		// Check for SSH URLs
-		// Support ssh://user@host.com/path/to/repo and user@host.com:path/to/repo
-		u, err := url.Parse(urlstr)
-		if err == nil {
-			if u.Scheme == "" && u.Path != "" {
-				// This means it's a bare URL user@host.com:path/to/repo
-				// Turn it into ssh:// for simplicity of extraction later
-				parts := strings.Split(u.Path, ":")
-				var newPath string
-				if len(parts) > 2 { // port included; really should only ever be 3 parts
-					newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
-				} else {
-					newPath = strings.Join(parts, "/")
-				}
-				newUrlStr := fmt.Sprintf("ssh://%v", newPath)
-				newu, err := url.Parse(newUrlStr)
-				if err == nil {
-					u = newu
-				}
-			}
-			// Now extract the SSH parts from sanitised u
-			if u.Scheme == "ssh" {
-				var host string
-				// Pull out port now, we need it separately for SSH
-				regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
-				if match := regex.FindStringSubmatch(u.Host); match != nil {
-					host = match[1]
-					if u.User.Username() != "" {
-						endpoint.SshUserAndHost = fmt.Sprintf("%s@%s", u.User.Username(), host)
-					} else {
-						endpoint.SshUserAndHost = host
-					}
-					if len(match) > 2 {
-						endpoint.SshPort = match[2]
-					}
-				} else {
-					endpoint.Url = "<unknown>"
-					return endpoint
-				}
-
-				// u.Path includes a preceding '/', strip off manually
-				// rooted paths in the URL will be '//path/to/blah'
-				// this is just how Go's URL parsing works
-				if strings.HasPrefix(u.Path, "/") {
-					endpoint.SshPath = u.Path[1:]
-				} else {
-					endpoint.SshPath = u.Path
-				}
-				// Fallback URL for using HTTPS while still using SSH for git
-				// u.Host includes host & port so can't use SSH port
-				endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
-			}
-		} else {
-			endpoint.Url = "<unknown>"
-			return endpoint
-		}
-
-		if path.Ext(urlstr) == ".git" {
+		// When using main remote URL for HTTP, append info/lfs
+		if path.Ext(url) == ".git" {
 			endpoint.Url += "/info/lfs"
 		} else {
 			endpoint.Url += ".git/info/lfs"
 		}
-
 		return endpoint
 	}
 
