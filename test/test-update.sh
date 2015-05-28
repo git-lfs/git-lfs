@@ -8,6 +8,7 @@ begin_test "update"
   set -e
 
   pre_push_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }
 git lfs pre-push \"\$@\""
 
   mkdir without-pre-push
@@ -30,6 +31,12 @@ git lfs push --stdin \$*" > .git/hooks/pre-push
   # replace old hook 2
   echo "#!/bin/sh
 git lfs push --stdin \"\$@\"" > .git/hooks/pre-push
+  [ "Updated pre-push hook" = "$(git lfs update)" ]
+  [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+
+  # replace old hook 3
+  echo "#!/bin/sh
+git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   [ "Updated pre-push hook" = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 

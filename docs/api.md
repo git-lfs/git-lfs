@@ -271,6 +271,10 @@ only appears on a 200 status.
 This request retrieves the metadata for a batch of objects, given a JSON body
 containing an object with an array of objects with the oid and size of each object.
 
+NOTE: This is an experimental API that is subject to change. It will ship disabled
+by default in Git LFS v0.5.2. You can enable it if your Git LFS server supports it
+with `git config lfs.batch true`.
+
 ```
 > POST https://git-lfs-server.com/objects/batch HTTP/1.1
 > Accept: application/vnd.git-lfs+json
