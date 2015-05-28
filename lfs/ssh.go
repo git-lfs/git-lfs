@@ -476,6 +476,9 @@ func (self *SshApiContext) Download(oid string) (io.ReadCloser, int64, *WrappedE
 	if err != nil {
 		sendApiEvent(apiEventFail)
 		return nil, 0, Errorf(err, "Error while downloading %v (DownloadCheck): %v", oid, err)
+	} else if resp.Size == 0 {
+		sendApiEvent(apiEventFail)
+		return nil, 0, Error(objectRelationDoesNotExist)
 	}
 	contentparams := DownloadRequest{
 		Oid:  oid,
@@ -510,7 +513,7 @@ func (self *SshApiContext) DownloadCheck(oid string) (*ObjectResource, *WrappedE
 			Size:  resp.Size,
 			Links: self.makeDownloadLinks(oid)}, nil
 	} else {
-		// No error but does not exist
+		// does not exist
 		return nil, Error(objectRelationDoesNotExist)
 	}
 
