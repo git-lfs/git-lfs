@@ -504,10 +504,15 @@ func (self *SshApiContext) DownloadCheck(oid string) (*objectResource, *WrappedE
 
 	sendApiEvent(apiEventSuccess)
 
-	return &objectResource{
-		Oid:   oid,
-		Size:  resp.Size,
-		Links: self.makeDownloadLinks(oid)}, nil
+	if resp.Size > 0 {
+		return &objectResource{
+			Oid:   oid,
+			Size:  resp.Size,
+			Links: self.makeDownloadLinks(oid)}, nil
+	} else {
+		// No error but does not exist
+		return nil, Error(objectRelationDoesNotExist)
+	}
 
 }
 
