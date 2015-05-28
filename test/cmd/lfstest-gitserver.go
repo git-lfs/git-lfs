@@ -85,7 +85,11 @@ func lfsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
 	switch r.Method {
 	case "POST":
-		lfsPostHandler(w, r)
+		if strings.HasSuffix(r.URL.String(), "batch") {
+			lfsBatchHandler(w, r)
+		} else {
+			lfsPostHandler(w, r)
+		}
 	case "GET":
 		lfsGetHandler(w, r)
 	default:
@@ -111,6 +115,8 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &lfsObject{
+		Oid:  obj.Oid,
+		Size: obj.Size,
 		Links: map[string]lfsLink{
 			"upload": lfsLink{
 				Href: server.URL + "/storage/" + obj.Oid,
@@ -151,6 +157,50 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	by, err := json.Marshal(obj)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("RESPONSE: 200")
+	log.Println(string(by))
+
+	w.WriteHeader(200)
+	w.Write(by)
+}
+
+func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
+	buf := &bytes.Buffer{}
+	tee := io.TeeReader(r.Body, buf)
+	var objs map[string][]lfsObject
+	err := json.NewDecoder(tee).Decode(&objs)
+	io.Copy(ioutil.Discard, r.Body)
+	r.Body.Close()
+
+	log.Println("REQUEST")
+	log.Println(buf.String())
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res := []lfsObject{}
+	for _, obj := range objs["objects"] {
+		o := lfsObject{
+			Oid:  obj.Oid,
+			Size: obj.Size,
+			Links: map[string]lfsLink{
+				"upload": lfsLink{
+					Href: server.URL + "/storage/" + obj.Oid,
+				},
+			},
+		}
+
+		res = append(res, o)
+	}
+
+	ores := map[string][]lfsObject{"objects": res}
+
+	by, err := json.Marshal(ores)
 	if err != nil {
 		log.Fatal(err)
 	}

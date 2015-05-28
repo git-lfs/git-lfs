@@ -71,17 +71,31 @@ func (c *Configuration) Endpoint() Endpoint {
 	return c.RemoteEndpoint(defaultRemote)
 }
 
-func (c *Configuration) ConcurrentUploads() int {
+func (c *Configuration) ConcurrentTransfers() int {
 	uploads := 3
 
-	if v, ok := c.GitConfig("lfs.concurrentuploads"); ok {
+	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
 		n, err := strconv.Atoi(v)
-		if err == nil {
+		if err == nil && n > 0 {
 			uploads = n
 		}
 	}
 
 	return uploads
+}
+
+func (c *Configuration) BatchTransfer() bool {
+	if v, ok := c.GitConfig("lfs.batch"); ok {
+		if v == "true" || v == "" {
+			return true
+		}
+
+		// Any numeric value except 0 is considered true
+		if n, err := strconv.Atoi(v); err == nil && n != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {

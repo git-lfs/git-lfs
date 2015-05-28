@@ -4,7 +4,7 @@
 
 . "test/testlib.sh"
 
-begin_test "happy path"
+begin_test "batch transfer"
 (
   set -e
 
@@ -29,7 +29,6 @@ begin_test "happy path"
   contents="a"
   contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
 
-  # Regular Git commands can be used.
   printf "$contents" > a.dat
   git add a.dat
   git add .gitattributes
@@ -45,6 +44,9 @@ begin_test "happy path"
   assert_pointer "master" "a.dat" "$contents_oid" 1
 
   refute_server_object "$contents_oid"
+
+  # Ensure batch transfer is turned on for this repo
+  git config --add --local lfs.batch true
 
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log

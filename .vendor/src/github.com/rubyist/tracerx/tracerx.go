@@ -68,7 +68,7 @@ func PerformanceSince(what string, t time.Time) {
 func PerformanceSinceKey(key, what string, t time.Time) {
 	tracer := getTracer(key)
 
-	if tracer.enabled && tracer.performance {
+	if tracer.performance {
 		since := time.Since(t)
 		fmt.Fprintf(tracer.w, "performance %s: %.9f s\n", what, since.Seconds())
 	}
@@ -114,12 +114,16 @@ func initializeTracer(key string) *tracer {
 
 	trace := os.Getenv(fmt.Sprintf("%s_TRACE", key))
 	if trace == "" || strings.ToLower(trace) == "false" {
-		return tracer
+		tracer.enabled = false
 	}
 
 	perf := os.Getenv(fmt.Sprintf("%s_TRACE_PERFORMANCE", key))
 	if perf == "1" || strings.ToLower(perf) == "true" {
 		tracer.performance = true
+	}
+
+	if !tracer.enabled && !tracer.performance {
+		return tracer
 	}
 
 	fd, err := strconv.Atoi(trace)

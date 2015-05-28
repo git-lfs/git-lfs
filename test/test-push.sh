@@ -15,24 +15,16 @@ begin_test "push"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git lfs push origin master 2>&1 |
-    tee push.log |
-    grep "(1 of 1 files) 7 B / 7 B  100.00 %" || {
-      cat push.log
-      exit 1
-    }
+  git lfs push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
 
   git checkout -b push-b
   echo "push b" > b.dat
   git add b.dat
   git commit -m "add b.dat"
 
-  git lfs push origin push-b 2>&1 |
-    tee push.log |
-    grep "(2 of 2 files) 14 B / 14 B  100.00 %" || {
-      cat push.log
-      exit 1
-    }
+  git lfs push origin push-b 2>&1 | tee push.log
+  grep "(2 of 2 files)" push.log
 )
 end_test
 
