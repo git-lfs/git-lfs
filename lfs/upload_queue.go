@@ -6,10 +6,6 @@ import (
 	"path/filepath"
 )
 
-var (
-	clientAuthorized = int32(0)
-)
-
 // Uploadable describes a file that can be uploaded.
 type Uploadable struct {
 	oid      string
