@@ -39,6 +39,7 @@ See the [ROADMAP](ROADMAP.md) for other planned and desired features.
 
 - [GitHub.com](https://github.com/early_access/large_file_storage) (support coming soon!)
 - [github/lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
+- [git-lfs-ssh-server](https://github.com/sinbad/git-lfs-ssh-server) (pure SSH reference server)
 
 ## Getting Started
 
