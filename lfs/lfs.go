@@ -159,7 +159,8 @@ func processDotGitFile(file string) (string, string, error) {
 	}
 
 	contents := string(data[0:n])
-	wd, _ := os.Getwd()
+	wd := filepath.Dir(file)
+
 	if strings.HasPrefix(contents, gitPtrPrefix) {
 		dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
 
