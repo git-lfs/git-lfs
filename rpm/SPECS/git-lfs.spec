@@ -15,18 +15,23 @@ Requires:	git
   #Umm... excuse me what?
   %define debug_package %{nil}
   #I think this is because go links with --build-id=none for linux
-  #Uhhh... HOW DO I FIX THAT? Using an external linker
+  #Uhhh... HOW DO I FIX THAT? The answer is: go -ldflags '-linkmode=external'
 %endif
 
 %description
-
+Git Large File Storage (LFS) replaces large files such as audio samples, 
+videos, datasets, and graphics with text pointers inside Git, while 
+storing the file contents on a remote server like GitHub.com or GitHub 
+Enterprise.
 
 %prep
 %setup -q -n %{name}-%{version}
+mkdir -p src/github.com/github
+ln -s $(pwd) src/github.com/github/%{name}
 
 %build
-./script/bootstrap
-./script/man
+GOPATH=`pwd` ./script/bootstrap
+GOPATH=`pwd` ./script/man
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT

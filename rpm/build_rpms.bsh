@@ -27,11 +27,28 @@ REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
 if [ ! -e ${CURDIR}/SOURCES/v${VERSION}.tar.gz ]; then
-  echo "Downloading git-lfs..." >&6
-  mkdir -p ${CURDIR}/SOURCES
-  pushd  ${CURDIR}/SOURCES
-    curl -L -O https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
-  popd
+  if [ "${BUILD_LOCAL:=0}" == "1" ]; then
+    echo "Zipping up current checkout of git-lfs..." >&6
+    if [[ ${REDHAT_VERSION} == 5 ]]; then
+      rm -rvf ${CURDIR}/tmptar
+      mkdir -p ${CURDIR}/tmptar/git-lfs-${VERSION}
+      tar -c .. --exclude rpm --exclude .git --exclude tmptar | tar -x -C tmptar/git-lfs-${VERSION}/
+      pushd ${CURDIR}/tmptar
+        tar -zcf ${CURDIR}/SOURCES/v${VERSION}.tar.gz git-lfs-${VERSION}
+      popd
+      rm -rvf ${CURDIR}/tmptar
+    else
+      pushd ${CURDIR}/..
+        tar -zcf ${CURDIR}/SOURCES/v${VERSION}.tar.gz --exclude v${VERSION}.tar.gz --exclude .git --exclude rpm . --transform "s:^:git-lfs-${VERSION}/:"
+      popd
+    fi
+  else
+    echo "Downloading git-lfs..." >&6
+    mkdir -p ${CURDIR}/SOURCES
+    pushd  ${CURDIR}/SOURCES
+      curl -L -O https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
+    popd
+  fi
 fi
 
 if ! which go; then
