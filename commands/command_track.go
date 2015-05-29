@@ -136,8 +136,8 @@ func needsTrailingLinebreak(filename string) bool {
 	if err != nil {
 		return false
 	}
-
 	defer file.Close()
+
 	buf := make([]byte, 16384)
 	bytesRead := 0
 	for {
