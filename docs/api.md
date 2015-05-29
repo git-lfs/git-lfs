@@ -295,21 +295,23 @@ with `git config lfs.batch true`.
 <
 < {
 <   "objects": [
-<     "oid": "1111111",
-<     "_links": {
-<       "upload": {
-<         "href": "https://some-upload.com",
-<         "header": {
-<           "Key": "value"
-<         }
-<       },
-<       "verify": {
-<         "href": "https://some-callback.com",
-<         "header": {
-<           "Key": "value"
+<     {
+<       "oid": "1111111",
+<       "_links": {
+<         "upload": {
+<          "href": "https://some-upload.com",
+<           "header": {
+<             "Key": "value"
+<           }
+<         },
+<         "verify": {
+<           "href": "https://some-callback.com",
+<           "header": {
+<             "Key": "value"
+<           }
 <         }
 <       }
-<     }
+>     }
 <   ]
 < }
 ```
