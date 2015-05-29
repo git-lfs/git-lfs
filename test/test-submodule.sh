@@ -65,5 +65,15 @@ begin_test "submodule env"
   grep "LocalGitDir=$TRASHDIR/repo/.git/modules/sub$" env.log
   grep "LocalMediaDir=$TRASHDIR/repo/.git/modules/sub/lfs/objects$" env.log
   grep "TempDir=$TRASHDIR/repo/.git/modules/sub/lfs/tmp$" env.log
+
+  cd dir
+
+  echo "./sub"
+  git lfs env | tee env.log
+  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs$" env.log
+  grep "LocalWorkingDir=$TRASHDIR/repo/sub$" env.log
+  grep "LocalGitDir=$TRASHDIR/repo/.git/modules/sub$" env.log
+  grep "LocalMediaDir=$TRASHDIR/repo/.git/modules/sub/lfs/objects$" env.log
+  grep "TempDir=$TRASHDIR/repo/.git/modules/sub/lfs/tmp$" env.log
 )
 end_test
