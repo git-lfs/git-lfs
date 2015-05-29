@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	getCmd = &cobra.Command{
-		Use:   "get",
-		Short: "get",
-		Run:   getCommand,
+	fetchCmd = &cobra.Command{
+		Use:   "fetch",
+		Short: "fetch",
+		Run:   fetchCommand,
 	}
 )
 
-func getCommand(cmd *cobra.Command, args []string) {
+func fetchCommand(cmd *cobra.Command, args []string) {
 	var ref string
 	var err error
 
@@ -28,7 +28,7 @@ func getCommand(cmd *cobra.Command, args []string) {
 	} else {
 		ref, err = git.CurrentRef()
 		if err != nil {
-			Panic(err, "Could not get")
+			Panic(err, "Could not fetch")
 		}
 	}
 
@@ -50,7 +50,7 @@ func getCommand(cmd *cobra.Command, args []string) {
 
 	current, err := git.CurrentRef()
 	if err != nil {
-		Panic(err, "Could not get the current git ref")
+		Panic(err, "Could not fetch the current git ref")
 	}
 
 	if target == current {
@@ -109,5 +109,5 @@ func getCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RootCmd.AddCommand(getCmd)
+	RootCmd.AddCommand(fetchCmd)
 }
