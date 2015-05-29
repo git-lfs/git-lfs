@@ -146,11 +146,10 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 
 func processDotGitFile(file string) (string, string, error) {
 	f, err := os.Open(file)
-	defer f.Close()
-
 	if err != nil {
 		return "", "", err
 	}
+	defer f.Close()
 
 	data := make([]byte, 512)
 	n, err := f.Read(data)
