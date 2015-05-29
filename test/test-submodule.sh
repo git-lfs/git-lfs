@@ -68,7 +68,7 @@ begin_test "submodule env"
 
   cd dir
 
-  echo "./sub"
+  echo "./sub/dir"
   git lfs env | tee env.log
   grep "Endpoint=$GITSERVER/$submodname.git/info/lfs$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo/sub$" env.log
