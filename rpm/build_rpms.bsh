@@ -19,7 +19,7 @@ exec 2>> $LOG
 set -vx
 
 echo "Downloading/checking for some essentials..." >&6
-$SUDO yum install -y make curl which rpm-build tar bison
+$SUDO yum install -y make curl which rpm-build tar bison git
 
 REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
 REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)

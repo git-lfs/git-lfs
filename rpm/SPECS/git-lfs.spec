@@ -8,7 +8,7 @@ License:        MIT
 URL:		https://git-lfs.github.com/
 Source0:	https://github.com/github/git-lfs/archive/v%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:	golang, tar, which, bison, rubygem-ronn
+BuildRequires:	golang, tar, which, bison, rubygem-ronn, git
 Requires:	git
 
 %if 0%{?rhel} == 7
@@ -38,6 +38,9 @@ GOPATH=`pwd` ./script/man
 install -D bin/git-lfs ${RPM_BUILD_ROOT}/usr/bin/git-lfs
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
+
+%check
+GOPATH=`pwd` ./script/test
 
 %clean
 rm -rf %{buildroot}

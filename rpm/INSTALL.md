@@ -14,8 +14,12 @@ and install a suitable golang/ruby so that git-lfs can be built.
 Simple run:
 
 ```
+./clean.bsh
 ./build_rpms.bsh
 ```
+
+The clean.bsh script removes previoeu rpms, etc... and removed the source tar.gz
+file. Otherwise you might end up creating an rpm with pieces from different versions
 
 Practice is to run rpmbuild as non-root user. This prevents inadvertently installing
 files in the operating system. The intent was to run build_rpms.bsh as a non-root user
@@ -24,6 +28,7 @@ installed (which is possible, but unlikely), you can set the SUDO environment va
 to nothing or another command and you can run as root if that is your style. Example:
 
 ```
+./clean.bsh
 SUDO=echo ./build_rpms.bsh
   or
 (as root) SUDO= ./build_rpms.bsh
@@ -46,17 +51,22 @@ rpmbuild --define "_topdir `pwd`" -bb SPECS/git-lfs.spec --nodeps
 rpmbuild --define "_topdir `pwd`" -bs SPECS/git-lfs.spec --nodeps
 ```
 
-### Releasing ###
+### Releases ###
 
 The only thing that needs to be updated with a new version is the version number in 
 git-lfs.spec needs to be updated. It will download:
 
 https://github.com/github/git-lfs/archive/v%{version}.tar.gz 
 
-This way when a new version is archived, it will always download get downloaded. Of
-course this is a bit of a chicken/egg issue with the spec being stored in the repo... 
-detail details... If you always want the master branch, I guess you can change the 
-version to master, but I'm not not sure why you would bother making an rpm for that.
+This way when a new version is archived, it will always download get downloaded. When
+preparing for a release, it would be advantageous to use the currentlt checked out
+version to test against. In order do that, after running ./clean.bsh to set the 
+environment variable BUILD_LOCAL to 1
+
+```
+./clean.bsh
+BUILD_LOCAL=1 ./build_rpms.bsh
+```
 
 ### Troubleshooting ###
 
