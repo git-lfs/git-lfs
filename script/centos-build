@@ -56,7 +56,10 @@ if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
   export PATH=${PATH}:${GOROOT}/bin
 fi
 
-./script/bootstrap
+mkdir -p src/github.com/github
+ln -s $(pwd) src/github.com/github/git-lfs
+GOPATH=`pwd` ./script/bootstrap
+
 install -D bin/git-lfs /usr/local/bin
 git lfs init
 
@@ -90,7 +93,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
 fi
 
 gem install ronn
-./script/man
+GOPATH=`pwd` ./script/man
 install -D man/*.1 /usr/local/share/man/man1
 git help lfs > /dev/null
 
