@@ -107,3 +107,31 @@ begin_test "track outside git repo"
   fi
 )
 end_test
+
+begin_test "track in gitDir"
+(
+  set -e
+
+  git init track-in-dot-git
+  cd track-in-dot-git
+
+  echo "some content" > test.file
+
+  cd .git
+  git lfs track "../test.file" || {
+    # this fails if it's run inside a .git directory
+
+    # git itself returns an exit status of 128
+    # $ git add ../test.file
+    # fatal: This operation must be run in a work tree
+    # $ echo "$?"
+    # 128
+
+	[ "$?" = "128" ]
+	exit 0
+  }
+
+  # fail if track passed
+  exit 1
+)
+end_test
