@@ -134,13 +134,17 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 	gitDir := filepath.Join(dir, gitExt)
 	info, err := os.Stat(gitDir)
 	if err != nil {
+		// Found neither a directory nor a file named `.git`.
+		// Move one directory up.
 		return recursiveResolveGitDir(filepath.Dir(dir))
 	}
 
 	if !info.IsDir() {
+		// Found a file named `.git` (we're in a submodule).
 		return resolveDotGitFile(gitDir)
 	}
 
+	// Found the `.git` directory.
 	return dir, gitDir, nil
 }
 
