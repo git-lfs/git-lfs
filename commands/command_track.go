@@ -25,6 +25,10 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		Print("Not a git repository.")
 		os.Exit(128)
 	}
+	if lfs.LocalWorkingDir == "" {
+		Print("This operation must be run in a work tree.")
+		os.Exit(128)
+	}
 
 	lfs.InstallHooks(false)
 	knownPaths := findPaths()

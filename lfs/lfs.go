@@ -128,7 +128,8 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 	}
 
 	if filepath.Base(dir) == gitExt {
-		return filepath.Dir(dir), dir, nil
+		// We're in the `.git` directory.  Make no assumptions about the working directory.
+		return "", dir, nil
 	}
 
 	gitDir := filepath.Join(dir, gitExt)
