@@ -138,45 +138,57 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 	}
 
 	if !info.IsDir() {
-		return processDotGitFile(gitDir)
+		return resolveDotGitFile(gitDir)
 	}
 
 	return dir, gitDir, nil
 }
 
-func processDotGitFile(file string) (string, string, error) {
-	f, err := os.Open(file)
+func resolveDotGitFile(file string) (string, string, error) {
+	// The local working directory is the directory the `.git` file is located in.
+	wd := filepath.Dir(file)
+
+	// The `.git` file tells us where the submodules `.git` directory is.
+	gitDir, err := processDotGitFile(file)
 	if err != nil {
 		return "", "", err
+	}
+
+	return wd, gitDir, nil
+}
+
+func processDotGitFile(file string) (string, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return "", err
 	}
 	defer f.Close()
 
 	data := make([]byte, 512)
 	n, err := f.Read(data)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	contents := string(data[0:n])
-	wd := filepath.Dir(file)
 
 	if !strings.HasPrefix(contents, gitPtrPrefix) {
 		// The `.git` file has no entry telling us about gitdir.
-		return wd, "", nil
+		return "", nil
 	}
 
 	dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
 
 	if filepath.IsAbs(dir) {
 		// The .git file contains an absolute path.
-		return wd, dir, nil
+		return dir, nil
 	}
 
 	// The .git file contains a relative path.
 	// Create an absolute path based on the directory the .git file is located in.
 	absDir := filepath.Join(filepath.Dir(file), dir)
 
-	return wd, absDir, nil
+	return absDir, nil
 }
 
 const (
