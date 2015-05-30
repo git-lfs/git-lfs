@@ -137,11 +137,11 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 		return recursiveResolveGitDir(filepath.Dir(dir))
 	}
 
-	if info.IsDir() {
-		return dir, gitDir, nil
+	if !info.IsDir() {
+		return processDotGitFile(gitDir)
 	}
 
-	return processDotGitFile(gitDir)
+	return dir, gitDir, nil
 }
 
 func processDotGitFile(file string) (string, string, error) {
