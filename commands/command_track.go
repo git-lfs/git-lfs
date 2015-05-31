@@ -43,6 +43,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		Print("Error opening .gitattributes file")
 		return
 	}
+	defer attributesFile.Close()
 
 	if addTrailingLinebreak {
 		if _, err := attributesFile.WriteString("\n"); err != nil {
@@ -72,8 +73,6 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		}
 		Print("Tracking %s", t)
 	}
-
-	attributesFile.Close()
 }
 
 type mediaPath struct {
