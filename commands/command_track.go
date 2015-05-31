@@ -88,10 +88,6 @@ func findPaths() []mediaPath {
 		scanner := bufio.NewScanner(attributes)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if line == "" {
-				continue
-			}
-
 			if strings.Contains(line, "filter=lfs") {
 				fields := strings.Fields(line)
 				relPath, _ := filepath.Rel(wd, path)
