@@ -81,28 +81,6 @@ type mediaPath struct {
 	Source string
 }
 
-func findAttributeFiles() []string {
-	paths := make([]string, 0)
-
-	repoAttributes := filepath.Join(lfs.LocalGitDir, "info", "attributes")
-	if _, err := os.Stat(repoAttributes); err == nil {
-		paths = append(paths, repoAttributes)
-	}
-
-	filepath.Walk(lfs.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() && (filepath.Base(path) == ".gitattributes") {
-			paths = append(paths, path)
-		}
-		return nil
-	})
-
-	return paths
-}
-
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
 	wd, _ := os.Getwd()
@@ -127,6 +105,28 @@ func findPaths() []mediaPath {
 			}
 		}
 	}
+
+	return paths
+}
+
+func findAttributeFiles() []string {
+	paths := make([]string, 0)
+
+	repoAttributes := filepath.Join(lfs.LocalGitDir, "info", "attributes")
+	if _, err := os.Stat(repoAttributes); err == nil {
+		paths = append(paths, repoAttributes)
+	}
+
+	filepath.Walk(lfs.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && (filepath.Base(path) == ".gitattributes") {
+			paths = append(paths, path)
+		}
+		return nil
+	})
 
 	return paths
 }
