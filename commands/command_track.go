@@ -113,7 +113,7 @@ func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
 	repoAttributes := filepath.Join(lfs.LocalGitDir, "info", "attributes")
-	if _, err := os.Stat(repoAttributes); err == nil {
+	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
 		paths = append(paths, repoAttributes)
 	}
 
