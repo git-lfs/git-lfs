@@ -82,7 +82,7 @@ func findPaths() []mediaPath {
 	for _, path := range findAttributeFiles() {
 		attributes, err := os.Open(path)
 		if err != nil {
-			return paths
+			continue
 		}
 
 		scanner := bufio.NewScanner(attributes)
