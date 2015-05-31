@@ -51,18 +51,13 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
+ArgsLoop:
 	for _, t := range args {
-		isKnownPath := false
 		for _, k := range knownPaths {
 			if t == k.Path {
-				isKnownPath = true
-				break
+				Print("%s already supported", t)
+				continue ArgsLoop
 			}
-		}
-
-		if isKnownPath {
-			Print("%s already supported", t)
-			continue
 		}
 
 		encodedArg := strings.Replace(t, " ", "[[:space:]]", -1)
