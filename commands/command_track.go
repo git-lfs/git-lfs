@@ -56,6 +56,12 @@ func trackCommand(cmd *cobra.Command, args []string) {
 ArgsLoop:
 	for _, t := range args {
 		absT, relT := absRelPath(t, wd)
+
+		if !filepath.HasPrefix(absT, lfs.LocalWorkingDir) {
+			Print("%s is outside repository", t)
+			os.Exit(128)
+		}
+
 		for _, k := range knownPaths {
 			absK, _ := absRelPath(k.Path, filepath.Join(wd, filepath.Dir(k.Source)))
 			if absT == absK {
