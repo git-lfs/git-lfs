@@ -552,7 +552,7 @@ func getCreds(req *http.Request) (Creds, error) {
 
 	if req.URL.Scheme == apiUrl.Scheme &&
 		req.URL.Host == apiUrl.Host {
-		creds, err := credentials(req.URL)
+		creds, err := credentials(req.URL, apiUrl)
 		if err != nil {
 			return nil, err
 		}
