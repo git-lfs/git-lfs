@@ -105,6 +105,24 @@ begin_test "track outside git repo"
     echo "GIT_LFS_TEST_DIR should be set outside of any Git repository"
     exit 1
   fi
+
+  git init track-outside
+  cd track-outside
+
+  git lfs track "*.file"
+
+  git lfs track "../*.foo" || {
+
+    # git itself returns an exit status of 128
+    # $ git add ../test.foo
+    # fatal: ../test.foo: '../test.foo' is outside repository
+    # $ echo "$?"
+    # 128
+
+    [ "$?" = "128" ]
+    exit 0
+  }
+  exit 1
 )
 end_test
 
