@@ -45,8 +45,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -74,8 +75,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -101,8 +103,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -131,8 +134,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -163,8 +167,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
