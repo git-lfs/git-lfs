@@ -116,8 +116,7 @@ func (q *TransferQueue) processIndividual() {
 // processBatch processes the queue of transfers using the batch endpoint,
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
-func (q *TransferQueue) processBatch() {
-	q.files = 0
+func (q *TransferQueue) processBatch() error {
 	transfers := make([]*objectResource, 0, len(q.transferables))
 	for _, t := range q.transferables {
 		transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
@@ -125,10 +124,10 @@ func (q *TransferQueue) processBatch() {
 
 	objects, err := Batch(transfers)
 	if err != nil {
-		q.errorc <- err
-		sendApiEvent(apiEventFail)
-		return
+		return err
 	}
+
+	q.files = 0
 
 	for _, o := range objects {
 		if _, ok := o.Links[q.transferKind]; ok {
@@ -146,6 +145,7 @@ func (q *TransferQueue) processBatch() {
 	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
 	q.bar.Start()
 	sendApiEvent(apiEventSuccess) // Wake up transfer workers
+	return nil
 }
 
 // Process starts the transfer queue and displays a progress bar. Process will
@@ -210,7 +210,9 @@ func (q *TransferQueue) Process() {
 	}
 
 	if Config.BatchTransfer() {
-		q.processBatch()
+		if err := q.processBatch(); err != nil {
+			q.processIndividual()
+		}
 	} else {
 		q.processIndividual()
 	}
