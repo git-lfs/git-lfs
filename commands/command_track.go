@@ -55,7 +55,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 
 ArgsLoop:
 	for _, t := range args {
-		absT, _ := absRelPath(t, wd)
+		absT, relT := absRelPath(t, wd)
 		for _, k := range knownPaths {
 			absK, _ := absRelPath(k.Path, filepath.Join(wd, filepath.Dir(k.Source)))
 			if absT == absK {
@@ -64,7 +64,7 @@ ArgsLoop:
 			}
 		}
 
-		encodedArg := strings.Replace(t, " ", "[[:space:]]", -1)
+		encodedArg := strings.Replace(relT, " ", "[[:space:]]", -1)
 		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -crlf\n", encodedArg))
 		if err != nil {
 			Print("Error adding path %s", t)
