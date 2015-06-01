@@ -153,3 +153,19 @@ begin_test "track representation"
   fi
 )
 end_test
+
+begin_test "track absolute"
+(
+  set -e
+
+  git init track-absolute
+  cd track-absolute
+
+  git lfs track "$PWD/*.jpg"
+  grep "^*.jpg" .gitattributes || {
+    echo ".gitattributes doesn't contain the expected relative path *.jpg:"
+    cat .gitattributes
+    exit 1
+  }
+)
+end_test
