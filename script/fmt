@@ -12,5 +12,3 @@ for i in */ ; do
     $formatter -w -l "$@" "${i%?}"
   fi
 done
-
-script/clean-git-test-fixtures > /dev/null
