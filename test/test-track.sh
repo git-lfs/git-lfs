@@ -107,3 +107,49 @@ begin_test "track outside git repo"
   fi
 )
 end_test
+
+begin_test "track representation"
+(
+  set -e
+
+  git init track-representation
+  cd track-representation
+
+  git lfs track "*.jpg"
+  out=$(git lfs track "$PWD/*.jpg")
+
+  if [ "$out" != "$PWD/*.jpg already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+
+  out2=$(git lfs track "a/../*.jpg")
+
+  if [ "$out2" != "a/../*.jpg already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+
+  mkdir a
+  git lfs track "a/test.file"
+  cd a
+  out3=$(git lfs track "test.file")
+
+  if [ "$out3" != "test.file already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+
+  git lfs track "file.bin"
+  cd ..
+  out4=$(git lfs track "a/file.bin")
+  if [ "$out4" != "a/file.bin already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+)
+end_test
