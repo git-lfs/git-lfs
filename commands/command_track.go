@@ -51,10 +51,14 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	wd, _ := os.Getwd()
+
 ArgsLoop:
 	for _, t := range args {
+		absT, _ := absRelPath(t, wd)
 		for _, k := range knownPaths {
-			if t == k.Path {
+			absK, _ := absRelPath(k.Path, filepath.Join(wd, filepath.Dir(k.Source)))
+			if absT == absK {
 				Print("%s already supported", t)
 				continue ArgsLoop
 			}
@@ -141,6 +145,18 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
+}
+
+// absRelPath takes a path and a working directory and
+// returns an absolute and a relative representation of path based on the working directory
+func absRelPath(path, wd string) (string, string) {
+	if filepath.IsAbs(path) {
+		relPath, _ := filepath.Rel(wd, path)
+		return path, relPath
+	}
+
+	absPath := filepath.Join(wd, path)
+	return absPath, path
 }
 
 func init() {
