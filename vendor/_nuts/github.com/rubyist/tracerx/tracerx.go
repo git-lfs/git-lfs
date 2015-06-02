@@ -112,20 +112,12 @@ func initializeTracer(key string) *tracer {
 	tracer := &tracer{false, false, os.Stderr}
 	tracers[key] = tracer
 
-	trace := os.Getenv(fmt.Sprintf("%s_TRACE", key))
-	if trace == "" || strings.ToLower(trace) == "false" {
-		tracer.enabled = false
-	}
-
 	perf := os.Getenv(fmt.Sprintf("%s_TRACE_PERFORMANCE", key))
 	if perf == "1" || strings.ToLower(perf) == "true" {
 		tracer.performance = true
 	}
 
-	if !tracer.enabled && !tracer.performance {
-		return tracer
-	}
-
+	trace := os.Getenv(fmt.Sprintf("%s_TRACE", key))
 	fd, err := strconv.Atoi(trace)
 	if err != nil {
 		// Not a number, it could be a path for a log file
