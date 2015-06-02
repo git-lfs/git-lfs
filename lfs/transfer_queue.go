@@ -2,10 +2,13 @@ package lfs
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 type Transferable interface {
@@ -124,6 +127,12 @@ func (q *TransferQueue) processBatch() error {
 
 	objects, err := Batch(transfers)
 	if err != nil {
+		if isNotImplError(err) {
+			tracerx.Printf("queue: batch not implemented, disabling")
+			configFile := filepath.Join(LocalWorkingDir, ".gitconfig")
+			git.Config.UnsetLocalKey(configFile, "lfs.batch")
+		}
+
 		return err
 	}
 
