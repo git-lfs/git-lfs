@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/garyburd/redigo/redis"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -103,30 +104,50 @@ func (e *ClientError) Error() string {
 }
 
 func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
-	req, creds, err := newApiRequest("GET", oid)
-	if err != nil {
-		return nil, 0, Error(err)
+	// TODO: Read redis server from env variable
+	redisConnection, redisConnectionErr := redis.Dial("tcp", "10.146.248.76:6379")
+	if redisConnectionErr != nil {
+		panic(redisConnectionErr)
 	}
+	defer redisConnection.Close()
 
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		sendApiEvent(apiEventFail)
-		return nil, 0, wErr
+	redisValue, redisValueErr := redis.Bytes(redisConnection.Do("GET", oid))
+
+	if redisValueErr != nil {
+		fmt.Fprintf(os.Stderr, "Object ID %s not found in cache\n", oid)
+
+		req, creds, err := newApiRequest("GET", oid)
+		if err != nil {
+			return nil, 0, Error(err)
+		}
+
+		res, obj, wErr := doApiRequest(req, creds)
+		if wErr != nil {
+			sendApiEvent(apiEventFail)
+			return nil, 0, wErr
+		}
+
+		sendApiEvent(apiEventSuccess)
+
+		req, creds, err = obj.NewRequest("download", "GET")
+		if err != nil {
+			return nil, 0, Error(err)
+		}
+
+		res, wErr = doHttpRequest(req, creds)
+		if wErr != nil {
+			return nil, 0, wErr
+		}
+
+		by, _ := ioutil.ReadAll(res.Body)
+		redisConnection.Do("SET", obj.Oid, by)
+
+		return &byteCloser{bytes.NewReader(by)}, int64(len(by)), nil
+
+	} else {
+		fmt.Fprintf(os.Stderr, "YEAH! Object ID %s found in cache\n", oid)
+		return &byteCloser{bytes.NewReader(redisValue)}, int64(len(redisValue)), nil
 	}
-
-	sendApiEvent(apiEventSuccess)
-
-	req, creds, err = obj.NewRequest("download", "GET")
-	if err != nil {
-		return nil, 0, Error(err)
-	}
-
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
-	}
-
-	return res.Body, res.ContentLength, nil
 }
 
 type byteCloser struct {
