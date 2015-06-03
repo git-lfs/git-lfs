@@ -18,7 +18,7 @@ type Configuration struct {
 	CurrentRemote         string
 	gitConfig             map[string]string
 	remotes               []string
-	httpClient            *http.Client
+	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
 	isTracingHttp         bool
 	loading               sync.Mutex

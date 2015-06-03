@@ -113,6 +113,7 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 		sendApiEvent(apiEventFail)
 		return nil, 0, wErr
 	}
+	LogTransfer("lfs.api.download", res)
 
 	sendApiEvent(apiEventSuccess)
 
@@ -125,6 +126,7 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 	if wErr != nil {
 		return nil, 0, wErr
 	}
+	LogTransfer("lfs.data.download", res)
 
 	return res.Body, res.ContentLength, nil
 }
@@ -139,10 +141,11 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 		return nil, Error(err)
 	}
 
-	_, obj, wErr := doApiRequest(req, creds)
+	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
 		return nil, wErr
 	}
+	LogTransfer("lfs.api.download", res)
 
 	_, _, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -162,6 +165,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
 	if wErr != nil {
 		return nil, 0, wErr
 	}
+	LogTransfer("lfs.data.download", res)
 
 	return res.Body, res.ContentLength, nil
 }
@@ -198,6 +202,7 @@ func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
 		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
+	LogTransfer("lfs.api.batch", res)
 
 	sendApiEvent(apiEventSuccess)
 	if res.StatusCode != 200 {
@@ -244,6 +249,7 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
+	LogTransfer("lfs.api.upload", res)
 
 	sendApiEvent(apiEventSuccess)
 
@@ -289,6 +295,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	if wErr != nil {
 		return wErr
 	}
+	LogTransfer("lfs.data.upload", res)
 
 	if res.StatusCode > 299 {
 		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
@@ -314,6 +321,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 	res, wErr = doHttpRequest(req, creds)
+	LogTransfer("lfs.data.verify", res)
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
@@ -322,7 +330,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := DoHTTP(Config, req)
+	res, err := DoHTTP(req)
 
 	var wErr *WrappedError
 
@@ -360,7 +368,14 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 		}
 
 		via = append(via, req)
-		seeker, ok := req.Body.(io.Seeker)
+
+		// Avoid seeking and re-wrapping the countingReadCloser, just get the "real" body
+		realBody := req.Body
+		if wrappedBody, ok := req.Body.(*countingReadCloser); ok {
+			realBody = wrappedBody.ReadCloser
+		}
+
+		seeker, ok := realBody.(io.Seeker)
 		if !ok {
 			return nil, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
@@ -368,7 +383,7 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 		if _, err := seeker.Seek(0, 0); err != nil {
 			return nil, Error(err)
 		}
-		redirectedReq.Body = req.Body
+		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = checkRedirect(redirectedReq, via); err != nil {

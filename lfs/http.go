@@ -1,12 +1,15 @@
 package lfs
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strings"
 	"time"
@@ -14,17 +17,77 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
-	traceHttpRequest(c, req)
-	res, err := c.HttpClient().Do(req)
-	if res == nil {
-		res = &http.Response{StatusCode: 0, Header: make(http.Header), Request: req}
+type transferStats struct {
+	HeaderSize int
+	BodySize   int
+	Start      time.Time
+	Stop       time.Time
+}
+
+type transfer struct {
+	requestStats  *transferStats
+	responseStats *transferStats
+}
+
+var (
+	// TODO should use some locks
+	transfers       = make(map[*http.Response]*transfer)
+	transferBuckets = make(map[string][]*http.Response)
+)
+
+func LogTransfer(key string, res *http.Response) {
+	transferBuckets[key] = append(transferBuckets[key], res)
+}
+
+type HttpClient struct {
+	*http.Client
+}
+
+func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
+	traceHttpRequest(req)
+
+	crc := countingRequest(req)
+	if req.Body != nil {
+		// Only set the body if we have a body, but create the countingRequest
+		// anyway to make using zeroed stats easier.
+		req.Body = crc
 	}
-	traceHttpResponse(c, res)
+
+	start := time.Now()
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return res, err
+	}
+
+	resstats := &transferStats{Start: start}
+
+	traceHttpResponse(res)
+
+	// Pull request stats
+	reqHeaderSize := 0
+	dump, err := httputil.DumpRequest(req, false)
+	if err == nil {
+		reqHeaderSize = len(dump)
+	}
+	reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
+
+	cresp := countingResponse(res)
+	res.Body = cresp
+
+	transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats}
+
 	return res, err
 }
 
-func (c *Configuration) HttpClient() *http.Client {
+func DoHTTP(req *http.Request) (*http.Response, error) {
+	res, err := Config.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{StatusCode: 0, Header: make(http.Header), Request: req}
+	}
+	return res, err
+}
+
+func (c *Configuration) HttpClient() *HttpClient {
 	if c.httpClient != nil {
 		return c.httpClient
 	}
@@ -43,9 +106,8 @@ func (c *Configuration) HttpClient() *http.Client {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	c.httpClient = &http.Client{
-		Transport:     tr,
-		CheckRedirect: checkRedirect,
+	c.httpClient = &HttpClient{
+		&http.Client{Transport: tr, CheckRedirect: checkRedirect},
 	}
 
 	return c.httpClient
@@ -73,104 +135,164 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
-func traceHttpRequest(c *Configuration, req *http.Request) {
+func traceHttpRequest(req *http.Request) {
 	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
 
-	if c.isTracingHttp == false {
+	if Config.isTracingHttp == false {
 		return
 	}
 
-	if req.Body != nil {
-		req.Body = newCountedRequest(req)
+	dump, err := httputil.DumpRequest(req, false)
+	if err != nil {
+		return
 	}
 
-	fmt.Fprintf(os.Stderr, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
-	for key, _ := range req.Header {
-		fmt.Fprintf(os.Stderr, "> %s: %s\n", key, req.Header.Get(key))
+	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
+	for scanner.Scan() {
+		fmt.Fprintf(os.Stderr, "> %s\n", scanner.Text())
 	}
 }
 
-func traceHttpResponse(c *Configuration, res *http.Response) {
+func traceHttpResponse(res *http.Response) {
 	if res == nil {
 		return
 	}
 
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	if c.isTracingHttp == false {
+	if Config.isTracingHttp == false {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "< %s %s\n", res.Proto, res.Status)
-	for key, _ := range res.Header {
-		fmt.Fprintf(os.Stderr, "< %s: %s\n", key, res.Header.Get(key))
+	dump, err := httputil.DumpResponse(res, false)
+	if err != nil {
+		return
 	}
 
-	traceBody := false
-	ctype := strings.ToLower(strings.SplitN(res.Header.Get("Content-Type"), ";", 2)[0])
-	for _, tracedType := range tracedTypes {
-		if strings.Contains(ctype, tracedType) {
-			traceBody = true
+	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
+	for scanner.Scan() {
+		fmt.Fprintf(os.Stderr, "< %s\n", scanner.Text())
+	}
+}
+
+func countingRequest(req *http.Request) *countingReadCloser {
+	return &countingReadCloser{request: req, ReadCloser: req.Body}
+}
+
+func countingResponse(res *http.Response) *countingReadCloser {
+	return &countingReadCloser{response: res, ReadCloser: res.Body}
+}
+
+type countingReadCloser struct {
+	Count    int
+	request  *http.Request
+	response *http.Response
+	io.ReadCloser
+}
+
+func (c *countingReadCloser) Read(b []byte) (int, error) {
+	n, err := c.ReadCloser.Read(b)
+	if err != nil && err != io.EOF {
+		return n, err
+	}
+
+	c.Count += n
+
+	if Config.isTracingHttp {
+		contentType := ""
+		if c.response != nil { // Response, only print certain kinds of data
+			contentType = strings.ToLower(strings.SplitN(c.response.Header.Get("Content-Type"), ";", 2)[0])
+		} else {
+			contentType = strings.ToLower(strings.SplitN(c.request.Header.Get("Content-Type"), ";", 2)[0])
+		}
+
+		for _, tracedType := range tracedTypes {
+			if strings.Contains(contentType, tracedType) {
+				fmt.Fprint(os.Stderr, string(b[0:n]))
+			}
 		}
 	}
 
-	res.Body = newCountedResponse(res)
-	if traceBody {
-		res.Body = newTracedBody(res.Body)
+	if err == io.EOF && Config.isTracingHttp {
+		// This transfer is done, we're checking it this way so we can also
+		// catch transfers where the caller forgets to Close() the Body.
+		fmt.Fprintln(os.Stderr, "")
+
+		if c.response != nil {
+			if transfer, ok := transfers[c.response]; ok {
+				resHeaderSize := 0
+				dump, err := httputil.DumpResponse(c.response, false)
+				if err == nil {
+					resHeaderSize = len(dump)
+				}
+				transfer.responseStats.HeaderSize = resHeaderSize
+				transfer.responseStats.BodySize = c.Count
+				transfer.responseStats.Stop = time.Now()
+			}
+		}
 	}
-
-	fmt.Fprintf(os.Stderr, "\n")
-}
-
-const (
-	countingUpload = iota
-	countingDownload
-)
-
-type countingBody struct {
-	Direction int
-	Size      int64
-	io.ReadCloser
-}
-
-func (r *countingBody) Read(p []byte) (int, error) {
-	n, err := r.ReadCloser.Read(p)
-	r.Size += int64(n)
 	return n, err
 }
 
-func (r *countingBody) Close() error {
-	if r.Direction == countingUpload {
-		fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n", r.Size)
-	} else {
-		fmt.Fprintf(os.Stderr, "* downloaded %d bytes\n", r.Size)
+func DumpHttpStats(o io.Writer) {
+	if !Config.isTracingHttp {
+		return
 	}
-	return r.ReadCloser.Close()
-}
 
-func newCountedResponse(res *http.Response) *countingBody {
-	return &countingBody{countingDownload, 0, res.Body}
-}
+	fmt.Fprint(o, "HTTP Transfer Stats\n\n")
+	fmt.Fprintf(o, "Concurrent Transfers: %d, Batch: %v\n\n", Config.ConcurrentTransfers(), Config.BatchTransfer())
+	totalTransfers := 0
+	totalTime := int64(0)
 
-func newCountedRequest(req *http.Request) *countingBody {
-	return &countingBody{countingUpload, 0, req.Body}
-}
+	for key, vs := range transferBuckets {
+		reqWireSize := 0
+		resWireSize := 0
+		reqHeaderSize := 0
+		resHeaderSize := 0
+		reqBodySize := 0
+		resBodySize := 0
+		keyTransfers := 0
+		keyTime := int64(0) // nanoseconds
 
-type tracedBody struct {
-	io.ReadCloser
-}
+		for _, r := range vs {
+			s := transfers[r]
+			reqWireSize += s.requestStats.HeaderSize + s.requestStats.BodySize
+			resWireSize += s.responseStats.HeaderSize + s.responseStats.BodySize
 
-func (r *tracedBody) Read(p []byte) (int, error) {
-	n, err := r.ReadCloser.Read(p)
-	fmt.Fprintf(os.Stderr, "%s\n", string(p[0:n]))
-	return n, err
-}
+			reqHeaderSize += s.requestStats.HeaderSize
+			resHeaderSize += s.responseStats.HeaderSize
 
-func (r *tracedBody) Close() error {
-	return r.ReadCloser.Close()
-}
+			reqBodySize += s.requestStats.BodySize
+			resBodySize += s.responseStats.BodySize
 
-func newTracedBody(body io.ReadCloser) *tracedBody {
-	return &tracedBody{body}
+			totalTime += s.responseStats.Stop.Sub(s.responseStats.Start).Nanoseconds()
+			totalTransfers++
+
+			keyTime += s.responseStats.Stop.Sub(s.responseStats.Start).Nanoseconds()
+			keyTransfers++
+		}
+
+		wireSize := reqWireSize + resWireSize
+
+		fmt.Fprintf(o, "%s:\n", key)
+		fmt.Fprintf(o, "\tTransfers: %d\n", keyTransfers)
+		fmt.Fprintf(o, "\tTime: %.2fms\n", float64(keyTime)/1000000.0)
+		fmt.Fprintf(o, "\tWire Data (Bytes): %d\n", wireSize)
+		fmt.Fprintf(o, "\t\tRequest Size (Bytes): %d\n", reqWireSize)
+		fmt.Fprintf(o, "\t\t\tHeaders: %d\n", reqHeaderSize)
+		fmt.Fprintf(o, "\t\t\tBodies: %d\n", reqBodySize)
+		fmt.Fprintf(o, "\t\tResponse Size (Bytes): %d\n", resWireSize)
+		fmt.Fprintf(o, "\t\t\tHeaders: %d\n", resHeaderSize)
+		fmt.Fprintf(o, "\t\t\tBodies: %d\n", resBodySize)
+		fmt.Fprintf(o, "\tMean Wire Size: %d\n", wireSize/keyTransfers)
+		fmt.Fprintf(o, "\t\tRequests: %.2f\n", float64(reqWireSize)/float64(keyTransfers))
+		fmt.Fprintf(o, "\t\tResponses: %.2f\n", float64(resWireSize)/float64(keyTransfers))
+		fmt.Fprintf(o, "\tMean Transfer Time: %.2fms\n", float64(keyTime)/float64(keyTransfers)/1000000.0)
+		fmt.Fprintln(o, "")
+	}
+
+	fmt.Fprintf(o, "\nTotal Transfers: %d\n", totalTransfers)
+	fmt.Fprintf(o, "Total Time: %.2fms\n", float64(totalTime)/1000000.0)
+
+	fmt.Fprintln(o, "")
 }
