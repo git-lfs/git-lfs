@@ -285,8 +285,8 @@ func DumpHttpStats(o io.Writer) {
 		fmt.Fprintf(o, "\t\t\tHeaders: %d\n", resHeaderSize)
 		fmt.Fprintf(o, "\t\t\tBodies: %d\n", resBodySize)
 		fmt.Fprintf(o, "\tMean Wire Size: %d\n", wireSize/keyTransfers)
-		fmt.Fprintf(o, "\t\tRequests: %.2f\n", float64(reqWireSize)/float64(keyTransfers))
-		fmt.Fprintf(o, "\t\tResponses: %.2f\n", float64(resWireSize)/float64(keyTransfers))
+		fmt.Fprintf(o, "\t\tRequests: %.2f\n", reqWireSize/keyTransfers)
+		fmt.Fprintf(o, "\t\tResponses: %.2f\n", resWireSize/keyTransfers)
 		fmt.Fprintf(o, "\tMean Transfer Time: %.2fms\n", float64(keyTime)/float64(keyTransfers)/1000000.0)
 		fmt.Fprintln(o, "")
 	}
