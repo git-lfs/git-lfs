@@ -14,6 +14,19 @@ import (
 
 const Version = "0.5.1"
 
+//
+// Setup permissions for the given directories used here.
+//
+// NOTE: Pull these values from the umask value of this
+//       process in the future. This would ensure the directories
+//       are created with the same value the Administrator of the
+//       system had intended without making any assumptions as the
+//       values do below.
+//
+const TEMP_DIR_PERMS        = 0755
+const LOCAL_MEDIA_DIR_PERMS = 0755
+const LOCAL_LOG_DIR_PERMS   = 0755
+
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
 	TempDir            = filepath.Join(os.TempDir(), "git-lfs")
@@ -27,7 +40,7 @@ var (
 
 func TempFile(prefix string) (*os.File, error) {
 	if checkedTempDir != TempDir {
-		if err := os.MkdirAll(TempDir, 0755); err != nil {
+		if err := os.MkdirAll(TempDir, TEMP_DIR_PERMS); err != nil {
 			return nil, err
 		}
 		checkedTempDir = TempDir
@@ -43,7 +56,7 @@ func ResetTempDir() error {
 
 func LocalMediaPath(sha string) (string, error) {
 	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := os.MkdirAll(path, LOCAL_MEDIA_DIR_PERMS); err != nil {
 		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
 	}
 
@@ -86,15 +99,15 @@ func init() {
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp")
 
-		if err := os.MkdirAll(LocalMediaDir, 0755); err != nil {
+		if err := os.MkdirAll(LocalMediaDir, LOCAL_MEDIA_DIR_PERMS); err != nil {
 			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
 		}
 
-		if err := os.MkdirAll(LocalLogDir, 0755); err != nil {
+		if err := os.MkdirAll(LocalLogDir, LOCAL_LOG_DIR_PERMS); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
 
-		if err := os.MkdirAll(TempDir, 0755); err != nil {
+		if err := os.MkdirAll(TempDir, TEMP_DIR_PERMS); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 
