@@ -36,7 +36,9 @@ var (
 )
 
 func LogTransfer(key string, res *http.Response) {
-	transferBuckets[key] = append(transferBuckets[key], res)
+	if Config.isLoggingStats {
+		transferBuckets[key] = append(transferBuckets[key], res)
+	}
 }
 
 type HttpClient struct {
@@ -59,22 +61,23 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 		return res, err
 	}
 
-	resstats := &transferStats{Start: start}
-
 	traceHttpResponse(res)
-
-	// Pull request stats
-	reqHeaderSize := 0
-	dump, err := httputil.DumpRequest(req, false)
-	if err == nil {
-		reqHeaderSize = len(dump)
-	}
-	reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
 
 	cresp := countingResponse(res)
 	res.Body = cresp
 
-	transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats}
+	if Config.isLoggingStats {
+		// Pull request stats
+		reqHeaderSize := 0
+		dump, err := httputil.DumpRequest(req, false)
+		if err == nil {
+			reqHeaderSize = len(dump)
+		}
+
+		reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
+		resstats := &transferStats{Start: start}
+		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats}
+	}
 
 	return res, err
 }
@@ -213,11 +216,9 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 		}
 	}
 
-	if err == io.EOF && Config.isTracingHttp {
+	if err == io.EOF && Config.isLoggingStats {
 		// This transfer is done, we're checking it this way so we can also
 		// catch transfers where the caller forgets to Close() the Body.
-		fmt.Fprintln(os.Stderr, "")
-
 		if c.response != nil {
 			if transfer, ok := transfers[c.response]; ok {
 				resHeaderSize := 0
@@ -235,7 +236,7 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 }
 
 func DumpHttpStats(o io.Writer) {
-	if !Config.isTracingHttp {
+	if !Config.isLoggingStats {
 		return
 	}
 
@@ -285,8 +286,8 @@ func DumpHttpStats(o io.Writer) {
 		fmt.Fprintf(o, "\t\t\tHeaders: %d\n", resHeaderSize)
 		fmt.Fprintf(o, "\t\t\tBodies: %d\n", resBodySize)
 		fmt.Fprintf(o, "\tMean Wire Size: %d\n", wireSize/keyTransfers)
-		fmt.Fprintf(o, "\t\tRequests: %.2f\n", reqWireSize/keyTransfers)
-		fmt.Fprintf(o, "\t\tResponses: %.2f\n", resWireSize/keyTransfers)
+		fmt.Fprintf(o, "\t\tRequests: %d\n", reqWireSize/keyTransfers)
+		fmt.Fprintf(o, "\t\tResponses: %d\n", resWireSize/keyTransfers)
 		fmt.Fprintf(o, "\tMean Transfer Time: %.2fms\n", float64(keyTime)/float64(keyTransfers)/1000000.0)
 		fmt.Fprintln(o, "")
 	}
