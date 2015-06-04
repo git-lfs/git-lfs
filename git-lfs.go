@@ -11,4 +11,5 @@ func main() {
 	commands.Run()
 
 	lfs.DumpHttpStats(os.Stderr)
+	lfs.LogHttpStats()
 }

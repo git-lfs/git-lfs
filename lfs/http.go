@@ -244,6 +244,34 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 	return n, err
 }
 
+func LogHttpStats() {
+	if !Config.isLoggingStats {
+		return
+	}
+
+	file, err := StatsLogFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		return
+	}
+
+	for key, responses := range transferBuckets {
+		for _, response := range responses {
+			stats := transfers[response]
+			fmt.Fprintf(file, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d\n",
+				key,
+				stats.requestStats.HeaderSize,
+				stats.requestStats.BodySize,
+				stats.responseStats.HeaderSize,
+				stats.responseStats.BodySize,
+				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
+				response.StatusCode)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "HTTP Stats logged to file %s\n", file.Name())
+}
+
 func DumpHttpStats(o io.Writer) {
 	if !Config.isLoggingStats {
 		return

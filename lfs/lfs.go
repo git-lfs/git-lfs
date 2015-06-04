@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -34,6 +35,11 @@ func TempFile(prefix string) (*os.File, error) {
 	}
 
 	return ioutil.TempFile(TempDir, prefix)
+}
+
+func StatsLogFile() (*os.File, error) {
+	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
+	return os.Create(filepath.Join(LocalLogDir, logFile))
 }
 
 func ResetTempDir() error {
