@@ -12,6 +12,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -31,13 +32,17 @@ type transfer struct {
 
 var (
 	// TODO should use some locks
-	transfers       = make(map[*http.Response]*transfer)
-	transferBuckets = make(map[string][]*http.Response)
+	transfers           = make(map[*http.Response]*transfer)
+	transferBuckets     = make(map[string][]*http.Response)
+	transfersLock       sync.Mutex
+	transferBucketsLock sync.Mutex
 )
 
 func LogTransfer(key string, res *http.Response) {
 	if Config.isLoggingStats {
+		transferBucketsLock.Lock()
 		transferBuckets[key] = append(transferBuckets[key], res)
+		transferBucketsLock.Unlock()
 	}
 }
 
@@ -76,7 +81,9 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 
 		reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
 		resstats := &transferStats{Start: start}
+		transfersLock.Lock()
 		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats}
+		transfersLock.Unlock()
 	}
 
 	return res, err
@@ -220,6 +227,7 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 		// This transfer is done, we're checking it this way so we can also
 		// catch transfers where the caller forgets to Close() the Body.
 		if c.response != nil {
+			transfersLock.Lock()
 			if transfer, ok := transfers[c.response]; ok {
 				resHeaderSize := 0
 				dump, err := httputil.DumpResponse(c.response, false)
@@ -230,6 +238,7 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 				transfer.responseStats.BodySize = c.Count
 				transfer.responseStats.Stop = time.Now()
 			}
+			transfersLock.Unlock()
 		}
 	}
 	return n, err
