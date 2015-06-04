@@ -129,8 +129,8 @@ func (q *TransferQueue) processBatch() error {
 	if err != nil {
 		if isNotImplError(err) {
 			tracerx.Printf("queue: batch not implemented, disabling")
-			configFile := filepath.Join(LocalWorkingDir, ".gitconfig")
-			git.Config.UnsetLocalKey(configFile, "lfs.batch")
+			configFile := filepath.Join(LocalGitDir, "config")
+			git.Config.SetLocal(configFile, "lfs.batch", "false")
 		}
 
 		return err
