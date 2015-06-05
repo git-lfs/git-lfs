@@ -14,8 +14,9 @@ import (
 func TestSuccessfulDownload(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
-	tmp := tempdir(t)
 	defer server.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
@@ -112,8 +113,9 @@ func TestSuccessfulDownload(t *testing.T) {
 func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
-	tmp := tempdir(t)
 	defer server.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	// all of these should work for GET requests
@@ -246,8 +248,9 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
-	tmp := tempdir(t)
 	defer server.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
@@ -347,11 +350,13 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
+	defer server.Close()
+
 	mux2 := http.NewServeMux()
 	server2 := httptest.NewServer(mux2)
-	tmp := tempdir(t)
-	defer server.Close()
 	defer server2.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
@@ -448,14 +453,17 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
+	defer server.Close()
+
 	mux2 := http.NewServeMux()
 	server2 := httptest.NewServer(mux2)
+	defer server2.Close()
+
 	mux3 := http.NewServeMux()
 	server3 := httptest.NewServer(mux3)
-	tmp := tempdir(t)
-	defer server.Close()
-	defer server2.Close()
 	defer server3.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	// all of these should work for GET requests
@@ -580,8 +588,9 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 func TestDownloadAPIError(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
-	tmp := tempdir(t)
 	defer server.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
@@ -606,8 +615,9 @@ func TestDownloadAPIError(t *testing.T) {
 func TestDownloadStorageError(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
-	tmp := tempdir(t)
 	defer server.Close()
+
+	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {

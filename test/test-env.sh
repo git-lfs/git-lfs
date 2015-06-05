@@ -45,8 +45,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -74,8 +75,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -101,8 +103,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -131,8 +134,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -163,8 +167,9 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
-
-  [ "$expected" = "$actual" ]
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
 )
 end_test
 
@@ -197,7 +202,44 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual" ]
 
   cd .git
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env)
+  [ "$expected2" = "$actual2" ]
+)
+end_test
 
+begin_test "env with .gitconfig"
+(
+  set -e
+  reponame="env-with-gitconfig"
+
+  git init $reponame
+  cd $reponame
+
+  git remote add origin "$GITSERVER/env-origin-remote"
+  echo '[remote "origin"]
+	lfsurl = http://foobar:8080/
+[lfs]
+     batch = true
+	concurrenttransfers = 5
+' > .gitconfig
+
+  expected=$(printf "Endpoint=http://foobar:8080/
+LocalWorkingDir=$TRASHDIR/$reponame
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=5
+BatchTransfer=true
+$(env | grep "^GIT")
+")
+
+  actual=$(git lfs env)
   [ "$expected" = "$actual" ]
+
+  mkdir a
+  cd a
+  actual2=$(git lfs env)
+  [ "$expected" = "$actual2" ]
 )
 end_test

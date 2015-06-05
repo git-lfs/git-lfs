@@ -82,7 +82,7 @@ func (c *gitConfig) SetGlobal(key, val string) {
 	simpleExec(nil, "git", "config", "--global", "--add", key, val)
 }
 
-// SetGlobal removes the git config value for the key from the global config
+// UnsetGlobal removes the git config value for the key from the global config
 func (c *gitConfig) UnsetGlobal(key string) {
 	simpleExec(nil, "git", "config", "--global", "--unset", key)
 }
@@ -93,8 +93,8 @@ func (c *gitConfig) List() (string, error) {
 }
 
 // ListFromFile lists all of the git config values in the given config file
-func (c *gitConfig) ListFromFile() (string, error) {
-	return simpleExec(nil, "git", "config", "-l", "-f", ".gitconfig")
+func (c *gitConfig) ListFromFile(f string) (string, error) {
+	return simpleExec(nil, "git", "config", "-l", "-f", f)
 }
 
 // Version returns the git version

@@ -3,6 +3,7 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 
@@ -55,6 +56,21 @@ size 12345`
 	assertEqualWithExample(t, ex, latest, p.Version)
 	assertEqualWithExample(t, ex, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
 	assertEqualWithExample(t, ex, int64(12345), p.Size)
+}
+
+func TestDecodeFromEmptyReader(t *testing.T) {
+	by, p, err := DecodeFrom(strings.NewReader(""))
+	if err != io.EOF {
+		t.Fatal("unexpected error: %v", err)
+	}
+
+	if p != nil {
+		t.Fatalf("Unexpected pointer: %v", p)
+	}
+
+	if string(by) != "" {
+		t.Fatalf("unexpected result: '%s'", string(by))
+	}
 }
 
 func TestDecodeInvalid(t *testing.T) {

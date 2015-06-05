@@ -64,11 +64,12 @@ func DecodePointer(reader io.Reader) (*Pointer, error) {
 func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
 	buf := make([]byte, 512)
 	written, err := reader.Read(buf)
+	output := buf[0:written]
+
 	if err != nil {
-		return buf, nil, err
+		return output, nil, err
 	}
 
-	output := buf[0:written]
 	p, err := decodeKV(bytes.TrimSpace(output))
 	return output, p, err
 }

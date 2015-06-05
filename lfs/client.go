@@ -44,7 +44,7 @@ var (
 
 type ObjectResource struct {
 	Oid   string                   `json:"oid,omitempty"`
-	Size  int64                    `json:"size,omitempty"`
+	Size  int64                    `json:"size"`
 	Links map[string]*linkRelation `json:"_links,omitempty"`
 }
 

@@ -105,5 +105,113 @@ begin_test "track outside git repo"
     echo "GIT_LFS_TEST_DIR should be set outside of any Git repository"
     exit 1
   fi
+
+  git init track-outside
+  cd track-outside
+
+  git lfs track "*.file"
+
+  git lfs track "../*.foo" || {
+
+    # git itself returns an exit status of 128
+    # $ git add ../test.foo
+    # fatal: ../test.foo: '../test.foo' is outside repository
+    # $ echo "$?"
+    # 128
+
+    [ "$?" = "128" ]
+    exit 0
+  }
+  exit 1
+)
+end_test
+
+begin_test "track representation"
+(
+  set -e
+
+  git init track-representation
+  cd track-representation
+
+  git lfs track "*.jpg"
+  out=$(git lfs track "$PWD/*.jpg")
+
+  if [ "$out" != "$PWD/*.jpg already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+
+  out2=$(git lfs track "a/../*.jpg")
+
+  if [ "$out2" != "a/../*.jpg already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+
+  mkdir a
+  git lfs track "a/test.file"
+  cd a
+  out3=$(git lfs track "test.file")
+
+  if [ "$out3" != "test.file already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+
+  git lfs track "file.bin"
+  cd ..
+  out4=$(git lfs track "a/file.bin")
+  if [ "$out4" != "a/file.bin already supported" ]; then
+    echo "Track didn't recognize duplicate path"
+    cat .gitattributes
+    exit 1
+  fi
+)
+end_test
+
+begin_test "track absolute"
+(
+  set -e
+
+  git init track-absolute
+  cd track-absolute
+
+  git lfs track "$PWD/*.jpg"
+  grep "^*.jpg" .gitattributes || {
+    echo ".gitattributes doesn't contain the expected relative path *.jpg:"
+    cat .gitattributes
+    exit 1
+  }
+)
+end_test
+
+begin_test "track in gitDir"
+(
+  set -e
+
+  git init track-in-dot-git
+  cd track-in-dot-git
+
+  echo "some content" > test.file
+
+  cd .git
+  git lfs track "../test.file" || {
+    # this fails if it's run inside a .git directory
+
+    # git itself returns an exit status of 128
+    # $ git add ../test.file
+    # fatal: This operation must be run in a work tree
+    # $ echo "$?"
+    # 128
+
+	[ "$?" = "128" ]
+	exit 0
+  }
+
+  # fail if track passed
+  exit 1
 )
 end_test

@@ -27,7 +27,7 @@ var (
 
 func TempFile(prefix string) (*os.File, error) {
 	if checkedTempDir != TempDir {
-		if err := os.MkdirAll(TempDir, 0774); err != nil {
+		if err := os.MkdirAll(TempDir, 0755); err != nil {
 			return nil, err
 		}
 		checkedTempDir = TempDir
@@ -43,7 +43,7 @@ func ResetTempDir() error {
 
 func LocalMediaPath(sha string) (string, error) {
 	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-	if err := os.MkdirAll(path, 0744); err != nil {
+	if err := os.MkdirAll(path, 0755); err != nil {
 		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
 	}
 
@@ -86,15 +86,15 @@ func init() {
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp")
 
-		if err := os.MkdirAll(LocalMediaDir, 0744); err != nil {
+		if err := os.MkdirAll(LocalMediaDir, 0755); err != nil {
 			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
 		}
 
-		if err := os.MkdirAll(LocalLogDir, 0744); err != nil {
+		if err := os.MkdirAll(LocalLogDir, 0755); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
 
-		if err := os.MkdirAll(TempDir, 0744); err != nil {
+		if err := os.MkdirAll(TempDir, 0755); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 
@@ -128,54 +128,72 @@ func recursiveResolveGitDir(dir string) (string, string, error) {
 	}
 
 	if filepath.Base(dir) == gitExt {
-		return filepath.Dir(dir), dir, nil
+		// We're in the `.git` directory.  Make no assumptions about the working directory.
+		return "", dir, nil
 	}
 
 	gitDir := filepath.Join(dir, gitExt)
 	info, err := os.Stat(gitDir)
 	if err != nil {
+		// Found neither a directory nor a file named `.git`.
+		// Move one directory up.
 		return recursiveResolveGitDir(filepath.Dir(dir))
 	}
 
-	if info.IsDir() {
-		return dir, gitDir, nil
+	if !info.IsDir() {
+		// Found a file named `.git` (we're in a submodule).
+		return resolveDotGitFile(gitDir)
 	}
 
-	return processDotGitFile(gitDir)
+	// Found the `.git` directory.
+	return dir, gitDir, nil
 }
 
-func processDotGitFile(file string) (string, string, error) {
-	f, err := os.Open(file)
-	defer f.Close()
+func resolveDotGitFile(file string) (string, string, error) {
+	// The local working directory is the directory the `.git` file is located in.
+	wd := filepath.Dir(file)
 
+	// The `.git` file tells us where the submodules `.git` directory is.
+	gitDir, err := processDotGitFile(file)
 	if err != nil {
 		return "", "", err
 	}
+
+	return wd, gitDir, nil
+}
+
+func processDotGitFile(file string) (string, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
 
 	data := make([]byte, 512)
 	n, err := f.Read(data)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	contents := string(data[0:n])
-	wd, _ := os.Getwd()
-	if strings.HasPrefix(contents, gitPtrPrefix) {
-		dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
 
-		if filepath.IsAbs(dir) {
-			// The .git file contains an absolute path.
-			return wd, dir, nil
-		}
-
-		// The .git file contains a relative path.
-		// Create an absolute path based on the directory the .git file is located in.
-		absDir := filepath.Join(filepath.Dir(file), dir)
-
-		return wd, absDir, nil
+	if !strings.HasPrefix(contents, gitPtrPrefix) {
+		// The `.git` file has no entry telling us about gitdir.
+		return "", nil
 	}
 
-	return wd, "", nil
+	dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
+
+	if filepath.IsAbs(dir) {
+		// The .git file contains an absolute path.
+		return dir, nil
+	}
+
+	// The .git file contains a relative path.
+	// Create an absolute path based on the directory the .git file is located in.
+	absDir := filepath.Join(filepath.Dir(file), dir)
+
+	return absDir, nil
 }
 
 // Shut down any cached or otherwise persistent structures
