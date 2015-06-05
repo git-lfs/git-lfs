@@ -96,8 +96,11 @@ func sortedLogs() []string {
 		return []string{}
 	}
 
-	names := make([]string, len(fileinfos))
+	names := make([]string, 0, len(fileinfos))
 	for index, info := range fileinfos {
+		if info.IsDir() {
+			continue
+		}
 		names[index] = info.Name()
 	}
 
