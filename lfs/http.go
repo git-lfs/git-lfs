@@ -260,6 +260,8 @@ func LogHttpStats() {
 		return
 	}
 
+	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", Config.ConcurrentTransfers(), Config.BatchTransfer(), time.Now().Unix(), Version)
+
 	for key, responses := range transferBuckets {
 		for _, response := range responses {
 			stats := transfers[response]
