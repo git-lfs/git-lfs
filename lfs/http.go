@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -72,15 +73,22 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	res.Body = cresp
 
 	if Config.isLoggingStats {
-		// Pull request stats
 		reqHeaderSize := 0
-		dump, err := httputil.DumpRequest(req, false)
-		if err == nil {
+		resHeaderSize := 0
+
+		if dump, err := httputil.DumpRequest(req, false); err == nil {
 			reqHeaderSize = len(dump)
 		}
 
+		if dump, err := httputil.DumpResponse(res, false); err == nil {
+			resHeaderSize = len(dump)
+		}
+
 		reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
-		resstats := &transferStats{Start: start}
+
+		// Response body size cannot be figured until it is read. Do not rely on a Content-Length
+		// header because it may not exist or be -1 in the case of chunked responses.
+		resstats := &transferStats{HeaderSize: resHeaderSize, Start: start}
 		transfersLock.Lock()
 		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats}
 		transfersLock.Unlock()
@@ -229,12 +237,6 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 		if c.response != nil {
 			transfersLock.Lock()
 			if transfer, ok := transfers[c.response]; ok {
-				resHeaderSize := 0
-				dump, err := httputil.DumpResponse(c.response, false)
-				if err == nil {
-					resHeaderSize = len(dump)
-				}
-				transfer.responseStats.HeaderSize = resHeaderSize
 				transfer.responseStats.BodySize = c.Count
 				transfer.responseStats.Stop = time.Now()
 			}
@@ -244,12 +246,15 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 	return n, err
 }
 
+// LogHttpStats is intended to be called after all HTTP operations for the
+// commmand have finished. It dumps k/v logs, one line per transfer into
+// a log file with the current timestamp.
 func LogHttpStats() {
 	if !Config.isLoggingStats {
 		return
 	}
 
-	file, err := StatsLogFile()
+	file, err := statsLogFile()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 		return
@@ -272,65 +277,7 @@ func LogHttpStats() {
 	fmt.Fprintf(os.Stderr, "HTTP Stats logged to file %s\n", file.Name())
 }
 
-func DumpHttpStats(o io.Writer) {
-	if !Config.isLoggingStats {
-		return
-	}
-
-	fmt.Fprint(o, "HTTP Transfer Stats\n\n")
-	fmt.Fprintf(o, "Concurrent Transfers: %d, Batch: %v\n\n", Config.ConcurrentTransfers(), Config.BatchTransfer())
-	totalTransfers := 0
-	totalTime := int64(0)
-
-	for key, vs := range transferBuckets {
-		reqWireSize := 0
-		resWireSize := 0
-		reqHeaderSize := 0
-		resHeaderSize := 0
-		reqBodySize := 0
-		resBodySize := 0
-		keyTransfers := 0
-		keyTime := int64(0) // nanoseconds
-
-		for _, r := range vs {
-			s := transfers[r]
-			reqWireSize += s.requestStats.HeaderSize + s.requestStats.BodySize
-			resWireSize += s.responseStats.HeaderSize + s.responseStats.BodySize
-
-			reqHeaderSize += s.requestStats.HeaderSize
-			resHeaderSize += s.responseStats.HeaderSize
-
-			reqBodySize += s.requestStats.BodySize
-			resBodySize += s.responseStats.BodySize
-
-			totalTime += s.responseStats.Stop.Sub(s.responseStats.Start).Nanoseconds()
-			totalTransfers++
-
-			keyTime += s.responseStats.Stop.Sub(s.responseStats.Start).Nanoseconds()
-			keyTransfers++
-		}
-
-		wireSize := reqWireSize + resWireSize
-
-		fmt.Fprintf(o, "%s:\n", key)
-		fmt.Fprintf(o, "\tTransfers: %d\n", keyTransfers)
-		fmt.Fprintf(o, "\tTime: %.2fms\n", float64(keyTime)/1000000.0)
-		fmt.Fprintf(o, "\tWire Data (Bytes): %d\n", wireSize)
-		fmt.Fprintf(o, "\t\tRequest Size (Bytes): %d\n", reqWireSize)
-		fmt.Fprintf(o, "\t\t\tHeaders: %d\n", reqHeaderSize)
-		fmt.Fprintf(o, "\t\t\tBodies: %d\n", reqBodySize)
-		fmt.Fprintf(o, "\t\tResponse Size (Bytes): %d\n", resWireSize)
-		fmt.Fprintf(o, "\t\t\tHeaders: %d\n", resHeaderSize)
-		fmt.Fprintf(o, "\t\t\tBodies: %d\n", resBodySize)
-		fmt.Fprintf(o, "\tMean Wire Size: %d\n", wireSize/keyTransfers)
-		fmt.Fprintf(o, "\t\tRequests: %d\n", reqWireSize/keyTransfers)
-		fmt.Fprintf(o, "\t\tResponses: %d\n", resWireSize/keyTransfers)
-		fmt.Fprintf(o, "\tMean Transfer Time: %.2fms\n", float64(keyTime)/float64(keyTransfers)/1000000.0)
-		fmt.Fprintln(o, "")
-	}
-
-	fmt.Fprintf(o, "\nTotal Transfers: %d\n", totalTransfers)
-	fmt.Fprintf(o, "Total Time: %.2fms\n", float64(totalTime)/1000000.0)
-
-	fmt.Fprintln(o, "")
+func statsLogFile() (*os.File, error) {
+	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
+	return os.Create(filepath.Join(LocalLogDir, logFile))
 }
