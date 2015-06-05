@@ -282,6 +282,11 @@ func LogHttpStats() {
 }
 
 func statsLogFile() (*os.File, error) {
+	logBase := filepath.Join(LocalLogDir, "http")
+	if err := os.MkdirAll(logBase, 0755); err != nil {
+		return nil, err
+	}
+
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
-	return os.Create(filepath.Join(LocalLogDir, logFile))
+	return os.Create(filepath.Join(logBase, logFile))
 }
