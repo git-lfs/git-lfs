@@ -29,6 +29,7 @@ type transferStats struct {
 type transfer struct {
 	requestStats  *transferStats
 	responseStats *transferStats
+	url           string
 }
 
 var (
@@ -90,7 +91,7 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 		// header because it may not exist or be -1 in the case of chunked responses.
 		resstats := &transferStats{HeaderSize: resHeaderSize, Start: start}
 		transfersLock.Lock()
-		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats}
+		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats, url: req.URL.String()}
 		transfersLock.Unlock()
 	}
 
@@ -265,14 +266,15 @@ func LogHttpStats() {
 	for key, responses := range transferBuckets {
 		for _, response := range responses {
 			stats := transfers[response]
-			fmt.Fprintf(file, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d\n",
+			fmt.Fprintf(file, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
 				key,
 				stats.requestStats.HeaderSize,
 				stats.requestStats.BodySize,
 				stats.responseStats.HeaderSize,
 				stats.responseStats.BodySize,
 				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
-				response.StatusCode)
+				response.StatusCode,
+				stats.url)
 		}
 	}
 
