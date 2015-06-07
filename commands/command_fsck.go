@@ -48,6 +48,11 @@ func doFsck(localGitDir string) (bool, error) {
 		Debug("Examining %v (%v)", p.Name, path)
 
 		f, err := os.Open(path)
+		if pErr, pOk := err.(*os.PathError); pOk {
+			Print("Object %s (%s) could not be checked: %s", name, oid, pErr.Err)
+			ok = false
+			continue
+		}
 		if err != nil {
 			return false, err
 		}
