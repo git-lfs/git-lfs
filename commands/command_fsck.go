@@ -22,7 +22,7 @@ var (
 	}
 )
 
-func doFsck(localGitDir string) (bool, error) {
+func doFsck() (bool, error) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		return false, err
@@ -54,7 +54,7 @@ func doFsck(localGitDir string) (bool, error) {
 	ok := true
 
 	for oid, name := range pointerIndex {
-		path := filepath.Join(localGitDir, "lfs", "objects", oid[0:2], oid[2:4], oid)
+		path := filepath.Join(lfs.LocalMediaDir, oid[0:2], oid[2:4], oid)
 
 		Debug("Examining %v (%v)", name, path)
 
@@ -96,7 +96,7 @@ func doFsck(localGitDir string) (bool, error) {
 func fsckCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
-	ok, err := doFsck(lfs.LocalGitDir)
+	ok, err := doFsck()
 	if err != nil {
 		Panic(err, "Error checking Git LFS files")
 	}
