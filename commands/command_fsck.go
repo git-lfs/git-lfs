@@ -79,9 +79,20 @@ func doFsck() (bool, error) {
 		if recalculatedOid != oid {
 			ok = false
 			Print("Object %s (%s) is corrupt", name, oid)
-			if !fsckDryRun {
-				os.RemoveAll(path)
+			if fsckDryRun {
+				continue
 			}
+
+			badDir := filepath.Join(lfs.LocalGitDir, "lfs", "bad")
+			if err := os.MkdirAll(badDir, 0755); err != nil {
+				return false, err
+			}
+
+			badFile := filepath.Join(badDir, oid)
+			if err := os.Rename(path, badFile); err != nil {
+				return false, err
+			}
+			Print("  moved to %s", badFile)
 		}
 	}
 	return ok, nil
