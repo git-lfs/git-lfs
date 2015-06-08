@@ -79,6 +79,8 @@ func Panic(err error, format string, args ...interface{}) {
 
 func Run() {
 	RootCmd.Execute()
+	// Could do this in 'PostRun' of root command if we update dep
+	lfs.Shutdown()
 }
 
 func PipeMediaCommand(name string, args ...string) error {
