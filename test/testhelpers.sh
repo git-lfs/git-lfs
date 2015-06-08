@@ -104,7 +104,9 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     echo "compile git-lfs for $0"
-    script/bootstrap
+    script/bootstrap || {
+      return $?
+    }
   fi
 
   echo "Git LFS: $(which git-lfs)"
