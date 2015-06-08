@@ -57,28 +57,19 @@ func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
 	return u, nil
 }
 
-func (c *Configuration) Endpoint() (endpoint Endpoint) {
-	defer func() {
-		if u, err := url.Parse(endpoint.Url); err == nil {
-			if u.User != nil {
-				fmt.Fprintln(os.Stderr, "warning: configured LFS endpoint contains credentials")
-			}
-		}
-	}()
 
+func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		endpoint = Endpoint{Url: url}
-		return endpoint
+		return Endpoint{Url: url}.newEndpoint()
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if endpoint = c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
-			return endpoint
+		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
+			return endpoint.newEndpoint()
 		}
 	}
 
-	endpoint = c.RemoteEndpoint(defaultRemote)
-	return endpoint
+	return c.RemoteEndpoint(defaultRemote).newEndpoint()
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
@@ -223,4 +214,14 @@ func (c *Configuration) loadGitConfig() {
 		}
 		c.remotes = append(c.remotes, remote)
 	}
+}
+
+func (e Endpoint) newEndpoint() Endpoint {
+		if u, err := url.Parse(e.Url); err == nil {
+			if u.User != nil {
+				fmt.Fprintln(os.Stderr, "warning: configured LFS endpoint contains credentials")
+			}
+		}
+
+		return e
 }
