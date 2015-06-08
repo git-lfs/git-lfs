@@ -57,7 +57,6 @@ func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
 	return u, nil
 }
 
-
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
 		return Endpoint{Url: url}.newEndpoint()
@@ -217,11 +216,11 @@ func (c *Configuration) loadGitConfig() {
 }
 
 func (e Endpoint) newEndpoint() Endpoint {
-		if u, err := url.Parse(e.Url); err == nil {
-			if u.User != nil {
-				fmt.Fprintln(os.Stderr, "warning: configured LFS endpoint contains credentials")
-			}
+	if u, err := url.Parse(e.Url); err == nil {
+		if u.User != nil {
+			fmt.Fprintln(os.Stderr, "warning: configured LFS endpoint contains credentials")
 		}
+	}
 
-		return e
+	return e
 }
