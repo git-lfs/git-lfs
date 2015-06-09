@@ -56,31 +56,35 @@ func mainBuild() {
 			}
 		}
 	} else {
-		build(*BuildOS, *BuildArch, buildMatrix)
-		errored = true // skip build matrix stuff
+		if err := build(*BuildOS, *BuildArch, buildMatrix); err != nil {
+			log.Fatalln(err)
+		}
+		return // skip build matrix stuff
 	}
 
-	if !errored {
-		by, err := json.Marshal(buildMatrix)
-		if err != nil {
-			log.Fatalln("Error encoding build matrix to json:", err)
-		}
+	if errored {
+		os.Exit(1)
+	}
 
-		file, err := os.Create("bin/releases/build_matrix.json")
-		if err != nil {
-			log.Fatalln("Error creating build_matrix.json:", err)
-		}
+	by, err := json.Marshal(buildMatrix)
+	if err != nil {
+		log.Fatalln("Error encoding build matrix to json:", err)
+	}
 
-		written, err := file.Write(by)
-		file.Close()
+	file, err := os.Create("bin/releases/build_matrix.json")
+	if err != nil {
+		log.Fatalln("Error creating build_matrix.json:", err)
+	}
 
-		if err != nil {
-			log.Fatalln("Error writing build_matrix.json", err)
-		}
+	written, err := file.Write(by)
+	file.Close()
 
-		if jsonSize := len(by); written != jsonSize {
-			log.Fatalf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
-		}
+	if err != nil {
+		log.Fatalln("Error writing build_matrix.json", err)
+	}
+
+	if jsonSize := len(by); written != jsonSize {
+		log.Fatalf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
 	}
 }
 
@@ -94,7 +98,9 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 		dir = filepath.Join(dir, "releases", buildos+"-"+buildarch, name)
 	}
 
-	buildCommand(dir, buildos, buildarch)
+	if err := buildCommand(dir, buildos, buildarch); err != nil {
+		return err
+	}
 
 	if addenv {
 		err := os.MkdirAll(dir, 0755)
