@@ -109,6 +109,7 @@ func (e *ClientError) Error() string {
 func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	ctx := GetApiContext(Config.Endpoint())
+	// TODO: This is the core of the stalling issues, cannot release context until ReadCloser fully read from
 	defer ReleaseApiContext(ctx)
 	return ctx.Download(oid)
 }

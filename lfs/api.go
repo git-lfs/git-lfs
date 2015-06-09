@@ -50,7 +50,12 @@ func GetApiContext(endpoint Endpoint) ApiContext {
 	defer contextCacheLock.Unlock()
 	var ctx ApiContext
 	for i, c := range contextCache {
-		if c.Endpoint() == endpoint {
+		cendpoint := c.Endpoint()
+
+		if cendpoint.SshPath == endpoint.SshPath &&
+			cendpoint.SshPort == endpoint.SshPort &&
+			cendpoint.SshUserAndHost == endpoint.SshUserAndHost &&
+			cendpoint.Url == endpoint.Url {
 			ctx = c
 			// remove this item
 			contextCache = append(contextCache[:i], contextCache[i+1:]...)
