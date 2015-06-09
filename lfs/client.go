@@ -106,12 +106,30 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
+// ReadCloser which will release an ApiContext when reading is finished
+type ApiContextReadCloser struct {
+	r   io.ReadCloser
+	ctx ApiContext
+}
+
+func (self *ApiContextReadCloser) Read(p []byte) (int, error) {
+	n, e := self.r.Read(p)
+	return n, e
+}
+func (self *ApiContextReadCloser) Close() error {
+	err := self.r.Close()
+	ReleaseApiContext(self.ctx)
+	return err
+}
+
 func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	ctx := GetApiContext(Config.Endpoint())
-	// TODO: This is the core of the stalling issues, cannot release context until ReadCloser fully read from
-	defer ReleaseApiContext(ctx)
-	return ctx.Download(oid)
+	// Do NOT defer release of context here, must only be released once
+	// reader is closed to be compatible with stateful contexts
+	rc, sz, err := ctx.Download(oid)
+	// Wrap readcloser so context will be released for re-use only once download finished
+	return &ApiContextReadCloser{rc, ctx}, sz, err
 }
 
 type byteCloser struct {
@@ -126,8 +144,11 @@ func DownloadCheck(oid string) (*ObjectResource, *WrappedError) {
 
 func DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, *WrappedError) {
 	ctx := GetApiContext(Config.Endpoint())
-	defer ReleaseApiContext(ctx)
-	return ctx.DownloadObject(obj)
+	// Do NOT defer release of context here, must only be released once
+	// reader is closed to be compatible with stateful contexts
+	rc, sz, err := ctx.DownloadObject(obj)
+	// Wrap readcloser so context will be released for re-use only once download finished
+	return &ApiContextReadCloser{rc, ctx}, sz, err
 }
 
 func (b *byteCloser) Close() error {
