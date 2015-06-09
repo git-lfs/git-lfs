@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"fmt"
 	"io"
 	"sync"
 )
@@ -31,48 +32,62 @@ type ApiContext interface {
 	// TODO - add binary delta support
 }
 
+// Holds limited number of stateful ApiContext instances & parcels them out via queues
+type StatefulApiContextHolder struct {
+	endpoint    Endpoint
+	contextChan chan ApiContext
+}
+
 var (
-	// Cache can contain many contexts for the same ID / connection, for concurrent transfers
-	contextCache     []ApiContext
-	contextCacheLock sync.Mutex
+	// Cache of stateful (e.g. SSH) contexts so we limit parallel access to them
+	statefulContextCache = make(map[string]*StatefulApiContextHolder)
+	// stateless contexts we can re-use whenever (items are not checked out)
+	statelessContextCache = make(map[string]ApiContext)
+	contextCacheLock      sync.Mutex
 )
 
+func getContextKey(endpoint Endpoint) (key string, isSSH bool) {
+	if len(endpoint.SshUserAndHost) > 0 {
+		return fmt.Sprintf("%v:%v:%v", endpoint.SshUserAndHost, endpoint.SshPort, endpoint.SshPath), true
+	} else {
+		return endpoint.Url, false
+	}
+}
+
 // Return an API context appropriate for a given Endpoint
-// Once this context is returned it is made *unavailable* to subsequent callers,
-// until ReleaseApiContext is called. This is necessary to ensure that contexts
+// Once this context is returned it may be made *unavailable* to subsequent callers,
+// until ReleaseApiContext is called. This is to ensure that contexts
 // which maintain state are only available to be used by one goroutine at a time.
-// If multiple goroutines request a context for the same endpoint at once, they
-// will receive separate instances which implies separate connections for stateful contexts.
 func GetApiContext(endpoint Endpoint) ApiContext {
 	// construct a string identifier for the Endpoint
-	isSSH := len(endpoint.SshUserAndHost) > 0
-	contextCacheLock.Lock()
-	defer contextCacheLock.Unlock()
+	key, isSSH := getContextKey(endpoint)
+
 	var ctx ApiContext
-	for i, c := range contextCache {
-		cendpoint := c.Endpoint()
+	contextCacheLock.Lock()
+	if isSSH {
+		hld, ok := statefulContextCache[key]
+		if !ok {
+			hld = &StatefulApiContextHolder{endpoint, make(chan ApiContext, Config.ConcurrentTransfers())}
+			// Immediately add number of connections equal to the concurrent transfers
+			for i := 0; i < Config.ConcurrentTransfers(); i++ {
+				hld.contextChan <- NewSshApiContext(endpoint)
+			}
+			statefulContextCache[key] = hld
+		}
+		// Need to manually unlock in this path because channel access might block
+		contextCacheLock.Unlock()
+		ctx = <-hld.contextChan
 
-		if cendpoint.SshPath == endpoint.SshPath &&
-			cendpoint.SshPort == endpoint.SshPort &&
-			cendpoint.SshUserAndHost == endpoint.SshUserAndHost &&
-			cendpoint.Url == endpoint.Url {
-			ctx = c
-			// remove this item
-			contextCache = append(contextCache[:i], contextCache[i+1:]...)
-			break
-		}
-	}
-	if ctx == nil {
-		// Construct new
-		if isSSH {
-			ctx = NewSshApiContext(endpoint)
-		}
-		// If not SSH, OR if full SSH server isn't supported, use HTTPS with SSH auth only
-		if ctx == nil {
+	} else {
+		defer contextCacheLock.Unlock()
+		var ok bool
+		ctx, ok = statelessContextCache[key]
+		if !ok {
 			ctx = NewHttpApiContext(endpoint)
+			// Stateless get added immediately & may be used in parallel
+			statelessContextCache[key] = ctx
 		}
 	}
-
 	return ctx
 }
 
@@ -84,15 +99,25 @@ func ReleaseApiContext(ctx ApiContext) {
 	contextCacheLock.Lock()
 	defer contextCacheLock.Unlock()
 
-	contextCache = append(contextCache, ctx)
+	key, isSSH := getContextKey(ctx.Endpoint())
+	if isSSH {
+		hld, ok := statefulContextCache[key]
+		if ok {
+			hld.contextChan <- ctx
+		}
+	}
+	// Do nothing for HTTP/stateless as they are not checked out exclusively
 }
 
 // Shut down any open API contexts
 func ShutdownApiContexts() {
 	contextCacheLock.Lock()
 	defer contextCacheLock.Unlock()
-	for _, ctx := range contextCache {
-		ctx.Close()
+	for _, hld := range statefulContextCache {
+		for i := 0; i < Config.ConcurrentTransfers(); i++ {
+			ctx := <-hld.contextChan
+			ctx.Close()
+		}
 	}
-	contextCache = nil
+	statefulContextCache = make(map[string]*StatefulApiContextHolder)
 }
