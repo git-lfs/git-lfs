@@ -572,12 +572,11 @@ func (self *SshApiContext) UploadCheck(oid string, sz int64) (*ObjectResource, *
 		sendApiEvent(apiEventFail)
 		return nil, Errorf(err, "Error while uploading %v (while sending Upload JSON request): %v", oid, err.Error())
 	}
+	sendApiEvent(apiEventSuccess)
 	if !resp.OkToSend {
 		// File already exists, behave like HTTP 200
 		return nil, nil
 	}
-
-	sendApiEvent(apiEventSuccess)
 
 	return &ObjectResource{
 		Oid:   oid,
