@@ -62,23 +62,45 @@ func GetApiContext(endpoint Endpoint) ApiContext {
 	// construct a string identifier for the Endpoint
 	key, isSSH := getContextKey(endpoint)
 
-	var ctx ApiContext
+	// Firstly, did we cache that this SSH endpoint should not be used as full SSH?
+	// It will be in the stateless cache if so
 	contextCacheLock.Lock()
+	ctx, ok := statelessContextCache[key]
+	if ok {
+		// Stateless contexts aren't checked out exclusively, this is fine
+		return ctx
+	}
+	contextCacheLock.Unlock()
+
 	if isSSH {
+		contextCacheLock.Lock()
 		hld, ok := statefulContextCache[key]
 		if !ok {
-			hld = &StatefulApiContextHolder{endpoint, make(chan ApiContext, Config.ConcurrentTransfers())}
-			// Immediately add number of connections equal to the concurrent transfers
-			for i := 0; i < Config.ConcurrentTransfers(); i++ {
-				hld.contextChan <- NewSshApiContext(endpoint)
+			// Can we create a full SSH connection?
+			firstctx := NewSshApiContext(endpoint)
+			if firstctx != nil {
+				hld = &StatefulApiContextHolder{endpoint, make(chan ApiContext, Config.ConcurrentTransfers())}
+				// Immediately add number of connections equal to the concurrent transfers
+				for i := 0; i < Config.ConcurrentTransfers(); i++ {
+					if i == 0 {
+						hld.contextChan <- firstctx
+					} else {
+						hld.contextChan <- NewSshApiContext(endpoint)
+					}
+				}
+				statefulContextCache[key] = hld
 			}
-			statefulContextCache[key] = hld
 		}
 		// Need to manually unlock in this path because channel access might block
 		contextCacheLock.Unlock()
-		ctx = <-hld.contextChan
+		if hld != nil {
+			ctx = <-hld.contextChan
+		}
 
-	} else {
+	}
+	// If not SSH, or if pure SSH route failed (and this is first time stateless)
+	if ctx == nil {
+		contextCacheLock.Lock()
 		defer contextCacheLock.Unlock()
 		var ok bool
 		ctx, ok = statelessContextCache[key]

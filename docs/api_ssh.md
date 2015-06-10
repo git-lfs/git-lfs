@@ -82,6 +82,14 @@ STREAM_UP and STREAM_DOWN. In some cases there may be a response to the stream,
 which is marked with 'STREAM Response' and is the same format as other response
 objects.
 
+|**Version**|| 
+|-----------|-------------| 
+|Purpose    | Report the version of the server and verify that it's compatible and working |
+|Params     | None | 
+|Result     | major (number) Major version number|
+|           | minor (number) Minor version number|
+|           | patch (number) Patch version number|
+
 |**DownloadCheck**|| 
 |-----------|-------------| 
 |Purpose    | Check if a large file is available to download & report size |
