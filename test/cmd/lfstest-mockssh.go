@@ -19,23 +19,33 @@ var (
 )
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Expected 3 arguments, got %v\n", os.Args)
+	// Command is 'ssh user@host servercmd path'
+	if len(os.Args) < 4 {
+		fmt.Fprintf(os.Stderr, "Expected 4 arguments, got %v\n", os.Args)
 		os.Exit(1)
 	}
 
 	// We won't really this
 	url = os.Args[1]
-	repoPath := os.Args[2]
+	repoPath := os.Args[3]
 
 	// We need to store in the filesystem because multiple calls will be made to fake ssh
 	storageBasePath = filepath.Join(os.Getenv("LFSTEST_DIR"), "fakessh", repoPath)
 
 	Serve()
+
+	os.Exit(0)
 }
 
 // Pretend to be talking to a server
 func Serve() {
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Fprintf(os.Stderr, "Panic: %v\n", e)
+			os.Exit(99)
+		}
+
+	}()
 
 	// Even though we're not talking to a server and are just a fake ssh client,
 	// we still have a loop to process since a single SSH command can be used
@@ -65,7 +75,7 @@ func Serve() {
 			upreq := lfs.UploadRequest{}
 			lfs.ExtractStructFromJsonRawMessage(req.Params, &upreq)
 			startresult := lfs.UploadResponse{}
-			startresult.OkToSend = fileExists(mediaPath(upreq.Oid))
+			startresult.OkToSend = !fileExists(mediaPath(upreq.Oid))
 			resp, err = lfs.NewJsonResponse(req.Id, startresult)
 			if err != nil {
 				panic("lfstest-fakessh: unable to create response")
@@ -88,13 +98,14 @@ func Serve() {
 			// null terminate response
 			responseBytes = append(responseBytes, byte(0))
 			os.Stdout.Write(responseBytes)
+
 			// Next should by byte stream
 			// Must read from buffered reader since bytes may have been read already
 			receivedresult := lfs.UploadCompleteResponse{}
 			receivedresult.ReceivedOk = true
 			var receiveerr error
 			file := mediaPath(upreq.Oid)
-			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
+			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 			if err != nil {
 				panic(fmt.Sprintf("lfstest-fakessh: error opening file %v to write: %v", file, err))
 			}
@@ -166,7 +177,7 @@ func Serve() {
 				panic("lfstest-fakessh: unable to create response")
 			}
 		case "Exit":
-			break
+			return
 		default:
 			resp = lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Unknown method %v", req.Method))
 		}
