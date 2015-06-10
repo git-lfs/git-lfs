@@ -90,7 +90,7 @@ func InstallFilters() error {
 
 func setFilter(filterName string) error {
 	key := fmt.Sprintf("filter.lfs.%s", filterName)
-	value := fmt.Sprintf("git lfs %s %%f", filterName)
+	value := fmt.Sprintf("git-lfs %s %%f", filterName)
 
 	existing := git.Config.Find(key)
 	if shouldReset(existing) {
