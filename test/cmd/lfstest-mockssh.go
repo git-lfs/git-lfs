@@ -30,7 +30,7 @@ func main() {
 	repoPath := os.Args[3]
 
 	// We need to store in the filesystem because multiple calls will be made to fake ssh
-	storageBasePath = filepath.Join(os.Getenv("LFSTEST_DIR"), "fakessh", repoPath)
+	storageBasePath = filepath.Join(os.Getenv("LFSTEST_SSHDIR"), repoPath)
 
 	Serve()
 
@@ -47,6 +47,12 @@ func Serve() {
 
 	}()
 
+	logf, _ := os.OpenFile(filepath.Join(storageBasePath, "mockserver.log"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	defer logf.Close()
+
+	fmt.Fprint(logf, "Start\n")
+	logf.Sync()
+
 	// Even though we're not talking to a server and are just a fake ssh client,
 	// we still have a loop to process since a single SSH command can be used
 	// for multiple operations.
@@ -54,6 +60,7 @@ func Serve() {
 	// Read a request
 	rdr := bufio.NewReader(os.Stdin)
 	for {
+
 		jsonbytes, err := rdr.ReadBytes(byte(0))
 		if err != nil {
 			if err == io.EOF {
@@ -69,11 +76,16 @@ func Serve() {
 			panic(fmt.Sprintf("lfstest-fakessh: unable to unmarshal json request from client:%v", string(jsonbytes)))
 		}
 
+		fmt.Fprintf(logf, "Request: %v\n", req.Method)
+		logf.Sync()
+
 		var resp *lfs.JsonResponse
 		switch req.Method {
 		case "UploadCheck":
 			upreq := lfs.UploadRequest{}
 			lfs.ExtractStructFromJsonRawMessage(req.Params, &upreq)
+			fmt.Fprintf(logf, "UploadCheck: %v\n", upreq.Oid)
+			logf.Sync()
 			startresult := lfs.UploadResponse{}
 			startresult.OkToSend = !fileExists(mediaPath(upreq.Oid))
 			resp, err = lfs.NewJsonResponse(req.Id, startresult)
@@ -84,6 +96,8 @@ func Serve() {
 		case "Upload":
 			upreq := lfs.UploadRequest{}
 			lfs.ExtractStructFromJsonRawMessage(req.Params, &upreq)
+			fmt.Fprintf(logf, "Upload: %v\n", upreq.Oid)
+			logf.Sync()
 			startresult := lfs.UploadResponse{}
 			startresult.OkToSend = true
 			// Send start response immediately
@@ -98,6 +112,8 @@ func Serve() {
 			// null terminate response
 			responseBytes = append(responseBytes, byte(0))
 			os.Stdout.Write(responseBytes)
+			fmt.Fprintf(logf, "Upload OKtoSend: %v %v\n", upreq.Oid, startresult.OkToSend)
+			logf.Sync()
 
 			// Next should by byte stream
 			// Must read from buffered reader since bytes may have been read already
@@ -107,11 +123,15 @@ func Serve() {
 			file := mediaPath(upreq.Oid)
 			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 			if err != nil {
+				fmt.Fprintf(logf, "%v\n", err)
+				logf.Sync()
 				panic(fmt.Sprintf("lfstest-fakessh: error opening file %v to write: %v", file, err))
 			}
 			c, err := io.CopyN(f, rdr, upreq.Size)
 			f.Close() // close manually rather than on defer since one method
 			if err != nil {
+				fmt.Fprintf(logf, "%v\n", err)
+				logf.Sync()
 				receivedresult.ReceivedOk = false
 				receiveerr = fmt.Errorf("lfstest-fakessh: unable to read data: %v", err.Error())
 				break
@@ -129,6 +149,8 @@ func Serve() {
 		case "DownloadCheck":
 			downreq := lfs.DownloadCheckRequest{}
 			lfs.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+			fmt.Fprintf(logf, "DownloadCheck: %v\n", downreq.Oid)
+			logf.Sync()
 			result := lfs.DownloadCheckResponse{}
 			file := mediaPath(downreq.Oid)
 			s, err := os.Stat(file)
@@ -145,6 +167,8 @@ func Serve() {
 			// Can't return any error responses here (byte stream response only), have to just fail
 			downreq := lfs.DownloadRequest{}
 			lfs.ExtractStructFromJsonRawMessage(req.Params, &downreq)
+			fmt.Fprintf(logf, "Download: %v\n", downreq.Oid)
+			logf.Sync()
 			// there is no response to this
 			file := mediaPath(downreq.Oid)
 			f, err := os.OpenFile(file, os.O_RDONLY, 0644)
@@ -162,6 +186,8 @@ func Serve() {
 		case "Batch":
 			batchreq := lfs.BatchRequest{}
 			lfs.ExtractStructFromJsonRawMessage(req.Params, &batchreq)
+			fmt.Fprintf(logf, "Batch: %d\n", len(batchreq.Objects))
+			logf.Sync()
 			result := lfs.BatchResponse{}
 			for _, o := range batchreq.Objects {
 				file := mediaPath(o.Oid)
@@ -182,6 +208,8 @@ func Serve() {
 			resp = lfs.NewJsonErrorResponse(req.Id, fmt.Sprintf("Unknown method %v", req.Method))
 		}
 		if resp != nil {
+			fmt.Fprintf(logf, "Response: %v\n", req.Method)
+			logf.Sync()
 			responseBytes, err := json.Marshal(resp)
 			if err != nil {
 				panic("lfstest-fakessh: unable to marshal response")
