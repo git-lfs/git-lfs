@@ -4,6 +4,7 @@ export DH_OPTIONS
 
 BUILD_DIR := obj-$(DEB_BUILD_GNU_TYPE)
 export DH_GOPKG := github.com/github/git-lfs
+export DH_GOLANG_EXCLUDES := test
 export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
 
 %:
@@ -15,9 +16,6 @@ override_dh_clean:
 	dh_clean
 
 override_dh_auto_build:
-	for dir in .vendor/src/github.com/*; do \
-		ln -s ../../../$$dir $(BUILD_DIR)/src/github.com/; \
-	done
 	dh_auto_build
 	rm $(BUILD_DIR)/bin/script
 	./script/man
