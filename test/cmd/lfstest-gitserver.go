@@ -129,9 +129,14 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 		Size: obj.Size,
 		Links: map[string]lfsLink{
 			"upload": lfsLink{
-				Href: server.URL + "/storage/" + obj.Oid,
+				Href:   server.URL + "/storage/" + obj.Oid,
+				Header: map[string]string{},
 			},
 		},
+	}
+
+	if testingChunkedTransferEncoding(r) {
+		res.Links["upload"].Header["Transfer-Encoding"] = "chunked"
 	}
 
 	by, err := json.Marshal(res)
@@ -204,15 +209,21 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := []lfsObject{}
+	testingChunked := testingChunkedTransferEncoding(r)
 	for _, obj := range objs.Objects {
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
 			Links: map[string]lfsLink{
 				"upload": lfsLink{
-					Href: server.URL + "/storage/" + obj.Oid,
+					Href:   server.URL + "/storage/" + obj.Oid,
+					Header: map[string]string{},
 				},
 			},
+		}
+
+		if testingChunked {
+			o.Links["upload"].Header["Transfer-Encoding"] = "chunked"
 		}
 
 		res = append(res, o)
@@ -237,6 +248,19 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("storage %s %s\n", r.Method, r.URL)
 	switch r.Method {
 	case "PUT":
+		if testingChunkedTransferEncoding(r) {
+			valid := false
+			for _, value := range r.TransferEncoding {
+				if value == "chunked" {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				log.Fatal("Chunked transfer encoding expected")
+			}
+		}
+
 		hash := sha256.New()
 		buf := &bytes.Buffer{}
 		io.Copy(io.MultiWriter(hash, buf), r.Body)
@@ -324,4 +348,8 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+func testingChunkedTransferEncoding(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
 }
