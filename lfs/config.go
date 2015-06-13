@@ -45,19 +45,6 @@ func NewConfig() *Configuration {
 	return c
 }
 
-func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
-}
-
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
 		return Endpoint{Url: url}
@@ -154,6 +141,19 @@ func (c *Configuration) SetConfig(key, value string) {
 
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
+}
+
+func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
+	u, err := url.Parse(endpoint.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, "objects")
+	if len(oid) > 0 {
+		u.Path = path.Join(u.Path, oid)
+	}
+	return u, nil
 }
 
 func (c *Configuration) loadGitConfig() {
