@@ -156,16 +156,6 @@ func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
 }
 
-type AltConfig struct {
-	Remote map[string]*struct {
-		Media string
-	}
-
-	Media struct {
-		Url string
-	}
-}
-
 func (c *Configuration) loadGitConfig() {
 	c.loading.Lock()
 	defer c.loading.Unlock()
