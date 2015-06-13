@@ -17,12 +17,13 @@ import (
 
 type Configuration struct {
 	CurrentRemote         string
-	gitConfig             map[string]string
-	remotes               []string
 	httpClient            *http.Client
 	redirectingHttpClient *http.Client
 	isTracingHttp         bool
-	loading               sync.Mutex
+
+	loading   sync.Mutex // guards initialization of gitConfig and remotes
+	gitConfig map[string]string
+	remotes   []string
 }
 
 type Endpoint struct {
