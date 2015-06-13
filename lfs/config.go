@@ -96,31 +96,35 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		endpoint := Endpoint{Url: url}
-
-		if !httpPrefixRe.MatchString(url) {
-			pieces := strings.SplitN(url, ":", 2)
-			hostPieces := strings.SplitN(pieces[0], "@", 2)
-			if len(hostPieces) < 2 {
-				endpoint.Url = "<unknown>"
-				return endpoint
-			}
-
-			endpoint.SshUserAndHost = pieces[0]
-			endpoint.SshPath = pieces[1]
-			endpoint.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
-		}
-
-		if path.Ext(url) == ".git" {
-			endpoint.Url += "/info/lfs"
-		} else {
-			endpoint.Url += ".git/info/lfs"
-		}
-
-		return endpoint
+		return remoteEndpointFromUrl(url)
 	}
 
 	return Endpoint{}
+}
+
+func remoteEndpointFromUrl(url string) Endpoint {
+	e := Endpoint{Url: url}
+
+	if !httpPrefixRe.MatchString(url) {
+		pieces := strings.SplitN(url, ":", 2)
+		hostPieces := strings.SplitN(pieces[0], "@", 2)
+		if len(hostPieces) < 2 {
+			e.Url = "<unknown>"
+			return e
+		}
+
+		e.SshUserAndHost = pieces[0]
+		e.SshPath = pieces[1]
+		e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
+	}
+
+	if path.Ext(url) == ".git" {
+		e.Url += "/info/lfs"
+	} else {
+		e.Url += ".git/info/lfs"
+	}
+
+	return e
 }
 
 func (c *Configuration) Remotes() []string {
