@@ -20,6 +20,7 @@ type Configuration struct {
 	httpClient            *http.Client
 	redirectingHttpClient *http.Client
 	isTracingHttp         bool
+	envVars               map[string]string
 
 	loading   sync.Mutex // guards initialization of gitConfig and remotes
 	gitConfig map[string]string
@@ -41,9 +42,20 @@ var (
 func NewConfig() *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
-		isTracingHttp: len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
+		envVars:       make(map[string]string),
 	}
+	c.isTracingHttp = len(c.Getenv("GIT_CURL_VERBOSE")) > 0
 	return c
+}
+
+func (c *Configuration) Getenv(key string) string {
+	if i, ok := c.envVars[key]; ok {
+		return i
+	}
+
+	v := os.Getenv(key)
+	c.envVars[key] = v
+	return v
 }
 
 func (c *Configuration) Endpoint() Endpoint {
