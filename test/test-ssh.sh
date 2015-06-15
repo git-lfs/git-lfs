@@ -50,5 +50,8 @@ begin_test "ssh"
   git lfs fetch 2>&1 | tee ssh-fetch.log
   grep "(12 of 12 files)" ssh-fetch.log
 
+  export GIT_SSH=
+
+
 )
 end_test
