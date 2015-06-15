@@ -75,11 +75,11 @@ func (q *TransferQueue) processIndividual() {
 
 	for i := 0; i < q.workers; i++ {
 		go func() {
-			workersReady <- 1
 			for t := range apic {
 				// If an API authorization has not occured, we wait until we're woken up.
 				q.authCond.L.Lock()
 				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
+					workersReady <- 1
 					q.authCond.Wait()
 				}
 				q.authCond.L.Unlock()
@@ -108,10 +108,19 @@ func (q *TransferQueue) processIndividual() {
 		apic <- t
 	}
 
+	go func() {
+		wg.Wait()
+		close(workersReady)
+	}()
+
 	<-workersReady
+	q.authCond.L.Lock()
 	q.authCond.Signal() // Signal the first goroutine to run
+	q.authCond.L.Unlock()
+
 	close(apic)
-	wg.Wait()
+	for _ = range workersReady {
+	}
 
 	close(q.transferc)
 }
