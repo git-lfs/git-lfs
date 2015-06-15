@@ -185,8 +185,7 @@ func (q *TransferQueue) Process() {
 
 	for i := 0; i < q.workers; i++ {
 		// These are the worker goroutines that process transfers
-		go func(n int) {
-
+		go func() {
 			for transfer := range q.transferc {
 				cb := func(total, read int64, current int) error {
 					q.bar.Add(current)
@@ -206,7 +205,7 @@ func (q *TransferQueue) Process() {
 				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
 				q.wg.Done()
 			}
-		}(i)
+		}()
 	}
 
 	if Config.BatchTransfer() {
