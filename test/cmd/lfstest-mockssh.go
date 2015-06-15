@@ -202,6 +202,12 @@ func Serve() {
 			if err != nil {
 				panic("lfstest-fakessh: unable to create response")
 			}
+		case "Version":
+			result := lfs.ServerVersionResponse{}
+			resp, err = lfs.NewJsonResponse(req.Id, result)
+			if err != nil {
+				panic("lfstest-fakessh: unable to create response")
+			}
 		case "Exit":
 			return
 		default:
