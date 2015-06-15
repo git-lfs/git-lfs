@@ -4,3 +4,6 @@ install: true
 script: script/cibuild
 notifications:
   email: false
+before_install:
+  - repo=`basename $PWD`; localDir=`dirname $PWD`; cfDir="`dirname $localDir`/github"
+  - if [[ "$localDir" != "$cfDir" ]]; then mv "$localDir" "$cfDir"; cd ../../github/$repo; export TRAVIS_BUILD_DIR=`dirname $TRAVIS_BUILD_DIR`/$repo; fi
