@@ -80,14 +80,13 @@ func traceHttpRequest(c *Configuration, req *http.Request) {
 		return
 	}
 
-	if req.Body != nil {
-		req.Body = newCountedRequest(req)
-	}
-
 	fmt.Fprintf(os.Stderr, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
 	for key, _ := range req.Header {
 		fmt.Fprintf(os.Stderr, "> %s: %s\n", key, req.Header.Get(key))
 	}
+
+	req.Body = traceHttpBody(req.Header, req.Body, countingUpload)
+	fmt.Fprintf(os.Stderr, "\n")
 }
 
 func traceHttpResponse(c *Configuration, res *http.Response) {
@@ -107,20 +106,24 @@ func traceHttpResponse(c *Configuration, res *http.Response) {
 		fmt.Fprintf(os.Stderr, "< %s: %s\n", key, res.Header.Get(key))
 	}
 
-	traceBody := false
-	ctype := strings.ToLower(strings.SplitN(res.Header.Get("Content-Type"), ";", 2)[0])
+	res.Body = traceHttpBody(res.Header, res.Body, countingDownload)
+	fmt.Fprintf(os.Stderr, "\n")
+}
+
+func traceHttpBody(header http.Header, body io.ReadCloser, countingDirection int) io.ReadCloser {
+	if body == nil {
+		return nil
+	}
+
+	newBody := &countingBody{countingDirection, 0, body}
+	ctype := strings.ToLower(strings.SplitN(header.Get("Content-Type"), ";", 2)[0])
 	for _, tracedType := range tracedTypes {
 		if strings.Contains(ctype, tracedType) {
-			traceBody = true
+			return newTracedBody(newBody)
 		}
 	}
 
-	res.Body = newCountedResponse(res)
-	if traceBody {
-		res.Body = newTracedBody(res.Body)
-	}
-
-	fmt.Fprintf(os.Stderr, "\n")
+	return newBody
 }
 
 const (
@@ -142,9 +145,9 @@ func (r *countingBody) Read(p []byte) (int, error) {
 
 func (r *countingBody) Close() error {
 	if r.Direction == countingUpload {
-		fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n", r.Size)
+		fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n\n", r.Size)
 	} else {
-		fmt.Fprintf(os.Stderr, "* downloaded %d bytes\n", r.Size)
+		fmt.Fprintf(os.Stderr, "* downloaded %d bytes\n\n", r.Size)
 	}
 	return r.ReadCloser.Close()
 }
