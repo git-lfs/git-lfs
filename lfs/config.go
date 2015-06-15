@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -185,7 +186,8 @@ func (c *Configuration) loadGitConfig() {
 		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
 
-	fileOutput, err := git.Config.ListFromFile()
+	configFile := filepath.Join(LocalWorkingDir, ".gitconfig")
+	fileOutput, err := git.Config.ListFromFile(configFile)
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config from file: %s", err))
 	}

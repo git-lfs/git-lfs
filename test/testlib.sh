@@ -49,7 +49,10 @@ GITSERVER=undefined
 if [ -s $LFS_URL_FILE ]; then
   SHUTDOWN_LFS=no
 else
-  setup
+  setup || {
+    failures=$(( failures + 1 ))
+    exit $?
+  }
 fi
 
 GITSERVER=$(cat "$LFS_URL_FILE")

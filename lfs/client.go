@@ -199,6 +199,14 @@ func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
 	tracerx.Printf("api: batch %d files", len(objects))
 	res, objs, wErr := doApiBatchRequest(req, creds)
 	if wErr != nil {
+		if res != nil {
+			switch res.StatusCode {
+			case 404, 410:
+				tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
+				sendApiEvent(apiEventFail)
+				return nil, Error(newNotImplError())
+			}
+		}
 		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
@@ -358,13 +366,13 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
-		return nil, wErr
+		return res, wErr
 	}
 
 	if res.StatusCode == 307 {
 		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
 		if err != nil {
-			return nil, Errorf(err, err.Error())
+			return res, Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
@@ -377,17 +385,17 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 
 		seeker, ok := realBody.(io.Seeker)
 		if !ok {
-			return nil, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
 		if _, err := seeker.Seek(0, 0); err != nil {
-			return nil, Error(err)
+			return res, Error(err)
 		}
 		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = checkRedirect(redirectedReq, via); err != nil {
-			return nil, Errorf(err, err.Error())
+			return res, Errorf(err, err.Error())
 		}
 
 		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
@@ -400,7 +408,7 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
-		return nil, nil, wErr
+		return res, nil, wErr
 	}
 
 	obj := &objectResource{}
@@ -609,4 +617,26 @@ func sendApiEvent(event int) {
 	case apiEvent <- event:
 	default:
 	}
+}
+
+type notImplError struct {
+	error
+}
+
+func (e notImplError) NotImplemented() bool {
+	return true
+}
+
+func newNotImplError() error {
+	return notImplError{errors.New("Not Implemented")}
+}
+
+func isNotImplError(err *WrappedError) bool {
+	type notimplerror interface {
+		NotImplemented() bool
+	}
+	if e, ok := err.Err.(notimplerror); ok {
+		return e.NotImplemented()
+	}
+	return false
 }
