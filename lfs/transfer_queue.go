@@ -2,10 +2,13 @@ package lfs
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 type Transferable interface {
@@ -116,8 +119,7 @@ func (q *TransferQueue) processIndividual() {
 // processBatch processes the queue of transfers using the batch endpoint,
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
-func (q *TransferQueue) processBatch() {
-	q.files = 0
+func (q *TransferQueue) processBatch() error {
 	transfers := make([]*objectResource, 0, len(q.transferables))
 	for _, t := range q.transferables {
 		transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
@@ -125,10 +127,16 @@ func (q *TransferQueue) processBatch() {
 
 	objects, err := Batch(transfers)
 	if err != nil {
-		q.errorc <- err
-		sendApiEvent(apiEventFail)
-		return
+		if isNotImplError(err) {
+			tracerx.Printf("queue: batch not implemented, disabling")
+			configFile := filepath.Join(LocalGitDir, "config")
+			git.Config.SetLocal(configFile, "lfs.batch", "false")
+		}
+
+		return err
 	}
+
+	q.files = 0
 
 	for _, o := range objects {
 		if _, ok := o.Links[q.transferKind]; ok {
@@ -146,6 +154,7 @@ func (q *TransferQueue) processBatch() {
 	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
 	q.bar.Start()
 	sendApiEvent(apiEventSuccess) // Wake up transfer workers
+	return nil
 }
 
 // Process starts the transfer queue and displays a progress bar. Process will
@@ -209,7 +218,9 @@ func (q *TransferQueue) Process() {
 	}
 
 	if Config.BatchTransfer() {
-		q.processBatch()
+		if err := q.processBatch(); err != nil {
+			q.processIndividual()
+		}
 	} else {
 		q.processIndividual()
 	}

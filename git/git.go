@@ -87,6 +87,16 @@ func (c *gitConfig) UnsetGlobal(key string) {
 	simpleExec("git", "config", "--global", "--unset", key)
 }
 
+// SetLocal sets the git config value for the key in the specified config file
+func (c *gitConfig) SetLocal(file, key, val string) {
+	simpleExec(nil, "git", "config", "--file", file, "--add", key, val)
+}
+
+// UnsetLocalKey removes the git config value for the key from the specified config file
+func (c *gitConfig) UnsetLocalKey(file, key string) {
+	simpleExec(nil, "git", "config", "--file", file, "--unset", key)
+}
+
 // List lists all of the git config values
 func (c *gitConfig) List() (string, error) {
 	return simpleExec("git", "config", "-l")
