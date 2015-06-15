@@ -99,6 +99,7 @@ func NewSshApiContext(endpoint Endpoint) ApiContext {
 	err := ctx.connect()
 	if err != nil {
 		// Rejected SSH connection, use fallback
+		tracerx.Printf("Tried to use full SSH path for %v, error: %v", endpoint.SshUserAndHost, err)
 		return nil
 	}
 	return ctx
