@@ -4,6 +4,7 @@ package git
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -93,6 +94,9 @@ func (c *gitConfig) List() (string, error) {
 
 // ListFromFile lists all of the git config values in the given config file
 func (c *gitConfig) ListFromFile(f string) (string, error) {
+	if _, err := os.Stat(f); os.IsNotExist(err) {
+		return "", nil
+	}
 	return simpleExec("git", "config", "-l", "-f", f)
 }
 
