@@ -66,11 +66,11 @@ func GetApiContext(endpoint Endpoint) ApiContext {
 	// It will be in the stateless cache if so
 	contextCacheLock.Lock()
 	ctx, ok := statelessContextCache[key]
+	contextCacheLock.Unlock()
 	if ok {
 		// Stateless contexts aren't checked out exclusively, this is fine
 		return ctx
 	}
-	contextCacheLock.Unlock()
 
 	if isSSH {
 		contextCacheLock.Lock()
