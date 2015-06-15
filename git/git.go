@@ -102,16 +102,16 @@ func (c *gitConfig) Version() (string, error) {
 }
 
 // simpleExec is a small wrapper around os/exec.Command.
-func simpleExec(name string, arg ...string) (string, error) {
-	tracerx.Printf("run_command: '%s' %s", name, strings.Join(arg, " "))
-	cmd := exec.Command(name, arg...)
+func simpleExec(name string, args ...string) (string, error) {
+	tracerx.Printf("run_command: '%s' %s", name, strings.Join(args, " "))
+	cmd := exec.Command(name, args...)
 
 	output, err := cmd.Output()
 	if _, ok := err.(*exec.ExitError); ok {
 		return "", nil
 	}
 	if err != nil {
-		return fmt.Sprintf("Error running %s %s", name, arg), err
+		return fmt.Sprintf("Error running %s %s", name, args), err
 	}
 
 	return strings.Trim(string(output), " \n"), nil
