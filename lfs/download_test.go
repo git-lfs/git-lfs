@@ -226,13 +226,13 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		if wErr != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
 		}
-		defer reader.Close()
 
 		if size != 4 {
 			t.Errorf("unexpected size for %d status: %d", redirect, size)
 		}
 
 		by, err := ioutil.ReadAll(reader)
+		reader.Close()
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
@@ -568,13 +568,13 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		if wErr != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
 		}
-		defer reader.Close()
 
 		if size != 4 {
 			t.Errorf("unexpected size for %d status: %d", redirect, size)
 		}
 
 		by, err := ioutil.ReadAll(reader)
+		reader.Close()
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
