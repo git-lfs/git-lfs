@@ -226,7 +226,6 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		if wErr != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
 		}
-		defer reader.Close()
 
 		if size != 4 {
 			t.Errorf("unexpected size for %d status: %d", redirect, size)
@@ -236,6 +235,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
+		reader.Close()
 
 		if body := string(by); body != "test" {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
@@ -568,7 +568,6 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		if wErr != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
 		}
-		defer reader.Close()
 
 		if size != 4 {
 			t.Errorf("unexpected size for %d status: %d", redirect, size)
@@ -578,6 +577,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
+		reader.Close()
 
 		if body := string(by); body != "test" {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
