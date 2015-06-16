@@ -9,8 +9,8 @@ begin_test "untrack"
   # no need to setup a remote repo, since this test doesn't need to push or pull
 
   reponame="untrack"
-  git init $untrack
-  cd $untrack
+  git init $reponame
+  cd $reponame
 
   # track *.jpg once
   git lfs track "*.jpg" | grep "Tracking \*.jpg"
@@ -26,6 +26,10 @@ end_test
 begin_test "untrack outside git repo"
 (
   set -e
+
+  reponame="outside"
+  mkdir $reponame
+  cd $reponame
 
   git lfs untrack "*.foo" || {
     # this fails if it's run outside of a git repo using GIT_LFS_TEST_DIR
