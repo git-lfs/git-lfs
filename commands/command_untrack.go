@@ -62,21 +62,23 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		fields := strings.Fields(line)
-		removeThisPath := false
-		for _, t := range args {
-			if t == fields[0] {
-				removeThisPath = true
-				break
-			}
-		}
-
-		if !removeThisPath {
-			attributesFile.WriteString(line + "\n")
+		path := strings.Fields(line)[0]
+		if removePath(path, args) {
+			Print("Untracking %s", path)
 		} else {
-			Print("Untracking %s", fields[0])
+			attributesFile.WriteString(line + "\n")
 		}
 	}
+}
+
+func removePath(path string, args []string) bool {
+	for _, t := range args {
+		if path == t {
+			return true
+		}
+	}
+
+	return false
 }
 
 func init() {
