@@ -67,6 +67,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 		for _, t := range args {
 			if t == fields[0] {
 				removeThisPath = true
+				break
 			}
 		}
 
