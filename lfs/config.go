@@ -17,13 +17,15 @@ import (
 
 type Configuration struct {
 	CurrentRemote         string
-	gitConfig             map[string]string
-	remotes               []string
 	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
+	envVars               map[string]string
 	isTracingHttp         bool
 	isLoggingStats        bool
-	loading               sync.Mutex
+
+	loading   sync.Mutex // guards initialization of gitConfig and remotes
+	gitConfig map[string]string
+	remotes   []string
 }
 
 type Endpoint struct {
@@ -40,24 +42,22 @@ var (
 
 func NewConfig() *Configuration {
 	c := &Configuration{
-		CurrentRemote:  defaultRemote,
-		isTracingHttp:  len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
-		isLoggingStats: len(os.Getenv("GIT_LOG_STATS")) > 0,
+		CurrentRemote: defaultRemote,
+		envVars:       make(map[string]string),
 	}
+	c.isTracingHttp = len(c.Getenv("GIT_CURL_VERBOSE")) > 0
+	c.isLoggingStats = len(c.Getenv("GIT_LOG_STATS")) > 0
 	return c
 }
 
-func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
+func (c *Configuration) Getenv(key string) string {
+	if i, ok := c.envVars[key]; ok {
+		return i
 	}
 
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
+	v := os.Getenv(key)
+	c.envVars[key] = v
+	return v
 }
 
 func (c *Configuration) Endpoint() Endpoint {
@@ -111,31 +111,35 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		endpoint := Endpoint{Url: url}
-
-		if !httpPrefixRe.MatchString(url) {
-			pieces := strings.SplitN(url, ":", 2)
-			hostPieces := strings.SplitN(pieces[0], "@", 2)
-			if len(hostPieces) < 2 {
-				endpoint.Url = "<unknown>"
-				return endpoint
-			}
-
-			endpoint.SshUserAndHost = pieces[0]
-			endpoint.SshPath = pieces[1]
-			endpoint.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
-		}
-
-		if path.Ext(url) == ".git" {
-			endpoint.Url += "/info/lfs"
-		} else {
-			endpoint.Url += ".git/info/lfs"
-		}
-
-		return endpoint
+		return remoteEndpointFromUrl(url)
 	}
 
 	return Endpoint{}
+}
+
+func remoteEndpointFromUrl(url string) Endpoint {
+	e := Endpoint{Url: url}
+
+	if !httpPrefixRe.MatchString(url) {
+		pieces := strings.SplitN(url, ":", 2)
+		hostPieces := strings.SplitN(pieces[0], "@", 2)
+		if len(hostPieces) < 2 {
+			e.Url = "<unknown>"
+			return e
+		}
+
+		e.SshUserAndHost = pieces[0]
+		e.SshPath = pieces[1]
+		e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
+	}
+
+	if path.Ext(url) == ".git" {
+		e.Url += "/info/lfs"
+	} else {
+		e.Url += ".git/info/lfs"
+	}
+
+	return e
 }
 
 func (c *Configuration) Remotes() []string {
@@ -158,14 +162,17 @@ func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
 }
 
-type AltConfig struct {
-	Remote map[string]*struct {
-		Media string
+func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
+	u, err := url.Parse(endpoint.Url)
+	if err != nil {
+		return nil, err
 	}
 
-	Media struct {
-		Url string
+	u.Path = path.Join(u.Path, "objects")
+	if len(oid) > 0 {
+		u.Path = path.Join(u.Path, oid)
 	}
+	return u, nil
 }
 
 func (c *Configuration) loadGitConfig() {
