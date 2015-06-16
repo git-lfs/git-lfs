@@ -19,9 +19,10 @@ type Configuration struct {
 	CurrentRemote         string
 	gitConfig             map[string]string
 	remotes               []string
-	httpClient            *http.Client
+	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
 	isTracingHttp         bool
+	isLoggingStats        bool
 	loading               sync.Mutex
 }
 
@@ -39,8 +40,9 @@ var (
 
 func NewConfig() *Configuration {
 	c := &Configuration{
-		CurrentRemote: defaultRemote,
-		isTracingHttp: len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
+		CurrentRemote:  defaultRemote,
+		isTracingHttp:  len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
+		isLoggingStats: len(os.Getenv("GIT_LOG_STATS")) > 0,
 	}
 	return c
 }
