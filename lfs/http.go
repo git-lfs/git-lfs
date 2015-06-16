@@ -121,7 +121,7 @@ func (c *Configuration) HttpClient() *HttpClient {
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
-	if sslVerify == "false" || len(Config.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
+	if sslVerify == "false" || Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
