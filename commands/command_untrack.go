@@ -56,20 +56,23 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 	// if the path was meant to be untracked, omit it, and print a message instead.
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "filter=lfs") {
-			fields := strings.Fields(line)
-			removeThisPath := false
-			for _, t := range args {
-				if t == fields[0] {
-					removeThisPath = true
-				}
-			}
+		if !strings.Contains(line, "filter=lfs") {
+			attributesFile.WriteString(line + "\n")
+			continue
+		}
 
-			if !removeThisPath {
-				attributesFile.WriteString(line + "\n")
-			} else {
-				Print("Untracking %s", fields[0])
+		fields := strings.Fields(line)
+		removeThisPath := false
+		for _, t := range args {
+			if t == fields[0] {
+				removeThisPath = true
 			}
+		}
+
+		if !removeThisPath {
+			attributesFile.WriteString(line + "\n")
+		} else {
+			Print("Untracking %s", fields[0])
 		}
 	}
 
