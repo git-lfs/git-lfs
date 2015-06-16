@@ -49,6 +49,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 		Print("Error opening .gitattributes for writing")
 		return
 	}
+	defer attributesFile.Close()
 
 	scanner := bufio.NewScanner(attributes)
 
@@ -75,8 +76,6 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 			Print("Untracking %s", fields[0])
 		}
 	}
-
-	attributesFile.Close()
 }
 
 func init() {
