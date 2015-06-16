@@ -243,3 +243,25 @@ func sendApiEvent(event int) {
 	default:
 	}
 }
+
+type notImplError struct {
+	error
+}
+
+func (e notImplError) NotImplemented() bool {
+	return true
+}
+
+func newNotImplError() error {
+	return notImplError{errors.New("Not Implemented")}
+}
+
+func isNotImplError(err *WrappedError) bool {
+	type notimplerror interface {
+		NotImplemented() bool
+	}
+	if e, ok := err.Err.(notimplerror); ok {
+		return e.NotImplemented()
+	}
+	return false
+}

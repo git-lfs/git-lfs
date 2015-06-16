@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
@@ -10,25 +11,105 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-func DoHTTP(c *Configuration, req *http.Request) (*http.Response, error) {
-	traceHttpRequest(c, req)
-	res, err := c.HttpClient().Do(req)
-	if res == nil {
-		res = &http.Response{StatusCode: 0, Header: make(http.Header), Request: req}
+type transferStats struct {
+	HeaderSize int
+	BodySize   int
+	Start      time.Time
+	Stop       time.Time
+}
+
+type transfer struct {
+	requestStats  *transferStats
+	responseStats *transferStats
+	url           string
+}
+
+var (
+	// TODO should use some locks
+	transfers           = make(map[*http.Response]*transfer)
+	transferBuckets     = make(map[string][]*http.Response)
+	transfersLock       sync.Mutex
+	transferBucketsLock sync.Mutex
+)
+
+func LogTransfer(key string, res *http.Response) {
+	if Config.isLoggingStats {
+		transferBucketsLock.Lock()
+		transferBuckets[key] = append(transferBuckets[key], res)
+		transferBucketsLock.Unlock()
 	}
-	traceHttpResponse(c, res)
+}
+
+type HttpClient struct {
+	*http.Client
+}
+
+func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
+	traceHttpRequest(req)
+
+	crc := countingRequest(req)
+	if req.Body != nil {
+		// Only set the body if we have a body, but create the countingRequest
+		// anyway to make using zeroed stats easier.
+		req.Body = crc
+	}
+
+	start := time.Now()
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return res, err
+	}
+
+	traceHttpResponse(res)
+
+	cresp := countingResponse(res)
+	res.Body = cresp
+
+	if Config.isLoggingStats {
+		reqHeaderSize := 0
+		resHeaderSize := 0
+
+		if dump, err := httputil.DumpRequest(req, false); err == nil {
+			reqHeaderSize = len(dump)
+		}
+
+		if dump, err := httputil.DumpResponse(res, false); err == nil {
+			resHeaderSize = len(dump)
+		}
+
+		reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
+
+		// Response body size cannot be figured until it is read. Do not rely on a Content-Length
+		// header because it may not exist or be -1 in the case of chunked responses.
+		resstats := &transferStats{HeaderSize: resHeaderSize, Start: start}
+		transfersLock.Lock()
+		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats, url: req.URL.String()}
+		transfersLock.Unlock()
+	}
+
 	return res, err
 }
 
-func (c *Configuration) HttpClient() *http.Client {
+func DoHTTP(req *http.Request) (*http.Response, error) {
+	res, err := Config.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{StatusCode: 0, Header: make(http.Header), Request: req}
+	}
+	return res, err
+}
+
+func (c *Configuration) HttpClient() *HttpClient {
 	if c.httpClient != nil {
 		return c.httpClient
 	}
@@ -47,9 +128,8 @@ func (c *Configuration) HttpClient() *http.Client {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	c.httpClient = &http.Client{
-		Transport:     tr,
-		CheckRedirect: checkRedirect,
+	c.httpClient = &HttpClient{
+		&http.Client{Transport: tr, CheckRedirect: checkRedirect},
 	}
 
 	return c.httpClient
@@ -77,106 +157,141 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
-func traceHttpRequest(c *Configuration, req *http.Request) {
+func traceHttpRequest(req *http.Request) {
 	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
 
-	if c.isTracingHttp == false {
+	if Config.isTracingHttp == false {
 		return
 	}
 
-	if req.Body != nil {
-		req.Body = newCountedRequest(req)
+	dump, err := httputil.DumpRequest(req, false)
+	if err != nil {
+		return
 	}
 
-	fmt.Fprintf(os.Stderr, "> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
-	for key, _ := range req.Header {
-		fmt.Fprintf(os.Stderr, "> %s: %s\n", key, req.Header.Get(key))
+	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
+	for scanner.Scan() {
+		fmt.Fprintf(os.Stderr, "> %s\n", scanner.Text())
 	}
 }
 
-func traceHttpResponse(c *Configuration, res *http.Response) {
+func traceHttpResponse(res *http.Response) {
 	if res == nil {
 		return
 	}
 
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	if c.isTracingHttp == false {
+	if Config.isTracingHttp == false {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "< %s %s\n", res.Proto, res.Status)
-	for key, _ := range res.Header {
-		fmt.Fprintf(os.Stderr, "< %s: %s\n", key, res.Header.Get(key))
+	dump, err := httputil.DumpResponse(res, false)
+	if err != nil {
+		return
 	}
 
-	traceBody := false
-	ctype := strings.ToLower(strings.SplitN(res.Header.Get("Content-Type"), ";", 2)[0])
-	for _, tracedType := range tracedTypes {
-		if strings.Contains(ctype, tracedType) {
-			traceBody = true
+	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
+	for scanner.Scan() {
+		fmt.Fprintf(os.Stderr, "< %s\n", scanner.Text())
+	}
+}
+
+func countingRequest(req *http.Request) *countingReadCloser {
+	return &countingReadCloser{request: req, ReadCloser: req.Body}
+}
+
+func countingResponse(res *http.Response) *countingReadCloser {
+	return &countingReadCloser{response: res, ReadCloser: res.Body}
+}
+
+type countingReadCloser struct {
+	Count    int
+	request  *http.Request
+	response *http.Response
+	io.ReadCloser
+}
+
+func (c *countingReadCloser) Read(b []byte) (int, error) {
+	n, err := c.ReadCloser.Read(b)
+	if err != nil && err != io.EOF {
+		return n, err
+	}
+
+	c.Count += n
+
+	if Config.isTracingHttp {
+		contentType := ""
+		if c.response != nil { // Response, only print certain kinds of data
+			contentType = strings.ToLower(strings.SplitN(c.response.Header.Get("Content-Type"), ";", 2)[0])
+		} else {
+			contentType = strings.ToLower(strings.SplitN(c.request.Header.Get("Content-Type"), ";", 2)[0])
+		}
+
+		for _, tracedType := range tracedTypes {
+			if strings.Contains(contentType, tracedType) {
+				fmt.Fprint(os.Stderr, string(b[0:n]))
+			}
 		}
 	}
 
-	res.Body = newCountedResponse(res)
-	if traceBody {
-		res.Body = newTracedBody(res.Body)
+	if err == io.EOF && Config.isLoggingStats {
+		// This transfer is done, we're checking it this way so we can also
+		// catch transfers where the caller forgets to Close() the Body.
+		if c.response != nil {
+			transfersLock.Lock()
+			if transfer, ok := transfers[c.response]; ok {
+				transfer.responseStats.BodySize = c.Count
+				transfer.responseStats.Stop = time.Now()
+			}
+			transfersLock.Unlock()
+		}
 	}
-
-	fmt.Fprintf(os.Stderr, "\n")
-}
-
-const (
-	countingUpload = iota
-	countingDownload
-)
-
-type countingBody struct {
-	Direction int
-	Size      int64
-	io.ReadCloser
-}
-
-func (r *countingBody) Read(p []byte) (int, error) {
-	n, err := r.ReadCloser.Read(p)
-	r.Size += int64(n)
 	return n, err
 }
 
-func (r *countingBody) Close() error {
-	if r.Direction == countingUpload {
-		fmt.Fprintf(os.Stderr, "* uploaded %d bytes\n", r.Size)
-	} else {
-		fmt.Fprintf(os.Stderr, "* downloaded %d bytes\n", r.Size)
+// LogHttpStats is intended to be called after all HTTP operations for the
+// commmand have finished. It dumps k/v logs, one line per transfer into
+// a log file with the current timestamp.
+func LogHttpStats() {
+	if !Config.isLoggingStats {
+		return
 	}
-	return r.ReadCloser.Close()
+
+	file, err := statsLogFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		return
+	}
+
+	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", Config.ConcurrentTransfers(), Config.BatchTransfer(), time.Now().Unix(), Version)
+
+	for key, responses := range transferBuckets {
+		for _, response := range responses {
+			stats := transfers[response]
+			fmt.Fprintf(file, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
+				key,
+				stats.requestStats.HeaderSize,
+				stats.requestStats.BodySize,
+				stats.responseStats.HeaderSize,
+				stats.responseStats.BodySize,
+				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
+				response.StatusCode,
+				stats.url)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "HTTP Stats logged to file %s\n", file.Name())
 }
 
-func newCountedResponse(res *http.Response) *countingBody {
-	return &countingBody{countingDownload, 0, res.Body}
-}
+func statsLogFile() (*os.File, error) {
+	logBase := filepath.Join(LocalLogDir, "http")
+	if err := os.MkdirAll(logBase, 0755); err != nil {
+		return nil, err
+	}
 
-func newCountedRequest(req *http.Request) *countingBody {
-	return &countingBody{countingUpload, 0, req.Body}
-}
-
-type tracedBody struct {
-	io.ReadCloser
-}
-
-func (r *tracedBody) Read(p []byte) (int, error) {
-	n, err := r.ReadCloser.Read(p)
-	fmt.Fprintf(os.Stderr, "%s\n", string(p[0:n]))
-	return n, err
-}
-
-func (r *tracedBody) Close() error {
-	return r.ReadCloser.Close()
-}
-
-func newTracedBody(body io.ReadCloser) *tracedBody {
-	return &tracedBody{body}
+	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
+	return os.Create(filepath.Join(logBase, logFile))
 }
 
 // HTTP specific API contect implementation
@@ -228,10 +343,11 @@ func (self *HttpApiContext) DownloadCheck(oid string) (*ObjectResource, *Wrapped
 		return nil, Error(err)
 	}
 
-	_, obj, wErr := self.doApiRequest(req, creds)
+	res, obj, wErr := self.doApiRequest(req, creds)
 	if wErr != nil {
 		return nil, wErr
 	}
+	LogTransfer("lfs.api.download", res)
 
 	if !obj.CanDownload() {
 		return nil, Error(objectRelationDoesNotExist)
@@ -250,6 +366,7 @@ func (self *HttpApiContext) DownloadObject(obj *ObjectResource) (io.ReadCloser, 
 	if wErr != nil {
 		return nil, 0, wErr
 	}
+	LogTransfer("lfs.data.download", res)
 
 	return res.Body, res.ContentLength, nil
 }
@@ -279,9 +396,18 @@ func (self *HttpApiContext) Batch(objects []*ObjectResource) ([]*ObjectResource,
 	tracerx.Printf("api: batch %d files", len(objects))
 	res, objs, wErr := self.doApiBatchRequest(req, creds)
 	if wErr != nil {
+		if res != nil {
+			switch res.StatusCode {
+			case 404, 410:
+				tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
+				sendApiEvent(apiEventFail)
+				return nil, Error(newNotImplError())
+			}
+		}
 		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
+	LogTransfer("lfs.api.batch", res)
 
 	sendApiEvent(apiEventSuccess)
 	if res.StatusCode != 200 {
@@ -321,6 +447,7 @@ func (self *HttpApiContext) UploadCheck(oid string, sz int64) (*ObjectResource, 
 		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
+	LogTransfer("lfs.api.upload", res)
 
 	sendApiEvent(apiEventSuccess)
 
@@ -349,6 +476,7 @@ func (self *HttpApiContext) UploadObject(o *ObjectResource, reader io.Reader) *W
 	if wErr != nil {
 		return wErr
 	}
+	LogTransfer("lfs.data.upload", res)
 
 	if res.StatusCode > 299 {
 		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
@@ -374,6 +502,7 @@ func (self *HttpApiContext) UploadObject(o *ObjectResource, reader io.Reader) *W
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 	res, wErr = self.doHttpRequest(req, creds)
+	LogTransfer("lfs.data.verify", res)
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
@@ -382,7 +511,7 @@ func (self *HttpApiContext) UploadObject(o *ObjectResource, reader io.Reader) *W
 }
 
 func (self *HttpApiContext) doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := DoHTTP(Config, req)
+	res, err := DoHTTP(req)
 
 	var wErr *WrappedError
 
@@ -410,29 +539,36 @@ func (self *HttpApiContext) doHttpRequest(req *http.Request, creds Creds) (*http
 func (self *HttpApiContext) doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
 	res, wErr := self.doHttpRequest(req, creds)
 	if wErr != nil {
-		return nil, wErr
+		return res, wErr
 	}
 
 	if res.StatusCode == 307 {
 		redirectedReq, redirectedCreds, err := self.newClientRequest(req.Method, res.Header.Get("Location"))
 		if err != nil {
-			return nil, Errorf(err, err.Error())
+			return res, Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
-		seeker, ok := req.Body.(io.Seeker)
+
+		// Avoid seeking and re-wrapping the countingReadCloser, just get the "real" body
+		realBody := req.Body
+		if wrappedBody, ok := req.Body.(*countingReadCloser); ok {
+			realBody = wrappedBody.ReadCloser
+		}
+
+		seeker, ok := realBody.(io.Seeker)
 		if !ok {
-			return nil, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
 		if _, err := seeker.Seek(0, 0); err != nil {
-			return nil, Error(err)
+			return res, Error(err)
 		}
-		redirectedReq.Body = req.Body
+		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = checkRedirect(redirectedReq, via); err != nil {
-			return nil, Errorf(err, err.Error())
+			return res, Errorf(err, err.Error())
 		}
 
 		return self.doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
@@ -446,7 +582,7 @@ func (self *HttpApiContext) doApiRequest(req *http.Request, creds Creds) (*http.
 	via := make([]*http.Request, 0, 4)
 	res, wErr := self.doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
-		return nil, nil, wErr
+		return res, nil, wErr
 	}
 
 	obj := &ObjectResource{}

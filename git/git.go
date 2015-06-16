@@ -4,7 +4,7 @@ package git
 import (
 	"errors"
 	"fmt"
-	"io"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -16,14 +16,14 @@ func LsRemote(remote, remoteRef string) (string, error) {
 		return "", errors.New("remote required")
 	}
 	if remoteRef == "" {
-		return simpleExec(nil, "git", "ls-remote", remote)
+		return simpleExec("git", "ls-remote", remote)
 
 	}
-	return simpleExec(nil, "git", "ls-remote", remote, remoteRef)
+	return simpleExec("git", "ls-remote", remote, remoteRef)
 }
 
 func ResolveRef(ref string) (string, error) {
-	return simpleExec(nil, "git", "rev-parse", ref)
+	return simpleExec("git", "rev-parse", ref)
 }
 
 func CurrentRef() (string, error) {
@@ -31,7 +31,7 @@ func CurrentRef() (string, error) {
 }
 
 func CurrentBranch() (string, error) {
-	return simpleExec(nil, "git", "rev-parse", "--abbrev-ref", "HEAD")
+	return simpleExec("git", "rev-parse", "--abbrev-ref", "HEAD")
 }
 
 func CurrentRemoteRef() (string, error) {
@@ -62,7 +62,7 @@ func CurrentRemote() (string, error) {
 }
 
 func UpdateIndex(file string) error {
-	_, err := simpleExec(nil, "git", "update-index", "-q", "--refresh", file)
+	_, err := simpleExec("git", "update-index", "-q", "--refresh", file)
 	return err
 }
 
@@ -73,50 +73,59 @@ var Config = &gitConfig{}
 
 // Find returns the git config value for the key
 func (c *gitConfig) Find(val string) string {
-	output, _ := simpleExec(nil, "git", "config", val)
+	output, _ := simpleExec("git", "config", val)
 	return output
 }
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *gitConfig) SetGlobal(key, val string) {
-	simpleExec(nil, "git", "config", "--global", "--add", key, val)
+	simpleExec("git", "config", "--global", "--add", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
 func (c *gitConfig) UnsetGlobal(key string) {
-	simpleExec(nil, "git", "config", "--global", "--unset", key)
+	simpleExec("git", "config", "--global", "--unset", key)
+}
+
+// SetLocal sets the git config value for the key in the specified config file
+func (c *gitConfig) SetLocal(file, key, val string) {
+	simpleExec("git", "config", "--file", file, "--add", key, val)
+}
+
+// UnsetLocalKey removes the git config value for the key from the specified config file
+func (c *gitConfig) UnsetLocalKey(file, key string) {
+	simpleExec("git", "config", "--file", file, "--unset", key)
 }
 
 // List lists all of the git config values
 func (c *gitConfig) List() (string, error) {
-	return simpleExec(nil, "git", "config", "-l")
+	return simpleExec("git", "config", "-l")
 }
 
 // ListFromFile lists all of the git config values in the given config file
 func (c *gitConfig) ListFromFile(f string) (string, error) {
-	return simpleExec(nil, "git", "config", "-l", "-f", f)
+	if _, err := os.Stat(f); os.IsNotExist(err) {
+		return "", nil
+	}
+	return simpleExec("git", "config", "-l", "-f", f)
 }
 
 // Version returns the git version
 func (c *gitConfig) Version() (string, error) {
-	return simpleExec(nil, "git", "version")
+	return simpleExec("git", "version")
 }
 
-// simpleExec is a small wrapper around os/exec.Command. If the passed stdin
-// is not nil it will be hooked up to the subprocess stdin.
-func simpleExec(stdin io.Reader, name string, arg ...string) (string, error) {
-	tracerx.Printf("run_command: '%s' %s", name, strings.Join(arg, " "))
-	cmd := exec.Command(name, arg...)
-	if stdin != nil {
-		cmd.Stdin = stdin
-	}
+// simpleExec is a small wrapper around os/exec.Command.
+func simpleExec(name string, args ...string) (string, error) {
+	tracerx.Printf("run_command: '%s' %s", name, strings.Join(args, " "))
+	cmd := exec.Command(name, args...)
 
 	output, err := cmd.Output()
 	if _, ok := err.(*exec.ExitError); ok {
 		return "", nil
 	}
 	if err != nil {
-		return fmt.Sprintf("Error running %s %s", name, arg), err
+		return fmt.Sprintf("Error running %s %s", name, args), err
 	}
 
 	return strings.Trim(string(output), " \n"), nil

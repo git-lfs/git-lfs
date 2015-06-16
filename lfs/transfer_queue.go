@@ -2,10 +2,13 @@ package lfs
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 type Transferable interface {
@@ -72,11 +75,11 @@ func (q *TransferQueue) processIndividual() {
 
 	for i := 0; i < q.workers; i++ {
 		go func() {
-			workersReady <- 1
 			for t := range apic {
 				// If an API authorization has not occured, we wait until we're woken up.
 				q.authCond.L.Lock()
 				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
+					workersReady <- 1
 					q.authCond.Wait()
 				}
 				q.authCond.L.Unlock()
@@ -105,10 +108,19 @@ func (q *TransferQueue) processIndividual() {
 		apic <- t
 	}
 
+	go func() {
+		wg.Wait()
+		close(workersReady)
+	}()
+
 	<-workersReady
+	q.authCond.L.Lock()
 	q.authCond.Signal() // Signal the first goroutine to run
+	q.authCond.L.Unlock()
+
 	close(apic)
-	wg.Wait()
+	for _ = range workersReady {
+	}
 
 	close(q.transferc)
 }
@@ -116,8 +128,7 @@ func (q *TransferQueue) processIndividual() {
 // processBatch processes the queue of transfers using the batch endpoint,
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
-func (q *TransferQueue) processBatch() {
-	q.files = 0
+func (q *TransferQueue) processBatch() error {
 	transfers := make([]*ObjectResource, 0, len(q.transferables))
 	for _, t := range q.transferables {
 		transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
@@ -125,10 +136,16 @@ func (q *TransferQueue) processBatch() {
 
 	objects, err := Batch(transfers)
 	if err != nil {
-		q.errorc <- err
-		sendApiEvent(apiEventFail)
-		return
+		if isNotImplError(err) {
+			tracerx.Printf("queue: batch not implemented, disabling")
+			configFile := filepath.Join(LocalGitDir, "config")
+			git.Config.SetLocal(configFile, "lfs.batch", "false")
+		}
+
+		return err
 	}
+
+	q.files = 0
 
 	for _, o := range objects {
 		if _, ok := o.Links[q.transferKind]; ok {
@@ -146,6 +163,7 @@ func (q *TransferQueue) processBatch() {
 	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
 	q.bar.Start()
 	sendApiEvent(apiEventSuccess) // Wake up transfer workers
+	return nil
 }
 
 // Process starts the transfer queue and displays a progress bar. Process will
@@ -185,8 +203,7 @@ func (q *TransferQueue) Process() {
 
 	for i := 0; i < q.workers; i++ {
 		// These are the worker goroutines that process transfers
-		go func(n int) {
-
+		go func() {
 			for transfer := range q.transferc {
 				cb := func(total, read int64, current int) error {
 					q.bar.Add(current)
@@ -206,11 +223,13 @@ func (q *TransferQueue) Process() {
 				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
 				q.wg.Done()
 			}
-		}(i)
+		}()
 	}
 
 	if Config.BatchTransfer() {
-		q.processBatch()
+		if err := q.processBatch(); err != nil {
+			q.processIndividual()
+		}
 	} else {
 		q.processIndividual()
 	}

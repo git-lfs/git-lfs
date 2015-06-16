@@ -232,6 +232,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		}
 
 		by, err := ioutil.ReadAll(reader)
+		reader.Close()
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
@@ -574,6 +575,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		}
 
 		by, err := ioutil.ReadAll(reader)
+		reader.Close()
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
