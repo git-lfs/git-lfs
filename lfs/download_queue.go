@@ -2,14 +2,14 @@ package lfs
 
 type Downloadable struct {
 	Pointer *WrappedPointer
-	object  *objectResource
+	object  *ObjectResource
 }
 
 func NewDownloadable(p *WrappedPointer) *Downloadable {
 	return &Downloadable{Pointer: p}
 }
 
-func (d *Downloadable) Check() (*objectResource, *WrappedError) {
+func (d *Downloadable) Check() (*ObjectResource, *WrappedError) {
 	return DownloadCheck(d.Pointer.Oid)
 }
 
@@ -21,7 +21,7 @@ func (d *Downloadable) Transfer(cb CopyCallback) *WrappedError {
 	return nil
 }
 
-func (d *Downloadable) Object() *objectResource {
+func (d *Downloadable) Object() *ObjectResource {
 	return d.object
 }
 
@@ -33,7 +33,7 @@ func (d *Downloadable) Size() int64 {
 	return d.Pointer.Size
 }
 
-func (d *Downloadable) SetObject(o *objectResource) {
+func (d *Downloadable) SetObject(o *ObjectResource) {
 	d.object = o
 }
 

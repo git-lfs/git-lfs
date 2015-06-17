@@ -32,6 +32,7 @@ type Endpoint struct {
 	Url            string
 	SshUserAndHost string
 	SshPath        string
+	SshPort        string
 }
 
 var (
@@ -60,9 +61,19 @@ func (c *Configuration) Getenv(key string) string {
 	return v
 }
 
+func (c *Configuration) Setenv(key, value string) error {
+	// Check see if we have this in our cache, if so update it
+	if _, ok := c.envVars[key]; ok {
+		c.envVars[key] = value
+	}
+
+	// Now set in process
+	return os.Setenv(key, value)
+}
+
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
@@ -105,41 +116,99 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
-
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		return remoteEndpointFromUrl(url)
+		return NewEndpointFromCloneURL(url)
 	}
 
 	return Endpoint{}
 }
 
-func remoteEndpointFromUrl(url string) Endpoint {
-	e := Endpoint{Url: url}
+const ENDPOINT_URL_UNKNOWN = "<unknown>"
 
-	if !httpPrefixRe.MatchString(url) {
-		pieces := strings.SplitN(url, ":", 2)
-		hostPieces := strings.SplitN(pieces[0], "@", 2)
-		if len(hostPieces) < 2 {
-			e.Url = "<unknown>"
-			return e
+// Create a new endpoint from a URL associated with a git clone URL
+// The difference to NewEndpoint is that it appends [.git]/info/lfs to the URL since it
+// is the clone URL
+func NewEndpointFromCloneURL(url string) Endpoint {
+	e := NewEndpoint(url)
+	if e.Url != ENDPOINT_URL_UNKNOWN {
+		// When using main remote URL for HTTP, append info/lfs
+		if path.Ext(url) == ".git" {
+			e.Url += "/info/lfs"
+		} else {
+			e.Url += ".git/info/lfs"
 		}
-
-		e.SshUserAndHost = pieces[0]
-		e.SshPath = pieces[1]
-		e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
 	}
-
-	if path.Ext(url) == ".git" {
-		e.Url += "/info/lfs"
-	} else {
-		e.Url += ".git/info/lfs"
-	}
-
 	return e
+}
+
+// Create a new endpoint from a general URL
+func NewEndpoint(urlstr string) Endpoint {
+	endpoint := Endpoint{Url: urlstr}
+	// Check for SSH URLs
+	// Support ssh://user@host.com/path/to/repo and user@host.com:path/to/repo
+	u, err := url.Parse(urlstr)
+	if err == nil {
+		if u.Scheme == "" && u.Path != "" {
+			// This might be a bare SSH URL
+			// Turn it into ssh:// for simplicity of extraction later
+			parts := strings.Split(u.Path, ":")
+			if len(parts) > 1 {
+				// Treat presence of ':' as a bare URL
+				var newPath string
+				if len(parts) > 2 { // port included; really should only ever be 3 parts
+					newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
+				} else {
+					newPath = strings.Join(parts, "/")
+				}
+				newUrlStr := fmt.Sprintf("ssh://%v", newPath)
+				newu, err := url.Parse(newUrlStr)
+				if err == nil {
+					u = newu
+				}
+			}
+		}
+		// Now extract the SSH parts from sanitised u
+		if u.Scheme == "ssh" {
+			var host string
+			// Pull out port now, we need it separately for SSH
+			regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
+			if match := regex.FindStringSubmatch(u.Host); match != nil {
+				host = match[1]
+				if u.User != nil && u.User.Username() != "" {
+					endpoint.SshUserAndHost = fmt.Sprintf("%s@%s", u.User.Username(), host)
+				} else {
+					endpoint.SshUserAndHost = host
+				}
+				if len(match) > 2 {
+					endpoint.SshPort = match[2]
+				}
+			} else {
+				endpoint.Url = ENDPOINT_URL_UNKNOWN
+				return endpoint
+			}
+
+			// u.Path includes a preceding '/', strip off manually
+			// rooted paths in the URL will be '//path/to/blah'
+			// this is just how Go's URL parsing works
+			if strings.HasPrefix(u.Path, "/") {
+				endpoint.SshPath = u.Path[1:]
+			} else {
+				endpoint.SshPath = u.Path
+			}
+			// Fallback URL for using HTTPS while still using SSH for git
+			// u.Host includes host & port so can't use SSH port
+			endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
+		}
+		return endpoint
+
+	} else {
+		endpoint.Url = ENDPOINT_URL_UNKNOWN
+	}
+	return endpoint
 }
 
 func (c *Configuration) Remotes() []string {

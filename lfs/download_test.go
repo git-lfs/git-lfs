@@ -36,7 +36,7 @@ func TestSuccessfulDownload(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -168,7 +168,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -236,6 +236,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
+		reader.Close()
 
 		if body := string(by); body != "test" {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
@@ -270,7 +271,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -376,7 +377,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -510,7 +511,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
@@ -578,6 +579,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
+		reader.Close()
 
 		if body := string(by); body != "test" {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
@@ -637,7 +639,7 @@ func TestDownloadStorageError(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  "oid",
 			Size: 4,
 			Links: map[string]*linkRelation{
