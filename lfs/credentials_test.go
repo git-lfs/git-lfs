@@ -118,27 +118,25 @@ func TestGetCredentialsWithPortMismatch(t *testing.T) {
 	}
 }
 
-func TestEndpointWithoutUrlAuth(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	endpoint := Config.Endpoint()
-	if endpoint.HasUrlAuth() {
-		t.Errorf("has url auth: %v", endpoint)
-	}
-}
-
-func TestEndpointWithUrlAuth(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://a:b@lfs-server.com")
-	endpoint := Config.Endpoint()
-	if !endpoint.HasUrlAuth() {
-		t.Errorf("no url auth: %v", endpoint)
+func TestGetCredentialsWithRfc1738UsernameAndPassword(t *testing.T) {
+	Config.SetConfig("lfs.url", "https://testuser:testpass@lfs-server.com")
+	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if endpoint.UrlUser != "a" {
-		t.Errorf("bad user: '%s'", endpoint.UrlUser)
+	creds, err := getCreds(req)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if endpoint.UrlPassword != "b" {
-		t.Errorf("bad password: '%s'", endpoint.UrlPassword)
+	if creds != nil {
+		t.Errorf("unexpected creds: %v", creds)
+	}
+
+	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("testuser:testpass"))
+	if value := req.Header.Get("Authorization"); value != expected {
+		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
 	}
 }
 

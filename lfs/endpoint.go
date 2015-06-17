@@ -51,10 +51,6 @@ func NewEndpoint(url string) Endpoint {
 	return e
 }
 
-func (e Endpoint) HasUrlAuth() bool {
-	return len(e.UrlUser) > 0 || len(e.UrlPassword) > 0
-}
-
 func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
 	u, err := url.Parse(endpoint.Url)
 	if err != nil {
