@@ -577,6 +577,7 @@ func getCreds(req *http.Request) (Creds, error) {
 
 	if apiUrl.User != nil {
 		if pass, ok := apiUrl.User.Password(); ok {
+			fmt.Fprintln(os.Stderr, "warning: configured Git LFS endpoint contains credentials")
 			setRequestAuth(req, apiUrl.User.Username(), pass)
 			return nil, nil
 		}
