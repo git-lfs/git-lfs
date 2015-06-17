@@ -5,14 +5,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/github/git-lfs/git"
+)
+
+var (
+	Config        = NewConfig()
+	defaultRemote = "origin"
 )
 
 type Configuration struct {
@@ -27,18 +30,6 @@ type Configuration struct {
 	gitConfig map[string]string
 	remotes   []string
 }
-
-type Endpoint struct {
-	Url            string
-	SshUserAndHost string
-	SshPath        string
-}
-
-var (
-	Config        = NewConfig()
-	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
-	defaultRemote = "origin"
-)
 
 func NewConfig() *Configuration {
 	c := &Configuration{
@@ -78,7 +69,7 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
@@ -121,41 +112,15 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
-
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		return remoteEndpointFromUrl(url)
+		return NewEndpointFromCloneURL(url)
 	}
 
 	return Endpoint{}
-}
-
-func remoteEndpointFromUrl(url string) Endpoint {
-	e := Endpoint{Url: url}
-
-	if !httpPrefixRe.MatchString(url) {
-		pieces := strings.SplitN(url, ":", 2)
-		hostPieces := strings.SplitN(pieces[0], "@", 2)
-		if len(hostPieces) < 2 {
-			e.Url = "<unknown>"
-			return e
-		}
-
-		e.SshUserAndHost = pieces[0]
-		e.SshPath = pieces[1]
-		e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
-	}
-
-	if path.Ext(url) == ".git" {
-		e.Url += "/info/lfs"
-	} else {
-		e.Url += ".git/info/lfs"
-	}
-
-	return e
 }
 
 func (c *Configuration) Remotes() []string {
@@ -176,19 +141,6 @@ func (c *Configuration) SetConfig(key, value string) {
 
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
-}
-
-func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
 }
 
 func (c *Configuration) loadGitConfig() {
