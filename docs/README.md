@@ -4,4 +4,5 @@
   * [Specification](spec.md)
   * [Commands](man)
 * The Server
-  * [API](api.md)
+  * [HTTP API](api.md)
+  * [SSH API](api_ssh.md)

@@ -11,9 +11,10 @@ import (
 )
 
 func TestSuccessStatus(t *testing.T) {
+	ctx := HttpApiContext{}
 	for _, status := range []int{200, 201, 202} {
 		res := &http.Response{StatusCode: status}
-		if err := handleResponse(res); err != nil {
+		if err := ctx.handleResponse(res); err != nil {
 			t.Errorf("Unexpected error for HTTP %d: %s", status, err.Error())
 		}
 	}
@@ -40,6 +41,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		509: "not panic",
 	}
 
+	ctx := HttpApiContext{}
 	for status, panicMsg := range statuses {
 		cliErr := &ClientError{
 			Message: fmt.Sprintf("custom error for %d", status),
@@ -59,7 +61,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		}
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json; charset=utf-8")
 
-		wErr := handleResponse(res)
+		wErr := ctx.handleResponse(res)
 		if wErr == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue
@@ -100,6 +102,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		509: {defaultErrors[500] + " from HTTP 509", "not panic"},
 	}
 
+	ctx := HttpApiContext{}
 	for status, results := range statuses {
 		cliErr := &ClientError{
 			Message: fmt.Sprintf("custom error for %d", status),
@@ -121,7 +124,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		// purposely wrong content type so it falls back to default
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json2")
 
-		wErr := handleResponse(res)
+		wErr := ctx.handleResponse(res)
 		if wErr == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue

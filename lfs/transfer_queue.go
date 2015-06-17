@@ -12,12 +12,12 @@ import (
 )
 
 type Transferable interface {
-	Check() (*objectResource, *WrappedError)
+	Check() (*ObjectResource, *WrappedError)
 	Transfer(CopyCallback) *WrappedError
-	Object() *objectResource
+	Object() *ObjectResource
 	Oid() string
 	Size() int64
-	SetObject(*objectResource)
+	SetObject(*ObjectResource)
 }
 
 // TransferQueue provides a queue that will allow concurrent transfers.
@@ -129,9 +129,9 @@ func (q *TransferQueue) processIndividual() {
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
 func (q *TransferQueue) processBatch() error {
-	transfers := make([]*objectResource, 0, len(q.transferables))
+	transfers := make([]*ObjectResource, 0, len(q.transferables))
 	for _, t := range q.transferables {
-		transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
+		transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
 	}
 
 	objects, err := Batch(transfers)
