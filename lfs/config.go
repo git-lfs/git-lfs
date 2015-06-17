@@ -17,13 +17,15 @@ import (
 
 type Configuration struct {
 	CurrentRemote         string
-	gitConfig             map[string]string
-	remotes               []string
 	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
+	envVars               map[string]string
 	isTracingHttp         bool
 	isLoggingStats        bool
-	loading               sync.Mutex
+
+	loading   sync.Mutex // guards initialization of gitConfig and remotes
+	gitConfig map[string]string
+	remotes   []string
 }
 
 type Endpoint struct {
@@ -41,27 +43,90 @@ var (
 
 func NewConfig() *Configuration {
 	c := &Configuration{
-		CurrentRemote:  defaultRemote,
-		isTracingHttp:  len(os.Getenv("GIT_CURL_VERBOSE")) > 0,
-		isLoggingStats: len(os.Getenv("GIT_LOG_STATS")) > 0,
+		CurrentRemote: defaultRemote,
+		envVars:       make(map[string]string),
 	}
+	c.isTracingHttp = len(c.Getenv("GIT_CURL_VERBOSE")) > 0
+	c.isLoggingStats = len(c.Getenv("GIT_LOG_STATS")) > 0
 	return c
 }
 
-func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
+func (c *Configuration) Getenv(key string) string {
+	if i, ok := c.envVars[key]; ok {
+		return i
 	}
 
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
+	v := os.Getenv(key)
+	c.envVars[key] = v
+	return v
 }
 
-func NewEndpoint(urlstr string) Endpoint {
+func (c *Configuration) Endpoint() Endpoint {
+	if url, ok := c.GitConfig("lfs.url"); ok {
+		return remoteEndpointFromUrl(url)
+	}
+
+	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
+		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
+			return endpoint
+		}
+	}
+
+	return c.RemoteEndpoint(defaultRemote)
+}
+
+func (c *Configuration) ConcurrentTransfers() int {
+	uploads := 3
+
+	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
+		n, err := strconv.Atoi(v)
+		if err == nil && n > 0 {
+			uploads = n
+		}
+	}
+
+	return uploads
+}
+
+func (c *Configuration) BatchTransfer() bool {
+	if v, ok := c.GitConfig("lfs.batch"); ok {
+		if v == "true" || v == "" {
+			return true
+		}
+
+		// Any numeric value except 0 is considered true
+		if n, err := strconv.Atoi(v); err == nil && n != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
+	if len(remote) == 0 {
+		remote = defaultRemote
+	}
+
+	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
+		return remoteEndpointFromUrl(url)
+	}
+
+	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
+		e := remoteEndpointFromUrl(url)
+		// When using main remote URL for HTTP, append info/lfs
+		if path.Ext(url) == ".git" {
+			e.Url += "/info/lfs"
+		} else {
+			e.Url += ".git/info/lfs"
+		}
+		return e
+
+	}
+
+	return Endpoint{}
+}
+
+func remoteEndpointFromUrl(urlstr string) Endpoint {
 	endpoint := Endpoint{Url: urlstr}
 	// Check for SSH URLs
 	// Support ssh://user@host.com/path/to/repo and user@host.com:path/to/repo
@@ -118,75 +183,12 @@ func NewEndpoint(urlstr string) Endpoint {
 			// u.Host includes host & port so can't use SSH port
 			endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
 		}
+		return endpoint
+
 	} else {
 		endpoint.Url = "<unknown>"
 	}
 	return endpoint
-
-}
-func (c *Configuration) Endpoint() Endpoint {
-	if url, ok := c.GitConfig("lfs.url"); ok {
-		return NewEndpoint(url)
-	}
-
-	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
-			return endpoint
-		}
-	}
-
-	return c.RemoteEndpoint(defaultRemote)
-}
-
-func (c *Configuration) ConcurrentTransfers() int {
-	uploads := 3
-
-	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
-		n, err := strconv.Atoi(v)
-		if err == nil && n > 0 {
-			uploads = n
-		}
-	}
-
-	return uploads
-}
-
-func (c *Configuration) BatchTransfer() bool {
-	if v, ok := c.GitConfig("lfs.batch"); ok {
-		if v == "true" || v == "" {
-			return true
-		}
-
-		// Any numeric value except 0 is considered true
-		if n, err := strconv.Atoi(v); err == nil && n != 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
-	if len(remote) == 0 {
-		remote = defaultRemote
-	}
-
-	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return NewEndpoint(url)
-	}
-
-	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		endpoint := NewEndpoint(url)
-
-		// When using main remote URL for HTTP, append info/lfs
-		if path.Ext(url) == ".git" {
-			endpoint.Url += "/info/lfs"
-		} else {
-			endpoint.Url += ".git/info/lfs"
-		}
-		return endpoint
-	}
-
-	return Endpoint{}
 }
 
 func (c *Configuration) Remotes() []string {
@@ -209,14 +211,17 @@ func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
 }
 
-type AltConfig struct {
-	Remote map[string]*struct {
-		Media string
+func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
+	u, err := url.Parse(endpoint.Url)
+	if err != nil {
+		return nil, err
 	}
 
-	Media struct {
-		Url string
+	u.Path = path.Join(u.Path, "objects")
+	if len(oid) > 0 {
+		u.Path = path.Join(u.Path, oid)
 	}
+	return u, nil
 }
 
 func (c *Configuration) loadGitConfig() {

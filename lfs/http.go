@@ -32,7 +32,6 @@ type transferStats struct {
 type transfer struct {
 	requestStats  *transferStats
 	responseStats *transferStats
-	url           string
 }
 
 var (
@@ -93,8 +92,9 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 		// Response body size cannot be figured until it is read. Do not rely on a Content-Length
 		// header because it may not exist or be -1 in the case of chunked responses.
 		resstats := &transferStats{HeaderSize: resHeaderSize, Start: start}
+		t := &transfer{requestStats: reqstats, responseStats: resstats}
 		transfersLock.Lock()
-		transfers[res] = &transfer{requestStats: reqstats, responseStats: resstats, url: req.URL.String()}
+		transfers[res] = t
 		transfersLock.Unlock()
 	}
 
@@ -124,7 +124,7 @@ func (c *Configuration) HttpClient() *HttpClient {
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
-	if sslVerify == "false" || len(os.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
+	if sslVerify == "false" || len(Config.Getenv("GIT_SSL_NO_VERIFY")) > 0 {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
@@ -277,7 +277,7 @@ func LogHttpStats() {
 				stats.responseStats.BodySize,
 				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
 				response.StatusCode,
-				stats.url)
+				response.Request.URL)
 		}
 	}
 

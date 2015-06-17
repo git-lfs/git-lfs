@@ -44,7 +44,7 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 }
 
 func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
-	logPath := os.Getenv("GIT_LFS_PROGRESS")
+	logPath := Config.Getenv("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}
