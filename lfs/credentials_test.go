@@ -23,7 +23,7 @@ func TestGetCredentials(t *testing.T) {
 	}
 
 	if value := creds["password"]; value != "monkey" {
-		t.Errorf("bad username: %s", value)
+		t.Errorf("bad password: %s", value)
 	}
 
 	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:monkey"))
@@ -115,6 +115,30 @@ func TestGetCredentialsWithPortMismatch(t *testing.T) {
 
 	if actual := req.Header.Get("Authorization"); actual != "" {
 		t.Errorf("Unexpected Authorization header: %s", actual)
+	}
+}
+
+func TestEndpointWithoutUrlAuth(t *testing.T) {
+	Config.SetConfig("lfs.url", "https://lfs-server.com")
+	endpoint := Config.Endpoint()
+	if endpoint.HasUrlAuth() {
+		t.Errorf("has url auth: %v", endpoint)
+	}
+}
+
+func TestEndpointWithUrlAuth(t *testing.T) {
+	Config.SetConfig("lfs.url", "https://a:b@lfs-server.com")
+	endpoint := Config.Endpoint()
+	if !endpoint.HasUrlAuth() {
+		t.Errorf("no url auth: %v", endpoint)
+	}
+
+	if endpoint.UrlUser != "a" {
+		t.Errorf("bad user: '%s'", endpoint.UrlUser)
+	}
+
+	if endpoint.UrlPassword != "b" {
+		t.Errorf("bad password: '%s'", endpoint.UrlPassword)
 	}
 }
 
