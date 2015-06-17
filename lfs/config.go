@@ -78,7 +78,7 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
@@ -121,38 +121,47 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
-
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return Endpoint{Url: url}
+		return NewEndpoint(url)
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		return remoteEndpointFromUrl(url)
+		return NewEndpointFromCloneURL(url)
 	}
 
 	return Endpoint{}
 }
 
-func remoteEndpointFromUrl(url string) Endpoint {
+const ENDPOINT_URL_UNKNOWN = "<unknown>"
+
+// Create a new endpoint from a URL associated with a git clone URL
+// The difference to NewEndpoint is that it appends [.git]/info/lfs to the URL since it
+// is the clone URL
+func NewEndpointFromCloneURL(url string) Endpoint {
+	e := NewEndpoint(url)
+	if e.Url != ENDPOINT_URL_UNKNOWN {
+		// When using main remote URL for HTTP, append info/lfs
+		if path.Ext(url) == ".git" {
+			e.Url += "/info/lfs"
+		} else {
+			e.Url += ".git/info/lfs"
+		}
+	}
+	return e
+}
+
+// Create a new endpoint from a general URL
+func NewEndpoint(url string) Endpoint {
 	e := Endpoint{Url: url}
 
 	if !httpPrefixRe.MatchString(url) {
 		pieces := strings.SplitN(url, ":", 2)
 		hostPieces := strings.SplitN(pieces[0], "@", 2)
-		if len(hostPieces) < 2 {
-			e.Url = "<unknown>"
-			return e
+		if len(hostPieces) == 2 {
+			e.SshUserAndHost = pieces[0]
+			e.SshPath = pieces[1]
+			e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
 		}
-
-		e.SshUserAndHost = pieces[0]
-		e.SshPath = pieces[1]
-		e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
-	}
-
-	if path.Ext(url) == ".git" {
-		e.Url += "/info/lfs"
-	} else {
-		e.Url += ".git/info/lfs"
 	}
 
 	return e
