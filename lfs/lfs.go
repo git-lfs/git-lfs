@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -100,15 +99,9 @@ func init() {
 
 	}
 
-	gitVersion, err := git.Config.Version()
-	if err != nil {
-		gitVersion = "unknown"
-	}
-
-	UserAgent = fmt.Sprintf("git-lfs/%s (GitHub; %s %s; git %s; go %s)", Version,
+	UserAgent = fmt.Sprintf("git-lfs/%s (GitHub; %s %s; go %s)", Version,
 		runtime.GOOS,
 		runtime.GOARCH,
-		strings.Replace(gitVersion, "git version ", "", 1),
 		strings.Replace(runtime.Version(), "go", "", 1))
 }
 
