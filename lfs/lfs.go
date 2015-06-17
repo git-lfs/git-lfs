@@ -17,9 +17,9 @@ const Version = "0.5.1"
 // Setup permissions for the given directories used here.
 //
 const (
-    TempDirPerms       = 0755
-    LocalMediaDirPerms = 0755
-    LocalLogDirPerms   = 0755
+	tempDirPerms       = 0755
+	localMediaDirPerms = 0755
+	localLogDirPerms   = 0755
 )
 
 var (
@@ -35,7 +35,7 @@ var (
 
 func TempFile(prefix string) (*os.File, error) {
 	if checkedTempDir != TempDir {
-		if err := os.MkdirAll(TempDir, TempDirPerms); err != nil {
+		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
 			return nil, err
 		}
 		checkedTempDir = TempDir
@@ -51,7 +51,7 @@ func ResetTempDir() error {
 
 func LocalMediaPath(sha string) (string, error) {
 	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-	if err := os.MkdirAll(path, LocalMediaDirPerms); err != nil {
+	if err := os.MkdirAll(path, localMediaDirPerms); err != nil {
 		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
 	}
 
@@ -94,15 +94,15 @@ func init() {
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp")
 
-		if err := os.MkdirAll(LocalMediaDir, LocalMediaDirPerms); err != nil {
+		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
 		}
 
-		if err := os.MkdirAll(LocalLogDir, LocalLogDirPerms); err != nil {
+		if err := os.MkdirAll(LocalLogDir, localLogDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
 
-		if err := os.MkdirAll(TempDir, TempDirPerms); err != nil {
+		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 
