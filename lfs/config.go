@@ -45,8 +45,8 @@ func NewConfig() *Configuration {
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
-	c.isTracingHttp = len(c.Getenv("GIT_CURL_VERBOSE")) > 0
-	c.isLoggingStats = len(c.Getenv("GIT_LOG_STATS")) > 0
+	c.isTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
+	c.isLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
 	return c
 }
 
@@ -58,6 +58,22 @@ func (c *Configuration) Getenv(key string) string {
 	v := os.Getenv(key)
 	c.envVars[key] = v
 	return v
+}
+
+// GetenvBool parses a boolean environment variable and returns the result as a bool.
+// If the environment variable is unset, empty, or if the parsing fails,
+// the value of def (default) is returned instead.
+func (c *Configuration) GetenvBool(key string, def bool) bool {
+	s := c.Getenv(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	b, err := strconv.ParseBool(s)
+	if err != nil {
+		return def
+	}
+	return b
 }
 
 func (c *Configuration) Endpoint() Endpoint {

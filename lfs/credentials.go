@@ -91,7 +91,7 @@ func init() {
 		}
 
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			if exitErr.ProcessState.Success() == false && Config.Getenv("GIT_TERMINAL_PROMPT") == "0" {
+			if exitErr.ProcessState.Success() == false && !Config.GetenvBool("GIT_TERMINAL_PROMPT", true) {
 				return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
 					input["protocol"], input["host"])
 			}
