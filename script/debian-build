@@ -18,9 +18,17 @@ if [[ $go_version < 1.3.1 ]]; then
   set -u
 fi
 
-cd /tmp
-[ -d git-lfs ] || git clone https://github.com/github/git-lfs
-cd git-lfs
+cd $(dirname ${BASH_SOURCE[0]})
+if git rev-parse; then
+  cd $(git rev-parse --show-toplevel)
+elif [ -e bootstrap ];then
+  cd ..
+else
+  cd /tmp
+  [ -d git-lfs ] || git clone https://github.com/github/git-lfs
+  cd git-lfs
+fi
+
 ./script/bootstrap
 install -D bin/git-lfs /usr/local/bin
 git lfs init
