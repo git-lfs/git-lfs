@@ -113,12 +113,61 @@ func init() {
 }
 
 func resolveGitDir() (string, string, error) {
+	gitDir := Config.Getenv("GIT_DIR")
+	workTree := Config.Getenv("GIT_WORK_TREE")
+
+	if gitDir != "" {
+		return processGitDirVar(gitDir, workTree)
+	}
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", "", err
 	}
 
-	return recursiveResolveGitDir(wd)
+	workTreeR, gitDirR, err := recursiveResolveGitDir(wd)
+	if err != nil {
+		return "", "", err
+	}
+
+	if workTree != "" {
+		return processWorkTree(gitDirR, workTree)
+	}
+
+	return workTreeR, gitDirR, nil
+}
+
+func processGitDirVar(gitDir, workTree string) (string, string, error) {
+	if workTree != "" {
+		return processWorkTree(gitDir, workTree)
+	}
+
+	// See `core.worktree` in `man git-config`:
+	// “If --git-dir or GIT_DIR is specified but none of --work-tree, GIT_WORK_TREE and
+	// core.worktree is specified, the current working directory is regarded as the top
+	// level of your working tree.”
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", "", err
+	}
+
+	return wd, gitDir, nil
+}
+
+func processWorkTree(gitDir, workTree string) (string, string, error) {
+	// See `core.worktree` in `man git-config`:
+	// “The value [of core.worktree, GIT_WORK_TREE, or --work-tree] can be an absolute path
+	// or relative to the path to the .git directory, which is either specified
+	// by --git-dir or GIT_DIR, or automatically discovered.”
+
+	if filepath.IsAbs(workTree) {
+		return workTree, gitDir, nil
+	}
+
+	base := filepath.Dir(filepath.Clean(gitDir))
+	absWorkTree := filepath.Join(base, workTree)
+	return absWorkTree, gitDir, nil
 }
 
 func recursiveResolveGitDir(dir string) (string, string, error) {

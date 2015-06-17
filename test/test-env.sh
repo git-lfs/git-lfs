@@ -243,3 +243,85 @@ $(env | grep "^GIT")
   [ "$expected" = "$actual2" ]
 )
 end_test
+
+begin_test "env with environment variables"
+(
+  set -e
+  reponame="env-with-envvars"
+  git init $reponame
+  mkdir -p $reponame/a/b/c
+
+  gitDir=$TRASHDIR/$reponame/.git
+  workTree=$TRASHDIR/$reponame/a/b
+
+  expected=$(printf "LocalWorkingDir=$TRASHDIR/$reponame/a/b
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
+$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT")
+")
+
+  actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  [ "$expected" = "$actual" ]
+
+  cd $TRASHDIR/$reponame
+  actual2=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  [ "$expected" = "$actual2" ]
+
+  cd $TRASHDIR/$reponame/.git
+  actual3=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  [ "$expected" = "$actual3" ]
+
+  cd $TRASHDIR/$reponame/a/b/c
+  actual4=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  [ "$expected" = "$actual4" ]
+
+  expected5=$(printf "LocalWorkingDir=$TRASHDIR/$reponame/a/b
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
+$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT")
+")
+  actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
+  [ "$expected5" = "$actual5" ]
+
+  expected6=$(printf "LocalWorkingDir=$TRASHDIR/$reponame/a/b
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
+$(GIT_WORK_TREE=a/b env | grep "^GIT")
+")
+  actual6=$(GIT_WORK_TREE=a/b git lfs env)
+  [ "$expected6" = "$actual6" ]
+
+  cd $TRASHDIR/$reponame/a/b
+  expected7=$(printf "LocalWorkingDir=$TRASHDIR/$reponame/a/b
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
+$(GIT_DIR=$gitDir env | grep "^GIT")
+")
+  actual7=$(GIT_DIR=$gitDir git lfs env)
+  [ "$expected7" = "$actual7" ]
+
+  cd $TRASHDIR/$reponame/a
+  expected8=$(printf "LocalWorkingDir=$TRASHDIR/$reponame/a/b
+LocalGitDir=$TRASHDIR/$reponame/.git
+LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
+TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=false
+$(GIT_WORK_TREE=$workTree env | grep "^GIT")
+")
+  actual8=$(GIT_WORK_TREE=$workTree git lfs env)
+  [ "$expected8" = "$actual8" ]
+)
+end_test
