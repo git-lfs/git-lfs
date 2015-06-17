@@ -60,7 +60,7 @@ func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
 		return "", nil
 	}
 
-	ssh := os.Getenv("GIT_SSH")
+	ssh := Config.Getenv("GIT_SSH")
 	basessh := filepath.Base(ssh)
 	// Strip extension for easier comparison
 	if ext := filepath.Ext(basessh); len(ext) > 0 {

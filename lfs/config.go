@@ -61,9 +61,19 @@ func (c *Configuration) Getenv(key string) string {
 	return v
 }
 
+func (c *Configuration) Setenv(key, value string) error {
+	// Check see if we have this in our cache, if so update it
+	if _, ok := c.envVars[key]; ok {
+		c.envVars[key] = value
+	}
+
+	// Now set in process
+	return os.Setenv(key, value)
+}
+
 func (c *Configuration) Endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return remoteEndpointFromUrl(url)
+		return NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
@@ -106,27 +116,37 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
-
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return remoteEndpointFromUrl(url)
+		return NewEndpoint(url)
 	}
 
 	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		e := remoteEndpointFromUrl(url)
+		return NewEndpointFromCloneURL(url)
+	}
+
+	return Endpoint{}
+}
+
+const ENDPOINT_URL_UNKNOWN = "<unknown>"
+
+// Create a new endpoint from a URL associated with a git clone URL
+// The difference to NewEndpoint is that it appends [.git]/info/lfs to the URL since it
+// is the clone URL
+func NewEndpointFromCloneURL(url string) Endpoint {
+	e := NewEndpoint(url)
+	if e.Url != ENDPOINT_URL_UNKNOWN {
 		// When using main remote URL for HTTP, append info/lfs
 		if path.Ext(url) == ".git" {
 			e.Url += "/info/lfs"
 		} else {
 			e.Url += ".git/info/lfs"
 		}
-		return e
-
 	}
-
-	return Endpoint{}
+	return e
 }
 
-func remoteEndpointFromUrl(urlstr string) Endpoint {
+// Create a new endpoint from a general URL
+func NewEndpoint(urlstr string) Endpoint {
 	endpoint := Endpoint{Url: urlstr}
 	// Check for SSH URLs
 	// Support ssh://user@host.com/path/to/repo and user@host.com:path/to/repo
@@ -167,7 +187,7 @@ func remoteEndpointFromUrl(urlstr string) Endpoint {
 					endpoint.SshPort = match[2]
 				}
 			} else {
-				endpoint.Url = "<unknown>"
+				endpoint.Url = ENDPOINT_URL_UNKNOWN
 				return endpoint
 			}
 
@@ -186,7 +206,7 @@ func remoteEndpointFromUrl(urlstr string) Endpoint {
 		return endpoint
 
 	} else {
-		endpoint.Url = "<unknown>"
+		endpoint.Url = ENDPOINT_URL_UNKNOWN
 	}
 	return endpoint
 }
