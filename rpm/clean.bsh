@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -eu
+
+CWD=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+
+rm -rv ${CWD}/BUILD ${CWD}/BUILDROOT ${CWD}/RPMS ${CWD}/SRPMS ${CWD}/SOURCES || :
+
+rm ${CWD}/SPECS/golang.spec || :
+
+rm ${CWD}/build.log || :
+

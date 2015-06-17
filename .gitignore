@@ -13,3 +13,6 @@ debian/*.log
 debian/files
 debian/*.substvars
 obj-*
+
+rpm/BUILD*
+rpm/*RPMS
