@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const ENDPOINT_URL_UNKNOWN = "<unknown>"
+const EndpointUrlUnknown = "<unknown>"
 
 var httpPrefixRe = regexp.MustCompile("\\Ahttps?://")
 
@@ -23,7 +23,7 @@ type Endpoint struct {
 // "[.git]/info/lfs".
 func NewEndpointFromCloneURL(url string) Endpoint {
 	e := NewEndpoint(url)
-	if e.Url == ENDPOINT_URL_UNKNOWN {
+	if e.Url == EndpointUrlUnknown {
 		return e
 	}
 
