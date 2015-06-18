@@ -351,7 +351,7 @@ type wrappedCmd struct {
 // stdout pipe, wrapped in a wrappedCmd. The stdout buffer will be of stdoutBufSize
 // bytes.
 func startCommand(command string, args ...string) (*wrappedCmd, error) {
-	cmd := exec.Command(command, args...)
+	cmd := execCommand(command, args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
