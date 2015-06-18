@@ -16,8 +16,16 @@ type credentialFunc func(Creds, string) (credentialFetcher, error)
 
 var execCreds credentialFunc
 
-func credentials(u *url.URL) (Creds, error) {
+func credentials(u *url.URL, apiUrl *url.URL) (Creds, error) {
 	creds := Creds{"protocol": u.Scheme, "host": u.Host}
+	if userInfo := apiUrl.User; userInfo != nil {
+		if password, ok := userInfo.Password(); ok {
+			creds["username"] = userInfo.Username()
+			creds["password"] = password
+			return creds, nil
+		}
+	}
+
 	cmd, err := execCreds(creds, "fill")
 	if err != nil {
 		return nil, err

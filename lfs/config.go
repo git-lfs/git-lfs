@@ -77,13 +77,23 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 }
 
 func (c *Configuration) Endpoint() Endpoint {
+	e := c.endpoint()
+
+	if u, err := url.Parse(e.Url); err == nil && u.User != nil {
+		fmt.Fprintln(os.Stderr, "warning: configured LFS endpoint contains credentials")
+	}
+
+	return e
+}
+
+func (c *Configuration) endpoint() Endpoint {
 	if url, ok := c.GitConfig("lfs.url"); ok {
 		return NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
-			return endpoint
+		if e := c.RemoteEndpoint(c.CurrentRemote); len(e.Url) > 0 {
+			return e
 		}
 	}
 
