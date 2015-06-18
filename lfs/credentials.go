@@ -33,7 +33,7 @@ type CredentialCmd struct {
 
 func NewCommand(input Creds, subCommand string) *CredentialCmd {
 	buf1 := new(bytes.Buffer)
-	cmd := exec.Command("git", "credential", subCommand)
+	cmd := execCommand("git", "credential", subCommand)
 
 	cmd.Stdin = input.Buffer()
 	cmd.Stdout = buf1

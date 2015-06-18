@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"encoding/json"
-	"os/exec"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
@@ -22,7 +21,7 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s %s",
 		endpoint.SshUserAndHost, endpoint.SshPath, operation, oid)
-	cmd := exec.Command("ssh", endpoint.SshUserAndHost,
+	cmd := execCommand("ssh", endpoint.SshUserAndHost,
 		"git-lfs-authenticate",
 		endpoint.SshPath,
 		operation, oid,
