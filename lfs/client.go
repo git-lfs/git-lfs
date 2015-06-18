@@ -186,7 +186,7 @@ func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
 		return nil, Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", "batch")
+	req, creds, err := newBatchApiRequest()
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -561,6 +561,59 @@ func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
 	}
 
 	return req, creds, nil
+}
+
+func newBatchApiRequest() (*http.Request, Creds, error) {
+	endpoint := Config.Endpoint()
+
+	res, err := sshAuthenticate(endpoint, "download", "")
+	if err != nil {
+		tracerx.Printf("ssh: attempted with %s.  Error: %s",
+			endpoint.SshUserAndHost, err.Error(),
+		)
+	}
+
+	if len(res.Href) > 0 {
+		endpoint.Url = res.Href
+	}
+
+	u, err := ObjectUrl(endpoint, "batch")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, creds, err := newBatchClientRequest("POST", u.String())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("Accept", mediaType)
+	if res.Header != nil {
+		for key, value := range res.Header {
+			req.Header.Set(key, value)
+		}
+	}
+
+	return req, creds, nil
+}
+
+func newBatchClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+
+	// Get the creds if we're private
+	/*
+		creds, err := getCreds(req)
+		if err != nil {
+			return nil, nil, err
+		}
+	*/
+
+	return req, nil, nil
 }
 
 func getCreds(req *http.Request) (Creds, error) {
