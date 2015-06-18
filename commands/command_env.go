@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -17,6 +18,15 @@ func envCommand(cmd *cobra.Command, args []string) {
 	config := lfs.Config
 
 	endpoint := config.Endpoint()
+
+	gitV, err := git.Config.Version()
+	if err != nil {
+		gitV = "Error getting git version: " + err.Error()
+	}
+
+	Print(lfs.UserAgent)
+	Print(gitV)
+	Print("")
 
 	if len(endpoint.Url) > 0 {
 		Print("Endpoint=%s", endpoint.Url)
