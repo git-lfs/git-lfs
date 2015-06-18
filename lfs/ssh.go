@@ -22,7 +22,11 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s %s",
 		endpoint.SshUserAndHost, endpoint.SshPath, operation, oid)
-	cmd := exec.Command("ssh", endpoint.SshUserAndHost,
+	ssh := Config.Getenv("GIT_SSH")
+	if len(ssh) == 0 {
+		ssh = "ssh"
+	}
+	cmd := exec.Command(ssh, endpoint.SshUserAndHost,
 		"git-lfs-authenticate",
 		endpoint.SshPath,
 		operation, oid,
