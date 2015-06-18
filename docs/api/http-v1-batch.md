@@ -6,7 +6,7 @@ endpoint that accepts multiple OIDs. All requests should have the following:
     Accept: application/vnd.git-lfs+json
     Content-Type: application/vnd.git-lfs+json
 
-[v1]: ./v1-original.md
+[v1]: ./http-v1-original.md
 
 This is an experimental API introduced in Git LFS v0.5.2, and only used if the
 `lfs.batch` config value is true. You can toggle support for any local
