@@ -3,6 +3,27 @@
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
 
+## Feature Requests
+
+Feature requests are welcome, but will have a much better chance of being
+accepted if they meet the first principles for the project. Git LFS is intended
+for the end user, not Git experts. It should fit into the standard workflow as
+much as possible, and require little client configuration.
+
+* Large objects are pushed to Git LFS servers during git push.
+* Large objects are downloaded during git checkout.
+* Git LFS servers are linked to Git remotes by default. Git hosts can support
+users without requiring them to set up anything extra. Users can access
+different Git LFS servers like they can with different Git remotes.
+* Upload and download requests should use the same form of authentication built
+into Git: SSH through public keys, and HTTPS through Git credential helpers.
+* Git LFS servers use a JSON API designed around progressive enhancement.
+Servers can simply host off cloud storage, or implement more efficient methods
+of transferring data.
+
+You can see what the Git LFS team is prioritizing work on in the
+[roadmap](./ROADMAP.md).
+
 ## Submitting a pull request
 
 0. [Fork][] and clone the repository
@@ -26,7 +47,7 @@ them as separate pull requests.
 
 ## Updating 3rd party packages
 
-0. Update `Godeps`.
+0. Update `Nut.toml`.
 0. Run `script/vendor` to update the code in the `.vendor/src` directory.
 0. Commit the change.  Git LFS vendors the full source code in the repository.
 0. Submit a pull request.
