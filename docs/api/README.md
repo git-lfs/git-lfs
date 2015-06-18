@@ -45,21 +45,25 @@ for later if you have a [good git credential cacher](https://help.github.com/art
 3. SSH
 
 If the Git remote is using SSH, Git LFS will execute the `git-lfs-authenticate`
-command.  It passes the SSH path, the Git LFS operation (upload or download),
-and the object OID as arguments. A successful result outputs a JSON link object
-to STDOUT.  This is applied to any Git LFS API request before git credentials
-are accessed.
+command.  It passes the SSH path and the Git LFS operation (upload or download),
+as arguments. A successful result outputs a JSON link object to STDOUT.  This is
+applied to any Git LFS API request before git credentials are accessed.
+
+NOTE: Git LFS v0.5.x clients using the [original v1 HTTP API][v1] also send the
+OID as the 3rd argument to `git-lfs-authenticate`. SSH servers that want to
+support both the original and the [batch][batch] APIs should ignore the OID
+argument.
 
 ```
-# remote: git@github.com:user/repo.git
-$ ssh git@github.com git-lfs-authenticate user/repo.git download {oid}
+# remote: git@git-server.com:user/repo.git
+$ ssh git@git-server.com git-lfs-authenticate user/repo.git download
 {
   "header": {
     "Authorization": "Basic ..."
   }
   // OPTIONAL key only needed if the Git LFS server is not hosted at the default
   // URL from the Git remote:
-  //   https://github.com/user/repo.git/info/lfs
+  //   https://git-server.com/user/repo.git/info/lfs
   "href": "https://other-server.com/user/repo",
 }
 ```
@@ -67,7 +71,7 @@ $ ssh git@github.com git-lfs-authenticate user/repo.git download {oid}
 If Git LFS detects a non-zero exit status, it displays the command's STDERR:
 
 ```
-$ ssh git@github.com git-lfs-authenticate user/repo.git wat {oid}
+$ ssh git@git-server.com git-lfs-authenticate user/repo.git wat
 Invalid LFS operation: "wat"
 ```
 
