@@ -31,6 +31,8 @@ commands and low level ("plumbing") commands.
 
 * git-lfs-env(1):
     Display the Git LFS environment.
+* git-lfs-fsck(1):
+    Check GIT LFS files for consistency.
 * git-lfs-init(1):
     Ensure Git LFS is configured properly.
 * git-lfs-logs(1):
