@@ -117,6 +117,15 @@ func (c *Configuration) BatchTransfer() bool {
 	return false
 }
 
+func (c *Configuration) PrivateAccess() bool {
+	if v, ok := c.GitConfig("lfs.access"); ok {
+		if v == "private" || v == "PRIVATE" {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote

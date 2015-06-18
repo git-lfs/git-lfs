@@ -606,12 +606,16 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, Creds, error) 
 	req.Header.Set("User-Agent", UserAgent)
 
 	// Get the creds if we're private
-	/*
+	if Config.PrivateAccess() {
+		// The PrivateAccess() check can be pushed down and this block simplified
+		// once everything goes through the batch endpoint.
 		creds, err := getCreds(req)
 		if err != nil {
 			return nil, nil, err
 		}
-	*/
+
+		return req, creds, nil
+	}
 
 	return req, nil, nil
 }
