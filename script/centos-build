@@ -57,7 +57,9 @@ if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
 fi
 
 mkdir -p src/github.com/github
-ln -s $(pwd) src/github.com/github/git-lfs
+if [ ! -e "src/github.com/github/git-lfs" ]; then
+  ln -s $(pwd) src/github.com/github/git-lfs
+fi
 GOPATH=`pwd` ./script/bootstrap
 
 install -D bin/git-lfs /usr/local/bin

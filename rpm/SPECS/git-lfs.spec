@@ -40,7 +40,21 @@ mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 
 %check
+if ! git config --global user.name; then
+  RPM_GIT_USER_NAME=1
+  git config --global user.name "User Name"
+fi
+if ! git config --global user.email; then
+  RPM_GIT_USER_EMAIL=1
+  git config --global user.email "user@email.com"
+fi
 GOPATH=`pwd` ./script/test
+if [ "${RPM_GIT_USER_NAME}" == "1" ]; then
+  git config --global --unset user.name
+fi
+if [ "${RPM_GIT_USER_EMAIL}" == "1" ]; then
+  git config --global --unset user.email
+fi
 
 %clean
 rm -rf %{buildroot}
