@@ -96,15 +96,17 @@ func sortedLogs() []string {
 		return []string{}
 	}
 
-	names := make([]string, 0, len(fileinfos))
+	names := make([]string, len(fileinfos))
+	fileCount := 0
 	for index, info := range fileinfos {
 		if info.IsDir() {
 			continue
 		}
+		fileCount += 1
 		names[index] = info.Name()
 	}
 
-	return names
+	return names[0:fileCount]
 }
 
 func init() {
