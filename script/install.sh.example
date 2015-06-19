@@ -8,10 +8,13 @@ elif [ "${BOXEN_HOME:-}" != "" ] ; then
   prefix=${BOXEN_HOME:-}
 fi
 
+mkdir -p $prefix/bin
 rm -rf $prefix/bin/git-lfs*
 for g in git*; do
-  install -D $g "$prefix/bin/$g"
+  install $g "$prefix/bin/$g"
 done
 
 PATH+=:$prefix/bin
+git config --global --unset filter.lfs.clean
+git config --global --unset filter.lfs.smudge
 git lfs init
