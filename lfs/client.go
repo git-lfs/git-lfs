@@ -265,6 +265,13 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 		return nil, nil
 	}
 
+	if obj.Oid == "" {
+		obj.Oid = oid
+	}
+	if obj.Size == 0 {
+		obj.Size = reqObj.Size
+	}
+
 	return obj, nil
 }
 
