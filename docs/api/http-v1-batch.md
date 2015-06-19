@@ -35,11 +35,6 @@ individual API method for more details.  Some of the specific status codes may
 trigger specific error messages from the client.
 
 * 200 - The request completed successfully.
-* 202 - An upload request has been accepted.  Clients must follow hypermedia
-links to actually upload the content.
-* 301 - A permanent redirect.  Only supported for GET/HEAD requests.
-* 302 - A temporary redirect.  Only supported for GET/HEAD requests.
-* 303 - A temporary redirect.  Only supported for GET/HEAD requests.
 * 307 - A temporary redirect.  Keeps the original request method intact.
 * 400 - General error with the client's request.  Invalid JSON formatting, for
 example.
@@ -53,8 +48,6 @@ The following status codes can optionally be returned from the API, depending on
 the server implementation.
 
 * 406 - The Accept header needs to be `application/vnd.git-lfs+json`.
-* 410 - The requested object used to exist, but was deleted.  The message should
-state why (user initiated, legal issues, etc).
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
 availability reasons.
