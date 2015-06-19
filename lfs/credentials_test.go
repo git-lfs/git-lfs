@@ -23,7 +23,7 @@ func TestGetCredentials(t *testing.T) {
 	}
 
 	if value := creds["password"]; value != "monkey" {
-		t.Errorf("bad username: %s", value)
+		t.Errorf("bad password: %s", value)
 	}
 
 	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:monkey"))
@@ -115,6 +115,28 @@ func TestGetCredentialsWithPortMismatch(t *testing.T) {
 
 	if actual := req.Header.Get("Authorization"); actual != "" {
 		t.Errorf("Unexpected Authorization header: %s", actual)
+	}
+}
+
+func TestGetCredentialsWithRfc1738UsernameAndPassword(t *testing.T) {
+	Config.SetConfig("lfs.url", "https://testuser:testpass@lfs-server.com")
+	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	creds, err := getCreds(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if creds != nil {
+		t.Errorf("unexpected creds: %v", creds)
+	}
+
+	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("testuser:testpass"))
+	if value := req.Header.Get("Authorization"); value != expected {
+		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
 	}
 }
 
