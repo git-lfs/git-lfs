@@ -1,15 +1,15 @@
 Name:           git-lfs	
 Version:        0.5.1
-Release:	1%{?dist}
+Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
 Group:          Applications/Archiving
 License:        MIT
-URL:		https://git-lfs.github.com/
-Source0:	https://github.com/github/git-lfs/archive/v%{version}.tar.gz
+URL:            https://git-lfs.github.com/
+Source0:        https://github.com/github/git-lfs/archive/v%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:	golang, tar, which, bison, rubygem-ronn, git
-Requires:	git
+BuildRequires:  golang, tar, which, bison, rubygem-ronn, git
+Requires:       git
 
 %if 0%{?rhel} == 7
   #Umm... excuse me what?

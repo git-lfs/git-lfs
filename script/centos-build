@@ -53,8 +53,10 @@ if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
       ./run.bash | true
     popd
   fi
-  export GOROOT=`pwd`/go
-  export PATH=${PATH}:${GOROOT}/bin
+  #If go isn't in the path, then it's in the go dir, so add it to the path
+  if ! which gofmt > /dev/null 2>&1; then
+    export PATH=${PATH}:`pwd`/go/bin
+  fi
 fi
 
 mkdir -p src/github.com/github

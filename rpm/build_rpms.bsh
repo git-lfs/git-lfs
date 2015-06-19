@@ -4,9 +4,12 @@ set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 SPEC=${CURDIR}/SPECS/git-lfs.spec
-#VERSION=$(\grep "^Version:" ${SPEC} | \grep -Eo [0-9.]+)
 VERSION=$(\grep '^const Version' "${CURDIR}/../lfs/lfs.go" | sed 's|const Version = "\([0-9.]*\)"|\1|')
-RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}")
+if [[ ${NODEPS:-0} == 0 ]]; then
+  RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}")
+else
+  RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --nodeps)
+fi
 LOG=${CURDIR}/build.log
 SUDO=${SUDO=sudo}
 export PATH=${PATH}:/usr/local/bin
