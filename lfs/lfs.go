@@ -11,7 +11,7 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-const Version = "0.5.1"
+const Version = "0.5.2"
 
 //
 // Setup permissions for the given directories used here.
