@@ -1,51 +1,12 @@
-# Git LFS API
+# Git LFS v1 Original API
 
-The server implements a simple API for uploading and downloading binary content.
-Git repositories that use Git LFS will specify a URI endpoint.  See the
-[specification](spec.md) for how Git LFS determines the server endpoint to use.
+This describes the original API for Git LFS v0.5.x. It's already deprecated by
+the [batch API][batch].  All requests should have:
 
-Use that endpoint as a base, and append the following relative paths to upload
-and download from the Git LFS server.
+    Accept: application/vnd.git-lfs+json
+    Content-Type: application/vnd.git-lfs+json
 
-API requests require an Accept header of `application/vnd.git-lfs+json`. The
-upload and verify requests need a `application/vnd.git-lfs+json` Content-Type
-too.
-
-## Authentication
-
-The Git LFS API uses [git credentials](http://git-scm.com/docs/gitcredentials) to
-access the API username and password.  If the Git LFS domain matches the Git
-remote's, Git LFS will not prompt you again to enter the password.
-
-If the Git remote is using SSH, Git LFS will execute the `git-lfs-authenticate`
-command.  It passes the SSH path, the Git LFS operation (upload or download),
-and the object OID as arguments. A successful result outputs a JSON link object
-to STDOUT.  This is applied to any Git LFS API request before git credentials
-are accessed.
-
-```
-# remote: git@github.com:user/repo.git
-$ ssh git@github.com git-lfs-authenticate user/repo.git download {oid}
-{
-  "header": {
-    "Authorization": "Basic ..."
-  }
-  // OPTIONAL key only needed if the Git LFS server is not hosted at the default
-  // URL from the Git remote:
-  //   https://github.com/user/repo.git/info/lfs
-  "href": "https://other-server.com/user/repo",
-}
-```
-
-If Git LFS detects a non-zero exit status, it displays the command's STDERR:
-
-```
-$ ssh git@github.com git-lfs-authenticate user/repo.git wat {oid}
-Invalid LFS operation: "wat"
-```
-
-NOTE: The Git LFS client currently does not cache the headers from the SSH
-command.  This is being considered for a future release.
+[batch]: ./http-v1-batch.md
 
 ## API Responses
 
@@ -122,36 +83,6 @@ for other HTTP verbs on a 307 HTTP status.
 
 Note: the 308 HTTP status is not official, and has conflicting proposals for its
 intended use.  It is not supported as a redirection.
-
-## Hypermedia
-
-The Git LFS API uses hypermedia hints to instruct the client what to do next.
-These links are included in a `_links` property.  Possible relations for objects
-include:
-
-* `self` - This points to the object's canonical API URL.
-* `download` - Follow this link with a GET and the optional header values to
-download the object content.
-* `upload` - Upload the object content to this link with a PUT.
-* `verify` - Optional link for the client to POST after an upload.  If
-included, the client assumes this step is required after uploading an object.
-See the "Verification" section below for more.
-
-Link relations specify the `href`, and optionally a collection of header values
-to set for the request.  These are optional, and depend on the backing object
-store that the Git LFS API is using.  
-
-The Git LFS client will automatically send the same credentials to the followed
-link relation as Basic Authentication IF:
-
-* The url scheme, host, and port all match the Git LFS API endpoint's.
-* The link relation does not specify an Authorization header.
-
-If the host name is different, the Git LFS API needs to send enough information
-through the href query or header values to authenticate the request.
-
-The Git LFS client expects a 200 or 201 response from these hypermedia requests.
-Any other response code is treated as an error.
 
 ## GET /objects/{oid}
 
@@ -265,94 +196,3 @@ only appears on a 200 status.
 * 401 - The authentication credentials are incorrect.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
-
-## POST /objects/batch
-
-This request retrieves the metadata for a batch of objects, given a JSON body
-containing an object with an array of objects with the oid and size of each object.
-
-NOTE: This is an experimental API that is subject to change. It will ship disabled
-by default in Git LFS v0.5.2. You can enable it if your Git LFS server supports it
-with `git config lfs.batch true`.
-
-```
-> POST https://git-lfs-server.com/objects/batch HTTP/1.1
-> Accept: application/vnd.git-lfs+json
-> Content-Type: application/vnd.git-lfs+json
-> Authorization: Basic ... (if authentication is needed)
->
-> {
->   "objects": [
->     {
->       "oid": "1111111",
->       "size": 123
->     }
->   ]
-> }
->
-< HTTP/1.1 200 Accepted
-< Content-Type: application/vnd.git-lfs+json
-<
-< {
-<   "objects": [
-<     {
-<       "oid": "1111111",
-<       "_links": {
-<         "upload": {
-<          "href": "https://some-upload.com",
-<           "header": {
-<             "Key": "value"
-<           }
-<         },
-<         "verify": {
-<           "href": "https://some-callback.com",
-<           "header": {
-<             "Key": "value"
-<           }
-<         }
-<       }
->     }
-<   ]
-< }
-```
-
-The response will be an object containing an array of objects with one of
-multiple link relations, each with an `href` property and an optional `header`
-property.
-
-* `upload` - This relation describes how to upload the object.  Expect this with
-when the object has not been previously uploaded.
-* `verify` - The server can specify a URL for the client to hit after
-successfully uploading an object.  This is an optional relation for the case that
-the server has not verified the object.
-* `download` - This relation describes how to download the object content.  This
-only appears if an object has been previously uploaded.
-
-### Responses
-
-* 200 - OK
-* 401 - The authentication credentials are incorrect.
-* 403 - The user has **read**, but not **write** access.
-* 404 - The repository does not exist for the user.
-
-## Verification
-
-When Git LFS clients issue a POST request to initiate an object upload, the
-response can potentially return a "verify" link relation.  If given, The Git LFS
-API expects a POST to the href after a successful upload.  Git LFS clients send:
-
-* `oid` - The String OID of the Git LFS object.
-* `size` - The integer size of the Git LFS object, in bytes.
-
-```
-> POST https://git-lfs-server.com/callback
-> Accept: application/vnd.git-lfs+json
-> Content-Type: application/vnd.git-lfs+json
-> Content-Length: 123
->
-> {"oid": "{oid}", "size": 10000}
->
-< HTTP/1.1 200 OK
-```
-
-A 200 response means that the object exists on the server.

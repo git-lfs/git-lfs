@@ -5,14 +5,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/github/git-lfs/git"
+)
+
+var (
+	Config        = NewConfig()
+	defaultRemote = "origin"
 )
 
 type Configuration struct {
@@ -27,18 +30,6 @@ type Configuration struct {
 	gitConfig map[string]string
 	remotes   []string
 }
-
-type Endpoint struct {
-	Url            string
-	SshUserAndHost string
-	SshPath        string
-}
-
-var (
-	Config        = NewConfig()
-	httpPrefixRe  = regexp.MustCompile("\\Ahttps?://")
-	defaultRemote = "origin"
-)
 
 func NewConfig() *Configuration {
 	c := &Configuration{
@@ -132,41 +123,6 @@ func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	return Endpoint{}
 }
 
-const ENDPOINT_URL_UNKNOWN = "<unknown>"
-
-// Create a new endpoint from a URL associated with a git clone URL
-// The difference to NewEndpoint is that it appends [.git]/info/lfs to the URL since it
-// is the clone URL
-func NewEndpointFromCloneURL(url string) Endpoint {
-	e := NewEndpoint(url)
-	if e.Url != ENDPOINT_URL_UNKNOWN {
-		// When using main remote URL for HTTP, append info/lfs
-		if path.Ext(url) == ".git" {
-			e.Url += "/info/lfs"
-		} else {
-			e.Url += ".git/info/lfs"
-		}
-	}
-	return e
-}
-
-// Create a new endpoint from a general URL
-func NewEndpoint(url string) Endpoint {
-	e := Endpoint{Url: url}
-
-	if !httpPrefixRe.MatchString(url) {
-		pieces := strings.SplitN(url, ":", 2)
-		hostPieces := strings.SplitN(pieces[0], "@", 2)
-		if len(hostPieces) == 2 {
-			e.SshUserAndHost = pieces[0]
-			e.SshPath = pieces[1]
-			e.Url = fmt.Sprintf("https://%s/%s", hostPieces[1], pieces[1])
-		}
-	}
-
-	return e
-}
-
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
 	return c.remotes
@@ -185,19 +141,6 @@ func (c *Configuration) SetConfig(key, value string) {
 
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
-}
-
-func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
 }
 
 func (c *Configuration) loadGitConfig() {

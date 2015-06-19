@@ -265,6 +265,13 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 		return nil, nil
 	}
 
+	if obj.Oid == "" {
+		obj.Oid = oid
+	}
+	if obj.Size == 0 {
+		obj.Size = reqObj.Size
+	}
+
 	return obj, nil
 }
 
@@ -345,10 +352,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
-		if creds != nil {
-			saveCredentials(creds, res)
-		}
-
+		saveCredentials(creds, res)
 		wErr = handleResponse(res)
 	}
 
@@ -573,20 +577,32 @@ func getCreds(req *http.Request) (Creds, error) {
 		return nil, err
 	}
 
-	if req.URL.Scheme == apiUrl.Scheme &&
-		req.URL.Host == apiUrl.Host {
-		creds, err := credentials(req.URL)
-		if err != nil {
-			return nil, err
-		}
-
-		token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
-		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
-		req.Header.Set("Authorization", auth)
-		return creds, nil
+	if req.URL.Scheme != apiUrl.Scheme ||
+		req.URL.Host != apiUrl.Host {
+		return nil, nil
 	}
 
-	return nil, nil
+	if apiUrl.User != nil {
+		if pass, ok := apiUrl.User.Password(); ok {
+			fmt.Fprintln(os.Stderr, "warning: configured Git LFS endpoint contains credentials")
+			setRequestAuth(req, apiUrl.User.Username(), pass)
+			return nil, nil
+		}
+	}
+
+	creds, err := credentials(req.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	setRequestAuth(req, creds["username"], creds["password"])
+	return creds, nil
+}
+
+func setRequestAuth(req *http.Request, user, pass string) {
+	token := fmt.Sprintf("%s:%s", user, pass)
+	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	req.Header.Set("Authorization", auth)
 }
 
 func setErrorResponseContext(err *WrappedError, res *http.Response) {
