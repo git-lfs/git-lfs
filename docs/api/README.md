@@ -12,10 +12,8 @@ the objects.
 ## HTTP API
 
 The Git LFS HTTP API is responsible for authenticating the user requests, and
-returning the proper info for the Git LFS client to use the storage API.
-
-The [specification](spec.md) describes how clients can configure the Git LFS
-API endpoint. By default, it's based on the current Git remote. For example:
+returning the proper info for the Git LFS client to use the storage API. By
+default, API endpoint is based on the current Git remote. For example:
 
 ```
 Git remote: https://git-server.com/user/repo.git
@@ -25,20 +23,23 @@ Git remote: git@git-server.com:user/repo.git
 Git LFS endpoint: https://git-server.com/user/repo.git/info/lfs
 ```
 
-As of Git LFS v0.5.2, the [original v1 API][v1] is used. An experimental
-[v1 batch API][batch] is in the works for v0.6.x+.
+The [specification](spec.md) describes how clients can configure the Git LFS
+API endpoint manually.
+
+The [original v1 API][v1] is used for Git LFS v0.5.x. An experimental [v1
+batch API][batch] is in the works for v0.6.x.
 
 [v1]: ./http-v1-original.md
 [batch]: ./http-v1-batch.md
 
 ### Authentication
 
-HTTP Basic Authentication is used to send authentication. The credentials can
-come from the following places:
+The Git LFS API uses HTTP Basic Authentication to authorize requests. The
+credentials can come from the following places:
 
 1. Specified in the URL: `https://user:password@git-server.com/user/repo.git/info/lfs`.
-This is not recommended because it relies on the credentials living in your
-local git config.
+This is not recommended for security reasons because it relies on the 
+credentials living in your local git config.
 2. `git-credential` will either retrieve the stored credentials for your Git
 host, or ask you to provide them. Successful requests will store the credentials
 for later if you have a [good git credential cacher](https://help.github.com/articles/caching-your-github-password-in-git/).
@@ -111,9 +112,9 @@ Any other response code is treated as an error.
 
 The Storage API is a generic API for directly uploading and downloading objects.
 Git LFS servers can offload object storage to cloud services like S3, or
-implement the simple actions natively. The only requirement is that hypermedia
-objects from the Git LFS API return enough information for Git LFS clients to
-upload and download the objects.
+implemented natively in the Git LFS server. The only requirement is that 
+hypermedia objects from the Git LFS API return the correct headers so clients
+can access the storage API properly.
 
 The client downloads objects through individual GET requests. The URL and any
 special headers are provided by  a "download" hypermedia link:
