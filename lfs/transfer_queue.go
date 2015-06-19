@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -17,6 +18,7 @@ type Transferable interface {
 	Object() *objectResource
 	Oid() string
 	Size() int64
+	Name() string
 	SetObject(*objectResource)
 }
 
@@ -201,11 +203,37 @@ func (q *TransferQueue) Process() {
 		}
 	}()
 
+	// This goroutine will send progress output to GIT_LFS_PROGRESS if it has been set
+	progressc := make(chan string, 100)
+	go func() {
+		output, err := newProgressLogger()
+		if err != nil {
+			q.errorc <- Error(err)
+		}
+
+		for l := range progressc {
+			if err := output.Write([]byte(l)); err != nil {
+				q.errorc <- Error(err)
+				output.Shutdown()
+			}
+		}
+
+		output.Close()
+	}()
+
+	var transferCount = int64(0)
+	direction := "push"
+	if q.transferKind == "download" {
+		direction = "pull"
+	}
+
 	for i := 0; i < q.workers; i++ {
 		// These are the worker goroutines that process transfers
 		go func() {
 			for transfer := range q.transferc {
+				c := atomic.AddInt64(&transferCount, 1)
 				cb := func(total, read int64, current int) error {
+					progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
 					q.bar.Add(current)
 					return nil
 				}
@@ -239,6 +267,7 @@ func (q *TransferQueue) Process() {
 	for _, watcher := range q.watchers {
 		close(watcher)
 	}
+	close(progressc)
 
 	q.bar.Finish()
 }
@@ -246,4 +275,63 @@ func (q *TransferQueue) Process() {
 // Errors returns any errors encountered during transfer.
 func (q *TransferQueue) Errors() []*WrappedError {
 	return q.errors
+}
+
+// progressLogger provides a wrapper around an os.File that can either
+// write to the file or ignore all writes completely.
+type progressLogger struct {
+	writeData bool
+	log       *os.File
+}
+
+// Write will write to the file and perform a Sync() if writing succeeds.
+func (l *progressLogger) Write(b []byte) error {
+	if l.writeData {
+		if _, err := l.log.Write(b); err != nil {
+			return err
+		}
+		return l.log.Sync()
+	}
+	return nil
+}
+
+// Close will call Close() on the underlying file
+func (l *progressLogger) Close() error {
+	if l.log != nil {
+		return l.log.Close()
+	}
+	return nil
+}
+
+// Shutdown will cause the logger to ignore any further writes. It should
+// be used when writing causes an error.
+func (l *progressLogger) Shutdown() {
+	l.writeData = false
+}
+
+// newProgressLogger creates a progressLogger based on the presence of
+// the GIT_LFS_PROGRESS environment variable. If it is present and a log file
+// is able to be created, the logger will write to the file. If it is absent,
+// or there is an err creating the file, the logger will ignore all writes.
+func newProgressLogger() (*progressLogger, error) {
+	logPath := Config.Getenv("GIT_LFS_PROGRESS")
+
+	if len(logPath) == 0 {
+		return &progressLogger{}, nil
+	}
+	if !filepath.IsAbs(logPath) {
+		return &progressLogger{}, fmt.Errorf("GIT_LFS_PROGRESS must be an absolute path")
+	}
+
+	cbDir := filepath.Dir(logPath)
+	if err := os.MkdirAll(cbDir, 0755); err != nil {
+		return &progressLogger{}, err
+	}
+
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return &progressLogger{}, err
+	}
+
+	return &progressLogger{true, file}, nil
 }
