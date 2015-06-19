@@ -307,7 +307,6 @@ func (l *progressLogger) Close() error {
 // be used when writing causes an error.
 func (l *progressLogger) Shutdown() {
 	l.writeData = false
-	l.Close()
 }
 
 // newProgressLogger creates a progressLogger based on the presence of
