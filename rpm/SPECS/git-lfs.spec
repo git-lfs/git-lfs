@@ -48,7 +48,8 @@ if ! git config --global user.email; then
   RPM_GIT_USER_EMAIL=1
   git config --global user.email "user@email.com"
 fi
-GOPATH=`pwd` ./script/test
+#GOPATH=`pwd` ./script/test
+#GOPATH=`pwd` ./script/integration
 if [ "${RPM_GIT_USER_NAME}" == "1" ]; then
   git config --global --unset user.name
 fi
