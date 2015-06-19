@@ -212,8 +212,10 @@ func (q *TransferQueue) Process() {
 		}
 
 		for l := range progressc {
-			output.Write([]byte(l))
-			output.Sync()
+			if err := output.Write([]byte(l)); err != nil {
+				q.errorc <- Error(err)
+				output.Shutdown()
+			}
 		}
 
 		output.Close()
@@ -275,18 +277,25 @@ func (q *TransferQueue) Errors() []*WrappedError {
 	return q.errors
 }
 
+// progressLogger provides a wrapper around an os.File that can either
+// write to the file or ignore all writes completely.
 type progressLogger struct {
 	writeData bool
 	log       *os.File
 }
 
-func (l *progressLogger) Write(b []byte) (int, error) {
+// Write will write to the file and perform a Sync() if writing succeeds.
+func (l *progressLogger) Write(b []byte) error {
 	if l.writeData {
-		return l.log.Write(b)
+		if _, err := l.log.Write(b); err != nil {
+			return err
+		}
+		return l.log.Sync()
 	}
 	return 0, nil
 }
 
+// Close will call Close() on the underlying file
 func (l *progressLogger) Close() error {
 	if l.writeData {
 		return l.log.Close()
@@ -294,13 +303,16 @@ func (l *progressLogger) Close() error {
 	return nil
 }
 
-func (l *progressLogger) Sync() error {
-	if l.writeData {
-		return l.log.Sync()
-	}
-	return nil
+// Shutdown will cause the logger to ignore any further writes. It should
+// be used when writing causes an error.
+func (l *progressLogger) Shutdown() {
+	l.writeData = false
 }
 
+// newProgressLogger creates a progressLogger based on the presence of
+// the GIT_LFS_PROGRESS environment variable. If it is present and a log file
+// is able to be created, the logger will write to the file. If it is absent,
+// or there is an err creating the file, the logger will ignore all writes.
 func newProgressLogger() (*progressLogger, error) {
 	logPath := Config.Getenv("GIT_LFS_PROGRESS")
 
