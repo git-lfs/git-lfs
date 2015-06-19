@@ -8,7 +8,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 These are the features that we feel are important for a v1 release of Git LFS,
 and we have a good idea how they could work.
 
-* Fast, efficient uploading and downloading.
+* Fast, efficient uploading and downloading ([#414](https://github.com/github/git-lfs/issues/414)).
 * `git lfs fetch` command for downloading large files.
 * Automatic GC for the `.git/lfs/objects` directory.
 * Client side metrics reporting, so the Git LFS server can optionally track
