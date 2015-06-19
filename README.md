@@ -6,7 +6,7 @@ binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
 [Git LFS website][page] for a high level overview of features.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
-sending patches. Related projects are listed on the [Implementations wiki page](https://github.com/github/git-lfs/wiki/Implementations)
+sending patches. Related projects are listed on the [Implementations wiki page](https://github.com/github/git-lfs/wiki/Implementations).
 
 [page]: https://git-lfs.github.com/
 
