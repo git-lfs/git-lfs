@@ -7,7 +7,7 @@ help is essential for keeping it great.
 
 Feature requests are welcome, but will have a much better chance of being
 accepted if they meet the first principles for the project. Git LFS is intended
-for the end user, not Git experts. It should fit into the standard workflow as
+for end users, not Git experts. It should fit into the standard workflow as
 much as possible, and require little client configuration.
 
 * Large objects are pushed to Git LFS servers during git push.
