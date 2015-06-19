@@ -292,7 +292,7 @@ func (l *progressLogger) Write(b []byte) error {
 		}
 		return l.log.Sync()
 	}
-	return 0, nil
+	return nil
 }
 
 // Close will call Close() on the underlying file
