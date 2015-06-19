@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -17,6 +18,7 @@ type Transferable interface {
 	Object() *objectResource
 	Oid() string
 	Size() int64
+	Name() string
 	SetObject(*objectResource)
 }
 
@@ -201,11 +203,35 @@ func (q *TransferQueue) Process() {
 		}
 	}()
 
+	// This goroutine will send progress output to GIT_LFS_PROGRESS if it has been set
+	progressc := make(chan string, 100)
+	go func() {
+		output, err := newProgressLogger()
+		if err != nil {
+			q.errorc <- Error(err)
+		}
+
+		for l := range progressc {
+			output.Write([]byte(l))
+			output.Sync()
+		}
+
+		output.Close()
+	}()
+
+	var transferCount = int64(0)
+	direction := "push"
+	if q.transferKind == "download" {
+		direction = "pull"
+	}
+
 	for i := 0; i < q.workers; i++ {
 		// These are the worker goroutines that process transfers
 		go func() {
 			for transfer := range q.transferc {
+				c := atomic.AddInt64(&transferCount, 1)
 				cb := func(total, read int64, current int) error {
+					progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
 					q.bar.Add(current)
 					return nil
 				}
@@ -239,6 +265,7 @@ func (q *TransferQueue) Process() {
 	for _, watcher := range q.watchers {
 		close(watcher)
 	}
+	close(progressc)
 
 	q.bar.Finish()
 }
@@ -246,4 +273,53 @@ func (q *TransferQueue) Process() {
 // Errors returns any errors encountered during transfer.
 func (q *TransferQueue) Errors() []*WrappedError {
 	return q.errors
+}
+
+type progressLogger struct {
+	writeData bool
+	log       *os.File
+}
+
+func (l *progressLogger) Write(b []byte) (int, error) {
+	if l.writeData {
+		return l.log.Write(b)
+	}
+	return 0, nil
+}
+
+func (l *progressLogger) Close() error {
+	if l.writeData {
+		return l.log.Close()
+	}
+	return nil
+}
+
+func (l *progressLogger) Sync() error {
+	if l.writeData {
+		return l.log.Sync()
+	}
+	return nil
+}
+
+func newProgressLogger() (*progressLogger, error) {
+	logPath := Config.Getenv("GIT_LFS_PROGRESS")
+
+	if len(logPath) == 0 {
+		return &progressLogger{}, nil
+	}
+	if !filepath.IsAbs(logPath) {
+		return &progressLogger{}, fmt.Errorf("GIT_LFS_PROGRESS must be an absolute path")
+	}
+
+	cbDir := filepath.Dir(logPath)
+	if err := os.MkdirAll(cbDir, 0755); err != nil {
+		return &progressLogger{}, err
+	}
+
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return &progressLogger{}, err
+	}
+
+	return &progressLogger{true, file}, nil
 }

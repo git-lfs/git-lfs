@@ -11,7 +11,6 @@ type Uploadable struct {
 	oid      string
 	OidPath  string
 	Filename string
-	CB       CopyCallback
 	size     int64
 	object   *objectResource
 }
@@ -32,16 +31,7 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	cb, file, cbErr := CopyCallbackFile("push", filename, index, totalFiles)
-	if cbErr != nil {
-		fmt.Fprintln(os.Stderr, cbErr.Error())
-	}
-
-	if file != nil {
-		defer file.Close()
-	}
-
-	return &Uploadable{oid: oid, OidPath: path, Filename: filename, CB: cb, size: fi.Size()}, nil
+	return &Uploadable{oid: oid, OidPath: path, Filename: filename, size: fi.Size()}, nil
 }
 
 func (u *Uploadable) Check() (*objectResource, *WrappedError) {
@@ -51,9 +41,6 @@ func (u *Uploadable) Check() (*objectResource, *WrappedError) {
 func (u *Uploadable) Transfer(cb CopyCallback) *WrappedError {
 	wcb := func(total, read int64, current int) error {
 		cb(total, read, current)
-		if u.CB != nil {
-			return u.CB(total, read, current)
-		}
 		return nil
 	}
 
@@ -70,6 +57,10 @@ func (u *Uploadable) Oid() string {
 
 func (u *Uploadable) Size() int64 {
 	return u.size
+}
+
+func (u *Uploadable) Name() string {
+	return u.Filename
 }
 
 func (u *Uploadable) SetObject(o *objectResource) {
