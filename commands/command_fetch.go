@@ -53,6 +53,8 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not fetch the current git ref")
 	}
 
+	finished := make(chan int)
+
 	if target == current {
 		// We just downloaded the files for the current ref, we can copy them into
 		// the working directory and update the git index. We're doing this in a
@@ -100,12 +102,16 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			if err := cmd.Wait(); err != nil {
 				Panic(err, "Error updating the git index")
 			}
+			close(finished)
 		}()
-
-		processQueue := time.Now()
-		q.Process()
-		tracerx.PerformanceSince("process queue", processQueue)
+	} else {
+		close(finished)
 	}
+
+	processQueue := time.Now()
+	q.Process()
+	tracerx.PerformanceSince("process queue", processQueue)
+	<-finished
 }
 
 func init() {
