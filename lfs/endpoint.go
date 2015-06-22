@@ -52,6 +52,8 @@ func NewEndpoint(rawurl string) Endpoint {
 			// Just passthrough to preserve
 			endpoint = Endpoint{Url: rawurl}
 		}
+	} else {
+		endpoint = Endpoint{Url: EndpointUrlUnknown}
 	}
 
 	return endpoint
