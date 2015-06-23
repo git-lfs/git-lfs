@@ -201,6 +201,9 @@ func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
 	if wErr != nil {
 		if res != nil {
 			switch res.StatusCode {
+			case 401:
+				Config.SetPrivateAccess()
+				return Batch(objects)
 			case 404, 410:
 				tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
 				sendApiEvent(apiEventFail)

@@ -126,6 +126,17 @@ func (c *Configuration) PrivateAccess() bool {
 	return false
 }
 
+func (c *Configuration) SetPrivateAccess() {
+	configFile := filepath.Join(LocalGitDir, "config")
+	git.Config.SetLocal(configFile, "lfs.access", "private")
+
+	// Modify the config cache because it's checked again in this process
+	// without being reloaded.
+	c.loading.Lock()
+	c.gitConfig["lfs.access"] = "private"
+	c.loading.Unlock()
+}
+
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
@@ -233,7 +244,13 @@ func (c *Configuration) loadGitConfig() {
 		panic(fmt.Errorf("Error listing git config from file: %s", err))
 	}
 
-	output = fileOutput + "\n" + listOutput
+	localConfig := filepath.Join(LocalGitDir, "config")
+	localOutput, err := git.Config.ListFromFile(localConfig)
+	if err != nil {
+		panic(fmt.Errorf("Error listing git config from file %s", err))
+	}
+
+	output = fileOutput + "\n" + listOutput + "\n" + localOutput
 
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
