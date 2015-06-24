@@ -108,6 +108,10 @@ func (c *Configuration) BatchTransfer() bool {
 	return false
 }
 
+// PrivateAccess will retrieve the access value and return true if
+// the value is set to private. When a repo is marked as having private
+// access, the http requests for the batch api will fetch the credentials
+// before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess() bool {
 	if v, ok := c.GitConfig("lfs.access"); ok {
 		if strings.ToLower(v) == "private" {
@@ -117,6 +121,7 @@ func (c *Configuration) PrivateAccess() bool {
 	return false
 }
 
+// SetPrivateAccess will set the private access flag in .git/config.
 func (c *Configuration) SetPrivateAccess() {
 	configFile := filepath.Join(LocalGitDir, "config")
 	git.Config.SetLocal(configFile, "lfs.access", "private")
