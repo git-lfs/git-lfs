@@ -174,17 +174,12 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-type batchRep struct {
-	Objects   []*objectResource `json:"objects"`
-	Operation string            `json:"operation"`
-}
-
 func Batch(objects []*objectResource, operation string) ([]*objectResource, *WrappedError) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	br := &batchRep{Objects: objects, Operation: operation}
+	br := map[string]interface{}{"objects": objects, "operation": operation}
 
 	by, err := json.Marshal(br)
 	if err != nil {
