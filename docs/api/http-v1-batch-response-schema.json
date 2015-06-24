@@ -12,7 +12,7 @@
             "type": "string"
           },
           "size": {
-            "type": "number",
+            "type": "number"
           },
           "actions": {
             "type": "object"
