@@ -11,6 +11,9 @@
           "oid": {
             "type": "string"
           },
+          "size": {
+            "type": "number",
+          },
           "actions": {
             "type": "object"
           }
