@@ -431,7 +431,7 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	return res, obj, nil
 }
 
-// doApiRequest runs the request to the batch API. If the API returns a 401,
+// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
 // the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
