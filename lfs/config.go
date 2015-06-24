@@ -131,7 +131,7 @@ func (c *Configuration) SetPrivateAccess() {
 	// Modify the config cache because it's checked again in this process
 	// without being reloaded.
 	c.loading.Lock()
-	c.gitConfig["lfs.access"] = "private"
+	c.gitConfig[key] = "private"
 	c.loading.Unlock()
 }
 
