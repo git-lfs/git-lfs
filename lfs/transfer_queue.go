@@ -134,7 +134,7 @@ func (q *TransferQueue) processBatch() error {
 		transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
 	}
 
-	objects, err := Batch(transfers)
+	objects, err := Batch(transfers, q.transferKind)
 	if err != nil {
 		if isNotImplError(err) {
 			tracerx.Printf("queue: batch not implemented, disabling")

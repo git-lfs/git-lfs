@@ -174,14 +174,19 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+type batchRep struct {
+	Objects   []*objectResource `json:"objects"`
+	Operation string            `json:"operation"`
+}
+
+func Batch(objects []*objectResource, operation string) ([]*objectResource, *WrappedError) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	o := map[string][]*objectResource{"objects": objects}
+	br := &batchRep{Objects: objects, Operation: operation}
 
-	by, err := json.Marshal(o)
+	by, err := json.Marshal(br)
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -203,7 +208,7 @@ func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
 			switch res.StatusCode {
 			case 401:
 				Config.SetPrivateAccess()
-				return Batch(objects)
+				return Batch(objects, operation)
 			case 404, 410:
 				tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
 				sendApiEvent(apiEventFail)
