@@ -11,13 +11,13 @@ REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
 
 if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
   pushd /tmp
-  #Don't know why rpm -Uvh {url} doesn't work... Probably 302
-  if ! rpm -q epel-release; then
-    yum install -y curl.x86_64 #Centos 5 isn't as smart about not downloading 32 bit
-    curl -L -O http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm 
-    rpm -Uvh epel-release-5-4.noarch.rpm
-    rm epel-release-5-4.noarch.rpm
-  fi
+    #Don't know why rpm -Uvh {url} doesn't work... Probably 302
+    if ! rpm -q epel-release; then
+      yum install -y curl.x86_64 #Centos 5 isn't as smart about not downloading 32 bit
+      curl -L -O http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm 
+      rpm -Uvh epel-release-5-4.noarch.rpm
+      rm epel-release-5-4.noarch.rpm
+    fi
   popd
   yum install -y bison git make man which
 else
@@ -29,6 +29,7 @@ else
 fi
 
 cd $(dirname ${BASH_SOURCE[0]})
+
 if git rev-parse; then
   cd $(git rev-parse --show-toplevel)
 elif [ -e bootstrap ];then
@@ -52,12 +53,16 @@ if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
       ./run.bash | true
     popd
   fi
-  export GOROOT=`pwd`/go
-  export PATH=${PATH}:${GOROOT}/bin
+  #If go isn't in the path, then it's in the go dir, so add it to the path
+  if ! which gofmt > /dev/null 2>&1; then
+    export PATH=${PATH}:`pwd`/go/bin
+  fi
 fi
 
 mkdir -p src/github.com/github
-ln -s $(pwd) src/github.com/github/git-lfs
+if [ ! -e "src/github.com/github/git-lfs" ]; then
+  ln -s $(pwd) src/github.com/github/git-lfs
+fi
 GOPATH=`pwd` ./script/bootstrap
 
 install -D bin/git-lfs /usr/local/bin
