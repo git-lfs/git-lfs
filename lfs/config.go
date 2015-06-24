@@ -113,7 +113,8 @@ func (c *Configuration) BatchTransfer() bool {
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess() bool {
-	if v, ok := c.GitConfig("lfs.access"); ok {
+	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
+	if v, ok := c.GitConfig(key); ok {
 		if strings.ToLower(v) == "private" {
 			return true
 		}
@@ -123,8 +124,9 @@ func (c *Configuration) PrivateAccess() bool {
 
 // SetPrivateAccess will set the private access flag in .git/config.
 func (c *Configuration) SetPrivateAccess() {
+	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
 	configFile := filepath.Join(LocalGitDir, "config")
-	git.Config.SetLocal(configFile, "lfs.access", "private")
+	git.Config.SetLocal(configFile, key, "private")
 
 	// Modify the config cache because it's checked again in this process
 	// without being reloaded.
