@@ -206,9 +206,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	if wErr != nil {
 		if res != nil {
 			switch res.StatusCode {
-			case 401:
-				Config.SetPrivateAccess()
-				return Batch(objects, operation)
 			case 404, 410:
 				tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
 				sendApiEvent(apiEventFail)
@@ -433,6 +430,12 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
+
+	if res != nil && res.StatusCode == 401 {
+		Config.SetPrivateAccess()
+		res, wErr = doApiRequestWithRedirects(req, creds, via)
+	}
+
 	if wErr != nil {
 		return res, nil, wErr
 	}
