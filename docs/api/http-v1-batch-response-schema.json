@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "title": "Git LFS HTTPS Batch API v1 Response",
+  "type": "object",
+  "properties": {
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "oid": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
