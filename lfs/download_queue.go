@@ -33,6 +33,10 @@ func (d *Downloadable) Size() int64 {
 	return d.Pointer.Size
 }
 
+func (d *Downloadable) Name() string {
+	return d.Pointer.Name
+}
+
 func (d *Downloadable) SetObject(o *objectResource) {
 	d.object = o
 }
