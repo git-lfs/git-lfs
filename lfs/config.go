@@ -119,7 +119,7 @@ func (c *Configuration) BatchTransfer() bool {
 
 func (c *Configuration) PrivateAccess() bool {
 	if v, ok := c.GitConfig("lfs.access"); ok {
-		if v == "private" || v == "PRIVATE" {
+		if strings.ToLower(v) == "private" {
 			return true
 		}
 	}
