@@ -179,9 +179,9 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 		return nil, nil
 	}
 
-	br := map[string]interface{}{"objects": objects, "operation": operation}
+	o := map[string]interface{}{"objects": objects, "operation": operation}
 
-	by, err := json.Marshal(br)
+	by, err := json.Marshal(o)
 	if err != nil {
 		return nil, Error(err)
 	}
