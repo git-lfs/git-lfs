@@ -9,7 +9,7 @@ import (
 )
 
 type cleanedAsset struct {
-	File *os.File
+	Filename string
 	*Pointer
 }
 
@@ -27,6 +27,8 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 		return nil, err
 	}
 
+	defer tmp.Close()
+
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
 
@@ -43,13 +45,9 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 	written, err := CopyWithCallback(writer, multi, size, cb)
 
 	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
-	return &cleanedAsset{tmp, pointer}, err
-}
-
-func (a *cleanedAsset) Close() error {
-	return a.File.Close()
+	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
 func (a *cleanedAsset) Teardown() error {
-	return os.Remove(a.File.Name())
+	return os.Remove(a.Filename)
 }

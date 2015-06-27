@@ -46,7 +46,6 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if cleaned != nil {
-		cleaned.Close()
 		defer cleaned.Teardown()
 	}
 
@@ -59,7 +58,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error cleaning asset.")
 	}
 
-	tmpfile := cleaned.File.Name()
+	tmpfile := cleaned.Filename
 	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
 	if err != nil {
 		Panic(err, "Unable to get local media path.")

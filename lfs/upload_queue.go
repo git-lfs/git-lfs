@@ -100,7 +100,9 @@ func ensureFile(smudgePath, cleanPath string) error {
 		return err
 	}
 
-	cleaned.Close()
+	if cleaned != nil {
+		defer cleaned.Teardown()
+	}
 
 	if expectedOid != cleaned.Oid {
 		return fmt.Errorf("Expected %s to have an OID of %s, got %s", smudgePath, expectedOid, cleaned.Oid)
