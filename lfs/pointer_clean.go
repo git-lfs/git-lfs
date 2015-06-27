@@ -9,8 +9,7 @@ import (
 )
 
 type cleanedAsset struct {
-	File          *os.File
-	mediafilepath string
+	File *os.File
 	*Pointer
 }
 
@@ -44,7 +43,7 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 	written, err := CopyWithCallback(writer, multi, size, cb)
 
 	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
-	return &cleanedAsset{tmp, "", pointer}, err
+	return &cleanedAsset{tmp, pointer}, err
 }
 
 func (a *cleanedAsset) Close() error {
