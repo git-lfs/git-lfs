@@ -106,7 +106,7 @@ begin_test "pre-push with existing file"
   reponame="$(basename "$0" ".sh")-existing-file"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" dry-run2
+  clone_repo "$reponame" existing-file
   echo "existing" > existing.dat
   git add existing.dat
   git commit -m "add existing dat"
@@ -135,5 +135,49 @@ begin_test "pre-push with existing file"
     cat lfs.json
     exit 1
   }
+)
+end_test
+
+begin_test "pre-push with existing pointer"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-existing-pointer"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" existing-pointer
+
+  echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
+  git add new.dat
+  git commit -m "add new pointer"
+  mkdir -p .git/lfs/objects/7a/a7
+  echo "new" > .git/lfs/objects/7a/a7/7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c
+
+  # push file to the git lfs server
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  grep "(1 of 1 files)" push.log
+)
+end_test
+
+begin_test "pre-push with missing pointer"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-missing-pointer"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" missing-pointer
+
+  echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
+  git add new.dat
+  git commit -m "add new pointer"
+
+  # assert that push fails
+  set +e
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  set -e
+  grep "new.dat is an LFS pointer to 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c, which does not exist in .git/lfs/objects" push.log
 )
 end_test

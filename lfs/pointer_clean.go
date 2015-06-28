@@ -14,7 +14,8 @@ type cleanedAsset struct {
 }
 
 type CleanedPointerError struct {
-	Bytes []byte
+	Pointer *Pointer
+	Bytes   []byte
 }
 
 func (e *CleanedPointerError) Error() string {
@@ -36,9 +37,9 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 		cb = nil
 	}
 
-	by, _, err := DecodeFrom(reader)
+	by, ptr, err := DecodeFrom(reader)
 	if err == nil && len(by) < 512 {
-		return nil, &CleanedPointerError{by}
+		return nil, &CleanedPointerError{ptr, by}
 	}
 
 	multi := io.MultiReader(bytes.NewReader(by), reader)
