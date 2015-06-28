@@ -34,6 +34,20 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 	return &Uploadable{oid: oid, OidPath: path, Filename: filename, size: fi.Size()}, nil
 }
 
+func NewUploadableWithoutFilename(oid string) (*Uploadable, *WrappedError) {
+	path, err := LocalMediaPath(oid)
+	if err != nil {
+		return nil, Errorf(err, "Error uploading file %s", oid)
+	}
+
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, Errorf(err, "Error uploading file %s", oid)
+	}
+
+	return &Uploadable{oid: oid, OidPath: path, Filename: "", size: fi.Size()}, nil
+}
+
 func (u *Uploadable) Check() (*objectResource, *WrappedError) {
 	return UploadCheck(u.OidPath)
 }
