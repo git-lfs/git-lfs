@@ -126,12 +126,16 @@ setup() {
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
 
   mkdir $HOME
-  git config -f "$HOME/.gitconfig" filter.lfs.required true
-  git config -f "$HOME/.gitconfig" filter.lfs.smudge "git lfs smudge %f"
-  git config -f "$HOME/.gitconfig" filter.lfs.clean "git lfs clean %f"
-  git config -f "$HOME/.gitconfig" credential.helper lfstest
-  git config -f "$HOME/.gitconfig" user.name "Git LFS Tests"
-  git config -f "$HOME/.gitconfig" user.email "git-lfs@example.com"
+  git lfs init
+  git config --global credential.helper lfstest
+  git config --global user.name "Git LFS Tests"
+  git config --global user.email "git-lfs@example.com"
+  grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
+    echo "global git config should be set in $REMOTEDIR/home"
+    ls -al "$REMOTEDIR/home"
+    exit 1
+  }
+  cp "$HOME/.gitconfig" "$HOME/.gitconfig-backup"
 
   wait_for_file "$LFS_URL_FILE"
 }
