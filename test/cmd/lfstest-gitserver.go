@@ -45,6 +45,7 @@ func main() {
 	})
 
 	mux.HandleFunc("/storage/", storageHandler)
+	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			log.Printf("git lfs %s %s\n", r.Method, r.URL)
@@ -299,4 +300,23 @@ func gitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	io.Copy(w, text.R)
+}
+
+func redirect307Handler(w http.ResponseWriter, r *http.Request) {
+	// Send a redirect to info/lfs
+	// Make it either absolute or relative depending on subpath
+	parts := strings.Split(r.URL.Path, "/")
+	// first element is always blank since rooted
+	var redirectTo string
+	if parts[2] == "rel" {
+		redirectTo = "/" + strings.Join(parts[3:], "/")
+	} else if parts[2] == "abs" {
+		redirectTo = server.URL + "/" + strings.Join(parts[3:], "/")
+	} else {
+		log.Fatal(fmt.Errorf("Invalid URL for redirect: %v", r.URL))
+		w.WriteHeader(404)
+		return
+	}
+	w.Header().Set("Location", redirectTo)
+	w.WriteHeader(307)
 }

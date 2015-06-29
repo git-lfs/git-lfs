@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -374,7 +375,14 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 	}
 
 	if res.StatusCode == 307 {
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
+		redirectTo := res.Header.Get("Location")
+		locurl, err := url.Parse(redirectTo)
+		if err == nil && !locurl.IsAbs() {
+			locurl = req.URL.ResolveReference(locurl)
+			redirectTo = locurl.String()
+		}
+
+		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo)
 		if err != nil {
 			return res, Errorf(err, err.Error())
 		}
