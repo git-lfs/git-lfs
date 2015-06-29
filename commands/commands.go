@@ -33,7 +33,10 @@ var (
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {
-	line := fmt.Sprintf(format, args...)
+	line := format
+	if len(args) > 0 {
+		line = fmt.Sprintf(format, args...)
+	}
 	fmt.Fprintln(ErrorWriter, line)
 }
 
