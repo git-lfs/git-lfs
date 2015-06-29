@@ -31,7 +31,7 @@ type TransferQueue struct {
 	wg               sync.WaitGroup
 	workers          int
 	files            int
-	finished         int64
+	finished         int32
 	size             int64
 	authCond         *sync.Cond
 	transferables    map[string]Transferable
@@ -221,7 +221,7 @@ func (q *TransferQueue) Process() {
 		output.Close()
 	}()
 
-	var transferCount = int64(0)
+	var transferCount = int32(0)
 	direction := "push"
 	if q.transferKind == "download" {
 		direction = "pull"
@@ -231,7 +231,7 @@ func (q *TransferQueue) Process() {
 		// These are the worker goroutines that process transfers
 		go func() {
 			for transfer := range q.transferc {
-				c := atomic.AddInt64(&transferCount, 1)
+				c := atomic.AddInt32(&transferCount, 1)
 				cb := func(total, read int64, current int) error {
 					progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
 					q.bar.Add(current)
@@ -247,7 +247,7 @@ func (q *TransferQueue) Process() {
 					}
 				}
 
-				f := atomic.AddInt64(&q.finished, 1)
+				f := atomic.AddInt32(&q.finished, 1)
 				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
 				q.wg.Done()
 			}
