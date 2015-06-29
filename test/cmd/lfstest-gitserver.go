@@ -184,9 +184,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type batchReq struct {
+		Operation string      `json:"operation"`
+		Objects   []lfsObject `json:"objects"`
+	}
+
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
-	var objs map[string][]lfsObject
+	var objs batchReq
 	err := json.NewDecoder(tee).Decode(&objs)
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
@@ -199,7 +204,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := []lfsObject{}
-	for _, obj := range objs["objects"] {
+	for _, obj := range objs.Objects {
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
