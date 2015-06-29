@@ -100,3 +100,63 @@ begin_test "pre-push dry-run"
   grep "404 Not Found" http.log
 )
 end_test
+
+begin_test "pre-push 307 redirects"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-307
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "add git attributes"
+
+  # relative redirect
+  git config remote.origin.lfsurl "$GITSERVER/redirect307/rel/$reponame.git/info/lfs"
+
+  git lfs track "*.dat"
+  echo "hi" > hi.dat
+  git add hi.dat
+  git commit -m "add hi.dat"
+  git show
+  git lfs env
+
+  # push file to the git lfs server
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/redirect307/rel/$reponame.git/info/lfs" 2>&1 |
+    tee push.log
+  grep "(1 of 1 files)" push.log
+
+  # now the file exists
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
+    -u "user:pass" \
+    -o lfs.json \
+    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+  grep "200 OK" http.log
+
+  grep "download" lfs.json || {
+    cat lfs.json
+    exit 1
+  }
+
+  # absolute redirect
+  git config remote.origin.lfsurl "$GITSERVER/redirect307/abs/$reponame.git/info/lfs"
+
+  echo "hi" > hi2.dat
+  git add hi2.dat
+  git commit -m "add hi2.dat"
+  git show
+  git lfs env
+
+  # push file to the git lfs server
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/redirect307/abs/$reponame.git/info/lfs" 2>&1 |
+    tee push.log
+  grep "(1 of 1 files)" push.log
+
+
+)
+end_test

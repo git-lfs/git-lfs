@@ -378,7 +378,6 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 		redirectTo := res.Header.Get("Location")
 		locurl, err := url.Parse(redirectTo)
 		if err == nil && !locurl.IsAbs() {
-			// relative Location headers are allowed & should be supported
 			locurl = req.URL.ResolveReference(locurl)
 			redirectTo = locurl.String()
 		}
