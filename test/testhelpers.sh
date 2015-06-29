@@ -102,15 +102,16 @@ setup() {
   rm -rf "$REMOTEDIR"
   mkdir "$REMOTEDIR"
 
-  if [ -z "$SKIPCOMPILE" ]; then
+  if [ -z "$SKIPCOMPILE" ] && [ -z "$LFS_BIN" ]; then
     echo "compile git-lfs for $0"
     script/bootstrap || {
       return $?
     }
   fi
 
-  echo "Git LFS: $(which git-lfs)"
+  echo "Git LFS: ${LFS_BIN:-(which git-lfs)}"
   git lfs version
+  git version
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
@@ -121,6 +122,7 @@ setup() {
   echo "tmp dir: $TMPDIR"
   echo "remote git dir: $REMOTEDIR"
   echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
+  echo
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
 
   mkdir $HOME
