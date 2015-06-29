@@ -26,7 +26,8 @@ Git LFS v0.6.0.
 The Batch API authenticates the same as the original v1 API with one exception:
 The client will attempt to make requests without any authentication. This
 slight change allows anonymous access to public Git LFS objects. The client
-stores the result of this in the `lfs.access` config setting.
+stores the result of this in the `lfs.<url>.access` config setting, where <url>
+refers to the endpoint's URL.
 
 ## API Responses
 
@@ -91,16 +92,13 @@ When downloading objects through a command such as `git lfs fetch`, the client
 will initially skip authentication if it doesn't know the access level of the
 repository.
 
-* If `lfs.access` is not set, make an unauthenticated request.
-  1. If it returns 200, set `lfs.access` to `public`.
-  2. If it returns 401, set `lfs.access` to `private`.
-* If `lfs.access` is `public`, don't ask the user for authentication. If
-authentication is available in `git credential`, or through `ssh`, then use it.
-* If `lfs.access` is `private`, always send authentication. Ask the user if
+* If `lfs.<url>.access` is not set, make an unauthenticated request.
+  1. If it returns 401, set `lfs.<url>.access` to `private`.
+* If `lfs.<url>.access` is `private`, always send authentication. Ask the user if
 authentication information is not readily available.
 
 When uploading objects through `git lfs push`, Git LFS will always send
-authentication info, regardless of how `lfs.access` is configured.
+authentication info, regardless of how `lfs.<url>.access` is configured.
 
 ```
 > POST https://git-lfs-server.com/objects/batch HTTP/1.1

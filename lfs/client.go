@@ -175,19 +175,19 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+func Batch(objects []*objectResource, operation string) ([]*objectResource, *WrappedError) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	o := map[string][]*objectResource{"objects": objects}
+	o := map[string]interface{}{"objects": objects, "operation": operation}
 
 	by, err := json.Marshal(o)
 	if err != nil {
 		return nil, Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", "batch")
+	req, creds, err := newBatchApiRequest()
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -434,9 +434,19 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	return res, obj, nil
 }
 
+// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
+// the repo will be marked as having private access and the request will be
+// re-run. When the repo is marked as having private access, credentials will
+// be retrieved.
 func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
+
+	if res != nil && res.StatusCode == 401 {
+		Config.SetPrivateAccess()
+		res, wErr = doApiRequestWithRedirects(req, creds, via)
+	}
+
 	if wErr != nil {
 		return res, nil, wErr
 	}
@@ -573,6 +583,63 @@ func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
 	}
 
 	return req, creds, nil
+}
+
+func newBatchApiRequest() (*http.Request, Creds, error) {
+	endpoint := Config.Endpoint()
+
+	res, err := sshAuthenticate(endpoint, "download", "")
+	if err != nil {
+		tracerx.Printf("ssh: attempted with %s.  Error: %s",
+			endpoint.SshUserAndHost, err.Error(),
+		)
+	}
+
+	if len(res.Href) > 0 {
+		endpoint.Url = res.Href
+	}
+
+	u, err := ObjectUrl(endpoint, "batch")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, creds, err := newBatchClientRequest("POST", u.String())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("Accept", mediaType)
+	if res.Header != nil {
+		for key, value := range res.Header {
+			req.Header.Set(key, value)
+		}
+	}
+
+	return req, creds, nil
+}
+
+func newBatchClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+
+	// Get the creds if we're private
+	if Config.PrivateAccess() {
+		// The PrivateAccess() check can be pushed down and this block simplified
+		// once everything goes through the batch endpoint.
+		creds, err := getCreds(req)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return req, creds, nil
+	}
+
+	return req, nil, nil
 }
 
 func getCreds(req *http.Request) (Creds, error) {
