@@ -32,11 +32,12 @@ type transfer struct {
 }
 
 var (
-	// TODO should use some locks
 	transfers           = make(map[*http.Response]*transfer)
 	transferBuckets     = make(map[string][]*http.Response)
 	transfersLock       sync.Mutex
 	transferBucketsLock sync.Mutex
+	dials               [][]string
+	dialsLock           sync.Mutex
 )
 
 func LogTransfer(key string, res *http.Response) {
@@ -44,6 +45,11 @@ func LogTransfer(key string, res *http.Response) {
 		transferBucketsLock.Lock()
 		transferBuckets[key] = append(transferBuckets[key], res)
 		transferBucketsLock.Unlock()
+	}
+}
+
+func LogConnection(network, address string) {
+	if Config.isLoggingStats {
 	}
 }
 
@@ -106,17 +112,30 @@ func DoHTTP(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
+type loggingDialer struct {
+	*net.Dialer
+}
+
+func newLfsDialer() *loggingDialer {
+	d := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
+	return &loggingDialer{d}
+}
+
+func (d *loggingDialer) Dial(network, address string) (net.Conn, error) {
+	dialsLock.Lock()
+	dials = append(dials, []string{network, address})
+	dialsLock.Unlock()
+	return d.Dialer.Dial(network, address)
+}
+
 func (c *Configuration) HttpClient() *HttpClient {
 	if c.httpClient != nil {
 		return c.httpClient
 	}
 
 	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   5 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
+		Proxy:               http.ProxyFromEnvironment,
+		Dial:                (newLfsDialer()).Dial,
 		TLSHandshakeTimeout: 5 * time.Second,
 	}
 
@@ -262,6 +281,10 @@ func LogHttpStats() {
 	}
 
 	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", Config.ConcurrentTransfers(), Config.BatchTransfer(), time.Now().Unix(), Version)
+
+	for _, dial := range dials {
+		fmt.Fprintf(file, "key=connect network=%s address=%s\n", dial[0], dial[1])
+	}
 
 	for key, responses := range transferBuckets {
 		for _, response := range responses {
