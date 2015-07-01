@@ -302,7 +302,11 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
-	req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	if req.Header.Get("Transfer-Encoding") == "chunked" {
+		req.TransferEncoding = []string{"chunked"}
+	} else {
+		req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	}
 	req.ContentLength = o.Size
 
 	req.Body = ioutil.NopCloser(reader)
