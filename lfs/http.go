@@ -137,6 +137,7 @@ func (c *Configuration) HttpClient() *HttpClient {
 		Proxy:               http.ProxyFromEnvironment,
 		Dial:                (newLfsDialer()).Dial,
 		TLSHandshakeTimeout: 5 * time.Second,
+		MaxIdleConnsPerHost: Config.ConcurrentTransfers() * 2,
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
