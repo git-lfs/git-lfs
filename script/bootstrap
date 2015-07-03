@@ -2,5 +2,5 @@
 set -e
 
 script/fmt
-rm -rf `pwd`/bin/*
+rm -rf bin/*
 go run script/*.go -cmd build "$@"
