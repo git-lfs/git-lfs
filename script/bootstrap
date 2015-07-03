@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+if [ -z "$GOPATH" ]; then
+  export GOPATH="$(pwd)"
+  mkdir -p src/github.com/github
+  [ -h src/github.com/github/git-lfs ] ||
+    ln -s "$GOPATH" src/github.com/github/git-lfs
+fi
+
 script/fmt
 rm -rf bin/*
 go run script/*.go -cmd build "$@"
