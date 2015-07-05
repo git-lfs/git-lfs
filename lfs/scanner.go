@@ -49,17 +49,27 @@ type indexFile struct {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
+type ScanRefsOptions struct {
+	SkipDeletedBlobs bool
+	scanAll          bool
+	nameMap          map[string]string
+}
+
 // ScanRefs takes a ref and returns a slice of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
-func ScanRefs(refLeft, refRight string) ([]*WrappedPointer, error) {
-	nameMap := make(map[string]string, 0)
+func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer, error) {
+	if opt == nil {
+		opt = &ScanRefsOptions{}
+	}
+	opt.scanAll = refLeft == ""
+	opt.nameMap = make(map[string]string, 0)
 
 	start := time.Now()
 	defer func() {
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	revs, err := revListShas(refLeft, refRight, refLeft == "", nameMap)
+	revs, err := revListShas(refLeft, refRight, *opt)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +86,7 @@ func ScanRefs(refLeft, refRight string) ([]*WrappedPointer, error) {
 
 	pointers := make([]*WrappedPointer, 0)
 	for p := range pointerc {
-		if name, ok := nameMap[p.Sha1]; ok {
+		if name, ok := opt.nameMap[p.Sha1]; ok {
 			p.Name = name
 		}
 		pointers = append(pointers, p)
@@ -149,12 +159,17 @@ func ScanIndex() ([]*WrappedPointer, error) {
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
-func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) (chan string, error) {
+func revListShas(refLeft, refRight string, opt ScanRefsOptions) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
-	if all {
+	if opt.scanAll {
 		refArgs = append(refArgs, "--all")
 	} else {
-		refArgs = append(refArgs, "--do-walk")
+		if opt.SkipDeletedBlobs {
+			refArgs = append(refArgs, "--no-walk")
+		} else {
+			refArgs = append(refArgs, "--do-walk")
+		}
+
 		refArgs = append(refArgs, refLeft)
 		if refRight != "" && !z40.MatchString(refRight) {
 			refArgs = append(refArgs, refRight)
@@ -180,7 +195,7 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 
 			sha1 := line[0:40]
 			if len(line) > 40 {
-				nameMap[sha1] = line[41:len(line)]
+				opt.nameMap[sha1] = line[41:len(line)]
 			}
 			revs <- sha1
 		}
