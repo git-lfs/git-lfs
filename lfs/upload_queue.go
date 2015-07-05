@@ -26,7 +26,7 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	fi, err := os.Stat(filename)
+	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
