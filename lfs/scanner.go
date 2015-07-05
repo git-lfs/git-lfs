@@ -154,7 +154,7 @@ func revListShas(refLeft, refRight string, all bool, nameMap map[string]string) 
 	if all {
 		refArgs = append(refArgs, "--all")
 	} else {
-		refArgs = append(refArgs, "--no-walk")
+		refArgs = append(refArgs, "--do-walk")
 		refArgs = append(refArgs, refLeft)
 		if refRight != "" && !z40.MatchString(refRight) {
 			refArgs = append(refArgs, refRight)
