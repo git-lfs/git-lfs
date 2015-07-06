@@ -172,6 +172,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 func init() {
 	pushCmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 	pushCmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
-	pushCmd.Flags().BoolVarP(&pushObjectIDs, "objectid", "o", false, "Push LFS object ID(s)")
+	pushCmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
 	RootCmd.AddCommand(pushCmd)
 }
