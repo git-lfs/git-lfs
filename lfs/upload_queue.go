@@ -17,7 +17,7 @@ type Uploadable struct {
 
 // NewUploadable builds the Uploadable from the given information.
 // "filename" can be empty if a raw object is pushed (see "object-id" flag in push command)/
-func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *WrappedError) {
+func NewUploadable(oid, filename string) (*Uploadable, *WrappedError) {
 	localMediaPath, err := LocalMediaPath(oid)
 	if err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)

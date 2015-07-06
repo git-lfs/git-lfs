@@ -41,7 +41,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 		}
 		tracerx.Printf("checking_asset: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
-		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name, i+1, len(pointers))
+		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
@@ -59,7 +59,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
 
 	for _, oid := range oids {
-		u, wErr := lfs.NewUploadable(oid, "", 0, 0)
+		u, wErr := lfs.NewUploadable(oid, "")
 		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
