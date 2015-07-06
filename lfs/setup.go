@@ -76,25 +76,25 @@ func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]boo
 	return &HookExists{hookName, hookPath, contents}
 }
 
-func InstallFilters() error {
-	if err := setFilter("clean"); err != nil {
+func InstallFilters(force bool) error {
+	if err := setFilter("clean", force); err != nil {
 		return err
 	}
-	if err := setFilter("smudge"); err != nil {
+	if err := setFilter("smudge", force); err != nil {
 		return err
 	}
-	if err := requireFilters(); err != nil {
+	if err := requireFilters(force); err != nil {
 		return err
 	}
 	return nil
 }
 
-func setFilter(filterName string) error {
+func setFilter(filterName string, force bool) error {
 	key := fmt.Sprintf("filter.lfs.%s", filterName)
 	value := fmt.Sprintf("git-lfs %s %%f", filterName)
 
 	existing := git.Config.Find(key)
-	if shouldReset(existing) {
+	if force || shouldReset(existing) {
 		git.Config.UnsetGlobal(key)
 		git.Config.SetGlobal(key, value)
 	} else if existing != value {
@@ -104,12 +104,12 @@ func setFilter(filterName string) error {
 	return nil
 }
 
-func requireFilters() error {
+func requireFilters(force bool) error {
 	key := "filter.lfs.required"
 	value := "true"
 
 	existing := git.Config.Find(key)
-	if shouldReset(existing) {
+	if force || shouldReset(existing) {
 		git.Config.UnsetGlobal(key)
 		git.Config.SetGlobal(key, value)
 	} else if existing != value {
