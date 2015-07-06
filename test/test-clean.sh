@@ -2,33 +2,52 @@
 
 . "test/testlib.sh"
 
+clean_setup () {
+  mkdir "$1"
+  cd "$1"
+  git init
+}
 
-begin_test "clean"
+begin_test "clean simple file"
 (
   set -e
+  clean_setup "simple"
 
-  mkdir repo
-  cd repo
-  git init
-
-  # clean a simple file
   echo "whatever" | git lfs clean | tee clean.log
   [ "$(pointer cd293be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411 9)" = "$(cat clean.log)" ]
+)
+end_test
 
-  # clean a git lfs pointer
+begin_test "clean a pointer"
+(
+  set -e
+  clean_setup "pointer"
+
   pointer cd293be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411 9 | git lfs clean | tee clean.log
   [ "$(pointer cd293be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411 9)" = "$(cat clean.log)" ]
+)
+end_test
 
-  # clean a pseudo pointer with extra data
+begin_test "clean pseudo pointer"
+(
+  set -e
+  clean_setup "pseudo"
+
   echo "version https://git-lfs.github.com/spec/v1
 oid sha256:7cd8be1d2cd0dd22cd9d229bb6b5785009a05e8b39d405615d882caac56562b5
 size 1024
 
 This is my test pointer.  There are many like it, but this one is mine." | git lfs clean | tee clean.log
   [ "$(pointer f492acbebb5faa22da4c1501c022af035469f624f426631f31936575873fefe1 202)" = "$(cat clean.log)" ]
+)
+end_test
 
-  # clean a pseudo pointer with extra data separated by enough white space to
-  # fill the 'git lfs clean' buffer
+begin_test "clean pseudo pointer with extra data"
+(
+  set -e
+  clean_setup "extra-data"
+
+  # pointer includes enough extra data to fill the 'git lfs clean' buffer
   echo "version https://git-lfs.github.com/spec/v1
 oid sha256:7cd8be1d2cd0dd22cd9d229bb6b5785009a05e8b39d405615d882caac56562b5
 size 1024
