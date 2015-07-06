@@ -43,7 +43,7 @@ begin_test "chunked transfer encoding batched"
   # This is a small shell function that runs several git commands together.
   assert_pointer "master" "a.dat" "$contents_oid" 1
 
-  refute_server_object "$contents_oid"
+  refute_server_object "$reponame" "$contents_oid"
 
   # Ensure batch transfer is turned on for this repo
   git config --add --local lfs.batch true
@@ -53,7 +53,7 @@ begin_test "chunked transfer encoding batched"
   grep "(1 of 1 files)" push.log
   grep "master -> master" push.log
 
-  assert_server_object "$contents_oid" "$contents"
+  assert_server_object "$reponame" "$contents_oid"
 
   # change to the clone's working directory
   cd ../clone
