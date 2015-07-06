@@ -25,13 +25,7 @@ begin_test "pre-push"
   git commit -m "add hi.dat"
   git show
 
-  # file isn't on the git lfs server yet
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
-    -u "user:pass" \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
-
-  grep "404 Not Found" http.log
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
 
   # push file to the git lfs server
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
@@ -39,18 +33,7 @@ begin_test "pre-push"
     tee push.log
   grep "(1 of 1 files)" push.log
 
-  # now the file exists
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
-    -u "user:pass" \
-    -o lfs.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
-  grep "200 OK" http.log
-
-  grep "download" lfs.json || {
-    cat lfs.json
-    exit 1
-  }
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
 )
 end_test
 
@@ -78,24 +61,15 @@ begin_test "pre-push dry-run"
   git commit -m "add hi.dat"
   git show
 
-  # file doesn't exist yet
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b" \
-    -u "user:pass" \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
-  grep "404 Not Found" http.log
+  refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "push hi.dat" push.log
+  [ `wc -l < push.log` = 1 ]
 
-  # file still doesn't exist
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b" \
-    -u "user:pass" \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
-  grep "404 Not Found" http.log
+  refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b
 )
 end_test
 
@@ -126,18 +100,7 @@ begin_test "pre-push 307 redirects"
     tee push.log
   grep "(1 of 1 files)" push.log
 
-  # now the file exists
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
-    -u "user:pass" \
-    -o lfs.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
-  grep "200 OK" http.log
-
-  grep "download" lfs.json || {
-    cat lfs.json
-    exit 1
-  }
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
 
   # absolute redirect
   git config remote.origin.lfsurl "$GITSERVER/redirect307/abs/$reponame.git/info/lfs"
@@ -182,17 +145,7 @@ begin_test "pre-push with existing file"
   grep "(1 of 1 files)" push.log
 
   # now the file exists
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" \
-    -u "user:pass" \
-    -o lfs.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
-  grep "200 OK" http.log
-
-  grep "download" lfs.json || {
-    cat lfs.json
-    exit 1
-  }
+  assert_server_object "$reponame" 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c
 )
 end_test
 
