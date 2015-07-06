@@ -45,6 +45,7 @@ func main() {
 	})
 
 	mux.HandleFunc("/storage/", storageHandler)
+	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			log.Printf("git lfs %s %s\n", r.Method, r.URL)
@@ -128,9 +129,14 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 		Size: obj.Size,
 		Links: map[string]lfsLink{
 			"upload": lfsLink{
-				Href: server.URL + "/storage/" + obj.Oid,
+				Href:   server.URL + "/storage/" + obj.Oid,
+				Header: map[string]string{},
 			},
 		},
+	}
+
+	if testingChunkedTransferEncoding(r) {
+		res.Links["upload"].Header["Transfer-Encoding"] = "chunked"
 	}
 
 	by, err := json.Marshal(res)
@@ -183,9 +189,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type batchReq struct {
+		Operation string      `json:"operation"`
+		Objects   []lfsObject `json:"objects"`
+	}
+
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
-	var objs map[string][]lfsObject
+	var objs batchReq
 	err := json.NewDecoder(tee).Decode(&objs)
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
@@ -198,15 +209,21 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := []lfsObject{}
-	for _, obj := range objs["objects"] {
+	testingChunked := testingChunkedTransferEncoding(r)
+	for _, obj := range objs.Objects {
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
 			Links: map[string]lfsLink{
 				"upload": lfsLink{
-					Href: server.URL + "/storage/" + obj.Oid,
+					Href:   server.URL + "/storage/" + obj.Oid,
+					Header: map[string]string{},
 				},
 			},
+		}
+
+		if testingChunked {
+			o.Links["upload"].Header["Transfer-Encoding"] = "chunked"
 		}
 
 		res = append(res, o)
@@ -231,6 +248,19 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("storage %s %s\n", r.Method, r.URL)
 	switch r.Method {
 	case "PUT":
+		if testingChunkedTransferEncoding(r) {
+			valid := false
+			for _, value := range r.TransferEncoding {
+				if value == "chunked" {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				log.Fatal("Chunked transfer encoding expected")
+			}
+		}
+
 		hash := sha256.New()
 		buf := &bytes.Buffer{}
 		io.Copy(io.MultiWriter(hash, buf), r.Body)
@@ -299,4 +329,27 @@ func gitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	io.Copy(w, text.R)
+}
+
+func redirect307Handler(w http.ResponseWriter, r *http.Request) {
+	// Send a redirect to info/lfs
+	// Make it either absolute or relative depending on subpath
+	parts := strings.Split(r.URL.Path, "/")
+	// first element is always blank since rooted
+	var redirectTo string
+	if parts[2] == "rel" {
+		redirectTo = "/" + strings.Join(parts[3:], "/")
+	} else if parts[2] == "abs" {
+		redirectTo = server.URL + "/" + strings.Join(parts[3:], "/")
+	} else {
+		log.Fatal(fmt.Errorf("Invalid URL for redirect: %v", r.URL))
+		w.WriteHeader(404)
+		return
+	}
+	w.Header().Set("Location", redirectTo)
+	w.WriteHeader(307)
+}
+
+func testingChunkedTransferEncoding(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
 }
