@@ -148,9 +148,3 @@ shutdown() {
     fi
   fi
 }
-
-assert_file_line_count() {
-  local filename="$1"
-  local lines="$2"
-  [ $(wc -l < "$filename") -eq "$lines" ]
-}
