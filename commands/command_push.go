@@ -39,7 +39,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 			Print("push %s", pointer.Name)
 			continue
 		}
-		tracerx.Printf("checking_asset: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
+		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
