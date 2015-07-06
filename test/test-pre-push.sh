@@ -24,7 +24,6 @@ begin_test "pre-push"
   git add hi.dat
   git commit -m "add hi.dat"
   git show
-  git lfs env
 
   # file isn't on the git lfs server yet
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4" \
@@ -78,7 +77,6 @@ begin_test "pre-push dry-run"
   git add hi.dat
   git commit -m "add hi.dat"
   git show
-  git lfs env
 
   # file doesn't exist yet
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b" \
@@ -121,7 +119,6 @@ begin_test "pre-push 307 redirects"
   git add hi.dat
   git commit -m "add hi.dat"
   git show
-  git lfs env
 
   # push file to the git lfs server
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
@@ -149,7 +146,6 @@ begin_test "pre-push 307 redirects"
   git add hi2.dat
   git commit -m "add hi2.dat"
   git show
-  git lfs env
 
   # push file to the git lfs server
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
@@ -158,5 +154,88 @@ begin_test "pre-push 307 redirects"
   grep "(1 of 1 files)" push.log
 
 
+)
+end_test
+
+begin_test "pre-push with existing file"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-existing-file"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" existing-file
+  echo "existing" > existing.dat
+  git add existing.dat
+  git commit -m "add existing dat"
+
+  git lfs track "*.dat"
+  echo "new" > new.dat
+  git add new.dat
+  git add .gitattributes
+  git commit -m "add new file through git lfs"
+
+  # push file to the git lfs server
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  grep "(1 of 1 files)" push.log
+
+  # now the file exists
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" \
+    -u "user:pass" \
+    -o lfs.json \
+    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+  grep "200 OK" http.log
+
+  grep "download" lfs.json || {
+    cat lfs.json
+    exit 1
+  }
+)
+end_test
+
+begin_test "pre-push with existing pointer"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-existing-pointer"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" existing-pointer
+
+  echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
+  git add new.dat
+  git commit -m "add new pointer"
+  mkdir -p .git/lfs/objects/7a/a7
+  echo "new" > .git/lfs/objects/7a/a7/7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c
+
+  # push file to the git lfs server
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  grep "(1 of 1 files)" push.log
+)
+end_test
+
+begin_test "pre-push with missing pointer"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-missing-pointer"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" missing-pointer
+
+  echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
+  git add new.dat
+  git commit -m "add new pointer"
+
+  # assert that push fails
+  set +e
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  set -e
+  grep "new.dat is an LFS pointer to 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c, which does not exist in .git/lfs/objects" push.log
 )
 end_test
