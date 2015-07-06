@@ -59,6 +59,10 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
 
 	for i, oid := range oids {
+		if pushDryRun {
+			Print("push object ID %s", oid)
+			continue
+		}
 		tracerx.Printf("prepare upload: %s %d/%d", oid, i+1, len(oids))
 
 		u, wErr := lfs.NewUploadable(oid, "")
