@@ -37,75 +37,71 @@ func NewEndpointFromCloneURL(url string) Endpoint {
 
 // NewEndpoint initializes a new Endpoint for a given URL.
 func NewEndpoint(rawurl string) Endpoint {
-	var endpoint Endpoint
-	// Check for SSH URLs
-	// Support ssh://user@host.com/path/to/repo and user@host.com:path/to/repo
 	u, err := url.Parse(rawurl)
-	if err == nil {
-		u = processBareSshUrl(u)
-		switch u.Scheme {
-		case "ssh":
-			endpoint = endpointFromSshUrl(u)
-		case "http", "https":
-			endpoint = endpointFromHttpUrl(u)
-		default:
-			// Just passthrough to preserve
-			endpoint = Endpoint{Url: rawurl}
-		}
-	} else {
-		endpoint = Endpoint{Url: EndpointUrlUnknown}
-	}
-
-	return endpoint
-}
-
-// For ease of processing, sanitise a bare Git SSH URL into a ssh:// URL
-func processBareSshUrl(u *url.URL) *url.URL {
-	if u.Scheme != "" || u.Path == "" {
-		return u
-	}
-	// This might be a bare SSH URL
-	// Turn it into ssh:// for simplicity of extraction later
-	parts := strings.Split(u.Path, ":")
-	if len(parts) > 1 {
-		// Treat presence of ':' as a bare URL
-		var newPath string
-		if len(parts) > 2 { // port included; really should only ever be 3 parts
-			newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
-		} else {
-			newPath = strings.Join(parts, "/")
-		}
-		newrawurl := fmt.Sprintf("ssh://%v", newPath)
-		newu, err := url.Parse(newrawurl)
-		if err == nil {
-			return newu
-		}
-	}
-	return u
-}
-
-// Construct a new endpoint from a SSH URL (sanitised to ssh://)
-func endpointFromSshUrl(u *url.URL) Endpoint {
-	if u.Scheme != "ssh" {
+	if err != nil {
 		return Endpoint{Url: EndpointUrlUnknown}
 	}
-	var host string
+
+	switch u.Scheme {
+	case "ssh":
+		return endpointFromSshUrl(u)
+	case "http", "https":
+		return endpointFromHttpUrl(u)
+	case "":
+		return endpointFromBareSshUrl(u)
+	default:
+		// Just passthrough to preserve
+		return Endpoint{Url: rawurl}
+	}
+}
+
+// endpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
+//
+//   user@host.com:path/to/repo.git
+//
+func endpointFromBareSshUrl(u *url.URL) Endpoint {
+	parts := strings.Split(u.Path, ":")
+	partsLen := len(parts)
+	if partsLen < 2 {
+		return Endpoint{Url: u.String()}
+	}
+
+	// Treat presence of ':' as a bare URL
+	var newPath string
+	if len(parts) > 2 { // port included; really should only ever be 3 parts
+		newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
+	} else {
+		newPath = strings.Join(parts, "/")
+	}
+	newrawurl := fmt.Sprintf("ssh://%v", newPath)
+	newu, err := url.Parse(newrawurl)
+	if err != nil {
+		return Endpoint{Url: EndpointUrlUnknown}
+	}
+
+	return endpointFromSshUrl(newu)
+}
+
+// endpointFromSshUrl constructs a new endpoint from an ssh:// URL
+func endpointFromSshUrl(u *url.URL) Endpoint {
 	var endpoint Endpoint
 	// Pull out port now, we need it separately for SSH
 	regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
-	if match := regex.FindStringSubmatch(u.Host); match != nil {
-		host = match[1]
-		if u.User != nil && u.User.Username() != "" {
-			endpoint.SshUserAndHost = fmt.Sprintf("%s@%s", u.User.Username(), host)
-		} else {
-			endpoint.SshUserAndHost = host
-		}
-		if len(match) > 2 {
-			endpoint.SshPort = match[2]
-		}
-	} else {
+	match := regex.FindStringSubmatch(u.Host)
+	if match == nil || len(match) < 2 {
 		endpoint.Url = EndpointUrlUnknown
 		return endpoint
+	}
+
+	host := match[1]
+	if u.User != nil && u.User.Username() != "" {
+		endpoint.SshUserAndHost = fmt.Sprintf("%s@%s", u.User.Username(), host)
+	} else {
+		endpoint.SshUserAndHost = host
+	}
+
+	if len(match) > 2 {
+		endpoint.SshPort = match[2]
 	}
 
 	// u.Path includes a preceding '/', strip off manually
@@ -116,6 +112,7 @@ func endpointFromSshUrl(u *url.URL) Endpoint {
 	} else {
 		endpoint.SshPath = u.Path
 	}
+
 	// Fallback URL for using HTTPS while still using SSH for git
 	// u.Host includes host & port so can't use SSH port
 	endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
