@@ -59,7 +59,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
 
 	for _, oid := range oids {
-		u, wErr := lfs.NewUploadableWithoutFilename(oid)
+		u, wErr := lfs.NewUploadable(oid, "", 0, 0)
 		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
