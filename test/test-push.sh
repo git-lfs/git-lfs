@@ -80,8 +80,6 @@ begin_test "push object id(s)"
     4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
     82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 \
     2>&1 | tee push.log
-
-  git lfs push origin push-b 2>&1 | tee push.log
   grep "(2 of 2 files)" push.log
 )
 end_test
