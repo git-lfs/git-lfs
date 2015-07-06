@@ -81,7 +81,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
-			if Debugging || wErr.Panic {
+			if cleanPointerErr, ok := wErr.Err.(*lfs.CleanedPointerError); ok {
+				Exit("%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects.",
+					pointer.Name, cleanPointerErr.Pointer.Oid)
+			} else if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
 			} else {
 				Exit(wErr.Error())

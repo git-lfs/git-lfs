@@ -9,13 +9,13 @@ import (
 )
 
 type cleanedAsset struct {
-	File          *os.File
-	mediafilepath string
+	Filename string
 	*Pointer
 }
 
 type CleanedPointerError struct {
-	Bytes []byte
+	Pointer *Pointer
+	Bytes   []byte
 }
 
 func (e *CleanedPointerError) Error() string {
@@ -28,6 +28,8 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 		return nil, err
 	}
 
+	defer tmp.Close()
+
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
 
@@ -35,22 +37,18 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 		cb = nil
 	}
 
-	by, _, err := DecodeFrom(reader)
+	by, ptr, err := DecodeFrom(reader)
 	if err == nil && len(by) < 512 {
-		return nil, &CleanedPointerError{by}
+		return nil, &CleanedPointerError{ptr, by}
 	}
 
 	multi := io.MultiReader(bytes.NewReader(by), reader)
 	written, err := CopyWithCallback(writer, multi, size, cb)
 
 	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
-	return &cleanedAsset{tmp, "", pointer}, err
-}
-
-func (a *cleanedAsset) Close() error {
-	return a.File.Close()
+	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
 func (a *cleanedAsset) Teardown() error {
-	return os.Remove(a.File.Name())
+	return os.Remove(a.Filename)
 }

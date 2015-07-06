@@ -101,11 +101,13 @@ func ensureFile(smudgePath, cleanPath string) error {
 	}
 
 	cleaned, err := PointerClean(file, stat.Size(), nil)
+	if cleaned != nil {
+		cleaned.Teardown()
+	}
+
 	if err != nil {
 		return err
 	}
-
-	cleaned.Close()
 
 	if expectedOid != cleaned.Oid {
 		return fmt.Errorf("Expected %s to have an OID of %s, got %s", smudgePath, expectedOid, cleaned.Oid)
