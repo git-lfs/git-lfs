@@ -22,11 +22,21 @@ func NewUploadable(oid, filename string, index, totalFiles int) (*Uploadable, *W
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
+<<<<<<< HEAD
 	if err := ensureFile(filename, path); err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	fi, err := os.Stat(filename)
+=======
+	if len(filename) > 0 {
+		if err := ensureFile(filename, localMediaPath); err != nil {
+			return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		}
+	}
+
+	fi, err := os.Stat(localMediaPath)
+>>>>>>> 35970a5... Merge pull request #461 from github/push-deleted-files
 	if err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}

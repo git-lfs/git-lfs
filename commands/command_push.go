@@ -24,6 +24,63 @@ var (
 	// shares some global vars and functions with commmands_pre_push.go
 )
 
+<<<<<<< HEAD
+=======
+func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
+	// Just use scanner here
+	pointers, err := lfs.ScanRefs(left, right, nil)
+	if err != nil {
+		Panic(err, "Error scanning for Git LFS files")
+	}
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+
+	for i, pointer := range pointers {
+		if pushDryRun {
+			Print("push %s", pointer.Name)
+			continue
+		}
+		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
+
+		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
+		if wErr != nil {
+			if Debugging || wErr.Panic {
+				Panic(wErr.Err, wErr.Error())
+			} else {
+				Exit(wErr.Error())
+			}
+		}
+		uploadQueue.Add(u)
+	}
+
+	return uploadQueue
+}
+
+func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
+
+	for i, oid := range oids {
+		if pushDryRun {
+			Print("push object ID %s", oid)
+			continue
+		}
+		tracerx.Printf("prepare upload: %s %d/%d", oid, i+1, len(oids))
+
+		u, wErr := lfs.NewUploadable(oid, "")
+		if wErr != nil {
+			if Debugging || wErr.Panic {
+				Panic(wErr.Err, wErr.Error())
+			} else {
+				Exit(wErr.Error())
+			}
+		}
+		uploadQueue.Add(u)
+	}
+
+	return uploadQueue
+}
+
+>>>>>>> 35970a5... Merge pull request #461 from github/push-deleted-files
 // pushCommand pushes local objects to a Git LFS server.  It takes two
 // arguments:
 //
