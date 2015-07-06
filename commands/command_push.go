@@ -117,7 +117,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		uploadQueue = uploadsBetweenRefs(left, right)
 	} else if pushObjectIDs {
 		if len(args) < 2 {
-			Print("Usage: git lfs push --objectid <remote> <lfs-object-id> [lfs-object-id] ...")
+			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
 			return
 		}
 
