@@ -97,12 +97,12 @@ func ensureFile(smudgePath, cleanPath string) error {
 	}
 
 	cleaned, err := PointerClean(file, stat.Size(), nil)
-	if err != nil {
-		return err
+	if cleaned != nil {
+		cleaned.Teardown()
 	}
 
-	if cleaned != nil {
-		defer cleaned.Teardown()
+	if err != nil {
+		return err
 	}
 
 	if expectedOid != cleaned.Oid {
