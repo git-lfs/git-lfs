@@ -45,7 +45,7 @@ begin_test "commit, delete, then push"
   }
   grep "(2 of 2 files)" push.log | cat push.log
 
-  assert_server_object "$deleted_oid" "deleted\n"
-  assert_server_object "$added_oid" "added\n"
+  assert_server_object "$reponame" "$deleted_oid"
+  assert_server_object "$reponame" "$added_oid"
 )
 end_test
