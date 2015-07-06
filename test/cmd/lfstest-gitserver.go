@@ -20,7 +20,7 @@ import (
 
 var (
 	repoDir      string
-	largeObjects = make(map[string][]byte)
+	largeObjects = newLfsStorage()
 	server       *httptest.Server
 	serveBatch   = true
 )
@@ -107,6 +107,10 @@ func lfsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func lfsUrl(oid string) string {
+	return server.URL + "/storage/" + oid
+}
+
 func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
@@ -129,7 +133,7 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 		Size: obj.Size,
 		Links: map[string]lfsLink{
 			"upload": lfsLink{
-				Href:   server.URL + "/storage/" + obj.Oid,
+				Href:   lfsUrl(obj.Oid),
 				Header: map[string]string{},
 			},
 		},
@@ -155,7 +159,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 
-	by, ok := largeObjects[oid]
+	by, ok := largeObjects.Get(oid)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -166,7 +170,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
 		Size: int64(len(by)),
 		Links: map[string]lfsLink{
 			"download": lfsLink{
-				Href: server.URL + "/storage/" + oid,
+				Href: lfsUrl(oid),
 			},
 		},
 	}
@@ -216,7 +220,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 			Size: obj.Size,
 			Links: map[string]lfsLink{
 				"upload": lfsLink{
-					Href:   server.URL + "/storage/" + obj.Oid,
+					Href:   lfsUrl(obj.Oid),
 					Header: map[string]string{},
 				},
 			},
@@ -270,13 +274,13 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		largeObjects[oid] = buf.Bytes()
+		largeObjects.Set(oid, buf.Bytes())
 
 	case "GET":
 		parts := strings.Split(r.URL.Path, "/")
 		oid := parts[len(parts)-1]
 
-		if by, ok := largeObjects[oid]; ok {
+		if by, ok := largeObjects.Get(oid); ok {
 			w.Write(by)
 			return
 		}
@@ -352,4 +356,23 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 
 func testingChunkedTransferEncoding(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
+}
+
+type lfsStorage struct {
+	objects map[string][]byte
+}
+
+func (s *lfsStorage) Get(oid string) ([]byte, bool) {
+	by, ok := s.objects[oid]
+	return by, ok
+}
+
+func (s *lfsStorage) Set(oid string, by []byte) {
+	s.objects[oid] = by
+}
+
+func newLfsStorage() *lfsStorage {
+	return &lfsStorage{
+		objects: make(map[string][]byte),
+	}
 }
