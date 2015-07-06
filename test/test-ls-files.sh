@@ -23,6 +23,6 @@ begin_test "ls-files"
 
   git lfs ls-files | tee ls.log
   grep some.dat ls.log
-  grep missing.dat ls.log
+  [ `wc -l < ls.log` = 1 ]
 )
 end_test
