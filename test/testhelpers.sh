@@ -109,7 +109,7 @@ setup() {
     }
   fi
 
-  echo "Git LFS: ${LFS_BIN:-(which git-lfs)}"
+  echo "Git LFS: ${LFS_BIN:-$(which git-lfs)}"
   git lfs version
   git version
 
