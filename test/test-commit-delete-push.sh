@@ -38,7 +38,7 @@ begin_test "commit, delete, then push"
   grep "push added.dat" dryrun.log
 
   git log
-  git push origin master 2>&1 > push.log || {
+  GIT_TRACE=1 git push origin master 2>&1 > push.log || {
     cat push.log
     git lfs logs last
     exit 1
