@@ -20,14 +20,38 @@ assert_pointer() {
   fi
 }
 
-# no-op.  check that the object does not exist in the git lfs server
+# check that the object does not exist in the git lfs server. HTTP log is
+# written to http.log. JSON output is written to http.json.
+#
+#   $ refute_server_object "reponame" "oid"
 refute_server_object() {
-  echo "refute server object: no-op"
+  local reponame="$1"
+  local oid="$2"
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+
+  grep "404 Not Found" http.log
 }
 
-# no-op.  check that the object does exist in the git lfs server
+# check that the object does exist in the git lfs server. HTTP log is written
+# to http.log. JSON output is written to http.json.
 assert_server_object() {
-  echo "assert server object: no-op"
+  local reponame="$1"
+  local oid="$2"
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+  grep "200 OK" http.log
+
+  grep "download" http.json || {
+    cat http.json
+    exit 1
+  }
 }
 
 # pointer returns a string Git LFS pointer file.
@@ -109,7 +133,7 @@ setup() {
     }
   fi
 
-  echo "Git LFS: ${LFS_BIN:-(which git-lfs)}"
+  echo "Git LFS: ${LFS_BIN:-$(which git-lfs)}"
   git lfs version
   git version
 

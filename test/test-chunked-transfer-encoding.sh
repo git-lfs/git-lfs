@@ -44,14 +44,14 @@ begin_test "chunked transfer encoding"
   # This is a small shell function that runs several git commands together.
   assert_pointer "master" "a.dat" "$contents_oid" 1
 
-  refute_server_object "$contents_oid"
+  refute_server_object "$reponame" "$contents_oid"
 
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
   grep "master -> master" push.log
 
-  assert_server_object "$contents_oid" "$contents"
+  assert_server_object "$reponame" "$contents_oid"
 
   # change to the clone's working directory
   cd ../clone

@@ -15,12 +15,14 @@ import (
 	"net/textproto"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
+	"sync"
 )
 
 var (
 	repoDir      string
-	largeObjects = make(map[string][]byte)
+	largeObjects = newLfsStorage()
 	server       *httptest.Server
 	serveBatch   = true
 )
@@ -48,7 +50,6 @@ func main() {
 	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			log.Printf("git lfs %s %s\n", r.Method, r.URL)
 			lfsHandler(w, r)
 			return
 		}
@@ -92,22 +93,34 @@ type lfsLink struct {
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
 func lfsHandler(w http.ResponseWriter, r *http.Request) {
+	repo, err := repoFromLfsUrl(r.URL.Path)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	log.Printf("git lfs %s %s repo: %s\n", r.Method, r.URL, repo)
 	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
 	switch r.Method {
 	case "POST":
 		if strings.HasSuffix(r.URL.String(), "batch") {
-			lfsBatchHandler(w, r)
+			lfsBatchHandler(w, r, repo)
 		} else {
-			lfsPostHandler(w, r)
+			lfsPostHandler(w, r, repo)
 		}
 	case "GET":
-		lfsGetHandler(w, r)
+		lfsGetHandler(w, r, repo)
 	default:
 		w.WriteHeader(405)
 	}
 }
 
-func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
+func lfsUrl(repo, oid string) string {
+	return server.URL + "/storage/" + oid + "?r=" + repo
+}
+
+func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
 	obj := &lfsObject{}
@@ -129,7 +142,7 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 		Size: obj.Size,
 		Links: map[string]lfsLink{
 			"upload": lfsLink{
-				Href:   server.URL + "/storage/" + obj.Oid,
+				Href:   lfsUrl(repo, obj.Oid),
 				Header: map[string]string{},
 			},
 		},
@@ -151,11 +164,11 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(by)
 }
 
-func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
+func lfsGetHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 
-	by, ok := largeObjects[oid]
+	by, ok := largeObjects.Get(repo, oid)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -166,7 +179,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
 		Size: int64(len(by)),
 		Links: map[string]lfsLink{
 			"download": lfsLink{
-				Href: server.URL + "/storage/" + oid,
+				Href: lfsUrl(repo, oid),
 			},
 		},
 	}
@@ -183,7 +196,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(by)
 }
 
-func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
+func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	if !serveBatch {
 		w.WriteHeader(404)
 		return
@@ -216,7 +229,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 			Size: obj.Size,
 			Links: map[string]lfsLink{
 				"upload": lfsLink{
-					Href:   server.URL + "/storage/" + obj.Oid,
+					Href:   lfsUrl(repo, obj.Oid),
 					Header: map[string]string{},
 				},
 			},
@@ -245,7 +258,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("storage %s %s\n", r.Method, r.URL)
+	repo := r.URL.Query().Get("r")
+	log.Printf("storage %s %s repo: %s\n", r.Method, r.URL, repo)
 	switch r.Method {
 	case "PUT":
 		if testingChunkedTransferEncoding(r) {
@@ -270,13 +284,13 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		largeObjects[oid] = buf.Bytes()
+		largeObjects.Set(repo, oid, buf.Bytes())
 
 	case "GET":
 		parts := strings.Split(r.URL.Path, "/")
 		oid := parts[len(parts)-1]
 
-		if by, ok := largeObjects[oid]; ok {
+		if by, ok := largeObjects.Get(repo, oid); ok {
 			w.Write(by)
 			return
 		}
@@ -352,4 +366,54 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 
 func testingChunkedTransferEncoding(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
+}
+
+var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)
+
+func repoFromLfsUrl(urlpath string) (string, error) {
+	matches := lfsUrlRE.FindStringSubmatch(urlpath)
+	if len(matches) != 2 {
+		return "", fmt.Errorf("LFS url '%s' does not match %v", urlpath, lfsUrlRE)
+	}
+
+	repo := matches[1]
+	if strings.HasSuffix(repo, ".git") {
+		return repo[0 : len(repo)-4], nil
+	}
+	return repo, nil
+}
+
+type lfsStorage struct {
+	objects map[string]map[string][]byte
+	mutex   *sync.Mutex
+}
+
+func (s *lfsStorage) Get(repo, oid string) ([]byte, bool) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.objects[repo]
+	if !ok {
+		return nil, ok
+	}
+
+	by, ok := repoObjects[oid]
+	return by, ok
+}
+
+func (s *lfsStorage) Set(repo, oid string, by []byte) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.objects[repo]
+	if !ok {
+		repoObjects = make(map[string][]byte)
+		s.objects[repo] = repoObjects
+	}
+	repoObjects[oid] = by
+}
+
+func newLfsStorage() *lfsStorage {
+	return &lfsStorage{
+		objects: make(map[string]map[string][]byte),
+		mutex:   &sync.Mutex{},
+	}
 }
