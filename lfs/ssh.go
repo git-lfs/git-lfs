@@ -55,16 +55,20 @@ func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
 		return "", nil
 	}
 
+	isPlink := false
+	isTortoise := false
+
 	ssh := Config.Getenv("GIT_SSH")
-	basessh := filepath.Base(ssh)
-	// Strip extension for easier comparison
-	if ext := filepath.Ext(basessh); len(ext) > 0 {
-		basessh = basessh[:len(basessh)-len(ext)]
-	}
-	isPlink := strings.EqualFold(basessh, "plink")
-	isTortoise := strings.EqualFold(basessh, "tortoiseplink")
 	if ssh == "" {
 		ssh = "ssh"
+	} else {
+		basessh := filepath.Base(ssh)
+		// Strip extension for easier comparison
+		if ext := filepath.Ext(basessh); len(ext) > 0 {
+			basessh = basessh[:len(basessh)-len(ext)]
+		}
+		isPlink = strings.EqualFold(basessh, "plink")
+		isTortoise = strings.EqualFold(basessh, "tortoiseplink")
 	}
 
 	args := make([]string, 0, 4)
