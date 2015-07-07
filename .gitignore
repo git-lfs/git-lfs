@@ -16,3 +16,5 @@ obj-*
 
 rpm/BUILD*
 rpm/*RPMS
+
+src
