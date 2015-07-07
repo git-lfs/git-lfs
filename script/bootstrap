@@ -3,7 +3,7 @@ set -e
 
 # Only set GOPATH on non-Windows platforms as Windows can't do the symlinking
 # that we need.
-if [ -z "$GOPATH" ] && [ uname -s | grep -vq "_NT-" ]; then
+if [ -z "$GOPATH" ] && uname -s | grep -vq "_NT-"; then
   export GOPATH="$(pwd)"
   mkdir -p src/github.com/github
   [ -h src/github.com/github/git-lfs ] ||
