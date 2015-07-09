@@ -72,6 +72,12 @@ cross compiling with Mac, Linux, FreeBSD, and Windows support).
 * Run `script/release -id {id}` to upload all of the compiled binaries to the
 release.
 * Publish the Release on GitHub.
+* Update [Git LFS website](https://github.com/github/git-lfs.github.com/blob/gh-pages/_config.yml#L4).
+* Ping external teams on GitHub:
+  * @github/desktop
+* Build packages:
+  * rpm
+  * apt
 
 ## Resources
 
