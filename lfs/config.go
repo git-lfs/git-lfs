@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
+	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -134,6 +135,7 @@ func (c *Configuration) PrivateAccess() bool {
 
 // SetPrivateAccess will set the private access flag in .git/config.
 func (c *Configuration) SetPrivateAccess() {
+	tracerx.Printf("setting repository access to private")
 	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
 	configFile := filepath.Join(LocalGitDir, "config")
 	git.Config.SetLocal(configFile, key, "private")
