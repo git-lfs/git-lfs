@@ -9,7 +9,6 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 type Transferable interface {
@@ -69,23 +68,19 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.transferables[t.Oid()] = t
 
 	if q.batcher != nil {
-		tracerx.Printf("tq-batch: Adding %s", t.Oid())
 		q.batcher.Add(t)
 		return
 	}
 
-	tracerx.Printf("tq-individual: Adding %s", t.Oid())
 	q.apic <- t
 }
 
 // Wait waits for the queue to finish processing all transfers
 func (q *TransferQueue) Wait() {
-	tracerx.Printf("tq: waiting")
 
 	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.filesFinished, q.filesAdded))
 
 	if q.batcher != nil {
-		tracerx.Printf("tq-batch: signaling batcher to exit")
 		q.batcher.Exit()
 	}
 	q.wait.Wait()
@@ -113,10 +108,8 @@ func (q *TransferQueue) Watch() chan string {
 // sequential nature here is only for the meta POST calls.
 func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
-		tracerx.Printf("tq-individual: received api request: %s", t.Oid())
 		obj, err := t.Check()
 		if err != nil {
-			tracerx.Printf("tq-individual: check failed for %s", t.Oid())
 			q.wait.Done()
 			q.errorc <- err
 			continue
@@ -154,7 +147,6 @@ func (q *TransferQueue) batchApiRoutine() {
 		objects, err := Batch(transfers, q.transferKind)
 		if err != nil {
 			if isNotImplError(err) {
-				tracerx.Printf("queue: batch not implemented, disabling")
 				configFile := filepath.Join(LocalGitDir, "config")
 				git.Config.SetLocal(configFile, "lfs.batch", "false")
 			}
@@ -205,7 +197,6 @@ func (q *TransferQueue) transferWorker() {
 	}
 
 	for transfer := range q.transferc {
-		tracerx.Printf("tq: received transfer request for %s", transfer.Oid())
 		c := atomic.AddInt32(&q.transferIdx, 1)
 		cb := func(total, read int64, current int) error {
 			q.progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.filesAdded, read, total, transfer.Name())
@@ -214,7 +205,6 @@ func (q *TransferQueue) transferWorker() {
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
-			tracerx.Printf("tq: transfer failed for %s", transfer.Oid())
 			q.errorc <- err
 		} else {
 			oid := transfer.Oid()
@@ -225,7 +215,6 @@ func (q *TransferQueue) transferWorker() {
 
 		f := atomic.AddInt32(&q.filesFinished, 1)
 		q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.filesAdded))
-		tracerx.Printf("tq: transfer finished for %s", transfer.Oid())
 		q.wait.Done()
 	}
 }
@@ -237,14 +226,11 @@ func (q *TransferQueue) transferWorker() {
 func (q *TransferQueue) launchIndividualApiRoutines() {
 	go func() {
 		apiWaiter := make(chan interface{})
-		tracerx.Printf("tq-individual: spawning first api routine")
 		go q.individualApiRoutine(apiWaiter)
 
 		<-apiWaiter
-		tracerx.Printf("tq-individual: api success, launching more workers")
 
 		for i := 0; i < q.workers-1; i++ {
-			tracerx.Printf("tq-individual: spawning individual api routine")
 			go q.individualApiRoutine(nil)
 		}
 	}()
@@ -267,7 +253,6 @@ func (q *TransferQueue) run() {
 	go q.progressMonitor()
 
 	for i := 0; i < q.workers; i++ {
-		tracerx.Printf("tq: spawning worker")
 		go q.transferWorker()
 	}
 
