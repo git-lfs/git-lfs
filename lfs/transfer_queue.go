@@ -12,6 +12,10 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+const (
+	batchSize = 100
+)
+
 type Transferable interface {
 	Check() (*objectResource, *WrappedError)
 	Transfer(CopyCallback) *WrappedError
@@ -44,11 +48,11 @@ type TransferQueue struct {
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
 func newTransferQueue(workers int) *TransferQueue {
 	q := &TransferQueue{
-		apic:          make(chan Transferable, 100),
-		transferc:     make(chan Transferable, 100),
+		apic:          make(chan Transferable, batchSize),
+		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
 		watchers:      make([]chan string, 0),
-		progressc:     make(chan string, 100),
+		progressc:     make(chan string, batchSize),
 		workers:       workers,
 		transferables: make(map[string]Transferable),
 	}
@@ -98,7 +102,7 @@ func (q *TransferQueue) Wait() {
 // Watch returns a channel where the queue will write the OID of each transfer
 // as it completes. The channel will be closed when the queue finishes processing.
 func (q *TransferQueue) Watch() chan string {
-	c := make(chan string, 100)
+	c := make(chan string, batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
 }
@@ -282,7 +286,7 @@ func (q *TransferQueue) run() {
 	}
 
 	if Config.BatchTransfer() {
-		q.batcher = NewBatcher(100)
+		q.batcher = NewBatcher(batchSize)
 		go q.batchApiRoutine()
 	} else {
 		q.launchIndividualApiRoutines()
