@@ -160,7 +160,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !pushDryRun {
-		uploadQueue.Process()
+		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || err.Panic {
 				LoggedError(err.Err, err.Error())

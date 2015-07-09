@@ -95,7 +95,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !prePushDryRun {
-		uploadQueue.Process()
+		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || err.Panic {
 				LoggedError(err.Err, err.Error())

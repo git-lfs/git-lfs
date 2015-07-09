@@ -43,7 +43,7 @@ func (d *Downloadable) SetObject(o *objectResource) {
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
 func NewDownloadQueue(workers, files int) *TransferQueue {
-	q := newTransferQueue(workers, files)
+	q := newTransferQueue(workers)
 	q.transferKind = "download"
 	return q
 }

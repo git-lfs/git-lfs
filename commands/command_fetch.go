@@ -111,7 +111,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	processQueue := time.Now()
-	q.Process()
+	q.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
 	wait.Wait()
 }

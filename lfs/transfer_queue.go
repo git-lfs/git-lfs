@@ -24,38 +24,73 @@ type Transferable interface {
 
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
+	apic             chan Transferable
 	transferc        chan Transferable
 	errorc           chan *WrappedError
+	progressc        chan string
 	watchers         []chan string
 	errors           []*WrappedError
-	wg               sync.WaitGroup
 	workers          int
-	files            int
 	finished         int32
-	size             int64
-	authCond         *sync.Cond
+	bytesTransferred int64
+	transferCount    int32
 	transferables    map[string]Transferable
 	bar              *pb.ProgressBar
 	clientAuthorized int32
+	files            int
 	transferKind     string
+	batcher          *Batcher
+	wait             sync.WaitGroup
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(workers, files int) *TransferQueue {
-	return &TransferQueue{
-		transferc:     make(chan Transferable, files),
+func newTransferQueue(workers int) *TransferQueue {
+	q := &TransferQueue{
+		apic:          make(chan Transferable, 100),
+		transferc:     make(chan Transferable, 100),
 		errorc:        make(chan *WrappedError),
 		watchers:      make([]chan string, 0),
+		progressc:     make(chan string, 100),
 		workers:       workers,
-		files:         files,
-		authCond:      sync.NewCond(&sync.Mutex{}),
 		transferables: make(map[string]Transferable),
 	}
+
+	q.run()
+
+	return q
 }
 
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
+	q.files++
+	q.wait.Add(1)
 	q.transferables[t.Oid()] = t
+
+	if q.batcher != nil {
+		tracerx.Printf("tq-batch: Adding %s", t.Oid())
+		q.batcher.Add(t)
+		return
+	}
+
+	tracerx.Printf("tq-individual: Adding %s", t.Oid())
+	q.apic <- t
+}
+
+// Wait waits for the queue to finish processing all transfers
+func (q *TransferQueue) Wait() {
+	tracerx.Printf("tq: waiting")
+	if q.batcher != nil {
+		tracerx.Printf("tq-batch: signaling batcher to exit")
+		q.batcher.Exit()
+	}
+	q.wait.Wait()
+	close(q.apic)
+	close(q.transferc)
+	close(q.errorc)
+	for _, watcher := range q.watchers {
+		close(watcher)
+	}
+	close(q.progressc)
 }
 
 // Watch returns a channel where the queue will write the OID of each transfer
@@ -66,210 +101,170 @@ func (q *TransferQueue) Watch() chan string {
 	return c
 }
 
-// processIndividual processes the queue of transfers one at a time by making
+// individualApiRoutine processes the queue of transfers one at a time by making
 // a POST call for each object, feeding the results to the transfer workers.
 // If configured, the object transfers can still happen concurrently, the
 // sequential nature here is only for the meta POST calls.
-func (q *TransferQueue) processIndividual() {
-	apic := make(chan Transferable, q.files)
-	workersReady := make(chan int, q.workers)
-	var wg sync.WaitGroup
+func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
+	for t := range q.apic {
+		tracerx.Printf("tq-individual: received api request: %s", t.Oid())
+		obj, err := t.Check()
+		if err != nil {
+			tracerx.Printf("tq-individual: check failed for %s", t.Oid())
+			q.wait.Done()
+			q.errorc <- err
+			continue
+		}
 
-	for i := 0; i < q.workers; i++ {
-		go func() {
-			for t := range apic {
-				// If an API authorization has not occured, we wait until we're woken up.
-				q.authCond.L.Lock()
-				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
-					workersReady <- 1
-					q.authCond.Wait()
-				}
-				q.authCond.L.Unlock()
-
-				obj, err := t.Check()
-				if err != nil {
-					q.errorc <- err
-					wg.Done()
-					continue
-				}
-				if obj != nil {
-					q.wg.Add(1)
-					t.SetObject(obj)
-					q.transferc <- t
-				}
-				wg.Done()
+		if apiWaiter != nil { // Signal to launch more individual api workers
+			select {
+			case apiWaiter <- 1:
+			default:
 			}
-		}()
+		}
+
+		if obj != nil {
+			q.files++
+			t.SetObject(obj)
+			q.transferc <- t
+		}
 	}
-
-	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, len(q.transferables)))
-	q.bar.Start()
-
-	for _, t := range q.transferables {
-		wg.Add(1)
-		apic <- t
-	}
-
-	go func() {
-		wg.Wait()
-		close(workersReady)
-	}()
-
-	<-workersReady
-	q.authCond.L.Lock()
-	q.authCond.Signal() // Signal the first goroutine to run
-	q.authCond.L.Unlock()
-
-	close(apic)
-	for _ = range workersReady {
-	}
-
-	close(q.transferc)
 }
 
-// processBatch processes the queue of transfers using the batch endpoint,
+// batchApiRoutine processes the queue of transfers using the batch endpoint,
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
-func (q *TransferQueue) processBatch() error {
-	transfers := make([]*objectResource, 0, len(q.transferables))
-	for _, t := range q.transferables {
-		transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
-	}
-
-	objects, err := Batch(transfers, q.transferKind)
-	if err != nil {
-		if isNotImplError(err) {
-			tracerx.Printf("queue: batch not implemented, disabling")
-			configFile := filepath.Join(LocalGitDir, "config")
-			git.Config.SetLocal(configFile, "lfs.batch", "false")
+func (q *TransferQueue) batchApiRoutine() {
+	for {
+		batch := q.batcher.Next()
+		if batch == nil {
+			break
 		}
 
-		return err
-	}
+		transfers := make([]*objectResource, 0, len(batch))
+		for _, t := range batch {
+			transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
+		}
 
-	q.files = 0
+		objects, err := Batch(transfers, q.transferKind)
+		if err != nil {
+			if isNotImplError(err) {
+				tracerx.Printf("queue: batch not implemented, disabling")
+				configFile := filepath.Join(LocalGitDir, "config")
+				git.Config.SetLocal(configFile, "lfs.batch", "false")
+			}
+			// TODO trigger the individual fallback
+		}
 
-	for _, o := range objects {
-		if _, ok := o.Links[q.transferKind]; ok {
-			// This object needs to be transfered
-			if transfer, ok := q.transferables[o.Oid]; ok {
-				q.files++
-				q.wg.Add(1)
-				transfer.SetObject(o)
-				q.transferc <- transfer
+		q.files = 0
+
+		for _, o := range objects {
+			if _, ok := o.Links[q.transferKind]; ok {
+				// This object needs to be transfered
+				if transfer, ok := q.transferables[o.Oid]; ok {
+					q.files++
+					transfer.SetObject(o)
+					q.transferc <- transfer
+				}
 			}
 		}
-	}
 
-	close(q.transferc)
-	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.finished, q.files))
-	q.bar.Start()
-	sendApiEvent(apiEventSuccess) // Wake up transfer workers
-	return nil
+		sendApiEvent(apiEventSuccess) // Wake up transfer workers
+	}
 }
 
-// Process starts the transfer queue and displays a progress bar. Process will
-// do individual or batch transfers depending on the Config.BatchTransfer() value.
-// Process will transfer files sequentially or concurrently depending on the
-// Concig.ConcurrentTransfers() value.
-func (q *TransferQueue) Process() {
-	q.bar = pb.New64(q.size)
-	q.bar.SetUnits(pb.U_BYTES)
-	q.bar.ShowBar = false
+// This goroutine collects errors returned from transfers
+func (q *TransferQueue) errorCollector() {
+	for err := range q.errorc {
+		q.errors = append(q.errors, err)
+	}
+}
 
-	// This goroutine collects errors returned from transfers
-	go func() {
-		for err := range q.errorc {
-			q.errors = append(q.errors, err)
-		}
-	}()
+func (q *TransferQueue) progressMonitor() {
+	output, err := newProgressLogger()
+	if err != nil {
+		q.errorc <- Error(err)
+	}
 
-	// This goroutine watches for apiEvents. In order to prevent multiple
-	// credential requests from happening, the queue is processed sequentially
-	// until an API request succeeds (meaning authenication has happened successfully).
-	// Once the an API request succeeds, all worker goroutines are woken up and allowed
-	// to process transfers. Once a success happens, this goroutine exits.
-	go func() {
-		for {
-			event := <-apiEvent
-			switch event {
-			case apiEventSuccess:
-				atomic.StoreInt32(&q.clientAuthorized, 1)
-				q.authCond.Broadcast() // Wake all remaining goroutines
-				return
-			case apiEventFail:
-				q.authCond.Signal() // Wake the next goroutine
-			}
-		}
-	}()
-
-	// This goroutine will send progress output to GIT_LFS_PROGRESS if it has been set
-	progressc := make(chan string, 100)
-	go func() {
-		output, err := newProgressLogger()
-		if err != nil {
+	for l := range q.progressc {
+		if err := output.Write([]byte(l)); err != nil {
 			q.errorc <- Error(err)
+			output.Shutdown()
 		}
+	}
 
-		for l := range progressc {
-			if err := output.Write([]byte(l)); err != nil {
-				q.errorc <- Error(err)
-				output.Shutdown()
-			}
-		}
+	output.Close()
+}
 
-		output.Close()
-	}()
-
-	var transferCount = int32(0)
+func (q *TransferQueue) transferWorker() {
 	direction := "push"
 	if q.transferKind == "download" {
 		direction = "pull"
 	}
 
-	for i := 0; i < q.workers; i++ {
-		// These are the worker goroutines that process transfers
-		go func() {
-			for transfer := range q.transferc {
-				c := atomic.AddInt32(&transferCount, 1)
-				cb := func(total, read int64, current int) error {
-					progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
-					q.bar.Add(current)
-					return nil
-				}
+	for transfer := range q.transferc {
+		tracerx.Printf("tq: received transfer request for %s", transfer.Oid())
+		cb := func(total, read int64, current int) error {
+			c := atomic.AddInt32(&q.transferCount, 1)
+			q.progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
+			return nil
+		}
 
-				if err := transfer.Transfer(cb); err != nil {
-					q.errorc <- err
-				} else {
-					oid := transfer.Oid()
-					for _, c := range q.watchers {
-						c <- oid
-					}
-				}
-
-				f := atomic.AddInt32(&q.finished, 1)
-				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
-				q.wg.Done()
+		if err := transfer.Transfer(cb); err != nil {
+			tracerx.Printf("tq: transfer failed for %s", transfer.Oid())
+			q.errorc <- err
+		} else {
+			oid := transfer.Oid()
+			for _, c := range q.watchers {
+				c <- oid
 			}
-		}()
+		}
+
+		//f := atomic.AddInt32(&q.finished, 1)
+		tracerx.Printf("tq: transfer finished for %s", transfer.Oid())
+		q.wait.Done()
+	}
+}
+
+// launchIndividualApiRoutines first launches a single api worker. When it
+// receives the first successful api request it launches workers - 1 more
+// workers. This prevents being prompted for credentials multiple times at once
+// when they're needed.
+func (q *TransferQueue) launchIndividualApiRoutines() {
+	go func() {
+		apiWaiter := make(chan interface{})
+		tracerx.Printf("tq-individual: spawning first api routine")
+		go q.individualApiRoutine(apiWaiter)
+
+		<-apiWaiter
+		tracerx.Printf("tq-individual: api success, launching more workers")
+
+		for i := 0; i < q.workers-1; i++ {
+			tracerx.Printf("tq-individual: spawning individual api routine")
+			go q.individualApiRoutine(nil)
+		}
+	}()
+}
+
+// run starts the transfer queue and displays a progress bar. Process will
+// do individual or batch transfers depending on the Config.BatchTransfer() value.
+// Process will transfer files sequentially or concurrently depending on the
+// Concig.ConcurrentTransfers() value.
+func (q *TransferQueue) run() {
+	go q.errorCollector()
+	go q.progressMonitor()
+
+	for i := 0; i < q.workers; i++ {
+		tracerx.Printf("tq: spawning worker")
+		go q.transferWorker()
 	}
 
 	if Config.BatchTransfer() {
-		if err := q.processBatch(); err != nil {
-			q.processIndividual()
-		}
+		q.batcher = NewBatcher(100)
+		go q.batchApiRoutine()
 	} else {
-		q.processIndividual()
+		q.launchIndividualApiRoutines()
 	}
-
-	q.wg.Wait()
-	close(q.errorc)
-	for _, watcher := range q.watchers {
-		close(watcher)
-	}
-	close(progressc)
-
-	q.bar.Finish()
 }
 
 // Errors returns any errors encountered during transfer.
