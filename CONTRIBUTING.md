@@ -3,6 +3,9 @@
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
 
+This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are expected to uphold this code.
+[code-of-conduct]: http://todogroup.org/opencodeofconduct/#Git LFS/opensource@github.com
+
 ## Feature Requests
 
 Feature requests are welcome, but will have a much better chance of being
