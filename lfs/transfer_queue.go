@@ -162,8 +162,6 @@ func (q *TransferQueue) batchApiRoutine() {
 				}
 			}
 		}
-
-		sendApiEvent(apiEventSuccess) // Wake up transfer workers
 	}
 }
 
