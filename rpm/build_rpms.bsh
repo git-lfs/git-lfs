@@ -23,12 +23,38 @@ exec 2>> $LOG
 set -vx
 
 echo "Downloading/checking for some essentials..." >&6
-$SUDO yum install -y make curl which rpm-build tar bison git
+if which git > /dev/null 2>&1; then
+  GIT_VERSION=($(git --version))
+else
+  GIT_VERSION=(0 0 0)
+fi
+
+$SUDO yum install -y make curl which rpm-build tar bison
 
 REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
 REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
+
+if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
+  if [[ ${REDHAT_VERSION[0]} == 7 ]]; then
+    $SUDO yum install -y git
+  elif [[ ${REDHAT_VERSION[0]} == 6 ]]; then
+    $SUDO yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc
+    #I only include emacs here because the real RHEL rpm create emacs hook, so I will too for MAX compatibility
+    pushd ${CURDIR}/SOURCES
+      curl -L -O http://vault.centos.org/6.6/os/Source/SPackages/git-1.7.1-3.el6_4.1.src.rpm
+      rpm2cpio git-1.7.1-3.el6_4.1.src.rpm | cpio -div git-init.el git.xinetd.in git.conf.httpd git-gui.desktop gitweb.conf.in
+      NEW_GIT_VERSION=$(\grep ^Version: ${CURDIR}/SPECS/git.spec | sed  's|Version:\s*\(.*\)|\1|')
+      curl -L -O http://kernel.org/pub/software/scm/git/git-${NEW_GIT_VERSION}.tar.xz
+      "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git.spec
+      $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/*/git-${NEW_GIT_VERSION}*.rpm ${CURDIR}/RPMS/*/perl-Git-${NEW_GIT_VERSION}*.rpm
+    popd
+  elif [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+    echo BLAH
+    exit 1 #Not implemented yet
+  fi
+fi
 
 if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
   pushd ${CURDIR}
