@@ -24,23 +24,21 @@ type Transferable interface {
 
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
-	apic             chan Transferable
-	transferc        chan Transferable
-	errorc           chan *WrappedError
-	progressc        chan string
-	watchers         []chan string
-	errors           []*WrappedError
-	workers          int
-	finished         int32
-	bytesTransferred int64
-	transferCount    int32
-	transferables    map[string]Transferable
-	bar              *pb.ProgressBar
-	clientAuthorized int32
-	files            int
-	transferKind     string
-	batcher          *Batcher
-	wait             sync.WaitGroup
+	filesAdded    int32 // Number of files added to the queue
+	filesFinished int32 // Number of files that have finished transfering
+	transferIdx   int32 // Used to track transfer number for progress monitor
+	workers       int   // Number of transfer workers to spawn
+	transferKind  string
+	errors        []*WrappedError
+	transferables map[string]Transferable
+	bar           *pb.ProgressBar
+	batcher       *Batcher
+	apic          chan Transferable  // Channel for processing individual API requests
+	transferc     chan Transferable  // Channel for processing transfers
+	errorc        chan *WrappedError // Channel for processing errors
+	progressc     chan string        // Channel for GIT_LFS_PROGRESS monitor
+	watchers      []chan string
+	wait          sync.WaitGroup
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
@@ -62,7 +60,11 @@ func newTransferQueue(workers int) *TransferQueue {
 
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
-	q.files++
+	atomic.AddInt32(&q.filesAdded, 1)
+
+	// Sneak in and update the progress bar's total size
+	atomic.AddInt64(&q.bar.Total, t.Size())
+
 	q.wait.Add(1)
 	q.transferables[t.Oid()] = t
 
@@ -79,6 +81,9 @@ func (q *TransferQueue) Add(t Transferable) {
 // Wait waits for the queue to finish processing all transfers
 func (q *TransferQueue) Wait() {
 	tracerx.Printf("tq: waiting")
+
+	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.filesFinished, q.filesAdded))
+
 	if q.batcher != nil {
 		tracerx.Printf("tq-batch: signaling batcher to exit")
 		q.batcher.Exit()
@@ -91,12 +96,13 @@ func (q *TransferQueue) Wait() {
 		close(watcher)
 	}
 	close(q.progressc)
+	q.bar.Finish()
 }
 
 // Watch returns a channel where the queue will write the OID of each transfer
 // as it completes. The channel will be closed when the queue finishes processing.
 func (q *TransferQueue) Watch() chan string {
-	c := make(chan string, q.files)
+	c := make(chan string, 100)
 	q.watchers = append(q.watchers, c)
 	return c
 }
@@ -124,7 +130,6 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 		}
 
 		if obj != nil {
-			q.files++
 			t.SetObject(obj)
 			q.transferc <- t
 		}
@@ -156,13 +161,10 @@ func (q *TransferQueue) batchApiRoutine() {
 			// TODO trigger the individual fallback
 		}
 
-		q.files = 0
-
 		for _, o := range objects {
 			if _, ok := o.Links[q.transferKind]; ok {
 				// This object needs to be transfered
 				if transfer, ok := q.transferables[o.Oid]; ok {
-					q.files++
 					transfer.SetObject(o)
 					q.transferc <- transfer
 				}
@@ -204,9 +206,10 @@ func (q *TransferQueue) transferWorker() {
 
 	for transfer := range q.transferc {
 		tracerx.Printf("tq: received transfer request for %s", transfer.Oid())
+		c := atomic.AddInt32(&q.transferIdx, 1)
 		cb := func(total, read int64, current int) error {
-			c := atomic.AddInt32(&q.transferCount, 1)
-			q.progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
+			q.progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.filesAdded, read, total, transfer.Name())
+			q.bar.Add(current)
 			return nil
 		}
 
@@ -220,7 +223,8 @@ func (q *TransferQueue) transferWorker() {
 			}
 		}
 
-		//f := atomic.AddInt32(&q.finished, 1)
+		f := atomic.AddInt32(&q.filesFinished, 1)
+		q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.filesAdded))
 		tracerx.Printf("tq: transfer finished for %s", transfer.Oid())
 		q.wait.Done()
 	}
@@ -251,6 +255,14 @@ func (q *TransferQueue) launchIndividualApiRoutines() {
 // Process will transfer files sequentially or concurrently depending on the
 // Concig.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
+	// Set up the pb progress bar. The total size will be updated as files are
+	// added to the queue.
+	q.bar = pb.New64(0)
+	q.bar.SetUnits(pb.U_BYTES)
+	q.bar.ShowBar = false
+	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.filesFinished, q.filesAdded))
+	q.bar.Start()
+
 	go q.errorCollector()
 	go q.progressMonitor()
 
