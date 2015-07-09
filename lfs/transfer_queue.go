@@ -9,6 +9,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
+	"github.com/rubyist/tracerx"
 )
 
 type Transferable interface {
@@ -129,6 +130,30 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	}
 }
 
+// legacyFallback is used when a batch request is made to a server that does
+// not support the batch endpoint. When this happens, the Transferables are
+// feed from the batcher into apic to be processed individually.
+func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
+	tracerx.Printf("tq: batch api not implemented, falling back to individual")
+
+	q.launchIndividualApiRoutines()
+
+	for _, t := range failedBatch {
+		q.apic <- t
+	}
+
+	for {
+		batch := q.batcher.Next()
+		if batch == nil {
+			break
+		}
+
+		for _, t := range batch {
+			q.apic <- t
+		}
+	}
+}
+
 // batchApiRoutine processes the queue of transfers using the batch endpoint,
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
@@ -149,8 +174,10 @@ func (q *TransferQueue) batchApiRoutine() {
 			if isNotImplError(err) {
 				configFile := filepath.Join(LocalGitDir, "config")
 				git.Config.SetLocal(configFile, "lfs.batch", "false")
+
+				go q.legacyFallback(batch)
+				return
 			}
-			// TODO trigger the individual fallback
 		}
 
 		for _, o := range objects {
