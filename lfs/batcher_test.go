@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bmizerany/assert"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
 func TestBatcherSizeMet(t *testing.T) {
