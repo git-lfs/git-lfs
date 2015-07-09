@@ -168,6 +168,8 @@ func (q *TransferQueue) batchApiRoutine() {
 			break
 		}
 
+		tracerx.Printf("tq: sending batch of size %d", len(batch))
+
 		transfers := make([]*objectResource, 0, len(batch))
 		for _, t := range batch {
 			transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
@@ -281,14 +283,17 @@ func (q *TransferQueue) run() {
 	go q.errorCollector()
 	go q.progressMonitor()
 
+	tracerx.Printf("tq: starting %d transfer workers", q.workers)
 	for i := 0; i < q.workers; i++ {
 		go q.transferWorker()
 	}
 
 	if Config.BatchTransfer() {
+		tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
 		q.batcher = NewBatcher(batchSize)
 		go q.batchApiRoutine()
 	} else {
+		tracerx.Printf("tq: running as individual queue")
 		q.launchIndividualApiRoutines()
 	}
 }
