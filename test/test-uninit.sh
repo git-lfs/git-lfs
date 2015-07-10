@@ -6,6 +6,12 @@ begin_test "uninit outside repository"
 (
   set -e
 
+  tmphome="$(basename "$0" ".sh")"
+  mkdir -p $tmphome
+  cp $HOME/.gitconfig $tmphome/
+  HOME=$PWD/$tmphome
+  cd $HOME
+
   [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
 
@@ -20,6 +26,12 @@ end_test
 begin_test "uninit inside repository with default pre-push hook"
 (
   set -e
+
+  tmphome="$(basename "$0" ".sh")"
+  mkdir -p $tmphome
+  cp $HOME/.gitconfig $tmphome/
+  HOME=$PWD/$tmphome
+  cd $HOME
 
   reponame="$(basename "$0" ".sh")-hook"
   mkdir "$reponame"
@@ -48,6 +60,12 @@ begin_test "uninit inside repository without git lfs pre-push hook"
 (
   set -e
 
+  tmphome="$(basename "$0" ".sh")"
+  mkdir -p $tmphome
+  cp $HOME/.gitconfig $tmphome/
+  HOME=$PWD/$tmphome
+  cd $HOME
+
   reponame="$(basename "$0" ".sh")-no-hook"
   mkdir "$reponame"
   cd "$reponame"
@@ -73,6 +91,12 @@ end_test
 begin_test "uninit hooks inside repository"
 (
   set -e
+
+  tmphome="$(basename "$0" ".sh")"
+  mkdir -p $tmphome
+  cp $HOME/.gitconfig $tmphome/
+  HOME=$PWD/$tmphome
+  cd $HOME
 
   reponame="$(basename "$0" ".sh")-only-hook"
   mkdir "$reponame"
