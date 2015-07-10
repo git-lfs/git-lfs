@@ -27,9 +27,10 @@ type Configuration struct {
 	isTracingHttp         bool
 	isLoggingStats        bool
 
-	loading   sync.Mutex // guards initialization of gitConfig and remotes
-	gitConfig map[string]string
-	remotes   []string
+	loading    sync.Mutex // guards initialization of gitConfig and remotes
+	gitConfig  map[string]string
+	remotes    []string
+	extensions map[string]Extension
 }
 
 func NewConfig() *Configuration {
@@ -167,6 +168,11 @@ func (c *Configuration) Remotes() []string {
 	return c.remotes
 }
 
+func (c *Configuration) Extensions() map[string]Extension {
+	c.loadGitConfig()
+	return c.extensions
+}
+
 func (c *Configuration) GitConfig(key string) (string, bool) {
 	c.loadGitConfig()
 	value, ok := c.gitConfig[strings.ToLower(key)]
@@ -193,6 +199,7 @@ func (c *Configuration) loadGitConfig() {
 	uniqRemotes := make(map[string]bool)
 
 	c.gitConfig = make(map[string]string)
+	c.extensions = make(map[string]Extension)
 
 	var output string
 	listOutput, err := git.Config.List()
@@ -221,12 +228,29 @@ func (c *Configuration) loadGitConfig() {
 			continue
 		}
 		key := strings.ToLower(pieces[0])
-		c.gitConfig[key] = pieces[1]
+		value := pieces[1]
+		c.gitConfig[key] = value
 
 		keyParts := strings.Split(key, ".")
 		if len(keyParts) > 1 && keyParts[0] == "remote" {
 			remote := keyParts[1]
 			uniqRemotes[remote] = remote == "origin"
+		} else if len(keyParts) == 3 && keyParts[0] == "lfs-ext" {
+			name := keyParts[1]
+			ext := c.extensions[name]
+			switch keyParts[2] {
+			case "clean":
+				ext.Clean = value
+			case "smudge":
+				ext.Smudge = value
+			case "priority":
+				p, err := strconv.Atoi(value)
+				if err == nil && p >= 0 {
+					ext.Priority = p
+				}
+			}
+			ext.Name = name
+			c.extensions[name] = ext
 		}
 	}
 
