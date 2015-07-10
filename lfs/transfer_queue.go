@@ -1,11 +1,8 @@
 package lfs
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -27,9 +24,7 @@ type Transferable interface {
 
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
-	filesAdded    int32 // Number of files added to the queue
-	transferIdx   int32 // Used to track transfer number for progress monitor
-	workers       int   // Number of transfer workers to spawn
+	workers       int // Number of transfer workers to spawn
 	transferKind  string
 	errors        []*WrappedError
 	transferables map[string]Transferable
@@ -37,9 +32,8 @@ type TransferQueue struct {
 	apic          chan Transferable  // Channel for processing individual API requests
 	transferc     chan Transferable  // Channel for processing transfers
 	errorc        chan *WrappedError // Channel for processing errors
-	progressc     chan string        // Channel for GIT_LFS_PROGRESS monitor
 	watchers      []chan string
-	monitors      []ProgressTracker
+	monitors      []*ProgressMeter
 	wait          sync.WaitGroup
 }
 
@@ -49,7 +43,6 @@ func newTransferQueue(workers int) *TransferQueue {
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
-		progressc:     make(chan string, batchSize),
 		workers:       workers,
 		transferables: make(map[string]Transferable),
 	}
@@ -61,8 +54,6 @@ func newTransferQueue(workers int) *TransferQueue {
 
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
-	atomic.AddInt32(&q.filesAdded, 1)
-
 	q.wait.Add(1)
 	q.transferables[t.Oid()] = t
 
@@ -76,18 +67,18 @@ func (q *TransferQueue) Add(t Transferable) {
 
 // Wait waits for the queue to finish processing all transfers
 func (q *TransferQueue) Wait() {
-
 	if q.batcher != nil {
 		q.batcher.Exit()
 	}
+
 	q.wait.Wait()
 	close(q.apic)
 	close(q.transferc)
 	close(q.errorc)
+
 	for _, watcher := range q.watchers {
 		close(watcher)
 	}
-	close(q.progressc)
 
 	for _, mon := range q.monitors {
 		mon.Finish()
@@ -102,7 +93,7 @@ func (q *TransferQueue) Watch() chan string {
 	return c
 }
 
-func (q *TransferQueue) Monitor(m ProgressTracker) {
+func (q *TransferQueue) Monitor(m *ProgressMeter) {
 	q.monitors = append(q.monitors, m)
 }
 
@@ -204,42 +195,18 @@ func (q *TransferQueue) errorCollector() {
 	}
 }
 
-func (q *TransferQueue) progressMonitor() {
-	output, err := newProgressLogger()
-	if err != nil {
-		q.errorc <- Error(err)
-	}
-
-	for l := range q.progressc {
-		if err := output.Write([]byte(l)); err != nil {
-			q.errorc <- Error(err)
-			output.Shutdown()
-		}
-	}
-
-	output.Close()
-}
-
 func (q *TransferQueue) transferWorker() {
-	direction := "push"
-	if q.transferKind == "download" {
-		direction = "pull"
-	}
-
 	for transfer := range q.transferc {
-		c := atomic.AddInt32(&q.transferIdx, 1)
 		cb := func(total, read int64, current int) error {
-			q.progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.filesAdded, read, total, transfer.Name())
-
 			// Log out to monitors
 			for _, mon := range q.monitors {
-				mon.Log(transferBytes, transfer.Name(), read, total, current)
+				mon.Log(transferBytes, q.transferKind, transfer.Name(), read, total, current)
 			}
 			return nil
 		}
 
 		for _, mon := range q.monitors {
-			mon.Log(transferStart, transfer.Name(), 0, 0, 0)
+			mon.Log(transferStart, q.transferKind, transfer.Name(), 0, 0, 0)
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
@@ -252,7 +219,7 @@ func (q *TransferQueue) transferWorker() {
 		}
 
 		for _, mon := range q.monitors {
-			mon.Log(transferFinish, transfer.Name(), 0, 0, 0)
+			mon.Log(transferFinish, q.transferKind, transfer.Name(), 0, 0, 0)
 		}
 
 		q.wait.Done()
@@ -276,13 +243,11 @@ func (q *TransferQueue) launchIndividualApiRoutines() {
 	}()
 }
 
-// run starts the transfer queue and displays a progress bar. Process will
-// do individual or batch transfers depending on the Config.BatchTransfer() value.
-// Process will transfer files sequentially or concurrently depending on the
-// Concig.ConcurrentTransfers() value.
+// run starts the transfer queue, doing individual or batch transfers depending
+// on the Config.BatchTransfer() value. run will transfer files sequentially or
+// concurrently depending on the Config.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
 	go q.errorCollector()
-	go q.progressMonitor()
 
 	tracerx.Printf("tq: starting %d transfer workers", q.workers)
 	for i := 0; i < q.workers; i++ {
@@ -302,63 +267,4 @@ func (q *TransferQueue) run() {
 // Errors returns any errors encountered during transfer.
 func (q *TransferQueue) Errors() []*WrappedError {
 	return q.errors
-}
-
-// progressLogger provides a wrapper around an os.File that can either
-// write to the file or ignore all writes completely.
-type progressLogger struct {
-	writeData bool
-	log       *os.File
-}
-
-// Write will write to the file and perform a Sync() if writing succeeds.
-func (l *progressLogger) Write(b []byte) error {
-	if l.writeData {
-		if _, err := l.log.Write(b); err != nil {
-			return err
-		}
-		return l.log.Sync()
-	}
-	return nil
-}
-
-// Close will call Close() on the underlying file
-func (l *progressLogger) Close() error {
-	if l.log != nil {
-		return l.log.Close()
-	}
-	return nil
-}
-
-// Shutdown will cause the logger to ignore any further writes. It should
-// be used when writing causes an error.
-func (l *progressLogger) Shutdown() {
-	l.writeData = false
-}
-
-// newProgressLogger creates a progressLogger based on the presence of
-// the GIT_LFS_PROGRESS environment variable. If it is present and a log file
-// is able to be created, the logger will write to the file. If it is absent,
-// or there is an err creating the file, the logger will ignore all writes.
-func newProgressLogger() (*progressLogger, error) {
-	logPath := Config.Getenv("GIT_LFS_PROGRESS")
-
-	if len(logPath) == 0 {
-		return &progressLogger{}, nil
-	}
-	if !filepath.IsAbs(logPath) {
-		return &progressLogger{}, fmt.Errorf("GIT_LFS_PROGRESS must be an absolute path")
-	}
-
-	cbDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(cbDir, 0755); err != nil {
-		return &progressLogger{}, err
-	}
-
-	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return &progressLogger{}, err
-	}
-
-	return &progressLogger{true, file}, nil
 }
