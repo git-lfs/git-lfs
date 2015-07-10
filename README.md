@@ -26,8 +26,8 @@ Git LFS uses `.gitattributes` files to configure which are managed by Git LFS.
 Here is a sample one that saves zips and mp3s:
 
     $ cat .gitattributes
-    *.mp3 filter=lfs -crlf
-    *.zip filter=lfs -crlf
+    *.mp3 filter=lfs -text
+    *.zip filter=lfs -text
 
 Git LFS can manage `.gitattributes` for you:
 
