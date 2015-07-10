@@ -14,7 +14,7 @@ var (
 
 	uninitHooksCmd = &cobra.Command{
 		Use:   "hooks",
-		Short: "Clear the only Git hooks for the current repository",
+		Short: "Clear only the Git hooks for the current repository",
 		Run:   uninitHooksCommand,
 	}
 )
