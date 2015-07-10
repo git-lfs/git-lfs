@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -52,6 +53,44 @@ func InstallHooks(force bool) error {
 	return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 }
 
+func UninstallHooks() error {
+	if !InRepo() {
+		return NotInARepositoryError
+	}
+
+	prePushHookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
+	file, err := os.Open(prePushHookPath)
+	if err != nil {
+		// hook doesn't exist, our work here is done
+		return nil
+	}
+
+	hasLfs, err := fileHasGitLfs(file)
+	file.Close()
+
+	if err != nil {
+		return err
+	}
+
+	if hasLfs {
+		return os.RemoveAll(prePushHookPath)
+	}
+
+	return nil
+}
+
+var gitLfsRE = regexp.MustCompile("git[- ]lfs")
+
+func fileHasGitLfs(file *os.File) (bool, error) {
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if gitLfsRE.MatchString(scanner.Text()) {
+			return true, nil
+		}
+	}
+	return false, scanner.Err()
+}
+
 func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {
 	file, err := os.Open(hookPath)
 	if err != nil {
@@ -85,6 +124,16 @@ func InstallFilters(force bool) error {
 	}
 	if err := requireFilters(force); err != nil {
 		return err
+	}
+	return nil
+}
+
+func UninstallFilters() error {
+	keys := []string{"clean", "smudge", "required"}
+	keyFmt := "filter.lfs.%s"
+	for _, name := range keys {
+		key := fmt.Sprintf(keyFmt, name)
+		git.Config.UnsetGlobal(key)
 	}
 	return nil
 }

@@ -31,7 +31,7 @@ func initCommand(cmd *cobra.Command, args []string) {
 		initHooksCommand(cmd, args)
 	}
 
-	Print("git lfs initialized")
+	Print("Git LFS initialized")
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
