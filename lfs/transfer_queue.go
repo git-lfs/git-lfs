@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -29,19 +28,18 @@ type Transferable interface {
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
 	filesAdded    int32 // Number of files added to the queue
-	filesFinished int32 // Number of files that have finished transfering
 	transferIdx   int32 // Used to track transfer number for progress monitor
 	workers       int   // Number of transfer workers to spawn
 	transferKind  string
 	errors        []*WrappedError
 	transferables map[string]Transferable
-	bar           *pb.ProgressBar
 	batcher       *Batcher
 	apic          chan Transferable  // Channel for processing individual API requests
 	transferc     chan Transferable  // Channel for processing transfers
 	errorc        chan *WrappedError // Channel for processing errors
 	progressc     chan string        // Channel for GIT_LFS_PROGRESS monitor
 	watchers      []chan string
+	monitors      []ProgressTracker
 	wait          sync.WaitGroup
 }
 
@@ -51,7 +49,6 @@ func newTransferQueue(workers int) *TransferQueue {
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
-		watchers:      make([]chan string, 0),
 		progressc:     make(chan string, batchSize),
 		workers:       workers,
 		transferables: make(map[string]Transferable),
@@ -65,9 +62,6 @@ func newTransferQueue(workers int) *TransferQueue {
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
 	atomic.AddInt32(&q.filesAdded, 1)
-
-	// Sneak in and update the progress bar's total size
-	atomic.AddInt64(&q.bar.Total, t.Size())
 
 	q.wait.Add(1)
 	q.transferables[t.Oid()] = t
@@ -83,8 +77,6 @@ func (q *TransferQueue) Add(t Transferable) {
 // Wait waits for the queue to finish processing all transfers
 func (q *TransferQueue) Wait() {
 
-	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.filesFinished, q.filesAdded))
-
 	if q.batcher != nil {
 		q.batcher.Exit()
 	}
@@ -96,7 +88,10 @@ func (q *TransferQueue) Wait() {
 		close(watcher)
 	}
 	close(q.progressc)
-	q.bar.Finish()
+
+	for _, mon := range q.monitors {
+		mon.Finish()
+	}
 }
 
 // Watch returns a channel where the queue will write the OID of each transfer
@@ -105,6 +100,10 @@ func (q *TransferQueue) Watch() chan string {
 	c := make(chan string, batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
+}
+
+func (q *TransferQueue) Monitor(m ProgressTracker) {
+	q.monitors = append(q.monitors, m)
 }
 
 // individualApiRoutine processes the queue of transfers one at a time by making
@@ -231,8 +230,16 @@ func (q *TransferQueue) transferWorker() {
 		c := atomic.AddInt32(&q.transferIdx, 1)
 		cb := func(total, read int64, current int) error {
 			q.progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.filesAdded, read, total, transfer.Name())
-			q.bar.Add(current)
+
+			// Log out to monitors
+			for _, mon := range q.monitors {
+				mon.Log(transferBytes, transfer.Name(), read, total, current)
+			}
 			return nil
+		}
+
+		for _, mon := range q.monitors {
+			mon.Log(transferStart, transfer.Name(), 0, 0, 0)
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
@@ -244,8 +251,10 @@ func (q *TransferQueue) transferWorker() {
 			}
 		}
 
-		f := atomic.AddInt32(&q.filesFinished, 1)
-		q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.filesAdded))
+		for _, mon := range q.monitors {
+			mon.Log(transferFinish, transfer.Name(), 0, 0, 0)
+		}
+
 		q.wait.Done()
 	}
 }
@@ -272,14 +281,6 @@ func (q *TransferQueue) launchIndividualApiRoutines() {
 // Process will transfer files sequentially or concurrently depending on the
 // Concig.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
-	// Set up the pb progress bar. The total size will be updated as files are
-	// added to the queue.
-	q.bar = pb.New64(0)
-	q.bar.SetUnits(pb.U_BYTES)
-	q.bar.ShowBar = false
-	q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", q.filesFinished, q.filesAdded))
-	q.bar.Start()
-
 	go q.errorCollector()
 	go q.progressMonitor()
 

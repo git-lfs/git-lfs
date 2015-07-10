@@ -34,11 +34,14 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
 
+	size := int64(0)
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
+
+		size += pointer.Size
 		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
@@ -52,11 +55,16 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 		uploadQueue.Add(u)
 	}
 
+	pb := lfs.NewProgressMeter(len(pointers), size)
+	uploadQueue.Monitor(pb)
+
 	return uploadQueue
 }
 
 func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
+
+	size := int64(0)
 
 	for i, oid := range oids {
 		if pushDryRun {
@@ -73,8 +81,12 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 				Exit(wErr.Error())
 			}
 		}
+		size += u.Size()
 		uploadQueue.Add(u)
 	}
+
+	pb := lfs.NewProgressMeter(len(oids), size)
+	uploadQueue.Monitor(pb)
 
 	return uploadQueue
 }

@@ -40,9 +40,14 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
 
+	size := int64(0)
 	for _, p := range pointers {
+		size += p.Size
 		q.Add(lfs.NewDownloadable(p))
 	}
+
+	pb := lfs.NewProgressMeter(len(pointers), size)
+	q.Monitor(pb)
 
 	target, err := git.ResolveRef(ref)
 	if err != nil {

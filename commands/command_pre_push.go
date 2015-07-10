@@ -73,12 +73,14 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
 
+	size := int64(0)
 	for _, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
 
+		size += pointer.Size
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
 			if cleanPointerErr, ok := wErr.Err.(*lfs.CleanedPointerError); ok {
@@ -95,6 +97,9 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !prePushDryRun {
+		pb := lfs.NewProgressMeter(len(pointers), size)
+		uploadQueue.Monitor(pb)
+
 		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || err.Panic {
