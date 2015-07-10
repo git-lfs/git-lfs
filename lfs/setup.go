@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -65,30 +64,18 @@ func UninstallHooks() error {
 		return nil
 	}
 
-	hasLfs, err := fileHasGitLfs(file)
+	by, err := ioutil.ReadAll(io.LimitReader(file, 1024))
 	file.Close()
-
 	if err != nil {
 		return err
 	}
 
-	if hasLfs {
+	contents := strings.TrimSpace(string(by))
+	if contents == prePushHook || prePushUpgrades[contents] {
 		return os.RemoveAll(prePushHookPath)
 	}
 
 	return nil
-}
-
-var gitLfsRE = regexp.MustCompile("git[- ]lfs")
-
-func fileHasGitLfs(file *os.File) (bool, error) {
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		if gitLfsRE.MatchString(scanner.Text()) {
-			return true, nil
-		}
-	}
-	return false, scanner.Err()
 }
 
 func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {

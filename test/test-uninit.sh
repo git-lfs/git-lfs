@@ -53,11 +53,11 @@ begin_test "uninit inside repository without git lfs pre-push hook"
   cd "$reponame"
   git init
   git lfs init
-  echo "something else" > .git/hooks/pre-push
+  echo "something something git-lfs" > .git/hooks/pre-push
 
 
   [ -f .git/hooks/pre-push ]
-  [ "something else" = "$(cat .git/hooks/pre-push)" ]
+  [ "something something git-lfs" = "$(cat .git/hooks/pre-push)" ]
 
   [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
