@@ -11,7 +11,7 @@ else
   RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --nodeps)
 fi
 LOG=${CURDIR}/build.log
-SUDO=${SUDO=sudo}
+SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
 export PATH=${PATH}:/usr/local/bin
 
 exec 6>&1
