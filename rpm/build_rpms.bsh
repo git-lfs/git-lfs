@@ -25,6 +25,10 @@ set -vx
 echo "Downloading/checking for some essentials..." >&6
 if which git > /dev/null 2>&1; then
   GIT_VERSION=($(git --version))
+  IFS_OLD=${IFS}
+  IFS=.
+  GIT_VERSION=(${GIT_VERSION[2]})
+  IFS=${IFS_OLD}
 else
   GIT_VERSION=(0 0 0)
 fi
