@@ -51,19 +51,12 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
       $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/*/git-${NEW_GIT_VERSION}*.rpm ${CURDIR}/RPMS/*/perl-Git-${NEW_GIT_VERSION}*.rpm
     popd
   elif [[ ${REDHAT_VERSION[0]} == 5 ]]; then
-    echo BLAH
-    exit 1 #Not implemented yet
+    #For once, CentOS 5 is easy. epel come WITH 1.8.2!!!
+    if ! rpm -q epel-release; then
+      $SUDO yum install -y epel-release #Optional part of centos
+    fi
+    $SUDO yum install -y git  
   fi
-fi
-
-if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
-  pushd ${CURDIR}
-    $SUDO rpm --import http://apt.sw.be/RPM-GPG-KEY.dag.txt
-    curl -L -O http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el5.rf.x86_64.rpm
-    $SUDO yum install -y rpmforge-release-0.5.3-1.el5.rf.*.rpm
-    rm rpmforge-release-0.5.3-1.el5.rf.*.rpm
-  popd
-  $SUDO yum install -y git
 fi
 
 if [ ! -e ${CURDIR}/SOURCES/v${VERSION}.tar.gz ]; then
@@ -120,9 +113,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
     echo "Downloading ruby..." >&6
 
     if ! rpm -q epel-release; then
-      if [[ ${REDHAT_VERSION[0]} > 5 ]]; then
-        $SUDO yum install -y epel-release #Part of centos 6+
-      fi
+      $SUDO yum install -y epel-release #Optional part of centos
     fi
 
     $SUDO yum install -y patch libyaml-devel glibc-headers autoconf gcc-c++ glibc-devel readline-devel zlib-devel libffi-devel openssl-devel automake libtool sqlite-devel
