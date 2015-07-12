@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-set -eu
-
-CURDIR=$(dirname "${BASH_SOURCE[0]}")
-
