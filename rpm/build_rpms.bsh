@@ -151,6 +151,12 @@ fi
 echo "Build git-lfs rpm..." >&6
 sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec 
 "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git-lfs.spec
-"${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
+if [ "`stat -c '%U' ${CURDIR}/SPECS/git-lfs.spec`" == "UNKNOWN" ]; then
+  $SUDO cp ${CURDIR}/SPECS/git-lfs.spec ${CURDIR}/SPECS/git-lfs2.spec
+  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs2.spec
+  $SUDO rm -f ${CURDIR}/SPECS/git-lfs2.spec
+else
+  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
+fi
 
 echo "All Done!" >&6

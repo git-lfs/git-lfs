@@ -81,8 +81,8 @@ BUILD_LOCAL=1 ./build_rpms.bsh
 
 ### Troubleshooting ###
 
-**Q**) "error: Bad owner/group" when building SRPM (rpmbuild -bs command)
+**Q**) I ran build_rpms.bsh as root and now there are root owned files in the 
+rpm dir
 
-**A**) For some... STUPID reason, git-lfs.spec has to be OWNED by a valid user.
-Just chown git-lfs.spec to a valid user AND group.
-```chown root:root git-lfs.spec``` will do.
+**A**) That happens. Either run build_rpms.bsh as a user with sudo permissions
+or ```chown -R username:groupname rpm``` as root after building.
