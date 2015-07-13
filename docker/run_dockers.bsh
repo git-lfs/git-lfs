@@ -14,15 +14,22 @@ SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
 mkdir -p "${PACKAGE_DIR}"
 #Run docker to build rpm/deb
 for IMAGE_DIR in $(ls -d ${CUR_DIR}/*/); do
-  IMAGE_NAME=$(dirname ${IMAGE_DIR})
-  echo Compiling in docker image ${IMAGE_NAME}
-  docker run -e BUILD_LOCAL=${BUILD_LOCAL} -v ${REPO_DIR}:/tmp/git-lfs --name git-lfs_build_container ${IMAGE_NAME}
-  
+  IMAGE_NAME=$(basename ${IMAGE_DIR})
+
   OLD_IFS=${IFS}
   IFS=_
   IMAGE_INFO=(${IMAGE_NAME})
   IFS=${OLD_IFS}
-  
+
+  if [ "${IMAGE_NAME}" == "packages" ]; then
+    continue
+  elif [[ ${IMAGE_NAME} == *"centos"* ]]; then
+    ${REPO_DIR}/rpm/clean.bsh
+  fi
+
+  echo Compiling in docker image ${IMAGE_NAME}
+  $SUDO docker run -e BUILD_LOCAL=${BUILD_LOCAL} -v ${REPO_DIR}:/tmp/git-lfs --name git-lfs_build_container ${IMAGE_NAME}
+
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
   mkdir -p "${IMAGE_REPO_DIR}"
 
@@ -32,11 +39,11 @@ for IMAGE_DIR in $(ls -d ${CUR_DIR}/*/); do
   if [[ ${IMAGE_NAME} == *"centos"* ]]; then
     cp -rv ${REPO_DIR}/rpm/{RPMS,SRPMS} ${IMAGE_REPO_DIR}
   elif [[ ${IMAGE_NAME} == *"debian"* ]]; then
-    docker cp ${IMAGE_NAME} /tmp/git-lfs*.* ${IMAGE_REPO_DIR}
+    $SUDO docker cp git-lfs_build_container:tmp ${IMAGE_REPO_DIR}
+    $SUDO mv ${IMAGE_REPO_DIR}/tmp/git-lfs_* ${IMAGE_REPO_DIR}
+    $SUDO rm -rf ${IMAGE_REPO_DIR}/tmp
   fi
   
-  docker kill git-lfs_build_container
-  docker rm git-lfs_build_container
-  
-  git clean -xdf -e packages
+  $SUDO docker kill git-lfs_build_container
+  $SUDO docker rm git-lfs_build_container
 done

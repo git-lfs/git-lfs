@@ -6,6 +6,10 @@ CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 #This will take a long time the first time
 for IMAGE_DIR in $(ls -d ${CUR_DIR}/*/); do
+  if [ "$(basename ${IMAGE_DIR})" == "packages" ]; then
+    continue
+  fi
+
   echo Docker building ${IMAGE_DIR}
   docker build -t $(basename ${IMAGE_DIR}) ${IMAGE_DIR}
 done
