@@ -9,6 +9,7 @@ URL:            https://git-lfs.github.com/
 Source0:        https://github.com/github/git-lfs/archive/v%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  golang, tar, which, bison, rubygem-ronn, git
+BuildRequires:  perl-Digest-SHA
 Requires:       git
 
 %if 0%{?rhel} == 7

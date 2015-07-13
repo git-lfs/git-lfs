@@ -15,11 +15,11 @@ if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
   if ! rpm -q epel-release; then
     yum install -y epel-release
   fi
-  yum install -y bison git make man which
+  yum install -y bison git make man which perl-Digest-SHA
 else
   if [[ ${REDHAT_VERSION[0]} == 6 ]]; then
     rpm -q epel-release || yum install -y epel-release
-    yum install -y bison golang make man which
+    yum install -y bison golang make man which perl-Digest-SHA
     if which git > /dev/null 2>&1; then
       GIT_VERSION=($(git --version))
       IFS_OLD=${IFS}
@@ -43,7 +43,7 @@ else
       rm -rf git_build
     fi
   else
-    yum install -y bison git golang make man which
+    yum install -y bison git golang make man which perl-Digest-SHA
   fi
 fi
 

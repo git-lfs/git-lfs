@@ -33,17 +33,22 @@ else
   GIT_VERSION=(0 0 0)
 fi
 
-$SUDO yum install -y make curl which rpm-build tar bison
-
 REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
 REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)
+
+if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+  if ! rpm -q epel-release > /dev/null 2>&1; then
+    $SUDO yum install -y epel-release
+  fi
+fi
+$SUDO yum install -y make curl which rpm-build tar bison perl-Digest-SHA
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
 if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
-  if [[ ${REDHAT_VERSION[0]} == 7 ]]; then
+  if [[ ${REDHAT_VERSION[0]} != 6 ]]; then
     $SUDO yum install -y git
-  elif [[ ${REDHAT_VERSION[0]} == 6 ]]; then
+  else
     $SUDO yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc
     #I only include emacs here because the real RHEL rpm create emacs hook, so I will too for MAX compatibility
     pushd ${CURDIR}/SOURCES
@@ -54,12 +59,6 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
       "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git.spec
       $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/*/git-${NEW_GIT_VERSION}*.rpm ${CURDIR}/RPMS/*/perl-Git-${NEW_GIT_VERSION}*.rpm
     popd
-  elif [[ ${REDHAT_VERSION[0]} == 5 ]]; then
-    #For once, CentOS 5 is easy. epel come WITH 1.8.2!!!
-    if ! rpm -q epel-release; then
-      $SUDO yum install -y epel-release #Optional part of centos
-    fi
-    $SUDO yum install -y git  
   fi
 fi
 
