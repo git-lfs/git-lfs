@@ -213,8 +213,8 @@ blobs should be handled.  Some examples of extensions that could be built:
 The basic extensibilty model is that LFS extensions must be registered explicitly, and
 they will be invoked on clean and smudge to manipulate the contents of the files as 
 needed.  On clean, LFS itself ensures that the pointer file is updated with all the 
-information needed to be able to smudge correctly, and the extensions never write to the 
-pointer file.
+information needed to be able to smudge correctly, and the extensions never modify the 
+pointer file directly.
 
 Note that LFS is currently transitioning away from using the Git smudge filter, in favor 
 of smudging all files using "git-lfs fetch" post checkout.  However, that detail should 
@@ -228,7 +228,7 @@ to define:
 * Its unique name.  This will be used as part of the key in the pointer file.
 * The command to run on clean
 * The command to run on smudge/fetch
-* The priority of the extension, which must be a unique, positive integer
+* The priority of the extension, which must be a unique, non-negative integer
 
 The sequence "%f" in the clean and smudge commands will be replaced by the filename being 
 processed.
@@ -236,14 +236,14 @@ processed.
 Here's an example extension registration in the Git config:
 
 ```
-[lfs-extension "foo"]
+[lfs-ext "foo"]
   clean = git-lfs-foo clean %f
   smudge = git-lfs-foo smudge %f
-  priority = 1
-[lfs-extension "bar"]
+  priority = 0
+[lfs-ext "bar"]
   clean = git-lfs-bar clean %f
   smudge = git-lfs-bar smudge %f
-  priority = 2
+  priority = 1
 ```
 
 ### Clean
@@ -261,7 +261,7 @@ that the extension was invoked and the oid of the file before that extension was
 All of that information is required to be able to reliably smudge the file later.  Each 
 new line in the pointer file will be of the form
 
-`extension-{priority}-{name} {hash-method}:{hash-of-input-to-extension} `
+`ext-{priority}-{name} {hash-method}:{hash-of-input-to-extension} `
 
 This naming ensures that all extensions are written in both alphabetical and priority 
 order, and also shows the progression of changes to the oid as it is processed by the 
@@ -289,8 +289,8 @@ Here's an example pointer file, for a file processed by extensions foo and bar:
   
 ```
 version https://git-lfs.github.com/spec/v1
-extension-1-foo sha256:{original hash}
-extension-2-bar sha256:{hash after foo}
+ext-1-foo sha256:{original hash}
+ext-2-bar sha256:{hash after foo}
 oid sha256:{hash after bar}
 size 123
 (ending \n)
@@ -300,6 +300,9 @@ Note: as an optimization, if an extension just does a pass-through, its key can 
 omitted from the pointer file.  This will make smudging the file a bit more efficient 
 since that extension can be skipped.  LFS can detect a pass-through extension because the 
 input and output oid's will be the same.
+
+This implies that extensions must have no side effects other than writing to their STDOUT.
+Otherwise LFS has no way to know what extensions modified a file.
 
 
 ### Smudge
@@ -348,3 +351,32 @@ message indicating which extension failed to undo its changes.
  * Question: On error, should we overwrite the file in the working directory with the 
  original pointer file?  Can this be done reliably?
 
+
+### Handling errors
+
+If there are errors in the configuration of LFS extensions, such as invalid extension names,
+duplicate priorities, etc, then any LFS commands that rely on them will abort with a
+descriptive error message.
+
+If an extension is unable to perform its task, it can indicate this error by returning a
+non-zero error code and writing a descriptive error message to its STDERR. The behavior on
+an error depends on whether we are cleaning or smudging.
+
+#### Clean
+
+If an extension fails to clean a file, it will return a non-zero error code and write an
+error message to its STDERR.  Because the file was not cleaned correctly, it can't be added
+to the index.  LFS will ensure that no pointer file is added/updated for failed files.  In
+addition, it will display the error messages for any files that could not be cleaned (and
+keep those errors in a log), so that the user can diagnose the failure, and then rerun "git
+add" on those files.
+
+
+#### Smudge
+
+If an extension fails to smudge a file, it will return a non-zero error code and write an
+error message to its STDERR.  Because the file was not smudged correctly, LFS cannot update
+that file in the working directory.  LFS will ensure that the pointer file is written to
+both the index and working directory.  In addition, it will display the error messages for
+any files that could not be smudged (and keep those errors in a log), so that the user can
+diagnose the failure and then rerun "git-lfs fetch" to fix up any remaining pointer files.
