@@ -45,7 +45,7 @@ func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset,
 	multi := io.MultiReader(bytes.NewReader(by), reader)
 	written, err := CopyWithCallback(writer, multi, size, cb)
 
-	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
+	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written, nil)
 	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
