@@ -174,6 +174,8 @@ func (q *TransferQueue) batchApiRoutine() {
 				go q.legacyFallback(batch)
 				return
 			}
+			q.errorc <- err
+			continue
 		}
 
 		for _, o := range objects {
