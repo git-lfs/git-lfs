@@ -1,12 +1,9 @@
 package lfs
 
-import "time"
-
 // Batcher provides a way to process a set of items in groups of n. Items can
 // be added to the batcher from multiple goroutines and pulled off in groups
 // when one of the following conditions occurs:
 //   * The batch size is reached
-//   * A timeout (default 250ms) has occurred between calls to Add()
 //   * Flush() is called
 //   * Exit() is called
 // When a timeout, Flush(), or Exit() occurs, the group may be smaller than the
@@ -14,7 +11,6 @@ import "time"
 type Batcher struct {
 	batchSize  int
 	input      chan Transferable
-	timeout    time.Duration
 	flush      chan interface{}
 	batchReady chan []Transferable
 }
@@ -24,7 +20,6 @@ func NewBatcher(batchSize int) *Batcher {
 	b := &Batcher{
 		batchSize:  batchSize,
 		input:      make(chan Transferable, batchSize),
-		timeout:    time.Millisecond * 250,
 		flush:      make(chan interface{}),
 		batchReady: make(chan []Transferable),
 	}
@@ -67,8 +62,6 @@ func (b *Batcher) run() {
 						break Loop
 					}
 				case <-b.flush:
-					break Loop
-				case <-time.After(b.timeout):
 					break Loop
 				}
 			}
