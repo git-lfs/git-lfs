@@ -16,3 +16,10 @@ obj-*
 
 rpm/BUILD*
 rpm/*RPMS
+<<<<<<< HEAD
+=======
+rpm/*.log
+rpm/SOURCES
+
+src
+>>>>>>> e46f9b8... Merge pull request #480 from andyneff/git_for_centos

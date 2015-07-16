@@ -11,7 +11,7 @@ else
   RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --nodeps)
 fi
 LOG=${CURDIR}/build.log
-SUDO=${SUDO=sudo}
+SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
 export PATH=${PATH}:/usr/local/bin
 
 exec 6>&1
@@ -23,21 +23,43 @@ exec 2>> $LOG
 set -vx
 
 echo "Downloading/checking for some essentials..." >&6
-$SUDO yum install -y make curl which rpm-build tar bison git
+if which git > /dev/null 2>&1; then
+  GIT_VERSION=($(git --version))
+  IFS_OLD=${IFS}
+  IFS=.
+  GIT_VERSION=(${GIT_VERSION[2]})
+  IFS=${IFS_OLD}
+else
+  GIT_VERSION=(0 0 0)
+fi
 
 REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
 REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)
 
+if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+  if ! rpm -q epel-release > /dev/null 2>&1; then
+    $SUDO yum install -y epel-release
+  fi
+fi
+$SUDO yum install -y make curl which rpm-build tar bison perl-Digest-SHA
+
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
-if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
-  pushd ${CURDIR}
-    $SUDO rpm --import http://apt.sw.be/RPM-GPG-KEY.dag.txt
-    curl -L -O http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el5.rf.x86_64.rpm
-    $SUDO yum install -y rpmforge-release-0.5.3-1.el5.rf.*.rpm
-    rm rpmforge-release-0.5.3-1.el5.rf.*.rpm
-  popd
-  $SUDO yum install -y git
+if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
+  if [[ ${REDHAT_VERSION[0]} != 6 ]]; then
+    $SUDO yum install -y git
+  else
+    $SUDO yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc
+    #I only include emacs here because the real RHEL rpm create emacs hook, so I will too for MAX compatibility
+    pushd ${CURDIR}/SOURCES
+      curl -L -O http://vault.centos.org/6.6/os/Source/SPackages/git-1.7.1-3.el6_4.1.src.rpm
+      rpm2cpio git-1.7.1-3.el6_4.1.src.rpm | cpio -div git-init.el git.xinetd.in git.conf.httpd git-gui.desktop gitweb.conf.in
+      NEW_GIT_VERSION=$(\grep ^Version: ${CURDIR}/SPECS/git.spec | sed  's|Version:\s*\(.*\)|\1|')
+      curl -L -O http://kernel.org/pub/software/scm/git/git-${NEW_GIT_VERSION}.tar.xz
+      "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git.spec
+      $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/*/git-${NEW_GIT_VERSION}*.rpm ${CURDIR}/RPMS/*/perl-Git-${NEW_GIT_VERSION}*.rpm
+    popd
+  fi
 fi
 
 if [ ! -e ${CURDIR}/SOURCES/v${VERSION}.tar.gz ]; then
@@ -94,9 +116,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
     echo "Downloading ruby..." >&6
 
     if ! rpm -q epel-release; then
-      if [[ ${REDHAT_VERSION[0]} > 5 ]]; then
-        $SUDO yum install -y epel-release #Part of centos 6+
-      fi
+      $SUDO yum install -y epel-release #Optional part of centos
     fi
 
     $SUDO yum install -y patch libyaml-devel glibc-headers autoconf gcc-c++ glibc-devel readline-devel zlib-devel libffi-devel openssl-devel automake libtool sqlite-devel
@@ -134,6 +154,12 @@ fi
 echo "Build git-lfs rpm..." >&6
 sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec 
 "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git-lfs.spec
-"${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
+if [ "`stat -c '%U' ${CURDIR}/SPECS/git-lfs.spec`" == "UNKNOWN" ]; then
+  $SUDO cp ${CURDIR}/SPECS/git-lfs.spec ${CURDIR}/SPECS/git-lfs2.spec
+  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs2.spec
+  $SUDO rm -f ${CURDIR}/SPECS/git-lfs2.spec
+else
+  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
+fi
 
 echo "All Done!" >&6

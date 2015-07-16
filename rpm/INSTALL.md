@@ -26,20 +26,7 @@ different versions.
 Practice is to run rpmbuild as non-root user. This prevents inadvertently
 installing files in the operating system. The intent is to run build_rpms.bsh
 as a non-root user with sudo privileges. If you have a different command for
-sudo, or do not have sudo installed (which is possible, but unlikely), you can
-set the SUDO environment variable to nothing or another command and you can
-run as root if that is your style. Example:
-
-```
-./clean.bsh
-SUDO=echo ./build_rpms.bsh
-  or
-(as root) SUDO= ./build_rpms.bsh
-```
-
-(The echo example will let you know what yum commands you need to run to make
-the build work in case you care. Most of people will just run
-```./build_rpms.bsh``` and be done.)
+sudo, set the SUDO environment variable to the other command.
 
 When all is down, install (or distribute) RPMS/git-lfs.rpm
 
@@ -94,8 +81,8 @@ BUILD_LOCAL=1 ./build_rpms.bsh
 
 ### Troubleshooting ###
 
-**Q**) "error: Bad owner/group" when building SRPM (rpmbuild -bs command)
+**Q**) I ran build_rpms.bsh as root and now there are root owned files in the 
+rpm dir
 
-**A**) For some... STUPID reason, git-lfs.spec has to be OWNED by a valid user.
-Just chown git-lfs.spec to a valid user AND group.
-```chown root:root git-lfs.spec``` will do.
+**A**) That happens. Either run build_rpms.bsh as a user with sudo permissions
+or ```chown -R username:groupname rpm``` as root after building.
