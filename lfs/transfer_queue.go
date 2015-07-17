@@ -184,7 +184,11 @@ func (q *TransferQueue) batchApiRoutine() {
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)
 					q.transferc <- transfer
+				} else {
+					q.wait.Done()
 				}
+			} else {
+				q.wait.Done()
 			}
 		}
 	}
