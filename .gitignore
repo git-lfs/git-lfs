@@ -19,6 +19,6 @@ rpm/*RPMS
 rpm/*.log
 rpm/SOURCES
 
-docker/packages
+docker/repos
 
 src

@@ -6,9 +6,9 @@
 
 set -eu
 
-CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
+CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
 REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
-PACKAGE_DIR=${CUR_DIR}/packages
+PACKAGE_DIR=${CUR_DIR}/repos
 BUILD_LOCAL=1
 
 #If you are not in docker group and you have sudo, default value is sudo
@@ -39,13 +39,17 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   split_image_name "${DOCKER_FILE}" #set IMAGE_NAME and IMAGE_INFO
   
   echo Compiling LFS in docker image ${IMAGE_NAME}
-  $SUDO docker run -e BUILD_LOCAL=${BUILD_LOCAL} -v ${REPO_DIR}:/src --name git-lfs_build_container ${IMAGE_NAME}
-
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
-  mkdir -p "${IMAGE_REPO_DIR}"
+  $SUDO docker run --rm ${DOCKER_CMD+-it} \
+                   -e BUILD_LOCAL=${BUILD_LOCAL} \
+                   -v ${REPO_DIR}:/src \
+                   -v ${IMAGE_REPO_DIR}:/repo \
+                   --name git-lfs_build_container \
+                   ${IMAGE_NAME} ${DOCKER_CMD-}
 
-  $SUDO docker cp git-lfs_build_container:/tmp/docker_run/repo/ ${IMAGE_REPO_DIR}
+  #mkdir -p "${IMAGE_REPO_DIR}"
+  #$SUDO docker cp git-lfs_build_container:/tmp/docker_run/repo/ ${IMAGE_REPO_DIR}
 
-  $SUDO docker kill git-lfs_build_container
-  $SUDO docker rm git-lfs_build_container
+#  $SUDO docker kill git-lfs_build_container
+#  $SUDO docker rm git-lfs_build_container
 done

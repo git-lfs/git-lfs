@@ -6,7 +6,7 @@ LABEL RUN="docker run -v git-lfs-repo-dir:/src"
 LABEL POST="docker cp containerid:/tmp/docker_run/repo*"
 
 RUN yum install -y epel-release
-RUN yum install -y createrepo rsync git
+RUN yum install -y createrepo git
 
 #The purpose of this is to build and install everything needed to build git-lfs
 #Next time. So that the LONG build/installed in centos are only done once, and

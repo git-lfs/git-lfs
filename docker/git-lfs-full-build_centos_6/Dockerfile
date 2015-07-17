@@ -1,4 +1,4 @@
-FROM centos:7
+FROM centos:6
 MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
 #Docker RUN example, pass in the git-lfs checkout copy you are working with

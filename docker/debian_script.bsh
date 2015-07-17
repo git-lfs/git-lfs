@@ -1,13 +1,31 @@
 #!/usr/bin/env bash
 
+REPO_DIR=${REPO_DIR:-/repo}
+
 mkdir -p /tmp/docker_run
-cp -r /src /tmp/docker_run/git-lfs
+cp -r -T /src /tmp/docker_run/git-lfs
 
 cd /tmp/docker_run/git-lfs 
 git clean -xdf .
 dpkg-buildpackage -us -uc
 
-cd /tmp/docker_run
-mkdir -p /tmp/docker_run/repo
-mv git-lfs*.* /tmp/docker_run/repo/
-#create repo?
+#cd /tmp/docker_run
+#mkdir -p /tmp/docker_run${REPO_DIR}
+#mv git-lfs*.* ${REPO_DIR}/
+mkdir -p ${REPO_DIR}/conf/
+cp /tmp/distributions ${REPO_DIR}/conf/
+
+#for DEB in $(ls /tmp/docker_run/*.deb); do
+#  mv ${DEB} ${REPO_DIR}/
+#  reprepro -Vb ${REPO_DIR} includedeb git-lfs ${DEB}
+#done
+
+#for DSC in $(ls /tmp/docker_run/*.dsc); do
+#  mv ${DSC} ${REPO_DIR}/
+#  reprepro -Vb ${REPO_DIR} includedsc git-lfs ${DSC}
+#done
+
+for DSC in $(ls /tmp/docker_run/*.changes); do
+  #mv ${DSC} ${REPO_DIR}/
+  reprepro -Vb ${REPO_DIR} include git-lfs ${DSC}
+done
