@@ -2,7 +2,8 @@ FROM centos:5
 MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
 #Docker RUN example, pass in the git-lfs checkout copy you are working with
-LABEL RUN="docker run -v git-lfs-repo-dir:/tmp/git-lfs"
+LABEL RUN="docker run -v git-lfs-repo-dir:/src"
+LABEL POST="docker cp containerid:/tmp/docker_run/repo*"
 
 RUN yum install -y epel-release
 RUN yum install -y createrepo rsync git
@@ -15,15 +16,16 @@ ENV DOCKER_LFS_BUILD_VERSION=master
 #ENV DOCKER_LFS_BUILD_VERSION=v0.5.3
 #Set to master if you want the lastest, but IF there is a failure,
 #the docker will not build, so I decided to make a stable version the default
-
-#ADD https://github.com/github/git-lfs/archive/${DOCKER_LFS_BUILD_VERSION}.tar.gz /tmp/docker_setup/
-#TODO: Change these two lines back after next merge
-ENV DOCKER_LFS_BUILD_VERSION=git_for_centos
-ADD https://github.com/andyneff/git-lfs/archive/${DOCKER_LFS_BUILD_VERSION}.tar.gz /tmp/docker_setup/
-WORKDIR /tmp/docker_setup/
-RUN tar zxf ${DOCKER_LFS_BUILD_VERSION}.tar.gz
-RUN cd /tmp/docker_setup/git-lfs-*/rpm; touch build.log; tail -f build.log & ./build_rpms.bsh; pkill tail
-WORKDIR /tmp/git-lfs/rpm
+ADD https://github.com/github/git-lfs/archive/${DOCKER_LFS_BUILD_VERSION}.tar.gz /tmp/docker_setup/
+RUN cd /tmp/docker_setup/; \
+    tar zxf ${DOCKER_LFS_BUILD_VERSION}.tar.gz
+RUN cd /tmp/docker_setup/git-lfs-*/rpm; \
+    touch build.log; \
+    tail -f build.log & ./build_rpms.bsh; \
+    pkill tail
 RUN rm -rf /tmp/docker_setup
 
-CMD /tmp/git-lfs/rpm/build_rpms.bsh
+#Add the simple build repo script
+ADD centos_script.bsh /tmp/docker_run/
+
+CMD /tmp/docker_run/centos_script.bsh

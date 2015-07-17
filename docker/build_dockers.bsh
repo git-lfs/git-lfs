@@ -1,15 +1,28 @@
 #!/usr/bin/env bash
 
+# Usage: 
+#  ./build_dockers.bsh - Build all the docker images
+#  ./build_dockers.bsh lfs_centos_5 lfs_centos_7 - Build only CentOS 5 & 7 image
+
 set -eu
 
 CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 
-#This will take a long time the first time
-for IMAGE_DIR in $(ls -d ${CUR_DIR}/*/); do
-  if [ "$(basename ${IMAGE_DIR})" == "packages" ]; then
-    continue
-  fi
+#If you are not in docker group and you have sudo, default value is sudo
+: ${SUDO=`if id -nG | grep -qwv docker && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
+if [[ $# == 0 ]]; then
+  IMAGE_DIRS=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
+  for i in "${!IMAGE_DIRS[@]}"; do
+    IMAGE_DIRS[$i]=$(dirname ${IMAGE_DIRS[$i]})
+  done
+  unset i
+else
+  IMAGE_DIRS=("${@}")
+fi
+
+#This will take a long time the first time
+for IMAGE_DIR in "${IMAGE_DIRS[@]}"; do
   echo Docker building ${IMAGE_DIR}
-  docker build -t $(basename ${IMAGE_DIR}) ${IMAGE_DIR}
+  $SUDO docker build -t $(basename ${IMAGE_DIR}) -f ${IMAGE_DIR}/Dockerfile ${CUR_DIR}
 done

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+mkdir -p /tmp/docker_run
+cp -r /src /tmp/docker_run/git-lfs
+
+cd /tmp/docker_run/git-lfs 
+git clean -xdf .
+dpkg-buildpackage -us -uc
+
+cd /tmp/docker_run
+mkdir -p /tmp/docker_run/repo
+mv git-lfs*.* /tmp/docker_run/repo/
+#create repo?

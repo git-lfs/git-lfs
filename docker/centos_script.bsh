@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+mkdir -p /tmp/docker_run
+cp -r /src /tmp/docker_run/git-lfs
+
+cd /tmp/docker_run/git-lfs
+git clean -xdf .
+/tmp/docker_run/git-lfs/rpm/build_rpms.bsh
+
+mkdir -p /tmp/docker_run/repo
+mv /tmp/docker_run/git-lfs/rpm/{SRPMS,RPMS} /tmp/docker_run/repo/
+createrepo /tmp/docker_run/repo
