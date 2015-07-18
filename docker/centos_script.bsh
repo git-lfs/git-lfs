@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 
-mkdir -p /tmp/docker_run
-cp -r /src /tmp/docker_run/git-lfs
+set -eu
 
-cd /tmp/docker_run/git-lfs
+REPO_DIR=${REPO_DIR:-/repo}
+GIT_LFS_BUILD_DIR=${GIT_LFS_BUILD_DIR:-/tmp/docker_run/git-lfs}
+SRC_DIR=${SRC_DIR:-/src}
+
+
+mkdir -p $(dirname "${GIT_LFS_BUILD_DIR}")
+cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
+
+cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
-/tmp/docker_run/git-lfs/rpm/build_rpms.bsh
+"${GIT_LFS_BUILD_DIR}"/rpm/build_rpms.bsh
 
-mkdir -p /tmp/docker_run/repo
-mv /tmp/docker_run/git-lfs/rpm/{SRPMS,RPMS} /tmp/docker_run/repo/
-createrepo /tmp/docker_run/repo
+mkdir -p "${REPO_DIR}/conf/"
+
+rsync -ra ${GIT_LFS_BUILD_DIR}/rpm/{SRPMS,RPMS} ${REPO_DIR}
+createrepo ${REPO_DIR}

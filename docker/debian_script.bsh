@@ -16,7 +16,7 @@ dpkg-buildpackage -us -uc
 
 mkdir -p "${REPO_DIR}/conf/"
 cp /tmp/distributions "${REPO_DIR}/conf/"
-set -xv
+
 #This will add the deb, xz, AND dsc! Perfect
 for DSC in $(ls /tmp/docker_run/*.changes); do
   SOURCE_NAME=$(grep ^Source: "${DSC}" | sed -r 's/Source: (.*)/\1/')

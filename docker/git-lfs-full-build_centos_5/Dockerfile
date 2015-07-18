@@ -3,9 +3,9 @@ MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
 #Docker RUN example, pass in the git-lfs checkout copy you are working with
 LABEL RUN="docker run -v git-lfs-repo-dir:/src"
-LABEL POST="docker cp containerid:/tmp/docker_run/repo*"
+LABEL POST="docker cp containerid:/repo*"
 
-RUN yum install -y createrepo
+RUN yum install -y createrepo rsync
 
 #Add the simple build repo script
 ADD centos_script.bsh /tmp/docker_run/

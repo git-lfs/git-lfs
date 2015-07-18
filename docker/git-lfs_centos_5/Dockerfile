@@ -3,14 +3,14 @@ MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
 #Docker RUN example, pass in the git-lfs checkout copy you are working with
 LABEL RUN="docker run -v git-lfs-repo-dir:/src"
-LABEL POST="docker cp containerid:/tmp/docker_run/repo*"
+LABEL POST="docker cp containerid:/repo*"
 
 RUN yum install -y epel-release
-RUN yum install -y createrepo git
+RUN yum install -y createrepo rsync git
 
 #The purpose of this is to build and install everything needed to build git-lfs
 #Next time. So that the LONG build/installed in centos are only done once, and
-#Store in the image
+#stored in the image.
 
 ENV DOCKER_LFS_BUILD_VERSION=master
 #ENV DOCKER_LFS_BUILD_VERSION=v0.5.3
