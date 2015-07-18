@@ -2,8 +2,7 @@ FROM debian:wheezy
 MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
 #Docker RUN example, pass in the git-lfs checkout copy you are working with
-LABEL RUN="docker run -v git-lfs-repo-dir:/src -v repo_dir:/tmp/docker_run/repo" 
-LABEL POST="docker cp containerid:/repo*"
+LABEL RUN="docker run -v git-lfs-checkout-dir:/src -v repo_dir:/repo" 
 
 RUN echo 'deb http://http.debian.net/debian wheezy-backports main' > /etc/apt/sources.list.d/wheezy-backports-main.list
 

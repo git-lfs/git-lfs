@@ -1,31 +1,27 @@
 #!/usr/bin/env bash
 
+set -eu
+
 REPO_DIR=${REPO_DIR:-/repo}
+GIT_LFS_BUILD_DIR=${GIT_LFS_BUILD_DIR:-/tmp/docker_run/git-lfs}
+SRC_DIR=${SRC_DIR:-/src}
+REPO_CODENAME=${REPO_CODENAME:-git-lfs}
 
-mkdir -p /tmp/docker_run
-cp -r -T /src /tmp/docker_run/git-lfs
+mkdir -p $(dirname "${GIT_LFS_BUILD_DIR}")
+cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 
-cd /tmp/docker_run/git-lfs 
+cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
 dpkg-buildpackage -us -uc
 
-#cd /tmp/docker_run
-#mkdir -p /tmp/docker_run${REPO_DIR}
-#mv git-lfs*.* ${REPO_DIR}/
-mkdir -p ${REPO_DIR}/conf/
-cp /tmp/distributions ${REPO_DIR}/conf/
-
-#for DEB in $(ls /tmp/docker_run/*.deb); do
-#  mv ${DEB} ${REPO_DIR}/
-#  reprepro -Vb ${REPO_DIR} includedeb git-lfs ${DEB}
-#done
-
-#for DSC in $(ls /tmp/docker_run/*.dsc); do
-#  mv ${DSC} ${REPO_DIR}/
-#  reprepro -Vb ${REPO_DIR} includedsc git-lfs ${DSC}
-#done
-
+mkdir -p "${REPO_DIR}/conf/"
+cp /tmp/distributions "${REPO_DIR}/conf/"
+set -xv
+#This will add the deb, xz, AND dsc! Perfect
 for DSC in $(ls /tmp/docker_run/*.changes); do
-  #mv ${DSC} ${REPO_DIR}/
-  reprepro -Vb ${REPO_DIR} include git-lfs ${DSC}
+  SOURCE_NAME=$(grep ^Source: "${DSC}" | sed -r 's/Source: (.*)/\1/')
+  BINARY_NAME=$(grep ^Binary: "${DSC}" | sed -r 's/Binary: (.*)/\1/')
+  reprepro -Vb "${REPO_DIR}" remove ${REPO_CODENAME} ${SOURCE_NAME} ${BINARY_NAME}
+  reprepro -Vb "${REPO_DIR}" include ${REPO_CODENAME} "${DSC}"
+  mv "${DSC}" "${DSC}.installed"
 done
