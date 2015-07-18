@@ -5,17 +5,28 @@ set -eu
 REPO_DIR=${REPO_DIR:-/repo}
 GIT_LFS_BUILD_DIR=${GIT_LFS_BUILD_DIR:-/tmp/docker_run/git-lfs}
 SRC_DIR=${SRC_DIR:-/src}
-REPO_CODENAME=${REPO_CODENAME:-git-lfs}
+REPO_CODENAME=${REPO_CODENAME:-$(source /etc/os-release; echo $VERSION | sed -r 's|.*\((.*)\)|\1|')}
 
 mkdir -p $(dirname "${GIT_LFS_BUILD_DIR}")
 cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 
 cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
-dpkg-buildpackage -us -uc
 
 mkdir -p "${REPO_DIR}/conf/"
-cp /tmp/distributions "${REPO_DIR}/conf/"
+sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
+if [ -s /tmp/signing.key ]; then
+  eval $(gpg-agent --daemon)
+  gpg --import /tmp/signing.key
+  rm /tmp/signing.key
+  printf "" > "${GIT_LFS_BUILD_DIR}"/docker/signing.key
+  echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
+  echo ask-passphrase >> "${REPO_DIR}/conf/options"
+  
+  dpkg-buildpackage
+else
+  dpkg-buildpackage -us -uc
+fi
 
 #This will add the deb, xz, AND dsc! Perfect
 for DSC in $(ls /tmp/docker_run/*.changes); do

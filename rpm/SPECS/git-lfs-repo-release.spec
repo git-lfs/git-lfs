@@ -22,7 +22,6 @@ GPG key as well as configuration for yum.
 
 %prep
 %setup -q -c -T
-#install -pm 644 %{SOURCE0} .
 
 %build
 

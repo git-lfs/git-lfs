@@ -4,7 +4,7 @@ baseurl=http://git-lfs.github.com/centos/$releasever/RPMS
 enabled=1
 gpgcheck=0
 #gpgcheck=1
-#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-GITLFS
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-GITLFS
 
 [git-lfs-source]
 name=Packages for git-lfs for Enterprise Linux $releasever - $basearch
@@ -12,4 +12,4 @@ baseurl=http://git-lfs.github.com/centos/$releasever/SRPMS
 enabled=0
 gpgcheck=0
 #gpgcheck=1
-#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-GITLFS
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-GITLFS

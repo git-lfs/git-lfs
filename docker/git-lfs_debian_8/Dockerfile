@@ -9,5 +9,6 @@ apt-get install -y golang git dpkg-dev dh-golang ruby-ronn reprepro
 
 ADD debian_script.bsh /tmp/docker_run/
 ADD distributions /tmp/
+ADD signing.key /tmp/
 
 CMD /tmp/docker_run/debian_script.bsh

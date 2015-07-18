@@ -1,4 +1,4 @@
-Origin: git-hub
+Origin: github
 Label: git-lfs
 Suite: stable
 Codename: git-lfs
@@ -6,8 +6,3 @@ Version: 0.1
 Architectures: amd64 source
 Components: main
 Description: Git-lfs packages
-#UDebComponents: main
-#SignWith: yes
-#DebOverride: override
-#UDebOverride: override
-#DscOverride: srcoverride
