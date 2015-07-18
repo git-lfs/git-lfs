@@ -56,7 +56,7 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
       rpm2cpio git-1.7.1-3.el6_4.1.src.rpm | cpio -div git-init.el git.xinetd.in git.conf.httpd git-gui.desktop gitweb.conf.in
       NEW_GIT_VERSION=$(\grep ^Version: ${CURDIR}/SPECS/git.spec | sed  's|Version:\s*\(.*\)|\1|')
       curl -L -O http://kernel.org/pub/software/scm/git/git-${NEW_GIT_VERSION}.tar.xz
-      "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git.spec
+      "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git.spec
       $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/*/git-${NEW_GIT_VERSION}*.rpm ${CURDIR}/RPMS/*/perl-Git-${NEW_GIT_VERSION}*.rpm
     popd
   fi
@@ -94,7 +94,7 @@ if ! which go; then
   if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
     $SUDO yum install -y curl.x86_64 glibc gcc
     ${CURDIR}/golang_patch.bsh
-    "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/golang.spec
+    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/golang.spec
     $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/noarch/golang-1*.rpm ${CURDIR}/RPMS/noarch/golang-pkg-bin-linux-amd64-1*.rpm ${CURDIR}/RPMS/noarch/golang-src-1*.noarch.rpm ${CURDIR}/RPMS/noarch/golang-pkg-linux-amd64-1*.noarch.rpm
   else
     $SUDO yum install -y epel-release
@@ -124,7 +124,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
       curl -L -O http://cache.ruby-lang.org/pub/ruby/2.2/ruby-2.2.2.tar.gz
     popd
     echo "Building ruby..." >&6
-    "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/ruby.spec
+    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/ruby.spec
     echo "Installing ruby..." >&6
     $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/x86_64/ruby*.rpm
   else
@@ -142,10 +142,10 @@ if ! which ronn; then
   popd
 
   echo "Building ruby gems..." >&6
-  "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/rubygem-rdiscount.spec
-  "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/rubygem-mustache.spec
-  "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/rubygem-hpricot.spec
-  "${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/rubygem-ronn.spec
+  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-rdiscount.spec
+  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-mustache.spec
+  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-hpricot.spec
+  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-ronn.spec
 
   echo "Installing ruby gems..." >&6
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
@@ -153,13 +153,13 @@ fi
 
 echo "Build git-lfs rpm..." >&6
 sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec 
-"${RPMBUILD[@]}" -bb ${CURDIR}/SPECS/git-lfs.spec
-if [ "`stat -c '%U' ${CURDIR}/SPECS/git-lfs.spec`" == "UNKNOWN" ]; then
-  $SUDO cp ${CURDIR}/SPECS/git-lfs.spec ${CURDIR}/SPECS/git-lfs2.spec
-  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs2.spec
-  $SUDO rm -f ${CURDIR}/SPECS/git-lfs2.spec
-else
-  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
-fi
+"${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git-lfs.spec
+#if [ "`stat -c '%U' ${CURDIR}/SPECS/git-lfs.spec`" == "UNKNOWN" ]; then
+#  $SUDO cp ${CURDIR}/SPECS/git-lfs.spec ${CURDIR}/SPECS/git-lfs2.spec
+#  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs2.spec
+#  $SUDO rm -f ${CURDIR}/SPECS/git-lfs2.spec
+#else
+#  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
+#fi
 
 echo "All Done!" >&6

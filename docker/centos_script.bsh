@@ -14,7 +14,8 @@ cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf . || ./rpm/clean.bsh #clean is needed when git isn't alread installed
 "${GIT_LFS_BUILD_DIR}"/rpm/build_rpms.bsh
 
-mkdir -p "${REPO_DIR}/conf/"
+rpmbuild --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm" -ba ${GIT_LFS_BUILD_DIR}/rpm/SPECS/git-lfs-repo-release.spec
 
 rsync -ra ${GIT_LFS_BUILD_DIR}/rpm/{SRPMS,RPMS} ${REPO_DIR}
-createrepo ${REPO_DIR}
+createrepo ${REPO_DIR}/SRPMS
+createrepo ${REPO_DIR}/RPMS
