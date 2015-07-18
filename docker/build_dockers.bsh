@@ -21,8 +21,16 @@ else
   IMAGE_DIRS=("${@}")
 fi
 
+if [ ! -e "${CUR_DIR}/signing.key" ]; then
+  touch "${CUR_DIR}/signing.key"
+fi
+
 #This will take a long time the first time
 for IMAGE_DIR in "${IMAGE_DIRS[@]}"; do
   echo Docker building ${IMAGE_DIR}
   $SUDO docker build -t $(basename ${IMAGE_DIR}) -f ${IMAGE_DIR}/Dockerfile ${CUR_DIR}
 done
+
+if [ ! -s "${CUR_DIR}/signing.key" ]; then
+  rm "${CUR_DIR}/signing.key"
+fi

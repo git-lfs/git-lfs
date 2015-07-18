@@ -74,6 +74,12 @@ Cleans the copies, so all untracked files are deleted, but uncommited changes ar
 
 ##Deploying/Building Repositories##
 
+### Setting the website URL ###
+
+### GPG signing ###
+
+gpg --key-gen
+
 ## Adding addition OSes ##
 
 To add another operating system, simply follow the already existing pattern, 

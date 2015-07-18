@@ -1,8 +1,8 @@
 Origin: github
 Label: git-lfs
 Suite: stable
-Codename: git-lfs
-Version: 0.1
+Codename: debian
+Version: 1.0
 Architectures: amd64 source
 Components: main
 Description: Git-lfs packages

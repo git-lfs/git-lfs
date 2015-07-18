@@ -11,5 +11,7 @@ apt-get install -y -t wheezy-backports golang git dpkg-dev dh-golang ruby-ronn r
 
 ADD debian_script.bsh /tmp/docker_run/
 ADD distributions /tmp/
+ADD signing.key /tmp/
+ADD dpkg-package-gpg.bsh /tmp/
 
 CMD /tmp/docker_run/debian_script.bsh

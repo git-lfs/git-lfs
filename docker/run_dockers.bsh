@@ -27,10 +27,20 @@ function split_image_name()
   IMAGE_INFO=(${IMAGE_NAME})
 }
 
-if [[ $# == 0 ]]; then
+IMAGES=()
+while [[ $# > 0 ]]; do
+  if [ "$1" == "--" ]; then
+    shift
+    DOCKER_CMD="${@}"
+    break
+  else
+    IMAGES+=("$1")
+  fi
+  shift
+done
+
+if [[ ${#IMAGES} == 0 ]]; then
   IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
-else
-  IMAGES=("${@}")
 fi
 
 mkdir -p "${PACKAGE_DIR}"
