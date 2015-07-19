@@ -12,6 +12,9 @@
 #                downloaded and built against.
 #                Currently only works for RPMs. DEB always builds the current
 #                checkout version
+#  DOCKER_AUTOBUILD - Default 1. If set to 0, it will not build docker images 
+#                before running
+
 set -eu
 
 CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
@@ -70,11 +73,21 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
     ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
   fi
- 
+
+  #It CAN'T be empty () with set -u...
+  OTHER_OPTIONS=("--rm" "-it" "-e" "BUILD_LOCAL=${BUILD_LOCAL-1}")
+
+  if [ -s ${CUR_DIR}/signing.key ]; then
+    set +e
+    source ${CUR_DIR}/preload_key.bsh
+    set -e
+    OTHER_OPTIONS+=("-e" "GPG_AGENT_INFO=${GPG_AGENT_INFO}")
+    OTHER_OPTIONS+=("-v" "$(dirname ${GPG_AGENT_INFO}):$(dirname ${GPG_AGENT_INFO})")
+  fi
+
   echo Compiling LFS in docker image ${IMAGE_NAME}
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
-  $SUDO docker run --rm ${DOCKER_CMD+-it} \
-                   -e BUILD_LOCAL=${BUILD_LOCAL-1} \
+  $SUDO docker run "${OTHER_OPTIONS[@]}" \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -v ${REPO_DIR}:/src \
                    -v ${IMAGE_REPO_DIR}:/repo \

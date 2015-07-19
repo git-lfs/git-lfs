@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+#set -eu
+
+if [ "$0" == "${BASH_SOURCE[0]}" ]; then
+  echo "Please source this file, do not call it"
+  exit 1
+fi
+
+#If the env isn't set, try and load it
+if [ "${GPG_AGENT_INFO-}" == "" ] || ! gpg-connect-agent /bye > /dev/null 2>&1; then
+  if [ -e "${HOME}/.gnupg/gpg-agent.env" ]; then
+    source ${HOME}/.gnupg/gpg-agent.env
+    export GPG_AGENT_INFO
+  fi
+fi
+
+#Test the agent, if fail, start a new one
+if ! gpg-connect-agent /bye > /dev/null 2>&1; then
+  eval $(gpg-agent --daemon --default-cache-ttl=18000 --max-cache-ttl=18000 --write-env-file=${HOME}/.gnupg/gpg-agent.env)
+fi
+
+#Precache signing key
+gpg2 -o /dev/null -s /dev/null

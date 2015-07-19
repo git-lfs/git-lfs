@@ -2,7 +2,7 @@
 
 ARGS=()
 while [ "$1" != "" ]; do
-  if [ "$1" == "--local-user" ]; then
+  if [ "$1" == "--local-user" ] || [ "$1" == "-u" ]; then
     shift
   else
     ARGS+=("$1")

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Usage: 
-#  ./build_dockers.bsh - Build all the docker images
+#  ./build_dockers.bsh - Build all the compiling docker images
 #  ./build_dockers.bsh lfs_centos_5 lfs_centos_7 - Build only CentOS 5 & 7 image
 
 set -eu
@@ -13,13 +13,18 @@ CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 if [[ $# == 0 ]]; then
   IMAGE_DIRS=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
-  for i in "${!IMAGE_DIRS[@]}"; do
-    IMAGE_DIRS[$i]=$(dirname ${IMAGE_DIRS[$i]})
-  done
-  unset i
 else
   IMAGE_DIRS=("${@}")
 fi
+
+#Strip the Dockerfile (When appropriate)
+for i in "${!IMAGE_DIRS[@]}"; do
+  IMAGE_NAME=$(basename ${IMAGE_DIRS[$i]})
+  if [ "${IMAGE_NAME,,}" == "dockerfile" ]; then
+    IMAGE_DIRS[$i]=$(dirname ${IMAGE_DIRS[$i]})
+  fi
+done
+unset i IMAGE_NAME
 
 if [ ! -e "${CUR_DIR}/signing.key" ]; then
   touch "${CUR_DIR}/signing.key"
@@ -31,6 +36,7 @@ for IMAGE_DIR in "${IMAGE_DIRS[@]}"; do
   $SUDO docker build -t $(basename ${IMAGE_DIR}) -f ${IMAGE_DIR}/Dockerfile ${CUR_DIR}
 done
 
+#Remove it if its size zero
 if [ ! -s "${CUR_DIR}/signing.key" ]; then
   rm "${CUR_DIR}/signing.key"
 fi

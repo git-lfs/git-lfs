@@ -22,13 +22,15 @@ fi
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
 if [ -s /tmp/signing.key ]; then
-  if [ "${GPG_AGENT_INFO-}" == "" ] && [ -e "~/.gnupg/gpg-agent-info" ]; then
-    source ~/.gnupg/gpg-agent-info
-    export GPG_AGENT_INFO
-  fi
-  if ! gpg-connect 2>/dev/null; then
-    eval $(gpg-agent --daemon --write-env-file ~/.gnupg/gpg-agent-info)
-  fi
+  #Agent in the docker isn't working half the time, so I give up for now... The new way IS better
+  #if [ "${GPG_AGENT_INFO-}" == "" ] && [ -e "~/.gnupg/gpg-agent-info" ]; then
+  #  source ~/.gnupg/gpg-agent-info
+  #  export GPG_AGENT_INFO
+  #fi
+  #if ! gpg-connect-agent /bye 2>/dev/null; then
+  #  eval $(gpg-agent --daemon --write-env-file ~/.gnupg/gpg-agent-info)
+  #fi
+  #GPG_TTY=`tty`
   
   gpg --import /tmp/signing.key || :
   echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"

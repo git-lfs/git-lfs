@@ -4,13 +4,11 @@ Document
 DOCKER_CMD
 
 ## TL;DR version ##
-1. Build the docker images
-
-        ./docker/build_dockers.bsh
-
-2. Run the dockers
+1. Run the dockers
 
         ./docker/run_dockers.bsh
+        
+2. ???
 
 3. **Enjoy** all your new package files in
 
@@ -18,16 +16,21 @@ DOCKER_CMD
 
 ##Using the Dockers##
 
-### Building Dockers ###
+### Building Dockers (Optional) ###
 
-In order to use the docker **images**, they have to be built them so that they
-are ready to be used. For OSes like Debian, this is a fairly quick process. 
+```run_dockers.bsh``` now call build_dockers ```build_dockers.bsh```, but you
+can still call the script manually to get it all out of the way once while you
+go make that tea/coffee.
+
+In order to use the docker **images**, they have to be built so that they are
+ready to be used. For OSes like Debian, this is a fairly quick process. 
 However CentOS takes considerably longer time, since it has to build go, ruby,
 or git from source, depending on the version. Fortunately, you can build the 
-docker image JUST once, and you won't have to build it again (unless something
+docker images JUST once, and you won't have to build it again (unless something
 significant changes, which should be fairly uncommon). This means all the 
-compiling, yum/apt-get is done once and saved. (This is done in CentOS by
-running the ```./rpm/rpm_build.bsh``` script and saving the image.)
+compiling, yum/apt-get/custom dependency compiling is done once and saved. 
+(This is done in CentOS by using the already existing ```./rpm/rpm_build.bsh```
+script to bootstrap the image and saving the image.)
 
 There is a script to take care of ALL of these details for you. Simply run
 
@@ -80,6 +83,12 @@ Cleans the copies, so all untracked files are deleted, but uncommited changes ar
 
 gpg --key-gen
 
+public.key
+
+signing.key
+
+GPG agent ttl set to 5 hours, should be plenty to build everything.
+
 ### Testing the Repositories ###
 
 ./test_dockers.bsh
@@ -105,3 +114,45 @@ they will end up in
 ## Docker Cheat sheet ##
 
 http://docs.docker.com/ Install -> Docker Engine -> Installation on ...
+
+* list running dockers
+
+    docker ps
+    
+* list stopped dockers
+
+    docker ps -a
+    
+* Remove all stopped dockers
+
+    docker rm $(docker ps --filter=status=exited -q)
+
+1. How much space are all these Dockers taking up?
+
+    No idea. sudo du /var/lib/docker
+
+
+# Troubleshooting #
+
+1. I started one of the script, and am trying to stop it with Ctrl+C. It is
+ignoring many Ctrl+C's
+
+    This happens a lot when calling programs like apt-get, yum, etc... From the
+    host, you can still use ps, pgrep, kill, pkill, etc... commands to kill the
+    PIDs in a docker.
+    
+2. How do I re-enter a docker after it failed/suceeded?
+
+    Dockers are immediately deleted upon exit. The best way to work in a docker
+    is to run bash. This will let you to run the main build command and then
+    continue.
+    
+3. That answer's not good enough. How do I resume a docker?
+
+    Well, first you have to remove the ```--rm``` flag. This will keep the 
+    docker around after stopping. Be careful! They multiply like rabbits. Then
+    
+        ```docker commit {container name/id} {new_name}```
+    
+    Then you can ```docker run``` that new image.
+    
