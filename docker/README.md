@@ -80,6 +80,10 @@ Cleans the copies, so all untracked files are deleted, but uncommited changes ar
 
 gpg --key-gen
 
+### Testing the Repositories ###
+
+./test_dockers.bsh
+
 ## Adding addition OSes ##
 
 To add another operating system, simply follow the already existing pattern, 

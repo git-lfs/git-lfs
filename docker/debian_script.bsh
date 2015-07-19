@@ -13,6 +13,12 @@ cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
 
+if [ "${REPO_HOSTNAME-}" == "" ]; then
+  #TOOD: Finish this when the git-lfs-repo is done
+  echo 'deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main' > /tmp/git-lfs-main.list
+  #/etc/apt/sources.list.d/git-lfs-main.list
+fi
+
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
 if [ -s /tmp/signing.key ]; then

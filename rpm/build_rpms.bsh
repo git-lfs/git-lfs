@@ -62,32 +62,30 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
   fi
 fi
 
-if [ ! -e ${CURDIR}/SOURCES/v${VERSION}.tar.gz ]; then
-  if [ "${BUILD_LOCAL:=0}" == "1" ]; then
-    echo "Zipping up current checkout of git-lfs..." >&6
-    if [[ ${REDHAT_VERSION} == 5 ]]; then
-      rm -rvf ${CURDIR}/tmptar
-      mkdir -p ${CURDIR}/tmptar/git-lfs-${VERSION}
-      pushd ${CURDIR}/..
-        tar -c . --exclude rpm --exclude .git --exclude tmptar | tar -x -C ${CURDIR}/tmptar/git-lfs-${VERSION}/
-      popd
-      pushd ${CURDIR}/tmptar
-        tar -zcf ${CURDIR}/SOURCES/v${VERSION}.tar.gz git-lfs-${VERSION}
-      popd
-      rm -rvf ${CURDIR}/tmptar
-    else
-      pushd ${CURDIR}/..
-        tar -zcf ${CURDIR}/SOURCES/v${VERSION}.tar.gz --exclude v${VERSION}.tar.gz --exclude .git --exclude rpm . --transform "s:^:git-lfs-${VERSION}/:"
-      popd
-    fi
-  else
-    echo "Downloading git-lfs..." >&6
-    mkdir -p ${CURDIR}/SOURCES
-    pushd  ${CURDIR}/SOURCES
-      curl -L -O https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
-    popd
-  fi
+#Prep the SOURCES dir for git-lfs
+if [ "${BUILD_LOCAL:=0}" == "1" ]; then
+  echo "Zipping up current checkout of git-lfs..." >&6
+  
+  rm -rvf ${CURDIR}/tmptar
+  mkdir -p ${CURDIR}/tmptar/git-lfs-${VERSION}
+  pushd ${CURDIR}/..
+  tar -c . --exclude tmptar | tar -x -C ${CURDIR}/tmptar/git-lfs-${VERSION}/
+  popd
+  pushd ${CURDIR}/tmptar
+    git clean -xdf
+    rm -rvf ${CURDIR}/tmptar/.git
+    tar -zcf ${CURDIR}/SOURCES/git-lfs-${VERSION}.tar.gz git-lfs-${VERSION}
+  popd
+  rm -rvf ${CURDIR}/tmptar
+else
+  echo "Downloading git-lfs..." >&6
+  mkdir -p ${CURDIR}/SOURCES
+  pushd  ${CURDIR}/SOURCES
+    curl -L -o git-lfs-${VERSION}.tar.gz https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
+  popd
 fi
+  
+cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
 if ! which go; then
   echo "Installing go... one way or another" >&6
@@ -152,7 +150,8 @@ if ! which ronn; then
 fi
 
 echo "Build git-lfs rpm..." >&6
-sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec 
+sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
+cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/
 "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git-lfs.spec
 #if [ "`stat -c '%U' ${CURDIR}/SPECS/git-lfs.spec`" == "UNKNOWN" ]; then
 #  $SUDO cp ${CURDIR}/SPECS/git-lfs.spec ${CURDIR}/SPECS/git-lfs2.spec

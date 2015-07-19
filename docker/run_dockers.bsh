@@ -3,13 +3,20 @@
 # Usage: 
 #  ./run_dockers.bsh - Run all the docker images
 #  ./run_dockers.bsh lfs_centos_5 lfs_centos_7 - Run only CentOS 5 & 7 image
-
+#  ./run_dockers.bsh lfs_centos_6 -- bash #Runs bash in the CentOS 6 docker 
+#
+# Special Environmet Variables
+#  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
+#  BUILD_LOCAL - Set to 1 (default) to use the current checkout version of
+#                git-lfs to build against. Else the released archived is
+#                downloaded and built against.
+#                Currently only works for RPMs. DEB always builds the current
+#                checkout version
 set -eu
 
 CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
 REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
 PACKAGE_DIR=${CUR_DIR}/repos
-BUILD_LOCAL=1
 
 #If you are not in docker group and you have sudo, default value is sudo
 : ${SUDO=`if id -nG | grep -qwv docker && which sudo > /dev/null 2>&1; then echo sudo; fi`}
@@ -27,6 +34,7 @@ function split_image_name()
   IMAGE_INFO=(${IMAGE_NAME})
 }
 
+# Parse Arguments
 IMAGES=()
 while [[ $# > 0 ]]; do
   if [ "$1" == "--" ]; then
@@ -47,19 +55,29 @@ mkdir -p "${PACKAGE_DIR}"
 #Run docker to build pacakges
 for DOCKER_FILE in "${IMAGES[@]}"; do
   split_image_name "${DOCKER_FILE}" #set IMAGE_NAME and IMAGE_INFO
-  
+
+  #TODO REMOVE THIS AFTER THE REAL git-lfs-repo packages
+  if [ "${IMAGE_INFO[1]}" == "debian" ]; then
+    if [ "${IMAGE_INFO[2]}" == "7" ]; then
+      echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/7 wheezy main" > ${CUR_DIR}/git-lfs-main_7.list
+    elif [ "${IMAGE_INFO[2]}" == "8" ]; then
+      echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main" > ${CUR_DIR}/git-lfs-main_8.list
+    fi
+  fi
+  #END TODO
+
+  #Auto build docker unless DOCKER_AUTOBUILD=0
+  if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
+    ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
+  fi
+ 
   echo Compiling LFS in docker image ${IMAGE_NAME}
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
   $SUDO docker run --rm ${DOCKER_CMD+-it} \
-                   -e BUILD_LOCAL=${BUILD_LOCAL} \
+                   -e BUILD_LOCAL=${BUILD_LOCAL-1} \
+                   -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -v ${REPO_DIR}:/src \
                    -v ${IMAGE_REPO_DIR}:/repo \
-                   --name git-lfs_build_container \
                    ${IMAGE_NAME} ${DOCKER_CMD-}
 
-  #mkdir -p "${IMAGE_REPO_DIR}"
-  #$SUDO docker cp git-lfs_build_container:/tmp/docker_run/repo/ ${IMAGE_REPO_DIR}
-
-#  $SUDO docker kill git-lfs_build_container
-#  $SUDO docker rm git-lfs_build_container
 done

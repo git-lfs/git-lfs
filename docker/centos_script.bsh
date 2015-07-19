@@ -14,8 +14,8 @@ cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf . || ./rpm/clean.bsh #clean is needed when git isn't alread installed
 "${GIT_LFS_BUILD_DIR}"/rpm/build_rpms.bsh
 
-if [ "${RPM_REPO_HOSTNAME-}" == "" ]; then
-  sed -ir 's/(^baseurl=https?:\/\/)[^/]*/\1'"${RPM_REPO_HOSTNAME}"'/' ../rpm/SOURCES/git-lfs.repo
+if [ "${REPO_HOSTNAME-}" != "" ]; then
+  sed -r -i 's/(^baseurl=https?:\/\/)[^/]*/\1'"${REPO_HOSTNAME}"'/' ./rpm/SOURCES/git-lfs.repo
 fi
 
 rpmbuild --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm" -ba ${GIT_LFS_BUILD_DIR}/rpm/SPECS/git-lfs-repo-release.spec

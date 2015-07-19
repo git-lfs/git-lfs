@@ -4,7 +4,8 @@ set -eu
 
 CWD=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
-rm -rv ${CWD}/BUILD ${CWD}/BUILDROOT ${CWD}/RPMS ${CWD}/SRPMS ${CWD}/SOURCES || :
+rm -rv ${CWD}/BUILD ${CWD}/BUILDROOT ${CWD}/RPMS ${CWD}/SRPMS || :
+find ${CWD}/SOURCES -not -name git-lfs.repo
 
 rm ${CWD}/SPECS/golang.spec || :
 

@@ -6,7 +6,7 @@ Summary:        Git extension for versioning large files
 Group:          Applications/Archiving
 License:        MIT
 URL:            https://git-lfs.github.com/
-Source0:        https://github.com/github/git-lfs/archive/v%{version}.tar.gz
+Source0:        https://github.com/github/git-lfs/archive/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  golang, tar, which, bison, rubygem-ronn, git
 BuildRequires:  perl-Digest-SHA
@@ -68,5 +68,8 @@ rm -rf %{buildroot}
 /usr/share/man/man1/*.1.gz
 
 %changelog
+* Sat Jul 18 2015 Andrew Neff <andyneff@users.noreply.github.com> - 0.5.2-1
+- Changed Source0 filename
+
 * Mon May 18 2015 Andrew Neff <andyneff@users.noreply.github.com> - 0.5.1-1
 - Initial Spec
