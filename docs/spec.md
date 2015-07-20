@@ -37,7 +37,7 @@ size 12345
 (ending \n)
 ```
 
-Blobs created with the pre-release version of the tool will generated files with
+Blobs created with the pre-release version of the tool generated files with
 a different version URL.  Git LFS can read these files, but writes them using
 the version URL above.
 
@@ -161,7 +161,7 @@ $ git lfs init
 These filters ensure that large files aren't written into the repository proper,
 instead being stored locally at `.git/lfs/objects/{OID-PATH}` (where `{OID-PATH}`
 is a sharded filepath of the form `OID[0:2]/OID[2:4]/OID`), synchronized with
-the Git LFS server as necessary.  Here is a sample path to a
+the Git LFS server as necessary.  Here is a sample path to a file:
 
     .git/lfs/objects/4d/7a/4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 
@@ -187,10 +187,10 @@ expects the content to write to the working directory as STDOUT.
 * If the content is ASCII and matches the pointer file format:
   * Look for the file in `.git/lfs/objects/{OID-PATH}`.
   * If it's not there, download it from the server.
-  * Read its contents to STDOUT
+  * Write its contents to STDOUT
 * Otherwise, simply pass the STDIN out through STDOUT.
 
-The `.gitattributes` file controls when the filters run.  Here's a sample file
+The `.gitattributes` file controls when the filters run.  Here's a sample file that
 runs all mp3 and zip files through Git LFS:
 
 ```
@@ -200,3 +200,5 @@ $ cat .gitattributes
 ```
 
 Use the `git lfs track` command to view and add to `.gitattributes`.
+
+
