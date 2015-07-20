@@ -2,6 +2,27 @@
   "$schema": "http://json-schema.org/draft-04/schema",
   "title": "Git LFS HTTPS Batch API v1 Response",
   "type": "object",
+
+  "definitions": {
+    "action": {
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string"
+        },
+        "header": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "expires_at": {
+          "type": "string"
+        }
+      },
+      "required": ["href"],
+      "additionalProperties": false
+    }
+  },
+
   "properties": {
     "objects": {
       "type": "array",
@@ -15,12 +36,33 @@
             "type": "number"
           },
           "actions": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "download": { "$ref": "#/definitions/action" },
+              "upload": { "$ref": "#/definitions/action" },
+              "verify": { "$ref": "#/definitions/action" }
+            },
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "message"],
+            "additionalProperties": false
           }
         },
+        "required": ["oid", "size", "actions"],
         "additionalProperties": false
       }
     }
   },
+  "required": ["objects"],
   "additionalProperties": false
 }
