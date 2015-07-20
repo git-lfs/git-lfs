@@ -69,12 +69,12 @@ the previous section.
 
 * Git passes the original contents of the file to LFS clean over STDIN
 * LFS reads those bytes and calculates the original SHA-256 signature as it does so
-* LFS streams the bytes to STDIN of lfs-extension.foo.clean, which is expected to write 
+* LFS streams the bytes to STDIN of lfs-ext.foo.clean, which is expected to write
 those bytes, modified or not, to its STDOUT
-* LFS reads the bytes from STDOUT of lfs-extension.foo.clean, calculates the SHA-256
-signature, and writes them to STDIN of lfs-extension.bar.clean, which then writes those
+* LFS reads the bytes from STDOUT of lfs-ext.foo.clean, calculates the SHA-256
+signature, and writes them to STDIN of lfs-ext.bar.clean, which then writes those
 bytes, modified or not, to its STDOUT
-* LFS reads the bytes from STDOUT of lfs-extension.bar.clean, calculates the SHA-256
+* LFS reads the bytes from STDOUT of lfs-ext.bar.clean, calculates the SHA-256
 signature, and writes the bytes to a temp flie
 * When finished, LFS atomically moves the temp file into .git/lfs/objects, as before
 * LFS generates the pointer file, with some changes:
@@ -135,12 +135,12 @@ not, the bytes would just be passed through to STDOUT.
 determines that extensions foo and bar both processed the file, in that order.
 * LFS uses the value of the oid key to find the blob in the .git/lfs/objects folder, or
 download from the server as needed
-* LFS writes the contents of the blob to STDIN of lfs-extension.bar.smudge, which
+* LFS writes the contents of the blob to STDIN of lfs-ext.bar.smudge, which
 modifies them as needed and writes them to its STDOUT
-* LFS reads the bytes from STDOUT of lfs-extension.bar.smudge, calculates the SHA-256
-signature, and writes the bytes to STDIN of lfs-extension.foo.smudge, which modifies them
+* LFS reads the bytes from STDOUT of lfs-ext.bar.smudge, calculates the SHA-256
+signature, and writes the bytes to STDIN of lfs-ext.foo.smudge, which modifies them
 as needed and writes to them its STDOUT
-* LFS reads the bytes from STDOUT of lfs-extension.foo.smudge, calculates the SHA-256
+* LFS reads the bytes from STDOUT of lfs-ext.foo.smudge, calculates the SHA-256
 signature, and writes the bytes to its own STDOUT
 * At the end, ensure that the hashes calculated on the outputs of foo and bar match their
 corresponding input hashes from the pointer file.  If not, write a descriptive error
