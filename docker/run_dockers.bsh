@@ -14,6 +14,10 @@
 #                checkout version
 #  DOCKER_AUTOBUILD - Default 1. If set to 0, it will not build docker images 
 #                before running
+#  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
+#                docker instance when done. This can be useful for a post mortem
+#                analysis. Just make sure you clean up the docker instances 
+#                manually
 
 set -eu
 
@@ -75,7 +79,11 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   fi
 
   #It CAN'T be empty () with set -u...
-  OTHER_OPTIONS=("--rm" "-it" "-e" "BUILD_LOCAL=${BUILD_LOCAL-1}")
+  OTHER_OPTIONS=("-it" "-e" "BUILD_LOCAL=${BUILD_LOCAL-1}")
+  
+  if [ "${AUTO_REMOVE-1}" == "1" ]; then
+    OTHER_OPTIONS+=("--rm")
+  fi
 
   if [ -s ${CUR_DIR}/signing.key ]; then
     set +e

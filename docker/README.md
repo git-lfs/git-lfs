@@ -1,8 +1,5 @@
 # README #
 
-Document
-DOCKER_CMD
-
 ## TL;DR version ##
 1. Run the dockers
 
@@ -77,21 +74,80 @@ Cleans the copies, so all untracked files are deleted, but uncommited changes ar
 
 ##Deploying/Building Repositories##
 
+When using ```BUILD_LOCAL=1```, all UNTRACKED files are removed during RPM 
+generation, except any stray directories containing a .git folder will not be
+cleared. This shouldn't be the case, unless you are temporarily storing another
+git repo in the git repo. This is a safty mechanism in git, so just keep in mind
+if you are producing packages.
+
 ### Setting the website URL ###
 
 ### GPG signing ###
 
-gpg --key-gen
+For private repo testing, GPG signing can be skipped. apt-get and yum can 
+install .deb/.rpm directly without gpg keys and everything will work. This 
+section is for distribution in a repo. Most if not all this functionality is 
+automatically disabled when there is no signing key present.
 
-public.key
+Or order to sign packages, you need to place the keys in the right place
 
-signing.key
+1. gpg --gen-key
 
-GPG agent ttl set to 5 hours, should be plenty to build everything.
+    1. 1 - RSA and RSA
+    2. 4096 bits
+    3. Some length of time or 0 for infinite
+    4. y for yes
+    5. Signer name (Will become part of the key and uid)
+    6. Email address (Will become part of the key and uid)
+    7. Comment (Will become part of the key)
+    8. O for Okay
+    9. Enter a very secure password, make sure you will not forget it
+    10. Generate Entropy!
+    
+2. gpg -a --export > ./docker/public.key
+
+3. gpg --export-secret-keys > ./docker/signing.key
+
+Keep in mind, signing.key must NEVER be accidentally commited to the repo. 
+
+To prevent MANY passphrase entries at random times, the gpg-agent is used to
+cache your signing key. This is done by running gpg-agent in the host, and passing
+the connection to each docker image. This will be done for you automatically by
+calling the ```./docker/preload_key.bsh``` script. This can be called manually
+before any other command just to get the pass phrase entry out of the way before
+you start running everything.
+
+GPG agent ttl set to 5 hours, should be plenty to build everything. If this is
+not good for you, set the GPG_MAX_CACHE and GPG_DEFAULT_CACHE environment variables
+(in seconds)
+
+[1] https://www.digitalocean.com/community/tutorials/how-to-use-reprepro-for-a-secure-package-repository-on-ubuntu-14-04
+[2] https://iuscommunity.org/pages/CreatingAGPGKeyandSigningRPMs.html#exporting-the-public-gpg-key
+[3] http://www.redhat.com/archives/rpm-list/2006-November/msg00105.html
+- Rpms do NOT SUPPORT subkeys. So don't try
 
 ### Testing the Repositories ###
 
-./test_dockers.bsh
+To test that all the OSes can download the rpm/debs, install, and run the tests
+again, run
+
+    ./test_dockers.bsh
+    
+(which is basically just ```./docker/run_dockers.bsh ./docker/git-lfs-test_*```)
+
+REPO_HOSTNAME can be used for BOTH ```run_dockers.bsh``` and ```test_dockers.bsh``` 
+to run a local test (on ```localhost:{Port Number}```, for example)
+
+An easy way to test the repositories, is to run host them on a webserver such as
+
+    cd ./docker/repos
+    python -m SimpleHTTPServer {Port number}
+
+or
+
+    cd ./docker/repos
+    ruby -run -ehttpd . -p{Port Number}
+
 
 ## Adding addition OSes ##
 

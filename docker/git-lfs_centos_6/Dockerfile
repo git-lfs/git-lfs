@@ -5,7 +5,7 @@ MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 LABEL RUN="docker run -v git-lfs-repo-dir:/src" -v repo_dir:/repo"
 
 RUN yum install -y epel-release
-RUN yum install -y createrepo rsync golang tar gnupg2
+RUN yum install -y createrepo rsync golang tar gnupg2 expect
 
 #The purpose of this is to build and install everything needed to build git-lfs
 #Next time. So that the LONG build/installed in centos are only done once, and
@@ -26,7 +26,5 @@ RUN rm -rf /tmp/docker_setup
 
 #Add the simple build repo script
 ADD rpm_sign.exp signing.key centos_script.bsh /tmp/
-
-RUN yum install -y expect
 
 CMD /tmp/centos_script.bsh

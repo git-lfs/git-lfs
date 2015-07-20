@@ -1,8 +1,24 @@
-#!/usr/bin/expect -f
+#!/usr/bin/env bash
 
-#DO not edit this. The REAL password does not go in here. Use gpg-agent
+#################################################################################
+### DO not edit this. The REAL password does NOT go in here. Use gpg-agent!!! ###
+#################################################################################
 
-spawn rpm --addsign --define "_gpg_name foo" --define "__gpg_check_password_cmd /bin/true" --define "__gpg_sign_cmd %{__gpg} gpg --batch --no-verbose --no-armor --use-agent --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}" {*}$argv
+#$args and {*}$argv won't work in older versions of expect...
+#In case there are spaces in the files names.... 
+FILES=""
+for FILE in "${@}"; do
+  FILES+="${FILE/ /\\ } "
+done
+
+expect -f - <<EOF
+
+spawn rpm --addsign --define "__gpg $(which gpg2)" --define "_gpg_name foo" --define "__gpg_check_password_cmd /bin/true" --define "__gpg_sign_cmd %{__gpg} gpg --batch --no-verbose --no-armor --use-agent --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}" $FILES
+
 expect -exact "Enter pass phrase: "
+
 send -- "blank\r"
+
 expect eof
+
+EOF

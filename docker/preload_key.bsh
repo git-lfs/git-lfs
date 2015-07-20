@@ -17,7 +17,7 @@ fi
 
 #Test the agent, if fail, start a new one
 if ! gpg-connect-agent /bye > /dev/null 2>&1; then
-  eval $(gpg-agent --daemon --default-cache-ttl=18000 --max-cache-ttl=18000 --write-env-file=${HOME}/.gnupg/gpg-agent.env)
+  eval $(gpg-agent --daemon --default-cache-ttl=${GPG_DEFAULT_CACHE:-18000} --max-cache-ttl=${GPG_MAX_CACHE:-18000} --write-env-file=${HOME}/.gnupg/gpg-agent.env)
 fi
 
 #Precache signing key
