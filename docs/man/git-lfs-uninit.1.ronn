@@ -10,7 +10,7 @@ git-lfs-uninit(1) -- Remove Git LFS configuration
 Perform the following actions to remove the Git LFS configuration:
 
 * Remove the "lfs" clean and smudge filters from the global Git config.
-* Uninstall a Git LFS pre-push hook if run from inside a Git repository.
+* Uninstall the Git LFS pre-push hook if run from inside a Git repository.
 
 ## SEE ALSO
 
