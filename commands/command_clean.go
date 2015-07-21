@@ -19,18 +19,18 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'clean' filter")
 	lfs.InstallHooks(false)
 
-	var filename string
+	var fileName string
 	var cb lfs.CopyCallback
 	var file *os.File
 	var fileSize int64
 	if len(args) > 0 {
-		filename = args[0]
+		fileName = args[0]
 
-		stat, err := os.Stat(filename)
+		stat, err := os.Stat(fileName)
 		if err == nil && stat != nil {
 			fileSize = stat.Size()
 
-			localCb, localFile, err := lfs.CopyCallbackFile("clean", filename, 1, 1)
+			localCb, localFile, err := lfs.CopyCallbackFile("clean", fileName, 1, 1)
 			if err != nil {
 				Error(err.Error())
 			} else {
@@ -40,7 +40,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	cleaned, err := lfs.PointerClean(os.Stdin, fileSize, cb)
+	cleaned, err := lfs.PointerClean(os.Stdin, fileName, fileSize, cb)
 	if file != nil {
 		file.Close()
 	}
@@ -65,7 +65,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if stat, _ := os.Stat(mediafile); stat != nil {
-		if stat.Size() != cleaned.Size {
+		if stat.Size() != cleaned.Size && len(cleaned.Pointer.Extensions) == 0 {
 			Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
 		}
 		Debug("%s exists", mediafile)
