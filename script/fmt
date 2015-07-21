@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 formatter=gofmt
 hash goimports 2>/dev/null && {
@@ -12,3 +12,10 @@ for i in */ ; do
     $formatter -w -l "$@" "${i%?}"
   fi
 done
+
+msg=`script/lint`
+if [ $? -ne 0 ];
+then
+  echo "$msg"
+  exit 1
+fi
