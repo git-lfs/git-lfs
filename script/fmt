@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 formatter=gofmt
 hash goimports 2>/dev/null && {
