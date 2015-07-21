@@ -353,7 +353,15 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := DoHTTP(req)
+	res, err := Config.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{
+			StatusCode: 0,
+			Header:     make(http.Header),
+			Request:    req,
+			Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+		}
+	}
 
 	var wErr *WrappedError
 
