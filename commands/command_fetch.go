@@ -33,7 +33,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	pointers, err := lfs.ScanRefs(ref, "")
+	pointers, err := lfs.ScanRefs(ref, "", nil)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
