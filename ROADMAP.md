@@ -9,21 +9,19 @@ These are the features that we feel are important for a v1 release of Git LFS,
 and we have a good idea how they could work.
 
 * Fast, efficient uploading and downloading ([#414](https://github.com/github/git-lfs/issues/414)).
-* `git lfs fetch` command for downloading large files.
-* Automatic GC for the `.git/lfs/objects` directory.
-* Client side metrics reporting, so the Git LFS server can optionally track
-how clients are performing.
+* Improved local storage management ([#490](https://github.com/github/git-lfs/issues/490)).
 * Ability to remove objects from the command line through the API.
+* [Extensions](docs/proposals/extensions.md).
 
 ## Possible Features
 
 These are features that require some more research. It's very possible that
 these can make it in for v1.0 if there's a great proposal.
 
-* Narrow clones - Allow clients to specify which large files to download
-automatically.
 * File locking
 * Binary diffing - reduce the amount of content sent over the wire.
+* Client side metrics reporting, so the Git LFS server can optionally track
+how clients are performing.
 
 ## Project Related
 
