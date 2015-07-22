@@ -3,8 +3,10 @@
 
 set -e
 
-# The root directory for the git-lfs repository
-ROOTDIR=$(cd $(dirname "$0")/.. && pwd)
+# The root directory for the git-lfs repository by default.
+if [ -z "$ROOTDIR" ]; then
+  ROOTDIR=$(cd $(dirname "$0")/.. && pwd)
+fi
 
 # Where Git LFS outputs the compiled binaries
 BINPATH="$ROOTDIR/bin"
@@ -13,7 +15,7 @@ BINPATH="$ROOTDIR/bin"
 PATH="$BINPATH:$PATH"
 
 # create a temporary work space
-TMPDIR=${GIT_LFS_TEST_DIR:-"$(cd $(dirname "$0")/.. && pwd)/tmp"}
+TMPDIR=${GIT_LFS_TEST_DIR:-"$ROOTDIR/tmp"}
 
 # This is unique to every test file, and cleared after every test run.
 TRASHDIR="$TMPDIR/$(basename "$0")-$$"
