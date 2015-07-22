@@ -32,13 +32,13 @@ begin_test "fetch"
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
 
-  refute_server_object "$contents_oid"
+  refute_server_object "$reponame" "$contents_oid"
 
   git push origin master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
   grep "master -> master" push.log
 
-  assert_server_object "$contents_oid" "$contents"
+  assert_server_object "$reponame" "$contents_oid"
 
   # Add a file in a different branch
   git checkout -b newbranch
@@ -50,7 +50,7 @@ begin_test "fetch"
   assert_pointer "newbranch" "b.dat" "$b_oid" 1
 
   git push origin newbranch
-  assert_server_object "$b_id" "$b"
+  assert_server_object "$reponame" "$b_oid"
 
   # change to the clone's working directory
   cd ../clone
