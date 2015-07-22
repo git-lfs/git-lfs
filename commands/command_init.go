@@ -17,18 +17,21 @@ var (
 		Short: "Initialize hooks for the current repository",
 		Run:   initHooksCommand,
 	}
+
+	forceInit = false
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.InstallFilters(); err != nil {
+	if err := lfs.InstallFilters(forceInit); err != nil {
 		Error(err.Error())
+		Exit("Run `git lfs init --force` to reset git config.")
 	}
 
 	if lfs.InRepo() {
 		initHooksCommand(cmd, args)
 	}
 
-	Print("git lfs initialized")
+	Print("Git LFS initialized")
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
@@ -38,6 +41,7 @@ func initHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Set the Git LFS global config, overwriting previous values.")
 	initCmd.AddCommand(initHooksCmd)
 	RootCmd.AddCommand(initCmd)
 }

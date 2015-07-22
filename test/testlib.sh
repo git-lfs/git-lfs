@@ -73,6 +73,9 @@ begin_test () {
     err="$TRASHDIR/err"
     exec 1>"$out" 2>"$err"
 
+    # reset global git config
+    cp "$HOME/.gitconfig-backup" "$HOME/.gitconfig"
+
     # allow the subshell to exit non-zero without exiting this process
     set -x +e
 }
