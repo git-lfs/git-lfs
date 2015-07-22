@@ -48,14 +48,11 @@ if [ "$conflicts" ]; then
 fi
 
 git commit -q --allow-empty --amend -m "$commitmsg"
-git push -q -f internal $prbranch
+git push -q -f origin $prbranch
 git checkout -q -f $relbranch
 git branch -q -D $prbranch
 
-git push -q -f internal $relbranch
-
-#curl -in $pullsurl -d "{
-curl -in https://api.github.com/repos/github/git-lfs-internal/pulls -d "{
+curl -in $pullsurl -d "{
   \"title\": \"Backport #$pr for $relversion: $prtitle\",
   \"head\": \"$prbranch\",
   \"base\": \"$relbranch\",
