@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 
-#set -eu
+#Meant to be sourced, but can also just be called too
 
-if [ "$0" == "${BASH_SOURCE[0]}" ]; then
-  echo "Please source this file, do not call it"
-  exit 1
-fi
+#set -eu
 
 #If the env isn't set, try and load it
 if [ "${GPG_AGENT_INFO-}" == "" ] || ! gpg-connect-agent /bye > /dev/null 2>&1; then

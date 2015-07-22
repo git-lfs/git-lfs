@@ -9,9 +9,6 @@ RUN echo 'deb http://http.debian.net/debian wheezy-backports main' > /etc/apt/so
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && \
 apt-get install -y -t wheezy-backports golang git dpkg-dev dh-golang ruby-ronn reprepro
 
-ADD dpkg-package-gpg.bsh /tmp/
-ADD distributions /tmp/
-ADD debian_script.bsh /tmp/docker_run/
-ADD signing.key /tmp/
+ADD signing.key debian_script.bsh distributions dpkg-package-gpg.bsh /tmp/
 
-CMD /tmp/docker_run/debian_script.bsh
+CMD /tmp/debian_script.bsh

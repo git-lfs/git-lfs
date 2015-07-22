@@ -110,6 +110,12 @@ Or order to sign packages, you need to place the keys in the right place
 
 Keep in mind, signing.key must NEVER be accidentally commited to the repo. 
 
+Signing in CentOS 5 is... problemsome. While it can not handle v4 signatures,
+it should work with RSA on v3. However, it doesn't. So... The only way around it
+is to either sign it with the key instructinos above aand install it with the
+```yum install --nogpgcheck``` OR create a NEW DSA key just for CentOS 5. Even 
+then, the default size of 2048 did not work. A DSA key of 1024 bits does work. 
+
 To prevent MANY passphrase entries at random times, the gpg-agent is used to
 cache your signing key. This is done by running gpg-agent in the host, and passing
 the connection to each docker image. This will be done for you automatically by

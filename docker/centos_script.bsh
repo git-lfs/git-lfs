@@ -11,7 +11,7 @@ mkdir -p $(dirname "${GIT_LFS_BUILD_DIR}")
 cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 
 cd "${GIT_LFS_BUILD_DIR}"
-#git clean -xdf . || ./rpm/clean.bsh #clean is needed when git isn't already installed
+git clean -xdf . || ./rpm/clean.bsh #clean is needed when git isn't alread installed
 "${GIT_LFS_BUILD_DIR}"/rpm/build_rpms.bsh
 
 if [ "${REPO_HOSTNAME-}" != "" ]; then

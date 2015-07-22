@@ -2,6 +2,11 @@
 
 set -eu
 
+git lfs init
+
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+
 cp -ra /src /tmp/test/
 cd /tmp/test
 mkdir -p ./src/github.com/github
