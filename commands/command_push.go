@@ -24,8 +24,6 @@ var (
 	// shares some global vars and functions with commmands_pre_push.go
 )
 
-<<<<<<< HEAD
-=======
 func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	// Just use scanner here
 	pointers, err := lfs.ScanRefs(left, right, nil)
@@ -34,7 +32,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	}
 
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
-
+	pointerLen := len(pointers)
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s", pointer.Name)
@@ -42,7 +40,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 		}
 		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
-		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
+		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name, i+1, pointerLen)
 		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
@@ -58,6 +56,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 
 func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
+	oidLen := len(oids)
 
 	for i, oid := range oids {
 		if pushDryRun {
@@ -66,7 +65,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 		}
 		tracerx.Printf("prepare upload: %s %d/%d", oid, i+1, len(oids))
 
-		u, wErr := lfs.NewUploadable(oid, "")
+		u, wErr := lfs.NewUploadable(oid, "", i+1, oidLen)
 		if wErr != nil {
 			if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
@@ -80,7 +79,6 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	return uploadQueue
 }
 
->>>>>>> 35970a5... Merge pull request #461 from github/push-deleted-files
 // pushCommand pushes local objects to a Git LFS server.  It takes two
 // arguments:
 //
@@ -150,7 +148,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Just use scanner here
-	pointers, err := lfs.ScanRefs(left, right)
+	pointers, err := lfs.ScanRefs(left, right, nil)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
