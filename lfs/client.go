@@ -341,8 +341,11 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 	res, wErr = doHttpRequest(req, creds)
-	LogTransfer("lfs.data.verify", res)
+	if wErr != nil {
+		return wErr
+	}
 
+	LogTransfer("lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
@@ -350,7 +353,15 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := DoHTTP(req)
+	res, err := Config.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{
+			StatusCode: 0,
+			Header:     make(http.Header),
+			Request:    req,
+			Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+		}
+	}
 
 	var wErr *WrappedError
 
