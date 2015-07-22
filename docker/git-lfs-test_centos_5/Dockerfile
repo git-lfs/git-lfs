@@ -12,5 +12,5 @@ CMD yum install -y curl.x86_64 && \
     yum install -y epel-release &&\
     yum install -y --nogpgcheck git-lfs && \
     git-lfs && \
-    yum install -y perl-Digest-SHA golang && \
+    yum install -y --nogpgcheck perl-Digest-SHA golang && \
     /tmp/test_lfs.bsh
