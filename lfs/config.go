@@ -51,6 +51,16 @@ func (c *Configuration) Getenv(key string) string {
 	return v
 }
 
+func (c *Configuration) Setenv(key, value string) error {
+	// Check see if we have this in our cache, if so update it
+	if _, ok := c.envVars[key]; ok {
+		c.envVars[key] = value
+	}
+
+	// Now set in process
+	return os.Setenv(key, value)
+}
+
 // GetenvBool parses a boolean environment variable and returns the result as a bool.
 // If the environment variable is unset, empty, or if the parsing fails,
 // the value of def (default) is returned instead.
