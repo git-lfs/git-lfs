@@ -33,7 +33,7 @@ git log -1 $commit
 conflicts=""
 
 git cherry-pick -x --allow-empty -m1 $commit &> /dev/null || {
-  unmerged=$(git ls-files --unmerged --stage | cut -f 2 -d$'\t')
+  unmerged=$(git ls-files --unmerged --stage | cut -f 2 -d$'\t' | uniq)
   conflicts="\n\nConflicting files:"
   for file in $unmerged; do
     git add "$file"
