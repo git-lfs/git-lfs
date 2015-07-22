@@ -73,13 +73,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
 
-	for i, pointer := range pointers {
+	for _, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
 
-		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name, i+1, len(pointers))
+		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
 			if cleanPointerErr, ok := wErr.Err.(*lfs.CleanedPointerError); ok {
 				Exit("%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects.",
