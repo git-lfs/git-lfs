@@ -27,7 +27,7 @@ var (
 
 func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	// Just use scanner here
-	pointers, err := lfs.ScanRefs(left, right)
+	pointers, err := lfs.ScanRefs(left, right, nil)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}

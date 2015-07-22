@@ -23,15 +23,13 @@ func NewUploadable(oid, filename string) (*Uploadable, *WrappedError) {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	statsPath := localMediaPath
 	if len(filename) > 0 {
 		if err := ensureFile(filename, localMediaPath); err != nil {
 			return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 		}
-		statsPath = filename
 	}
 
-	fi, err := os.Stat(statsPath)
+	fi, err := os.Stat(localMediaPath)
 	if err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
