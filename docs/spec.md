@@ -195,8 +195,8 @@ runs all mp3 and zip files through Git LFS:
 
 ```
 $ cat .gitattributes
-*.mp3 filter=lfs -crlf
-*.zip filter=lfs -crlf
+*.mp3 filter=lfs -text
+*.zip filter=lfs -text
 ```
 
 Use the `git lfs track` command to view and add to `.gitattributes`.
