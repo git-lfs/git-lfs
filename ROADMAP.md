@@ -3,27 +3,34 @@
 This is a high level overview of some of the big changes we want to make for
 Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
+## Releases
+
+* 0.5 - Initial release using the [original HTTP API](docs/api/http-v1-original.md)
+* 0.6 - First release using the [batch HTTP API](docs/api/http-v1-batch.md), 
+        with a fallback to the original API.
+* 0.7 - Drops support for the original API.
+
 ## v1.0
 
 These are the features that we feel are important for a v1 release of Git LFS,
 and we have a good idea how they could work.
 
 * Fast, efficient uploading and downloading ([#414](https://github.com/github/git-lfs/issues/414)).
-* `git lfs fetch` command for downloading large files.
-* Automatic GC for the `.git/lfs/objects` directory.
-* Client side metrics reporting, so the Git LFS server can optionally track
-how clients are performing.
+* Improved local storage management ([#490](https://github.com/github/git-lfs/issues/490)).
 * Ability to remove objects from the command line through the API.
+* [Extensions](docs/proposals/extensions.md).
+* Official packages for CentOS, Apt.
+* Go 1.5+
 
 ## Possible Features
 
 These are features that require some more research. It's very possible that
 these can make it in for v1.0 if there's a great proposal.
 
-* Narrow clones - Allow clients to specify which large files to download
-automatically.
 * File locking
 * Binary diffing - reduce the amount of content sent over the wire.
+* Client side metrics reporting, so the Git LFS server can optionally track
+how clients are performing.
 
 ## Project Related
 
