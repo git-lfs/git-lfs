@@ -1,0 +1,25 @@
+git-lfs-pull(1) -- Download all Git LFS files for current ref & checkout
+========================================================================
+
+## SYNOPSIS
+
+`git lfs pull`
+
+## DESCRIPTION
+
+Download Git LFS objects for the currently checked out ref, and update
+the working copy with the downloaded content if required.
+
+This is equivalent to running the following 2 commands:
+
+git lfs fetch
+git lfs checkout
+
+## EXAMPLES
+
+## SEE ALSO
+
+git-lfs-fetch(1), git-lfs-checkout(1).
+
+Part of the git-lfs(1) suite.
+

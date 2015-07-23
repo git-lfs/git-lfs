@@ -1,15 +1,11 @@
 package commands
 
 import (
-	"os"
-	"os/exec"
-	"sync"
-	"time"
-
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"time"
 )
 
 var (
@@ -38,84 +34,51 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
+	fetchImpl(pointers)
+}
+
+func init() {
+	RootCmd.AddCommand(fetchCmd)
+}
+
+func fetchImpl(pointers []*lfs.WrappedPointer) {
+	fetchAndReportToChan(pointers, nil)
+}
+
+// Fetch and report completion of each OID to a channel (optional, pass nil to skip)
+func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.WrappedPointer) {
 	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
 
 	for _, p := range pointers {
 		q.Add(lfs.NewDownloadable(p))
 	}
 
-	target, err := git.ResolveRef(ref)
-	if err != nil {
-		Panic(err, "Could not resolve git ref")
-	}
-
-	current, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not fetch the current git ref")
-	}
-
-	var wait sync.WaitGroup
-	wait.Add(1)
-
-	if target == current {
-		// We just downloaded the files for the current ref, we can copy them into
-		// the working directory and update the git index. We're doing this in a
-		// goroutine so they can be copied as they come in, for efficiency.
-		watch := q.Watch()
+	if out != nil {
+		dlwatch := q.Watch()
 
 		go func() {
-			files := make(map[string]*lfs.WrappedPointer, len(pointers))
+			// fetch only reports single OID, but OID *might* be referenced by multiple
+			// WrappedPointers if same content is at multiple paths, so map oid->slice
+			oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
 			for _, pointer := range pointers {
-				files[pointer.Oid] = pointer
+				plist := oidToPointers[pointer.Oid]
+				oidToPointers[pointer.Oid] = append(plist, pointer)
 			}
 
-			// Fire up the update-index command
-			cmd := exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-			stdin, err := cmd.StdinPipe()
-			if err != nil {
-				Panic(err, "Could not update the index")
-			}
-
-			if err := cmd.Start(); err != nil {
-				Panic(err, "Could not update the index")
-			}
-
-			// As files come in, write them to the wd and update the index
-			for oid := range watch {
-				pointer, ok := files[oid]
+			for oid := range dlwatch {
+				plist, ok := oidToPointers[oid]
 				if !ok {
 					continue
 				}
-
-				file, err := os.Create(pointer.Name)
-				if err != nil {
-					Panic(err, "Could not create working directory file")
+				for _, p := range plist {
+					out <- p
 				}
-
-				if err := lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil); err != nil {
-					Panic(err, "Could not write working directory file")
-				}
-				file.Close()
-
-				stdin.Write([]byte(pointer.Name + "\n"))
 			}
-
-			stdin.Close()
-			if err := cmd.Wait(); err != nil {
-				Panic(err, "Error updating the git index")
-			}
-			wait.Done()
+			close(out)
 		}()
-	} else {
-		wait.Done()
-	}
 
+	}
 	processQueue := time.Now()
 	q.Process()
 	tracerx.PerformanceSince("process queue", processQueue)
-	wait.Wait()
-}
-
-func init() {
-	RootCmd.AddCommand(fetchCmd)
 }
