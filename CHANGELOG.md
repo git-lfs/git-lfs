@@ -1,6 +1,6 @@
 # Git LFS Changelog
 
-## v0.5.3 (someday)
+## v0.5.3 (23 July, 2015)
 
 * `git lfs fetch` bugs #429 (@rubyist)
 * Push can crash on 32 bit architectures #450 (@rubyist)
@@ -13,6 +13,7 @@
 * Update error message when attempting to push objects that don't exist in `.git/lfs/objects` #447 (@technoweenie)
 * Fix bug in HTTP client when response body is nil #472 #488 (@rubyist, @technoweenie)
 * `-crlf` flag in gitattributes is deprecated #475 (@technoweenie)
+* Improvements to the CentOS and Debian build and package scripts (@andyneff, @ssgelm)
 
 ## v0.5.2 (19 June, 2015)
 
