@@ -62,7 +62,7 @@ If you are the current maintainer:
 * Create a [new draft Release](https://github.com/github/git-lfs/releases/new).
 List any changes with links to related PRs.
 * Make sure your local dependencies are up to date: `script/bootstrap`
-* Ensure that tests are green: `script/test`
+* Ensure that tests are green: `script/cibuild`
 * Bump the version in `lfs/lfs.go`, [like this](https://github.com/github/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
 * Add the new version to the top of CHANGELOG.md
 * Build for all platforms with `script/bootstrap -all` (you need Go setup for
