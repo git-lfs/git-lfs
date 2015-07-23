@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eu
-set -xv
+
 cd $(dirname ${BASH_SOURCE[0]})/SOURCES
 
 #Get EPEL full list

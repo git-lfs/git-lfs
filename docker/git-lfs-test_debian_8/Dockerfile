@@ -2,7 +2,7 @@ FROM debian:jessie
 MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
 #Docker RUN example, pass in the git-lfs checkout copy you are working with
-LABEL RUN="docker run -v git-lfs-checkout-dir:/src" 
+LABEL RUN="docker run -v git-lfs-checkout-dir:/src -v repo_dir:/repo" 
 
 COPY test_lfs.bsh /tmp/test_lfs.bsh
 
