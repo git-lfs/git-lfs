@@ -25,6 +25,6 @@ RUN cd /tmp/docker_setup/git-lfs-*/rpm; \
 RUN rm -rf /tmp/docker_setup
 
 #Add the simple build repo script
-ADD rpm_sign.exp signing.key centos_script.bsh /tmp/
+COPY rpm_sign.exp signing.key centos_script.bsh /tmp/
 
 CMD /tmp/centos_script.bsh

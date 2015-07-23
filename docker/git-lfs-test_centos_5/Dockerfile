@@ -4,7 +4,7 @@ MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 #Docker RUN example, pass in the git-lfs checkout copy you are working with
 LABEL RUN="docker run -v git-lfs-repo-dir:/src" -v repo_dir:/repo"
 
-ADD test_lfs.bsh /tmp/test_lfs.bsh
+COPY test_lfs.bsh /tmp/test_lfs.bsh
 
 CMD yum install -y curl.x86_64 && \
     curl -L -O http://${REPO_HOSTNAME:-git-lfs.github.com}/centos/5/RPMS/noarch/git-lfs-repo-release-1-1.noarch.rpm && \
