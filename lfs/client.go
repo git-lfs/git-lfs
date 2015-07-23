@@ -691,7 +691,7 @@ func getCreds(req *http.Request) (Creds, error) {
 
 func setRequestAuth(req *http.Request, user, pass string) {
 	token := fmt.Sprintf("%s:%s", user, pass)
-	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(token))
 	req.Header.Set("Authorization", auth)
 }
 
