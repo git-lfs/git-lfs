@@ -1,7 +1,7 @@
 [application]
 
 name = "git-lfs"
-version = "0.5.1"
+version = "0.5.3"
 authors = [
   "Rick Olson <technoweenie@gmail.com>",
   "Scott Barron <rubyist@github.com>",
