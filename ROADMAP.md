@@ -12,6 +12,8 @@ and we have a good idea how they could work.
 * Improved local storage management ([#490](https://github.com/github/git-lfs/issues/490)).
 * Ability to remove objects from the command line through the API.
 * [Extensions](docs/proposals/extensions.md).
+* Official packages for CentOS, Apt.
+* Go 1.5+
 
 ## Possible Features
 
