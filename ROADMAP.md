@@ -3,6 +3,13 @@
 This is a high level overview of some of the big changes we want to make for
 Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
+## Releases
+
+* 0.5 - Initial release using the [original HTTP API](docs/api/http-v1-original.md)
+* 0.6 - First release using the [batch HTTP API](docs/api/http-v1-batch.md), 
+        with a fallback to the original API.
+* 0.7 - Drops support for the original API.
+
 ## v1.0
 
 These are the features that we feel are important for a v1 release of Git LFS,
