@@ -78,7 +78,7 @@ func (q *TransferQueue) processIndividual() {
 	for i := 0; i < q.workers; i++ {
 		go func() {
 			for t := range apic {
-				// If an API authorization has not occured, we wait until we're woken up.
+				// If an API authorization has not occurred, we wait until we're woken up.
 				q.authCond.L.Lock()
 				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
 					workersReady <- 1
@@ -151,7 +151,7 @@ func (q *TransferQueue) processBatch() error {
 
 	for _, o := range objects {
 		if _, ok := o.Links[q.transferKind]; ok {
-			// This object needs to be transfered
+			// This object needs to be transferred
 			if transfer, ok := q.transferables[o.Oid]; ok {
 				q.files++
 				q.wg.Add(1)
