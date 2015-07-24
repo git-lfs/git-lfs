@@ -54,7 +54,7 @@ while [[ $# > 0 ]]; do
   shift
 done
 
-if [[ ${#IMAGES} == 0 ]]; then
+if [[ ${#IMAGES[@]} == 0 ]]; then
   IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
 fi
 
