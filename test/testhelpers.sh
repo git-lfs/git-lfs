@@ -167,9 +167,13 @@ setup() {
     # We can't disable osxkeychain and it gets called on store as well as ours, 
     # reporting "A keychain cannot be found to store.." errors because the test 
     # user env has no keychain; so create one
-    # Note deliberately not using $HOME in case anything goes wrong overriding that,
-    # we do not want to stomp on the user's main keychain by accident!
-    security create-keychain -p pass $REMOTEDIR/home/Library/Keychains/login.keychain
+    mkdir -p $TMPDIR
+    mkdir -p $HOME/Library/Preferences # required to store keychain lists
+    security -v create-keychain -p pass $TMPDIR/temp.keychain
+    security -v list-keychains -s $TMPDIR/temp.keychain
+    security -v unlock-keychain -p pass $TMPDIR/temp.keychain
+    security -v set-keychain-settings -lut 7200 $TMPDIR/temp.keychain
+    security -v default-keychain -s $TMPDIR/temp.keychain
   fi
 
   wait_for_file "$LFS_URL_FILE"
@@ -190,9 +194,8 @@ shutdown() {
     if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
     then
       # explicitly clean up keychain to make sure search list doesn't look for it
-      # Note deliberately not using $HOME in case anything goes wrong overriding that,
-      # we do not want to stomp on the user's main keychain by accident!
-      security delete-keychain $REMOTEDIR/home/Library/Keychains/login.keychain
+      # shouldn't matter because $HOME is separate & keychain prefs are there but still
+      security delete-keychain $TMPDIR/temp.keychain
     fi
 
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
