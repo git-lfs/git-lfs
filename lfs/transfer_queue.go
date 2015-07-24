@@ -168,11 +168,25 @@ func (q *TransferQueue) processBatch() error {
 	return nil
 }
 
+func (q *TransferQueue) endProcess() {
+	close(q.errorc)
+	for _, watcher := range q.watchers {
+		close(watcher)
+	}
+}
+
 // Process starts the transfer queue and displays a progress bar. Process will
 // do individual or batch transfers depending on the Config.BatchTransfer() value.
 // Process will transfer files sequentially or concurrently depending on the
 // Concig.ConcurrentTransfers() value.
 func (q *TransferQueue) Process() {
+
+	// Early out if nothing to do
+	if len(q.transferables) == 0 {
+		q.endProcess()
+		return
+	}
+
 	q.bar = pb.New64(q.size)
 	q.bar.SetUnits(pb.U_BYTES)
 	q.bar.ShowBar = false
@@ -263,10 +277,7 @@ func (q *TransferQueue) Process() {
 	}
 
 	q.wg.Wait()
-	close(q.errorc)
-	for _, watcher := range q.watchers {
-		close(watcher)
-	}
+	q.endProcess()
 	close(progressc)
 
 	q.bar.Finish()
