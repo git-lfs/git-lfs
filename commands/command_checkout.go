@@ -33,7 +33,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	c := make(chan *lfs.WrappedPointer)
 
-	checkoutWithChan(c, wait)
+	checkoutWithChan(c, &wait)
 	for _, pointer := range pointers {
 		c <- pointer
 	}
@@ -50,7 +50,7 @@ func init() {
 // If the file exists but has other content it is left alone
 // returns immediately but a goroutine listens on the in channel for objects
 // calls wait.Done() when the final item after the channel is closed is done
-func checkoutWithChan(in <-chan *lfs.WrappedPointer, wait sync.WaitGroup) {
+func checkoutWithChan(in <-chan *lfs.WrappedPointer, wait *sync.WaitGroup) {
 	go func() {
 		// Fire up the update-index command
 		cmd := exec.Command("git", "update-index", "-q", "--refresh", "--stdin")

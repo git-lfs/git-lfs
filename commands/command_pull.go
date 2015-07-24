@@ -32,7 +32,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 	wait.Add(1)
 	// Prep the checkout process for items that come out of fetch
 	// this doesn't do anything except set up the goroutine & wait on the fetchChan
-	checkoutWithChan(fetchChan, wait)
+	checkoutWithChan(fetchChan, &wait)
 	// Do the downloading & report to channel which checkout watches
 	fetchAndReportToChan(pointers, fetchChan)
 
