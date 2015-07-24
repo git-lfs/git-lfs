@@ -63,12 +63,11 @@ begin_test "fetch"
 
 
   # Remove the working directory and lfs files
-  rm a.dat
   rm -rf .git/lfs/objects
 
   git lfs fetch 2>&1 | grep "(1 of 1 files)"
 
-  [ "a" = "$(cat a.dat)" ]
+  assert_pointer "master" "a.dat" "$contents_oid" 1
 
   git checkout newbranch
   git checkout master
