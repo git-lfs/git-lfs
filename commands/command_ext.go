@@ -29,12 +29,13 @@ func extListCommand(cmd *cobra.Command, args []string) {
 	n := len(args)
 	if n == 0 {
 		printAllExts()
-	} else {
-		config := lfs.Config
-		for _, key := range args {
-			ext := config.Extensions()[key]
-			printExt(ext)
-		}
+		return
+	}
+
+	config := lfs.Config
+	for _, key := range args {
+		ext := config.Extensions()[key]
+		printExt(ext)
 	}
 }
 

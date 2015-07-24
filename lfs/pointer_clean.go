@@ -28,26 +28,37 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCall
 		return nil, err
 	}
 
-	oid, size, tmp, err := copyToTemp(reader, fileSize, cb)
-	if err != nil {
-		return nil, err
-	}
-
-	var exts []PointerExtension
+	var oid string
+	var size int64
+	var tmp *os.File
+	var exts []*PointerExtension
 	if len(extensions) > 0 {
-		if tmp, err = os.Open(tmp.Name()); err != nil {
+		request := &pipeRequest{"clean", reader, fileName, extensions}
+
+		var response pipeResponse
+		if response, err = pipeExtensions(request); err != nil {
 			return nil, err
 		}
 
-		if oid, tmp, exts, err = pipeExtensions(tmp, oid, fileName, extensions); err != nil {
-			return nil, err
-		}
-
+		oid = response.results[len(response.results)-1].oidOut
+		tmp = response.file
 		var stat os.FileInfo
 		if stat, err = os.Stat(tmp.Name()); err != nil {
 			return nil, err
 		}
 		size = stat.Size()
+
+		for _, result := range response.results {
+			if result.oidIn != result.oidOut {
+				ext := NewPointerExtension(result.name, len(exts), result.oidIn)
+				exts = append(exts, ext)
+			}
+		}
+	} else {
+		oid, size, tmp, err = copyToTemp(reader, fileSize, cb)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pointer := NewPointer(oid, size, exts)

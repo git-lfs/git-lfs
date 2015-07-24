@@ -14,6 +14,7 @@ import (
 )
 
 // An Extension describes how to manipulate files during smudge and clean.
+// Extensions are parsed from the Git config.
 type Extension struct {
 	Name     string
 	Clean    string
@@ -21,12 +22,30 @@ type Extension struct {
 	Priority int
 }
 
+type pipeRequest struct {
+	action     string
+	reader     io.Reader
+	fileName   string
+	extensions []Extension
+}
+
+type pipeResponse struct {
+	file    *os.File
+	results []*pipeExtResult
+}
+
+type pipeExtResult struct {
+	name   string
+	oidIn  string
+	oidOut string
+}
+
 type extCommand struct {
-	ext    *PointerExtension
 	cmd    *exec.Cmd
 	out    io.WriteCloser
 	err    *bytes.Buffer
 	hasher hash.Hash
+	result *pipeExtResult
 }
 
 // SortExtensions sorts a map of extensions in ascending order by Priority
@@ -56,30 +75,43 @@ func SortExtensions(m map[string]Extension) ([]Extension, error) {
 	return result, nil
 }
 
-func pipeExtensions(reader io.ReadCloser, oid string, fileName string, extensions []Extension) (hash string, tmp *os.File, exts []PointerExtension, err error) {
+func pipeExtensions(request *pipeRequest) (response pipeResponse, err error) {
 	var extcmds []*extCommand
-	for _, e := range extensions {
-		ext := NewPointerExtension(e.Name, e.Priority, "")
-		pieces := strings.Split(e.Clean, " ")
+	for _, e := range request.extensions {
+		var pieces []string
+		switch request.action {
+		case "clean":
+			pieces = strings.Split(e.Clean, " ")
+		case "smudge":
+			pieces = strings.Split(e.Smudge, " ")
+		default:
+			err = fmt.Errorf("Invalid action: " + request.action)
+			return
+		}
 		name := strings.Trim(pieces[0], " ")
 		var args []string
 		for _, value := range pieces[1:] {
-			arg := strings.Replace(value, "%f", fileName, -1)
+			arg := strings.Replace(value, "%f", request.fileName, -1)
 			args = append(args, arg)
 		}
 		cmd := exec.Command(name, args...)
-		ec := &extCommand{ext: ext, cmd: cmd}
+		ec := &extCommand{cmd: cmd, result: &pipeExtResult{name: e.Name}}
 		extcmds = append(extcmds, ec)
 	}
 
-	var input io.ReadCloser
+	hasher := sha256.New()
+	pipeReader, pipeWriter := io.Pipe()
+	multiWriter := io.MultiWriter(hasher, pipeWriter)
+
+	var input io.Reader
 	var output io.WriteCloser
-	input = reader
-	if tmp, err = TempFile(""); err != nil {
+	input = pipeReader
+	extcmds[0].cmd.Stdin = input
+	if response.file, err = TempFile(""); err != nil {
 		return
 	}
-	defer tmp.Close()
-	output = tmp
+	defer response.file.Close()
+	output = response.file
 
 	last := len(extcmds) - 1
 	for i, ec := range extcmds {
@@ -118,9 +150,19 @@ func pipeExtensions(reader io.ReadCloser, oid string, fileName string, extension
 		}
 	}
 
+	if _, err = io.Copy(multiWriter, request.reader); err != nil {
+		return
+	}
+	if err = pipeWriter.Close(); err != nil {
+		return
+	}
+
 	for _, ec := range extcmds {
 		if err = ec.cmd.Wait(); err != nil {
-			err = fmt.Errorf("Extension '%s' failed with: %s", ec.ext.Name, ec.err.String())
+			if ec.err != nil {
+				errStr := ec.err.String()
+				err = fmt.Errorf("Extension '%s' failed with: %s", ec.result.name, errStr)
+			}
 			return
 		}
 		if err = ec.out.Close(); err != nil {
@@ -128,14 +170,12 @@ func pipeExtensions(reader io.ReadCloser, oid string, fileName string, extension
 		}
 	}
 
+	oid := hex.EncodeToString(hasher.Sum(nil))
 	for _, ec := range extcmds {
-		ec.ext.Oid = oid
-		exts = append(exts, *ec.ext)
-		if ec.cmd != nil {
-			oid = hex.EncodeToString(ec.hasher.Sum(nil))
-		}
+		ec.result.oidIn = oid
+		oid = hex.EncodeToString(ec.hasher.Sum(nil))
+		ec.result.oidOut = oid
+		response.results = append(response.results, ec.result)
 	}
-
-	hash = oid
 	return
 }

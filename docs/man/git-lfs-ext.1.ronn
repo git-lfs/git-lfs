@@ -14,6 +14,7 @@ during smudge and clean.
 
 * List details for all extensions
 
+    `git lfs ext`
     `git lfs ext list`
 
 * List details for the specified extensions

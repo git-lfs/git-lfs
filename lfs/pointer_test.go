@@ -30,10 +30,10 @@ func TestEncode(t *testing.T) {
 
 func TestEncodeExtensions(t *testing.T) {
 	var buf bytes.Buffer
-	exts := []PointerExtension{
-		*NewPointerExtension("foo", 0, "foo_oid"),
-		*NewPointerExtension("bar", 1, "bar_oid"),
-		*NewPointerExtension("baz", 2, "baz_oid"),
+	exts := []*PointerExtension{
+		NewPointerExtension("foo", 0, "foo_oid"),
+		NewPointerExtension("bar", 1, "bar_oid"),
+		NewPointerExtension("baz", 2, "baz_oid"),
 	}
 	pointer := NewPointer("main_oid", 12345, exts)
 	_, err := EncodePointer(&buf, pointer)

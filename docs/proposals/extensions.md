@@ -34,12 +34,12 @@ Here's an example extension registration in the Git config:
 
 ```
 [lfs-ext "foo"]
-  clean = git-lfs-foo clean %f
-  smudge = git-lfs-foo smudge %f
+  clean = foo clean %f
+  smudge = foo smudge %f
   priority = 0
 [lfs-ext "bar"]
-  clean = git-lfs-bar clean %f
-  smudge = git-lfs-bar smudge %f
+  clean = bar clean %f
+  smudge = bar smudge %f
   priority = 1
 ```
 
@@ -58,7 +58,7 @@ that the extension was invoked and the oid of the file before that extension was
 All of that information is required to be able to reliably smudge the file later.  Each
 new line in the pointer file will be of the form
 
-`ext-{priority}-{name} {hash-method}:{hash-of-input-to-extension} `
+`ext-{order}-{name} {hash-method}:{hash-of-input-to-extension} `
 
 This naming ensures that all extensions are written in both alphabetical and priority
 order, and also shows the progression of changes to the oid as it is processed by the
@@ -79,15 +79,15 @@ signature, and writes the bytes to a temp flie
 * When finished, LFS atomically moves the temp file into .git/lfs/objects, as before
 * LFS generates the pointer file, with some changes:
  * The oid and size keys are calculated from the final bytes written into the LFS storage
- * LFS also writes keys named extension-1-foo and extension-2-bar into the pointer, along
+ * LFS also writes keys named ext-0-foo and ext-1-bar into the pointer, along
  with their respective input oid's
 
 Here's an example pointer file, for a file processed by extensions foo and bar:
 
 ```
 version https://git-lfs.github.com/spec/v1
-ext-1-foo sha256:{original hash}
-ext-2-bar sha256:{hash after foo}
+ext-0-foo sha256:{original hash}
+ext-1-bar sha256:{hash after foo}
 oid sha256:{hash after bar}
 size 123
 (ending \n)

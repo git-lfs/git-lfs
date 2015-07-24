@@ -34,9 +34,10 @@ type Pointer struct {
 	Oid        string
 	Size       int64
 	OidType    string
-	Extensions []PointerExtension
+	Extensions []*PointerExtension
 }
 
+// A PointerExtension is parsed from the Git LFS Pointer file.
 type PointerExtension struct {
 	Name     string
 	Priority int
@@ -44,13 +45,13 @@ type PointerExtension struct {
 	OidType  string
 }
 
-type ByPriority []PointerExtension
+type ByPriority []*PointerExtension
 
 func (p ByPriority) Len() int           { return len(p) }
 func (p ByPriority) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p ByPriority) Less(i, j int) bool { return p[i].Priority < p[j].Priority }
 
-func NewPointer(oid string, size int64, exts []PointerExtension) *Pointer {
+func NewPointer(oid string, size int64, exts []*PointerExtension) *Pointer {
 	return &Pointer{latest, oid, size, oidType, exts}
 }
 
@@ -150,23 +151,19 @@ func decodeKV(data []byte) (*Pointer, error) {
 	}
 
 	value, ok = kvps["size"]
-	if !ok {
-		return nil, errors.New("Invalid size")
-	}
-
 	size, err := strconv.ParseInt(value, 10, 0)
 	if err != nil || size < 0 {
-		return nil, errors.New("Invalid size: " + value)
+		return nil, fmt.Errorf("Invalid size: %q", value)
 	}
 
-	var extensions []PointerExtension
+	extensions := make([]*PointerExtension, 0, len(exts))
 	if exts != nil {
 		for key, value := range exts {
 			ext, err := parsePointerExtension(key, value)
 			if err != nil {
 				return nil, err
 			}
-			extensions = append(extensions, *ext)
+			extensions = append(extensions, ext)
 		}
 		if err = validatePointerExtensions(extensions); err != nil {
 			return nil, err
@@ -213,7 +210,7 @@ func parsePointerExtension(key string, value string) (*PointerExtension, error) 
 	return NewPointerExtension(name, p, oid), nil
 }
 
-func validatePointerExtensions(exts []PointerExtension) error {
+func validatePointerExtensions(exts []*PointerExtension) error {
 	m := make(map[int]struct{})
 	for _, ext := range exts {
 		if _, exist := m[ext.Priority]; exist {

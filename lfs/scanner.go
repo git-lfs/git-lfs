@@ -16,7 +16,7 @@ import (
 const (
 	// blobSizeCutoff is used to determine which files to scan for Git LFS
 	// pointers.  Any file with a size below this cutoff will be scanned.
-	blobSizeCutoff = 140
+	blobSizeCutoff = 1024
 
 	// stdoutBufSize is the size of the buffers given to a sub-process stdout
 	stdoutBufSize = 16384
