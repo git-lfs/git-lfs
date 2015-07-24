@@ -169,11 +169,11 @@ setup() {
     # user env has no keychain; so create one
     mkdir -p $TMPDIR
     mkdir -p $HOME/Library/Preferences # required to store keychain lists
-    security -v create-keychain -p pass $TMPDIR/temp.keychain
-    security -v list-keychains -s $TMPDIR/temp.keychain
-    security -v unlock-keychain -p pass $TMPDIR/temp.keychain
-    security -v set-keychain-settings -lut 7200 $TMPDIR/temp.keychain
-    security -v default-keychain -s $TMPDIR/temp.keychain
+    security create-keychain -p pass $TMPDIR/temp.keychain
+    security list-keychains -s $TMPDIR/temp.keychain
+    security unlock-keychain -p pass $TMPDIR/temp.keychain
+    security set-keychain-settings -lut 7200 $TMPDIR/temp.keychain
+    security default-keychain -s $TMPDIR/temp.keychain
   fi
 
   wait_for_file "$LFS_URL_FILE"
