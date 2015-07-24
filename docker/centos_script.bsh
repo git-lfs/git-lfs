@@ -13,7 +13,7 @@ cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf . || ./rpm/clean.bsh #clean is needed when git isn't alread installed
 "${GIT_LFS_BUILD_DIR}"/rpm/build_rpms.bsh
-
+rpmbuild --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm/" --target=i686 -bb "${GIT_LFS_BUILD_DIR}"/rpm/SPECS/git-lfs.spec
 if [ "${REPO_HOSTNAME-}" != "" ]; then
   sed -r -i 's/(^baseurl=https?:\/\/)[^/]*/\1'"${REPO_HOSTNAME}"'/' ./rpm/SOURCES/git-lfs.repo
 fi

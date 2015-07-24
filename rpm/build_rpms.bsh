@@ -96,7 +96,11 @@ if ! which go; then
     $SUDO yum install -y curl.x86_64 glibc gcc
     ${CURDIR}/golang_patch.bsh
     "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/golang.spec
-    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/noarch/golang-1*.rpm ${CURDIR}/RPMS/noarch/golang-pkg-bin-linux-amd64-1*.rpm ${CURDIR}/RPMS/noarch/golang-src-1*.noarch.rpm ${CURDIR}/RPMS/noarch/golang-pkg-linux-amd64-1*.noarch.rpm
+    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/noarch/golang-1*.rpm \
+    ${CURDIR}/RPMS/noarch/golang-pkg-bin-linux-amd64-1*.rpm \
+    ${CURDIR}/RPMS/noarch/golang-src-1*.noarch.rpm \
+    ${CURDIR}/RPMS/noarch/golang-pkg-linux-amd64-1*.noarch.rpm \
+    ${CURDIR}/RPMS/noarch/golang-pkg-linux-386-1*.noarch.rpm
   else
     $SUDO yum install -y epel-release
     $SUDO yum install -y golang
@@ -154,14 +158,7 @@ fi
 
 echo "Build git-lfs rpm..." >&6
 sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
-cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/
+
 "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git-lfs.spec
-#if [ "`stat -c '%U' ${CURDIR}/SPECS/git-lfs.spec`" == "UNKNOWN" ]; then
-#  $SUDO cp ${CURDIR}/SPECS/git-lfs.spec ${CURDIR}/SPECS/git-lfs2.spec
-#  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs2.spec
-#  $SUDO rm -f ${CURDIR}/SPECS/git-lfs2.spec
-#else
-#  "${RPMBUILD[@]}" -bs ${CURDIR}/SPECS/git-lfs.spec
-#fi
 
 echo "All Done!" >&6

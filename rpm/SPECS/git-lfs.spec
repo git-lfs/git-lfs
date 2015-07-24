@@ -31,7 +31,11 @@ mkdir -p src/github.com/github
 ln -s $(pwd) src/github.com/github/%{name}
 
 %build
-GOPATH=`pwd` ./script/bootstrap
+%if %{_arch} == i386
+  GOARCH=386 GOPATH=`pwd` ./script/bootstrap
+%else
+  GOARCH=amd64 GOPATH=`pwd` ./script/bootstrap
+%endif
 GOPATH=`pwd` ./script/man
 
 %install
