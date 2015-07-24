@@ -99,6 +99,6 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -v ${REPO_DIR}:/src \
                    -v ${IMAGE_REPO_DIR}:/repo \
-                   ${IMAGE_NAME} ${DOCKER_CMD-}
+                   git-lfs/${IMAGE_NAME} ${DOCKER_CMD-}
 
 done

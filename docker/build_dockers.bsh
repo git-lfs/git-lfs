@@ -33,6 +33,6 @@ fi
 #This will take a long time the first time
 for IMAGE_DIR in "${IMAGE_DIRS[@]}"; do
   echo Docker building ${IMAGE_DIR}
-  $SUDO docker build -t $(basename ${IMAGE_DIR}) -f ${IMAGE_DIR}/Dockerfile ${CUR_DIR}
+  $SUDO docker build -t git-lfs/$(basename ${IMAGE_DIR}) -f ${IMAGE_DIR}/Dockerfile ${CUR_DIR}
 done
 
