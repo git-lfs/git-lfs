@@ -161,6 +161,17 @@ setup() {
   }
   cp "$HOME/.gitconfig" "$HOME/.gitconfig-backup"
 
+  if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
+  then
+    # Only OS X will encounter this
+    # We can't disable osxkeychain and it gets called on store as well as ours, 
+    # reporting "A keychain cannot be found to store.." errors because the test 
+    # user env has no keychain; so create one
+    # Note deliberately not using $HOME in case anything goes wrong overriding that,
+    # we do not want to stomp on the user's main keychain by accident!
+    security create-keychain -p pass $REMOTEDIR/home/Library/Keychains/login.keychain
+  fi
+
   wait_for_file "$LFS_URL_FILE"
 }
 
@@ -175,6 +186,17 @@ shutdown() {
     if [ -s "$LFS_URL_FILE" ]; then
       curl "$(cat "$LFS_URL_FILE")/shutdown"
     fi
+
+    if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
+    then
+      # explicitly clean up keychain to make sure search list doesn't look for it
+      # Note deliberately not using $HOME in case anything goes wrong overriding that,
+      # we do not want to stomp on the user's main keychain by accident!
+      security delete-keychain $REMOTEDIR/home/Library/Keychains/login.keychain
+    fi
+
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
+
   fi
+
 }
