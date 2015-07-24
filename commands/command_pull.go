@@ -10,7 +10,7 @@ import (
 var (
 	pullCmd = &cobra.Command{
 		Use:   "pull",
-		Short: "pull",
+		Short: "Downloads LFS files for the current ref, and checks out",
 		Run:   pullCommand,
 	}
 )
