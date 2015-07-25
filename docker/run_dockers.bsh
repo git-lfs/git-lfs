@@ -29,14 +29,10 @@ PACKAGE_DIR=${REPO_DIR}/repos
 : ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 function split_image_name()
-{ #$1 - image directory name or dockerfile
+{ #$1 - image dockerfile
   #sets IMAGE_NAME to the basename of the dir containing the docker file
   #sets IMAGE_INFO to be the array name following my pattern
-  IMAGE_NAME=$(basename $1)
-  if [ "${IMAGE_NAME,,}" == "dockerfile" ]; then
-    IMAGE_NAME=$(basename $(dirname $1))
-  fi
-  
+  IMAGE_NAME=$(basename ${1%.*})
   local IFS=_
   IMAGE_INFO=(${IMAGE_NAME})
 }
@@ -55,7 +51,7 @@ while [[ $# > 0 ]]; do
 done
 
 if [[ ${#IMAGES[@]} == 0 ]]; then
-  IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
+  IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*.dockerfile))
 fi
 
 mkdir -p "${PACKAGE_DIR}"

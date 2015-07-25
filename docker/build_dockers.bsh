@@ -12,27 +12,18 @@ CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 : ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 if [[ $# == 0 ]]; then
-  IMAGE_DIRS=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
+  IMAGE_NAMES=($(ls -d ${CUR_DIR}/git-lfs_*.dockerfile))
 else
-  IMAGE_DIRS=("${@}")
+  IMAGE_NAMES=("${@}")
 fi
-
-#Strip the Dockerfile (When appropriate)
-for i in "${!IMAGE_DIRS[@]}"; do
-  IMAGE_NAME=$(basename ${IMAGE_DIRS[$i]})
-  if [ "${IMAGE_NAME,,}" == "dockerfile" ]; then
-    IMAGE_DIRS[$i]=$(dirname ${IMAGE_DIRS[$i]})
-  fi
-done
-unset i IMAGE_NAME
 
 if [ ! -e "${CUR_DIR}/signing.key" ]; then
   touch "${CUR_DIR}/signing.key"
 fi
 
 #This will take a long time the first time
-for IMAGE_DIR in "${IMAGE_DIRS[@]}"; do
-  echo Docker building ${IMAGE_DIR}
-  $SUDO docker build -t git-lfs/$(basename ${IMAGE_DIR}) -f ${IMAGE_DIR}/Dockerfile ${CUR_DIR}
+for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
+  echo Docker building ${IMAGE_NAME}
+  $SUDO docker build -t git-lfs/$(basename ${IMAGE_NAME%.*}) -f ${IMAGE_NAME} ${CUR_DIR}
 done
 
