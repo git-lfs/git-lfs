@@ -26,7 +26,7 @@ REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
 PACKAGE_DIR=${REPO_DIR}/repos
 
 #If you are not in docker group and you have sudo, default value is sudo
-: ${SUDO=`if id -nG | grep -qwv docker && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 function split_image_name()
 { #$1 - image directory name or dockerfile

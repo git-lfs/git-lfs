@@ -9,7 +9,7 @@ set -eu
 CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 #If you are not in docker group and you have sudo, default value is sudo
-: ${SUDO=`if id -nG | grep -qwv docker && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 if [[ $# == 0 ]]; then
   IMAGE_DIRS=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
