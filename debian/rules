@@ -2,7 +2,20 @@
 
 export DH_OPTIONS
 
-BUILD_DIR := obj-$(DEB_BUILD_GNU_TYPE)
+#Debian 7 doesn't have TARGET
+ifeq ($(DEB_TARGET_ARCH),)
+	DEB_TARGET_ARCH := $(DEB_HOST_ARCH)
+	DEB_TARGET_GNU_TYPE := $(DEB_TARGET_GNU_TYPE)
+endif
+
+#dh_golang doesn't do this for you
+ifeq ($(DEB_TARGET_ARCH), i386)
+	export GOARCH := 386
+else
+	export GOARCH := amd64
+endif
+
+BUILD_DIR := obj-$(DEB_HOST_GNU_TYPE)
 export DH_GOPKG := github.com/github/git-lfs
 export DH_GOLANG_EXCLUDES := test
 export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
@@ -17,6 +30,11 @@ override_dh_clean:
 
 override_dh_auto_build:
 	dh_auto_build
+	#dh_golang doesn't do anything here in deb 8, and it's needed in both  
+	if [ "$(DEB_TARGET_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
+		cp -rf $(BUILD_DIR)/bin/linux_386/* $(BUILD_DIR)/bin/; \
+		cp -rf $(BUILD_DIR)/pkg/linux_386/* $(BUILD_DIR)/pkg/; \
+	fi
 	rm $(BUILD_DIR)/bin/script
 	./script/man
 
@@ -31,5 +49,6 @@ override_dh_auto_install:
 override_dh_auto_test:
 	ln -s ../../../../../../commands/repos $(BUILD_DIR)/src/github.com/github/git-lfs/commands/repos
 	ln -s ../../../../bin $(BUILD_DIR)/src/github.com/github/git-lfs/bin
-	dh_auto_test
+	#dh_golang uses the wrong dir to test on. This tricks everything into being happy
+	DEB_BUILD_GNU_TYPE=$(DEB_HOST_GNU_TYPE) dh_auto_test
 	rm $(BUILD_DIR)/src/github.com/github/git-lfs/commands/repos $(BUILD_DIR)/src/github.com/github/git-lfs/bin
