@@ -2,16 +2,10 @@
 
 export DH_OPTIONS
 
-#Debian 7 doesn't have TARGET
-ifeq ($(DEB_TARGET_ARCH),)
-	DEB_TARGET_ARCH := $(DEB_HOST_ARCH)
-	DEB_TARGET_GNU_TYPE := $(DEB_TARGET_GNU_TYPE)
-endif
-
 #dh_golang doesn't do this for you
-ifeq ($(DEB_TARGET_ARCH), i386)
+ifeq ($(DEB_HOST_ARCH), i386)
 	export GOARCH := 386
-else
+else ifeq ($(DEB_HOST_ARCH), amd64)
 	export GOARCH := amd64
 endif
 
@@ -31,9 +25,9 @@ override_dh_clean:
 override_dh_auto_build:
 	dh_auto_build
 	#dh_golang doesn't do anything here in deb 8, and it's needed in both  
-	if [ "$(DEB_TARGET_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
-		cp -rf $(BUILD_DIR)/bin/linux_386/* $(BUILD_DIR)/bin/; \
-		cp -rf $(BUILD_DIR)/pkg/linux_386/* $(BUILD_DIR)/pkg/; \
+	if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
+		cp -rf $(BUILD_DIR)/bin/*/* $(BUILD_DIR)/bin/; \
+		cp -rf $(BUILD_DIR)/pkg/*/* $(BUILD_DIR)/pkg/; \
 	fi
 	rm $(BUILD_DIR)/bin/script
 	./script/man
