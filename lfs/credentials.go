@@ -17,7 +17,7 @@ type credentialFunc func(Creds, string) (credentialFetcher, error)
 var execCreds credentialFunc
 
 func credentials(u *url.URL) (Creds, error) {
-	creds := Creds{"protocol": u.Scheme, "host": u.Host}
+	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": u.Path}
 	cmd, err := execCreds(creds, "fill")
 	if err != nil {
 		return nil, err

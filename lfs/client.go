@@ -653,7 +653,7 @@ func getCreds(req *http.Request) (Creds, error) {
 		}
 	}
 
-	creds, err := credentials(req.URL)
+	creds, err := credentials(apiUrl)
 	if err != nil {
 		return nil, err
 	}
