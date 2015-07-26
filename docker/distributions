@@ -3,6 +3,6 @@ Label: git-lfs
 Suite: stable
 Codename: debian
 Version: 1.0
-Architectures: amd64 source
+Architectures: i386 amd64 source
 Components: main
 Description: Git-lfs packages

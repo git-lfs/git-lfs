@@ -19,8 +19,6 @@ git clean -xdf .
 #  #/etc/apt/sources.list.d/git-lfs-main.list
 #fi
 
-JESSIE_ARGS="--target-arch i386"
-
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
 if [ -s /tmp/signing.key ]; then
@@ -28,11 +26,11 @@ if [ -s /tmp/signing.key ]; then
   echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
   echo ask-passphrase > "${REPO_DIR}/conf/options"
   
-  dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh -b -ai386 ${JESSIE_ARGS}
+  dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh -b -ai386
   git clean -xdf .
   dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh
 else
-  dpkg-buildpackage -us -uc -b -ai386 ${JESSIE_ARGS}
+  dpkg-buildpackage -us -uc -b -ai386
   git clean -xdf .
   dpkg-buildpackage -us -uc
 fi
