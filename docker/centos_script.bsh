@@ -20,11 +20,12 @@ fi
 
 rpmbuild --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm" -ba ${GIT_LFS_BUILD_DIR}/rpm/SPECS/git-lfs-repo-release.spec
 
+rsync -ra ${GIT_LFS_BUILD_DIR}/rpm/{SRPMS,RPMS} ${REPO_DIR}
+
 if [ -s /tmp/signing.key ]; then
   gpg --allow-secret-key-import --import /tmp/signing.key || :
-  find ${GIT_LFS_BUILD_DIR}/rpm/{RPMS,SRPMS} -name \*.rpm | xargs /tmp/rpm_sign.exp
+  find ${REPO_DIR} -name \*.rpm | xargs /tmp/rpm_sign.exp
 fi
 
-rsync -ra ${GIT_LFS_BUILD_DIR}/rpm/{SRPMS,RPMS} ${REPO_DIR}
 createrepo ${REPO_DIR}/SRPMS
 createrepo ${REPO_DIR}/RPMS

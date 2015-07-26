@@ -9,9 +9,11 @@ COPY test_lfs.bsh /tmp/test_lfs.bsh
 #TODO: Needs to be replaced by an apt repo
 COPY public.key /etc/apt/trusted.gpg.d/git-lfs.gpg
 COPY git-lfs-main_7.list /etc/apt/sources.list.d/git-lfs-main.list
-RUN gpg --dearmour -o /etc/apt/trusted.gpg.d/stupid-debian.gpg /etc/apt/trusted.gpg.d/git-lfs.gpg
+RUN [ ! -s /etc/apt/trusted.gpg.d/git-lfs.gpg ] || \
+    gpg --dearmour -o /etc/apt/trusted.gpg.d/stupid-debian.gpg /etc/apt/trusted.gpg.d/git-lfs.gpg
 RUN rm /etc/apt/trusted.gpg.d/git-lfs.gpg
-RUN apt-key add /etc/apt/trusted.gpg.d/stupid-debian.gpg 
+RUN [ ! -s /etc/apt/trusted.gpg.d/stupid-debian.gpg ] || \
+    apt-key add /etc/apt/trusted.gpg.d/stupid-debian.gpg 
 #ssgelm said I didn't need to do this, but I don't know how not to.
 
 #These SHOULD be throw away commands, and not stored as Docker commits

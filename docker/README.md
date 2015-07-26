@@ -36,6 +36,8 @@ To only run certain docker images, supply them as arguments, e.g.
     
 And only those images will be run.
 
+#### Environment Variables ####
+
 There are a few environment variables you can set to easily adjust the behavior
 of the `run_docker.bsh` script.
 
@@ -55,6 +57,17 @@ AUTO_REMOVE - Default 1. Docker containers are automatically deleted on
 exit. If set to 0, the docker containers will not be automatically deleted upon 
 exit. This can be useful for a post mortem analysis (using other docker commands
 not covered here). Just make sure you clean up the docker containers manually.
+
+#### Build Environment Variables ####
+
+These can be before calling `run_docker.bsh`, they are actuallys just being 
+passed to `build_docker.bsh`. 
+
+LFS_VERSION - The version of LFS used to bootstrap the environment. This does 
+not need to be bumped every version (but can be). Currently set to track git-lfs.go 
+version.
+
+
 
 ###Development with Dockers###
 
@@ -249,6 +262,17 @@ directory inside the docker container. Writing to /repo in the docker will cause
 files to end up in
 
     ./repos/{OS NAME}/{OS VERSION #}/
+    
+Unlike standard Dockerfiles, these support two extra features. The first one is
+the command `SOURCE`. Similar to `FROM`, only instead of inheriting the image,
+it includes all the commands from another Dockerfile (Minus other `FROM` and 
+`MAINTAINER` commands) instead. This is useful to make multiple images that work
+off of each other without having to know the container image names, and without 
+manually making multiple Dockerfiles have the exact same commands.
+
+The second feature is a variable substitution in the form of `[{ENV_VAR_NAME}]`
+These will be replaced with values from calling environment or blanked out if
+the environment variable is not defined.
 
 ## Docker Cheat sheet ##
 

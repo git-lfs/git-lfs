@@ -1,12 +1,9 @@
 FROM centos:6
 MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 
-#Docker RUN example, pass in the git-lfs checkout copy you are working with
-LABEL RUN="docker run -v git-lfs-repo-dir:/src" -v repo_dir:/repo"
+SOURCE bootstrap_centos_6.dockerfile
 
-RUN yum install -y createrepo rsync expect
-
-#Add the simple build repo script
-COPY rpm_sign.exp signing.key centos_script.bsh /tmp/
-
-CMD /tmp/centos_script.bsh
+CMD rm -rf /tmp/docker_setup/*/rpm/SRPMS/git-lfs* /tmp/docker_setup/*/rpm/RPMS/*/git-lfs* && \
+    rsync -ra /tmp/docker_setup/*/rpm/{RPMS,SRPMS} /repo && \
+    createrepo ${REPO_DIR}/SRPMS && \
+    createrepo ${REPO_DIR}/RPMS
