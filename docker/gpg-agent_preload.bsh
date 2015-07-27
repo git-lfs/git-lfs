@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -eu
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+IMAGE_NAME=gpg-agent_debian_8
+
+${CUR_DIR}/gpg-agent_start.bsh
+
+#wait at most 10 seconds
+for x in $(seq 10); do
+  if docker exec -it git-lfs-gpg gpg-connect-agent --homedir=/tmp/gpg-agent /bye; then
+    break
+  else
+    sleep 1
+  fi
+done
+
+#I only need script cause of https://github.com/docker/docker/issues/8755 HORRAY BUGS!
+docker exec -it git-lfs-gpg script /dev/null -q -c 'gpg2 --homedir=/tmp/gpg-agent -o /dev/null -s /dev/null'
