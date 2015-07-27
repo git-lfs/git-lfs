@@ -119,6 +119,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 
 		if obj != nil {
 			t.SetObject(obj)
+			q.meter.Add(t.Name(), t.Size())
 			q.transferc <- t
 		}
 	}
@@ -183,6 +184,7 @@ func (q *TransferQueue) batchApiRoutine() {
 				// This object needs to be transferred
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)
+					q.meter.Add(transfer.Name(), transfer.Size())
 					q.transferc <- transfer
 				} else {
 					q.meter.Skip()
@@ -210,7 +212,6 @@ func (q *TransferQueue) transferWorker() {
 			return nil
 		}
 
-		q.meter.Add(transfer.Name(), transfer.Size())
 		if err := transfer.Transfer(cb); err != nil {
 			q.errorc <- err
 		} else {
