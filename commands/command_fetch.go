@@ -29,19 +29,23 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	pointers, err := lfs.ScanRefs(ref, "", nil)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-
-	fetchImpl(pointers)
+	fetchRef(ref)
 }
 
 func init() {
 	RootCmd.AddCommand(fetchCmd)
 }
 
-func fetchImpl(pointers []*lfs.WrappedPointer) {
+// Fetch all binaries for a given ref (that we don't have already)
+func fetchRef(ref string) {
+	pointers, err := lfs.ScanRefs(ref, "", nil)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
+	}
+	fetchPointers(pointers)
+}
+
+func fetchPointers(pointers []*lfs.WrappedPointer) {
 	fetchAndReportToChan(pointers, nil)
 }
 

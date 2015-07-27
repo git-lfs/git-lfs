@@ -18,6 +18,16 @@ var (
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
+
+	// No params
+	checkoutAll()
+}
+
+func init() {
+	RootCmd.AddCommand(checkoutCmd)
+}
+
+func checkoutAll() {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -39,10 +49,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 	close(c)
 	wait.Wait()
-}
 
-func init() {
-	RootCmd.AddCommand(checkoutCmd)
 }
 
 // Populate the working copy with the real content of objects where the file is
