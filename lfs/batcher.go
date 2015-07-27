@@ -11,7 +11,6 @@ package lfs
 type Batcher struct {
 	batchSize  int
 	input      chan Transferable
-	flush      chan interface{}
 	batchReady chan []Transferable
 }
 
@@ -20,7 +19,6 @@ func NewBatcher(batchSize int) *Batcher {
 	b := &Batcher{
 		batchSize:  batchSize,
 		input:      make(chan Transferable, batchSize),
-		flush:      make(chan interface{}),
 		batchReady: make(chan []Transferable),
 	}
 
@@ -61,8 +59,6 @@ func (b *Batcher) run() {
 						exit = true // input channel was closed by Exit()
 						break Loop
 					}
-				case <-b.flush:
-					break Loop
 				}
 			}
 
