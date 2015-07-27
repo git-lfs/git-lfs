@@ -118,8 +118,8 @@ func (p *ProgressMeter) update() {
 	}
 
 	out := fmt.Sprintf("\r(%d of %d files), %s/%s",
-		p.transferringFiles,
 		p.finishedFiles,
+		p.transferringFiles,
 		formatBytes(p.currentBytes),
 		formatBytes(p.totalBytes))
 
