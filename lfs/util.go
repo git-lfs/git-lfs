@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 type CallbackReader struct {
@@ -85,4 +87,65 @@ func wrapProgressError(err error, event, filename string) error {
 	}
 
 	return nil
+}
+
+// Return whether a given filename passes the include / exclude path filters
+// Only paths that are in includePaths and outside excludePaths are passed
+// If includePaths is empty that filter always passes and the same with excludePaths
+// Both path lists support wildcard matches
+func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePaths []string) bool {
+	if len(includePaths) == 0 && len(excludePaths) == 0 {
+		return true
+	}
+
+	// For Win32, becuase git reports files with / separators
+	cleanfilename := filepath.Clean(filename)
+	if len(includePaths) > 0 {
+		matched := false
+		for _, inc := range includePaths {
+			matched, _ = filepath.Match(inc, filename)
+			if !matched && IsWindows() {
+				// Also Win32 match
+				matched, _ = filepath.Match(inc, cleanfilename)
+			}
+			if !matched {
+				// Also support matching a parent directory without a wildcard
+				if strings.HasPrefix(cleanfilename, inc+string(filepath.Separator)) {
+					matched = true
+				}
+			}
+			if matched {
+				break
+			}
+
+		}
+		if !matched {
+			return false
+		}
+	}
+
+	if len(excludePaths) > 0 {
+		for _, ex := range excludePaths {
+			matched, _ := filepath.Match(ex, filename)
+			if !matched && IsWindows() {
+				// Also Win32 match
+				matched, _ = filepath.Match(ex, cleanfilename)
+			}
+			if matched {
+				return false
+			}
+			// Also support matching a parent directory without a wildcard
+			if strings.HasPrefix(cleanfilename, ex+string(filepath.Separator)) {
+				return false
+			}
+
+		}
+	}
+
+	return true
+}
+
+// Are we running on Windows? Need to handle some extra path shenanigans
+func IsWindows() bool {
+	return runtime.GOOS == "windows"
 }

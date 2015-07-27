@@ -19,15 +19,15 @@ var (
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
 
-	// No params
-	checkoutAll()
+	// Parameters are filters
+	checkoutWithIncludeExclude(args, nil)
 }
 
 func init() {
 	RootCmd.AddCommand(checkoutCmd)
 }
 
-func checkoutAll() {
+func checkoutWithIncludeExclude(include []string, exclude []string) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -45,11 +45,18 @@ func checkoutAll() {
 
 	checkoutWithChan(c, &wait)
 	for _, pointer := range pointers {
-		c <- pointer
+		if lfs.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+			c <- pointer
+		}
+
 	}
 	close(c)
 	wait.Wait()
 
+}
+
+func checkoutAll() {
+	checkoutWithIncludeExclude(nil, nil)
 }
 
 // Populate the working copy with the real content of objects where the file is
