@@ -40,6 +40,8 @@ for DSC in $(ls /tmp/docker_run/*.changes); do
   SOURCE_NAME=$(grep ^Source: "${DSC}" | sed -r 's/Source: (.*)/\1/')
   BINARY_NAME=$(grep ^Binary: "${DSC}" | sed -r 's/Binary: (.*)/\1/')
   reprepro -Vb "${REPO_DIR}" remove ${REPO_CODENAME} ${SOURCE_NAME} ${BINARY_NAME}
+done
+for DSC in $(ls /tmp/docker_run/*.changes); do
   reprepro -Vb "${REPO_DIR}" include ${REPO_CODENAME} "${DSC}"
   mv "${DSC}" "${DSC}.installed"
 done
