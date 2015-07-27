@@ -12,12 +12,13 @@ import (
 )
 
 type ProgressMeter struct {
-	transferringFiles int64
-	finishedFiles     int64
-	totalFiles        int64
+	finishedFiles     int64 // int64s must come first for struct alignment
 	skippedFiles      int64
-	totalBytes        int64
+	transferringFiles int64
+	estimatedBytes    int64
 	currentBytes      int64
+	skippedBytes      int64
+	estimatedFiles    int
 	startTime         time.Time
 	finished          chan interface{}
 	logger            *progressLogger
@@ -33,18 +34,20 @@ const (
 	transferFinish
 )
 
-func NewProgressMeter() *ProgressMeter {
+func NewProgressMeter(estFiles int, estBytes int64) *ProgressMeter {
 	logger, err := newProgressLogger()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
 	pm := &ProgressMeter{
-		logger:    logger,
-		startTime: time.Now(),
-		fileIndex: make(map[string]int64),
-		finished:  make(chan interface{}),
-		show:      true,
+		logger:         logger,
+		startTime:      time.Now(),
+		fileIndex:      make(map[string]int64),
+		finished:       make(chan interface{}),
+		estimatedFiles: estFiles,
+		estimatedBytes: estBytes,
+		show:           true,
 	}
 
 	go pm.writer()
@@ -52,14 +55,14 @@ func NewProgressMeter() *ProgressMeter {
 	return pm
 }
 
-func (p *ProgressMeter) Add(name string, size int64) {
-	atomic.AddInt64(&p.totalBytes, size)
+func (p *ProgressMeter) Add(name string) {
 	idx := atomic.AddInt64(&p.transferringFiles, 1)
 	p.fileIndex[name] = idx
 }
 
-func (p *ProgressMeter) Skip() {
+func (p *ProgressMeter) Skip(size int64) {
 	atomic.AddInt64(&p.skippedFiles, 1)
+	atomic.AddInt64(&p.skippedBytes, size)
 }
 
 func (p *ProgressMeter) Log(event progressEvent, direction, name string, read, total int64, current int) {
@@ -88,7 +91,7 @@ func (p *ProgressMeter) Suppress() {
 
 func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
 	idx := p.fileIndex[name]
-	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, p.totalFiles, read, total, name)
+	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, p.estimatedFiles, read, total, name)
 	if err := p.logger.Write([]byte(line)); err != nil {
 		p.logger.Shutdown()
 	}
@@ -117,14 +120,16 @@ func (p *ProgressMeter) update() {
 		width = size.Col()
 	}
 
-	out := fmt.Sprintf("\r(%d of %d files), %s/%s",
-		p.finishedFiles,
-		p.transferringFiles,
-		formatBytes(p.currentBytes),
-		formatBytes(p.totalBytes))
+	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
+	// skipped counts only show when > 0
 
-	if skipped := atomic.LoadInt64(&p.skippedFiles); skipped > 0 {
-		out += fmt.Sprintf(", Skipped: %d", skipped)
+	out := fmt.Sprintf("\r(%d of %d files", p.finishedFiles, p.estimatedFiles)
+	if p.skippedFiles > 0 {
+		out += fmt.Sprintf(", %d skipped", p.skippedFiles)
+	}
+	out += fmt.Sprintf(") %s / %s", formatBytes(p.currentBytes), formatBytes(p.estimatedBytes))
+	if p.skippedBytes > 0 {
+		out += fmt.Sprintf(", %s skipped", formatBytes(p.skippedBytes))
 	}
 
 	padding := strings.Repeat(" ", width-len(out))

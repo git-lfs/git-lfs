@@ -38,9 +38,9 @@ type TransferQueue struct {
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(workers int) *TransferQueue {
+func newTransferQueue(workers, files int, size int64) *TransferQueue {
 	q := &TransferQueue{
-		meter:         NewProgressMeter(),
+		meter:         NewProgressMeter(files, size),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
@@ -119,7 +119,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 
 		if obj != nil {
 			t.SetObject(obj)
-			q.meter.Add(t.Name(), t.Size())
+			q.meter.Add(t.Name())
 			q.transferc <- t
 		}
 	}
@@ -184,14 +184,14 @@ func (q *TransferQueue) batchApiRoutine() {
 				// This object needs to be transferred
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)
-					q.meter.Add(transfer.Name(), transfer.Size())
+					q.meter.Add(transfer.Name())
 					q.transferc <- transfer
 				} else {
-					q.meter.Skip()
+					q.meter.Skip(transfer.Size())
 					q.wait.Done()
 				}
 			} else {
-				q.meter.Skip()
+				q.meter.Skip(o.Size)
 				q.wait.Done()
 			}
 		}

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -33,10 +32,12 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	if len(pointers) > 0 && !pushDryRun {
-		fmt.Fprintf(os.Stdout, "Checking %d Git LFS files\n", len(pointers))
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
 	}
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for i, pointer := range pointers {
 		if pushDryRun {
@@ -61,10 +62,8 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 }
 
 func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
-	if len(oids) > 0 && !pushDryRun {
-		fmt.Fprintf(os.Stdout, "Checking %d Git LFS files\n", len(oids))
-	}
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
+	uploads := []*lfs.Uploadable{}
+	totalSize := int64(0)
 
 	for i, oid := range oids {
 		if pushDryRun {
@@ -81,6 +80,12 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 				Exit(wErr.Error())
 			}
 		}
+		uploads = append(uploads, u)
+	}
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids), totalSize)
+
+	for _, u := range uploads {
 		uploadQueue.Add(u)
 	}
 

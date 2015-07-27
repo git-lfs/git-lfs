@@ -38,7 +38,12 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
-	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
+	}
+
+	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for _, p := range pointers {
 		q.Add(lfs.NewDownloadable(p))

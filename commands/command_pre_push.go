@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -72,11 +71,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	if len(pointers) > 0 && !prePushDryRun {
-		fmt.Fprintf(os.Stdout, "Checking %d Git LFS files\n", len(pointers))
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
 	}
 
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
