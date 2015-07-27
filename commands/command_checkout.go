@@ -33,7 +33,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 		Panic(err, "Could not checkout")
 	}
 
-	pointers, err := lfs.ScanRefs(ref, "", nil)
+	pointers, err := lfs.ScanTree(ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}

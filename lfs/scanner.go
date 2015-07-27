@@ -57,6 +57,7 @@ type ScanRefsOptions struct {
 
 // ScanRefs takes a ref and returns a slice of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
+// Reports unique oids once only, not multiple times if >1 file uses the same content
 func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer, error) {
 	if opt == nil {
 		opt = &ScanRefsOptions{}
@@ -97,6 +98,7 @@ func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer
 
 // ScanIndex returns a slice of WrappedPointer objects for all
 // Git LFS pointers it finds in the index.
+// Reports unique oids once only, not multiple times if >1 file uses the same content
 func ScanIndex() ([]*WrappedPointer, error) {
 	nameMap := make(map[string]*indexFile, 0)
 
@@ -383,4 +385,135 @@ func startCommand(command string, args ...string) (*wrappedCmd, error) {
 	}
 
 	return &wrappedCmd{stdin, bufio.NewReaderSize(stdout, stdoutBufSize), cmd}, nil
+}
+
+// An entry from ls-tree or rev-list including a blob sha and tree path
+type TreeBlob struct {
+	Sha1     string
+	Filename string
+}
+
+// ScanTree takes a ref and returns a slice of WrappedPointer objects in the tree at that ref
+// Differs from ScanRefs in that multiple files in the tree with the same content are all reported
+func ScanTree(ref string) ([]*WrappedPointer, error) {
+	start := time.Now()
+	defer func() {
+		tracerx.PerformanceSince("scan", start)
+	}()
+
+	// We don't use the nameMap approach here since that's imprecise when >1 file
+	// can be using the same content
+	treeShas, err := lsTreeBlobs(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	pointerc, err := catFileBatchTree(treeShas)
+	if err != nil {
+		return nil, err
+	}
+
+	pointers := make([]*WrappedPointer, 0)
+	for p := range pointerc {
+		pointers = append(pointers, p)
+	}
+
+	return pointers, nil
+}
+
+// catFileBatchTree uses git cat-file --batch to get the object contents
+// of a git object, given its sha1. The contents will be decoded into
+// a Git LFS pointer. treeblobs is a channel over which blob entries
+// will be sent. It returns a channel from which point.Pointers can be read.
+func catFileBatchTree(treeblobs chan TreeBlob) (chan *WrappedPointer, error) {
+	cmd, err := startCommand("git", "cat-file", "--batch")
+	if err != nil {
+		return nil, err
+	}
+
+	pointers := make(chan *WrappedPointer, chanBufSize)
+
+	go func() {
+		for t := range treeblobs {
+			cmd.Stdin.Write([]byte(t.Sha1 + "\n"))
+			l, err := cmd.Stdout.ReadBytes('\n')
+			if err != nil {
+				break
+			}
+
+			// Line is formatted:
+			// <sha1> <type> <size>
+			fields := bytes.Fields(l)
+			s, _ := strconv.Atoi(string(fields[2]))
+
+			nbuf := make([]byte, s)
+			_, err = io.ReadFull(cmd.Stdout, nbuf)
+			if err != nil {
+				break // Legit errors
+			}
+
+			p, err := DecodePointer(bytes.NewBuffer(nbuf))
+			if err == nil {
+				pointers <- &WrappedPointer{
+					Sha1:    string(fields[0]),
+					Size:    p.Size,
+					Pointer: p,
+					Name:    t.Filename,
+				}
+			}
+
+			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
+			if err != nil {
+				break
+			}
+		}
+		close(pointers)
+		cmd.Stdin.Close()
+	}()
+
+	return pointers, nil
+}
+
+// Use ls-tree at ref to find a list of candidate tree blobs which might be lfs files
+// The returned channel will be sent these blobs which should be sent to catFileBatchTree
+// for final check & conversion to Pointer
+func lsTreeBlobs(ref string) (chan TreeBlob, error) {
+	// Snapshot using ls-tree
+	lsArgs := []string{"ls-tree",
+		"-r",          // recurse
+		"-l",          // report object size (we'll need this)
+		"--full-tree", // start at the root regardless of where we are in it
+		ref}
+
+	cmd, err := startCommand("git", lsArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin.Close()
+
+	blobs := make(chan TreeBlob, chanBufSize)
+
+	go func() {
+		scanner := bufio.NewScanner(cmd.Stdout)
+		regex := regexp.MustCompile(`^\d+\s+blob\s+([0-9a-zA-Z]{40})\s+(\d+)\s+(.*)$`)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if match := regex.FindStringSubmatch(line); match != nil {
+				sz, err := strconv.ParseInt(match[2], 10, 64)
+				if err != nil {
+					continue
+				}
+				sha1 := match[1]
+				filename := match[3]
+				if sz < blobSizeCutoff {
+					blobs <- TreeBlob{sha1, filename}
+				}
+
+			}
+		}
+		close(blobs)
+	}()
+
+	return blobs, nil
 }
