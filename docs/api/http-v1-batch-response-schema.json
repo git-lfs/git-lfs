@@ -48,7 +48,7 @@
             "type": "object",
             "properties": {
               "code": {
-                "type": "string"
+                "type": "number"
               },
               "message": {
                 "type": "string"

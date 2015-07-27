@@ -107,6 +107,7 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 > Authorization: Basic ... (if authentication is needed)
 >
 > {
+>   "operation": "upload",
 >   "objects": [
 >     {
 >       "oid": "1111111",
@@ -122,7 +123,8 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 <   "objects": [
 <     {
 <       "oid": "1111111",
-<       "_links": {
+<       "size": 123,
+<       "actions": {
 <         "upload": {
 <          "href": "https://some-upload.com",
 <           "header": {
@@ -142,8 +144,14 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 ```
 
 The response will be an object containing an array of objects with one of
-multiple link relations, each with an `href` property and an optional `header`
-property.
+multiple actions, each with an `href` property and an optional `header`
+property. The requests and responses need to validate with the included JSON
+schemas:
+
+* [Batch request](./http-v1-batch-request-schema.json)
+* [Batch response](./http-v1-batch-response-schema.json)
+
+Here are the valid actions:
 
 * `upload` - This relation describes how to upload the object.  Expect this with
 when the object has not been previously uploaded.
@@ -153,9 +161,92 @@ the server has not verified the object.
 * `download` - This relation describes how to download the object content.  This
 only appears if an object has been previously uploaded.
 
+An action can optionally include an `expires_at`, which is an ISO 8601 formatted
+timestamp for when the given action expires (usually due to a temporary token).
+
+```json
+{
+  "objects": [
+    {
+      "oid": "1111111",
+      "size": 123,
+      "actions": {
+        "download": {
+          "href": "https://some-download.com?token=abc123",
+          "expires_at": "2015-07-27T21:15:01Z"
+        }
+      }
+    }
+  ]
+}
+```
+
 ### Responses
+
+The Batch API should always return 200 unless there's an authorization problem
+between the requesting user and the repository.
 
 * 200 - OK
 * 401 - The authentication credentials are needed, but were not sent.
-* 403 - The user has **read**, but not **write** access.
+* 403 - The user has **read**, but not **write** access. Only applicable when
+the `operation` in the request is "upload."
 * 404 - The repository does not exist for the user.
+
+### Object Errors
+
+The server can return specific errors for objects in the batch request. Here's
+a sample request and response that includes one missing object:
+
+```
+> POST https://git-lfs-server.com/objects/batch HTTP/1.1
+> Accept: application/vnd.git-lfs+json
+> Content-Type: application/vnd.git-lfs+json
+> Authorization: Basic ... (if authentication is needed)
+>
+> {
+>   "operation": "download",
+>   "objects": [
+>     {
+>       "oid": "1111111",
+>       "size": 123
+>     },
+>     {
+>       "oid": "2222222",
+>       "size": 123
+>     }
+>   ]
+> }
+>
+< HTTP/1.1 200 Ok
+< Content-Type: application/vnd.git-lfs+json
+<
+< {
+<   "objects": [
+<     {
+<       "oid": "1111111",
+<       "size": 123,
+<       "actions": {
+<         "download": {
+<          "href": "https://some-download.com"
+<         }
+<       }
+>     },
+<     {
+<       "oid": "2222222",
+<       "size": 123,
+<       "error": {
+<         "code": 404,
+<         "message": "Object does not exist on the server"
+<       }
+>     }
+<   ]
+< }
+
+The error codes are integers that map to similar HTTP status codes where
+possible. Specifics can be included by the server in the `message` property.
+
+Here's a list of defined error codes for objects:
+
+* 404 - Returned when trying to download an object missing from the server.
+* 500 - Describes a fatal server error in cases where other HTTP statuses don't
+cover it.
