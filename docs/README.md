@@ -4,4 +4,4 @@
   * [Specification](spec.md)
   * [Commands](man)
 * The Server
-  * [API](api.md)
+  * [API](api/README.md)

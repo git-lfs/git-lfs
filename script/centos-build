@@ -9,26 +9,43 @@ trap 'echo FAIL' ERR
 
 REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
 
+cd $(dirname ${BASH_SOURCE[0]})
+
 if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
-  pushd /tmp
-    #Don't know why rpm -Uvh {url} doesn't work... Probably 302
-    if ! rpm -q epel-release; then
-      yum install -y curl.x86_64 #Centos 5 isn't as smart about not downloading 32 bit
-      curl -L -O http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm 
-      rpm -Uvh epel-release-5-4.noarch.rpm
-      rm epel-release-5-4.noarch.rpm
-    fi
-  popd
-  yum install -y bison git make man which
+  if ! rpm -q epel-release; then
+    yum install -y epel-release
+  fi
+  yum install -y bison git make man which perl-Digest-SHA
 else
   if [[ ${REDHAT_VERSION[0]} == 6 ]]; then
-    rpm -q epel-release || rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    rpm -q epel-release || yum install -y epel-release
+    yum install -y bison golang make man which perl-Digest-SHA
+    if which git > /dev/null 2>&1; then
+      GIT_VERSION=($(git --version))
+      IFS_OLD=${IFS}
+      IFS=.
+      GIT_VERSION=(${GIT_VERSION[2]})
+      IFS=${IFS_OLD}
+    else
+      GIT_VERSION=(0 0 0)
+    fi
+    if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
+      mkdir -p git_build
+      pushd git_build
+        curl -L -O https://www.kernel.org/pub/software/scm/git/git-2.4.5.tar.xz
+        yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc tar
+        tar Jxvf git-*.tar.xz
+        pushd git-*/
+          make
+          make install prefix=/usr/local
+        popd
+      popd
+      rm -rf git_build
+    fi
+  else
+    yum install -y bison git golang make man which perl-Digest-SHA
   fi
-
-  yum install -y bison git golang make man which
 fi
-
-cd $(dirname ${BASH_SOURCE[0]})
 
 if git rev-parse; then
   cd $(git rev-parse --show-toplevel)

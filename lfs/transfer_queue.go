@@ -31,7 +31,7 @@ type TransferQueue struct {
 	wg               sync.WaitGroup
 	workers          int
 	files            int
-	finished         int64
+	finished         int32
 	size             int64
 	authCond         *sync.Cond
 	transferables    map[string]Transferable
@@ -78,7 +78,7 @@ func (q *TransferQueue) processIndividual() {
 	for i := 0; i < q.workers; i++ {
 		go func() {
 			for t := range apic {
-				// If an API authorization has not occured, we wait until we're woken up.
+				// If an API authorization has not occurred, we wait until we're woken up.
 				q.authCond.L.Lock()
 				if atomic.LoadInt32(&q.clientAuthorized) == 0 {
 					workersReady <- 1
@@ -136,7 +136,7 @@ func (q *TransferQueue) processBatch() error {
 		transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
 	}
 
-	objects, err := Batch(transfers)
+	objects, err := Batch(transfers, q.transferKind)
 	if err != nil {
 		if isNotImplError(err) {
 			tracerx.Printf("queue: batch not implemented, disabling")
@@ -151,7 +151,7 @@ func (q *TransferQueue) processBatch() error {
 
 	for _, o := range objects {
 		if _, ok := o.Links[q.transferKind]; ok {
-			// This object needs to be transfered
+			// This object needs to be transferred
 			if transfer, ok := q.transferables[o.Oid]; ok {
 				q.files++
 				q.wg.Add(1)
@@ -221,7 +221,7 @@ func (q *TransferQueue) Process() {
 		output.Close()
 	}()
 
-	var transferCount = int64(0)
+	var transferCount = int32(0)
 	direction := "push"
 	if q.transferKind == "download" {
 		direction = "pull"
@@ -231,7 +231,7 @@ func (q *TransferQueue) Process() {
 		// These are the worker goroutines that process transfers
 		go func() {
 			for transfer := range q.transferc {
-				c := atomic.AddInt64(&transferCount, 1)
+				c := atomic.AddInt32(&transferCount, 1)
 				cb := func(total, read int64, current int) error {
 					progressc <- fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, c, q.files, read, total, transfer.Name())
 					q.bar.Add(current)
@@ -247,7 +247,7 @@ func (q *TransferQueue) Process() {
 					}
 				}
 
-				f := atomic.AddInt64(&q.finished, 1)
+				f := atomic.AddInt32(&q.finished, 1)
 				q.bar.Prefix(fmt.Sprintf("(%d of %d files) ", f, q.files))
 				q.wg.Done()
 			}

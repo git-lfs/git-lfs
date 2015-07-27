@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -174,19 +175,19 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
+func Batch(objects []*objectResource, operation string) ([]*objectResource, *WrappedError) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	o := map[string][]*objectResource{"objects": objects}
+	o := map[string]interface{}{"objects": objects, "operation": operation}
 
 	by, err := json.Marshal(o)
 	if err != nil {
 		return nil, Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", "batch")
+	req, creds, err := newBatchApiRequest()
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -199,16 +200,21 @@ func Batch(objects []*objectResource) ([]*objectResource, *WrappedError) {
 	tracerx.Printf("api: batch %d files", len(objects))
 	res, objs, wErr := doApiBatchRequest(req, creds)
 	if wErr != nil {
-		if res != nil {
-			switch res.StatusCode {
-			case 404, 410:
-				tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-				sendApiEvent(apiEventFail)
-				return nil, Error(newNotImplError())
-			}
+		if res == nil {
+			sendApiEvent(apiEventFail)
+			return nil, wErr
 		}
-		sendApiEvent(apiEventFail)
-		return nil, wErr
+
+		switch res.StatusCode {
+		case 401:
+			Config.SetPrivateAccess()
+			tracerx.Printf("api: batch not authorized, submitting with auth")
+			return Batch(objects, operation)
+		case 404, 410:
+			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
+			sendApiEvent(apiEventFail)
+			return nil, Error(newNotImplError())
+		}
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -301,7 +307,11 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
-	req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	if req.Header.Get("Transfer-Encoding") == "chunked" {
+		req.TransferEncoding = []string{"chunked"}
+	} else {
+		req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	}
 	req.ContentLength = o.Size
 
 	req.Body = ioutil.NopCloser(reader)
@@ -336,8 +346,11 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
 	res, wErr = doHttpRequest(req, creds)
-	LogTransfer("lfs.data.verify", res)
+	if wErr != nil {
+		return wErr
+	}
 
+	LogTransfer("lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
@@ -345,7 +358,15 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := DoHTTP(req)
+	res, err := Config.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{
+			StatusCode: 0,
+			Header:     make(http.Header),
+			Request:    req,
+			Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+		}
+	}
 
 	var wErr *WrappedError
 
@@ -374,7 +395,14 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 	}
 
 	if res.StatusCode == 307 {
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
+		redirectTo := res.Header.Get("Location")
+		locurl, err := url.Parse(redirectTo)
+		if err == nil && !locurl.IsAbs() {
+			locurl = req.URL.ResolveReference(locurl)
+			redirectTo = locurl.String()
+		}
+
+		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo)
 		if err != nil {
 			return res, Errorf(err, err.Error())
 		}
@@ -426,9 +454,14 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	return res, obj, nil
 }
 
+// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
+// the repo will be marked as having private access and the request will be
+// re-run. When the repo is marked as having private access, credentials will
+// be retrieved.
 func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
+
 	if wErr != nil {
 		return res, nil, wErr
 	}
@@ -565,6 +598,63 @@ func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
 	}
 
 	return req, creds, nil
+}
+
+func newBatchApiRequest() (*http.Request, Creds, error) {
+	endpoint := Config.Endpoint()
+
+	res, err := sshAuthenticate(endpoint, "download", "")
+	if err != nil {
+		tracerx.Printf("ssh: attempted with %s.  Error: %s",
+			endpoint.SshUserAndHost, err.Error(),
+		)
+	}
+
+	if len(res.Href) > 0 {
+		endpoint.Url = res.Href
+	}
+
+	u, err := ObjectUrl(endpoint, "batch")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, creds, err := newBatchClientRequest("POST", u.String())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("Accept", mediaType)
+	if res.Header != nil {
+		for key, value := range res.Header {
+			req.Header.Set(key, value)
+		}
+	}
+
+	return req, creds, nil
+}
+
+func newBatchClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+
+	// Get the creds if we're private
+	if Config.PrivateAccess() {
+		// The PrivateAccess() check can be pushed down and this block simplified
+		// once everything goes through the batch endpoint.
+		creds, err := getCreds(req)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return req, creds, nil
+	}
+
+	return req, nil, nil
 }
 
 func getCreds(req *http.Request) (Creds, error) {

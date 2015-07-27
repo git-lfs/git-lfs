@@ -52,6 +52,32 @@ func InstallHooks(force bool) error {
 	return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
 }
 
+func UninstallHooks() error {
+	if !InRepo() {
+		return NotInARepositoryError
+	}
+
+	prePushHookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
+	file, err := os.Open(prePushHookPath)
+	if err != nil {
+		// hook doesn't exist, our work here is done
+		return nil
+	}
+
+	by, err := ioutil.ReadAll(io.LimitReader(file, 1024))
+	file.Close()
+	if err != nil {
+		return err
+	}
+
+	contents := strings.TrimSpace(string(by))
+	if contents == prePushHook || prePushUpgrades[contents] {
+		return os.RemoveAll(prePushHookPath)
+	}
+
+	return nil
+}
+
 func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {
 	file, err := os.Open(hookPath)
 	if err != nil {
@@ -76,25 +102,35 @@ func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]boo
 	return &HookExists{hookName, hookPath, contents}
 }
 
-func InstallFilters() error {
-	if err := setFilter("clean"); err != nil {
+func InstallFilters(force bool) error {
+	if err := setFilter("clean", force); err != nil {
 		return err
 	}
-	if err := setFilter("smudge"); err != nil {
+	if err := setFilter("smudge", force); err != nil {
 		return err
 	}
-	if err := requireFilters(); err != nil {
+	if err := requireFilters(force); err != nil {
 		return err
 	}
 	return nil
 }
 
-func setFilter(filterName string) error {
+func UninstallFilters() error {
+	keys := []string{"clean", "smudge", "required"}
+	keyFmt := "filter.lfs.%s"
+	for _, name := range keys {
+		key := fmt.Sprintf(keyFmt, name)
+		git.Config.UnsetGlobal(key)
+	}
+	return nil
+}
+
+func setFilter(filterName string, force bool) error {
 	key := fmt.Sprintf("filter.lfs.%s", filterName)
 	value := fmt.Sprintf("git-lfs %s %%f", filterName)
 
 	existing := git.Config.Find(key)
-	if shouldReset(existing) {
+	if force || shouldReset(existing) {
 		git.Config.UnsetGlobal(key)
 		git.Config.SetGlobal(key, value)
 	} else if existing != value {
@@ -104,12 +140,12 @@ func setFilter(filterName string) error {
 	return nil
 }
 
-func requireFilters() error {
+func requireFilters(force bool) error {
 	key := "filter.lfs.required"
 	value := "true"
 
 	existing := git.Config.Find(key)
-	if shouldReset(existing) {
+	if force || shouldReset(existing) {
 		git.Config.UnsetGlobal(key)
 		git.Config.SetGlobal(key, value)
 	} else if existing != value {

@@ -32,7 +32,7 @@ func doFsck() (bool, error) {
 	// All we care about is the pointer OID and file name
 	pointerIndex := make(map[string]string)
 
-	pointers, err := lfs.ScanRefs(ref, "")
+	pointers, err := lfs.ScanRefs(ref, "", nil)
 	if err != nil {
 		return false, err
 	}

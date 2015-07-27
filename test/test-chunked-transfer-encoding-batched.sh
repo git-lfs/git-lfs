@@ -4,7 +4,7 @@
 
 . "test/testlib.sh"
 
-begin_test "batch transfer"
+begin_test "chunked transfer encoding batched"
 (
   set -e
 

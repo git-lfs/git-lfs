@@ -16,3 +16,7 @@ obj-*
 
 rpm/BUILD*
 rpm/*RPMS
+rpm/*.log
+rpm/SOURCES
+
+src

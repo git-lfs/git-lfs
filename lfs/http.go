@@ -98,14 +98,6 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func DoHTTP(req *http.Request) (*http.Response, error) {
-	res, err := Config.HttpClient().Do(req)
-	if res == nil {
-		res = &http.Response{StatusCode: 0, Header: make(http.Header), Request: req}
-	}
-	return res, err
-}
-
 func (c *Configuration) HttpClient() *HttpClient {
 	if c.httpClient != nil {
 		return c.httpClient

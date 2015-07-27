@@ -3,6 +3,9 @@
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
 
+This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are expected to uphold this code.
+[code-of-conduct]: http://todogroup.org/opencodeofconduct/#Git LFS/opensource@github.com
+
 ## Feature Requests
 
 Feature requests are welcome, but will have a much better chance of being
@@ -59,7 +62,7 @@ If you are the current maintainer:
 * Create a [new draft Release](https://github.com/github/git-lfs/releases/new).
 List any changes with links to related PRs.
 * Make sure your local dependencies are up to date: `script/bootstrap`
-* Ensure that tests are green: `script/test`
+* Ensure that tests are green: `script/cibuild`
 * Bump the version in `lfs/lfs.go`, [like this](https://github.com/github/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
 * Add the new version to the top of CHANGELOG.md
 * Build for all platforms with `script/bootstrap -all` (you need Go setup for
@@ -69,6 +72,12 @@ cross compiling with Mac, Linux, FreeBSD, and Windows support).
 * Run `script/release -id {id}` to upload all of the compiled binaries to the
 release.
 * Publish the Release on GitHub.
+* Update [Git LFS website](https://github.com/github/git-lfs.github.com/blob/gh-pages/_config.yml#L4).
+* Ping external teams on GitHub:
+  * @github/desktop
+* Build packages:
+  * rpm
+  * apt
 
 ## Resources
 

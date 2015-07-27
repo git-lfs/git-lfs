@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 var (
@@ -49,6 +50,16 @@ func (c *Configuration) Getenv(key string) string {
 	v := os.Getenv(key)
 	c.envVars[key] = v
 	return v
+}
+
+func (c *Configuration) Setenv(key, value string) error {
+	// Check see if we have this in our cache, if so update it
+	if _, ok := c.envVars[key]; ok {
+		c.envVars[key] = value
+	}
+
+	// Now set in process
+	return os.Setenv(key, value)
 }
 
 // GetenvBool parses a boolean environment variable and returns the result as a bool.
@@ -106,6 +117,34 @@ func (c *Configuration) BatchTransfer() bool {
 		}
 	}
 	return false
+}
+
+// PrivateAccess will retrieve the access value and return true if
+// the value is set to private. When a repo is marked as having private
+// access, the http requests for the batch api will fetch the credentials
+// before running, otherwise the request will run without credentials.
+func (c *Configuration) PrivateAccess() bool {
+	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
+	if v, ok := c.GitConfig(key); ok {
+		if strings.ToLower(v) == "private" {
+			return true
+		}
+	}
+	return false
+}
+
+// SetPrivateAccess will set the private access flag in .git/config.
+func (c *Configuration) SetPrivateAccess() {
+	tracerx.Printf("setting repository access to private")
+	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
+	configFile := filepath.Join(LocalGitDir, "config")
+	git.Config.SetLocal(configFile, key, "private")
+
+	// Modify the config cache because it's checked again in this process
+	// without being reloaded.
+	c.loading.Lock()
+	c.gitConfig[key] = "private"
+	c.loading.Unlock()
 }
 
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
@@ -167,7 +206,13 @@ func (c *Configuration) loadGitConfig() {
 		panic(fmt.Errorf("Error listing git config from file: %s", err))
 	}
 
-	output = fileOutput + "\n" + listOutput
+	localConfig := filepath.Join(LocalGitDir, "config")
+	localOutput, err := git.Config.ListFromFile(localConfig)
+	if err != nil {
+		panic(fmt.Errorf("Error listing git config from file %s", err))
+	}
+
+	output = fileOutput + "\n" + listOutput + "\n" + localOutput
 
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
