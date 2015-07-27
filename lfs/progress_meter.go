@@ -11,6 +11,10 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/olekukonko/ts"
 )
 
+// ProgressMeter provides a progress bar type output for the TransferQueue. It
+// is given an estimated file count and size up front and tracks the number of
+// files and bytes transferred as well as the number of files and bytes that
+// get skipped because the transfer is unnecessary.
 type ProgressMeter struct {
 	finishedFiles     int64 // int64s must come first for struct alignment
 	skippedFiles      int64
@@ -26,14 +30,8 @@ type ProgressMeter struct {
 	show              bool
 }
 
-type progressEvent int
-
-const (
-	transferStart = iota
-	transferBytes
-	transferFinish
-)
-
+// NewProgressMeter creates a new ProgressMeter for the number and size of
+// files given.
 func NewProgressMeter(estFiles int, estBytes int64) *ProgressMeter {
 	logger, err := newProgressLogger()
 	if err != nil {
@@ -55,27 +53,33 @@ func NewProgressMeter(estFiles int, estBytes int64) *ProgressMeter {
 	return pm
 }
 
+// Add tells the progress meter that a transferring file is being added to the
+// TransferQueue.
 func (p *ProgressMeter) Add(name string) {
 	idx := atomic.AddInt64(&p.transferringFiles, 1)
 	p.fileIndex[name] = idx
 }
 
+// Skip tells the progress meter that a file of size `size` is being skipped
+// because the transfer is unnecessary.
 func (p *ProgressMeter) Skip(size int64) {
 	atomic.AddInt64(&p.skippedFiles, 1)
 	atomic.AddInt64(&p.skippedBytes, size)
 }
 
-func (p *ProgressMeter) Log(event progressEvent, direction, name string, read, total int64, current int) {
-	switch event {
-	case transferBytes:
-		atomic.AddInt64(&p.currentBytes, int64(current))
-		p.logBytes(direction, name, read, total)
-	case transferFinish:
-		atomic.AddInt64(&p.finishedFiles, 1)
-		delete(p.fileIndex, name)
-	}
+// TransferBytes increments the number of bytes transferred
+func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64, current int) {
+	atomic.AddInt64(&p.currentBytes, int64(current))
+	p.logBytes(direction, name, read, total)
 }
 
+// FinishTransfer increments the finished transfer count
+func (p *ProgressMeter) FinishTransfer(name string) {
+	atomic.AddInt64(&p.finishedFiles, 1)
+	delete(p.fileIndex, name)
+}
+
+// Finish shuts down the ProgressMeter
 func (p *ProgressMeter) Finish() {
 	close(p.finished)
 	p.update()
@@ -85,6 +89,8 @@ func (p *ProgressMeter) Finish() {
 	}
 }
 
+// Suppress prevents the progress meter from displaying any output to the
+// console.
 func (p *ProgressMeter) Suppress() {
 	p.show = false
 }

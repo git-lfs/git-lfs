@@ -208,7 +208,7 @@ func (q *TransferQueue) errorCollector() {
 func (q *TransferQueue) transferWorker() {
 	for transfer := range q.transferc {
 		cb := func(total, read int64, current int) error {
-			q.meter.Log(transferBytes, q.transferKind, transfer.Name(), read, total, current)
+			q.meter.TransferBytes(q.transferKind, transfer.Name(), read, total, current)
 			return nil
 		}
 
@@ -221,7 +221,7 @@ func (q *TransferQueue) transferWorker() {
 			}
 		}
 
-		q.meter.Log(transferFinish, q.transferKind, transfer.Name(), 0, 0, 0)
+		q.meter.FinishTransfer(transfer.Name())
 
 		q.wait.Done()
 	}
