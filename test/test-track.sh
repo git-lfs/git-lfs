@@ -32,9 +32,9 @@ begin_test "track"
 
   mkdir -p a/b
 
-  echo "*.mov filter=lfs -crlf" > .git/info/attributes
-  echo "*.gif filter=lfs -crlf" > a/.gitattributes
-  echo "*.png filter=lfs -crlf" > a/b/.gitattributes
+  echo "*.mov filter=lfs -text" > .git/info/attributes
+  echo "*.gif filter=lfs -text" > a/.gitattributes
+  echo "*.png filter=lfs -text" > a/b/.gitattributes
 
   out=$(git lfs track)
   echo "$out" | grep "Listing tracked paths"
@@ -71,12 +71,12 @@ begin_test "track without trailing linebreak"
   mkdir no-linebreak
   cd no-linebreak
   git init
-  printf "*.mov filter=lfs -crlf" > .gitattributes
+  printf "*.mov filter=lfs -text" > .gitattributes
 
   git lfs track "*.gif"
 
-  expected="*.mov filter=lfs -crlf
-*.gif filter=lfs diff=lfs merge=lfs -crlf"
+  expected="*.mov filter=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text"
 
   if [ "$expected" != "$(cat .gitattributes)" ]; then
     exit 1

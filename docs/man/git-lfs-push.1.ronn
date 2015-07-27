@@ -3,7 +3,8 @@ git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
 
 ## SYNOPSIS
 
-`git lfs push` <remote> [branch]
+`git lfs push` <remote> [branch]<br>
+`git lfs push` --object-id <remote> <oid1> <oid2> ...
 
 ## DESCRIPTION
 
@@ -13,6 +14,10 @@ This command shouldn't be necessary since Git LFS automatically sets up a
 pre-push hook for each repository.
 
 ## OPTIONS
+
+* `--object-id`:
+    This pushes only the object OIDs listed at the end of the command, separated
+    by spaces.
 
 * `--dry-run`:
     Print the files that would be pushed, without actually pushing them.

@@ -1,5 +1,20 @@
 # Git LFS Changelog
 
+## v0.5.3 (23 July, 2015)
+
+* `git lfs fetch` bugs #429 (@rubyist)
+* Push can crash on 32 bit architectures #450 (@rubyist)
+* Improved SSH support #404, #464 (@sinbad, @technoweenie)
+* Support 307 redirects with relative url #442 (@sinbad)
+* Fix `init` issues when upgrading #446 #451 #452 #465 (@technoweenie, @rubyist)
+* Support chunked Transfer-Encoding #386 (@ryansimmen)
+* Fix issue with pushing deleted objects #461 (@technoweenie)
+* Teach `git lfs push` how to send specific objects #449 (@larsxschneider)
+* Update error message when attempting to push objects that don't exist in `.git/lfs/objects` #447 (@technoweenie)
+* Fix bug in HTTP client when response body is nil #472 #488 (@rubyist, @technoweenie)
+* `-crlf` flag in gitattributes is deprecated #475 (@technoweenie)
+* Improvements to the CentOS and Debian build and package scripts (@andyneff, @ssgelm)
+
 ## v0.5.2 (19 June, 2015)
 
 * Add `git lfs fetch` command for downloading objects. #285 (@rubyist)
