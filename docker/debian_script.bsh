@@ -21,8 +21,8 @@ git clean -xdf .
 
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
-if [ -s /tmp/signing.key ]; then
-  gpg --import /tmp/signing.key || :
+if [ -s /tmp/*.key ]; then
+  gpg --import /tmp/*.key || :
   echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
   echo ask-passphrase > "${REPO_DIR}/conf/options"
   

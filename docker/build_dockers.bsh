@@ -27,9 +27,16 @@ fi
 
 #This will take a long time the first time
 for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
-  echo Docker building ${IMAGE_NAME}
+  NAME=$(basename ${IMAGE_NAME%.*})
+#  #If you do decide to use the same key for all, this makes it easier
+#  if [ ! -e ${CUR_DIR}/${NAME}.key ]; then
+#    cp ${CUR_DIR}/signing.key ${CUR_DIR}/${NAME}.key || :
+#  fi
+#  Not ready for this yet
+
+  echo Docker building ${NAME}
   ${CUR_DIR}/docker+.bsh ${IMAGE_NAME} > ${CUR_DIR}/tmp.dockerfile
-  $SUDO docker build -t git-lfs/$(basename ${IMAGE_NAME%.*}) -f ${CUR_DIR}/tmp.dockerfile ${CUR_DIR}
+  $SUDO docker build -t git-lfs/${NAME} -f ${CUR_DIR}/tmp.dockerfile ${CUR_DIR}
   rm ${CUR_DIR}/tmp.dockerfile
 done
 

@@ -2,10 +2,14 @@
 
 set -eu
 
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+
+source ${CUR_DIR}/common.bsh
+
 function docker_wait(){
   # Image seconds
   for x in $(seq $2); do
-    if [ "$(docker inspect -f {{.State.Running}} $1)" != "true" ]; then
+    if [ "$($SUDO docker inspect -f {{.State.Running}} $1)" != "true" ]; then
       return 0
     else
       sleep 1
@@ -15,9 +19,9 @@ function docker_wait(){
 }
 
 if ! docker_wait git-lfs-gpg 0; then
-  docker exec -it git-lfs-gpg pkill gpg-agent || :
+  $SUDO docker exec -it git-lfs-gpg pkill gpg-agent || :
 fi
 
 docker_wait git-lfs-gpg 5 || :
 
-docker rm -f git-lfs-gpg
+$SUDO docker rm -f git-lfs-gpg

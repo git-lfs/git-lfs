@@ -6,7 +6,7 @@ chmod 700 /tmp/gpg-agent
 
 for key in $(ls /tmp/*.key); do
   if [ -s $key ]; then
-    gpg --homedir /tmp/gpg-agent/ --import $key
+    gpg --homedir /tmp/gpg-agent/ --import $key || :
   fi
 done
 

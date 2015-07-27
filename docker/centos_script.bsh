@@ -22,8 +22,8 @@ rpmbuild --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm" -ba ${GIT_LFS_BUILD_DIR}/rp
 
 rsync -ra ${GIT_LFS_BUILD_DIR}/rpm/{SRPMS,RPMS} ${REPO_DIR}
 
-if [ -s /tmp/signing.key ]; then
-  gpg --allow-secret-key-import --import /tmp/signing.key || :
+if [ -s /tmp/*.key ]; then
+  gpg --allow-secret-key-import --import /tmp/*.key || :
   find ${REPO_DIR} -name \*.rpm | xargs /tmp/rpm_sign.exp
 fi
 

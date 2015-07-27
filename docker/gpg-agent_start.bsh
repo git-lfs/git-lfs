@@ -5,6 +5,8 @@ set -eu
 CUR_DIR=$(dirname ${BASH_SOURCE[0]})
 IMAGE_NAME=gpg-agent_debian_8
 
+source ${CUR_DIR}/common.bsh
+
 if [ "$(docker inspect -f {{.State.Running}} git-lfs-gpg)" != "true" ]; then
   #Don't rebuild WHILE RUNNING
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
@@ -14,5 +16,5 @@ if [ "$(docker inspect -f {{.State.Running}} git-lfs-gpg)" != "true" ]; then
   OTHER_OPTIONS=("-e" "GPG_DEFAULT_CACHE=${GPG_DEFAULT_CACHE:-31536000}")
   OTHER_OPTIONS+=("-e" "GPG_MAX_CACHE=${GPG_MAX_CACHE:-31536000}")
   
-  docker run -d -t "${OTHER_OPTIONS[@]}" --name git-lfs-gpg git-lfs/${IMAGE_NAME} "${@}"
+  ${SUDO} docker run -d -t "${OTHER_OPTIONS[@]}" --name git-lfs-gpg git-lfs/${IMAGE_NAME} "${@}"
 fi

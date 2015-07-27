@@ -67,7 +67,7 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
       echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main" > ${CUR_DIR}/git-lfs-main_8.list
     fi
   fi
-  #END TODO
+  #END TODO REMOVE
 
   #Auto build docker unless DOCKER_AUTOBUILD=0
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
@@ -80,13 +80,18 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   if [ "${AUTO_REMOVE-1}" == "1" ]; then
     OTHER_OPTIONS+=("--rm")
   fi
+  
+  #If you do decide to use the same key for all, this makes it easier
+  if [ -x ${CUR_DIR}/signing.key ] && [ ! -x ${CUR_DIR}/${IMAGE_NAME}.key ]; then
+    cp ${CUR_DIR}/signing.key ${CUR_DIR}/${IMAGE_NAME}.key || :
+  fi
 
-  if [ -s ${CUR_DIR}/signing.key ]; then
-    set +e
-    source ${CUR_DIR}/preload_key.bsh
-    set -e
-    OTHER_OPTIONS+=("-e" "GPG_AGENT_INFO=${GPG_AGENT_INFO}")
-    OTHER_OPTIONS+=("-v" "$(dirname ${GPG_AGENT_INFO}):$(dirname ${GPG_AGENT_INFO})")
+  if [ -s ${CUR_DIR}/${IMAGE_NAME}.key ]; then
+    ${CUR_DIR}/gpg-agent_preload.bsh
+    OTHER_OPTIONS+=("--volumes-from" "git-lfs-gpg")
+    OTHER_OPTIONS+=("-e" "$(docker exec git-lfs-gpg cat /tmp/gpg-agent/gpg_agent_info)")
+    #Do I need this? Or can I get away with hardcoding???
+    #GPG_AGENT_INFO=/tmp/gpg-agent/S.gpg-agent:1:1
   fi
 
   echo Compiling LFS in docker image ${IMAGE_NAME}
