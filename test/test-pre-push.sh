@@ -17,7 +17,7 @@ begin_test "pre-push"
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
-  grep "(0 of 0 files) 0 B 0" push.log
+  grep "(0 of 0 files)" push.log
 
   git lfs track "*.dat"
   echo "hi" > hi.dat
@@ -67,6 +67,7 @@ begin_test "pre-push dry-run"
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "push hi.dat" push.log
+  cat push.log
   [ `wc -l < push.log` = 1 ]
 
   refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b

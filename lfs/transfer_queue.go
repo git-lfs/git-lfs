@@ -24,6 +24,7 @@ type Transferable interface {
 
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
+	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
 	errors        []*WrappedError
@@ -33,13 +34,13 @@ type TransferQueue struct {
 	transferc     chan Transferable  // Channel for processing transfers
 	errorc        chan *WrappedError // Channel for processing errors
 	watchers      []chan string
-	monitors      []*ProgressMeter
 	wait          sync.WaitGroup
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
 func newTransferQueue(workers int) *TransferQueue {
 	q := &TransferQueue{
+		meter:         NewProgressMeter(),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
@@ -80,9 +81,7 @@ func (q *TransferQueue) Wait() {
 		close(watcher)
 	}
 
-	for _, mon := range q.monitors {
-		mon.Finish()
-	}
+	q.meter.Finish()
 }
 
 // Watch returns a channel where the queue will write the OID of each transfer
@@ -93,8 +92,9 @@ func (q *TransferQueue) Watch() chan string {
 	return c
 }
 
-func (q *TransferQueue) Monitor(m *ProgressMeter) {
-	q.monitors = append(q.monitors, m)
+// SuppressProgress turns off progress metering for the TransferQueue
+func (q *TransferQueue) SuppressProgress() {
+	q.meter.Suppress()
 }
 
 // individualApiRoutine processes the queue of transfers one at a time by making
@@ -185,9 +185,11 @@ func (q *TransferQueue) batchApiRoutine() {
 					transfer.SetObject(o)
 					q.transferc <- transfer
 				} else {
+					q.meter.Skip()
 					q.wait.Done()
 				}
 			} else {
+				q.meter.Skip()
 				q.wait.Done()
 			}
 		}
@@ -204,17 +206,11 @@ func (q *TransferQueue) errorCollector() {
 func (q *TransferQueue) transferWorker() {
 	for transfer := range q.transferc {
 		cb := func(total, read int64, current int) error {
-			// Log out to monitors
-			for _, mon := range q.monitors {
-				mon.Log(transferBytes, q.transferKind, transfer.Name(), read, total, current)
-			}
+			q.meter.Log(transferBytes, q.transferKind, transfer.Name(), read, total, current)
 			return nil
 		}
 
-		for _, mon := range q.monitors {
-			mon.Log(transferStart, q.transferKind, transfer.Name(), 0, 0, 0)
-		}
-
+		q.meter.Add(transfer.Name(), transfer.Size())
 		if err := transfer.Transfer(cb); err != nil {
 			q.errorc <- err
 		} else {
@@ -224,9 +220,7 @@ func (q *TransferQueue) transferWorker() {
 			}
 		}
 
-		for _, mon := range q.monitors {
-			mon.Log(transferFinish, q.transferKind, transfer.Name(), 0, 0, 0)
-		}
+		q.meter.Log(transferFinish, q.transferKind, transfer.Name(), 0, 0, 0)
 
 		q.wait.Done()
 	}
