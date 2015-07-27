@@ -52,6 +52,7 @@ func init() {
 // calls wait.Done() when the final item after the channel is closed is done
 func checkoutWithChan(in <-chan *lfs.WrappedPointer, wait *sync.WaitGroup) {
 	go func() {
+		defer wait.Done()
 		// Fire up the update-index command
 		cmd := exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
 		updateIdxStdin, err := cmd.StdinPipe()
@@ -98,7 +99,6 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer, wait *sync.WaitGroup) {
 		if err := cmd.Wait(); err != nil {
 			Panic(err, "Error updating the git index")
 		}
-		wait.Done()
 	}()
 
 }
