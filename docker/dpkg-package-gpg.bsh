@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+ARGS=()
+while [ "$1" != "" ]; do
+  if [ "$1" == "--local-user" ] || [ "$1" == "-u" ]; then
+    shift
+  else
+    ARGS+=("$1")
+  fi
+  shift
+done
+
+if which gpg2 > /dev/null 2>&1; then
+  exec gpg2 "${ARGS[@]}"
+else
+  exec gpg "${ARGS[@]}"
+fi
