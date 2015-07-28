@@ -11,6 +11,17 @@ import (
 	contentaddressable "github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/go-contentaddressable"
 )
 
+func PointerSmudgeToFile(filename string, ptr *Pointer, cb CopyCallback) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("Could not create working directory file: %v", err)
+	}
+	defer file.Close()
+	if err := PointerSmudge(file, ptr, filename, cb); err != nil {
+		return fmt.Errorf("Could not write working directory file: %v", err)
+	}
+	return nil
+}
 func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {

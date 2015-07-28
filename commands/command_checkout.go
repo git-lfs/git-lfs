@@ -95,15 +95,10 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			continue
 		}
 		// OK now we can (over)write the file content
-		file, err := os.Create(pointer.Name)
+		err = lfs.PointerSmudgeToFile(pointer.Name, pointer.Pointer, nil)
 		if err != nil {
-			Panic(err, "Could not create working directory file")
+			Panic(err, "Could not checkout file")
 		}
-
-		if err := lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil); err != nil {
-			Panic(err, "Could not write working directory file")
-		}
-		file.Close()
 
 		updateIdxStdin.Write([]byte(pointer.Name + "\n"))
 	}
