@@ -41,8 +41,7 @@ func mainBuild() {
 	}
 
 	if len(cmd) > 0 {
-		arg := strings.TrimSpace("-X github.com/github/git-lfs/lfs.GitCommit " + string(cmd))
-		LdFlag = fmt.Sprintf("-ldflags=%q", arg)
+		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/lfs.GitCommit " + string(cmd))
 	}
 
 	buildMatrix := make(map[string]Release)
@@ -129,10 +128,10 @@ func buildCommand(dir, buildos, buildarch string) error {
 		bin = bin + ".exe"
 	}
 
-	args := make([]string, 1, 5)
+	args := make([]string, 1, 6)
 	args[0] = "build"
 	if len(LdFlag) > 0 {
-		args = append(args, LdFlag)
+		args = append(args, "-ldflags", LdFlag)
 	}
 	args = append(args, "-o", bin, ".")
 
