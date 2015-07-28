@@ -143,10 +143,6 @@ setup() {
     done
   fi
 
-  echo "tmp dir: $TMPDIR"
-  echo "remote git dir: $REMOTEDIR"
-  echo "LFSTEST_URL=$LFS_URL_FILE LFSTEST_DIR=$REMOTEDIR lfstest-gitserver"
-  echo
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
 
   mkdir $HOME
@@ -161,11 +157,19 @@ setup() {
   }
   cp "$HOME/.gitconfig" "$HOME/.gitconfig-backup"
 
+  echo "HOME: $HOME"
+  echo "TMP: $TMPDIR"
+  echo "lfstest-gitserver:"
+  echo "  LFSTEST_URL=$LFS_URL_FILE"
+  echo "  LFSTEST_DIR=$REMOTEDIR"
+  echo "GIT:"
+  git config --global --get-regexp "lfs|credential|user"
+
   if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
   then
     # Only OS X will encounter this
-    # We can't disable osxkeychain and it gets called on store as well as ours, 
-    # reporting "A keychain cannot be found to store.." errors because the test 
+    # We can't disable osxkeychain and it gets called on store as well as ours,
+    # reporting "A keychain cannot be found to store.." errors because the test
     # user env has no keychain; so create one
     mkdir -p $TMPDIR
     mkdir -p $HOME/Library/Preferences # required to store keychain lists
