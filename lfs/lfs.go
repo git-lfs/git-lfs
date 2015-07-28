@@ -11,12 +11,8 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-const Version = "0.5.3"
-
-//
-// Setup permissions for the given directories used here.
-//
 const (
+	Version            = "0.5.3"
 	tempDirPerms       = 0755
 	localMediaDirPerms = 0755
 	localLogDirPerms   = 0755
@@ -25,6 +21,7 @@ const (
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
 	TempDir            = filepath.Join(os.TempDir(), "git-lfs")
+	GitCommit          string
 	UserAgent          string
 	LocalWorkingDir    string
 	LocalGitDir        string
@@ -108,10 +105,17 @@ func init() {
 
 	}
 
-	UserAgent = fmt.Sprintf("git-lfs/%s (GitHub; %s %s; go %s)", Version,
+	gitCommit := ""
+	if len(GitCommit) > 0 {
+		gitCommit = "; git " + GitCommit
+	}
+	UserAgent = fmt.Sprintf("git-lfs/%s (GitHub; %s %s; go %s%s)",
+		Version,
 		runtime.GOOS,
 		runtime.GOARCH,
-		strings.Replace(runtime.Version(), "go", "", 1))
+		strings.Replace(runtime.Version(), "go", "", 1),
+		gitCommit,
+	)
 }
 
 func resolveGitDir() (string, string, error) {
