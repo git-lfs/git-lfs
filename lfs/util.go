@@ -16,6 +16,18 @@ type CallbackReader struct {
 	io.Reader
 }
 
+type Platform int
+
+const (
+	PlatformWindows      = Platform(iota)
+	PlatformLinux        = Platform(iota)
+	PlatformOSX          = Platform(iota)
+	PlatformOther        = Platform(iota) // most likely a *nix variant e.g. freebsd
+	PlatformUndetermined = Platform(iota)
+)
+
+var currentPlatform = PlatformUndetermined
+
 type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
 
 func (w *CallbackReader) Read(p []byte) (int, error) {
@@ -145,7 +157,23 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 	return true
 }
 
+func GetPlatform() Platform {
+	if currentPlatform == PlatformUndetermined {
+		switch runtime.GOOS {
+		case "windows":
+			currentPlatform = PlatformWindows
+		case "linux":
+			currentPlatform = PlatformLinux
+		case "darwin":
+			currentPlatform = PlatformOSX
+		default:
+			currentPlatform = PlatformOther
+		}
+	}
+	return currentPlatform
+}
+
 // Are we running on Windows? Need to handle some extra path shenanigans
 func IsWindows() bool {
-	return runtime.GOOS == "windows"
+	return GetPlatform() == PlatformWindows
 }
