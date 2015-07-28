@@ -57,3 +57,80 @@ func TestCopyWithCallback(t *testing.T) {
 	assert.Equal(t, 1, len(calledWritten))
 	assert.Equal(t, 5, int(calledWritten[0]))
 }
+
+func TestFilterIncludeExclude(t *testing.T) {
+
+	// Inclusion
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, nil))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/filename.dat"}, nil))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"blank", "something", "test/filename.dat", "foo"}, nil))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"blank", "something", "foo"}, nil))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/notfilename.dat"}, nil))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test"}, nil))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/*"}, nil))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"nottest"}, nil))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"nottest/*"}, nil))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/fil*"}, nil))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/g*"}, nil))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"tes*/*"}, nil))
+
+	// Exclusion
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test/filename.dat"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"blank", "something", "test/filename.dat", "foo"}))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"blank", "something", "foo"}))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test/notfilename.dat"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test/*"}))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"nottest"}))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"nottest/*"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test/fil*"}))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test/g*"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"tes*/*"}))
+
+	// Both
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/filename.dat"}, []string{"test/notfilename.dat"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test"}, []string{"test/filename.dat"}))
+	assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/*"}, []string{"test/notfile*"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test/*"}, []string{"test/file*"}))
+	assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"another/*", "test/*"}, []string{"test/notfilename.dat", "test/filename.dat"}))
+
+	if IsWindows() {
+		// Extra tests because Windows git reports filenames with / separators
+		// but we need to allow \ separators in include/exclude too
+		// Can only test this ON Windows because of filepath behaviour
+		// Inclusion
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, nil))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\filename.dat"}, nil))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"blank", "something", "test\\filename.dat", "foo"}, nil))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"blank", "something", "foo"}, nil))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\notfilename.dat"}, nil))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test"}, nil))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\*"}, nil))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"nottest"}, nil))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"nottest\\*"}, nil))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\fil*"}, nil))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\g*"}, nil))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"tes*\\*"}, nil))
+
+		// Exclusion
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test\\filename.dat"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"blank", "something", "test\\filename.dat", "foo"}))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"blank", "something", "foo"}))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test\\notfilename.dat"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test\\*"}))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"nottest"}))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"nottest\\*"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test\\fil*"}))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"test\\g*"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", nil, []string{"tes*\\*"}))
+
+		// Both
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\filename.dat"}, []string{"test\\notfilename.dat"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test"}, []string{"test\\filename.dat"}))
+		assert.Equal(t, true, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\*"}, []string{"test\\notfile*"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"test\\*"}, []string{"test\\file*"}))
+		assert.Equal(t, false, FilenamePassesIncludeExcludeFilter("test/filename.dat", []string{"another\\*", "test\\*"}, []string{"test\\notfilename.dat", "test\\filename.dat"}))
+
+	}
+}
