@@ -28,15 +28,6 @@ var (
 )
 
 func mainBuild() {
-	cmd, err := exec.Command("script/fmt").Output()
-	if err != nil {
-		panic(err)
-	}
-
-	if len(cmd) > 0 {
-		fmt.Println(string(cmd))
-	}
-
 	if *ShowHelp {
 		fmt.Println("usage: script/bootstrap [-os] [-arch] [-all]")
 		flag.PrintDefaults()
