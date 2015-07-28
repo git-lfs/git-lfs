@@ -581,10 +581,8 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 		return nil, nil, err
 	}
 
-	if header != nil {
-		for key, value := range header {
-			req.Header.Set(key, value)
-		}
+	for key, value := range header {
+		req.Header.Set(key, value)
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
