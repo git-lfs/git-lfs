@@ -25,6 +25,7 @@ var (
 		"windows": "Windows",
 		"amd64":   "AMD64",
 	}
+	LdFlag string
 )
 
 func mainBuild() {
@@ -34,8 +35,17 @@ func mainBuild() {
 		return
 	}
 
-	buildMatrix := make(map[string]Release)
+	cmd, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	if err != nil {
+		panic(err)
+	}
 
+	if len(cmd) > 0 {
+		arg := strings.TrimSpace("-X github.com/github/git-lfs/lfs.GitCommit " + string(cmd))
+		LdFlag = fmt.Sprintf("-ldflags=%q", arg)
+	}
+
+	buildMatrix := make(map[string]Release)
 	errored := false
 
 	if *BuildAll {
@@ -119,7 +129,14 @@ func buildCommand(dir, buildos, buildarch string) error {
 		bin = bin + ".exe"
 	}
 
-	cmd := exec.Command("go", "build", "-o", bin, ".")
+	args := make([]string, 1, 5)
+	args[0] = "build"
+	if len(LdFlag) > 0 {
+		args = append(args, LdFlag)
+	}
+	args = append(args, "-o", bin, ".")
+
+	cmd := exec.Command("go", args...)
 	if addenv {
 		cmd.Env = []string{
 			"GOOS=" + buildos,
