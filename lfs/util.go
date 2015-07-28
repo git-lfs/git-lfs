@@ -221,9 +221,20 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 	if err != nil {
 		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
 	}
+
+	// Early-out if working dir is root dir, same result
+	passthrough := false
+	if LocalWorkingDir == curdir {
+		passthrough = true
+	}
+
 	outchan := make(chan string, 1)
 	go func() {
 		for p := range cwdchan {
+			if passthrough {
+				outchan <- p
+				continue
+			}
 			var abs string
 			if filepath.IsAbs(p) {
 				abs = p
