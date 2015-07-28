@@ -98,7 +98,7 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 		return true
 	}
 
-	// For Win32, becuase git reports files with / separators
+	// For Win32, because git reports files with / separators
 	cleanfilename := filepath.Clean(filename)
 	if len(includePaths) > 0 {
 		matched := false
