@@ -58,7 +58,7 @@
             "additionalProperties": false
           }
         },
-        "required": ["oid", "size", "actions"],
+        "required": ["oid", "size"],
         "additionalProperties": false
       }
     }

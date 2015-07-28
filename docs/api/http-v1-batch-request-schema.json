@@ -18,9 +18,11 @@
             "type": "number"
           }
         },
+        "required": ["oid", "size"],
         "additionalProperties": false
       }
     }
   },
+  "required": ["objects", "operation"],
   "additionalProperties": false
 }
