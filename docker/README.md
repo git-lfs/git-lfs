@@ -239,7 +239,7 @@ named
 
     ./docker/git-lfs_{OS NAME}_{OS VERSION #}
     
-where **{OS NAME}** and **{OS VERSION #}** should not contain underscores (_).
+where **{OS NAME}** and **{OS VERSION #}** should not contain underscores (`_`).
 Any files that needs to be added to the docker image can be dropped in the 
 `./docker` directory, since that is the context root they are built against 
 (not the directory containing the Dockerfile like most dockers)
