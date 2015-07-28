@@ -12,6 +12,7 @@ import (
 )
 
 func PointerSmudgeToFile(filename string, ptr *Pointer, cb CopyCallback) error {
+	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
