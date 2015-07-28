@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -140,15 +141,24 @@ func logPanic(loggedError error) string {
 }
 
 func logPanicToWriter(w io.Writer, loggedError error) {
-	fmt.Fprintf(w, "> %s", filepath.Base(os.Args[0]))
+	// log the version
+	gitV, err := git.Config.Version()
+	if err != nil {
+		gitV = "Error getting git version: " + err.Error()
+	}
+
+	fmt.Fprintln(w, lfs.UserAgent)
+	fmt.Fprintln(w, gitV)
+
+	// log the command that was run
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "$ %s", filepath.Base(os.Args[0]))
 	if len(os.Args) > 0 {
 		fmt.Fprintf(w, " %s", strings.Join(os.Args[1:], " "))
 	}
 	fmt.Fprintln(w)
 
-	logEnv(w)
-	fmt.Fprintln(w)
-
+	// log the error message and stack trace
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprintln(w)
 
@@ -163,9 +173,9 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	} else {
 		w.Write(lfs.Stack())
 	}
-}
+	fmt.Fprintln(w, "\nENV:")
 
-func logEnv(w io.Writer) {
+	// log the environment
 	for _, env := range lfs.Environ() {
 		fmt.Fprintln(w, env)
 	}
