@@ -21,7 +21,19 @@ var (
 func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	// Parameters are filters
-	checkoutWithIncludeExclude(args, nil)
+	// firstly convert any pathspecs to the root of the repo, in case this is being executed in a sub-folder
+	var rootedpaths = make([]string, len(args))
+	inchan := make(chan string, 1)
+	outchan, err := lfs.ConvertCwdFilesRelativeToRepo(inchan)
+	if err != nil {
+		Panic(err, "Could not checkout")
+	}
+	for _, arg := range args {
+		inchan <- arg
+		rootedpaths = append(rootedpaths, <-outchan)
+	}
+	close(inchan)
+	checkoutWithIncludeExclude(rootedpaths, nil)
 }
 
 func init() {
@@ -78,6 +90,14 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		Panic(err, "Could not update the index")
 	}
 
+	// Get a converter from repo-relative to cwd-relative
+	// Since writing data & calling git update-index must be relative to cwd
+	repopathchan := make(chan string, 1)
+	cwdpathchan, err := lfs.ConvertRepoFilesRelativeToCwd(repopathchan)
+	if err != nil {
+		Panic(err, "Could not convert file paths")
+	}
+
 	// As files come in, write them to the wd and update the index
 	for pointer := range in {
 
@@ -96,13 +116,16 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			continue
 		}
 		// OK now we can (over)write the file content
-		err = lfs.PointerSmudgeToFile(pointer.Name, pointer.Pointer, nil)
+		repopathchan <- pointer.Name
+		cwdfilepath := <-cwdpathchan
+		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, nil)
 		if err != nil {
 			Panic(err, "Could not checkout file")
 		}
 
-		updateIdxStdin.Write([]byte(pointer.Name + "\n"))
+		updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
 	}
+	close(repopathchan)
 
 	updateIdxStdin.Close()
 	if err := cmd.Wait(); err != nil {

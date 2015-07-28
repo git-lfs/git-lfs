@@ -173,6 +173,78 @@ func GetPlatform() Platform {
 	return currentPlatform
 }
 
+// Convert filenames expressed relative to the root of the repo relative to the
+// current working dir. Useful when needing to calling git with results from a rooted command,
+// but the user is in a subdir of their repo
+// Pass in a channel which you will fill with relative files & receive a channel which will get results
+func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get working dir: %v", err)
+	}
+
+	// Early-out if working dir is root dir, same result
+	passthrough := false
+	if LocalWorkingDir == wd {
+		passthrough = true
+	}
+
+	outchan := make(chan string, 1)
+
+	go func() {
+		for f := range repochan {
+			if passthrough {
+				outchan <- f
+				continue
+			}
+			abs := filepath.Join(LocalWorkingDir, f)
+			rel, err := filepath.Rel(wd, abs)
+			if err != nil {
+				// Use absolute file instead
+				outchan <- abs
+			} else {
+				outchan <- rel
+			}
+		}
+		close(outchan)
+	}()
+
+	return outchan, nil
+}
+
+// Convert filenames expressed relative to the current directory to be
+// relative to the repo root. Useful when calling git with arguments that requires them
+// to be rooted but the user is in a subdir of their repo & expects to use relative args
+// Pass in a channel which you will fill with relative files & receive a channel which will get results
+func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error) {
+	curdir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
+	}
+	outchan := make(chan string, 1)
+	go func() {
+		for p := range cwdchan {
+			var abs string
+			if filepath.IsAbs(p) {
+				abs = p
+			} else {
+				abs = filepath.Join(curdir, p)
+			}
+			reltoroot, err := filepath.Rel(LocalWorkingDir, abs)
+			if err != nil {
+				// Can't do this, use absolute as best fallback
+				outchan <- abs
+			} else {
+				outchan <- reltoroot
+			}
+		}
+		close(outchan)
+	}()
+
+	return outchan, nil
+
+}
+
 // Are we running on Windows? Need to handle some extra path shenanigans
 func IsWindows() bool {
 	return GetPlatform() == PlatformWindows
