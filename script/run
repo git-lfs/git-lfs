@@ -1,3 +1,4 @@
 #!/bin/sh
 script/fmt
-go run ./git-lfs.go "$@"
+commit=`git rev-parse --short HEAD`
+go run -ldflags="-X github.com/github/git-lfs/lfs.GitCommit $commit" ./git-lfs.go "$@"

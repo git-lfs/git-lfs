@@ -116,12 +116,7 @@ func InstallFilters(force bool) error {
 }
 
 func UninstallFilters() error {
-	keys := []string{"clean", "smudge", "required"}
-	keyFmt := "filter.lfs.%s"
-	for _, name := range keys {
-		key := fmt.Sprintf(keyFmt, name)
-		git.Config.UnsetGlobal(key)
-	}
+	git.Config.UnsetGlobalSection("filter.lfs")
 	return nil
 }
 

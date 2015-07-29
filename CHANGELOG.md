@@ -1,5 +1,11 @@
 # Git LFS Changelog
 
+## v0.5.4 (30 July, 2015)
+
+* Ensure `git lfs uninit` cleans your git config thoroughly. #530 (@technoweenie)
+* Fix issue with asking `git-credentials` for auth details after getting them
+from the SSH command. #534 (@technoweenie)
+
 ## v0.5.3 (23 July, 2015)
 
 * `git lfs fetch` bugs #429 (@rubyist)
