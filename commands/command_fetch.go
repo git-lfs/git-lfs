@@ -18,19 +18,23 @@ var (
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
-	var ref string
-	var err error
+	var refs []string
 
-	if len(args) == 1 {
-		ref = args[0]
+	if len(args) > 0 {
+		refs = args
 	} else {
-		ref, err = git.CurrentRef()
+		ref, err := git.CurrentRef()
 		if err != nil {
 			Panic(err, "Could not fetch")
 		}
+		refs = []string{ref}
 	}
 
-	fetchRef(ref)
+	// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
+	for _, ref := range refs {
+		fetchRef(ref)
+	}
+
 }
 
 func init() {
