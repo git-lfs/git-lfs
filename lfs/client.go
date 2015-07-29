@@ -51,13 +51,9 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, Cre
 		return nil, nil, objectRelationDoesNotExist
 	}
 
-	req, creds, err := newClientRequest(method, rel.Href)
+	req, creds, err := newClientRequest(method, rel.Href, rel.Header)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	for h, v := range rel.Header {
-		req.Header.Set(h, v)
 	}
 
 	return req, creds, nil
@@ -381,7 +377,7 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 			redirectTo = locurl.String()
 		}
 
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo)
+		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo, nil)
 		if err != nil {
 			return res, Errorf(err, err.Error())
 		}
@@ -549,25 +545,23 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 		return nil, nil, err
 	}
 
-	req, creds, err := newClientRequest(method, u.String())
+	req, creds, err := newClientRequest(method, u.String(), res.Header)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	req.Header.Set("Accept", mediaType)
-	if res.Header != nil {
-		for key, value := range res.Header {
-			req.Header.Set(key, value)
-		}
-	}
-
 	return req, creds, nil
 }
 
-func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+func newClientRequest(method, rawurl string, header map[string]string) (*http.Request, Creds, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	for key, value := range header {
+		req.Header.Set(key, value)
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
