@@ -25,26 +25,26 @@ var (
 		"windows": "Windows",
 		"amd64":   "AMD64",
 	}
+	LdFlag string
 )
 
 func mainBuild() {
-	cmd, err := exec.Command("script/fmt").Output()
-	if err != nil {
-		panic(err)
-	}
-
-	if len(cmd) > 0 {
-		fmt.Println(string(cmd))
-	}
-
 	if *ShowHelp {
 		fmt.Println("usage: script/bootstrap [-os] [-arch] [-all]")
 		flag.PrintDefaults()
 		return
 	}
 
-	buildMatrix := make(map[string]Release)
+	cmd, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	if err != nil {
+		panic(err)
+	}
 
+	if len(cmd) > 0 {
+		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/lfs.GitCommit " + string(cmd))
+	}
+
+	buildMatrix := make(map[string]Release)
 	errored := false
 
 	if *BuildAll {
@@ -128,7 +128,14 @@ func buildCommand(dir, buildos, buildarch string) error {
 		bin = bin + ".exe"
 	}
 
-	cmd := exec.Command("go", "build", "-o", bin, ".")
+	args := make([]string, 1, 6)
+	args[0] = "build"
+	if len(LdFlag) > 0 {
+		args = append(args, "-ldflags", LdFlag)
+	}
+	args = append(args, "-o", bin, ".")
+
+	cmd := exec.Command("go", args...)
 	if addenv {
 		cmd.Env = []string{
 			"GOOS=" + buildos,
