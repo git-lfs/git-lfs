@@ -22,7 +22,7 @@ begin_test "logs"
   logfile=".git/lfs/objects/logs/$logname"
   cat "$logfile"
   echo "... grep ..."
-  grep "> git-lfs logs boomtown" "$logfile"
+  grep "$ git-lfs logs boomtown" "$logfile"
 
   [ "$(cat "$logfile")" = "$(git lfs logs last)" ]
 )
