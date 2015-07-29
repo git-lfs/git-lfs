@@ -47,5 +47,33 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
+  # Remove again
+  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+
+  # checkout with filters
+  git lfs checkout file2.dat
+  [ "$contents" = "$(cat file2.dat)" ]
+  [ ! -f file1.dat ]
+  [ ! -f file3.dat ]
+  [ ! -f folder1/nested.dat ]
+  [ ! -f folder2/nested.dat ]
+
+  # quotes to avoid shell globbing
+  git lfs checkout "file*.dat"
+  [ "$contents" = "$(cat file1.dat)" ]
+  [ "$contents" = "$(cat file3.dat)" ]
+  [ ! -f folder1/nested.dat ]
+  [ ! -f folder2/nested.dat ]
+
+  # test subdir context
+  pushd folder1
+  git lfs checkout nested.dat
+  [ "$contents" = "$(cat nested.dat)" ]
+  [ ! -f ../folder2/nested.dat ]
+  popd
+
+  # test folder param
+  git lfs checkout folder2
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
 )
 end_test
