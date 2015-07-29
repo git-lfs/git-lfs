@@ -74,7 +74,10 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.Wrappe
 			q.Add(lfs.NewDownloadable(p))
 		} else {
 			// If we already have it, report it to chan immediately to support pull/checkout
-			out <- p
+			if out != nil {
+				out <- p
+			}
+
 		}
 	}
 
