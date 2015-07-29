@@ -20,13 +20,8 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not pull")
 	}
 
-	// Previously we would only checkout files that were downloaded, as they
-	// were downloaded. However this would ignore files where the content was
-	// already present locally (since these are no longer included in transfer Q for
-	// better reporting purposes).
-	// So now we do exactly what we say on the tin, fetch then a separate checkout
-	fetchRef(ref)
-	checkoutAll()
+	c := fetchRefToChan(ref)
+	checkoutAllFromFetchChan(c)
 }
 
 func init() {

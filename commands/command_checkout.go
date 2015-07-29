@@ -8,6 +8,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -38,6 +39,52 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 func init() {
 	RootCmd.AddCommand(checkoutCmd)
+}
+
+// Checkout from items reported from the fetch process (in parallel)
+func checkoutAllFromFetchChan(c chan *lfs.WrappedPointer) {
+	tracerx.Printf("starting fetch/parallel checkout")
+	checkoutFromFetchChan(nil, nil, c)
+}
+
+func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.WrappedPointer) {
+	ref, err := git.CurrentRef()
+	if err != nil {
+		Panic(err, "Could not checkout")
+	}
+	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
+	pointers, err := lfs.ScanTree(ref)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
+	}
+
+	// Map oid to multiple pointers
+	mapping := make(map[string][]*lfs.WrappedPointer)
+	for _, pointer := range pointers {
+		if lfs.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+			mapping[pointer.Oid] = append(mapping[pointer.Oid], pointer)
+		}
+	}
+
+	// Launch git update-index
+	c := make(chan *lfs.WrappedPointer)
+	var wait sync.WaitGroup
+	wait.Add(1)
+
+	go func() {
+		checkoutWithChan(c)
+		wait.Done()
+	}()
+
+	// Feed it from in, which comes from fetch
+	for p := range in {
+		// Add all of the files for this oid
+		for _, fp := range mapping[p.Oid] {
+			c <- fp
+		}
+	}
+	close(c)
+	wait.Wait()
 }
 
 func checkoutWithIncludeExclude(include []string, exclude []string) {

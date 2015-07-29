@@ -37,6 +37,18 @@ func init() {
 	RootCmd.AddCommand(fetchCmd)
 }
 
+func fetchRefToChan(ref string) chan *lfs.WrappedPointer {
+	c := make(chan *lfs.WrappedPointer)
+	pointers, err := lfs.ScanRefs(ref, "", nil)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
+	}
+
+	go fetchAndReportToChan(pointers, c)
+
+	return c
+}
+
 // Fetch all binaries for a given ref (that we don't have already)
 func fetchRef(ref string) {
 	pointers, err := lfs.ScanRefs(ref, "", nil)
@@ -60,6 +72,9 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.Wrappe
 		// which would only be skipped by PointerSmudgeObject later
 		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) {
 			q.Add(lfs.NewDownloadable(p))
+		} else {
+			// If we already have it, report it to chan immediately to support pull/checkout
+			out <- p
 		}
 	}
 
