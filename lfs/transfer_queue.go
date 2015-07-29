@@ -127,7 +127,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 
 // legacyFallback is used when a batch request is made to a server that does
 // not support the batch endpoint. When this happens, the Transferables are
-// feed from the batcher into apic to be processed individually.
+// fed from the batcher into apic to be processed individually.
 func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
 	tracerx.Printf("tq: batch api not implemented, falling back to individual")
 
