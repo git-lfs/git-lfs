@@ -22,13 +22,6 @@ const (
 	mediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
-// The apiEvent* statuses (and the apiEvent channel) are used by
-// UploadQueue to know when it is OK to process uploads concurrently.
-const (
-	apiEventFail = iota
-	apiEventSuccess
-)
-
 var (
 	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
 	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
@@ -44,8 +37,6 @@ var (
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
 	}
-
-	apiEvent = make(chan int)
 )
 
 type objectResource struct {
@@ -107,12 +98,9 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
-		sendApiEvent(apiEventFail)
 		return nil, 0, wErr
 	}
 	LogTransfer("lfs.api.download", res)
-
-	sendApiEvent(apiEventSuccess)
 
 	req, creds, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -197,7 +185,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	res, objs, wErr := doApiBatchRequest(req, creds)
 	if wErr != nil {
 		if res == nil {
-			sendApiEvent(apiEventFail)
 			return nil, wErr
 		}
 
@@ -208,13 +195,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 			return Batch(objects, operation)
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			sendApiEvent(apiEventFail)
 			return nil, Error(newNotImplError())
 		}
 	}
 	LogTransfer("lfs.api.batch", res)
 
-	sendApiEvent(apiEventSuccess)
 	if res.StatusCode != 200 {
 		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
 	}
@@ -227,7 +212,6 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 
 	stat, err := os.Stat(oidPath)
 	if err != nil {
-		sendApiEvent(apiEventFail)
 		return nil, Error(err)
 	}
 
@@ -238,13 +222,11 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		sendApiEvent(apiEventFail)
 		return nil, Error(err)
 	}
 
 	req, creds, err := newApiRequest("POST", oid)
 	if err != nil {
-		sendApiEvent(apiEventFail)
 		return nil, Error(err)
 	}
 
@@ -256,12 +238,9 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
-		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
 	LogTransfer("lfs.api.upload", res)
-
-	sendApiEvent(apiEventSuccess)
 
 	if res.StatusCode == 200 {
 		return nil, nil
@@ -709,13 +688,6 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 		} else {
 			err.Set(contextKey, head.Get(key))
 		}
-	}
-}
-
-func sendApiEvent(event int) {
-	select {
-	case apiEvent <- event:
-	default:
 	}
 }
 
