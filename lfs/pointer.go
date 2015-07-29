@@ -29,7 +29,7 @@ size %d
 	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
 	pointerKeys = []string{"version", "oid", "size"}
 
-	NotAPointerError = errors.New("Not a pointer")
+	NotAPointerError = errors.New("Not a valid Git LFS pointer file.")
 )
 
 type Pointer struct {
@@ -149,7 +149,7 @@ func decodeKVData(data []byte) (map[string]string, error) {
 	m := make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		return m, fmt.Errorf("Not a valid Git LFS pointer file.")
+		return m, NotAPointerError
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))
