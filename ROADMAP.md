@@ -6,7 +6,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 ## Releases
 
 * 0.5 - Initial release using the [original HTTP API](docs/api/http-v1-original.md)
-* 0.6 - First release using the [batch HTTP API](docs/api/http-v1-batch.md), 
+* 0.6 - First release using the [batch HTTP API](docs/api/http-v1-batch.md),
         with a fallback to the original API.
 * 0.7 - Drops support for the original API.
 
@@ -17,9 +17,9 @@ and we have a good idea how they could work.
 
 * Fast, efficient uploading and downloading ([#414](https://github.com/github/git-lfs/issues/414)).
 * Improved local storage management ([#490](https://github.com/github/git-lfs/issues/490)).
+* [Extensions](docs/proposals/extensions.md) (#486).
+* Improved installation/upgrade experience (#531).
 * Ability to remove objects from the command line through the API.
-* [Extensions](docs/proposals/extensions.md).
-* Official packages for CentOS, Apt.
 * Go 1.5+
 
 ## Possible Features

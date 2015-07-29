@@ -6,6 +6,19 @@ help is essential for keeping it great.
 This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are expected to uphold this code.
 [code-of-conduct]: http://todogroup.org/opencodeofconduct/#Git LFS/opensource@github.com
 
+## Issue Labels
+
+The Git LFS teams mark issues and pull requests with the following labels:
+
+* `bug` - An issue describing a bug.
+* `enhancement` - An issue for a possible new feature.
+* `review` - An issue ready to be reviewed.
+* `release` - A checklist issue showing items marked for an upcoming release.
+* `roadmap` - A checklist issue with tasks to fulfill something from the
+[roadmap](./ROADMAP.md)
+* `storage` - Used internally by the core contributors from GitHub. It just
+means we're paying extra attention to it.
+
 ## Feature Requests
 
 Feature requests are welcome, but will have a much better chance of being
