@@ -64,7 +64,12 @@ func fetchPointers(pointers []*lfs.WrappedPointer) {
 
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.WrappedPointer) {
-	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
+	}
+	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for _, p := range pointers {
 		// Only add to download queue if local file is not the right size already
@@ -107,6 +112,6 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.Wrappe
 
 	}
 	processQueue := time.Now()
-	q.Process()
+	q.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
 }

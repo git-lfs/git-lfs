@@ -43,7 +43,6 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 	if statErr != nil || stat == nil {
 		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
-		sendApiEvent(apiEventSuccess)
 		wErr = readLocalFile(writer, ptr, mediafile, cb)
 	}
 
@@ -76,12 +75,10 @@ func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) err
 		wErr := downloadObject(ptr, obj, mediafile, cb)
 
 		if wErr != nil {
-			sendApiEvent(apiEventFail)
 			return &SmudgeError{obj.Oid, mediafile, wErr}
 		}
 	}
 
-	sendApiEvent(apiEventSuccess)
 	return nil
 }
 

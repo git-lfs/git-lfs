@@ -71,11 +71,17 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
+	}
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s", pointer.Name)
+			uploadQueue.SuppressProgress()
 			continue
 		}
 
@@ -95,7 +101,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !prePushDryRun {
-		uploadQueue.Process()
+		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || err.Panic {
 				LoggedError(err.Err, err.Error())

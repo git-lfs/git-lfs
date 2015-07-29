@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -eu
+
+git lfs init
+
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+
+cp -ra /src /tmp/test/
+cd /tmp/test
+mkdir -p ./src/github.com/github
+unlink src/github.com/github/git-lfs || :
+ln -sf $(pwd) src/github.com/github/git-lfs
+LFS_BIN=1 GOPATH=$(pwd) ./script/test
+LFS_BIN=1 ./script/integration

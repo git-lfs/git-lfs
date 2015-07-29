@@ -22,13 +22,6 @@ const (
 	mediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
-// The apiEvent* statuses (and the apiEvent channel) are used by
-// UploadQueue to know when it is OK to process uploads concurrently.
-const (
-	apiEventFail = iota
-	apiEventSuccess
-)
-
 var (
 	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
 	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
@@ -44,8 +37,6 @@ var (
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
 	}
-
-	apiEvent = make(chan int)
 )
 
 type objectResource struct {
@@ -60,13 +51,9 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, Cre
 		return nil, nil, objectRelationDoesNotExist
 	}
 
-	req, creds, err := newClientRequest(method, rel.Href)
+	req, creds, err := newClientRequest(method, rel.Href, rel.Header)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	for h, v := range rel.Header {
-		req.Header.Set(h, v)
 	}
 
 	return req, creds, nil
@@ -111,12 +98,9 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
-		sendApiEvent(apiEventFail)
 		return nil, 0, wErr
 	}
 	LogTransfer("lfs.api.download", res)
-
-	sendApiEvent(apiEventSuccess)
 
 	req, creds, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -201,7 +185,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	res, objs, wErr := doApiBatchRequest(req, creds)
 	if wErr != nil {
 		if res == nil {
-			sendApiEvent(apiEventFail)
 			return nil, wErr
 		}
 
@@ -212,13 +195,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 			return Batch(objects, operation)
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			sendApiEvent(apiEventFail)
 			return nil, Error(newNotImplError())
 		}
 	}
 	LogTransfer("lfs.api.batch", res)
 
-	sendApiEvent(apiEventSuccess)
 	if res.StatusCode != 200 {
 		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
 	}
@@ -231,7 +212,6 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 
 	stat, err := os.Stat(oidPath)
 	if err != nil {
-		sendApiEvent(apiEventFail)
 		return nil, Error(err)
 	}
 
@@ -242,13 +222,11 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		sendApiEvent(apiEventFail)
 		return nil, Error(err)
 	}
 
 	req, creds, err := newApiRequest("POST", oid)
 	if err != nil {
-		sendApiEvent(apiEventFail)
 		return nil, Error(err)
 	}
 
@@ -260,12 +238,9 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
-		sendApiEvent(apiEventFail)
 		return nil, wErr
 	}
 	LogTransfer("lfs.api.upload", res)
-
-	sendApiEvent(apiEventSuccess)
 
 	if res.StatusCode == 200 {
 		return nil, nil
@@ -402,7 +377,7 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 			redirectTo = locurl.String()
 		}
 
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo)
+		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo, nil)
 		if err != nil {
 			return res, Errorf(err, err.Error())
 		}
@@ -570,25 +545,23 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 		return nil, nil, err
 	}
 
-	req, creds, err := newClientRequest(method, u.String())
+	req, creds, err := newClientRequest(method, u.String(), res.Header)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	req.Header.Set("Accept", mediaType)
-	if res.Header != nil {
-		for key, value := range res.Header {
-			req.Header.Set(key, value)
-		}
-	}
-
 	return req, creds, nil
 }
 
-func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+func newClientRequest(method, rawurl string, header map[string]string) (*http.Request, Creds, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	for key, value := range header {
+		req.Header.Set(key, value)
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
@@ -715,13 +688,6 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 		} else {
 			err.Set(contextKey, head.Get(key))
 		}
-	}
-}
-
-func sendApiEvent(event int) {
-	select {
-	case apiEvent <- event:
-	default:
 	}
 }
 

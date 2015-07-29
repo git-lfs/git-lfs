@@ -32,13 +32,19 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers))
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
+	}
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s", pointer.Name)
 			continue
 		}
+
 		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
@@ -56,7 +62,8 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 }
 
 func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids))
+	uploads := []*lfs.Uploadable{}
+	totalSize := int64(0)
 
 	for i, oid := range oids {
 		if pushDryRun {
@@ -73,6 +80,12 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 				Exit(wErr.Error())
 			}
 		}
+		uploads = append(uploads, u)
+	}
+
+	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids), totalSize)
+
+	for _, u := range uploads {
 		uploadQueue.Add(u)
 	}
 
@@ -160,7 +173,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !pushDryRun {
-		uploadQueue.Process()
+		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || err.Panic {
 				LoggedError(err.Err, err.Error())
