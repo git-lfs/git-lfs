@@ -7,6 +7,5 @@ import (
 
 func main() {
 	commands.Run()
-
 	lfs.LogHttpStats()
 }
