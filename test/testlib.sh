@@ -74,7 +74,14 @@ begin_test () {
     exec 1>"$out" 2>"$err"
 
     # reset global git config
-    cp "$HOME/.gitconfig-backup" "$HOME/.gitconfig"
+    HOME="$TRASHDIR/home"
+    rm -rf "$TRASHDIR/home"
+    mkdir "$HOME"
+    cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
+
+    if [ "$OSXKEYFILE" ]; then
+      ln -s "$TESTHOME/Library" "$HOME"
+    fi
 
     # allow the subshell to exit non-zero without exiting this process
     set -x +e
