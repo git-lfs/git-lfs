@@ -84,7 +84,7 @@ func (p *ProgressMeter) Finish() {
 	close(p.finished)
 	p.update()
 	p.logger.Close()
-	if p.show {
+	if p.show && p.estimatedBytes > 0 {
 		fmt.Fprintf(os.Stdout, "\n")
 	}
 }
@@ -116,7 +116,7 @@ func (p *ProgressMeter) writer() {
 }
 
 func (p *ProgressMeter) update() {
-	if !p.show {
+	if !p.show || p.estimatedFiles == 0 {
 		return
 	}
 

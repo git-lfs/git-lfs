@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 . "test/testlib.sh"
 
@@ -17,7 +17,8 @@ begin_test "pre-push"
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
-  grep "(0 of 0 files)" push.log
+  # no output if nothing to do
+  [ "$(du -k push.log | cut -f 1)" == "0" ]
 
   git lfs track "*.dat"
   echo "hi" > hi.dat

@@ -10,8 +10,7 @@ git-lfs-fetch(1) -- Download all Git LFS files for a given ref
 Download any Git LFS objects for a given ref. If no ref is given,
 the currently checked out ref will be used.
 
-If the given ref is the same as the currently checked out ref, the
-files will be written to the working directory.
+This does not update the working copy.
 
 ## EXAMPLES
 
@@ -26,6 +25,10 @@ files will be written to the working directory.
 * Fetch the LFS objects for a commit
 
   `git lfs fetch e445b45c1c9c6282614f201b62778e4c0688b5c8`
+
+## SEE ALSO
+
+git-lfs-checkout(1), git-lfs-pull(1).
 
 Part of the git-lfs(1) suite.
 

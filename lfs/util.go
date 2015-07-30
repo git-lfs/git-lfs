@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 type CallbackReader struct {
@@ -13,6 +15,18 @@ type CallbackReader struct {
 	ReadSize  int64
 	io.Reader
 }
+
+type Platform int
+
+const (
+	PlatformWindows      = Platform(iota)
+	PlatformLinux        = Platform(iota)
+	PlatformOSX          = Platform(iota)
+	PlatformOther        = Platform(iota) // most likely a *nix variant e.g. freebsd
+	PlatformUndetermined = Platform(iota)
+)
+
+var currentPlatform = PlatformUndetermined
 
 type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
 
@@ -85,4 +99,164 @@ func wrapProgressError(err error, event, filename string) error {
 	}
 
 	return nil
+}
+
+// Return whether a given filename passes the include / exclude path filters
+// Only paths that are in includePaths and outside excludePaths are passed
+// If includePaths is empty that filter always passes and the same with excludePaths
+// Both path lists support wildcard matches
+func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePaths []string) bool {
+	if len(includePaths) == 0 && len(excludePaths) == 0 {
+		return true
+	}
+
+	// For Win32, because git reports files with / separators
+	cleanfilename := filepath.Clean(filename)
+	if len(includePaths) > 0 {
+		matched := false
+		for _, inc := range includePaths {
+			matched, _ = filepath.Match(inc, filename)
+			if !matched && IsWindows() {
+				// Also Win32 match
+				matched, _ = filepath.Match(inc, cleanfilename)
+			}
+			if !matched {
+				// Also support matching a parent directory without a wildcard
+				if strings.HasPrefix(cleanfilename, inc+string(filepath.Separator)) {
+					matched = true
+				}
+			}
+			if matched {
+				break
+			}
+
+		}
+		if !matched {
+			return false
+		}
+	}
+
+	if len(excludePaths) > 0 {
+		for _, ex := range excludePaths {
+			matched, _ := filepath.Match(ex, filename)
+			if !matched && IsWindows() {
+				// Also Win32 match
+				matched, _ = filepath.Match(ex, cleanfilename)
+			}
+			if matched {
+				return false
+			}
+			// Also support matching a parent directory without a wildcard
+			if strings.HasPrefix(cleanfilename, ex+string(filepath.Separator)) {
+				return false
+			}
+
+		}
+	}
+
+	return true
+}
+
+func GetPlatform() Platform {
+	if currentPlatform == PlatformUndetermined {
+		switch runtime.GOOS {
+		case "windows":
+			currentPlatform = PlatformWindows
+		case "linux":
+			currentPlatform = PlatformLinux
+		case "darwin":
+			currentPlatform = PlatformOSX
+		default:
+			currentPlatform = PlatformOther
+		}
+	}
+	return currentPlatform
+}
+
+// Convert filenames expressed relative to the root of the repo relative to the
+// current working dir. Useful when needing to calling git with results from a rooted command,
+// but the user is in a subdir of their repo
+// Pass in a channel which you will fill with relative files & receive a channel which will get results
+func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get working dir: %v", err)
+	}
+
+	// Early-out if working dir is root dir, same result
+	passthrough := false
+	if LocalWorkingDir == wd {
+		passthrough = true
+	}
+
+	outchan := make(chan string, 1)
+
+	go func() {
+		for f := range repochan {
+			if passthrough {
+				outchan <- f
+				continue
+			}
+			abs := filepath.Join(LocalWorkingDir, f)
+			rel, err := filepath.Rel(wd, abs)
+			if err != nil {
+				// Use absolute file instead
+				outchan <- abs
+			} else {
+				outchan <- rel
+			}
+		}
+		close(outchan)
+	}()
+
+	return outchan, nil
+}
+
+// Convert filenames expressed relative to the current directory to be
+// relative to the repo root. Useful when calling git with arguments that requires them
+// to be rooted but the user is in a subdir of their repo & expects to use relative args
+// Pass in a channel which you will fill with relative files & receive a channel which will get results
+func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error) {
+	curdir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
+	}
+
+	// Early-out if working dir is root dir, same result
+	passthrough := false
+	if LocalWorkingDir == curdir {
+		passthrough = true
+	}
+
+	outchan := make(chan string, 1)
+	go func() {
+		for p := range cwdchan {
+			if passthrough {
+				outchan <- p
+				continue
+			}
+			var abs string
+			if filepath.IsAbs(p) {
+				abs = p
+			} else {
+				abs = filepath.Join(curdir, p)
+			}
+			reltoroot, err := filepath.Rel(LocalWorkingDir, abs)
+			if err != nil {
+				// Can't do this, use absolute as best fallback
+				outchan <- abs
+			} else {
+				outchan <- reltoroot
+			}
+		}
+		close(outchan)
+	}()
+
+	return outchan, nil
+
+}
+
+// Are we running on Windows? Need to handle some extra path shenanigans
+func IsWindows() bool {
+	return GetPlatform() == PlatformWindows
 }

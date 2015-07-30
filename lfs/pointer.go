@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,6 +28,8 @@ size %d
 `
 	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
 	pointerKeys = []string{"version", "oid", "size"}
+
+	NotAPointerError = errors.New("Not a valid Git LFS pointer file.")
 )
 
 type Pointer struct {
@@ -56,6 +59,22 @@ func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 	return writer.Write([]byte(pointer.Encoded()))
 }
 
+func DecodePointerFromFile(file string) (*Pointer, error) {
+	// Check size before reading
+	stat, err := os.Stat(file)
+	if err != nil {
+		return nil, err
+	}
+	if stat.Size() > blobSizeCutoff {
+		return nil, NotAPointerError
+	}
+	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return DecodePointer(f)
+}
 func DecodePointer(reader io.Reader) (*Pointer, error) {
 	_, p, err := DecodeFrom(reader)
 	return p, err
@@ -130,7 +149,7 @@ func decodeKVData(data []byte) (map[string]string, error) {
 	m := make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		return m, fmt.Errorf("Not a valid Git LFS pointer file.")
+		return m, NotAPointerError
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))

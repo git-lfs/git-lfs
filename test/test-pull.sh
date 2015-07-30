@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-begin_test "fetch"
+begin_test "pull"
 (
   set -e
 
@@ -40,18 +40,6 @@ begin_test "fetch"
 
   assert_server_object "$reponame" "$contents_oid"
 
-  # Add a file in a different branch
-  git checkout -b newbranch
-  b="b"
-  b_oid=$(printf "$b" | shasum -a 256 | cut -f 1 -d " ")
-  printf "$b" > b.dat
-  git add b.dat
-  git commit -m "add b.dat"
-  assert_pointer "newbranch" "b.dat" "$b_oid" 1
-
-  git push origin newbranch
-  assert_server_object "$reponame" "$b_oid"
-
   # change to the clone's working directory
   cd ../clone
 
@@ -63,16 +51,16 @@ begin_test "fetch"
 
 
   # Remove the working directory and lfs files
+  rm a.dat
   rm -rf .git/lfs/objects
-
-  git lfs fetch 2>&1 | grep "(1 of 1 files)"
-
+  git lfs pull 2>&1 | grep "(1 of 1 files)"
+  [ "a" = "$(cat a.dat)" ]
   assert_pointer "master" "a.dat" "$contents_oid" 1
 
-  git checkout newbranch
-  git checkout master
-  rm -rf .git/lfs/objects
+  # Remove just the working directory
+  rm a.dat
+  git lfs pull
+  [ "a" = "$(cat a.dat)" ]
 
-  git lfs fetch newbranch 2>&1 | grep "(2 of 2 files)"
 )
 end_test

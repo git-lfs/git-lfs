@@ -1,9 +1,6 @@
 package commands
 
 import (
-	"os"
-	"os/exec"
-	"sync"
 	"time"
 
 	"github.com/github/git-lfs/git"
@@ -15,7 +12,7 @@ import (
 var (
 	fetchCmd = &cobra.Command{
 		Use:   "fetch",
-		Short: "fetch",
+		Short: "Downloads LFS files",
 		Run:   fetchCommand,
 	}
 )
@@ -33,94 +30,88 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	fetchRef(ref)
+}
+
+func init() {
+	RootCmd.AddCommand(fetchCmd)
+}
+
+func fetchRefToChan(ref string) chan *lfs.WrappedPointer {
+	c := make(chan *lfs.WrappedPointer)
 	pointers, err := lfs.ScanRefs(ref, "", nil)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
+	go fetchAndReportToChan(pointers, c)
+
+	return c
+}
+
+// Fetch all binaries for a given ref (that we don't have already)
+func fetchRef(ref string) {
+	pointers, err := lfs.ScanRefs(ref, "", nil)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
+	}
+	fetchPointers(pointers)
+}
+
+func fetchPointers(pointers []*lfs.WrappedPointer) {
+	fetchAndReportToChan(pointers, nil)
+}
+
+// Fetch and report completion of each OID to a channel (optional, pass nil to skip)
+func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.WrappedPointer) {
+
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
-
 	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
 
 	for _, p := range pointers {
-		q.Add(lfs.NewDownloadable(p))
+		// Only add to download queue if local file is not the right size already
+		// This avoids previous case of over-reporting a requirement for files we already have
+		// which would only be skipped by PointerSmudgeObject later
+		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+			q.Add(lfs.NewDownloadable(p))
+		} else {
+			// If we already have it, report it to chan immediately to support pull/checkout
+			if out != nil {
+				out <- p
+			}
+
+		}
 	}
 
-	target, err := git.ResolveRef(ref)
-	if err != nil {
-		Panic(err, "Could not resolve git ref")
-	}
-
-	current, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not fetch the current git ref")
-	}
-
-	var wait sync.WaitGroup
-	wait.Add(1)
-
-	if target == current {
-		// We just downloaded the files for the current ref, we can copy them into
-		// the working directory and update the git index. We're doing this in a
-		// goroutine so they can be copied as they come in, for efficiency.
-		watch := q.Watch()
+	if out != nil {
+		dlwatch := q.Watch()
 
 		go func() {
-			files := make(map[string]*lfs.WrappedPointer, len(pointers))
+			// fetch only reports single OID, but OID *might* be referenced by multiple
+			// WrappedPointers if same content is at multiple paths, so map oid->slice
+			oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
 			for _, pointer := range pointers {
-				files[pointer.Oid] = pointer
+				plist := oidToPointers[pointer.Oid]
+				oidToPointers[pointer.Oid] = append(plist, pointer)
 			}
 
-			// Fire up the update-index command
-			cmd := exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-			stdin, err := cmd.StdinPipe()
-			if err != nil {
-				Panic(err, "Could not update the index")
-			}
-
-			if err := cmd.Start(); err != nil {
-				Panic(err, "Could not update the index")
-			}
-
-			// As files come in, write them to the wd and update the index
-			for oid := range watch {
-				pointer, ok := files[oid]
+			for oid := range dlwatch {
+				plist, ok := oidToPointers[oid]
 				if !ok {
 					continue
 				}
-
-				file, err := os.Create(pointer.Name)
-				if err != nil {
-					Panic(err, "Could not create working directory file")
+				for _, p := range plist {
+					out <- p
 				}
-
-				if err := lfs.PointerSmudge(file, pointer.Pointer, pointer.Name, nil); err != nil {
-					Panic(err, "Could not write working directory file")
-				}
-				file.Close()
-
-				stdin.Write([]byte(pointer.Name + "\n"))
 			}
-
-			stdin.Close()
-			if err := cmd.Wait(); err != nil {
-				Panic(err, "Error updating the git index")
-			}
-			wait.Done()
+			close(out)
 		}()
-	} else {
-		wait.Done()
-	}
 
+	}
 	processQueue := time.Now()
 	q.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
-	wait.Wait()
-}
-
-func init() {
-	RootCmd.AddCommand(fetchCmd)
 }
