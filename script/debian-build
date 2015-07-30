@@ -1,8 +1,9 @@
-#!/bin/bash -eux
+#!/usr/bin/env bash
 #
 # This script works with Debian 8 and Ubuntu 14.04 (LTS)
 # Go seems to build poorly on Ubuntu 12.04 (LTS)
 
+set -eux
 trap 'echo FAIL' ERR
 
 apt-get -y update

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Including in script/integration and every test/test-*.sh file.
 
 set -e
@@ -32,9 +32,17 @@ LFS_CONFIG="$REMOTEDIR/config"
 # section in test/README.md
 LFS_URL_FILE="$REMOTEDIR/url"
 
-HOME="$REMOTEDIR/home"
+# the fake home dir used for the initial setup
+TESTHOME="$REMOTEDIR/home"
+
 GIT_CONFIG_NOSYSTEM=1
 
+if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
+then
+  OSXKEYFILE="$TMPDIR/temp.keychain"
+fi
+
+mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
 . "test/testhelpers.sh"

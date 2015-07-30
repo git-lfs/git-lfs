@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 
 # Only set GOPATH on non-Windows platforms as Windows can't do the symlinking

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 deps=$(go list -f '{{join .Deps "\n"}}' . | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | grep -v "github.com/github/git-lfs")
 

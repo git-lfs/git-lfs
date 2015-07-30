@@ -1,7 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 . "test/testlib.sh"
-
 
 begin_test "update"
 (
