@@ -185,6 +185,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		if len(uploadQueue.Errors()) > 0 {
 			os.Exit(2)
 		}
+	} else {
+		uploadQueue.SuppressProgress()
 	}
 }
 
