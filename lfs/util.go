@@ -101,6 +101,12 @@ func wrapProgressError(err error, event, filename string) error {
 	return nil
 }
 
+var localDirSet = map[string]struct{}{
+	".":   {},
+	"./":  {},
+	".\\": {},
+}
+
 // Return whether a given filename passes the include / exclude path filters
 // Only paths that are in includePaths and outside excludePaths are passed
 // If includePaths is empty that filter always passes and the same with excludePaths
@@ -115,6 +121,11 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 	if len(includePaths) > 0 {
 		matched := false
 		for _, inc := range includePaths {
+			// Special case local dir, matches all (inc subpaths)
+			if _, local := localDirSet[inc]; local {
+				matched = true
+				break
+			}
 			matched, _ = filepath.Match(inc, filename)
 			if !matched && IsWindows() {
 				// Also Win32 match
@@ -138,6 +149,10 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 
 	if len(excludePaths) > 0 {
 		for _, ex := range excludePaths {
+			// Special case local dir, matches all (inc subpaths)
+			if _, local := localDirSet[ex]; local {
+				return false
+			}
 			matched, _ := filepath.Match(ex, filename)
 			if !matched && IsWindows() {
 				// Also Win32 match
