@@ -76,12 +76,11 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		totalSize += p.Size
 	}
 
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s", pointer.Name)
-			uploadQueue.SuppressProgress()
 			continue
 		}
 

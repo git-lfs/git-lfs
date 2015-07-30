@@ -27,12 +27,12 @@ type ProgressMeter struct {
 	finished          chan interface{}
 	logger            *progressLogger
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
-	show              bool
+	dryRun            bool
 }
 
 // NewProgressMeter creates a new ProgressMeter for the number and size of
 // files given.
-func NewProgressMeter(estFiles int, estBytes int64) *ProgressMeter {
+func NewProgressMeter(estFiles int, estBytes int64, dryRun bool) *ProgressMeter {
 	logger, err := newProgressLogger()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
@@ -45,7 +45,7 @@ func NewProgressMeter(estFiles int, estBytes int64) *ProgressMeter {
 		finished:       make(chan interface{}),
 		estimatedFiles: estFiles,
 		estimatedBytes: estBytes,
-		show:           true,
+		dryRun:         dryRun,
 	}
 
 	go pm.writer()
@@ -84,15 +84,9 @@ func (p *ProgressMeter) Finish() {
 	close(p.finished)
 	p.update()
 	p.logger.Close()
-	if p.show && p.estimatedBytes > 0 {
+	if !p.dryRun && p.estimatedBytes > 0 {
 		fmt.Fprintf(os.Stdout, "\n")
 	}
-}
-
-// Suppress prevents the progress meter from displaying any output to the
-// console.
-func (p *ProgressMeter) Suppress() {
-	p.show = false
 }
 
 func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
@@ -116,7 +110,7 @@ func (p *ProgressMeter) writer() {
 }
 
 func (p *ProgressMeter) update() {
-	if !p.show || p.estimatedFiles == 0 {
+	if p.dryRun || p.estimatedFiles == 0 {
 		return
 	}
 

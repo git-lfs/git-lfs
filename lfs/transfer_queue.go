@@ -38,13 +38,13 @@ type TransferQueue struct {
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(workers, files int, size int64) *TransferQueue {
+func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 	q := &TransferQueue{
-		meter:         NewProgressMeter(files, size),
+		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
-		workers:       workers,
+		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 	}
 
@@ -90,11 +90,6 @@ func (q *TransferQueue) Watch() chan string {
 	c := make(chan string, batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
-}
-
-// SuppressProgress turns off progress metering for the TransferQueue
-func (q *TransferQueue) SuppressProgress() {
-	q.meter.Suppress()
 }
 
 // individualApiRoutine processes the queue of transfers one at a time by making
