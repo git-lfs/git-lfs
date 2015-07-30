@@ -4,7 +4,6 @@ set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 SPEC=${CURDIR}/SPECS/git-lfs.spec
-VERSION=$(\grep '^const Version' "${CURDIR}/../lfs/lfs.go" | sed 's|const Version = "\([0-9.]*\)"|\1|')
 if [[ ${NODEPS:-0} == 0 ]]; then
   RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}")
 else
@@ -61,36 +60,6 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
     popd
   fi
 fi
-
-#Prep the SOURCES dir for git-lfs
-if [ "${BUILD_LOCAL:=0}" == "1" ]; then
-  echo "Zipping up current checkout of git-lfs..." >&6
-  
-  rm -rvf ${CURDIR}/tmptar
-  mkdir -p ${CURDIR}/tmptar/git-lfs-${VERSION}
-  pushd ${CURDIR}/..
-    #I started running out of space in the docker, so I needed to copy a little less waste
-    tar -c . --exclude tmptar --exclude repos | tar -x -C ${CURDIR}/tmptar/git-lfs-${VERSION}/
-  popd
-  pushd ${CURDIR}/tmptar/git-lfs-${VERSION}
-    git clean -xdf
-    rm -rvf .git
-  popd
-  pushd ${CURDIR}/tmptar
-    tar -zcf ${CURDIR}/SOURCES/git-lfs-${VERSION}.tar.gz git-lfs-${VERSION}
-  popd
-  rm -rvf ${CURDIR}/tmptar
-else
-  echo "Downloading git-lfs..." >&6
-  mkdir -p ${CURDIR}/SOURCES
-  pushd  ${CURDIR}/SOURCES
-    curl -L -o git-lfs-${VERSION}.tar.gz https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
-  popd
-fi
- 
-#TODO TASK 2
-#cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
-touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
 if ! which go; then
   echo "Installing go... one way or another" >&6
@@ -158,8 +127,41 @@ if ! which ronn; then
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
 fi
 
+pushd ${CURDIR}/..
+  #Yes, compile lfs before compiling lfs...
+  ./script/bootstrap
+  #Use the version output to grab the version number and short sha 
+  #(that yes, I could have gotten from git myself)
+  LFS_VERSION=$(./bin/git-lfs version | sed -r 's|.*/([0-9.]*).*|\1|')
+  sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
+  LFS_SHA=$(git rev-parse --short HEAD)
+  sed -i 's|\(^commit=*\).*|\1'"${LFS_VERSION}"'|' ./script/run
+popd
+
+#Prep the SOURCES dir for git-lfs
+echo "Zipping up current checkout of git-lfs..." >&6
+  
+rm -rvf ${CURDIR}/tmptar
+mkdir -p ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}
+pushd ${CURDIR}/..
+  #I started running out of space in the docker, so I needed to copy a little less waste
+  tar -c . --exclude tmptar --exclude repos | tar -x -C ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}/
+popd
+pushd ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}
+  git clean -xdf
+  rm -rvf .git
+popd
+pushd ${CURDIR}/tmptar
+  tar -zcf ${CURDIR}/SOURCES/git-lfs-${LFS_VERSION}.tar.gz git-lfs-${LFS_VERSION}
+popd
+rm -rvf ${CURDIR}/tmptar
+ 
+#TODO TASK 2
+#cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
+touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
+
+
 echo "Build git-lfs rpm..." >&6
-sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
 
 "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git-lfs.spec
 

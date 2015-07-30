@@ -14,7 +14,7 @@ RUN yum install -y epel-release && \
 
 #Set to master if you want the lastest, but IF there is a failure,
 #the docker will not build, so I decided to make a stable version the default
-ENV DOCKER_LFS_BUILD_VERSION=[{LFS_VERSION}]
+ENV DOCKER_LFS_BUILD_VERSION=[{DOCKER_LFS_BUILD_VERSION}]
 
 ADD https://github.com/github/git-lfs/archive/${DOCKER_LFS_BUILD_VERSION}.tar.gz /tmp/docker_setup/
 RUN cd /tmp/docker_setup/; \

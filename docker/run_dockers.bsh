@@ -7,11 +7,6 @@
 #
 # Special Environmet Variables
 #  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
-#  BUILD_LOCAL - Set to 1 (default) to use the current checkout version of
-#                git-lfs to build against. Else the released archived is
-#                downloaded and built against.
-#                Currently only works for RPMs. DEB always builds the current
-#                checkout version
 #  DOCKER_AUTOBUILD - Default 1. If set to 0, it will not build docker images 
 #                before running
 #  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
@@ -69,20 +64,13 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   fi
   #END TODO REMOVE
 
-  #If you do decide to use the same key for all, this makes it easier. Only 
-  #creates keys for git-lfs_* images, none of the others should be signing.
-  if [[ "${IMAGE_NAME}" == git-lfs_* ]] && [ -e ${CUR_DIR}/signing.key ] && \
-     [ ! -e ${CUR_DIR}/${IMAGE_NAME}.key ]; then
-    cp ${CUR_DIR}/signing.key ${CUR_DIR}/${IMAGE_NAME}.key || :
-  fi
-
   #Auto build docker unless DOCKER_AUTOBUILD=0
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
     ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
   fi
 
-  #It CAN'T be empty () with set -u...
-  OTHER_OPTIONS=("-it" "-e" "BUILD_LOCAL=${BUILD_LOCAL-1}")
+  #It CAN'T be empty () with set -u... So I put some defaults in here
+  OTHER_OPTIONS=("-it" "-e")
   
   if [ "${AUTO_REMOVE-1}" == "1" ]; then
     OTHER_OPTIONS+=("--rm")
