@@ -73,7 +73,7 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.Wrappe
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
-	q := lfs.NewDownloadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize, false)
+	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
 
 	for _, p := range pointers {
 		// Only add to download queue if local file is not the right size already

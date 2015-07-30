@@ -42,8 +42,8 @@ func (d *Downloadable) SetObject(o *objectResource) {
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
-func NewDownloadQueue(workers, files int, size int64, dryRun bool) *TransferQueue {
-	q := newTransferQueue(workers, files, size, dryRun)
+func NewDownloadQueue(files int, size int64, dryRun bool) *TransferQueue {
+	q := newTransferQueue(files, size, dryRun)
 	q.transferKind = "download"
 	return q
 }

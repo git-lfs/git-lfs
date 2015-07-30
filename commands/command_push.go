@@ -37,7 +37,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 		totalSize += p.Size
 	}
 
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize, pushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s", pointer.Name)
@@ -82,7 +82,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 		uploads = append(uploads, u)
 	}
 
-	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids), totalSize, pushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(oids), totalSize, pushDryRun)
 
 	for _, u := range uploads {
 		uploadQueue.Add(u)

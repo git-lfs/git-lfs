@@ -38,13 +38,13 @@ type TransferQueue struct {
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(workers, files int, size int64, dryRun bool) *TransferQueue {
+func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 	q := &TransferQueue{
 		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		errorc:        make(chan *WrappedError),
-		workers:       workers,
+		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 	}
 
