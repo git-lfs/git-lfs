@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Usage: . testlib.sh
 # Simple shell command language test library.
 #

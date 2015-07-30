@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #/ Usage: script/test          # run all tests
 #/        script/test <subdir> # run just a package's tests
 

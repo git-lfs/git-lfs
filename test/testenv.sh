@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Including in script/integration and every test/test-*.sh file.
 
 set -e

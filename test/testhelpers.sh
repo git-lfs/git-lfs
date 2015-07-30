@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # assert_pointer confirms that the pointer in the repository for $path in the
 # given $ref matches the given $oid and $size.

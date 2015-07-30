@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 . "test/testlib.sh"
 reponame="submodule-test-repo"

@@ -97,7 +97,7 @@ Tests live in this `./test` directory, and must have a unique name like:
 `test/test-happy-path.sh` for an example.
 
 ```
-#!/bin/sh
+#!/usr/bin/env bash
 
 . "test/testlib.sh"
 
