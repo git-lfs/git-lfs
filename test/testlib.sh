@@ -37,14 +37,6 @@ atexit () {
     exit 1
   fi
 
-  greptests=`grep 'begin_test "' "$fullfile" -c`
-  if [ "$tests" != "$greptests" ]; then
-    echo
-    echo "Expected to run these $greptests test(s) in $fullfile, but only ran $tests"
-    grep 'begin_test "' "$fullfile"
-    exit 1
-  fi
-
   exit 0
 }
 
