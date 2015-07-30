@@ -71,8 +71,8 @@ func (u *Uploadable) SetObject(o *objectResource) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(workers, files int, size int64) *TransferQueue {
-	q := newTransferQueue(workers, files, size)
+func NewUploadQueue(workers, files int, size int64, dryRun bool) *TransferQueue {
+	q := newTransferQueue(workers, files, size, dryRun)
 	q.transferKind = "upload"
 	return q
 }
