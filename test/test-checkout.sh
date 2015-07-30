@@ -70,10 +70,24 @@ begin_test "checkout"
   git lfs checkout nested.dat
   [ "$contents" = "$(cat nested.dat)" ]
   [ ! -f ../folder2/nested.dat ]
+  # test '.' in current dir
+  rm nested.dat
+  git lfs checkout .
+  [ "$contents" = "$(cat nested.dat)" ]  
   popd
 
   # test folder param
   git lfs checkout folder2
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+
+  # test '.' in current dir
+  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  git lfs checkout .
+  [ "$contents" = "$(cat file1.dat)" ]
+  [ "$contents" = "$(cat file2.dat)" ]
+  [ "$contents" = "$(cat file3.dat)" ]
+  [ "$contents" = "$(cat folder1/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+
 )
 end_test

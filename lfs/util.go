@@ -115,6 +115,11 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 	if len(includePaths) > 0 {
 		matched := false
 		for _, inc := range includePaths {
+			// Special case local dir, matches all (inc subpaths)
+			if inc == "." || inc == "./" || inc == ".\\" {
+				matched = true
+				break
+			}
 			matched, _ = filepath.Match(inc, filename)
 			if !matched && IsWindows() {
 				// Also Win32 match
@@ -138,6 +143,10 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 
 	if len(excludePaths) > 0 {
 		for _, ex := range excludePaths {
+			// Special case local dir, matches all (inc subpaths)
+			if ex == "." || ex == "./" || ex == ".\\" {
+				return false
+			}
 			matched, _ := filepath.Match(ex, filename)
 			if !matched && IsWindows() {
 				// Also Win32 match
