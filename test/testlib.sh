@@ -20,6 +20,8 @@
 # Copyright (c) 2011-13 by Ryan Tomayko <http://tomayko.com>
 # License: MIT
 
+fullfile="$(pwd)/$0"
+
 . "test/testenv.sh"
 set -e
 
@@ -33,9 +35,17 @@ atexit () {
 
   if [ $failures -gt 0 ]; then
     exit 1
-  else
-    exit 0
   fi
+
+  greptests=`grep 'begin_test "' "$fullfile" -c`
+  if [ "$tests" != "$greptests" ]; then
+    echo
+    echo "Expected to run these $greptests test(s) in $fullfile, but only ran $tests"
+    grep 'begin_test "' "$fullfile"
+    exit 1
+  fi
+
+  exit 0
 }
 
 # create the trash dir
