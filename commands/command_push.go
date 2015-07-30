@@ -38,6 +38,9 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	}
 
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(pointers), totalSize)
+	if pushDryRun {
+		uploadQueue.SuppressProgress()
+	}
 
 	for i, pointer := range pointers {
 		if pushDryRun {
@@ -84,6 +87,9 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 	}
 
 	uploadQueue := lfs.NewUploadQueue(lfs.Config.ConcurrentTransfers(), len(oids), totalSize)
+	if pushDryRun {
+		uploadQueue.SuppressProgress()
+	}
 
 	for _, u := range uploads {
 		uploadQueue.Add(u)
@@ -185,8 +191,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		if len(uploadQueue.Errors()) > 0 {
 			os.Exit(2)
 		}
-	} else {
-		uploadQueue.SuppressProgress()
 	}
 }
 
