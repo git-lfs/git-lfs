@@ -87,8 +87,10 @@ else
     curl -L -o git-lfs-${VERSION}.tar.gz https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
   popd
 fi
-  
-cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
+ 
+#TODO TASK 2
+#cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
+touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
 if ! which go; then
   echo "Installing go... one way or another" >&6

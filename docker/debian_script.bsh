@@ -45,3 +45,5 @@ for DSC in $(ls /tmp/docker_run/*.changes); do
   reprepro -Vb "${REPO_DIR}" include ${REPO_CODENAME} "${DSC}"
   mv "${DSC}" "${DSC}.installed"
 done
+
+gpg --export /repo/RPM-GPG-KEY-GITLFS

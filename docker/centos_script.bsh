@@ -29,3 +29,5 @@ fi
 
 createrepo ${REPO_DIR}/SRPMS
 createrepo ${REPO_DIR}/RPMS
+
+gpg --export /repo/RPM-GPG-KEY-GITLFS

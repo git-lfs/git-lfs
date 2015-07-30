@@ -11,7 +11,7 @@
 
 ##Using the Dockers##
 
-All these commands need to either be run as root OR as a user in the docker group
+All these commands need to either be run as root OR as a user with docker permissions
 Adding your username to the docker group is probably the easiest
 
 ### Running Dockers ###
@@ -65,7 +65,7 @@ passed to `build_docker.bsh`.
 
 LFS_VERSION - The version of LFS used to bootstrap the environment. This does 
 not need to be bumped every version (but can be). Currently set to track git-lfs.go 
-version.
+version. This can be a sha
 
 
 
@@ -252,7 +252,7 @@ named
 
     ./docker/git-lfs_{OS NAME}_{OS VERSION #}
     
-where **{OS NAME}** and **{OS VERSION #}** should not contain underscores (`_`).
+where **{OS NAME}** and **{OS VERSION #}** should not contain underscores (\_).
 Any files that needs to be added to the docker image can be dropped in the 
 `./docker` directory, since that is the context root they are built against 
 (not the directory containing the Dockerfile like most dockers)

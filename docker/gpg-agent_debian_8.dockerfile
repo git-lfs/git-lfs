@@ -10,6 +10,6 @@ apt-get install -y gnupg-agent gnupg2
 
 VOLUME /tmp/gpg-agent
 
-COPY .start_gpg-agent.bsh signing.key /tmp/
+COPY .start_gpg-agent.bsh *.key /tmp/
 
 CMD /tmp/.start_gpg-agent.bsh
