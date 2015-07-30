@@ -73,6 +73,9 @@ begin_test "fetch"
   git checkout master
   rm -rf .git/lfs/objects
 
-  git lfs fetch newbranch 2>&1 | grep "(2 of 2 files)"
+  git lfs fetch master newbranch
+  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "newbranch" "b.dat" "$b_oid" 1
+  
 )
 end_test

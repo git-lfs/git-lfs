@@ -3,11 +3,11 @@ git-lfs-fetch(1) -- Download all Git LFS files for a given ref
 
 ## SYNOPSIS
 
-`git lfs fetch` [<ref>]
+`git lfs fetch` [<ref>...]
 
 ## DESCRIPTION
 
-Download any Git LFS objects for a given ref. If no ref is given,
+Download any Git LFS objects for the given refs. If no refs are given,
 the currently checked out ref will be used.
 
 This does not update the working copy.
@@ -22,9 +22,9 @@ This does not update the working copy.
 
   `git lfs fetch mybranch`
 
-* Fetch the LFS objects for a commit
+* Fetch the LFS objects for 2 branches and a commit
 
-  `git lfs fetch e445b45c1c9c6282614f201b62778e4c0688b5c8`
+  `git lfs fetch master mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
 
 ## SEE ALSO
 
