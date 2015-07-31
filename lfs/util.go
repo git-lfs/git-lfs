@@ -275,3 +275,36 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 func IsWindows() bool {
 	return GetPlatform() == PlatformWindows
 }
+
+// Determine if a file/dir exists, returns IsDir() results too
+func FileOrDirExists(path string) (exists bool, isDir bool) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false, false
+	} else {
+		return true, fi.IsDir()
+	}
+}
+
+// Determine if a file (NOT dir) exists
+func FileExists(path string) bool {
+	ret, isDir := FileOrDirExists(path)
+	return ret && !isDir
+}
+
+// Determine if a dir (NOT file) exists
+func DirExists(path string) bool {
+	ret, isDir := FileOrDirExists(path)
+	return ret && isDir
+}
+
+// Determine if a file exists and is of a specific size
+func FileExistsOfSize(path string, sz int64) bool {
+	fi, err := os.Stat(path)
+
+	if err != nil {
+		return false
+	}
+
+	return !fi.IsDir() && fi.Size() == sz
+}

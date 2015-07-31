@@ -64,11 +64,7 @@ func LocalMediaPath(sha string) (string, error) {
 
 func ObjectExistsOfSize(sha string, size int64) bool {
 	path := localMediaPathNoCreate(sha)
-	stat, err := os.Stat(path)
-	if err == nil && size == stat.Size() {
-		return true
-	}
-	return false
+	return FileExistsOfSize(path, size)
 }
 
 func Environ() []string {
@@ -153,7 +149,7 @@ func resolveGitDir() (string, string, error) {
 	}
 
 	if workTree != "" {
-		return processWorkTree(gitDirR, workTree)
+		return processWorkTreeVar(gitDirR, workTree)
 	}
 
 	return workTreeR, gitDirR, nil
@@ -161,7 +157,7 @@ func resolveGitDir() (string, string, error) {
 
 func processGitDirVar(gitDir, workTree string) (string, string, error) {
 	if workTree != "" {
-		return processWorkTree(gitDir, workTree)
+		return processWorkTreeVar(gitDir, workTree)
 	}
 
 	// See `core.worktree` in `man git-config`:
@@ -177,7 +173,7 @@ func processGitDirVar(gitDir, workTree string) (string, string, error) {
 	return wd, gitDir, nil
 }
 
-func processWorkTree(gitDir, workTree string) (string, string, error) {
+func processWorkTreeVar(gitDir, workTree string) (string, string, error) {
 	// See `core.worktree` in `man git-config`:
 	// “The value [of core.worktree, GIT_WORK_TREE, or --work-tree] can be an absolute path
 	// or relative to the path to the .git directory, which is either specified
@@ -234,37 +230,43 @@ func resolveDotGitFile(file string) (string, string, error) {
 }
 
 func processDotGitFile(file string) (string, error) {
-	f, err := os.Open(file)
+	return processGitRedirectFile(file, gitPtrPrefix)
+}
+
+func processGitRedirectFile(file, prefix string) (string, error) {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
 
-	data := make([]byte, 512)
-	n, err := f.Read(data)
-	if err != nil {
-		return "", err
+	contents := string(data)
+	var dir string
+	if len(prefix) > 0 {
+		if !strings.HasPrefix(contents, prefix) {
+			// Prefix required & not found
+			return "", nil
+		}
+		dir = strings.TrimSpace(contents[len(prefix):])
+	} else {
+		dir = strings.TrimSpace(contents)
 	}
 
-	contents := string(data[0:n])
-
-	if !strings.HasPrefix(contents, gitPtrPrefix) {
-		// The `.git` file has no entry telling us about gitdir.
-		return "", nil
+	if !filepath.IsAbs(dir) {
+		// The .git file contains a relative path.
+		// Create an absolute path based on the directory the .git file is located in.
+		dir = filepath.Join(filepath.Dir(file), dir)
 	}
 
-	dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
-
-	if filepath.IsAbs(dir) {
-		// The .git file contains an absolute path.
-		return dir, nil
+	// Finally, check the contents of dir; if it contains a "commondir" file and
+	// not an "objects" dir, then this is probably a worktree link (see man git-worktree)
+	// The commondir file points to the actual location
+	commondirpath := filepath.Join(dir, "commondir")
+	if FileExists(commondirpath) && !DirExists(filepath.Join(dir, "objects")) {
+		// no git-dir: prefix in commondir
+		return processGitRedirectFile(commondirpath, "")
 	}
 
-	// The .git file contains a relative path.
-	// Create an absolute path based on the directory the .git file is located in.
-	absDir := filepath.Join(filepath.Dir(file), dir)
-
-	return absDir, nil
+	return dir, nil
 }
 
 const (
