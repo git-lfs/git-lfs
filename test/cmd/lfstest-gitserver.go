@@ -81,9 +81,9 @@ func main() {
 }
 
 type lfsObject struct {
-	Oid   string             `json:"oid,omitempty"`
-	Size  int64              `json:"size,omitempty"`
-	Links map[string]lfsLink `json:"_links,omitempty"`
+	Oid     string             `json:"oid,omitempty"`
+	Size    int64              `json:"size,omitempty"`
+	Actions map[string]lfsLink `json:"actions,omitempty"`
 }
 
 type lfsLink struct {
@@ -140,7 +140,7 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	res := &lfsObject{
 		Oid:  obj.Oid,
 		Size: obj.Size,
-		Links: map[string]lfsLink{
+		Actions: map[string]lfsLink{
 			"upload": lfsLink{
 				Href:   lfsUrl(repo, obj.Oid),
 				Header: map[string]string{},
@@ -149,7 +149,7 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	}
 
 	if testingChunkedTransferEncoding(r) {
-		res.Links["upload"].Header["Transfer-Encoding"] = "chunked"
+		res.Actions["upload"].Header["Transfer-Encoding"] = "chunked"
 	}
 
 	by, err := json.Marshal(res)
@@ -177,7 +177,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	obj := &lfsObject{
 		Oid:  oid,
 		Size: int64(len(by)),
-		Links: map[string]lfsLink{
+		Actions: map[string]lfsLink{
 			"download": lfsLink{
 				Href: lfsUrl(repo, oid),
 			},
@@ -227,7 +227,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
-			Links: map[string]lfsLink{
+			Actions: map[string]lfsLink{
 				"upload": lfsLink{
 					Href:   lfsUrl(repo, obj.Oid),
 					Header: map[string]string{},
@@ -236,7 +236,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 
 		if testingChunked {
-			o.Links["upload"].Header["Transfer-Encoding"] = "chunked"
+			o.Actions["upload"].Header["Transfer-Encoding"] = "chunked"
 		}
 
 		res = append(res, o)

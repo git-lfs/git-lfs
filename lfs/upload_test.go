@@ -66,7 +66,7 @@ func TestExistingUpload(t *testing.T) {
 		obj := &objectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -202,7 +202,7 @@ func TestUploadWithRedirect(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -296,7 +296,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		obj := &objectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -498,7 +498,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		obj := &objectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -680,7 +680,7 @@ func TestUploadStorageError(t *testing.T) {
 		obj := &objectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -796,7 +796,7 @@ func TestUploadVerifyError(t *testing.T) {
 		obj := &objectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
