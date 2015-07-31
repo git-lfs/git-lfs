@@ -6,6 +6,7 @@
 compare_version $(git version | cut -d" " -f3) "2.5.0"
 if [[ $? == $VERSION_LOWER ]]; then
   echo "Skipping git worktree tests since git version < 2.5.0"
+  exit
 fi
 
 begin_test "git worktree"
