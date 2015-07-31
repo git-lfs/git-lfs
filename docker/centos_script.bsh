@@ -48,19 +48,22 @@ if [ "${REPO_HOSTNAME-}" != "" ]; then
   sed -r -i 's/(^baseurl=https?:\/\/)[^/]*/\1'"${REPO_HOSTNAME}"'/' ./rpm/SOURCES/git-lfs.repo
 fi
 
+if [ -s /tmp/*.key ]; then
+  gpg --allow-secret-key-import --import /tmp/*.key || :
+  gpg -a --export > /repo/RPM-GPG-KEY-GITLFS
+  cp /repo/RPM-GPG-KEY-GITLFS ${GIT_LFS_BUILD_DIR}/rpm/SOURCES
+fi
+
 rpmbuild --define "dist ${RPM_DIST}" --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm" -ba ${GIT_LFS_BUILD_DIR}/rpm/SPECS/git-lfs-repo-release.spec
 
 rsync -ra ${GIT_LFS_BUILD_DIR}/rpm/{SRPMS,RPMS} ${REPO_DIR}
 
 if [ -s /tmp/*.key ]; then
-  gpg --allow-secret-key-import --import /tmp/*.key || :
   find ${REPO_DIR} -name \*.rpm | xargs /tmp/rpm_sign.exp
 fi
 
 createrepo ${REPO_DIR}/SRPMS
 createrepo ${REPO_DIR}/RPMS
-
-gpg --export /repo/RPM-GPG-KEY-GITLFS
 
 if [ "${FINAL_UID-}:${FINAL_GID-}" != ":" ]; then
   chown ${FINAL_UID-}:${FINAL_GID-} -R /repo

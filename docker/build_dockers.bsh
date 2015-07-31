@@ -5,7 +5,8 @@
 #  ./build_dockers.bsh lfs_centos_5 lfs_centos_7 - Build only CentOS 5 & 7 image
 #
 # Special Environment Variables
-#  DOCKER_LFS_BUILD_VERSION
+#  DOCKER_LFS_BUILD_VERSION - tag or sha to build envirnment off of. Important 
+#                             in CentOS
 set -eu
 
 CUR_DIR=$(dirname "${BASH_SOURCE[0]}")

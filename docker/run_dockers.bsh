@@ -56,23 +56,13 @@ mkdir -p "${PACKAGE_DIR}"
 for DOCKER_FILE in "${IMAGES[@]}"; do
   split_image_name "${DOCKER_FILE}" #set IMAGE_NAME and IMAGE_INFO
 
-  #TODO REMOVE THIS AFTER THE REAL git-lfs-repo packages
-  if [ "${IMAGE_INFO[1]}" == "debian" ]; then
-    if [ "${IMAGE_INFO[2]}" == "7" ]; then
-      echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/7 wheezy main" > ${CUR_DIR}/git-lfs-main_7.list
-    elif [ "${IMAGE_INFO[2]}" == "8" ]; then
-      echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main" > ${CUR_DIR}/git-lfs-main_8.list
-    fi
-  fi
-  #END TODO REMOVE
-
   #Auto build docker unless DOCKER_AUTOBUILD=0
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
     ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
   fi
 
   #It CAN'T be empty () with set -u... So I put some defaults in here
-  OTHER_OPTIONS=("-it" "-e")
+  OTHER_OPTIONS=("-it")
   
   if [ "${AUTO_REMOVE-1}" == "1" ]; then
     OTHER_OPTIONS+=("--rm")

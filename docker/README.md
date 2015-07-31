@@ -12,7 +12,8 @@
 ##Using the Dockers##
 
 All these commands need to either be run as root OR as a user with docker permissions
-Adding your username to the docker group is probably the easiest
+Adding your username to the docker group (or setting up boot2docker environment) 
+is probably the easiest.
 
 ### Running Dockers ###
 
@@ -22,11 +23,11 @@ supplied to make this all easy. Simply run
 
     ./docker/run_docker.bsh
     
-All the git-lfs_* images are built automatically, and then run. The default 
-command is the build script. The currently checkout version of git-lfs is 
-copied into the docker, and `git clean -xdf` is run to remove any 
-non-tracked files, but non-committed changes are kept. Then git-lfs is built, 
-and a packages is created (deb or rpm)
+All the git-lfs\_* images are built automatically, and then run. This default 
+behavior is used to build git-lfs in all available containers. The currently 
+checked-out version of git-lfs is copied into the docker, and `git clean -xdf` 
+is run to remove any non-tracked files, (but non-committed changes are kept). 
+git-lfs is built, and a packages is created (deb or rpm) for each container.
 
 To only run certain docker images, supply them as arguments, e.g.
 
@@ -41,19 +42,13 @@ And only those images will be run.
 There are a few environment variables you can set to easily adjust the behavior
 of the `run_docker.bsh` script.
 
-REPO_HOSTNAME - Override the hostname for all the repos generated/tested (see below)
+REPO\_HOSTNAME - Override the hostname for all the repos generated/tested (see below)
 
-BUILD_LOCAL - Set to 1 (default) to use the currently checked out version of
-the git-lfs to build against. If it's not 1 the released archived is downloaded
-and built against. Currently only works for RPMs. DEB always builds the currently
-checkout version. Build local only affect the version of the code used in generating
-the rpms, not the scripts running to generate the rpms (e.g. `./rpm/build_rpms.bsh`)
-
-DOCKER_AUTOBUILD - Default 1. `run_docker.bsh` always calls `build_docker.bsh` to
+DOCKER\_AUTOBUILD - Default 1. `run_docker.bsh` always calls `build_docker.bsh` to
 ensure your docker image is up-to-date. Sometimes you may not want this. If set
-this to 0, it will not build docker images before running
+to 0, it will not build docker images before running.
 
-AUTO_REMOVE - Default 1. Docker containers are automatically deleted on 
+AUTO\_REMOVE - Default 1. Docker containers are automatically deleted on 
 exit. If set to 0, the docker containers will not be automatically deleted upon 
 exit. This can be useful for a post mortem analysis (using other docker commands
 not covered here). Just make sure you clean up the docker containers manually.
@@ -63,19 +58,16 @@ not covered here). Just make sure you clean up the docker containers manually.
 These can be before calling `run_docker.bsh`, they are actuallys just being 
 passed to `build_docker.bsh`. 
 
-LFS_VERSION - The version of LFS used to bootstrap the environment. This does 
-not need to be bumped every version (but can be). Currently set to track git-lfs.go 
-version. This can be a sha
-
-
+DOCKER\_LFS\_BUILD\_VERSION - The version of LFS used to bootstrap the environment.
+This does not need to be bumped every version. This can be a tag or sha
 
 ###Development with Dockers###
 
 Sometimes you don't want to just build git-lfs and destroy the container, you
-want to get in there, run a lot of command, DEVELOP! To do this, the best
-command to run is bash, and then you have an interactive shell to use. To do this
+want to get in there, run a lot of command, debugs, develop, etc... To do this, 
+the best command to run is bash, and then you have an interactive shell to use
 
-    ./docker/run_docker.bsh {image(s)} -- bash
+    ./docker/run_docker.bsh {image name(s)}.dockerfile -- bash
 
 After listing the image(s) you want to run, add a double dash (--) and then any 
 command (and arguments) you want executed in the docker. Remember, the command
@@ -90,12 +82,11 @@ tea/coffee.
 In order to use the docker **images**, they have to be built so that they are
 ready to be used. For OSes like Debian, this is a fairly quick process. 
 However CentOS takes considerably longer time, since it has to build go, ruby,
-or git from source, depending on the distro. Fortunately, you can build the 
-docker images JUST once, and you won't have to build it again (until the version
-changed.) The build script uses a downloaded release from github of git-lfs to
-bootstrap the CentOS image and build/install all the necessary software. Currently
-the only way to change what version the image is built off of is by changing the
-URL in the Dockerfile for git-lfs_centos_*. 
+or git from source, depending on the version. Fortunately, you can build the 
+docker images JUST once, and you won't have to build it again (until the 
+DOCKER\_LFS\_BUILD\_VERSION changes.) The build script uses a downloaded release
+from github of git-lfs to bootstrap the CentOS image and build/install all the 
+necessary software.
 
 This means all the compiling, yum/apt-get/custom dependency compiling is done 
 once and saved. (This is done in CentOS by using the already existing 
@@ -105,20 +96,15 @@ The script that takes care of ALL of these details for you is
 
     ./docker/build_dockers.bsh
     
-All the git-lfs_* images will be built automatically. These are all a
+All the git-lfs\_\* images will be built automatically. These are all a
 developer would need to test the different OSes. And create the git-lfs rpm or
-deb packages.
+deb packages in the `/repo` directory
 
 However, in order to distribute git-lfs or build dependencies, the packages 
 that were installed for you by `build_docker.bsh` need to be saved too.
-This is currently only a CentOS problem. In order to generate THOSE rpms, 
-the git-lfs-full-build_* will use NON-bootstrapped images to build every package
-and git-lfs and generate rpms. This takes as long as building the image in the
-first place, but you don't get the benefit of a saved state. The 
-`./rpm/rpm_build.bsh` script will build all of its dependencies when you
-run the dockers, making the rpms available. These images can be built by running
-
-    ./docker/docker_build.bsh ./docker/git-lfs-full-build_*
+This is currently only a CentOS problem. In order to save **those** rpms, 
+the git-lfs-full-build\_\* will extract the rpms from the boostraped images and
+save them in the ./repo directory.
 
 This is most important for CentOS 6 where git 1.8.2 or newer is not available, 
 only git 1.7.1 is available, so every user either has to build git from source, 
@@ -127,7 +113,6 @@ will only needs to be done once.
 
 (To manually build a docker image, run 
 `docker build -t $(basename ${DockerDir}) -f ${DockerDir}/Dockerfile ./docker`
-
 
 ##Deploying/Building Repositories##
 
@@ -141,35 +126,36 @@ The two major packages included are:
 git-lfs-....* - the git-lfs package
 git-lfs-repo-release....* - A package to install the repo.
 
-When using `BUILD_LOCAL=1`, all UNTRACKED files are removed during RPM 
-generation (except any stray directories containing a .git folder will not be
-cleared. This shouldn't be the case, unless you are temporarily storing another
-git repo in the git repo. This is a safety mechanism in git, so just keep in mind
-if you are producing packages.)
+When building, all **untracked** files are removed during RPM generation (except
+any stray directories containing a .git folder will not be cleared. This 
+shouldn't be the case, unless you are temporarily storing another git repo in 
+the git repo. This is a safety mechanism in git, so just keep in mind if you
+are producing packages.)
 
 ### Setting the website URL ###
 
 The git-lfs-repo-release must contain the URL where the repo is to be hosted.
 The current default value is 'git-lfs.github.com' but this can be overridden
-using the REPO_HOSTNAME env var, e.g.
+using the REPO\_HOSTNAME env var, e.g.
 
     REPO_HOSTNAME=www.notgithub.uk.co ./docker/run_dockers.bsh
     
-Now all the git-lfs-repo-release....* files will point to that URL instead
+Now all the git-lfs-repo-release....\* files will point to that URL instead
 
 ### GPG signing ###
 
 For private repo testing, GPG signing can be skipped. apt-get and yum can 
-install .deb/.rpm directly without gpg keys and everything will work. This 
-section is for distribution in a repo. Most if not all this functionality is 
-automatically disabled when there is no signing key present
+install .deb/.rpm directly without gpg keys and everything will work (with
+ceratain flags). This section is for distribution in a repo. Most if not all 
+this functionality is automatically disabled when there is no signing key 
 (`./docker/signing.key`).
 
-In order to sign packages, you need to generate and place GPG keys in the right place
+In order to sign packages, you need to generate and place GPG keys in the right
+place. The general procedure for this is
 
-1. gpg --gen-key
+    gpg --gen-key
 
-    1. 1 - RSA and RSA
+    1. 4 - RSA
     2. 4096 bits
     3. Some length of time or 0 for infinite
     4. y for yes
@@ -177,17 +163,15 @@ In order to sign packages, you need to generate and place GPG keys in the right 
     6. Email address (Will become part of the key and uid)
     7. Comment (Will become part of the key)
     8. O for Okay
-    9. Enter a very secure password, make sure you will not forget it
+    9. Enter a secure password, make sure you will not forget it
     10. Generate Entropy!
-    
-2. gpg -a --export > ./docker/public.key
 
-3. gpg -a --export-secret-keys > ./docker/signing.key
+Keep in mind, .key files must NEVER be accidentally committed to the repo.
 
-Keep in mind, signing.key must NEVER be accidentally committed to the repo. 
+To prevent MANY passphrase entries at random times, a gpg-agent docker is used to
+cache your signing key. This is done automaticlly for you, but can be manually
 
-To prevent MANY passphrase entries at random times, the gpg-agent is used to
-cache your signing key. This is done by running gpg-agent in the host, and passing
+by running gpg-agent in the host, and passing
 the connection to each docker image. This will be done for you automatically by
 calling the `./docker/preload_key.bsh` script. This can be called manually
 before any other command just to get the pass phrase entry out of the way before
@@ -329,7 +313,3 @@ ignoring many Ctrl+C's
         docker commit {container name/id} {new_name}
     
     Then you can `docker run` that new image.
-
-4. Everything in the ./repos directory is owned by root
-
-    That is currently a side effect of the dockers being run as root.

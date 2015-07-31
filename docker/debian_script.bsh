@@ -13,16 +13,13 @@ cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
 
-#if [ "${REPO_HOSTNAME-}" == "" ]; then
-#  #TOOD: Finish this when the git-lfs-repo is done
-#  echo 'deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main' > /tmp/git-lfs-main.list
-#  #/etc/apt/sources.list.d/git-lfs-main.list
-#fi
-
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
 if [ -s /tmp/*.key ]; then
   gpg --import /tmp/*.key || :
+  gpg -a --export > /repo/GPG-KEY-GITLFS
+  #I may need to cp /repo/GPG-KEY-GITLFS somewhere for git-lfs-repo deb generation???
+
   echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
   echo ask-passphrase > "${REPO_DIR}/conf/options"
   
@@ -45,8 +42,6 @@ for DSC in $(ls /tmp/docker_run/*.changes); do
   reprepro -Vb "${REPO_DIR}" include ${REPO_CODENAME} "${DSC}"
   mv "${DSC}" "${DSC}.installed"
 done
-
-gpg --export /repo/RPM-GPG-KEY-GITLFS
 
 if [ "${FINAL_UID-}:${FINAL_GID-}" != ":" ]; then
   chown ${FINAL_UID-}:${FINAL_GID-} -R /repo

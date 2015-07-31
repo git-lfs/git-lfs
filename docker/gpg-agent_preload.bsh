@@ -23,4 +23,17 @@ for x in $(seq 10); do
 done
 
 #I only need script cause of https://github.com/docker/docker/issues/8755 HORRAY BUGS!
-$SUDO docker exec -it git-lfs-gpg script /dev/null -q -c 'gpg2 --homedir=/tmp/gpg-agent -o /dev/null -s /dev/null'
+$SUDO docker exec -it git-lfs-gpg script /dev/null -q -c ' \
+  for key in $(ls /tmp/*.key); do \
+    if [ -s $key ]; then \
+      gpg --import $key; \
+      gpg2 -o /dev/null -s /dev/null; \
+      rm -f /tmp/gpg-agent/*.gpg; \
+    fi \
+  done'
+#WHAT AM I DOING HERE? Well... This is the most UNIVERSAL way I have discovered
+#to safely cache all the gpg keys. They are deleted after each load so that that
+#there can be ANY kind of intermingling in how the keys are defined (subkeys
+#of the same primary key, etc...) and gpg will ALLOW this to work. Normally you
+#can not import a subkey for a pre-existing primary key. This gets AROUND that
+#problem (as merging is WAY too complicated... but possible)
