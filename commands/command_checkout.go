@@ -107,14 +107,30 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 		checkoutWithChan(c)
 		wait.Done()
 	}()
-	for _, pointer := range pointers {
-		if lfs.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
-			c <- pointer
-		}
 
+	// Count bytes for progress
+	var totalBytes int64
+	for _, pointer := range pointers {
+		totalBytes += pointer.Size
+	}
+	progress := lfs.NewProgressMeter(len(pointers), totalBytes, false)
+	totalBytes = 0
+	for _, pointer := range pointers {
+		totalBytes += pointer.Size
+		if lfs.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+			progress.Add(pointer.Name)
+			c <- pointer
+			// not strictly correct (parallel) but we don't have a callback & it's just local
+			// plus only 1 slot in channel so it'll block & be close
+			progress.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
+			progress.FinishTransfer(pointer.Name)
+		} else {
+			progress.Skip(pointer.Size)
+		}
 	}
 	close(c)
 	wait.Wait()
+	progress.Finish()
 
 }
 
