@@ -70,7 +70,7 @@ func ObjectExistsOfSize(sha string, size int64) bool {
 
 func Environ() []string {
 	osEnviron := os.Environ()
-	env := make([]string, 7, len(osEnviron)+7)
+	env := make([]string, 0, len(osEnviron)+7)
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir),
 		fmt.Sprintf("LocalGitDir=%s", LocalGitDir),
