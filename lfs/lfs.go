@@ -24,8 +24,9 @@ var (
 	GitCommit          string
 	UserAgent          string
 	LocalWorkingDir    string
-	LocalGitDir        string
-	LocalMediaDir      string
+	LocalGitDir        string // parent of index / config / hooks etc
+	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
+	LocalMediaDir      string // root of lfs objects
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -64,22 +65,21 @@ func LocalMediaPath(sha string) (string, error) {
 
 func ObjectExistsOfSize(sha string, size int64) bool {
 	path := localMediaPathNoCreate(sha)
-	stat, err := os.Stat(path)
-	if err == nil && size == stat.Size() {
-		return true
-	}
-	return false
+	return FileExistsOfSize(path, size)
 }
 
 func Environ() []string {
 	osEnviron := os.Environ()
-	env := make([]string, 6, len(osEnviron)+6)
-	env[0] = fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir)
-	env[1] = fmt.Sprintf("LocalGitDir=%s", LocalGitDir)
-	env[2] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
-	env[3] = fmt.Sprintf("TempDir=%s", TempDir)
-	env[4] = fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers())
-	env[5] = fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer())
+	env := make([]string, 0, len(osEnviron)+7)
+	env = append(env,
+		fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir),
+		fmt.Sprintf("LocalGitDir=%s", LocalGitDir),
+		fmt.Sprintf("LocalGitStorageDir=%s", LocalGitStorageDir),
+		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir),
+		fmt.Sprintf("TempDir=%s", TempDir),
+		fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers()),
+		fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer()),
+	)
 
 	for _, e := range osEnviron {
 		if !strings.Contains(e, "GIT_") {
@@ -103,9 +103,10 @@ func init() {
 
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
-		LocalMediaDir = filepath.Join(LocalGitDir, "lfs", "objects")
+		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
+		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
-		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp")
+		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 
 		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
@@ -153,7 +154,7 @@ func resolveGitDir() (string, string, error) {
 	}
 
 	if workTree != "" {
-		return processWorkTree(gitDirR, workTree)
+		return processWorkTreeVar(gitDirR, workTree)
 	}
 
 	return workTreeR, gitDirR, nil
@@ -161,7 +162,7 @@ func resolveGitDir() (string, string, error) {
 
 func processGitDirVar(gitDir, workTree string) (string, string, error) {
 	if workTree != "" {
-		return processWorkTree(gitDir, workTree)
+		return processWorkTreeVar(gitDir, workTree)
 	}
 
 	// See `core.worktree` in `man git-config`:
@@ -177,7 +178,7 @@ func processGitDirVar(gitDir, workTree string) (string, string, error) {
 	return wd, gitDir, nil
 }
 
-func processWorkTree(gitDir, workTree string) (string, string, error) {
+func processWorkTreeVar(gitDir, workTree string) (string, string, error) {
 	// See `core.worktree` in `man git-config`:
 	// “The value [of core.worktree, GIT_WORK_TREE, or --work-tree] can be an absolute path
 	// or relative to the path to the .git directory, which is either specified
@@ -234,37 +235,51 @@ func resolveDotGitFile(file string) (string, string, error) {
 }
 
 func processDotGitFile(file string) (string, error) {
-	f, err := os.Open(file)
+	return processGitRedirectFile(file, gitPtrPrefix)
+}
+
+func processGitRedirectFile(file, prefix string) (string, error) {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
 
-	data := make([]byte, 512)
-	n, err := f.Read(data)
-	if err != nil {
-		return "", err
+	contents := string(data)
+	var dir string
+	if len(prefix) > 0 {
+		if !strings.HasPrefix(contents, prefix) {
+			// Prefix required & not found
+			return "", nil
+		}
+		dir = strings.TrimSpace(contents[len(prefix):])
+	} else {
+		dir = strings.TrimSpace(contents)
 	}
 
-	contents := string(data[0:n])
-
-	if !strings.HasPrefix(contents, gitPtrPrefix) {
-		// The `.git` file has no entry telling us about gitdir.
-		return "", nil
+	if !filepath.IsAbs(dir) {
+		// The .git file contains a relative path.
+		// Create an absolute path based on the directory the .git file is located in.
+		dir = filepath.Join(filepath.Dir(file), dir)
 	}
 
-	dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
+	return dir, nil
+}
 
-	if filepath.IsAbs(dir) {
-		// The .git file contains an absolute path.
-		return dir, nil
+// From a git dir, get the location that objects are to be stored (we will store lfs alongside)
+// Sometimes there is an additional level of redirect on the .git folder by way of a commondir file
+// before you find object storage, e.g. 'git worktree' uses this. It redirects to gitdir either by GIT_DIR
+// (during setup) or .git/git-dir: (during use), but this only contains the index etc, the objects
+// are found in another git dir via 'commondir'.
+func resolveGitStorageDir(gitDir string) string {
+	commondirpath := filepath.Join(gitDir, "commondir")
+	if FileExists(commondirpath) && !DirExists(filepath.Join(gitDir, "objects")) {
+		// no git-dir: prefix in commondir
+		storage, err := processGitRedirectFile(commondirpath, "")
+		if err == nil {
+			return storage
+		}
 	}
-
-	// The .git file contains a relative path.
-	// Create an absolute path based on the directory the .git file is located in.
-	absDir := filepath.Join(filepath.Dir(file), dir)
-
-	return absDir, nil
+	return gitDir
 }
 
 const (
