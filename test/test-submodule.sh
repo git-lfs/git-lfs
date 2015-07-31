@@ -43,6 +43,7 @@ begin_test "submodule env"
   grep "Endpoint=$GITSERVER/$reponame.git/info/lfs$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git$" env.log
+  grep "LocalGitStorageDir=$TRASHDIR/repo/.git$" env.log
   grep "LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects$" env.log
   grep "TempDir=$TRASHDIR/repo/.git/lfs/tmp$" env.log
 
@@ -53,6 +54,7 @@ begin_test "submodule env"
   grep "Endpoint=$GITSERVER/$reponame.git/info/lfs$" env.log
   grep "LocalWorkingDir=$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git$" env.log
+  grep "LocalGitStorageDir=$TRASHDIR/repo/.git$" env.log
   grep "LocalMediaDir=$TRASHDIR/repo/.git/lfs/objects$" env.log
   grep "TempDir=$TRASHDIR/repo/.git/lfs/tmp$" env.log
 
@@ -63,6 +65,7 @@ begin_test "submodule env"
   grep "Endpoint=$GITSERVER/$submodname.git/info/lfs$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo/sub$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git/modules/sub$" env.log
+  grep "LocalGitStorageDir=$TRASHDIR/repo/.git$" env.log
   grep "LocalMediaDir=$TRASHDIR/repo/.git/modules/sub/lfs/objects$" env.log
   grep "TempDir=$TRASHDIR/repo/.git/modules/sub/lfs/tmp$" env.log
 
@@ -73,6 +76,7 @@ begin_test "submodule env"
   grep "Endpoint=$GITSERVER/$submodname.git/info/lfs$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo/sub$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git/modules/sub$" env.log
+  grep "LocalGitStorageDir=$TRASHDIR/repo/.git$" env.log
   grep "LocalMediaDir=$TRASHDIR/repo/.git/modules/sub/lfs/objects$" env.log
   grep "TempDir=$TRASHDIR/repo/.git/modules/sub/lfs/tmp$" env.log
 )

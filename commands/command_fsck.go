@@ -83,7 +83,7 @@ func doFsck() (bool, error) {
 				continue
 			}
 
-			badDir := filepath.Join(lfs.LocalGitDir, "lfs", "bad")
+			badDir := filepath.Join(lfs.LocalGitStorageDir, "lfs", "bad")
 			if err := os.MkdirAll(badDir, 0755); err != nil {
 				return false, err
 			}

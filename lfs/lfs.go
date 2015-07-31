@@ -25,6 +25,7 @@ var (
 	UserAgent          string
 	LocalWorkingDir    string
 	LocalGitDir        string
+	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string
 	LocalLogDir        string
 	checkedTempDir     string
@@ -69,13 +70,16 @@ func ObjectExistsOfSize(sha string, size int64) bool {
 
 func Environ() []string {
 	osEnviron := os.Environ()
-	env := make([]string, 6, len(osEnviron)+6)
-	env[0] = fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir)
-	env[1] = fmt.Sprintf("LocalGitDir=%s", LocalGitDir)
-	env[2] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
-	env[3] = fmt.Sprintf("TempDir=%s", TempDir)
-	env[4] = fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers())
-	env[5] = fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer())
+	env := make([]string, 7, len(osEnviron)+7)
+	env = append(env,
+		fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir),
+		fmt.Sprintf("LocalGitDir=%s", LocalGitDir),
+		fmt.Sprintf("LocalGitStorageDir=%s", LocalGitStorageDir),
+		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir),
+		fmt.Sprintf("TempDir=%s", TempDir),
+		fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers()),
+		fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer()),
+	)
 
 	for _, e := range osEnviron {
 		if !strings.Contains(e, "GIT_") {
@@ -99,9 +103,10 @@ func init() {
 
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
-		LocalMediaDir = filepath.Join(LocalGitDir, "lfs", "objects")
+		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
+		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects") // objects across all worktrees
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
-		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp")
+		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 
 		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
@@ -257,16 +262,24 @@ func processGitRedirectFile(file, prefix string) (string, error) {
 		dir = filepath.Join(filepath.Dir(file), dir)
 	}
 
-	// Finally, check the contents of dir; if it contains a "commondir" file and
-	// not an "objects" dir, then this is probably a worktree link (see man git-worktree)
-	// The commondir file points to the actual location
-	commondirpath := filepath.Join(dir, "commondir")
-	if FileExists(commondirpath) && !DirExists(filepath.Join(dir, "objects")) {
-		// no git-dir: prefix in commondir
-		return processGitRedirectFile(commondirpath, "")
-	}
-
 	return dir, nil
+}
+
+// From a git dir, get the location that objects are to be stored (we will store lfs alongside)
+// Sometimes there is an additional level of redirect on the .git folder by way of a commondir file
+// before you find object storage, e.g. 'git worktree' uses this. It redirects to gitdir either by GIT_DIR
+// (during setup) or .git/git-dir: (during use), but this only contains the index etc, the objects
+// are found in another git dir via 'commondir'.
+func resolveGitStorageDir(gitDir string) string {
+	commondirpath := filepath.Join(gitDir, "commondir")
+	if FileExists(commondirpath) && !DirExists(filepath.Join(gitDir, "objects")) {
+		// no git-dir: prefix in commondir
+		storage, err := processGitRedirectFile(commondirpath, "")
+		if err == nil {
+			return storage
+		}
+	}
+	return gitDir
 }
 
 const (
