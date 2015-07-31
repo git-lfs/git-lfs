@@ -43,6 +43,7 @@ type objectResource struct {
 	Oid     string                   `json:"oid,omitempty"`
 	Size    int64                    `json:"size"`
 	Actions map[string]*linkRelation `json:"actions,omitempty"`
+	Links   map[string]*linkRelation `json:"_links,omitempty"`
 	Error   objectError              `json:"error,omitempty"`
 }
 
@@ -66,11 +67,16 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, Cre
 }
 
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
-	if o.Actions == nil {
+	actions := o.Actions
+	if actions == nil {
+		actions = o.Links
+	}
+
+	if actions == nil {
 		return nil, false
 	}
 
-	rel, ok := o.Actions[name]
+	rel, ok := actions[name]
 	return rel, ok
 }
 

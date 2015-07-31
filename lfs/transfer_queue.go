@@ -175,7 +175,7 @@ func (q *TransferQueue) batchApiRoutine() {
 		}
 
 		for _, o := range objects {
-			if _, ok := o.Actions[q.transferKind]; ok {
+			if _, ok := o.Rel(q.transferKind); ok {
 				// This object needs to be transferred
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)
