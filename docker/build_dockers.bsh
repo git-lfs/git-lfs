@@ -22,19 +22,13 @@ else
   IMAGE_NAMES=("${@}")
 fi
 
-#prevent missing file
-if [ ! -e "${CUR_DIR}/signing.key" ]; then
-  touch "${CUR_DIR}/signing.key"
-fi
-
 #This will take a long time the first time
 for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
   NAME=$(basename ${IMAGE_NAME%.*})
   #If you do decide to use the same key for all, this makes it easier. Only 
   #creates keys for git-lfs_* images, none of the others should be signing.
-  if [[ "${NAME}" == git-lfs_* ]] && [ -e ${CUR_DIR}/signing.key ] && \
-     [ ! -e ${CUR_DIR}/${NAME}.key ]; then
-    cp ${CUR_DIR}/signing.key ${CUR_DIR}/${NAME}.key || :
+  if [[ "${NAME}" == git-lfs_* ]] && [ ! -e ${CUR_DIR}/${NAME}.key ]; then
+    touch ${CUR_DIR}/${NAME}.key
   fi
 
   echo Docker building ${NAME}
