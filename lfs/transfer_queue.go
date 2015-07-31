@@ -106,6 +106,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 		}
 
 		if apiWaiter != nil { // Signal to launch more individual api workers
+			q.meter.Start()
 			select {
 			case apiWaiter <- 1:
 			default:
@@ -148,6 +149,8 @@ func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
 func (q *TransferQueue) batchApiRoutine() {
+	var startProgress sync.Once
+
 	for {
 		batch := q.batcher.Next()
 		if batch == nil {
@@ -173,6 +176,8 @@ func (q *TransferQueue) batchApiRoutine() {
 			q.errorc <- err
 			continue
 		}
+
+		startProgress.Do(q.meter.Start)
 
 		for _, o := range objects {
 			if _, ok := o.Links[q.transferKind]; ok {

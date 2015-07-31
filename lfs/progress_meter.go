@@ -22,6 +22,7 @@ type ProgressMeter struct {
 	estimatedBytes    int64
 	currentBytes      int64
 	skippedBytes      int64
+	started           int32
 	estimatedFiles    int
 	startTime         time.Time
 	finished          chan interface{}
@@ -38,7 +39,7 @@ func NewProgressMeter(estFiles int, estBytes int64, dryRun bool) *ProgressMeter 
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
-	pm := &ProgressMeter{
+	return &ProgressMeter{
 		logger:         logger,
 		startTime:      time.Now(),
 		fileIndex:      make(map[string]int64),
@@ -47,10 +48,12 @@ func NewProgressMeter(estFiles int, estBytes int64, dryRun bool) *ProgressMeter 
 		estimatedBytes: estBytes,
 		dryRun:         dryRun,
 	}
+}
 
-	go pm.writer()
-
-	return pm
+func (p *ProgressMeter) Start() {
+	if atomic.SwapInt32(&p.started, 1) == 0 {
+		go p.writer()
+	}
 }
 
 // Add tells the progress meter that a transferring file is being added to the
