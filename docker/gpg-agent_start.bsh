@@ -5,7 +5,7 @@ set -eu
 CUR_DIR=$(dirname ${BASH_SOURCE[0]})
 IMAGE_NAME=gpg-agent_debian_8
 
-source ${CUR_DIR}/common.bsh
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 if [ "$(docker inspect -f {{.State.Running}} git-lfs-gpg)" != "true" ]; then
   #Don't rebuild WHILE RUNNING

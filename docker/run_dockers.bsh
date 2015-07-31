@@ -19,6 +19,8 @@ set -eu
 CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
 REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
 PACKAGE_DIR=${REPO_DIR}/repos
+mkdir -p ${PACKAGE_DIR}/centos || :
+mkdir -p ${PACKAGE_DIR}/debian || :
 
 #If you are not in docker group and you have sudo, default value is sudo
 : ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
@@ -88,8 +90,12 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
   $SUDO docker run "${OTHER_OPTIONS[@]}" \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
+                   -e FINAL_UID=$(id -u) \
+                   -e FINAL_GID=$(id -g) \
                    -v ${REPO_DIR}:/src \
                    -v ${IMAGE_REPO_DIR}:/repo \
                    git-lfs/${IMAGE_NAME} ${DOCKER_CMD-}
 
 done
+
+echo "Docker run completed successfully!"

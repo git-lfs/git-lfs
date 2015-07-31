@@ -3,11 +3,37 @@
 set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
-SPEC=${CURDIR}/SPECS/git-lfs.spec
-if [[ ${NODEPS:-0} == 0 ]]; then
-  RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}")
-else
-  RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --nodeps)
+if [ -e /etc/os-release ]; then
+  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID})
+  OS_NAME=$(source /etc/os-release; echo ${NAME})
+  OS_NAME=${OS_NAME,,}
+else #Basically Centos 5/6
+  VERSION_ID=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
+  OS_NAME=$(awk '{print tolower($1)}' /etc/redhat-release)
+  #Stupid ancient bash 3...
+fi
+
+case "${OS_NAME}" in
+  centos*|red*)
+    RPM_DIST=".el${VERSION_ID}"
+    ;;
+  fedora)
+    RPM_DIST=".fc${VERSION_ID}"
+    ;;
+  sles)
+    RPM_DIST=".sles${VERSION_ID}"
+    ;;
+  opensuse)
+    RPM_DIST=".opensuse${VERSION_ID}"
+    ;;
+  *)
+    RPM_DIST="%{nil}"
+    ;;
+esac
+
+RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --define "dist ${RPM_DIST}")
+if [[ ${NODEPS:-0} != 0 ]]; then
+  RPMBUILD=("${RPMBUILD[@]}" --nodeps)
 fi
 LOG=${CURDIR}/build.log
 SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
@@ -32,10 +58,9 @@ else
   GIT_VERSION=(0 0 0)
 fi
 
-REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
-REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)
+SPEC=${CURDIR}/SPECS/git-lfs.spec
 
-if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+if [[ ${VERSION_ID[0]} == 5 ]]; then
   if ! rpm -q epel-release > /dev/null 2>&1; then
     $SUDO yum install -y epel-release
   fi
@@ -45,7 +70,7 @@ $SUDO yum install -y make curl which rpm-build tar bison perl-Digest-SHA
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
 if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
-  if [[ ${REDHAT_VERSION[0]} != 6 ]]; then
+  if [[ ${VERSION_ID[0]} != 6 ]]; then
     $SUDO yum install -y git
   else
     $SUDO yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc
@@ -63,7 +88,7 @@ fi
 
 if ! which go; then
   echo "Installing go... one way or another" >&6
-  if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+  if [[ ${VERSION_ID[0]} == 5 ]]; then
     $SUDO yum install -y curl.x86_64 glibc gcc
     ${CURDIR}/golang_patch.bsh
     "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/golang.spec
@@ -88,7 +113,7 @@ else
 fi
 
 if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if [[ ${REDHAT_VERSION[0]} < 7 ]]; then
+  if [[ ${VERSION_ID[0]} < 7 ]]; then
     echo "Downloading ruby..." >&6
 
     if ! rpm -q epel-release; then

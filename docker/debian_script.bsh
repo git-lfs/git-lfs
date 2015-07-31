@@ -47,3 +47,7 @@ for DSC in $(ls /tmp/docker_run/*.changes); do
 done
 
 gpg --export /repo/RPM-GPG-KEY-GITLFS
+
+if [ "${FINAL_UID-}:${FINAL_GID-}" != ":" ]; then
+  chown ${FINAL_UID-}:${FINAL_GID-} -R /repo
+fi

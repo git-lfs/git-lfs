@@ -45,22 +45,8 @@ mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 
 %check
-if ! git config --global user.name; then
-  RPM_GIT_USER_NAME=1
-  git config --global user.name "User Name"
-fi
-if ! git config --global user.email; then
-  RPM_GIT_USER_EMAIL=1
-  git config --global user.email "user@email.com"
-fi
-#GOPATH=`pwd` ./script/test
-#GOPATH=`pwd` ./script/integration
-if [ "${RPM_GIT_USER_NAME}" == "1" ]; then
-  git config --global --unset user.name
-fi
-if [ "${RPM_GIT_USER_EMAIL}" == "1" ]; then
-  git config --global --unset user.email
-fi
+GOPATH=`pwd` ./script/test
+GOPATH=`pwd` ./script/integration
 
 %clean
 rm -rf %{buildroot}
@@ -72,6 +58,9 @@ rm -rf %{buildroot}
 /usr/share/man/man1/*.1.gz
 
 %changelog
+* Sun Aug 2 2015 Andrew Neff <andyneff@users.noreply.github.com> - 0.5.4-1
+- Added tests back in
+
 * Sat Jul 18 2015 Andrew Neff <andyneff@users.noreply.github.com> - 0.5.2-1
 - Changed Source0 filename
 
