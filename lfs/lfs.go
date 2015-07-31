@@ -24,9 +24,9 @@ var (
 	GitCommit          string
 	UserAgent          string
 	LocalWorkingDir    string
-	LocalGitDir        string
+	LocalGitDir        string // parent of index / config / hooks etc
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
-	LocalMediaDir      string
+	LocalMediaDir      string // root of lfs objects
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -104,7 +104,7 @@ func init() {
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
-		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects") // objects across all worktrees
+		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 
