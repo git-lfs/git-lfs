@@ -35,10 +35,7 @@ func mainBuild() {
 		return
 	}
 
-	cmd, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
-	if err != nil {
-		panic(err)
-	}
+	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
 	if len(cmd) > 0 {
 		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/lfs.GitCommit " + string(cmd))
