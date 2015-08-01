@@ -75,13 +75,22 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
     #Do I need this? Or can I get away with hardcoding???
     #GPG_AGENT_INFO=/tmp/gpg-agent/S.gpg-agent:1:1
   fi
+  
+  FINAL_UID=$(id -u)
+  FINAL_GID=$(id -g)
+  if [[ $FINAL_UID == 0 ]]; then
+    FINAL_UID=${SUDO_UID-}
+  fi
+  if [[ $FINAL_GID == 0 ]]; then
+    FINAL_GID=${SUDO_GID-}
+  fi
 
   echo Compiling LFS in docker image ${IMAGE_NAME}
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
   $SUDO docker run "${OTHER_OPTIONS[@]}" \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
-                   -e FINAL_UID=$(id -u) \
-                   -e FINAL_GID=$(id -g) \
+                   -e FINAL_UID=${FINAL_UID} \
+                   -e FINAL_GID=${FINAL_GID} \
                    -v ${REPO_DIR}:/src \
                    -v ${IMAGE_REPO_DIR}:/repo \
                    git-lfs/${IMAGE_NAME} ${DOCKER_CMD-}
