@@ -653,7 +653,29 @@ func getCreds(req *http.Request) (Creds, error) {
 		}
 	}
 
-	creds, err := credentials(apiUrl)
+	credsUrl := apiUrl
+	if len(Config.CurrentRemote) > 0 {
+		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
+			gitRemoteUrl, err := url.Parse(u)
+
+			if err == nil &&
+				gitRemoteUrl.Scheme == apiUrl.Scheme &&
+				gitRemoteUrl.Host == apiUrl.Host {
+
+				if gitRemoteUrl.User != nil {
+					if pass, ok := gitRemoteUrl.User.Password(); ok {
+						fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
+						setRequestAuth(req, gitRemoteUrl.User.Username(), pass)
+						return nil, nil
+					}
+				}
+
+				credsUrl = gitRemoteUrl
+			}
+		}
+	}
+
+	creds, err := credentials(credsUrl)
 	if err != nil {
 		return nil, err
 	}
