@@ -12,17 +12,17 @@ begin_test "ext"
   cd ext
   git init
 
-  git config lfs-ext.foo.clean "foo-clean %f"
-  git config lfs-ext.foo.smudge "foo-smudge %f"
-  git config lfs-ext.foo.priority 0
+  git config lfs.extension.foo.clean "foo-clean %f"
+  git config lfs.extension.foo.smudge "foo-smudge %f"
+  git config lfs.extension.foo.priority 0
 
-  git config lfs-ext.bar.clean "bar-clean %f"
-  git config lfs-ext.bar.smudge "bar-smudge %f"
-  git config lfs-ext.bar.priority 1
+  git config lfs.extension.bar.clean "bar-clean %f"
+  git config lfs.extension.bar.smudge "bar-smudge %f"
+  git config lfs.extension.bar.priority 1
 
-  git config lfs-ext.baz.clean "baz-clean %f"
-  git config lfs-ext.baz.smudge "baz-smudge %f"
-  git config lfs-ext.baz.priority 2
+  git config lfs.extension.baz.clean "baz-clean %f"
+  git config lfs.extension.baz.smudge "baz-smudge %f"
+  git config lfs.extension.baz.priority 2
 
   fooExpected="Extension: foo
     clean = foo-clean %f

@@ -235,10 +235,10 @@ func (c *Configuration) loadGitConfig() {
 		if len(keyParts) > 1 && keyParts[0] == "remote" {
 			remote := keyParts[1]
 			uniqRemotes[remote] = remote == "origin"
-		} else if len(keyParts) == 3 && keyParts[0] == "lfs-ext" {
-			name := keyParts[1]
+		} else if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
+			name := keyParts[2]
 			ext := c.extensions[name]
-			switch keyParts[2] {
+			switch keyParts[3] {
 			case "clean":
 				ext.Clean = value
 			case "smudge":
