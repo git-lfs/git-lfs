@@ -101,7 +101,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	var wait sync.WaitGroup
 	wait.Add(1)
 
-	c := make(chan *lfs.WrappedPointer)
+	c := make(chan *lfs.WrappedPointer, 1)
 
 	go func() {
 		checkoutWithChan(c)
@@ -114,6 +114,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 		totalBytes += pointer.Size
 	}
 	progress := lfs.NewProgressMeter(len(pointers), totalBytes, false)
+	progress.Start()
 	totalBytes = 0
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
