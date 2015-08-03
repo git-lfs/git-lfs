@@ -209,9 +209,27 @@ shutdown() {
   fi
 }
 
+ensure_git_version_isnt() {
+  local expectedComparison=$1
+  local version=$2
+
+  local gitVersion=$(git version | cut -d" " -f3)
+
+  set +e
+  compare_version $gitVersion $version
+  result=$?
+  set -e
+
+  if [[ $result == $expectedComparison ]]; then
+    echo "skip: $0 (git version $(comparison_to_operator $expectedComparison) $version)"
+    exit
+  fi
+}
+
 VERSION_EQUAL=0
 VERSION_HIGHER=1
 VERSION_LOWER=2
+
 # Compare $1 and $2 and return VERSION_EQUAL / VERSION_LOWER / VERSION_HIGHER
 compare_version() {
     if [[ $1 == $2 ]]
@@ -242,4 +260,17 @@ compare_version() {
         fi
     done
     return $VERSION_EQUAL
+}
+
+comparison_to_operator() {
+  local comparison=$1
+  if [[ $1 == $VERSION_EQUAL ]]; then
+    echo "=="
+  elif [[ $1 == $VERSION_HIGHER ]]; then
+    echo ">"
+  elif [[ $1 == $VERSION_LOWER ]]; then
+    echo "<"
+  else
+    echo "???"
+  fi
 }
