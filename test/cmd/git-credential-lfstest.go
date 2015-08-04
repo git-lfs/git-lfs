@@ -48,6 +48,7 @@ func fill() {
 			os.Exit(1)
 		}
 
+		fmt.Fprintf(os.Stderr, "CREDS RECV: %s\n", line)
 		creds[parts[0]] = strings.TrimSpace(parts[1])
 	}
 
@@ -70,6 +71,7 @@ func fill() {
 	}
 
 	for key, value := range creds {
+		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, value)
 		fmt.Fprintf(os.Stdout, "%s=%s\n", key, value)
 	}
 }
