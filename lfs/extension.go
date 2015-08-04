@@ -51,6 +51,7 @@ type extCommand struct {
 // SortExtensions sorts a map of extensions in ascending order by Priority
 func SortExtensions(m map[string]Extension) ([]Extension, error) {
 	pMap := make(map[int]Extension)
+	priorities := make([]int, 0, len(m))
 	for n, ext := range m {
 		p := ext.Priority
 		if _, exist := pMap[p]; exist {
@@ -58,18 +59,14 @@ func SortExtensions(m map[string]Extension) ([]Extension, error) {
 			return nil, err
 		}
 		pMap[p] = ext
-	}
-
-	var priorities []int
-	for p := range pMap {
 		priorities = append(priorities, p)
 	}
 
 	sort.Ints(priorities)
 
-	var result []Extension
-	for _, p := range priorities {
-		result = append(result, pMap[p])
+	result := make([]Extension, len(priorities))
+	for i, p := range priorities {
+		result[i] = pMap[p]
 	}
 
 	return result, nil
