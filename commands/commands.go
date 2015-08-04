@@ -24,6 +24,7 @@ var (
 	RootCmd      = &cobra.Command{
 		Use:   "git-lfs",
 		Short: "Git LFS provides large file storage to Git.",
+		Long:  git_lfs_HelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			versionCommand(cmd, args)
 			cmd.Usage()

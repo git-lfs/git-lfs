@@ -15,6 +15,7 @@ var (
 	initHooksCmd = &cobra.Command{
 		Use:   "hooks",
 		Short: "Initialize hooks for the current repository",
+		Long:  git_lfs_init_HelpText,
 		Run:   initHooksCommand,
 	}
 

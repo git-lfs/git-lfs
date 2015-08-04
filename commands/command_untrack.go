@@ -14,6 +14,7 @@ var (
 	untrackCmd = &cobra.Command{
 		Use:   "untrack",
 		Short: "Remove an entry from .gitattributes",
+		Long:  git_lfs_untrack_HelpText,
 		Run:   untrackCommand,
 	}
 )

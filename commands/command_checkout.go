@@ -15,6 +15,7 @@ var (
 	checkoutCmd = &cobra.Command{
 		Use:   "checkout",
 		Short: "Checks out LFS files into the working copy",
+		Long:  git_lfs_checkout_HelpText,
 		Run:   checkoutCommand,
 	}
 )

@@ -15,6 +15,7 @@ var (
 	pushCmd = &cobra.Command{
 		Use:   "push",
 		Short: "Push files to the Git LFS server",
+		Long:  git_lfs_push_HelpText,
 		Run:   pushCommand,
 	}
 	pushDryRun       = false

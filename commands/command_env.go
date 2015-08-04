@@ -10,6 +10,7 @@ var (
 	envCmd = &cobra.Command{
 		Use:   "env",
 		Short: "Show the current environment",
+		Long:  git_lfs_env_HelpText,
 		Run:   envCommand,
 	}
 )

@@ -11,6 +11,7 @@ var (
 	cleanCmd = &cobra.Command{
 		Use:   "clean",
 		Short: "Implements the Git clean filter",
+		Long:  git_lfs_clean_HelpText,
 		Run:   cleanCommand,
 	}
 )

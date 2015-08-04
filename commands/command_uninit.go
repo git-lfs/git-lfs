@@ -9,12 +9,14 @@ var (
 	uninitCmd = &cobra.Command{
 		Use:   "uninit",
 		Short: "Clear the Git LFS configuration",
+		Long:  git_lfs_uninit_HelpText,
 		Run:   uninitCommand,
 	}
 
 	uninitHooksCmd = &cobra.Command{
 		Use:   "hooks",
 		Short: "Clear only the Git hooks for the current repository",
+		Long:  git_lfs_uninit_HelpText,
 		Run:   uninitHooksCommand,
 	}
 )

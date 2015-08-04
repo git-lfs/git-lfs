@@ -18,6 +18,7 @@ var (
 	fsckCmd = &cobra.Command{
 		Use:   "fsck",
 		Short: "Verifies validity of Git LFS files",
+		Long:  git_lfs_fsck_HelpText,
 		Run:   fsckCommand,
 	}
 )

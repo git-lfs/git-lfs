@@ -14,30 +14,35 @@ var (
 	logsCmd = &cobra.Command{
 		Use:   "logs",
 		Short: "View error logs",
+		Long:  git_lfs_logs_HelpText,
 		Run:   logsCommand,
 	}
 
 	logsLastCmd = &cobra.Command{
 		Use:   "last",
 		Short: "View latest error log",
+		Long:  git_lfs_logs_HelpText,
 		Run:   logsLastCommand,
 	}
 
 	logsShowCmd = &cobra.Command{
 		Use:   "show",
 		Short: "View a single error log",
+		Long:  git_lfs_logs_HelpText,
 		Run:   logsShowCommand,
 	}
 
 	logsClearCmd = &cobra.Command{
 		Use:   "clear",
 		Short: "Clear all logs",
+		Long:  git_lfs_logs_HelpText,
 		Run:   logsClearCommand,
 	}
 
 	logsBoomtownCmd = &cobra.Command{
 		Use:   "boomtown",
 		Short: "Trigger a sample error",
+		Long:  git_lfs_logs_HelpText,
 		Run:   logsBoomtownCommand,
 	}
 )

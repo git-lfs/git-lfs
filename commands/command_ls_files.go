@@ -10,6 +10,7 @@ var (
 	lsFilesCmd = &cobra.Command{
 		Use:   "ls-files",
 		Short: "Show information about Git LFS files",
+		Long:  git_lfs_ls_files_HelpText,
 		Run:   lsFilesCommand,
 	}
 )

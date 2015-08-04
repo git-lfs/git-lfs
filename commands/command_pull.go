@@ -9,6 +9,7 @@ var (
 	pullCmd = &cobra.Command{
 		Use:   "pull",
 		Short: "Downloads LFS files for the current ref, and checks out",
+		Long:  git_lfs_pull_HelpText,
 		Run:   pullCommand,
 	}
 )

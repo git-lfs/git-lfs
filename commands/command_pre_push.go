@@ -13,6 +13,7 @@ var (
 	prePushCmd = &cobra.Command{
 		Use:   "pre-push",
 		Short: "Implements the Git pre-push hook",
+		Long:  git_lfs_pre_push_HelpText,
 		Run:   prePushCommand,
 	}
 	prePushDryRun       = false
