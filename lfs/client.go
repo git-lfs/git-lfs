@@ -657,9 +657,11 @@ func getCreds(req *http.Request) (Creds, error) {
 	if len(Config.CurrentRemote) > 0 {
 		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
 			gitRemoteUrl, err := url.Parse(u)
+			if err != nil {
+				return nil, err
+			}
 
-			if err == nil &&
-				gitRemoteUrl.Scheme == apiUrl.Scheme &&
+			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
 				gitRemoteUrl.Host == apiUrl.Host {
 
 				if gitRemoteUrl.User != nil {
