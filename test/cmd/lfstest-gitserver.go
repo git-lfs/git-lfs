@@ -51,11 +51,10 @@ func main() {
 	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if skipIfBadAuth(w, r) {
-				return
+			if !skipIfBadAuth(w, r) {
+				lfsHandler(w, r)
 			}
 
-			lfsHandler(w, r)
 			return
 		}
 
