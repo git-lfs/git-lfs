@@ -86,7 +86,8 @@ func credsForHostAndPath(host, path string) (string, string, error) {
 	hostFilename := filepath.Join(credsDir, host)
 
 	if len(path) > 0 {
-		u, p, err := credsFromFilename(filepath.Join(hostFilename, path))
+		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
+		u, p, err := credsFromFilename(pathFilename)
 		if err == nil {
 			return u, p, err
 		}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -50,6 +51,10 @@ func main() {
 	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
+			if skipIfBadAuth(w, r) {
+				return
+			}
+
 			lfsHandler(w, r)
 			return
 		}
@@ -416,4 +421,40 @@ func newLfsStorage() *lfsStorage {
 		objects: make(map[string]map[string][]byte),
 		mutex:   &sync.Mutex{},
 	}
+}
+
+func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		w.WriteHeader(401)
+		return true
+	}
+
+	if strings.HasPrefix(auth, "Basic ") {
+		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
+		decoded := string(decodeBy)
+		if err != nil {
+			w.WriteHeader(403)
+			log.Printf("Error decoding auth: %s\n", err)
+			return true
+		}
+
+		parts := strings.SplitN(decoded, ":", 2)
+		if len(parts) == 2 {
+			switch parts[0] {
+			case "user":
+				if parts[1] == "pass" {
+					return false
+				}
+			case "path":
+				if strings.HasPrefix(r.URL.Path, "/"+parts[1]+"/") {
+					return false
+				}
+			}
+		}
+	}
+
+	w.WriteHeader(403)
+	log.Printf("Bad auth: %q\n", auth)
+	return true
 }
