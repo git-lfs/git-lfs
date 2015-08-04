@@ -645,21 +645,49 @@ func getCreds(req *http.Request) (Creds, error) {
 		return nil, nil
 	}
 
-	if apiUrl.User != nil {
-		if pass, ok := apiUrl.User.Password(); ok {
-			fmt.Fprintln(os.Stderr, "warning: configured Git LFS endpoint contains credentials")
-			setRequestAuth(req, apiUrl.User.Username(), pass)
-			return nil, nil
+	if setRequestAuthFromUrl(req, apiUrl) {
+		return nil, nil
+	}
+
+	credsUrl := apiUrl
+	if len(Config.CurrentRemote) > 0 {
+		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
+			gitRemoteUrl, err := url.Parse(u)
+			if err != nil {
+				return nil, err
+			}
+
+			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
+				gitRemoteUrl.Host == apiUrl.Host {
+
+				if setRequestAuthFromUrl(req, gitRemoteUrl) {
+					return nil, nil
+				}
+
+				credsUrl = gitRemoteUrl
+			}
 		}
 	}
 
-	creds, err := credentials(req.URL)
+	creds, err := credentials(credsUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	setRequestAuth(req, creds["username"], creds["password"])
 	return creds, nil
+}
+
+func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
+	if u.User != nil {
+		if pass, ok := u.User.Password(); ok {
+			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
+			setRequestAuth(req, u.User.Username(), pass)
+			return true
+		}
+	}
+
+	return false
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {

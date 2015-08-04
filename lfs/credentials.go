@@ -17,7 +17,8 @@ type credentialFunc func(Creds, string) (credentialFetcher, error)
 var execCreds credentialFunc
 
 func credentials(u *url.URL) (Creds, error) {
-	creds := Creds{"protocol": u.Scheme, "host": u.Host}
+	path := strings.TrimPrefix(u.Path, "/")
+	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
 	cmd, err := execCreds(creds, "fill")
 	if err != nil {
 		return nil, err

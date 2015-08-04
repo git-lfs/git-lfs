@@ -432,6 +432,7 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 	if strings.HasPrefix(auth, "Basic ") {
 		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
 		decoded := string(decodeBy)
+
 		if err != nil {
 			w.WriteHeader(403)
 			log.Printf("Error decoding auth: %s\n", err)
@@ -446,11 +447,14 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 					return false
 				}
 			case "path":
-				if strings.HasPrefix(r.URL.Path, "/"+parts[1]+"/") {
+				if strings.HasPrefix(r.URL.Path, "/"+parts[1]) {
 					return false
 				}
+				log.Printf("auth attempt against: %q", r.URL.Path)
 			}
 		}
+
+		log.Printf("auth does not match: %q", decoded)
 	}
 
 	w.WriteHeader(403)
