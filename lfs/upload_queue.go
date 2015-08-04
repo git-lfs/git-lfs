@@ -98,7 +98,7 @@ func ensureFile(smudgePath, cleanPath string) error {
 		return err
 	}
 
-	cleaned, err := PointerClean(file, stat.Size(), nil)
+	cleaned, err := PointerClean(file, file.Name(), stat.Size(), nil)
 	if cleaned != nil {
 		cleaned.Teardown()
 	}

@@ -43,7 +43,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 	if statErr != nil || stat == nil {
 		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
 	} else {
-		wErr = readLocalFile(writer, ptr, mediafile, cb)
+		wErr = readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}
 
 	if wErr != nil {
@@ -147,10 +147,10 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		return Errorf(err, "Error buffering media file.")
 	}
 
-	return readLocalFile(writer, ptr, mediafile, nil)
+	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb CopyCallback) *WrappedError {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) *WrappedError {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return Errorf(err, "Error opening media file.")
@@ -163,8 +163,75 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, cb CopyCall
 		}
 	}
 
+	if len(ptr.Extensions) > 0 {
+		registeredExts := Config.Extensions()
+		extensions := make(map[string]Extension)
+		for _, ptrExt := range ptr.Extensions {
+			ext, ok := registeredExts[ptrExt.Name]
+			if !ok {
+				err := fmt.Errorf("Extension '%s' is not configured.", ptrExt.Name)
+				return Error(err)
+			}
+			ext.Priority = ptrExt.Priority
+			extensions[ext.Name] = ext
+		}
+		exts, err := SortExtensions(extensions)
+		if err != nil {
+			return Error(err)
+		}
+
+		// pipe extensions in reverse order
+		var extsR []Extension
+		for i, _ := range exts {
+			ext := exts[len(exts)-1-i]
+			extsR = append(extsR, ext)
+		}
+
+		request := &pipeRequest{"smudge", reader, workingfile, extsR}
+
+		response, err := pipeExtensions(request)
+		if err != nil {
+			return Error(err)
+		}
+
+		actualExts := make(map[string]*pipeExtResult)
+		for _, result := range response.results {
+			actualExts[result.name] = result
+		}
+
+		// verify name, order, and oids
+		oid := response.results[0].oidIn
+		if ptr.Oid != oid {
+			err = fmt.Errorf("Actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
+			return Error(err)
+		}
+
+		for _, expected := range ptr.Extensions {
+			actual := actualExts[expected.Name]
+			if actual.name != expected.Name {
+				err = fmt.Errorf("Actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
+				return Error(err)
+			}
+			if actual.oidOut != expected.Oid {
+				err = fmt.Errorf("Actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
+				return Error(err)
+			}
+		}
+
+		// setup reader
+		reader, err = os.Open(response.file.Name())
+		if err != nil {
+			return Errorf(err, "Error opening smudged file.")
+		}
+		defer reader.Close()
+	}
+
 	_, err = CopyWithCallback(writer, reader, ptr.Size, cb)
-	return Errorf(err, "Error reading from media file.")
+	if err != nil {
+		return Errorf(err, "Error reading from media file.")
+	}
+
+	return nil
 }
 
 type SmudgeError struct {

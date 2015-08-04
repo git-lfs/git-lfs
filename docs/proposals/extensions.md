@@ -33,13 +33,13 @@ processed.
 Here's an example extension registration in the Git config:
 
 ```
-[lfs-ext "foo"]
-  clean = git-lfs-foo clean %f
-  smudge = git-lfs-foo smudge %f
+[lfs "extension.foo"]
+  clean = foo clean %f
+  smudge = foo smudge %f
   priority = 0
-[lfs-ext "bar"]
-  clean = git-lfs-bar clean %f
-  smudge = git-lfs-bar smudge %f
+[lfs "extension.bar"]
+  clean = bar clean %f
+  smudge = bar smudge %f
   priority = 1
 ```
 
@@ -58,7 +58,7 @@ that the extension was invoked and the oid of the file before that extension was
 All of that information is required to be able to reliably smudge the file later.  Each
 new line in the pointer file will be of the form
 
-`ext-{priority}-{name} {hash-method}:{hash-of-input-to-extension} `
+`ext-{order}-{name} {hash-method}:{hash-of-input-to-extension} `
 
 This naming ensures that all extensions are written in both alphabetical and priority
 order, and also shows the progression of changes to the oid as it is processed by the
@@ -69,25 +69,25 @@ the previous section.
 
 * Git passes the original contents of the file to LFS clean over STDIN
 * LFS reads those bytes and calculates the original SHA-256 signature as it does so
-* LFS streams the bytes to STDIN of lfs-ext.foo.clean, which is expected to write
+* LFS streams the bytes to STDIN of foo clean, which is expected to write
 those bytes, modified or not, to its STDOUT
-* LFS reads the bytes from STDOUT of lfs-ext.foo.clean, calculates the SHA-256
-signature, and writes them to STDIN of lfs-ext.bar.clean, which then writes those
+* LFS reads the bytes from STDOUT of foo clean, calculates the SHA-256
+signature, and writes them to STDIN of bar clean, which then writes those
 bytes, modified or not, to its STDOUT
-* LFS reads the bytes from STDOUT of lfs-ext.bar.clean, calculates the SHA-256
+* LFS reads the bytes from STDOUT of bar clean, calculates the SHA-256
 signature, and writes the bytes to a temp flie
 * When finished, LFS atomically moves the temp file into .git/lfs/objects, as before
 * LFS generates the pointer file, with some changes:
  * The oid and size keys are calculated from the final bytes written into the LFS storage
- * LFS also writes keys named extension-1-foo and extension-2-bar into the pointer, along
+ * LFS also writes keys named ext-0-foo and ext-1-bar into the pointer, along
  with their respective input oid's
 
 Here's an example pointer file, for a file processed by extensions foo and bar:
 
 ```
 version https://git-lfs.github.com/spec/v1
-ext-1-foo sha256:{original hash}
-ext-2-bar sha256:{hash after foo}
+ext-0-foo sha256:{original hash}
+ext-1-bar sha256:{hash after foo}
 oid sha256:{hash after bar}
 size 123
 (ending \n)
@@ -135,12 +135,12 @@ not, the bytes would just be passed through to STDOUT.
 determines that extensions foo and bar both processed the file, in that order.
 * LFS uses the value of the oid key to find the blob in the .git/lfs/objects folder, or
 download from the server as needed
-* LFS writes the contents of the blob to STDIN of lfs-ext.bar.smudge, which
+* LFS writes the contents of the blob to STDIN of bar smudge, which
 modifies them as needed and writes them to its STDOUT
-* LFS reads the bytes from STDOUT of lfs-ext.bar.smudge, calculates the SHA-256
-signature, and writes the bytes to STDIN of lfs-ext.foo.smudge, which modifies them
+* LFS reads the bytes from STDOUT of bar smudge, calculates the SHA-256
+signature, and writes the bytes to STDIN of foo smudge, which modifies them
 as needed and writes to them its STDOUT
-* LFS reads the bytes from STDOUT of lfs-ext.foo.smudge, calculates the SHA-256
+* LFS reads the bytes from STDOUT of foo smudge, calculates the SHA-256
 signature, and writes the bytes to its own STDOUT
 * At the end, ensure that the hashes calculated on the outputs of foo and bar match their
 corresponding input hashes from the pointer file.  If not, write a descriptive error

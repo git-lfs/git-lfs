@@ -359,3 +359,35 @@ func TestBatchAbsentIsFalse(t *testing.T) {
 	v := config.BatchTransfer()
 	assert.Equal(t, false, v)
 }
+
+func TestLoadValidExtension(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{},
+		extensions: map[string]Extension{
+			"foo": Extension{
+				"foo",
+				"foo-clean %f",
+				"foo-smudge %f",
+				2,
+			},
+		},
+	}
+
+	ext := config.Extensions()["foo"]
+
+	assert.Equal(t, "foo", ext.Name)
+	assert.Equal(t, "foo-clean %f", ext.Clean)
+	assert.Equal(t, "foo-smudge %f", ext.Smudge)
+	assert.Equal(t, 2, ext.Priority)
+}
+
+func TestLoadInvalidExtension(t *testing.T) {
+	config := &Configuration{}
+
+	ext := config.Extensions()["foo"]
+
+	assert.Equal(t, "", ext.Name)
+	assert.Equal(t, "", ext.Clean)
+	assert.Equal(t, "", ext.Smudge)
+	assert.Equal(t, 0, ext.Priority)
+}

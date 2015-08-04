@@ -52,7 +52,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size)
+		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
 		fmt.Printf("Git LFS pointer for %s\n\n", pointerFile)
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
