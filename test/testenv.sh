@@ -24,6 +24,18 @@ TRASHDIR="$TMPDIR/$(basename "$0")-$$"
 # beginning of every test run.
 REMOTEDIR="$ROOTDIR/test/remote"
 
+# The directory that stores credentials. Credentials are stored in files with
+# the username:password with filenames identifying the host (port numbers are
+# ignored).
+#
+#   # stores the credentials for http://127.0.0.1:*
+#   $CREDSDIR/127.0.0.1
+#
+#   # stores the credentials for http://git-server.com
+#   $CREDSDIR/git-server.com
+#
+CREDSDIR="$REMOTEDIR/creds"
+
 # This is the prefix for Git config files.  See the "Test Suite" section in
 # test/README.md
 LFS_CONFIG="$REMOTEDIR/config"
