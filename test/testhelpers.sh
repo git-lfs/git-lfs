@@ -139,7 +139,7 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
-      go build -o "$BINPATH/$(basename $go .go)" "$go"
+      go build -ldflags "-X main.credsDir $CREDSDIR" -o "$BINPATH/$(basename $go .go)" "$go"
     done
   fi
 
@@ -157,6 +157,10 @@ setup() {
     ls -al "$REMOTEDIR/home"
     exit 1
   }
+
+  # setup the git credential password storage
+  mkdir -p "$CREDSDIR"
+  printf "user:pass" > "$CREDSDIR/127.0.0.1"
 
   echo
   echo "HOME: $HOME"
