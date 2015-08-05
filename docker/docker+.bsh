@@ -8,7 +8,7 @@ else
   FILES=("${@}")
 fi
 
-CUR_DIR=$(basename ${BASH_SOURCE[0]})
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
 
 for FILE in "${FILES[@]}"; do
   if [ "${FILE}" == "-" ]; then
@@ -23,9 +23,9 @@ for FILE in "${FILES[@]}"; do
     
     #My SOURCE substitution
     if echo $LINE | grep -q ^SOURCE; then
-      SOURCE=$(echo "${LINE}" | sed -r 's|^SOURCE\s+(\S*)\s*|\1|')
+      SOURCE=$(echo "${LINE}" | sed -E 's|^SOURCE[ ]+(.*)|\1|')
       if [ "${SOURCE:0:1}" != "/" ] && [ -f "${CUR_DIR}/${SOURCE}" ]; then
-        SOURCE="${BASH_SOURCE[0]}" "${CUR_DIR}/${SOURCE}"
+        SOURCE="${CUR_DIR}/${SOURCE}"
       fi
       if [ ! -f "${SOURCE}" ]; then
         echo "Could not find a readable ${SOURCE}" >& 2
