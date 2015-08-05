@@ -236,9 +236,9 @@ place. The general procedure for this is
     9. Enter a secure password, make sure you will not forget it
     10. Generate Entropy!
     
-    export --export-secret-key '<key ID>!' >
+    gpg --export-secret-key '<key ID>!' >
     
-e.g. `export --export-secret-key '547CF247!' > ./docker/git-lfs_centos_7.key`
+e.g. `gpg --export-secret-key '547CF247!' > ./docker/git-lfs_centos_7.key`
     
 *NOTE*: the **!** is important in this command
 
