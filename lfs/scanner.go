@@ -611,7 +611,7 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 	commitHeaderRegex := regexp.MustCompile(`^lfs-commit-sha: ([A-Fa-f0-9]{40})(?: ([A-Fa-f0-9]{40}))*`)
 	fileHeaderRegex := regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`)
 	fileMergeHeaderRegex := regexp.MustCompile(`diff --cc (.+)`)
-	pointerDataRegex := regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size).*$`)
+	pointerDataRegex := regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size|ext-).*$`)
 	var pointerData bytes.Buffer
 	var currentFilename string
 	currentFileIncluded := true
