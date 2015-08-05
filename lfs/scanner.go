@@ -31,8 +31,8 @@ var (
 	// lfs changes and format the output suitable for parseLogOutput.. method(s)
 	logLfsSearchArgs = []string{
 		"-G", "oid sha256:", // only diffs which include an lfs file SHA change
-		"-p",  // include diff so we can read the SHA
-		"-U3", // Make sure diff context is always the same (used to ensure we always see all of pointer data)
+		"-p",   // include diff so we can read the SHA
+		"-U10", // Make sure diff context is always big enough to support extension lines to get whole pointer
 		`--format=lfs-commit-sha: %H %P`, // just a predictable commit header we can detect
 	}
 )

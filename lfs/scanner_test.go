@@ -2,10 +2,9 @@ package lfs
 
 import (
 	"strings"
+	"testing"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
-
-	"testing"
 )
 
 var (
