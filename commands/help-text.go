@@ -58,6 +58,7 @@ Git attributes.
 git-lfs-init(1), git-lfs-push(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.
+
 `
 git_lfs_env_HelpText = `git-lfs-env(1) -- Display the Git LFS environment
 =================================================
@@ -73,6 +74,7 @@ Display the current Git LFS environment.
 ## SEE ALSO
 
 Part of the git-lfs(1) suite.
+
 `
 git_lfs_fetch_HelpText = `git-lfs-fetch(1) -- Download all Git LFS files for a given ref
 ==============================================================
