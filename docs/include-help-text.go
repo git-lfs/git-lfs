@@ -6,8 +6,6 @@ import(
 	"strings"
 )
 
-
-
 func main(){
 	var suffix string = ".1.ronn"
 	var documentationRoot string ="docs/man"
@@ -30,16 +28,9 @@ func main(){
 
 
 func convertManFileToString(fileName, root string) []byte {
-	var backQuote 	byte = byte("`"[0])
-	var singleQuote byte = byte("'"[0])
     helpText, _ := ioutil.ReadFile(root + "/" + fileName)
-		
-	for i, runeVal := range helpText {
-		if runeVal == backQuote {
-			helpText[i] = singleQuote
-		}
-	}
-	return helpText;
+	return []byte(strings.Replace(string(helpText), "`", "'", -1))
+
 }
 
 
