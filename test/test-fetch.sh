@@ -76,6 +76,33 @@ begin_test "fetch"
   git lfs fetch master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
+
+  # Test include / exclude filters
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchinclude" "a*"
+  git lfs fetch master newbranch
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$b_oid"
   
+  rm -rf .git/lfs/objects
+  git config --unset "lfs.fetchinclude"
+  git config "lfs.fetchexclude" "a*"
+  git lfs fetch master newbranch
+  refute_local_object "$contents_oid"
+  assert_local_object "$b_oid" 1
+
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchinclude" "a*,b*"
+  git config "lfs.fetchexclude" "c*,d*"
+  git lfs fetch master newbranch
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
+  
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchinclude" "c*,d*"
+  git config "lfs.fetchexclude" "a*,b*"
+  git lfs fetch master newbranch
+  refute_local_object "$contents_oid"
+  refute_local_object "$b_oid"
 )
 end_test
