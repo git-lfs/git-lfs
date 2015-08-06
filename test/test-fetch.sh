@@ -30,7 +30,7 @@ begin_test "fetch"
 
   [ "a" = "$(cat a.dat)" ]
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_local_object "$contents_oid" 1
 
   refute_server_object "$reponame" "$contents_oid"
 
@@ -47,7 +47,7 @@ begin_test "fetch"
   printf "$b" > b.dat
   git add b.dat
   git commit -m "add b.dat"
-  assert_pointer "newbranch" "b.dat" "$b_oid" 1
+  assert_local_object "$b_oid" 1
 
   git push origin newbranch
   assert_server_object "$reponame" "$b_oid"
@@ -59,7 +59,7 @@ begin_test "fetch"
 
   [ "a" = "$(cat a.dat)" ]
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_local_object "$contents_oid" 1
 
 
   # Remove the working directory and lfs files
@@ -67,15 +67,15 @@ begin_test "fetch"
 
   git lfs fetch 2>&1 | grep "(1 of 1 files)"
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_local_object "$contents_oid" 1
 
   git checkout newbranch
   git checkout master
   rm -rf .git/lfs/objects
 
   git lfs fetch master newbranch
-  assert_pointer "master" "a.dat" "$contents_oid" 1
-  assert_pointer "newbranch" "b.dat" "$b_oid" 1
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
   
 )
 end_test
