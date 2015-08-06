@@ -12,4 +12,5 @@ fi
 
 script/fmt
 rm -rf bin/*
+go generate
 go run script/*.go -cmd build "$@"
