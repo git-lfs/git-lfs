@@ -45,9 +45,9 @@ All the `git-lfs_*` images are built automatically, and then run.
 
 To only run certain docker images, supply them as arguments, e.g.
 
-    ./docker/run_docker.bsh git-lfs_debian_7.dockerfile
-    ./docker/run_docker.bsh git-lfs_debian_*.dockerfile
-    ./docker/run_docker.bsh git-lfs_*[6-8].dockerfile
+    ./docker/run_docker.bsh ./docker/git-lfs_debian_7.dockerfile
+    ./docker/run_docker.bsh ./docker/git-lfs_debian_*.dockerfile
+    ./docker/run_docker.bsh ./docker/git-lfs_*[6-8].dockerfile
     
 And only those images will be run.
 
@@ -124,7 +124,7 @@ In order to save the necessary dependencies, call `./docker/run_dockers.bsh` on
 will be extracted from the bootstrapped images and saved in the `./repo` directory.
 (This _can_ be done in one command. Order matters)
 
-    ./docker/run_dockers.bsh git-lfs-full-build_*.dockerfile git-lfs_*.dockerfile
+    ./docker/run_dockers.bsh ./docker/git-lfs-full-build_*.dockerfile ./docker/git-lfs_*.dockerfile
 
 This is most important for CentOS 6 where git 1.8.2 or newer is not available, 
 only git 1.7.1 is available, so every user either has to build git from source, 

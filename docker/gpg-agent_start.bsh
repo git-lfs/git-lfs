@@ -10,7 +10,7 @@ IMAGE_NAME=gpg-agent_debian_8
 if [ "$(docker inspect -f {{.State.Running}} git-lfs-gpg)" != "true" ]; then
   #Don't rebuild WHILE RUNNING
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
-    ${CUR_DIR}/build_dockers.bsh ${IMAGE_NAME}.dockerfile
+    ${CUR_DIR}/build_dockers.bsh ${CUR_DIR}/${IMAGE_NAME}.dockerfile
   fi
   
   OTHER_OPTIONS=("-e" "GPG_DEFAULT_CACHE=${GPG_DEFAULT_CACHE:-31536000}")
