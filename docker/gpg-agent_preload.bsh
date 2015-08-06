@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -eu
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+IMAGE_NAME=gpg-agent_debian_8
+
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+
+if [[ $# > 0 ]] && [ "$1" == "-r" ]; then
+  ${CUR_DIR}/gpg-agent_stop.bsh
+fi
+
+${CUR_DIR}/gpg-agent_start.bsh
+
+#wait at most 10 seconds
+for x in $(seq 10); do
+  if $SUDO docker exec -it git-lfs-gpg gpg-connect-agent --homedir=/tmp/gpg-agent /bye; then
+    break
+  else
+    sleep 1
+  fi
+done
+
+#I only need script cause of https://github.com/docker/docker/issues/8755 HORRAY BUGS!
+$SUDO docker exec -it git-lfs-gpg script /dev/null -q -c ' \
+  for key in $(ls /tmp/*.key); do \
+    if [ -s $key ]; then \
+      gpg --import $key; \
+      gpg2 -o /dev/null -s /dev/null; \
+      rm -f /tmp/gpg-agent/*.gpg; \
+    fi \
+  done'
+#WHAT AM I DOING HERE? Well... This is the most UNIVERSAL way I have discovered
+#to safely cache all the gpg keys. They are deleted after each load so that that
+#there can be ANY kind of intermingling in how the keys are defined (subkeys
+#of the same primary key, etc...) and gpg will ALLOW this to work. Normally you
+#can not import a subkey for a pre-existing primary key. This gets AROUND that
+#problem (as merging is WAY too complicated... but possible)

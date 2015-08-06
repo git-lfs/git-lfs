@@ -7,11 +7,6 @@
 #
 # Special Environmet Variables
 #  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
-#  BUILD_LOCAL - Set to 1 (default) to use the current checkout version of
-#                git-lfs to build against. Else the released archived is
-#                downloaded and built against.
-#                Currently only works for RPMs. DEB always builds the current
-#                checkout version
 #  DOCKER_AUTOBUILD - Default 1. If set to 0, it will not build docker images 
 #                before running
 #  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
@@ -24,19 +19,17 @@ set -eu
 CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
 REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
 PACKAGE_DIR=${REPO_DIR}/repos
+mkdir -p ${PACKAGE_DIR}/centos || :
+mkdir -p ${PACKAGE_DIR}/debian || :
 
 #If you are not in docker group and you have sudo, default value is sudo
-: ${SUDO=`if id -nG | grep -qwv docker && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 function split_image_name()
-{ #$1 - image directory name or dockerfile
+{ #$1 - image dockerfile
   #sets IMAGE_NAME to the basename of the dir containing the docker file
   #sets IMAGE_INFO to be the array name following my pattern
-  IMAGE_NAME=$(basename $1)
-  if [ "${IMAGE_NAME,,}" == "dockerfile" ]; then
-    IMAGE_NAME=$(basename $(dirname $1))
-  fi
-  
+  IMAGE_NAME=$(basename ${1%.*})
   local IFS=_
   IMAGE_INFO=(${IMAGE_NAME})
 }
@@ -55,7 +48,7 @@ while [[ $# > 0 ]]; do
 done
 
 if [[ ${#IMAGES[@]} == 0 ]]; then
-  IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*/Dockerfile))
+  IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*.dockerfile))
 fi
 
 mkdir -p "${PACKAGE_DIR}"
@@ -63,42 +56,45 @@ mkdir -p "${PACKAGE_DIR}"
 for DOCKER_FILE in "${IMAGES[@]}"; do
   split_image_name "${DOCKER_FILE}" #set IMAGE_NAME and IMAGE_INFO
 
-  #TODO REMOVE THIS AFTER THE REAL git-lfs-repo packages
-  if [ "${IMAGE_INFO[1]}" == "debian" ]; then
-    if [ "${IMAGE_INFO[2]}" == "7" ]; then
-      echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/7 wheezy main" > ${CUR_DIR}/git-lfs-main_7.list
-    elif [ "${IMAGE_INFO[2]}" == "8" ]; then
-      echo "deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main" > ${CUR_DIR}/git-lfs-main_8.list
-    fi
-  fi
-  #END TODO
-
   #Auto build docker unless DOCKER_AUTOBUILD=0
   if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
     ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
   fi
 
-  #It CAN'T be empty () with set -u...
-  OTHER_OPTIONS=("-it" "-e" "BUILD_LOCAL=${BUILD_LOCAL-1}")
+  #It CAN'T be empty () with set -u... So I put some defaults in here
+  OTHER_OPTIONS=("-it")
   
   if [ "${AUTO_REMOVE-1}" == "1" ]; then
     OTHER_OPTIONS+=("--rm")
   fi
-
-  if [ -s ${CUR_DIR}/signing.key ]; then
-    set +e
-    source ${CUR_DIR}/preload_key.bsh
-    set -e
-    OTHER_OPTIONS+=("-e" "GPG_AGENT_INFO=${GPG_AGENT_INFO}")
-    OTHER_OPTIONS+=("-v" "$(dirname ${GPG_AGENT_INFO}):$(dirname ${GPG_AGENT_INFO})")
+  
+  if [ -s ${CUR_DIR}/${IMAGE_NAME}.key ]; then
+    ${CUR_DIR}/gpg-agent_preload.bsh
+    OTHER_OPTIONS+=("--volumes-from" "git-lfs-gpg")
+    OTHER_OPTIONS+=("-e" "$(docker exec git-lfs-gpg cat /tmp/gpg-agent/gpg_agent_info)")
+    #Do I need this? Or can I get away with hardcoding???
+    #GPG_AGENT_INFO=/tmp/gpg-agent/S.gpg-agent:1:1
+  fi
+  
+  FINAL_UID=$(id -u)
+  FINAL_GID=$(id -g)
+  if [[ $FINAL_UID == 0 ]]; then
+    FINAL_UID=${SUDO_UID-}
+  fi
+  if [[ $FINAL_GID == 0 ]]; then
+    FINAL_GID=${SUDO_GID-}
   fi
 
   echo Compiling LFS in docker image ${IMAGE_NAME}
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
   $SUDO docker run "${OTHER_OPTIONS[@]}" \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
+                   -e FINAL_UID=${FINAL_UID} \
+                   -e FINAL_GID=${FINAL_GID} \
                    -v ${REPO_DIR}:/src \
                    -v ${IMAGE_REPO_DIR}:/repo \
-                   ${IMAGE_NAME} ${DOCKER_CMD-}
+                   git-lfs/${IMAGE_NAME} ${DOCKER_CMD-}
 
 done
+
+echo "Docker run completed successfully!"

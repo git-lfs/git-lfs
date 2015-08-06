@@ -20,6 +20,6 @@ rpm/*.log
 rpm/SOURCES
 
 repos
-docker/signing.key
+docker/*.key
 
 src

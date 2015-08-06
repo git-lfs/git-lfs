@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -eu
+
+if [[ $# == 0 ]]; then
+  FILES=(-)
+else
+  FILES=("${@}")
+fi
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+
+for FILE in "${FILES[@]}"; do
+  if [ "${FILE}" == "-" ]; then
+    FILE=/dev/stdin
+  fi
+  while IFS='' read -r LINE || [ -n "${LINE}" ]; do
+
+    #My template substitution
+    while [[ "$LINE" =~ (\[\{)([A-Za-z0-9_]*)(\}\]) ]]; do
+      LINE=${LINE/"${BASH_REMATCH[0]}"/${!BASH_REMATCH[2]-}}
+    done
+    
+    #My SOURCE substitution
+    if echo $LINE | grep -q ^SOURCE; then
+      SOURCE=$(echo "${LINE}" | sed -E 's|^SOURCE[ ]+(.*)|\1|')
+      if [ "${SOURCE:0:1}" != "/" ] && [ -f "${CUR_DIR}/${SOURCE}" ]; then
+        SOURCE="${CUR_DIR}/${SOURCE}"
+      fi
+      if [ ! -f "${SOURCE}" ]; then
+        echo "Could not find a readable ${SOURCE}" >& 2
+        exit 1
+      fi
+      "${BASH_SOURCE[0]}" "${SOURCE}" | grep -vi '^FROM' | grep -vi '^MAINTAINER'
+    else
+      echo "${LINE}"
+    fi
+  done < ${FILE}
+done

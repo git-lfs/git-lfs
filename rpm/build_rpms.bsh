@@ -3,12 +3,37 @@
 set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
-SPEC=${CURDIR}/SPECS/git-lfs.spec
-VERSION=$(\grep '^const Version' "${CURDIR}/../lfs/lfs.go" | sed 's|const Version = "\([0-9.]*\)"|\1|')
-if [[ ${NODEPS:-0} == 0 ]]; then
-  RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}")
-else
-  RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --nodeps)
+if [ -e /etc/os-release ]; then
+  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID})
+  OS_NAME=$(source /etc/os-release; echo ${NAME})
+  OS_NAME=${OS_NAME,,}
+else #Basically Centos 5/6
+  VERSION_ID=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
+  OS_NAME=$(awk '{print tolower($1)}' /etc/redhat-release)
+  #Stupid ancient bash 3...
+fi
+
+case "${OS_NAME}" in
+  centos*|red*)
+    RPM_DIST=".el${VERSION_ID}"
+    ;;
+  fedora)
+    RPM_DIST=".fc${VERSION_ID}"
+    ;;
+  sles)
+    RPM_DIST=".sles${VERSION_ID}"
+    ;;
+  opensuse)
+    RPM_DIST=".opensuse${VERSION_ID}"
+    ;;
+  *)
+    RPM_DIST="%{nil}"
+    ;;
+esac
+
+RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --define "dist ${RPM_DIST}")
+if [[ ${NODEPS:-0} != 0 ]]; then
+  RPMBUILD=("${RPMBUILD[@]}" --nodeps)
 fi
 LOG=${CURDIR}/build.log
 SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
@@ -33,10 +58,9 @@ else
   GIT_VERSION=(0 0 0)
 fi
 
-REDHAT_VERSION=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
-REDHAT_NAME=$(awk '{print $1}' /etc/redhat-release)
+SPEC=${CURDIR}/SPECS/git-lfs.spec
 
-if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+if [[ ${VERSION_ID[0]} == 5 ]]; then
   if ! rpm -q epel-release > /dev/null 2>&1; then
     $SUDO yum install -y epel-release
   fi
@@ -46,7 +70,7 @@ $SUDO yum install -y make curl which rpm-build tar bison perl-Digest-SHA
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
 if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
-  if [[ ${REDHAT_VERSION[0]} != 6 ]]; then
+  if [[ ${VERSION_ID[0]} != 6 ]]; then
     $SUDO yum install -y git
   else
     $SUDO yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc
@@ -62,37 +86,9 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
   fi
 fi
 
-#Prep the SOURCES dir for git-lfs
-if [ "${BUILD_LOCAL:=0}" == "1" ]; then
-  echo "Zipping up current checkout of git-lfs..." >&6
-  
-  rm -rvf ${CURDIR}/tmptar
-  mkdir -p ${CURDIR}/tmptar/git-lfs-${VERSION}
-  pushd ${CURDIR}/..
-    #I started running out of space in the docker, so I needed to copy a little less waste
-    tar -c . --exclude tmptar --exclude repos | tar -x -C ${CURDIR}/tmptar/git-lfs-${VERSION}/
-  popd
-  pushd ${CURDIR}/tmptar/git-lfs-${VERSION}
-    git clean -xdf
-    rm -rvf .git
-  popd
-  pushd ${CURDIR}/tmptar
-    tar -zcf ${CURDIR}/SOURCES/git-lfs-${VERSION}.tar.gz git-lfs-${VERSION}
-  popd
-  rm -rvf ${CURDIR}/tmptar
-else
-  echo "Downloading git-lfs..." >&6
-  mkdir -p ${CURDIR}/SOURCES
-  pushd  ${CURDIR}/SOURCES
-    curl -L -o git-lfs-${VERSION}.tar.gz https://github.com/github/git-lfs/archive/v${VERSION}.tar.gz
-  popd
-fi
-  
-cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
-
 if ! which go; then
   echo "Installing go... one way or another" >&6
-  if [[ ${REDHAT_VERSION[0]} == 5 ]]; then
+  if [[ ${VERSION_ID[0]} == 5 ]]; then
     $SUDO yum install -y curl.x86_64 glibc gcc
     ${CURDIR}/golang_patch.bsh
     "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/golang.spec
@@ -117,7 +113,7 @@ else
 fi
 
 if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if [[ ${REDHAT_VERSION[0]} < 7 ]]; then
+  if [[ ${VERSION_ID[0]} < 7 ]]; then
     echo "Downloading ruby..." >&6
 
     if ! rpm -q epel-release; then
@@ -156,8 +152,42 @@ if ! which ronn; then
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
 fi
 
+pushd ${CURDIR}/..
+  #Yes, compile lfs before compiling lfs...
+  ./script/bootstrap
+  #Use the version output to grab the version number and short sha 
+  #(that yes, I could have gotten from git myself)
+  LFS_VERSION=$(./bin/git-lfs version | sed -r 's|.*/([0-9.]*).*|\1|')
+  sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
+  #LFS_SHA=$(git rev-parse --short HEAD)
+  #sed -i 's|\(^commit=*\).*|\1'"${LFS_SHA}"'|' ./script/run
+  #Not needed thanks to #549
+popd
+
+#Prep the SOURCES dir for git-lfs
+echo "Zipping up current checkout of git-lfs..." >&6
+  
+rm -rvf ${CURDIR}/tmptar
+mkdir -p ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}
+pushd ${CURDIR}/..
+  #I started running out of space in the docker, so I needed to copy a little less waste
+  tar -c . --exclude tmptar --exclude repos | tar -x -C ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}/
+popd
+pushd ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}
+  git clean -xdf
+  rm -rvf .git
+popd
+pushd ${CURDIR}/tmptar
+  tar -zcf ${CURDIR}/SOURCES/git-lfs-${LFS_VERSION}.tar.gz git-lfs-${LFS_VERSION}
+popd
+rm -rvf ${CURDIR}/tmptar
+ 
+#TODO TASK 2
+#cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
+touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
+
+
 echo "Build git-lfs rpm..." >&6
-sed -i 's|\(Version:\s*\).*|\1'"${VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
 
 "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git-lfs.spec
 

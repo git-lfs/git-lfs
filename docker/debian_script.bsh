@@ -13,31 +13,22 @@ cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
 
-if [ "${REPO_HOSTNAME-}" == "" ]; then
-  #TOOD: Finish this when the git-lfs-repo is done
-  echo 'deb http://${REPO_HOSTNAME:-git-lfs.github.com}/debian/8 jessie main' > /tmp/git-lfs-main.list
-  #/etc/apt/sources.list.d/git-lfs-main.list
-fi
-
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
-if [ -s /tmp/signing.key ]; then
-  #Agent in the docker isn't working half the time, so I give up for now... The new way IS better
-  #if [ "${GPG_AGENT_INFO-}" == "" ] && [ -e "~/.gnupg/gpg-agent-info" ]; then
-  #  source ~/.gnupg/gpg-agent-info
-  #  export GPG_AGENT_INFO
-  #fi
-  #if ! gpg-connect-agent /bye 2>/dev/null; then
-  #  eval $(gpg-agent --daemon --write-env-file ~/.gnupg/gpg-agent-info)
-  #fi
-  #GPG_TTY=`tty`
-  
-  gpg --import /tmp/signing.key || :
+if [ -s /tmp/*.key ]; then
+  gpg --import /tmp/*.key || :
+  gpg -a --export > /repo/GPG-KEY-GITLFS
+  #I may need to cp /repo/GPG-KEY-GITLFS somewhere for git-lfs-repo deb generation???
+
   echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
   echo ask-passphrase > "${REPO_DIR}/conf/options"
   
+  dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh -b -ai386
+  git clean -xdf .
   dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh
 else
+  dpkg-buildpackage -us -uc -b -ai386
+  git clean -xdf .
   dpkg-buildpackage -us -uc
 fi
 
@@ -46,6 +37,12 @@ for DSC in $(ls /tmp/docker_run/*.changes); do
   SOURCE_NAME=$(grep ^Source: "${DSC}" | sed -r 's/Source: (.*)/\1/')
   BINARY_NAME=$(grep ^Binary: "${DSC}" | sed -r 's/Binary: (.*)/\1/')
   reprepro -Vb "${REPO_DIR}" remove ${REPO_CODENAME} ${SOURCE_NAME} ${BINARY_NAME}
+done
+for DSC in $(ls /tmp/docker_run/*.changes); do
   reprepro -Vb "${REPO_DIR}" include ${REPO_CODENAME} "${DSC}"
   mv "${DSC}" "${DSC}.installed"
 done
+
+if [ "${FINAL_UID-}:${FINAL_GID-}" != ":" ]; then
+  chown ${FINAL_UID-}:${FINAL_GID-} -R /repo
+fi
