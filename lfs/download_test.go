@@ -39,7 +39,7 @@ func TestSuccessfulDownload(t *testing.T) {
 		obj := &objectResource{
 			Oid:  "oid",
 			Size: 4,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"download": &linkRelation{
 					Href:   server.URL + "/download",
 					Header: map[string]string{"A": "1"},
@@ -171,7 +171,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		obj := &objectResource{
 			Oid:  "oid",
 			Size: 4,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"download": &linkRelation{
 					Href:   server.URL + "/download",
 					Header: map[string]string{"A": "1"},
@@ -273,7 +273,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 		obj := &objectResource{
 			Oid:  "oid",
 			Size: 4,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"download": &linkRelation{
 					Href: server.URL + "/download",
 					Header: map[string]string{
@@ -379,7 +379,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 		obj := &objectResource{
 			Oid:  "oid",
 			Size: 4,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"download": &linkRelation{
 					Href:   server2.URL + "/download",
 					Header: map[string]string{"A": "1"},
@@ -513,7 +513,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		obj := &objectResource{
 			Oid:  "oid",
 			Size: 4,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"download": &linkRelation{
 					Href:   server3.URL + "/download",
 					Header: map[string]string{"A": "1"},
@@ -640,7 +640,7 @@ func TestDownloadStorageError(t *testing.T) {
 		obj := &objectResource{
 			Oid:  "oid",
 			Size: 4,
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"download": &linkRelation{
 					Href:   server.URL + "/download",
 					Header: map[string]string{"A": "1"},

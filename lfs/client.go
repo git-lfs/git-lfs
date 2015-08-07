@@ -39,10 +39,21 @@ var (
 	}
 )
 
+type objectError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *objectError) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
+}
+
 type objectResource struct {
-	Oid   string                   `json:"oid,omitempty"`
-	Size  int64                    `json:"size"`
-	Links map[string]*linkRelation `json:"_links,omitempty"`
+	Oid     string                   `json:"oid,omitempty"`
+	Size    int64                    `json:"size"`
+	Actions map[string]*linkRelation `json:"actions,omitempty"`
+	Links   map[string]*linkRelation `json:"_links,omitempty"`
+	Error   *objectError             `json:"error,omitempty"`
 }
 
 func (o *objectResource) NewRequest(relation, method string) (*http.Request, Creds, error) {
@@ -60,11 +71,15 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, Cre
 }
 
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
-	if o.Links == nil {
-		return nil, false
+	var rel *linkRelation
+	var ok bool
+
+	if o.Actions != nil {
+		rel, ok = o.Actions[name]
+	} else {
+		rel, ok = o.Links[name]
 	}
 
-	rel, ok := o.Links[name]
 	return rel, ok
 }
 
@@ -197,6 +212,8 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
 			return nil, Error(newNotImplError())
 		}
+
+		tracerx.Printf("api error: %s", wErr)
 	}
 	LogTransfer("lfs.api.batch", res)
 
