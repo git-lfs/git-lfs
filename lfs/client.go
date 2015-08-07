@@ -71,16 +71,15 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, Cre
 }
 
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
-	actions := o.Actions
-	if actions == nil {
-		actions = o.Links
+	var rel *linkRelation
+	var ok bool
+
+	if o.Actions != nil {
+		rel, ok = o.Actions[name]
+	} else {
+		rel, ok = o.Links[name]
 	}
 
-	if actions == nil {
-		return nil, false
-	}
-
-	rel, ok := actions[name]
 	return rel, ok
 }
 
