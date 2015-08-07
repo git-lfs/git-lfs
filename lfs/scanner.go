@@ -623,6 +623,8 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 				p, err := DecodePointer(&pointerData)
 				if err == nil {
 					results <- &WrappedPointer{Name: currentFilename, Size: p.Size, Pointer: p}
+				} else {
+					tracerx.Printf("Unable to parse pointer from log: %v", err)
 				}
 			}
 			pointerData.Reset()
