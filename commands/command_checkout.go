@@ -20,10 +20,10 @@ var (
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
-
 	// Parameters are filters
 	// firstly convert any pathspecs to the root of the repo, in case this is being executed in a sub-folder
-	var rootedpaths = make([]string, len(args))
+	var rootedpaths []string
+
 	inchan := make(chan string, 1)
 	outchan, err := lfs.ConvertCwdFilesRelativeToRepo(inchan)
 	if err != nil {
