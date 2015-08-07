@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,19 +12,30 @@ import (
 	contentaddressable "github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/go-contentaddressable"
 )
 
-func PointerSmudgeToFile(filename string, ptr *Pointer, cb CopyCallback) error {
+var (
+	DownloadDeclinedError = errors.New("File missing and download is not allowed")
+)
+
+func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
 	}
 	defer file.Close()
-	if err := PointerSmudge(file, ptr, filename, cb); err != nil {
-		return fmt.Errorf("Could not write working directory file: %v", err)
+	if err := PointerSmudge(file, ptr, filename, download, cb); err != nil {
+		if err == DownloadDeclinedError {
+			// write placeholder data instead
+			file.Seek(0, os.SEEK_SET)
+			ptr.Encode(file)
+			return err
+		} else {
+			return fmt.Errorf("Could not write working directory file: %v", err)
+		}
 	}
 	return nil
 }
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCallback) error {
+func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, cb CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
@@ -41,7 +53,11 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, cb CopyCa
 
 	var wErr *WrappedError
 	if statErr != nil || stat == nil {
-		wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
+		if download {
+			wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
+		} else {
+			return DownloadDeclinedError
+		}
 	} else {
 		wErr = readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}

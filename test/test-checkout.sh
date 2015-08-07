@@ -15,6 +15,7 @@ begin_test "checkout"
   grep "Tracking \*.dat" track.log
 
   contents="something something"
+  contentsize=19
   contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
 
   # Same content everywhere is ok, just one object in lfs db
@@ -34,7 +35,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
-  assert_pointer "master" "file1.dat" "$contents_oid" 19
+  assert_pointer "master" "file1.dat" "$contents_oid" $contentsize
 
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
@@ -86,6 +87,17 @@ begin_test "checkout"
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
+  [ "$contents" = "$(cat folder1/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+
+  # test checkout with missing data doesn't fail
+  git push origin master
+  rm -rf .git/lfs/objects
+  rm file*.dat
+  git lfs checkout
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat file1.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat file2.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 

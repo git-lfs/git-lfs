@@ -182,9 +182,15 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		// OK now we can (over)write the file content
 		repopathchan <- pointer.Name
 		cwdfilepath := <-cwdpathchan
-		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, nil)
+		// smudge but set auto-download to false
+		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, nil)
 		if err != nil {
-			Panic(err, "Could not checkout file")
+			if err == lfs.DownloadDeclinedError {
+				// acceptable error, data not local (fetch not run or include/exclude)
+				LoggedError(err, "Skipped checkout for %v, content not local. Use fetch to download.", pointer.Name)
+			} else {
+				Panic(err, "Could not checkout file")
+			}
 		}
 
 		updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
