@@ -15,6 +15,8 @@ var (
 		Short: "Downloads LFS files",
 		Run:   fetchCommand,
 	}
+	fetchIncludeArg string
+	fetchExcludeArg string
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
@@ -30,44 +32,48 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		refs = []string{ref}
 	}
 
+	includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
+
 	// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 	for _, ref := range refs {
-		fetchRef(ref)
+		fetchRef(ref, includePaths, excludePaths)
 	}
 
 }
 
 func init() {
+	fetchCmd.Flags().StringVarP(&fetchIncludeArg, "include", "I", "", "Include a list of paths")
+	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
 	RootCmd.AddCommand(fetchCmd)
 }
 
-func fetchRefToChan(ref string) chan *lfs.WrappedPointer {
+func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPointer {
 	c := make(chan *lfs.WrappedPointer)
 	pointers, err := lfs.ScanRefs(ref, "", nil)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
-	go fetchAndReportToChan(pointers, c)
+	go fetchAndReportToChan(pointers, include, exclude, c)
 
 	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(ref string) {
+func fetchRef(ref string, include, exclude []string) {
 	pointers, err := lfs.ScanRefs(ref, "", nil)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
-	fetchPointers(pointers)
+	fetchPointers(pointers, include, exclude)
 }
 
-func fetchPointers(pointers []*lfs.WrappedPointer) {
-	fetchAndReportToChan(pointers, nil)
+func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) {
+	fetchAndReportToChan(pointers, include, exclude, nil)
 }
 
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
-func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.WrappedPointer) {
+func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) {
 
 	totalSize := int64(0)
 	for _, p := range pointers {
@@ -79,7 +85,7 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, out chan<- *lfs.Wrappe
 		// Only add to download queue if local file is not the right size already
 		// This avoids previous case of over-reporting a requirement for files we already have
 		// which would only be skipped by PointerSmudgeObject later
-		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, lfs.Config.FetchIncludePaths(), lfs.Config.FetchExcludePaths())
+		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude)
 		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
 			q.Add(lfs.NewDownloadable(p))
 		} else {

@@ -187,6 +187,30 @@ type ErrorWithStack interface {
 	Stack() []byte
 }
 
+// determineIncludeExcludePaths is a common function to take the string arguments
+// for include/exclude and derive slices either from these options or from the
+// common global config
+func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclude []string) {
+	var includePaths, excludePaths []string
+	if len(includeArg) > 0 {
+		for _, inc := range strings.Split(includeArg, ",") {
+			inc = strings.TrimSpace(inc)
+			includePaths = append(includePaths, inc)
+		}
+	} else {
+		includePaths = lfs.Config.FetchIncludePaths()
+	}
+	if len(excludeArg) > 0 {
+		for _, ex := range strings.Split(excludeArg, ",") {
+			ex = strings.TrimSpace(ex)
+			excludePaths = append(excludePaths, ex)
+		}
+	} else {
+		excludePaths = lfs.Config.FetchExcludePaths()
+	}
+	return includePaths, excludePaths
+}
+
 func init() {
 	log.SetOutput(ErrorWriter)
 }

@@ -11,6 +11,8 @@ var (
 		Short: "Downloads LFS files for the current ref, and checks out",
 		Run:   pullCommand,
 	}
+	pullIncludeArg string
+	pullExcludeArg string
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
@@ -20,10 +22,14 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(ref)
-	checkoutAllFromFetchChan(c)
+	includePaths, excludePaths := determineIncludeExcludePaths(pullIncludeArg, pullExcludeArg)
+
+	c := fetchRefToChan(ref, includePaths, excludePaths)
+	checkoutFromFetchChan(includePaths, excludePaths, c)
 }
 
 func init() {
+	pullCmd.Flags().StringVarP(&pullIncludeArg, "include", "I", "", "Include a list of paths")
+	pullCmd.Flags().StringVarP(&pullExcludeArg, "exclude", "X", "", "Exclude a list of paths")
 	RootCmd.AddCommand(pullCmd)
 }

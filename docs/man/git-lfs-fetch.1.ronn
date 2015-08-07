@@ -3,7 +3,7 @@ git-lfs-fetch(1) -- Download all Git LFS files for a given ref
 
 ## SYNOPSIS
 
-`git lfs fetch` [<ref>...]
+`git lfs fetch` [options] [<ref>...]
 
 ## DESCRIPTION
 
@@ -12,7 +12,15 @@ the currently checked out ref will be used.
 
 This does not update the working copy.
 
-## INCLUDED & EXCLUDED PATHS
+## OPTIONS
+
+* `-I` <paths> `--include=`<paths>:
+  Specify lfs.fetchinclude just for this invocation; see [INCLUSION & EXCLUSION]
+
+* `-X` <paths> `--exclude=`<paths>:
+  Specify lfs.fetchexclude just for this invocation; see [INCLUSION & EXCLUSION]
+
+## INCLUSION & EXCLUSION
 
 You can configure Git LFS to only fetch objects to satisfy references in certain
 paths of the repo, and/or to exclude certain paths of the repo, to reduce the
