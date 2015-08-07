@@ -31,6 +31,10 @@ commands and low level ("plumbing") commands.
 
 * git-lfs-env(1):
     Display the Git LFS environment.
+* git-lfs-checkout(1):
+    Populate working copy with real content from Git LFS files
+* git-lfs-fetch(1):
+    Download git LFS files from a remote
 * git-lfs-fsck(1):
     Check GIT LFS files for consistency.
 * git-lfs-init(1):
@@ -39,6 +43,8 @@ commands and low level ("plumbing") commands.
     Show errors from the git-lfs command.
 * git-lfs-ls-files(1):
     Show information about Git LFS files in the index and working tree.
+* git-lfs-pull(1):
+    Fetch LFS changes from the remote & checkout any required working tree files
 * git-lfs-push(1):
     Push queued large files to the Git LFS endpoint.
 * git-lfs-status(1):
