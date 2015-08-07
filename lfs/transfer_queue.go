@@ -176,6 +176,14 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objects {
 			if _, ok := o.Rel(q.transferKind); ok {
+				// This object has an error
+				if o.Error != nil {
+					q.errorc <- Error(o.Error)
+					q.meter.Skip(o.Size)
+					q.wait.Done()
+					continue
+				}
+
 				// This object needs to be transferred
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)
