@@ -15,7 +15,10 @@ too.
 
 The Git LFS API uses [git credentials](http://git-scm.com/docs/gitcredentials) to
 access the API username and password.  If the Git LFS domain matches the Git
-remote's, Git LFS will not prompt you again to enter the password.
+remote's, Git LFS will not prompt you again to enter the password.  If there are
+no git credentials for the domain, Git LFS will make the request without any
+authentication.  If the server returns a 401 request, then the Git LFS client
+can ask for credentials from the user before retrying the request.
 
 If the Git remote is using SSH, Git LFS will execute the `git-lfs-authenticate`
 command.  It passes the SSH path, the Git LFS operation (upload or download),
@@ -62,7 +65,8 @@ links to actually upload the content.
 * 307 - A temporary redirect.  Keeps the original request method intact.
 * 400 - General error with the client's request.  Invalid JSON formatting, for
 example.
-* 401 - The authentication credentials are incorrect.
+* 401 - The authentication credentials are missing or incorrect.  The client
+should ask for the correct credentials and retry the request.
 * 403 - The requesting user has access to see the repository, but not to push
 changes to it.
 * 404 - Either the user does not have access to see the repository, or the
@@ -204,7 +208,8 @@ Here's a sample response for a request with an authorization error:
 ### Responses
 
 * 200 - The object exists and the user has access to download it.
-* 401 - The authentication credentials are incorrect.
+* 401 - The authentication credentials are missing or incorrect.  The client
+should ask for the correct credentials and retry the request.
 * 404 - The user does not have access to the object, or it does not exist.
 * 410 - The object used to exist, but was deleted. The message should state why
 (user initiated, legal issues, etc).
@@ -262,7 +267,8 @@ only appears on a 200 status.
 * 200 - The object already exists.  Don't bother re-uploading.
 * 202 - The object is ready to be uploaded.  Follow the "upload" and optional
 "verify" links.
-* 401 - The authentication credentials are incorrect.
+* 401 - The authentication credentials are missing or incorrect.  The client
+should ask for the correct credentials and retry the request.
 * 403 - The user has **read**, but not **write** access.
 * 404 - The repository does not exist for the user.
 
