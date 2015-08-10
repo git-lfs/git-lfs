@@ -117,6 +117,9 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			t.SetObject(obj)
 			q.meter.Add(t.Name())
 			q.transferc <- t
+		} else {
+			q.meter.Skip(t.Size())
+			q.wait.Done()
 		}
 	}
 }
