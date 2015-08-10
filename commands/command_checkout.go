@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"sync"
@@ -143,16 +144,13 @@ func checkoutAll() {
 // either missing, or contains a matching pointer placeholder, from a list of pointers.
 // If the file exists but has other content it is left alone
 func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
-	// Fire up the update-index command
-	cmd := exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-	updateIdxStdin, err := cmd.StdinPipe()
-	if err != nil {
-		Panic(err, "Could not update the index")
-	}
-
-	if err := cmd.Start(); err != nil {
-		Panic(err, "Could not update the index")
-	}
+	// Don't fire up the update-index command until we have at least one file to
+	// give it. Otherwise git interprets the lack of arguments to mean param-less update-index
+	// which can trigger entire working copy to be re-examined, which triggers clean filters
+	// and which has unexpected side effects (e.g. downloading filtered-out files)
+	var cmd *exec.Cmd
+	var updateIdxStdin io.WriteCloser
+	var err error
 
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
@@ -193,13 +191,29 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			}
 		}
 
+		if cmd == nil {
+			// Fire up the update-index command
+			cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
+			updateIdxStdin, err = cmd.StdinPipe()
+			if err != nil {
+				Panic(err, "Could not update the index")
+			}
+
+			if err := cmd.Start(); err != nil {
+				Panic(err, "Could not update the index")
+			}
+
+		}
+
 		updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
 	}
 	close(repopathchan)
 
-	updateIdxStdin.Close()
-	if err := cmd.Wait(); err != nil {
-		Panic(err, "Error updating the git index")
+	if cmd != nil && updateIdxStdin != nil {
+		updateIdxStdin.Close()
+		if err := cmd.Wait(); err != nil {
+			Panic(err, "Error updating the git index")
+		}
 	}
 
 }
