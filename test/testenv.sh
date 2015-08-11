@@ -49,6 +49,8 @@ TESTHOME="$REMOTEDIR/home"
 
 GIT_CONFIG_NOSYSTEM=1
 
+export CREDSDIR
+
 if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
 then
   OSXKEYFILE="$TMPDIR/temp.keychain"
