@@ -3,6 +3,7 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"os/exec"
 	"regexp"
@@ -60,9 +61,18 @@ type indexFile struct {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
+type ScanningMode int
+
+const (
+	ScanRefsMode         = ScanningMode(iota) // 0 - or default scan mode
+	ScanAllMode          = ScanningMode(iota)
+	ScanLeftToRemoteMode = ScanningMode(iota)
+)
+
 type ScanRefsOptions struct {
+	ScanMode         ScanningMode
+	RemoteName       string
 	SkipDeletedBlobs bool
-	scanAll          bool
 	nameMap          map[string]string
 }
 
@@ -73,7 +83,9 @@ func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer
 	if opt == nil {
 		opt = &ScanRefsOptions{}
 	}
-	opt.scanAll = refLeft == ""
+	if refLeft == "" {
+		opt.ScanMode = ScanAllMode
+	}
 	opt.nameMap = make(map[string]string, 0)
 
 	start := time.Now()
@@ -174,9 +186,8 @@ func ScanIndex() ([]*WrappedPointer, error) {
 // channel from which sha1 strings can be read.
 func revListShas(refLeft, refRight string, opt ScanRefsOptions) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
-	if opt.scanAll {
-		refArgs = append(refArgs, "--all")
-	} else {
+	switch opt.ScanMode {
+	case ScanRefsMode:
 		if opt.SkipDeletedBlobs {
 			refArgs = append(refArgs, "--no-walk")
 		} else {
@@ -187,6 +198,12 @@ func revListShas(refLeft, refRight string, opt ScanRefsOptions) (chan string, er
 		if refRight != "" && !z40.MatchString(refRight) {
 			refArgs = append(refArgs, refRight)
 		}
+	case ScanAllMode:
+		refArgs = append(refArgs, "--all")
+	case ScanLeftToRemoteMode:
+		refArgs = append(refArgs, refLeft, "--not", "--remotes="+opt.RemoteName)
+	default:
+		return nil, errors.New("scanner: unknown scan type: " + strconv.Itoa(int(opt.ScanMode)))
 	}
 
 	cmd, err := startCommand("git", refArgs...)
