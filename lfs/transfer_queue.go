@@ -100,8 +100,8 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.Check()
 		if err != nil {
-			q.wait.Done()
 			q.errorc <- err
+			q.wait.Done()
 			continue
 		}
 
