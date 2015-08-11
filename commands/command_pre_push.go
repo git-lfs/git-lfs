@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"bytes"
+	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -76,11 +78,28 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		totalSize += p.Size
 	}
 
+	// Objects to skip because they're missing locally but on server
+	var skipObjects map[string]struct{}
+
+	if !prePushDryRun {
+		// Do this as a pre-flight check since upload queue starts immediately
+		var err error
+		skipObjects, err = prePushCheckForMissingObjects(pointers)
+		if err != nil {
+			Exit(err.Error())
+		}
+	}
+
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s", pointer.Name)
+			continue
+		}
+
+		if _, skip := skipObjects[pointer.Oid]; skip {
+			// object missing locally but on server, don't bother
 			continue
 		}
 
@@ -113,6 +132,40 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			os.Exit(2)
 		}
 	}
+}
+
+func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}, e error) {
+	var missingLocalObjects []*lfs.WrappedPointer
+	var missingSize int64
+	var skipObjects = make(map[string]struct{}, len(pointers))
+	for _, pointer := range pointers {
+		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
+			// We think we need to push this but we don't have it
+			// Store for server checking later
+			missingLocalObjects = append(missingLocalObjects, pointer)
+			missingSize += pointer.Size
+			skipObjects[pointer.Oid] = struct{}{}
+		}
+	}
+	if len(missingLocalObjects) == 0 {
+		return nil, nil
+	}
+
+	verifyQueue := lfs.NewVerifyQueue(len(missingLocalObjects), missingSize, false)
+	for _, p := range missingLocalObjects {
+		verifyQueue.Add(lfs.NewVerifiable(p))
+	}
+	verifyQueue.Wait()
+	if len(verifyQueue.Errors()) > 0 {
+		// Extract oids from messages & collate
+		var combinedMsg bytes.Buffer
+		for _, err := range verifyQueue.Errors() {
+			combinedMsg.WriteString(err.Error())
+			combinedMsg.WriteString("\n")
+		}
+		return nil, errors.New(combinedMsg.String())
+	}
+	return skipObjects, nil
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
