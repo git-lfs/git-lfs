@@ -173,7 +173,7 @@ begin_test "pre-push with existing pointer"
 )
 end_test
 
-begin_test "pre-push with missing pointer"
+begin_test "pre-push with missing pointer not on server"
 (
   set -e
 
@@ -192,5 +192,46 @@ begin_test "pre-push with missing pointer"
     tee push.log
   set -e
   grep "new.dat is an LFS pointer to 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c, which does not exist in .git/lfs/objects" push.log
+)
+end_test
+
+begin_test "pre-push with missing pointer which is on server"
+(
+  # should permit push if files missing locally but are on server, shouldn't
+  # require client to have every file (prune)
+  set -e
+
+  reponame="$(basename "$0" ".sh")-missing-but-on-server"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" missing-but-on-server
+
+  contents="common data"
+  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  git lfs track "*.dat"
+  printf "$contents" > common1.dat
+  git add common1.dat
+  git add .gitattributes
+  git commit -m "add first file"
+
+  # push file to the git lfs server
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  grep "(1 of 1 files)" push.log
+
+  # now the file exists
+  assert_server_object "$reponame" "$contents_oid"
+
+  # create another commit referencing same oid, then delete local data & push
+  printf "$contents" > common2.dat
+  git add common2.dat
+  git commit -m "add second file, same content"
+  rm -rf .git/lfs/objects
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+  # make sure there were no errors reported
+  [ -z "$(grep -i 'Error' push.log)" ]
+
 )
 end_test
