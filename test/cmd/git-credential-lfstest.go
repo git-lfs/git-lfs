@@ -21,8 +21,14 @@ var (
 
 	hostRE = regexp.MustCompile(`\A127.0.0.1:\d+\z`)
 
-	credsDir = "wat"
+	credsDir = ""
 )
+
+func init() {
+	if len(credsDir) == 0 {
+		credsDir = os.Getenv("CREDSDIR")
+	}
+}
 
 func main() {
 	if argsize := len(os.Args); argsize != 2 {

@@ -165,7 +165,7 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
-      go build -ldflags "-X main.credsDir $CREDSDIR" -o "$BINPATH/$(basename $go .go)" "$go"
+      go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
   fi
 
