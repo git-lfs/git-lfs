@@ -13,14 +13,7 @@ func NewCheckable(p *WrappedPointer) *Checkable {
 }
 
 func (d *Checkable) Check() (*objectResource, *WrappedError) {
-	obj, wrerr := DownloadCheck(d.Pointer.Oid)
-
-	if wrerr != nil {
-		// Add some extra useful context
-		wrerr.Set("oid", d.Pointer.Oid)
-		wrerr.Set("name", d.Pointer.Name)
-	}
-	return obj, wrerr
+	return DownloadCheck(d.Pointer.Oid)
 }
 
 func (d *Checkable) Transfer(cb CopyCallback) *WrappedError {

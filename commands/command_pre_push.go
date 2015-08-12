@@ -1,9 +1,6 @@
 package commands
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -85,11 +82,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	if !prePushDryRun {
 		// Do this as a pre-flight check since upload queue starts immediately
-		var err error
-		skipObjects, err = prePushCheckForMissingObjects(pointers)
-		if err != nil {
-			Panic(errors.New("Missing objects to push"), err.Error())
-		}
+		skipObjects = prePushCheckForMissingObjects(pointers)
 	}
 
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
@@ -135,7 +128,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}, e error) {
+func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}) {
 	var missingLocalObjects []*lfs.WrappedPointer
 	var missingSize int64
 	var skipObjects = make(map[string]struct{}, len(pointers))
@@ -145,30 +138,25 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 			// Store for server checking later
 			missingLocalObjects = append(missingLocalObjects, pointer)
 			missingSize += pointer.Size
-			skipObjects[pointer.Oid] = struct{}{}
 		}
 	}
 	if len(missingLocalObjects) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	checkQueue := lfs.NewCheckQueue(len(missingLocalObjects), missingSize, false)
 	for _, p := range missingLocalObjects {
 		checkQueue.Add(lfs.NewCheckable(p))
 	}
-	checkQueue.Wait()
-	if len(checkQueue.Errors()) > 0 {
-		// Extract oids from messages & collate
-		var combinedMsg bytes.Buffer
-		for _, wrerr := range checkQueue.Errors() {
-			oid := wrerr.Get("oid")
-			name := wrerr.Get("name")
-			combinedMsg.WriteString(fmt.Sprintf(prePushMissingErrMsg, name, oid))
-			combinedMsg.WriteString("\n")
+	// this channel is filled with oids for which Check() succeeded & Transfer() was called
+	transferc := checkQueue.Watch()
+	go func() {
+		for oid := range transferc {
+			skipObjects[oid] = struct{}{}
 		}
-		return nil, errors.New(combinedMsg.String())
-	}
-	return skipObjects, nil
+	}()
+	checkQueue.Wait()
+	return skipObjects
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
