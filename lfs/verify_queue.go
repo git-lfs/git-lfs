@@ -13,7 +13,14 @@ func NewVerifiable(p *WrappedPointer) *Verifiable {
 }
 
 func (d *Verifiable) Check() (*objectResource, *WrappedError) {
-	return DownloadCheck(d.Pointer.Oid)
+	obj, wrerr := DownloadCheck(d.Pointer.Oid)
+
+	if wrerr != nil {
+		// Add some extra useful context
+		wrerr.Set("oid", d.Pointer.Oid)
+		wrerr.Set("name", d.Pointer.Name)
+	}
+	return obj, wrerr
 }
 
 func (d *Verifiable) Transfer(cb CopyCallback) *WrappedError {

@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -17,8 +18,9 @@ var (
 		Short: "Implements the Git pre-push hook",
 		Run:   prePushCommand,
 	}
-	prePushDryRun       = false
-	prePushDeleteBranch = "(delete)"
+	prePushDryRun        = false
+	prePushDeleteBranch  = "(delete)"
+	prePushMissingErrMsg = "%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects."
 )
 
 // prePushCommand is run through Git's pre-push hook. The pre-push hook passes
@@ -86,7 +88,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		var err error
 		skipObjects, err = prePushCheckForMissingObjects(pointers)
 		if err != nil {
-			Exit(err.Error())
+			Panic(errors.New("Missing objects to push"), err.Error())
 		}
 	}
 
@@ -106,8 +108,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
 			if cleanPointerErr, ok := wErr.Err.(*lfs.CleanedPointerError); ok {
-				Exit("%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects.",
-					pointer.Name, cleanPointerErr.Pointer.Oid)
+				Exit(prePushMissingErrMsg, pointer.Name, cleanPointerErr.Pointer.Oid)
 			} else if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
 			} else {
@@ -159,8 +160,10 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 	if len(verifyQueue.Errors()) > 0 {
 		// Extract oids from messages & collate
 		var combinedMsg bytes.Buffer
-		for _, err := range verifyQueue.Errors() {
-			combinedMsg.WriteString(err.Error())
+		for _, wrerr := range verifyQueue.Errors() {
+			oid := wrerr.Get("oid")
+			name := wrerr.Get("name")
+			combinedMsg.WriteString(fmt.Sprintf(prePushMissingErrMsg, name, oid))
 			combinedMsg.WriteString("\n")
 		}
 		return nil, errors.New(combinedMsg.String())
