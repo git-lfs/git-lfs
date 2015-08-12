@@ -152,15 +152,15 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 		return nil, nil
 	}
 
-	verifyQueue := lfs.NewVerifyQueue(len(missingLocalObjects), missingSize, false)
+	checkQueue := lfs.NewCheckQueue(len(missingLocalObjects), missingSize, false)
 	for _, p := range missingLocalObjects {
-		verifyQueue.Add(lfs.NewVerifiable(p))
+		checkQueue.Add(lfs.NewCheckable(p))
 	}
-	verifyQueue.Wait()
-	if len(verifyQueue.Errors()) > 0 {
+	checkQueue.Wait()
+	if len(checkQueue.Errors()) > 0 {
 		// Extract oids from messages & collate
 		var combinedMsg bytes.Buffer
-		for _, wrerr := range verifyQueue.Errors() {
+		for _, wrerr := range checkQueue.Errors() {
 			oid := wrerr.Get("oid")
 			name := wrerr.Get("name")
 			combinedMsg.WriteString(fmt.Sprintf(prePushMissingErrMsg, name, oid))
