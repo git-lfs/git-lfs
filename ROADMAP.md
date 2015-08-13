@@ -17,8 +17,8 @@ and we have a good idea how they could work.
 
 * Fast, efficient uploading and downloading ([#414](https://github.com/github/git-lfs/issues/414)).
 * Improved local storage management ([#490](https://github.com/github/git-lfs/issues/490)).
-* [Extensions](docs/proposals/extensions.md) (#486).
-* Improved installation/upgrade experience (#531).
+* [Extensions](docs/proposals/extensions.md) ([#486](https://github.com/github/git-lfs/pull/486)).
+* Improved installation/upgrade experience ([#531](https://github.com/github/git-lfs/issues/531)).
 * Ability to remove objects from the command line through the API.
 * Go 1.5+
 
