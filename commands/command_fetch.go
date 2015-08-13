@@ -23,7 +23,16 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	var refs []string
 
 	if len(args) > 0 {
-		refs = args
+		// Remote is first arg
+		lfs.Config.CurrentRemote = args[0]
+	} else {
+		trackedRemote, err := git.CurrentRemote()
+		if err == nil {
+			lfs.Config.CurrentRemote = trackedRemote
+		} // otherwise leave as default (origin)
+	}
+	if len(args) > 1 {
+		refs = args[1:]
 	} else {
 		ref, err := git.CurrentRef()
 		if err != nil {

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -16,6 +17,16 @@ var (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
+
+	if len(args) > 0 {
+		// Remote is first arg
+		lfs.Config.CurrentRemote = args[0]
+	} else {
+		trackedRemote, err := git.CurrentRemote()
+		if err == nil {
+			lfs.Config.CurrentRemote = trackedRemote
+		} // otherwise leave as default (origin)
+	}
 
 	ref, err := git.CurrentRef()
 	if err != nil {

@@ -3,7 +3,7 @@ git-lfs-pull(1) -- Download all Git LFS files for current ref & checkout
 
 ## SYNOPSIS
 
-`git lfs pull` [options]
+`git lfs pull` [options] [<remote>]
 
 ## DESCRIPTION
 
@@ -12,7 +12,7 @@ the working copy with the downloaded content if required.
 
 This is equivalent to running the following 2 commands:
 
-git lfs fetch [options]
+git lfs fetch [options] [<remote>]
 git lfs checkout
 
 ## OPTIONS
@@ -33,6 +33,12 @@ In gitconfig, set lfs.fetchinclude and lfs.fetchexclude to comma-separated lists
 of paths to include/exclude in the fetch (wildcard matching as per gitignore).
 Only paths which are matched by fetchinclude and not matched by fetchexclude
 will have objects fetched for them.
+
+## DEFAULT REMOTE
+
+Without arguments, pull downloads from the default remote. The default remote is
+the same as for `git pull`, i.e. based on the remote branch you're tracking 
+first, or origin otherwise.
 
 ## EXAMPLES
 
