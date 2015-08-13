@@ -228,35 +228,23 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
 	for _, obj := range objs.Objects {
+		action := "upload"
 		_, ok := largeObjects.Get(repo, obj.Oid)
-		var o lfsObject
 		if ok {
-			o = lfsObject{
-				Oid:  obj.Oid,
-				Size: obj.Size,
-				Actions: map[string]lfsLink{
-					"download": lfsLink{
-						Href: lfsUrl(repo, obj.Oid),
-					},
+			action = "download"
+		}
+		o := lfsObject{
+			Oid:  obj.Oid,
+			Size: obj.Size,
+			Actions: map[string]lfsLink{
+				action: lfsLink{
+					Href:   lfsUrl(repo, obj.Oid),
+					Header: map[string]string{},
 				},
-			}
-			if testingChunked {
-				o.Actions["download"].Header["Transfer-Encoding"] = "chunked"
-			}
-		} else {
-			o = lfsObject{
-				Oid:  obj.Oid,
-				Size: obj.Size,
-				Actions: map[string]lfsLink{
-					"upload": lfsLink{
-						Href:   lfsUrl(repo, obj.Oid),
-						Header: map[string]string{},
-					},
-				},
-			}
-			if testingChunked {
-				o.Actions["upload"].Header["Transfer-Encoding"] = "chunked"
-			}
+			},
+		}
+		if testingChunked {
+			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
 		}
 
 		res = append(res, o)
