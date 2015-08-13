@@ -144,9 +144,9 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 		return nil
 	}
 
-	checkQueue := lfs.NewCheckQueue(len(missingLocalObjects), missingSize, false)
+	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, false)
 	for _, p := range missingLocalObjects {
-		checkQueue.Add(lfs.NewCheckable(p))
+		checkQueue.Add(lfs.NewDownloadCheckable(p))
 	}
 	// this channel is filled with oids for which Check() succeeded & Transfer() was called
 	transferc := checkQueue.Watch()
