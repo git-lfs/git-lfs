@@ -21,10 +21,10 @@ var (
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
-
 	// Parameters are filters
 	// firstly convert any pathspecs to the root of the repo, in case this is being executed in a sub-folder
-	var rootedpaths = make([]string, len(args))
+	var rootedpaths []string
+
 	inchan := make(chan string, 1)
 	outchan, err := lfs.ConvertCwdFilesRelativeToRepo(inchan)
 	if err != nil {
@@ -69,6 +69,7 @@ func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.Wrap
 
 	// Launch git update-index
 	c := make(chan *lfs.WrappedPointer)
+
 	var wait sync.WaitGroup
 	wait.Add(1)
 
@@ -143,15 +144,11 @@ func checkoutAll() {
 // Populate the working copy with the real content of objects where the file is
 // either missing, or contains a matching pointer placeholder, from a list of pointers.
 // If the file exists but has other content it is left alone
+// Callers of this function MUST NOT Panic or otherwise exit the process
+// without waiting for this function to shut down.  If the process exits while
+// update-index is in the middle of processing a file the git index can be left
+// in a locked state.
 func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
-	// Don't fire up the update-index command until we have at least one file to
-	// give it. Otherwise git interprets the lack of arguments to mean param-less update-index
-	// which can trigger entire working copy to be re-examined, which triggers clean filters
-	// and which has unexpected side effects (e.g. downloading filtered-out files)
-	var cmd *exec.Cmd
-	var updateIdxStdin io.WriteCloser
-	var err error
-
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
 	repopathchan := make(chan string, 1)
@@ -159,6 +156,18 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 	if err != nil {
 		Panic(err, "Could not convert file paths")
 	}
+
+	// Don't fire up the update-index command until we have at least one file to
+	// give it. Otherwise git interprets the lack of arguments to mean param-less update-index
+	// which can trigger entire working copy to be re-examined, which triggers clean filters
+	// and which has unexpected side effects (e.g. downloading filtered-out files)
+	var cmd *exec.Cmd
+	var updateIdxStdin io.WriteCloser
+
+	// From this point on, git update-index is running. Code in this loop MUST
+	// NOT Panic() or otherwise cause the process to exit. If the process exits
+	// while update-index is in the middle of updating, the index can remain in a
+	// locked state.
 
 	// As files come in, write them to the wd and update the index
 	for pointer := range in {
@@ -170,24 +179,27 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 				// File has non-pointer content, leave it alone
 				continue
 			}
-			Panic(err, "Problem accessing %v", pointer.Name)
+			LoggedError(err, "Problem accessing %v", pointer.Name)
+			continue
 		}
+
 		if filepointer != nil && filepointer.Oid != pointer.Oid {
 			// User has probably manually reset a file to another commit
 			// while leaving it a pointer; don't mess with this
 			continue
 		}
-		// OK now we can (over)write the file content
+
 		repopathchan <- pointer.Name
 		cwdfilepath := <-cwdpathchan
-		// smudge but set auto-download to false
+
 		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, nil)
 		if err != nil {
 			if err == lfs.DownloadDeclinedError {
 				// acceptable error, data not local (fetch not run or include/exclude)
 				LoggedError(err, "Skipped checkout for %v, content not local. Use fetch to download.", pointer.Name)
 			} else {
-				Panic(err, "Could not checkout file")
+				LoggedError(err, "Could not checkout file")
+				continue
 			}
 		}
 
@@ -215,5 +227,4 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			Panic(err, "Error updating the git index")
 		}
 	}
-
 }
