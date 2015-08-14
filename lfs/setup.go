@@ -17,7 +17,7 @@ var (
 	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
 	NotInARepositoryError = errors.New("Not in a repository")
 
-	prePushHook     = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\""
+	prePushHook     = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but Git LFS was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }\ngit lfs pre-push \"$@\""
 	prePushUpgrades = map[string]bool{
 		"#!/bin/sh\ngit lfs push --stdin $*":     true,
 		"#!/bin/sh\ngit lfs push --stdin \"$@\"": true,
