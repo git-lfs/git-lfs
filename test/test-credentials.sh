@@ -122,13 +122,15 @@ begin_test "credentials with useHttpPath, with correct password"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
 
-  contents="a"
+  # creating new branch does not re-sent any objects existing on other
+  # remote branches anymore, generate new object, different from prev tests
+  contents="b"
   contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
 
-  printf "$contents" > a.dat
-  git add a.dat
+  printf "$contents" > b.dat
+  git add b.dat
   git add .gitattributes
-  git commit -m "add a.dat"
+  git commit -m "add b.dat"
 
   git push origin with-path-correct-pass 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
