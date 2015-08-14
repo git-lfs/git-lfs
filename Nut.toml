@@ -17,6 +17,6 @@ authors = [
 "github.com/olekukonko/ts"                      = "ecf753e7c962639ab5a1fb46f7da627d4c0a04b8"
 "github.com/rubyist/tracerx"                    = "d7bcc0bc315bed2a841841bee5dbecc8d7d7582f"
 "github.com/spf13/cobra"                        = "c55cdf33856a08e4822738728b41783292812889"
-"github.com/spf13/pflag"                        = "4869ec2ae0628354eaac5bf88fccf9a7265ae475"
+"github.com/spf13/pflag"                        = "580b9be06c33d8ba9dcc8757ea56b7642472c2f5"
 "github.com/technoweenie/assert"                = "b25ea301d127043ffacf3b2545726e79b6632139"
 "github.com/technoweenie/go-contentaddressable" = "38171def3cd15e3b76eb156219b3d48704643899"
