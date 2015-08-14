@@ -1,16 +1,60 @@
 package lfs
 
-type Downloadable struct {
+// The ability to check that a file can be downloaded
+type DownloadCheckable struct {
 	Pointer *WrappedPointer
 	object  *objectResource
 }
 
-func NewDownloadable(p *WrappedPointer) *Downloadable {
-	return &Downloadable{Pointer: p}
+func NewDownloadCheckable(p *WrappedPointer) *DownloadCheckable {
+	return &DownloadCheckable{Pointer: p}
 }
 
-func (d *Downloadable) Check() (*objectResource, *WrappedError) {
+func (d *DownloadCheckable) Check() (*objectResource, *WrappedError) {
 	return DownloadCheck(d.Pointer.Oid)
+}
+
+func (d *DownloadCheckable) Transfer(cb CopyCallback) *WrappedError {
+	// just report completion of check but don't do anything
+	cb(d.Size(), d.Size(), int(d.Size()))
+	return nil
+}
+
+func (d *DownloadCheckable) Object() *objectResource {
+	return d.object
+}
+
+func (d *DownloadCheckable) Oid() string {
+	return d.Pointer.Oid
+}
+
+func (d *DownloadCheckable) Size() int64 {
+	return d.Pointer.Size
+}
+
+func (d *DownloadCheckable) Name() string {
+	return d.Pointer.Name
+}
+
+func (d *DownloadCheckable) SetObject(o *objectResource) {
+	d.object = o
+}
+
+// NewDownloadCheckQueue builds a checking queue, allowing `workers` concurrent check operations.
+func NewDownloadCheckQueue(files int, size int64, dryRun bool) *TransferQueue {
+	q := newTransferQueue(files, size, dryRun)
+	// API operation is still download, but it will only perform the API call (check)
+	q.transferKind = "download"
+	return q
+}
+
+// The ability to actually download
+type Downloadable struct {
+	*DownloadCheckable
+}
+
+func NewDownloadable(p *WrappedPointer) *Downloadable {
+	return &Downloadable{DownloadCheckable: NewDownloadCheckable(p)}
 }
 
 func (d *Downloadable) Transfer(cb CopyCallback) *WrappedError {
@@ -19,26 +63,6 @@ func (d *Downloadable) Transfer(cb CopyCallback) *WrappedError {
 		return Error(err)
 	}
 	return nil
-}
-
-func (d *Downloadable) Object() *objectResource {
-	return d.object
-}
-
-func (d *Downloadable) Oid() string {
-	return d.Pointer.Oid
-}
-
-func (d *Downloadable) Size() int64 {
-	return d.Pointer.Size
-}
-
-func (d *Downloadable) Name() string {
-	return d.Pointer.Name
-}
-
-func (d *Downloadable) SetObject(o *objectResource) {
-	d.object = o
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.

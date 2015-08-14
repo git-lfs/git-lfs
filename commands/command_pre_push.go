@@ -15,8 +15,9 @@ var (
 		Short: "Implements the Git pre-push hook",
 		Run:   prePushCommand,
 	}
-	prePushDryRun       = false
-	prePushDeleteBranch = "(delete)"
+	prePushDryRun        = false
+	prePushDeleteBranch  = "(delete)"
+	prePushMissingErrMsg = "%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects."
 )
 
 // prePushCommand is run through Git's pre-push hook. The pre-push hook passes
@@ -76,6 +77,14 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		totalSize += p.Size
 	}
 
+	// Objects to skip because they're missing locally but on server
+	var skipObjects map[string]struct{}
+
+	if !prePushDryRun {
+		// Do this as a pre-flight check since upload queue starts immediately
+		skipObjects = prePushCheckForMissingObjects(pointers)
+	}
+
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
 
 	for _, pointer := range pointers {
@@ -84,11 +93,15 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
+		if _, skip := skipObjects[pointer.Oid]; skip {
+			// object missing locally but on server, don't bother
+			continue
+		}
+
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
 			if cleanPointerErr, ok := wErr.Err.(*lfs.CleanedPointerError); ok {
-				Exit("%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects.",
-					pointer.Name, cleanPointerErr.Pointer.Oid)
+				Exit(prePushMissingErrMsg, pointer.Name, cleanPointerErr.Pointer.Oid)
 			} else if Debugging || wErr.Panic {
 				Panic(wErr.Err, wErr.Error())
 			} else {
@@ -113,6 +126,37 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			os.Exit(2)
 		}
 	}
+}
+
+func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}) {
+	var missingLocalObjects []*lfs.WrappedPointer
+	var missingSize int64
+	var skipObjects = make(map[string]struct{}, len(pointers))
+	for _, pointer := range pointers {
+		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
+			// We think we need to push this but we don't have it
+			// Store for server checking later
+			missingLocalObjects = append(missingLocalObjects, pointer)
+			missingSize += pointer.Size
+		}
+	}
+	if len(missingLocalObjects) == 0 {
+		return nil
+	}
+
+	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, false)
+	for _, p := range missingLocalObjects {
+		checkQueue.Add(lfs.NewDownloadCheckable(p))
+	}
+	// this channel is filled with oids for which Check() succeeded & Transfer() was called
+	transferc := checkQueue.Watch()
+	go func() {
+		for oid := range transferc {
+			skipObjects[oid] = struct{}{}
+		}
+	}()
+	checkQueue.Wait()
+	return skipObjects
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
