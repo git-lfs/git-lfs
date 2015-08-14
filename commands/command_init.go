@@ -31,13 +31,12 @@ func initCommand(cmd *cobra.Command, args []string) {
 		initHooksCommand(cmd, args)
 	}
 
-	Print("Git LFS initialized")
+	Print("Git LFS initialized.")
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.InstallHooks(false); err != nil {
-		Error(err.Error())
-	}
+	updateForce = forceInit
+	updateCommand(cmd, args)
 }
 
 func init() {
