@@ -16,6 +16,13 @@
 
 set -eu
 
+#Mingw32 auto converts /drive/dir/blah to drive:\dir\blah ... Can't have that.
+if [[ `uname` == MINGW* ]]; then
+  MINGW_PATCH='/'
+else
+  MINGW_PATCH=''
+fi
+
 CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
 REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
 PACKAGE_DIR=${REPO_DIR}/repos
@@ -87,12 +94,12 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
 
   echo Compiling LFS in docker image ${IMAGE_NAME}
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
-  $SUDO docker run "${OTHER_OPTIONS[@]}" \
+  $SUDO docker run "${OTHER_OPTIONS[@]}" ${DOCKER_OTHER_OPTIONS-} \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -e FINAL_UID=${FINAL_UID} \
                    -e FINAL_GID=${FINAL_GID} \
-                   -v ${REPO_DIR}:/src \
-                   -v ${IMAGE_REPO_DIR}:/repo \
+                   -v "${MINGW_PATCH}${REPO_DIR}:/src" \
+                   -v "${MINGW_PATCH}${IMAGE_REPO_DIR}:/repo" \
                    git-lfs/${IMAGE_NAME} ${DOCKER_CMD-}
 
 done
