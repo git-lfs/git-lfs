@@ -53,7 +53,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc LICENSE README.md
+%doc LICENSE.md README.md
 /usr/bin/git-lfs
 /usr/share/man/man1/*.1.gz
 
