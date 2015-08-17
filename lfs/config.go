@@ -27,10 +27,12 @@ type Configuration struct {
 	isTracingHttp         bool
 	isLoggingStats        bool
 
-	loading    sync.Mutex // guards initialization of gitConfig and remotes
-	gitConfig  map[string]string
-	remotes    []string
-	extensions map[string]Extension
+	loading           sync.Mutex // guards initialization of gitConfig and remotes
+	gitConfig         map[string]string
+	remotes           []string
+	extensions        map[string]Extension
+	fetchIncludePaths []string
+	fetchExcludePaths []string
 }
 
 func NewConfig() *Configuration {
@@ -148,6 +150,15 @@ func (c *Configuration) SetPrivateAccess() {
 	c.loading.Unlock()
 }
 
+func (c *Configuration) FetchIncludePaths() []string {
+	c.loadGitConfig()
+	return c.fetchIncludePaths
+}
+func (c *Configuration) FetchExcludePaths() []string {
+	c.loadGitConfig()
+	return c.fetchExcludePaths
+}
+
 func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
@@ -251,6 +262,16 @@ func (c *Configuration) loadGitConfig() {
 			}
 			ext.Name = name
 			c.extensions[name] = ext
+		} else if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchinclude" {
+			for _, inc := range strings.Split(value, ",") {
+				inc = strings.TrimSpace(inc)
+				c.fetchIncludePaths = append(c.fetchIncludePaths, inc)
+			}
+		} else if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchexclude" {
+			for _, ex := range strings.Split(value, ",") {
+				ex = strings.TrimSpace(ex)
+				c.fetchExcludePaths = append(c.fetchExcludePaths, ex)
+			}
 		}
 	}
 

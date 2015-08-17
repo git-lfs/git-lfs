@@ -57,7 +57,9 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	err = ptr.Smudge(os.Stdout, filename, true, cb)
+	cfg := lfs.Config
+	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	err = ptr.Smudge(os.Stdout, filename, download, cb)
 	if file != nil {
 		file.Close()
 	}

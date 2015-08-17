@@ -47,7 +47,7 @@ begin_test "pull"
 
   [ "a" = "$(cat a.dat)" ]
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_local_object "$contents_oid" 1
 
 
   # Remove the working directory and lfs files
@@ -55,12 +55,36 @@ begin_test "pull"
   rm -rf .git/lfs/objects
   git lfs pull 2>&1 | grep "(1 of 1 files)"
   [ "a" = "$(cat a.dat)" ]
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_local_object "$contents_oid" 1
 
   # Remove just the working directory
   rm a.dat
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
+
+
+  # Test include / exclude filters supplied in gitconfig
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchinclude" "a*"
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+  
+  rm -rf .git/lfs/objects
+  git config --unset "lfs.fetchinclude"
+  git config "lfs.fetchexclude" "a*"
+  git lfs pull
+  refute_local_object "$contents_oid"
+
+  # Test include / exclude filters supplied on the command line
+  git config --unset "lfs.fetchexclude"
+  rm -rf .git/lfs/objects
+  git lfs pull --include="a*"
+  assert_local_object "$contents_oid" 1
+  
+  rm -rf .git/lfs/objects
+  git lfs pull --exclude="a*"
+  refute_local_object "$contents_oid"
+
 
 )
 end_test
