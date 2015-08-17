@@ -17,6 +17,7 @@ var (
 	}
 	fetchIncludeArg string
 	fetchExcludeArg string
+	fetchRecent     bool
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
@@ -53,6 +54,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 func init() {
 	fetchCmd.Flags().StringVarP(&fetchIncludeArg, "include", "I", "", "Include a list of paths")
 	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
+	fetchCmd.Flags().BoolVarP(&fetchRecent, "recent", "r", false, "Fetch recent refs & commits")
 	RootCmd.AddCommand(fetchCmd)
 }
 

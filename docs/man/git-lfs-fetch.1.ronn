@@ -7,20 +7,24 @@ git-lfs-fetch(1) -- Download all Git LFS files for a given ref
 
 ## DESCRIPTION
 
-Download any Git LFS objects for the given refs. If no refs are given,
-the currently checked out ref will be used.
+Download Git LFS objects at the given refs from the specified remote. See
+[DEFAULT REMOTE] and [DEFAULT REFS] for what happens if you don't specify.
 
 This does not update the working copy.
 
 ## OPTIONS
 
 * `-I` <paths> `--include=`<paths>:
-  Specify lfs.fetchinclude just for this invocation; see [INCLUSION & EXCLUSION]
+  Specify lfs.fetchinclude just for this invocation; see [INCLUDE AND EXCLUDE]
 
 * `-X` <paths> `--exclude=`<paths>:
-  Specify lfs.fetchexclude just for this invocation; see [INCLUSION & EXCLUSION]
+  Specify lfs.fetchexclude just for this invocation; see [INCLUDE AND EXCLUDE]
 
-## INCLUSION & EXCLUSION
+* `--recent`:
+  Download objects referenced by recent refs & commits in addition to those
+  that would otherwise be downloaded. See [RECENT CHANGES]
+
+## INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in certain
 paths of the repo, and/or to exclude certain paths of the repo, to reduce the
@@ -31,17 +35,57 @@ of paths to include/exclude in the fetch (wildcard matching as per gitignore).
 Only paths which are matched by fetchinclude and not matched by fetchexclude
 will have objects fetched for them.
 
-## DEFAULT REMOTE & REF
+## DEFAULT REMOTE
 
-Without arguments, fetch downloads the current ref from the default remote. 
-The default remote is the same as for `git fetch`, i.e. based on the remote
-branch you're tracking first, or origin otherwise.
+Without arguments, fetch downloads from the default remote.  The default remote 
+is the same as for `git fetch`, i.e. based on the remote branch you're tracking 
+first, or origin otherwise.
+
+## DEFAULT REFS
+
+If no refs are given as arguments, the currently checked out ref is used. In
+addition, if enabled, recently changed refs and commits are also
+included. See [RECENT CHANGES] for details.
+
+## RECENT CHANGES
+
+If the `--recent` option is specified, or if the gitconfig option
+`lfs.fetchrecentalways` is true, then after the current ref (or those in the 
+arguments) is fetched, we also search for 'recent' changes to fetch 
+objects for, so that it's more convenient to checkout or diff those commits 
+without incurring further downloads. 
+
+What changes are considered 'recent' is based on a number of gitconfig options:
+
+* `lfs.fetchrecentrefsdays`
+  If non-zero, includes refs which have commits within N days of the current 
+  date. Only local refs are included unless lfs.fetchrecentremoterefs is true.
+  The default is 7 days.
+
+* `lfs.fetchrecentremoterefs`
+  If true, includes remote refs as well as local refs in the recent window. This 
+  is useful to fetch objects for remote branches you might want to check out 
+  later, but means more refs are downloaded. The default is false.
+
+* `lfs.fetchrecentcommitsdays`
+  In addition to fetching at refs, also fetches previous changes made within N 
+  days of the latest commit on the ref. This is useful if you're often reviewing
+  recent changes. The default is 0 (no previous changes).
+
+* `lfs.fetchrecentalways`
+  Always operate as if --recent was provided on the command line.
+  
 
 ## EXAMPLES
 
 * Fetch the LFS objects for the current ref from default remote
 
   `git lfs fetch`
+
+* Fetch the LFS objects for the current ref AND recent changes from default 
+  remote
+
+  `git lfs fetch --recent`
 
 * Fetch the LFS objects for the current ref from a secondary remote 'upstream'
 
