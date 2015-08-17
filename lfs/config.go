@@ -27,7 +27,7 @@ type FetchPruneConfig struct {
 	// Makes the FetchRecentRefsDays option apply to all remote refs as well (default false)
 	FetchRecentRefsIncludeRemotes bool
 	// number of days prior to latest commit on a ref that we'll fetch previous
-	// LFS changes too (default 3, 0 = only fetch at ref)
+	// LFS changes too (default 0 = only fetch at ref)
 	FetchRecentCommitsDays int
 	// Whether to always fetch recent even without --recent
 	FetchRecentAlways bool
@@ -222,7 +222,7 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 		c.fetchPruneConfig = &FetchPruneConfig{
 			FetchRecentRefsDays:           7,
 			FetchRecentRefsIncludeRemotes: false,
-			FetchRecentCommitsDays:        3,
+			FetchRecentCommitsDays:        0,
 			PruneOffsetDays:               3,
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {

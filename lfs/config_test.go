@@ -396,7 +396,7 @@ func TestFetchPruneConfigDefault(t *testing.T) {
 	fp := config.FetchPruneConfig()
 
 	assert.Equal(t, 7, fp.FetchRecentRefsDays)
-	assert.Equal(t, 3, fp.FetchRecentCommitsDays)
+	assert.Equal(t, 0, fp.FetchRecentCommitsDays)
 	assert.Equal(t, 3, fp.PruneOffsetDays)
 	assert.Equal(t, false, fp.FetchRecentRefsIncludeRemotes)
 
