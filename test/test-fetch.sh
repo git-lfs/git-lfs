@@ -64,44 +64,47 @@ begin_test "fetch"
 
   # Remove the working directory and lfs files
   rm -rf .git/lfs/objects
-
   git lfs fetch 2>&1 | grep "(1 of 1 files)"
+  assert_local_object "$contents_oid" 1
 
+  # test with just remote specified
+  rm -rf .git/lfs/objects
+  git lfs fetch origin 2>&1 | grep "(1 of 1 files)"
   assert_local_object "$contents_oid" 1
 
   git checkout newbranch
   git checkout master
   rm -rf .git/lfs/objects
 
-  git lfs fetch master newbranch
+  git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
 
   # Test include / exclude filters supplied in gitconfig
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "a*"
-  git lfs fetch master newbranch
+  git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
   
   rm -rf .git/lfs/objects
   git config --unset "lfs.fetchinclude"
   git config "lfs.fetchexclude" "a*"
-  git lfs fetch master newbranch
+  git lfs fetch origin master newbranch
   refute_local_object "$contents_oid"
   assert_local_object "$b_oid" 1
 
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "a*,b*"
   git config "lfs.fetchexclude" "c*,d*"
-  git lfs fetch master newbranch
+  git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
   
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "c*,d*"
   git config "lfs.fetchexclude" "a*,b*"
-  git lfs fetch master newbranch
+  git lfs fetch origin master newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
 
@@ -109,22 +112,22 @@ begin_test "fetch"
   git config --unset "lfs.fetchinclude"
   git config --unset "lfs.fetchexclude"
   rm -rf .git/lfs/objects
-  git lfs fetch --include="a*" master newbranch
+  git lfs fetch --include="a*" origin master newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
   
   rm -rf .git/lfs/objects
-  git lfs fetch --exclude="a*" master newbranch
+  git lfs fetch --exclude="a*" origin master newbranch
   refute_local_object "$contents_oid"
   assert_local_object "$b_oid" 1
 
   rm -rf .git/lfs/objects
-  git lfs fetch -I "a*,b*" -X "c*,d*" master newbranch
+  git lfs fetch -I "a*,b*" -X "c*,d*" origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
   
   rm -rf .git/lfs/objects
-  git lfs fetch --include="c*,d*" --exclude="a*,b*" master newbranch
+  git lfs fetch --include="c*,d*" --exclude="a*,b*" origin master newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
 )

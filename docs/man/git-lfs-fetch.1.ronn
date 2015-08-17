@@ -3,7 +3,7 @@ git-lfs-fetch(1) -- Download all Git LFS files for a given ref
 
 ## SYNOPSIS
 
-`git lfs fetch` [options] [<ref>...]
+`git lfs fetch` [options] [<remote> [<ref>...]]
 
 ## DESCRIPTION
 
@@ -31,19 +31,29 @@ of paths to include/exclude in the fetch (wildcard matching as per gitignore).
 Only paths which are matched by fetchinclude and not matched by fetchexclude
 will have objects fetched for them.
 
+## DEFAULT REMOTE & REF
+
+Without arguments, fetch downloads the current ref from the default remote. 
+The default remote is the same as for `git fetch`, i.e. based on the remote
+branch you're tracking first, or origin otherwise.
+
 ## EXAMPLES
 
-* Fetch the LFS objects for the current ref
+* Fetch the LFS objects for the current ref from default remote
 
   `git lfs fetch`
 
-* Fetch the LFS objects for a branch
+* Fetch the LFS objects for the current ref from a secondary remote 'upstream'
 
-  `git lfs fetch mybranch`
+  `git lfs fetch upstream`
 
-* Fetch the LFS objects for 2 branches and a commit
+* Fetch the LFS objects for a branch from origin
 
-  `git lfs fetch master mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
+  `git lfs fetch origin mybranch`
+
+* Fetch the LFS objects for 2 branches and a commit from origin
+
+  `git lfs fetch origin master mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
 
 ## SEE ALSO
 

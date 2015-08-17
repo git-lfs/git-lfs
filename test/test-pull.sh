@@ -57,6 +57,13 @@ begin_test "pull"
   [ "a" = "$(cat a.dat)" ]
   assert_local_object "$contents_oid" 1
 
+  # Try with remote arg
+  rm a.dat
+  rm -rf .git/lfs/objects
+  git lfs pull origin 2>&1 | grep "(1 of 1 files)"
+  [ "a" = "$(cat a.dat)" ]
+  assert_local_object "$contents_oid" 1
+
   # Remove just the working directory
   rm a.dat
   git lfs pull
