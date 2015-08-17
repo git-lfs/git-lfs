@@ -176,6 +176,9 @@ func (q *TransferQueue) batchApiRoutine() {
 				go q.legacyFallback(batch)
 				return
 			}
+
+			q.wait.Add(-len(transfers))
+
 			q.errorc <- err
 			continue
 		}
