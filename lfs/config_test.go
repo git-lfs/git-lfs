@@ -404,10 +404,10 @@ func TestFetchPruneConfigDefault(t *testing.T) {
 func TestFetchPruneConfigCustom(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"lfs.fetchrecentrefsdays":           "12",
-			"lfs.fetchrecentrefsincluderemotes": "true",
-			"lfs.fetchrecentcommitsdays":        "9",
-			"lfs.pruneoffsetdays":               "30",
+			"lfs.fetchrecentrefsdays":    "12",
+			"lfs.fetchrecentremoterefs":  "true",
+			"lfs.fetchrecentcommitsdays": "9",
+			"lfs.pruneoffsetdays":        "30",
 		},
 	}
 	fp := config.FetchPruneConfig()
