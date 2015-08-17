@@ -49,7 +49,6 @@ begin_test "pull"
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
 
-
   # Remove the working directory and lfs files
   rm a.dat
   rm -rf .git/lfs/objects
@@ -62,5 +61,34 @@ begin_test "pull"
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
 
+)
+end_test
+
+begin_test "pull with deleted files"
+(
+  set -e
+  reponame="$(basename "$0" ".sh")-with-deleted-files"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-with-deleted-files
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  echo "abc is a big file" > abc.dat
+  echo "def is a big file" > def.dat
+  git add *.dat
+
+  git commit -m "add files"
+  git rm abc.dat
+  echo "ghe is a big file" > ghe.dat
+  git add ghe.dat
+  git commit -m "remove and add one"
+
+  git push origin master 2>&1 | tee push.log
+  grep "(3 of 3 files)" push.log
+  grep "master -> master" push.log
+
+  git lfs pull
 )
 end_test

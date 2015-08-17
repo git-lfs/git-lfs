@@ -2,11 +2,11 @@
 
 . "test/testlib.sh"
 
-begin_test "fetch"
+begin_test "fetch with branches"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="$(basename "$0" ".sh")-with-branches"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" clone
@@ -76,6 +76,35 @@ begin_test "fetch"
   git lfs fetch master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
-  
+
+)
+end_test
+
+begin_test "fetch with deleted files"
+(
+  set -e
+  reponame="$(basename "$0" ".sh")-with-deleted-files"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-with-deleted-files
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  echo "abc is a big file" > abc.dat
+  echo "def is a big file" > def.dat
+  git add *.dat
+
+  git commit -m "add files"
+  git rm abc.dat
+  echo "ghe is a big file" > ghe.dat
+  git add ghe.dat
+  git commit -m "remove and add one"
+
+  git push origin master 2>&1 | tee push.log
+  grep "(3 of 3 files)" push.log
+  grep "master -> master" push.log
+
+  git lfs fetch
 )
 end_test
