@@ -2,14 +2,49 @@
 package git
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
+
+type RefType int
+
+const (
+	RefTypeLocalBranch  = RefType(iota)
+	RefTypeRemoteBranch = RefType(iota)
+	RefTypeLocalTag     = RefType(iota)
+	RefTypeRemoteTag    = RefType(iota)
+	RefTypeHEAD         = RefType(iota) // current checkout
+	RefTypeOther        = RefType(iota) // stash or unknown
+)
+
+// A git reference (branch, tag etc)
+type Ref struct {
+	Name string
+	Type RefType
+	Sha  string
+}
+
+// Some top level information about a commit (only first line of message)
+type CommitSummary struct {
+	Sha            string
+	ShortSha       string
+	Parents        []string
+	CommitDate     time.Time
+	AuthorDate     time.Time
+	AuthorName     string
+	AuthorEmail    string
+	CommitterName  string
+	CommitterEmail string
+	Subject        string
+}
 
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
@@ -133,4 +168,148 @@ func simpleExec(name string, args ...string) (string, error) {
 	}
 
 	return strings.Trim(string(output), " \n"), nil
+}
+
+// RecentRefs returns references with commit dates on or after the given date/time
+// Return full RefType for easier detection of duplicate SHAs etc
+// since: refs with commits on or after this date will be included
+// includeRemoteBranches: true to include refs on remote branches
+// onlyRemote: set to non-blank to only include remote branches on a single remote
+func RecentRefs(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
+	// Include %(objectname) AND %(*objectname), the latter only returns something if it's a tag
+	// and that will be the dereferenced SHA ie the actual commit SHA instead of the tag SHA
+	cmd := exec.Command("git", "for-each-ref",
+		`--sort=-committerdate`,
+		`--format=%(refname) %(objectname) %(*objectname)`,
+		"refs")
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+
+	// Output is like this:
+	// refs/heads/master 69d144416abf89b79f6a6fd21c2621dd9c13ead1
+	// refs/remotes/origin/master ad3b29b773e46ad6870fdf08796c33d97190fe93
+	// refs/tags/blah fa392f757dddf9fa7c3bb1717d0bf0c4762326fc c34b29b773e46ad6870fdf08796c33d97190fe93
+	// note the second SHA when it's a tag but not otherwise
+
+	// Output is ordered by latest commit date first, so we can stop at the threshold
+	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})(?:\s+([0-9A-Za-z]{40}))?`)
+
+	var ret []*Ref
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := regex.FindStringSubmatch(line); match != nil {
+			fullref := match[1]
+			sha := match[2]
+			// test for dereferenced tags, use commit SHA
+			if len(match) > 3 && match[3] != "" {
+				sha = match[3]
+			}
+			reftype, ref := ParseRefToTypeAndName(fullref)
+			if reftype == RefTypeRemoteBranch || reftype == RefTypeRemoteTag {
+				if !includeRemoteBranches {
+					continue
+				}
+				if onlyRemote != "" && !strings.HasPrefix(ref, onlyRemote+"/") {
+					continue
+				}
+			}
+			// This is a ref we might use
+			// Check the date
+			commit, err := GetCommitSummary(ref)
+			if err != nil {
+				return ret, err
+			}
+			if commit.CommitDate.Before(since) {
+				// the end
+				break
+			}
+			ret = append(ret, &Ref{ref, reftype, sha})
+		}
+	}
+	cmd.Wait()
+
+	return ret, nil
+
+}
+
+// Get the type & name of a git reference
+func ParseRefToTypeAndName(fullref string) (t RefType, name string) {
+	const localPrefix = "refs/heads/"
+	const remotePrefix = "refs/remotes/"
+	const remoteTagPrefix = "refs/remotes/tags/"
+	const localTagPrefix = "refs/tags/"
+
+	if fullref == "HEAD" {
+		name = fullref
+		t = RefTypeHEAD
+	} else if strings.HasPrefix(fullref, localPrefix) {
+		name = fullref[len(localPrefix):]
+		t = RefTypeLocalBranch
+	} else if strings.HasPrefix(fullref, remotePrefix) {
+		name = fullref[len(remotePrefix):]
+		t = RefTypeRemoteBranch
+	} else if strings.HasPrefix(fullref, remoteTagPrefix) {
+		name = fullref[len(remoteTagPrefix):]
+		t = RefTypeRemoteTag
+	} else if strings.HasPrefix(fullref, localTagPrefix) {
+		name = fullref[len(localTagPrefix):]
+		t = RefTypeLocalTag
+	} else {
+		name = fullref
+		t = RefTypeOther
+	}
+	return
+}
+
+// Parse a Git date formatted in ISO 8601 format (%ci/%ai)
+func ParseGitDate(str string) (time.Time, error) {
+
+	// Unfortunately Go and Git don't overlap in their builtin date formats
+	// Go's time.RFC1123Z and Git's %cD are ALMOST the same, except that
+	// when the day is < 10 Git outputs a single digit, but Go expects a leading
+	// zero - this is enough to break the parsing. Sigh.
+
+	// Format is for 2 Jan 2006, 15:04:05 -7 UTC as per Go
+	return time.Parse("2006-01-02 15:04:05 -0700", str)
+}
+
+// Get summary information about a commit
+func GetCommitSummary(commit string) (*CommitSummary, error) {
+	cmd := exec.Command("git", "show", "-s",
+		`--format=%H|%h|%P|%ai|%ci|%ae|%an|%ce|%cn|%s`, commit)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git show: %v", err)
+	}
+
+	// At most 10 substrings so subject line is not split on anything
+	fields := strings.SplitN(string(out), "|", 10)
+	// Cope with the case where subject is blank
+	if len(fields) >= 9 {
+		ret := &CommitSummary{}
+		// Get SHAs from output, not commit input, so we can support symbolic refs
+		ret.Sha = fields[0]
+		ret.ShortSha = fields[1]
+		ret.Parents = strings.Split(fields[2], " ")
+		// %aD & %cD (RFC2822) matches Go's RFC1123Z format
+		ret.AuthorDate, _ = ParseGitDate(fields[3])
+		ret.CommitDate, _ = ParseGitDate(fields[4])
+		ret.AuthorEmail = fields[5]
+		ret.AuthorName = fields[6]
+		ret.CommitterEmail = fields[7]
+		ret.CommitterName = fields[8]
+		if len(fields) > 9 {
+			ret.Subject = strings.TrimRight(fields[9], "\n")
+		}
+		return ret, nil
+	} else {
+		msg := fmt.Sprintf("Unexpected output from git show: %v", out)
+		return nil, errors.New(msg)
+	}
+
 }
