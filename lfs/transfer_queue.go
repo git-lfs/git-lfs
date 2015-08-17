@@ -177,9 +177,8 @@ func (q *TransferQueue) batchApiRoutine() {
 				return
 			}
 
-			q.wait.Add(-len(transfers))
-
 			q.errorc <- err
+			q.wait.Add(-len(transfers))
 			continue
 		}
 
