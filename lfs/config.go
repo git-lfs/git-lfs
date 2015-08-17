@@ -231,7 +231,7 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 				c.fetchPruneConfig.FetchRecentRefsDays = n
 			}
 		}
-		if v, ok := c.GitConfig("lfs.fetchrecentrefsincluderemotes"); ok {
+		if v, ok := c.GitConfig("lfs.fetchrecentremoterefs"); ok {
 
 			if v == "true" || v == "" {
 				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = true
