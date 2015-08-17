@@ -35,6 +35,8 @@ type TransferQueue struct {
 	errorc        chan *WrappedError // Channel for processing errors
 	watchers      []chan string
 	wait          sync.WaitGroup
+	retries       map[string]interface{}
+	retrylock     sync.Mutex
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
@@ -46,6 +48,7 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		errorc:        make(chan *WrappedError),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
+		retries:       make(map[string]interface{}),
 	}
 
 	q.run()
@@ -224,7 +227,11 @@ func (q *TransferQueue) transferWorker() {
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
-			q.errorc <- err
+			if q.canRetry(transfer) {
+				q.Add(transfer)
+			} else {
+				q.errorc <- err
+			}
 		} else {
 			oid := transfer.Oid()
 			for _, c := range q.watchers {
@@ -274,6 +281,17 @@ func (q *TransferQueue) run() {
 		tracerx.Printf("tq: running as individual queue")
 		q.launchIndividualApiRoutines()
 	}
+}
+
+func (q *TransferQueue) canRetry(t Transferable) bool {
+	defer q.retrylock.Unlock()
+	q.retrylock.Lock()
+	if _, ok := q.retries[t.Oid()]; ok {
+		// Already retried it
+		return false
+	}
+	q.retries[t.Oid()] = struct{}{}
+	return true
 }
 
 // Errors returns any errors encountered during transfer.
