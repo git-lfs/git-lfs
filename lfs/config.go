@@ -29,6 +29,8 @@ type FetchPruneConfig struct {
 	// number of days prior to latest commit on a ref that we'll fetch previous
 	// LFS changes too (default 3, 0 = only fetch at ref)
 	FetchRecentCommitsDays int
+	// Whether to always fetch recent even without --recent
+	FetchRecentAlways bool
 	// Number of days added to FetchRecent*; data outside combined window will be
 	// deleted when prune is run. (default 3)
 	PruneOffsetDays int
@@ -244,6 +246,11 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 			n, err := strconv.Atoi(v)
 			if err == nil && n > 0 {
 				c.fetchPruneConfig.FetchRecentCommitsDays = n
+			}
+		}
+		if v, ok := c.GitConfig("lfs.fetchrecentalways"); ok {
+			if v == "true" || v == "" {
+				c.fetchPruneConfig.FetchRecentAlways = true
 			}
 		}
 		if v, ok := c.GitConfig("lfs.pruneoffsetdays"); ok {
