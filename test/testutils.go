@@ -138,12 +138,12 @@ type TestCommitSetupOutput struct {
 	Files   []*lfs.Pointer
 }
 
-func FormatGitDate(tm time.Time) string {
+func formatGitDate(tm time.Time) string {
 	// Git format is "Fri Jun 21 20:26:41 2013 +0900" but no zero-leading for day
 	return tm.Format("Mon Jan 2 15:04:05 2006 -0700")
 }
 
-func CommitAtDate(atDate time.Time, committerName, committerEmail, msg string) error {
+func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) error {
 	var args []string
 	if committerName != "" && committerEmail != "" {
 		args = append(args, "-c", fmt.Sprintf("user.name=%v", committerName))
@@ -156,13 +156,26 @@ func CommitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 	if atDate.IsZero() {
 		env = append(env, "GIT_COMMITTER_DATE=")
 	} else {
-		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", FormatGitDate(atDate)))
+		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", formatGitDate(atDate)))
 	}
 	cmd.Env = env
 	return cmd.Run()
 }
 
-func SetupRepo(t *testing.T, inputs []*TestCommitSetupInput) []*TestCommitSetupOutput {
+func (repo *TestRepo) AddCommits(t *testing.T, inputs []*TestCommitSetupInput) []*TestCommitSetupOutput {
+	if repo.Settings.RepoType == TestRepoTypeBare {
+		t.Fatalf("Cannot use SetupRepo on a bare repo; clone it & push changes instead")
+	}
+
+	// Change to repo working dir
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Can't get cwd %v", err)
+	}
+	err = os.Chdir(repo.Path)
+	if err != nil {
+		t.Fatalf("Can't chdir to repo %v", err)
+	}
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
 	outputs := make([]*TestCommitSetupOutput, 0, len(inputs))
@@ -219,7 +232,7 @@ func SetupRepo(t *testing.T, inputs []*TestCommitSetupInput) []*TestCommitSetupO
 
 		}
 		// Now commit
-		CommitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
+		commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
 			fmt.Sprintf("Test commit %d", i))
 		commit, err := git.GetCommitSummary("HEAD")
 		if err != nil {
@@ -229,6 +242,13 @@ func SetupRepo(t *testing.T, inputs []*TestCommitSetupInput) []*TestCommitSetupO
 		output.Parents = commit.Parents
 		outputs = append(outputs, output)
 	}
+
+	// Restore cwd
+	err = os.Chdir(oldwd)
+	if err != nil {
+		t.Fatalf("Can't restore old cwd %v", err)
+	}
+
 	return outputs
 }
 
