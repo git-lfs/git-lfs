@@ -49,6 +49,16 @@ type TestRepo struct {
 }
 
 func (r *TestRepo) Cleanup() {
+
+	// Make sure cwd isn't inside a path we're going to delete
+	oldwd, err := os.Getwd()
+	if err == nil {
+		if strings.HasPrefix(oldwd, r.Path) ||
+			strings.HasPrefix(oldwd, r.GitDir) {
+			os.Chdir(os.TempDir())
+		}
+	}
+
 	if r.GitDir != "" {
 		os.RemoveAll(r.GitDir)
 	}
