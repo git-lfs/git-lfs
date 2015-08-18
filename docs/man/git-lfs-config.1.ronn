@@ -32,13 +32,13 @@ lfs option can be scoped inside the configuration for a remote.
 
   When fetching, only download objects which match any entry on this 
   comma-separated list of paths/filenames. Wildcard matching is as per 
-  git-ignore(1).
+  git-ignore(1). See git-lfs-fetch(1) for examples.
 
 * `lfs.fetchexclude`
 
   When fetching, do not download objects which match any item on this
   comma-separated list of paths/filenames. Wildcard matching is as per 
-  git-ignore(1).
+  git-ignore(1). See git-lfs-fetch(1) for examples.
 
 
 * `lfs.fetchrecentrefsdays`
