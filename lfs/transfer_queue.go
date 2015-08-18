@@ -71,11 +71,12 @@ func (q *TransferQueue) Add(t Transferable) {
 
 // Wait waits for the queue to finish processing all transfers
 func (q *TransferQueue) Wait() {
+	q.wait.Wait()
+
 	if q.batcher != nil {
 		q.batcher.Exit()
 	}
 
-	q.wait.Wait()
 	close(q.apic)
 	close(q.transferc)
 	close(q.errorc)
@@ -103,7 +104,11 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.Check()
 		if err != nil {
-			q.errorc <- err
+			if q.canRetry(err, t.Oid()) {
+				q.Add(t)
+			} else {
+				q.errorc <- err
+			}
 			q.wait.Done()
 			continue
 		}
@@ -156,8 +161,11 @@ func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
 // off to the transfer workers.
 func (q *TransferQueue) batchApiRoutine() {
 	var startProgress sync.Once
+	batchNumber := 0
 
 	for {
+		batchNumber++
+
 		batch := q.batcher.Next()
 		if batch == nil {
 			break
@@ -179,7 +187,17 @@ func (q *TransferQueue) batchApiRoutine() {
 				go q.legacyFallback(batch)
 				return
 			}
-			q.errorc <- err
+			// TODO technically, this could go forever. Maybe we just limit it to n batch retries total.
+			if q.canRetry(err, "batch") {
+				tracerx.Printf("tq: resubmitting batch: %s", err)
+				for _, t := range batch {
+					q.Add(t)
+				}
+			} else {
+				tracerx.Printf("Too many batch failures, erroring")
+				q.errorc <- err
+			}
+			q.wait.Add(-len(transfers))
 			continue
 		}
 
@@ -227,7 +245,8 @@ func (q *TransferQueue) transferWorker() {
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
-			if q.canRetry(transfer) {
+			if q.canRetry(err, transfer.Oid()) {
+				tracerx.Printf("tq: retrying object %s", transfer.Oid())
 				q.Add(transfer)
 			} else {
 				q.errorc <- err
@@ -283,14 +302,18 @@ func (q *TransferQueue) run() {
 	}
 }
 
-func (q *TransferQueue) canRetry(t Transferable) bool {
+func (q *TransferQueue) canRetry(err *WrappedError, id string) bool {
+	if !isRetriableError(err) {
+		return false
+	}
+
 	defer q.retrylock.Unlock()
 	q.retrylock.Lock()
-	if _, ok := q.retries[t.Oid()]; ok {
+	if _, ok := q.retries[id]; ok {
 		// Already retried it
 		return false
 	}
-	q.retries[t.Oid()] = struct{}{}
+	q.retries[id] = struct{}{}
 	return true
 }
 

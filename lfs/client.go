@@ -163,7 +163,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
 
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
-		return nil, 0, wErr
+		return nil, 0, newRetriableError(wErr)
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -214,6 +214,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 		}
 
 		tracerx.Printf("api error: %s", wErr)
+		return nil, newRetriableError(wErr)
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -255,7 +256,7 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
-		return nil, wErr
+		return nil, newRetriableError(wErr)
 	}
 	LogTransfer("lfs.api.upload", res)
 
@@ -310,7 +311,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
-		return wErr
+		return newRetriableError(wErr)
 	}
 	LogTransfer("lfs.data.upload", res)
 
@@ -734,26 +735,4 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 			err.Set(contextKey, head.Get(key))
 		}
 	}
-}
-
-type notImplError struct {
-	error
-}
-
-func (e notImplError) NotImplemented() bool {
-	return true
-}
-
-func newNotImplError() error {
-	return notImplError{errors.New("Not Implemented")}
-}
-
-func isNotImplError(err *WrappedError) bool {
-	type notimplerror interface {
-		NotImplemented() bool
-	}
-	if e, ok := err.Err.(notimplerror); ok {
-		return e.NotImplemented()
-	}
-	return false
 }

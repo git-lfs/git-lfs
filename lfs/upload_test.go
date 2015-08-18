@@ -615,6 +615,8 @@ func TestUploadApiError(t *testing.T) {
 		t.Fatal(wErr)
 	}
 
+	fmt.Fprintf(os.Stderr, "ERROR: %#v", wErr)
+
 	if wErr.Panic {
 		t.Fatal("should not panic")
 	}

@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 )
@@ -84,4 +85,50 @@ func Stack() []byte {
 	stackBuf := make([]byte, 1024*1024)
 	written := runtime.Stack(stackBuf, false)
 	return stackBuf[:written]
+}
+
+type notImplError struct {
+	error
+}
+
+func (e notImplError) NotImplemented() bool {
+	return true
+}
+
+func newNotImplError() error {
+	return notImplError{errors.New("Not Implemented")}
+}
+
+func isNotImplError(err *WrappedError) bool {
+	type notimplerror interface {
+		NotImplemented() bool
+	}
+	if e, ok := err.Err.(notimplerror); ok {
+		return e.NotImplemented()
+	}
+	return false
+}
+
+type retriableError struct {
+	error
+}
+
+func (e retriableError) Retriable() bool {
+	return true
+}
+
+func newRetriableError(err *WrappedError) *WrappedError {
+	e := Error(retriableError{err})
+	e.Panic = false
+	return e
+}
+
+func isRetriableError(err *WrappedError) bool {
+	type retriableerror interface {
+		Retriable() bool
+	}
+	if e, ok := err.Err.(retriableerror); ok {
+		return e.Retriable()
+	}
+	return false
 }

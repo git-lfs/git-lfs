@@ -1,5 +1,9 @@
 package lfs
 
+import (
+	"time"
+)
+
 // Batcher provides a way to process a set of items in groups of n. Items can
 // be added to the batcher from multiple goroutines and pulled off in groups
 // when one of the following conditions occurs:
@@ -57,6 +61,10 @@ func (b *Batcher) run() {
 						batch = append(batch, t)
 					} else {
 						exit = true // input channel was closed by Exit()
+						break Loop
+					}
+				case <-time.After(time.Millisecond * 300):
+					if len(batch) > 0 {
 						break Loop
 					}
 				}
