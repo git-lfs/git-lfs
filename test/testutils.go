@@ -130,11 +130,13 @@ type TestCommitSetupInput struct {
 	CommitDate time.Time
 	// List of files to include in this commit
 	Files []*TestFileInput
-	// List of parent branches (all branches must have been created in a previous)
+	// List of parent branches (all branches must have been created in a previous NewBranch or be master)
 	// Can be omitted to just use the parent of the previous commit
 	ParentBranches []string
 	// Name of a new branch we should create at this commit (optional - master not required)
 	NewBranch string
+	// Names of any tags we should create at this commit (optional)
+	Tags []string
 	// Name of committer
 	CommitterName string
 	// Email of committer
@@ -248,6 +250,13 @@ func (repo *TestRepo) AddCommits(t *testing.T, inputs []*TestCommitSetupInput) [
 		if err != nil {
 			t.Fatalf("Error determining commit SHA: %v", err)
 		}
+
+		// tags
+		for _, tag := range input.Tags {
+			// Use annotated tags, assume full release tags (also tag objects have edge cases)
+			RunGitCommand(t, true, "tag", "-a", "-m", "Added tag", tag)
+		}
+
 		output.Sha = commit.Sha
 		output.Parents = commit.Parents
 		outputs = append(outputs, output)
