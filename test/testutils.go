@@ -46,9 +46,40 @@ type TestRepo struct {
 	GitDir string
 	// Settings used to create this repo
 	Settings *TestRepoCreateSettings
+	// Previous dir for pushd
+	popDir string
 }
 
-func (r *TestRepo) Cleanup() {
+// Change to repo dir but save current dir
+func (r *TestRepo) Pushd(t *testing.T) {
+	if r.popDir != "" {
+		t.Fatalf("Cannot Pushd twice")
+	}
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Can't get cwd %v", err)
+	}
+	err = os.Chdir(r.Path)
+	if err != nil {
+		t.Fatalf("Can't chdir %v", err)
+	}
+	r.popDir = oldwd
+}
+
+func (r *TestRepo) Popd(t *testing.T) {
+	if r.popDir != "" {
+		err := os.Chdir(r.Path)
+		if err != nil {
+			t.Fatalf("Can't chdir %v", err)
+		}
+		r.popDir = ""
+	}
+}
+
+func (r *TestRepo) Cleanup(t *testing.T) {
+
+	// pop out if necessary
+	r.Popd(t)
 
 	// Make sure cwd isn't inside a path we're going to delete
 	oldwd, err := os.Getwd()
@@ -86,7 +117,7 @@ func NewCustomTestRepo(t *testing.T, settings *TestRepoCreateSettings) *TestRepo
 	case TestRepoTypeSeparateDir:
 		gitdir, err := ioutil.TempDir("", "lfstestgitdir")
 		if err != nil {
-			ret.Cleanup()
+			ret.Cleanup(t)
 			t.Fatalf("Can't create temp dir for git repo: %v", err)
 		}
 		args = append(args, "--separate-dir", gitdir)
@@ -98,7 +129,7 @@ func NewCustomTestRepo(t *testing.T, settings *TestRepoCreateSettings) *TestRepo
 	cmd := exec.Command("git", args...)
 	err = cmd.Run()
 	if err != nil {
-		ret.Cleanup()
+		ret.Cleanup(t)
 		t.Fatalf("Unable to create git repo at %v: %v", path, err)
 	}
 	return ret
