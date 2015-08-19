@@ -24,34 +24,34 @@ import (
 	"github.com/github/git-lfs/lfs"
 )
 
-type TestRepoType int
+type RepoType int
 
 const (
 	// Normal repo with working copy
-	TestRepoTypeNormal = TestRepoType(iota)
+	RepoTypeNormal = RepoType(iota)
 	// Bare repo (no working copy)
-	TestRepoTypeBare = TestRepoType(iota)
+	RepoTypeBare = RepoType(iota)
 	// Repo with working copy but git dir is separate
-	TestRepoTypeSeparateDir = TestRepoType(iota)
+	RepoTypeSeparateDir = RepoType(iota)
 )
 
-type TestRepoCreateSettings struct {
-	RepoType TestRepoType
+type RepoCreateSettings struct {
+	RepoType RepoType
 }
 
-type TestRepo struct {
+type Repo struct {
 	// Path to the repo, working copy if non-bare
 	Path string
 	// Path to the git dir
 	GitDir string
 	// Settings used to create this repo
-	Settings *TestRepoCreateSettings
+	Settings *RepoCreateSettings
 	// Previous dir for pushd
 	popDir string
 }
 
 // Change to repo dir but save current dir
-func (r *TestRepo) Pushd(t *testing.T) {
+func (r *Repo) Pushd(t *testing.T) {
 	if r.popDir != "" {
 		t.Fatalf("Cannot Pushd twice")
 	}
@@ -66,7 +66,7 @@ func (r *TestRepo) Pushd(t *testing.T) {
 	r.popDir = oldwd
 }
 
-func (r *TestRepo) Popd(t *testing.T) {
+func (r *Repo) Popd(t *testing.T) {
 	if r.popDir != "" {
 		err := os.Chdir(r.Path)
 		if err != nil {
@@ -76,7 +76,7 @@ func (r *TestRepo) Popd(t *testing.T) {
 	}
 }
 
-func (r *TestRepo) Cleanup(t *testing.T) {
+func (r *Repo) Cleanup(t *testing.T) {
 
 	// pop out if necessary
 	r.Popd(t)
@@ -98,23 +98,23 @@ func (r *TestRepo) Cleanup(t *testing.T) {
 	}
 }
 
-func NewTestRepo(t *testing.T) *TestRepo {
-	return NewCustomTestRepo(t, &TestRepoCreateSettings{RepoType: TestRepoTypeNormal})
+func NewRepo(t *testing.T) *Repo {
+	return NewCustomRepo(t, &RepoCreateSettings{RepoType: RepoTypeNormal})
 }
-func NewCustomTestRepo(t *testing.T, settings *TestRepoCreateSettings) *TestRepo {
-	ret := &TestRepo{Settings: settings}
+func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
+	ret := &Repo{Settings: settings}
 
-	path, err := ioutil.TempDir("", "lfstestrepo")
+	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
 		t.Fatalf("Can't create temp dir for git repo: %v", err)
 	}
 	ret.Path = path
 	args := []string{"init"}
 	switch settings.RepoType {
-	case TestRepoTypeBare:
+	case RepoTypeBare:
 		args = append(args, "--bare")
 		ret.GitDir = ret.Path
-	case TestRepoTypeSeparateDir:
+	case RepoTypeSeparateDir:
 		gitdir, err := ioutil.TempDir("", "lfstestgitdir")
 		if err != nil {
 			ret.Cleanup(t)
@@ -146,7 +146,7 @@ func RunGitCommand(t *testing.T, failureCheck bool, args ...string) string {
 }
 
 // Input data for a single file in a commit
-type TestFileInput struct {
+type FileInput struct {
 	// Name of file (required)
 	Filename string
 	// Size of file (required)
@@ -156,11 +156,11 @@ type TestFileInput struct {
 }
 
 // Input for defining commits for test repo
-type TestCommitSetupInput struct {
+type CommitInput struct {
 	// Date that we should commit on (optional, leave blank for 'now')
 	CommitDate time.Time
 	// List of files to include in this commit
-	Files []*TestFileInput
+	Files []*FileInput
 	// List of parent branches (all branches must have been created in a previous NewBranch or be master)
 	// Can be omitted to just use the parent of the previous commit
 	ParentBranches []string
@@ -175,7 +175,7 @@ type TestCommitSetupInput struct {
 }
 
 // Output struct with details of commits created for test
-type TestCommitSetupOutput struct {
+type CommitOutput struct {
 	Sha     string
 	Parents []string
 	Files   []*lfs.Pointer
@@ -205,8 +205,8 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 	return cmd.Run()
 }
 
-func (repo *TestRepo) AddCommits(t *testing.T, inputs []*TestCommitSetupInput) []*TestCommitSetupOutput {
-	if repo.Settings.RepoType == TestRepoTypeBare {
+func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutput {
+	if repo.Settings.RepoType == RepoTypeBare {
 		t.Fatalf("Cannot use SetupRepo on a bare repo; clone it & push changes instead")
 	}
 
@@ -221,10 +221,10 @@ func (repo *TestRepo) AddCommits(t *testing.T, inputs []*TestCommitSetupInput) [
 	}
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
-	outputs := make([]*TestCommitSetupOutput, 0, len(inputs))
+	outputs := make([]*CommitOutput, 0, len(inputs))
 
 	for i, input := range inputs {
-		output := &TestCommitSetupOutput{}
+		output := &CommitOutput{}
 		// first, are we on the correct branch
 		if len(input.ParentBranches) > 0 {
 			if input.ParentBranches[0] != lastBranch {
