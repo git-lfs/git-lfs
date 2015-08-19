@@ -215,7 +215,7 @@ func (repo *TestRepo) AddCommits(t *testing.T, inputs []*TestCommitSetupInput) [
 			inputData := infile.Data
 			if inputData == nil {
 				// Different data for each file but deterministic
-				inputData = NewPlaceholderDataReader(int64(i * fi))
+				inputData = NewPlaceholderDataReader(int64(i*fi), infile.Size)
 			}
 			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
 			if err != nil {
@@ -265,27 +265,34 @@ func (repo *TestRepo) AddCommits(t *testing.T, inputs []*TestCommitSetupInput) [
 // Just a psuedo-random stream of bytes (not cryptographic)
 // Calls RNG a bit less often than using rand.Source directly
 type PlaceholderDataReader struct {
-	source rand.Source
+	source    rand.Source
+	bytesLeft int64
 }
 
-func NewPlaceholderDataReader(seed int64) *PlaceholderDataReader {
-	return &PlaceholderDataReader{rand.NewSource(seed)}
+func NewPlaceholderDataReader(seed, size int64) *PlaceholderDataReader {
+	return &PlaceholderDataReader{rand.NewSource(seed), size}
 }
 
 func (r *PlaceholderDataReader) Read(p []byte) (int, error) {
 	c := len(p)
-	for i := 0; i < c; {
+	i := 0
+	for i < c && r.bytesLeft > 0 {
 		// Use all 8 bytes of the 64-bit random number
 		val64 := r.source.Int63()
-		for j := 0; j < 8 && i < c; j++ {
+		for j := 0; j < 8 && i < c && r.bytesLeft > 0; j++ {
 			// Duplicate this byte 16 times (faster)
-			for k := 0; k < 16; k++ {
+			for k := 0; k < 16 && r.bytesLeft > 0; k++ {
 				p[i] = byte(val64)
 				i++
+				r.bytesLeft--
 			}
 			// Next byte from the 8-byte number
 			val64 = val64 >> 8
 		}
 	}
-	return len(p), nil
+	var err error
+	if r.bytesLeft == 0 {
+		err = io.EOF
+	}
+	return i, err
 }
