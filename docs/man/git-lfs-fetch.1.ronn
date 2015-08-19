@@ -21,7 +21,7 @@ This does not update the working copy.
   Specify lfs.fetchexclude just for this invocation; see [INCLUDE AND EXCLUDE]
 
 * `--recent`:
-  Download objects referenced by recent refs & commits in addition to those
+  Download objects referenced by recent branches & commits in addition to those
   that would otherwise be downloaded. See [RECENT CHANGES]
 
 ## INCLUDE AND EXCLUDE
@@ -80,19 +80,19 @@ without incurring further downloads.
 What changes are considered 'recent' is based on a number of gitconfig options:
 
 * `lfs.fetchrecentrefsdays`
-  If non-zero, includes refs which have commits within N days of the current 
+  If non-zero, includes branches which have commits within N days of the current 
   date. Only local refs are included unless lfs.fetchrecentremoterefs is true.
   The default is 7 days.
 
 * `lfs.fetchrecentremoterefs`
-  If true, includes remote refs as well as local refs in the recent window. This 
+  If true, includes remote branches as well as local refs in the recent window. This 
   is useful to fetch objects for remote branches you might want to check out 
   later, but means more refs are downloaded. The default is false.
 
 * `lfs.fetchrecentcommitsdays`
-  In addition to fetching at refs, also fetches previous changes made within N 
-  days of the latest commit on the ref. This is useful if you're often reviewing
-  recent changes. The default is 0 (no previous changes).
+  In addition to fetching at branches, also fetches changes made within N 
+  days of the latest commit on the branch. This is useful if you're often 
+  reviewing recent changes. The default is 0 (no previous changes).
 
 * `lfs.fetchrecentalways`
   Always operate as if --recent was provided on the command line.

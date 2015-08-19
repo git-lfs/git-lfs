@@ -170,17 +170,15 @@ func simpleExec(name string, args ...string) (string, error) {
 	return strings.Trim(string(output), " \n"), nil
 }
 
-// RecentRefs returns references with commit dates on or after the given date/time
-// Return full RefType for easier detection of duplicate SHAs etc
+// RecentBranches returns branches with commit dates on or after the given date/time
+// Return full Ref type for easier detection of duplicate SHAs etc
 // since: refs with commits on or after this date will be included
 // includeRemoteBranches: true to include refs on remote branches
 // onlyRemote: set to non-blank to only include remote branches on a single remote
-func RecentRefs(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
-	// Include %(objectname) AND %(*objectname), the latter only returns something if it's a tag
-	// and that will be the dereferenced SHA ie the actual commit SHA instead of the tag SHA
+func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
 	cmd := exec.Command("git", "for-each-ref",
 		`--sort=-committerdate`,
-		`--format=%(refname) %(objectname) %(*objectname)`,
+		`--format=%(refname) %(objectname) %(committerdate:iso)`,
 		"refs")
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -190,13 +188,11 @@ func RecentRefs(since time.Time, includeRemoteBranches bool, onlyRemote string) 
 	scanner := bufio.NewScanner(outp)
 
 	// Output is like this:
-	// refs/heads/master 69d144416abf89b79f6a6fd21c2621dd9c13ead1
-	// refs/remotes/origin/master ad3b29b773e46ad6870fdf08796c33d97190fe93
-	// refs/tags/blah fa392f757dddf9fa7c3bb1717d0bf0c4762326fc c34b29b773e46ad6870fdf08796c33d97190fe93
-	// note the second SHA when it's a tag but not otherwise
+	// refs/heads/master f03686b324b29ff480591745dbfbbfa5e5ac1bd5 2015-08-19 16:50:37 +0100
+	// refs/remotes/origin/master ad3b29b773e46ad6870fdf08796c33d97190fe93 2015-08-13 16:50:37 +0100
 
 	// Output is ordered by latest commit date first, so we can stop at the threshold
-	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})(?:\s+([0-9A-Za-z]{40}))?`)
+	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`)
 
 	var ret []*Ref
 	for scanner.Scan() {
@@ -204,10 +200,6 @@ func RecentRefs(since time.Time, includeRemoteBranches bool, onlyRemote string) 
 		if match := regex.FindStringSubmatch(line); match != nil {
 			fullref := match[1]
 			sha := match[2]
-			// test for dereferenced tags, use commit SHA
-			if len(match) > 3 && match[3] != "" {
-				sha = match[3]
-			}
 			reftype, ref := ParseRefToTypeAndName(fullref)
 			if reftype == RefTypeRemoteBranch || reftype == RefTypeRemoteTag {
 				if !includeRemoteBranches {
@@ -219,11 +211,11 @@ func RecentRefs(since time.Time, includeRemoteBranches bool, onlyRemote string) 
 			}
 			// This is a ref we might use
 			// Check the date
-			commit, err := GetCommitSummary(ref)
+			commitDate, err := ParseGitDate(match[3])
 			if err != nil {
 				return ret, err
 			}
-			if commit.CommitDate.Before(since) {
+			if commitDate.Before(since) {
 				// the end
 				break
 			}
