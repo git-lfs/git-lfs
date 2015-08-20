@@ -66,6 +66,17 @@ func TestRecentBranches(t *testing.T) {
 	}
 	outputs := repo.AddCommits(inputs)
 
+	// Add a couple of remotes and push some branches
+	repo.AddRemote("origin")
+	repo.AddRemote("upstream")
+
+	test.RunGitCommand(t, true, "push", "origin", "master")
+	test.RunGitCommand(t, true, "push", "origin", "excluded_branch")
+	test.RunGitCommand(t, true, "push", "origin", "included_branch")
+	test.RunGitCommand(t, true, "push", "upstream", "master")
+	test.RunGitCommand(t, true, "push", "upstream", "included_branch_2")
+
+	// Recent, local only
 	refs, err := RecentBranches(now.AddDate(0, 0, -7), false, "")
 	assert.Equal(t, nil, err)
 	expectedRefs := []*Ref{
@@ -75,4 +86,29 @@ func TestRecentBranches(t *testing.T) {
 	}
 	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 
+	// Recent, remotes too (all of them)
+	refs, err = RecentBranches(now.AddDate(0, 0, -7), true, "")
+	assert.Equal(t, nil, err)
+	expectedRefs = []*Ref{
+		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
+		&Ref{"upstream/master", RefTypeRemoteBranch, outputs[5].Sha},
+		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
+		&Ref{"upstream/included_branch_2", RefTypeRemoteBranch, outputs[4].Sha},
+		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
+		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
+		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
+	}
+	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
+
+	// Recent, only single remote
+	refs, err = RecentBranches(now.AddDate(0, 0, -7), true, "origin")
+	assert.Equal(t, nil, err)
+	expectedRefs = []*Ref{
+		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
+		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
+		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
+		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
+		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
+	}
+	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 }
