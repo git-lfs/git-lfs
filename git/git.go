@@ -176,7 +176,7 @@ func simpleExec(name string, args ...string) (string, error) {
 // includeRemoteBranches: true to include refs on remote branches
 // onlyRemote: set to non-blank to only include remote branches on a single remote
 func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
-	cmd := exec.Command("git", "for-each-ref",
+	cmd := execCommand("git", "for-each-ref",
 		`--sort=-committerdate`,
 		`--format=%(refname) %(objectname) %(committerdate:iso)`,
 		"refs")
@@ -271,7 +271,7 @@ func ParseGitDate(str string) (time.Time, error) {
 
 // Get summary information about a commit
 func GetCommitSummary(commit string) (*CommitSummary, error) {
-	cmd := exec.Command("git", "show", "-s",
+	cmd := execCommand("git", "show", "-s",
 		`--format=%H|%h|%P|%ai|%ci|%ae|%an|%ce|%cn|%s`, commit)
 
 	out, err := cmd.CombinedOutput()
