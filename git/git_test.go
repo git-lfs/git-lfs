@@ -21,46 +21,46 @@ func TestRecentBranches(t *testing.T) {
 	// test commits; we'll just modify the same file each time since we're
 	// only interested in branches & dates
 	inputs := []*test.CommitInput{
-		&test.CommitInput{ // 0
+		{ // 0
 			CommitDate: now.AddDate(0, 0, -20),
 			Files: []*test.FileInput{
-				&test.FileInput{"file1.txt", 20, nil},
+				{"file1.txt", 20, nil},
 			},
 		},
-		&test.CommitInput{ // 1
+		{ // 1
 			CommitDate: now.AddDate(0, 0, -15),
 			NewBranch:  "excluded_branch", // new branch & tag but too old
 			Tags:       []string{"excluded_tag"},
 			Files: []*test.FileInput{
-				&test.FileInput{"file1.txt", 25, nil},
+				{"file1.txt", 25, nil},
 			},
 		},
-		&test.CommitInput{ // 2
+		{ // 2
 			CommitDate:     now.AddDate(0, 0, -12),
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
-				&test.FileInput{"file1.txt", 30, nil},
+				{"file1.txt", 30, nil},
 			},
 		},
-		&test.CommitInput{ // 3
+		{ // 3
 			CommitDate: now.AddDate(0, 0, -6),
 			NewBranch:  "included_branch", // new branch within 7 day limit
 			Files: []*test.FileInput{
-				&test.FileInput{"file1.txt", 32, nil},
+				{"file1.txt", 32, nil},
 			},
 		},
-		&test.CommitInput{ // 4
+		{ // 4
 			CommitDate: now.AddDate(0, 0, -3),
 			NewBranch:  "included_branch_2", // new branch within 7 day limit
 			Files: []*test.FileInput{
-				&test.FileInput{"file1.txt", 36, nil},
+				{"file1.txt", 36, nil},
 			},
 		},
-		&test.CommitInput{ // 5
+		{ // 5
 			// Final commit, current date/time
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
-				&test.FileInput{"file1.txt", 21, nil},
+				{"file1.txt", 21, nil},
 			},
 		},
 	}
