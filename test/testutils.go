@@ -44,6 +44,8 @@ type Repo struct {
 	Path string
 	// Path to the git dir
 	GitDir string
+	// Paths to remotes
+	Remotes map[string]*Repo
 	// Settings used to create this repo
 	Settings *RepoCreateSettings
 	// Previous dir for pushd
@@ -94,17 +96,26 @@ func (r *Repo) Cleanup() {
 
 	if r.GitDir != "" {
 		os.RemoveAll(r.GitDir)
+		r.GitDir = ""
 	}
 	if r.Path != "" {
 		os.RemoveAll(r.Path)
+		r.Path = ""
 	}
+	for _, remote := range r.Remotes {
+		remote.Cleanup()
+	}
+	r.Remotes = nil
 }
 
 func NewRepo(t *testing.T) *Repo {
 	return NewCustomRepo(t, &RepoCreateSettings{RepoType: RepoTypeNormal})
 }
 func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
-	ret := &Repo{Settings: settings, t: t}
+	ret := &Repo{
+		Settings: settings,
+		Remotes:  make(map[string]*Repo),
+		t:        t}
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
@@ -302,6 +313,17 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	}
 
 	return outputs
+}
+
+// Add a new remote (generate a path for it to live in, will be cleaned up)
+func (r *Repo) AddRemote(name string) *Repo {
+	if _, exists := r.Remotes[name]; exists {
+		r.t.Fatalf("Remote %v already exists", name)
+	}
+	remote := NewCustomRepo(r.t, &RepoCreateSettings{RepoTypeBare})
+	r.Remotes[name] = remote
+	RunGitCommand(r.t, true, "remote", "add", name, remote.Path)
+	return remote
 }
 
 // Just a psuedo-random stream of bytes (not cryptographic)
