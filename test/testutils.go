@@ -48,38 +48,40 @@ type Repo struct {
 	Settings *RepoCreateSettings
 	// Previous dir for pushd
 	popDir string
+	// Testing context
+	t *testing.T
 }
 
 // Change to repo dir but save current dir
-func (r *Repo) Pushd(t *testing.T) {
+func (r *Repo) Pushd() {
 	if r.popDir != "" {
-		t.Fatalf("Cannot Pushd twice")
+		r.t.Fatalf("Cannot Pushd twice")
 	}
 	oldwd, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("Can't get cwd %v", err)
+		r.t.Fatalf("Can't get cwd %v", err)
 	}
 	err = os.Chdir(r.Path)
 	if err != nil {
-		t.Fatalf("Can't chdir %v", err)
+		r.t.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
 }
 
-func (r *Repo) Popd(t *testing.T) {
+func (r *Repo) Popd() {
 	if r.popDir != "" {
 		err := os.Chdir(r.Path)
 		if err != nil {
-			t.Fatalf("Can't chdir %v", err)
+			r.t.Fatalf("Can't chdir %v", err)
 		}
 		r.popDir = ""
 	}
 }
 
-func (r *Repo) Cleanup(t *testing.T) {
+func (r *Repo) Cleanup() {
 
 	// pop out if necessary
-	r.Popd(t)
+	r.Popd()
 
 	// Make sure cwd isn't inside a path we're going to delete
 	oldwd, err := os.Getwd()
@@ -102,7 +104,7 @@ func NewRepo(t *testing.T) *Repo {
 	return NewCustomRepo(t, &RepoCreateSettings{RepoType: RepoTypeNormal})
 }
 func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
-	ret := &Repo{Settings: settings}
+	ret := &Repo{Settings: settings, t: t}
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
@@ -117,7 +119,7 @@ func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
 	case RepoTypeSeparateDir:
 		gitdir, err := ioutil.TempDir("", "lfstestgitdir")
 		if err != nil {
-			ret.Cleanup(t)
+			ret.Cleanup()
 			t.Fatalf("Can't create temp dir for git repo: %v", err)
 		}
 		args = append(args, "--separate-dir", gitdir)
@@ -129,7 +131,7 @@ func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
 	cmd := exec.Command("git", args...)
 	err = cmd.Run()
 	if err != nil {
-		ret.Cleanup(t)
+		ret.Cleanup()
 		t.Fatalf("Unable to create git repo at %v: %v", path, err)
 	}
 	return ret
@@ -205,19 +207,19 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 	return cmd.Run()
 }
 
-func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutput {
+func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	if repo.Settings.RepoType == RepoTypeBare {
-		t.Fatalf("Cannot use SetupRepo on a bare repo; clone it & push changes instead")
+		repo.t.Fatalf("Cannot use SetupRepo on a bare repo; clone it & push changes instead")
 	}
 
 	// Change to repo working dir
 	oldwd, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("Can't get cwd %v", err)
+		repo.t.Fatalf("Can't get cwd %v", err)
 	}
 	err = os.Chdir(repo.Path)
 	if err != nil {
-		t.Fatalf("Can't chdir to repo %v", err)
+		repo.t.Fatalf("Can't chdir to repo %v", err)
 	}
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
@@ -228,7 +230,7 @@ func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutpu
 		// first, are we on the correct branch
 		if len(input.ParentBranches) > 0 {
 			if input.ParentBranches[0] != lastBranch {
-				RunGitCommand(t, true, "checkout", input.ParentBranches[0])
+				RunGitCommand(repo.t, true, "checkout", input.ParentBranches[0])
 				lastBranch = input.ParentBranches[0]
 			}
 		}
@@ -238,9 +240,9 @@ func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutpu
 			// also don't automatically commit, we'll do that below
 			args := []string{"merge", "--no-ff", "--no-commit", "--strategy-option=theirs"}
 			args = append(args, input.ParentBranches[1:]...)
-			RunGitCommand(t, false, args...)
+			RunGitCommand(repo.t, false, args...)
 		} else if input.NewBranch != "" {
-			RunGitCommand(t, true, "checkout", "-b", input.NewBranch)
+			RunGitCommand(repo.t, true, "checkout", "-b", input.NewBranch)
 			lastBranch = input.NewBranch
 		}
 		// Any files to write?
@@ -252,7 +254,7 @@ func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutpu
 			}
 			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
 			if err != nil {
-				t.Errorf("Error creating pointer file: %v", err)
+				repo.t.Errorf("Error creating pointer file: %v", err)
 				continue
 			}
 
@@ -261,17 +263,17 @@ func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutpu
 			os.MkdirAll(filepath.Dir(infile.Filename), 0755)
 			f, err := os.Create(infile.Filename)
 			if err != nil {
-				t.Errorf("Error creating pointer file: %v", err)
+				repo.t.Errorf("Error creating pointer file: %v", err)
 				continue
 			}
 			_, err = cleaned.Pointer.Encode(f)
 			if err != nil {
 				f.Close()
-				t.Errorf("Error encoding pointer file: %v", err)
+				repo.t.Errorf("Error encoding pointer file: %v", err)
 				continue
 			}
 			f.Close() // early close in a loop, don't defer
-			RunGitCommand(t, true, "add", infile.Filename)
+			RunGitCommand(repo.t, true, "add", infile.Filename)
 
 		}
 		// Now commit
@@ -279,13 +281,13 @@ func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutpu
 			fmt.Sprintf("Test commit %d", i))
 		commit, err := git.GetCommitSummary("HEAD")
 		if err != nil {
-			t.Fatalf("Error determining commit SHA: %v", err)
+			repo.t.Fatalf("Error determining commit SHA: %v", err)
 		}
 
 		// tags
 		for _, tag := range input.Tags {
 			// Use annotated tags, assume full release tags (also tag objects have edge cases)
-			RunGitCommand(t, true, "tag", "-a", "-m", "Added tag", tag)
+			RunGitCommand(repo.t, true, "tag", "-a", "-m", "Added tag", tag)
 		}
 
 		output.Sha = commit.Sha
@@ -296,7 +298,7 @@ func (repo *Repo) AddCommits(t *testing.T, inputs []*CommitInput) []*CommitOutpu
 	// Restore cwd
 	err = os.Chdir(oldwd)
 	if err != nil {
-		t.Fatalf("Can't restore old cwd %v", err)
+		repo.t.Fatalf("Can't restore old cwd %v", err)
 	}
 
 	return outputs

@@ -11,10 +11,10 @@ import (
 
 func TestRecentBranches(t *testing.T) {
 	repo := test.NewRepo(t)
-	repo.Pushd(t)
+	repo.Pushd()
 	defer func() {
-		repo.Popd(t)
-		repo.Cleanup(t)
+		repo.Popd()
+		repo.Cleanup()
 	}()
 
 	now := time.Now()
@@ -64,7 +64,7 @@ func TestRecentBranches(t *testing.T) {
 			},
 		},
 	}
-	outputs := repo.AddCommits(t, inputs)
+	outputs := repo.AddCommits(inputs)
 
 	refs, err := RecentBranches(now.AddDate(0, 0, -7), false, "")
 	assert.Equal(t, nil, err)
