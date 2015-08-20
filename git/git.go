@@ -57,11 +57,19 @@ func LsRemote(remote, remoteRef string) (string, error) {
 	return simpleExec("git", "ls-remote", remote, remoteRef)
 }
 
-func ResolveRef(ref string) (string, error) {
-	return simpleExec("git", "rev-parse", ref)
+func ResolveRef(ref string) (*Ref, error) {
+
+	outp, err := simpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(outp, "\n")
+	fullref := &Ref{Sha: lines[0]}
+	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
+	return fullref, nil
 }
 
-func CurrentRef() (string, error) {
+func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
@@ -69,10 +77,10 @@ func CurrentBranch() (string, error) {
 	return simpleExec("git", "rev-parse", "--abbrev-ref", "HEAD")
 }
 
-func CurrentRemoteRef() (string, error) {
+func CurrentRemoteRef() (*Ref, error) {
 	remote, err := CurrentRemote()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return ResolveRef(remote)

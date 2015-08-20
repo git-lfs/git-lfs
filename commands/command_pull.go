@@ -35,7 +35,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 
 	includePaths, excludePaths := determineIncludeExcludePaths(pullIncludeArg, pullExcludeArg)
 
-	c := fetchRefToChan(ref, includePaths, excludePaths)
+	c := fetchRefToChan(ref.Sha, includePaths, excludePaths)
 	checkoutFromFetchChan(includePaths, excludePaths, c)
 }
 

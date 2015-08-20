@@ -17,11 +17,11 @@ var (
 	}
 	fetchIncludeArg string
 	fetchExcludeArg string
-	fetchRecent     bool
+	fetchRecentArg  bool
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
-	var refs []string
+	var refs []*Ref
 
 	if len(args) > 0 {
 		// Remote is first arg
@@ -39,14 +39,20 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if err != nil {
 			Panic(err, "Could not fetch")
 		}
-		refs = []string{ref}
+		refs = []*Ref{ref}
 	}
 
 	includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
 
 	// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 	for _, ref := range refs {
-		fetchRef(ref, includePaths, excludePaths)
+		Print("Fetching %v", ref.Name)
+		fetchRef(ref.Sha, includePaths, excludePaths)
+	}
+
+	if fetchRecentArg || lfs.Config.FetchPruneConfig().FetchRecentAlways {
+		Print("Fetching recent objects")
+		fetchRecent(refs, includePaths, excludePaths)
 	}
 
 }
@@ -54,7 +60,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 func init() {
 	fetchCmd.Flags().StringVarP(&fetchIncludeArg, "include", "I", "", "Include a list of paths")
 	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
-	fetchCmd.Flags().BoolVarP(&fetchRecent, "recent", "r", false, "Fetch recent refs & commits")
+	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 	RootCmd.AddCommand(fetchCmd)
 }
 
@@ -77,6 +83,36 @@ func fetchRef(ref string, include, exclude []string) {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 	fetchPointers(pointers, include, exclude)
+}
+
+// Fetch recent objects based on config
+func fetchRecent(alreadyFetchedRefs []*Ref, include, exclude []string) {
+	fetchconf := lfs.Config.FetchPruneConfig()
+
+	// First find any other recent refs
+	if fetchconf.FetchRecentRefsDays > 0 {
+		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
+		refs, err := git.RecentRefs(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
+		if err != nil {
+			Panic(err, "Could not scan for recent refs")
+		}
+		uniqueRefShas := make(map[string]string, len(refsSince))
+		for _, ref := range alreadyFetchedRefs {
+			uniqueRefShas[ref.Sha] = ref.Name
+		}
+		for _, ref := range refsSince {
+			// Don't fetch for the same SHA twice
+			if prevRefName, ok := uniqueRefShas[ref.Sha]; ok {
+				Print("Skipping fetch for %v, already fetched commit via %v", ref.Name, prevRefName)
+			} else {
+				uniqueRefShas[ref.Sha] = ref.Name
+				Print("Fetching recent ref %v", ref.Name)
+				fetchRef(ref.Sha, includePaths, excludePaths)
+			}
+		}
+		// Add to list to scan for recent commits
+
+	}
 }
 
 func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) {

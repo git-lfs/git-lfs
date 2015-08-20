@@ -9,6 +9,59 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
+func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	// test commits; we'll just modify the same file each time since we're
+	// only interested in branches
+	inputs := []*test.CommitInput{
+		{ // 0
+			Files: []*test.FileInput{
+				{"file1.txt", 20, nil},
+			},
+		},
+		{ // 1
+			NewBranch: "branch2",
+			Files: []*test.FileInput{
+				{"file1.txt", 25, nil},
+			},
+		},
+		{ // 2
+			ParentBranches: []string{"master"}, // back on master
+			Files: []*test.FileInput{
+				{"file1.txt", 30, nil},
+			},
+		},
+		{ // 3
+			NewBranch: "branch3",
+			Files: []*test.FileInput{
+				{"file1.txt", 32, nil},
+			},
+		},
+	}
+	outputs := repo.AddCommits(inputs)
+	// last commit was on branch3
+	ref, err := CurrentRef()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, &Ref{"branch3", RefTypeLocalBranch, outputs[3].Sha}, ref)
+	test.RunGitCommand(t, true, "checkout", "master")
+	ref, err = CurrentRef()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, &Ref{"master", RefTypeLocalBranch, outputs[2].Sha}, ref)
+	// Check remote
+	repo.AddRemote("origin")
+	test.RunGitCommand(t, true, "push", "-u", "origin", "master")
+	ref, err = CurrentRemoteRef()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, &Ref{"origin/master", RefTypeRemoteBranch, outputs[2].Sha}, ref)
+
+}
+
 func TestRecentBranches(t *testing.T) {
 	repo := test.NewRepo(t)
 	repo.Pushd()

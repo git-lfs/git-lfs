@@ -157,7 +157,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		if err != nil {
 			Panic(err, "Error getting local ref")
 		}
-		left = localRef
+		left = localRef.Sha
 
 		remoteRef, err := git.LsRemote(remoteArg, refArg)
 		if err != nil {
