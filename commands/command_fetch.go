@@ -21,7 +21,7 @@ var (
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
-	var refs []*Ref
+	var refs []*git.Ref
 
 	if len(args) > 0 {
 		// Remote is first arg
@@ -33,13 +33,19 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		} // otherwise leave as default (origin)
 	}
 	if len(args) > 1 {
-		refs = args[1:]
+		for _, r := range args[1:] {
+			ref, err := git.ResolveRef(r)
+			if err != nil {
+				Panic(err, "Invalid ref argument")
+			}
+			refs = append(refs, ref)
+		}
 	} else {
 		ref, err := git.CurrentRef()
 		if err != nil {
 			Panic(err, "Could not fetch")
 		}
-		refs = []*Ref{ref}
+		refs = []*git.Ref{ref}
 	}
 
 	includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
@@ -85,32 +91,60 @@ func fetchRef(ref string, include, exclude []string) {
 	fetchPointers(pointers, include, exclude)
 }
 
+// Fetch all previous versions of objects from since to ref (not including final state at ref)
+// So this will fetch all the '-' sides of the diff from since to ref
+func fetchPreviousVersions(ref string, since time.Time, include, exclude []string) {
+	pointers, err := lfs.ScanPreviousVersions(ref, since)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS previous versions")
+	}
+	fetchPointers(pointers, include, exclude)
+}
+
 // Fetch recent objects based on config
-func fetchRecent(alreadyFetchedRefs []*Ref, include, exclude []string) {
+func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) {
 	fetchconf := lfs.Config.FetchPruneConfig()
 
+	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
+		return
+	}
+
+	// Make a list of what unique commits we've already fetched for to avoid duplicating work
+	uniqueRefShas := make(map[string]string, len(alreadyFetchedRefs))
+	for _, ref := range alreadyFetchedRefs {
+		uniqueRefShas[ref.Sha] = ref.Name
+	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentRefs(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
 		if err != nil {
 			Panic(err, "Could not scan for recent refs")
 		}
-		uniqueRefShas := make(map[string]string, len(refsSince))
-		for _, ref := range alreadyFetchedRefs {
-			uniqueRefShas[ref.Sha] = ref.Name
-		}
-		for _, ref := range refsSince {
+		for _, ref := range refs {
 			// Don't fetch for the same SHA twice
 			if prevRefName, ok := uniqueRefShas[ref.Sha]; ok {
-				Print("Skipping fetch for %v, already fetched commit via %v", ref.Name, prevRefName)
+				Print("Skipping fetch for %v, already fetched via %v", ref.Name, prevRefName)
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
 				Print("Fetching recent ref %v", ref.Name)
-				fetchRef(ref.Sha, includePaths, excludePaths)
+				fetchRef(ref.Sha, include, exclude)
 			}
 		}
-		// Add to list to scan for recent commits
+	}
+	// For every unique commit we've fetched, check recent commits too
+	if fetchconf.FetchRecentCommitsDays > 0 {
+		for commit, refName := range uniqueRefShas {
+			// We measure from the last commit at the ref
+			summ, err := git.GetCommitSummary(commit)
+			if err != nil {
+				Error("Couldn't scan commits at %v: %v", refName, err)
+				continue
+			}
+			Print("Fetching recent changes for %v", refName)
+			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
+			fetchPreviousVersions(commit, commitsSince, include, exclude)
+		}
 
 	}
 }

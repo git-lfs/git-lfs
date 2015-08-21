@@ -277,6 +277,12 @@ func ParseGitDate(str string) (time.Time, error) {
 	return time.Parse("2006-01-02 15:04:05 -0700", str)
 }
 
+// FormatGitDate converts a Go date into a git command line format date
+func FormatGitDate(tm time.Time) string {
+	// Git format is "Fri Jun 21 20:26:41 2013 +0900" but no zero-leading for day
+	return tm.Format("Mon Jan 2 15:04:05 2006 -0700")
+}
+
 // Get summary information about a commit
 func GetCommitSummary(commit string) (*CommitSummary, error) {
 	cmd := execCommand("git", "show", "-s",

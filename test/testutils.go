@@ -194,11 +194,6 @@ type CommitOutput struct {
 	Files   []*lfs.Pointer
 }
 
-func formatGitDate(tm time.Time) string {
-	// Git format is "Fri Jun 21 20:26:41 2013 +0900" but no zero-leading for day
-	return tm.Format("Mon Jan 2 15:04:05 2006 -0700")
-}
-
 func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) error {
 	var args []string
 	if committerName != "" && committerEmail != "" {
@@ -212,7 +207,7 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 	if atDate.IsZero() {
 		env = append(env, "GIT_COMMITTER_DATE=")
 	} else {
-		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", formatGitDate(atDate)))
+		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", git.FormatGitDate(atDate)))
 	}
 	cmd.Env = env
 	return cmd.Run()
