@@ -290,7 +290,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git show: %v", err)
+		return nil, fmt.Errorf("Failed to call git show: %v %v", err, string(out))
 	}
 
 	// At most 10 substrings so subject line is not split on anything
@@ -314,7 +314,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 		}
 		return ret, nil
 	} else {
-		msg := fmt.Sprintf("Unexpected output from git show: %v", out)
+		msg := fmt.Sprintf("Unexpected output from git show: %v", string(out))
 		return nil, errors.New(msg)
 	}
 
