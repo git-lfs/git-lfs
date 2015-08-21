@@ -1,6 +1,7 @@
 package git_test // to avoid import cycles
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -144,13 +145,16 @@ func TestRecentBranches(t *testing.T) {
 	assert.Equal(t, nil, err)
 	expectedRefs = []*Ref{
 		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"upstream/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"upstream/included_branch_2", RefTypeRemoteBranch, outputs[4].Sha},
 		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
 		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
+		&Ref{"upstream/master", RefTypeRemoteBranch, outputs[5].Sha},
+		&Ref{"upstream/included_branch_2", RefTypeRemoteBranch, outputs[4].Sha},
+		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
 		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
 	}
+	// Need to sort for consistent comparison
+	sort.Sort(test.RefsByName(expectedRefs))
+	sort.Sort(test.RefsByName(refs))
 	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 
 	// Recent, only single remote
@@ -163,5 +167,8 @@ func TestRecentBranches(t *testing.T) {
 		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
 		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
 	}
+	// Need to sort for consistent comparison
+	sort.Sort(test.RefsByName(expectedRefs))
+	sort.Sort(test.RefsByName(refs))
 	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 }
