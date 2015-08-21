@@ -71,7 +71,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 			continue
 		}
 
-		if wErr.Panic == (panicMsg != "panic") {
+		if IsFatalError(wErr) == (panicMsg != "panic") {
 			t.Errorf("Error for HTTP %d should %s", status, panicMsg)
 			continue
 		}
@@ -134,7 +134,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 			continue
 		}
 
-		if wErr.Panic == (results[1] != "panic") {
+		if IsFatalError(wErr) == (results[1] != "panic") {
 			t.Errorf("Error for HTTP %d should %s", status, results[1])
 			continue
 		}

@@ -603,7 +603,7 @@ func TestDownloadAPIError(t *testing.T) {
 		t.Fatal("no error?")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(wErr) {
 		t.Fatal("should not panic")
 	}
 
@@ -670,7 +670,7 @@ func TestDownloadStorageError(t *testing.T) {
 		t.Fatal("no error?")
 	}
 
-	if !wErr.Panic {
+	if !IsFatalError(wErr) {
 		t.Fatal("should panic")
 	}
 

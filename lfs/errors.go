@@ -1,7 +1,7 @@
 package lfs
 
 import (
-	"fmt"
+	"errors"
 	"runtime"
 )
 
@@ -21,6 +21,11 @@ func newWrappedError(err error) errorWrapper {
 	if e, ok := err.(errorWrapper); ok {
 		return e
 	}
+
+	if err == nil {
+		err = errors.New("LFS Error")
+	}
+
 	return wrappedError{
 		Message: err.Error(),
 		stack:   Stack(),
@@ -191,81 +196,102 @@ func IsInvalidRepoError(err error) bool {
 	return false
 }
 
-// Old
-
-type WrappedError struct {
-	Err     error
-	Message string
-	Panic   bool
-	stack   []byte
-	context map[string]string
+type smudgeError struct {
+	errorWrapper
 }
 
-func Error(err error) *WrappedError {
+func (e smudgeError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e smudgeError) SmudgeError() bool {
+	return true
+}
+
+func newSmudgeError(err error, oid, filename string) error {
+	e := smudgeError{newWrappedError(err)}
+	ErrorSetContext(e, "OID", oid)
+	ErrorSetContext(e, "FileName", filename)
+	return e
+}
+
+func IsSmudgeError(err error) bool {
+	type smudgeerror interface {
+		SmudgeError() bool
+	}
+	if e, ok := err.(smudgeerror); ok {
+		return e.SmudgeError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsSmudgeError(e.InnerError())
+	}
+	return false
+}
+
+type cleanPointerError struct {
+	pointer *Pointer
+	bytes   []byte
+	errorWrapper
+}
+
+func (e cleanPointerError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e cleanPointerError) CleanPointerError() bool {
+	return true
+}
+
+func (e cleanPointerError) Pointer() *Pointer {
+	return e.pointer
+}
+
+func (e cleanPointerError) Bytes() []byte {
+	return e.bytes
+}
+
+func newCleanPointerError(err error, pointer *Pointer, bytes []byte) error {
+	return cleanPointerError{
+		pointer,
+		bytes,
+		newWrappedError(err),
+	}
+}
+
+func IsCleanPointerError(err error) (*cleanPointerError, bool) {
+	type cleanptrerror interface {
+		CleanPointerError() bool
+	}
+	if e, ok := err.(cleanptrerror); ok {
+		cpe := err.(cleanPointerError)
+		return &cpe, e.CleanPointerError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsCleanPointerError(e.InnerError())
+	}
+	return nil, false
+}
+
+func Error(err error) error {
 	return Errorf(err, "")
 }
 
-func Errorf(err error, format string, args ...interface{}) *WrappedError {
+func Errorf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		return nil
 	}
 
-	e := &WrappedError{
-		Err:     err,
-		Message: err.Error(),
-		Panic:   true,
-		stack:   Stack(),
-	}
+	e := newWrappedError(err)
 
-	if len(format) > 0 {
-		e.Errorf(format, args...)
-	}
+	// ERRTODO this isn't right
+	/*
+		if len(format) > 0 {
+			we := e.(wrappedError)
+			we.Message = fmt.Sprintf(format, args...)
+		}
+	*/
 
 	return e
-}
-
-func (e *WrappedError) Set(key, value string) {
-	if e.context == nil {
-		e.context = make(map[string]string)
-	}
-	e.context[key] = value
-}
-
-func (e *WrappedError) Get(key string) string {
-	if e.context == nil {
-		return ""
-	}
-	return e.context[key]
-}
-
-func (e *WrappedError) Del(key string) {
-	if e.context == nil {
-		return
-	}
-	delete(e.context, key)
-}
-
-func (e *WrappedError) Error() string {
-	return e.Message
-}
-
-func (e *WrappedError) Errorf(format string, args ...interface{}) {
-	e.Message = fmt.Sprintf(format, args...)
-}
-
-func (e *WrappedError) InnerError() string {
-	return e.Err.Error()
-}
-
-func (e *WrappedError) Stack() []byte {
-	return e.stack
-}
-
-func (e *WrappedError) Context() map[string]string {
-	if e.context == nil {
-		e.context = make(map[string]string)
-	}
-	return e.context
 }
 
 func Stack() []byte {

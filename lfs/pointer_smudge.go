@@ -51,7 +51,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		}
 	}
 
-	var wErr *WrappedError
+	var wErr error
 	if statErr != nil || stat == nil {
 		if download {
 			wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
@@ -63,7 +63,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	}
 
 	if wErr != nil {
-		return &SmudgeError{ptr.Oid, mediafile, wErr}
+		return newSmudgeError(wErr, ptr.Oid, mediafile)
 	}
 
 	return nil
@@ -91,14 +91,14 @@ func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) err
 		wErr := downloadObject(ptr, obj, mediafile, cb)
 
 		if wErr != nil {
-			return &SmudgeError{obj.Oid, mediafile, wErr}
+			return newSmudgeError(wErr, obj.Oid, mediafile)
 		}
 	}
 
 	return nil
 }
 
-func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) *WrappedError {
+func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) error {
 	reader, size, wErr := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
@@ -106,7 +106,7 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 
 	// TODO this can be unified with the same code in downloadFile
 	if wErr != nil {
-		wErr.Errorf("Error downloading %s.", mediafile)
+		// wErr.Errorf("Error downloading %s.", mediafile) ERRTODO
 		return wErr
 	}
 
@@ -132,7 +132,7 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 	return nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) *WrappedError {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 	reader, size, wErr := Download(filepath.Base(mediafile))
 	if reader != nil {
@@ -140,7 +140,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 
 	if wErr != nil {
-		wErr.Errorf("Error downloading %s.", mediafile)
+		//wErr.Errorf("Error downloading %s.", mediafile) ERRTODO
 		return wErr
 	}
 
@@ -166,7 +166,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) *WrappedError {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) error {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return Errorf(err, "Error opening media file.")
@@ -248,10 +248,4 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 	}
 
 	return nil
-}
-
-type SmudgeError struct {
-	Oid      string
-	Filename string
-	*WrappedError
 }

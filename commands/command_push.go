@@ -48,8 +48,8 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 
 		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if wErr != nil {
-			if Debugging || wErr.Panic {
-				Panic(wErr.Err, wErr.Error())
+			if Debugging || lfs.IsFatalError(wErr) {
+				Panic(wErr, wErr.Error())
 			} else {
 				Exit(wErr.Error())
 			}
@@ -73,8 +73,8 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 
 		u, wErr := lfs.NewUploadable(oid, "")
 		if wErr != nil {
-			if Debugging || wErr.Panic {
-				Panic(wErr.Err, wErr.Error())
+			if Debugging || lfs.IsFatalError(wErr) {
+				Panic(wErr, wErr.Error())
 			} else {
 				Exit(wErr.Error())
 			}
@@ -174,8 +174,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	if !pushDryRun {
 		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
-			if Debugging || err.Panic {
-				LoggedError(err.Err, err.Error())
+			if Debugging || lfs.IsFatalError(err) {
+				LoggedError(err, err.Error())
 			} else {
 				Error(err.Error())
 			}

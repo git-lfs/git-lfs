@@ -105,7 +105,7 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
-func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
+func Download(oid string) (io.ReadCloser, int64, error) {
 	req, creds, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
@@ -135,7 +135,7 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
-func DownloadCheck(oid string) (*objectResource, *WrappedError) {
+func DownloadCheck(oid string) (*objectResource, error) {
 	req, creds, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, Error(err)
@@ -155,7 +155,7 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 	return obj, nil
 }
 
-func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 	req, creds, err := obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
@@ -174,7 +174,7 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource, operation string) ([]*objectResource, *WrappedError) {
+func Batch(objects []*objectResource, operation string) ([]*objectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -210,7 +210,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 			return Batch(objects, operation)
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, Error(newNotImplError())
+			return nil, newNotImplementedError(nil)
 		}
 
 		tracerx.Printf("api error: %s", wErr)
@@ -224,7 +224,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	return objs, nil
 }
 
-func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
+func UploadCheck(oidPath string) (*objectResource, error) {
 	oid := filepath.Base(oidPath)
 
 	stat, err := os.Stat(oidPath)
@@ -273,7 +273,7 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	return obj, nil
 }
 
-func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
+func UploadObject(o *objectResource, cb CopyCallback) error {
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
 		return Error(err)
@@ -349,7 +349,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	return wErr
 }
 
-func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := Config.HttpClient().Do(req)
 	if res == nil {
 		res = &http.Response{
@@ -360,7 +360,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 		}
 	}
 
-	var wErr *WrappedError
+	var wErr error
 
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
@@ -380,7 +380,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 	return res, wErr
 }
 
-func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
+func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, error) {
 	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
 		return res, wErr
@@ -428,7 +428,7 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 	return res, nil
 }
 
-func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
+func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, error) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
 	if wErr != nil {
@@ -450,7 +450,7 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 // the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, *WrappedError) {
+func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, error) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, creds, via)
 
@@ -468,7 +468,7 @@ func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objec
 	return res, objs["objects"], wErr
 }
 
-func handleResponse(res *http.Response) *WrappedError {
+func handleResponse(res *http.Response) error {
 	if res.StatusCode < 400 {
 		return nil
 	}
@@ -488,11 +488,14 @@ func handleResponse(res *http.Response) *WrappedError {
 		}
 	}
 
-	wErr.Panic = res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509
+	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
+		return newFatalError(wErr)
+	}
+
 	return wErr
 }
 
-func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
+func decodeApiResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
@@ -509,7 +512,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	return nil
 }
 
-func defaultError(res *http.Response) *WrappedError {
+func defaultError(res *http.Response) error {
 	var msgFmt string
 
 	if f, ok := defaultErrors[res.StatusCode]; ok {
@@ -713,47 +716,25 @@ func setRequestAuth(req *http.Request, user, pass string) {
 	req.Header.Set("Authorization", auth)
 }
 
-func setErrorResponseContext(err *WrappedError, res *http.Response) {
-	err.Set("Status", res.Status)
+func setErrorResponseContext(err error, res *http.Response) {
+	ErrorSetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
 }
 
-func setErrorRequestContext(err *WrappedError, req *http.Request) {
-	err.Set("Endpoint", Config.Endpoint().Url)
-	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+func setErrorRequestContext(err error, req *http.Request) {
+	ErrorSetContext(err, "Endpoint", Config.Endpoint().Url)
+	ErrorSetContext(err, "URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
-func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
+func setErrorHeaderContext(err error, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
-			err.Set(contextKey, "--")
+			ErrorSetContext(err, contextKey, "--")
 		} else {
-			err.Set(contextKey, head.Get(key))
+			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
-}
-
-type notImplError struct {
-	error
-}
-
-func (e notImplError) NotImplemented() bool {
-	return true
-}
-
-func newNotImplError() error {
-	return notImplError{errors.New("Not Implemented")}
-}
-
-func isNotImplError(err *WrappedError) bool {
-	type notimplerror interface {
-		NotImplemented() bool
-	}
-	if e, ok := err.Err.(notimplerror); ok {
-		return e.NotImplemented()
-	}
-	return false
 }

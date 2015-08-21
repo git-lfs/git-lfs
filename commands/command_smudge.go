@@ -75,8 +75,8 @@ func smudgeFilename(args []string, err error) string {
 		return args[0]
 	}
 
-	if smudgeErr, ok := err.(*lfs.SmudgeError); ok {
-		return filepath.Base(smudgeErr.Filename)
+	if lfs.IsSmudgeError(err) {
+		return filepath.Base(lfs.ErrorGetContext(err, "FileName"))
 	}
 
 	return "<unknown file>"

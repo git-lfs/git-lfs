@@ -615,7 +615,7 @@ func TestUploadApiError(t *testing.T) {
 		t.Fatal(wErr)
 	}
 
-	if wErr.Panic {
+	if IsFatalError(wErr) {
 		t.Fatal("should not panic")
 	}
 
@@ -726,7 +726,7 @@ func TestUploadStorageError(t *testing.T) {
 		t.Fatal("Expected an error")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(wErr) {
 		t.Fatal("should not panic")
 	}
 
@@ -874,7 +874,7 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal("Expected an error")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(wErr) {
 		t.Fatal("should not panic")
 	}
 
