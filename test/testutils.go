@@ -210,7 +210,11 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", git.FormatGitDate(atDate)))
 	}
 	cmd.Env = env
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error committing: %v %v", err, string(out))
+	}
+	return nil
 }
 
 func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
