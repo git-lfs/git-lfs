@@ -72,7 +72,7 @@ func (r *Repo) Pushd() {
 
 func (r *Repo) Popd() {
 	if r.popDir != "" {
-		err := os.Chdir(r.Path)
+		err := os.Chdir(r.popDir)
 		if err != nil {
 			r.t.Fatalf("Can't chdir %v", err)
 		}
