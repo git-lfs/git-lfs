@@ -159,7 +159,7 @@ func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
 func RunGitCommand(t *testing.T, failureCheck bool, args ...string) string {
 	outp, err := exec.Command("git", args...).CombinedOutput()
 	if failureCheck && err != nil {
-		t.Fatalf("Error running git command 'git %v': %v", strings.Join(args, " "), err)
+		t.Fatalf("Error running git command 'git %v': %v %v", strings.Join(args, " "), err, string(outp))
 	}
 	return string(outp)
 
@@ -226,7 +226,7 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 
 func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	if repo.Settings.RepoType == RepoTypeBare {
-		repo.t.Fatalf("Cannot use SetupRepo on a bare repo; clone it & push changes instead")
+		repo.t.Fatalf("Cannot use AddCommits on a bare repo; clone it & push changes instead")
 	}
 
 	// Change to repo working dir
