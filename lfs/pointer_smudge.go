@@ -51,19 +51,18 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		}
 	}
 
-	var wErr error
 	if statErr != nil || stat == nil {
 		if download {
-			wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
+			err = downloadFile(writer, ptr, workingfile, mediafile, cb)
 		} else {
 			return DownloadDeclinedError
 		}
 	} else {
-		wErr = readLocalFile(writer, ptr, mediafile, workingfile, cb)
+		err = readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}
 
-	if wErr != nil {
-		return newSmudgeError(wErr, ptr.Oid, mediafile)
+	if err != nil {
+		return newSmudgeError(err, ptr.Oid, mediafile)
 	}
 
 	return nil
@@ -88,10 +87,10 @@ func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) err
 	}
 
 	if statErr != nil || stat == nil {
-		wErr := downloadObject(ptr, obj, mediafile, cb)
+		err := downloadObject(ptr, obj, mediafile, cb)
 
-		if wErr != nil {
-			return newSmudgeError(wErr, obj.Oid, mediafile)
+		if err != nil {
+			return newSmudgeError(err, obj.Oid, mediafile)
 		}
 	}
 
@@ -99,15 +98,15 @@ func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) err
 }
 
 func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) error {
-	reader, size, wErr := DownloadObject(obj)
+	reader, size, err := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
 	}
 
 	// TODO this can be unified with the same code in downloadFile
-	if wErr != nil {
-		// wErr.Errorf("Error downloading %s.", mediafile) ERRTODO
-		return wErr
+	if err != nil {
+		// err.Errorf("Error downloading %s.", mediafile) ERRTODO
+		return err
 	}
 
 	if ptr.Size == 0 {
@@ -134,14 +133,14 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, wErr := Download(filepath.Base(mediafile))
+	reader, size, err := Download(filepath.Base(mediafile))
 	if reader != nil {
 		defer reader.Close()
 	}
 
-	if wErr != nil {
-		//wErr.Errorf("Error downloading %s.", mediafile) ERRTODO
-		return wErr
+	if err != nil {
+		//err.Errorf("Error downloading %s.", mediafile) ERRTODO
+		return err
 	}
 
 	if ptr.Size == 0 {

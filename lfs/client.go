@@ -111,9 +111,9 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 		return nil, 0, Error(err)
 	}
 
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, obj, err := doApiRequest(req, creds)
+	if err != nil {
+		return nil, 0, err
 	}
 	LogTransfer("lfs.api.download", res)
 
@@ -122,9 +122,9 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, err = doHttpRequest(req, creds)
+	if err != nil {
+		return nil, 0, err
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -141,9 +141,9 @@ func DownloadCheck(oid string) (*objectResource, error) {
 		return nil, Error(err)
 	}
 
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		return nil, wErr
+	res, obj, err := doApiRequest(req, creds)
+	if err != nil {
+		return nil, err
 	}
 	LogTransfer("lfs.api.download", res)
 
@@ -161,9 +161,9 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, err := doHttpRequest(req, creds)
+	if err != nil {
+		return nil, 0, err
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -197,10 +197,10 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: batch %d files", len(objects))
-	res, objs, wErr := doApiBatchRequest(req, creds)
-	if wErr != nil {
+	res, objs, err := doApiBatchRequest(req, creds)
+	if err != nil {
 		if res == nil {
-			return nil, wErr
+			return nil, err
 		}
 
 		switch res.StatusCode {
@@ -213,7 +213,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 			return nil, newNotImplementedError(nil)
 		}
 
-		tracerx.Printf("api error: %s", wErr)
+		tracerx.Printf("api error: %s", err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -253,9 +253,9 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		return nil, wErr
+	res, obj, err := doApiRequest(req, creds)
+	if err != nil {
+		return nil, err
 	}
 	LogTransfer("lfs.api.upload", res)
 
@@ -308,9 +308,9 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return wErr
+	res, err := doHttpRequest(req, creds)
+	if err != nil {
+		return err
 	}
 	LogTransfer("lfs.data.upload", res)
 
@@ -337,16 +337,16 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return wErr
+	res, err = doHttpRequest(req, creds)
+	if err != nil {
+		return err
 	}
 
 	LogTransfer("lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return wErr
+	return err
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
@@ -360,30 +360,28 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 		}
 	}
 
-	var wErr error
-
 	if err != nil {
-		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
+		err = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
 		saveCredentials(creds, res)
-		wErr = handleResponse(res)
+		err = handleResponse(res)
 	}
 
-	if wErr != nil {
+	if err != nil {
 		if res != nil {
-			setErrorResponseContext(wErr, res)
+			setErrorResponseContext(err, res)
 		} else {
-			setErrorRequestContext(wErr, req)
+			setErrorRequestContext(err, req)
 		}
 	}
 
-	return res, wErr
+	return res, err
 }
 
 func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, error) {
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return res, wErr
+	res, err := doHttpRequest(req, creds)
+	if err != nil {
+		return res, err
 	}
 
 	if res.StatusCode == 307 {
@@ -430,17 +428,17 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 
 func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, error) {
 	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, creds, via)
-	if wErr != nil {
-		return res, nil, wErr
+	res, err := doApiRequestWithRedirects(req, creds, via)
+	if err != nil {
+		return res, nil, err
 	}
 
 	obj := &objectResource{}
-	wErr = decodeApiResponse(res, obj)
+	err = decodeApiResponse(res, obj)
 
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
-		return nil, nil, wErr
+	if err != nil {
+		setErrorResponseContext(err, res)
+		return nil, nil, err
 	}
 
 	return res, obj, nil
@@ -452,20 +450,20 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 // be retrieved.
 func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, error) {
 	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, creds, via)
+	res, err := doApiRequestWithRedirects(req, creds, via)
 
-	if wErr != nil {
-		return res, nil, wErr
+	if err != nil {
+		return res, nil, err
 	}
 
 	var objs map[string][]*objectResource
-	wErr = decodeApiResponse(res, &objs)
+	err = decodeApiResponse(res, &objs)
 
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
+	if err != nil {
+		setErrorResponseContext(err, res)
 	}
 
-	return res, objs["objects"], wErr
+	return res, objs["objects"], err
 }
 
 func handleResponse(res *http.Response) error {
@@ -479,20 +477,20 @@ func handleResponse(res *http.Response) error {
 	}()
 
 	cliErr := &ClientError{}
-	wErr := decodeApiResponse(res, cliErr)
-	if wErr == nil {
+	err := decodeApiResponse(res, cliErr)
+	if err == nil {
 		if len(cliErr.Message) == 0 {
-			wErr = defaultError(res)
+			err = defaultError(res)
 		} else {
-			wErr = Error(cliErr)
+			err = Error(cliErr)
 		}
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
-		return newFatalError(wErr)
+		return newFatalError(err)
 	}
 
-	return wErr
+	return err
 }
 
 func decodeApiResponse(res *http.Response, obj interface{}) error {

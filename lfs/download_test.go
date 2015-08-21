@@ -88,9 +88,9 @@ func TestSuccessfulDownload(t *testing.T) {
 	})
 
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, wErr := Download("oid")
-	if wErr != nil {
-		t.Fatalf("unexpected error: %s", wErr)
+	reader, size, err := Download("oid")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
 	}
 	defer reader.Close()
 
@@ -222,9 +222,9 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
-		reader, size, wErr := Download("oid")
-		if wErr != nil {
-			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
+		reader, size, err := Download("oid")
+		if err != nil {
+			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
 
 		if size != 4 {
@@ -325,9 +325,9 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	})
 
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, wErr := Download("oid")
-	if wErr != nil {
-		t.Fatalf("unexpected error: %s", wErr)
+	reader, size, err := Download("oid")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
 	}
 	defer reader.Close()
 
@@ -428,9 +428,9 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	})
 
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, wErr := Download("oid")
-	if wErr != nil {
-		t.Fatalf("unexpected error: %s", wErr)
+	reader, size, err := Download("oid")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
 	}
 	defer reader.Close()
 
@@ -564,9 +564,9 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	for _, redirect := range redirectCodes {
-		reader, size, wErr := Download("oid")
-		if wErr != nil {
-			t.Fatalf("unexpected error for %d status: %s", redirect, wErr)
+		reader, size, err := Download("oid")
+		if err != nil {
+			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
 
 		if size != 4 {
@@ -598,17 +598,17 @@ func TestDownloadAPIError(t *testing.T) {
 	})
 
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, wErr := Download("oid")
-	if wErr == nil {
+	_, _, err := Download("oid")
+	if err == nil {
 		t.Fatal("no error?")
 	}
 
-	if IsFatalError(wErr) {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects/oid") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects/oid") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 }
 
@@ -665,16 +665,16 @@ func TestDownloadStorageError(t *testing.T) {
 	})
 
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, wErr := Download("oid")
-	if wErr == nil {
+	_, _, err := Download("oid")
+	if err == nil {
 		t.Fatal("no error?")
 	}
 
-	if !IsFatalError(wErr) {
+	if !IsFatalError(err) {
 		t.Fatal("should panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[500], server.URL+"/download") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[500], server.URL+"/download") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 }

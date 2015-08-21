@@ -46,12 +46,12 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 
 		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
-		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
-		if wErr != nil {
-			if Debugging || lfs.IsFatalError(wErr) {
-				Panic(wErr, wErr.Error())
+		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
+		if err != nil {
+			if Debugging || lfs.IsFatalError(err) {
+				Panic(err, err.Error())
 			} else {
-				Exit(wErr.Error())
+				Exit(err.Error())
 			}
 		}
 		uploadQueue.Add(u)
@@ -71,12 +71,12 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 		}
 		tracerx.Printf("prepare upload: %s %d/%d", oid, i+1, len(oids))
 
-		u, wErr := lfs.NewUploadable(oid, "")
-		if wErr != nil {
-			if Debugging || lfs.IsFatalError(wErr) {
-				Panic(wErr, wErr.Error())
+		u, err := lfs.NewUploadable(oid, "")
+		if err != nil {
+			if Debugging || lfs.IsFatalError(err) {
+				Panic(err, err.Error())
 			} else {
-				Exit(wErr.Error())
+				Exit(err.Error())
 			}
 		}
 		uploads = append(uploads, u)
