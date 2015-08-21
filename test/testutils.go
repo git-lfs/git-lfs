@@ -145,6 +145,13 @@ func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
 		ret.Cleanup()
 		t.Fatalf("Unable to create git repo at %v: %v", path, err)
 	}
+
+	// Configure default user/email so not reliant on env
+	ret.Pushd()
+	RunGitCommand(t, true, "config", "user.name", "Git LFS Tests")
+	RunGitCommand(t, true, "config", "user.email", "git-lfs@example.com")
+	ret.Popd()
+
 	return ret
 }
 
@@ -212,7 +219,7 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Error committing: %v %v", err, string(out))
+		return fmt.Errorf("%v %v", err, string(out))
 	}
 	return nil
 }
@@ -287,8 +294,12 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 
 		}
 		// Now commit
-		commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
+		err = commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
 			fmt.Sprintf("Test commit %d", i))
+		if err != nil {
+			repo.t.Fatalf("Error committing: %v", err)
+		}
+
 		commit, err := git.GetCommitSummary("HEAD")
 		if err != nil {
 			repo.t.Fatalf("Error determining commit SHA: %v", err)
