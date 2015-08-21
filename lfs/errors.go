@@ -31,6 +31,21 @@ package lfs
 //	if lfs.IsFatalError(err) {
 //		os.Exit(1)
 //	}
+//
+// Wrapped errors contain a context, which is a map[string]string. These
+// contexts can be accessed through the Error*Context functions. Calling these
+// functions on a regular Go error will have no effect.
+//
+// Example:
+//
+//	err := lfs.SomeFunction()
+//	lfs.ErrorSetContext(err, "foo", "bar")
+//	lfs.ErrorGetContext(err, "foo") // => "bar"
+//	lfs.ErrorDelContext(err, "foo")
+//
+// Wrapped errors also contain the stack from the point at which they are
+// called. The stack is accessed via ErrorStack(). Calling ErrorStack() on a
+// regular Go error will return an empty byte slice.
 
 import (
 	"errors"
@@ -60,7 +75,7 @@ func IsNotImplementedError(err error) bool {
 		return e.NotImplemented()
 	}
 	if e, ok := err.(errorWrapper); ok {
-		return IsFatalError(e.InnerError())
+		return IsNotImplementedError(e.InnerError())
 	}
 	return false
 }
@@ -151,16 +166,16 @@ func Errorf(err error, format string, args ...interface{}) error {
 // ErrorSetContext sets a value in the error's context. If the error has not
 // been wrapped, it does nothing.
 func ErrorSetContext(err error, key, value string) {
-	if e, ok := err.(wrappedError); ok {
-		e.context[key] = value
+	if e, ok := err.(errorWrapper); ok {
+		e.Set(key, value)
 	}
 }
 
 // ErrorGetContext gets a value from the error's context. If the error has not
 // been wrapped, it returns an empty string.
 func ErrorGetContext(err error, key string) string {
-	if e, ok := err.(wrappedError); ok {
-		return e.context[key]
+	if e, ok := err.(errorWrapper); ok {
+		return e.Get(key)
 	}
 	return ""
 }
@@ -168,16 +183,16 @@ func ErrorGetContext(err error, key string) string {
 // ErrorDelContext removes a value from the error's context. If the error has
 // not been wrapped, it does nothing.
 func ErrorDelContext(err error, key string) {
-	if e, ok := err.(wrappedError); ok {
-		delete(e.context, key)
+	if e, ok := err.(errorWrapper); ok {
+		e.Del(key)
 	}
 }
 
 // ErrorStack returns the stack for an error if it is a wrappedError. If it is
 // not a wrappedError it will return an empty byte slice.
 func ErrorStack(err error) []byte {
-	if e, ok := err.(wrappedError); ok {
-		return e.stack
+	if e, ok := err.(errorWrapper); ok {
+		return e.Stack()
 	}
 	return nil
 }
@@ -185,8 +200,8 @@ func ErrorStack(err error) []byte {
 // ErrorContext returns the context map for an error if it is a wrappedError.
 // If it is not a wrappedError it will return an empty map.
 func ErrorContext(err error) map[string]string {
-	if e, ok := err.(wrappedError); ok {
-		return e.context
+	if e, ok := err.(errorWrapper); ok {
+		return e.Context()
 	}
 	return nil
 }
@@ -194,6 +209,11 @@ func ErrorContext(err error) map[string]string {
 type errorWrapper interface {
 	InnerError() error
 	Error() string
+	Set(string, string)
+	Get(string) string
+	Del(string)
+	Context() map[string]string
+	Stack() []byte
 }
 
 // wrappedError is the base error wrapper. It provides a Message string, a
@@ -227,6 +247,31 @@ func newWrappedError(err error) errorWrapper {
 // InnerError returns the underlying error. This could be a Go error or another wrappedError.
 func (e wrappedError) InnerError() error {
 	return e.error
+}
+
+// Set sets the value for the key in the context.
+func (e wrappedError) Set(key, val string) {
+	e.context[key] = val
+}
+
+// Get gets the value for a key in the context.
+func (e wrappedError) Get(key string) string {
+	return e.context[key]
+}
+
+// Del removes a key from the context.
+func (e wrappedError) Del(key string) {
+	delete(e.context, key)
+}
+
+// Context returns the underlying context.
+func (e wrappedError) Context() map[string]string {
+	return e.context
+}
+
+// Stack returns the stack.
+func (e wrappedError) Stack() []byte {
+	return e.stack
 }
 
 // Definitions for IsFatalError()
