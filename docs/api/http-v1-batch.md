@@ -65,10 +65,10 @@ If the server returns a JSON error object, the client can display this message
 to users.
 
 ```
-> GET https://git-lfs-server.com/objects/{OID} HTTP/1.1
+> POST https://git-lfs-server.com/objects/batch HTTP/1.1
 > Accept: application/vnd.git-lfs+json
 >
-< HTTP/1.1 200 OK
+< HTTP/1.1 403 Forbidden
 < Content-Type: application/vnd.git-lfs+json
 <
 < {
@@ -191,11 +191,47 @@ between the requesting user and the repository.
 * 403 - The user has **read**, but not **write** access. Only applicable when
 the `operation` in the request is "upload."
 * 404 - The repository does not exist for the user.
+* 422 - Validation error with one or more of the objects in the request.
 
-### Object Errors
+Validation errors can only occur on "upload" requests. Servers should verify
+that OIDs are valid SHA-256 strings, and that sizes are positive integers.
+Servers may set an upper bound of allowed object sizes too.
 
-The server can return specific errors for objects in the batch request. Here's
-a sample request and response that includes one missing object:
+Here's an example of a response describing a validation error. Error responses
+must include a "message" property. They may include "request_id" and
+"documentation_url" properties to assist end users in getting help.
+
+< HTTP/1.1 422 Unprocessable Entity
+< Content-Type: application/vnd.git-lfs+json
+<
+< {
+<   "message": "Validation error",
+<   "documentation_url": "https://git-lfs-server.com/docs/errors",
+<   "request_id": "123",
+<   "objects": [
+<     {
+<       "oid": "1111111",
+<       "size": 123
+>     },
+<     {
+<       "oid": "2222222",
+<       "size": -1,
+<       "error": {
+<         "code": 422,
+<         "message": "Size is too low"
+<       }
+>     }
+<   ]
+< }
+
+The HTTP 422 response indicates that none of the objects were saved. The client
+may batch up the valid objects for another attempt at uploading them. However,
+clients should abort higher level operations like a Git push since not all of
+the objects were uploaded separately.
+
+It is possible for servers to respond with a 200, and just annotate specific
+objects that failed. Here's a sample request and response that includes one
+missing object:
 
 ```
 > POST https://git-lfs-server.com/objects/batch HTTP/1.1
@@ -227,7 +263,7 @@ a sample request and response that includes one missing object:
 <       "size": 123,
 <       "actions": {
 <         "download": {
-<          "href": "https://some-download.com"
+<           "href": "https://some-download.com"
 <         }
 <       }
 >     },
@@ -241,6 +277,61 @@ a sample request and response that includes one missing object:
 >     }
 <   ]
 < }
+```
+
+The client is free to download the "1111111", but not the "2222222" object.
+
+Here's an example of an upload validation error:
+
+```
+> POST https://git-lfs-server.com/objects/batch HTTP/1.1
+> Accept: application/vnd.git-lfs+json
+> Content-Type: application/vnd.git-lfs+json
+> Authorization: Basic ... (if authentication is needed)
+>
+> {
+>   "operation": "upload",
+>   "objects": [
+>     {
+>       "oid": "1111111",
+>       "size": 123
+>     },
+>     {
+>       "oid": "2222222",
+>       "size": 123
+>     }
+>   ]
+> }
+>
+< HTTP/1.1 200 Ok
+< Content-Type: application/vnd.git-lfs+json
+<
+< {
+<   "objects": [
+<     {
+<       "oid": "1111111",
+<       "size": 123,
+<       "actions": {
+<         "upload": {
+<           "href": "https://some-upload.com"
+<         }
+<       }
+>     },
+<     {
+<       "oid": "2222222",
+<       "size": -1,
+<       "error": {
+<         "code": 422,
+<         "message": "Invalid object size"
+<       }
+>     }
+<   ]
+< }
+```
+
+Since the HTTP response is 200, the client is able to upload the "1111111"
+object. The error with the "2222222" object needs to be resolved before being
+uploaded.
 
 The error codes are integers that map to similar HTTP status codes where
 possible. Specifics can be included by the server in the `message` property.
@@ -248,5 +339,6 @@ possible. Specifics can be included by the server in the `message` property.
 Here's a list of defined error codes for objects:
 
 * 404 - Returned when trying to download an object missing from the server.
+* 422 - Describes an error creating an object, due to an invalid OID or size.
 * 500 - Describes a fatal server error in cases where other HTTP statuses don't
 cover it.
