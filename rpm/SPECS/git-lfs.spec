@@ -12,12 +12,8 @@ BuildRequires:  golang, tar, which, bison, rubygem-ronn, git
 BuildRequires:  perl-Digest-SHA
 Requires:       git
 
-%if 0%{?rhel} == 7
-  #Umm... excuse me what?
-  %define debug_package %{nil}
-  #I think this is because go links with --build-id=none for linux
-  #Uhhh... HOW DO I FIX THAT? The answer is: go -ldflags '-linkmode=external'
-%endif
+%define debug_package %{nil}
+#I think this is because go links with --build-id=none for linux
 
 %description
 Git Large File Storage (LFS) replaces large files such as audio samples, 
