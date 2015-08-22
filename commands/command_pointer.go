@@ -85,7 +85,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		fmt.Printf("Pointer from %s\n\n", pointerName)
 
 		if err != nil {
-			Error(err.Error())
+			Error("Not a valid Git LFS pointer file.")
 			os.Exit(1)
 		}
 

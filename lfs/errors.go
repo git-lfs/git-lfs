@@ -139,6 +139,19 @@ func IsCleanPointerError(err error) (*cleanPointerError, bool) {
 	return nil, false
 }
 
+// IsNotAPointerError indicates the parsed data is not an LFS pointer.
+func IsNotAPointerError(err error) bool {
+	if e, ok := err.(interface {
+		NotAPointerError() bool
+	}); ok {
+		return e.NotAPointerError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsNotAPointerError(e.InnerError())
+	}
+	return false
+}
+
 // Error wraps an error with an empty message.
 func Error(err error) error {
 	return Errorf(err, "")
@@ -397,6 +410,24 @@ func newCleanPointerError(err error, pointer *Pointer, bytes []byte) error {
 		bytes,
 		newWrappedError(err),
 	}
+}
+
+// Definitions for IsNotAPointerError()
+
+type notAPointerError struct {
+	errorWrapper
+}
+
+func (e notAPointerError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e notAPointerError) NotAPointerError() bool {
+	return true
+}
+
+func newNotAPointerError(err error) error {
+	return notAPointerError{newWrappedError(err)}
 }
 
 // Stack returns a byte slice containing the runtime.Stack()
