@@ -23,10 +23,9 @@ const (
 )
 
 var (
-	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
-	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
-	objectRelationDoesNotExist = errors.New("relation does not exist")
-	hiddenHeaders              = map[string]bool{
+	lfsMediaTypeRE  = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
+	jsonMediaTypeRE = regexp.MustCompile(`\Aapplication/json(;|\z)`)
+	hiddenHeaders   = map[string]bool{
 		"Authorization": true,
 	}
 
@@ -59,7 +58,7 @@ type objectResource struct {
 func (o *objectResource) NewRequest(relation, method string) (*http.Request, Creds, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, nil, objectRelationDoesNotExist
+		return nil, nil, errors.New("relation does not exist")
 	}
 
 	req, creds, err := newClientRequest(method, rel.Href, rel.Header)
@@ -321,10 +320,12 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	req, creds, err = o.NewRequest("verify", "POST")
-	if err == objectRelationDoesNotExist {
+	if _, ok := o.Rel("verify"); !ok {
 		return nil
-	} else if err != nil {
+	}
+
+	req, creds, err = o.NewRequest("verify", "POST")
+	if err != nil {
 		return Error(err)
 	}
 
