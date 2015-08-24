@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/github/git-lfs/git"
@@ -39,6 +38,13 @@ type RepoCreateSettings struct {
 	RepoType RepoType
 }
 
+// Callback interface (testing.T compatible)
+type RepoCallback interface {
+	// Fatalf reports error and fails
+	Fatalf(format string, args ...interface{})
+	// Errorf reports error and continues
+	Errorf(format string, args ...interface{})
+}
 type Repo struct {
 	// Path to the repo, working copy if non-bare
 	Path string
@@ -50,22 +56,22 @@ type Repo struct {
 	Settings *RepoCreateSettings
 	// Previous dir for pushd
 	popDir string
-	// Testing context
-	t *testing.T
+	// Test callback
+	callback RepoCallback
 }
 
 // Change to repo dir but save current dir
 func (r *Repo) Pushd() {
 	if r.popDir != "" {
-		r.t.Fatalf("Cannot Pushd twice")
+		r.callback.Fatalf("Cannot Pushd twice")
 	}
 	oldwd, err := os.Getwd()
 	if err != nil {
-		r.t.Fatalf("Can't get cwd %v", err)
+		r.callback.Fatalf("Can't get cwd %v", err)
 	}
 	err = os.Chdir(r.Path)
 	if err != nil {
-		r.t.Fatalf("Can't chdir %v", err)
+		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
 }
@@ -74,7 +80,7 @@ func (r *Repo) Popd() {
 	if r.popDir != "" {
 		err := os.Chdir(r.popDir)
 		if err != nil {
-			r.t.Fatalf("Can't chdir %v", err)
+			r.callback.Fatalf("Can't chdir %v", err)
 		}
 		r.popDir = ""
 	}
@@ -108,18 +114,21 @@ func (r *Repo) Cleanup() {
 	r.Remotes = nil
 }
 
-func NewRepo(t *testing.T) *Repo {
-	return NewCustomRepo(t, &RepoCreateSettings{RepoType: RepoTypeNormal})
+// NewRepo creates a new git repo in a new temp dir
+func NewRepo(callback RepoCallback) *Repo {
+	return NewCustomRepo(callback, &RepoCreateSettings{RepoType: RepoTypeNormal})
 }
-func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
+
+// NewCustomRepo creates a new git repo in a new temp dir with more control over settings
+func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret := &Repo{
 		Settings: settings,
 		Remotes:  make(map[string]*Repo),
-		t:        t}
+		callback: callback}
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
-		t.Fatalf("Can't create temp dir for git repo: %v", err)
+		callback.Fatalf("Can't create temp dir for git repo: %v", err)
 	}
 	ret.Path = path
 	args := []string{"init"}
@@ -131,7 +140,7 @@ func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
 		gitdir, err := ioutil.TempDir("", "lfstestgitdir")
 		if err != nil {
 			ret.Cleanup()
-			t.Fatalf("Can't create temp dir for git repo: %v", err)
+			callback.Fatalf("Can't create temp dir for git repo: %v", err)
 		}
 		args = append(args, "--separate-dir", gitdir)
 		ret.GitDir = gitdir
@@ -143,23 +152,23 @@ func NewCustomRepo(t *testing.T, settings *RepoCreateSettings) *Repo {
 	err = cmd.Run()
 	if err != nil {
 		ret.Cleanup()
-		t.Fatalf("Unable to create git repo at %v: %v", path, err)
+		callback.Fatalf("Unable to create git repo at %v: %v", path, err)
 	}
 
 	// Configure default user/email so not reliant on env
 	ret.Pushd()
-	RunGitCommand(t, true, "config", "user.name", "Git LFS Tests")
-	RunGitCommand(t, true, "config", "user.email", "git-lfs@example.com")
+	RunGitCommand(callback, true, "config", "user.name", "Git LFS Tests")
+	RunGitCommand(callback, true, "config", "user.email", "git-lfs@example.com")
 	ret.Popd()
 
 	return ret
 }
 
 // Simplistic fire & forget running of git command - returns combined output
-func RunGitCommand(t *testing.T, failureCheck bool, args ...string) string {
+func RunGitCommand(callback RepoCallback, failureCheck bool, args ...string) string {
 	outp, err := exec.Command("git", args...).CombinedOutput()
 	if failureCheck && err != nil {
-		t.Fatalf("Error running git command 'git %v': %v %v", strings.Join(args, " "), err, string(outp))
+		callback.Fatalf("Error running git command 'git %v': %v %v", strings.Join(args, " "), err, string(outp))
 	}
 	return string(outp)
 
@@ -226,17 +235,17 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 
 func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	if repo.Settings.RepoType == RepoTypeBare {
-		repo.t.Fatalf("Cannot use AddCommits on a bare repo; clone it & push changes instead")
+		repo.callback.Fatalf("Cannot use AddCommits on a bare repo; clone it & push changes instead")
 	}
 
 	// Change to repo working dir
 	oldwd, err := os.Getwd()
 	if err != nil {
-		repo.t.Fatalf("Can't get cwd %v", err)
+		repo.callback.Fatalf("Can't get cwd %v", err)
 	}
 	err = os.Chdir(repo.Path)
 	if err != nil {
-		repo.t.Fatalf("Can't chdir to repo %v", err)
+		repo.callback.Fatalf("Can't chdir to repo %v", err)
 	}
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
@@ -247,7 +256,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 		// first, are we on the correct branch
 		if len(input.ParentBranches) > 0 {
 			if input.ParentBranches[0] != lastBranch {
-				RunGitCommand(repo.t, true, "checkout", input.ParentBranches[0])
+				RunGitCommand(repo.callback, true, "checkout", input.ParentBranches[0])
 				lastBranch = input.ParentBranches[0]
 			}
 		}
@@ -257,9 +266,9 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			// also don't automatically commit, we'll do that below
 			args := []string{"merge", "--no-ff", "--no-commit", "--strategy-option=theirs"}
 			args = append(args, input.ParentBranches[1:]...)
-			RunGitCommand(repo.t, false, args...)
+			RunGitCommand(repo.callback, false, args...)
 		} else if input.NewBranch != "" {
-			RunGitCommand(repo.t, true, "checkout", "-b", input.NewBranch)
+			RunGitCommand(repo.callback, true, "checkout", "-b", input.NewBranch)
 			lastBranch = input.NewBranch
 		}
 		// Any files to write?
@@ -271,7 +280,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			}
 			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
 			if err != nil {
-				repo.t.Errorf("Error creating pointer file: %v", err)
+				repo.callback.Errorf("Error creating pointer file: %v", err)
 				continue
 			}
 
@@ -280,35 +289,35 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			os.MkdirAll(filepath.Dir(infile.Filename), 0755)
 			f, err := os.Create(infile.Filename)
 			if err != nil {
-				repo.t.Errorf("Error creating pointer file: %v", err)
+				repo.callback.Errorf("Error creating pointer file: %v", err)
 				continue
 			}
 			_, err = cleaned.Pointer.Encode(f)
 			if err != nil {
 				f.Close()
-				repo.t.Errorf("Error encoding pointer file: %v", err)
+				repo.callback.Errorf("Error encoding pointer file: %v", err)
 				continue
 			}
 			f.Close() // early close in a loop, don't defer
-			RunGitCommand(repo.t, true, "add", infile.Filename)
+			RunGitCommand(repo.callback, true, "add", infile.Filename)
 
 		}
 		// Now commit
 		err = commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
 			fmt.Sprintf("Test commit %d", i))
 		if err != nil {
-			repo.t.Fatalf("Error committing: %v", err)
+			repo.callback.Fatalf("Error committing: %v", err)
 		}
 
 		commit, err := git.GetCommitSummary("HEAD")
 		if err != nil {
-			repo.t.Fatalf("Error determining commit SHA: %v", err)
+			repo.callback.Fatalf("Error determining commit SHA: %v", err)
 		}
 
 		// tags
 		for _, tag := range input.Tags {
 			// Use annotated tags, assume full release tags (also tag objects have edge cases)
-			RunGitCommand(repo.t, true, "tag", "-a", "-m", "Added tag", tag)
+			RunGitCommand(repo.callback, true, "tag", "-a", "-m", "Added tag", tag)
 		}
 
 		output.Sha = commit.Sha
@@ -319,7 +328,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	// Restore cwd
 	err = os.Chdir(oldwd)
 	if err != nil {
-		repo.t.Fatalf("Can't restore old cwd %v", err)
+		repo.callback.Fatalf("Can't restore old cwd %v", err)
 	}
 
 	return outputs
@@ -328,11 +337,11 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 // Add a new remote (generate a path for it to live in, will be cleaned up)
 func (r *Repo) AddRemote(name string) *Repo {
 	if _, exists := r.Remotes[name]; exists {
-		r.t.Fatalf("Remote %v already exists", name)
+		r.callback.Fatalf("Remote %v already exists", name)
 	}
-	remote := NewCustomRepo(r.t, &RepoCreateSettings{RepoTypeBare})
+	remote := NewCustomRepo(r.callback, &RepoCreateSettings{RepoTypeBare})
 	r.Remotes[name] = remote
-	RunGitCommand(r.t, true, "remote", "add", name, remote.Path)
+	RunGitCommand(r.callback, true, "remote", "add", name, remote.Path)
 	return remote
 }
 
