@@ -132,3 +132,19 @@ begin_test "fetch"
   refute_local_object "$b_oid"
 )
 end_test
+
+begin_test "fetch-recent"
+(
+  set -e
+
+  reponame="fetch-recent"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" "$reponame"
+
+  # just testing for now
+  echo '[{"CommitDate":"2015-08-14T17:04:36.691604466+01:00","Files":[{"Filename":"file2.txt","Size":22,"Data":null}],"ParentBranches":null,"NewBranch":"","Tags":null,"CommitterName":"","CommitterEmail":""}]' | lfstest-testutils addcommits
+
+
+)
+end_test

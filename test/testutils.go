@@ -164,6 +164,11 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	return ret
 }
 
+// WrapRepo creates a new Repo instance for an existing git repo
+func WrapRepo(c RepoCallback, path string) *Repo {
+	return &Repo{Path: path, callback: c, Settings: &RepoCreateSettings{RepoType: RepoTypeNormal}}
+}
+
 // Simplistic fire & forget running of git command - returns combined output
 func RunGitCommand(callback RepoCallback, failureCheck bool, args ...string) string {
 	outp, err := exec.Command("git", args...).CombinedOutput()
