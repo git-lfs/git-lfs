@@ -218,7 +218,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	LogTransfer("lfs.api.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+		return nil, Error(fmt.Errorf("Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode))
 	}
 
 	return objs, nil

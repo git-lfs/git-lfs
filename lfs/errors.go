@@ -1,9 +1,12 @@
 package lfs
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 )
+
+var genericError = errors.New("Git LFS client error")
 
 type WrappedError struct {
 	Err     error
@@ -19,7 +22,7 @@ func Error(err error) *WrappedError {
 
 func Errorf(err error, format string, args ...interface{}) *WrappedError {
 	if err == nil {
-		return nil
+		err = genericError
 	}
 
 	e := &WrappedError{
