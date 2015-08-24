@@ -31,7 +31,8 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCall
 	var oid string
 	var size int64
 	var tmp *os.File
-	var exts []*PointerExtension
+	// Initialise to empty set rather than nil for consistency with pointer decode
+	var exts []*PointerExtension = make([]*PointerExtension, 0)
 	if len(extensions) > 0 {
 		request := &pipeRequest{"clean", reader, fileName, extensions}
 
