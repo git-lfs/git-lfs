@@ -80,5 +80,6 @@ func AddCommits(repo *test.Repo) {
 		fmt.Fprintf(os.Stderr, "addcommits: Error writing JSON to stdout: %v\n", err)
 		os.Exit(3)
 	}
+	os.Stdout.WriteString("\n")
 
 }
