@@ -9,6 +9,7 @@ package test
 // as if the test was in the same package (as usual)
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -185,8 +186,10 @@ type FileInput struct {
 	Filename string
 	// Size of file (required)
 	Size int64
-	// Input data (optional - if nil, placeholder data of Size will be created)
-	Data io.Reader
+	// Input data (optional, if provided will be source of data)
+	DataReader io.Reader
+	// Input data (optional, if provided will be source of data)
+	Data []byte
 }
 
 // Input for defining commits for test repo
@@ -278,7 +281,10 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 		}
 		// Any files to write?
 		for fi, infile := range input.Files {
-			inputData := infile.Data
+			inputData := infile.DataReader
+			if inputData == nil && infile.Data != nil {
+				inputData = bytes.NewReader(infile.Data)
+			}
 			if inputData == nil {
 				// Different data for each file but deterministic
 				inputData = NewPlaceholderDataReader(int64(i*fi), infile.Size)
