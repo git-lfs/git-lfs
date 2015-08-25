@@ -311,7 +311,8 @@ comparison_to_operator() {
 #      -5y = 5 years before today
 # Example call:
 #   D=$(get_date +1y +1m -5H)
-# returns date as string in ISO format ccyy-mm-ddThh:MM:ss[+-]ZZ:zz
+# returns date as string in RFC3339 format ccyy-mm-ddThh:MM:ssZ
+# note returns in UTC time not local time hence Z and not +/-
 get_date() {
   # Wrapped because BSD (inc OSX) & GNU 'date' functions are different
   # on Windows under Git Bash it's GNU
@@ -331,13 +332,13 @@ get_date() {
         esac
         ARGS="$ARGS $val $unit"
     done
-    date -d "$ARGS" +%Y-%m-%dT%T%z
+    date -d "$ARGS" -u +%Y-%m-%dT%TZ
   else # BSD
     ARGS=""
     for var in "$@"
     do
         ARGS="$ARGS -v$var"
     done
-    date $ARGS +%Y-%m-%dT%T%z
+    date $ARGS -u +%Y-%m-%dT%TZ
   fi
 }
