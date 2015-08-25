@@ -23,25 +23,25 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	inputs := []*test.CommitInput{
 		{ // 0
 			Files: []*test.FileInput{
-				{"file1.txt", 20, nil},
+				{Filename: "file1.txt", Size: 20},
 			},
 		},
 		{ // 1
 			NewBranch: "branch2",
 			Files: []*test.FileInput{
-				{"file1.txt", 25, nil},
+				{Filename: "file1.txt", Size: 25},
 			},
 		},
 		{ // 2
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
-				{"file1.txt", 30, nil},
+				{Filename: "file1.txt", Size: 30},
 			},
 		},
 		{ // 3
 			NewBranch: "branch3",
 			Files: []*test.FileInput{
-				{"file1.txt", 32, nil},
+				{Filename: "file1.txt", Size: 32},
 			},
 		},
 	}
@@ -78,7 +78,7 @@ func TestRecentBranches(t *testing.T) {
 		{ // 0
 			CommitDate: now.AddDate(0, 0, -20),
 			Files: []*test.FileInput{
-				{"file1.txt", 20, nil},
+				{Filename: "file1.txt", Size: 20},
 			},
 		},
 		{ // 1
@@ -86,35 +86,35 @@ func TestRecentBranches(t *testing.T) {
 			NewBranch:  "excluded_branch", // new branch & tag but too old
 			Tags:       []string{"excluded_tag"},
 			Files: []*test.FileInput{
-				{"file1.txt", 25, nil},
+				{Filename: "file1.txt", Size: 25},
 			},
 		},
 		{ // 2
 			CommitDate:     now.AddDate(0, 0, -12),
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
-				{"file1.txt", 30, nil},
+				{Filename: "file1.txt", Size: 30},
 			},
 		},
 		{ // 3
 			CommitDate: now.AddDate(0, 0, -6),
 			NewBranch:  "included_branch", // new branch within 7 day limit
 			Files: []*test.FileInput{
-				{"file1.txt", 32, nil},
+				{Filename: "file1.txt", Size: 32},
 			},
 		},
 		{ // 4
 			CommitDate: now.AddDate(0, 0, -3),
 			NewBranch:  "included_branch_2", // new branch within 7 day limit
 			Files: []*test.FileInput{
-				{"file1.txt", 36, nil},
+				{Filename: "file1.txt", Size: 36},
 			},
 		},
 		{ // 5
 			// Final commit, current date/time
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
-				{"file1.txt", 21, nil},
+				{Filename: "file1.txt", Size: 21},
 			},
 		},
 	}
