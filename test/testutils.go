@@ -294,6 +294,19 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 				repo.callback.Errorf("Error creating pointer file: %v", err)
 				continue
 			}
+			// this only created the temp file, move to final location
+			tmpfile := cleaned.Filename
+			mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+			if err != nil {
+				repo.callback.Errorf("Unable to get local media path: %v", err)
+				continue
+			}
+			if _, err := os.Stat(mediafile); err != nil {
+				if err := os.Rename(tmpfile, mediafile); err != nil {
+					repo.callback.Errorf("Unable to move %s to %s: %v", tmpfile, mediafile, err)
+					continue
+				}
+			}
 
 			output.Files = append(output.Files, cleaned.Pointer)
 			// Write pointer to local filename for adding (not using clean filter)
