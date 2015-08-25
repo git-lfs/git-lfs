@@ -142,13 +142,57 @@ begin_test "fetch-recent"
 
   clone_repo "$reponame" "$reponame"
 
-  # just testing for now
-  echo '[{
-    "CommitDate":"2015-08-14T17:04:36+01:00",
-    "Files":[
-      {"Filename":"file2.txt","Size":22}]
-    }]' | lfstest-testutils addcommits
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
 
+  # generate content we'll use
+  content1="filecontent1"
+  content2="filecontent2"
+  content3="filecontent3"
+  content4="filecontent4"
+  oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
+  oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
+  oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
+  oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
+  
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -6m)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":22}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -3m)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content1}, \"Data\":\"$content1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1m)\",
+    \"NewBranch\":\"other_branch\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content4}, \"Data\":\"$content4\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1m)\",
+    \"ParentBranches\":[\"master\"],
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content2}, \"Data\":\"$content2\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content3}, \"Data\":\"$content3\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master:master other_branch:other_branch 
+  assert_server_object "$reponame" "$oid1"
+  assert_server_object "$reponame" "$oid2"
+  assert_server_object "$reponame" "$oid3"
+  assert_server_object "$reponame" "$oid4"
+
+  # rm -rf .git/lfs/objects
+
+  # # fetch normally, should just get the last state for file1/2
+  # git lfs fetch origin master
+  # assert_local_object "$oid2" "${#content2}"
+  # assert_local_object "$oid3" "${#content3}"
 
 )
 end_test
