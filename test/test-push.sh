@@ -84,3 +84,50 @@ begin_test "push object id(s)"
   grep "(2 of 2 files)" push.log
 )
 end_test
+
+begin_test "push modified files"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-modified"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  # generate content we'll use
+  content1="filecontent1"
+  content2="filecontent2"
+  content3="filecontent3"
+  oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
+  oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
+  oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
+  oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
+  
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -6m)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content1}, \"Data\":\"$content1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -3m)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content2}, \"Data\":\"$content2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1m)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content3}, \"Data\":\"$content3\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content4}, \"Data\":\"$content4\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+  assert_server_object "$reponame" "$oid1"
+  assert_server_object "$reponame" "$oid2"
+  assert_server_object "$reponame" "$oid3"
+  assert_server_object "$reponame" "$oid4"
+)
+end_test
+
+

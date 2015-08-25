@@ -304,3 +304,41 @@ comparison_to_operator() {
     echo "???"
   fi
 }
+
+# Get a date string with an offset
+# Args: One or more date offsets of the form (regex) "[+-]\d+[dmyHM]"
+# e.g. +1d = 1 day forward from today
+#      -5y = 5 years before today
+# Example call:
+#   D=$(get_date +1y +1m -5H)
+# returns date as string in RFC3339 format ccyy-mm-ddThh:MM:ssZ
+# note returns in UTC time not local time hence Z and not +/-
+get_date() {
+  # Wrapped because BSD (inc OSX) & GNU 'date' functions are different
+  # on Windows under Git Bash it's GNU
+  if date --version >/dev/null 2>&1 ; then # GNU
+    ARGS=""
+    for var in "$@"
+    do
+        # GNU offsets are more verbose
+        unit=${var: -1}
+        val=${var:0:${#var}-1}
+        case "$unit" in
+          d) unit="days" ;;
+          m) unit="months" ;;
+          y) unit="years"  ;;
+          H) unit="hours"  ;;
+          M) unit="minutes" ;;
+        esac
+        ARGS="$ARGS $val $unit"
+    done
+    date -d "$ARGS" -u +%Y-%m-%dT%TZ
+  else # BSD
+    ARGS=""
+    for var in "$@"
+    do
+        ARGS="$ARGS -v$var"
+    done
+    date $ARGS -u +%Y-%m-%dT%TZ
+  fi
+}
