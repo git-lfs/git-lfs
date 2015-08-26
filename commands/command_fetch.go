@@ -70,9 +70,15 @@ func init() {
 	RootCmd.AddCommand(fetchCmd)
 }
 
+func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
+	// Use SkipDeletedBlobs to avoid fetching ALL previous versions of modified files
+	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanRefsMode, SkipDeletedBlobs: true}
+	return lfs.ScanRefs(ref, "", opts)
+}
+
 func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPointer {
 	c := make(chan *lfs.WrappedPointer)
-	pointers, err := lfs.ScanRefs(ref, "", nil)
+	pointers, err := pointersToFetchForRef(ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
@@ -84,7 +90,7 @@ func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPoin
 
 // Fetch all binaries for a given ref (that we don't have already)
 func fetchRef(ref string, include, exclude []string) {
-	pointers, err := lfs.ScanRefs(ref, "", nil)
+	pointers, err := pointersToFetchForRef(ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
