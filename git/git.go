@@ -7,9 +7,24 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
+
+// Some top level information about a commit (only first line of message)
+type CommitSummary struct {
+	Sha            string
+	ShortSha       string
+	Parents        []string
+	CommitDate     time.Time
+	AuthorDate     time.Time
+	AuthorName     string
+	AuthorEmail    string
+	CommitterName  string
+	CommitterEmail string
+	Subject        string
+}
 
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
@@ -133,4 +148,59 @@ func simpleExec(name string, args ...string) (string, error) {
 	}
 
 	return strings.Trim(string(output), " \n"), nil
+}
+
+// Parse a Git date formatted in ISO 8601 format (%ci/%ai)
+func ParseGitDate(str string) (time.Time, error) {
+
+	// Unfortunately Go and Git don't overlap in their builtin date formats
+	// Go's time.RFC1123Z and Git's %cD are ALMOST the same, except that
+	// when the day is < 10 Git outputs a single digit, but Go expects a leading
+	// zero - this is enough to break the parsing. Sigh.
+
+	// Format is for 2 Jan 2006, 15:04:05 -7 UTC as per Go
+	return time.Parse("2006-01-02 15:04:05 -0700", str)
+}
+
+// FormatGitDate converts a Go date into a git command line format date
+func FormatGitDate(tm time.Time) string {
+	// Git format is "Fri Jun 21 20:26:41 2013 +0900" but no zero-leading for day
+	return tm.Format("Mon Jan 2 15:04:05 2006 -0700")
+}
+
+// Get summary information about a commit
+func GetCommitSummary(commit string) (*CommitSummary, error) {
+	cmd := execCommand("git", "show", "-s",
+		`--format=%H|%h|%P|%ai|%ci|%ae|%an|%ce|%cn|%s`, commit)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git show: %v %v", err, string(out))
+	}
+
+	// At most 10 substrings so subject line is not split on anything
+	fields := strings.SplitN(string(out), "|", 10)
+	// Cope with the case where subject is blank
+	if len(fields) >= 9 {
+		ret := &CommitSummary{}
+		// Get SHAs from output, not commit input, so we can support symbolic refs
+		ret.Sha = fields[0]
+		ret.ShortSha = fields[1]
+		ret.Parents = strings.Split(fields[2], " ")
+		// %aD & %cD (RFC2822) matches Go's RFC1123Z format
+		ret.AuthorDate, _ = ParseGitDate(fields[3])
+		ret.CommitDate, _ = ParseGitDate(fields[4])
+		ret.AuthorEmail = fields[5]
+		ret.AuthorName = fields[6]
+		ret.CommitterEmail = fields[7]
+		ret.CommitterName = fields[8]
+		if len(fields) > 9 {
+			ret.Subject = strings.TrimRight(fields[9], "\n")
+		}
+		return ret, nil
+	} else {
+		msg := fmt.Sprintf("Unexpected output from git show: %v", string(out))
+		return nil, errors.New(msg)
+	}
+
 }
