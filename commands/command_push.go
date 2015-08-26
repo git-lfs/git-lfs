@@ -40,7 +40,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
-			Print("push %s", pointer.Name)
+			Print("push %s [%s]", pointer.Name, pointer.Oid)
 			continue
 		}
 
