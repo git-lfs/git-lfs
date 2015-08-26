@@ -157,23 +157,23 @@ begin_test "fetch-recent"
   
   echo "[
   {
-    \"CommitDate\":\"$(get_date -6m)\",
+    \"CommitDate\":\"$(get_date -14d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":22}]
   },
   {
-    \"CommitDate\":\"$(get_date -3m)\",
+    \"CommitDate\":\"$(get_date -10d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content1}, \"Data\":\"$content1\"}]
   },
   {
-    \"CommitDate\":\"$(get_date -1m)\",
+    \"CommitDate\":\"$(get_date -5d)\",
     \"NewBranch\":\"other_branch\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content4}, \"Data\":\"$content4\"}]
   },
   {
-    \"CommitDate\":\"$(get_date -1m)\",
+    \"CommitDate\":\"$(get_date -1d)\",
     \"ParentBranches\":[\"master\"],
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content2}, \"Data\":\"$content2\"},
@@ -188,12 +188,38 @@ begin_test "fetch-recent"
   assert_server_object "$reponame" "$oid3"
   assert_server_object "$reponame" "$oid4"
 
-  # rm -rf .git/lfs/objects
+  rm -rf .git/lfs/objects
 
-  # # fetch normally, should just get the last state for file1/2
-  # git lfs fetch origin master
-  # assert_local_object "$oid2" "${#content2}"
-  # assert_local_object "$oid3" "${#content3}"
+  git config lfs.fetchrecentalways false
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentremoterefs false
+  git config lfs.fetchrecentcommitsdays 7
+
+  # fetch normally, should just get the last state for file1/2
+  git lfs fetch origin master
+  assert_local_object "$oid2" "${#content2}"
+  assert_local_object "$oid3" "${#content3}"
+  refute_local_object "$oid1"
+  refute_local_object "$oid4"
+
+  rm -rf .git/lfs/objects
+
+  # now fetch recent - just commits for now
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentremoterefs false
+  git config lfs.fetchrecentcommitsdays 7
+  git lfs fetch --recent origin
+  # that should have fetched master plus previous state needed within 7 days
+  # current state
+  assert_local_object "$oid2" "${#content2}"
+  assert_local_object "$oid3" "${#content3}"
+  # previous state is the 'before' state of any commits made in last 7 days
+  # ie you can check out anything in last 7 days (may have non-LFS commits in between)
+  assert_local_object "$oid1" "${#content1}"
+  #refute_local_object "$oid4"
+
+
+
 
 )
 end_test
