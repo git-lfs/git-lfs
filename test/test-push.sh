@@ -41,7 +41,9 @@ begin_test "push dry-run"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  [ "push a.dat" = "$(git lfs push --dry-run origin master 2>&1)" ]
+  git lfs push --dry-run origin master 2>&1 | tee push.log
+  grep "push a.dat" push.log
+  [ $(wc -l < push.log) -eq 1 ]
 
   git checkout -b push-b
   echo "push b" > b.dat
@@ -98,10 +100,13 @@ begin_test "push modified files"
   content1="filecontent1"
   content2="filecontent2"
   content3="filecontent3"
+  content4="filecontent4"
+  content5="filecontent5"
   oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
   oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
   oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
   oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
+  oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
   
   echo "[
   {
@@ -116,17 +121,26 @@ begin_test "push modified files"
   },
   {
     \"CommitDate\":\"$(get_date -1m)\",
+    \"NewBranch\":\"other_branch\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content5}, \"Data\":\"$content5\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1m)\",
+    \"ParentBranches\":[\"master\"],
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content3}, \"Data\":\"$content3\"},
       {\"Filename\":\"file2.dat\",\"Size\":${#content4}, \"Data\":\"$content4\"}]
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git lfs push origin master
+  git lfs push origin other_branch
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
   assert_server_object "$reponame" "$oid3"
   assert_server_object "$reponame" "$oid4"
+  assert_server_object "$reponame" "$oid5"
 )
 end_test
 
