@@ -3,7 +3,6 @@ package commands
 import (
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
@@ -26,11 +25,29 @@ var (
 )
 
 func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
+	tracerx.Printf("Upload between %v and %v", left, right)
+
 	// Just use scanner here
 	pointers, err := lfs.ScanRefs(left, right, nil)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
+	return uploadPointers(pointers)
+}
+
+func uploadsBetweenRefAndRemote(ref, remote string) *lfs.TransferQueue {
+
+	tracerx.Printf("Upload between %v and remote %v", ref, remote)
+	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: remote}
+	pointers, err := lfs.ScanRefs(ref, "", scanOpt)
+	if err != nil {
+		Panic(err, "Error scanning for Git LFS files")
+	}
+	return uploadPointers(pointers)
+
+}
+
+func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 
 	totalSize := int64(0)
 	for _, p := range pointers {
@@ -40,7 +57,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
-			Print("push %s", pointer.Name)
+			Print("push %s [%s]", pointer.Name, pointer.Oid)
 			continue
 		}
 
@@ -101,7 +118,6 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 // pushCommand calculates the git objects to send by looking comparing the range
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
-	var left, right string
 	var uploadQueue *lfs.TransferQueue
 
 	if len(args) == 0 {
@@ -127,7 +143,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		left, right = decodeRefs(string(refsData))
+		left, right := decodeRefs(string(refsData))
 		if left == pushDeleteBranch {
 			return
 		}
@@ -141,34 +157,27 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 		uploadQueue = uploadsWithObjectIDs(args[1:])
 	} else {
-		var remoteArg, refArg string
 
 		if len(args) < 1 {
 			Print("Usage: git lfs push --dry-run <remote> [ref]")
 			return
 		}
 
-		remoteArg = args[0]
+		remote := args[0]
+		var ref string
 		if len(args) == 2 {
-			refArg = args[1]
+			ref = args[1]
 		}
 
-		localRef, err := git.CurrentRef()
-		if err != nil {
-			Panic(err, "Error getting local ref")
-		}
-		left = localRef.Sha
-
-		remoteRef, err := git.LsRemote(remoteArg, refArg)
-		if err != nil {
-			Panic(err, "Error getting remote ref")
+		if ref == "" {
+			localRef, err := git.CurrentRef()
+			if err != nil {
+				Panic(err, "Error getting local ref")
+			}
+			ref = localRef.Sha
 		}
 
-		if remoteRef != "" {
-			right = "^" + strings.Split(remoteRef, "\t")[0]
-		}
-
-		uploadQueue = uploadsBetweenRefs(left, right)
+		uploadQueue = uploadsBetweenRefAndRemote(ref, remote)
 	}
 
 	if !pushDryRun {

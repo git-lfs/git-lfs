@@ -25,12 +25,12 @@ dependencies will be downloaded, compiled, and installed for you, provided
 you have sudo/root permissions. The resulting ./rpm/RPMS/x86_64/git-lfs*.rpm
 Can be installed using ```yum install``` or distributed. 
 
--CentOS 7 - build_rpms.bsh will take care of everything. You only need the
+- CentOS 7 - build_rpms.bsh will take care of everything. You only need the
 git-lfs rpm
--CentOS 6 - build_rpms.bsh will take care of everything. You will need to
+- CentOS 6 - build_rpms.bsh will take care of everything. You will need to
 distribute both the git-lfs rpms and the git rpms, as CentOS 6 does not
 have a current enough version available
--CentOS 5 - build_rpms.bsh will take care of everything. You only need the
+- CentOS 5 - build_rpms.bsh will take care of everything. You only need the
 git-lfs rpm. When distributing to CentOS 5, they will need git from the epel
 repo
 ```
