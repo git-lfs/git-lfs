@@ -1,0 +1,3 @@
+[submodule "vendor/_nuts/github.com/ThomsonReutersEikon"]
+	path = vendor/_nuts/github.com/ThomsonReutersEikon
+	url = https://github.com/ThomsonReutersEikon/go-ntlm
