@@ -174,8 +174,15 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		// which would only be skipped by PointerSmudgeObject later
 		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude)
 		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
+			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 			q.Add(lfs.NewDownloadable(p))
 		} else {
+			if !passFilter {
+				tracerx.Printf("Skipping %v [%v], include/exclude filters applied", p.Name, p.Oid)
+			} else {
+				tracerx.Printf("Skipping %v [%v], already exists", p.Name, p.Oid)
+			}
+
 			// If we already have it, or it won't be fetched
 			// report it to chan immediately to support pull/checkout
 			if out != nil {
