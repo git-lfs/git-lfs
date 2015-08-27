@@ -22,7 +22,7 @@ func TestBatcherExit(t *testing.T) {
 	}, t)
 }
 
-// Type batcherTestCase specifies information about how to run a particular test
+// batcherTestCase specifies information about how to run a particular test
 // around the type lfs.Batcher.
 type batcherTestCase struct {
 	BatchSize  int
@@ -30,9 +30,9 @@ type batcherTestCase struct {
 	ShouldExit bool
 }
 
-// Func Batcher makes and retunrs a lfs.Batcher according to the specification
-// given in this instance of batcherTestCase. When returned, it is filled with
-// the given amount of items, and has exited if it was told to.
+// Batcher makes and retunrs a lfs.Batcher according to the specification given
+// in this instance of batcherTestCase. When returned, it is filled with the
+// given amount of items, and has exited if it was told to.
 func (b batcherTestCase) Batcher() *Batcher {
 	batcher := NewBatcher(b.BatchSize)
 	for i := 0; i < b.ItemCount; i++ {
@@ -46,17 +46,17 @@ func (b batcherTestCase) Batcher() *Batcher {
 	return batcher
 }
 
-// Func Batches returns the number of individual batches expected to be
-// processed by the batcher under test.
+// Batches returns the number of individual batches expected to be processed by
+// the batcher under test.
 func (b batcherTestCase) Batches() int {
 	if b.BatchSize == 0 {
-		return 0
+		return b.ItemCount
 	}
 
 	return b.ItemCount / b.BatchSize
 }
 
-// Func assertAll processes all test cases, throwing assertion errors if they
+// assertAll processes all test cases, throwing assertion errors if they
 // fail.
 func assertAll(cases []batcherTestCase, t *testing.T) {
 	for _, c := range cases {
