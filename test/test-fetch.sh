@@ -247,7 +247,27 @@ begin_test "fetch-recent"
   git lfs fetch --recent origin
   assert_local_object "$oid0" "${#content0}"
 
+  # push branch & test remote branch recent
+  git push origin other_branch
+  git branch -D other_branch
 
+  rm -rf .git/lfs/objects
+  git config lfs.fetchrecentcommitsdays 0
+  git config lfs.fetchrecentremoterefs false
+  git config lfs.fetchrecentrefsdays 6
+  git lfs fetch --recent origin
+  # should miss #4 until we include remote branches (#1 will always be missing commitdays=0)
+  assert_local_object "$oid2" "${#content2}"
+  assert_local_object "$oid3" "${#content3}"
+  refute_local_object "$oid1"
+  refute_local_object "$oid0"
+  refute_local_object "$oid4"
+  # pick up just snapshot at remote ref, ie #4
+  git config lfs.fetchrecentremoterefs true
+  git lfs fetch --recent origin
+  assert_local_object "$oid4" "${#content4}"
+  refute_local_object "$oid0"
+  refute_local_object "$oid1"
 
 )
 end_test
