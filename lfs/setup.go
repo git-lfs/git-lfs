@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
-	NotInARepositoryError = errors.New("Not in a repository")
+	valueRegexp = regexp.MustCompile("\\Agit[\\-\\s]media")
 
 	prePushHook     = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }\ngit lfs pre-push \"$@\""
 	prePushUpgrades = map[string]bool{
@@ -39,7 +38,7 @@ func (e *HookExists) Error() string {
 
 func InstallHooks(force bool) error {
 	if !InRepo() {
-		return NotInARepositoryError
+		return newInvalidRepoError(nil)
 	}
 
 	if err := os.MkdirAll(filepath.Join(LocalGitDir, "hooks"), 0755); err != nil {
@@ -56,7 +55,7 @@ func InstallHooks(force bool) error {
 
 func UninstallHooks() error {
 	if !InRepo() {
-		return NotInARepositoryError
+		return newInvalidRepoError(nil)
 	}
 
 	prePushHookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")

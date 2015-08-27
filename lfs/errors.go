@@ -355,7 +355,11 @@ func (e invalidRepoError) InvalidRepo() bool {
 	return true
 }
 
-func newInvalidrepoError(err error) error {
+func newInvalidRepoError(err error) error {
+	if err == nil {
+		err = errors.New("Not in a repository")
+	}
+
 	return invalidRepoError{newWrappedError(err)}
 }
 
