@@ -49,6 +49,7 @@ package lfs
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 )
 
@@ -174,20 +175,15 @@ func Error(err error) error {
 // Errorf wraps an error with an additional formatted message.
 func Errorf(err error, format string, args ...interface{}) error {
 	if err == nil {
-		return nil
+		err = errors.New("")
 	}
 
-	e := newWrappedError(err)
+	message := ""
+	if len(format) > 0 {
+		message = fmt.Sprintf(format, args...)
+	}
 
-	// ERRTODO this isn't right
-	/*
-		if len(format) > 0 {
-			we := e.(wrappedError)
-			we.Message = fmt.Sprintf(format, args...)
-		}
-	*/
-
-	return e
+	return newWrappedError(err, message)
 }
 
 // ErrorSetContext sets a value in the error's context. If the error has not
@@ -254,7 +250,7 @@ type wrappedError struct {
 
 // newWrappedError creates a wrappedError. If the error has already been
 // wrapped it is simply returned as is.
-func newWrappedError(err error) errorWrapper {
+func newWrappedError(err error, message string) errorWrapper {
 	if e, ok := err.(errorWrapper); ok {
 		return e
 	}
@@ -263,12 +259,25 @@ func newWrappedError(err error) errorWrapper {
 		err = errors.New("LFS Error")
 	}
 
+	if message == "" {
+		message = err.Error()
+	}
+
 	return wrappedError{
-		Message: err.Error(),
+		Message: message,
 		stack:   Stack(),
 		context: make(map[string]string),
 		error:   err,
 	}
+}
+
+// Error will return the wrapped error's Message if it has one, otherwise it
+// will call the underlying error's Error() function.
+func (e wrappedError) Error() string {
+	if e.Message == "" {
+		return e.error.Error()
+	}
+	return e.Message
 }
 
 // InnerError returns the underlying error. This could be a Go error or another wrappedError.
@@ -316,7 +325,7 @@ func (e fatalError) Fatal() bool {
 }
 
 func newFatalError(err error) error {
-	return fatalError{newWrappedError(err)}
+	return fatalError{newWrappedError(err, "Fatal error")}
 }
 
 // Definitions for IsNotImplementedError()
@@ -334,7 +343,7 @@ func (e notImplementedError) NotImplemented() bool {
 }
 
 func newNotImplementedError(err error) error {
-	return notImplementedError{newWrappedError(err)}
+	return notImplementedError{newWrappedError(err, "Not implemented")}
 }
 
 // Definitions for IsInvalidPointerError()
@@ -352,7 +361,7 @@ func (e invalidPointerError) InvalidPointer() bool {
 }
 
 func newInvalidPointerError(err error) error {
-	return invalidPointerError{newWrappedError(err)}
+	return invalidPointerError{newWrappedError(err, "Invalid pointer")}
 }
 
 // Definitions for IsInvalidRepoError()
@@ -370,11 +379,7 @@ func (e invalidRepoError) InvalidRepo() bool {
 }
 
 func newInvalidRepoError(err error) error {
-	if err == nil {
-		err = errors.New("Not in a repository")
-	}
-
-	return invalidRepoError{newWrappedError(err)}
+	return invalidRepoError{newWrappedError(err, "Not in a repository")}
 }
 
 // Definitions for IsSmudgeError()
@@ -392,7 +397,7 @@ func (e smudgeError) SmudgeError() bool {
 }
 
 func newSmudgeError(err error, oid, filename string) error {
-	e := smudgeError{newWrappedError(err)}
+	e := smudgeError{newWrappedError(err, "Smudge error")}
 	ErrorSetContext(e, "OID", oid)
 	ErrorSetContext(e, "FileName", filename)
 	return e
@@ -429,7 +434,7 @@ func newCleanPointerError(err error, pointer *Pointer, bytes []byte) error {
 	return CleanPointerError{
 		pointer,
 		bytes,
-		newWrappedError(err),
+		newWrappedError(err, "Clean pointer error"),
 	}
 }
 
@@ -448,10 +453,7 @@ func (e notAPointerError) NotAPointerError() bool {
 }
 
 func newNotAPointerError(err error) error {
-	if err == nil {
-		err = errors.New("Not a valid Git LFS pointer file.")
-	}
-	return notAPointerError{newWrappedError(err)}
+	return notAPointerError{newWrappedError(err, "Not a valid Git LFS pointer file.")}
 }
 
 // Definitions for IsDownloadDeclinedError()
@@ -469,10 +471,7 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 }
 
 func newDownloadDeclinedError(err error) error {
-	if err == nil {
-		err = errors.New("File missing and download is not allowed")
-	}
-	return downloadDeclinedError{newWrappedError(err)}
+	return downloadDeclinedError{newWrappedError(err, "File missing and download is not allowed")}
 }
 
 // Stack returns a byte slice containing the runtime.Stack()
