@@ -206,6 +206,11 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		return
 	}
 
+	if repo == "badbatch" {
+		w.WriteHeader(203)
+		return
+	}
+
 	type batchReq struct {
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`

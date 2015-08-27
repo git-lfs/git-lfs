@@ -16,11 +16,9 @@ for FILE in "${FILES[@]}"; do
   fi
   while IFS='' read -r LINE || [ -n "${LINE}" ]; do
 
-    #My template substitution
-    while [[ "$LINE" =~ (\[\{)([A-Za-z0-9_]*)(\}\]) ]]; do
-      LINE=${LINE/"${BASH_REMATCH[0]}"/${!BASH_REMATCH[2]-}}
-    done
-    
+    #https://gist.github.com/niclashoyer/8146033
+    LINE=$(echo "$LINE" | perl -p -e 's/\[\{([^}:]+)(:([^}:]+))?\}\]/defined $ENV{$1} ? $ENV{$1} : $3/eg')
+
     #My SOURCE substitution
     if echo $LINE | grep -q ^SOURCE; then
       SOURCE=$(echo "${LINE}" | sed -E 's|^SOURCE[ ]+(.*)|\1|')

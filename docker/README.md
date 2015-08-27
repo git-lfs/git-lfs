@@ -27,11 +27,16 @@ dependencies)
 
         ./docker/test_dockers.bsh
 
-##Using the Dockers##
+## Using the Dockers ##
 
 All docker commands need to either be run as root **or** as a user with docker 
 permissions. Adding your user name to the docker group (or setting up boot2docker 
 environment) is probably the easiest.
+
+For Mac and Windows users, the git-lfs repo needs to be in your Users directory 
+or else boot2docker magic won't work. Alternatively, you could add addition
+mount points like 
+[this](http://stackoverflow.com/questions/26639968/boot2docker-startup-script-to-mount-local-shared-folder-with-host)
 
 ### Running Dockers ###
 
@@ -74,7 +79,7 @@ The script that takes care of ALL of these details for you is
 
     ./docker/build_dockers.bsh
 
-###Development in Dockers###
+### Development in Dockers ###
 
 Sometimes you don't want to just build git-lfs and destroy the container, you
 want to get in there, run a lot of command, debug, develop, etc... To do this, 
@@ -150,6 +155,13 @@ exit. If set to 0, the docker containers will not be automatically deleted upon
 exit. This can be useful for a post mortem analysis (using other docker commands
 not covered here). Just make sure you clean up the docker containers manually.
 
+`DOCKER_OTHER_OPTIONS` - Any additional arguments you may want to pass to the
+docker run command. This can be particularly useful when having to help docker
+with dns, etc... For example `DOCKER_OTHER_OPTIONS="--dns 8.8.8.8"`
+
+If for some reason on Windows, you need to add a -v mount, folder names need to
+start with `//driveleter/dir...` instead of `/driveleter/dir...` to fool MINGW32
+
 ### Build Docker Environment Variables ###
 
 `export` before calling `run_docker.bsh`/`build_docker.bsh`. 
@@ -158,7 +170,7 @@ not covered here). Just make sure you clean up the docker containers manually.
 environment. This does not need to be bumped every version. This can be a tag 
 or a sha.
 
-##Deploying/Building Repositories##
+## Deploying/Building Repositories ##
 
 When `./docker/run_dockers.bsh` is done building git-lfs and generating packages,
 it automatically creates a repository for distribution too. Each distro gets a

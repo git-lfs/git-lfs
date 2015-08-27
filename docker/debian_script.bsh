@@ -12,6 +12,7 @@ cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
 
 cd "${GIT_LFS_BUILD_DIR}"
 git clean -xdf .
+git checkout-index --force --all
 
 mkdir -p "${REPO_DIR}/conf/"
 sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"

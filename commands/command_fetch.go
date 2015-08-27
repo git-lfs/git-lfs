@@ -135,4 +135,12 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	processQueue := time.Now()
 	q.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
+
+	for _, err := range q.Errors() {
+		if Debugging || lfs.IsFatalError(err) {
+			LoggedError(err, err.Error())
+		} else {
+			Error(err.Error())
+		}
+	}
 }

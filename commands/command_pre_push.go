@@ -90,7 +90,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
-			Print("push %s", pointer.Name)
+			Print("push %s [%s]", pointer.Name, pointer.Oid)
 			continue
 		}
 
