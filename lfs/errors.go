@@ -431,6 +431,9 @@ func (e notAPointerError) NotAPointerError() bool {
 }
 
 func newNotAPointerError(err error) error {
+	if err == nil {
+		err = errors.New("Not a valid Git LFS pointer file.")
+	}
 	return notAPointerError{newWrappedError(err)}
 }
 
