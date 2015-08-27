@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 type credentialFetcher interface {
@@ -19,8 +20,14 @@ var execCreds credentialFunc
 func credentials(u *url.URL) (Creds, error) {
 	path := strings.TrimPrefix(u.Path, "/")
 	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
+	
+	tracerx.Printf("credentials-willhi credentials protocol:%s, host:%s, path:%s", u.Scheme, u.Host, path)
+	
 	cmd, err := execCreds(creds, "fill")
 	if err != nil {
+		
+		tracerx.Printf("credentials-willhi credentials execCreds err:%s", err.Error())
+		
 		return nil, err
 	}
 	return cmd.Credentials(), nil
@@ -35,6 +42,8 @@ type CredentialCmd struct {
 func NewCommand(input Creds, subCommand string) *CredentialCmd {
 	buf1 := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
+
+	tracerx.Printf("credentials-willhi credentials NewCommand input:%s", input.Buffer())
 
 	cmd.Stdin = input.Buffer()
 	cmd.Stdout = buf1

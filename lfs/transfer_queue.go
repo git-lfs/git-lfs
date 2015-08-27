@@ -98,12 +98,20 @@ func (q *TransferQueue) Watch() chan string {
 // sequential nature here is only for the meta POST calls.
 func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
+		
+		tracerx.Printf("tq-willhi: Name- %s", t.Name())
+		
 		obj, err := t.Check()
 		if err != nil {
+			
+			tracerx.Printf("tq-willhi: t.Check() failed %s", t.Check)
+			
 			q.errorc <- err
 			q.wait.Done()
 			continue
 		}
+		
+		tracerx.Printf("tq-willhi: t.Check() Passed")
 
 		if apiWaiter != nil { // Signal to launch more individual api workers
 			q.meter.Start()

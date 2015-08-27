@@ -91,13 +91,16 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
 
 	for _, p := range pointers {
+		
 		// Only add to download queue if local file is not the right size already
 		// This avoids previous case of over-reporting a requirement for files we already have
 		// which would only be skipped by PointerSmudgeObject later
 		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude)
 		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
 			q.Add(lfs.NewDownloadable(p))
+			tracerx.Printf("command_fetch-willhi: Adding file %s", p.Name)
 		} else {
+			tracerx.Printf("command_fetch-willhi: Skipping file %s", p.Name)
 			// If we already have it, or it won't be fetched
 			// report it to chan immediately to support pull/checkout
 			if out != nil {

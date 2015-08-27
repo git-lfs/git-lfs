@@ -36,7 +36,7 @@ var (
 		403: "Authorization error: %s\nCheck that you have proper access to the repository",
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
-	}
+	}	
 )
 
 type objectError struct {
@@ -136,10 +136,16 @@ type byteCloser struct {
 }
 
 func DownloadCheck(oid string) (*objectResource, *WrappedError) {
+	
+	tracerx.Printf("client-willhi DownLoadCheck ENTER")
+	
 	req, creds, err := newApiRequest("GET", oid)
+	
 	if err != nil {
 		return nil, Error(err)
 	}
+
+	tracerx.Printf("client-willhi DownLoadCheck Creds Success")
 
 	res, obj, wErr := doApiRequest(req, creds)
 	if wErr != nil {
@@ -151,6 +157,8 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 	if err != nil {
 		return nil, Error(err)
 	}
+
+	defer tracerx.Printf("client-willhi DownLoadCheck EXIT")
 
 	return obj, nil
 }
@@ -350,7 +358,18 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 }
 
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := Config.HttpClient().Do(req)
+	
+	var (
+		res		*http.Response
+		err		error
+	)
+	
+	if Config.NTLM() {
+		res, err = DoNTLMRequest(req)
+	} else {	
+		res, err = Config.HttpClient().Do(req)
+	}
+	
 	if res == nil {
 		res = &http.Response{
 			StatusCode: 0,
@@ -536,6 +555,10 @@ func saveCredentials(creds Creds, res *http.Response) {
 }
 
 func newApiRequest(method, oid string) (*http.Request, Creds, error) {
+	
+	tracerx.Printf("client-willhi newApiRequest ENTER")
+	defer tracerx.Printf("client-willhi newApiRequest EXIT")
+	
 	endpoint := Config.Endpoint()
 	objectOid := oid
 	operation := "download"
@@ -545,6 +568,9 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 			operation = "upload"
 		}
 	}
+	
+	tracerx.Printf("client-willhi endpoint:%s, operation:%s, method:%s", endpoint, operation, method)
+	
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
@@ -568,12 +594,18 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 	}
 
 	req.Header.Set("Accept", mediaType)
+	
 	return req, creds, nil
 }
 
 func newClientRequest(method, rawurl string, header map[string]string) (*http.Request, Creds, error) {
+	
+	tracerx.Printf("client-willhi newClientRequest ENTER")
+	defer tracerx.Printf("client-willhi newClientRequest LEAVE")
+	
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
+		tracerx.Printf("client-willhi newClientRequest newRequestFailed")
 		return nil, nil, err
 	}
 
@@ -584,6 +616,7 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 	req.Header.Set("User-Agent", UserAgent)
 	creds, err := getCreds(req)
 	if err != nil {
+		tracerx.Printf("client-willhi newClientRequest CredsFailed")
 		return nil, nil, err
 	}
 
@@ -648,21 +681,39 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, Creds, error) 
 }
 
 func getCreds(req *http.Request) (Creds, error) {
+	
+	tracerx.Printf("client-willhi getCreds ENTER")
+	defer tracerx.Printf("client-willhi getCreds LEAVE")
+	
 	if len(req.Header.Get("Authorization")) > 0 {
+		
+		tracerx.Printf("client-willhi getCreds Bad Header Length")
+		
 		return nil, nil
 	}
 
 	apiUrl, err := Config.ObjectUrl("")
 	if err != nil {
+		
+		tracerx.Printf("client-willhi getCreds Bad ObjectUrl")
+		
 		return nil, err
 	}
 
 	if req.URL.Scheme != apiUrl.Scheme ||
 		req.URL.Host != apiUrl.Host {
+			
+		tracerx.Printf("client-willhi getCreds Bad Scheme")
+		tracerx.Printf("client-willhi getCreds Bad Scheme url:%s", req.URL.Host)
+		tracerx.Printf("client-willhi getCreds Bad Scheme api:%s", apiUrl.Host)
+			
 		return nil, nil
 	}
 
 	if setRequestAuthFromUrl(req, apiUrl) {
+		
+		tracerx.Printf("client-willhi getCreds Bad SetFromUrl")
+		
 		return nil, nil
 	}
 
@@ -671,6 +722,9 @@ func getCreds(req *http.Request) (Creds, error) {
 		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
 			gitRemoteUrl, err := url.Parse(u)
 			if err != nil {
+				
+				tracerx.Printf("client-willhi getCreds Bad GitRemote")
+				
 				return nil, err
 			}
 
@@ -678,6 +732,9 @@ func getCreds(req *http.Request) (Creds, error) {
 				gitRemoteUrl.Host == apiUrl.Host {
 
 				if setRequestAuthFromUrl(req, gitRemoteUrl) {
+					
+					tracerx.Printf("client-willhi getCreds Bad setRequestAuthFromUrl")
+					
 					return nil, nil
 				}
 
@@ -688,6 +745,9 @@ func getCreds(req *http.Request) (Creds, error) {
 
 	creds, err := credentials(credsUrl)
 	if err != nil {
+		
+		tracerx.Printf("client-willhi getCreds Bad credentials")
+		
 		return nil, err
 	}
 
@@ -734,6 +794,14 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 			err.Set(contextKey, head.Get(key))
 		}
 	}
+}
+
+func ntlmHandshake(){
+	if !Config.NTLM(){
+		panic("NTLM is not enabled but an NTLM handshake was attempted")
+	}
+	
+	
 }
 
 type notImplError struct {
