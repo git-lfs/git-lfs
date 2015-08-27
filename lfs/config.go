@@ -227,7 +227,7 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {
 			n, err := strconv.Atoi(v)
-			if err == nil && n > 0 {
+			if err == nil && n >= 0 {
 				c.fetchPruneConfig.FetchRecentRefsDays = n
 			}
 		}
@@ -244,7 +244,7 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentcommitsdays"); ok {
 			n, err := strconv.Atoi(v)
-			if err == nil && n > 0 {
+			if err == nil && n >= 0 {
 				c.fetchPruneConfig.FetchRecentCommitsDays = n
 			}
 		}
@@ -255,7 +255,7 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 		}
 		if v, ok := c.GitConfig("lfs.pruneoffsetdays"); ok {
 			n, err := strconv.Atoi(v)
-			if err == nil && n > 0 {
+			if err == nil && n >= 0 {
 				c.fetchPruneConfig.PruneOffsetDays = n
 			}
 		}
