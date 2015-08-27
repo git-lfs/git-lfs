@@ -30,7 +30,7 @@ type batcherTestCase struct {
 	ShouldExit bool
 }
 
-// Batcher makes and retunrs a lfs.Batcher according to the specification given
+// Batcher makes and returns a lfs.Batcher according to the specification given
 // in this instance of batcherTestCase. When returned, it is filled with the
 // given amount of items, and has exited if it was told to.
 func (b batcherTestCase) Batcher() *Batcher {
