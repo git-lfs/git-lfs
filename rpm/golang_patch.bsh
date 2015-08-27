@@ -6,7 +6,7 @@ cd $(dirname ${BASH_SOURCE[0]})/SOURCES
 #Get EPEL full list
 curl -L -O https://dl.fedoraproject.org/pub/epel/fullfilelist
 #Get latest golang src rpm
-curl -L -O https://dl.fedoraproject.org/pub/epel/$(grep '6/SRPMS/golang-[0-9].*src.rpm' fullfilelist)
+curl -L -O https://dl.fedoraproject.org/pub/epel/$(grep '^6/SRPMS/golang-[0-9].*src.rpm' fullfilelist)
 rpm2cpio golang-*.src.rpm | cpio -diuv
 #Patch the spec file to patch the build to work on CentOS 5
 sed -ri 's|(^%build)|\1\nsed -i '"'"'s:.*--build-id.*::'"'"' ./src/cmd/go/build.go|' golang*.spec

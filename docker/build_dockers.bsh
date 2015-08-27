@@ -32,8 +32,7 @@ for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
   fi
 
   echo Docker building ${NAME}
-  ${CUR_DIR}/docker+.bsh ${IMAGE_NAME} > ${CUR_DIR}/tmp.dockerfile
-  $SUDO docker build -t git-lfs/${NAME} -f ${CUR_DIR}/tmp.dockerfile ${CUR_DIR}
-  rm ${CUR_DIR}/tmp.dockerfile
+  ${CUR_DIR}/docker+.bsh ${IMAGE_NAME} > ${CUR_DIR}/Dockerfile
+  $SUDO docker build -t git-lfs/${NAME} ${CUR_DIR}
+  rm ${CUR_DIR}/Dockerfile
 done
-
