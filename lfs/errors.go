@@ -122,15 +122,15 @@ func IsSmudgeError(err error) bool {
 }
 
 // IsCleanPointerError indicates an error while cleaning a file. Because of the
-// structure of the code, this check also returns a *cleanPointerError because
+// structure of the code, this check also returns a *CleanPointerError because
 // that's how a Pointer and []byte were passed up to the caller. This is not
-// very clean and should be refactored. The returned *cleanPointerError MUST
+// very clean and should be refactored. The returned *CleanPointerError MUST
 // NOT be accessed if the bool value is false.
-func IsCleanPointerError(err error) (*cleanPointerError, bool) {
+func IsCleanPointerError(err error) (*CleanPointerError, bool) {
 	if e, ok := err.(interface {
 		CleanPointerError() bool
 	}); ok {
-		cpe := err.(cleanPointerError)
+		cpe := err.(CleanPointerError)
 		return &cpe, e.CleanPointerError()
 	}
 	if e, ok := err.(errorWrapper); ok {
@@ -400,30 +400,33 @@ func newSmudgeError(err error, oid, filename string) error {
 
 // Definitions for IsCleanPointerError()
 
-type cleanPointerError struct {
+// CleanPointerError is used to pass the Pointer and contents back up to the
+// caller.
+// TODO: This should be refactored to avoid using error types in this way.
+type CleanPointerError struct {
 	pointer *Pointer
 	bytes   []byte
 	errorWrapper
 }
 
-func (e cleanPointerError) InnerError() error {
+func (e CleanPointerError) InnerError() error {
 	return e.errorWrapper
 }
 
-func (e cleanPointerError) CleanPointerError() bool {
+func (e CleanPointerError) CleanPointerError() bool {
 	return true
 }
 
-func (e cleanPointerError) Pointer() *Pointer {
+func (e CleanPointerError) Pointer() *Pointer {
 	return e.pointer
 }
 
-func (e cleanPointerError) Bytes() []byte {
+func (e CleanPointerError) Bytes() []byte {
 	return e.bytes
 }
 
 func newCleanPointerError(err error, pointer *Pointer, bytes []byte) error {
-	return cleanPointerError{
+	return CleanPointerError{
 		pointer,
 		bytes,
 		newWrappedError(err),
