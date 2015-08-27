@@ -57,7 +57,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if fetchRecentArg || lfs.Config.FetchPruneConfig().FetchRecentAlways {
-		Print("Fetching recent objects")
 		fetchRecent(refs, includePaths, excludePaths)
 	}
 
@@ -122,6 +121,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) {
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
+		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
 		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
 		if err != nil {
@@ -130,10 +130,12 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) {
 		for _, ref := range refs {
 			// Don't fetch for the same SHA twice
 			if prevRefName, ok := uniqueRefShas[ref.Sha]; ok {
-				Print("Skipping fetch for %v, already fetched via %v", ref.Name, prevRefName)
+				if ref.Name != prevRefName {
+					tracerx.Printf("Skipping fetch for %v, already fetched via %v", ref.Name, prevRefName)
+				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print("Fetching recent ref %v", ref.Name)
+				Print("Fetching %v", ref.Name)
 				fetchRef(ref.Sha, include, exclude)
 			}
 		}
@@ -147,7 +149,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) {
 				Error("Couldn't scan commits at %v: %v", refName, err)
 				continue
 			}
-			Print("Fetching recent changes for %v", refName)
+			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
 			fetchPreviousVersions(commit, commitsSince, include, exclude)
 		}
