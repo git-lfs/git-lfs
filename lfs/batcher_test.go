@@ -7,7 +7,7 @@ import (
 )
 
 func TestBatcherSizeMet(t *testing.T) {
-	assertAll([]batcherTestCase{
+	runBatcherTests([]batcherTestCase{
 		{2, 4, false},
 		{3, 5, false},
 		{0, 0, false},
@@ -15,7 +15,7 @@ func TestBatcherSizeMet(t *testing.T) {
 }
 
 func TestBatcherExit(t *testing.T) {
-	assertAll([]batcherTestCase{
+	runBatcherTests([]batcherTestCase{
 		{2, 4, true},
 		{3, 5, true},
 		{0, 0, true},
@@ -56,9 +56,9 @@ func (b batcherTestCase) Batches() int {
 	return b.ItemCount / b.BatchSize
 }
 
-// assertAll processes all test cases, throwing assertion errors if they
+// runBatcherTests processes all test cases, throwing assertion errors if they
 // fail.
-func assertAll(cases []batcherTestCase, t *testing.T) {
+func runBatcherTests(cases []batcherTestCase, t *testing.T) {
 	for _, c := range cases {
 		b := c.Batcher()
 
