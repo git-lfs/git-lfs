@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,10 +11,6 @@ import (
 	contentaddressable "github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/go-contentaddressable"
 )
 
-var (
-	DownloadDeclinedError = errors.New("File missing and download is not allowed")
-)
-
 func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
@@ -24,7 +19,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCa
 	}
 	defer file.Close()
 	if err := PointerSmudge(file, ptr, filename, download, cb); err != nil {
-		if err == DownloadDeclinedError {
+		if IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, os.SEEK_SET)
 			ptr.Encode(file)
@@ -35,6 +30,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCa
 	}
 	return nil
 }
+
 func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, cb CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
@@ -55,7 +51,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		if download {
 			err = downloadFile(writer, ptr, workingfile, mediafile, cb)
 		} else {
-			return DownloadDeclinedError
+			return newDownloadDeclinedError(nil)
 		}
 	} else {
 		err = readLocalFile(writer, ptr, mediafile, workingfile, cb)

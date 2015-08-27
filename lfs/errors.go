@@ -152,6 +152,20 @@ func IsNotAPointerError(err error) bool {
 	return false
 }
 
+// IsDownloadDeclinedError indicates that the smudge operation should not download.
+// TODO: I don't really like using errors to control that flow, it should be refactored.
+func IsDownloadDeclinedError(err error) bool {
+	if e, ok := err.(interface {
+		DownloadDeclinedError() bool
+	}); ok {
+		return e.DownloadDeclinedError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsDownloadDeclinedError(e.InnerError())
+	}
+	return false
+}
+
 // Error wraps an error with an empty message.
 func Error(err error) error {
 	return Errorf(err, "")
@@ -435,6 +449,27 @@ func newNotAPointerError(err error) error {
 		err = errors.New("Not a valid Git LFS pointer file.")
 	}
 	return notAPointerError{newWrappedError(err)}
+}
+
+// Definitions for IsDownloadDeclinedError()
+
+type downloadDeclinedError struct {
+	errorWrapper
+}
+
+func (e downloadDeclinedError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e downloadDeclinedError) DownloadDeclinedError() bool {
+	return true
+}
+
+func newDownloadDeclinedError(err error) error {
+	if err == nil {
+		err = errors.New("File missing and download is not allowed")
+	}
+	return downloadDeclinedError{newWrappedError(err)}
 }
 
 // Stack returns a byte slice containing the runtime.Stack()
