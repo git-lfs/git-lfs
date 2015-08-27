@@ -72,7 +72,7 @@ func TestSuccessfulDownload(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
+		if r.Header.Get("Authorization") != "" {
 			t.Error("Invalid Authorization")
 		}
 
@@ -204,7 +204,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
+		if r.Header.Get("Authorization") != "" {
 			t.Error("Invalid Authorization")
 		}
 
