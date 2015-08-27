@@ -12,6 +12,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
 var (
@@ -40,6 +41,7 @@ type Configuration struct {
 	CurrentRemote         string
 	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
+	ntlmSession           ntlm.ClientSession
 	envVars               map[string]string
 	isTracingHttp         bool
 	isLoggingStats        bool
@@ -125,6 +127,20 @@ func (c *Configuration) ConcurrentTransfers() int {
 	}
 
 	return uploads
+}
+
+func (c *Configuration) NTLM() bool {
+	if v, ok := c.GitConfig("lfs.ntlm"); ok {
+		if v == "true" || v == "" {
+			return true
+		}
+
+		// Any numeric value except 0 is considered true
+		if n, err := strconv.Atoi(v); err == nil && n != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Configuration) BatchTransfer() bool {

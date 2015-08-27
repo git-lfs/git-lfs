@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // getCreds gets the credentials for the given request's URL, and sets its
@@ -50,6 +51,9 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	apiUrl, err := Config.ObjectUrl("")
 	if err != nil {
+		
+		tracerx.Printf("credentials-willhi credentials execCreds err:%s", err.Error())
+		
 		return nil, err
 	}
 

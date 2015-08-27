@@ -35,7 +35,7 @@ var (
 		403: "Authorization error: %s\nCheck that you have proper access to the repository",
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
-	}
+	}	
 )
 
 type objectError struct {
@@ -149,6 +149,8 @@ func DownloadCheck(oid string) (*objectResource, error) {
 	if err != nil {
 		return nil, Error(err)
 	}
+
+	defer tracerx.Printf("client-willhi DownLoadCheck EXIT")
 
 	return obj, nil
 }
@@ -436,6 +438,13 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 // use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := Config.HttpClient().Do(req)
+	
+	if Config.NTLM() {
+		res, err = DoNTLMRequest(req)
+	} else {	
+		res, err = Config.HttpClient().Do(req)
+	}
+	
 	if res == nil {
 		res = &http.Response{
 			StatusCode: 0,
@@ -593,6 +602,9 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 			operation = "upload"
 		}
 	}
+	
+	tracerx.Printf("client-willhi endpoint:%s, operation:%s, method:%s", endpoint, operation, method)
+	
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
@@ -722,4 +734,12 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
+}
+
+func ntlmHandshake(){
+	if !Config.NTLM(){
+		panic("NTLM is not enabled but an NTLM handshake was attempted")
+	}
+	
+	
 }
