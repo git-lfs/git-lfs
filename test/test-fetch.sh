@@ -146,10 +146,12 @@ begin_test "fetch-recent"
   grep "Tracking \*.dat" track.log
 
   # generate content we'll use
+  content0="filecontent0"
   content1="filecontent1"
   content2="filecontent2"
   content3="filecontent3"
   content4="filecontent4"
+  oid0=$(printf "$content0" | shasum -a 256 | cut -f 1 -d " ")
   oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
   oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
   oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
@@ -157,12 +159,12 @@ begin_test "fetch-recent"
   
   echo "[
   {
-    \"CommitDate\":\"$(get_date -14d)\",
+    \"CommitDate\":\"$(get_date -18d)\",
     \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":22}]
+      {\"Filename\":\"file1.dat\",\"Size\":${#content0}, \"Data\":\"$content0\"}]
   },
   {
-    \"CommitDate\":\"$(get_date -10d)\",
+    \"CommitDate\":\"$(get_date -14d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content1}, \"Data\":\"$content1\"}]
   },
@@ -183,6 +185,7 @@ begin_test "fetch-recent"
 
   git lfs push origin master
   git lfs push origin other_branch
+  assert_server_object "$reponame" "$oid0"
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
   assert_server_object "$reponame" "$oid3"
@@ -199,6 +202,7 @@ begin_test "fetch-recent"
   git lfs fetch origin master
   assert_local_object "$oid2" "${#content2}"
   assert_local_object "$oid3" "${#content3}"
+  refute_local_object "$oid0"
   refute_local_object "$oid1"
   refute_local_object "$oid4"
 
@@ -208,6 +212,7 @@ begin_test "fetch-recent"
   git config lfs.fetchrecentrefsdays 0
   git config lfs.fetchrecentremoterefs false
   git config lfs.fetchrecentcommitsdays 7
+
   git lfs fetch --recent origin
   # that should have fetched master plus previous state needed within 7 days
   # current state
@@ -216,8 +221,31 @@ begin_test "fetch-recent"
   # previous state is the 'before' state of any commits made in last 7 days
   # ie you can check out anything in last 7 days (may have non-LFS commits in between)
   assert_local_object "$oid1" "${#content1}"
-  #refute_local_object "$oid4"
+  refute_local_object "$oid0"
+  refute_local_object "$oid4"
 
+  rm -rf .git/lfs/objects
+  # now fetch other_branch as well
+  git config lfs.fetchrecentrefsdays 6
+  git config lfs.fetchrecentremoterefs false
+  git config lfs.fetchrecentcommitsdays 7
+
+  git lfs fetch --recent origin
+  # that should have fetched master plus previous state needed within 7 days
+  # current state PLUS refs within 6 days (& their commits within 7)
+  assert_local_object "$oid2" "${#content2}"
+  assert_local_object "$oid3" "${#content3}"
+  assert_local_object "$oid1" "${#content1}"
+  assert_local_object "$oid4" "${#content4}"
+  # still omits oid0 since that's at best 13 days prior to other_branch tip
+  refute_local_object "$oid0"
+
+  # now test that a 14 day limit picks oid0 up from other_branch
+  # because other_branch was itself 5 days ago, 5+14=19 day search limit
+  git config lfs.fetchrecentcommitsdays 14
+
+  git lfs fetch --recent origin
+  assert_local_object "$oid0" "${#content0}"
 
 
 
