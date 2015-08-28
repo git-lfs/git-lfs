@@ -392,7 +392,12 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, *W
 // doStorageREquest runs the request to the storage API from a link provided by
 // the "actions" or "_links" properties an LFS API response.
 func doStorageRequest(req *http.Request) (*http.Response, *WrappedError) {
-	return doHttpRequest(req, nil)
+	creds, err := getCreds(req)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	return doHttpRequest(req, creds)
 }
 
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should

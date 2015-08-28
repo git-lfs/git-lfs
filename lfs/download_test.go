@@ -72,10 +72,6 @@ func TestSuccessfulDownload(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != "" {
-			t.Error("Invalid Authorization")
-		}
-
 		if r.Header.Get("A") != "1" {
 			t.Error("invalid A")
 		}
@@ -202,10 +198,6 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 
 		if r.Header.Get("Accept") != "" {
 			t.Error("Invalid Accept")
-		}
-
-		if r.Header.Get("Authorization") != "" {
-			t.Error("Invalid Authorization")
 		}
 
 		if r.Header.Get("A") != "1" {
@@ -412,10 +404,6 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != "" {
-			t.Error("Invalid Authorization")
-		}
-
 		if r.Header.Get("A") != "1" {
 			t.Error("invalid A")
 		}
@@ -544,10 +532,6 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 
 		if r.Header.Get("Accept") != "" {
 			t.Error("Invalid Accept")
-		}
-
-		if r.Header.Get("Authorization") != "" {
-			t.Error("Invalid Authorization")
 		}
 
 		if r.Header.Get("A") != "1" {
