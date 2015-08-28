@@ -111,7 +111,7 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 		return nil, 0, Error(err)
 	}
 
-	res, obj, wErr := doApiRequest(req)
+	res, obj, wErr := doLegacyApiRequest(req)
 	if wErr != nil {
 		return nil, 0, wErr
 	}
@@ -140,7 +140,7 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 		return nil, Error(err)
 	}
 
-	res, obj, wErr := doApiRequest(req)
+	res, obj, wErr := doLegacyApiRequest(req)
 	if wErr != nil {
 		return nil, wErr
 	}
@@ -252,7 +252,7 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, wErr := doApiRequest(req)
+	res, obj, wErr := doLegacyApiRequest(req)
 	if wErr != nil {
 		return nil, wErr
 	}
@@ -336,7 +336,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doHttpRequest(req, nil)
+	res, wErr = doAPIRequest(req)
 	if wErr != nil {
 		return wErr
 	}
@@ -348,8 +348,8 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	return wErr
 }
 
-// doApiRequest to the legacy API.
-func doApiRequest(req *http.Request) (*http.Response, *objectResource, *WrappedError) {
+// doLegacyApiRequest runs the request to the LFS legacy API.
+func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, *WrappedError) {
 	via := make([]*http.Request, 0, 4)
 	res, wErr := doApiRequestWithRedirects(req, via, true)
 	if wErr != nil {
@@ -367,13 +367,12 @@ func doApiRequest(req *http.Request) (*http.Response, *objectResource, *WrappedE
 	return res, obj, nil
 }
 
-// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
-// the repo will be marked as having private access and the request will be
+// doApiBatchRequest runs the request to the LFS batch API. If the API returns a
+// 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
 func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, *WrappedError) {
-	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, via, Config.PrivateAccess())
+	res, wErr := doAPIRequest(req)
 
 	if wErr != nil {
 		return res, nil, wErr
@@ -398,6 +397,19 @@ func doStorageRequest(req *http.Request) (*http.Response, *WrappedError) {
 	}
 
 	return doHttpRequest(req, creds)
+}
+
+// doAPIRequest runs the request to the LFS API, without parsing the response
+// body. If the API returns a 401, the repo will be marked as having private
+// access and the request will be re-run. When the repo is marked as having
+// private access, credentials will be retrieved.
+func doAPIRequest(req *http.Request) (*http.Response, *WrappedError) {
+	via := make([]*http.Request, 0, 4)
+	useCreds := true
+	if req.Method == "GET" || req.Method == "HEAD" {
+		useCreds = Config.PrivateAccess()
+	}
+	return doApiRequestWithRedirects(req, via, useCreds)
 }
 
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
