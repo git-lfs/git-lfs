@@ -137,19 +137,5 @@ username=git
 password=path"
 
   [ "$expected" = "$(cat cred.log)" ]
-
-  printf "skip:" > "$CREDSDIR/credential-test.com--some-path"
-  set +e
-  echo "protocol=http
-host=credential-test.com
-path=some/path" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
-  if [ $? -eq 0 ]
-  then
-    expected="protocol=http
-host=credential-test.com
-path=some/path"
-
-    [ "$expected" = "$(cat cred.log)" ]
-  fi
 )
 end_test
