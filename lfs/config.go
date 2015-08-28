@@ -29,6 +29,7 @@ type Configuration struct {
 
 	loading           sync.Mutex // guards initialization of gitConfig and remotes
 	gitConfig         map[string]string
+	origConfig        map[string]string
 	remotes           []string
 	extensions        map[string]Extension
 	fetchIncludePaths []string
@@ -190,21 +191,16 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 	return value, ok
 }
 
-func (c *Configuration) SetConfig(key, value string) {
-	c.loadGitConfig()
-	c.gitConfig[key] = value
-}
-
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
 }
 
-func (c *Configuration) loadGitConfig() {
+func (c *Configuration) loadGitConfig() bool {
 	c.loading.Lock()
 	defer c.loading.Unlock()
 
 	if c.gitConfig != nil {
-		return
+		return false
 	}
 
 	uniqRemotes := make(map[string]bool)
@@ -282,4 +278,6 @@ func (c *Configuration) loadGitConfig() {
 		}
 		c.remotes = append(c.remotes, remote)
 	}
+
+	return true
 }

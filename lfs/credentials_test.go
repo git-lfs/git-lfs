@@ -7,6 +7,7 @@ import (
 )
 
 func TestGetCredentialsForAPI(t *testing.T) {
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
 	if err != nil {
@@ -33,6 +34,7 @@ func TestGetCredentialsForAPI(t *testing.T) {
 }
 
 func TestGetCredentialsForAPIWithExistingAuthorization(t *testing.T) {
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "http://lfs-server.com/foo", nil)
 	if err != nil {
@@ -56,6 +58,7 @@ func TestGetCredentialsForAPIWithExistingAuthorization(t *testing.T) {
 }
 
 func TestGetCredentialsForAPIWithSchemeMismatch(t *testing.T) {
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "http://lfs-server.com/foo", nil)
 	if err != nil {
@@ -90,6 +93,7 @@ func TestGetCredentialsForAPIWithSchemeMismatch(t *testing.T) {
 }
 
 func TestGetCredentialsForAPIWithHostMismatch(t *testing.T) {
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server2.com/foo", nil)
 	if err != nil {
@@ -120,6 +124,7 @@ func TestGetCredentialsForAPIWithHostMismatch(t *testing.T) {
 }
 
 func TestGetCredentialsForAPIWithPortMismatch(t *testing.T) {
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server.com:8080/foo", nil)
 	if err != nil {
@@ -150,6 +155,7 @@ func TestGetCredentialsForAPIWithPortMismatch(t *testing.T) {
 }
 
 func TestGetCredentialsForAPIWithRfc1738UsernameAndPassword(t *testing.T) {
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", "https://testuser:testpass@lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
 	if err != nil {
@@ -170,7 +176,6 @@ func TestGetCredentialsForAPIWithRfc1738UsernameAndPassword(t *testing.T) {
 		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
 	}
 }
-
 func init() {
 	execCreds = func(input Creds, subCommand string) (Creds, error) {
 		output := make(Creds)
