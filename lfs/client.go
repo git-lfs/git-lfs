@@ -275,7 +275,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	if res.StatusCode == 200 {
 		return nil, nil
 	}
-
+	
 	if obj.Oid == "" {
 		obj.Oid = oid
 	}
@@ -440,10 +440,13 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := Config.HttpClient().Do(req)
 	
 	if Config.NTLM() {
-		res, err = DoNTLMRequest(req)
+		tracerx.Printf("client: NTLM Request")		
+		res, err = DoNTLMRequest(req)			
 	} else {	
 		res, err = Config.HttpClient().Do(req)
 	}
+	
+	tracerx.Printf("a")
 	
 	if res == nil {
 		res = &http.Response{
@@ -563,15 +566,20 @@ func handleResponse(res *http.Response, creds Creds) error {
 
 func decodeApiResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
+	
+	tracerx.Printf("client decodeApiResponse: cType %s", ctype)		
+	
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
 	}
 
 	err := json.NewDecoder(res.Body).Decode(obj)
+	
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
 	if err != nil {
+		tracerx.Printf("client decodeApiResponse: JSON ERROR %s", err.Error())		
 		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
 	}
 
@@ -704,13 +712,17 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	if len(user) == 0 && len(pass) == 0 {
-		return
-	}
+	if(Config.NTLM()){
+		//no-op. The NTLM manager will handle auth headers
+	} else {
+		if len(user) == 0 && len(pass) == 0 {
+			return
+		}
 
-	token := fmt.Sprintf("%s:%s", user, pass)
-	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
-	req.Header.Set("Authorization", auth)
+		token := fmt.Sprintf("%s:%s", user, pass)
+		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+		req.Header.Set("Authorization", auth)
+	}
 }
 
 func setErrorResponseContext(err error, res *http.Response) {

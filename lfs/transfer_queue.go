@@ -161,6 +161,11 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			q.meter.Add(t.Name())
 			q.transferc <- t
 		} else {
+			tracerx.Printf("tq-willhi: SKIPPING T-----------------")
+			tracerx.Printf("tq-willhi: name %s", t.Name())
+			tracerx.Printf("tq-willhi: oid %s", t.Oid())
+			tracerx.Printf("tq-willhi: size T%d", t.Size())
+			tracerx.Printf("tq-willhi: ------------------------")
 			q.meter.Skip(t.Size())
 			q.wait.Done()
 		}
@@ -235,6 +240,8 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objects {
 			if o.Error != nil {
+				tracerx.Printf("tq-willhi: SKIPPING OBJECT DUE TO ERROR %s", o.Error.Error())
+			
 				q.errorc <- Error(o.Error)
 				q.meter.Skip(o.Size)
 				q.wait.Done()
@@ -248,10 +255,12 @@ func (q *TransferQueue) batchApiRoutine() {
 					q.meter.Add(transfer.Name())
 					q.transferc <- transfer
 				} else {
+					tracerx.Printf("tq-willhi: SKIPPING OBJECT DUE TO NOT IN QUEUE")
 					q.meter.Skip(transfer.Size())
 					q.wait.Done()
 				}
 			} else {
+				tracerx.Printf("tq-willhi: SKIPPING OBJECT DUE TO BAD XFER KIND")
 				q.meter.Skip(o.Size)
 				q.wait.Done()
 			}
