@@ -17,7 +17,7 @@ func getCreds(req *http.Request) (Creds, error) {
 		return nil, nil
 	}
 
-	creds, err := credentials(req.URL)
+	creds, err := fillCredentials(req.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 		return nil, err
 	}
 
-	creds, err := credentials(credsUrl)
+	creds, err := fillCredentials(credsUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	return credsUrl, nil
 }
 
-func credentials(u *url.URL) (Creds, error) {
+func fillCredentials(u *url.URL) (Creds, error) {
 	path := strings.TrimPrefix(u.Path, "/")
 	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
 	cmd, err := execCreds(creds, "fill")
