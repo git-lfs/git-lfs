@@ -101,8 +101,7 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 
 	// TODO this can be unified with the same code in downloadFile
 	if err != nil {
-		// err.Errorf("Error downloading %s.", mediafile) ERRTODO
-		return err
+		return Errorf(err, "Error downloading %s", mediafile)
 	}
 
 	if ptr.Size == 0 {
@@ -135,8 +134,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 
 	if err != nil {
-		//err.Errorf("Error downloading %s.", mediafile) ERRTODO
-		return err
+		return Errorf(err, "Error downloading %s.", mediafile)
 	}
 
 	if ptr.Size == 0 {
