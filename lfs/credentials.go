@@ -94,11 +94,22 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 func fillCredentials(u *url.URL) (Creds, error) {
 	path := strings.TrimPrefix(u.Path, "/")
 	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
-	cmd, err := execCreds(creds, "fill")
-	if err != nil {
-		return nil, err
+	return execCreds(creds, "fill")
+}
+
+func saveCredentials(creds Creds, res *http.Response) {
+	if creds == nil {
+		return
 	}
-	return cmd.Credentials(), nil
+
+	switch res.StatusCode {
+	case 401, 403:
+		execCreds(creds, "reject")
+	default:
+		if res.StatusCode < 300 {
+			execCreds(creds, "approve")
+		}
+	}
 }
 
 type Creds map[string]string
@@ -116,18 +127,13 @@ func (c Creds) Buffer() *bytes.Buffer {
 	return buf
 }
 
-type credentialCmd struct {
-	output     *bytes.Buffer
-	SubCommand string
-	*exec.Cmd
-}
+type credentialFunc func(Creds, string) (Creds, error)
 
-func newCredentialCommand(input Creds, subCommand string) *credentialCmd {
-	buf1 := new(bytes.Buffer)
+func execCredsCommand(input Creds, subCommand string) (Creds, error) {
+	output := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
-
 	cmd.Stdin = input.Buffer()
-	cmd.Stdout = buf1
+	cmd.Stdout = output
 	/*
 		There is a reason we don't hook up stderr here:
 		Git's credential cache daemon helper does not close its stderr, so if this
@@ -137,14 +143,30 @@ func newCredentialCommand(input Creds, subCommand string) *credentialCmd {
 		See https://github.com/github/git-lfs/issues/117 for more details.
 	*/
 
-	return &credentialCmd{buf1, subCommand, cmd}
-}
+	err := cmd.Start()
+	if err == nil {
+		err = cmd.Wait()
+	}
 
-func (c *credentialCmd) Credentials() Creds {
+	if _, ok := err.(*exec.ExitError); ok {
+		if !Config.GetenvBool("GIT_TERMINAL_PROMPT", true) {
+			return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
+				input["protocol"], input["host"])
+		}
+
+		// 'git credential' exits with 128 if the helper doesn't fill the username
+		// and password values.
+		if subCommand == "fill" && err.Error() == "exit status 128" {
+			return input, nil
+		}
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("'git credential %s' error: %s\n", subCommand, err.Error())
+	}
+
 	creds := make(Creds)
-	output := c.output.String()
-
-	for _, line := range strings.Split(output, "\n") {
+	for _, line := range strings.Split(output.String(), "\n") {
 		pieces := strings.SplitN(line, "=", 2)
 		if len(pieces) < 2 {
 			continue
@@ -152,36 +174,7 @@ func (c *credentialCmd) Credentials() Creds {
 		creds[pieces[0]] = pieces[1]
 	}
 
-	return creds
+	return creds, nil
 }
 
-type credentialFetcher interface {
-	Credentials() Creds
-}
-
-type credentialFunc func(Creds, string) (credentialFetcher, error)
-
-var execCreds credentialFunc
-
-func init() {
-	execCreds = func(input Creds, subCommand string) (credentialFetcher, error) {
-		cmd := newCredentialCommand(input, subCommand)
-		err := cmd.Start()
-		if err == nil {
-			err = cmd.Wait()
-		}
-
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			if exitErr.ProcessState.Success() == false && !Config.GetenvBool("GIT_TERMINAL_PROMPT", true) {
-				return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
-					input["protocol"], input["host"])
-			}
-		}
-
-		if err != nil {
-			return cmd, fmt.Errorf("'git credential %s' error: %s\n", cmd.SubCommand, err.Error())
-		}
-
-		return cmd, nil
-	}
-}
+var execCreds credentialFunc = execCredsCommand

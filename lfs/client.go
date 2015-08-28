@@ -532,21 +532,6 @@ func defaultError(res *http.Response) *WrappedError {
 	return Error(fmt.Errorf(msgFmt, res.Request.URL))
 }
 
-func saveCredentials(creds Creds, res *http.Response) {
-	if creds == nil {
-		return
-	}
-
-	switch res.StatusCode {
-	case 401, 403:
-		execCreds(creds, "reject")
-	default:
-		if res.StatusCode < 300 {
-			execCreds(creds, "approve")
-		}
-	}
-}
-
 func newApiRequest(method, oid string) (*http.Request, error) {
 	endpoint := Config.Endpoint()
 	objectOid := oid

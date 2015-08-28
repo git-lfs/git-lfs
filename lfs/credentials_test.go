@@ -172,17 +172,13 @@ func TestGetCredentialsForAPIWithRfc1738UsernameAndPassword(t *testing.T) {
 }
 
 func init() {
-	execCreds = func(input Creds, subCommand string) (credentialFetcher, error) {
-		return &testCredentialFetcher{input}, nil
+	execCreds = func(input Creds, subCommand string) (Creds, error) {
+		output := make(Creds)
+		for key, value := range input {
+			output[key] = value
+		}
+		output["username"] = input["host"]
+		output["password"] = "monkey"
+		return output, nil
 	}
-}
-
-type testCredentialFetcher struct {
-	Creds Creds
-}
-
-func (c *testCredentialFetcher) Credentials() Creds {
-	c.Creds["username"] = c.Creds["host"]
-	c.Creds["password"] = "monkey"
-	return c.Creds
 }
