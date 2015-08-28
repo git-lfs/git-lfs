@@ -17,9 +17,9 @@ func NewLot(l, c int) Lot {
 }
 
 // IsFull returns whether or not the given instance of a Lot is full, as
-// specified by the capacity given as the first argument.
-func (l Lot) IsFull(capacity int) bool {
-	return len(l) == capacity
+// specified by the max length given as the first argument.
+func (l Lot) IsFull(maxLen int) bool {
+	return len(l) == maxLen
 }
 
 // Add returns a new Lot that contains all of the contents of the existing Lot,
