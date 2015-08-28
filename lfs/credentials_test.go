@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestGetCredentials(t *testing.T) {
+func TestGetCredentialsForAPI(t *testing.T) {
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func TestGetCredentials(t *testing.T) {
 	}
 }
 
-func TestGetCredentialsWithExistingAuthorization(t *testing.T) {
+func TestGetCredentialsForAPIWithExistingAuthorization(t *testing.T) {
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "http://lfs-server.com/foo", nil)
 	if err != nil {
@@ -55,7 +55,7 @@ func TestGetCredentialsWithExistingAuthorization(t *testing.T) {
 	}
 }
 
-func TestGetCredentialsWithSchemeMismatch(t *testing.T) {
+func TestGetCredentialsForAPIWithSchemeMismatch(t *testing.T) {
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "http://lfs-server.com/foo", nil)
 	if err != nil {
@@ -67,16 +67,29 @@ func TestGetCredentialsWithSchemeMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if creds != nil {
-		t.Errorf("Unexpected creds: %v", creds)
+	if creds == nil {
+		t.Fatalf("no credentials returned")
 	}
 
-	if actual := req.Header.Get("Authorization"); actual != "" {
-		t.Errorf("Unexpected Authorization header: %s", actual)
+	if v := creds["protocol"]; v != "http" {
+		t.Errorf("Invalid protocol: %q", v)
+	}
+
+	if v := creds["host"]; v != "lfs-server.com" {
+		t.Errorf("Invalid host: %q", v)
+	}
+
+	if v := creds["path"]; v != "foo" {
+		t.Errorf("Invalid path: %q", v)
+	}
+
+	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:monkey"))
+	if value := req.Header.Get("Authorization"); value != expected {
+		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
 	}
 }
 
-func TestGetCredentialsWithHostMismatch(t *testing.T) {
+func TestGetCredentialsForAPIWithHostMismatch(t *testing.T) {
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server2.com/foo", nil)
 	if err != nil {
@@ -88,18 +101,27 @@ func TestGetCredentialsWithHostMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if creds != nil {
-		t.Errorf("Unexpected creds: %v", creds)
+	if v := creds["protocol"]; v != "https" {
+		t.Errorf("Invalid protocol: %q", v)
 	}
 
-	if actual := req.Header.Get("Authorization"); actual != "" {
-		t.Errorf("Unexpected Authorization header: %s", actual)
+	if v := creds["host"]; v != "lfs-server2.com" {
+		t.Errorf("Invalid host: %q", v)
+	}
+
+	if v := creds["path"]; v != "foo" {
+		t.Errorf("Invalid path: %q", v)
+	}
+
+	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server2.com:monkey"))
+	if value := req.Header.Get("Authorization"); value != expected {
+		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
 	}
 }
 
-func TestGetCredentialsWithPortMismatch(t *testing.T) {
+func TestGetCredentialsForAPIWithPortMismatch(t *testing.T) {
 	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	req, err := http.NewRequest("GET", "https://lfs-server:8080.com/foo", nil)
+	req, err := http.NewRequest("GET", "https://lfs-server.com:8080/foo", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,16 +131,25 @@ func TestGetCredentialsWithPortMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if creds != nil {
-		t.Errorf("Unexpected creds: %v", creds)
+	if v := creds["protocol"]; v != "https" {
+		t.Errorf("Invalid protocol: %q", v)
 	}
 
-	if actual := req.Header.Get("Authorization"); actual != "" {
-		t.Errorf("Unexpected Authorization header: %s", actual)
+	if v := creds["host"]; v != "lfs-server.com:8080" {
+		t.Errorf("Invalid host: %q", v)
+	}
+
+	if v := creds["path"]; v != "foo" {
+		t.Errorf("Invalid path: %q", v)
+	}
+
+	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:8080:monkey"))
+	if value := req.Header.Get("Authorization"); value != expected {
+		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
 	}
 }
 
-func TestGetCredentialsWithRfc1738UsernameAndPassword(t *testing.T) {
+func TestGetCredentialsForAPIWithRfc1738UsernameAndPassword(t *testing.T) {
 	Config.SetConfig("lfs.url", "https://testuser:testpass@lfs-server.com")
 	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
 	if err != nil {

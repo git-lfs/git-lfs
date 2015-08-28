@@ -9,7 +9,25 @@ import (
 	"strings"
 )
 
-// getCredsForAPI gets the credentials for LFS API requests:
+// getCreds gets the credentials for the given request's URL, and sets its
+// Authorization header with them using Basic Authentication. This is like
+// getCredsForAPI(), but skips checking the LFS url or git remote.
+func getCreds(req *http.Request) (Creds, error) {
+	if len(req.Header.Get("Authorization")) > 0 {
+		return nil, nil
+	}
+
+	creds, err := credentials(req.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	setRequestAuth(req, creds["username"], creds["password"])
+	return creds, nil
+}
+
+// getCredsForAPI gets the credentials for LFS API requests and sets the given
+// request's Authorization header with them using Basic Authentication.
 // 1. Check the LFS URL for authentication. Ex: http://user:pass@example.com
 // 2. Check the Git remote URL for authentication IF it's the same scheme and
 //    host of the LFS URL.
@@ -19,14 +37,31 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 		return nil, nil
 	}
 
+	credsUrl, err := getCredURLForAPI(req)
+	if err != nil || credsUrl == nil {
+		return nil, err
+	}
+
+	creds, err := credentials(credsUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	setRequestAuth(req, creds["username"], creds["password"])
+	return creds, nil
+}
+
+func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	apiUrl, err := Config.ObjectUrl("")
 	if err != nil {
 		return nil, err
 	}
 
+	// if the LFS request doesn't match the current LFS url, don't bother
+	// attempting to set the Authorization header from the LFS or Git remote URLs.
 	if req.URL.Scheme != apiUrl.Scheme ||
 		req.URL.Host != apiUrl.Host {
-		return nil, nil
+		return req.URL, nil
 	}
 
 	if setRequestAuthFromUrl(req, apiUrl) {
@@ -53,13 +88,7 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 		}
 	}
 
-	creds, err := credentials(credsUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	setRequestAuth(req, creds["username"], creds["password"])
-	return creds, nil
+	return credsUrl, nil
 }
 
 func credentials(u *url.URL) (Creds, error) {
