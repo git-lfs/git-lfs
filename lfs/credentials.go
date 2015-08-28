@@ -32,6 +32,10 @@ func getCreds(req *http.Request) (Creds, error) {
 // 2. Check the Git remote URL for authentication IF it's the same scheme and
 //    host of the LFS URL.
 // 3. Ask 'git credential' to fill in the password from one of the above URLs.
+//
+// This prefers the Git remote URL for checking credentials so that users only
+// have to enter their passwords once for Git and Git LFS. It uses the same
+// URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
 func getCredsForAPI(req *http.Request) (Creds, error) {
 	if len(req.Header.Get("Authorization")) > 0 {
 		return nil, nil
