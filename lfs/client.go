@@ -121,7 +121,7 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr = doHttpRequest(req)
+	res, wErr = doStorageRequest(req)
 	if wErr != nil {
 		return nil, 0, wErr
 	}
@@ -160,7 +160,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr := doHttpRequest(req)
+	res, wErr := doStorageRequest(req)
 	if wErr != nil {
 		return nil, 0, wErr
 	}
@@ -307,7 +307,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, wErr := doHttpRequest(req)
+	res, wErr := doStorageRequest(req)
 	if wErr != nil {
 		return wErr
 	}
@@ -336,7 +336,7 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doHttpRequest(req)
+	res, wErr = doHttpRequest(req, nil)
 	if wErr != nil {
 		return wErr
 	}
@@ -348,7 +348,56 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	return wErr
 }
 
-func doHttpRequest(req *http.Request) (*http.Response, *WrappedError) {
+// doApiRequest to the legacy API.
+func doApiRequest(req *http.Request) (*http.Response, *objectResource, *WrappedError) {
+	via := make([]*http.Request, 0, 4)
+	res, wErr := doApiRequestWithRedirects(req, via, true)
+	if wErr != nil {
+		return res, nil, wErr
+	}
+
+	obj := &objectResource{}
+	wErr = decodeApiResponse(res, obj)
+
+	if wErr != nil {
+		setErrorResponseContext(wErr, res)
+		return nil, nil, wErr
+	}
+
+	return res, obj, nil
+}
+
+// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
+// the repo will be marked as having private access and the request will be
+// re-run. When the repo is marked as having private access, credentials will
+// be retrieved.
+func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, *WrappedError) {
+	via := make([]*http.Request, 0, 4)
+	res, wErr := doApiRequestWithRedirects(req, via, Config.PrivateAccess())
+
+	if wErr != nil {
+		return res, nil, wErr
+	}
+
+	var objs map[string][]*objectResource
+	wErr = decodeApiResponse(res, &objs)
+
+	if wErr != nil {
+		setErrorResponseContext(wErr, res)
+	}
+
+	return res, objs["objects"], wErr
+}
+
+// doStorageREquest runs the request to the storage API from a link provided by
+// the "actions" or "_links" properties an LFS API response.
+func doStorageRequest(req *http.Request) (*http.Response, *WrappedError) {
+	return doHttpRequest(req, nil)
+}
+
+// doHttpRequest runs the given HTTP request. LFS or Storage API requests should
+// use doApiBatchRequest() or doStorageRequest() instead.
+func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
 	res, err := Config.HttpClient().Do(req)
 	if res == nil {
 		res = &http.Response{
@@ -364,7 +413,7 @@ func doHttpRequest(req *http.Request) (*http.Response, *WrappedError) {
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
-		wErr = handleResponse(res)
+		wErr = handleResponse(res, creds)
 	}
 
 	if wErr != nil {
@@ -388,11 +437,9 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 		creds = c
 	}
 
-	res, wErr := doHttpRequest(req)
+	res, wErr := doHttpRequest(req, creds)
 	if wErr != nil {
 		return res, wErr
-	} else {
-		saveCredentials(creds, res)
 	}
 
 	if res.StatusCode == 307 {
@@ -437,47 +484,9 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 	return res, nil
 }
 
-func doApiRequest(req *http.Request) (*http.Response, *objectResource, *WrappedError) {
-	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, via, true)
-	if wErr != nil {
-		return res, nil, wErr
-	}
+func handleResponse(res *http.Response, creds Creds) *WrappedError {
+	saveCredentials(creds, res)
 
-	obj := &objectResource{}
-	wErr = decodeApiResponse(res, obj)
-
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
-		return nil, nil, wErr
-	}
-
-	return res, obj, nil
-}
-
-// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
-// the repo will be marked as having private access and the request will be
-// re-run. When the repo is marked as having private access, credentials will
-// be retrieved.
-func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, *WrappedError) {
-	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, via, Config.PrivateAccess())
-
-	if wErr != nil {
-		return res, nil, wErr
-	}
-
-	var objs map[string][]*objectResource
-	wErr = decodeApiResponse(res, &objs)
-
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
-	}
-
-	return res, objs["objects"], wErr
-}
-
-func handleResponse(res *http.Response) *WrappedError {
 	if res.StatusCode < 400 {
 		return nil
 	}
