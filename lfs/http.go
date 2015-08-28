@@ -64,6 +64,14 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	start := time.Now()
 	res, err := c.Client.Do(req)
 	if err != nil {
+		
+		tracerx.Printf("http: c.Client.Do Error:%s", err.Error())
+		if res != nil{
+			tracerx.Printf("http:response not nil")
+		}else {
+			tracerx.Printf("http: response nil")			
+		}
+		
 		return res, err
 	}
 
