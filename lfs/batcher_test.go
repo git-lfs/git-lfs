@@ -6,55 +6,6 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
-type lotTestCase struct {
-	Length   int
-	Capacity int
-}
-
-func (c lotTestCase) Lot() Lot {
-	return NewLot(c.Length, c.Capacity)
-}
-
-func TestLotConstruction(t *testing.T) {
-	cases := []lotTestCase{
-		{0, 0},
-		{3, 3},
-	}
-
-	for _, c := range cases {
-		l := c.Lot()
-
-		assert.Equal(t, c.Length, len(l))
-		assert.Equal(t, c.Capacity, cap(l))
-	}
-}
-
-func TestLotFullness(t *testing.T) {
-	c := lotTestCase{0, 3}
-	l := c.Lot()
-
-	assert.Equal(t, false, l.IsFull(c.Capacity))
-
-	for i := 0; i < c.Capacity; i++ {
-		l = l.Add(&Downloadable{})
-	}
-
-	assert.Equal(t, true, l.IsFull(c.Capacity))
-}
-
-func TestLotAdding(t *testing.T) {
-	c := lotTestCase{0, 10}
-	l := c.Lot()
-
-	assert.Equal(t, 0, len(l))
-
-	for i := 0; i < 10; i++ {
-		l = l.Add(&Downloadable{})
-	}
-
-	assert.Equal(t, 10, len(l))
-}
-
 func TestBatcherSizeMet(t *testing.T) {
 	runBatcherTests([]batcherTestCase{
 		{2, 4, false},

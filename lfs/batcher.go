@@ -8,38 +8,18 @@ package lfs
 //   * Exit() is called
 // When a timeout, Flush(), or Exit() occurs, the group may be smaller than the
 // batch size.
-
-// A Lot represents a group of Transferables that was packaged up by a Batcher.
-type Lot []Transferable
-
-func NewLot(l, c int) Lot {
-	return Lot(make([]Transferable, l, c))
-}
-
-// IsFull returns whether or not the given instance of a Lot is full, as
-// specified by the max length given as the first argument.
-func (l Lot) IsFull(maxLen int) bool {
-	return len(l) == maxLen
-}
-
-// Add returns a new Lot that contains all of the contents of the existing Lot,
-// as well as the contents of the variadic Transferables argument.
-func (l Lot) Add(ts ...Transferable) Lot {
-	return Lot(append(l, ts...))
-}
-
 type Batcher struct {
-	batchSize int
-	input     chan Transferable
-	lotReady  chan Lot
+	batchSize  int
+	input      chan Transferable
+	batchReady chan []Transferable
 }
 
 // NewBatcher creates a Batcher with the batchSize.
 func NewBatcher(batchSize int) *Batcher {
 	b := &Batcher{
-		batchSize: batchSize,
-		input:     make(chan Transferable, batchSize),
-		lotReady:  make(chan Lot),
+		batchSize:  batchSize,
+		input:      make(chan Transferable, batchSize),
+		batchReady: make(chan []Transferable),
 	}
 
 	go b.acceptInput()
@@ -54,8 +34,8 @@ func (b *Batcher) Add(t Transferable) {
 
 // Next will wait for the one of the above batch triggers to occur and return
 // the accumulated batch.
-func (b *Batcher) Next() Lot {
-	return <-b.lotReady
+func (b *Batcher) Next() []Transferable {
+	return <-b.batchReady
 }
 
 // Exit stops all batching and allows Next() to return. Calling Add() after
@@ -71,19 +51,19 @@ func (b *Batcher) acceptInput() {
 	exit := false
 
 	for {
-		lot := b.newLot()
+		batch := b.newBatch()
 	Loop:
-		for !lot.IsFull(b.batchSize) {
+		for len(batch) < b.batchSize {
 			t, ok := <-b.input
 			if !ok {
 				exit = true // input channel was closed by Exit()
 				break Loop
 			}
 
-			lot = lot.Add(t)
+			batch = append(batch, t)
 		}
 
-		b.lotReady <- lot
+		b.batchReady <- batch
 
 		if exit {
 			return
@@ -93,6 +73,6 @@ func (b *Batcher) acceptInput() {
 
 // newBatch allocates a slice of Transferables with the capacity of the set
 // batch size.
-func (b *Batcher) newLot() Lot {
-	return NewLot(0, b.batchSize)
+func (b *Batcher) newBatch() []Transferable {
+	return make([]Transferable, 0, b.batchSize)
 }
