@@ -101,8 +101,8 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if err != nil {
-			if cleanPointerErr, ok := lfs.IsCleanPointerError(err); ok {
-				Exit(prePushMissingErrMsg, pointer.Name, cleanPointerErr.Pointer().Oid)
+			if lfs.IsCleanPointerError(err) {
+				Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
 			} else if Debugging || lfs.IsFatalError(err) {
 				Panic(err, err.Error())
 			} else {

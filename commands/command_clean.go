@@ -49,8 +49,8 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		defer cleaned.Teardown()
 	}
 
-	if cpErr, ok := lfs.IsCleanPointerError(err); ok {
-		os.Stdout.Write(cpErr.Bytes())
+	if lfs.IsCleanPointerError(err) {
+		os.Stdout.Write(lfs.ErrorGetContext(err, "bytes").([]byte))
 		return
 	}
 

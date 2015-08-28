@@ -127,17 +127,16 @@ func IsSmudgeError(err error) bool {
 // that's how a Pointer and []byte were passed up to the caller. This is not
 // very clean and should be refactored. The returned *CleanPointerError MUST
 // NOT be accessed if the bool value is false.
-func IsCleanPointerError(err error) (*CleanPointerError, bool) {
+func IsCleanPointerError(err error) bool {
 	if e, ok := err.(interface {
 		CleanPointerError() bool
 	}); ok {
-		cpe := err.(CleanPointerError)
-		return &cpe, e.CleanPointerError()
+		return e.CleanPointerError()
 	}
 	if e, ok := err.(errorWrapper); ok {
 		return IsCleanPointerError(e.InnerError())
 	}
-	return nil, false
+	return false
 }
 
 // IsNotAPointerError indicates the parsed data is not an LFS pointer.
@@ -188,7 +187,7 @@ func Errorf(err error, format string, args ...interface{}) error {
 
 // ErrorSetContext sets a value in the error's context. If the error has not
 // been wrapped, it does nothing.
-func ErrorSetContext(err error, key, value string) {
+func ErrorSetContext(err error, key string, value interface{}) {
 	if e, ok := err.(errorWrapper); ok {
 		e.Set(key, value)
 	}
@@ -196,7 +195,7 @@ func ErrorSetContext(err error, key, value string) {
 
 // ErrorGetContext gets a value from the error's context. If the error has not
 // been wrapped, it returns an empty string.
-func ErrorGetContext(err error, key string) string {
+func ErrorGetContext(err error, key string) interface{} {
 	if e, ok := err.(errorWrapper); ok {
 		return e.Get(key)
 	}
@@ -222,7 +221,7 @@ func ErrorStack(err error) []byte {
 
 // ErrorContext returns the context map for an error if it is a wrappedError.
 // If it is not a wrappedError it will return an empty map.
-func ErrorContext(err error) map[string]string {
+func ErrorContext(err error) map[string]interface{} {
 	if e, ok := err.(errorWrapper); ok {
 		return e.Context()
 	}
@@ -232,10 +231,10 @@ func ErrorContext(err error) map[string]string {
 type errorWrapper interface {
 	InnerError() error
 	Error() string
-	Set(string, string)
-	Get(string) string
+	Set(string, interface{})
+	Get(string) interface{}
 	Del(string)
-	Context() map[string]string
+	Context() map[string]interface{}
 	Stack() []byte
 }
 
@@ -244,7 +243,7 @@ type errorWrapper interface {
 type wrappedError struct {
 	Message string
 	stack   []byte
-	context map[string]string
+	context map[string]interface{}
 	error
 }
 
@@ -266,7 +265,7 @@ func newWrappedError(err error, message string) errorWrapper {
 	return wrappedError{
 		Message: message,
 		stack:   Stack(),
-		context: make(map[string]string),
+		context: make(map[string]interface{}),
 		error:   err,
 	}
 }
@@ -286,12 +285,12 @@ func (e wrappedError) InnerError() error {
 }
 
 // Set sets the value for the key in the context.
-func (e wrappedError) Set(key, val string) {
+func (e wrappedError) Set(key string, val interface{}) {
 	e.context[key] = val
 }
 
 // Get gets the value for a key in the context.
-func (e wrappedError) Get(key string) string {
+func (e wrappedError) Get(key string) interface{} {
 	return e.context[key]
 }
 
@@ -301,7 +300,7 @@ func (e wrappedError) Del(key string) {
 }
 
 // Context returns the underlying context.
-func (e wrappedError) Context() map[string]string {
+func (e wrappedError) Context() map[string]interface{} {
 	return e.context
 }
 
@@ -405,37 +404,25 @@ func newSmudgeError(err error, oid, filename string) error {
 
 // Definitions for IsCleanPointerError()
 
-// CleanPointerError is used to pass the Pointer and contents back up to the
+// cleanPointerError is used to pass the Pointer and contents back up to the
 // caller.
-// TODO: This should be refactored to avoid using error types in this way.
-type CleanPointerError struct {
-	pointer *Pointer
-	bytes   []byte
+type cleanPointerError struct {
 	errorWrapper
 }
 
-func (e CleanPointerError) InnerError() error {
+func (e cleanPointerError) InnerError() error {
 	return e.errorWrapper
 }
 
-func (e CleanPointerError) CleanPointerError() bool {
+func (e cleanPointerError) CleanPointerError() bool {
 	return true
 }
 
-func (e CleanPointerError) Pointer() *Pointer {
-	return e.pointer
-}
-
-func (e CleanPointerError) Bytes() []byte {
-	return e.bytes
-}
-
 func newCleanPointerError(err error, pointer *Pointer, bytes []byte) error {
-	return CleanPointerError{
-		pointer,
-		bytes,
-		newWrappedError(err, "Clean pointer error"),
-	}
+	e := cleanPointerError{newWrappedError(err, "Clean pointer error")}
+	ErrorSetContext(e, "pointer", pointer)
+	ErrorSetContext(e, "bytes", bytes)
+	return e
 }
 
 // Definitions for IsNotAPointerError()
