@@ -151,17 +151,20 @@ begin_test "fetch-recent"
   content2="filecontent2"
   content3="filecontent3"
   content4="filecontent4"
+  content5="filecontent5"
   oid0=$(printf "$content0" | shasum -a 256 | cut -f 1 -d " ")
   oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
   oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
   oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
   oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
+  oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
   
   echo "[
   {
     \"CommitDate\":\"$(get_date -18d)\",
     \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content0}, \"Data\":\"$content0\"}]
+      {\"Filename\":\"file1.dat\",\"Size\":${#content0}, \"Data\":\"$content0\"},
+      {\"Filename\":\"file3.dat\",\"Size\":${#content5}, \"Data\":\"$content5\"}]
   },
   {
     \"CommitDate\":\"$(get_date -14d)\",
@@ -202,6 +205,7 @@ begin_test "fetch-recent"
   git lfs fetch origin master
   assert_local_object "$oid2" "${#content2}"
   assert_local_object "$oid3" "${#content3}"
+  assert_local_object "$oid5" "${#content5}"
   refute_local_object "$oid0"
   refute_local_object "$oid1"
   refute_local_object "$oid4"
