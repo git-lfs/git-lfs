@@ -3,10 +3,64 @@ package lfs
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os/exec"
 	"strings"
 )
+
+// getCredsForAPI gets the credentials for LFS API requests:
+// 1. Check the LFS URL for authentication. Ex: http://user:pass@example.com
+// 2. Check the Git remote URL for authentication IF it's the same scheme and
+//    host of the LFS URL.
+// 3. Ask 'git credential' to fill in the password from one of the above URLs.
+func getCredsForAPI(req *http.Request) (Creds, error) {
+	if len(req.Header.Get("Authorization")) > 0 {
+		return nil, nil
+	}
+
+	apiUrl, err := Config.ObjectUrl("")
+	if err != nil {
+		return nil, err
+	}
+
+	if req.URL.Scheme != apiUrl.Scheme ||
+		req.URL.Host != apiUrl.Host {
+		return nil, nil
+	}
+
+	if setRequestAuthFromUrl(req, apiUrl) {
+		return nil, nil
+	}
+
+	credsUrl := apiUrl
+	if len(Config.CurrentRemote) > 0 {
+		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
+			gitRemoteUrl, err := url.Parse(u)
+			if err != nil {
+				return nil, err
+			}
+
+			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
+				gitRemoteUrl.Host == apiUrl.Host {
+
+				if setRequestAuthFromUrl(req, gitRemoteUrl) {
+					return nil, nil
+				}
+
+				credsUrl = gitRemoteUrl
+			}
+		}
+	}
+
+	creds, err := credentials(credsUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	setRequestAuth(req, creds["username"], creds["password"])
+	return creds, nil
+}
 
 type credentialFetcher interface {
 	Credentials() Creds

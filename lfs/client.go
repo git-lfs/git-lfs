@@ -381,7 +381,7 @@ func doHttpRequest(req *http.Request) (*http.Response, *WrappedError) {
 func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, *WrappedError) {
 	var creds Creds
 	if useCreds {
-		c, err := getCreds(req)
+		c, err := getCredsForAPI(req)
 		if err != nil {
 			return nil, Error(err)
 		}
@@ -537,10 +537,13 @@ func saveCredentials(creds Creds, res *http.Response) {
 		return
 	}
 
-	if res.StatusCode < 300 {
-		execCreds(creds, "approve")
-	} else if res.StatusCode == 401 {
+	switch res.StatusCode {
+	case 401, 403:
 		execCreds(creds, "reject")
+	default:
+		if res.StatusCode < 300 {
+			execCreds(creds, "approve")
+		}
 	}
 }
 
@@ -640,54 +643,6 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 	return req, nil
 }
 
-func getCreds(req *http.Request) (Creds, error) {
-	if len(req.Header.Get("Authorization")) > 0 {
-		return nil, nil
-	}
-
-	apiUrl, err := Config.ObjectUrl("")
-	if err != nil {
-		return nil, err
-	}
-
-	if req.URL.Scheme != apiUrl.Scheme ||
-		req.URL.Host != apiUrl.Host {
-		return nil, nil
-	}
-
-	if setRequestAuthFromUrl(req, apiUrl) {
-		return nil, nil
-	}
-
-	credsUrl := apiUrl
-	if len(Config.CurrentRemote) > 0 {
-		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
-			gitRemoteUrl, err := url.Parse(u)
-			if err != nil {
-				return nil, err
-			}
-
-			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
-				gitRemoteUrl.Host == apiUrl.Host {
-
-				if setRequestAuthFromUrl(req, gitRemoteUrl) {
-					return nil, nil
-				}
-
-				credsUrl = gitRemoteUrl
-			}
-		}
-	}
-
-	creds, err := credentials(credsUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	setRequestAuth(req, creds["username"], creds["password"])
-	return creds, nil
-}
-
 func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	if u.User != nil {
 		if pass, ok := u.User.Password(); ok {
@@ -701,6 +656,10 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
+	if len(user) == 0 && len(pass) == 0 {
+		return
+	}
+
 	token := fmt.Sprintf("%s:%s", user, pass)
 	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
 	req.Header.Set("Authorization", auth)

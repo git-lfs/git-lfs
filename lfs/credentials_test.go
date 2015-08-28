@@ -13,7 +13,7 @@ func TestGetCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getCreds(req)
+	creds, err := getCredsForAPI(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestGetCredentialsWithExistingAuthorization(t *testing.T) {
 
 	req.Header.Set("Authorization", "Test monkey")
 
-	creds, err := getCreds(req)
+	creds, err := getCredsForAPI(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestGetCredentialsWithSchemeMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getCreds(req)
+	creds, err := getCredsForAPI(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestGetCredentialsWithHostMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getCreds(req)
+	creds, err := getCredsForAPI(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestGetCredentialsWithPortMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getCreds(req)
+	creds, err := getCredsForAPI(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestGetCredentialsWithRfc1738UsernameAndPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	creds, err := getCreds(req)
+	creds, err := getCredsForAPI(req)
 	if err != nil {
 		t.Fatal(err)
 	}
