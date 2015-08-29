@@ -6,12 +6,14 @@ import (
 )
 
 var (
+	// uninitCmd removes any configuration and hooks set by Git LFS.
 	uninitCmd = &cobra.Command{
 		Use:   "uninit",
 		Short: "Clear the Git LFS configuration",
 		Run:   uninitCommand,
 	}
 
+	// uninitHooksCmd removes any hooks created by Git LFS.
 	uninitHooksCmd = &cobra.Command{
 		Use:   "hooks",
 		Short: "Clear only the Git hooks for the current repository",
@@ -20,7 +22,7 @@ var (
 )
 
 func uninitCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.UninstallFilters(); err != nil {
+	if err := lfs.TeardownFilters(); err != nil {
 		Error(err.Error())
 	}
 

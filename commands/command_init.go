@@ -22,7 +22,7 @@ var (
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.InstallFilters(forceInit); err != nil {
+	if err := lfs.SetupFilters(forceInit); err != nil {
 		Error(err.Error())
 		Exit("Run `git lfs init --force` to reset git config.")
 	}
