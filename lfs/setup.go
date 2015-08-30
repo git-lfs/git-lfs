@@ -20,10 +20,10 @@ var (
 	}
 
 	// cleanFilter invokes `git lfs clean` as the clean filter.
-	cleanFilter = &Filter{Name: "clean", Value: "git lfs clean %%f"}
+	cleanFilter = &Filter{Name: "clean", Value: "git-lfs clean %%f"}
 
 	// smudgeFilter invokes `git lfs smudge` as the smudge filter.
-	smudgeFilter = &Filter{Name: "smudge", Value: "git lfs smudge %%f"}
+	smudgeFilter = &Filter{Name: "smudge", Value: "git-lfs smudge %%f"}
 
 	// XXX(@ttaylorr) not sure if this makes sense as a filter? Perhaps a
 	// Settable or Attribute type may be more appropriate.
