@@ -122,11 +122,7 @@ func IsSmudgeError(err error) bool {
 	return false
 }
 
-// IsCleanPointerError indicates an error while cleaning a file. Because of the
-// structure of the code, this check also returns a *CleanPointerError because
-// that's how a Pointer and []byte were passed up to the caller. This is not
-// very clean and should be refactored. The returned *CleanPointerError MUST
-// NOT be accessed if the bool value is false.
+// IsCleanPointerError indicates an error while cleaning a file.
 func IsCleanPointerError(err error) bool {
 	if e, ok := err.(interface {
 		CleanPointerError() bool
