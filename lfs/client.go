@@ -125,8 +125,15 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 		return nil, 0, err
 	}
 	LogTransfer("lfs.data.download", res)
+	
+	buf, _ := ioutil.ReadAll(res.Body)
+	body := myReader{bytes.NewBuffer(buf)}	
 
-	return res.Body, res.ContentLength, nil
+	//We most close the body to ensure the http connection is kept alive	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	return body, res.ContentLength, nil
 }
 
 type byteCloser struct {
@@ -151,6 +158,9 @@ func DownloadCheck(oid string) (*objectResource, error) {
 	}
 
 	defer tracerx.Printf("client-willhi DownLoadCheck EXIT")
+	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
 
 	return obj, nil
 }
@@ -167,7 +177,14 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 	}
 	LogTransfer("lfs.data.download", res)
 
-	return res.Body, res.ContentLength, nil
+	buf, _ := ioutil.ReadAll(res.Body)
+	body := myReader{bytes.NewBuffer(buf)}	
+
+	//We most close the body to ensure the http connection is kept alive	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	return body, res.ContentLength, nil
 }
 
 func (b *byteCloser) Close() error {
@@ -199,7 +216,12 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	tracerx.Printf("api: batch %d files", len(objects))
 
 	res, objs, err := doApiBatchRequest(req)
+	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+	
 	if err != nil {
+	
 		if res == nil {
 			return nil, newRetriableError(err)
 		}
@@ -261,6 +283,10 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doLegacyApiRequest(req)
+	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+	
 	if err != nil {
 		if IsAuthError(err) {
 			Config.SetAccess("basic")
@@ -752,6 +778,4 @@ func ntlmHandshake(){
 	if !Config.NTLM(){
 		panic("NTLM is not enabled but an NTLM handshake was attempted")
 	}
-	
-	
 }
