@@ -14,27 +14,17 @@ var (
 		},
 	}
 
-	// hooks is a collection of all hooks to be installed by Git LFS.
 	hooks = []*Hook{
 		prePushHook,
 	}
 
-	// cleanFilter invokes `git lfs clean` as the clean filter.
-	cleanFilter = &Filter{Name: "clean", Value: "git-lfs clean %%f"}
-
-	// smudgeFilter invokes `git lfs smudge` as the smudge filter.
-	smudgeFilter = &Filter{Name: "smudge", Value: "git-lfs smudge %%f"}
-
-	// XXX(@ttaylorr) not sure if this makes sense as a filter? Perhaps a
-	// Settable or Attribute type may be more appropriate.
-
-	requireFilters = &Filter{Name: "required", Value: "true"}
-
-	// filters is a collection of all filters to be installed by Git LFS.
-	filters = Filters{
-		cleanFilter,
-		smudgeFilter,
-		requireFilters,
+	filters = &Attribute{
+		Path: "filter.lfs",
+		Properties: map[string]string{
+			"clean":    "git-lfs clean %f",
+			"smudge":   "git-lfs smudge %f",
+			"required": "true",
+		},
 	}
 )
 
@@ -68,13 +58,12 @@ func UninstallHooks() error {
 // An error will be returned if a filter is unable to be set, or if the required
 // filters were not present.
 func SetupFilters(force bool) error {
-	filters.Setup(force)
-	return nil
+	return filters.Install(force)
 }
 
 // TeardownFilters proxies into the Teardown method on the Filters type to
 // remove all installed filters.
 func TeardownFilters() error {
-	filters.Teardown()
+	filters.Uninstall()
 	return nil
 }

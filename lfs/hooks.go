@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -143,5 +144,5 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		}
 	}
 
-	return false, nil
+	return false, fmt.Errorf("Hook already exists: %s\n\n%s\n", string(h.Type), contents)
 }
