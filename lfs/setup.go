@@ -50,20 +50,20 @@ func UninstallHooks() error {
 	return nil
 }
 
-// SetupFilters installs filters necessary for git-lfs to process normal git
+// InstallFilters installs filters necessary for git-lfs to process normal git
 // operations. Currently, that list includes:
 //   - smudge filter
 //   - clean filter
 //
 // An error will be returned if a filter is unable to be set, or if the required
 // filters were not present.
-func SetupFilters(force bool) error {
+func InstallFilters(force bool) error {
 	return filters.Install(force)
 }
 
-// TeardownFilters proxies into the Teardown method on the Filters type to
+// UninstallFilters proxies into the Uninstall method on the Filters type to
 // remove all installed filters.
-func TeardownFilters() error {
+func UninstallFilters() error {
 	filters.Uninstall()
 	return nil
 }

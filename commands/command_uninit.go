@@ -22,7 +22,7 @@ var (
 )
 
 func uninitCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.TeardownFilters(); err != nil {
+	if err := lfs.UninstallFilters(); err != nil {
 		Error(err.Error())
 	}
 
