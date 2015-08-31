@@ -127,8 +127,15 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 		return nil, 0, wErr
 	}
 	LogTransfer("lfs.data.download", res)
+	
+	buf, _ := ioutil.ReadAll(res.Body)
+	body := myReader{bytes.NewBuffer(buf)}	
 
-	return res.Body, res.ContentLength, nil
+	//We most close the body to ensure the http connection is kept alive	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	return body, res.ContentLength, nil
 }
 
 type byteCloser struct {
@@ -159,6 +166,9 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 	}
 
 	defer tracerx.Printf("client-willhi DownLoadCheck EXIT")
+	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
 
 	return obj, nil
 }
@@ -175,7 +185,14 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
 	}
 	LogTransfer("lfs.data.download", res)
 
-	return res.Body, res.ContentLength, nil
+	buf, _ := ioutil.ReadAll(res.Body)
+	body := myReader{bytes.NewBuffer(buf)}	
+
+	//We most close the body to ensure the http connection is kept alive	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	return body, res.ContentLength, nil
 }
 
 func (b *byteCloser) Close() error {
@@ -206,6 +223,10 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 
 	tracerx.Printf("api: batch %d files", len(objects))
 	res, objs, wErr := doApiBatchRequest(req, creds)
+	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+	
 	if wErr != nil {
 		if res == nil {
 			return nil, wErr
@@ -262,6 +283,10 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, wErr := doApiRequest(req, creds)
+	
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+	
 	if wErr != nil {
 		return nil, wErr
 	}
@@ -808,14 +833,6 @@ func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
 			err.Set(contextKey, head.Get(key))
 		}
 	}
-}
-
-func ntlmHandshake(){
-	if !Config.NTLM(){
-		panic("NTLM is not enabled but an NTLM handshake was attempted")
-	}
-	
-	
 }
 
 type notImplError struct {

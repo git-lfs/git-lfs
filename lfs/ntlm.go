@@ -30,7 +30,7 @@ func (c *Configuration) NTLMSession() ntlm.ClientSession {
 	}
 	
 	var session, _  = ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
-	session.SetUserInfo("user","pass","northamerica")
+	session.SetUserInfo("user","pass","domain")
 	
 	c.ntlmSession = session
 	
@@ -68,9 +68,14 @@ func DoNTLMRequest(request *http.Request) (*http.Response, error) {
 
 func InitHandShake(request *http.Request) (*http.Response, error){
 	
+	tracerx.Printf("=----->A")
+	
 	var response, err = Config.HttpClient().Do(request)
+	
+	tracerx.Printf("=------B")
 		
 	if err != nil {
+		tracerx.Printf("=-------->Err %s", err.Error())
 		return nil, Error(err)
 	}
 	
@@ -145,14 +150,22 @@ func ParseChallengeMessage(response *http.Response) []byte{
 
 func cloneRequest(request *http.Request) *http.Request {
 	
-	//We need to do some magic to copy the request without closing the body stream
-	buf, _ := ioutil.ReadAll(request.Body)
-	rdr1 := myReader{bytes.NewBuffer(buf)}
-	rdr2 := myReader{bytes.NewBuffer(buf)}
-
-	request.Body = rdr2 // OK since rdr2 implements the io.ReadCloser interface	
+	var rdr1, rdr2 myReader
+	var clonedReq *http.Request
 	
-	clonedReq, _ := http.NewRequest(request.Method, request.URL.String(), rdr1)
+	if request.Body != nil {
+		//If we have a body (POST/PUT etc.
+		//We need to do some magic to copy the request without closing the body stream
+		
+		buf, _ := ioutil.ReadAll(request.Body)
+		rdr1 = myReader{bytes.NewBuffer(buf)}
+		rdr2 = myReader{bytes.NewBuffer(buf)}	
+		request.Body = rdr2 // OK since rdr2 implements the io.ReadCloser interface	
+		clonedReq, _ = http.NewRequest(request.Method, request.URL.String(), rdr1)	
+	}else{
+		clonedReq, _ = http.NewRequest(request.Method, request.URL.String(), nil)
+	}
+	
 	
 	for k, v := range request.Header {
 		clonedReq.Header.Add(k,v[0])
