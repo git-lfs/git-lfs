@@ -2,173 +2,212 @@ package lfs
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"testing"
 )
 
-func TestGetCredentialsForAPI(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
-	if err != nil {
-		t.Fatal(err)
+func TestGetCredentialsForApi(t *testing.T) {
+	checkGetCredentials(t, getCredsForAPI, []*getCredentialCheck{
+		{
+			Desc:     "simple",
+			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server.com/foo",
+			Protocol: "https",
+			Host:     "git-server.com",
+			Username: "git-server.com",
+			Password: "monkey",
+		},
+		{
+			Desc:          "auth header",
+			Config:        map[string]string{"lfs.url": "https://git-server.com"},
+			Header:        map[string]string{"Authorization": "Test monkey"},
+			Method:        "GET",
+			Href:          "https://git-server.com/foo",
+			Authorization: "Test monkey",
+		},
+		{
+			Desc:     "scheme mismatch",
+			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Method:   "GET",
+			Href:     "http://git-server.com/foo",
+			Protocol: "http",
+			Host:     "git-server.com",
+			Path:     "foo",
+			Username: "git-server.com",
+			Password: "monkey",
+		},
+		{
+			Desc:     "host mismatch",
+			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server2.com/foo",
+			Protocol: "https",
+			Host:     "git-server2.com",
+			Path:     "foo",
+			Username: "git-server2.com",
+			Password: "monkey",
+		},
+		{
+			Desc:     "port mismatch",
+			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server.com:8080/foo",
+			Protocol: "https",
+			Host:     "git-server.com:8080",
+			Path:     "foo",
+			Username: "git-server.com:8080",
+			Password: "monkey",
+		},
+		{
+			Desc:          "api url auth",
+			Config:        map[string]string{"lfs.url": "https://testuser:testpass@git-server.com"},
+			Method:        "GET",
+			Href:          "https://git-server.com/foo",
+			Authorization: "Basic " + base64.URLEncoding.EncodeToString([]byte("testuser:testpass")),
+		},
+		{
+			Desc:          "git url auth",
+			CurrentRemote: "origin",
+			Config: map[string]string{
+				"lfs.url":           "https://git-server.com",
+				"remote.origin.url": "https://gituser:gitpass@git-server.com",
+			},
+			Method:        "GET",
+			Href:          "https://git-server.com/foo",
+			Authorization: "Basic " + base64.URLEncoding.EncodeToString([]byte("gituser:gitpass")),
+		},
+	})
+}
+
+func TestGetCredentials(t *testing.T) {
+	checks := []*getCredentialCheck{
+		{
+			Desc:     "git server",
+			Method:   "GET",
+			Href:     "https://git-server.com/foo",
+			Protocol: "https",
+			Host:     "git-server.com",
+			Username: "git-server.com",
+			Password: "monkey",
+		},
+		{
+			Desc:     "separate lfs server",
+			Method:   "GET",
+			Href:     "https://lfs-server.com/foo",
+			Protocol: "https",
+			Host:     "lfs-server.com",
+			Username: "lfs-server.com",
+			Password: "monkey",
+		},
 	}
 
-	creds, err := getCredsForAPI(req)
-	if err != nil {
-		t.Fatal(err)
+	// these properties should not change the outcome
+	for _, check := range checks {
+		check.CurrentRemote = "origin"
+		check.Config = map[string]string{
+			"lfs.url":           "https://testuser:testuser@git-server.com",
+			"remote.origin.url": "https://gituser:gitpass@git-server.com",
+		}
 	}
 
-	if value := creds["username"]; value != "lfs-server.com" {
-		t.Errorf("bad username: %s", value)
-	}
+	checkGetCredentials(t, getCreds, checks)
+}
 
-	if value := creds["password"]; value != "monkey" {
-		t.Errorf("bad password: %s", value)
-	}
+func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, error), checks []*getCredentialCheck) {
+	existingRemote := Config.CurrentRemote
+	for _, check := range checks {
+		t.Logf("Checking %q", check.Desc)
+		Config.CurrentRemote = check.CurrentRemote
 
-	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:monkey"))
-	if value := req.Header.Get("Authorization"); value != expected {
-		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
+		for key, value := range check.Config {
+			Config.SetConfig(key, value)
+		}
+
+		req, err := http.NewRequest(check.Method, check.Href, nil)
+		if err != nil {
+			t.Errorf("[%s] %s", check.Desc, err)
+			continue
+		}
+
+		for key, value := range check.Header {
+			req.Header.Set(key, value)
+		}
+
+		creds, err := getCredsFunc(req)
+		if err != nil {
+			t.Errorf("[%s] %s", check.Desc, err)
+			continue
+		}
+
+		if check.ExpectCreds() {
+			if creds == nil {
+				t.Errorf("[%s], no credentials returned", check.Desc)
+				continue
+			}
+
+			if value := creds["protocol"]; len(check.Protocol) > 0 && value != check.Protocol {
+				t.Errorf("[%s] bad protocol: %q, expected: %q", check.Desc, value, check.Protocol)
+			}
+
+			if value := creds["host"]; len(check.Host) > 0 && value != check.Host {
+				t.Errorf("[%s] bad host: %q, expected: %q", check.Desc, value, check.Host)
+			}
+
+			if value := creds["username"]; len(check.Username) > 0 && value != check.Username {
+				t.Errorf("[%s] bad username: %q, expected: %q", check.Desc, value, check.Username)
+			}
+
+			if value := creds["password"]; len(check.Password) > 0 && value != check.Password {
+				t.Errorf("[%s] bad password: %q, expected: %q", check.Desc, value, check.Password)
+			}
+
+			if value := creds["path"]; len(check.Path) > 0 && value != check.Path {
+				t.Errorf("[%s] bad path: %q, expected: %q", check.Desc, value, check.Path)
+			}
+		} else {
+			if creds != nil {
+				t.Errorf("[%s], unexpected credentials: %v // %v", check.Desc, creds, check)
+				continue
+			}
+		}
+
+		if len(check.Authorization) > 0 {
+			if actual := req.Header.Get("Authorization"); actual != check.Authorization {
+				t.Errorf("[%s] Unexpected Authorization header: %s", check.Desc, actual)
+			}
+		} else {
+			rawtoken := fmt.Sprintf("%s:%s", check.Username, check.Password)
+			expected := "Basic " + base64.URLEncoding.EncodeToString([]byte(rawtoken))
+			if value := req.Header.Get("Authorization"); value != expected {
+				t.Errorf("[%s] Bad Authorization. Expected '%s', got '%s'", check.Desc, expected, value)
+			}
+		}
+
+		Config.ResetConfig()
+		Config.CurrentRemote = existingRemote
 	}
 }
 
-func TestGetCredentialsForAPIWithExistingAuthorization(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	req, err := http.NewRequest("GET", "http://lfs-server.com/foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req.Header.Set("Authorization", "Test monkey")
-
-	creds, err := getCredsForAPI(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if creds != nil {
-		t.Errorf("Unexpected creds: %v", creds)
-	}
-
-	if actual := req.Header.Get("Authorization"); actual != "Test monkey" {
-		t.Errorf("Unexpected Authorization header: %s", actual)
-	}
+type getCredentialCheck struct {
+	Desc          string
+	Config        map[string]string
+	Header        map[string]string
+	Method        string
+	Href          string
+	Protocol      string
+	Host          string
+	Username      string
+	Password      string
+	Path          string
+	Authorization string
+	CurrentRemote string
 }
 
-func TestGetCredentialsForAPIWithSchemeMismatch(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	req, err := http.NewRequest("GET", "http://lfs-server.com/foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	creds, err := getCredsForAPI(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if creds == nil {
-		t.Fatalf("no credentials returned")
-	}
-
-	if v := creds["protocol"]; v != "http" {
-		t.Errorf("Invalid protocol: %q", v)
-	}
-
-	if v := creds["host"]; v != "lfs-server.com" {
-		t.Errorf("Invalid host: %q", v)
-	}
-
-	if v := creds["path"]; v != "foo" {
-		t.Errorf("Invalid path: %q", v)
-	}
-
-	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:monkey"))
-	if value := req.Header.Get("Authorization"); value != expected {
-		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
-	}
-}
-
-func TestGetCredentialsForAPIWithHostMismatch(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	req, err := http.NewRequest("GET", "https://lfs-server2.com/foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	creds, err := getCredsForAPI(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if v := creds["protocol"]; v != "https" {
-		t.Errorf("Invalid protocol: %q", v)
-	}
-
-	if v := creds["host"]; v != "lfs-server2.com" {
-		t.Errorf("Invalid host: %q", v)
-	}
-
-	if v := creds["path"]; v != "foo" {
-		t.Errorf("Invalid path: %q", v)
-	}
-
-	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server2.com:monkey"))
-	if value := req.Header.Get("Authorization"); value != expected {
-		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
-	}
-}
-
-func TestGetCredentialsForAPIWithPortMismatch(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://lfs-server.com")
-	req, err := http.NewRequest("GET", "https://lfs-server.com:8080/foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	creds, err := getCredsForAPI(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if v := creds["protocol"]; v != "https" {
-		t.Errorf("Invalid protocol: %q", v)
-	}
-
-	if v := creds["host"]; v != "lfs-server.com:8080" {
-		t.Errorf("Invalid host: %q", v)
-	}
-
-	if v := creds["path"]; v != "foo" {
-		t.Errorf("Invalid path: %q", v)
-	}
-
-	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("lfs-server.com:8080:monkey"))
-	if value := req.Header.Get("Authorization"); value != expected {
-		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
-	}
-}
-
-func TestGetCredentialsForAPIWithRfc1738UsernameAndPassword(t *testing.T) {
-	Config.SetConfig("lfs.url", "https://testuser:testpass@lfs-server.com")
-	req, err := http.NewRequest("GET", "https://lfs-server.com/foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	creds, err := getCredsForAPI(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if creds != nil {
-		t.Errorf("unexpected creds: %v", creds)
-	}
-
-	expected := "Basic " + base64.URLEncoding.EncodeToString([]byte("testuser:testpass"))
-	if value := req.Header.Get("Authorization"); value != expected {
-		t.Errorf("Bad Authorization. Expected '%s', got '%s'", expected, value)
-	}
+func (c *getCredentialCheck) ExpectCreds() bool {
+	return len(c.Protocol) > 0 || len(c.Host) > 0 || len(c.Username) > 0 ||
+		len(c.Password) > 0 || len(c.Path) > 0
 }
 
 func init() {

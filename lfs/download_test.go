@@ -83,6 +83,7 @@ func TestSuccessfulDownload(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, wErr := Download("oid")
 	if wErr != nil {
@@ -211,6 +212,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
@@ -316,6 +318,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, wErr := Download("oid")
 	if wErr != nil {
@@ -415,6 +418,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, wErr := Download("oid")
 	if wErr != nil {
@@ -545,6 +549,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	for _, redirect := range redirectCodes {
@@ -581,6 +586,7 @@ func TestDownloadAPIError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	_, _, wErr := Download("oid")
 	if wErr == nil {
@@ -648,6 +654,7 @@ func TestDownloadStorageError(t *testing.T) {
 		w.WriteHeader(500)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	_, _, wErr := Download("oid")
 	if wErr == nil {

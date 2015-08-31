@@ -47,7 +47,7 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 	}
 
 	creds, err := fillCredentials(credsUrl)
-	if err != nil {
+	if err != nil || creds == nil {
 		return nil, err
 	}
 
