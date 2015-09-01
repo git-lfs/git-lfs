@@ -164,12 +164,12 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 
 	fmt.Fprintln(w, loggedError.Error())
 
-	if wErr, ok := loggedError.(ErrorWithStack); ok {
-		fmt.Fprintln(w, wErr.InnerError())
-		for key, value := range wErr.Context() {
+	if err, ok := loggedError.(ErrorWithStack); ok {
+		fmt.Fprintln(w, err.InnerError())
+		for key, value := range err.Context() {
 			fmt.Fprintf(w, "%s=%s\n", key, value)
 		}
-		w.Write(wErr.Stack())
+		w.Write(err.Stack())
 	} else {
 		w.Write(lfs.Stack())
 	}

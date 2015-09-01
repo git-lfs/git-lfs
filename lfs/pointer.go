@@ -25,8 +25,6 @@ var (
 	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
 	extRE       = regexp.MustCompile(`\Aext-\d{1}-\w+`)
 	pointerKeys = []string{"version", "oid", "size"}
-
-	NotAPointerError = errors.New("Not a valid Git LFS pointer file.")
 )
 
 type Pointer struct {
@@ -89,7 +87,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	if stat.Size() > blobSizeCutoff {
-		return nil, NotAPointerError
+		return nil, newNotAPointerError(nil)
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
@@ -156,7 +154,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 		return nil, fmt.Errorf("Invalid size: %q", value)
 	}
 
-	extensions := make([]*PointerExtension, 0, len(exts))
+	var extensions []*PointerExtension
 	if exts != nil {
 		for key, value := range exts {
 			ext, err := parsePointerExtension(key, value)
@@ -225,7 +223,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 	kvps = make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		err = NotAPointerError
+		err = newNotAPointerError(err)
 		return
 	}
 

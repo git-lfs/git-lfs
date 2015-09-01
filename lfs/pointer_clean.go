@@ -13,15 +13,6 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-type CleanedPointerError struct {
-	Pointer *Pointer
-	Bytes   []byte
-}
-
-func (e *CleanedPointerError) Error() string {
-	return "Cannot clean a Git LFS pointer.  Skipping."
-}
-
 func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCallback) (*cleanedAsset, error) {
 	extensions, err := SortExtensions(Config.Extensions())
 	if err != nil {
@@ -82,7 +73,7 @@ func copyToTemp(reader io.Reader, fileSize int64, cb CopyCallback) (oid string, 
 
 	by, ptr, err := DecodeFrom(reader)
 	if err == nil && len(by) < 512 {
-		err = &CleanedPointerError{ptr, by}
+		err = newCleanPointerError(err, ptr, by)
 		return
 	}
 

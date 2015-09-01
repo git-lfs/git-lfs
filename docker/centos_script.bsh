@@ -62,8 +62,15 @@ if [ -s /tmp/*.key ]; then
   find ${REPO_DIR} -name \*.rpm | xargs /tmp/rpm_sign.exp
 fi
 
-createrepo ${REPO_DIR}/SRPMS
-createrepo ${REPO_DIR}/RPMS
+#Patch for http://createrepo.baseurl.org/gitweb?p=createrepo.git;a=commitdiff;h=c5a292f58aa81ab2d8c5485455adfd3d0ac65aea
+#Has been patched in fedora 22, but not centos 5-7 :(
+#Which affects virtual box in windows, probably is CIFS underneath the hood
+mv ${REPO_DIR}/SRPMS /tmp/SRPMS
+mv ${REPO_DIR}/RPMS /tmp/RPMS
+createrepo /tmp/SRPMS
+createrepo /tmp/RPMS
+mv /tmp/SRPMS ${REPO_DIR}/SRPMS
+mv /tmp/RPMS ${REPO_DIR}/RPMS
 
 if [ "${FINAL_UID-}:${FINAL_GID-}" != ":" ]; then
   chown ${FINAL_UID-}:${FINAL_GID-} -R /repo

@@ -10,11 +10,11 @@ func NewDownloadCheckable(p *WrappedPointer) *DownloadCheckable {
 	return &DownloadCheckable{Pointer: p}
 }
 
-func (d *DownloadCheckable) Check() (*objectResource, *WrappedError) {
+func (d *DownloadCheckable) Check() (*objectResource, error) {
 	return DownloadCheck(d.Pointer.Oid)
 }
 
-func (d *DownloadCheckable) Transfer(cb CopyCallback) *WrappedError {
+func (d *DownloadCheckable) Transfer(cb CopyCallback) error {
 	// just report completion of check but don't do anything
 	cb(d.Size(), d.Size(), int(d.Size()))
 	return nil
@@ -57,7 +57,7 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 	return &Downloadable{DownloadCheckable: NewDownloadCheckable(p)}
 }
 
-func (d *Downloadable) Transfer(cb CopyCallback) *WrappedError {
+func (d *Downloadable) Transfer(cb CopyCallback) error {
 	err := PointerSmudgeObject(d.Pointer.Pointer, d.object, cb)
 	if err != nil {
 		return Error(err)

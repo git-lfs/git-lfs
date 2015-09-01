@@ -13,8 +13,8 @@ const (
 )
 
 type Transferable interface {
-	Check() (*objectResource, *WrappedError)
-	Transfer(CopyCallback) *WrappedError
+	Check() (*objectResource, error)
+	Transfer(CopyCallback) error
 	Object() *objectResource
 	Oid() string
 	Size() int64
@@ -27,12 +27,12 @@ type TransferQueue struct {
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
-	errors        []*WrappedError
+	errors        []error
 	transferables map[string]Transferable
 	batcher       *Batcher
-	apic          chan Transferable  // Channel for processing individual API requests
-	transferc     chan Transferable  // Channel for processing transfers
-	errorc        chan *WrappedError // Channel for processing errors
+	apic          chan Transferable // Channel for processing individual API requests
+	transferc     chan Transferable // Channel for processing transfers
+	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
 	wait          sync.WaitGroup
 	retries       map[string]interface{}
@@ -45,7 +45,7 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
-		errorc:        make(chan *WrappedError),
+		errorc:        make(chan error),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		retries:       make(map[string]interface{}),
@@ -180,13 +180,14 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		objects, err := Batch(transfers, q.transferKind)
 		if err != nil {
-			if isNotImplError(err) {
+			if IsNotImplementedError(err) {
 				configFile := filepath.Join(LocalGitDir, "config")
 				git.Config.SetLocal(configFile, "lfs.batch", "false")
 
 				go q.legacyFallback(batch)
 				return
 			}
+
 			// TODO technically, this could go forever. Maybe we just limit it to n batch retries total.
 			if q.canRetry(err, "batch") {
 				tracerx.Printf("tq: resubmitting batch: %s", err)
@@ -197,6 +198,7 @@ func (q *TransferQueue) batchApiRoutine() {
 				tracerx.Printf("Too many batch failures, erroring")
 				q.errorc <- err
 			}
+
 			q.wait.Add(-len(transfers))
 			continue
 		}
@@ -302,10 +304,12 @@ func (q *TransferQueue) run() {
 	}
 }
 
-func (q *TransferQueue) canRetry(err *WrappedError, id string) bool {
-	if !isRetriableError(err) {
-		return false
-	}
+func (q *TransferQueue) canRetry(err error, id string) bool {
+	/*
+		if !isRetriableError(err) {
+			return false
+		}
+	*/
 
 	defer q.retrylock.Unlock()
 	q.retrylock.Lock()
@@ -318,6 +322,6 @@ func (q *TransferQueue) canRetry(err *WrappedError, id string) bool {
 }
 
 // Errors returns any errors encountered during transfer.
-func (q *TransferQueue) Errors() []*WrappedError {
+func (q *TransferQueue) Errors() []error {
 	return q.errors
 }
