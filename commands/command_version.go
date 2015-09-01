@@ -16,7 +16,6 @@ var (
 
 func versionCommand(cmd *cobra.Command, args []string) {
 	Print(lfs.UserAgent)
-	Print("Bazooka")
 
 	if lovesComics {
 		Print("Nothing may see Gah Lak Tus and survive!")

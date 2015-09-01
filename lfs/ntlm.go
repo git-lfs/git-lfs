@@ -37,14 +37,9 @@ func (c *Configuration) NTLMSession() ntlm.ClientSession {
 	return session
 }
 
-func DoNTLMRequest(request *http.Request) (*http.Response, error) {
-			
-	tracerx.Printf("DoNTLMRequest ENTER")
-	defer tracerx.Printf("DoNTLMRequest LEAVE")
-			
+func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
+				
 	if !Config.NTLM() {
-		tracerx.Printf("DoNTLMRequest ntlm is not enabled")
-		
 		return nil, Error(fmt.Errorf("NTLM is not enabled"))
 	}			
 			
@@ -60,6 +55,11 @@ func DoNTLMRequest(request *http.Request) (*http.Response, error) {
 		challengeReq := cloneRequest(request)
 		res, nil := Challenge(challengeReq, challengeMessage)
 		
+		//If the status is 401 then we need to re-authenticate
+		if res.StatusCode == 401 && retry == true {
+			return DoNTLMRequest(challengeReq, false)
+		}
+		
 		return res, nil			
 	}
 	
@@ -68,14 +68,9 @@ func DoNTLMRequest(request *http.Request) (*http.Response, error) {
 
 func InitHandShake(request *http.Request) (*http.Response, error){
 	
-	tracerx.Printf("=----->A")
-	
 	var response, err = Config.HttpClient().Do(request)
 	
-	tracerx.Printf("=------B")
-		
 	if err != nil {
-		tracerx.Printf("=-------->Err %s", err.Error())
 		return nil, Error(err)
 	}
 	
@@ -117,31 +112,25 @@ func Challenge(request *http.Request, challengeBytes []byte) (*http.Response, er
 		return nil, Error(err)
 	}
 	
-	authenticateMessage := string(Concat([]byte("NTLM "), []byte(base64.StdEncoding.EncodeToString(authenticate.Bytes()))))
+	authenticateMessage := ConcatS("NTLM ", base64.StdEncoding.EncodeToString(authenticate.Bytes()))
 	
 	request.Header.Add("Authorization", authenticateMessage)
 	response, err := Config.HttpClient().Do(request)
 	
-	//io.Copy(ioutil.Discard, response.Body)
-	//response.Body.Close()
-	
 	return response, nil
 }
 
-// get the bytes for the Type2 message
 func ParseChallengeMessage(response *http.Response) []byte{
 	
 	if headers, ok := response.Header["Www-Authenticate"]; ok{
 		
-		//parse out the "NTLM " at the beginning of the resposne
+		//parse out the "NTLM " at the beginning of the response
 		challenge := headers[0][5:]
-		
 		val, err := base64.StdEncoding.DecodeString(challenge)
 		
 		if err != nil{
-			tracerx.Printf("ntlm: ParseChallengeMessage Error %s", err.Error())
+			panic(err.Error())
 		}
-		
 		return []byte(val)
 	}
 	
@@ -154,7 +143,7 @@ func cloneRequest(request *http.Request) *http.Request {
 	var clonedReq *http.Request
 	
 	if request.Body != nil {
-		//If we have a body (POST/PUT etc.
+		//If we have a body (POST/PUT etc.)
 		//We need to do some magic to copy the request without closing the body stream
 		
 		buf, _ := ioutil.ReadAll(request.Body)
@@ -165,7 +154,6 @@ func cloneRequest(request *http.Request) *http.Request {
 	}else{
 		clonedReq, _ = http.NewRequest(request.Method, request.URL.String(), nil)
 	}
-	
 	
 	for k, v := range request.Header {
 		clonedReq.Header.Add(k,v[0])

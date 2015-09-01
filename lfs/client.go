@@ -467,7 +467,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	
 	if Config.NTLM() {
 		tracerx.Printf("client: NTLM Request")		
-		res, err = DoNTLMRequest(req)			
+		res, err = DoNTLMRequest(req, true)			
 	} else {	
 		res, err = Config.HttpClient().Do(req)
 	}

@@ -129,12 +129,8 @@ func (q *TransferQueue) Watch() chan string {
 // sequential nature here is only for the meta POST calls.
 func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
-		
-		tracerx.Printf("tq-willhi: Name- %s", t.Name())
-		
 		obj, err := t.Check()
-		if err != nil {
-		
+		if err != nil {`
 			tracerx.Printf("tq-willhi: t.Check() failed %s", t.Check)
 		
 			if q.canRetry(err) {
@@ -146,8 +142,6 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			continue
 		}
 		
-		tracerx.Printf("tq-willhi: t.Check() Passed")
-
 		if apiWaiter != nil { // Signal to launch more individual api workers
 			q.meter.Start()
 			select {
@@ -161,11 +155,6 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			q.meter.Add(t.Name())
 			q.transferc <- t
 		} else {
-			tracerx.Printf("tq-willhi: SKIPPING T-----------------")
-			tracerx.Printf("tq-willhi: name %s", t.Name())
-			tracerx.Printf("tq-willhi: oid %s", t.Oid())
-			tracerx.Printf("tq-willhi: size T%d", t.Size())
-			tracerx.Printf("tq-willhi: ------------------------")
 			q.meter.Skip(t.Size())
 			q.wait.Done()
 		}
@@ -255,12 +244,10 @@ func (q *TransferQueue) batchApiRoutine() {
 					q.meter.Add(transfer.Name())
 					q.transferc <- transfer
 				} else {
-					tracerx.Printf("tq-willhi: SKIPPING OBJECT DUE TO NOT IN QUEUE")
 					q.meter.Skip(transfer.Size())
 					q.wait.Done()
 				}
 			} else {
-				tracerx.Printf("tq-willhi: SKIPPING OBJECT DUE TO BAD XFER KIND")
 				q.meter.Skip(o.Size)
 				q.wait.Done()
 			}
