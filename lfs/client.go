@@ -184,7 +184,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		return nil, Error(err)
 	}
 
-	req, err := newBatchApiRequest()
+	req, err := newBatchApiRequest(operation)
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -613,13 +613,13 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 	return req, nil
 }
 
-func newBatchApiRequest() (*http.Request, error) {
+func newBatchApiRequest(operation string) (*http.Request, error) {
 	endpoint := Config.Endpoint()
 
-	res, err := sshAuthenticate(endpoint, "download", "")
+	res, err := sshAuthenticate(endpoint, operation, "")
 	if err != nil {
-		tracerx.Printf("ssh: attempted with %s.  Error: %s",
-			endpoint.SshUserAndHost, err.Error(),
+		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
+			operation, endpoint.SshUserAndHost, err.Error(),
 		)
 	}
 
