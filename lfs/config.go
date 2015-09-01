@@ -166,7 +166,7 @@ func (c *Configuration) SetAccess(authType AuthType) {
 
 func (c *Configuration) EndpointAccess(e Endpoint) AuthType {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
-	if v, ok := c.GitConfig(key); ok {
+	if v, ok := c.GitConfig(key); ok && len(v) > 0 {
 		return AuthType(strings.ToLower(v))
 	}
 	return AuthTypeNone
