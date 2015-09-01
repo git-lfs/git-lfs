@@ -156,17 +156,25 @@ func (c *Configuration) PrivateAccess() bool {
 
 // Access returns the access auth type.
 func (c *Configuration) Access() AuthType {
-	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
+	return c.EndpointAccess(c.Endpoint())
+}
+
+// SetAccess will set the private access flag in .git/config.
+func (c *Configuration) SetAccess(authType AuthType) {
+	c.SetEndpointAccess(c.Endpoint(), authType)
+}
+
+func (c *Configuration) EndpointAccess(e Endpoint) AuthType {
+	key := fmt.Sprintf("lfs.%s.access", e.Url)
 	if v, ok := c.GitConfig(key); ok {
 		return AuthType(strings.ToLower(v))
 	}
 	return AuthTypeNone
 }
 
-// SetAccess will set the private access flag in .git/config.
-func (c *Configuration) SetAccess(authType AuthType) {
+func (c *Configuration) SetEndpointAccess(e Endpoint, authType AuthType) {
 	tracerx.Printf("setting repository access to %s", authType)
-	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
+	key := fmt.Sprintf("lfs.%s.access", e.Url)
 	configFile := filepath.Join(LocalGitDir, "config")
 
 	// Modify the config cache because it's checked again in this process
