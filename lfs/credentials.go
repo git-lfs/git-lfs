@@ -19,7 +19,7 @@ func getCreds(req *http.Request) (Creds, error) {
 
 	creds, err := fillCredentials(req.URL)
 	if err != nil {
-		return nil, err
+		return nil, Error(err)
 	}
 
 	setRequestAuth(req, creds["username"], creds["password"])
@@ -42,16 +42,23 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 	}
 
 	credsUrl, err := getCredURLForAPI(req)
-	if err != nil || credsUrl == nil {
-		return nil, err
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	if credsUrl == nil {
+		return nil, nil
 	}
 
 	creds, err := fillCredentials(credsUrl)
-	if err != nil || creds == nil {
-		return nil, err
+	if err != nil {
+		return nil, Error(err)
 	}
 
-	setRequestAuth(req, creds["username"], creds["password"])
+	if creds != nil {
+		setRequestAuth(req, creds["username"], creds["password"])
+	}
+
 	return creds, nil
 }
 

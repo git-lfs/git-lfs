@@ -396,7 +396,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, er
 func doStorageRequest(req *http.Request) (*http.Response, error) {
 	creds, err := getCreds(req)
 	if err != nil {
-		return nil, Error(err)
+		return nil, err
 	}
 
 	return doHttpRequest(req, creds)
@@ -450,7 +450,7 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 	if useCreds {
 		c, err := getCredsForAPI(req)
 		if err != nil {
-			return nil, Error(err)
+			return nil, err
 		}
 		creds = c
 	}
