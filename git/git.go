@@ -2,15 +2,35 @@
 package git
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
+
+type RefType int
+
+const (
+	RefTypeLocalBranch  = RefType(iota)
+	RefTypeRemoteBranch = RefType(iota)
+	RefTypeLocalTag     = RefType(iota)
+	RefTypeRemoteTag    = RefType(iota)
+	RefTypeHEAD         = RefType(iota) // current checkout
+	RefTypeOther        = RefType(iota) // stash or unknown
+)
+
+// A git reference (branch, tag etc)
+type Ref struct {
+	Name string
+	Type RefType
+	Sha  string
+}
 
 // Some top level information about a commit (only first line of message)
 type CommitSummary struct {
@@ -37,11 +57,19 @@ func LsRemote(remote, remoteRef string) (string, error) {
 	return simpleExec("git", "ls-remote", remote, remoteRef)
 }
 
-func ResolveRef(ref string) (string, error) {
-	return simpleExec("git", "rev-parse", ref)
+func ResolveRef(ref string) (*Ref, error) {
+
+	outp, err := simpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(outp, "\n")
+	fullref := &Ref{Sha: lines[0]}
+	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
+	return fullref, nil
 }
 
-func CurrentRef() (string, error) {
+func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
@@ -49,10 +77,10 @@ func CurrentBranch() (string, error) {
 	return simpleExec("git", "rev-parse", "--abbrev-ref", "HEAD")
 }
 
-func CurrentRemoteRef() (string, error) {
+func CurrentRemoteRef() (*Ref, error) {
 	remote, err := CurrentRemote()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return ResolveRef(remote)
@@ -148,6 +176,93 @@ func simpleExec(name string, args ...string) (string, error) {
 	}
 
 	return strings.Trim(string(output), " \n"), nil
+}
+
+// RecentBranches returns branches with commit dates on or after the given date/time
+// Return full Ref type for easier detection of duplicate SHAs etc
+// since: refs with commits on or after this date will be included
+// includeRemoteBranches: true to include refs on remote branches
+// onlyRemote: set to non-blank to only include remote branches on a single remote
+func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
+	cmd := execCommand("git", "for-each-ref",
+		`--sort=-committerdate`,
+		`--format=%(refname) %(objectname) %(committerdate:iso)`,
+		"refs")
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+
+	// Output is like this:
+	// refs/heads/master f03686b324b29ff480591745dbfbbfa5e5ac1bd5 2015-08-19 16:50:37 +0100
+	// refs/remotes/origin/master ad3b29b773e46ad6870fdf08796c33d97190fe93 2015-08-13 16:50:37 +0100
+
+	// Output is ordered by latest commit date first, so we can stop at the threshold
+	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`)
+
+	var ret []*Ref
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := regex.FindStringSubmatch(line); match != nil {
+			fullref := match[1]
+			sha := match[2]
+			reftype, ref := ParseRefToTypeAndName(fullref)
+			if reftype == RefTypeRemoteBranch || reftype == RefTypeRemoteTag {
+				if !includeRemoteBranches {
+					continue
+				}
+				if onlyRemote != "" && !strings.HasPrefix(ref, onlyRemote+"/") {
+					continue
+				}
+			}
+			// This is a ref we might use
+			// Check the date
+			commitDate, err := ParseGitDate(match[3])
+			if err != nil {
+				return ret, err
+			}
+			if commitDate.Before(since) {
+				// the end
+				break
+			}
+			ret = append(ret, &Ref{ref, reftype, sha})
+		}
+	}
+	cmd.Wait()
+
+	return ret, nil
+
+}
+
+// Get the type & name of a git reference
+func ParseRefToTypeAndName(fullref string) (t RefType, name string) {
+	const localPrefix = "refs/heads/"
+	const remotePrefix = "refs/remotes/"
+	const remoteTagPrefix = "refs/remotes/tags/"
+	const localTagPrefix = "refs/tags/"
+
+	if fullref == "HEAD" {
+		name = fullref
+		t = RefTypeHEAD
+	} else if strings.HasPrefix(fullref, localPrefix) {
+		name = fullref[len(localPrefix):]
+		t = RefTypeLocalBranch
+	} else if strings.HasPrefix(fullref, remotePrefix) {
+		name = fullref[len(remotePrefix):]
+		t = RefTypeRemoteBranch
+	} else if strings.HasPrefix(fullref, remoteTagPrefix) {
+		name = fullref[len(remoteTagPrefix):]
+		t = RefTypeRemoteTag
+	} else if strings.HasPrefix(fullref, localTagPrefix) {
+		name = fullref[len(localTagPrefix):]
+		t = RefTypeLocalTag
+	} else {
+		name = fullref
+		t = RefTypeOther
+	}
+	return
 }
 
 // Parse a Git date formatted in ISO 8601 format (%ci/%ai)

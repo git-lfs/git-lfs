@@ -63,12 +63,12 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 
 		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
 
-		u, wErr := lfs.NewUploadable(pointer.Oid, pointer.Name)
-		if wErr != nil {
-			if Debugging || wErr.Panic {
-				Panic(wErr.Err, wErr.Error())
+		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
+		if err != nil {
+			if Debugging || lfs.IsFatalError(err) {
+				Panic(err, err.Error())
 			} else {
-				Exit(wErr.Error())
+				Exit(err.Error())
 			}
 		}
 		uploadQueue.Add(u)
@@ -88,12 +88,12 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 		}
 		tracerx.Printf("prepare upload: %s %d/%d", oid, i+1, len(oids))
 
-		u, wErr := lfs.NewUploadable(oid, "")
-		if wErr != nil {
-			if Debugging || wErr.Panic {
-				Panic(wErr.Err, wErr.Error())
+		u, err := lfs.NewUploadable(oid, "")
+		if err != nil {
+			if Debugging || lfs.IsFatalError(err) {
+				Panic(err, err.Error())
 			} else {
-				Exit(wErr.Error())
+				Exit(err.Error())
 			}
 		}
 		uploads = append(uploads, u)
@@ -174,7 +174,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			if err != nil {
 				Panic(err, "Error getting local ref")
 			}
-			ref = localRef
+			ref = localRef.Sha
 		}
 
 		uploadQueue = uploadsBetweenRefAndRemote(ref, remote)
@@ -183,8 +183,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	if !pushDryRun {
 		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
-			if Debugging || err.Panic {
-				LoggedError(err.Err, err.Error())
+			if Debugging || lfs.IsFatalError(err) {
+				LoggedError(err, err.Error())
 			} else {
 				Error(err.Error())
 			}

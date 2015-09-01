@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"regexp"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -565,6 +567,27 @@ func ScanUnpushed() ([]*WrappedPointer, error) {
 	return pointers, nil
 }
 
+// ScanPreviousVersions scans changes reachable from ref (commit) back to since.
+// Returns pointers for *previous* versions that overlap that time. Does not
+// return pointers which were still in use at ref (use ScanRef for that)
+func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error) {
+	start := time.Now()
+	defer func() {
+		tracerx.PerformanceSince("scan", start)
+	}()
+
+	pointerchan, err := logPreviousSHAs(ref, since)
+	if err != nil {
+		return nil, err
+	}
+	pointers := make([]*WrappedPointer, 0, 10)
+	for p := range pointerchan {
+		pointers = append(pointers, p)
+	}
+	return pointers, nil
+
+}
+
 // logUnpushedSHAs scans history for all LFS pointers which have been added but not pushed to any remote,
 // return progressively in a channel
 func logUnpushedSHAs() (chan *WrappedPointer, error) {
@@ -585,6 +608,35 @@ func logUnpushedSHAs() (chan *WrappedPointer, error) {
 	pchan := make(chan *WrappedPointer, chanBufSize)
 
 	go parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+
+	return pchan, nil
+
+}
+
+// logPreviousVersions scans history for all previous versions of LFS pointers
+// from 'since' up to (but not including) the final state at ref
+func logPreviousSHAs(ref string, since time.Time) (chan *WrappedPointer, error) {
+	logArgs := []string{"log",
+		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
+	}
+	// Add standard search args to find lfs references
+	logArgs = append(logArgs, logLfsSearchArgs...)
+	// ending at ref
+	logArgs = append(logArgs, ref)
+
+	cmd, err := startCommand("git", logArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin.Close()
+
+	pchan := make(chan *WrappedPointer, chanBufSize)
+
+	// we pull out deletions, since we want the previous SHAs at commits in the range
+	// this means we pick up all previous versions that could have been checked
+	// out in the date range, not just if the commit which *introduced* them is in the range
+	go parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
 
 	return pchan, nil
 

@@ -5,7 +5,9 @@ package lfs_test // to avoid import cycles
 // which avoids import cycles with testutils
 
 import (
+	"sort"
 	"testing"
+	"time"
 
 	. "github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
@@ -72,5 +74,85 @@ func TestScanUnpushed(t *testing.T) {
 	pointers, err = ScanUnpushed()
 	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
 	assert.Equal(t, 0, len(pointers), "Should be 0 pointers unpushed")
+
+}
+
+func TestScanPreviousVersions(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	now := time.Now()
+
+	inputs := []*test.CommitInput{
+		{ // 0
+			CommitDate: now.AddDate(0, 0, -20),
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+				{Filename: "file2.txt", Size: 30},
+				{Filename: "folder/nested.txt", Size: 40},
+				{Filename: "folder/nested2.txt", Size: 31},
+			},
+		},
+		{ // 1
+			CommitDate: now.AddDate(0, 0, -10),
+			Files: []*test.FileInput{
+				{Filename: "file2.txt", Size: 22},
+			},
+		},
+		{ // 2
+			NewBranch:  "excluded",
+			CommitDate: now.AddDate(0, 0, -6),
+			Files: []*test.FileInput{
+				{Filename: "file2.txt", Size: 12},
+				{Filename: "folder/nested2.txt", Size: 16},
+			},
+		},
+		{ // 3
+			ParentBranches: []string{"master"},
+			CommitDate:     now.AddDate(0, 0, -4),
+			Files: []*test.FileInput{
+				{Filename: "folder/nested.txt", Size: 42},
+				{Filename: "folder/nested2.txt", Size: 6},
+			},
+		},
+		{ // 4
+			Files: []*test.FileInput{
+				{Filename: "folder/nested.txt", Size: 22},
+			},
+		},
+	}
+	outputs := repo.AddCommits(inputs)
+
+	// Previous commits excludes final state of each file, which is:
+	// file1.txt            [0] (unchanged since first commit so excluded)
+	// file2.txt            [1] (because [2] is on another branch so excluded)
+	// folder/nested.txt    [4] (updated at last commit)
+	// folder/nested2.txt   [3]
+
+	// The only changes which will be included are changes prior to final state
+	// where the '-' side of the diff is inside the date range
+
+	// 7 day limit excludes [0] commit, but includes state from that if there
+	// was a subsequent change
+	pointers, err := ScanPreviousVersions("master", now.AddDate(0, 0, -7))
+	assert.Equal(t, nil, err)
+
+	// Includes the following 'before' state at commits:
+	// folder/nested.txt [-diff at 4, ie 3, -diff at 3 ie 0]
+	// folder/nested2.txt [-diff at 3 ie 0]
+	// others are either on diff branches, before this window, or unchanged
+	expected := []*WrappedPointer{
+		{Name: "folder/nested.txt", Size: outputs[3].Files[0].Size, Pointer: outputs[3].Files[0]},
+		{Name: "folder/nested.txt", Size: outputs[0].Files[2].Size, Pointer: outputs[0].Files[2]},
+		{Name: "folder/nested2.txt", Size: outputs[0].Files[3].Size, Pointer: outputs[0].Files[3]},
+	}
+	// Need to sort to compare equality
+	sort.Sort(test.WrappedPointersByOid(expected))
+	sort.Sort(test.WrappedPointersByOid(pointers))
+	assert.Equal(t, expected, pointers)
 
 }

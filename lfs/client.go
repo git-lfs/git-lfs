@@ -23,10 +23,9 @@ const (
 )
 
 var (
-	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
-	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
-	objectRelationDoesNotExist = errors.New("relation does not exist")
-	hiddenHeaders              = map[string]bool{
+	lfsMediaTypeRE  = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
+	jsonMediaTypeRE = regexp.MustCompile(`\Aapplication/json(;|\z)`)
+	hiddenHeaders   = map[string]bool{
 		"Authorization": true,
 	}
 
@@ -59,7 +58,7 @@ type objectResource struct {
 func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, objectRelationDoesNotExist
+		return nil, errors.New("relation does not exist")
 	}
 
 	req, err := newClientRequest(method, rel.Href, rel.Header)
@@ -105,15 +104,15 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
-func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
+func Download(oid string) (io.ReadCloser, int64, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, obj, wErr := doLegacyApiRequest(req)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, obj, err := doLegacyApiRequest(req)
+	if err != nil {
+		return nil, 0, err
 	}
 	LogTransfer("lfs.api.download", res)
 	req, err = obj.NewRequest("download", "GET")
@@ -121,9 +120,9 @@ func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr = doStorageRequest(req)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, err = doStorageRequest(req)
+	if err != nil {
+		return nil, 0, err
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -134,15 +133,15 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
-func DownloadCheck(oid string) (*objectResource, *WrappedError) {
+func DownloadCheck(oid string) (*objectResource, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, Error(err)
 	}
 
-	res, obj, wErr := doLegacyApiRequest(req)
-	if wErr != nil {
-		return nil, wErr
+	res, obj, err := doLegacyApiRequest(req)
+	if err != nil {
+		return nil, err
 	}
 	LogTransfer("lfs.api.download", res)
 
@@ -154,15 +153,15 @@ func DownloadCheck(oid string) (*objectResource, *WrappedError) {
 	return obj, nil
 }
 
-func DownloadObject(obj *objectResource) (io.ReadCloser, int64, *WrappedError) {
+func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 	req, err := obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr := doStorageRequest(req)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, err := doStorageRequest(req)
+	if err != nil {
+		return nil, 0, err
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -173,7 +172,7 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource, operation string) ([]*objectResource, *WrappedError) {
+func Batch(objects []*objectResource, operation string) ([]*objectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -196,10 +195,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: batch %d files", len(objects))
-	res, objs, wErr := doApiBatchRequest(req)
-	if wErr != nil {
+
+	res, objs, err := doApiBatchRequest(req)
+	if err != nil {
 		if res == nil {
-			return nil, wErr
+			return nil, err
 		}
 
 		switch res.StatusCode {
@@ -209,10 +209,10 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 			return Batch(objects, operation)
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, Error(newNotImplError())
+			return nil, newNotImplementedError(nil)
 		}
 
-		tracerx.Printf("api error: %s", wErr)
+		tracerx.Printf("api error: %s", err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -223,7 +223,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, *Wra
 	return objs, nil
 }
 
-func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
+func UploadCheck(oidPath string) (*objectResource, error) {
 	oid := filepath.Base(oidPath)
 
 	stat, err := os.Stat(oidPath)
@@ -252,9 +252,9 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, wErr := doLegacyApiRequest(req)
-	if wErr != nil {
-		return nil, wErr
+	res, obj, err := doLegacyApiRequest(req)
+	if err != nil {
+		return nil, err
 	}
 	LogTransfer("lfs.api.upload", res)
 
@@ -272,7 +272,7 @@ func UploadCheck(oidPath string) (*objectResource, *WrappedError) {
 	return obj, nil
 }
 
-func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
+func UploadObject(o *objectResource, cb CopyCallback) error {
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
 		return Error(err)
@@ -298,18 +298,19 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
+
 	if req.Header.Get("Transfer-Encoding") == "chunked" {
 		req.TransferEncoding = []string{"chunked"}
 	} else {
 		req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
 	}
-	req.ContentLength = o.Size
 
+	req.ContentLength = o.Size
 	req.Body = ioutil.NopCloser(reader)
 
-	res, wErr := doStorageRequest(req)
-	if wErr != nil {
-		return wErr
+	res, err := doStorageRequest(req)
+	if err != nil {
+		return err
 	}
 	LogTransfer("lfs.data.upload", res)
 
@@ -320,10 +321,12 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	req, err = o.NewRequest("verify", "POST")
-	if err == objectRelationDoesNotExist {
+	if _, ok := o.Rel("verify"); !ok {
 		return nil
-	} else if err != nil {
+	}
+
+	req, err = o.NewRequest("verify", "POST")
+	if err != nil {
 		return Error(err)
 	}
 
@@ -336,32 +339,32 @@ func UploadObject(o *objectResource, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doAPIRequest(req)
-	if wErr != nil {
-		return wErr
+	res, err = doAPIRequest(req)
+	if err != nil {
+		return err
 	}
 
 	LogTransfer("lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return wErr
+	return err
 }
 
 // doLegacyApiRequest runs the request to the LFS legacy API.
-func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, *WrappedError) {
+func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, error) {
 	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, via, true)
-	if wErr != nil {
-		return res, nil, wErr
+	res, err := doApiRequestWithRedirects(req, via, true)
+	if err != nil {
+		return res, nil, err
 	}
 
 	obj := &objectResource{}
-	wErr = decodeApiResponse(res, obj)
+	err = decodeApiResponse(res, obj)
 
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
-		return nil, nil, wErr
+	if err != nil {
+		setErrorResponseContext(err, res)
+		return nil, nil, err
 	}
 
 	return res, obj, nil
@@ -371,26 +374,26 @@ func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, *Wr
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, *WrappedError) {
-	res, wErr := doAPIRequest(req)
+func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, error) {
+	res, err := doAPIRequest(req)
 
-	if wErr != nil {
-		return res, nil, wErr
+	if err != nil {
+		return res, nil, err
 	}
 
 	var objs map[string][]*objectResource
-	wErr = decodeApiResponse(res, &objs)
+	err = decodeApiResponse(res, &objs)
 
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
+	if err != nil {
+		setErrorResponseContext(err, res)
 	}
 
-	return res, objs["objects"], wErr
+	return res, objs["objects"], err
 }
 
 // doStorageREquest runs the request to the storage API from a link provided by
 // the "actions" or "_links" properties an LFS API response.
-func doStorageRequest(req *http.Request) (*http.Response, *WrappedError) {
+func doStorageRequest(req *http.Request) (*http.Response, error) {
 	creds, err := getCreds(req)
 	if err != nil {
 		return nil, Error(err)
@@ -403,7 +406,7 @@ func doStorageRequest(req *http.Request) (*http.Response, *WrappedError) {
 // body. If the API returns a 401, the repo will be marked as having private
 // access and the request will be re-run. When the repo is marked as having
 // private access, credentials will be retrieved.
-func doAPIRequest(req *http.Request) (*http.Response, *WrappedError) {
+func doAPIRequest(req *http.Request) (*http.Response, error) {
 	via := make([]*http.Request, 0, 4)
 	useCreds := true
 	if req.Method == "GET" || req.Method == "HEAD" {
@@ -414,7 +417,7 @@ func doAPIRequest(req *http.Request) (*http.Response, *WrappedError) {
 
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
-func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
+func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := Config.HttpClient().Do(req)
 	if res == nil {
 		res = &http.Response{
@@ -425,26 +428,24 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 		}
 	}
 
-	var wErr *WrappedError
-
 	if err != nil {
-		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
+		err = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
-		wErr = handleResponse(res, creds)
+		err = handleResponse(res, creds)
 	}
 
-	if wErr != nil {
+	if err != nil {
 		if res != nil {
-			setErrorResponseContext(wErr, res)
+			setErrorResponseContext(err, res)
 		} else {
-			setErrorRequestContext(wErr, req)
+			setErrorRequestContext(err, req)
 		}
 	}
 
-	return res, wErr
+	return res, err
 }
 
-func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, *WrappedError) {
+func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
 	var creds Creds
 	if useCreds {
 		c, err := getCredsForAPI(req)
@@ -454,9 +455,9 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 		creds = c
 	}
 
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return res, wErr
+	res, err := doHttpRequest(req, creds)
+	if err != nil {
+		return res, err
 	}
 
 	if res.StatusCode == 307 {
@@ -501,7 +502,7 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 	return res, nil
 }
 
-func handleResponse(res *http.Response, creds Creds) *WrappedError {
+func handleResponse(res *http.Response, creds Creds) error {
 	saveCredentials(creds, res)
 
 	if res.StatusCode < 400 {
@@ -514,20 +515,23 @@ func handleResponse(res *http.Response, creds Creds) *WrappedError {
 	}()
 
 	cliErr := &ClientError{}
-	wErr := decodeApiResponse(res, cliErr)
-	if wErr == nil {
+	err := decodeApiResponse(res, cliErr)
+	if err == nil {
 		if len(cliErr.Message) == 0 {
-			wErr = defaultError(res)
+			err = defaultError(res)
 		} else {
-			wErr = Error(cliErr)
+			err = Error(cliErr)
 		}
 	}
 
-	wErr.Panic = res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509
-	return wErr
+	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
+		return newFatalError(err)
+	}
+
+	return err
 }
 
-func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
+func decodeApiResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
@@ -544,7 +548,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	return nil
 }
 
-func defaultError(res *http.Response) *WrappedError {
+func defaultError(res *http.Response) error {
 	var msgFmt string
 
 	if f, ok := defaultErrors[res.StatusCode]; ok {
@@ -676,47 +680,25 @@ func setRequestAuth(req *http.Request, user, pass string) {
 	req.Header.Set("Authorization", auth)
 }
 
-func setErrorResponseContext(err *WrappedError, res *http.Response) {
-	err.Set("Status", res.Status)
+func setErrorResponseContext(err error, res *http.Response) {
+	ErrorSetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
 }
 
-func setErrorRequestContext(err *WrappedError, req *http.Request) {
-	err.Set("Endpoint", Config.Endpoint().Url)
-	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+func setErrorRequestContext(err error, req *http.Request) {
+	ErrorSetContext(err, "Endpoint", Config.Endpoint().Url)
+	ErrorSetContext(err, "URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
-func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
+func setErrorHeaderContext(err error, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
-			err.Set(contextKey, "--")
+			ErrorSetContext(err, contextKey, "--")
 		} else {
-			err.Set(contextKey, head.Get(key))
+			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
-}
-
-type notImplError struct {
-	error
-}
-
-func (e notImplError) NotImplemented() bool {
-	return true
-}
-
-func newNotImplError() error {
-	return notImplError{errors.New("Not Implemented")}
-}
-
-func isNotImplError(err *WrappedError) bool {
-	type notimplerror interface {
-		NotImplemented() bool
-	}
-	if e, ok := err.Err.(notimplerror); ok {
-		return e.NotImplemented()
-	}
-	return false
 }

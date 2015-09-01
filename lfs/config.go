@@ -19,6 +19,23 @@ var (
 	defaultRemote = "origin"
 )
 
+// FetchPruneConfig collects together the config options that control fetching and pruning
+type FetchPruneConfig struct {
+	// The number of days prior to current date for which (local) refs other than HEAD
+	// will be fetched with --recent (default 7, 0 = only fetch HEAD)
+	FetchRecentRefsDays int
+	// Makes the FetchRecentRefsDays option apply to remote refs from fetch source as well (default true)
+	FetchRecentRefsIncludeRemotes bool
+	// number of days prior to latest commit on a ref that we'll fetch previous
+	// LFS changes too (default 0 = only fetch at ref)
+	FetchRecentCommitsDays int
+	// Whether to always fetch recent even without --recent
+	FetchRecentAlways bool
+	// Number of days added to FetchRecent*; data outside combined window will be
+	// deleted when prune is run. (default 3)
+	PruneOffsetDays int
+}
+
 type Configuration struct {
 	CurrentRemote         string
 	httpClient            *HttpClient
@@ -34,6 +51,7 @@ type Configuration struct {
 	extensions        map[string]Extension
 	fetchIncludePaths []string
 	fetchExcludePaths []string
+	fetchPruneConfig  *FetchPruneConfig
 }
 
 func NewConfig() *Configuration {
@@ -193,6 +211,53 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
+}
+
+func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
+	if c.fetchPruneConfig == nil {
+		c.fetchPruneConfig = &FetchPruneConfig{
+			FetchRecentRefsDays:           7,
+			FetchRecentRefsIncludeRemotes: true,
+			FetchRecentCommitsDays:        0,
+			PruneOffsetDays:               3,
+		}
+		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {
+			n, err := strconv.Atoi(v)
+			if err == nil && n >= 0 {
+				c.fetchPruneConfig.FetchRecentRefsDays = n
+			}
+		}
+		if v, ok := c.GitConfig("lfs.fetchrecentremoterefs"); ok {
+
+			if v == "false" {
+				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = false
+			}
+
+			// Any numeric value except 0 is considered true
+			if n, err := strconv.Atoi(v); err == nil && n == 0 {
+				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = false
+			}
+		}
+		if v, ok := c.GitConfig("lfs.fetchrecentcommitsdays"); ok {
+			n, err := strconv.Atoi(v)
+			if err == nil && n >= 0 {
+				c.fetchPruneConfig.FetchRecentCommitsDays = n
+			}
+		}
+		if v, ok := c.GitConfig("lfs.fetchrecentalways"); ok {
+			if v == "true" || v == "" {
+				c.fetchPruneConfig.FetchRecentAlways = true
+			}
+		}
+		if v, ok := c.GitConfig("lfs.pruneoffsetdays"); ok {
+			n, err := strconv.Atoi(v)
+			if err == nil && n >= 0 {
+				c.fetchPruneConfig.PruneOffsetDays = n
+			}
+		}
+
+	}
+	return c.fetchPruneConfig
 }
 
 func (c *Configuration) loadGitConfig() bool {

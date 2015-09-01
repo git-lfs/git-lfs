@@ -395,6 +395,33 @@ func TestLoadInvalidExtension(t *testing.T) {
 	assert.Equal(t, 0, ext.Priority)
 }
 
+func TestFetchPruneConfigDefault(t *testing.T) {
+	config := &Configuration{}
+	fp := config.FetchPruneConfig()
+
+	assert.Equal(t, 7, fp.FetchRecentRefsDays)
+	assert.Equal(t, 0, fp.FetchRecentCommitsDays)
+	assert.Equal(t, 3, fp.PruneOffsetDays)
+	assert.Equal(t, true, fp.FetchRecentRefsIncludeRemotes)
+
+}
+func TestFetchPruneConfigCustom(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.fetchrecentrefsdays":    "12",
+			"lfs.fetchrecentremoterefs":  "false",
+			"lfs.fetchrecentcommitsdays": "9",
+			"lfs.pruneoffsetdays":        "30",
+		},
+	}
+	fp := config.FetchPruneConfig()
+
+	assert.Equal(t, 12, fp.FetchRecentRefsDays)
+	assert.Equal(t, 9, fp.FetchRecentCommitsDays)
+	assert.Equal(t, 30, fp.PruneOffsetDays)
+	assert.Equal(t, false, fp.FetchRecentRefsIncludeRemotes)
+}
+
 // only used for tests
 func (c *Configuration) SetConfig(key, value string) {
 	if c.loadGitConfig() {

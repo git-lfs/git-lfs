@@ -145,7 +145,7 @@ size 12345`
 func TestDecodeFromEmptyReader(t *testing.T) {
 	by, p, err := DecodeFrom(strings.NewReader(""))
 	if err != io.EOF {
-		t.Fatal("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	if p != nil {
