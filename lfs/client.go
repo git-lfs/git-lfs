@@ -397,7 +397,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedErro
 	}
 
 	var wErr *WrappedError
-	
+
 	if err != nil {
 		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
@@ -474,7 +474,7 @@ func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResour
 	obj := &objectResource{}
 	wErr = decodeApiResponse(res, obj)
 
-	if wErr != nil {		
+	if wErr != nil {
 		setErrorResponseContext(wErr, res)
 		return nil, nil, wErr
 	}
@@ -534,7 +534,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 		return nil
 	}
 
-	err := json.NewDecoder(res.Body).Decode(obj)	
+	err := json.NewDecoder(res.Body).Decode(obj)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 

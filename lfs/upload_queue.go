@@ -33,6 +33,7 @@ func NewUploadable(oid, filename string) (*Uploadable, *WrappedError) {
 	if err != nil {
 		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
+
 	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil
 }
 
