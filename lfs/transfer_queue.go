@@ -141,7 +141,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			q.wait.Done()
 			continue
 		}
-		
+
 		if apiWaiter != nil { // Signal to launch more individual api workers
 			q.meter.Start()
 			select {

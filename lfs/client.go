@@ -35,7 +35,7 @@ var (
 		403: "Authorization error: %s\nCheck that you have proper access to the repository",
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
-	}	
+	}
 )
 
 type objectError struct {
@@ -157,8 +157,6 @@ func DownloadCheck(oid string) (*objectResource, error) {
 		return nil, Error(err)
 	}
 
-	defer tracerx.Printf("client-willhi DownLoadCheck EXIT")
-	
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
@@ -301,7 +299,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	if res.StatusCode == 200 {
 		return nil, nil
 	}
-	
+
 	if obj.Oid == "" {
 		obj.Oid = oid
 	}
@@ -465,15 +463,12 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := Config.HttpClient().Do(req)
 	
-	if Config.NTLM() {
-		tracerx.Printf("client: NTLM Request")		
+	if Config.NTLM() {	
 		res, err = DoNTLMRequest(req, true)			
 	} else {	
 		res, err = Config.HttpClient().Do(req)
 	}
-	
-	tracerx.Printf("a")
-	
+		
 	if res == nil {
 		res = &http.Response{
 			StatusCode: 0,
@@ -592,20 +587,15 @@ func handleResponse(res *http.Response, creds Creds) error {
 
 func decodeApiResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
-	
-	tracerx.Printf("client decodeApiResponse: cType %s", ctype)		
-	
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
 	}
 
-	err := json.NewDecoder(res.Body).Decode(obj)
-	
+	err := json.NewDecoder(res.Body).Decode(obj)	
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
 	if err != nil {
-		tracerx.Printf("client decodeApiResponse: JSON ERROR %s", err.Error())		
 		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
 	}
 
@@ -636,9 +626,6 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 			operation = "upload"
 		}
 	}
-	
-	tracerx.Printf("client-willhi endpoint:%s, operation:%s, method:%s", endpoint, operation, method)
-	
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
