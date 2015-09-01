@@ -49,9 +49,12 @@ lfs option can be scoped inside the configuration for a remote.
 
 * `lfs.fetchrecentremoterefs`
   
-  If true, fetches remote refs as well as local refs in the recent window. This 
-  is useful to fetch objects for remote branches you might want to check out 
-  later, but means more refs are downloaded. The default is false.
+  If true, fetches remote refs (for the remote you're fetching) as well as local
+  refs in the recent window. This is useful to fetch objects for remote branches 
+  you might want to check out later. The default is true; if you set this to 
+  false, fetching for those branches will only occur when you either check them 
+  out (losing the advantage of fetch --recent), or create a tracking local 
+  branch separately then fetch again.
 
 * `lfs.fetchrecentcommitsdays`
   

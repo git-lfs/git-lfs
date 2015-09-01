@@ -123,7 +123,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) {
 	if fetchconf.FetchRecentRefsDays > 0 {
 		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, lfs.Config.CurrentRemote)
 		if err != nil {
 			Panic(err, "Could not scan for recent refs")
 		}

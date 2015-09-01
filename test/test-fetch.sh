@@ -186,8 +186,8 @@ begin_test "fetch-recent"
   }
   ]" | lfstest-testutils addcommits
 
-  git lfs push origin master
-  git lfs push origin other_branch
+  git push origin master
+  git push origin other_branch
   assert_server_object "$reponame" "$oid0"
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
