@@ -24,7 +24,7 @@ begin_test "push"
   git commit -m "add b.dat"
 
   git lfs push origin push-b 2>&1 | tee push.log
-  grep "(2 of 2 files)" push.log
+  grep "(1 of 2 files, 1 skipped)" push.log
 )
 end_test
 
@@ -73,7 +73,7 @@ begin_test "push object id(s)"
   git lfs push --object-id origin \
     4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
     2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "(0 of 1 files, 1 skipped)" push.log
 
   echo "push b" > b.dat
   git add b.dat
@@ -83,7 +83,7 @@ begin_test "push object id(s)"
     4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
     82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 \
     2>&1 | tee push.log
-  grep "(2 of 2 files)" push.log
+  grep "(0 of 2 files, 2 skipped)" push.log
 )
 end_test
 
@@ -107,7 +107,7 @@ begin_test "push modified files"
   oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
   oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
   oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
-  
+
   echo "[
   {
     \"CommitDate\":\"$(get_date -6m)\",
@@ -143,5 +143,3 @@ begin_test "push modified files"
   assert_server_object "$reponame" "$oid5"
 )
 end_test
-
-

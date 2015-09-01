@@ -133,11 +133,10 @@ func (c *Configuration) BatchTransfer() bool {
 		}
 
 		// Any numeric value except 0 is considered true
-		if n, err := strconv.Atoi(v); err == nil && n != 0 {
-			return true
-		}
+		n, _ := strconv.Atoi(v)
+		return n != 0
 	}
-	return false
+	return true
 }
 
 // PrivateAccess will retrieve the access value and return true if

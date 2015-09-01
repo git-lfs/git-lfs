@@ -353,11 +353,11 @@ func TestBatchPresentButBlankIsTrue(t *testing.T) {
 	assert.Equal(t, true, v)
 }
 
-func TestBatchAbsentIsFalse(t *testing.T) {
+func TestBatchAbsentIsTrue(t *testing.T) {
 	config := &Configuration{}
 
 	v := config.BatchTransfer()
-	assert.Equal(t, false, v)
+	assert.Equal(t, true, v)
 }
 
 func TestLoadValidExtension(t *testing.T) {

@@ -17,7 +17,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -42,7 +42,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -74,7 +74,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -104,7 +104,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -137,7 +137,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -172,7 +172,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -195,7 +195,7 @@ begin_test "env with multiple remotes and lfs url and batch configs"
   git remote add origin "$GITSERVER/env-origin-remote"
   git remote add other "$GITSERVER/env-other-remote"
   git config lfs.url "http://foo/bar"
-  git config lfs.batch true
+  git config lfs.batch false
   git config lfs.concurrenttransfers 5
   git config remote.origin.lfsurl "http://custom/origin"
   git config remote.other.lfsurl "http://custom/other"
@@ -209,7 +209,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=5
-BatchTransfer=true
+BatchTransfer=false
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual=$(git lfs env)
@@ -277,7 +277,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
 
@@ -303,7 +303,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
@@ -316,7 +316,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(GIT_WORK_TREE=a/b env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual6=$(GIT_WORK_TREE=a/b git lfs env)
@@ -330,7 +330,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(GIT_DIR=$gitDir env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual7=$(GIT_DIR=$gitDir git lfs env)
@@ -344,7 +344,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(GIT_WORK_TREE=$workTree env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
   actual8=$(GIT_WORK_TREE=$workTree git lfs env)
