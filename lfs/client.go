@@ -591,7 +591,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) error {
 		return nil
 	}
 
-	err := json.NewDecoder(res.Body).Decode(obj)	
+	err := json.NewDecoder(res.Body).Decode(obj)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
