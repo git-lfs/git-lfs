@@ -184,6 +184,7 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestObjectUrl(t *testing.T) {
+	defer Config.ResetConfig()
 	tests := map[string]string{
 		"http://example.com":      "http://example.com/objects/oid",
 		"http://example.com/":     "http://example.com/objects/oid",
@@ -205,6 +206,8 @@ func TestObjectUrl(t *testing.T) {
 }
 
 func TestObjectsUrl(t *testing.T) {
+	defer Config.ResetConfig()
+
 	tests := map[string]string{
 		"http://example.com":      "http://example.com/objects",
 		"http://example.com/":     "http://example.com/objects",
@@ -391,6 +394,7 @@ func TestLoadInvalidExtension(t *testing.T) {
 	assert.Equal(t, "", ext.Smudge)
 	assert.Equal(t, 0, ext.Priority)
 }
+
 func TestFetchPruneConfigDefault(t *testing.T) {
 	config := &Configuration{}
 	fp := config.FetchPruneConfig()
@@ -416,5 +420,27 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 	assert.Equal(t, 9, fp.FetchRecentCommitsDays)
 	assert.Equal(t, 30, fp.PruneOffsetDays)
 	assert.Equal(t, false, fp.FetchRecentRefsIncludeRemotes)
+}
 
+// only used for tests
+func (c *Configuration) SetConfig(key, value string) {
+	if c.loadGitConfig() {
+		c.loading.Lock()
+		c.origConfig = make(map[string]string)
+		for k, v := range c.gitConfig {
+			c.origConfig[k] = v
+		}
+		c.loading.Unlock()
+	}
+
+	c.gitConfig[key] = value
+}
+
+func (c *Configuration) ResetConfig() {
+	c.loading.Lock()
+	c.gitConfig = make(map[string]string)
+	for k, v := range c.origConfig {
+		c.gitConfig[k] = v
+	}
+	c.loading.Unlock()
 }

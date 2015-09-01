@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -17,10 +16,7 @@ var (
 		"erase": noop,
 	}
 
-	delim = '\n'
-
-	hostRE = regexp.MustCompile(`\A127.0.0.1:\d+\z`)
-
+	delim    = '\n'
 	credsDir = ""
 )
 
@@ -74,12 +70,14 @@ func fill() {
 		os.Exit(1)
 	}
 
-	if _, ok := creds["username"]; !ok {
-		creds["username"] = user
-	}
+	if user != "skip" {
+		if _, ok := creds["username"]; !ok {
+			creds["username"] = user
+		}
 
-	if _, ok := creds["password"]; !ok {
-		creds["password"] = pass
+		if _, ok := creds["password"]; !ok {
+			creds["password"] = pass
+		}
 	}
 
 	for key, value := range creds {
