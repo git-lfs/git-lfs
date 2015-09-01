@@ -63,7 +63,7 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 
 	start := time.Now()
 	res, err := c.Client.Do(req)
-	if err != nil {	
+	if err != nil {
 		return res, err
 	}
 

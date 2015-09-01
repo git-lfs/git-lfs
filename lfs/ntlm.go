@@ -12,7 +12,6 @@ import (
 	"fmt"
 	//"os"
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 
@@ -83,7 +82,7 @@ func Negotiate(request *http.Request, message string) []byte{
 	var response, err = Config.HttpClient().Do(request)
 	
 	if err != nil{
-		tracerx.Printf("ntlm: Negotiate Error %s", err.Error())
+		panic(err.Error())
 	}
 	
 	ret := ParseChallengeMessage(response)
