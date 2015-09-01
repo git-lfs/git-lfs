@@ -1,4 +1,4 @@
-git-lfs-config(1) -- Configuration options for git-lfs
+git-lfs-config(5) -- Configuration options for git-lfs
 ======================================================
 
 ## CONFIGURATION FILES
