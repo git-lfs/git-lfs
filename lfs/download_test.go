@@ -72,10 +72,6 @@ func TestSuccessfulDownload(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
-			t.Error("Invalid Authorization")
-		}
-
 		if r.Header.Get("A") != "1" {
 			t.Error("invalid A")
 		}
@@ -87,6 +83,7 @@ func TestSuccessfulDownload(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, err := Download("oid")
 	if err != nil {
@@ -204,10 +201,6 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
-			t.Error("Invalid Authorization")
-		}
-
 		if r.Header.Get("A") != "1" {
 			t.Error("invalid A")
 		}
@@ -219,6 +212,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
@@ -324,6 +318,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, err := Download("oid")
 	if err != nil {
@@ -412,10 +407,6 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != "" {
-			t.Error("Invalid Authorization")
-		}
-
 		if r.Header.Get("A") != "1" {
 			t.Error("invalid A")
 		}
@@ -427,6 +418,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, err := Download("oid")
 	if err != nil {
@@ -546,10 +538,6 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != "" {
-			t.Error("Invalid Authorization")
-		}
-
 		if r.Header.Get("A") != "1" {
 			t.Error("invalid A")
 		}
@@ -561,6 +549,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		w.Write([]byte("test"))
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	for _, redirect := range redirectCodes {
@@ -597,6 +586,7 @@ func TestDownloadAPIError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	_, _, err := Download("oid")
 	if err == nil {
@@ -664,6 +654,7 @@ func TestDownloadStorageError(t *testing.T) {
 		w.WriteHeader(500)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	_, _, err := Download("oid")
 	if err == nil {

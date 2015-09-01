@@ -103,6 +103,7 @@ func TestExistingUpload(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
@@ -226,6 +227,7 @@ func TestUploadWithRedirect(t *testing.T) {
 		w.Write(by)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
@@ -399,6 +401,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
@@ -559,6 +562,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
@@ -603,6 +607,7 @@ func TestUploadApiError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
@@ -710,6 +715,7 @@ func TestUploadStorageError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
@@ -858,6 +864,7 @@ func TestUploadVerifyError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")

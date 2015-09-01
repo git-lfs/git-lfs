@@ -13,7 +13,7 @@ import (
 func TestSuccessStatus(t *testing.T) {
 	for _, status := range []int{200, 201, 202} {
 		res := &http.Response{StatusCode: status}
-		if err := handleResponse(res); err != nil {
+		if err := handleResponse(res, nil); err != nil {
 			t.Errorf("Unexpected error for HTTP %d: %s", status, err.Error())
 		}
 	}
@@ -59,7 +59,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		}
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json; charset=utf-8")
 
-		err = handleResponse(res)
+		err = handleResponse(res, nil)
 		if err == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue
@@ -121,7 +121,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		// purposely wrong content type so it falls back to default
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json2")
 
-		err = handleResponse(res)
+		err = handleResponse(res, nil)
 		if err == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue
