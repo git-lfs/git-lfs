@@ -35,7 +35,7 @@ begin_test "env with origin remote"
   git remote add origin "$GITSERVER/env-origin-remote"
 
   expected=$(printf "%s\n%s\n
-Endpoint=$GITSERVER/$reponame.git/info/lfs
+Endpoint=$GITSERVER/$reponame.git/info/lfs (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
@@ -66,8 +66,8 @@ begin_test "env with multiple remotes"
   git remote add other "$GITSERVER/env-other-remote"
 
   expected=$(printf "%s\n%s\n
-Endpoint=$GITSERVER/env-origin-remote.git/info/lfs
-Endpoint (other)=$GITSERVER/env-other-remote.git/info/lfs
+Endpoint=$GITSERVER/env-origin-remote.git/info/lfs (auth=none)
+Endpoint (other)=$GITSERVER/env-other-remote.git/info/lfs (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
@@ -97,7 +97,7 @@ begin_test "env with other remote"
   git remote add other "$GITSERVER/env-other-remote"
 
   expected=$(printf "%s\n%s\n
-Endpoint (other)=$GITSERVER/env-other-remote.git/info/lfs
+Endpoint (other)=$GITSERVER/env-other-remote.git/info/lfs (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
@@ -129,8 +129,8 @@ begin_test "env with multiple remotes and lfs.url config"
   git config lfs.url "http://foo/bar"
 
   expected=$(printf "%s\n%s\n
-Endpoint=http://foo/bar
-Endpoint (other)=$GITSERVER/env-other-remote.git/info/lfs
+Endpoint=http://foo/bar (auth=none)
+Endpoint (other)=$GITSERVER/env-other-remote.git/info/lfs (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
@@ -164,8 +164,8 @@ begin_test "env with multiple remotes and lfs configs"
   git config remote.other.lfsurl "http://custom/other"
 
   expected=$(printf "%s\n%s\n
-Endpoint=http://foo/bar
-Endpoint (other)=http://custom/other
+Endpoint=http://foo/bar (auth=none)
+Endpoint (other)=http://custom/other (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
@@ -201,8 +201,8 @@ begin_test "env with multiple remotes and lfs url and batch configs"
   git config remote.other.lfsurl "http://custom/other"
 
   expected=$(printf "%s\n%s\n
-Endpoint=http://foo/bar
-Endpoint (other)=http://custom/other
+Endpoint=http://foo/bar (auth=none)
+Endpoint (other)=http://custom/other (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
@@ -239,7 +239,7 @@ begin_test "env with .gitconfig"
 ' > .gitconfig
 
   expected=$(printf "%s\n%s\n
-Endpoint=http://foobar:8080/
+Endpoint=http://foobar:8080/ (auth=none)
 LocalWorkingDir=$TRASHDIR/$reponame
 LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
