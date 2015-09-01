@@ -5,7 +5,7 @@ git-lfs-config(5) -- Configuration options for git-lfs
 
 git-lfs uses the same configuration files as git-config(1) with the same
 precedence. Most options pertaining to git-lfs are contained in the `[lfs]`
-section, meaning they all named `lfs.foo` or similar, although Occasionally an 
+section, meaning they all named `lfs.foo` or similar, although occasionally an 
 lfs option can be scoped inside the configuration for a remote.
 
 ## LIST OF OPTIONS
