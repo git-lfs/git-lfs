@@ -402,3 +402,17 @@ func (r *PlaceholderDataReader) Read(p []byte) (int, error) {
 	}
 	return i, err
 }
+
+// RefsByName implements sort.Interface for []*git.Ref based on name
+type RefsByName []*git.Ref
+
+func (a RefsByName) Len() int           { return len(a) }
+func (a RefsByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a RefsByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+// WrappedPointersByOid implements sort.Interface for []*lfs.WrappedPointer based on oid
+type WrappedPointersByOid []*lfs.WrappedPointer
+
+func (a WrappedPointersByOid) Len() int           { return len(a) }
+func (a WrappedPointersByOid) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a WrappedPointersByOid) Less(i, j int) bool { return a[i].Pointer.Oid < a[j].Pointer.Oid }

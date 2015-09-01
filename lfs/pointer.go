@@ -154,7 +154,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 		return nil, fmt.Errorf("Invalid size: %q", value)
 	}
 
-	extensions := make([]*PointerExtension, 0, len(exts))
+	var extensions []*PointerExtension
 	if exts != nil {
 		for key, value := range exts {
 			ext, err := parsePointerExtension(key, value)
