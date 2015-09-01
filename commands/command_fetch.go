@@ -224,8 +224,8 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	tracerx.PerformanceSince("process queue", processQueue)
 
 	for _, err := range q.Errors() {
-		if Debugging || err.Panic {
-			LoggedError(err.Err, err.Error())
+		if Debugging || lfs.IsFatalError(err) {
+			LoggedError(err, err.Error())
 		} else {
 			Error(err.Error())
 		}

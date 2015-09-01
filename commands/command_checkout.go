@@ -175,7 +175,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		// Check the content - either missing or still this pointer (not exist is ok)
 		filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
 		if err != nil && !os.IsNotExist(err) {
-			if err == lfs.NotAPointerError {
+			if lfs.IsNotAPointerError(err) {
 				// File has non-pointer content, leave it alone
 				continue
 			}
@@ -194,7 +194,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, nil)
 		if err != nil {
-			if err == lfs.DownloadDeclinedError {
+			if lfs.IsDownloadDeclinedError(err) {
 				// acceptable error, data not local (fetch not run or include/exclude)
 				LoggedError(err, "Skipped checkout for %v, content not local. Use fetch to download.", pointer.Name)
 			} else {

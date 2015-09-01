@@ -110,9 +110,9 @@ func TestExistingUpload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	o, wErr := UploadCheck(oidPath)
-	if wErr != nil {
-		t.Fatal(wErr)
+	o, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
 	if o != nil {
 		t.Errorf("Got an object back")
@@ -233,9 +233,9 @@ func TestUploadWithRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj, wErr := UploadCheck(oidPath)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if obj != nil {
@@ -413,13 +413,13 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		return nil
 	}
 
-	obj, wErr := UploadCheck(oidPath)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	wErr = UploadObject(obj, cb)
-	if wErr != nil {
-		t.Fatal(wErr)
+	err = UploadObject(obj, cb)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if !postCalled {
@@ -566,13 +566,13 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj, wErr := UploadCheck(oidPath)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	wErr = UploadObject(obj, nil)
-	if wErr != nil {
-		t.Fatal(wErr)
+	err = UploadObject(obj, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if !postCalled {
@@ -610,17 +610,17 @@ func TestUploadApiError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, wErr := UploadCheck(oidPath)
-	if wErr == nil {
-		t.Fatal(wErr)
+	_, err := UploadCheck(oidPath)
+	if err == nil {
+		t.Fatal(err)
 	}
 
-	if wErr.Panic {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
 	if !postCalled {
@@ -717,21 +717,21 @@ func TestUploadStorageError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj, wErr := UploadCheck(oidPath)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	wErr = UploadObject(obj, nil)
-	if wErr == nil {
+	err = UploadObject(obj, nil)
+	if err == nil {
 		t.Fatal("Expected an error")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/upload") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/upload") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
 	if !postCalled {
@@ -865,21 +865,21 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj, wErr := UploadCheck(oidPath)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	wErr = UploadObject(obj, nil)
-	if wErr == nil {
+	err = UploadObject(obj, nil)
+	if err == nil {
 		t.Fatal("Expected an error")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/verify") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/verify") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
 	if !postCalled {

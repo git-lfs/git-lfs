@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,10 +11,6 @@ import (
 	contentaddressable "github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/go-contentaddressable"
 )
 
-var (
-	DownloadDeclinedError = errors.New("File missing and download is not allowed")
-)
-
 func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
@@ -24,7 +19,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCa
 	}
 	defer file.Close()
 	if err := PointerSmudge(file, ptr, filename, download, cb); err != nil {
-		if err == DownloadDeclinedError {
+		if IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, os.SEEK_SET)
 			ptr.Encode(file)
@@ -35,6 +30,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCa
 	}
 	return nil
 }
+
 func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, cb CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
@@ -51,19 +47,18 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		}
 	}
 
-	var wErr *WrappedError
 	if statErr != nil || stat == nil {
 		if download {
-			wErr = downloadFile(writer, ptr, workingfile, mediafile, cb)
+			err = downloadFile(writer, ptr, workingfile, mediafile, cb)
 		} else {
-			return DownloadDeclinedError
+			return newDownloadDeclinedError(nil)
 		}
 	} else {
-		wErr = readLocalFile(writer, ptr, mediafile, workingfile, cb)
+		err = readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}
 
-	if wErr != nil {
-		return &SmudgeError{ptr.Oid, mediafile, wErr}
+	if err != nil {
+		return newSmudgeError(err, ptr.Oid, mediafile)
 	}
 
 	return nil
@@ -88,26 +83,25 @@ func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) err
 	}
 
 	if statErr != nil || stat == nil {
-		wErr := downloadObject(ptr, obj, mediafile, cb)
+		err := downloadObject(ptr, obj, mediafile, cb)
 
-		if wErr != nil {
-			return &SmudgeError{obj.Oid, mediafile, wErr}
+		if err != nil {
+			return newSmudgeError(err, obj.Oid, mediafile)
 		}
 	}
 
 	return nil
 }
 
-func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) *WrappedError {
-	reader, size, wErr := DownloadObject(obj)
+func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) error {
+	reader, size, err := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
 	}
 
 	// TODO this can be unified with the same code in downloadFile
-	if wErr != nil {
-		wErr.Errorf("Error downloading %s.", mediafile)
-		return wErr
+	if err != nil {
+		return Errorf(err, "Error downloading %s", mediafile)
 	}
 
 	if ptr.Size == 0 {
@@ -132,16 +126,15 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 	return nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) *WrappedError {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, wErr := Download(filepath.Base(mediafile))
+	reader, size, err := Download(filepath.Base(mediafile))
 	if reader != nil {
 		defer reader.Close()
 	}
 
-	if wErr != nil {
-		wErr.Errorf("Error downloading %s.", mediafile)
-		return wErr
+	if err != nil {
+		return Errorf(err, "Error downloading %s.", mediafile)
 	}
 
 	if ptr.Size == 0 {
@@ -166,7 +159,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) *WrappedError {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) error {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return Errorf(err, "Error opening media file.")
@@ -248,10 +241,4 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 	}
 
 	return nil
-}
-
-type SmudgeError struct {
-	Oid      string
-	Filename string
-	*WrappedError
 }

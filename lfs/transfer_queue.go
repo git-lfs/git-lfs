@@ -13,8 +13,8 @@ const (
 )
 
 type Transferable interface {
-	Check() (*objectResource, *WrappedError)
-	Transfer(CopyCallback) *WrappedError
+	Check() (*objectResource, error)
+	Transfer(CopyCallback) error
 	Object() *objectResource
 	Oid() string
 	Size() int64
@@ -27,12 +27,12 @@ type TransferQueue struct {
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
-	errors        []*WrappedError
+	errors        []error
 	transferables map[string]Transferable
 	batcher       *Batcher
-	apic          chan Transferable  // Channel for processing individual API requests
-	transferc     chan Transferable  // Channel for processing transfers
-	errorc        chan *WrappedError // Channel for processing errors
+	apic          chan Transferable // Channel for processing individual API requests
+	transferc     chan Transferable // Channel for processing transfers
+	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
 	wait          sync.WaitGroup
 }
@@ -43,7 +43,7 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
-		errorc:        make(chan *WrappedError),
+		errorc:        make(chan error),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 	}
@@ -169,7 +169,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		objects, err := Batch(transfers, q.transferKind)
 		if err != nil {
-			if isNotImplError(err) {
+			if IsNotImplementedError(err) {
 				configFile := filepath.Join(LocalGitDir, "config")
 				git.Config.SetLocal(configFile, "lfs.batch", "false")
 
@@ -279,6 +279,6 @@ func (q *TransferQueue) run() {
 }
 
 // Errors returns any errors encountered during transfer.
-func (q *TransferQueue) Errors() []*WrappedError {
+func (q *TransferQueue) Errors() []error {
 	return q.errors
 }
