@@ -174,7 +174,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			if err != nil {
 				Panic(err, "Error getting local ref")
 			}
-			ref = localRef
+			ref = localRef.Sha
 		}
 
 		uploadQueue = uploadsBetweenRefAndRemote(ref, remote)

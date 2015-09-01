@@ -54,7 +54,7 @@ func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.Wrap
 		Panic(err, "Could not checkout")
 	}
 	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
-	pointers, err := lfs.ScanTree(ref)
+	pointers, err := lfs.ScanTree(ref.Sha)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
@@ -95,7 +95,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 		Panic(err, "Could not checkout")
 	}
 
-	pointers, err := lfs.ScanTree(ref)
+	pointers, err := lfs.ScanTree(ref.Sha)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}

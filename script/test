@@ -3,7 +3,7 @@
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
-suite="./${1:-"lfs"}"
+suite="./${1:-"lfs"} ./${1:-"git"}"
 if [ $# -gt 0 ]; then
   shift
 fi
