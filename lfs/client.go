@@ -204,7 +204,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 
 		switch res.StatusCode {
 		case 401:
-			Config.SetPrivateAccess()
+			Config.SetAccess(AuthTypeBasic)
 			tracerx.Printf("api: batch not authorized, submitting with auth")
 			return Batch(objects, operation)
 		case 404, 410:

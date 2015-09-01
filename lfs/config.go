@@ -14,6 +14,13 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
+type AuthType string
+
+const (
+	AuthTypeNone  = AuthType("none")
+	AuthTypeBasic = AuthType("basic")
+)
+
 var (
 	Config        = NewConfig()
 	defaultRemote = "origin"
@@ -144,27 +151,39 @@ func (c *Configuration) BatchTransfer() bool {
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess() bool {
-	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
-	if v, ok := c.GitConfig(key); ok {
-		if strings.ToLower(v) == "private" {
-			return true
-		}
-	}
-	return false
+	return c.Access() != AuthTypeNone
 }
 
-// SetPrivateAccess will set the private access flag in .git/config.
-func (c *Configuration) SetPrivateAccess() {
-	tracerx.Printf("setting repository access to private")
+// Access returns the access auth type.
+func (c *Configuration) Access() AuthType {
+	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
+	if v, ok := c.GitConfig(key); ok {
+		return AuthType(strings.ToLower(v))
+	}
+	return AuthTypeNone
+}
+
+// SetAccess will set the private access flag in .git/config.
+func (c *Configuration) SetAccess(authType AuthType) {
+	tracerx.Printf("setting repository access to %s", authType)
 	key := fmt.Sprintf("lfs.%s.access", c.Endpoint().Url)
 	configFile := filepath.Join(LocalGitDir, "config")
-	git.Config.SetLocal(configFile, key, "private")
 
 	// Modify the config cache because it's checked again in this process
 	// without being reloaded.
-	c.loading.Lock()
-	c.gitConfig[key] = "private"
-	c.loading.Unlock()
+	if authType == AuthTypeNone {
+		git.Config.UnsetLocalKey(configFile, key)
+
+		c.loading.Lock()
+		delete(c.gitConfig, key)
+		c.loading.Unlock()
+	} else {
+		git.Config.SetLocal(configFile, key, string(authType))
+
+		c.loading.Lock()
+		c.gitConfig[key] = string(authType)
+		c.loading.Unlock()
+	}
 }
 
 func (c *Configuration) FetchIncludePaths() []string {
