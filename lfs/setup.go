@@ -3,7 +3,7 @@ package lfs
 var (
 	// prePushHook invokes `git lfs push` at the pre-push phase.
 	prePushHook = &Hook{
-		Type:     PrePushHook,
+		Type:     "pre-push",
 		Contents: "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
 		Upgradeables: []string{
 			"#!/bin/sh\ngit lfs push --stdin $*",
@@ -19,7 +19,7 @@ var (
 	}
 
 	filters = &Attribute{
-		Path: "filter.lfs",
+		Section: "filter.lfs",
 		Properties: map[string]string{
 			"clean":    "git-lfs clean %f",
 			"smudge":   "git-lfs smudge %f",

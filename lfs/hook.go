@@ -9,36 +9,11 @@ import (
 	"strings"
 )
 
-// A HookType represents a type of Git hook as defined in
-// http://git-scm.com/docs/githooks.
-type HookType string
-
-const (
-	ApplyPatchMessageHook    HookType = "applypatch-msg"
-	PreApplyPatchHook                 = "pre-applypatch"
-	PostApplyPatchHook                = "post-applypatch"
-	PreCommitHook                     = "pre-commit"
-	PrepareCommitMessageHook          = "prepare-commit-msg"
-	CommitMessageHook                 = "commit-msg"
-	PostCommitHook                    = "post-commit"
-	PreRebaseHook                     = "pre-rebase"
-	PostCheckoutHook                  = "post-checkout"
-	PostMergeHook                     = "post-merge"
-	PrePushHook                       = "pre-push"
-	PreReceiveHook                    = "pre-receive"
-	UpdateHook                        = "update"
-	PostReceiveHook                   = "post-receive"
-	PostUpdateHook                    = "post-update"
-	PushToCheckoutHook                = "push-to-checkout"
-	PostRewriteHook                   = "post-rewrite"
-	RebaseHook                        = "rebase"
-)
-
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
 // Hooks have a type, which is the type of hook that they are, and a body, which
 // represents the thing they will execute when invoked by Git.
 type Hook struct {
-	Type         HookType
+	Type         string
 	Contents     string
 	Upgradeables []string
 }
