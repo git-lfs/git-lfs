@@ -199,7 +199,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	res, objs, err := doApiBatchRequest(req)
 	if err != nil {
 		if res == nil {
-			return nil, err
+			return nil, newRetriableError(err)
 		}
 
 		switch res.StatusCode {
@@ -213,7 +213,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, newRetriableError(err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
