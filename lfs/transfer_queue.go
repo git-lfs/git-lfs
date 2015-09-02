@@ -305,11 +305,9 @@ func (q *TransferQueue) run() {
 }
 
 func (q *TransferQueue) canRetry(err error, id string) bool {
-	/*
-		if !isRetriableError(err) {
-			return false
-		}
-	*/
+	if !IsRetriableError(err) {
+		return false
+	}
 
 	defer q.retrylock.Unlock()
 	q.retrylock.Lock()

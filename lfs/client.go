@@ -162,7 +162,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 
 	res, err := doHttpRequest(req, creds)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, newRetriableError(err)
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -213,7 +213,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, err
+		return nil, newRetriableError(err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -255,7 +255,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doApiRequest(req, creds)
 	if err != nil {
-		return nil, err
+		return nil, newRetriableError(err)
 	}
 	LogTransfer("lfs.api.upload", res)
 
@@ -310,7 +310,7 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 
 	res, err := doHttpRequest(req, creds)
 	if err != nil {
-		return err
+		return newRetriableError(err)
 	}
 	LogTransfer("lfs.data.upload", res)
 
