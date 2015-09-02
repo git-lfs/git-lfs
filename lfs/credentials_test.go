@@ -20,7 +20,16 @@ func TestGetCredentialsForApi(t *testing.T) {
 			Password: "monkey",
 		},
 		{
-			Desc:          "auth header",
+			Desc:     "username in url",
+			Config:   map[string]string{"lfs.url": "https://user@git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server.com/foo",
+			Protocol: "https",
+			Host:     "git-server.com",
+			Username: "user",
+			Password: "monkey",
+		},
+		{Desc: "auth header",
 			Config:        map[string]string{"lfs.url": "https://git-server.com"},
 			Header:        map[string]string{"Authorization": "Test monkey"},
 			Method:        "GET",
@@ -77,6 +86,16 @@ func TestGetCredentialsForApi(t *testing.T) {
 			Method:        "GET",
 			Href:          "https://git-server.com/foo",
 			Authorization: "Basic " + base64.URLEncoding.EncodeToString([]byte("gituser:gitpass")),
+		},
+		{
+			Desc:     "username in url",
+			Config:   map[string]string{"lfs.url": "https://user@git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server.com/foo",
+			Protocol: "https",
+			Host:     "git-server.com",
+			Username: "user",
+			Password: "monkey",
 		},
 	})
 }
@@ -216,7 +235,9 @@ func init() {
 		for key, value := range input {
 			output[key] = value
 		}
-		output["username"] = input["host"]
+		if _, ok := output["username"]; !ok {
+			output["username"] = input["host"]
+		}
 		output["password"] = "monkey"
 		return output, nil
 	}
