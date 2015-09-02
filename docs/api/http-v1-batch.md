@@ -194,7 +194,7 @@ Object error codes should match HTTP status codes where possible:
 
 Validation errors can only occur on `upload` requests. Servers must verify
 that OIDs are valid SHA-256 strings, and that sizes are positive integers.
-Servers should also set an upper bound for the allowed object size too. Here's a
+Servers may also set an upper bound for the allowed object size too. Here's a
 response showing one uploadable object, and one with a validation error:
 
 ```
