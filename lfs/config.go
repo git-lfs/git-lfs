@@ -135,14 +135,9 @@ func (c *Configuration) ConcurrentTransfers() int {
 }
 
 func (c *Configuration) BatchTransfer() bool {
-	if v, ok := c.GitConfig("lfs.batch"); ok {
-		if v == "true" || v == "" {
-			return true
-		}
-
-		// Any numeric value except 0 is considered true
-		n, _ := strconv.Atoi(v)
-		return n != 0
+	switch c.GitConfig("lfs.batch") {
+	case "false", "no", "off", "0":
+		return false
 	}
 	return true
 }
