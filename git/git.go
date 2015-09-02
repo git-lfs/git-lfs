@@ -122,7 +122,7 @@ func (c *gitConfig) Find(val string) string {
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *gitConfig) SetGlobal(key, val string) {
-	simpleExec("git", "config", "--global", "--add", key, val)
+	simpleExec("git", "config", "--global", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
@@ -136,7 +136,7 @@ func (c *gitConfig) UnsetGlobalSection(key string) {
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *gitConfig) SetLocal(file, key, val string) {
-	simpleExec("git", "config", "--file", file, "--add", key, val)
+	simpleExec("git", "config", "--file", file, key, val)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file

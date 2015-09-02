@@ -151,12 +151,16 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 	}
 	// this channel is filled with oids for which Check() succeeded & Transfer() was called
 	transferc := checkQueue.Watch()
+	done := make(chan int)
 	go func() {
 		for oid := range transferc {
 			skipObjects[oid] = struct{}{}
 		}
+		done <- 1
 	}()
+	// Currently this is needed to flush the batch but is not enough to sync transferc completely
 	checkQueue.Wait()
+	<-done
 	return skipObjects
 }
 
