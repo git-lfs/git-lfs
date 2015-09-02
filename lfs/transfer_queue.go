@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	batchSize = 100
+	batchSize       = 100
+	maxBatchRetries = 3
 )
 
 type Transferable interface {
@@ -161,11 +162,9 @@ func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
 // off to the transfer workers.
 func (q *TransferQueue) batchApiRoutine() {
 	var startProgress sync.Once
-	batchNumber := 0
+	batchRetries := 0
 
 	for {
-		batchNumber++
-
 		batch := q.batcher.Next()
 		if batch == nil {
 			break
@@ -188,14 +187,17 @@ func (q *TransferQueue) batchApiRoutine() {
 				return
 			}
 
-			// TODO technically, this could go forever. Maybe we just limit it to n batch retries total.
-			if q.canRetry(err, "batch") {
+			// Batch operation retries should be caused by network issues. We want to
+			// retry these failures, but limit it to maxBatchRetries total retries,
+			// otherwise a serious network issue could cause an infinite loop of
+			// retried calls.
+			if IsRetriableError(err) && batchRetries <= maxBatchRetries {
+				batchRetries++
 				tracerx.Printf("tq: resubmitting batch: %s", err)
 				for _, t := range batch {
 					q.Add(t)
 				}
 			} else {
-				tracerx.Printf("Too many batch failures, erroring")
 				q.errorc <- err
 			}
 
