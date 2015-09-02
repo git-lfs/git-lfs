@@ -30,7 +30,7 @@ begin_test "init with old settings"
 
   [ "$res" = 2 ]
 
-  grep "clean filter should be" init.log
+  grep "clean attribute should be" init.log
   [ `grep -c "(MISSING)" init.log` = "0" ]
 
   [ "git lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
