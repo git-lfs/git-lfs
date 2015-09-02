@@ -61,7 +61,16 @@
         "required": ["oid", "size"],
         "additionalProperties": false
       }
-    }
+    },
+    "message": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "documentation_url": {
+      "type": "string"
+    },
   },
   "required": ["objects"],
   "additionalProperties": false
