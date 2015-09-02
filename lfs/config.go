@@ -233,6 +233,11 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 	return value, ok
 }
 
+func (c *Configuration) AllGitConfig() map[string]string {
+	c.loadGitConfig()
+	return c.gitConfig
+}
+
 func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
 	return ObjectUrl(c.Endpoint(), oid)
 }
