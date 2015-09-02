@@ -173,19 +173,18 @@ func (c *Configuration) EndpointAccess(e Endpoint) string {
 func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 	tracerx.Printf("setting repository access to %s", authType)
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
-	configFile := filepath.Join(LocalGitDir, "config")
 
 	// Modify the config cache because it's checked again in this process
 	// without being reloaded.
 	switch authType {
 	case "", "none":
-		git.Config.UnsetLocalKey(configFile, key)
+		git.Config.UnsetLocalKey("", key)
 
 		c.loading.Lock()
 		delete(c.gitConfig, key)
 		c.loading.Unlock()
 	default:
-		git.Config.SetLocal(configFile, key, authType)
+		git.Config.SetLocal("", key, authType)
 
 		c.loading.Lock()
 		c.gitConfig[key] = authType
