@@ -22,7 +22,7 @@ func NewBatcher(batchSize int) *Batcher {
 		batchReady: make(chan []Transferable),
 	}
 
-	b.run()
+	go b.acceptInput()
 	return b
 }
 
@@ -44,29 +44,35 @@ func (b *Batcher) Exit() {
 	close(b.input)
 }
 
-func (b *Batcher) run() {
-	go func() {
-		exit := false
-		for {
-			batch := make([]Transferable, 0, b.batchSize)
-		Loop:
-			for i := 0; i < b.batchSize; i++ {
-				select {
-				case t, ok := <-b.input:
-					if ok {
-						batch = append(batch, t)
-					} else {
-						exit = true // input channel was closed by Exit()
-						break Loop
-					}
-				}
+// acceptInput runs in its own goroutine and accepts input from external
+// clients. It fills and dispenses batches in a sequential order: for a batch
+// size N, N items will be processed before a new batch is ready.
+func (b *Batcher) acceptInput() {
+	exit := false
+
+	for {
+		batch := b.newBatch()
+	Loop:
+		for len(batch) < b.batchSize {
+			t, ok := <-b.input
+			if !ok {
+				exit = true // input channel was closed by Exit()
+				break Loop
 			}
 
-			b.batchReady <- batch
-
-			if exit {
-				return
-			}
+			batch = append(batch, t)
 		}
-	}()
+
+		b.batchReady <- batch
+
+		if exit {
+			return
+		}
+	}
+}
+
+// newBatch allocates a slice of Transferables with the capacity of the set
+// batch size.
+func (b *Batcher) newBatch() []Transferable {
+	return make([]Transferable, 0, b.batchSize)
 }
