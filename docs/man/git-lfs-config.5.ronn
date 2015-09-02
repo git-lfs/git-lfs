@@ -5,7 +5,7 @@ git-lfs-config(5) -- Configuration options for git-lfs
 
 git-lfs uses the same configuration files as git-config(1) with the same
 precedence. Most options pertaining to git-lfs are contained in the `[lfs]`
-section, meaning they all named `lfs.foo` or similar, although occasionally an 
+section, meaning they all named `lfs.foo` or similar, although occasionally an
 lfs option can be scoped inside the configuration for a remote.
 
 ## LIST OF OPTIONS
@@ -13,57 +13,58 @@ lfs option can be scoped inside the configuration for a remote.
 ### General settings
 
 * `lfs.url` / `<remote>.lfsurl`
-  
+
   The url used to call the Git LFS remote API. Default blank (derive from clone
   URL).
-  
+
 * `lfs.concurrenttransfers`
-  
+
   The number of concurrent uploads/downloads. Default 3.
 
 * `lfs.batch`
-  
+
   Whether to use the batch API instead of requesting objects individually.
-  Default false.
+  Default true. This setting transitions clients from the legacy to the newer
+  batch API and will be gone in Git LFS v1.0.
 
 ### Fetch settings
 
 * `lfs.fetchinclude`
 
-  When fetching, only download objects which match any entry on this 
-  comma-separated list of paths/filenames. Wildcard matching is as per 
+  When fetching, only download objects which match any entry on this
+  comma-separated list of paths/filenames. Wildcard matching is as per
   git-ignore(1). See git-lfs-fetch(1) for examples.
 
 * `lfs.fetchexclude`
 
   When fetching, do not download objects which match any item on this
-  comma-separated list of paths/filenames. Wildcard matching is as per 
+  comma-separated list of paths/filenames. Wildcard matching is as per
   git-ignore(1). See git-lfs-fetch(1) for examples.
 
 
 * `lfs.fetchrecentrefsdays`
-  
-  If non-zero, fetches refs which have commits within N days of the current 
+
+  If non-zero, fetches refs which have commits within N days of the current
   date. Only local refs are included unless lfs.fetchrecentremoterefs is true.
   The default is 7 days.
 
 * `lfs.fetchrecentremoterefs`
-  
+
   If true, fetches remote refs (for the remote you're fetching) as well as local
-  refs in the recent window. This is useful to fetch objects for remote branches 
-  you might want to check out later. The default is true; if you set this to 
-  false, fetching for those branches will only occur when you either check them 
-  out (losing the advantage of fetch --recent), or create a tracking local 
+  refs in the recent window. This is useful to fetch objects for remote branches
+  you might want to check out later. The default is true; if you set this to
+  false, fetching for those branches will only occur when you either check them
+  out (losing the advantage of fetch --recent), or create a tracking local
   branch separately then fetch again.
 
 * `lfs.fetchrecentcommitsdays`
-  
-  In addition to fetching at refs, also fetches previous changes made within N 
+
+  In addition to fetching at refs, also fetches previous changes made within N
   days of the latest commit on the ref. This is useful if you're often reviewing
   recent changes. The default is 0 (no previous changes).
 
 * `lfs.fetchrecentalways`
-  
+
   Always operate as if --recent was included in a `git lfs fetch` call. Default
   false.
 
@@ -71,7 +72,7 @@ lfs option can be scoped inside the configuration for a remote.
 
 * `lfs.extension.<name>.<setting>`
 
-  Git LFS extensions enable the manipulation of files streams during smudge and 
+  Git LFS extensions enable the manipulation of files streams during smudge and
   clean. `name` groups the settings for a single extension, and the settings
   are:
   * `clean` The command which runs when files are added to the index
@@ -81,12 +82,12 @@ lfs option can be scoped inside the configuration for a remote.
 ### Other settings
 
 * `lfs.<url>.access`
-  
-  Note: this setting is normally set by LFS itself on receiving a 401 response
-  (authentication required), you don't normally need to set it manually. 
 
-  If set to "private" then credentials will be requested before making batch
-  requests to this url, otherwise a public request will initially be attempted. 
+  Note: this setting is normally set by LFS itself on receiving a 401 response
+  (authentication required), you don't normally need to set it manually.
+
+  If set to "basic" then credentials will be requested before making batch
+  requests to this url, otherwise a public request will initially be attempted.
 
 ## SEE ALSO
 

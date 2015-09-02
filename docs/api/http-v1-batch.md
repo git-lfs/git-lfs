@@ -8,18 +8,16 @@ endpoint that accepts multiple OIDs. All requests should have the following:
 
 [v1]: ./http-v1-original.md
 
-This is an experimental API introduced in Git LFS v0.5.2, and only used if the
-`lfs.batch` config value is true. You can toggle support for any local
-repository like this:
+This is a newer API introduced in Git LFS v0.5.2, and made the default in
+Git LFS v0.6.0. The client automatically detects if the server does not
+implement the API yet, and falls back to the legacy API. You can toggle support
+manually through the Git config:
 
     # enable batch support
-    $ git config lfs.batch true
-
-    # disable batch support
     $ git config --unset lfs.batch
 
-The Batch API is subject to change until it becomes the _default_ API used by
-Git LFS v0.6.0.
+    # disable batch support
+    $ git config lfs.batch false
 
 ## Authentication
 

@@ -279,88 +279,34 @@ func TestConcurrentTransfersNegativeValue(t *testing.T) {
 	assert.Equal(t, 3, n)
 }
 
-func TestBatchTrue(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "true",
-		},
+func TestBatch(t *testing.T) {
+	tests := map[string]bool{
+		"true":     true,
+		"1":        true,
+		"42":       true,
+		"-1":       true,
+		"":         true,
+		"0":        false,
+		"false":    false,
+		"elephant": false,
 	}
 
-	v := config.BatchTransfer()
-	assert.Equal(t, true, v)
-}
+	for value, expected := range tests {
+		config := &Configuration{
+			gitConfig: map[string]string{"lfs.batch": value},
+		}
 
-func TestBatchNumeric1IsTrue(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "1",
-		},
+		if actual := config.BatchTransfer(); actual != expected {
+			t.Errorf("lfs.batch %q == %v, not %v", value, actual, expected)
+		}
 	}
-
-	v := config.BatchTransfer()
-	assert.Equal(t, true, v)
 }
 
-func TestBatchNumeric0IsFalse(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "0",
-		},
-	}
-
-	v := config.BatchTransfer()
-	assert.Equal(t, false, v)
-}
-
-func TestBatchOtherNumericsAreTrue(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "42",
-		},
-	}
-
-	v := config.BatchTransfer()
-	assert.Equal(t, true, v)
-}
-
-func TestBatchNegativeNumericsAreTrue(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "-1",
-		},
-	}
-
-	v := config.BatchTransfer()
-	assert.Equal(t, true, v)
-}
-
-func TestBatchNonBooleanIsFalse(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "elephant",
-		},
-	}
-
-	v := config.BatchTransfer()
-	assert.Equal(t, false, v)
-}
-
-func TestBatchPresentButBlankIsTrue(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"lfs.batch": "",
-		},
-	}
-
-	v := config.BatchTransfer()
-	assert.Equal(t, true, v)
-}
-
-func TestBatchAbsentIsFalse(t *testing.T) {
+func TestBatchAbsentIsTrue(t *testing.T) {
 	config := &Configuration{}
 
 	v := config.BatchTransfer()
-	assert.Equal(t, false, v)
+	assert.Equal(t, true, v)
 }
 
 func TestLoadValidExtension(t *testing.T) {

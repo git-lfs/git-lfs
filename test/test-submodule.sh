@@ -40,7 +40,7 @@ begin_test "submodule env"
   cd repo
 
   git lfs env | tee env.log
-  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs$" env.log
+  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs (auth=none)$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git$" env.log
   grep "LocalGitStorageDir=$TRASHDIR/repo/.git$" env.log
@@ -51,7 +51,7 @@ begin_test "submodule env"
 
   echo "./.git"
   git lfs env | tee env.log
-  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs$" env.log
+  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs (auth=none)$" env.log
   grep "LocalWorkingDir=$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git$" env.log
   grep "LocalGitStorageDir=$TRASHDIR/repo/.git$" env.log
@@ -62,7 +62,7 @@ begin_test "submodule env"
 
   echo "./sub"
   git lfs env | tee env.log
-  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs$" env.log
+  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs (auth=none)$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo/sub$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git/modules/sub$" env.log
   grep "LocalGitStorageDir=$TRASHDIR/repo/.git/modules/sub$" env.log
@@ -73,7 +73,7 @@ begin_test "submodule env"
 
   echo "./sub/dir"
   git lfs env | tee env.log
-  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs$" env.log
+  grep "Endpoint=$GITSERVER/$submodname.git/info/lfs (auth=none)$" env.log
   grep "LocalWorkingDir=$TRASHDIR/repo/sub$" env.log
   grep "LocalGitDir=$TRASHDIR/repo/.git/modules/sub$" env.log
   grep "LocalGitStorageDir=$TRASHDIR/repo/.git/modules/sub$" env.log
