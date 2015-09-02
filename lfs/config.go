@@ -100,7 +100,7 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 		return def
 	}
 
-	b, err := strconv.ParseBool(s)
+	b, err := parseConfigBool(s)
 	if err != nil {
 		return def
 	}
@@ -135,11 +135,17 @@ func (c *Configuration) ConcurrentTransfers() int {
 }
 
 func (c *Configuration) BatchTransfer() bool {
-	switch c.GitConfig("lfs.batch") {
-	case "false", "no", "off", "0":
+	value, ok := c.GitConfig("lfs.batch")
+	if !ok || len(value) == 0 {
+		return true
+	}
+
+	useBatch, err := parseConfigBool(value)
+	if err != nil {
 		return false
 	}
-	return true
+
+	return useBatch
 }
 
 // PrivateAccess will retrieve the access value and return true if
@@ -249,14 +255,8 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 			}
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentremoterefs"); ok {
-
-			if v == "false" {
-				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = false
-			}
-
-			// Any numeric value except 0 is considered true
-			if n, err := strconv.Atoi(v); err == nil && n == 0 {
-				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = false
+			if b, err := parseConfigBool(v); err == nil {
+				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = b
 			}
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentcommitsdays"); ok {
@@ -266,8 +266,8 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 			}
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentalways"); ok {
-			if v == "true" || v == "" {
-				c.fetchPruneConfig.FetchRecentAlways = true
+			if b, err := parseConfigBool(v); err == nil {
+				c.fetchPruneConfig.FetchRecentAlways = b
 			}
 		}
 		if v, ok := c.GitConfig("lfs.pruneoffsetdays"); ok {
@@ -279,6 +279,16 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 
 	}
 	return c.fetchPruneConfig
+}
+
+func parseConfigBool(str string) (bool, error) {
+	switch strings.ToLower(str) {
+	case "true", "1", "on", "yes", "t":
+		return true, nil
+	case "false", "0", "off", "no", "f":
+		return false, nil
+	}
+	return false, fmt.Errorf("Unable to parse %q as a boolean", str)
 }
 
 func (c *Configuration) loadGitConfig() bool {
