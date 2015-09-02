@@ -14,13 +14,6 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-type AuthType string
-
-const (
-	AuthTypeNone  = AuthType("none")
-	AuthTypeBasic = AuthType("basic")
-)
-
 var (
 	Config        = NewConfig()
 	defaultRemote = "origin"
@@ -152,45 +145,46 @@ func (c *Configuration) BatchTransfer() bool {
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess() bool {
-	return c.Access() != AuthTypeNone
+	return c.Access() != "none"
 }
 
 // Access returns the access auth type.
-func (c *Configuration) Access() AuthType {
+func (c *Configuration) Access() string {
 	return c.EndpointAccess(c.Endpoint())
 }
 
 // SetAccess will set the private access flag in .git/config.
-func (c *Configuration) SetAccess(authType AuthType) {
+func (c *Configuration) SetAccess(authType string) {
 	c.SetEndpointAccess(c.Endpoint(), authType)
 }
 
-func (c *Configuration) EndpointAccess(e Endpoint) AuthType {
+func (c *Configuration) EndpointAccess(e Endpoint) string {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
 	if v, ok := c.GitConfig(key); ok && len(v) > 0 {
-		return AuthType(strings.ToLower(v))
+		return strings.ToLower(v)
 	}
-	return AuthTypeNone
+	return "none"
 }
 
-func (c *Configuration) SetEndpointAccess(e Endpoint, authType AuthType) {
+func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 	tracerx.Printf("setting repository access to %s", authType)
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
 	configFile := filepath.Join(LocalGitDir, "config")
 
 	// Modify the config cache because it's checked again in this process
 	// without being reloaded.
-	if authType == AuthTypeNone {
+	switch authType {
+	case "", "none":
 		git.Config.UnsetLocalKey(configFile, key)
 
 		c.loading.Lock()
 		delete(c.gitConfig, key)
 		c.loading.Unlock()
-	} else {
-		git.Config.SetLocal(configFile, key, string(authType))
+	default:
+		git.Config.SetLocal(configFile, key, authType)
 
 		c.loading.Lock()
-		c.gitConfig[key] = string(authType)
+		c.gitConfig[key] = authType
 		c.loading.Unlock()
 	}
 }
