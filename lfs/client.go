@@ -55,18 +55,18 @@ type objectResource struct {
 	Error   *objectError             `json:"error,omitempty"`
 }
 
-func (o *objectResource) NewRequest(relation, method string) (*http.Request, Creds, error) {
+func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, nil, errors.New("relation does not exist")
+		return nil, errors.New("relation does not exist")
 	}
 
-	req, creds, err := newClientRequest(method, rel.Href, rel.Header)
+	req, err := newClientRequest(method, rel.Href, rel.Header)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return req, creds, nil
+	return req, nil
 }
 
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
@@ -105,23 +105,22 @@ func (e *ClientError) Error() string {
 }
 
 func Download(oid string) (io.ReadCloser, int64, error) {
-	req, creds, err := newApiRequest("GET", oid)
+	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, obj, err := doApiRequest(req, creds)
+	res, obj, err := doLegacyApiRequest(req)
 	if err != nil {
 		return nil, 0, err
 	}
 	LogTransfer("lfs.api.download", res)
-
-	req, creds, err = obj.NewRequest("download", "GET")
+	req, err = obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, err = doHttpRequest(req, creds)
+	res, err = doStorageRequest(req)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -135,18 +134,18 @@ type byteCloser struct {
 }
 
 func DownloadCheck(oid string) (*objectResource, error) {
-	req, creds, err := newApiRequest("GET", oid)
+	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, Error(err)
 	}
 
-	res, obj, err := doApiRequest(req, creds)
+	res, obj, err := doLegacyApiRequest(req)
 	if err != nil {
 		return nil, err
 	}
 	LogTransfer("lfs.api.download", res)
 
-	_, _, err = obj.NewRequest("download", "GET")
+	_, err = obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -155,12 +154,12 @@ func DownloadCheck(oid string) (*objectResource, error) {
 }
 
 func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
-	req, creds, err := obj.NewRequest("download", "GET")
+	req, err := obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, err := doHttpRequest(req, creds)
+	res, err := doStorageRequest(req)
 	if err != nil {
 		return nil, 0, newRetriableError(err)
 	}
@@ -185,7 +184,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		return nil, Error(err)
 	}
 
-	req, creds, err := newBatchApiRequest()
+	req, err := newBatchApiRequest()
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -196,7 +195,8 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: batch %d files", len(objects))
-	res, objs, err := doApiBatchRequest(req, creds)
+
+	res, objs, err := doApiBatchRequest(req)
 	if err != nil {
 		if res == nil {
 			return nil, err
@@ -242,7 +242,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 		return nil, Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", oid)
+	req, err := newApiRequest("POST", oid)
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -253,7 +253,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
 	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, err := doApiRequest(req, creds)
+	res, obj, err := doLegacyApiRequest(req)
 	if err != nil {
 		return nil, newRetriableError(err)
 	}
@@ -291,7 +291,7 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 		Reader:    file,
 	}
 
-	req, creds, err := o.NewRequest("upload", "PUT")
+	req, err := o.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
 	}
@@ -299,16 +299,17 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
+
 	if req.Header.Get("Transfer-Encoding") == "chunked" {
 		req.TransferEncoding = []string{"chunked"}
 	} else {
 		req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
 	}
-	req.ContentLength = o.Size
 
+	req.ContentLength = o.Size
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := doHttpRequest(req, creds)
+	res, err := doStorageRequest(req)
 	if err != nil {
 		return newRetriableError(err)
 	}
@@ -325,7 +326,7 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 		return nil
 	}
 
-	req, creds, err = o.NewRequest("verify", "POST")
+	req, err = o.NewRequest("verify", "POST")
 	if err != nil {
 		return Error(err)
 	}
@@ -339,7 +340,7 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, err = doHttpRequest(req, creds)
+	res, err = doAPIRequest(req)
 	if err != nil {
 		return err
 	}
@@ -351,6 +352,72 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	return err
 }
 
+// doLegacyApiRequest runs the request to the LFS legacy API.
+func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, error) {
+	via := make([]*http.Request, 0, 4)
+	res, err := doApiRequestWithRedirects(req, via, true)
+	if err != nil {
+		return res, nil, err
+	}
+
+	obj := &objectResource{}
+	err = decodeApiResponse(res, obj)
+
+	if err != nil {
+		setErrorResponseContext(err, res)
+		return nil, nil, err
+	}
+
+	return res, obj, nil
+}
+
+// doApiBatchRequest runs the request to the LFS batch API. If the API returns a
+// 401, the repo will be marked as having private access and the request will be
+// re-run. When the repo is marked as having private access, credentials will
+// be retrieved.
+func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, error) {
+	res, err := doAPIRequest(req)
+
+	if err != nil {
+		return res, nil, err
+	}
+
+	var objs map[string][]*objectResource
+	err = decodeApiResponse(res, &objs)
+
+	if err != nil {
+		setErrorResponseContext(err, res)
+	}
+
+	return res, objs["objects"], err
+}
+
+// doStorageREquest runs the request to the storage API from a link provided by
+// the "actions" or "_links" properties an LFS API response.
+func doStorageRequest(req *http.Request) (*http.Response, error) {
+	creds, err := getCreds(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return doHttpRequest(req, creds)
+}
+
+// doAPIRequest runs the request to the LFS API, without parsing the response
+// body. If the API returns a 401, the repo will be marked as having private
+// access and the request will be re-run. When the repo is marked as having
+// private access, credentials will be retrieved.
+func doAPIRequest(req *http.Request) (*http.Response, error) {
+	via := make([]*http.Request, 0, 4)
+	useCreds := true
+	if req.Method == "GET" || req.Method == "HEAD" {
+		useCreds = Config.PrivateAccess()
+	}
+	return doApiRequestWithRedirects(req, via, useCreds)
+}
+
+// doHttpRequest runs the given HTTP request. LFS or Storage API requests should
+// use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	res, err := Config.HttpClient().Do(req)
 	if res == nil {
@@ -365,8 +432,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	if err != nil {
 		err = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
 	} else {
-		saveCredentials(creds, res)
-		err = handleResponse(res)
+		err = handleResponse(res, creds)
 	}
 
 	if err != nil {
@@ -380,7 +446,16 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	return res, err
 }
 
-func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, error) {
+func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
+	var creds Creds
+	if useCreds {
+		c, err := getCredsForAPI(req)
+		if err != nil {
+			return nil, err
+		}
+		creds = c
+	}
+
 	res, err := doHttpRequest(req, creds)
 	if err != nil {
 		return res, err
@@ -394,7 +469,7 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 			redirectTo = locurl.String()
 		}
 
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, redirectTo, nil)
+		redirectedReq, err := newClientRequest(req.Method, redirectTo, nil)
 		if err != nil {
 			return res, Errorf(err, err.Error())
 		}
@@ -422,53 +497,15 @@ func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Reque
 			return res, Errorf(err, err.Error())
 		}
 
-		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
+		return doApiRequestWithRedirects(redirectedReq, via, useCreds)
 	}
 
 	return res, nil
 }
 
-func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, error) {
-	via := make([]*http.Request, 0, 4)
-	res, err := doApiRequestWithRedirects(req, creds, via)
-	if err != nil {
-		return res, nil, err
-	}
+func handleResponse(res *http.Response, creds Creds) error {
+	saveCredentials(creds, res)
 
-	obj := &objectResource{}
-	err = decodeApiResponse(res, obj)
-
-	if err != nil {
-		setErrorResponseContext(err, res)
-		return nil, nil, err
-	}
-
-	return res, obj, nil
-}
-
-// doApiBatchRequest runs the request to the batch API. If the API returns a 401,
-// the repo will be marked as having private access and the request will be
-// re-run. When the repo is marked as having private access, credentials will
-// be retrieved.
-func doApiBatchRequest(req *http.Request, creds Creds) (*http.Response, []*objectResource, error) {
-	via := make([]*http.Request, 0, 4)
-	res, err := doApiRequestWithRedirects(req, creds, via)
-
-	if err != nil {
-		return res, nil, err
-	}
-
-	var objs map[string][]*objectResource
-	err = decodeApiResponse(res, &objs)
-
-	if err != nil {
-		setErrorResponseContext(err, res)
-	}
-
-	return res, objs["objects"], err
-}
-
-func handleResponse(res *http.Response) error {
 	if res.StatusCode < 400 {
 		return nil
 	}
@@ -526,19 +563,7 @@ func defaultError(res *http.Response) error {
 	return Error(fmt.Errorf(msgFmt, res.Request.URL))
 }
 
-func saveCredentials(creds Creds, res *http.Response) {
-	if creds == nil {
-		return
-	}
-
-	if res.StatusCode < 300 {
-		execCreds(creds, "approve")
-	} else if res.StatusCode == 401 {
-		execCreds(creds, "reject")
-	}
-}
-
-func newApiRequest(method, oid string) (*http.Request, Creds, error) {
+func newApiRequest(method, oid string) (*http.Request, error) {
 	endpoint := Config.Endpoint()
 	objectOid := oid
 	operation := "download"
@@ -562,22 +587,22 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 
 	u, err := ObjectUrl(endpoint, objectOid)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	req, creds, err := newClientRequest(method, u.String(), res.Header)
+	req, err := newClientRequest(method, u.String(), res.Header)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	req.Header.Set("Accept", mediaType)
-	return req, creds, nil
+	return req, nil
 }
 
-func newClientRequest(method, rawurl string, header map[string]string) (*http.Request, Creds, error) {
+func newClientRequest(method, rawurl string, header map[string]string) (*http.Request, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	for key, value := range header {
@@ -585,15 +610,11 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
-	creds, err := getCreds(req)
-	if err != nil {
-		return nil, nil, err
-	}
 
-	return req, creds, nil
+	return req, nil
 }
 
-func newBatchApiRequest() (*http.Request, Creds, error) {
+func newBatchApiRequest() (*http.Request, error) {
 	endpoint := Config.Endpoint()
 
 	res, err := sshAuthenticate(endpoint, "download", "")
@@ -609,12 +630,12 @@ func newBatchApiRequest() (*http.Request, Creds, error) {
 
 	u, err := ObjectUrl(endpoint, "batch")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	req, creds, err := newBatchClientRequest("POST", u.String())
+	req, err := newBatchClientRequest("POST", u.String())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	req.Header.Set("Accept", mediaType)
@@ -624,78 +645,18 @@ func newBatchApiRequest() (*http.Request, Creds, error) {
 		}
 	}
 
-	return req, creds, nil
+	return req, nil
 }
 
-func newBatchClientRequest(method, rawurl string) (*http.Request, Creds, error) {
+func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 	req, err := http.NewRequest(method, rawurl, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
 
-	// Get the creds if we're private
-	if Config.PrivateAccess() {
-		// The PrivateAccess() check can be pushed down and this block simplified
-		// once everything goes through the batch endpoint.
-		creds, err := getCreds(req)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return req, creds, nil
-	}
-
-	return req, nil, nil
-}
-
-func getCreds(req *http.Request) (Creds, error) {
-	if len(req.Header.Get("Authorization")) > 0 {
-		return nil, nil
-	}
-
-	apiUrl, err := Config.ObjectUrl("")
-	if err != nil {
-		return nil, err
-	}
-
-	if req.URL.Scheme != apiUrl.Scheme ||
-		req.URL.Host != apiUrl.Host {
-		return nil, nil
-	}
-
-	if setRequestAuthFromUrl(req, apiUrl) {
-		return nil, nil
-	}
-
-	credsUrl := apiUrl
-	if len(Config.CurrentRemote) > 0 {
-		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
-			gitRemoteUrl, err := url.Parse(u)
-			if err != nil {
-				return nil, err
-			}
-
-			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
-				gitRemoteUrl.Host == apiUrl.Host {
-
-				if setRequestAuthFromUrl(req, gitRemoteUrl) {
-					return nil, nil
-				}
-
-				credsUrl = gitRemoteUrl
-			}
-		}
-	}
-
-	creds, err := credentials(credsUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	setRequestAuth(req, creds["username"], creds["password"])
-	return creds, nil
+	return req, nil
 }
 
 func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
@@ -711,6 +672,10 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
+	if len(user) == 0 && len(pass) == 0 {
+		return
+	}
+
 	token := fmt.Sprintf("%s:%s", user, pass)
 	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
 	req.Header.Set("Authorization", auth)
