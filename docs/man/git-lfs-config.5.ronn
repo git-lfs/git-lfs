@@ -24,7 +24,8 @@ lfs option can be scoped inside the configuration for a remote.
 * `lfs.batch`
 
   Whether to use the batch API instead of requesting objects individually.
-  Default false.
+  Default true. This setting transitions clients from the legacy to the newer
+  batch API and will be gone in Git LFS v1.0.
 
 ### Fetch settings
 
@@ -83,9 +84,9 @@ lfs option can be scoped inside the configuration for a remote.
 * `lfs.<url>.access`
 
   Note: this setting is normally set by LFS itself on receiving a 401 response
-  (authentication required), you don't normally need to set it manually. 
+  (authentication required), you don't normally need to set it manually.
 
-  If set to "private" then credentials will be requested before making batch
+  If set to "basic" then credentials will be requested before making batch
   requests to this url, otherwise a public request will initially be attempted.
 
 ## SEE ALSO
