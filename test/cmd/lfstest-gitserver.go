@@ -25,7 +25,6 @@ var (
 	repoDir      string
 	largeObjects = newLfsStorage()
 	server       *httptest.Server
-	serveBatch   = true
 )
 
 func main() {
@@ -34,14 +33,6 @@ func main() {
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
 	stopch := make(chan bool)
-
-	mux.HandleFunc("/startbatch", func(w http.ResponseWriter, r *http.Request) {
-		serveBatch = true
-	})
-
-	mux.HandleFunc("/stopbatch", func(w http.ResponseWriter, r *http.Request) {
-		serveBatch = false
-	})
 
 	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
 		stopch <- true
@@ -201,7 +192,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request, repo string) {
 }
 
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
-	if !serveBatch {
+	if repo == "batchunsupported" {
 		w.WriteHeader(404)
 		return
 	}
