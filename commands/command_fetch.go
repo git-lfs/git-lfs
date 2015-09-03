@@ -51,7 +51,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if fetchAllArg {
-		if fetchRecentArg || len(refs) > 0 {
+		if fetchRecentArg || len(args) > 1 {
 			Exit("Cannot combine --all with ref arguments or --recent")
 		}
 		if fetchIncludeArg != "" || fetchExcludeArg != "" {
