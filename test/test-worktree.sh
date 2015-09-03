@@ -24,7 +24,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
     actual=$(git lfs env)
@@ -44,7 +44,7 @@ LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/worktrees/$worktreename/lfs/tmp
 ConcurrentTransfers=3
-BatchTransfer=false
+BatchTransfer=true
 $(env | grep "^GIT")
 " "$(git lfs version)" "$(git version)")
     actual=$(git lfs env)
