@@ -50,10 +50,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		refs = []*git.Ref{ref}
 	}
 
-	if fetchAllArg && (fetchRecentArg || len(refs) > 0) {
-		Exit("Cannot combined --all with ref arguments or --recent")
-	}
-
 	if fetchAllArg {
 		if fetchRecentArg || len(refs) > 0 {
 			Exit("Cannot combine --all with ref arguments or --recent")
