@@ -179,7 +179,7 @@ func fetchAll() {
 	// We only pick up objects in real commits and not the reflog
 	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
 	// This could be a long process so use the chan version & report progress
-	Print("Scanning for objects")
+	Print("Scanning for all objects ever referenced...")
 	spinner := lfs.NewSpinner()
 	var numObjs int64
 	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
@@ -193,7 +193,7 @@ func fetchAll() {
 		pointers = append(pointers, p)
 	}
 	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
-	Print("Downloading objects")
+	Print("Fetching objects...")
 	fetchPointers(pointers, nil, nil)
 }
 
