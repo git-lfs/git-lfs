@@ -314,6 +314,12 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	}
 	LogTransfer("lfs.data.upload", res)
 
+	// A status code of 403 likely means that an authentication token for the
+	// upload has expired. This can be safely retried.
+	if res.StatusCode == 403 {
+		return newRetriableError(err)
+	}
+
 	if res.StatusCode > 299 {
 		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
 	}
