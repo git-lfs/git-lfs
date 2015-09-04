@@ -105,6 +105,9 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 func fillCredentials(u *url.URL) (Creds, error) {
 	path := strings.TrimPrefix(u.Path, "/")
 	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
+	if u.User != nil && u.User.Username() != "" {
+		creds["username"] = u.User.Username()
+	}
 	return execCreds(creds, "fill")
 }
 

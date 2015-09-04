@@ -1,5 +1,9 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
+go:
+  - 1.3
+  - 1.4.2
+  - 1.5
 install: true
 script: script/cibuild
 notifications:

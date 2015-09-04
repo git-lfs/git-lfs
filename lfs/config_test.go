@@ -281,11 +281,11 @@ func TestConcurrentTransfersNegativeValue(t *testing.T) {
 
 func TestBatch(t *testing.T) {
 	tests := map[string]bool{
+		"":         true,
 		"true":     true,
 		"1":        true,
-		"42":       true,
-		"-1":       true,
-		"":         true,
+		"42":       false,
+		"-1":       false,
 		"0":        false,
 		"false":    false,
 		"elephant": false,
