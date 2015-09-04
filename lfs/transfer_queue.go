@@ -34,6 +34,7 @@ type TransferQueue struct {
 	transferc     chan Transferable // Channel for processing transfers
 	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
+	errorwait     sync.WaitGroup
 	wait          sync.WaitGroup
 }
 
@@ -47,6 +48,8 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 	}
+
+	q.errorwait.Add(1)
 
 	q.run()
 
@@ -82,6 +85,7 @@ func (q *TransferQueue) Wait() {
 	}
 
 	q.meter.Finish()
+	q.errorwait.Wait()
 }
 
 // Watch returns a channel where the queue will write the OID of each transfer
@@ -216,6 +220,7 @@ func (q *TransferQueue) errorCollector() {
 	for err := range q.errorc {
 		q.errors = append(q.errors, err)
 	}
+	q.errorwait.Done()
 }
 
 func (q *TransferQueue) transferWorker() {
