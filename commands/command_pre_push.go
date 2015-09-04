@@ -62,7 +62,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 		left, right := decodeRefs(line)
 		if left == prePushDeleteBranch {
-			return
+			continue
 		}
 
 		// Just use scanner here
