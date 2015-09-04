@@ -1,8 +1,6 @@
 package lfs
 
-import (
-	"time"
-)
+import "sync/atomic"
 
 // Batcher provides a way to process a set of items in groups of n. Items can
 // be added to the batcher from multiple goroutines and pulled off in groups
@@ -13,6 +11,7 @@ import (
 // When a timeout, Flush(), or Exit() occurs, the group may be smaller than the
 // batch size.
 type Batcher struct {
+	exited     uint32
 	batchSize  int
 	input      chan Transferable
 	batchReady chan []Transferable
@@ -43,9 +42,18 @@ func (b *Batcher) Next() []Transferable {
 }
 
 // Exit stops all batching and allows Next() to return. Calling Add() after
-// calling Exit() will result in a panic.
+// calling Exit() will result in a panic, unless Reset() is called first.
 func (b *Batcher) Exit() {
+	atomic.StoreUint32(&b.exited, 1)
 	close(b.input)
+}
+
+// Reset allows an Exit()ed batcher to be re-started.
+func (b *Batcher) Reset() {
+	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
+		b.input = make(chan Transferable, b.batchSize)
+		go b.acceptInput()
+	}
 }
 
 // acceptInput runs in its own goroutine and accepts input from external
@@ -58,19 +66,12 @@ func (b *Batcher) acceptInput() {
 		batch := make([]Transferable, 0, b.batchSize)
 	Loop:
 		for len(batch) < b.batchSize {
-			select {
-			case t, ok := <-b.input:
-				if ok {
-					batch = append(batch, t)
-				} else {
-					exit = true // input channel was closed by Exit()
-					break Loop
-				}
-			case <-time.After(time.Millisecond * 300):
-				if len(batch) > 0 {
-					break Loop
-				}
+			t, ok := <-b.input
+			if !ok {
+				exit = true // input channel was closed by Exit()
+				break Loop
 			}
+			batch = append(batch, t)
 		}
 
 		b.batchReady <- batch

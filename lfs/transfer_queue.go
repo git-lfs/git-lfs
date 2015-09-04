@@ -3,15 +3,14 @@ package lfs
 import (
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 const (
-	batchSize          = 100
-	maxBatchRetries    = 3
-	maxTransferRetries = 2
+	batchSize = 100
 )
 
 type Transferable interface {
@@ -22,22 +21,25 @@ type Transferable interface {
 	Size() int64
 	Name() string
 	SetObject(*objectResource)
-	Attempts() int
 }
 
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
+	retrying      uint32
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
 	errors        []error
 	transferables map[string]Transferable
+	retries       []Transferable
 	batcher       *Batcher
 	apic          chan Transferable // Channel for processing individual API requests
 	transferc     chan Transferable // Channel for processing transfers
+	retriesc      chan Transferable // Channel for processing retries
 	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
 	errorwait     sync.WaitGroup
+	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
 }
 
@@ -47,12 +49,14 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
+		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 	}
 
 	q.errorwait.Add(1)
+	q.retrywait.Add(1)
 
 	q.run()
 
@@ -74,10 +78,23 @@ func (q *TransferQueue) Add(t Transferable) {
 
 // Wait waits for the queue to finish processing all transfers
 func (q *TransferQueue) Wait() {
-	q.wait.Wait()
-
 	if q.batcher != nil {
 		q.batcher.Exit()
+	}
+
+	q.wait.Wait()
+
+	// Handle any retries
+	close(q.retriesc)
+	q.retrywait.Wait()
+	atomic.StoreUint32(&q.retrying, 1)
+
+	if len(q.retries) > 0 {
+		q.batcher.Reset()
+		for _, t := range q.retries {
+			q.Add(t)
+		}
+		q.wait.Wait()
 	}
 
 	close(q.apic)
@@ -108,8 +125,8 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.Check()
 		if err != nil {
-			if q.canRetry(err, t) {
-				q.Add(t)
+			if q.canRetry(err) {
+				q.retry(t)
 			} else {
 				q.errorc <- err
 			}
@@ -165,7 +182,6 @@ func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
 // off to the transfer workers.
 func (q *TransferQueue) batchApiRoutine() {
 	var startProgress sync.Once
-	batchRetries := 0
 
 	for {
 		batch := q.batcher.Next()
@@ -190,15 +206,10 @@ func (q *TransferQueue) batchApiRoutine() {
 				return
 			}
 
-			// Batch operation retries should be caused by network issues. We want to
-			// retry these failures, but limit it to maxBatchRetries total retries,
-			// otherwise a serious network issue could cause an infinite loop of
-			// retried calls.
-			if IsRetriableError(err) && batchRetries <= maxBatchRetries {
-				batchRetries++
+			if q.canRetry(err) {
 				tracerx.Printf("tq: resubmitting batch: %s", err)
 				for _, t := range batch {
-					q.Add(t)
+					q.retry(t)
 				}
 			} else {
 				q.errorc <- err
@@ -245,6 +256,13 @@ func (q *TransferQueue) errorCollector() {
 	q.errorwait.Done()
 }
 
+func (q *TransferQueue) retryCollector() {
+	for t := range q.retriesc {
+		q.retries = append(q.retries, t)
+	}
+	q.retrywait.Done()
+}
+
 func (q *TransferQueue) transferWorker() {
 	for transfer := range q.transferc {
 		cb := func(total, read int64, current int) error {
@@ -253,9 +271,9 @@ func (q *TransferQueue) transferWorker() {
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
-			if q.canRetry(err, transfer) {
+			if q.canRetry(err) {
 				tracerx.Printf("tq: retrying object %s", transfer.Oid())
-				q.Add(transfer)
+				q.retry(transfer)
 			} else {
 				q.errorc <- err
 			}
@@ -294,6 +312,7 @@ func (q *TransferQueue) launchIndividualApiRoutines() {
 // concurrently depending on the Config.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
 	go q.errorCollector()
+	go q.retryCollector()
 
 	tracerx.Printf("tq: starting %d transfer workers", q.workers)
 	for i := 0; i < q.workers; i++ {
@@ -310,12 +329,12 @@ func (q *TransferQueue) run() {
 	}
 }
 
-func (q *TransferQueue) canRetry(err error, t Transferable) bool {
-	if !IsRetriableError(err) {
-		return false
-	}
+func (q *TransferQueue) retry(t Transferable) {
+	q.retriesc <- t
+}
 
-	if t.Attempts() >= maxTransferRetries {
+func (q *TransferQueue) canRetry(err error) bool {
+	if !IsRetriableError(err) || atomic.LoadUint32(&q.retrying) == 1 {
 		return false
 	}
 
