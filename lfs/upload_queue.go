@@ -13,6 +13,7 @@ type Uploadable struct {
 	Filename string
 	size     int64
 	object   *objectResource
+	attempts int
 }
 
 // NewUploadable builds the Uploadable from the given information.
@@ -42,6 +43,7 @@ func (u *Uploadable) Check() (*objectResource, error) {
 }
 
 func (u *Uploadable) Transfer(cb CopyCallback) error {
+	u.attempts++
 	wcb := func(total, read int64, current int) error {
 		cb(total, read, current)
 		return nil
@@ -68,6 +70,10 @@ func (u *Uploadable) Name() string {
 
 func (u *Uploadable) SetObject(o *objectResource) {
 	u.object = o
+}
+
+func (u *Uploadable) Attempts() int {
+	return u.attempts
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.

@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	batchSize       = 100
-	maxBatchRetries = 3
+	batchSize          = 100
+	maxBatchRetries    = 3
+	maxTransferRetries = 2
 )
 
 type Transferable interface {
@@ -21,6 +22,7 @@ type Transferable interface {
 	Size() int64
 	Name() string
 	SetObject(*objectResource)
+	Attempts() int
 }
 
 // TransferQueue provides a queue that will allow concurrent transfers.
@@ -36,8 +38,6 @@ type TransferQueue struct {
 	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
 	wait          sync.WaitGroup
-	retries       map[string]interface{}
-	retrylock     sync.Mutex
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
@@ -49,7 +49,6 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		errorc:        make(chan error),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
-		retries:       make(map[string]interface{}),
 	}
 
 	q.run()
@@ -105,7 +104,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.Check()
 		if err != nil {
-			if q.canRetry(err, t.Oid()) {
+			if q.canRetry(err, t) {
 				q.Add(t)
 			} else {
 				q.errorc <- err
@@ -249,7 +248,7 @@ func (q *TransferQueue) transferWorker() {
 		}
 
 		if err := transfer.Transfer(cb); err != nil {
-			if q.canRetry(err, transfer.Oid()) {
+			if q.canRetry(err, transfer) {
 				tracerx.Printf("tq: retrying object %s", transfer.Oid())
 				q.Add(transfer)
 			} else {
@@ -306,18 +305,15 @@ func (q *TransferQueue) run() {
 	}
 }
 
-func (q *TransferQueue) canRetry(err error, id string) bool {
+func (q *TransferQueue) canRetry(err error, t Transferable) bool {
 	if !IsRetriableError(err) {
 		return false
 	}
 
-	defer q.retrylock.Unlock()
-	q.retrylock.Lock()
-	if _, ok := q.retries[id]; ok {
-		// Already retried it
+	if t.Attempts() >= maxTransferRetries {
 		return false
 	}
-	q.retries[id] = struct{}{}
+
 	return true
 }
 

@@ -2,8 +2,9 @@ package lfs
 
 // The ability to check that a file can be downloaded
 type DownloadCheckable struct {
-	Pointer *WrappedPointer
-	object  *objectResource
+	Pointer  *WrappedPointer
+	object   *objectResource
+	attempts int
 }
 
 func NewDownloadCheckable(p *WrappedPointer) *DownloadCheckable {
@@ -16,6 +17,7 @@ func (d *DownloadCheckable) Check() (*objectResource, error) {
 
 func (d *DownloadCheckable) Transfer(cb CopyCallback) error {
 	// just report completion of check but don't do anything
+	d.attempts++
 	cb(d.Size(), d.Size(), int(d.Size()))
 	return nil
 }
@@ -36,6 +38,10 @@ func (d *DownloadCheckable) Name() string {
 	return d.Pointer.Name
 }
 
+func (d *DownloadCheckable) Attempts() int {
+	return d.attempts
+}
+
 func (d *DownloadCheckable) SetObject(o *objectResource) {
 	d.object = o
 }
@@ -50,6 +56,7 @@ func NewDownloadCheckQueue(files int, size int64, dryRun bool) *TransferQueue {
 
 // The ability to actually download
 type Downloadable struct {
+	attempts int
 	*DownloadCheckable
 }
 
@@ -58,11 +65,16 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 }
 
 func (d *Downloadable) Transfer(cb CopyCallback) error {
+	d.attempts++
 	err := PointerSmudgeObject(d.Pointer.Pointer, d.object, cb)
 	if err != nil {
 		return Error(err)
 	}
 	return nil
+}
+
+func (d *Downloadable) Attempts() int {
+	return d.attempts
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
