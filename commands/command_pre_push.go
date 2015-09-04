@@ -65,68 +65,74 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		// Just use scanner here
-		scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: lfs.Config.CurrentRemote}
-		pointers, err := lfs.ScanRefs(left, right, scanOpt)
+		prePushRef(left, right)
+
+	}
+}
+
+func prePushRef(left, right string) {
+	// Just use scanner here
+	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: lfs.Config.CurrentRemote}
+	pointers, err := lfs.ScanRefs(left, right, scanOpt)
+	if err != nil {
+		Panic(err, "Error scanning for Git LFS files")
+	}
+
+	totalSize := int64(0)
+	for _, p := range pointers {
+		totalSize += p.Size
+	}
+
+	// Objects to skip because they're missing locally but on server
+	var skipObjects map[string]struct{}
+
+	if !prePushDryRun {
+		// Do this as a pre-flight check since upload queue starts immediately
+		skipObjects = prePushCheckForMissingObjects(pointers)
+	}
+
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
+
+	for _, pointer := range pointers {
+		if prePushDryRun {
+			Print("push %s [%s]", pointer.Name, pointer.Oid)
+			continue
+		}
+
+		if _, skip := skipObjects[pointer.Oid]; skip {
+			// object missing locally but on server, don't bother
+			continue
+		}
+
+		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if err != nil {
-			Panic(err, "Error scanning for Git LFS files")
+			if lfs.IsCleanPointerError(err) {
+				Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
+			} else if Debugging || lfs.IsFatalError(err) {
+				Panic(err, err.Error())
+			} else {
+				Exit(err.Error())
+			}
 		}
 
-		totalSize := int64(0)
-		for _, p := range pointers {
-			totalSize += p.Size
+		uploadQueue.Add(u)
+	}
+
+	if !prePushDryRun {
+		uploadQueue.Wait()
+		for _, err := range uploadQueue.Errors() {
+			if Debugging || lfs.IsFatalError(err) {
+				LoggedError(err, err.Error())
+			} else {
+				Error(err.Error())
+			}
 		}
 
-		// Objects to skip because they're missing locally but on server
-		var skipObjects map[string]struct{}
-
-		if !prePushDryRun {
-			// Do this as a pre-flight check since upload queue starts immediately
-			skipObjects = prePushCheckForMissingObjects(pointers)
-		}
-
-		uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
-
-		for _, pointer := range pointers {
-			if prePushDryRun {
-				Print("push %s [%s]", pointer.Name, pointer.Oid)
-				continue
-			}
-
-			if _, skip := skipObjects[pointer.Oid]; skip {
-				// object missing locally but on server, don't bother
-				continue
-			}
-
-			u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
-			if err != nil {
-				if lfs.IsCleanPointerError(err) {
-					Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
-				} else if Debugging || lfs.IsFatalError(err) {
-					Panic(err, err.Error())
-				} else {
-					Exit(err.Error())
-				}
-			}
-
-			uploadQueue.Add(u)
-		}
-
-		if !prePushDryRun {
-			uploadQueue.Wait()
-			for _, err := range uploadQueue.Errors() {
-				if Debugging || lfs.IsFatalError(err) {
-					LoggedError(err, err.Error())
-				} else {
-					Error(err.Error())
-				}
-			}
-
-			if len(uploadQueue.Errors()) > 0 {
-				os.Exit(2)
-			}
+		if len(uploadQueue.Errors()) > 0 {
+			os.Exit(2)
 		}
 	}
+
 }
 
 func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}) {
