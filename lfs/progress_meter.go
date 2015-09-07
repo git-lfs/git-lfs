@@ -243,7 +243,7 @@ func (s *Spinner) Finish(out io.Writer, finishMsg string) {
 	if runtime.GOOS == "windows" {
 		// Windows console sucks, can't do nice check mark except in ConEmu (not cmd or git bash)
 		// So play it safe & boring
-		sym = "Done"
+		sym = "*"
 	} else {
 		sym = fmt.Sprintf("%c", '\u2714')
 	}
