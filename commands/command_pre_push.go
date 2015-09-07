@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"io/ioutil"
+	"bufio"
 	"os"
 	"strings"
 
@@ -43,7 +43,6 @@ var (
 // In the case of deleting a branch, no attempts to push Git LFS objects will be
 // made.
 func prePushCommand(cmd *cobra.Command, args []string) {
-	var left, right string
 
 	if len(args) == 0 {
 		Print("This should be run through Git's pre-push hook.  Run `git lfs update` to install it.")
@@ -52,20 +51,26 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	lfs.Config.CurrentRemote = args[0]
 
-	refsData, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		Panic(err, "Error reading refs on stdin")
-	}
+	// We can be passed multiple lines of refs
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 
-	if len(refsData) == 0 {
-		return
-	}
+		if len(line) == 0 {
+			continue
+		}
 
-	left, right = decodeRefs(string(refsData))
-	if left == prePushDeleteBranch {
-		return
-	}
+		left, right := decodeRefs(line)
+		if left == prePushDeleteBranch {
+			continue
+		}
 
+		prePushRef(left, right)
+
+	}
+}
+
+func prePushRef(left, right string) {
 	// Just use scanner here
 	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: lfs.Config.CurrentRemote}
 	pointers, err := lfs.ScanRefs(left, right, scanOpt)
@@ -127,6 +132,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			os.Exit(2)
 		}
 	}
+
 }
 
 func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}) {
