@@ -82,6 +82,23 @@ type ScanRefsOptions struct {
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer, error) {
+	c, err := ScanRefsToChan(refLeft, refRight, opt)
+	if err != nil {
+		return nil, err
+	}
+	pointers := make([]*WrappedPointer, 0)
+	for p := range c {
+		pointers = append(pointers, p)
+	}
+
+	return pointers, nil
+
+}
+
+// ScanRefsToChan takes a ref and returns a channel of WrappedPointer objects
+// for all Git LFS pointers it finds for that ref.
+// Reports unique oids once only, not multiple times if >1 file uses the same content
+func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (<-chan *WrappedPointer, error) {
 	if opt == nil {
 		opt = &ScanRefsOptions{}
 	}
@@ -110,15 +127,18 @@ func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer
 		return nil, err
 	}
 
-	pointers := make([]*WrappedPointer, 0)
-	for p := range pointerc {
-		if name, ok := opt.nameMap[p.Sha1]; ok {
-			p.Name = name
+	retchan := make(chan *WrappedPointer, chanBufSize)
+	go func() {
+		for p := range pointerc {
+			if name, ok := opt.nameMap[p.Sha1]; ok {
+				p.Name = name
+			}
+			retchan <- p
 		}
-		pointers = append(pointers, p)
-	}
+		close(retchan)
+	}()
 
-	return pointers, nil
+	return retchan, nil
 }
 
 // ScanIndex returns a slice of WrappedPointer objects for all
