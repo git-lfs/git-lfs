@@ -69,3 +69,27 @@ Run \`git lfs update --force\` to overwrite this hook."
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 )
 end_test
+
+begin_test "update lfs.{url}.access"
+(
+  set -e
+
+  mkdir update-access
+  cd update-access
+  git init
+  git config lfs.http://example.com.access private
+  git config lfs.https://example.com.access private
+  git config lfs.https://example2.com.access basic
+  git config lfs.https://example3.com.access other
+
+  [ "private" = "$(git config lfs.http://example.com.access)" ]
+  [ "private" = "$(git config lfs.https://example.com.access)" ]
+  [ "basic" = "$(git config lfs.https://example2.com.access)" ]
+  [ "other" = "$(git config lfs.https://example3.com.access)" ]
+
+  expected="Updated pre-push hook.
+Updated http://example.com access from private to basic.
+Updated https://example.com access from private to basic.
+Removed invalid https://example3.com access of other."
+)
+end_test

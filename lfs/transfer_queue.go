@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"path/filepath"
 	"sync"
 
 	"github.com/github/git-lfs/git"
@@ -174,8 +173,7 @@ func (q *TransferQueue) batchApiRoutine() {
 		objects, err := Batch(transfers, q.transferKind)
 		if err != nil {
 			if IsNotImplementedError(err) {
-				configFile := filepath.Join(LocalGitDir, "config")
-				git.Config.SetLocal(configFile, "lfs.batch", "false")
+				git.Config.SetLocal("", "lfs.batch", "false")
 
 				go q.legacyFallback(batch)
 				return

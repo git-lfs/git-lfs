@@ -136,12 +136,24 @@ func (c *gitConfig) UnsetGlobalSection(key string) {
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *gitConfig) SetLocal(file, key, val string) {
-	simpleExec("git", "config", "--file", file, key, val)
+	args := make([]string, 1, 5)
+	args[0] = "config"
+	if len(file) > 0 {
+		args = append(args, "--file", file)
+	}
+	args = append(args, key, val)
+	simpleExec("git", args...)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
 func (c *gitConfig) UnsetLocalKey(file, key string) {
-	simpleExec("git", "config", "--file", file, "--unset", key)
+	args := make([]string, 1, 5)
+	args[0] = "config"
+	if len(file) > 0 {
+		args = append(args, "--file", file)
+	}
+	args = append(args, "--unset", key)
+	simpleExec("git", args...)
 }
 
 // List lists all of the git config values
