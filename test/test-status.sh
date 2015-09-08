@@ -70,7 +70,12 @@ end_test
 
 begin_test "status: outside git repository"
 (
+  set +e
+  git lfs status 2>&1 > status.log
+  res=$?
+
   set -e
-  git lfs status | grep "Not in a git repository"
+  [ "$res" = "128" ]
+  grep "Not in a git repository" status.log
 )
 end_test

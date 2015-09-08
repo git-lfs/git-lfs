@@ -29,7 +29,12 @@ end_test
 
 begin_test "ls-files: outside git repository"
 (
+  set +e
+  git lfs ls-files 2>&1 > ls-files.log
+  res=$?
+
   set -e
-  git lfs ls-files | grep "Not in a git repository"
+  [ "$res" = "128" ]
+  grep "Not in a git repository" ls-files.log
 )
 end_test

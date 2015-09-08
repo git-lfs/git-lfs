@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"os"
 	"regexp"
 
 	"github.com/github/git-lfs/git"
@@ -22,8 +23,11 @@ var (
 // .git/lfs.
 func updateCommand(cmd *cobra.Command, args []string) {
 	if err := lfs.InstallHooks(updateForce); err != nil {
-		Error(err.Error())
-		if !lfs.IsInvalidRepoError(err) {
+		if lfs.IsInvalidRepoError(err) {
+			Print(err.Error())
+			os.Exit(128)
+		} else {
+			Error(err.Error())
 			Print("Run `git lfs update --force` to overwrite this hook.")
 		}
 	} else {

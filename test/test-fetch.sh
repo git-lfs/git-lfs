@@ -391,7 +391,12 @@ end_test
 
 begin_test "fetch: outside git repository"
 (
+  set +e
+  git lfs fetch 2>&1 > fetch.log
+  res=$?
+
   set -e
-  git lfs fetch | grep "Not in a git repository"
+  [ "$res" = "128" ]
+  grep "Not in a git repository" fetch.log
 )
 end_test

@@ -98,7 +98,12 @@ end_test
 
 begin_test "pull: outside git repository"
 (
+  set +e
+  git lfs pull 2>&1 > pull.log
+  res=$?
+
   set -e
-  git lfs pull | grep "Not in a git repository"
+  [ "$res" = "128" ]
+  grep "Not in a git repository" pull.log
 )
 end_test

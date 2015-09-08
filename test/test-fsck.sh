@@ -105,7 +105,12 @@ end_test
 
 begin_test "fsck: outside git repository"
 (
+  set +e
+  git lfs fsck 2>&1 > fsck.log
+  res=$?
+
   set -e
-  git lfs fsck | grep "Not in a git repository"
+  [ "$res" = "128" ]
+  grep "Not in a git repository" fsck.log
 )
 end_test

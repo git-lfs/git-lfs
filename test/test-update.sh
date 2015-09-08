@@ -96,11 +96,16 @@ end_test
 
 begin_test "update: outside git repository"
 (
+  set +e
+  git lfs update 2>&1 > check.log
+  res=$?
+  overwrite="$(grep "overwrite" check.log)"
+
   set -e
-  git lfs update 2>&1 | tee update.log
-  grep "Not in a git repository" update.log
-  if [ "$(grep "overwrite" update.log)" ]; then
-    exit 1
-  fi
+  echo "actual:"
+  cat check.log
+  [ "$res" = "128" ]
+  [ -z "$overwrite" ]
+  grep "Not in a git repository" check.log
 )
 end_test

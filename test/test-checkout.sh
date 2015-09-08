@@ -106,7 +106,12 @@ end_test
 
 begin_test "checkout: outside git repository"
 (
+  set +e
+  git lfs checkout 2>&1 > checkout.log
+  res=$?
+
   set -e
-  git lfs checkout | grep "Not in a git repository"
+  [ "$res" = "128" ]
+  grep "Not in a git repository" checkout.log
 )
 end_test
