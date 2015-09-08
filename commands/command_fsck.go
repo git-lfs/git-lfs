@@ -23,10 +23,7 @@ var (
 )
 
 func doFsck() (bool, error) {
-	if !lfs.InRepo() {
-		Print("Not in a git repository.")
-		os.Exit(128)
-	}
+	requireInRepo()
 
 	ref, err := git.CurrentRef()
 	if err != nil {

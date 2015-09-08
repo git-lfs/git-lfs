@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
@@ -19,10 +18,7 @@ var (
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
-	if !lfs.InRepo() {
-		Print("Not in a git repository.")
-		os.Exit(128)
-	}
+	requireInRepo()
 
 	ref, err := git.CurrentRef()
 	if err != nil {

@@ -105,6 +105,13 @@ func requireStdin(msg string) {
 	}
 }
 
+func requireInRepo() {
+	if !lfs.InRepo() {
+		Print("Not in a git repository.")
+		os.Exit(128)
+	}
+}
+
 func handlePanic(err error) string {
 	if err == nil {
 		return ""

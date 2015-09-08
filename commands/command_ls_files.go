@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -17,10 +15,7 @@ var (
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
-	if !lfs.InRepo() {
-		Print("Not in a git repository.")
-		os.Exit(128)
-	}
+	requireInRepo()
 
 	var ref string
 	var err error

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/github/git-lfs/git"
@@ -24,12 +23,9 @@ var (
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
-	var refs []*git.Ref
+	requireInRepo()
 
-	if !lfs.InRepo() {
-		Print("Not in a git repository.")
-		os.Exit(128)
-	}
+	var refs []*git.Ref
 
 	if len(args) > 0 {
 		// Remote is first arg
