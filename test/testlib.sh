@@ -80,6 +80,8 @@ begin_test () {
     # reset global git config
     HOME="$TRASHDIR/home"
     export GIT_TRACE=$trace
+    rm -rf "$trace"
+    touch "$trace"
     rm -rf "$TRASHDIR/home"
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
