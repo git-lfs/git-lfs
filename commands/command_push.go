@@ -19,6 +19,7 @@ var (
 	pushDryRun       = false
 	pushDeleteBranch = "(delete)"
 	pushObjectIDs    = false
+	pushAllToRemote  = false
 	useStdin         = false
 
 	// shares some global vars and functions with commmands_pre_push.go
@@ -36,19 +37,20 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 }
 
 func uploadsBetweenRefAndRemote(ref, remote string) *lfs.TransferQueue {
-
 	tracerx.Printf("Upload between %v and remote %v", ref, remote)
+
 	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: remote}
+	if pushAllToRemote {
+		scanOpt.ScanMode = lfs.ScanRefsMode
+	}
 	pointers, err := lfs.ScanRefs(ref, "", scanOpt)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 	return uploadPointers(pointers)
-
 }
 
 func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
-
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
@@ -200,5 +202,7 @@ func init() {
 	pushCmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 	pushCmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
 	pushCmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
+	pushCmd.Flags().BoolVarP(&pushAllToRemote, "all", "a", false, "Push all objects for the current ref to the remote.")
+
 	RootCmd.AddCommand(pushCmd)
 }
