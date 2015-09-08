@@ -203,7 +203,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		if IsAuthError(err) {
-			Config.SetAccess(AuthTypeBasic)
+			Config.SetAccess("basic")
 			tracerx.Printf("api: batch not authorized, submitting with auth")
 			return Batch(objects, operation)
 		}
@@ -257,7 +257,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	res, obj, err := doLegacyApiRequest(req)
 	if err != nil {
 		if IsAuthError(err) {
-			Config.SetAccess(AuthTypeBasic)
+			Config.SetAccess("basic")
 			tracerx.Printf("api: upload check not authorized, submitting with auth")
 			return UploadCheck(oidPath)
 		}

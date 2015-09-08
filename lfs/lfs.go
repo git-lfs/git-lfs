@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version            = "0.5.3"
+	Version            = "0.6.0-pre"
 	tempDirPerms       = 0755
 	localMediaDirPerms = 0755
 	localLogDirPerms   = 0755
