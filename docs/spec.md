@@ -17,7 +17,8 @@ only a pointer file is written.
 * Lines of key/value pairs MUST be sorted alphabetically in ascending order
 (with the exception of `version`, which is always first).
 * Values MUST NOT contain return or newline characters.
-* Pointer files SHOULD NOT have the executable bit set when checked out from Git.
+* Pointer files MUST be stored in Git with their executable bit matching that
+of the replaced file.
 
 The required keys are:
 
