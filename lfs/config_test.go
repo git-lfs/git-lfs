@@ -389,23 +389,30 @@ func TestFetchPruneConfigDefault(t *testing.T) {
 	assert.Equal(t, 0, fp.FetchRecentCommitsDays)
 	assert.Equal(t, 3, fp.PruneOffsetDays)
 	assert.Equal(t, true, fp.FetchRecentRefsIncludeRemotes)
+	assert.Equal(t, 3, fp.PruneOffsetDays)
+	assert.Equal(t, "origin", fp.PruneRemoteName)
+	assert.Equal(t, false, fp.PruneVerifyRemoteAlways)
 
 }
 func TestFetchPruneConfigCustom(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
-			"lfs.fetchrecentrefsdays":    "12",
-			"lfs.fetchrecentremoterefs":  "false",
-			"lfs.fetchrecentcommitsdays": "9",
-			"lfs.pruneoffsetdays":        "30",
+			"lfs.fetchrecentrefsdays":     "12",
+			"lfs.fetchrecentremoterefs":   "false",
+			"lfs.fetchrecentcommitsdays":  "9",
+			"lfs.pruneoffsetdays":         "30",
+			"lfs.pruneverifyremotealways": "true",
+			"lfs.pruneremotetocheck":      "upstream",
 		},
 	}
 	fp := config.FetchPruneConfig()
 
 	assert.Equal(t, 12, fp.FetchRecentRefsDays)
 	assert.Equal(t, 9, fp.FetchRecentCommitsDays)
-	assert.Equal(t, 30, fp.PruneOffsetDays)
 	assert.Equal(t, false, fp.FetchRecentRefsIncludeRemotes)
+	assert.Equal(t, 30, fp.PruneOffsetDays)
+	assert.Equal(t, "upstream", fp.PruneRemoteName)
+	assert.Equal(t, true, fp.PruneVerifyRemoteAlways)
 }
 
 // only used for tests
