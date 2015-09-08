@@ -5,15 +5,15 @@ OutFile "GitLFSInstaller.exe"
 InstallDir $DESKTOP
 
 VIProductVersion "0.6.0.0"
+VIAddVersionKey FileVersion      "0.6.0.0"
+VIAddVersionKey ProductVersion   "0.6.0.0"
 VIAddVersionKey ProductName      "Git LFS"
-VIAddVersionKey Comments         "Git LFS tool"
+VIAddVersionKey Comments         "Git LFS"
 VIAddVersionKey CompanyName      "GitHub, Inc"
-VIAddVersionKey LegalCopyright   "GitHub, Inc"
-VIAddVersionKey FileDescription  "Git LFS Tool"
-VIAddVersionKey FileVersion      1
-VIAddVersionKey ProductVersion   1
+VIAddVersionKey FileDescription  "Git LFS extension"
 VIAddVersionKey InternalName     "Git LFS"
-VIAddVersionKey LegalTrademarks  "something, something, darkside"
+VIAddVersionKey LegalCopyright   "(c) GitHub, Inc. and Git LFS contributors"
+VIAddVersionKey LegalTrademarks  "(c) GitHub, Inc. and Git LFS contributors"
 VIAddVersionKey OriginalFilename "GitLFSInstaller.exe"
 
 Function .onGUIInit
