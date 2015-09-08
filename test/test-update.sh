@@ -93,3 +93,14 @@ Updated https://example.com access from private to basic.
 Removed invalid https://example3.com access of other."
 )
 end_test
+
+begin_test "update: outside git repository"
+(
+  set -e
+  git lfs update 2>&1 | tee update.log
+  grep "Not in a git repository" update.log
+  if [ "$(grep "overwrite" update.log)" ]; then
+    exit 1
+  fi
+)
+end_test

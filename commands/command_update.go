@@ -23,7 +23,9 @@ var (
 func updateCommand(cmd *cobra.Command, args []string) {
 	if err := lfs.InstallHooks(updateForce); err != nil {
 		Error(err.Error())
-		Print("Run `git lfs update --force` to overwrite this hook.")
+		if !lfs.IsInvalidRepoError(err) {
+			Print("Run `git lfs update --force` to overwrite this hook.")
+		}
 	} else {
 		Print("Updated pre-push hook.")
 	}

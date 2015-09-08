@@ -74,7 +74,7 @@ begin_test "checkout"
   # test '.' in current dir
   rm nested.dat
   git lfs checkout .
-  [ "$contents" = "$(cat nested.dat)" ]  
+  [ "$contents" = "$(cat nested.dat)" ]
   popd
 
   # test folder param
@@ -101,5 +101,12 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
+)
+end_test
+
+begin_test "checkout: outside git repository"
+(
+  set -e
+  git lfs checkout | grep "Not in a git repository"
 )
 end_test

@@ -66,3 +66,11 @@ A  file3.dat 11"
   [ "$expected" = "$(git lfs status --porcelain)" ]
 )
 end_test
+
+
+begin_test "status: outside git repository"
+(
+  set -e
+  git lfs status | grep "Not in a git repository"
+)
+end_test

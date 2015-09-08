@@ -102,3 +102,10 @@ begin_test "fsck dry run"
   fi
 )
 end_test
+
+begin_test "fsck: outside git repository"
+(
+  set -e
+  git lfs fsck | grep "Not in a git repository"
+)
+end_test

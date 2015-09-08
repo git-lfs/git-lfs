@@ -21,6 +21,11 @@ var (
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
+	if !lfs.InRepo() {
+		Print("Not in a git repository.")
+		os.Exit(128)
+	}
+
 	// Parameters are filters
 	// firstly convert any pathspecs to the root of the repo, in case this is being executed in a sub-folder
 	var rootedpaths []string

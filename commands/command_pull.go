@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -17,6 +19,10 @@ var (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
+	if !lfs.InRepo() {
+		Print("Not in a git repository.")
+		os.Exit(128)
+	}
 
 	if len(args) > 0 {
 		// Remote is first arg

@@ -26,3 +26,10 @@ begin_test "ls-files"
   [ `wc -l < ls.log` = 1 ]
 )
 end_test
+
+begin_test "ls-files: outside git repository"
+(
+  set -e
+  git lfs ls-files | grep "Not in a git repository"
+)
+end_test
