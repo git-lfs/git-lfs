@@ -3,24 +3,27 @@ git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
 
 ## SYNOPSIS
 
-`git lfs push` <remote> [branch]<br>
+`git lfs push` <remote> [ref]<br>
 `git lfs push` --object-id <remote> <oid1> <oid2> ...
 
 ## DESCRIPTION
 
-Upload Git LFS files to the configured endpoint for the current Git remote.
-
-This command shouldn't be necessary since Git LFS automatically sets up a
-pre-push hook for each repository.
+Upload Git LFS files to the configured endpoint for the current Git remote.  By
+default, it filters out objects that are already referenced by the local clone
+of the remote.
 
 ## OPTIONS
+
+* `--dry-run`:
+    Print the files that would be pushed, without actually pushing them.
+
+* `--all`:
+    This pushes all objects for the given ref or current branch, regardless of
+    whether they are referenced in the local clone of the remote.
 
 * `--object-id`:
     This pushes only the object OIDs listed at the end of the command, separated
     by spaces.
-
-* `--dry-run`:
-    Print the files that would be pushed, without actually pushing them.
 
 * `--stdin`:
     Read the remote and branch on stdin. This is used in conjunction with the
