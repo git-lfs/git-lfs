@@ -74,7 +74,7 @@ begin_test "checkout"
   # test '.' in current dir
   rm nested.dat
   git lfs checkout .
-  [ "$contents" = "$(cat nested.dat)" ]  
+  [ "$contents" = "$(cat nested.dat)" ]
   popd
 
   # test folder param
@@ -101,5 +101,21 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
+)
+end_test
+
+begin_test "checkout: outside git repository"
+(
+  set +e
+  git lfs checkout 2>&1 > checkout.log
+  res=$?
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  grep "Not in a git repository" checkout.log
 )
 end_test

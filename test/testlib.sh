@@ -75,11 +75,11 @@ begin_test () {
     err="$TRASHDIR/err"
     trace="$TRASHDIR/trace"
 
-    exec 1>"$out" 2>"$err"
+    exec 1>"$out" 2>"$err" 5>"$trace"
 
     # reset global git config
     HOME="$TRASHDIR/home"
-    export GIT_TRACE=$trace
+    export GIT_TRACE=5
     rm -rf "$TRASHDIR/home"
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
@@ -112,6 +112,7 @@ end_test () {
             echo "-- git trace --"
             sed 's/^/   /' <"$TRASHDIR/trace"
         ) 1>&2
+        echo
     fi
     unset test_description
 }

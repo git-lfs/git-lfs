@@ -406,7 +406,7 @@ func (e invalidRepoError) InvalidRepo() bool {
 }
 
 func newInvalidRepoError(err error) error {
-	return invalidRepoError{newWrappedError(err, "Not in a repository")}
+	return invalidRepoError{newWrappedError(err, "Not in a git repository")}
 }
 
 // Definitions for IsSmudgeError()

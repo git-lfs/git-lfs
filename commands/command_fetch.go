@@ -23,6 +23,8 @@ var (
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	var refs []*git.Ref
 
 	if len(args) > 0 {
@@ -34,6 +36,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			lfs.Config.CurrentRemote = trackedRemote
 		} // otherwise leave as default (origin)
 	}
+
 	if len(args) > 1 {
 		for _, r := range args[1:] {
 			ref, err := git.ResolveRef(r)
@@ -63,7 +66,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		fetchAll()
 
 	} else { // !all
-
 		includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored

@@ -21,6 +21,8 @@ var (
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	// Parameters are filters
 	// firstly convert any pathspecs to the root of the repo, in case this is being executed in a sub-folder
 	var rootedpaths []string

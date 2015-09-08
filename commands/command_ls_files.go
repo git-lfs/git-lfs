@@ -15,6 +15,8 @@ var (
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	var ref string
 	var err error
 

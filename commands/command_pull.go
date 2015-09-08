@@ -17,6 +17,7 @@ var (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
 
 	if len(args) > 0 {
 		// Remote is first arg

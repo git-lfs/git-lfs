@@ -86,7 +86,7 @@ begin_test "fetch"
   git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
-  
+
   rm -rf .git/lfs/objects
   git config --unset "lfs.fetchinclude"
   git config "lfs.fetchexclude" "a*"
@@ -100,7 +100,7 @@ begin_test "fetch"
   git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
-  
+
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "c*,d*"
   git config "lfs.fetchexclude" "a*,b*"
@@ -115,7 +115,7 @@ begin_test "fetch"
   git lfs fetch --include="a*" origin master newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
-  
+
   rm -rf .git/lfs/objects
   git lfs fetch --exclude="a*" origin master newbranch
   refute_local_object "$contents_oid"
@@ -125,7 +125,7 @@ begin_test "fetch"
   git lfs fetch -I "a*,b*" -X "c*,d*" origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
-  
+
   rm -rf .git/lfs/objects
   git lfs fetch --include="c*,d*" --exclude="a*,b*" origin master newbranch
   refute_local_object "$contents_oid"
@@ -158,7 +158,7 @@ begin_test "fetch-recent"
   oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
   oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
   oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
-  
+
   echo "[
   {
     \"CommitDate\":\"$(get_date -18d)\",
@@ -295,7 +295,7 @@ begin_test "fetch-all"
     content[$a]="filecontent$a"
     oid[$a]=$(printf "${content[$a]}" | shasum -a 256 | cut -f 1 -d " ")
   done
-    
+
   echo "[
   {
     \"CommitDate\":\"$(get_date -180d)\",
@@ -361,10 +361,10 @@ begin_test "fetch-all"
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master 
-  git push origin branch1 
+  git push origin master
+  git push origin branch1
   git push origin branch3
-  git push origin remote_branch_only 
+  git push origin remote_branch_only
   git push origin tag_only
   for ((a=0; a < NUMFILES ; a++))
   do
@@ -386,5 +386,21 @@ begin_test "fetch-all"
     assert_local_object "${oid[$a]}" "${#content[$a]}"
   done
 
+)
+end_test
+
+begin_test "fetch: outside git repository"
+(
+  set +e
+  git lfs fetch 2>&1 > fetch.log
+  res=$?
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  grep "Not in a git repository" fetch.log
 )
 end_test

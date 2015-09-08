@@ -102,3 +102,19 @@ begin_test "fsck dry run"
   fi
 )
 end_test
+
+begin_test "fsck: outside git repository"
+(
+  set +e
+  git lfs fsck 2>&1 > fsck.log
+  res=$?
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  grep "Not in a git repository" fsck.log
+)
+end_test
