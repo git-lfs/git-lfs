@@ -202,6 +202,10 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 			return nil, newRetriableError(err)
 		}
 
+		if res.StatusCode == 0 {
+			return nil, newRetriableError(err)
+		}
+
 		switch res.StatusCode {
 		case 401:
 			Config.SetAccess(AuthTypeBasic)

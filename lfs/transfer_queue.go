@@ -90,9 +90,15 @@ func (q *TransferQueue) Wait() {
 	atomic.StoreUint32(&q.retrying, 1)
 
 	if len(q.retries) > 0 {
-		q.batcher.Reset()
+		tracerx.Printf("tq: retrying %d failed transfers", len(q.retries))
+		if q.batcher != nil {
+			q.batcher.Reset()
+		}
 		for _, t := range q.retries {
 			q.Add(t)
+		}
+		if q.batcher != nil {
+			q.batcher.Exit()
 		}
 		q.wait.Wait()
 	}
@@ -207,7 +213,6 @@ func (q *TransferQueue) batchApiRoutine() {
 			}
 
 			if q.canRetry(err) {
-				tracerx.Printf("tq: resubmitting batch: %s", err)
 				for _, t := range batch {
 					q.retry(t)
 				}
