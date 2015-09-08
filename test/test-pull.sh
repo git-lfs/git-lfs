@@ -103,6 +103,10 @@ begin_test "pull: outside git repository"
   res=$?
 
   set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
   [ "$res" = "128" ]
   grep "Not in a git repository" pull.log
 )
