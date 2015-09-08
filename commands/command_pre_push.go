@@ -95,7 +95,7 @@ func prePushRef(left, right string) {
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
-			Print("push %s [%s]", pointer.Name, pointer.Oid)
+			Print("push %s => %s", pointer.Oid, pointer.Name)
 			continue
 		}
 

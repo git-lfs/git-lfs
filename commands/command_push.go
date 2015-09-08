@@ -57,7 +57,7 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
-			Print("push %s [%s]", pointer.Name, pointer.Oid)
+			Print("push %s => %s", pointer.Oid, pointer.Name)
 			continue
 		}
 

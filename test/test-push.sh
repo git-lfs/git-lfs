@@ -42,7 +42,7 @@ begin_test "push dry-run"
   git commit -m "add a.dat"
 
   git lfs push --dry-run origin master 2>&1 | tee push.log
-  grep "push a.dat" push.log
+  grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
   [ $(wc -l < push.log) -eq 1 ]
 
   git checkout -b push-b
@@ -51,8 +51,8 @@ begin_test "push dry-run"
   git commit -m "add b.dat"
 
   git lfs push --dry-run origin push-b 2>&1 | tee push.log
-  grep "push a.dat" push.log
-  grep "push b.dat" push.log
+  grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
+  grep "push 82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 => b.dat" push.log
   [ $(wc -l < push.log) -eq 2 ]
 )
 end_test
