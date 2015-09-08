@@ -75,13 +75,11 @@ begin_test () {
     err="$TRASHDIR/err"
     trace="$TRASHDIR/trace"
 
-    exec 1>"$out" 2>"$err"
+    exec 1>"$out" 2>"$err" 3>"$trace"
 
     # reset global git config
     HOME="$TRASHDIR/home"
-    export GIT_TRACE=$trace
-    rm -rf "$trace"
-    touch "$trace"
+    export GIT_TRACE=3
     rm -rf "$TRASHDIR/home"
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
