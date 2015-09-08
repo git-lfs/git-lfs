@@ -112,6 +112,7 @@ end_test () {
             echo "-- git trace --"
             sed 's/^/   /' <"$TRASHDIR/trace"
         ) 1>&2
+        echo
     fi
     unset test_description
 }
