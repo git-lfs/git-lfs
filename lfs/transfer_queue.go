@@ -76,7 +76,9 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.apic <- t
 }
 
-// Wait waits for the queue to finish processing all transfers
+// Wait waits for the queue to finish processing all transfers. Once Wait is
+// called, Add will no longer add transferables to the queue. Any failed
+// transfers will be automatically retried once.
 func (q *TransferQueue) Wait() {
 	if q.batcher != nil {
 		q.batcher.Exit()
@@ -97,6 +99,8 @@ func (q *TransferQueue) Wait() {
 		q.batcher.Exit()
 		q.wait.Wait()
 	}
+
+	atomic.StoreUint32(&q.retrying, 0)
 
 	close(q.apic)
 	close(q.transferc)
