@@ -93,7 +93,6 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 		}
 
 		if _, skip := skipObjects[pointer.Oid]; skip {
-			tracerx.Printf("SKIP OBJECT %s", pointer.Oid)
 			// object missing locally but on server, don't bother
 			continue
 		}
