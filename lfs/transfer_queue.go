@@ -89,17 +89,12 @@ func (q *TransferQueue) Wait() {
 	q.retrywait.Wait()
 	atomic.StoreUint32(&q.retrying, 1)
 
-	if len(q.retries) > 0 {
+	if len(q.retries) > 0 && q.batcher != nil {
 		tracerx.Printf("tq: retrying %d failed transfers", len(q.retries))
-		if q.batcher != nil {
-			q.batcher.Reset()
-		}
 		for _, t := range q.retries {
 			q.Add(t)
 		}
-		if q.batcher != nil {
-			q.batcher.Exit()
-		}
+		q.batcher.Exit()
 		q.wait.Wait()
 	}
 

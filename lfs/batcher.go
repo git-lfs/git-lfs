@@ -32,6 +32,11 @@ func NewBatcher(batchSize int) *Batcher {
 // Add adds an item to the batcher. Add is safe to call from multiple
 // goroutines.
 func (b *Batcher) Add(t Transferable) {
+	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
+		b.input = make(chan Transferable, b.batchSize)
+		go b.acceptInput()
+	}
+
 	b.input <- t
 }
 
@@ -46,14 +51,6 @@ func (b *Batcher) Next() []Transferable {
 func (b *Batcher) Exit() {
 	atomic.StoreUint32(&b.exited, 1)
 	close(b.input)
-}
-
-// Reset allows an Exit()ed batcher to be re-started.
-func (b *Batcher) Reset() {
-	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
-		b.input = make(chan Transferable, b.batchSize)
-		go b.acceptInput()
-	}
 }
 
 // acceptInput runs in its own goroutine and accepts input from external
