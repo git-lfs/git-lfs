@@ -32,13 +32,14 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
-	return uploadPointers(pointers, nil)
+	return uploadPointers(pointers)
 }
 
 func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue {
 	tracerx.Printf("Upload refs %v to remote %v", remote, refs)
 
 	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: remote}
+
 	if pushAll {
 		if len(refs) == 0 {
 			// no ref given as an arg, so scan all refs
@@ -46,7 +47,7 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue
 			if err != nil {
 				Panic(err, "Error scanning for all Git LFS files")
 			}
-			return uploadPointers(pointers, nil)
+			return uploadPointers(pointers)
 		} else {
 			scanOpt.ScanMode = lfs.ScanRefsMode
 		}
@@ -73,19 +74,27 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue
 		i += 1
 	}
 
-	return uploadPointers(pointers, nil)
+	return uploadPointers(pointers)
 }
 
-func uploadPointers(pointers []*lfs.WrappedPointer, skipObjects map[string]struct{}) *lfs.TransferQueue {
+func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
 
+	skipObjects := prePushCheckForMissingObjects(pointers)
+
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s => %s", pointer.Oid, pointer.Name)
+			continue
+		}
+
+		if _, skip := skipObjects[pointer.Oid]; skip {
+			tracerx.Printf("SKIP OBJECT %s", pointer.Oid)
+			// object missing locally but on server, don't bother
 			continue
 		}
 

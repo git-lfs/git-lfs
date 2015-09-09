@@ -32,6 +32,15 @@ begin_test "push"
   grep "push 82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 => b.dat" push.log
   [ $(wc -l < push.log) -eq 2 ]
 
+  # simulate remote ref
+  mkdir -p .git/refs/remotes/origin
+  git rev-parse HEAD > .git/refs/remotes/origin/HEAD
+
+  git lfs push --dry-run origin push-b 2>&1 | tee push.log
+  [ $(wc -l < push.log) -eq 0 ]
+
+  rm -rf .git/refs/remotes
+
   git lfs push origin push-b 2>&1 | tee push.log
   grep "(1 of 2 files, 1 skipped)" push.log
 )
@@ -39,12 +48,8 @@ end_test
 
 # sets up the tests for the next few push --all tests
 push_all_setup() {
-  local suffix="$1"
+  suffix="$1"
   reponame="$(basename "$0" ".sh")-all"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" "repo-all-$suffix"
-
-  git lfs track "*.dat"
   content1="initial"
   content2="update"
   content3="branch"
@@ -57,6 +62,12 @@ push_all_setup() {
   oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
   oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
   extraoid=$(printf "$extracontent" | shasum -a 256 | cut -f 1 -d " ")
+
+  # if the local repo exists, it has already been bootstrapped
+  [ -d "push-all" ] && exit 0
+
+  clone_repo "$reponame" "push-all"
+  git lfs track "*.dat"
 
   echo "[
   {
@@ -98,6 +109,10 @@ push_all_setup() {
   git rm file2.dat
   git commit -m "remove file2.dat"
 
+  # simulate remote ref
+  mkdir -p .git/refs/remotes/origin
+  git rev-parse HEAD > .git/refs/remotes/origin/HEAD
+
   setup_alternate_remote "$reponame-$suffix"
 }
 
@@ -118,12 +133,41 @@ begin_test "push --all (no ref args)"
 
   git push --all origin 2>&1 | tee push.log
   grep "5 files" push.log # should be 6?
-  assert_server_object "$reponame-everything" "$oid1"
-  assert_server_object "$reponame-everything" "$oid2"
-  assert_server_object "$reponame-everything" "$oid3"
-  assert_server_object "$reponame-everything" "$oid4"
-  assert_server_object "$reponame-everything" "$oid5"
-  assert_server_object "$reponame-everything" "$extraoid"
+  assert_server_object "$reponame-$suffix" "$oid1"
+  assert_server_object "$reponame-$suffix" "$oid2"
+  assert_server_object "$reponame-$suffix" "$oid3"
+  assert_server_object "$reponame-$suffix" "$oid4"
+  assert_server_object "$reponame-$suffix" "$oid5"
+  assert_server_object "$reponame-$suffix" "$extraoid"
+
+  echo "push while missing old objects locally"
+  setup_alternate_remote "$reponame-$suffix-2"
+  git lfs push --object-id origin $oid1
+  assert_server_object "$reponame-$suffix-2" "$oid1"
+  refute_server_object "$reponame-$suffix-2" "$oid2"
+  refute_server_object "$reponame-$suffix-2" "$oid3"
+  refute_server_object "$reponame-$suffix-2" "$oid4"
+  refute_server_object "$reponame-$suffix-2" "$oid5"
+  refute_server_object "$reponame-$suffix-2" "$extraoid"
+  rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
+
+  # dry run doesn't change
+  git lfs push --dry-run --all origin 2>&1 | tee push.log
+  grep "push $oid1 => file1.dat" push.log
+  grep "push $oid2 => file1.dat" push.log
+  grep "push $oid3 => file1.dat" push.log
+  grep "push $oid4 => file1.dat" push.log
+  grep "push $oid5 => file1.dat" push.log
+  grep "push $extraoid => file2.dat" push.log
+  [ $(grep -c "push" push.log) -eq 6 ]
+
+  git push --all origin 2>&1 | tee push.log
+  grep "5 files, 1 skipped" push.log # should be 5?
+  assert_server_object "$reponame-$suffix-2" "$oid2"
+  assert_server_object "$reponame-$suffix-2" "$oid3"
+  assert_server_object "$reponame-$suffix-2" "$oid4"
+  assert_server_object "$reponame-$suffix-2" "$oid5"
+  assert_server_object "$reponame-$suffix-2" "$extraoid"
 )
 end_test
 
@@ -141,12 +185,38 @@ begin_test "push --all (1 ref arg)"
 
   git lfs push --all origin branch 2>&1 | tee push.log
   grep "3 files" push.log
-  assert_server_object "$reponame-ref" "$oid1"
-  assert_server_object "$reponame-ref" "$oid2"
-  assert_server_object "$reponame-ref" "$oid3"
-  refute_server_object "$reponame-ref" "$oid4"     # in master and the tag
-  refute_server_object "$reponame-ref" "$oid5"
-  refute_server_object "$reponame-ref" "$extraoid"
+  assert_server_object "$reponame-$suffix" "$oid1"
+  assert_server_object "$reponame-$suffix" "$oid2"
+  assert_server_object "$reponame-$suffix" "$oid3"
+  refute_server_object "$reponame-$suffix" "$oid4"     # in master and the tag
+  refute_server_object "$reponame-$suffix" "$oid5"
+  refute_server_object "$reponame-$suffix" "$extraoid"
+
+  echo "push while missing old objects locally"
+  setup_alternate_remote "$reponame-$suffix-2"
+  git lfs push --object-id origin $oid1
+  assert_server_object "$reponame-$suffix-2" "$oid1"
+  refute_server_object "$reponame-$suffix-2" "$oid2"
+  refute_server_object "$reponame-$suffix-2" "$oid3"
+  refute_server_object "$reponame-$suffix-2" "$oid4"
+  refute_server_object "$reponame-$suffix-2" "$oid5"
+  refute_server_object "$reponame-$suffix-2" "$extraoid"
+  rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
+
+  # dry run doesn't change
+  git lfs push --dry-run --all origin branch 2>&1 | tee push.log
+  grep "push $oid1 => file1.dat" push.log
+  grep "push $oid2 => file1.dat" push.log
+  grep "push $oid3 => file1.dat" push.log
+  [ $(grep -c "push" push.log) -eq 3 ]
+
+  git push --all origin branch 2>&1 | tee push.log
+  grep "5 files, 1 skipped" push.log # should be 5?
+  assert_server_object "$reponame-$suffix-2" "$oid2"
+  assert_server_object "$reponame-$suffix-2" "$oid3"
+  refute_server_object "$reponame-$suffix-2" "$oid4"
+  refute_server_object "$reponame-$suffix-2" "$oid5"
+  refute_server_object "$reponame-$suffix-2" "$extraoid"
 )
 end_test
 
@@ -165,12 +235,39 @@ begin_test "push --all (multiple ref args)"
 
   git lfs push --all origin branch tag 2>&1 | tee push.log
   grep "4 files" push.log
-  assert_server_object "$reponame-multiple-refs" "$oid1"
-  assert_server_object "$reponame-multiple-refs" "$oid2"
-  assert_server_object "$reponame-multiple-refs" "$oid3"
-  assert_server_object "$reponame-multiple-refs" "$oid4"
-  refute_server_object "$reponame-multiple-refs" "$oid5"     # only in master
-  refute_server_object "$reponame-multiple-refs" "$extraoid"
+  assert_server_object "$reponame-$suffix" "$oid1"
+  assert_server_object "$reponame-$suffix" "$oid2"
+  assert_server_object "$reponame-$suffix" "$oid3"
+  assert_server_object "$reponame-$suffix" "$oid4"
+  refute_server_object "$reponame-$suffix" "$oid5"     # only in master
+  refute_server_object "$reponame-$suffix" "$extraoid"
+
+  echo "push while missing old objects locally"
+  setup_alternate_remote "$reponame-$suffix-2"
+  git lfs push --object-id origin $oid1
+  assert_server_object "$reponame-$suffix-2" "$oid1"
+  refute_server_object "$reponame-$suffix-2" "$oid2"
+  refute_server_object "$reponame-$suffix-2" "$oid3"
+  refute_server_object "$reponame-$suffix-2" "$oid4"
+  refute_server_object "$reponame-$suffix-2" "$oid5"
+  refute_server_object "$reponame-$suffix-2" "$extraoid"
+  rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
+
+  # dry run doesn't change
+  git lfs push --dry-run --all origin branch tag 2>&1 | tee push.log
+  grep "push $oid1 => file1.dat" push.log
+  grep "push $oid2 => file1.dat" push.log
+  grep "push $oid3 => file1.dat" push.log
+  grep "push $oid4 => file1.dat" push.log
+  [ $(grep -c "push" push.log) -eq 3 ]
+
+  git push --all origin branch tag 2>&1 | tee push.log
+  grep "5 files, 1 skipped" push.log # should be 5?
+  assert_server_object "$reponame-$suffix-2" "$oid2"
+  assert_server_object "$reponame-$suffix-2" "$oid3"
+  assert_server_object "$reponame-$suffix-2" "$oid4"
+  refute_server_object "$reponame-$suffix-2" "$oid5"
+  refute_server_object "$reponame-$suffix-2" "$extraoid"
 )
 end_test
 
@@ -190,53 +287,40 @@ begin_test "push --all (ref with deleted files)"
 
   git lfs push --all origin master 2>&1 | tee push.log
   grep "5 files" push.log
-  assert_server_object "$reponame-ref-with-deleted" "$oid1"
-  assert_server_object "$reponame-ref-with-deleted" "$oid2"
-  refute_server_object "$reponame-ref-with-deleted" "$oid3" # only in the branch
-  assert_server_object "$reponame-ref-with-deleted" "$oid4"
-  assert_server_object "$reponame-ref-with-deleted" "$oid5"
-  assert_server_object "$reponame-ref-with-deleted" "$extraoid"
-)
-end_test
+  assert_server_object "$reponame-$suffix" "$oid1"
+  assert_server_object "$reponame-$suffix" "$oid2"
+  refute_server_object "$reponame-$suffix" "$oid3" # only in the branch
+  assert_server_object "$reponame-$suffix" "$oid4"
+  assert_server_object "$reponame-$suffix" "$oid5"
+  assert_server_object "$reponame-$suffix" "$extraoid"
 
-begin_test "push dry-run"
-(
-  set -e
+  echo "push while missing old objects locally"
+  setup_alternate_remote "$reponame-$suffix-2"
+  git lfs push --object-id origin $oid1
+  assert_server_object "$reponame-$suffix-2" "$oid1"
+  refute_server_object "$reponame-$suffix-2" "$oid2"
+  refute_server_object "$reponame-$suffix-2" "$oid3"
+  refute_server_object "$reponame-$suffix-2" "$oid4"
+  refute_server_object "$reponame-$suffix-2" "$oid5"
+  refute_server_object "$reponame-$suffix-2" "$extraoid"
+  rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
 
-  reponame="$(basename "$0" ".sh")-dry-run"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" repo-dry-run
+  # dry run doesn't change
+  git lfs push --dry-run --all origin master 2>&1 | tee push.log
+  grep "push $oid1 => file1.dat" push.log
+  grep "push $oid2 => file1.dat" push.log
+  grep "push $oid4 => file1.dat" push.log
+  grep "push $oid5 => file1.dat" push.log
+  grep "push $extraoid => file2.dat" push.log
+  [ $(grep -c "push" push.log) -eq 5 ]
 
-  git lfs track "*.dat"
-  echo "push a" > a.dat
-  git add .gitattributes a.dat
-  git commit -m "add a.dat"
-
-  git lfs push --dry-run origin master 2>&1 | tee push.log
-  grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
-  [ $(wc -l < push.log) -eq 1 ]
-
-  git checkout -b push-b
-  echo "push b" > b.dat
-  git add b.dat
-  git commit -m "add b.dat"
-
-  git lfs push --dry-run origin push-b 2>&1 | tee push.log
-  grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
-  grep "push 82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 => b.dat" push.log
-  [ $(wc -l < push.log) -eq 2 ]
-
-  # simulate remote ref
-  mkdir -p .git/refs/remotes/origin
-  git rev-parse HEAD > .git/refs/remotes/origin/HEAD
-
-  git lfs push --dry-run origin push-b 2>&1 | tee push.log
-  [ $(wc -l < push.log) -eq 0 ]
-
-  git lfs push --dry-run --all origin push-b 2>&1 | tee push.log
-  grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
-  grep "push 82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 => b.dat" push.log
-  [ $(wc -l < push.log) -eq 2 ]
+  git push --all origin master 2>&1 | tee push.log
+  grep "5 files, 1 skipped" push.log # should be 5?
+  assert_server_object "$reponame-$suffix-2" "$oid2"
+  refute_server_object "$reponame-$suffix-2" "$oid3"
+  assert_server_object "$reponame-$suffix-2" "$oid4"
+  assert_server_object "$reponame-$suffix-2" "$oid5"
+  assert_server_object "$reponame-$suffix-2" "$extraoid"
 )
 end_test
 
