@@ -81,6 +81,20 @@ func IsNotImplementedError(err error) bool {
 	return false
 }
 
+// IsAuthError indicates the client provided a request with invalid or no
+// authentication credentials when credentials are required (e.g. HTTP 401).
+func IsAuthError(err error) bool {
+	if e, ok := err.(interface {
+		AuthError() bool
+	}); ok {
+		return e.AuthError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsAuthError(e.InnerError())
+	}
+	return false
+}
+
 // IsInvalidPointerError indicates an attempt to parse data that was not a
 // valid pointer.
 func IsInvalidPointerError(err error) bool {
@@ -355,6 +369,24 @@ func newNotImplementedError(err error) error {
 	return notImplementedError{newWrappedError(err, "Not implemented")}
 }
 
+// Definitions for IsAuthError()
+
+type authError struct {
+	errorWrapper
+}
+
+func (e authError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e authError) AuthError() bool {
+	return true
+}
+
+func newAuthError(err error) error {
+	return authError{newWrappedError(err, "Authentication required")}
+}
+
 // Definitions for IsInvalidPointerError()
 
 type invalidPointerError struct {
@@ -388,7 +420,7 @@ func (e invalidRepoError) InvalidRepo() bool {
 }
 
 func newInvalidRepoError(err error) error {
-	return invalidRepoError{newWrappedError(err, "Not in a repository")}
+	return invalidRepoError{newWrappedError(err, "Not in a git repository")}
 }
 
 // Definitions for IsSmudgeError()

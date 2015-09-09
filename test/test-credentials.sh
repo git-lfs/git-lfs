@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-begin_test "credentials without useHttpPath, with wrong path password"
+begin_test "credentials without useHttpPath, with bad path password"
 (
   set -e
 

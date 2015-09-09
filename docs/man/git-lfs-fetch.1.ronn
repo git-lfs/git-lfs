@@ -24,6 +24,12 @@ This does not update the working copy.
   Download objects referenced by recent branches & commits in addition to those
   that would otherwise be downloaded. See [RECENT CHANGES]
 
+* `--all`:
+  Download all objects referenced by any commit that is reachable; this is
+  primarily for backup / migration purposes. Cannot be combined with --recent or
+  --include/--exclude. Ignores any globally configured include and exclude paths
+  to ensure that all objects are downloaded.
+
 ## INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in certain

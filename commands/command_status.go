@@ -18,6 +18,8 @@ var (
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not get the current ref")

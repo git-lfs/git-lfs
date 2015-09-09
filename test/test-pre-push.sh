@@ -301,3 +301,69 @@ begin_test "pre-push with missing pointer which is on server (BATCH)"
 
 )
 end_test
+
+begin_test "pre-push multiple branches"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-multiple-branches"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  NUMFILES=6
+  # generate content we'll use
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    content[$a]="filecontent$a"
+    oid[$a]=$(printf "${content[$a]}" | shasum -a 256 | cut -f 1 -d " ")
+  done
+    
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[0]}, \"Data\":\"${content[0]}\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content[1]}, \"Data\":\"${content[1]}\"}]
+  },
+  {
+    \"NewBranch\":\"branch1\",
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file2.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
+  },
+  {
+    \"ParentBranches\":[\"master\"],
+    \"NewBranch\":\"branch2\",
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
+  },
+  {
+    \"ParentBranches\":[\"master\"],
+    \"NewBranch\":\"branch3\",
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[4]}, \"Data\":\"${content[4]}\"}]
+  },
+  {
+    \"ParentBranches\":[\"master\"],
+    \"NewBranch\":\"branch4\",
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file4.dat\",\"Size\":${#content[5]}, \"Data\":\"${content[5]}\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # make sure when called via git push all branches are updated
+  git push origin master branch1 branch2 branch3 branch4
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    assert_server_object "$reponame" "${oid[$a]}"
+  done
+
+)
+end_test

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/github/git-lfs/git"
@@ -18,9 +19,12 @@ var (
 	fetchIncludeArg string
 	fetchExcludeArg string
 	fetchRecentArg  bool
+	fetchAllArg     bool
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	var refs []*git.Ref
 
 	if len(args) > 0 {
@@ -32,6 +36,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			lfs.Config.CurrentRemote = trackedRemote
 		} // otherwise leave as default (origin)
 	}
+
 	if len(args) > 1 {
 		for _, r := range args[1:] {
 			ref, err := git.ResolveRef(r)
@@ -48,24 +53,38 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		refs = []*git.Ref{ref}
 	}
 
-	includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
+	if fetchAllArg {
+		if fetchRecentArg || len(args) > 1 {
+			Exit("Cannot combine --all with ref arguments or --recent")
+		}
+		if fetchIncludeArg != "" || fetchExcludeArg != "" {
+			Exit("Cannot combine --all with --include or --exclude")
+		}
+		if len(lfs.Config.FetchIncludePaths()) > 0 || len(lfs.Config.FetchExcludePaths()) > 0 {
+			Print("Ignoring global include / exclude paths to fulfil --all")
+		}
+		fetchAll()
 
-	// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
-	for _, ref := range refs {
-		Print("Fetching %v", ref.Name)
-		fetchRef(ref.Sha, includePaths, excludePaths)
+	} else { // !all
+		includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
+
+		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
+		for _, ref := range refs {
+			Print("Fetching %v", ref.Name)
+			fetchRef(ref.Sha, includePaths, excludePaths)
+		}
+
+		if fetchRecentArg || lfs.Config.FetchPruneConfig().FetchRecentAlways {
+			fetchRecent(refs, includePaths, excludePaths)
+		}
 	}
-
-	if fetchRecentArg || lfs.Config.FetchPruneConfig().FetchRecentAlways {
-		fetchRecent(refs, includePaths, excludePaths)
-	}
-
 }
 
 func init() {
 	fetchCmd.Flags().StringVarP(&fetchIncludeArg, "include", "I", "", "Include a list of paths")
 	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
 	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
+	fetchCmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 	RootCmd.AddCommand(fetchCmd)
 }
 
@@ -155,6 +174,29 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) {
 		}
 
 	}
+}
+
+func fetchAll() {
+	// converts to `git rev-list --all`
+	// We only pick up objects in real commits and not the reflog
+	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
+	// This could be a long process so use the chan version & report progress
+	Print("Scanning for all objects ever referenced...")
+	spinner := lfs.NewSpinner()
+	var numObjs int64
+	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
+	}
+	pointers := make([]*lfs.WrappedPointer, 0)
+	for p := range pointerchan {
+		numObjs++
+		spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
+		pointers = append(pointers, p)
+	}
+	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
+	Print("Fetching objects...")
+	fetchPointers(pointers, nil, nil)
 }
 
 func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) {

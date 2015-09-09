@@ -23,6 +23,8 @@ var (
 )
 
 func doFsck() (bool, error) {
+	requireInRepo()
+
 	ref, err := git.CurrentRef()
 	if err != nil {
 		return false, err

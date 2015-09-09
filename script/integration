@@ -14,7 +14,7 @@ atexit() {
     SHOW_LOGS=no
   fi
 
-  if [ "$SHOW_LOGS" = "yes" ]; then
+  if [ "$SHOW_LOGS" = "yes" ] && [ "$VERBOSE_LOGS" = "1" ]; then
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
       echo "gitserver.log:"

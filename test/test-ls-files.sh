@@ -26,3 +26,19 @@ begin_test "ls-files"
   [ `wc -l < ls.log` = 1 ]
 )
 end_test
+
+begin_test "ls-files: outside git repository"
+(
+  set +e
+  git lfs ls-files 2>&1 > ls-files.log
+  res=$?
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  grep "Not in a git repository" ls-files.log
+)
+end_test

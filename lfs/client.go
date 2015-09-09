@@ -206,11 +206,13 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 			return nil, newRetriableError(err)
 		}
 
-		switch res.StatusCode {
-		case 401:
-			Config.SetAccess(AuthTypeBasic)
+		if IsAuthError(err) {
+			Config.SetAccess("basic")
 			tracerx.Printf("api: batch not authorized, submitting with auth")
 			return Batch(objects, operation)
+		}
+
+		switch res.StatusCode {
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
 			return nil, newNotImplementedError(nil)
@@ -258,6 +260,12 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doLegacyApiRequest(req)
 	if err != nil {
+		if IsAuthError(err) {
+			Config.SetAccess("basic")
+			tracerx.Printf("api: upload check not authorized, submitting with auth")
+			return UploadCheck(oidPath)
+		}
+
 		return nil, newRetriableError(err)
 	}
 	LogTransfer("lfs.api.upload", res)
@@ -388,6 +396,9 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, er
 	res, err := doAPIRequest(req)
 
 	if err != nil {
+		if res.StatusCode == 401 {
+			return res, nil, newAuthError(err)
+		}
 		return res, nil, err
 	}
 
@@ -532,6 +543,10 @@ func handleResponse(res *http.Response, creds Creds) error {
 		} else {
 			err = Error(cliErr)
 		}
+	}
+
+	if res.StatusCode == 401 {
+		return newAuthError(err)
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {

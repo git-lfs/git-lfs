@@ -309,6 +309,46 @@ func TestBatchAbsentIsTrue(t *testing.T) {
 	assert.Equal(t, true, v)
 }
 
+func TestAccessConfig(t *testing.T) {
+	type accessTest struct {
+		Access        string
+		PrivateAccess bool
+	}
+
+	tests := map[string]accessTest{
+		"":            {"none", false},
+		"basic":       {"basic", true},
+		"BASIC":       {"basic", true},
+		"private":     {"basic", true},
+		"PRIVATE":     {"basic", true},
+		"invalidauth": {"invalidauth", true},
+	}
+
+	for value, expected := range tests {
+		config := &Configuration{
+			gitConfig: map[string]string{
+				"lfs.url":                        "http://example.com",
+				"lfs.http://example.com.access":  value,
+				"lfs.https://example.com.access": "bad",
+			},
+		}
+
+		if access := config.Access(); access != expected.Access {
+			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		}
+
+		if priv := config.PrivateAccess(); priv != expected.PrivateAccess {
+			t.Errorf("Expected PrivateAccess() with value %q to be %v, got %v", value, expected.PrivateAccess, priv)
+		}
+	}
+}
+
+func TestAccessAbsentConfig(t *testing.T) {
+	config := &Configuration{}
+	assert.Equal(t, "none", config.Access())
+	assert.Equal(t, false, config.PrivateAccess())
+}
+
 func TestLoadValidExtension(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{},

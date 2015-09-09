@@ -66,3 +66,20 @@ A  file3.dat 11"
   [ "$expected" = "$(git lfs status --porcelain)" ]
 )
 end_test
+
+
+begin_test "status: outside git repository"
+(
+  set +e
+  git lfs status 2>&1 > status.log
+  res=$?
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  grep "Not in a git repository" status.log
+)
+end_test

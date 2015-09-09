@@ -69,3 +69,45 @@ Run \`git lfs update --force\` to overwrite this hook."
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 )
 end_test
+
+begin_test "update lfs.{url}.access"
+(
+  set -e
+
+  mkdir update-access
+  cd update-access
+  git init
+  git config lfs.http://example.com.access private
+  git config lfs.https://example.com.access private
+  git config lfs.https://example2.com.access basic
+  git config lfs.https://example3.com.access other
+
+  [ "private" = "$(git config lfs.http://example.com.access)" ]
+  [ "private" = "$(git config lfs.https://example.com.access)" ]
+  [ "basic" = "$(git config lfs.https://example2.com.access)" ]
+  [ "other" = "$(git config lfs.https://example3.com.access)" ]
+
+  expected="Updated pre-push hook.
+Updated http://example.com access from private to basic.
+Updated https://example.com access from private to basic.
+Removed invalid https://example3.com access of other."
+)
+end_test
+
+begin_test "update: outside git repository"
+(
+  set +e
+  git lfs update 2>&1 > check.log
+  res=$?
+  overwrite="$(grep "overwrite" check.log)"
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  [ -z "$overwrite" ]
+  grep "Not in a git repository" check.log
+)
+end_test

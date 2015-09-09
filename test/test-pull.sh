@@ -75,7 +75,7 @@ begin_test "pull"
   git config "lfs.fetchinclude" "a*"
   git lfs pull
   assert_local_object "$contents_oid" 1
-  
+
   rm -rf .git/lfs/objects
   git config --unset "lfs.fetchinclude"
   git config "lfs.fetchexclude" "a*"
@@ -87,11 +87,27 @@ begin_test "pull"
   rm -rf .git/lfs/objects
   git lfs pull --include="a*"
   assert_local_object "$contents_oid" 1
-  
+
   rm -rf .git/lfs/objects
   git lfs pull --exclude="a*"
   refute_local_object "$contents_oid"
 
 
+)
+end_test
+
+begin_test "pull: outside git repository"
+(
+  set +e
+  git lfs pull 2>&1 > pull.log
+  res=$?
+
+  set -e
+  if [ "$res" = "0" ]; then
+    echo "Passes because $GIT_LFS_TEST_DIR is unset."
+    exit 0
+  fi
+  [ "$res" = "128" ]
+  grep "Not in a git repository" pull.log
 )
 end_test
