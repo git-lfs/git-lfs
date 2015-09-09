@@ -25,8 +25,6 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 
 func TestAllCurrentObjectsSome(t *testing.T) {
 
-	// FFFFFFF why is this creating the same data for every file????????
-
 	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
