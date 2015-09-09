@@ -44,8 +44,8 @@ func (b *Batcher) Next() []Transferable {
 	return <-b.batchReady
 }
 
-// Exit stops all batching and allows Next() to return. Calling Add() will
-// reset the batcher.
+// Exit stops all batching and allows Next() to return. Calling Add() after
+// calling Exit() will reset the batcher.
 func (b *Batcher) Exit() {
 	atomic.StoreUint32(&b.exited, 1)
 	close(b.input)
