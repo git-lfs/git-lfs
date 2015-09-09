@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -43,23 +42,7 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue
 
 	if pushAll {
 		if len(refs) == 0 {
-			// no ref given as an arg, so scan all refs
-			opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
-			// This could be a long process so use the chan version & report progress
-			Print("Scanning for all objects ever referenced...")
-			spinner := lfs.NewSpinner()
-			var numObjs int64
-			pointerchan, err := lfs.ScanRefsToChan("", "", opts)
-			if err != nil {
-				Panic(err, "Could not scan for Git LFS files")
-			}
-			pointers := make([]*lfs.WrappedPointer, 0)
-			for p := range pointerchan {
-				numObjs++
-				spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
-				pointers = append(pointers, p)
-			}
-			spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
+			pointers := scanAll()
 			Print("Pushing objects...")
 			return uploadPointers(pointers)
 		} else {
