@@ -74,6 +74,7 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
+	lfs.ResolveDirs()
 }
 
 func (r *Repo) Popd() {

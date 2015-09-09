@@ -95,19 +95,14 @@ func InRepo() bool {
 	return LocalWorkingDir != ""
 }
 
-func init() {
+func ResolveDirs() {
 	var err error
-
-	tracerx.DefaultKey = "GIT"
-	tracerx.Prefix = "trace git-lfs: "
-
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
-
 		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
 		}
@@ -119,8 +114,15 @@ func init() {
 		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
-
 	}
+}
+
+func init() {
+
+	tracerx.DefaultKey = "GIT"
+	tracerx.Prefix = "trace git-lfs: "
+
+	ResolveDirs()
 
 	gitCommit := ""
 	if len(GitCommit) > 0 {
