@@ -17,7 +17,7 @@ begin_test "push"
 
   git lfs push --dry-run origin master 2>&1 | tee push.log
   grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
-  [ $(wc -l < push.log) -eq 1 ]
+  [ $(grep -c "push" push.log) -eq 1 ]
 
   git lfs push origin master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
@@ -30,14 +30,14 @@ begin_test "push"
   git lfs push --dry-run origin push-b 2>&1 | tee push.log
   grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
   grep "push 82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 => b.dat" push.log
-  [ $(wc -l < push.log) -eq 2 ]
+  [ $(grep -c "push" < push.log) -eq 2 ]
 
   # simulate remote ref
   mkdir -p .git/refs/remotes/origin
   git rev-parse HEAD > .git/refs/remotes/origin/HEAD
 
   git lfs push --dry-run origin push-b 2>&1 | tee push.log
-  [ $(wc -l < push.log) -eq 0 ]
+  [ $(grep -c "push" push.log) -eq 0 ]
 
   rm -rf .git/refs/remotes
 
@@ -129,7 +129,7 @@ begin_test "push --all (no ref args)"
   grep "push $oid4 => file1.dat" push.log
   grep "push $oid5 => file1.dat" push.log
   grep "push $extraoid => file2.dat" push.log
-  [ $(wc -l < push.log) -eq 6 ]
+  [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
   grep "5 files" push.log # should be 6?
@@ -181,7 +181,7 @@ begin_test "push --all (1 ref arg)"
   grep "push $oid1 => file1.dat" push.log
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid3 => file1.dat" push.log
-  [ $(wc -l < push.log) -eq 3 ]
+  [ $(grep -c "push" < push.log) -eq 3 ]
 
   git lfs push --all origin branch 2>&1 | tee push.log
   grep "3 files" push.log
@@ -231,7 +231,7 @@ begin_test "push --all (multiple ref args)"
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid3 => file1.dat" push.log
   grep "push $oid4 => file1.dat" push.log
-  [ $(wc -l < push.log) -eq 4 ]
+  [ $(grep -c "push" push.log) -eq 4 ]
 
   git lfs push --all origin branch tag 2>&1 | tee push.log
   grep "4 files" push.log
@@ -283,7 +283,7 @@ begin_test "push --all (ref with deleted files)"
   grep "push $oid4 => file1.dat" push.log
   grep "push $oid5 => file1.dat" push.log
   grep "push $extraoid => file2.dat" push.log
-  [ $(wc -l < push.log) -eq 5 ]
+  [ $(grep -c "push" push.log) -eq 5 ]
 
   git lfs push --all origin master 2>&1 | tee push.log
   grep "5 files" push.log
