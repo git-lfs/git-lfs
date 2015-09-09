@@ -83,7 +83,7 @@ func prePushRef(left, right string) {
 	}
 
 	// Objects to skip because they're missing locally but on server
-	var skipObjects map[string]struct{}
+	var skipObjects lfs.StringSet
 
 	if !prePushDryRun {
 		// Do this as a pre-flight check since upload queue starts immediately
@@ -98,7 +98,7 @@ func prePushRef(left, right string) {
 			continue
 		}
 
-		if _, skip := skipObjects[pointer.Oid]; skip {
+		if skipObjects.Contains(pointer.Oid) {
 			// object missing locally but on server, don't bother
 			continue
 		}
@@ -134,10 +134,10 @@ func prePushRef(left, right string) {
 
 }
 
-func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer map[string]struct{}) {
+func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer lfs.StringSet) {
 	var missingLocalObjects []*lfs.WrappedPointer
 	var missingSize int64
-	var skipObjects = make(map[string]struct{}, len(pointers))
+	var skipObjects = lfs.NewStringSetWithCapacity(len(pointers))
 	for _, pointer := range pointers {
 		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
 			// We think we need to push this but we don't have it
@@ -159,7 +159,7 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 	done := make(chan int)
 	go func() {
 		for oid := range transferc {
-			skipObjects[oid] = struct{}{}
+			skipObjects.Add(oid)
 		}
 		done <- 1
 	}()
