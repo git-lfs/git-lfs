@@ -151,7 +151,7 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 		return nil
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, false)
+	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
 	for _, p := range missingLocalObjects {
 		checkQueue.Add(lfs.NewDownloadCheckable(p))
 	}
