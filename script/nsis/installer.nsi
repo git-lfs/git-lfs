@@ -31,7 +31,7 @@ Function .onGUIInit
     Goto exit
 
   IfFileExists $PROGRAMFILES\Git\bin\git.exe 0 +2
-    StrCpy $INSTDIR "$PROGRAMFILES\Git\bin\git.exe"
+    StrCpy $INSTDIR "$PROGRAMFILES\Git\bin"
 
   exit:
     SetOutPath $INSTDIR
