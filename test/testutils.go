@@ -286,7 +286,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			}
 			if inputData == nil {
 				// Different data for each file but deterministic
-				inputData = NewPlaceholderDataReader(int64(i*fi), infile.Size)
+				inputData = NewPlaceholderDataReader(int64(i+1*fi+1), infile.Size)
 			}
 			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
 			if err != nil {
