@@ -169,10 +169,6 @@ func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Relea
 		return nil
 	}
 
-	return unixInstaller(buildos, buildarch, dir, buildMatrix)
-}
-
-func unixInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
 	fullInstallPath := filepath.Join(dir, "install.sh")
 	cmd := exec.Command("cp", "script/install.sh.example", fullInstallPath)
 	if err := logAndRun(cmd); err != nil {
