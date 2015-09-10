@@ -29,7 +29,8 @@ func TestGetCredentialsForApi(t *testing.T) {
 			Username: "user",
 			Password: "monkey",
 		},
-		{Desc: "auth header",
+		{
+			Desc:          "auth header",
 			Config:        map[string]string{"lfs.url": "https://git-server.com"},
 			Header:        map[string]string{"Authorization": "Test monkey"},
 			Method:        "GET",
@@ -97,6 +98,13 @@ func TestGetCredentialsForApi(t *testing.T) {
 			Username: "user",
 			Password: "monkey",
 		},
+		{
+			Desc:     "?token query",
+			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server.com/foo?token=abc",
+			SkipAuth: true,
+		},
 	})
 }
 
@@ -119,6 +127,13 @@ func TestGetCredentials(t *testing.T) {
 			Host:     "lfs-server.com",
 			Username: "lfs-server.com",
 			Password: "monkey",
+		},
+		{
+			Desc:     "?token query",
+			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Method:   "GET",
+			Href:     "https://git-server.com/foo?token=abc",
+			SkipAuth: true,
 		},
 	}
 
@@ -192,15 +207,17 @@ func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, 
 			}
 		}
 
-		if len(check.Authorization) > 0 {
-			if actual := req.Header.Get("Authorization"); actual != check.Authorization {
-				t.Errorf("[%s] Unexpected Authorization header: %s", check.Desc, actual)
+		reqAuth := req.Header.Get("Authorization")
+		if check.SkipAuth {
+		} else if len(check.Authorization) > 0 {
+			if reqAuth != check.Authorization {
+				t.Errorf("[%s] Unexpected Authorization header: %s", check.Desc, reqAuth)
 			}
 		} else {
 			rawtoken := fmt.Sprintf("%s:%s", check.Username, check.Password)
 			expected := "Basic " + base64.URLEncoding.EncodeToString([]byte(rawtoken))
-			if value := req.Header.Get("Authorization"); value != expected {
-				t.Errorf("[%s] Bad Authorization. Expected '%s', got '%s'", check.Desc, expected, value)
+			if reqAuth != expected {
+				t.Errorf("[%s] Bad Authorization. Expected '%s', got '%s'", check.Desc, expected, reqAuth)
 			}
 		}
 
@@ -222,6 +239,7 @@ type getCredentialCheck struct {
 	Path          string
 	Authorization string
 	CurrentRemote string
+	SkipAuth      bool
 }
 
 func (c *getCredentialCheck) ExpectCreds() bool {

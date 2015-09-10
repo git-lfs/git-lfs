@@ -13,17 +13,11 @@ import (
 // Authorization header with them using Basic Authentication. This is like
 // getCredsForAPI(), but skips checking the LFS url or git remote.
 func getCreds(req *http.Request) (Creds, error) {
-	if len(req.Header.Get("Authorization")) > 0 {
+	if skipCredsCheck(req) {
 		return nil, nil
 	}
 
-	creds, err := fillCredentials(req.URL)
-	if err != nil {
-		return nil, Error(err)
-	}
-
-	setRequestAuth(req, creds["username"], creds["password"])
-	return creds, nil
+	return fillCredentials(req, req.URL)
 }
 
 // getCredsForAPI gets the credentials for LFS API requests and sets the given
@@ -37,7 +31,7 @@ func getCreds(req *http.Request) (Creds, error) {
 // have to enter their passwords once for Git and Git LFS. It uses the same
 // URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
 func getCredsForAPI(req *http.Request) (Creds, error) {
-	if len(req.Header.Get("Authorization")) > 0 {
+	if skipCredsCheck(req) {
 		return nil, nil
 	}
 
@@ -50,16 +44,7 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 		return nil, nil
 	}
 
-	creds, err := fillCredentials(credsUrl)
-	if err != nil {
-		return nil, Error(err)
-	}
-
-	if creds != nil {
-		setRequestAuth(req, creds["username"], creds["password"])
-	}
-
-	return creds, nil
+	return fillCredentials(req, credsUrl)
 }
 
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
@@ -102,13 +87,29 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	return credsUrl, nil
 }
 
-func fillCredentials(u *url.URL) (Creds, error) {
-	path := strings.TrimPrefix(u.Path, "/")
-	creds := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
-	if u.User != nil && u.User.Username() != "" {
-		creds["username"] = u.User.Username()
+func skipCredsCheck(req *http.Request) bool {
+	if len(req.Header.Get("Authorization")) > 0 {
+		return true
 	}
-	return execCreds(creds, "fill")
+
+	q := req.URL.Query()
+	return len(q["token"]) > 0
+}
+
+func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
+	path := strings.TrimPrefix(u.Path, "/")
+	input := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
+	if u.User != nil && u.User.Username() != "" {
+		input["username"] = u.User.Username()
+	}
+
+	creds, err := execCreds(input, "fill")
+
+	if creds != nil && err == nil {
+		setRequestAuth(req, creds["username"], creds["password"])
+	}
+
+	return creds, err
 }
 
 func saveCredentials(creds Creds, res *http.Response) {
