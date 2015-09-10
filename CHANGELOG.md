@@ -1,5 +1,54 @@
 # Git LFS Changelog
 
+## v0.6.0 (10 September, 2015)
+
+First release with full support for the Batch API, while still supporting
+servers with the Legacy API. Also introduces new fetch/checkout/push commands.
+
+### Fetch
+
+* Rename old `git lfs fetch` command to `git lfs pull`. #527 (@sinbad)
+* Add `git lfs checkout` #527 #543 #551 #566 (@sinbad)
+* Add `git lfs fetch` for _just_ downloading objects. #527 (@sinbad)
+  * Support fetching multiple refs #542 (@sinbad)
+  * Add `--all` option for download all objects from the server. #633 (@sinbad)
+  * Add `--include` and `--exclude` flag for `git lfs fetch` #573 (@sinbad)
+* Fix error handling while `git update-index` is running. #570 (@rubyist)
+
+### Push
+
+* Support pushing multiple branches in the pre-push hook. #635 (@sinbad)
+* Fix pushing objects from a branch that's not HEAD. #608 (@sinbad)
+* Check server for objects before failing push because local is missing #581 (@sinbad)
+* Filter out commits from remote refs when pushing. #578 (@billygor)
+* Support pushing all objects to the server, regardless of the remote ref. #646 (@technoweenie)
+* Fix case where pre-push git hook exits with 0. #582 (@sinbad)
+
+### API Clients
+
+* Fix some race conditions in the Batch API client. #577 #637 (@sinbad, @rubyist)
+* Support retries in the Batch API client. #595 (@rubyist)
+* Fix hanging batch client in certain error conditions #594 (@rubyist)
+* Treat 401 responses as errors in the Legacy API client. #634 (@rubyist)
+* Fix bug in the Legacy API client when the object already exists on the server. #572 (@billygor)
+
+### Credentials
+
+* Fix how git credentials are checked in certain edge cases #611 (@technoweenie)
+* Send URI user to git credentials. #626 (@sinbad)
+* Support git credentials with useHttpPath enabled. #554 (@clareliguori)
+
+### Experimental Features
+
+* Experimental support for Git worktrees (in Git 2.5+) #546 (@sinbad)
+* Experimental extension support. #486 (@ryansimmen)
+
+## v0.5.4 (30 July, 2015)
+
+* Ensure `git lfs uninit` cleans your git config thoroughly. #530 (@technoweenie)
+* Fix issue with asking `git-credentials` for auth details after getting them
+from the SSH command. #534 (@technoweenie)
+
 ## v0.5.3 (23 July, 2015)
 
 * `git lfs fetch` bugs #429 (@rubyist)
