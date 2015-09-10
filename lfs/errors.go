@@ -176,6 +176,20 @@ func IsDownloadDeclinedError(err error) bool {
 	return false
 }
 
+// IsRetriableError indicates the low level transfer had an error but the
+// caller may retry the operation.
+func IsRetriableError(err error) bool {
+	if e, ok := err.(interface {
+		RetriableError() bool
+	}); ok {
+		return e.RetriableError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsRetriableError(e.InnerError())
+	}
+	return false
+}
+
 // Error wraps an error with an empty message.
 func Error(err error) error {
 	return Errorf(err, "")
@@ -432,8 +446,6 @@ func newSmudgeError(err error, oid, filename string) error {
 
 // Definitions for IsCleanPointerError()
 
-// cleanPointerError is used to pass the Pointer and contents back up to the
-// caller.
 type cleanPointerError struct {
 	errorWrapper
 }
@@ -487,6 +499,24 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 
 func newDownloadDeclinedError(err error) error {
 	return downloadDeclinedError{newWrappedError(err, "File missing and download is not allowed")}
+}
+
+// Definitions for IsRetriableError()
+
+type retriableError struct {
+	errorWrapper
+}
+
+func (e retriableError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e retriableError) RetriableError() bool {
+	return true
+}
+
+func newRetriableError(err error) error {
+	return retriableError{newWrappedError(err, "")}
 }
 
 // Stack returns a byte slice containing the runtime.Stack()

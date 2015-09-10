@@ -161,7 +161,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 
 	res, err := doStorageRequest(req)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, newRetriableError(err)
 	}
 	LogTransfer("lfs.data.download", res)
 
@@ -199,7 +199,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	res, objs, err := doApiBatchRequest(req)
 	if err != nil {
 		if res == nil {
-			return nil, err
+			return nil, newRetriableError(err)
+		}
+
+		if res.StatusCode == 0 {
+			return nil, newRetriableError(err)
 		}
 
 		if IsAuthError(err) {
@@ -262,7 +266,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 			return UploadCheck(oidPath)
 		}
 
-		return nil, err
+		return nil, newRetriableError(err)
 	}
 	LogTransfer("lfs.api.upload", res)
 
@@ -318,9 +322,15 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 
 	res, err := doStorageRequest(req)
 	if err != nil {
-		return err
+		return newRetriableError(err)
 	}
 	LogTransfer("lfs.data.upload", res)
+
+	// A status code of 403 likely means that an authentication token for the
+	// upload has expired. This can be safely retried.
+	if res.StatusCode == 403 {
+		return newRetriableError(err)
+	}
 
 	if res.StatusCode > 299 {
 		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
