@@ -48,7 +48,7 @@ See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git
 
 ### Credentials
 
-* Fix how git credentials are checked in certain edge cases. #611 #650 (@technoweenie)
+* Fix how git credentials are checked in certain edge cases. #611 #650 #652 (@technoweenie)
 * Send URI user to git credentials. #626 (@sinbad)
 * Support git credentials with useHttpPath enabled. #554 (@clareliguori)
 
@@ -61,7 +61,7 @@ See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git
 
 ### Misc
 
-* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn).
+* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn). #610 (@sinbad)
 * Experimental support for Git worktrees (in Git 2.5+) #546 (@sinbad)
 * Experimental extension support. #486 (@ryansimmen)
 
