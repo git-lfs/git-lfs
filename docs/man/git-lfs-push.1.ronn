@@ -19,8 +19,9 @@ of the remote.
     Print the files that would be pushed, without actually pushing them.
 
 * `--all`:
-    This pushes all objects to the remote that are referenced by any reachable
-    commit. If no ref is provided, then all refs are pushed.
+    This pushes all objects to the remote that are referenced by any commit
+    reachable from the refs provided as arguments. If no refs are provided, then
+    all refs are pushed.
 
 * `--object-id`:
     This pushes only the object OIDs listed at the end of the command, separated
