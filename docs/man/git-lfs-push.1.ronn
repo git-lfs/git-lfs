@@ -3,8 +3,9 @@ git-lfs-push(1) -- Push queued large files to the Git LFS endpoint
 
 ## SYNOPSIS
 
-`git lfs push` <remote> [ref]<br>
-`git lfs push` --object-id <remote> <oid1> <oid2> ...
+`git lfs push` [options] <remote> [<ref>...]<br>
+`git lfs push` <remote> [<ref>...]<br>
+`git lfs push` --object-id <remote> [<oid>...]
 
 ## DESCRIPTION
 
@@ -18,8 +19,8 @@ of the remote.
     Print the files that would be pushed, without actually pushing them.
 
 * `--all`:
-    This pushes all objects for the given ref or current branch, regardless of
-    whether they are referenced in the local clone of the remote.
+    This pushes all objects to the remote that are referenced by any reachable
+    commit. If no ref is provided, then all refs are pushed.
 
 * `--object-id`:
     This pushes only the object OIDs listed at the end of the command, separated
