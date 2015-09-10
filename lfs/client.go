@@ -357,7 +357,7 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, err = doAPIRequest(req)
+	res, err = doAPIRequest(req, true)
 	if err != nil {
 		return err
 	}
@@ -393,7 +393,7 @@ func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, err
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
 func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, error) {
-	res, err := doAPIRequest(req)
+	res, err := doAPIRequest(req, Config.PrivateAccess())
 
 	if err != nil {
 		if res.StatusCode == 401 {
@@ -427,12 +427,8 @@ func doStorageRequest(req *http.Request) (*http.Response, error) {
 // body. If the API returns a 401, the repo will be marked as having private
 // access and the request will be re-run. When the repo is marked as having
 // private access, credentials will be retrieved.
-func doAPIRequest(req *http.Request) (*http.Response, error) {
+func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 	via := make([]*http.Request, 0, 4)
-	useCreds := true
-	if req.Method == "GET" || req.Method == "HEAD" {
-		useCreds = Config.PrivateAccess()
-	}
 	return doApiRequestWithRedirects(req, via, useCreds)
 }
 
