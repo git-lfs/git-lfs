@@ -22,7 +22,7 @@ are updated.
   * Add `--all` option for download all objects from the server. #633 (@sinbad)
 * Fix error handling while `git update-index` is running. #570 (@rubyist)
 
-See docs/man/git-lfs-fetch.1.ronn for details.
+See [git-lfs-fetch(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-fetch.1.ronn) for details.
 
 ### Push
 
@@ -33,7 +33,7 @@ See docs/man/git-lfs-fetch.1.ronn for details.
 * Support pushing all objects to the server, regardless of the remote ref. #646 (@technoweenie)
 * Fix case where pre-push git hook exits with 0. #582 (@sinbad)
 
-See docs/man/git-lfs-push.1.ronn for details.
+See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-push.1.ronn) for details.
 
 ### API Clients
 
@@ -54,11 +54,11 @@ See docs/man/git-lfs-push.1.ronn for details.
 * Docker images and scripts for building and testing linux packages. #511 #526 #555 #603 (@andyneff, @ssgelm)
 * Create Windows GUI installer. #642 (@technoweenie)
 * Binary releases use Go 1.5, which includes fix for Authorization when the
-  request URL includes just the username. https://github.com/golang/go/issues/11399
+  request URL includes just the username. [golang/go#11399](https://github.com/golang/go/issues/11399)
 
 ### Misc
 
-* Documented Git config values used by Git LFS in docs/man/git-lfs-config.5.ronn.
+* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn).
 * Experimental support for Git worktrees (in Git 2.5+) #546 (@sinbad)
 * Experimental extension support. #486 (@ryansimmen)
 
