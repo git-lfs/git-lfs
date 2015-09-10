@@ -130,6 +130,24 @@ setup_remote_repo() {
   git config receive.denyCurrentBranch ignore
 }
 
+# creates a bare remote repository for a local clone. Useful to test pushing to
+# a fresh remote server.
+#
+#   $ setup_alternate_remote "$reponame-whatever"
+#   $ setup_alternate_remote "$reponame-whatever" "other-remote-name"
+#
+setup_alternate_remote() {
+  local newRemoteName=$1
+  local remote=${2:-origin}
+
+  wd=`pwd`
+
+  setup_remote_repo "$newRemoteName"
+  cd $wd
+  git remote rm "$remote"
+  git remote add "$remote" "$GITSERVER/$newRemoteName"
+}
+
 # clone_repo clones a repository from the test Git server to the subdirectory
 # $dir under $TRASHDIR. setup_remote_repo() needs to be run first.
 clone_repo() {

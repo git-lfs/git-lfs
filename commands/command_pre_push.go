@@ -95,7 +95,7 @@ func prePushRef(left, right string) {
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
-			Print("push %s [%s]", pointer.Name, pointer.Oid)
+			Print("push %s => %s", pointer.Oid, pointer.Name)
 			continue
 		}
 
@@ -151,7 +151,7 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 		return nil
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, false)
+	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
 	for _, p := range missingLocalObjects {
 		checkQueue.Add(lfs.NewDownloadCheckable(p))
 	}

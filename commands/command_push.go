@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -19,6 +18,7 @@ var (
 	pushDryRun       = false
 	pushDeleteBranch = "(delete)"
 	pushObjectIDs    = false
+	pushAll          = false
 	useStdin         = false
 
 	// shares some global vars and functions with commmands_pre_push.go
@@ -35,29 +35,62 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	return uploadPointers(pointers)
 }
 
-func uploadsBetweenRefAndRemote(ref, remote string) *lfs.TransferQueue {
+func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue {
+	tracerx.Printf("Upload refs %v to remote %v", remote, refs)
 
-	tracerx.Printf("Upload between %v and remote %v", ref, remote)
 	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: remote}
-	pointers, err := lfs.ScanRefs(ref, "", scanOpt)
-	if err != nil {
-		Panic(err, "Error scanning for Git LFS files")
-	}
-	return uploadPointers(pointers)
 
+	if pushAll {
+		if len(refs) == 0 {
+			pointers := scanAll()
+			Print("Pushing objects...")
+			return uploadPointers(pointers)
+		} else {
+			scanOpt.ScanMode = lfs.ScanRefsMode
+		}
+	}
+
+	// keep a unique set of pointers
+	oidPointerMap := make(map[string]*lfs.WrappedPointer)
+
+	for _, ref := range refs {
+		pointers, err := lfs.ScanRefs(ref, "", scanOpt)
+		if err != nil {
+			Panic(err, "Error scanning for Git LFS files in the %q ref", ref)
+		}
+
+		for _, p := range pointers {
+			oidPointerMap[p.Oid] = p
+		}
+	}
+
+	i := 0
+	pointers := make([]*lfs.WrappedPointer, len(oidPointerMap))
+	for _, pointer := range oidPointerMap {
+		pointers[i] = pointer
+		i += 1
+	}
+
+	return uploadPointers(pointers)
 }
 
 func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
-
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
 
+	skipObjects := prePushCheckForMissingObjects(pointers)
+
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
-			Print("push %s [%s]", pointer.Name, pointer.Oid)
+			Print("push %s => %s", pointer.Oid, pointer.Name)
+			continue
+		}
+
+		if _, skip := skipObjects[pointer.Oid]; skip {
+			// object missing locally but on server, don't bother
 			continue
 		}
 
@@ -157,27 +190,12 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 		uploadQueue = uploadsWithObjectIDs(args[1:])
 	} else {
-
 		if len(args) < 1 {
 			Print("Usage: git lfs push --dry-run <remote> [ref]")
 			return
 		}
 
-		remote := args[0]
-		var ref string
-		if len(args) == 2 {
-			ref = args[1]
-		}
-
-		if ref == "" {
-			localRef, err := git.CurrentRef()
-			if err != nil {
-				Panic(err, "Error getting local ref")
-			}
-			ref = localRef.Sha
-		}
-
-		uploadQueue = uploadsBetweenRefAndRemote(ref, remote)
+		uploadQueue = uploadsBetweenRefAndRemote(args[0], args[1:])
 	}
 
 	if !pushDryRun {
@@ -200,5 +218,7 @@ func init() {
 	pushCmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 	pushCmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
 	pushCmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
+	pushCmd.Flags().BoolVarP(&pushAll, "all", "a", false, "Push all objects for the current ref to the remote.")
+
 	RootCmd.AddCommand(pushCmd)
 }
