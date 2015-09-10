@@ -19,7 +19,7 @@ servers with the Legacy API. Also introduces new fetch/checkout/push commands.
 
 * Support pushing multiple branches in the pre-push hook. #635 (@sinbad)
 * Fix pushing objects from a branch that's not HEAD. #608 (@sinbad)
-* Check server for objects before failing push because local is missing #581 (@sinbad)
+* Check server for objects before failing push because local is missing. #581 (@sinbad)
 * Filter out commits from remote refs when pushing. #578 (@billygor)
 * Support pushing all objects to the server, regardless of the remote ref. #646 (@technoweenie)
 * Fix case where pre-push git hook exits with 0. #582 (@sinbad)
@@ -28,15 +28,20 @@ servers with the Legacy API. Also introduces new fetch/checkout/push commands.
 
 * Fix some race conditions in the Batch API client. #577 #637 (@sinbad, @rubyist)
 * Support retries in the Batch API client. #595 (@rubyist)
-* Fix hanging batch client in certain error conditions #594 (@rubyist)
+* Fix hanging batch client in certain error conditions. #594 (@rubyist)
 * Treat 401 responses as errors in the Legacy API client. #634 (@rubyist)
 * Fix bug in the Legacy API client when the object already exists on the server. #572 (@billygor)
 
 ### Credentials
 
-* Fix how git credentials are checked in certain edge cases #611 (@technoweenie)
+* Fix how git credentials are checked in certain edge cases. #611 #650 (@technoweenie)
 * Send URI user to git credentials. #626 (@sinbad)
 * Support git credentials with useHttpPath enabled. #554 (@clareliguori)
+
+### Installation
+
+* Docker images and scripts for building and testing linux packages. #511 #526 #555 #603 (@andyneff, @ssgelm)
+* Create Windows GUI installer. #642 (@technoweenie)
 
 ### Experimental Features
 
