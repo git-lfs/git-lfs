@@ -1,5 +1,73 @@
 # Git LFS Changelog
 
+## v0.6.0 (10 September, 2015)
+
+This is the first release that uses the new Batch API by default, while still
+falling back to the Legacy API automatically. Also, new fetch/checkout/push
+commands have been added.
+
+Run `git lfs update` in any local repositories to make sure all config settings
+are updated.
+
+### Fetch
+
+* Rename old `git lfs fetch` command to `git lfs pull`. #527 (@sinbad)
+* Add `git lfs checkout` #527 #543 #551 #566 (@sinbad)
+* Add `git lfs fetch` for _just_ downloading objects. #527 (@sinbad)
+  * Add `remote` arg, and default to tracking remote instead of "origin". #583 (@sinbad)
+  * Support fetching multiple refs #542 (@sinbad)
+  * Add `--include` and `--exclude` flag for `git lfs fetch` #573 (@sinbad)
+  * Add `--recent` flag for downloading recent files outside of the current
+    checkout. #610 (@sinbad)
+  * Add `--all` option for download all objects from the server. #633 (@sinbad)
+* Fix error handling while `git update-index` is running. #570 (@rubyist)
+
+See [git-lfs-fetch(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-fetch.1.ronn) for details.
+
+### Push
+
+* Support pushing multiple branches in the pre-push hook. #635 (@sinbad)
+* Fix pushing objects from a branch that's not HEAD. #608 (@sinbad)
+* Check server for objects before failing push because local is missing. #581 (@sinbad)
+* Filter out commits from remote refs when pushing. #578 (@billygor)
+* Support pushing all objects to the server, regardless of the remote ref. #646 (@technoweenie)
+* Fix case where pre-push git hook exits with 0. #582 (@sinbad)
+
+See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-push.1.ronn) for details.
+
+### API Clients
+
+* Fix some race conditions in the Batch API client. #577 #637 (@sinbad, @rubyist)
+* Support retries in the Batch API client. #595 (@rubyist)
+* Fix hanging batch client in certain error conditions. #594 (@rubyist)
+* Treat 401 responses as errors in the Legacy API client. #634 (@rubyist)
+* Fix bug in the Legacy API client when the object already exists on the server. #572 (@billygor)
+
+### Credentials
+
+* Fix how git credentials are checked in certain edge cases. #611 #650 (@technoweenie)
+* Send URI user to git credentials. #626 (@sinbad)
+* Support git credentials with useHttpPath enabled. #554 (@clareliguori)
+
+### Installation
+
+* Docker images and scripts for building and testing linux packages. #511 #526 #555 #603 (@andyneff, @ssgelm)
+* Create Windows GUI installer. #642 (@technoweenie)
+* Binary releases use Go 1.5, which includes fix for Authorization when the
+  request URL includes just the username. [golang/go#11399](https://github.com/golang/go/issues/11399)
+
+### Misc
+
+* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn).
+* Experimental support for Git worktrees (in Git 2.5+) #546 (@sinbad)
+* Experimental extension support. #486 (@ryansimmen)
+
+## v0.5.4 (30 July, 2015)
+
+* Ensure `git lfs uninit` cleans your git config thoroughly. #530 (@technoweenie)
+* Fix issue with asking `git-credentials` for auth details after getting them
+from the SSH command. #534 (@technoweenie)
+
 ## v0.5.3 (23 July, 2015)
 
 * `git lfs fetch` bugs #429 (@rubyist)

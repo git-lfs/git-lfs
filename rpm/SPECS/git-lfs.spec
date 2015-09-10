@@ -1,5 +1,5 @@
-Name:           git-lfs	
-Version:        0.5.2
+Name:           git-lfs
+Version:        0.6.0
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
@@ -16,9 +16,9 @@ Requires:       git
 #I think this is because go links with --build-id=none for linux
 
 %description
-Git Large File Storage (LFS) replaces large files such as audio samples, 
-videos, datasets, and graphics with text pointers inside Git, while 
-storing the file contents on a remote server like GitHub.com or GitHub 
+Git Large File Storage (LFS) replaces large files such as audio samples,
+videos, datasets, and graphics with text pointers inside Git, while
+storing the file contents on a remote server like GitHub.com or GitHub
 Enterprise.
 
 %prep

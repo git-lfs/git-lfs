@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Usage: 
+# Usage:
 #  ./build_dockers.bsh - Build all the compiling docker images
 #  ./build_dockers.bsh lfs_centos_5 lfs_centos_7 - Build only CentOS 5 & 7 image
 #
 # Special Environment Variables
-#  DOCKER_LFS_BUILD_VERSION - tag or sha to build envirnment off of. Important 
+#  DOCKER_LFS_BUILD_VERSION - tag or sha to build envirnment off of. Important
 #                             in CentOS
 set -eu
 
@@ -14,7 +14,7 @@ CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 #If you are not in docker group and you have sudo, default value is sudo
 : ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
 
-export DOCKER_LFS_BUILD_VERSION=${DOCKER_LFS_BUILD_VERSION:-v0.5.4}
+export DOCKER_LFS_BUILD_VERSION=${DOCKER_LFS_BUILD_VERSION:-v0.6.0}
 
 if [[ $# == 0 ]]; then
   IMAGE_NAMES=($(ls -d ${CUR_DIR}/git-lfs_*.dockerfile))
@@ -25,7 +25,7 @@ fi
 #This will take a long time the first time
 for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
   NAME=$(basename ${IMAGE_NAME%.*})
-  #If you do decide to use the same key for all, this makes it easier. Only 
+  #If you do decide to use the same key for all, this makes it easier. Only
   #creates keys for git-lfs_* images, none of the others should be signing.
   if [[ "${NAME}" == git-lfs_* ]] && [ ! -e ${CUR_DIR}/${NAME}.key ]; then
     touch ${CUR_DIR}/${NAME}.key
