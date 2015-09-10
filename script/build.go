@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/github/git-lfs/lfs"
@@ -34,6 +35,8 @@ func mainBuild() {
 		flag.PrintDefaults()
 		return
 	}
+
+	fmt.Printf("Using %s\n", runtime.Version())
 
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
@@ -150,11 +153,23 @@ func buildCommand(dir, buildos, buildarch string) error {
 }
 
 func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
-	if buildos == "windows" {
-		return winInstaller(buildos, buildarch, dir, buildMatrix)
-	} else {
-		return unixInstaller(buildos, buildarch, dir, buildMatrix)
+	files := []string{
+		"README.md", "CHANGELOG.md",
 	}
+
+	for _, filename := range files {
+		cmd := exec.Command("cp", filename, filepath.Join(dir, filename))
+		if err := logAndRun(cmd); err != nil {
+			return err
+		}
+	}
+
+	// Windows installer is uploaded separately. See script/nsis.
+	if buildos == "windows" {
+		return nil
+	}
+
+	return unixInstaller(buildos, buildarch, dir, buildMatrix)
 }
 
 func unixInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
@@ -182,32 +197,6 @@ func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string
 		Label:    releaseLabel(buildos, buildarch),
 		Filename: name,
 	}
-}
-
-func winInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
-	cmd := exec.Command("cp", "script/install.bat.example", filepath.Join(dir, "install.bat"))
-	if err := logAndRun(cmd); err != nil {
-		return err
-	}
-
-	installerPath := filepath.Dir(filepath.Dir(dir))
-
-	name := zipName(buildos, buildarch) + ".zip"
-	full := filepath.Join(installerPath, name)
-	matches, err := filepath.Glob(dir + "/*")
-	if err != nil {
-		return err
-	}
-
-	addToMatrix(buildMatrix, buildos, buildarch, name)
-
-	args := make([]string, len(matches)+2)
-	args[0] = "-j" // junk the zip paths
-	args[1] = full
-	copy(args[2:], matches)
-
-	cmd = exec.Command("zip", args...)
-	return logAndRun(cmd)
 }
 
 func logAndRun(cmd *exec.Cmd) error {
