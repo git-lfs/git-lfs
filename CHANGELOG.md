@@ -2,17 +2,24 @@
 
 ## v0.6.0 (10 September, 2015)
 
-First release with full support for the Batch API, while still supporting
-servers with the Legacy API. Also introduces new fetch/checkout/push commands.
+This is the first release that uses the new Batch API by default, while still
+falling back to the Legacy API automatically. Also, new fetch/checkout/push
+commands have been added.
+
+Run `git lfs update` in any local repositories to make sure all config settings
+are updated.
 
 ### Fetch
 
 * Rename old `git lfs fetch` command to `git lfs pull`. #527 (@sinbad)
 * Add `git lfs checkout` #527 #543 #551 #566 (@sinbad)
 * Add `git lfs fetch` for _just_ downloading objects. #527 (@sinbad)
+  * Add `remote` arg, and default to tracking remote instead of "origin". #583 (@sinbad)
   * Support fetching multiple refs #542 (@sinbad)
-  * Add `--all` option for download all objects from the server. #633 (@sinbad)
   * Add `--include` and `--exclude` flag for `git lfs fetch` #573 (@sinbad)
+  * Add `--recent` flag for downloading recent files outside of the current
+    checkout. #610 (@sinbad)
+  * Add `--all` option for download all objects from the server. #633 (@sinbad)
 * Fix error handling while `git update-index` is running. #570 (@rubyist)
 
 ### Push
@@ -42,6 +49,8 @@ servers with the Legacy API. Also introduces new fetch/checkout/push commands.
 
 * Docker images and scripts for building and testing linux packages. #511 #526 #555 #603 (@andyneff, @ssgelm)
 * Create Windows GUI installer. #642 (@technoweenie)
+* Binary releases use Go 1.5, which includes fix for Authorization when the
+  request URL includes just the username. https://github.com/golang/go/issues/11399
 
 ### Experimental Features
 
