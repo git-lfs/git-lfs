@@ -53,28 +53,37 @@ func TestScanUnpushed(t *testing.T) {
 	repo.AddRemote("origin")
 	repo.AddRemote("upstream")
 
-	pointers, err := ScanUnpushed()
+	pointers, err := ScanUnpushed("")
 	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
 	assert.Equal(t, 4, len(pointers), "Should be 4 pointers because none pushed")
 
 	test.RunGitCommand(t, true, "push", "origin", "branch2")
 	// Branch2 will have pushed 2 commits
-	pointers, err = ScanUnpushed()
+	pointers, err = ScanUnpushed("")
 	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
 	assert.Equal(t, 2, len(pointers), "Should be 2 pointers")
 
 	test.RunGitCommand(t, true, "push", "upstream", "master")
 	// Master pushes 1 more commit
-	pointers, err = ScanUnpushed()
+	pointers, err = ScanUnpushed("")
 	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
 	assert.Equal(t, 1, len(pointers), "Should be 1 pointer")
 
 	test.RunGitCommand(t, true, "push", "origin", "branch3")
 	// All pushed (somewhere)
-	pointers, err = ScanUnpushed()
+	pointers, err = ScanUnpushed("")
 	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
 	assert.Equal(t, 0, len(pointers), "Should be 0 pointers unpushed")
 
+	// Check origin
+	pointers, err = ScanUnpushed("origin")
+	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
+	assert.Equal(t, 0, len(pointers), "Should be 0 pointers unpushed to origin")
+
+	// Check upstream
+	pointers, err = ScanUnpushed("upstream")
+	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
+	assert.Equal(t, 2, len(pointers), "Should be 2 pointers unpushed to upstream")
 }
 
 func TestScanPreviousVersions(t *testing.T) {
