@@ -67,19 +67,26 @@ func prune(verifyRemote, dryRun, verbose bool) {
 
 	progressChan := make(PruneProgressChan, 100)
 
+	// Collect errors
+	errorChan := make(chan error, 10)
+	var errorwait sync.WaitGroup
+	errorwait.Add(1)
+	var taskErrors []error
+	go pruneTaskCollectErrors(&taskErrors, errorChan, &errorwait)
+
 	// Populate the single list of local objects
 	go pruneTaskGetLocalObjects(&localObjects, progressChan, &taskwait)
 
 	// Now find files to be retained from many sources
 	retainChan := make(chan string, 100)
 
-	go pruneTaskGetRetainedCurrentCheckout(retainChan, &taskwait)
-	go pruneTaskGetRetainedRecentRefs(retainChan, &taskwait)
-	go pruneTaskGetRetainedUnpushed(retainChan, &taskwait)
-	go pruneTaskGetRetainedWorktree(retainChan, &taskwait)
+	go pruneTaskGetRetainedCurrentCheckout(retainChan, errorChan, &taskwait)
+	go pruneTaskGetRetainedRecentRefs(retainChan, errorChan, &taskwait)
+	go pruneTaskGetRetainedUnpushed(retainChan, errorChan, &taskwait)
+	go pruneTaskGetRetainedWorktree(retainChan, errorChan, &taskwait)
 	if verifyRemote {
 		reachableObjects = lfs.NewStringSetWithCapacity(100)
-		go pruneTaskGetReachableObjects(&reachableObjects, &taskwait)
+		go pruneTaskGetReachableObjects(&reachableObjects, errorChan, &taskwait)
 	}
 
 	// Now collect all the retained objects, on separate wait
@@ -95,6 +102,10 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	taskwait.Wait()   // wait for subtasks
 	close(retainChan) // triggers retain collector to end now all tasks have
 	retainwait.Wait() // make sure all retained objects added
+
+	close(errorChan) // triggers error collector to end now all tasks have
+	errorwait.Wait() // make sure all errors have been processed
+	pruneCheckErrors(taskErrors)
 
 	prunableObjects := make([]string, 0, len(localObjects)/2)
 
@@ -173,6 +184,15 @@ func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObje
 	}
 }
 
+func pruneCheckErrors(taskErrors []error) {
+	if len(taskErrors) > 0 {
+		for _, err := range taskErrors {
+			LoggedError(err, "Prune error: %v", err)
+		}
+		Exit("Prune sub-tasks failed, cannot continue")
+	}
+}
+
 func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
@@ -209,6 +229,14 @@ func pruneTaskCollectRetained(outRetainedObjects *lfs.StringSet, retainChan chan
 		progressChan <- PruneProgress{PruneProgressTypeRetain, 1}
 	}
 
+}
+
+func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorwait *sync.WaitGroup) {
+	defer errorwait.Done()
+
+	for err := range errorChan {
+		*outtaskErrors = append(*outtaskErrors, err)
+	}
 }
 
 func pruneDeleteFiles(prunableObjects []string) {
@@ -249,35 +277,35 @@ func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, progChan PrunePro
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedCurrentCheckout(retainChan chan string, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedCurrentCheckout(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// TODO
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedRecentRefs(retainChan chan string, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedRecentRefs(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// TODO
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedUnpushed(retainChan chan string, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// TODO
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedWorktree(retainChan chan string, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedWorktree(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// TODO
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, waitg *sync.WaitGroup) {
+func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// TODO
