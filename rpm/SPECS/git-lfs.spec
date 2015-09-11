@@ -10,7 +10,6 @@ Source0:        https://github.com/github/git-lfs/archive/%{name}-%{version}.tar
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  golang, tar, which, bison, rubygem-ronn, git
 BuildRequires:  perl-Digest-SHA
-#Requires:       git > 1.8.2
 
 %define debug_package %{nil}
 #I think this is because go links with --build-id=none for linux
