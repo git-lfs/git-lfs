@@ -577,7 +577,7 @@ func ScanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := logUnpushedSHAs(remoteName)
+	pointerchan, err := ScanUnpushedToChan(remoteName)
 	if err != nil {
 		return nil, err
 	}
@@ -609,10 +609,10 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 
 }
 
-// logUnpushedSHAs scans history for all LFS pointers which have been added but
+// ScanUnpushedToChan scans history for all LFS pointers which have been added but
 // not pushed to the named remote. remoteName can be left blank to mean 'any remote'
 // return progressively in a channel
-func logUnpushedSHAs(remoteName string) (chan *WrappedPointer, error) {
+func ScanUnpushedToChan(remoteName string) (chan *WrappedPointer, error) {
 	logArgs := []string{"log",
 		"--branches", "--tags", // include all locally referenced commits
 		"--not"} // but exclude everything that comes after
