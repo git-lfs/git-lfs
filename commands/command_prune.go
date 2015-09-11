@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -280,7 +281,21 @@ func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, progChan PrunePro
 func pruneTaskGetRetainedCurrentCheckout(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	// TODO
+	ref, err := git.CurrentRef()
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	// Only files AT ref, recent is checked in pruneTaskGetRetainedRecentRefs
+	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanRefsMode, SkipDeletedBlobs: true}
+	refchan, err := lfs.ScanRefsToChan(ref.Sha, "", opts)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	for wp := range refchan {
+		retainChan <- wp.Pointer.Oid
+	}
 }
 
 // Background task, must call waitg.Done() once at end
