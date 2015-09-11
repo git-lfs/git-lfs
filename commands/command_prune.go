@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/github/git-lfs/lfs"
@@ -203,7 +204,29 @@ func pruneTaskCollectRetained(outRetainedObjects *lfs.StringSet, retainChan chan
 }
 
 func pruneDeleteFiles(prunableObjects []string) {
-	// TODO
+	spinner := lfs.NewSpinner()
+	var problems bytes.Buffer
+	// In case we fail to delete some
+	var deletedFiles int
+	for i, oid := range prunableObjects {
+		spinner.Print(OutputWriter, fmt.Sprintf("Deleting object %d/%d", i, len(prunableObjects)))
+		mediaFile, err := lfs.LocalMediaPath(oid)
+		if err != nil {
+			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
+			continue
+		}
+		err = os.Remove(mediaFile)
+		if err != nil {
+			problems.WriteString(fmt.Sprintf("Failed to remove file %v: %v\n", mediaFile, err))
+			continue
+		}
+		deletedFiles++
+	}
+	spinner.Finish(OutputWriter, fmt.Sprintf("Deleted %d files", deletedFiles))
+	if problems.Len() > 0 {
+		LoggedError(fmt.Errorf("Failed to delete some files"), problems.String())
+		Exit("Prune failed, see errors above")
+	}
 }
 
 // Background task, must call waitg.Done() once at end
