@@ -289,69 +289,56 @@ const (
 	gitPtrPrefix = "gitdir: "
 )
 
-// AllLocalObjects returns a slice of the oids all the objects stored in the local LFS store
+// AllLocalObjects returns a slice of the the objects stored in the local LFS store
 // This does not necessarily mean referenced by commits, just stored
-func AllLocalObjects() []string {
+// Note: reports final SHA only, extensions are ignored
+func AllLocalObjects() []*Pointer {
 	c := AllLocalObjectsChan()
-	ret := make([]string, 0, 100)
-	for oid := range c {
-		ret = append(ret, oid)
+	ret := make([]*Pointer, 0, 100)
+	for p := range c {
+		ret = append(ret, p)
 	}
 	return ret
 }
 
-// AllLocalObjectsChan returns a channel of the oids all the objects stored in the local LFS store
+// AllLocalObjectsChan returns a channel of all the objects stored in the local LFS store
 // This does not necessarily mean referenced by commits, just stored
 // You should not alter the store until this channel is closed
-func AllLocalObjectsChan() <-chan string {
-	ret := make(chan string, chanBufSize)
+// Note: reports final SHA only, extensions are ignored
+func AllLocalObjectsChan() <-chan *Pointer {
+	ret := make(chan *Pointer, chanBufSize)
 
 	go func() {
 		defer close(ret)
 
-		scanStorageDir(LocalMediaDir, 0, ret)
+		scanStorageDir(LocalMediaDir, ret)
 	}()
 	return ret
 }
 
-func scanStorageDir(dir string, level int, c chan string) {
+func scanStorageDir(dir string, c chan *Pointer) {
 	// ioutil.ReadDir and filepath.Walk do sorting which is unnecessary & inefficient
-	// We only need to support a 2-folder structure here & know that all files are at the bottom level
-	// So explicitly track level and use Readdirnames at the bottom for efficiency
 	dirf, err := os.Open(dir)
 	if err != nil {
 		return
 	}
 	defer dirf.Close()
 
-	if level >= 2 {
-		// It's just files now
-		// Readdirnames is the fastest way to simply scan names
-		names, err := dirf.Readdirnames(0)
-		if err != nil {
-			tracerx.Printf("Problem with Readdirnames in %v: %v", dir, err)
-			return
-		}
-		for _, oid := range names {
+	direntries, err := dirf.Readdir(0)
+	if err != nil {
+		tracerx.Printf("Problem with Readdir in %v: %v", dir, err)
+		return
+	}
+	for _, dirfi := range direntries {
+		if dirfi.IsDir() {
+			subpath := filepath.Join(dir, dirfi.Name())
+			scanStorageDir(subpath, c)
+		} else {
 			// Make sure it's really an object file & not .DS_Store etc
-			if oidRE.MatchString(oid) {
-				c <- oid
+			if oidRE.MatchString(dirfi.Name()) {
+				c <- NewPointer(dirfi.Name(), dirfi.Size(), nil)
 			}
 		}
-	} else {
-		// Readdir because we're looking for nested folders
-		direntries, err := dirf.Readdir(0)
-		if err != nil {
-			tracerx.Printf("Problem with Readdir in %v: %v", dir, err)
-			return
-		}
-		for _, dirfi := range direntries {
-			if dirfi.IsDir() {
-				subpath := filepath.Join(dir, dirfi.Name())
-				scanStorageDir(subpath, level+1, c)
-			}
-		}
-
 	}
 
 }

@@ -34,7 +34,7 @@ func pruneCommand(cmd *cobra.Command, args []string) {
 }
 
 func prune(verifyRemote, dryRun, verbose bool) {
-	localObjects := make([]string, 0, 100)
+	localObjects := make([]*lfs.Pointer, 0, 100)
 	retainedObjects := lfs.NewStringSetWithCapacity(100)
 	var reachableObjects lfs.StringSet
 	var taskwait sync.WaitGroup
@@ -106,12 +106,12 @@ func prune(verifyRemote, dryRun, verbose bool) {
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetLocalObjects(outLocalObjects *[]string, waitg *sync.WaitGroup) {
+func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	localObjectsChan := lfs.AllLocalObjectsChan()
-	for oid := range localObjectsChan {
-		*outLocalObjects = append(*outLocalObjects, oid)
+	for p := range localObjectsChan {
+		*outLocalObjects = append(*outLocalObjects, p)
 	}
 }
 

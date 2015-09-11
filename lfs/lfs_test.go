@@ -20,7 +20,7 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 
 	actual := AllLocalObjects()
 
-	assert.Equal(t, []string{}, actual, "Should be no objects")
+	assert.Equal(t, []*Pointer{}, actual, "Should be no objects")
 }
 
 func TestAllCurrentObjectsSome(t *testing.T) {
@@ -47,15 +47,15 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 
 	outputs := repo.AddCommits(inputs)
 
-	expected := make([]string, 0, numFiles)
+	expected := make([]*Pointer, 0, numFiles)
 	for _, f := range outputs[0].Files {
-		expected = append(expected, f.Oid)
+		expected = append(expected, f)
 	}
 	actual := AllLocalObjects()
 
 	// sort to ensure comparison is equal
-	sort.Strings(expected)
-	sort.Strings(actual)
+	sort.Sort(test.PointersByOid(expected))
+	sort.Sort(test.PointersByOid(actual))
 	assert.Equal(t, expected, actual, "Oids from disk should be the same as in commits")
 
 }
