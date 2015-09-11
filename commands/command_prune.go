@@ -88,7 +88,9 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	go pruneTaskCollectRetained(&retainedObjects, retainChan, progressChan, &retainwait)
 
 	// Report progress
-	go pruneTaskDisplayProgress(progressChan)
+	var progresswait sync.WaitGroup
+	progresswait.Add(1)
+	go pruneTaskDisplayProgress(progressChan, &progresswait)
 
 	taskwait.Wait()   // wait for subtasks
 	close(retainChan) // triggers retain collector to end now all tasks have
@@ -135,13 +137,15 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		verifyQueue.Wait()
 		verifywait.Wait()
 		close(progressChan) // after verify (uses spinner) but before check
+		progresswait.Wait()
 		pruneCheckVerified(prunableObjects, reachableObjects, verifiedObjects)
 	} else {
 		close(progressChan)
+		progresswait.Wait()
 	}
 
 	if dryRun {
-		Print("%d files could be pruned, %v", len(prunableObjects), humanizeBytes(totalSize))
+		Print("%d files would be pruned, %v", len(prunableObjects), humanizeBytes(totalSize))
 	} else {
 		Print("Pruning %d files, %v", len(prunableObjects), humanizeBytes(totalSize))
 		pruneDeleteFiles(prunableObjects)
@@ -169,7 +173,9 @@ func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObje
 	}
 }
 
-func pruneTaskDisplayProgress(progressChan PruneProgressChan) {
+func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup) {
+	defer waitg.Done()
+
 	spinner := lfs.NewSpinner()
 	localCount := 0
 	retainCount := 0
@@ -195,11 +201,13 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan) {
 
 func pruneTaskCollectRetained(outRetainedObjects *lfs.StringSet, retainChan chan string,
 	progressChan PruneProgressChan, retainwait *sync.WaitGroup) {
+
+	defer retainwait.Done()
+
 	for oid := range retainChan {
 		outRetainedObjects.Add(oid)
 		progressChan <- PruneProgress{PruneProgressTypeRetain, 1}
 	}
-	retainwait.Done()
 
 }
 
