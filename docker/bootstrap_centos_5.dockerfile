@@ -5,8 +5,17 @@ MAINTAINER Andy Neff <andyneff@users.noreply.github.com>
 LABEL RUN="docker run -v git-lfs-repo-dir:/src -v repo_dir:/repo"
 
 RUN yum install -y epel-release && \
-    yum install -y createrepo rsync git gnupg gnupg2 expect
+    yum install -y createrepo rsync git gnupg gnupg2 expect curl
 
+ENV GOLANG_VERSION=[{GOLANG_VERSION}]
+
+ENV GOROOT=/usr/local/go
+
+RUN cd /usr/local && \
+    curl -L -O https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz && \
+    tar zxf go${GOLANG_VERSION}.linux-amd64.tar.gz && \
+    ln -s /usr/local/go/bin/go /usr/bin/go && \
+    ln -s /usr/local/go/bin/gofmt /usr/bin/gofmt
 
 #The purpose of this is to build and install everything needed to build git-lfs
 #Next time. So that the LONG build/installed in centos are only done once, and
@@ -24,5 +33,3 @@ RUN cd /tmp/docker_setup/; \
     tail -f build.log & ./build_rpms.bsh; \
     pkill tail; \
     rm -rvf /tmp/docker_setup/git-lfs-*/rpm/BUILD*
-#TODO: REMOVE this line after docker-scripts is merged into a release
-RUN yum install -y --nogpgcheck /tmp/docker_setup/git-lfs-*/rpm/RPMS/noarch/golang-pkg-linux-386-1*.noarch.rpm

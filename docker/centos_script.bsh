@@ -43,7 +43,7 @@ touch "${GIT_LFS_BUILD_DIR}"/rpm/build.log
 tail -f "${GIT_LFS_BUILD_DIR}"/rpm/build.log &
 "${GIT_LFS_BUILD_DIR}"/rpm/build_rpms.bsh
 pkill -P $$ tail
-rpmbuild --define "dist ${RPM_DIST}" --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm/" --target=i686 -bb "${GIT_LFS_BUILD_DIR}"/rpm/SPECS/git-lfs.spec
+rpmbuild --nodeps --define "dist ${RPM_DIST}" --define "_topdir ${GIT_LFS_BUILD_DIR}/rpm/" --target=i686 -bb "${GIT_LFS_BUILD_DIR}"/rpm/SPECS/git-lfs.spec
 if [ "${REPO_HOSTNAME-}" != "" ]; then
   sed -r -i 's/(^baseurl=https?:\/\/)[^/]*/\1'"${REPO_HOSTNAME}"'/' ./rpm/SOURCES/git-lfs.repo
 fi
