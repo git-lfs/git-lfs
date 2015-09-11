@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/github/git-lfs/lfs"
@@ -33,31 +35,26 @@ func pruneCommand(cmd *cobra.Command, args []string) {
 
 }
 
+type PruneProgressType int
+
+const (
+	PruneProgressTypeLocal  = PruneProgressType(iota)
+	PruneProgressTypeRetain = PruneProgressType(iota)
+	PruneProgressTypeVerify = PruneProgressType(iota)
+)
+
+// Progress from a sub-task of prune
+type PruneProgress struct {
+	Type  PruneProgressType
+	Count int // Number of items done
+}
+type PruneProgressChan chan PruneProgress
+
 func prune(verifyRemote, dryRun, verbose bool) {
 	localObjects := make([]*lfs.Pointer, 0, 100)
 	retainedObjects := lfs.NewStringSetWithCapacity(100)
 	var reachableObjects lfs.StringSet
 	var taskwait sync.WaitGroup
-
-	// Data collection algorithm summary
-	// Separate goroutines must find:
-	//  1. Local objects
-	//  2. Current checkout, 2 sub-goroutines
-	//     a. LFS files at checkout + index
-	//     b. LFS files at recent commits on HEAD
-	//  3. List of recent refs (unique SHA, not HEAD), pass to 2 sub-goroutines >
-	//     a. LFS files at ref
-	//     b. LFS files at recent commits of ref
-	//  4. Unpushed objects
-	//  5. Other worktree checkouts (1 sub-goroutine per other worktree)
-	//  6. [if --verify-remote] Reachable objects
-
-	// This main routine will collate the outputs of chans, report progress
-	// with spinner of # objects stored, # objects referenced
-
-	// localObjects:array = 1
-	// retainedObjects:set = 2..5
-	// [if --verify-remote] reachableObjects:set = 6
 
 	// Add all the base funcs to the waitgroup before starting them, in case
 	// one completes really fast & hits 0 unexpectedly
@@ -67,8 +64,10 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		taskwait.Add(1) // 6
 	}
 
+	progressChan := make(PruneProgressChan, 100)
+
 	// Populate the single list of local objects
-	go pruneTaskGetLocalObjects(&localObjects, &taskwait)
+	go pruneTaskGetLocalObjects(&localObjects, progressChan, &taskwait)
 
 	// Now find files to be retained from many sources
 	retainChan := make(chan string, 100)
@@ -82,36 +81,139 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		go pruneTaskGetReachableObjects(&reachableObjects, &taskwait)
 	}
 
-	// Now collect all the retained objects
+	// Now collect all the retained objects, on separate wait
 	var retainwait sync.WaitGroup
 	retainwait.Add(1)
-	go func() {
-		for oid := range retainChan {
-			retainedObjects.Add(oid)
-		}
-	}()
+	go pruneTaskCollectRetained(&retainedObjects, retainChan, progressChan, &retainwait)
+
+	// Report progress
+	go pruneTaskDisplayProgress(progressChan)
+
 	taskwait.Wait()   // wait for subtasks
 	close(retainChan) // triggers retain collector to end now all tasks have
 	retainwait.Wait() // make sure all retained objects added
 
-	// prunableObjects:set = (localObjects - retainedObjects)
-	// [if --verify-remote] verifyObjects:set = (prunableObjects n reachableObjects)
-	//    (this is so we don't try to verify unreachable objects on remote)
-	// [if --verify-remote] call remote, remove unverified objects from prunableObjects & report
+	prunableObjects := make([]string, 0, len(localObjects)/2)
 
-	// Report number & size of objects to delete
-	// [if !dry-run] delete prunableObjects
-	// [if verbose] report oids & individual sizes
+	// Build list of prunables (also queue for verify at same time if applicable)
+	var verifyQueue *lfs.TransferQueue
+	var verifiedObjects lfs.StringSet
+	var totalSize int64
+	var verboseOutput bytes.Buffer
+	if verifyRemote && !dryRun {
+		lfs.Config.CurrentRemote = lfs.Config.FetchPruneConfig().PruneRemoteName
+		// build queue now, no estimates or progress output
+		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
+		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
+	}
+	for _, pointer := range localObjects {
+		if !retainedObjects.Contains(pointer.Oid) {
+			prunableObjects = append(prunableObjects, pointer.Oid)
+			totalSize += pointer.Size
+			if verbose {
+				// Save up verbose output for the end, spinner still going
+				verboseOutput.WriteString(fmt.Sprintf("Prune %v ,%v", pointer.Oid, humanizeBytes(pointer.Size)))
+			}
+			if verifyRemote && !dryRun {
+				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
+			}
+		}
+	}
+	if verifyRemote && !dryRun {
+		// this channel is filled with oids for which Check() succeeded & Transfer() was called
+		verifyc := verifyQueue.Watch()
+		var verifywait sync.WaitGroup
+		verifywait.Add(1)
+		go func() {
+			for oid := range verifyc {
+				verifiedObjects.Add(oid)
+				progressChan <- PruneProgress{PruneProgressTypeVerify, 1}
+			}
+			verifywait.Done()
+		}()
+		verifyQueue.Wait()
+		verifywait.Wait()
+		close(progressChan) // after verify (uses spinner) but before check
+		pruneCheckVerified(prunableObjects, reachableObjects, verifiedObjects)
+	} else {
+		close(progressChan)
+	}
+
+	if dryRun {
+		Print("%d files could be pruned, %v", len(prunableObjects), humanizeBytes(totalSize))
+	} else {
+		Print("Pruning %d files, %v", len(prunableObjects), humanizeBytes(totalSize))
+		pruneDeleteFiles(prunableObjects)
+	}
 
 }
 
+func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects lfs.StringSet) {
+	// There's no issue if an object is not reachable and misisng, only if reachable & missing
+	var problems bytes.Buffer
+	for _, oid := range prunableObjects {
+		// Test verified first as most likely reachable
+		if !verifiedObjects.Contains(oid) {
+			if reachableObjects.Contains(oid) {
+				problems.WriteString(fmt.Sprintf("%v\n", oid))
+			}
+		}
+	}
+	// technically we could still prune the other oids, but this indicates a
+	// more serious issue because the local state implies that these can be
+	// deleted but that's incorrect; bad state has occurred somehow, might need
+	// push --all to resolve
+	if problems.Len() > 0 {
+		Exit("Failed to find prunable objects on remote, aborting:\n%v", problems.String())
+	}
+}
+
+func pruneTaskDisplayProgress(progressChan PruneProgressChan) {
+	spinner := lfs.NewSpinner()
+	localCount := 0
+	retainCount := 0
+	verifyCount := 0
+	var msg string
+	for p := range progressChan {
+		switch p.Type {
+		case PruneProgressTypeLocal:
+			localCount++
+		case PruneProgressTypeRetain:
+			retainCount++
+		case PruneProgressTypeVerify:
+			verifyCount++
+		}
+		msg = fmt.Sprintf("%d local objects, %d retained", localCount, retainCount)
+		if verifyCount > 0 {
+			msg += fmt.Sprintf(", %d verified with remote", verifyCount)
+		}
+		spinner.Print(OutputWriter, msg)
+	}
+	spinner.Finish(OutputWriter, msg)
+}
+
+func pruneTaskCollectRetained(outRetainedObjects *lfs.StringSet, retainChan chan string,
+	progressChan PruneProgressChan, retainwait *sync.WaitGroup) {
+	for oid := range retainChan {
+		outRetainedObjects.Add(oid)
+		progressChan <- PruneProgress{PruneProgressTypeRetain, 1}
+	}
+	retainwait.Done()
+
+}
+
+func pruneDeleteFiles(prunableObjects []string) {
+	// TODO
+}
+
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, waitg *sync.WaitGroup) {
+func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	localObjectsChan := lfs.AllLocalObjectsChan()
 	for p := range localObjectsChan {
 		*outLocalObjects = append(*outLocalObjects, p)
+		progChan <- PruneProgress{PruneProgressTypeLocal, 1}
 	}
 }
 
