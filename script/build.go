@@ -48,8 +48,8 @@ func mainBuild() {
 	errored := false
 
 	if *BuildAll {
-		for _, buildos := range []string{"darwin", "freebsd", "linux", "windows"} {
-			for _, buildarch := range []string{"386", "amd64"} {
+		for _, buildos := range []string{"linux", "windows", "darwin", "freebsd"} {
+			for _, buildarch := range []string{"amd64", "386"} {
 				if err := build(buildos, buildarch, buildMatrix); err != nil {
 					errored = true
 				}
