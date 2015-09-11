@@ -309,7 +309,16 @@ func pruneTaskGetRetainedRecentRefs(retainChan chan string, errorChan chan error
 func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	// TODO
+	remoteName := lfs.Config.FetchPruneConfig().PruneRemoteName
+
+	refchan, err := lfs.ScanUnpushedToChan(remoteName)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	for wp := range refchan {
+		retainChan <- wp.Pointer.Oid
+	}
 }
 
 // Background task, must call waitg.Done() once at end
