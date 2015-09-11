@@ -24,13 +24,13 @@ if [ -s /tmp/*.key ]; then
   echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
   echo ask-passphrase > "${REPO_DIR}/conf/options"
   
-  dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh -b -ai386
+  dpkg-buildpackage -d -p/tmp/dpkg-package-gpg.bsh -b -ai386
   git clean -xdf .
-  dpkg-buildpackage -p/tmp/dpkg-package-gpg.bsh
+  dpkg-buildpackage -d -p/tmp/dpkg-package-gpg.bsh
 else
-  dpkg-buildpackage -us -uc -b -ai386
+  dpkg-buildpackage -d -us -uc -b -ai386
   git clean -xdf .
-  dpkg-buildpackage -us -uc
+  dpkg-buildpackage -d -us -uc
 fi
 
 #This will add the deb, xz, AND dsc! Perfect

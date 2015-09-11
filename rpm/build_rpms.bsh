@@ -189,6 +189,7 @@ touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
 echo "Build git-lfs rpm..." >&6
 
-"${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git-lfs.spec
+#--no-deps added for now so you can compile without offical rpms installed
+"${RPMBUILD[@]}" --nodeps -ba ${CURDIR}/SPECS/git-lfs.spec
 
 echo "All Done!" >&6
