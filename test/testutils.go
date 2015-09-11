@@ -258,7 +258,8 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
 	outputs := make([]*CommitOutput, 0, len(inputs))
-
+	// Deterministic sequence of seeds for file data
+	seedSequence := rand.NewSource(0)
 	for i, input := range inputs {
 		output := &CommitOutput{}
 		// first, are we on the correct branch
@@ -280,14 +281,14 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			lastBranch = input.NewBranch
 		}
 		// Any files to write?
-		for fi, infile := range input.Files {
+		for _, infile := range input.Files {
 			inputData := infile.DataReader
 			if inputData == nil && infile.Data != "" {
 				inputData = strings.NewReader(infile.Data)
 			}
 			if inputData == nil {
 				// Different data for each file but deterministic
-				inputData = NewPlaceholderDataReader(int64(i+1*fi+1), infile.Size)
+				inputData = NewPlaceholderDataReader(seedSequence.Int63(), infile.Size)
 			}
 			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
 			if err != nil {
