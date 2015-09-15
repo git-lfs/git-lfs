@@ -31,10 +31,11 @@ func main() {
 	out.WriteString("package commands\n\nfunc init() {\n")
 	out.WriteString("// THIS FILE IS GENERATED, DO NOT EDIT\n")
 	out.WriteString("// Use 'go generate ./commands' to update\n")
-	r := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.\d.ronn`)
+	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.\d.ronn`)
+	headerregex := regexp.MustCompile(`^###?\s+([A-Za-z0-9 ]+)`)
 	count := 0
 	for _, f := range fs {
-		if match := r.FindStringSubmatch(f.Name()); match != nil {
+		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", f.Name())
 			cmd := match[1]
 			if len(cmd) == 0 {
@@ -49,11 +50,58 @@ func main() {
 			}
 			// Process the ronn to make it nicer as help text
 			scanner := bufio.NewScanner(contentf)
+			firstHeaderDone := false
+			skipNextLineIfBlank := false
+			lastLineWasBullet := false
+		scanloop:
 			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
+				line := scanner.Text()
+				trimmedline := strings.TrimSpace(line)
+				if skipNextLineIfBlank && len(trimmedline) == 0 {
+					skipNextLineIfBlank = false
+					lastLineWasBullet = false
+					continue
+				}
+
+				// Special case headers
+				if hmatch := headerregex.FindStringSubmatch(line); hmatch != nil {
+					header := strings.ToLower(hmatch[1])
+					switch header {
+					case "synopsis":
+						// Ignore this, just go direct to command
+
+					case "description":
+						// Just skip the header & newline
+						skipNextLineIfBlank = true
+					case "options":
+						out.WriteString("Options:" + "\n")
+					case "see also":
+						// don't include any content after this
+						break scanloop
+					default:
+						out.WriteString(strings.ToUpper(header[:1]) + header[1:] + "\n")
+						out.WriteString(strings.Repeat("-", len(header)) + "\n")
+					}
+					firstHeaderDone = true
+					lastLineWasBullet = false
+					continue
+				}
+				// Skip content until after first header
+				if !firstHeaderDone {
+					continue
+				}
+				// OK, content here
+
 				// Remove backticks since it won't format & that's delimiting the string
 				line = strings.Replace(line, "`", "", -1)
-				// Maybe more e.g. ## ?
+				// indent bullets
+				if strings.HasPrefix(line, "*") {
+					lastLineWasBullet = true
+				} else if lastLineWasBullet && !strings.HasPrefix(line, " ") {
+					// indent paragraphs under bullets if not already done
+					line = "  " + line
+				}
+
 				out.WriteString(line + "\n")
 			}
 			out.WriteString("`\n")
