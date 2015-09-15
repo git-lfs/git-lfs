@@ -222,22 +222,27 @@ func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclu
 	return includePaths, excludePaths
 }
 
-// help is used for 'git-lfs help <command>'
-func help(cmd *cobra.Command, args []string) {
-	if txt, ok := ManPages[cmd.Use]; ok {
+func printHelp(commandName string) {
+	if txt, ok := ManPages[commandName]; ok {
 		fmt.Fprintf(os.Stderr, txt)
 	} else {
-		fmt.Fprintf(os.Stderr, "Sorry, no help text found\n")
+		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
 	}
+}
+
+// help is used for 'git-lfs help <command>'
+func help(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		printHelp("git-lfs")
+	} else {
+		printHelp(args[0])
+	}
+
 }
 
 // usage is used for 'git-lfs <command> --help' or wen invoked manually
 func usage(cmd *cobra.Command) error {
-	if txt, ok := ManPages[cmd.Use]; ok {
-		fmt.Fprintf(os.Stderr, txt)
-	} else {
-		fmt.Fprintf(os.Stderr, "Sorry, no usage text found\n")
-	}
+	printHelp(cmd.Name())
 	return nil
 }
 
