@@ -40,7 +40,7 @@ func mainBuild() {
 
 	genOut, err := exec.Command("go", "generate", "./commands").CombinedOutput()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "go generate failed:\n%v", genOut)
+		fmt.Fprintf(os.Stderr, "go generate failed:\n%v", string(genOut))
 		os.Exit(1)
 	}
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
