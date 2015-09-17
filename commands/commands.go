@@ -16,6 +16,9 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
+// Populate man pages
+//go:generate go run ../docs/man/mangen.go
+
 var (
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
@@ -29,6 +32,7 @@ var (
 			cmd.Usage()
 		},
 	}
+	ManPages = make(map[string]string, 20)
 )
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -218,6 +222,33 @@ func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclu
 	return includePaths, excludePaths
 }
 
+func printHelp(commandName string) {
+	if txt, ok := ManPages[commandName]; ok {
+		fmt.Fprintf(os.Stderr, txt)
+	} else {
+		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
+	}
+}
+
+// help is used for 'git-lfs help <command>'
+func help(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		printHelp("git-lfs")
+	} else {
+		printHelp(args[0])
+	}
+
+}
+
+// usage is used for 'git-lfs <command> --help' or wen invoked manually
+func usage(cmd *cobra.Command) error {
+	printHelp(cmd.Name())
+	return nil
+}
+
 func init() {
 	log.SetOutput(ErrorWriter)
+	// Set up help/usage funcs based on manpage text
+	RootCmd.SetHelpFunc(help)
+	RootCmd.SetUsageFunc(usage)
 }
