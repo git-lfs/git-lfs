@@ -224,7 +224,7 @@ func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclu
 
 func printHelp(commandName string) {
 	if txt, ok := ManPages[commandName]; ok {
-		fmt.Fprintf(os.Stderr, txt)
+		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(txt))
 	} else {
 		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
 	}
