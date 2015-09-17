@@ -250,5 +250,6 @@ func init() {
 	log.SetOutput(ErrorWriter)
 	// Set up help/usage funcs based on manpage text
 	RootCmd.SetHelpFunc(help)
+	RootCmd.SetHelpTemplate("{{.UsageString}}")
 	RootCmd.SetUsageFunc(usage)
 }
