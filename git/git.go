@@ -58,16 +58,15 @@ func LsRemote(remote, remoteRef string) (string, error) {
 }
 
 func ResolveRef(ref string) (*Ref, error) {
-
 	outp, err := simpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {
 		return nil, err
 	}
 	lines := strings.Split(outp, "\n")
 	if len(lines) <= 1 {
-		err := errors.New("git can't resolve ref : " + ref)
-		return nil, err
+		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
 	}
+
 	fullref := &Ref{Sha: lines[0]}
 	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
 	return fullref, nil
