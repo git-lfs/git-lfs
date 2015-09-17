@@ -109,8 +109,11 @@ func main() {
 				}
 				// OK, content here
 
-				// Remove backticks since it won't format & that's delimiting the string
-				line = strings.Replace(line, "`", "", -1)
+				// remove characters that markdown would render invisible in a text env.
+				for _, invis := range []string{"`", "<br>"} {
+					line = strings.Replace(line, invis, "", -1)
+				}
+
 				// indent bullets
 				if strings.HasPrefix(line, "*") {
 					lastLineWasBullet = true
