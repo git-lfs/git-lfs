@@ -35,6 +35,8 @@ func main() {
 	headerregex := regexp.MustCompile(`^###?\s+([A-Za-z0-9 ]+)`)
 	// only pick up caps in links to avoid matching optional args
 	linkregex := regexp.MustCompile(`\[([A-Z\- ]+)\]`)
+	// man links
+	manlinkregex := regexp.MustCompile(`(git)(?:-(lfs))?-([a-z\-]+)\(\d\)`)
 	count := 0
 	for _, f := range fs {
 		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
@@ -87,12 +89,20 @@ func main() {
 					firstHeaderDone = true
 					lastLineWasBullet = false
 					continue
-				} else if lmatches := linkregex.FindAllStringSubmatch(line, -1); lmatches != nil {
+				}
+
+				if lmatches := linkregex.FindAllStringSubmatch(line, -1); lmatches != nil {
 					for _, lmatch := range lmatches {
 						linktext := strings.ToLower(lmatch[1])
 						line = strings.Replace(line, lmatch[0], `"`+strings.ToUpper(linktext[:1])+linktext[1:]+`"`, 1)
 					}
 				}
+				if manmatches := manlinkregex.FindAllStringSubmatch(line, -1); manmatches != nil {
+					for _, manmatch := range manmatches {
+						line = strings.Replace(line, manmatch[0], strings.Join(manmatch[1:], " "), 1)
+					}
+				}
+
 				// Skip content until after first header
 				if !firstHeaderDone {
 					continue
