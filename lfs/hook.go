@@ -34,10 +34,6 @@ func (h *Hook) Path() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	if !InRepo() {
-		return newInvalidRepoError(nil)
-	}
-
 	if err := os.MkdirAll(filepath.Join(LocalGitDir, "hooks"), 0755); err != nil {
 		return err
 	}
