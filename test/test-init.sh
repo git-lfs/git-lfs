@@ -84,5 +84,12 @@ Git LFS initialized."
   [ "Updated pre-push hook.
 Git LFS initialized." = "$(git lfs init --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+
+  echo "test with bare repository"
+  cd ..
+  git clone --mirror init-repo-hooks bare-init-repo-hooks
+  cd bare-init-repo-hooks
+  git lfs init
+  [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
 )
 end_test
