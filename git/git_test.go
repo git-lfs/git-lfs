@@ -172,3 +172,15 @@ func TestRecentBranches(t *testing.T) {
 	sort.Sort(test.RefsByName(refs))
 	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 }
+
+func TestResolveEmptyCurrentRef(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	_, err := CurrentRef()
+	assert.NotEqual(t, nil, err)
+}

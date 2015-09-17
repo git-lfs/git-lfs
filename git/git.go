@@ -64,6 +64,10 @@ func ResolveRef(ref string) (*Ref, error) {
 		return nil, err
 	}
 	lines := strings.Split(outp, "\n")
+	if len(lines) <= 1 {
+		err := errors.New("git can't resolve ref : " + ref)
+		return nil, err
+	}
 	fullref := &Ref{Sha: lines[0]}
 	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
 	return fullref, nil
