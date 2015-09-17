@@ -25,7 +25,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	} else {
 		fullref, err := git.CurrentRef()
 		if err != nil {
-			Panic(err, "Could not ls-files")
+			Exit(err.Error())
 		}
 		ref = fullref.Sha
 	}
