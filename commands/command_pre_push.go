@@ -11,9 +11,8 @@ import (
 
 var (
 	prePushCmd = &cobra.Command{
-		Use:   "pre-push",
-		Short: "Implements the Git pre-push hook",
-		Run:   prePushCommand,
+		Use: "pre-push",
+		Run: prePushCommand,
 	}
 	prePushDryRun        = false
 	prePushDeleteBranch  = "(delete)"

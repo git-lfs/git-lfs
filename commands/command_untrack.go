@@ -12,9 +12,8 @@ import (
 
 var (
 	untrackCmd = &cobra.Command{
-		Use:   "untrack",
-		Short: "Remove an entry from .gitattributes",
-		Run:   untrackCommand,
+		Use: "untrack",
+		Run: untrackCommand,
 	}
 )
 

@@ -11,9 +11,8 @@ import (
 
 var (
 	pushCmd = &cobra.Command{
-		Use:   "push",
-		Short: "Push files to the Git LFS server",
-		Run:   pushCommand,
+		Use: "push",
+		Run: pushCommand,
 	}
 	pushDryRun       = false
 	pushDeleteBranch = "(delete)"
