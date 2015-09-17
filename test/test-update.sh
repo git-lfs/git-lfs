@@ -72,7 +72,9 @@ Run \`git lfs update --force\` to overwrite this hook."
   cd ..
   git clone --mirror without-pre-push bare
   cd bare
+  git lfs env
   git lfs update
+  ls -al hooks
   [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
 )
 end_test

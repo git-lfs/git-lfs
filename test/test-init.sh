@@ -89,7 +89,9 @@ Git LFS initialized." = "$(git lfs init --force)" ]
   cd ..
   git clone --mirror init-repo-hooks bare-init-repo-hooks
   cd bare-init-repo-hooks
+  git lfs env
   git lfs init
+  ls -al hooks
   [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
 )
 end_test
