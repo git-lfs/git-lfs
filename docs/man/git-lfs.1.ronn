@@ -27,7 +27,7 @@ version is about to be pushed to the corresponding Git server.
 Like Git, Git LFS commands are separated into high level ("porcelain")
 commands and low level ("plumbing") commands.
 
-### High-level commands (porcelain)
+### High level commands (porcelain)
 
 * git-lfs-env(1):
     Display the Git LFS environment.
