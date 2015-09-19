@@ -15,6 +15,7 @@ var (
 	smudgeCmd  = &cobra.Command{
 		Use:   "smudge",
 		Short: "Implements the Git smudge filter",
+		Long:  git_lfs_smudge_HelpText,
 		Run:   smudgeCommand,
 	}
 )

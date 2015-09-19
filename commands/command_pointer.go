@@ -21,6 +21,7 @@ var (
 	pointerCmd     = &cobra.Command{
 		Use:   "pointer",
 		Short: "Build and compare pointers between different Git LFS implementations",
+		Long:  git_lfs_pointer_HelpText,
 		Run:   pointerCommand,
 	}
 )

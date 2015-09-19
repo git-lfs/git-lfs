@@ -18,3 +18,4 @@ Git attributes.
 git-lfs-init(1), git-lfs-push(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.
+

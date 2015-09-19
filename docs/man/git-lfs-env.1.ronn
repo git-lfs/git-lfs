@@ -12,3 +12,4 @@ Display the current Git LFS environment.
 ## SEE ALSO
 
 Part of the git-lfs(1) suite.
+

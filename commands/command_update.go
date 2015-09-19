@@ -13,6 +13,7 @@ var (
 	updateCmd = &cobra.Command{
 		Use:   "update",
 		Short: "Update local Git LFS configuration",
+		Long:  git_lfs_update_HelpText,
 		Run:   updateCommand,
 	}
 

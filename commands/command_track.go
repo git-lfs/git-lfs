@@ -16,6 +16,7 @@ var (
 	trackCmd = &cobra.Command{
 		Use:   "track",
 		Short: "Manipulate .gitattributes",
+		Long:  git_lfs_track_HelpText,
 		Run:   trackCommand,
 	}
 )

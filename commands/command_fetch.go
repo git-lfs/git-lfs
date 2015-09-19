@@ -14,6 +14,7 @@ var (
 	fetchCmd = &cobra.Command{
 		Use:   "fetch",
 		Short: "Downloads LFS files",
+		Long:  git_lfs_fetch_HelpText,
 		Run:   fetchCommand,
 	}
 	fetchIncludeArg string

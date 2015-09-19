@@ -12,6 +12,7 @@ var (
 	statusCmd = &cobra.Command{
 		Use:   "status",
 		Short: "Show information about Git LFS objects that would be pushed",
+		Long:  git_lfs_status_HelpText,
 		Run:   statusCommand,
 	}
 	porcelain = false
