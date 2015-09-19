@@ -65,3 +65,22 @@ begin_test "ls-files: with zero files"
   [ "$(git lfs ls-files)" = "" ]
 )
 end_test
+
+begin_test "ls-files: show duplicate files"
+(
+  set -e
+
+  mkdir dupRepo
+  cd dupRepo
+  git init
+
+  git lfs track "*.tgz" | grep "Tracking \*.tgz"
+  echo "test content" > one.tgz
+  echo "test content" > two.tgz
+  git add one.tgz
+  git add two.tgz
+  git commit -m "add duplicate files"
+  [ "$(git lfs ls-files)" = "$(printf 'one.tgz\ntwo.tgz (duplicate of one.tgz)')" ]
+
+)
+end_test
