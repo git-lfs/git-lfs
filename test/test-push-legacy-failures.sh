@@ -7,9 +7,9 @@ push_legacy_fail_test() {
 
   set -e
 
-  local reponame="$(basename "$0" ".sh")"
+  local reponame="$(basename "$0" ".sh")-$contents"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" "$reponame-$contents"
+  clone_repo "$reponame" "$reponame"
   git config lfs.batch false
 
   git lfs track "*.dat"
