@@ -204,7 +204,7 @@ begin_test "pre-push with missing pointer which is on server"
   clone_repo "$reponame" missing-but-on-server
 
   contents="common data"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
   git lfs track "*.dat"
   printf "$contents" > common1.dat
   git add common1.dat
@@ -269,7 +269,7 @@ begin_test "pre-push with missing pointer which is on server (BATCH)"
   clone_repo "$reponame" missing-but-on-server-batch
 
   contents="common data"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
   git lfs track "*.dat"
   printf "$contents" > common1.dat
   git add common1.dat
@@ -319,7 +319,7 @@ begin_test "pre-push multiple branches"
   for ((a=0; a < NUMFILES ; a++))
   do
     content[$a]="filecontent$a"
-    oid[$a]=$(printf "${content[$a]}" | shasum -a 256 | cut -f 1 -d " ")
+    oid[$a]=$(calc_oid "${content[$a]}")
   done
 
   echo "[

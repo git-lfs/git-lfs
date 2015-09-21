@@ -323,6 +323,10 @@ comparison_to_operator() {
   fi
 }
 
+calc_oid() {
+  printf "$1" | shasum -a 256 | cut -f 1 -d " "
+}
+
 # Get a date string with an offset
 # Args: One or more date offsets of the form (regex) "[+-]\d+[dmyHM]"
 # e.g. +1d = 1 day forward from today

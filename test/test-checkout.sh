@@ -16,7 +16,7 @@ begin_test "checkout"
 
   contents="something something"
   contentsize=19
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   # Same content everywhere is ok, just one object in lfs db
   printf "$contents" > file1.dat
