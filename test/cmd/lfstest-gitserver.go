@@ -154,29 +154,33 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		log.Fatal(err)
 	}
 
+	switch oidHandlers[obj.Oid] {
+	case "status-legacy-403":
+		w.WriteHeader(403)
+		return
+	case "status-legacy-404":
+		w.WriteHeader(404)
+		return
+	case "status-legacy-410":
+		w.WriteHeader(410)
+		return
+	case "status-legacy-422":
+		w.WriteHeader(422)
+		return
+	case "status-legacy-500":
+		w.WriteHeader(500)
+		return
+	}
+
 	res := &lfsObject{
 		Oid:  obj.Oid,
 		Size: obj.Size,
-	}
-
-	switch oidHandlers[obj.Oid] {
-	case "status-legacy-403":
-		res.Err = &lfsError{Code: 403, Message: "welp"}
-	case "status-legacy-404":
-		res.Err = &lfsError{Code: 404, Message: "welp"}
-	case "status-legacy-410":
-		res.Err = &lfsError{Code: 410, Message: "welp"}
-	case "status-legacy-422":
-		res.Err = &lfsError{Code: 422, Message: "welp"}
-	case "status-legacy-500":
-		res.Err = &lfsError{Code: 500, Message: "welp"}
-	default: // regular 200 response
-		res.Actions = map[string]lfsLink{
+		Actions: map[string]lfsLink{
 			"upload": lfsLink{
 				Href:   lfsUrl(repo, obj.Oid),
 				Header: map[string]string{},
 			},
-		}
+		},
 	}
 
 	if testingChunkedTransferEncoding(r) {
