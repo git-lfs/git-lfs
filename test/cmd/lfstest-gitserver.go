@@ -38,7 +38,7 @@ var (
 	//
 	contentHandlers = []string{
 		"status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
-		"status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
+		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 	}
 )
