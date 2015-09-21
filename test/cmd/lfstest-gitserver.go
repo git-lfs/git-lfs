@@ -37,7 +37,7 @@ var (
 	//   printf "status:lfs:404" > 404.dat
 	//
 	contentHandlers = []string{
-		"status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
+		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 	}
@@ -95,11 +95,17 @@ type lfsObject struct {
 	Oid     string             `json:"oid,omitempty"`
 	Size    int64              `json:"size,omitempty"`
 	Actions map[string]lfsLink `json:"actions,omitempty"`
+	Err     *lfsError          `json:"error,omitempty"`
 }
 
 type lfsLink struct {
 	Href   string            `json:"href"`
 	Header map[string]string `json:"header,omitempty"`
+}
+
+type lfsError struct {
+	Code    int
+	Message string
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -151,12 +157,26 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	res := &lfsObject{
 		Oid:  obj.Oid,
 		Size: obj.Size,
-		Actions: map[string]lfsLink{
+	}
+
+	switch oidHandlers[obj.Oid] {
+	case "status-legacy-403":
+		res.Err = &lfsError{Code: 403, Message: "welp"}
+	case "status-legacy-404":
+		res.Err = &lfsError{Code: 404, Message: "welp"}
+	case "status-legacy-410":
+		res.Err = &lfsError{Code: 410, Message: "welp"}
+	case "status-legacy-422":
+		res.Err = &lfsError{Code: 422, Message: "welp"}
+	case "status-legacy-500":
+		res.Err = &lfsError{Code: 500, Message: "welp"}
+	default: // regular 200 response
+		res.Actions = map[string]lfsLink{
 			"upload": lfsLink{
 				Href:   lfsUrl(repo, obj.Oid),
 				Header: map[string]string{},
 			},
-		},
+		}
 	}
 
 	if testingChunkedTransferEncoding(r) {
@@ -248,13 +268,28 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
-			Actions: map[string]lfsLink{
+		}
+
+		switch oidHandlers[obj.Oid] {
+		case "status-batch-403":
+			o.Err = &lfsError{Code: 403, Message: "welp"}
+		case "status-batch-404":
+			o.Err = &lfsError{Code: 404, Message: "welp"}
+		case "status-batch-410":
+			o.Err = &lfsError{Code: 410, Message: "welp"}
+		case "status-batch-422":
+			o.Err = &lfsError{Code: 422, Message: "welp"}
+		case "status-batch-500":
+			o.Err = &lfsError{Code: 500, Message: "welp"}
+		default: // regular 200 response
+			o.Actions = map[string]lfsLink{
 				action: lfsLink{
 					Href:   lfsUrl(repo, obj.Oid),
 					Header: map[string]string{},
 				},
-			},
+			}
 		}
+
 		if testingChunked {
 			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
 		}

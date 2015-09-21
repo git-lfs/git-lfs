@@ -7,7 +7,7 @@ push_fail_test() {
 
   set -e
 
-  reponame="$(basename "$0" ".sh")-error"
+  local reponame="$(basename "$0" ".sh")"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame-$contents"
 
@@ -66,5 +66,45 @@ begin_test "push: upload file with storage 500"
   set -e
 
   push_fail_test "status-storage-500"
+)
+end_test
+
+begin_test "push: upload file with api 403"
+(
+  set -e
+
+  push_fail_test "status-batch-403"
+)
+end_test
+
+begin_test "push: upload file with api 404"
+(
+  set -e
+
+  push_fail_test "status-batch-404"
+)
+end_test
+
+begin_test "push: upload file with api 410"
+(
+  set -e
+
+  push_fail_test "status-batch-410"
+)
+end_test
+
+begin_test "push: upload file with api 422"
+(
+  set -e
+
+  push_fail_test "status-batch-422"
+)
+end_test
+
+begin_test "push: upload file with api 500"
+(
+  set -e
+
+  push_fail_test "status-batch-500"
 )
 end_test
