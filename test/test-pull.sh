@@ -17,7 +17,7 @@ begin_test "pull"
   grep "Tracking \*.dat" track.log
 
   contents="a"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
   git add a.dat

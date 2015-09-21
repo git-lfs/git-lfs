@@ -12,7 +12,7 @@ begin_test "commit, delete, then push"
 
   git lfs track "*.dat"
 
-  deleted_oid=$(echo "deleted" | shasum -a 256 | cut -f 1 -d " ")
+  deleted_oid=$(calc_oid "deleted\n")
   echo "deleted" > deleted.dat
   git add deleted.dat .gitattributes
   git commit -m "add deleted file"
@@ -21,7 +21,7 @@ begin_test "commit, delete, then push"
 
   assert_pointer "master" "deleted.dat" "$deleted_oid" 8
 
-  added_oid=$(echo "added" | shasum -a 256 | cut -f 1 -d " ")
+  added_oid=$(calc_oid "added\n")
   echo "added" > added.dat
   git add added.dat
   git commit -m "add file"

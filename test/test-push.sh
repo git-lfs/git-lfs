@@ -56,12 +56,12 @@ push_all_setup() {
   content4="tagged"
   content5="master"
   extracontent="extra"
-  oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
-  oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
-  oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
-  oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
-  oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
-  extraoid=$(printf "$extracontent" | shasum -a 256 | cut -f 1 -d " ")
+  oid1=$(calc_oid "$content1")
+  oid2=$(calc_oid "$content2")
+  oid3=$(calc_oid "$content3")
+  oid4=$(calc_oid "$content4")
+  oid5=$(calc_oid "$content5")
+  extraoid=$(calc_oid "$extracontent")
 
   # if the local repo exists, it has already been bootstrapped
   [ -d "push-all" ] && exit 0
@@ -369,11 +369,11 @@ begin_test "push modified files"
   content3="filecontent3"
   content4="filecontent4"
   content5="filecontent5"
-  oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
-  oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
-  oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
-  oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
-  oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
+  oid1=$(calc_oid "$content1")
+  oid2=$(calc_oid "$content2")
+  oid3=$(calc_oid "$content3")
+  oid4=$(calc_oid "$content4")
+  oid5=$(calc_oid "$content5")
 
   echo "[
   {

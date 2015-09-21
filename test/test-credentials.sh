@@ -18,7 +18,7 @@ begin_test "credentials without useHttpPath, with bad path password"
   grep "Tracking \*.dat" track.log
 
   contents="a"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
   git add a.dat
@@ -47,7 +47,7 @@ begin_test "credentials with useHttpPath, with wrong password"
   grep "Tracking \*.dat" track.log
 
   contents="a"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
   git add a.dat
@@ -78,7 +78,7 @@ begin_test "credentials with useHttpPath, with correct password"
   # creating new branch does not re-sent any objects existing on other
   # remote branches anymore, generate new object, different from prev tests
   contents="b"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > b.dat
   git add b.dat
