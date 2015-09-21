@@ -25,6 +25,22 @@ var (
 	repoDir      string
 	largeObjects = newLfsStorage()
 	server       *httptest.Server
+
+	// maps OIDs to content strings. Both the LFS and Storage test servers below
+	// see OIDs.
+	oidHandlers map[string]string
+
+	// These magic strings tell the test lfs server change their behavior so the
+	// integration tests can check those use cases. Tests will create objects with
+	// the magic strings as the contents.
+	//
+	//   printf "status:lfs:404" > 404.dat
+	//
+	contentHandlers = []string{
+		"status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
+		"status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
+		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
+	}
 )
 
 func main() {
@@ -263,9 +279,30 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
-	log.Printf("storage %s %s repo: %s\n", r.Method, r.URL, repo)
+	parts := strings.Split(r.URL.Path, "/")
+	oid := parts[len(parts)-1]
+
+	log.Printf("storage %s %s repo: %s\n", r.Method, oid, repo)
 	switch r.Method {
 	case "PUT":
+		switch oidHandlers[oid] {
+		case "status-storage-403":
+			w.WriteHeader(403)
+			return
+		case "status-storage-404":
+			w.WriteHeader(404)
+			return
+		case "status-storage-410":
+			w.WriteHeader(410)
+			return
+		case "status-storage-422":
+			w.WriteHeader(422)
+			return
+		case "status-storage-500":
+			w.WriteHeader(500)
+			return
+		}
+
 		if testingChunkedTransferEncoding(r) {
 			valid := false
 			for _, value := range r.TransferEncoding {
@@ -460,4 +497,13 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 	w.WriteHeader(403)
 	log.Printf("Bad auth: %q\n", auth)
 	return true
+}
+
+func init() {
+	oidHandlers = make(map[string]string)
+	for _, content := range contentHandlers {
+		h := sha256.New()
+		h.Write([]byte(content))
+		oidHandlers[hex.EncodeToString(h.Sum(nil))] = content
+	}
 }
