@@ -31,7 +31,7 @@ var (
 		Section: "filter.lfs",
 		Properties: map[string]string{
 			"clean":    "git-lfs clean %f",
-			"smudge":   "GIT_LFS_SMUDGE_PASSTHROUGH=1 git-lfs smudge %f",
+			"smudge":   "git-lfs smudge --skip %f",
 			"required": "true",
 		},
 	}

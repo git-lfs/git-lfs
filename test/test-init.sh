@@ -104,9 +104,9 @@ begin_test "init --smudge-passthrough"
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
   [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
 
-  git lfs init --smudge-passthrough
+  git lfs init --skip-smudge
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "GIT_LFS_SMUDGE_PASSTHROUGH=1 git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs smudge --skip %f" = "$(git config filter.lfs.smudge)" ]
 
   git lfs init --force
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]

@@ -12,6 +12,7 @@ import (
 
 var (
 	smudgeInfo = false
+	smudgeSkip = false
 	smudgeCmd  = &cobra.Command{
 		Use: "smudge",
 		Run: smudgeCommand,
@@ -22,7 +23,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
-	if lfs.Config.GetenvBool("GIT_LFS_SMUDGE_PASSTHROUGH", false) {
+	if smudgeSkip || lfs.Config.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
 		_, err := io.Copy(os.Stdout, os.Stdin)
 		if err != nil {
 			Panic(err, "Error writing data to stdout:")
@@ -92,5 +93,6 @@ func smudgeFilename(args []string, err error) string {
 
 func init() {
 	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "Display the local path and size of the smudged file.")
+	smudgeCmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "Skip automatic downloading of objects on clone or pull.")
 	RootCmd.AddCommand(smudgeCmd)
 }
