@@ -94,13 +94,25 @@ begin_test "smudge with passthrough"
 
   git push origin master
 
+  echo "test clone with env"
   export GIT_LFS_SMUDGE_PASSTHROUGH=1
-  clone_repo "$reponame" "passthrough-clone"
-
+  clone_repo "$reponame" "passthrough-clone-env"
   [ "$pointer" = "$(cat a.dat)" ]
 
   git lfs pull
-
   [ "smudge a" = "$(cat a.dat)" ]
+
+  echo "test clone without env"
+  unset GIT_LFS_SMUDGE_PASSTHROUGH
+
+  clone_repo "$reponame" "no-passhthrough"
+  [ "smudge a" = "$(cat a.dat)" ]
+
+  echo "test clone with init --smudge-passthrough"
+  git lfs init --smudge-passthrough
+  clone_repo "$reponame" "passthrough-clone-init"
+  [ "$pointer" = "$(cat a.dat)" ]
+
+  git lfs init --force
 )
 end_test

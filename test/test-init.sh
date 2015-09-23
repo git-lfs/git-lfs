@@ -96,6 +96,24 @@ Git LFS initialized." = "$(git lfs init --force)" ]
 )
 end_test
 
+begin_test "init --smudge-passthrough"
+(
+  set -e
+
+  git lfs init
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+
+  git lfs init --smudge-passthrough
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "GIT_LFS_SMUDGE_PASSTHROUGH=1 git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+
+  git lfs init --force
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+)
+end_test
+
 begin_test "init --local"
 (
   set -e

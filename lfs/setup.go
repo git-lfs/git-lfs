@@ -26,6 +26,15 @@ var (
 			"required": "true",
 		},
 	}
+
+	passFilters = &Attribute{
+		Section: "filter.lfs",
+		Properties: map[string]string{
+			"clean":    "git-lfs clean %f",
+			"smudge":   "GIT_LFS_SMUDGE_PASSTHROUGH=1 git-lfs smudge %f",
+			"required": "true",
+		},
+	}
 )
 
 // InstallHooks installs all hooks in the `hooks` var.
@@ -57,7 +66,10 @@ func UninstallHooks() error {
 //
 // An error will be returned if a filter is unable to be set, or if the required
 // filters were not present.
-func InstallFilters(opt InstallOptions) error {
+func InstallFilters(opt InstallOptions, passThrough bool) error {
+	if passThrough {
+		return passFilters.Install(opt)
+	}
 	return filters.Install(opt)
 }
 
