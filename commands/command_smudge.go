@@ -92,7 +92,8 @@ func smudgeFilename(args []string, err error) string {
 }
 
 func init() {
-	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "Display the local path and size of the smudged file.")
-	smudgeCmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "Skip automatic downloading of objects on clone or pull.")
+	// update man page
+	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
+	smudgeCmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
 	RootCmd.AddCommand(smudgeCmd)
 }
