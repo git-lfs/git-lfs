@@ -8,9 +8,8 @@ import (
 
 var (
 	envCmd = &cobra.Command{
-		Use:   "env",
-		Short: "Show the current environment",
-		Run:   envCommand,
+		Use: "env",
+		Run: envCommand,
 	}
 )
 

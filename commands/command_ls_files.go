@@ -8,9 +8,8 @@ import (
 
 var (
 	lsFilesCmd = &cobra.Command{
-		Use:   "ls-files",
-		Short: "Show information about Git LFS files",
-		Run:   lsFilesCommand,
+		Use: "ls-files",
+		Run: lsFilesCommand,
 	}
 )
 

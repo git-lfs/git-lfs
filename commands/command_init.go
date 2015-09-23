@@ -7,15 +7,13 @@ import (
 
 var (
 	initCmd = &cobra.Command{
-		Use:   "init",
-		Short: "Initialize the default Git LFS configuration",
-		Run:   initCommand,
+		Use: "init",
+		Run: initCommand,
 	}
 
 	initHooksCmd = &cobra.Command{
-		Use:   "hooks",
-		Short: "Initialize hooks for the current repository",
-		Run:   initHooksCommand,
+		Use: "hooks",
+		Run: initHooksCommand,
 	}
 
 	forceInit = false

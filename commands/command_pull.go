@@ -8,9 +8,8 @@ import (
 
 var (
 	pullCmd = &cobra.Command{
-		Use:   "pull",
-		Short: "Downloads LFS files for the current ref, and checks out",
-		Run:   pullCommand,
+		Use: "pull",
+		Run: pullCommand,
 	}
 	pullIncludeArg string
 	pullExcludeArg string

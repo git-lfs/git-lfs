@@ -14,9 +14,8 @@ import (
 
 var (
 	trackCmd = &cobra.Command{
-		Use:   "track",
-		Short: "Manipulate .gitattributes",
-		Run:   trackCommand,
+		Use: "track",
+		Run: trackCommand,
 	}
 )
 

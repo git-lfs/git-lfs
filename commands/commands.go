@@ -25,8 +25,7 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	RootCmd      = &cobra.Command{
-		Use:   "git-lfs",
-		Short: "Git LFS provides large file storage to Git.",
+		Use: "git-lfs",
 		Run: func(cmd *cobra.Command, args []string) {
 			versionCommand(cmd, args)
 			cmd.Usage()
@@ -224,7 +223,7 @@ func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclu
 
 func printHelp(commandName string) {
 	if txt, ok := ManPages[commandName]; ok {
-		fmt.Fprintf(os.Stderr, txt)
+		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(txt))
 	} else {
 		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
 	}
@@ -240,7 +239,7 @@ func help(cmd *cobra.Command, args []string) {
 
 }
 
-// usage is used for 'git-lfs <command> --help' or wen invoked manually
+// usage is used for 'git-lfs <command> --help' or when invoked manually
 func usage(cmd *cobra.Command) error {
 	printHelp(cmd.Name())
 	return nil
@@ -250,5 +249,6 @@ func init() {
 	log.SetOutput(ErrorWriter)
 	// Set up help/usage funcs based on manpage text
 	RootCmd.SetHelpFunc(help)
+	RootCmd.SetHelpTemplate("{{.UsageString}}")
 	RootCmd.SetUsageFunc(usage)
 }

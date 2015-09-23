@@ -9,9 +9,8 @@ import (
 
 var (
 	cleanCmd = &cobra.Command{
-		Use:   "clean",
-		Short: "Implements the Git clean filter",
-		Run:   cleanCommand,
+		Use: "clean",
+		Run: cleanCommand,
 	}
 )
 
