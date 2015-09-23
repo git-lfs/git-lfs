@@ -57,8 +57,8 @@ func UninstallHooks() error {
 //
 // An error will be returned if a filter is unable to be set, or if the required
 // filters were not present.
-func InstallFilters(force bool) error {
-	return filters.Install(force)
+func InstallFilters(opt InstallOptions) error {
+	return filters.Install(opt)
 }
 
 // UninstallFilters proxies into the Uninstall method on the Filters type to

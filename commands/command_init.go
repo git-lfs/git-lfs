@@ -17,10 +17,16 @@ var (
 	}
 
 	forceInit = false
+	localInit = false
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.InstallFilters(forceInit); err != nil {
+	if localInit {
+		requireInRepo()
+	}
+
+	opt := lfs.InstallOptions{Force: forceInit, Local: localInit}
+	if err := lfs.InstallFilters(opt); err != nil {
 		Error(err.Error())
 		Exit("Run `git lfs init --force` to reset git config.")
 	}
@@ -36,6 +42,7 @@ func initHooksCommand(cmd *cobra.Command, args []string) {
 
 func init() {
 	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Set the Git LFS global config, overwriting previous values.")
+	initCmd.Flags().BoolVarP(&localInit, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
 	initCmd.AddCommand(initHooksCmd)
 	RootCmd.AddCommand(initCmd)
 }
