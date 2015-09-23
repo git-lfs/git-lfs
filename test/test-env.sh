@@ -2,6 +2,9 @@
 
 . "test/testlib.sh"
 
+envInitConfig='git config filter.lfs.smudge = "git-lfs smudge %f"
+git config filter.lfs.clean = "git-lfs clean %f"'
+
 begin_test "env with no remote"
 (
   set -e
@@ -19,7 +22,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 )
@@ -44,7 +48,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -76,7 +81,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -106,7 +112,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -139,7 +146,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -174,7 +182,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -211,7 +220,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=5
 BatchTransfer=false
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -248,7 +258,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=5
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
 
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
@@ -279,7 +290,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
 
   actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
   [ "$expected" = "$actual" ]
@@ -305,6 +317,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT")
+git config filter.lfs.smudge = \"\"
+git config filter.lfs.clean = \"\"
 " "$(git lfs version)" "$(git version)")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
   [ "$expected5" = "$actual5" ]
@@ -318,6 +332,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(GIT_WORK_TREE=a/b env | grep "^GIT")
+git config filter.lfs.smudge = \"\"
+git config filter.lfs.clean = \"\"
 " "$(git lfs version)" "$(git version)")
   actual6=$(GIT_WORK_TREE=a/b git lfs env)
   [ "$expected6" = "$actual6" ]
@@ -332,7 +348,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(GIT_DIR=$gitDir env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual7=$(GIT_DIR=$gitDir git lfs env)
   [ "$expected7" = "$actual7" ]
 
@@ -346,7 +363,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(GIT_WORK_TREE=$workTree env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual8=$(GIT_WORK_TREE=$workTree git lfs env)
   [ "$expected8" = "$actual8" ]
 )
