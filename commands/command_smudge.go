@@ -22,6 +22,15 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
+	if lfs.Config.GetenvBool("GIT_LFS_SMUDGE_PASSTHROUGH", false) {
+		_, err := io.Copy(os.Stdout, os.Stdin)
+		if err != nil {
+			Panic(err, "Error writing data to stdout:")
+		}
+		return
+	}
+
+	// keeps the initial buffer from lfs.DecodePointer
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
 

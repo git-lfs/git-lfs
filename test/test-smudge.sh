@@ -51,18 +51,19 @@ begin_test "smudge include/exclude"
 (
   set -e
 
-  reponame="smudge_includeexclude"
+  reponame="$(basename "$0" ".sh")-includeexclude"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" repoincludeexclude
+  clone_repo "$reponame" includeexclude
 
   git lfs track "*.dat"
   echo "smudge a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
+  pointer="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)"
+
   # smudge works even though it hasn't been pushed, by reading from .git/lfs/objects
-  output="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | git lfs smudge)"
-  [ "smudge a" = "$output" ]
+  [ "smudge a" = "$(echo "$pointer" | git lfs smudge)" ]
 
   git push origin master
 
@@ -70,9 +71,36 @@ begin_test "smudge include/exclude"
   rm -rf .git/lfs/objects
   git config "lfs.fetchexclude" "a*"
 
-  output="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | git lfs smudge a.dat)"
-  # because download was not allowed, contents will be a pointer ie unchanged
-  [ "$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)" = "$output" ]
+  [ "$pointer" = "$(echo "$pointer" | git lfs smudge a.dat)" ]
 )
 end_test
 
+begin_test "smudge with passthrough"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-passthrough"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "passthrough"
+
+  git lfs track "*.dat"
+  echo "smudge a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  pointer="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)"
+  [ "smudge a" = "$(echo "$pointer" | git lfs smudge)" ]
+  [ "$pointer" = "$(echo "$pointer" | GIT_LFS_SMUDGE_PASSTHROUGH=1 git lfs smudge)" ]
+
+  git push origin master
+
+  export GIT_LFS_SMUDGE_PASSTHROUGH=1
+  clone_repo "$reponame" "passthrough-clone"
+
+  [ "$pointer" = "$(cat a.dat)" ]
+
+  git lfs pull
+
+  [ "smudge a" = "$(cat a.dat)" ]
+)
+end_test
