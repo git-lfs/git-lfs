@@ -162,6 +162,19 @@ func IsNotAPointerError(err error) bool {
 	return false
 }
 
+// IsBadPointerKeyError indicates that the parsed data has an invalid key.
+func IsBadPointerKeyError(err error) bool {
+	if e, ok := err.(interface {
+		BadPointerKeyError() bool
+	}); ok {
+		return e.BadPointerKeyError()
+	}
+	if e, ok := err.(errorWrapper); ok {
+		return IsBadPointerKeyError(e.InnerError())
+	}
+	return false
+}
+
 // IsDownloadDeclinedError indicates that the smudge operation should not download.
 // TODO: I don't really like using errors to control that flow, it should be refactored.
 func IsDownloadDeclinedError(err error) bool {
@@ -481,6 +494,25 @@ func (e notAPointerError) NotAPointerError() bool {
 
 func newNotAPointerError(err error) error {
 	return notAPointerError{newWrappedError(err, "Not a valid Git LFS pointer file.")}
+}
+
+type badPointerKeyError struct {
+	Expected string
+	Actual   string
+	errorWrapper
+}
+
+func (e badPointerKeyError) InnerError() error {
+	return e.errorWrapper
+}
+
+func (e badPointerKeyError) BadPointerKeyError() bool {
+	return true
+}
+
+func newBadPointerKeyError(expected, actual string) error {
+	err := fmt.Errorf("Error parsing LFS Pointer. Expected key %s, got %s", expected, actual)
+	return badPointerKeyError{expected, actual, newWrappedError(err, "")}
 }
 
 // Definitions for IsDownloadDeclinedError()

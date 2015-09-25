@@ -131,6 +131,12 @@ func verifyVersion(version string) error {
 func decodeKV(data []byte) (*Pointer, error) {
 	kvps, exts, err := decodeKVData(data)
 	if err != nil {
+		if IsBadPointerKeyError(err) {
+			badErr := err.(badPointerKeyError)
+			if badErr.Expected == "version" {
+				return nil, newNotAPointerError(err)
+			}
+		}
 		return nil, err
 	}
 
@@ -252,7 +258,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		if expected := pointerKeys[line]; key != expected {
 			if !extRE.Match([]byte(key)) {
-				err = fmt.Errorf("Expected key %s, got %s", expected, key)
+				err = newBadPointerKeyError(expected, key)
 				return
 			}
 			if exts == nil {

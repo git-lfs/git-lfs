@@ -69,7 +69,6 @@ begin_test "pull"
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
 
-
   # Test include / exclude filters supplied in gitconfig
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "a*"
@@ -91,8 +90,6 @@ begin_test "pull"
   rm -rf .git/lfs/objects
   git lfs pull --exclude="a*"
   refute_local_object "$contents_oid"
-
-
 )
 end_test
 

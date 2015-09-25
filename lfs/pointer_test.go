@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -58,6 +59,18 @@ func assertLine(t *testing.T, r *bufio.Reader, expected string) {
 	actual, err := r.ReadString('\n')
 	assert.Equal(t, nil, err)
 	assert.Equal(t, expected, actual)
+}
+
+func TestDecodeTinyFile(t *testing.T) {
+	ex := "this is not a git-lfs file!"
+	p, err := DecodePointer(bytes.NewBufferString(ex))
+	if p != nil {
+		t.Errorf("pointer was decoded: %v", p)
+	}
+
+	if !IsNotAPointerError(err) {
+		t.Errorf("error is not a NotAPointerError: %s: '%v'", reflect.TypeOf(err), err)
+	}
 }
 
 func TestDecode(t *testing.T) {

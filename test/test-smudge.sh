@@ -44,6 +44,7 @@ begin_test "smudge with invalid pointer"
 
   cd repo
   [ "wat" = "$(echo "wat" | git lfs smudge)" ]
+  [ "not a git-lfs file" = "$(echo "wat" | git lfs smudge)" ]
 )
 end_test
 
