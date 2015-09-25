@@ -9,6 +9,10 @@ these can be viewed from the command also:
 $ git lfs help <command>
 $ git lfs <command> -h
 ```
+## Videos
+
+* [How to Work with Big Files](https://www.youtube.com/watch?v=uLR1RNqJ1Mw) -
+Quick intro to Git LFS.
 
 ## Developer Docs
 
