@@ -96,7 +96,7 @@ Git LFS initialized." = "$(git lfs init --force)" ]
 )
 end_test
 
-begin_test "init --smudge-passthrough"
+begin_test "init --skip-smudge"
 (
   set -e
 

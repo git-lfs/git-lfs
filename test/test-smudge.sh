@@ -75,13 +75,13 @@ begin_test "smudge include/exclude"
 )
 end_test
 
-begin_test "smudge with passthrough"
+begin_test "smudge with skip"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-passthrough"
+  reponame="$(basename "$0" ".sh")-skip"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" "passthrough"
+  clone_repo "$reponame" "skip"
 
   git lfs track "*.dat"
   echo "smudge a" > a.dat
@@ -97,7 +97,7 @@ begin_test "smudge with passthrough"
   echo "test clone with env"
   export GIT_LFS_SKIP_SMUDGE=1
   env | grep LFS
-  clone_repo "$reponame" "passthrough-clone-env"
+  clone_repo "$reponame" "skip-clone-env"
   [ "$pointer" = "$(cat a.dat)" ]
   [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
@@ -107,13 +107,13 @@ begin_test "smudge with passthrough"
   echo "test clone without env"
   unset GIT_LFS_SKIP_SMUDGE
   env | grep LFS
-  clone_repo "$reponame" "no-passhthrough"
+  clone_repo "$reponame" "no-skip"
   [ "smudge a" = "$(cat a.dat)" ]
   [ "1" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
-  echo "test clone with init --smudge-passthrough"
+  echo "test clone with init --skip-smudge"
   git lfs init --skip-smudge
-  clone_repo "$reponame" "passthrough-clone-init"
+  clone_repo "$reponame" "skip-clone-init"
   [ "$pointer" = "$(cat a.dat)" ]
   [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
