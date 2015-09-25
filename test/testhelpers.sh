@@ -149,7 +149,8 @@ setup_alternate_remote() {
 }
 
 # clone_repo clones a repository from the test Git server to the subdirectory
-# $dir under $TRASHDIR. setup_remote_repo() needs to be run first.
+# $dir under $TRASHDIR. setup_remote_repo() needs to be run first. Output is
+# written to clone.log.
 clone_repo() {
   cd "$TRASHDIR"
 
@@ -160,6 +161,7 @@ clone_repo() {
   cd "$dir"
 
   git config credential.helper lfstest
+  echo "$out" > clone.log
   echo "$out"
 }
 

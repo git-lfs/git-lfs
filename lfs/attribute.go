@@ -29,16 +29,22 @@ type Attribute struct {
 	Properties map[string]string
 }
 
+// InstallOptions serves as an argument to Install().
+type InstallOptions struct {
+	Force bool
+	Local bool
+}
+
 // Install instructs Git to set all keys and values relative to the root
 // location of this Attribute. For any particular key/value pair, if a matching
 // key is already set, it will be overridden if it is either a) empty, or b) the
 // `force` argument is passed as true. If an attribute is already set to a
 // different value than what is given, and force is false, an error will be
 // returned immediately, and the rest of the attributes will not be set.
-func (a *Attribute) Install(force bool) error {
+func (a *Attribute) Install(opt InstallOptions) error {
 	for k, v := range a.Properties {
 		key := a.normalizeKey(k)
-		if err := a.set(key, v, force); err != nil {
+		if err := a.set(key, v, opt); err != nil {
 			return err
 		}
 	}
@@ -56,11 +62,22 @@ func (a *Attribute) normalizeKey(relative string) string {
 // matching key already exists and the value is not equal to the desired value,
 // an error will be thrown if force is set to false. If force is true, the value
 // will be overridden.
-func (a *Attribute) set(key, value string, force bool) error {
-	currentValue := git.Config.Find(key)
-	if force || shouldReset(currentValue) {
-		git.Config.UnsetGlobal(key)
-		git.Config.SetGlobal(key, value)
+func (a *Attribute) set(key, value string, opt InstallOptions) error {
+	var currentValue string
+	if opt.Local {
+		currentValue = git.Config.FindLocal(key)
+	} else {
+		currentValue = git.Config.Find(key)
+	}
+
+	if opt.Force || shouldReset(currentValue) {
+		if opt.Local {
+			git.Config.UnsetLocalKey("", key)
+			git.Config.SetLocal("", key, value)
+		} else {
+			git.Config.UnsetGlobal(key)
+			git.Config.SetGlobal(key, value)
+		}
 
 		return nil
 	} else if currentValue != value {

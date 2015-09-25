@@ -95,3 +95,51 @@ Git LFS initialized." = "$(git lfs init --force)" ]
   [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
 )
 end_test
+
+begin_test "init --skip-smudge"
+(
+  set -e
+
+  git lfs init
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+
+  git lfs init --skip-smudge
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge --skip %f" = "$(git config filter.lfs.smudge)" ]
+
+  git lfs init --force
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+)
+end_test
+
+begin_test "init --local"
+(
+  set -e
+
+  # old values that should be ignored by `init --local`
+  git config --global filter.lfs.smudge "git lfs smudge %f"
+  git config --global filter.lfs.clean "git lfs clean %f"
+
+  mkdir init-local-repo
+  cd init-local-repo
+  git init
+  git lfs init --local
+
+  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs clean %f" = "$(git config --local filter.lfs.clean)" ]
+  [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+)
+end_test
+
+begin_test "init --local outside repository"
+(
+  set +e
+  git lfs init --local 2> err.log
+  res=$?
+
+  [ "Not in a git repository." = "$(cat err.log)" ]
+  [ "0" != "$res" ]
+)
+end_test

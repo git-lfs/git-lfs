@@ -44,6 +44,11 @@ func envCommand(cmd *cobra.Command, args []string) {
 	for _, env := range lfs.Environ() {
 		Print(env)
 	}
+
+	for _, key := range []string{"filter.lfs.smudge", "filter.lfs.clean"} {
+		value, _ := lfs.Config.GitConfig(key)
+		Print("git config %s = %q", key, value)
+	}
 }
 
 func init() {
