@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"strings"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
+	longOIDs   = false
 	lsFilesCmd = &cobra.Command{
 		Use: "ls-files",
 		Run: lsFilesCommand,
@@ -29,6 +32,11 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		ref = fullref.Sha
 	}
 
+	showShaLen := 7
+	if longOIDs {
+		showShaLen = 40
+	}
+
 	scanOpt := &lfs.ScanRefsOptions{SkipDeletedBlobs: true}
 	listFiles := make(map[string][]string)
 	fileTree, err := lfs.ScanTree(ref)
@@ -44,16 +52,12 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 	for _, p := range pointers {
-		Print(p.Name)
-		if len(listFiles[p.Sha1]) > 1 {
-			for _, v := range listFiles[p.Sha1][1:] {
-				Print(v + " (duplicate of " + p.Name + ")")
-			}
-		}
+		Print(p.Sha1[0:showShaLen] + " ==> [ " + strings.Join(listFiles[p.Sha1], ",") + " ]")
 		delete(listFiles, p.Sha1)
 	}
 }
 
 func init() {
+	lsFilesCmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "Show object ID(s) 40 characters")
 	RootCmd.AddCommand(lsFilesCmd)
 }

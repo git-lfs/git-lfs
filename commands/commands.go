@@ -238,6 +238,7 @@ func help(cmd *cobra.Command, args []string) {
 	}
 
 }
+
 // usage is used for 'git-lfs <command> --help' or when invoked manually
 func usage(cmd *cobra.Command) error {
 	printHelp(cmd.Name())
