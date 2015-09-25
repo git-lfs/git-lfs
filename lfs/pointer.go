@@ -102,7 +102,7 @@ func DecodePointer(reader io.Reader) (*Pointer, error) {
 }
 
 func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
-	buf := make([]byte, 512)
+	buf := make([]byte, blobSizeCutoff)
 	written, err := reader.Read(buf)
 	output := buf[0:written]
 
@@ -116,7 +116,7 @@ func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
 
 func verifyVersion(version string) error {
 	if len(version) == 0 {
-		return errors.New("Missing version")
+		return newNotAPointerError(errors.New("Missing version"))
 	}
 
 	for _, v := range v1Aliases {
