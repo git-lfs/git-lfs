@@ -15,7 +15,7 @@ begin_test "ls-files"
   echo "missing" > missing.dat
   git add missing.dat
   git commit -m "add missing file"
-  [ "74f2f1c ==> [ missing.dat ]" = "$(git lfs ls-files)" ]
+  [ "6bbd052ab0 * missing.dat" = "$(git lfs ls-files)" ]
 
   git rm missing.dat
   git add some.dat some.txt
@@ -80,7 +80,11 @@ begin_test "ls-files: show duplicate files"
   git add one.tgz
   git add two.tgz
   git commit -m "add duplicate files"
-  [ "67f58a4 ==> [ one.tgz,two.tgz ]" = "$(git lfs ls-files)" ]
+
+  expected="$(echo "a1fff0ffef * one.tgz
+a1fff0ffef * two.tgz")"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
 )
 end_test
 
@@ -98,6 +102,10 @@ begin_test "ls-files: show duplicate files with long OID"
   git add one.tgz
   git add two.tgz
   git commit -m "add duplicate files with long OID"
-  [ "67f58a40df1e32b439f55e722178c337042d2148 ==> [ one.tgz,two.tgz ]" = "$(git lfs ls-files --long)" ]
+
+  expected="$(echo "a1fff0ffefb9eace7230c24e50731f0a91c62f9cefdfe77121c2f607125dffae * one.tgz
+a1fff0ffefb9eace7230c24e50731f0a91c62f9cefdfe77121c2f607125dffae * two.tgz")"
+
+  [ "$expected" = "$(git lfs ls-files --long)" ]
 )
 end_test

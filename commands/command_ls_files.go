@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"strings"
+	"os"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
@@ -32,32 +32,31 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		ref = fullref.Sha
 	}
 
-	showShaLen := 7
+	showOidLen := 10
 	if longOIDs {
-		showShaLen = 40
+		showOidLen = 64
 	}
 
-	scanOpt := &lfs.ScanRefsOptions{SkipDeletedBlobs: true}
-	listFiles := make(map[string][]string)
-	fileTree, err := lfs.ScanTree(ref)
+	files, err := lfs.ScanTree(ref)
 	if err != nil {
-		Panic(err, "Could not scan for Git LFS tree")
-	}
-	for _, p := range fileTree {
-		listFiles[p.Sha1] = append(listFiles[p.Sha1], p.Name)
+		Panic(err, "Could not scan for Git LFS tree: %s", err)
 	}
 
-	pointers, err := lfs.ScanRefs(ref, "", scanOpt)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-	for _, p := range pointers {
-		Print(p.Sha1[0:showShaLen] + " ==> [ " + strings.Join(listFiles[p.Sha1], ",") + " ]")
-		delete(listFiles, p.Sha1)
+	for _, p := range files {
+		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
 	}
 }
 
+func lsFilesMarker(p *lfs.WrappedPointer) string {
+	info, err := os.Stat(p.Name)
+	if err == nil && info.Size() == p.Size {
+		return "*"
+	}
+
+	return "-"
+}
+
 func init() {
-	lsFilesCmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "Show object ID(s) 40 characters")
+	lsFilesCmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 	RootCmd.AddCommand(lsFilesCmd)
 }
