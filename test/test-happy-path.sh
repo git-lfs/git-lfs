@@ -27,7 +27,7 @@ begin_test "happy path"
   grep "Tracking \*.dat" track.log
 
   contents="a"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   # Regular Git commands can be used.
   printf "$contents" > a.dat

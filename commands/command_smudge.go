@@ -13,9 +13,8 @@ import (
 var (
 	smudgeInfo = false
 	smudgeCmd  = &cobra.Command{
-		Use:   "smudge",
-		Short: "Implements the Git smudge filter",
-		Run:   smudgeCommand,
+		Use: "smudge",
+		Run: smudgeCommand,
 	}
 )
 

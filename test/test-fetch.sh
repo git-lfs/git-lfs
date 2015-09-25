@@ -17,7 +17,7 @@ begin_test "fetch"
   grep "Tracking \*.dat" track.log
 
   contents="a"
-  contents_oid=$(printf "$contents" | shasum -a 256 | cut -f 1 -d " ")
+  contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
   git add a.dat
@@ -43,7 +43,7 @@ begin_test "fetch"
   # Add a file in a different branch
   git checkout -b newbranch
   b="b"
-  b_oid=$(printf "$b" | shasum -a 256 | cut -f 1 -d " ")
+  b_oid=$(calc_oid "$b")
   printf "$b" > b.dat
   git add b.dat
   git commit -m "add b.dat"
@@ -152,12 +152,12 @@ begin_test "fetch-recent"
   content3="filecontent3"
   content4="filecontent4"
   content5="filecontent5"
-  oid0=$(printf "$content0" | shasum -a 256 | cut -f 1 -d " ")
-  oid1=$(printf "$content1" | shasum -a 256 | cut -f 1 -d " ")
-  oid2=$(printf "$content2" | shasum -a 256 | cut -f 1 -d " ")
-  oid3=$(printf "$content3" | shasum -a 256 | cut -f 1 -d " ")
-  oid4=$(printf "$content4" | shasum -a 256 | cut -f 1 -d " ")
-  oid5=$(printf "$content5" | shasum -a 256 | cut -f 1 -d " ")
+  oid0=$(calc_oid "$content0")
+  oid1=$(calc_oid "$content1")
+  oid2=$(calc_oid "$content2")
+  oid3=$(calc_oid "$content3")
+  oid4=$(calc_oid "$content4")
+  oid5=$(calc_oid "$content5")
 
   echo "[
   {
@@ -293,7 +293,7 @@ begin_test "fetch-all"
   for ((a=0; a < NUMFILES ; a++))
   do
     content[$a]="filecontent$a"
-    oid[$a]=$(printf "${content[$a]}" | shasum -a 256 | cut -f 1 -d " ")
+    oid[$a]=$(calc_oid "${content[$a]}")
   done
 
   echo "[

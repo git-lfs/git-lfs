@@ -90,12 +90,14 @@ func (q *TransferQueue) Wait() {
 	q.retrywait.Wait()
 	atomic.StoreUint32(&q.retrying, 1)
 
-	if len(q.retries) > 0 && q.batcher != nil {
+	if len(q.retries) > 0 {
 		tracerx.Printf("tq: retrying %d failed transfers", len(q.retries))
 		for _, t := range q.retries {
 			q.Add(t)
 		}
-		q.batcher.Exit()
+		if q.batcher != nil {
+			q.batcher.Exit()
+		}
 		q.wait.Wait()
 	}
 
@@ -224,15 +226,14 @@ func (q *TransferQueue) batchApiRoutine() {
 		startProgress.Do(q.meter.Start)
 
 		for _, o := range objects {
-			if _, ok := o.Rel(q.transferKind); ok {
-				// This object has an error
-				if o.Error != nil {
-					q.errorc <- Error(o.Error)
-					q.meter.Skip(o.Size)
-					q.wait.Done()
-					continue
-				}
+			if o.Error != nil {
+				q.errorc <- Error(o.Error)
+				q.meter.Skip(o.Size)
+				q.wait.Done()
+				continue
+			}
 
+			if _, ok := o.Rel(q.transferKind); ok {
 				// This object needs to be transferred
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)

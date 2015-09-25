@@ -7,15 +7,13 @@ import (
 
 var (
 	initCmd = &cobra.Command{
-		Use:   "init",
-		Short: "Initialize the default Git LFS configuration",
-		Run:   initCommand,
+		Use: "init",
+		Run: initCommand,
 	}
 
 	initHooksCmd = &cobra.Command{
-		Use:   "hooks",
-		Short: "Initialize hooks for the current repository",
-		Run:   initHooksCommand,
+		Use: "hooks",
+		Run: initHooksCommand,
 	}
 
 	forceInit = false
@@ -27,10 +25,7 @@ func initCommand(cmd *cobra.Command, args []string) {
 		Exit("Run `git lfs init --force` to reset git config.")
 	}
 
-	if lfs.InRepo() {
-		initHooksCommand(cmd, args)
-	}
-
+	initHooksCommand(cmd, args)
 	Print("Git LFS initialized.")
 }
 

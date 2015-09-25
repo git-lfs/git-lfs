@@ -67,6 +67,15 @@ Run \`git lfs update --force\` to overwrite this hook."
   # force replace unexpected hook
   [ "Updated pre-push hook." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+
+  echo "test with bare repository"
+  cd ..
+  git clone --mirror without-pre-push bare
+  cd bare
+  git lfs env
+  git lfs update
+  ls -al hooks
+  [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
 )
 end_test
 

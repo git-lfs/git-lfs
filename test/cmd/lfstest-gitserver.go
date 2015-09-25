@@ -25,6 +25,22 @@ var (
 	repoDir      string
 	largeObjects = newLfsStorage()
 	server       *httptest.Server
+
+	// maps OIDs to content strings. Both the LFS and Storage test servers below
+	// see OIDs.
+	oidHandlers map[string]string
+
+	// These magic strings tell the test lfs server change their behavior so the
+	// integration tests can check those use cases. Tests will create objects with
+	// the magic strings as the contents.
+	//
+	//   printf "status:lfs:404" > 404.dat
+	//
+	contentHandlers = []string{
+		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
+		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
+		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
+	}
 )
 
 func main() {
@@ -79,11 +95,17 @@ type lfsObject struct {
 	Oid     string             `json:"oid,omitempty"`
 	Size    int64              `json:"size,omitempty"`
 	Actions map[string]lfsLink `json:"actions,omitempty"`
+	Err     *lfsError          `json:"error,omitempty"`
 }
 
 type lfsLink struct {
 	Href   string            `json:"href"`
 	Header map[string]string `json:"header,omitempty"`
+}
+
+type lfsError struct {
+	Code    int
+	Message string
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -130,6 +152,24 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	switch oidHandlers[obj.Oid] {
+	case "status-legacy-403":
+		w.WriteHeader(403)
+		return
+	case "status-legacy-404":
+		w.WriteHeader(404)
+		return
+	case "status-legacy-410":
+		w.WriteHeader(410)
+		return
+	case "status-legacy-422":
+		w.WriteHeader(422)
+		return
+	case "status-legacy-500":
+		w.WriteHeader(500)
+		return
 	}
 
 	res := &lfsObject{
@@ -232,13 +272,28 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
-			Actions: map[string]lfsLink{
+		}
+
+		switch oidHandlers[obj.Oid] {
+		case "status-batch-403":
+			o.Err = &lfsError{Code: 403, Message: "welp"}
+		case "status-batch-404":
+			o.Err = &lfsError{Code: 404, Message: "welp"}
+		case "status-batch-410":
+			o.Err = &lfsError{Code: 410, Message: "welp"}
+		case "status-batch-422":
+			o.Err = &lfsError{Code: 422, Message: "welp"}
+		case "status-batch-500":
+			o.Err = &lfsError{Code: 500, Message: "welp"}
+		default: // regular 200 response
+			o.Actions = map[string]lfsLink{
 				action: lfsLink{
 					Href:   lfsUrl(repo, obj.Oid),
 					Header: map[string]string{},
 				},
-			},
+			}
 		}
+
 		if testingChunked {
 			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
 		}
@@ -263,9 +318,30 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
-	log.Printf("storage %s %s repo: %s\n", r.Method, r.URL, repo)
+	parts := strings.Split(r.URL.Path, "/")
+	oid := parts[len(parts)-1]
+
+	log.Printf("storage %s %s repo: %s\n", r.Method, oid, repo)
 	switch r.Method {
 	case "PUT":
+		switch oidHandlers[oid] {
+		case "status-storage-403":
+			w.WriteHeader(403)
+			return
+		case "status-storage-404":
+			w.WriteHeader(404)
+			return
+		case "status-storage-410":
+			w.WriteHeader(410)
+			return
+		case "status-storage-422":
+			w.WriteHeader(422)
+			return
+		case "status-storage-500":
+			w.WriteHeader(500)
+			return
+		}
+
 		if testingChunkedTransferEncoding(r) {
 			valid := false
 			for _, value := range r.TransferEncoding {
@@ -460,4 +536,13 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 	w.WriteHeader(403)
 	log.Printf("Bad auth: %q\n", auth)
 	return true
+}
+
+func init() {
+	oidHandlers = make(map[string]string)
+	for _, content := range contentHandlers {
+		h := sha256.New()
+		h.Write([]byte(content))
+		oidHandlers[hex.EncodeToString(h.Sum(nil))] = content
+	}
 }

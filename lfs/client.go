@@ -446,7 +446,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		err = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
+		err = Error(err)
 	} else {
 		err = handleResponse(res, creds)
 	}
