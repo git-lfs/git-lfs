@@ -14,9 +14,22 @@ page][impl]. You can chat with the team at: https://gitter.im/github/git-lfs
 
 ## Getting Started
 
-Download the [latest client][rel] and run the included install script.  The
-installer should run `git lfs init` for you, which sets up Git's global
-configuration settings for Git LFS.
+You can install Git LFS several different ways, depending on your setup and
+preferences.
+
+* Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs).
+* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`.
+* [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
+
+Once installed, you can run `git lfs init` to setup the global Git hooks
+necessary for Git LFS to work. You can get help on specific commands directly:
+
+```bash
+$ git lfs help <subcommand>
+```
+
+The [official documentation](docs) has command references and specifications for
+the tool.
 
 Note: Git LFS requires Git v1.8.2 or higher.
 
