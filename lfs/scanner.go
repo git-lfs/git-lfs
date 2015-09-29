@@ -597,7 +597,7 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := logPreviousSHAs(ref, since)
+	pointerchan, err := ScanPreviousVersionsToChan(ref, since)
 	if err != nil {
 		return nil, err
 	}
@@ -607,6 +607,13 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 	}
 	return pointers, nil
 
+}
+
+// ScanPreviousVersionsToChan scans changes reachable from ref (commit) back to since.
+// Returns channel of pointers for *previous* versions that overlap that time. Does not
+// include pointers which were still in use at ref (use ScanRefsToChan for that)
+func ScanPreviousVersionsToChan(ref string, since time.Time) (chan *WrappedPointer, error) {
+	return logPreviousSHAs(ref, since)
 }
 
 // ScanUnpushedToChan scans history for all LFS pointers which have been added but

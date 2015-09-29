@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
@@ -61,9 +62,9 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	// Add all the base funcs to the waitgroup before starting them, in case
 	// one completes really fast & hits 0 unexpectedly
 	// each main process can Add() to the wg itself if it subdivides the task
-	taskwait.Add(5) // 1..5: localObjects, current checkout, recent refs, unpushed, worktree
+	taskwait.Add(4) // 1..4: localObjects, current & recent refs, unpushed, worktree
 	if verifyRemote {
-		taskwait.Add(1) // 6
+		taskwait.Add(1) // 5
 	}
 
 	progressChan := make(PruneProgressChan, 100)
@@ -81,8 +82,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	// Now find files to be retained from many sources
 	retainChan := make(chan string, 100)
 
-	go pruneTaskGetRetainedCurrentCheckout(retainChan, errorChan, &taskwait)
-	go pruneTaskGetRetainedRecentRefs(retainChan, errorChan, &taskwait)
+	go pruneTaskGetRetainedCurrentAndRecentRefs(retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedUnpushed(retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedWorktree(retainChan, errorChan, &taskwait)
 	if verifyRemote {
@@ -278,17 +278,12 @@ func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, progChan PrunePro
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedCurrentCheckout(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	ref, err := git.CurrentRef()
-	if err != nil {
-		errorChan <- err
-		return
-	}
 	// Only files AT ref, recent is checked in pruneTaskGetRetainedRecentRefs
 	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanRefsMode, SkipDeletedBlobs: true}
-	refchan, err := lfs.ScanRefsToChan(ref.Sha, "", opts)
+	refchan, err := lfs.ScanRefsToChan(ref, "", opts)
 	if err != nil {
 		errorChan <- err
 		return
@@ -299,10 +294,66 @@ func pruneTaskGetRetainedCurrentCheckout(retainChan chan string, errorChan chan 
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedRecentRefs(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+func pruneTaskGetPreviousVersionsOfRef(ref string, since time.Time, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	// TODO
+	refchan, err := lfs.ScanPreviousVersionsToChan(ref, since)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	for wp := range refchan {
+		retainChan <- wp.Pointer.Oid
+	}
+}
+
+// Background task, must call waitg.Done() once at end
+func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+	defer waitg.Done()
+
+	// We actually increment the waitg in this func since we kick off sub-goroutines
+	// Make a list of what unique commits to keep, & search backward from
+	commits := lfs.NewStringSet()
+	// Do current first
+	ref, err := git.CurrentRef()
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	commits.Add(ref.Sha)
+	waitg.Add(1)
+	go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
+
+	// Now recent
+	fetchconf := lfs.Config.FetchPruneConfig()
+	pruneRefDays := fetchconf.FetchRecentRefsDays + fetchconf.PruneOffsetDays
+	refsSince := time.Now().AddDate(0, 0, -pruneRefDays)
+	// Keep all recent refs including any recent remote branches
+	refs, err := git.RecentBranches(refsSince, true, "")
+	if err != nil {
+		Panic(err, "Could not scan for recent refs")
+	}
+	for _, ref := range refs {
+		if commits.Add(ref.Sha) {
+			// A new commit
+			waitg.Add(1)
+			go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
+		}
+	}
+
+	// For every unique commit we've fetched, check recent commits too
+	pruneCommitDays := fetchconf.FetchRecentCommitsDays + fetchconf.PruneOffsetDays
+	for commit := range commits.Iter() {
+		// We measure from the last commit at the ref
+		summ, err := git.GetCommitSummary(commit)
+		if err != nil {
+			errorChan <- fmt.Errorf("Couldn't scan commits at %v: %v", commit, err)
+			continue
+		}
+		commitsSince := summ.CommitDate.AddDate(0, 0, -pruneCommitDays)
+		waitg.Add(1)
+		go pruneTaskGetPreviousVersionsOfRef(commit, commitsSince, retainChan, errorChan, waitg)
+	}
 }
 
 // Background task, must call waitg.Done() once at end
