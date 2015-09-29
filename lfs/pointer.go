@@ -102,7 +102,7 @@ func DecodePointer(reader io.Reader) (*Pointer, error) {
 }
 
 func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
-	buf := make([]byte, 512)
+	buf := make([]byte, blobSizeCutoff)
 	written, err := reader.Read(buf)
 	output := buf[0:written]
 
@@ -116,7 +116,7 @@ func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
 
 func verifyVersion(version string) error {
 	if len(version) == 0 {
-		return errors.New("Missing version")
+		return newNotAPointerError(errors.New("Missing version"))
 	}
 
 	for _, v := range v1Aliases {
@@ -131,6 +131,12 @@ func verifyVersion(version string) error {
 func decodeKV(data []byte) (*Pointer, error) {
 	kvps, exts, err := decodeKVData(data)
 	if err != nil {
+		if IsBadPointerKeyError(err) {
+			badErr := err.(badPointerKeyError)
+			if badErr.Expected == "version" {
+				return nil, newNotAPointerError(err)
+			}
+		}
 		return nil, err
 	}
 
@@ -252,7 +258,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		if expected := pointerKeys[line]; key != expected {
 			if !extRE.Match([]byte(key)) {
-				err = fmt.Errorf("Expected key %s, got %s", expected, key)
+				err = newBadPointerKeyError(expected, key)
 				return
 			}
 			if exts == nil {
