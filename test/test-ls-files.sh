@@ -15,7 +15,7 @@ begin_test "ls-files"
   echo "missing" > missing.dat
   git add missing.dat
   git commit -m "add missing file"
-  [ "missing.dat" = "$(git lfs ls-files)" ]
+  [ "74f2f1c ==> [ missing.dat ]" = "$(git lfs ls-files)" ]
 
   git rm missing.dat
   git add some.dat some.txt
@@ -63,5 +63,41 @@ begin_test "ls-files: with zero files"
 
   git commit -m "initial commit"
   [ "$(git lfs ls-files)" = "" ]
+)
+end_test
+
+begin_test "ls-files: show duplicate files"
+(
+  set -e
+
+  mkdir dupRepoShort
+  cd dupRepoShort
+  git init
+
+  git lfs track "*.tgz" | grep "Tracking \*.tgz"
+  echo "test content" > one.tgz
+  echo "test content" > two.tgz
+  git add one.tgz
+  git add two.tgz
+  git commit -m "add duplicate files"
+  [ "67f58a4 ==> [ one.tgz,two.tgz ]" = "$(git lfs ls-files)" ]
+)
+end_test
+
+begin_test "ls-files: show duplicate files with long OID"
+(
+  set -e
+
+  mkdir dupRepoLong
+  cd dupRepoLong
+  git init
+
+  git lfs track "*.tgz" | grep "Tracking \*.tgz"
+  echo "test content" > one.tgz
+  echo "test content" > two.tgz
+  git add one.tgz
+  git add two.tgz
+  git commit -m "add duplicate files with long OID"
+  [ "67f58a40df1e32b439f55e722178c337042d2148 ==> [ one.tgz,two.tgz ]" = "$(git lfs ls-files --long)" ]
 )
 end_test
