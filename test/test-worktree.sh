@@ -3,6 +3,8 @@
 . "test/testlib.sh"
 
 ensure_git_version_isnt $VERSION_LOWER "2.5.0"
+envInitConfig='git config filter.lfs.smudge = "git-lfs smudge %f"
+git config filter.lfs.clean = "git-lfs clean %f"'
 
 begin_test "git worktree"
 (
@@ -26,7 +28,8 @@ TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
     actual=$(git lfs env)
     [ "$expected" = "$actual" ]
 
@@ -46,7 +49,8 @@ TempDir=$TRASHDIR/$reponame/.git/worktrees/$worktreename/lfs/tmp
 ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
-" "$(git lfs version)" "$(git version)")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
     actual=$(git lfs env)
     [ "$expected" = "$actual" ]
 )
