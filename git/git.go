@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -338,5 +339,33 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 		msg := fmt.Sprintf("Unexpected output from git show: %v", string(out))
 		return nil, errors.New(msg)
 	}
+
+}
+
+func RootDir() (string, error) {
+	cmd := execCommand("git", "rev-parse", "--show-toplevel")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
+	}
+
+	path := strings.TrimSpace(string(out))
+	if len(path) > 0 {
+		return filepath.Abs(path)
+	}
+	return "", nil
+
+}
+func GitDir() (string, error) {
+	cmd := execCommand("git", "rev-parse", "--git-dir")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
+	}
+	path := strings.TrimSpace(string(out))
+	if len(path) > 0 {
+		return filepath.Abs(path)
+	}
+	return "", nil
 
 }
