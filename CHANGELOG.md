@@ -1,5 +1,13 @@
 # Git LFS Changelog
 
+## v1.0 (1 October, 2015)
+
+* Manual reference is integrated into the "help" options #665 @sinbad
+* Fix `ls-files` when run from an empty repository #668 @Aorjoa
+* Support listing duplicate files in `ls-files` #681 @Aorjoa @technoweenie
+* `update` and `init` commands can install the pre-push hook in bare repositories #671 @technoweenie
+* Add `GIT_LFS_SKIP_SMUDGE` and `init --skip-smudge` #679 @technoweenie
+
 ## v0.6.0 (10 September, 2015)
 
 This is the first release that uses the new Batch API by default, while still
