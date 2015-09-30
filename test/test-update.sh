@@ -68,7 +68,7 @@ Run \`git lfs update --force\` to overwrite this hook."
   [ "Updated pre-push hook." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  # TODO: FIX IN DOCKER SCRIPTS
+  # TODO: FIX FOR DOCKER TESTS
   exit 0
 
   echo "test with bare repository"
