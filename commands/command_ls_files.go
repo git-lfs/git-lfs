@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
+	longOIDs   = false
 	lsFilesCmd = &cobra.Command{
 		Use: "ls-files",
 		Run: lsFilesCommand,
@@ -29,17 +32,31 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		ref = fullref.Sha
 	}
 
-	scanOpt := &lfs.ScanRefsOptions{SkipDeletedBlobs: true}
-	pointers, err := lfs.ScanRefs(ref, "", scanOpt)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+	showOidLen := 10
+	if longOIDs {
+		showOidLen = 64
 	}
 
-	for _, p := range pointers {
-		Print(p.Name)
+	files, err := lfs.ScanTree(ref)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS tree: %s", err)
+	}
+
+	for _, p := range files {
+		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
 	}
 }
 
+func lsFilesMarker(p *lfs.WrappedPointer) string {
+	info, err := os.Stat(p.Name)
+	if err == nil && info.Size() == p.Size {
+		return "*"
+	}
+
+	return "-"
+}
+
 func init() {
+	lsFilesCmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 	RootCmd.AddCommand(lsFilesCmd)
 }
