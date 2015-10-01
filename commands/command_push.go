@@ -20,7 +20,7 @@ var (
 	pushAll          = false
 	useStdin         = false
 
-	// shares some global vars and functions with commmands_pre_push.go
+	// shares some global vars and functions with command_pre_push.go
 )
 
 func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {

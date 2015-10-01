@@ -48,7 +48,7 @@ func InstallHooks(force bool) error {
 	return nil
 }
 
-// UninstallHooks resmoves all hooks in range of the `hooks` var.
+// UninstallHooks removes all hooks in range of the `hooks` var.
 func UninstallHooks() error {
 	for _, h := range hooks {
 		if err := h.Uninstall(); err != nil {
