@@ -161,6 +161,7 @@ func (c *Configuration) SetAccess(authType string) {
 
 func (c *Configuration) EndpointAccess(e Endpoint) string {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
+	
 	if v, ok := c.GitConfig(key); ok && len(v) > 0 {
 		lower := strings.ToLower(v)
 		if lower == "private" {
@@ -168,6 +169,7 @@ func (c *Configuration) EndpointAccess(e Endpoint) string {
 		}
 		return lower
 	}
+	
 	return "none"
 }
 
@@ -182,13 +184,13 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 		git.Config.UnsetLocalKey("", key)
 
 		c.loading.Lock()
-		delete(c.gitConfig, key)
+		delete(c.gitConfig, strings.ToLower(key))
 		c.loading.Unlock()
 	default:
 		git.Config.SetLocal("", key, authType)
 
 		c.loading.Lock()
-		c.gitConfig[key] = authType
+		c.gitConfig[strings.ToLower(key)] = authType
 		c.loading.Unlock()
 	}
 }
