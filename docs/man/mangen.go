@@ -11,16 +11,16 @@ import (
 )
 
 func readManDir() (string, []os.FileInfo) {
-	manDirs := []string{
-		"../docs/man",
-		"/tmp/docker_run/git-lfs/docs/man",
+	rootDirs := []string{
+		"..",
+		"/tmp/docker_run/git-lfs",
 	}
 
 	var err error
-	for _, manDir := range manDirs {
-		fs, err := ioutil.ReadDir(manDir)
+	for _, rootDir := range rootDirs {
+		fs, err := ioutil.ReadDir(filepath.Join(rootDir, "docs", "man"))
 		if err == nil {
-			return manDir, fs
+			return rootDir, fs
 		}
 	}
 
@@ -36,8 +36,9 @@ func readManDir() (string, []os.FileInfo) {
 // blank man files.
 func main() {
 	fmt.Fprintf(os.Stderr, "Converting man pages into code...\n")
-	manDir, fs := readManDir()
-	out, err := os.Create("../commands/mancontent_gen.go")
+	rootDir, fs := readManDir()
+	manDir := filepath.Join(rootDir, "docs", "man")
+	out, err := os.Create(filepath.Join(rootDir, "commands", "mancontent_gen.go"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create go file: %v\n", err)
 		os.Exit(2)
