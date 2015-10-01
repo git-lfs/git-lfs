@@ -1,5 +1,5 @@
 Name:           git-lfs
-Version:        0.6.0
+Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
