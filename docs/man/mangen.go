@@ -16,9 +16,14 @@ import (
 // that there are no compilation errors if 'go generate' hasn't been run, just
 // blank man files.
 func main() {
-	fmt.Fprintf(os.Stderr, "Converting man pages into code...\n")
-	mandir := "../docs/man"
-	fs, err := ioutil.ReadDir(mandir)
+	buildDir := os.Getenv("GIT_LFS_BUILD_DIR")
+	if len(buildDir) == 0 {
+		buildDir = ".."
+	}
+	manDir := filepath.Join(buildDir, "docs/man")
+
+	fmt.Fprintf(os.Stderr, "Converting man pages (%s) into code...\n", manDir)
+	fs, err := ioutil.ReadDir(manDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to open man dir: %v\n", err)
 		os.Exit(2)
@@ -47,7 +52,7 @@ func main() {
 				cmd = "git-lfs"
 			}
 			out.WriteString("ManPages[\"" + cmd + "\"] = `")
-			contentf, err := os.Open(filepath.Join(mandir, f.Name()))
+			contentf, err := os.Open(filepath.Join(manDir, f.Name()))
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
 				os.Exit(2)
