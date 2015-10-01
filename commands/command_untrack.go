@@ -18,7 +18,7 @@ var (
 )
 
 // untrackCommand takes a list of paths as an argument, and removes each path from the
-// default attribtues file (.gitattributes), if it exists.
+// default attributes file (.gitattributes), if it exists.
 func untrackCommand(cmd *cobra.Command, args []string) {
 	if lfs.LocalGitDir == "" {
 		Print("Not a git repository.")
