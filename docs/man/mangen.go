@@ -10,24 +10,33 @@ import (
 	"strings"
 )
 
+func readManDir() (string, []os.FileInfo) {
+	manDirs := []string{
+		"../docs/man",
+		"/tmp/docker_run/git-lfs/docs/man",
+	}
+
+	var err error
+	for _, manDir := range manDirs {
+		fs, err := ioutil.ReadDir(manDir)
+		if err == nil {
+			return manDir, fs
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "Failed to open man dir: %v\n", err)
+	os.Exit(2)
+	return "", nil
+}
+
 // Reads all .ronn files & and converts them to string literals
 // triggered by "go generate" comment
 // Literals are inserted into a map using an init function, this means
 // that there are no compilation errors if 'go generate' hasn't been run, just
 // blank man files.
 func main() {
-	buildDir := os.Getenv("GIT_LFS_BUILD_DIR")
-	if len(buildDir) == 0 {
-		buildDir = ".."
-	}
-	manDir := filepath.Join(buildDir, "docs/man")
-
-	fmt.Fprintf(os.Stderr, "Converting man pages (%s) into code...\n", manDir)
-	fs, err := ioutil.ReadDir(manDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to open man dir: %v\n", err)
-		os.Exit(2)
-	}
+	fmt.Fprintf(os.Stderr, "Converting man pages into code...\n")
+	manDir, fs := readManDir()
 	out, err := os.Create("../commands/mancontent_gen.go")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create go file: %v\n", err)
