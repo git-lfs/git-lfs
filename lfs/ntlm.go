@@ -17,9 +17,8 @@ func (c *Configuration) NTLMSession(creds Creds) ntlm.ClientSession {
 	}
 	
 	splits := strings.Split(creds["username"], "\\")
-	
 	var session, _  = ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
-	session.SetUserInfo(splits[0], creds["password"], splits[1])
+	session.SetUserInfo(splits[1], creds["password"], strings.ToUpper(splits[0]))
 	
 	c.ntlmSession = session
 	
