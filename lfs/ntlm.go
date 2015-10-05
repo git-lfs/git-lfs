@@ -7,8 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	//	"strings"	
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"strings"
 )
 
 func (c *Configuration) NTLMSession(creds Creds) ntlm.ClientSession {
@@ -17,25 +16,17 @@ func (c *Configuration) NTLMSession(creds Creds) ntlm.ClientSession {
 		return c.ntlmSession
 	}
 	
-	tracerx.Printf("creds---------------------")
-	for key, val := range creds{
-		tracerx.Printf("%s:%s", key, val)
-	}
-	tracerx.Printf("-------------------------creds")
+	splits := strings.Split(creds["username"], "\\")
 	
 	var session, _  = ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
-	session.SetUserInfo(creds["username"], creds["password"], "NORTHAMERICA")
+	session.SetUserInfo(splits[0], creds["password"], splits[1])
 	
 	c.ntlmSession = session
 	
 	return session
 }
 
-func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {		
-			
-	tracerx.Printf("ENTER DoNTLMRequest")
-	defer tracerx.Printf("LEAVE DoNTLMRequest")
-			
+func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {					
 	handReq := cloneRequest(request)	
 	res, nil := InitHandShake(handReq)
 
@@ -63,10 +54,6 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 }
 
 func InitHandShake(request *http.Request) (*http.Response, error){
-	
-	tracerx.Printf("ENTER InitHandShake")
-	defer tracerx.Printf("LEAVE InitHandShake")
-	
 	var response, err = Config.HttpClient().Do(request)
 	
 	if err != nil {
@@ -77,10 +64,6 @@ func InitHandShake(request *http.Request) (*http.Response, error){
 }
 
 func negotiate(request *http.Request, message string) []byte{
-
-	tracerx.Printf("ENTER negotiate")
-	defer tracerx.Printf("LEAVE negotiate")
-
 	request.Header.Add("Authorization", message)
 	var response, err = Config.HttpClient().Do(request)
 	
@@ -100,10 +83,6 @@ func negotiate(request *http.Request, message string) []byte{
 }
 
 func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error){
-	
-	tracerx.Printf("ENTER challenge")
-	defer tracerx.Printf("LEAVE challenge")
-	
 	challenge, err := ntlm.ParseChallengeMessage(challengeBytes)
 	
 	if err != nil {
@@ -126,10 +105,6 @@ func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http
 }
 
 func parseChallengeResponse(response *http.Response) []byte{
-	
-	tracerx.Printf("ENTER parseChallengeResponse")
-	defer tracerx.Printf("LEAVE parseChallengeResponse")
-	
 	if headers, ok := response.Header["Www-Authenticate"]; ok{
 		
 		//parse out the "NTLM " at the beginning of the response
@@ -146,10 +121,6 @@ func parseChallengeResponse(response *http.Response) []byte{
 }
 
 func cloneRequest(request *http.Request) *http.Request {
-	
-	tracerx.Printf("ENTER cloneRequest")
-	defer tracerx.Printf("LEAVE cloneRequest")
-	
 	var rdr1, rdr2 myReader
 	var clonedReq *http.Request
 	
