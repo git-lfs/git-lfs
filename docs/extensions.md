@@ -7,7 +7,7 @@ and blobs should be handled.  Some examples of extensions that could be built:
 * Encrypt files on clean, decrypt on smudge/fetch
 * Scan files on clean to make sure they don't contain sensitive information
 
-The basic extensibilty model is that LFS extensions must be registered
+The basic extensibility model is that LFS extensions must be registered
 explicitly, and they will be invoked on clean and smudge to manipulate the
 contents of the files as needed.  On clean, LFS itself ensures that the pointer
 file is updated with all the information needed to be able to smudge correctly,
