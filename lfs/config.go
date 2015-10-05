@@ -144,6 +144,20 @@ func (c *Configuration) NTLM() bool {
 }
 
 func (c *Configuration) BatchTransfer() bool {
+	if v, ok := c.GitConfig("lfs.batch"); ok {
+		if v == "true" || v == "" {
+			return true
+		}
+
+		// Any numeric value except 0 is considered true
+		if n, err := strconv.Atoi(v); err == nil && n != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Configuration) BatchTransfer() bool {
 	value, ok := c.GitConfig("lfs.batch")
 	if !ok || len(value) == 0 {
 		return true

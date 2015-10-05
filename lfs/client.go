@@ -217,7 +217,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
-	
 	if err != nil {
 	
 		if res == nil {
