@@ -43,22 +43,22 @@ will have objects fetched for them.
 
 ### Examples:
 
-* `git config lfs.fetchinclude="textures,images/foo*"`
+* `git config lfs.fetchinclude "textures,images/foo*"`
 
   This will only fetch objects referenced in paths in the textures folder, and
   files called foo* in the images folder
 
-* `git config lfs.fetchinclude="*.jpg,*.png,*.tga"`
+* `git config lfs.fetchinclude "*.jpg,*.png,*.tga"`
 
   Only fetch JPG/PNG/TGA files, wherever they are in the repository
 
-* `git config lfs.fetchexclude="media/reallybigfiles"`
+* `git config lfs.fetchexclude "media/reallybigfiles"`
 
   Don't fetch any LFS objects referenced in the folder media/reallybigfiles, but
   fetch everything else
 
-* `git config lfs.fetchinclude="media"`<br/>
-  `git config lfs.fetchexclude="media/excessive"`
+* `git config lfs.fetchinclude "media"`<br/>
+  `git config lfs.fetchexclude "media/excessive"`
 
   Only fetch LFS objects in the 'media' folder, but exclude those in one of its
   subfolders.
