@@ -228,7 +228,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 			return nil, newRetriableError(err)
 		}
 
-		tracerx.Printf("BATCH---------HEADER---: %s", res.Header["Www-Authenticate"][0][0:4])
 		if  IsAuthError(err){
 			if strings.ToLower(res.Header["Www-Authenticate"][0][0:4]) == "ntlm" {
 				Config.SetAccess("ntlm")
@@ -474,11 +473,6 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
-	
-	
-	tracerx.Printf("ENTER doHttpRequest")
-	defer tracerx.Printf("LEAVE doHttpRequest")
-	
 	var(
 		res *http.Response 
 		err error

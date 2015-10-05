@@ -131,8 +131,6 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.Check()
 		if err != nil {
-			tracerx.Printf("tq-willhi: t.Check() failed %s", t.Check)
-		
 			if q.canRetry(err) {
 				q.retry(t)
 			} else {
@@ -229,8 +227,6 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objects {
 			if o.Error != nil {
-				tracerx.Printf("tq-willhi: SKIPPING OBJECT DUE TO ERROR %s", o.Error.Error())
-			
 				q.errorc <- Error(o.Error)
 				q.meter.Skip(o.Size)
 				q.wait.Done()

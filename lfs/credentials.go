@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // getCreds gets the credentials for the given request's URL, and sets its
@@ -15,7 +14,6 @@ import (
 // getCredsForAPI(), but skips checking the LFS url or git remote.
 func getCreds(req *http.Request) (Creds, error) {
 	if skipCredsCheck(req) {
-		tracerx.Printf("getCreds: skipping")
 		return nil, nil
 	}
 

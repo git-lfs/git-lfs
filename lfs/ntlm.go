@@ -146,12 +146,7 @@ func cloneRequest(request *http.Request) *http.Request {
 	return clonedReq
 }
 
-//Get Type 1 message
 func getNegotiateMessage() string{
-		
-	//var negotiate, _ = session.GenerateNegotiateMessage()
-	//return negotiate.Bytes
-	
 	return "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
 }
 
