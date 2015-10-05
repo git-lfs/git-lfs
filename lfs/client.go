@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
@@ -227,10 +228,17 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 			return nil, newRetriableError(err)
 		}
 
-		if IsAuthError(err) {
-			Config.SetAccess("basic")
-			tracerx.Printf("api: batch not authorized, submitting with auth")
-			return Batch(objects, operation)
+		tracerx.Printf("BATCH---------HEADER---: %s", res.Header["Www-Authenticate"][0][0:4])
+		if  IsAuthError(err){
+			if strings.ToLower(res.Header["Www-Authenticate"][0][0:4]) == "ntlm" {
+				Config.SetAccess("ntlm")
+				tracerx.Printf("api: response indicates ntlm, submitting with ntlm auth")
+				return Batch(objects, operation)
+			} else {
+				Config.SetAccess("basic")
+				tracerx.Printf("api: batch not authorized, submitting with auth")
+				return Batch(objects, operation)
+			}
 		}
 
 		switch res.StatusCode {
@@ -286,9 +294,15 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	
 	if err != nil {
 		if IsAuthError(err) {
-			Config.SetAccess("basic")
-			tracerx.Printf("api: upload check not authorized, submitting with auth")
-			return UploadCheck(oidPath)
+			if strings.ToLower(res.Header["Www-Authenticate"][0][0:4]) == "ntlm" {
+				Config.SetAccess("ntlm")
+				tracerx.Printf("api: response indicates ntlm, submitting with ntlm auth")
+				return UploadCheck(oidPath)
+			} else{
+				Config.SetAccess("basic")
+				tracerx.Printf("api: upload check not authorized, submitting with auth")
+				return UploadCheck(oidPath)
+			}
 		}
 
 		return nil, newRetriableError(err)
@@ -460,9 +474,17 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
-	res, err := Config.HttpClient().Do(req)
 	
-	if Config.NTLM() {	
+	
+	tracerx.Printf("ENTER doHttpRequest")
+	defer tracerx.Printf("LEAVE doHttpRequest")
+	
+	var(
+		res *http.Response 
+		err error
+	)
+	
+	if Config.NtlmAccess() {	
 		res, err = DoNTLMRequest(req, true)			
 	} else {	
 		res, err = Config.HttpClient().Do(req)
@@ -478,7 +500,13 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		err = Error(err)
+		if IsAuthError(err) && res.Header["Www-Authenticate"][0][0:4] == "ntlm" {
+			Config.SetAccess("ntlm")
+			tracerx.Printf("api: response indicates ntlm, submitting with ntlm auth")
+			doHttpRequest(req, creds)
+		} else {
+			err = Error(err)
+		}
 	} else {
 		err = handleResponse(res, creds)
 	}
@@ -497,7 +525,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
 	var creds Creds
 	if useCreds {
-		c, err := getCredsForAPI(req)
+		c, err := getCredsForAPI(req, false)
 		if err != nil {
 			return nil, err
 		}
@@ -724,7 +752,7 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	if(Config.NTLM()){
+	if(Config.NtlmAccess()){
 		//no-op. The NTLM manager will handle auth headers
 	} else {
 		if len(user) == 0 && len(pass) == 0 {
@@ -757,11 +785,5 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 		} else {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
-	}
-}
-
-func ntlmHandshake(){
-	if !Config.NTLM(){
-		panic("NTLM is not enabled but an NTLM handshake was attempted")
 	}
 }

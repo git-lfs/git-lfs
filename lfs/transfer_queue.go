@@ -130,7 +130,7 @@ func (q *TransferQueue) Watch() chan string {
 func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.Check()
-		if err != nil {`
+		if err != nil {
 			tracerx.Printf("tq-willhi: t.Check() failed %s", t.Check)
 		
 			if q.canRetry(err) {

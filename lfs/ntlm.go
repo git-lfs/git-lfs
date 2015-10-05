@@ -1,71 +1,71 @@
 package lfs
 
 import (
-	"io"
-	//"bufio"
-	//"net"
-	"net/http"
-	//"encoding/xml"
-	"encoding/base64"
 	"bytes"
+	"encoding/base64"
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"	
+	"io"
 	"io/ioutil"
-	"fmt"
-	//"os"
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"net/http"
+	//	"strings"	
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-
-type myReader struct {
-    *bytes.Buffer
-}
-
-// So that it implements the io.ReadCloser interface
-func (m myReader) Close() error { return nil } 
-
-func (c *Configuration) NTLMSession() ntlm.ClientSession {
+func (c *Configuration) NTLMSession(creds Creds) ntlm.ClientSession {
 	
 	if c.ntlmSession != nil {
 		return c.ntlmSession
 	}
 	
+	tracerx.Printf("creds---------------------")
+	for key, val := range creds{
+		tracerx.Printf("%s:%s", key, val)
+	}
+	tracerx.Printf("-------------------------creds")
+	
 	var session, _  = ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
-	session.SetUserInfo("user","pass","domain")
+	session.SetUserInfo(creds["username"], creds["password"], "NORTHAMERICA")
 	
 	c.ntlmSession = session
 	
 	return session
 }
 
-func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
-				
-	if !Config.NTLM() {
-		return nil, Error(fmt.Errorf("NTLM is not enabled"))
-	}			
+func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {		
+			
+	tracerx.Printf("ENTER DoNTLMRequest")
+	defer tracerx.Printf("LEAVE DoNTLMRequest")
 			
 	handReq := cloneRequest(request)	
 	res, nil := InitHandShake(handReq)
-	
+
 	//If the status is 401 then we need to re-authenticate, otherwise it was successful
 	if res.StatusCode == 401 {
 		
+		creds, _ := getCredsForNTLM(request)
+		
 		negotiateReq := cloneRequest(request)
-		challengeMessage := Negotiate(negotiateReq, getNegotiateMessage())
+		challengeMessage := negotiate(negotiateReq, getNegotiateMessage())
 		
 		challengeReq := cloneRequest(request)
-		res, nil := Challenge(challengeReq, challengeMessage)
+		res, _ := challenge(challengeReq, challengeMessage, creds)
 		
 		//If the status is 401 then we need to re-authenticate
 		if res.StatusCode == 401 && retry == true {
 			return DoNTLMRequest(challengeReq, false)
 		}
 		
-		return res, nil			
+		saveCredentials(creds, res)	
+		
+		return res, nil	
 	}
-	
 	return res, nil	
 }
 
 func InitHandShake(request *http.Request) (*http.Response, error){
+	
+	tracerx.Printf("ENTER InitHandShake")
+	defer tracerx.Printf("LEAVE InitHandShake")
 	
 	var response, err = Config.HttpClient().Do(request)
 	
@@ -76,7 +76,10 @@ func InitHandShake(request *http.Request) (*http.Response, error){
 	return response, nil
 }
 
-func Negotiate(request *http.Request, message string) []byte{
+func negotiate(request *http.Request, message string) []byte{
+
+	tracerx.Printf("ENTER negotiate")
+	defer tracerx.Printf("LEAVE negotiate")
 
 	request.Header.Add("Authorization", message)
 	var response, err = Config.HttpClient().Do(request)
@@ -85,18 +88,21 @@ func Negotiate(request *http.Request, message string) []byte{
 		panic(err.Error())
 	}
 	
-	ret := ParseChallengeMessage(response)
+	ret := parseChallengeResponse(response)
 	
 	//Always close negotiate to keep the connection alive
 	//We never return the response from negotiate so we 
-	//can't trust decodeApiResponse to decode it
+	//can't trust decodeApiResponse to close it
 	io.Copy(ioutil.Discard, response.Body)
 	response.Body.Close()
 	
 	return ret;
 }
 
-func Challenge(request *http.Request, challengeBytes []byte) (*http.Response, error){
+func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error){
+	
+	tracerx.Printf("ENTER challenge")
+	defer tracerx.Printf("LEAVE challenge")
 	
 	challenge, err := ntlm.ParseChallengeMessage(challengeBytes)
 	
@@ -104,14 +110,14 @@ func Challenge(request *http.Request, challengeBytes []byte) (*http.Response, er
 		return nil, Error(err)
 	}
 	
-	Config.NTLMSession().ProcessChallengeMessage(challenge)
-	authenticate, err := Config.NTLMSession().GenerateAuthenticateMessage()
+	Config.NTLMSession(creds).ProcessChallengeMessage(challenge)
+	authenticate, err := Config.NTLMSession(creds).GenerateAuthenticateMessage()
 	
 	if err != nil {
 		return nil, Error(err)
 	}
 	
-	authenticateMessage := ConcatS("NTLM ", base64.StdEncoding.EncodeToString(authenticate.Bytes()))
+	authenticateMessage := concatS("NTLM ", base64.StdEncoding.EncodeToString(authenticate.Bytes()))
 	
 	request.Header.Add("Authorization", authenticateMessage)
 	response, err := Config.HttpClient().Do(request)
@@ -119,7 +125,10 @@ func Challenge(request *http.Request, challengeBytes []byte) (*http.Response, er
 	return response, nil
 }
 
-func ParseChallengeMessage(response *http.Response) []byte{
+func parseChallengeResponse(response *http.Response) []byte{
+	
+	tracerx.Printf("ENTER parseChallengeResponse")
+	defer tracerx.Printf("LEAVE parseChallengeResponse")
 	
 	if headers, ok := response.Header["Www-Authenticate"]; ok{
 		
@@ -137,6 +146,9 @@ func ParseChallengeMessage(response *http.Response) []byte{
 }
 
 func cloneRequest(request *http.Request) *http.Request {
+	
+	tracerx.Printf("ENTER cloneRequest")
+	defer tracerx.Printf("LEAVE cloneRequest")
 	
 	var rdr1, rdr2 myReader
 	var clonedReq *http.Request
@@ -172,7 +184,7 @@ func getNegotiateMessage() string{
 	return "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
 }
 
-func ConcatS(ar ...string) string {
+func concatS(ar ...string) string {
 	
     var buffer bytes.Buffer
 
@@ -183,6 +195,13 @@ func ConcatS(ar ...string) string {
     return buffer.String()
 }
 
-func Concat(ar ...[]byte) []byte {
+func concat(ar ...[]byte) []byte {
 	return bytes.Join(ar, nil)
 }
+
+type myReader struct {
+    *bytes.Buffer
+}
+
+// So that myReader implements the io.ReadCloser interface
+func (m myReader) Close() error { return nil } 

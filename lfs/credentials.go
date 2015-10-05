@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // getCreds gets the credentials for the given request's URL, and sets its
@@ -14,6 +15,7 @@ import (
 // getCredsForAPI(), but skips checking the LFS url or git remote.
 func getCreds(req *http.Request) (Creds, error) {
 	if skipCredsCheck(req) {
+		tracerx.Printf("getCreds: skipping")
 		return nil, nil
 	}
 
@@ -30,8 +32,9 @@ func getCreds(req *http.Request) (Creds, error) {
 // This prefers the Git remote URL for checking credentials so that users only
 // have to enter their passwords once for Git and Git LFS. It uses the same
 // URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
-func getCredsForAPI(req *http.Request) (Creds, error) {
-	if skipCredsCheck(req) {
+func getCredsForAPI(req *http.Request, skip bool) (Creds, error) {
+	
+	if skip && skipCredsCheck(req) {
 		return nil, nil
 	}
 
@@ -47,6 +50,10 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 	return fillCredentials(req, credsUrl)
 }
 
+func getCredsForNTLM(req *http.Request) (Creds, error){
+	return getCredsForAPI(req, false);
+}
+
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	apiUrl, err := Config.ObjectUrl("")
 	if err != nil {
@@ -60,7 +67,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 		return req.URL, nil
 	}
 
-	if setRequestAuthFromUrl(req, apiUrl) {
+	if !Config.NtlmAccess() && setRequestAuthFromUrl(req, apiUrl) {
 		return nil, nil
 	}
 
@@ -75,7 +82,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
 				gitRemoteUrl.Host == apiUrl.Host {
 
-				if setRequestAuthFromUrl(req, gitRemoteUrl) {
+				if !Config.NtlmAccess() && setRequestAuthFromUrl(req, gitRemoteUrl) {
 					return nil, nil
 				}
 
@@ -83,7 +90,6 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 			}
 		}
 	}
-
 	return credsUrl, nil
 }
 
@@ -105,7 +111,7 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 
 	creds, err := execCreds(input, "fill")
 
-	if creds != nil && err == nil {
+	if creds != nil && err == nil && !Config.NtlmAccess() {
 		setRequestAuth(req, creds["username"], creds["password"])
 	}
 
