@@ -57,12 +57,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Could not scan for Git LFS objects")
 		}
 
-		remote, err := git.RemoteForCurrentBranch()
-		if err != nil {
-			Panic(err, "Could not get current remote branch")
-		}
-
-		Print("Git LFS objects to be pushed to %s:\n", remote)
+		Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
 		for _, p := range pointers {
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
