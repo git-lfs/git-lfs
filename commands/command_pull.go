@@ -22,10 +22,12 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		// Remote is first arg
 		lfs.Config.CurrentRemote = args[0]
 	} else {
-		trackedRemote, err := git.RemoteForCurrentBranch()
-		if err == nil {
-			lfs.Config.CurrentRemote = trackedRemote
-		} // otherwise leave as default (origin)
+		// Actively find the default remote, don't just assume origin
+		defaultRemote, err := git.DefaultRemote()
+		if err != nil {
+			Panic(err, "No default remote")
+		}
+		lfs.Config.CurrentRemote = defaultRemote
 	}
 
 	ref, err := git.CurrentRef()
