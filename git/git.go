@@ -144,6 +144,21 @@ func RemoteList() ([]string, error) {
 	return ret, nil
 }
 
+// ValidateRemote checks that a named remote is valid for use
+// Mainly to check user-supplied remotes & fail more nicely
+func ValidateRemote(remote string) error {
+	remotes, err := RemoteList()
+	if err != nil {
+		return err
+	}
+	for _, r := range remotes {
+		if r == remote {
+			return nil
+		}
+	}
+	return errors.New("Invalid remote name")
+}
+
 // DefaultRemote returns the default remote based on:
 // 1. The currently tracked remote branch, if present
 // 2. "origin", if defined
