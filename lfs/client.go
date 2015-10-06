@@ -216,11 +216,10 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
 			return nil, newNotImplementedError(nil)
-		case 403:
-			return nil, Error(err)
 		}
 
 		tracerx.Printf("api error: %s", err)
+		return nil, Error(err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
