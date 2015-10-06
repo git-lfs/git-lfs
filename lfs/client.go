@@ -104,7 +104,28 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
+// Download will attempt to download the object with the given oid. The batched
+// API will be used, but if the server does not implement the batch operations
+// it will fall back to the legacy API.
 func Download(oid string) (io.ReadCloser, int64, error) {
+	objects := []*objectResource{&objectResource{Oid: oid}}
+	objs, err := Batch(objects, "download")
+	if err != nil {
+		if IsNotImplementedError(err) {
+			return DownloadLegacy(oid)
+		}
+		return nil, 0, err
+	}
+	if len(objs) != 1 { // Expecting to find one object
+		return nil, 0, Error(fmt.Errorf("Object not found: %s", oid))
+	}
+
+	return DownloadObject(objs[0])
+}
+
+// DownloadLegacy attempts to download the object for the given oid using the
+// legacy API.
+func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
