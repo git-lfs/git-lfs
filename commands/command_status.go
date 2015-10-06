@@ -57,7 +57,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Could not scan for Git LFS objects")
 		}
 
-		remote, err := git.CurrentRemote()
+		remote, err := git.RemoteForCurrentBranch()
 		if err != nil {
 			Panic(err, "Could not get current remote branch")
 		}

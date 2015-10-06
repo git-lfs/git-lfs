@@ -81,15 +81,27 @@ func CurrentBranch() (string, error) {
 }
 
 func CurrentRemoteRef() (*Ref, error) {
-	remote, err := CurrentRemote()
+	remoteref, err := RemoteRefNameForCurrentBranch()
 	if err != nil {
 		return nil, err
 	}
 
-	return ResolveRef(remote)
+	return ResolveRef(remoteref)
 }
 
-func CurrentRemote() (string, error) {
+// RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
+func RemoteForCurrentBranch() (string, error) {
+	ref, err := RemoteRefNameForCurrentBranch()
+	if err != nil {
+		return "", err
+	}
+	// ref name is full name, split first part for remote
+	parts := strings.Split(ref, "/")
+	return parts[0], nil
+}
+
+// RemoteRefForCurrentBranch returns the string remote ref that the current branch is tracking
+func RemoteRefNameForCurrentBranch() (string, error) {
 	branch, err := CurrentBranch()
 	if err != nil {
 		return "", err
@@ -104,7 +116,15 @@ func CurrentRemote() (string, error) {
 		return "", errors.New("remote not found")
 	}
 
-	return remote + "/" + branch, nil
+	// get remote ref to track, may not be same name
+	merge := Config.Find(fmt.Sprintf("branch.%s.merge", branch))
+	if strings.HasPrefix(merge, "refs/heads/") {
+		merge = merge[11:]
+	} else {
+		merge = branch
+	}
+
+	return remote + "/" + merge, nil
 }
 
 func UpdateIndex(file string) error {

@@ -30,7 +30,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		// Remote is first arg
 		lfs.Config.CurrentRemote = args[0]
 	} else {
-		trackedRemote, err := git.CurrentRemote()
+		trackedRemote, err := git.RemoteForCurrentBranch()
 		if err == nil {
 			lfs.Config.CurrentRemote = trackedRemote
 		} // otherwise leave as default (origin)
