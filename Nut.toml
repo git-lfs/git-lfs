@@ -20,4 +20,5 @@ authors = [
 "github.com/spf13/pflag"                        = "580b9be06c33d8ba9dcc8757ea56b7642472c2f5"
 "github.com/technoweenie/assert"                = "b25ea301d127043ffacf3b2545726e79b6632139"
 "github.com/technoweenie/go-contentaddressable" = "38171def3cd15e3b76eb156219b3d48704643899"
-"github.com/ThomsonReutersEikon/go-ntlm"		= "52b7efa603f1b809167b528b8bbaa467e36fdc02"
+"github.com/ThomsonReutersEikon/go-ntlm/ntlm"	= "52b7efa603f1b809167b528b8bbaa467e36fdc02"
+"github.com/ThomsonReutersEikon/log4go"			= "173466d4d37ffd4ca9c400bc0b67d57b4a73cdae"
