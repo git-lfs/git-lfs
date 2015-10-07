@@ -12,7 +12,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"	
 )
 
 var (
