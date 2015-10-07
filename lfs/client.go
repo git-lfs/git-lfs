@@ -126,18 +126,18 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 		return nil, 0, err
 	}
 	LogTransfer("lfs.data.download", res)
-	
-	if(Config.NtlmAccess()){ 
+
+	if Config.NtlmAccess() {
 		buf, _ := ioutil.ReadAll(res.Body)
-		body := myReader{bytes.NewBuffer(buf)}	
-	
-		//We must close the body to ensure the http connection is kept alive	
+		body := myReader{bytes.NewBuffer(buf)}
+
+		//We must close the body to ensure the http connection is kept alive
 		io.Copy(ioutil.Discard, res.Body)
 		res.Body.Close()
-	
+
 		return body, res.ContentLength, nil
 	}
-	
+
 	return res.Body, res.ContentLength, nil
 }
 
@@ -179,15 +179,15 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 		return nil, 0, newRetriableError(err)
 	}
 	LogTransfer("lfs.data.download", res)
-	
-	if(Config.NtlmAccess()){ 
+
+	if Config.NtlmAccess() {
 		buf, _ := ioutil.ReadAll(res.Body)
-		body := myReader{bytes.NewBuffer(buf)}	
-	
-		//We must close the body to ensure the http connection is kept alive	
+		body := myReader{bytes.NewBuffer(buf)}
+
+		//We must close the body to ensure the http connection is kept alive
 		io.Copy(ioutil.Discard, res.Body)
 		res.Body.Close()
-	
+
 		return body, res.ContentLength, nil
 	}
 
@@ -223,11 +223,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	tracerx.Printf("api: batch %d files", len(objects))
 
 	res, objs, err := doApiBatchRequest(req)
-	
+
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 	if err != nil {
-	
+
 		if res == nil {
 			return nil, newRetriableError(err)
 		}
@@ -236,8 +236,8 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 			return nil, newRetriableError(err)
 		}
 
-		if  IsAuthError(err){
-			if isNtlmRequest(res) {	
+		if IsAuthError(err) {
+			if isNtlmRequest(res) {
 				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
 				return Batch(objects, operation)
 			} else {
@@ -293,16 +293,16 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doLegacyApiRequest(req)
-	
+
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
-	
+
 	if err != nil {
 		if IsAuthError(err) {
 			if isNtlmRequest(res) {
 				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
 				return UploadCheck(oidPath)
-			} else{
+			} else {
 				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
 				return UploadCheck(oidPath)
 			}
@@ -477,17 +477,17 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
-	var(
-		res *http.Response 
+	var (
+		res *http.Response
 		err error
 	)
-	
-	if Config.NtlmAccess() {	
-		res, err = DoNTLMRequest(req, true)			
-	} else {	
+
+	if Config.NtlmAccess() {
+		res, err = DoNTLMRequest(req, true)
+	} else {
 		res, err = Config.HttpClient().Do(req)
 	}
-		
+
 	if res == nil {
 		res = &http.Response{
 			StatusCode: 0,
@@ -522,7 +522,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
 	var creds Creds
 	if useCreds {
-		c, err := getCredsForAPI(req, false)
+		c, err := getCredsForAPI(req)
 		if err != nil {
 			return nil, err
 		}
@@ -748,22 +748,22 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
-func isNtlmRequest(res *http.Response)(bool){
-	
-	header := res.Header.Get("Www-Authenticate")	
+func isNtlmRequest(res *http.Response) bool {
+
+	header := res.Header.Get("Www-Authenticate")
 	return strings.HasPrefix(header, "ntlm")
 }
 
-func toggleAuthType(authType string, message string){	
+func toggleAuthType(authType string, message string) {
 	Config.SetAccess(authType)
 	tracerx.Printf(message, authType)
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	if(Config.NtlmAccess()){
+	if Config.NtlmAccess() {
 		return
 	}
-	
+
 	if len(user) == 0 && len(pass) == 0 {
 		return
 	}

@@ -11,8 +11,8 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"	
 )
 
 var (
@@ -144,7 +144,7 @@ func (c *Configuration) BatchTransfer() bool {
 }
 
 func (c *Configuration) NtlmAccess() bool {
-	return c.Access() == "none"
+	return c.Access() == "ntlm"
 }
 
 // PrivateAccess will retrieve the access value and return true if
