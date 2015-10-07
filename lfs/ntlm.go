@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"	
+	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"	
 	"io"
 	"io/ioutil"
 	"net/http"
