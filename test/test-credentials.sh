@@ -168,3 +168,32 @@ begin_test "credentials from netrc"
   grep "(1 of 1 files)" push.log
 )
 end_test
+
+begin_test "credentials from netrc with bad password"
+(
+  set -e
+
+  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >> "$HOME/.netrc"
+  echo $HOME
+  echo "GITSERVER $GITSERVER"
+  cat $HOME/.netrc
+
+
+  reponame="netrctest"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo2
+
+  # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
+  git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
+  git lfs env
+
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push netrc master 2>&1 | tee push.log
+  [ "0" = "$(grep -c "(1 of 1 files)" push.log)" ]
+)
+end_test
