@@ -127,14 +127,18 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 	}
 	LogTransfer("lfs.data.download", res)
 	
-	buf, _ := ioutil.ReadAll(res.Body)
-	body := myReader{bytes.NewBuffer(buf)}	
-
-	//We most close the body to ensure the http connection is kept alive	
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	return body, res.ContentLength, nil
+	if(Config.NtlmAccess()){ 
+		buf, _ := ioutil.ReadAll(res.Body)
+		body := myReader{bytes.NewBuffer(buf)}	
+	
+		//We must close the body to ensure the http connection is kept alive	
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+	
+		return body, res.ContentLength, nil
+	}
+	
+	return res.Body, res.ContentLength, nil
 }
 
 type byteCloser struct {
@@ -175,15 +179,19 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 		return nil, 0, newRetriableError(err)
 	}
 	LogTransfer("lfs.data.download", res)
+	
+	if(Config.NtlmAccess()){ 
+		buf, _ := ioutil.ReadAll(res.Body)
+		body := myReader{bytes.NewBuffer(buf)}	
+	
+		//We must close the body to ensure the http connection is kept alive	
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+	
+		return body, res.ContentLength, nil
+	}
 
-	buf, _ := ioutil.ReadAll(res.Body)
-	body := myReader{bytes.NewBuffer(buf)}	
-
-	//We most close the body to ensure the http connection is kept alive	
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	return body, res.ContentLength, nil
+	return res.Body, res.ContentLength, nil
 }
 
 func (b *byteCloser) Close() error {
@@ -229,13 +237,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		if  IsAuthError(err){
-			if strings.ToLower(res.Header["Www-Authenticate"][0][0:4]) == "ntlm" {
-				Config.SetAccess("ntlm")
-				tracerx.Printf("api: response indicates ntlm, submitting with ntlm auth")
+			if isNtlmRequest(res) {	
+				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
 				return Batch(objects, operation)
 			} else {
-				Config.SetAccess("basic")
-				tracerx.Printf("api: batch not authorized, submitting with auth")
+				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
 				return Batch(objects, operation)
 			}
 		}
@@ -293,13 +299,11 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	
 	if err != nil {
 		if IsAuthError(err) {
-			if strings.ToLower(res.Header["Www-Authenticate"][0][0:4]) == "ntlm" {
-				Config.SetAccess("ntlm")
-				tracerx.Printf("api: response indicates ntlm, submitting with ntlm auth")
+			if isNtlmRequest(res) {
+				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
 				return UploadCheck(oidPath)
 			} else{
-				Config.SetAccess("basic")
-				tracerx.Printf("api: upload check not authorized, submitting with auth")
+				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
 				return UploadCheck(oidPath)
 			}
 		}
@@ -494,9 +498,8 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		if IsAuthError(err) && res.Header["Www-Authenticate"][0][0:4] == "ntlm" {
-			Config.SetAccess("ntlm")
-			tracerx.Printf("api: response indicates ntlm, submitting with ntlm auth")
+		if IsAuthError(err) && isNtlmRequest(res) {
+			toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
 			doHttpRequest(req, creds)
 		} else {
 			err = Error(err)
@@ -745,18 +748,29 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
+func isNtlmRequest(res *http.Response)(bool){
+	
+	header := res.Header.Get("Www-Authenticate")	
+	return strings.HasPrefix(header, "ntlm")
+}
+
+func toggleAuthType(authType string, message string){	
+	Config.SetAccess(authType)
+	tracerx.Printf(message, authType)
+}
+
 func setRequestAuth(req *http.Request, user, pass string) {
 	if(Config.NtlmAccess()){
-		//no-op. The NTLM manager will handle auth headers
-	} else {
-		if len(user) == 0 && len(pass) == 0 {
-			return
-		}
-
-		token := fmt.Sprintf("%s:%s", user, pass)
-		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
-		req.Header.Set("Authorization", auth)
+		return
 	}
+	
+	if len(user) == 0 && len(pass) == 0 {
+		return
+	}
+
+	token := fmt.Sprintf("%s:%s", user, pass)
+	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	req.Header.Set("Authorization", auth)
 }
 
 func setErrorResponseContext(err error, res *http.Response) {

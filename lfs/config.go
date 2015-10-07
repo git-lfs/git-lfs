@@ -144,7 +144,7 @@ func (c *Configuration) BatchTransfer() bool {
 }
 
 func (c *Configuration) NtlmAccess() bool {
-	return c.Access() == "ntlm"
+	return c.Access() == "none"
 }
 
 // PrivateAccess will retrieve the access value and return true if
@@ -152,7 +152,7 @@ func (c *Configuration) NtlmAccess() bool {
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess() bool {
-	return c.Access() != "none" && c.Access() != "ntlm"
+	return c.Access() != "none"
 }
 
 // Access returns the access auth type.
