@@ -184,3 +184,16 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 	_, err := CurrentRef()
 	assert.NotEqual(t, nil, err)
 }
+func TestVersionCompare(t *testing.T) {
+
+	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2.6.0"))
+	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2.6"))
+	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2"))
+	assert.Equal(t, true, IsVersionAtLeast("2.6.10", "2.6.5"))
+	assert.Equal(t, true, IsVersionAtLeast("2.8.1", "2.7.2"))
+
+	assert.Equal(t, false, IsVersionAtLeast("1.6.0", "2"))
+	assert.Equal(t, false, IsVersionAtLeast("2.5.0", "2.6"))
+	assert.Equal(t, false, IsVersionAtLeast("2.5.0", "2.5.1"))
+	assert.Equal(t, false, IsVersionAtLeast("2.5.2", "2.5.10"))
+}
