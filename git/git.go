@@ -91,16 +91,18 @@ func CurrentRemoteRef() (*Ref, error) {
 
 // RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
 func RemoteForCurrentBranch() (string, error) {
-	ref, err := RemoteRefNameForCurrentBranch()
+	branch, err := CurrentBranch()
 	if err != nil {
 		return "", err
 	}
-	// ref name is full name, split first part for remote
-	parts := strings.Split(ref, "/")
-	return parts[0], nil
+	remote := RemoteForBranch(branch)
+	if remote == "" {
+		return "", errors.New("remote not found")
+	}
+	return remote, nil
 }
 
-// RemoteRefForCurrentBranch returns the string remote ref that the current branch is tracking
+// RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
 func RemoteRefNameForCurrentBranch() (string, error) {
 	branch, err := CurrentBranch()
 	if err != nil {
@@ -111,20 +113,32 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := Config.Find(fmt.Sprintf("branch.%s.remote", branch))
+	remote := RemoteForBranch(branch)
 	if remote == "" {
 		return "", errors.New("remote not found")
 	}
 
+	remotebranch := RemoteBranchForLocalBranch(branch)
+
+	return remote + "/" + remotebranch, nil
+}
+
+// RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
+func RemoteForBranch(localBranch string) string {
+	return Config.Find(fmt.Sprintf("branch.%s.remote", localBranch))
+}
+
+// RemoteBranchForLocalBranch returns the name (only) of the remote branch that the local branch is tracking
+// If no specific branch is configured, returns local branch name
+func RemoteBranchForLocalBranch(localBranch string) string {
 	// get remote ref to track, may not be same name
-	merge := Config.Find(fmt.Sprintf("branch.%s.merge", branch))
+	merge := Config.Find(fmt.Sprintf("branch.%s.merge", localBranch))
 	if strings.HasPrefix(merge, "refs/heads/") {
-		merge = merge[11:]
+		return merge[11:]
 	} else {
-		merge = branch
+		return localBranch
 	}
 
-	return remote + "/" + merge, nil
 }
 
 func RemoteList() ([]string, error) {
