@@ -12,27 +12,23 @@ import (
 )
 
 func (c *Configuration) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {
-
 	if c.ntlmSession != nil {
 		return c.ntlmSession, nil
 	}
-
 	splits := strings.Split(creds["username"], "\\")
 
 	if len(splits) != 2 {
 		return nil, errors.New("Your user name must be of the form DOMAIN\\user.")
 	}
 
-	var session, err = ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
+	session, err := ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
 
 	if err != nil {
 		return nil, err
 	}
 
 	session.SetUserInfo(splits[1], creds["password"], strings.ToUpper(splits[0]))
-
 	c.ntlmSession = session
-
 	return session, nil
 }
 
@@ -45,7 +41,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 	res, err := InitHandShake(handReq)
 
 	if err != nil && res == nil {
-		return res, err
+		return nil, err
 	}
 
 	//If the status is 401 then we need to re-authenticate, otherwise it was successful
@@ -73,7 +69,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 
 		res, err := challenge(challengeReq, challengeMessage, creds)
 		if err != nil {
-			return res, err
+			return nil, err
 		}
 
 		//If the status is 401 then we need to re-authenticate
@@ -85,7 +81,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 
 		return res, nil
 	}
-	return res, err
+	return res, nil
 }
 
 func InitHandShake(request *http.Request) (*http.Response, error) {
@@ -94,15 +90,22 @@ func InitHandShake(request *http.Request) (*http.Response, error) {
 
 func negotiate(request *http.Request, message string) ([]byte, error) {
 	request.Header.Add("Authorization", message)
-	var res, err = Config.HttpClient().Do(request)
-	defer io.Copy(ioutil.Discard, res.Body)
-	defer res.Body.Close()
+	res, err := Config.HttpClient().Do(request)
+
+	if res == nil && err != nil{
+		return nil, err
+	}
+
+	ret, err := parseChallengeResponse(res)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return parseChallengeResponse(res)
+	defer res.Body.Close()
+	defer io.Copy(ioutil.Discard, res.Body)
+
+	return ret, nil;
 }
 
 func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error) {
