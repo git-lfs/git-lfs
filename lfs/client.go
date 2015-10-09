@@ -749,9 +749,8 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 }
 
 func isNtlmRequest(res *http.Response) bool {
-
 	header := res.Header.Get("Www-Authenticate")
-	return strings.HasPrefix(header, "ntlm")
+	return strings.HasPrefix(strings.ToLower(header), "ntlm")
 }
 
 func toggleAuthType(authType string, message string) {
