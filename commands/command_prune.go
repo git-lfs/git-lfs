@@ -408,7 +408,20 @@ func pruneTaskGetRetainedWorktree(retainChan chan string, errorChan chan error, 
 func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	// TODO
+	// converts to `git rev-list --all`
+	// We only pick up objects in real commits and not the reflog
+	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
+
+	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
+	if err != nil {
+		errorChan <- fmt.Errorf("Error scanning for reachable objects: %v", err)
+		return
+	}
+
+	for p := range pointerchan {
+		outObjectSet.Add(p.Oid)
+	}
+
 }
 
 func init() {
