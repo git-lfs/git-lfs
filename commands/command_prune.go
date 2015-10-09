@@ -376,7 +376,32 @@ func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, 
 func pruneTaskGetRetainedWorktree(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	// TODO
+	// Retain other worktree HEADs too
+	// Working copy, branch & maybe commit is different but repo is shared
+	allWorktreeRefs, err := git.GetAllWorkTreeHEADs(lfs.LocalGitStorageDir)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	// Don't repeat any commits, worktrees are always on their own branches but
+	// may point to the same commit
+	commits := lfs.NewStringSet()
+	// current HEAD is done elsewhere
+	headref, err := git.CurrentRef()
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	commits.Add(headref.Sha)
+	for _, ref := range allWorktreeRefs {
+		if commits.Add(ref.Sha) {
+			// Worktree is on a different commit
+			waitg.Add(1)
+			// Don't need to 'cd' to worktree since we share same repo
+			go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
+		}
+	}
+
 }
 
 // Background task, must call waitg.Done() once at end
