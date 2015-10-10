@@ -1,0 +1,124 @@
+#compdef git-lfs
+#description manage large files with git-lfs
+
+_git-lfs() {
+  local -a commands help
+  commands=(
+  'env:Display the Git LFS environment'
+  'checkout:Populate working copy with real content from Git LFS files'
+  'fetch:Download git LFS files from a remote'
+  'fsck:Check GIT LFS files for consistency'
+  'init:Ensure Git LFS is configured properly'
+  'logs:Show errors from the git-lfs command'
+  'ls-files:Show information about Git LFS files in the index and working tree'
+  'pull:Fetch LFS changes from the remote & checkout any required working tree files'
+  'push:Push queued large files to the Git LFS endpoint'
+  'status:Show the status of Git LFS files in the working tree'
+  'track:View or add Git LFS paths to Git attributes'
+  'untrack:Remove Git LFS paths from Git Attributes'
+  'update:Update Git hooks for the current Git repository'
+  'clean:Git clean filter that converts large files to pointers'
+  'pointer:Build and compare pointers'
+  'pre-push:Git pre-push hook implementation'
+  'smudge:Git smudge filter that converts pointer in blobs to the actual content'
+  )
+
+  help=(
+  'help:Command help'
+  )
+
+  _arguments \
+    "1: :{_describe 'command' commands -- help}" \
+    "*:: :->args"
+
+  case $state in
+    args)
+      case $words[1] in
+        checkout|clean|track|untrack)
+          _files
+          ;;
+
+        fetch)
+          _arguments \
+            {'(--include=)-I','(-I)--include='}'[Specify lfs.fetchinclude just for this invocation]:path:_files' \
+            {'(--exclude=)-X','(-X)--exclude='}'[Specify lfs.fetchexclude just for this invocation]:path:_files' \
+              '--recent[Download objects referenced by recent branches & commits]' \
+              '--all[Download all objects referenced by any commit that is reachable]' \
+              '::remote:__git_remote_branch_names' \
+              '::ref:__git_commits'
+          ;;
+
+        init)
+          _arguments \
+            '--force[Sets the "lfs" smudge and clean filters, overwriting existing values]'
+          ;;
+
+        logs)
+          _arguments \
+            '::Shows the specified error log.  Use "last" to show the most recent error:_files' \
+            '--clear[Clears all of the existing logged errors]' \
+            '--boomtown[Triggers a dummy exception]'
+          ;;
+
+        ls-files)
+          _arguments -s \
+            {'(--long)-l','(-l)--long'}'[Show the entire 64 character OID, instead of just first 10]' \
+              '::ref:__git_commits'
+          ;;
+
+        pointer)
+          _arguments \
+            '--file=[A local file to build the pointer from]:file:_files' \
+            '--pointer=[A local file including the contents of a pointer]:file:_files' \
+            '--stdin[Reads the pointer from STDIN to compare with the pointer generated from --file]'
+          ;;
+
+        pre-push)
+          _arguments \
+            ':remote:__git_remote_branch_names'
+          ;;
+
+        pull)
+          _arguments \
+            {'(--include=)-I','(-I)--include='}'[Specify lfs.fetchinclude just for this invocation]:path:_files' \
+            {'(--exclude=)-X','(-X)--exclude='}'[Specify lfs.fetchexclude just for this invocation]:path:_files' \
+              '::remote:__git_remote_branch_names'
+          ;;
+
+        push)
+          _arguments \
+            '--dry-run[Print the files that would be pushed, without actually pushing them]' \
+            '--all[This pushes all objects to the remote that are referenced by any commit]' \
+            '--object-id[This pushes only the object OIDs listed at the end of the command]' \
+            '--stdin[Read the remote and branch on stdin]' \
+            '::remote:__git_remote_branch_names' \
+            '::ref:__git_commits'
+          ;;
+
+        smudge)
+          _arguments \
+            '--info[Display the file size and the local path to the Git LFS file]' \
+            '--skip[Skip automatic downloading of objects on clone or pull]' \
+            '*:path:_files'
+          ;;
+
+        status)
+          _arguments \
+            '--porcelain[Give the output in an easy-to-parse format for scripts]'
+          ;;
+
+        update)
+          _arguments \
+            '--force[Upgrade the hooks, clobbering any existing contents]'
+          ;;
+
+        help)
+          _arguments \
+            "1: :{_describe 'command' commands}"
+          ;;
+      esac
+      ;;
+  esac
+}
+
+# vim: ft=zsh sw=2 ts=2 et
