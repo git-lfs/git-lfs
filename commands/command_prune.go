@@ -427,8 +427,8 @@ func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, errorChan chan er
 
 func init() {
 	pruneCmd.Flags().BoolVarP(&pruneDryRunArg, "dry-run", "d", false, "Don't delete anything, just report")
-	pruneCmd.Flags().BoolVarP(&pruneDryRunArg, "verbose", "v", false, "Print full details of what is/would be deleted")
-	pruneCmd.Flags().BoolVarP(&pruneDryRunArg, "verify-remote", "c", false, "Verify that remote has LFS files before deleting")
-	pruneCmd.Flags().BoolVar(&pruneDryRunArg, "no-verify-remote", false, "Override lfs.pruneverifyremotealways and don't verify")
+	pruneCmd.Flags().BoolVarP(&pruneVerboseArg, "verbose", "v", false, "Print full details of what is/would be deleted")
+	pruneCmd.Flags().BoolVarP(&pruneVerifyArg, "verify-remote", "c", false, "Verify that remote has LFS files before deleting")
+	pruneCmd.Flags().BoolVar(&pruneDoNotVerifyArg, "no-verify-remote", false, "Override lfs.pruneverifyremotealways and don't verify")
 	RootCmd.AddCommand(pruneCmd)
 }
