@@ -2,14 +2,14 @@
 
 . "test/testlib.sh"
 
-begin_test "prune"
+begin_test "prune unreferenced and old"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
-  setup_remote_repo "$reponame"
+  reponame="prune_unref_old"
+  setup_remote_repo "remote_$reponame"
 
-  clone_repo "$reponame" repo
+  clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
@@ -18,125 +18,72 @@ begin_test "prune"
   content_unreferenced="To delete: unreferenced"
   content_oldandpushed="To delete: pushed and too old"
   content_oldandunchanged="Keep: pushed and created a while ago, but still current"
-  content_keepunpushed="Keep: unpushed"
-  content_keepunpushedtagged="Keep: unpushed tagged only"
-  content_keephead="Keep: HEAD"
-  content_keeprecentbranch="Keep: Recent branch"
-  content_keeprecentcommithead="Keep: Recent commit on HEAD"
-  content_keeprecentcommitbranch="Keep: Recent commit on recent branch"
-  content_keepmergedrecent="Keep: merged secondary branch that's recent"
-  content_keepmergedunpushed="Keep: merged secondary branch that's not pushed"
   oid_unreferenced=$(calc_oid "$content_unreferenced")
   oid_oldandpushed=$(calc_oid "$content_oldandpushed")
   oid_oldandunchanged=$(calc_oid "$content_oldandunchanged")
-  oid_keepunpushed=$(calc_oid "$content_keepunpushed")
-  oid_keepunpushedtagged=$(calc_oid "$content_keepunpushedtagged")
-  oid_keephead=$(calc_oid "$content_keephead")
-  oid_keeprecentbranch=$(calc_oid "$content_keeprecentbranch")
-  oid_keeprecentcommithead=$(calc_oid "$content_keeprecentcommithead")
-  oid_keeprecentcommitbranch=$(calc_oid "$content_keeprecentcommitbranch")
-  oid_keepmergedrecent=$(calc_oid "$content_keepmergedrecent")
-  oid_keepmergedunpushed=$(calc_oid "$content_keepmergedunpushed")
+  content_retain1="Retained content 1"
+  content_retain2="Retained content 2"
+  oid_retain1=$(calc_oid "$content_retain1")
+  oid_retain2=$(calc_oid "$content_retain2")
 
+
+  # Remember for something to be 'too old' it has to appear on the MINUS side
+  # of the diff outside the prune window, i.e. it's not when it was introduced
+  # but when it disappeared from relevance. That's why changes to file1.dat on master
+  # from 7d ago are included even though the commit itself is outside of the window,
+  # that content of file1.dat was relevant until it was removed with a commit, inside the window
+  # think of it as windows of relevance that overlap until the content is replaced
+
+  # we also make sure we commit today on master so that the recent commits measured
+  # from latest commit on master tracks back from there
   echo "[
   {
-    \"CommitDate\":\"$(get_date -7d)\",
+    \"CommitDate\":\"$(get_date -20d)\",
     \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_oldandpushed}, \"Data\":\"$content_oldandpushed\"},
-      {\"Filename\":\"file2.dat\",\"Size\":${#content_oldandunchanged}, \"Data\":\"$content_oldandunchanged\"}]
+      {\"Filename\":\"old.dat\",\"Size\":${#content_oldandpushed}, \"Data\":\"$content_oldandpushed\"},
+      {\"Filename\":\"stillcurrent.dat\",\"Size\":${#content_oldandunchanged}, \"Data\":\"$content_oldandunchanged\"}]
   },
   {
     \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -4d)\",
     \"NewBranch\":\"branch_to_delete\",    
     \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
   },
   {
-    \"CommitDate\":\"$(get_date -7d)\",
-    \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch_to_delete_tagged\",    
-    \"Tags\":[\"retain_tag\"],
-    \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_keepunpushedtagged}, \"Data\":\"$content_keepunpushedtagged\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -6d)\",
-    \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"merge_branch_unpushed\",    
-    \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_keepmergedunpushed}, \"Data\":\"$content_keepmergedunpushed\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -3d)\",
-    \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"merge_branch_recent\",    
-    \"Files\":[
-      {\"Filename\":\"file4.dat\",\"Size\":${#content_keepmergedrecent}, \"Data\":\"$content_keepmergedrecent\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -6d)\",
-    \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch_unpushed\",    
-    \"Files\":[
-      {\"Filename\":\"file3.dat\",\"Size\":${#content_keepunpushedother}, \"Data\":\"$content_keepunpushedother\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -6d)\",
-    \"ParentBranches\":[\"branch_unpushed\", \"merge_branch_unpushed\"]
-  },
-  {
-    \"CommitDate\":\"$(get_date -4d)\",
-    \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch_recent\",    
-    \"Files\":[
-      {\"Filename\":\"file5.dat\",\"Size\":${#content_keeprecentcommitbranch}, \"Data\":\"$content_keeprecentcommitbranch\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -2d)\",
-    \"Files\":[
-      {\"Filename\":\"file5.dat\",\"Size\":${#content_keeprecentbranch}, \"Data\":\"$content_keeprecentbranch\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -4d)\",
     \"ParentBranches\":[\"master\"],
     \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_keeprecentcommithead}, \"Data\":\"$content_keeprecentcommithead\"}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -2d)\",
-    \"ParentBranches\":[\"master\", \"merge_branch_recent\"]
-  },
-  {
-    \"CommitDate\":\"$(get_date -1d)\",
-    \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_keephead}, \"Data\":\"$content_keephead\"}]
+      {\"Filename\":\"old.dat\",\"Size\":${#content_retain2}, \"Data\":\"$content_retain2\"}]
   }
   ]" | lfstest-testutils addcommits
 
-  # delete temporary branches
-  git branch -D branch_to_delete
-  git branch -D branch_to_delete_tagged
-  git branch -D merge_branch_unpushed
-  git branch -D merge_branch_recent
-
-  # only push master
   git push origin master
-
-  # now create another commit on master that is unpushed
-  echo "[
-  {
-    \"CommitDate\":\"$(get_date -0d)\",
-    \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":${#content_keephead}, \"Data\":\"$content_keephead\"}]
-  }
-  ]" | lfstest-testutils addcommits
+  git branch -D branch_to_delete
 
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
   git config lfs.fetchrecentcommitsdays 3
   git config lfs.pruneoffset 2
 
+  git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
+  cat prune.log
+  grep "5 local objects, 3 retained" prune.log
+  grep "2 files would be pruned" prune.log
+  grep "$oid_oldandpushed" prune.log
+  grep "$oid_unreferenced" prune.log
+
+  assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
+  git lfs prune
+  refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
+  assert_local_object "$oid_retain2" "${#content_retain2}"
 
 )
 end_test
