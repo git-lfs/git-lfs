@@ -127,7 +127,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 			totalSize += pointer.Size
 			if verbose {
 				// Save up verbose output for the end, spinner still going
-				verboseOutput.WriteString(fmt.Sprintf("Prune %v, %v", pointer.Oid, humanizeBytes(pointer.Size)))
+				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", pointer.Oid, humanizeBytes(pointer.Size)))
 			}
 			if verifyRemote && !dryRun {
 				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
