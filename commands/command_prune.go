@@ -226,8 +226,9 @@ func pruneTaskCollectRetained(outRetainedObjects *lfs.StringSet, retainChan chan
 	defer retainwait.Done()
 
 	for oid := range retainChan {
-		outRetainedObjects.Add(oid)
-		progressChan <- PruneProgress{PruneProgressTypeRetain, 1}
+		if outRetainedObjects.Add(oid) {
+			progressChan <- PruneProgress{PruneProgressTypeRetain, 1}
+		}
 	}
 
 }
