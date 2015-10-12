@@ -353,17 +353,20 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 	}
 
 	// For every unique commit we've fetched, check recent commits too
-	pruneCommitDays := fetchconf.FetchRecentCommitsDays + fetchconf.PruneOffsetDays
-	for commit := range commits.Iter() {
-		// We measure from the last commit at the ref
-		summ, err := git.GetCommitSummary(commit)
-		if err != nil {
-			errorChan <- fmt.Errorf("Couldn't scan commits at %v: %v", commit, err)
-			continue
+	// Only if we're fetching recent commits, otherwise only keep at refs
+	if fetchconf.FetchRecentCommitsDays > 0 {
+		pruneCommitDays := fetchconf.FetchRecentCommitsDays + fetchconf.PruneOffsetDays
+		for commit := range commits.Iter() {
+			// We measure from the last commit at the ref
+			summ, err := git.GetCommitSummary(commit)
+			if err != nil {
+				errorChan <- fmt.Errorf("Couldn't scan commits at %v: %v", commit, err)
+				continue
+			}
+			commitsSince := summ.CommitDate.AddDate(0, 0, -pruneCommitDays)
+			waitg.Add(1)
+			go pruneTaskGetPreviousVersionsOfRef(commit, commitsSince, retainChan, errorChan, waitg)
 		}
-		commitsSince := summ.CommitDate.AddDate(0, 0, -pruneCommitDays)
-		waitg.Add(1)
-		go pruneTaskGetPreviousVersionsOfRef(commit, commitsSince, retainChan, errorChan, waitg)
 	}
 }
 

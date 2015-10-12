@@ -85,6 +85,17 @@ begin_test "prune unreferenced and old"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_retain2" "${#content_retain2}"
 
+  # now only keep AT refs, no recents
+  git config lfs.fetchrecentcommitsdays 0
+  git lfs prune --verbose 2>&1 | tee prune.log
+  grep "3 local objects, 2 retained" prune.log
+  grep "Pruning 1 files" prune.log
+  grep "$oid_retain1" prune.log
+  refute_local_object "$oid_retain1"
+  assert_local_object "$oid_retain2" "${#content_retain2}"
+
+
+
 )
 end_test
 
