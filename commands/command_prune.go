@@ -156,21 +156,21 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		progresswait.Wait()
 	}
 
+	if len(prunableObjects) == 0 {
+		Print("Nothing to prune")
+		return
+	}
 	if dryRun {
 		Print("%d files would be pruned (%v)", len(prunableObjects), humanizeBytes(totalSize))
 		if verbose {
 			Print(verboseOutput.String())
 		}
 	} else {
-		if len(prunableObjects) == 0 {
-			Print("Nothing to prune")
-		} else {
-			Print("Pruning %d files, (%v)", len(prunableObjects), humanizeBytes(totalSize))
-			if verbose {
-				Print(verboseOutput.String())
-			}
-			pruneDeleteFiles(prunableObjects)
+		Print("Pruning %d files, (%v)", len(prunableObjects), humanizeBytes(totalSize))
+		if verbose {
+			Print(verboseOutput.String())
 		}
+		pruneDeleteFiles(prunableObjects)
 	}
 
 }
