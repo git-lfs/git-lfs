@@ -100,10 +100,94 @@ begin_test "prune unreferenced and old"
 end_test
 
 
-begin_test "prune unpushed HEAD"
+begin_test "prune keep unpushed"
 (
-    # old commits on HEAD but latest few are not pushed so keep those
-    # even changes pre-HEAD
+  set -e
+
+  # need to set up many commits on each branch with old data so that would
+  # get deleted if it were not for unpushed status (heads would never be pruned but old changes would)
+  reponame="prune_keep_unpushed"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+
+  content_keepunpushedhead1="Keep: unpushed HEAD 1"
+  content_keepunpushedhead2="Keep: unpushed HEAD 2"
+  content_keepunpushedhead3="Keep: unpushed HEAD 3"
+  content_keepunpushedbranch1="Keep: unpushed second branch 1"
+  content_keepunpushedbranch2="Keep: unpushed second branch 2"
+  content_keepunpushedbranch3="Keep: unpushed second branch 3"
+  oid_keepunpushedhead1=$(calc_oid "$content_keepunpushedhead1")
+  oid_keepunpushedhead2=$(calc_oid "$content_keepunpushedhead2")
+  oid_keepunpushedhead3=$(calc_oid "$content_keepunpushedhead3")
+  oid_keepunpushedbranch1=$(calc_oid "$content_keepunpushedbranch1")
+  oid_keepunpushedbranch2=$(calc_oid "$content_keepunpushedbranch2")
+  oid_keepunpushedbranch3=$(calc_oid "$content_keepunpushedbranch3")
+  oid_keepunpushedtagged1=$(calc_oid "$content_keepunpushedtagged1")
+  oid_keepunpushedtagged2=$(calc_oid "$content_keepunpushedtagged1")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -40d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedhead1}, \"Data\":\"$content_keepunpushedhead1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -31d)\",
+    \"ParentBranches\":[\"master\"],
+    \"NewBranch\":\"branch_unpushed\",    
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch1}, \"Data\":\"$content_keepunpushedbranch1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -16d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch2}, \"Data\":\"$content_keepunpushedbranch2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch3}, \"Data\":\"$content_keepunpushedbranch3\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -21d)\",
+    \"ParentBranches\":[\"master\"],
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedhead2}, \"Data\":\"$content_keepunpushedhead2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -0d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedhead3}, \"Data\":\"$content_keepunpushedhead3\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git config lfs.fetchrecentrefsdays 5
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 0 # only keep AT refs, no recents
+  git config lfs.pruneoffset 2
+
+  git lfs prune 2>&1 | tee prune.log
+  cat prune.log
+  grep "Nothing to prune" prune.log
+
+  # Now push master and show that older versions on master will be removed
+  git push origin master
+
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "6 local objects, 4 retained" prune.log
+  grep "Pruning 2 files" prune.log
+  grep "$oid_keepunpushedhead1" prune.log
+  grep "$oid_keepunpushedhead2" prune.log
+  refute_local_object "$oid_keepunpushedhead1"
+  refute_local_object "$oid_keepunpushedhead2"
+
+
 )
 end_test
 
