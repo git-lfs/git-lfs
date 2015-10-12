@@ -75,7 +75,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 
 	if err != nil {
 		ptr.Encode(os.Stdout)
-		Panic(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
+		Exit("Error accessing media: %s (%s)", filename, ptr.Oid)
 	}
 }
 
