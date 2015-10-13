@@ -127,7 +127,7 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 	}
 	LogTransfer("lfs.data.download", res)
 
-	if Config.NtlmAccess() {
+	/*if Config.NtlmAccess() {
 		buf, _ := ioutil.ReadAll(res.Body)
 		body := myReader{bytes.NewBuffer(buf)}
 
@@ -136,7 +136,7 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 		res.Body.Close()
 
 		return body, res.ContentLength, nil
-	}
+	}*/
 
 	return res.Body, res.ContentLength, nil
 }
@@ -180,7 +180,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 	}
 	LogTransfer("lfs.data.download", res)
 
-	if Config.NtlmAccess() {
+	/*if Config.NtlmAccess() {
 		buf, _ := ioutil.ReadAll(res.Body)
 		body := myReader{bytes.NewBuffer(buf)}
 
@@ -189,7 +189,7 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 		res.Body.Close()
 
 		return body, res.ContentLength, nil
-	}
+	}*/
 
 	return res.Body, res.ContentLength, nil
 }
