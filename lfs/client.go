@@ -127,17 +127,6 @@ func Download(oid string) (io.ReadCloser, int64, error) {
 	}
 	LogTransfer("lfs.data.download", res)
 
-	/*if Config.NtlmAccess() {
-		buf, _ := ioutil.ReadAll(res.Body)
-		body := myReader{bytes.NewBuffer(buf)}
-
-		//We must close the body to ensure the http connection is kept alive
-		io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
-
-		return body, res.ContentLength, nil
-	}*/
-
 	return res.Body, res.ContentLength, nil
 }
 
@@ -179,17 +168,6 @@ func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
 		return nil, 0, newRetriableError(err)
 	}
 	LogTransfer("lfs.data.download", res)
-
-	/*if Config.NtlmAccess() {
-		buf, _ := ioutil.ReadAll(res.Body)
-		body := myReader{bytes.NewBuffer(buf)}
-
-		//We must close the body to ensure the http connection is kept alive
-		io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
-
-		return body, res.ContentLength, nil
-	}*/
 
 	return res.Body, res.ContentLength, nil
 }
