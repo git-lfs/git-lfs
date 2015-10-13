@@ -203,6 +203,14 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 
+	// Support delete for testing
+	if len(parts) > 1 && parts[len(parts)-2] == "delete" {
+		largeObjects.Delete(repo, oid)
+		log.Println("DELETE:", oid)
+		w.WriteHeader(200)
+		return
+	}
+
 	by, ok := largeObjects.Get(repo, oid)
 	if !ok {
 		w.WriteHeader(404)
@@ -514,6 +522,15 @@ func (s *lfsStorage) Set(repo, oid string, by []byte) {
 		s.objects[repo] = repoObjects
 	}
 	repoObjects[oid] = by
+}
+
+func (s *lfsStorage) Delete(repo, oid string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.objects[repo]
+	if ok {
+		delete(repoObjects, oid)
+	}
 }
 
 func newLfsStorage() *lfsStorage {

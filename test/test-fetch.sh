@@ -130,6 +130,20 @@ begin_test "fetch"
   git lfs fetch --include="c*,d*" --exclude="a*,b*" origin master newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
+
+  # test fail case error code
+  rm -rf .git/lfs/objects
+  delete_server_object "$reponame" "$b_oid"
+  refute_server_object "$reponame" "$b_oid"
+  # should return non-zero, but should also download all the other valid files too
+  set +e
+  git lfs fetch origin master newbranch
+  fetch_exit=$?
+  set -e
+  [ "$fetch_exit" != "0" ]
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$b_oid"
+
 )
 end_test
 
