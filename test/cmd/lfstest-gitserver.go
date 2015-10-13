@@ -264,14 +264,25 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
 	for _, obj := range objs.Objects {
-		action := "upload"
-		_, ok := largeObjects.Get(repo, obj.Oid)
-		if ok {
-			action = "download"
-		}
+		action := objs.Operation
+
 		o := lfsObject{
 			Oid:  obj.Oid,
 			Size: obj.Size,
+		}
+
+		exists := largeObjects.Has(repo, obj.Oid)
+		addAction := true
+		if action == "download" {
+			if !exists {
+				o.Err = &lfsError{Code: 404, Message: fmt.Sprintf("Object %v does not exist", obj.Oid)}
+				addAction = false
+			}
+		} else {
+			if exists {
+				// not an error but don't add an action
+				addAction = false
+			}
 		}
 
 		switch oidHandlers[obj.Oid] {
@@ -286,11 +297,13 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		case "status-batch-500":
 			o.Err = &lfsError{Code: 500, Message: "welp"}
 		default: // regular 200 response
-			o.Actions = map[string]lfsLink{
-				action: lfsLink{
-					Href:   lfsUrl(repo, obj.Oid),
-					Header: map[string]string{},
-				},
+			if addAction {
+				o.Actions = map[string]lfsLink{
+					action: lfsLink{
+						Href:   lfsUrl(repo, obj.Oid),
+						Header: map[string]string{},
+					},
+				}
 			}
 		}
 
@@ -478,6 +491,18 @@ func (s *lfsStorage) Get(repo, oid string) ([]byte, bool) {
 
 	by, ok := repoObjects[oid]
 	return by, ok
+}
+
+func (s *lfsStorage) Has(repo, oid string) bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.objects[repo]
+	if !ok {
+		return false
+	}
+
+	_, ok = repoObjects[oid]
+	return ok
 }
 
 func (s *lfsStorage) Set(repo, oid string, by []byte) {
