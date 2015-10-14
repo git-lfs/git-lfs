@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -301,6 +303,7 @@ func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan cha
 	}
 	for wp := range refchan {
 		retainChan <- wp.Pointer.Oid
+		tracerx.Printf("RETAIN: %v via ref %v", wp.Pointer.Oid, ref)
 	}
 }
 
@@ -315,6 +318,7 @@ func pruneTaskGetPreviousVersionsOfRef(ref string, since time.Time, retainChan c
 	}
 	for wp := range refchan {
 		retainChan <- wp.Pointer.Oid
+		tracerx.Printf("RETAIN: %v via ref %v >= %v", wp.Pointer.Oid, ref, since)
 	}
 }
 
@@ -383,6 +387,7 @@ func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, 
 	}
 	for wp := range refchan {
 		retainChan <- wp.Pointer.Oid
+		tracerx.Printf("RETAIN: %v unpushed", wp.Pointer.Oid)
 	}
 }
 
