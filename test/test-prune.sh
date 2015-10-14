@@ -214,6 +214,147 @@ begin_test "prune keep unpushed"
 )
 end_test
 
+begin_test "prune keep recent"
+(
+  set -e
+
+  reponame="prune_recent"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  content_keephead="Keep: HEAD"
+  content_keeprecentbranch1tip="Keep: Recent branch 1 tip"
+  content_keeprecentbranch2tip="Keep: Recent branch 2 tip"
+  content_keeprecentcommithead="Keep: Recent commit on HEAD"
+  content_keeprecentcommitbranch1="Keep: Recent commit on recent branch 1"
+  content_keeprecentcommitbranch2="Keep: Recent commit on recent branch 2"
+  content_prunecommitoldbranch1="Prune: old commit on old branch"
+  content_prunecommitoldbranch2="Prune: old branch tip"
+  content_prunecommitbranch1="Prune: old commit on recent branch 1"
+  content_prunecommitbranch2="Prune: old commit on recent branch 2"
+  content_prunecommithead="Prune: old commit on HEAD"
+  oid_keephead=$(calc_oid "$content_keephead")
+  oid_keeprecentbranch1tip=$(calc_oid "$content_keeprecentbranch1tip")
+  oid_keeprecentbranch2tip=$(calc_oid "$content_keeprecentbranch2tip")
+  oid_keeprecentcommithead=$(calc_oid "$content_keeprecentcommithead")
+  oid_keeprecentcommitbranch1=$(calc_oid "$content_keeprecentcommitbranch1")
+  oid_keeprecentcommitbranch2=$(calc_oid "$content_keeprecentcommitbranch2")
+  oid_prunecommitoldbranch=$(calc_oid "$content_prunecommitoldbranch1")
+  oid_prunecommitoldbranch2=$(calc_oid "$content_prunecommitoldbranch2")
+  oid_prunecommitbranch1=$(calc_oid "$content_prunecommitbranch1")
+  oid_prunecommitbranch2=$(calc_oid "$content_prunecommitbranch2")
+  oid_prunecommithead=$(calc_oid "$content_prunecommithead")
+
+
+  # use a single file so each commit supercedes the last, if different files
+  # then history becomes harder to track
+  # Also note that when considering 'recent' when editing a single file, it means
+  # that the snapshot state overlapped; so the latest commit *before* the day
+  # that you're looking at, not just the commits on/after.
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommithead}, \"Data\":\"$content_prunecommithead\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -30d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keeprecentcommithead}, \"Data\":\"$content_keeprecentcommithead\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -8d)\",
+    \"NewBranch\":\"branch_old\",    
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitoldbranch1}, \"Data\":\"$content_prunecommitoldbranch1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitoldbranch2}, \"Data\":\"$content_prunecommitoldbranch2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -9d)\",
+    \"ParentBranches\":[\"master\"],
+    \"NewBranch\":\"branch1\",    
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitbranch1}, \"Data\":\"$content_prunecommitbranch1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -8d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keeprecentcommitbranch1}, \"Data\":\"$content_keeprecentcommitbranch1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keeprecentbranch1tip}, \"Data\":\"$content_keeprecentbranch1tip\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -17d)\",
+    \"ParentBranches\":[\"master\"],
+    \"NewBranch\":\"branch2\",    
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitbranch2}, \"Data\":\"$content_prunecommitbranch2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keeprecentcommitbranch2}, \"Data\":\"$content_keeprecentcommitbranch2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keeprecentbranch2tip}, \"Data\":\"$content_keeprecentbranch2tip\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"ParentBranches\":[\"master\"],
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keephead}, \"Data\":\"$content_keephead\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # keep refs for 6 days & any prev commit that overlaps 2 days before tip (recent + offset)
+  git config lfs.fetchrecentrefsdays 5
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 1 
+  git config lfs.pruneoffsetdays 1
+
+  # push everything so that's not a reason to retain
+  git push origin master:master branch_old:branch_old branch1:branch1 branch2:branch2
+
+
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "11 local objects, 6 retained" prune.log
+  grep "Pruning 5 files" prune.log
+  grep "$oid_prunecommitoldbranch" prune.log
+  grep "$oid_prunecommitoldbranch2" prune.log
+  grep "$oid_prunecommitbranch1" prune.log
+  grep "$oid_prunecommitbranch2" prune.log
+  grep "$oid_prunecommithead" prune.log
+
+  refute_local_object "$oid_prunecommitoldbranch"
+  refute_local_object "$oid_prunecommitoldbranch2"
+  refute_local_object "$oid_prunecommitbranch1"
+  refute_local_object "$oid_prunecommitbranch2"
+  refute_local_object "$oid_prunecommithead"
+  assert_local_object "$oid_keephead" "${#content_keephead}"
+  assert_local_object "$oid_keeprecentbranch1tip" "${#content_keeprecentbranch1tip}"
+  assert_local_object "$oid_keeprecentbranch2tip" "${#content_keeprecentbranch2tip}"
+  assert_local_object "$oid_keeprecentcommithead" "${#content_keeprecentcommithead}"
+  assert_local_object "$oid_keeprecentcommitbranch1" "${#content_keeprecentcommitbranch1}"
+  assert_local_object "$oid_keeprecentcommitbranch2" "${#content_keeprecentcommitbranch2}"
+
+
+)
+end_test
+
 
 begin_test "prune worktree"
 (
@@ -227,7 +368,7 @@ begin_test "prune no remote"
 )
 end_test
 
-begin_test "prune specify remote"
+begin_test "prune verify"
 (
 )
 end_test
