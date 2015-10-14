@@ -67,7 +67,7 @@ begin_test "prune unreferenced and old"
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
   git config lfs.fetchrecentcommitsdays 3
-  git config lfs.pruneoffset 2
+  git config lfs.pruneoffsetdays 2
 
   git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
@@ -169,7 +169,7 @@ begin_test "prune keep unpushed"
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
   git config lfs.fetchrecentcommitsdays 0 # only keep AT refs, no recents
-  git config lfs.pruneoffset 2
+  git config lfs.pruneoffsetdays 2
 
   git lfs prune 2>&1 | tee prune.log
   cat prune.log
