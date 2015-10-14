@@ -236,7 +236,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 
 	// Output is ordered by latest commit date first, so we can stop at the threshold
 	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`)
-
+	tracerx.Printf("RECENT: Getting refs >= %v", since)
 	var ret []*Ref
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -262,6 +262,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 				// the end
 				break
 			}
+			tracerx.Printf("RECENT: %v (%v)", ref, commitDate)
 			ret = append(ret, &Ref{ref, reftype, sha})
 		}
 	}
