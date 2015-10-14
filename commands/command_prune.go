@@ -341,18 +341,20 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 
 	// Now recent
 	fetchconf := lfs.Config.FetchPruneConfig()
-	pruneRefDays := fetchconf.FetchRecentRefsDays + fetchconf.PruneOffsetDays
-	refsSince := time.Now().AddDate(0, 0, -pruneRefDays)
-	// Keep all recent refs including any recent remote branches
-	refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
-	if err != nil {
-		Panic(err, "Could not scan for recent refs")
-	}
-	for _, ref := range refs {
-		if commits.Add(ref.Sha) {
-			// A new commit
-			waitg.Add(1)
-			go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
+	if fetchconf.FetchRecentRefsDays > 0 {
+		pruneRefDays := fetchconf.FetchRecentRefsDays + fetchconf.PruneOffsetDays
+		refsSince := time.Now().AddDate(0, 0, -pruneRefDays)
+		// Keep all recent refs including any recent remote branches
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
+		if err != nil {
+			Panic(err, "Could not scan for recent refs")
+		}
+		for _, ref := range refs {
+			if commits.Add(ref.Sha) {
+				// A new commit
+				waitg.Add(1)
+				go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
+			}
 		}
 	}
 
