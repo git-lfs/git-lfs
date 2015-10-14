@@ -351,6 +351,29 @@ begin_test "prune keep recent"
   assert_local_object "$oid_keeprecentcommitbranch1" "${#content_keeprecentcommitbranch1}"
   assert_local_object "$oid_keeprecentcommitbranch2" "${#content_keeprecentcommitbranch2}"
 
+  # now don't include any recent commits in fetch & hence don't retain
+  # still retain tips of branches
+  git config lfs.fetchrecentcommitsdays 0
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "6 local objects, 3 retained" prune.log
+  grep "Pruning 3 files" prune.log
+  assert_local_object "$oid_keephead" "${#content_keephead}"
+  assert_local_object "$oid_keeprecentbranch1tip" "${#content_keeprecentbranch1tip}"
+  assert_local_object "$oid_keeprecentbranch2tip" "${#content_keeprecentbranch2tip}"
+  refute_local_object "$oid_keeprecentcommithead"
+  refute_local_object "$oid_keeprecentcommitbranch1"
+  refute_local_object "$oid_keeprecentcommitbranch2"
+
+  # now don't include any recent refs at all, only keep HEAD
+  git config lfs.fetchrecentrefsdays 0
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "3 local objects, 1 retained" prune.log
+  grep "Pruning 2 files" prune.log
+  assert_local_object "$oid_keephead" "${#content_keephead}"
+  refute_local_object "$oid_keeprecentbranch1tip"
+  refute_local_object "$oid_keeprecentbranch2tip"
 
 )
 end_test
