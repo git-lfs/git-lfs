@@ -202,14 +202,14 @@ begin_test "prune keep unpushed"
   grep "Pruning 3 files" prune.log
   grep "$oid_keepunpushedbranch1" prune.log
   grep "$oid_keepunpushedbranch2" prune.log
-  grep "$oid_keepunpushedbranch3" prune.log
+  grep "$oid_keepunpushedhead3" prune.log
   refute_local_object "$oid_keepunpushedbranch1"
   refute_local_object "$oid_keepunpushedbranch2"
   # we used -Xtheirs so old head state is now obsolete, is the last state on branch
   refute_local_object "$oid_keepunpushedhead3"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch1"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch2"
-  assert_server_object "remote_$reponame" "$oid_keepunpushedbranch3"
+  assert_server_object "remote_$reponame" "$oid_keepunpushedhead3"
 
 )
 end_test
