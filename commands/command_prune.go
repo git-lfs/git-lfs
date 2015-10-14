@@ -344,7 +344,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 	pruneRefDays := fetchconf.FetchRecentRefsDays + fetchconf.PruneOffsetDays
 	refsSince := time.Now().AddDate(0, 0, -pruneRefDays)
 	// Keep all recent refs including any recent remote branches
-	refs, err := git.RecentBranches(refsSince, true, "")
+	refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
 	if err != nil {
 		Panic(err, "Could not scan for recent refs")
 	}
