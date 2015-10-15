@@ -378,9 +378,8 @@ begin_test "prune keep recent"
 )
 end_test
 
-begin_test "prune no remote or not origin"
+begin_test "prune remote tests"
 (
-  # can never prune
   set -e
 
   reponame="prune_no_or_nonorigin_remote"
@@ -419,6 +418,7 @@ begin_test "prune no remote or not origin"
   git config lfs.fetchrecentcommitsdays 0 
   git config lfs.pruneoffsetdays 1
 
+  # can never prune with no remote
   git lfs prune --verbose 2>&1 | tee prune.log
   cat prune.log
   grep "4 local objects, 4 retained" prune.log
@@ -439,12 +439,14 @@ begin_test "prune no remote or not origin"
   grep "Nothing to prune" prune.log
 
   # now set the prune remote to be not_origin, should now prune
+  # do a dry run so we can also verify
   git config lfs.pruneremotetocheck not_origin
 
-  git lfs prune --verbose 2>&1 | tee prune.log
+  git lfs prune --verbose --dry-run 2>&1 | tee prune.log
   cat prune.log
   grep "4 local objects, 1 retained" prune.log
-  grep "Pruning 3 files" prune.log
+  grep "3 files would be pruned" prune.log
+
 
 
 )
