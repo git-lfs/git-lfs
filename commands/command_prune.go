@@ -132,6 +132,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", pointer.Oid, humanizeBytes(pointer.Size)))
 			}
 			if verifyRemote {
+				tracerx.Printf("VERIFYING: %v\n", pointer.Oid)
 				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
 			}
 		}
@@ -144,6 +145,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		go func() {
 			for oid := range verifyc {
 				verifiedObjects.Add(oid)
+				tracerx.Printf("VERIFIED: %v\n", oid)
 				progressChan <- PruneProgress{PruneProgressTypeVerify, 1}
 			}
 			verifywait.Done()
@@ -178,13 +180,16 @@ func prune(verifyRemote, dryRun, verbose bool) {
 }
 
 func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects lfs.StringSet) {
-	// There's no issue if an object is not reachable and misisng, only if reachable & missing
+	// There's no issue if an object is not reachable and missing, only if reachable & missing
 	var problems bytes.Buffer
 	for _, oid := range prunableObjects {
 		// Test verified first as most likely reachable
 		if !verifiedObjects.Contains(oid) {
 			if reachableObjects.Contains(oid) {
-				problems.WriteString(fmt.Sprintf("%v\n", oid))
+				problems.WriteString(fmt.Sprintf(" * %v\n", oid))
+			} else {
+				// Just to indicate why it doesn't matter that we didn't verify
+				tracerx.Printf("UNREACHABLE: %v\n", oid)
 			}
 		}
 	}
@@ -193,7 +198,7 @@ func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObje
 	// deleted but that's incorrect; bad state has occurred somehow, might need
 	// push --all to resolve
 	if problems.Len() > 0 {
-		Exit("Failed to find prunable objects on remote, aborting:\n%v", problems.String())
+		Exit("Abort: these objects to be pruned are missing on remote:\n%v", problems.String())
 	}
 }
 
