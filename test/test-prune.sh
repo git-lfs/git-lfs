@@ -526,6 +526,28 @@ begin_test "prune verify"
   assert_local_object "$oid_commit1" "${#content_commit1}"
   assert_local_object "$oid_commit2_failverify" "${#content_commit2_failverify}"
   assert_local_object "$oid_commit3" "${#content_commit3}"
+
+  # Now test with the global option
+  git config lfs.pruneverifyremotealways true
+  # no verify arg but should be pulled from global
+  git lfs prune 2>&1 | tee prune.log
+  grep "4 local objects, 1 retained, 2 verified with remote" prune.log
+  grep "missing on remote:" prune.log
+  grep "$oid_commit2_failverify" prune.log
+  # Nothing should have been deleted
+  assert_local_object "$oid_commit1" "${#content_commit1}"
+  assert_local_object "$oid_commit2_failverify" "${#content_commit2_failverify}"
+  assert_local_object "$oid_commit3" "${#content_commit3}"
+
+  # now try overriding the global option
+  git lfs prune --no-verify-remote 2>&1 | tee prune.log
+  grep "4 local objects, 1 retained" prune.log
+  grep "Pruning 3 files" prune.log
+  # should now have been deleted
+  refute_local_object "$oid_commit1"
+  refute_local_object "$oid_commit2_failverify"
+  refute_local_object "$oid_commit3"
+
 )
 end_test
 
