@@ -378,6 +378,83 @@ begin_test "prune keep recent"
 )
 end_test
 
+begin_test "prune no remote or not origin"
+(
+  # can never prune
+  set -e
+
+  reponame="prune_no_or_nonorigin_remote"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":30}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -40d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":28}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -35d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":37}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -25d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":42}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # set no recents so max ability to prune normally
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 0 
+  git config lfs.pruneoffsetdays 1
+
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "4 local objects, 4 retained" prune.log
+  grep "Nothing to prune" prune.log
+
+
+  # also make sure nothing is pruned when remote is not origin
+  # create 2 remotes, neither of which is called origin & push to both
+  setup_remote_repo "remote1_$reponame"
+  setup_remote_repo "remote2_$reponame"
+  cd "$TRASHDIR/$reponame"
+  git remote add not_origin "$GITSERVER/remote1_$reponame"
+  git push not_origin master
+
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "4 local objects, 4 retained" prune.log
+  grep "Nothing to prune" prune.log
+
+  # now set the prune remote to be not_origin, should now prune
+  git config lfs.pruneremotetocheck not_origin
+
+  git lfs prune --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "4 local objects, 1 retained" prune.log
+  grep "Pruning 3 files" prune.log
+
+
+)
+end_test
+
+begin_test "prune verify"
+(
+)
+end_test
+
 
 begin_test "prune worktree"
 (
@@ -386,12 +463,3 @@ begin_test "prune worktree"
 )
 end_test
 
-begin_test "prune no remote"
-(
-)
-end_test
-
-begin_test "prune verify"
-(
-)
-end_test
