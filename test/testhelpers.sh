@@ -62,6 +62,22 @@ refute_server_object() {
   grep "404 Not Found" http.log
 }
 
+# Delete an object on the lfs server. HTTP log is
+# written to http.log. JSON output is written to http.json.
+#
+#   $ delete_server_object "reponame" "oid"
+delete_server_object() {
+  local reponame="$1"
+  local oid="$2"
+  curl -v "$GITSERVER/$reponame.git/info/lfs/delete/$oid" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+
+  grep "200 OK" http.log
+}
+
 # check that the object does exist in the git lfs server. HTTP log is written
 # to http.log. JSON output is written to http.json.
 assert_server_object() {
