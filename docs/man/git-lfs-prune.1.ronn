@@ -51,14 +51,17 @@ Here are the git-config(1) settings that control this behaviour:
   The number of extra days added to the fetch recent settings when using them
   to decide when to prune. So for a reference to be considered old enough to
   prune, it has to be this many days older than the oldest reference that would 
-  be downloaded via `git lfs fetch --recent`. Default 3 days.
+  be downloaded via `git lfs fetch --recent`. Only used if the relevant
+  fetch recent 'days' setting is non-zero. Default 3 days.
 
 * `lfs.fetchrecentrefsdays` <br/>
   `lfs.fetchrecentremoterefs` <br/>
   `lfs.fetchrecentcommitsdays` <br/>
   These have the same meaning as git-lfs-fetch(1) with the `--recent` option,
   they are used as a base for the offset above. Anything which falls outside
-  of this offsetted window is considered old enough to prune.
+  of this offsetted window is considered old enough to prune. If a day value is
+  zero, that condition is not used at all to retain objects and they will be
+  pruned.
 
 ## UNPUSHED LFS FILES
 
