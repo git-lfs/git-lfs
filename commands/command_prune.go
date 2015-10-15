@@ -132,7 +132,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", pointer.Oid, humanizeBytes(pointer.Size)))
 			}
 			if verifyRemote {
-				tracerx.Printf("VERIFYING: %v\n", pointer.Oid)
+				tracerx.Printf("VERIFYING: %v", pointer.Oid)
 				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
 			}
 		}
@@ -145,7 +145,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		go func() {
 			for oid := range verifyc {
 				verifiedObjects.Add(oid)
-				tracerx.Printf("VERIFIED: %v\n", oid)
+				tracerx.Printf("VERIFIED: %v", oid)
 				progressChan <- PruneProgress{PruneProgressTypeVerify, 1}
 			}
 			verifywait.Done()
@@ -189,7 +189,7 @@ func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObje
 				problems.WriteString(fmt.Sprintf(" * %v\n", oid))
 			} else {
 				// Just to indicate why it doesn't matter that we didn't verify
-				tracerx.Printf("UNREACHABLE: %v\n", oid)
+				tracerx.Printf("UNREACHABLE: %v", oid)
 			}
 		}
 	}
