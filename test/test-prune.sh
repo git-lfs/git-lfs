@@ -454,6 +454,78 @@ end_test
 
 begin_test "prune verify"
 (
+  set -e
+
+  reponame="prune_verify"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  content_head="HEAD content"
+  content_commit3="Content for commit 3 (prune)"
+  content_commit2_failverify="Content for commit 2 (prune - fail verify)"
+  content_commit1="Content for commit 1 (prune)"
+  oid_head=$(calc_oid "$content_head")
+  oid_commit3=$(calc_oid "$content_commit3")
+  oid_commit2_failverify=$(calc_oid "$content_commit2_failverify")
+  oid_commit1=$(calc_oid "$content_commit1")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit1}, \"Data\":\"$content_commit1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -40d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit2_failverify}, \"Data\":\"$content_commit2_failverify\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -35d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit3}, \"Data\":\"$content_commit3\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -25d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # push all so no unpushed reason to not prune
+  git push origin master
+
+  # set no recents so max ability to prune normally
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 0 
+  git config lfs.pruneoffsetdays 1
+
+  # confirm that it would prune with verify when no issues
+  git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
+  cat prune.log
+  grep "4 local objects, 1 retained, 3 verified with remote" prune.log
+  grep "3 files would be pruned" prune.log
+  grep "$oid_commit3" prune.log
+  grep "$oid_commit2_failverify" prune.log
+  grep "$oid_commit1" prune.log
+
+  # delete one file on the server to make the verify fail
+  delete_server_object "remote_$reponame" "$oid_commit2_failverify"
+  # this should now fail
+  git lfs prune --verify-remote 2>&1 | tee prune.log
+  cat prune.log
+  grep "4 local objects, 1 retained, 2 verified with remote" prune.log
+  grep "missing on remote:" prune.log
+  grep "$oid_commit2_failverify" prune.log
+  # Nothing should have been deleted
+  assert_local_object "$oid_commit1" "${#content_commit1}"
+  assert_local_object "$oid_commit2_failverify" "${#content_commit2_failverify}"
+  assert_local_object "$oid_commit3" "${#content_commit3}"
 )
 end_test
 
