@@ -117,7 +117,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	var verifiedObjects lfs.StringSet
 	var totalSize int64
 	var verboseOutput bytes.Buffer
-	if verifyRemote && !dryRun {
+	if verifyRemote {
 		lfs.Config.CurrentRemote = lfs.Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
 		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
@@ -131,12 +131,12 @@ func prune(verifyRemote, dryRun, verbose bool) {
 				// Save up verbose output for the end, spinner still going
 				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", pointer.Oid, humanizeBytes(pointer.Size)))
 			}
-			if verifyRemote && !dryRun {
+			if verifyRemote {
 				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
 			}
 		}
 	}
-	if verifyRemote && !dryRun {
+	if verifyRemote {
 		// this channel is filled with oids for which Check() succeeded & Transfer() was called
 		verifyc := verifyQueue.Watch()
 		var verifywait sync.WaitGroup
