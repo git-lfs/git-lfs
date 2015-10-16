@@ -49,6 +49,13 @@ TESTHOME="$REMOTEDIR/home"
 
 GIT_CONFIG_NOSYSTEM=1
 
+UNAME=$(uname -s)
+IS_MINGW_CYGWIN=0
+if [[ $UNAME == MINGW* || $UNAME == CYGWIN* ]]
+then
+  IS_MINGW_CYGWIN=1
+fi
+
 export CREDSDIR
 
 if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]

@@ -382,3 +382,14 @@ get_date() {
     date $ARGS -u +%Y-%m-%dT%TZ
   fi
 }
+
+# Convert potentially MinGW bash paths to native Windows paths
+# Needed to match generic built paths in test scripts to native paths generated from Go
+native_path() {
+  if [ $IS_MINGW_CYGWIN ]; then
+    # Use params form to avoid interpreting any '\' characters
+    printf '%s' "$(cygpath -w $1)"
+  else
+    printf '%s' "$1"
+  fi
+}
