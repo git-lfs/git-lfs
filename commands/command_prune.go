@@ -50,7 +50,7 @@ const (
 
 // Progress from a sub-task of prune
 type PruneProgress struct {
-	Type  PruneProgressType
+	ProgressType  PruneProgressType
 	Count int // Number of items done
 }
 type PruneProgressChan chan PruneProgress
@@ -220,7 +220,7 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 	verifyCount := 0
 	var msg string
 	for p := range progressChan {
-		switch p.Type {
+		switch p.ProgressType {
 		case PruneProgressTypeLocal:
 			localCount++
 		case PruneProgressTypeRetain:
