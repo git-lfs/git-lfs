@@ -21,6 +21,9 @@ In general terms, prune will delete files you're not currently using and which
 are not 'recent', so long as they've been pushed i.e. the local copy is not the
 only one.
 
+The reflog is not considered, only commits. Therefore LFS objects that are
+only referenced by orphaned commits are always deleted.
+
 ## OPTIONS
 
 * `--dry-run` `-d`
