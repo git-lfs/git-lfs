@@ -46,18 +46,26 @@ begin_test "env with origin remote"
   git init
   git remote add origin "$GITSERVER/env-origin-remote"
 
-  expected=$(printf "%s\n%s\n
-Endpoint=$GITSERVER/$reponame.git/info/lfs (auth=none)
-LocalWorkingDir=$TRASHDIR/$reponame
-LocalGitDir=$TRASHDIR/$reponame/.git
-LocalGitStorageDir=$TRASHDIR/$reponame/.git
-LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
-TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
+  endpoint="$GITSERVER/$reponame.git/info/lfs (auth=none)"
+  localwd=$(native_path "$TRASHDIR/$reponame")
+  localgit=$(native_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  expected=$(printf '%s
+%s
+
+Endpoint=%s
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-$(env | grep "^GIT")
 %s
-" "$(git lfs version)" "$(git version)" "$envInitConfig")
+%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
