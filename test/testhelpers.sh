@@ -386,10 +386,11 @@ get_date() {
 # Convert potentially MinGW bash paths to native Windows paths
 # Needed to match generic built paths in test scripts to native paths generated from Go
 native_path() {
-  if [ $IS_MINGW_CYGWIN ]; then
+  local arg=$1
+  if [ $IS_MINGW_CYGWIN == "1" ]; then
     # Use params form to avoid interpreting any '\' characters
-    printf '%s' "$(cygpath -w $1)"
+    printf '%s' "$(cygpath -w $arg)"
   else
-    printf '%s' "$1"
+    printf '%s' "$arg"
   fi
 }
