@@ -78,6 +78,10 @@ Invalid LFS operation: "wat"
 
 HTTPS is strongly encouraged for all production Git LFS servers.
 
+If your Git LFS server authenticates with NTLM then you must provide your credentials to `git-credential`
+in the form `username:DOMAIN\user password:password`. You must additionally set `ConcurrentTransfers=1` in
+your Git config.
+
 ### Hypermedia
 
 The Git LFS API uses hypermedia hints to instruct the client what to do next.
