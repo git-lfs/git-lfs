@@ -94,7 +94,7 @@ func negotiate(request *http.Request, message string) ([]byte, error) {
 	request.Header.Add("Authorization", message)
 	res, err := Config.HttpClient().Do(request)
 
-	if res == nil && err != nil{
+	if res == nil && err != nil {
 		return nil, err
 	}
 
@@ -107,7 +107,7 @@ func negotiate(request *http.Request, message string) ([]byte, error) {
 	defer res.Body.Close()
 	defer io.Copy(ioutil.Discard, res.Body)
 
-	return ret, nil;
+	return ret, nil
 }
 
 func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error) {
