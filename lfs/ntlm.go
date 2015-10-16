@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"io"
 	"io/ioutil"
@@ -18,7 +19,8 @@ func (c *Configuration) ntlmClientSession(creds Creds) (ntlm.ClientSession, erro
 	splits := strings.Split(creds["username"], "\\")
 
 	if len(splits) != 2 {
-		return nil, errors.New("Your user name must be of the form DOMAIN\\user.")
+		errorMessage := fmt.Sprintf("Your user name must be of the form DOMAIN\\user. It is currently %s", creds["username"], "string")
+		return nil, errors.New(errorMessage)
 	}
 
 	session, err := ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
