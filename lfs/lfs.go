@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/github/git-lfs/git"
@@ -82,6 +83,8 @@ func Environ() []string {
 		fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer()),
 	)
 
+	// Sort environment so consistent to test
+	sort.Strings(osEnviron)
 	for _, e := range osEnviron {
 		if !strings.Contains(e, "GIT_") {
 			continue
