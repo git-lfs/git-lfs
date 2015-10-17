@@ -16,9 +16,8 @@ var (
 	fsckDryRun bool
 
 	fsckCmd = &cobra.Command{
-		Use:   "fsck",
-		Short: "Verifies validity of Git LFS files",
-		Run:   fsckCommand,
+		Use: "fsck",
+		Run: fsckCommand,
 	}
 )
 

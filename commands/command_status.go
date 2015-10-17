@@ -10,9 +10,8 @@ import (
 
 var (
 	statusCmd = &cobra.Command{
-		Use:   "status",
-		Short: "Show information about Git LFS objects that would be pushed",
-		Run:   statusCommand,
+		Use: "status",
+		Run: statusCommand,
 	}
 	porcelain = false
 )

@@ -9,9 +9,8 @@ import (
 
 var (
 	extCmd = &cobra.Command{
-		Use:   "ext",
-		Short: "View details for all extensions",
-		Run:   extCommand,
+		Use: "ext",
+		Run: extCommand,
 	}
 
 	extListCmd = &cobra.Command{
