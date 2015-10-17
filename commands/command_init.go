@@ -22,9 +22,7 @@ var (
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	if localInit {
-		requireInRepo()
-	}
+	requireInRepo()
 
 	opt := lfs.InstallOptions{Force: forceInit, Local: localInit}
 	if skipSmudgeInit {
