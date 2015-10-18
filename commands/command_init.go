@@ -22,7 +22,13 @@ var (
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	requireInRepo()
+	if localInit {
+		requireInRepo()
+	}
+
+	if lfs.LocalGitDir == "" {
+		Print("Not a git repository.")
+	}
 
 	opt := lfs.InstallOptions{Force: forceInit, Local: localInit}
 	if skipSmudgeInit {
