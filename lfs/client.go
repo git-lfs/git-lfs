@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -108,14 +109,20 @@ func (e *ClientError) Error() string {
 // API will be used, but if the server does not implement the batch operations
 // it will fall back to the legacy API.
 func Download(oid string) (io.ReadCloser, int64, error) {
+	if !Config.BatchTransfer() {
+		return DownloadLegacy(oid)
+	}
+
 	objects := []*objectResource{&objectResource{Oid: oid}}
 	objs, err := Batch(objects, "download")
 	if err != nil {
 		if IsNotImplementedError(err) {
+			git.Config.SetLocal("", "lfs.batch", "false")
 			return DownloadLegacy(oid)
 		}
 		return nil, 0, err
 	}
+
 	if len(objs) != 1 { // Expecting to find one object
 		return nil, 0, Error(fmt.Errorf("Object not found: %s", oid))
 	}
