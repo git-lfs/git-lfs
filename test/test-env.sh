@@ -323,21 +323,6 @@ git config filter.lfs.clean = \"\"
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
   [ "$expected5" = "$actual5" ]
 
-  expected6=$(printf "%s\n%s\n
-LocalWorkingDir=$TRASHDIR/$reponame/a/b
-LocalGitDir=$TRASHDIR/$reponame/.git
-LocalGitStorageDir=$TRASHDIR/$reponame/.git
-LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
-TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-ConcurrentTransfers=3
-BatchTransfer=true
-$(GIT_WORK_TREE=a/b env | grep "^GIT")
-git config filter.lfs.smudge = \"\"
-git config filter.lfs.clean = \"\"
-" "$(git lfs version)" "$(git version)")
-  actual6=$(GIT_WORK_TREE=a/b git lfs env)
-  [ "$expected6" = "$actual6" ]
-
   cd $TRASHDIR/$reponame/a/b
   expected7=$(printf "%s\n%s\n
 LocalWorkingDir=$TRASHDIR/$reponame/a/b
@@ -367,5 +352,30 @@ $(GIT_WORK_TREE=$workTree env | grep "^GIT")
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
   actual8=$(GIT_WORK_TREE=$workTree git lfs env)
   [ "$expected8" = "$actual8" ]
+)
+end_test
+
+
+begin_test "env with bare repo"
+(
+  set -e
+  reponame="env-with-bare-repo"
+  git init --bare $reponame
+  cd $reponame
+
+  expected=$(printf "%s\n%s\n
+LocalWorkingDir=
+LocalGitDir=$TRASHDIR/$reponame
+LocalGitStorageDir=$TRASHDIR/$reponame
+LocalMediaDir=$TRASHDIR/$reponame/lfs/objects
+TempDir=$TRASHDIR/$reponame/lfs/tmp
+ConcurrentTransfers=3
+BatchTransfer=true
+$(env | grep "^GIT")
+%s
+" "$(git lfs version)" "$(git version)" "$envInitConfig")
+  actual=$(git lfs env)
+  [ "$expected" = "$actual" ]
+
 )
 end_test
