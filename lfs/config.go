@@ -182,13 +182,13 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 		git.Config.UnsetLocalKey("", key)
 
 		c.loading.Lock()
-		delete(c.gitConfig, key)
+		delete(c.gitConfig, strings.ToLower(key))
 		c.loading.Unlock()
 	default:
 		git.Config.SetLocal("", key, authType)
 
 		c.loading.Lock()
-		c.gitConfig[key] = authType
+		c.gitConfig[strings.ToLower(key)] = authType
 		c.loading.Unlock()
 	}
 }
