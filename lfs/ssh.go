@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"bytes"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
@@ -37,12 +38,22 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 	cmd := exec.Command(exe, args...)
 
-	out, err := cmd.CombinedOutput()
+	// Save stdout and stderr in separate buffers
+	var outbuf, errbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	cmd.Stderr = &errbuf
 
+	// Execute command
+	err := cmd.Start()
+	if err == nil {
+		err = cmd.Wait()
+	}
+
+	// Processing result
 	if err != nil {
-		res.Message = string(out)
+		res.Message = errbuf.String()
 	} else {
-		err = json.Unmarshal(out, &res)
+		err = json.Unmarshal(outbuf.Bytes(), &res)
 	}
 
 	return res, err
