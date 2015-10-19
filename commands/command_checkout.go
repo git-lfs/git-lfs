@@ -225,7 +225,8 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 	if cmd != nil && updateIdxStdin != nil {
 		updateIdxStdin.Close()
 		if err := cmd.Wait(); err != nil {
-			Panic(err, "Error updating the git index")
+			outp, _ := cmd.CombinedOutput()
+			LoggedError(err, "Error updating the git index\n%v", string(outp))
 		}
 	}
 }
