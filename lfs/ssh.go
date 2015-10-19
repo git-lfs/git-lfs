@@ -1,11 +1,11 @@
 package lfs
 
 import (
+	"bytes"
 	"encoding/json"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"bytes"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
