@@ -219,6 +219,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		tracerx.Printf("api error: %s", err)
+		return nil, Error(err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
