@@ -85,8 +85,7 @@ Git LFS initialized."
 Git LFS initialized." = "$(git lfs init --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  # TODO: FIX FOR DOCKER TESTS
-  exit 0
+  [ -n "$LFS_DOCKER" ] && exit 0
 
   echo "test with bare repository"
   cd ..
@@ -140,8 +139,7 @@ begin_test "init --local outside repository"
 (
   set +e
 
-  # TODO: FIX FOR DOCKER TESTS
-  exit 0
+  [ -n "$LFS_DOCKER" ] && exit 0
 
   git lfs init --local 2> err.log
   res=$?
