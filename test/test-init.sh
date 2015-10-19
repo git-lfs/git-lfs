@@ -98,6 +98,30 @@ Git LFS initialized." = "$(git lfs init --force)" ]
 )
 end_test
 
+begin_test "init outside repository directory"
+(
+  set -e
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  git lfs init 2>&1 > check.log
+
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  cat check.log
+
+  # doesn't print this because being in a git repo is not necessary for init
+  [ "$(grep -c "Not in a git repository" check.log)" = "0" ]
+)
+end_test
+
 begin_test "init --skip-smudge"
 (
   set -e

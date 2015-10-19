@@ -107,18 +107,33 @@ end_test
 
 begin_test "update: outside git repository"
 (
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
   set +e
   git lfs update 2>&1 > check.log
   res=$?
-  overwrite="$(grep "overwrite" check.log)"
-
   set -e
+
   if [ "$res" = "0" ]; then
-    echo "Passes because $GIT_LFS_TEST_DIR is unset."
-    exit 0
+    if [ -z "$GIT_LFS_TEST_DIR" ]; then
+      echo "Passes because $GIT_LFS_TEST_DIR is unset."
+      exit 0
+    fi
   fi
+
   [ "$res" = "128" ]
-  [ -z "$overwrite" ]
+
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  cat check.log
   grep "Not in a git repository" check.log
 )
 end_test
