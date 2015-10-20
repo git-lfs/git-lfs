@@ -26,6 +26,10 @@ func initCommand(cmd *cobra.Command, args []string) {
 		requireInRepo()
 	}
 
+	if lfs.LocalGitDir == "" {
+		Print("Not a git repository.")
+	}
+
 	opt := lfs.InstallOptions{Force: forceInit, Local: localInit}
 	if skipSmudgeInit {
 		// assume the user is changing their smudge mode, so enable force implicitly
