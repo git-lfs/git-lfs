@@ -387,7 +387,7 @@ get_date() {
 # Needed to match generic built paths in test scripts to native paths generated from Go
 native_path() {
   local arg=$1
-  if [ $IS_MINGW_CYGWIN == "1" ]; then
+  if [ $IS_WINDOWS == "1" ]; then
     # Use params form to avoid interpreting any '\' characters
     printf '%s' "$(cygpath -w $arg)"
   else
