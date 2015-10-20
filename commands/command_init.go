@@ -37,7 +37,10 @@ func initCommand(cmd *cobra.Command, args []string) {
 		Exit("Run `git lfs init --force` to reset git config.")
 	}
 
-	initHooksCommand(cmd, args)
+	if localInit || lfs.InRepo() {
+		initHooksCommand(cmd, args)
+	}
+
 	Print("Git LFS initialized.")
 }
 

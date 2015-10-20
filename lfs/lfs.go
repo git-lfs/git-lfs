@@ -93,7 +93,7 @@ func Environ() []string {
 }
 
 func InRepo() bool {
-	return LocalWorkingDir != ""
+	return LocalGitDir != ""
 }
 
 func ResolveDirs() {

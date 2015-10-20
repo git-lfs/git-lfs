@@ -85,8 +85,7 @@ Git LFS initialized."
 Git LFS initialized." = "$(git lfs init --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  # TODO: FIX FOR DOCKER TESTS
-  exit 0
+  [ -n "$LFS_DOCKER" ] && exit 0
 
   echo "test with bare repository"
   cd ..
@@ -96,6 +95,30 @@ Git LFS initialized." = "$(git lfs init --force)" ]
   git lfs init
   ls -al hooks
   [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
+)
+end_test
+
+begin_test "init outside repository directory"
+(
+  set -e
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  git lfs init 2>&1 > check.log
+
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  cat check.log
+
+  # doesn't print this because being in a git repo is not necessary for init
+  [ "$(grep -c "Not in a git repository" check.log)" = "0" ]
 )
 end_test
 
@@ -140,8 +163,7 @@ begin_test "init --local outside repository"
 (
   set +e
 
-  # TODO: FIX FOR DOCKER TESTS
-  exit 0
+  [ -n "$LFS_DOCKER" ] && exit 0
 
   git lfs init --local 2> err.log
   res=$?
