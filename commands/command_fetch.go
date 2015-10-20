@@ -28,12 +28,17 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) > 0 {
 		// Remote is first arg
+		if err := git.ValidateRemote(args[0]); err != nil {
+			Exit("Invalid remote name %q", args[0])
+		}
 		lfs.Config.CurrentRemote = args[0]
 	} else {
-		trackedRemote, err := git.CurrentRemote()
-		if err == nil {
-			lfs.Config.CurrentRemote = trackedRemote
-		} // otherwise leave as default (origin)
+		// Actively find the default remote, don't just assume origin
+		defaultRemote, err := git.DefaultRemote()
+		if err != nil {
+			Exit("No default remote")
+		}
+		lfs.Config.CurrentRemote = defaultRemote
 	}
 
 	if len(args) > 1 {
