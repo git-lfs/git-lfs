@@ -18,7 +18,7 @@ begin_test "checkout"
   contentsize=19
   contents_oid=$(calc_oid "$contents")
 
-  # Same content everywhere is ok, just one object in lfs db
+  echo "Same content everywhere is ok, just one object in lfs db"
   printf "$contents" > file1.dat
   printf "$contents" > file2.dat
   printf "$contents" > file3.dat
@@ -40,7 +40,7 @@ begin_test "checkout"
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
-  # checkout should replace all
+  echo "checkout should replace all"
   git lfs checkout
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file2.dat)" ]
@@ -51,7 +51,7 @@ begin_test "checkout"
   # Remove again
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
-  # checkout with filters
+  echo "checkout with filters"
   git lfs checkout file2.dat
   [ "$contents" = "$(cat file2.dat)" ]
   [ ! -f file1.dat ]
@@ -59,14 +59,14 @@ begin_test "checkout"
   [ ! -f folder1/nested.dat ]
   [ ! -f folder2/nested.dat ]
 
-  # quotes to avoid shell globbing
+  echo "quotes to avoid shell globbing"
   git lfs checkout "file*.dat"
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ ! -f folder1/nested.dat ]
   [ ! -f folder2/nested.dat ]
 
-  # test subdir context
+  echo "test subdir context"
   pushd folder1
   git lfs checkout nested.dat
   [ "$contents" = "$(cat nested.dat)" ]
@@ -77,11 +77,11 @@ begin_test "checkout"
   [ "$contents" = "$(cat nested.dat)" ]
   popd
 
-  # test folder param
+  echo "test folder param"
   git lfs checkout folder2
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
-  # test '.' in current dir
+  echo "test '.' in current dir"
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
   git lfs checkout .
   [ "$contents" = "$(cat file1.dat)" ]
@@ -90,7 +90,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
-  # test checkout with missing data doesn't fail
+  echo "test checkout with missing data doesn't fail"
   git push origin master
   rm -rf .git/lfs/objects
   rm file*.dat
