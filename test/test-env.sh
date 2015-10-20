@@ -244,7 +244,7 @@ begin_test "env with .gitconfig"
   echo '[remote "origin"]
 	lfsurl = http://foobar:8080/
 [lfs]
-     batch = true
+     batch = false
 	concurrenttransfers = 5
 ' > .gitconfig
 
@@ -255,7 +255,7 @@ LocalGitDir=$TRASHDIR/$reponame/.git
 LocalGitStorageDir=$TRASHDIR/$reponame/.git
 LocalMediaDir=$TRASHDIR/$reponame/.git/lfs/objects
 TempDir=$TRASHDIR/$reponame/.git/lfs/tmp
-ConcurrentTransfers=5
+ConcurrentTransfers=3
 BatchTransfer=true
 $(env | grep "^GIT")
 %s
