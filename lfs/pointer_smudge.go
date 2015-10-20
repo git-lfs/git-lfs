@@ -154,7 +154,8 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 //            external Git LFS tools.
 func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb CopyCallback) error {
 	oid := filepath.Base(filename)
-	f, err := ioutil.TempFile(LocalObjectTempDir, oid)
+	tempPrefix := fmt.Sprintf("%s-%d", oid, os.Getpid())
+	f, err := ioutil.TempFile(LocalObjectTempDir, tempPrefix)
 	if err != nil {
 		return fmt.Errorf("cannot create temp file: %v", err)
 	}
