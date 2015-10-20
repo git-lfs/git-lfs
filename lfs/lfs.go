@@ -28,6 +28,7 @@ var (
 	LocalGitDir        string // parent of index / config / hooks etc
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
+	LocalObjectTempDir string // where temporariliy downloading objects are stored
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -112,7 +113,8 @@ func ResolveDirs() {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
 
-		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
+		LocalObjectTempDir = filepath.Join(TempDir, "objects")
+		if err := os.MkdirAll(LocalObjectTempDir, tempDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 	}
