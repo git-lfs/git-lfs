@@ -18,6 +18,10 @@ begin_test "env with no remote"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
 
   expected=$(printf '%s
 %s
@@ -29,9 +33,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 )
@@ -52,6 +55,10 @@ begin_test "env with origin remote"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
   expected=$(printf '%s
 %s
 
@@ -63,9 +70,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -93,6 +99,10 @@ begin_test "env with multiple remotes"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
   expected=$(printf '%s
 %s
 
@@ -105,9 +115,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -133,6 +142,10 @@ begin_test "env with other remote"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
 
   expected=$(printf '%s
 %s
@@ -145,9 +158,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -175,6 +187,10 @@ begin_test "env with multiple remotes and lfs.url config"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
   expected=$(printf '%s
 %s
 
@@ -187,9 +203,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -218,6 +233,10 @@ begin_test "env with multiple remotes and lfs configs"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
   expected=$(printf '%s
 %s
 
@@ -230,9 +249,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -263,6 +281,10 @@ begin_test "env with multiple remotes and lfs url and batch configs"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
   expected=$(printf '%s
 %s
 
@@ -275,9 +297,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=5
 BatchTransfer=false
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -309,6 +330,10 @@ begin_test "env with .gitconfig"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  if [[ "${#envVars}" != "0" ]]; then
+    envVars="\n$envVars"
+  fi
   expected=$(printf '%s
 %s
 
@@ -320,9 +345,8 @@ LocalMediaDir=%s
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$(env | grep "^GIT")" "$envInitConfig")
+%s%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   [ "$expected" = "$actual" ]
 
@@ -348,7 +372,7 @@ begin_test "env with environment variables"
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  env="$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
+  envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
   expected=$(printf '%s
 %s
 
@@ -361,7 +385,7 @@ ConcurrentTransfers=3
 BatchTransfer=true
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$env" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
 
   actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
   [ "$expected" = "$actual" ]
@@ -378,7 +402,7 @@ BatchTransfer=true
   actual4=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
   [ "$expected" = "$actual4" ]
 
-  env="$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT" | sort)"
+  envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT" | sort)"
   expected5=$(printf '%s
 %s
 
@@ -392,12 +416,12 @@ BatchTransfer=true
 %s
 git config filter.lfs.smudge = \"\"
 git config filter.lfs.clean = \"\"
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$env")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
   [ "$expected5" = "$actual5" ]
 
   cd $TRASHDIR/$reponame/a/b
-  env="$(GIT_DIR=$gitDir env | grep "^GIT" | sort)"
+  envVars="$(GIT_DIR=$gitDir env | grep "^GIT" | sort)"
   expected7=$(printf '%s
 %s
 
@@ -410,12 +434,12 @@ ConcurrentTransfers=3
 BatchTransfer=true
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$env" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual7=$(GIT_DIR=$gitDir git lfs env)
   [ "$expected7" = "$actual7" ]
 
   cd $TRASHDIR/$reponame/a
-  env="$(GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
+  envVars="$(GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
   expected8=$(printf '%s
 %s
 
@@ -428,7 +452,7 @@ ConcurrentTransfers=3
 BatchTransfer=true
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$env" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual8=$(GIT_WORK_TREE=$workTree git lfs env)
   [ "$expected8" = "$actual8" ]
 )
