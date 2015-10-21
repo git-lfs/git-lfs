@@ -24,7 +24,7 @@ func main() {
 			case os.Interrupt, os.Kill:
 				fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
 				if commands.Erroring {
-					os.Exit(1)
+					os.Exit(2)
 				}
 				os.Exit(0)
 			}
