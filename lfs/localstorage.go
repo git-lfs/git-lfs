@@ -20,7 +20,7 @@ func ClearTempObjects() {
 }
 
 func shouldDeleteTempObject(path string, info os.FileInfo) bool {
-	if info.IsDir() {
+	if info == nil || info.IsDir() {
 		return false
 	}
 
@@ -37,7 +37,7 @@ func shouldDeleteTempObject(path string, info os.FileInfo) bool {
 		return true
 	}
 
-	if time.Since(info.ModTime()) > (3 * time.Hour) {
+	if time.Since(info.ModTime()) > time.Hour {
 		tracerx.Printf("Removing old tmp object file: %s", path)
 		return true
 	}
