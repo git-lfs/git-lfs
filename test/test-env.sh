@@ -455,7 +455,7 @@ begin_test "env with bare repo"
   localgitstore=$(native_path "$TRASHDIR/$reponame")
   localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
-  env="$(env | grep "^GIT")"
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expected=$(printf "%s\n%s\n
 LocalWorkingDir=
@@ -467,9 +467,9 @@ ConcurrentTransfers=3
 BatchTransfer=true
 %s
 %s
-" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$env" "$envInitConfig")
+" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
-  [ "$expected" = "$actual" ]
+  contains_same_elements "$expected" "$actual"
 
 )
 end_test
