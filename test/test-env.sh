@@ -246,7 +246,7 @@ BatchTransfer=true
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
   actual2=$(git lfs env)
-  [ "$expected2" = "$actual2" ]
+  contains_same_elements "$expected2" "$actual2"
 )
 end_test
 
