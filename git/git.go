@@ -224,6 +224,12 @@ func (c *gitConfig) Find(val string) string {
 }
 
 // Find returns the git config value for the key
+func (c *gitConfig) FindGlobal(val string) string {
+	output, _ := simpleExec("git", "config", "--global", val)
+	return output
+}
+
+// Find returns the git config value for the key
 func (c *gitConfig) FindLocal(val string) string {
 	output, _ := simpleExec("git", "config", "--local", val)
 	return output
