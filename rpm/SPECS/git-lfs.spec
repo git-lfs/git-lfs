@@ -8,6 +8,7 @@ License:        MIT
 URL:            https://git-lfs.github.com/
 Source0:        https://github.com/github/git-lfs/archive/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires:  perl-Digest-SHA
 BuildRequires:  golang, tar, rubygem-ronn, git
 
 %define debug_package %{nil}
