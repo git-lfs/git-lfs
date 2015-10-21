@@ -394,3 +394,12 @@ native_path() {
     printf '%s' "$arg"
   fi
 }
+
+# Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
+contains_same_elements() {
+  # Remove blank lines then sort
+  local a="$(printf $1 | grep -v '^$' | sort)"
+  local b="$(printf $2 | grep -v '^$' | sort)"
+
+  [ "$a" == "$b" ]
+}
