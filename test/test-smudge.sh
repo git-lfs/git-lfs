@@ -2,34 +2,6 @@
 
 . "test/testlib.sh"
 
-begin_test "smudge with temp file"
-(
-  set -e
-    set -e
-
-    reponame="$(basename "$0" ".sh")-with-temp"
-    setup_remote_repo "$reponame"
-    clone_repo "$reponame" repo
-
-    git lfs track "*.dat"
-    echo "smudge a" > a.dat
-    git add .gitattributes a.dat
-    git commit -m "add a.dat"
-
-    git push origin master
-    rm -rf .git/lfs/objects
-    mkdir -p .git/lfs/tmp/objects
-    touch .git/lfs/tmp/objects/fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254-1
-    pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | GIT_TRACE=5 git lfs smudge | tee smudge.log
-    [ "smudge a" = "$(cat smudge.log)" ] || {
-      git lfs logs last
-      exit 1
-    }
-)
-end_test
-
-exit 0
-
 begin_test "smudge"
 (
   set -e
@@ -63,6 +35,32 @@ begin_test "smudge --info"
   cd repo
   output="$(pointer aaaaa15df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 123 | git lfs smudge --info)"
   [ "123 --" = "$output" ]
+)
+end_test
+
+begin_test "smudge with temp file"
+(
+  set -e
+    set -e
+
+    reponame="$(basename "$0" ".sh")-with-temp"
+    setup_remote_repo "$reponame"
+    clone_repo "$reponame" repo
+
+    git lfs track "*.dat"
+    echo "smudge a" > a.dat
+    git add .gitattributes a.dat
+    git commit -m "add a.dat"
+
+    git push origin master
+    rm -rf .git/lfs/objects
+    mkdir -p .git/lfs/tmp/objects
+    touch .git/lfs/tmp/objects/fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254-1
+    pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | GIT_TRACE=5 git lfs smudge | tee smudge.log
+    [ "smudge a" = "$(cat smudge.log)" ] || {
+      git lfs logs last
+      exit 1
+    }
 )
 end_test
 
