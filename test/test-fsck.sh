@@ -38,8 +38,9 @@ begin_test "fsck default"
 
   echo "CORRUPTION" >> .git/lfs/objects/$aOid12/$aOid34/$aOid
 
-  expected="Object a.dat ($aOid) is corrupt
-  moved to $TRASHDIR/$reponame/.git/lfs/bad/$aOid"
+  moved=$(native_path "$TRASHDIR/$reponame/.git/lfs/bad/$aOid")
+  expected="$(printf 'Object a.dat (%s) is corrupt
+  moved to %s' "$aOid" "$moved")"
   [ "$expected" = "$(git lfs fsck)" ]
 
   if [ -e .git/lfs/objects/$aOid12/$aOid34/$aOid ]; then
