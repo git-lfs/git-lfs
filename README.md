@@ -20,6 +20,7 @@ preferences.
 * Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs).
 * Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
+* You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
 Once installed, you can run `git lfs init` to setup the global Git hooks
 necessary for Git LFS to work. You can get help on specific commands directly:
