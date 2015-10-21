@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/natefinch/atomic"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -199,7 +198,7 @@ func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb Copy
 		}
 	}
 
-	if err := atomic.ReplaceFile(name, filename); err != nil {
+	if err := os.Rename(name, filename); err != nil {
 		return fmt.Errorf("cannot replace %q with tempfile %q: %v", filename, name, err)
 	}
 	return nil

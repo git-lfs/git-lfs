@@ -14,7 +14,6 @@ authors = [
 "github.com/kr/pty"                             = "5cf931ef8f76dccd0910001d74a58a7fca84a83d"
 "github.com/kr/text"                            = "6807e777504f54ad073ecef66747de158294b639"
 "github.com/inconshreveable/mousetrap"          = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
-"github.com/natefinch/atomic"                   = "a62ce929ffcc871a51e98c6eba7b20321e3ed62d"
 "github.com/olekukonko/ts"                      = "ecf753e7c962639ab5a1fb46f7da627d4c0a04b8"
 "github.com/rubyist/tracerx"                    = "d7bcc0bc315bed2a841841bee5dbecc8d7d7582f"
 "github.com/spf13/cobra"                        = "c55cdf33856a08e4822738728b41783292812889"

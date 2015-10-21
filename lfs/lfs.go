@@ -28,7 +28,7 @@ var (
 	LocalGitDir        string // parent of index / config / hooks etc
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
-	LocalObjectTempDir string // where temporariliy downloading objects are stored
+	LocalObjectTempDir string // where temporarily downloading objects are stored
 	LocalLogDir        string
 	checkedTempDir     string
 )
