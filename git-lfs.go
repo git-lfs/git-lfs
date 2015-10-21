@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,8 +18,16 @@ func main() {
 
 	go func() {
 		for {
-			<-c // We don't care which os.Signal was received.
+			sig := <-c
 			once.Do(lfs.ClearTempObjects)
+			switch sig {
+			case os.Interrupt, os.Kill:
+				fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
+				if commands.Erroring {
+					os.Exit(1)
+				}
+				os.Exit(0)
+			}
 		}
 	}()
 
