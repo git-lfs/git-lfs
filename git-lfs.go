@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/github/git-lfs/commands"
 	"github.com/github/git-lfs/lfs"
@@ -12,7 +13,7 @@ import (
 
 func main() {
 	c := make(chan os.Signal)
-	signal.Notify(c)
+	signal.Notify(c, os.Interrupt, os.Kill)
 
 	var once sync.Once
 
@@ -20,14 +21,13 @@ func main() {
 		for {
 			sig := <-c
 			once.Do(lfs.ClearTempObjects)
-			switch sig {
-			case os.Interrupt, os.Kill:
-				fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
-				if commands.Erroring {
-					os.Exit(2)
-				}
-				os.Exit(0)
+			fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
+
+			var exitCode int
+			if sysSig, ok := sig.(syscall.Signal); ok {
+				exitCode = int(sysSig)
 			}
+			os.Exit(exitCode + 128)
 		}
 	}()
 

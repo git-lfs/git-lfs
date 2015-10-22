@@ -21,7 +21,6 @@ import (
 
 var (
 	Debugging    = false
-	Erroring     = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
@@ -38,7 +37,6 @@ var (
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {
-	Erroring = true
 	line := format
 	if len(args) > 0 {
 		line = fmt.Sprintf(format, args...)
