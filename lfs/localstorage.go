@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,17 +11,28 @@ import (
 )
 
 func ClearTempObjects() {
-	filepath.Walk(LocalObjectTempDir, func(path string, info os.FileInfo, err error) error {
-		if shouldDeleteTempObject(path, info) {
-			return os.RemoveAll(path)
-		}
+	d, err := os.Open(LocalObjectTempDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s", LocalObjectTempDir, err)
+		return
+	}
 
-		return err
-	})
+	filenames, _ := d.Readdirnames(-1)
+	for _, filename := range filenames {
+		path := filepath.Join(LocalObjectTempDir, filename)
+		if shouldDeleteTempObject(path) {
+			os.RemoveAll(path)
+		}
+	}
 }
 
-func shouldDeleteTempObject(path string, info os.FileInfo) bool {
-	if info == nil || info.IsDir() {
+func shouldDeleteTempObject(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	if info.IsDir() {
 		return false
 	}
 
