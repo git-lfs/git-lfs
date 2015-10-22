@@ -23,7 +23,7 @@ func main() {
 			once.Do(lfs.ClearTempObjects)
 			fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
 
-			var exitCode int
+			exitCode := 1
 			if sysSig, ok := sig.(syscall.Signal); ok {
 				exitCode = int(sysSig)
 			}
