@@ -122,3 +122,48 @@ begin_test "smudge with skip"
   git lfs init --force
 )
 end_test
+
+begin_test "smudge clone with include/exclude"
+(
+  set -e
+
+  reponame="smudge_include_exclude"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" "repo_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git add .gitattributes
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  [ "a" = "$(cat a.dat)" ]
+
+  assert_local_object "$contents_oid" 1
+
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  clone="$TRASHDIR/clone_$reponame"
+  git -c lfs.fetchexclude="a*" clone "$GITSERVER/$reponame" "$clone"
+  cd "$clone"
+
+  # Should have succeeded but not downloaded
+  refute_local_object "$contents_oid"
+
+)
+end_test
+
