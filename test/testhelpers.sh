@@ -403,3 +403,9 @@ contains_same_elements() {
 
   [ "$a" == "$b" ]
 }
+
+
+is_stdin_attached() {
+  test -t0
+  echo $?
+}
