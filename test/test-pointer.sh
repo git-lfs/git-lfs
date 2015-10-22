@@ -218,7 +218,7 @@ begin_test "pointer missing --pointer"
   set -e
 
   [ "1" = "$status" ]
-  [ "open missing-pointer: no such file or directory" = "$output" ]
+  [[ "$output" == open missing-pointer:* ]]
 )
 end_test
 
