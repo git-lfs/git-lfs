@@ -93,7 +93,13 @@ end_test
 
 begin_test "pointer --stdin without stdin"
 (
-  output=$(git lfs pointer --stdin 2>&1)
+  # this test doesn't work on Windows, it just operates like 'bad pointer' case
+  # stdin isn't detectable as detached, it just times out with no content
+  if [ "$IS_WINDOWS" != "0" ]; then
+    echo "Skipping pointer without stdin because Windows doesn't have detached stdin"
+    exit 0
+  fi
+  output=$(echo "" | git lfs pointer --stdin 2>&1)
   status=$?
 
   set -e
