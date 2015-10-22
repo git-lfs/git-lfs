@@ -11,9 +11,13 @@ import (
 )
 
 func ClearTempObjects() {
+	if len(LocalObjectTempDir) == 0 {
+		return
+	}
+
 	d, err := os.Open(LocalObjectTempDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s", LocalObjectTempDir, err)
+		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", LocalObjectTempDir, err)
 		return
 	}
 
