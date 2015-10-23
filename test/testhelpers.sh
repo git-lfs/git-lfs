@@ -403,11 +403,16 @@ native_path_escaped() {
   else
     printf '%s' "$unescaped"
   fi
-    
+
 }
 
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
 contains_same_elements() {
+  printf "$1" | grep -v '^$' | sort > a.txt
+  printf "$2" | grep -v '^$' | sort > b.txt
+
+  diff -u a.txt b.txt
+
   # Remove blank lines then sort
   local a="$(printf "$1" | grep -v '^$' | sort)"
   local b="$(printf "$2" | grep -v '^$' | sort)"
