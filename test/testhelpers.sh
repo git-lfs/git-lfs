@@ -411,15 +411,14 @@ contains_same_elements() {
   printf '%s' "$1" | grep -v '^$' | sort > a.txt
   printf '%s' "$2" | grep -v '^$' | sort > b.txt
 
+  set +e
   diff -u a.txt b.txt
-
-  # Remove blank lines then sort
-  local a="$(printf "$1" | grep -v '^$' | sort)"
-  local b="$(printf "$2" | grep -v '^$' | sort)"
-
-  [ "$a" == "$b" ]
+  res=$?
+  set -e
+  rm a.txt b.txt
+  pwd
+  exit $res
 }
-
 
 is_stdin_attached() {
   test -t0

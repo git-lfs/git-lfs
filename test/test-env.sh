@@ -36,7 +36,7 @@ BatchTransfer=true
 
   actual=$(git lfs env)
 
-  echo "ASSERT" 1>&2
+  echo "ASSERT"
 
   contains_same_elements "$expected" "$actual"
 
