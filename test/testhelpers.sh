@@ -395,15 +395,20 @@ native_path() {
   fi
 }
 
-# As native_path but escape all backslash characters to "\\"
-native_path_escaped() {
-  local unescaped=$(native_path "$1")
+# escape any instance of '\' with '\\' on Windows
+escape_path() {
+  local unescaped="$1"
   if [ $IS_WINDOWS == "1" ]; then
     printf '%s' "${unescaped//\\/\\\\}"
   else
     printf '%s' "$unescaped"
   fi
-    
+}
+
+# As native_path but escape all backslash characters to "\\"
+native_path_escaped() {
+  local unescaped=$(native_path "$1")
+  escape_path "$unescaped"    
 }
 
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines

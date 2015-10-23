@@ -27,7 +27,7 @@ LocalMediaDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
 BatchTransfer=true
-$(env | grep "^GIT")
+$(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
     actual=$(git lfs env)
@@ -48,7 +48,7 @@ LocalMediaDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename/lfs/tmp")
 ConcurrentTransfers=3
 BatchTransfer=true
-$(env | grep "^GIT")
+$(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
     actual=$(git lfs env)
