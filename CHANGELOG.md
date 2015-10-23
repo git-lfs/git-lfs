@@ -1,5 +1,22 @@
 # Git LFS Changelog
 
+## 1.0.1 (23 October, 2015)
+
+* Downcase git config keys (prevents Auth loop) #690 (@WillHipschman)
+* Show more info for unexpected http responses #710 (@rubyist)
+* Use separate stdout/stderr buffers for `git-lfs-authenticate` #718 (@bozaro)
+* Use LoggedError instead of Panic if update-index fails in checkout #735 (@sinbad)
+* `smudge` command exits with non-zero if the download fails #732 (@rubyist)
+* Use `git rev-parse` to find the git working dir #692 (@sinbad)
+* Improved default remote behaviour & validation for fetch/pull #713 (@sinbad)
+* Make fetch return error code when 1+ downloads failed #734 (@sinbad)
+* Improve lfs.InRepo() detection in `init`/`update` #756 (@technoweenie)
+* whitelist the valid keys read from .gitconfig #760 (@technoweenie)
+* Teach smudge to use the batch api #711 (@rubyist)
+* Fix not setting global attribute when needed to b/c of local state #765 (@sinbad)
+* Fix clone fail when fetch is excluded globally #770 (@sinbad)
+* Fix for partial downloads problem #763 (@technoweenie)
+
 ## v1.0 (1 October, 2015)
 
 * Manual reference is integrated into the "help" options #665 @sinbad
