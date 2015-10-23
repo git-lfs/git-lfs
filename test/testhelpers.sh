@@ -408,8 +408,8 @@ native_path_escaped() {
 
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
 contains_same_elements() {
-  printf "$1" | grep -v '^$' | sort > a.txt
-  printf "$2" | grep -v '^$' | sort > b.txt
+  printf '%s' "$1" | grep -v '^$' | sort > a.txt
+  printf '%s' "$2" | grep -v '^$' | sort > b.txt
 
   diff -u a.txt b.txt
 
