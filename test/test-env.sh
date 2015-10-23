@@ -5,6 +5,38 @@
 envInitConfig='git config filter.lfs.smudge = "git-lfs smudge %f"
 git config filter.lfs.clean = "git-lfs clean %f"'
 
+begin_test "env with bare repo"
+(
+  set -e
+  reponame="env-with-bare-repo"
+  git init --bare $reponame
+  cd $reponame
+
+  localgit=$(native_path "$TRASHDIR/$reponame")
+  localgitstore=$(native_path "$TRASHDIR/$reponame")
+  localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+
+  expected=$(printf "%s\n%s\n
+LocalWorkingDir=
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+TempDir=%s
+ConcurrentTransfers=3
+BatchTransfer=true
+%s
+%s
+" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+  actual=$(git lfs env)
+  contains_same_elements "$expected" "$actual"
+
+)
+end_test
+
+exit 0
+
 begin_test "env with no remote"
 (
   set -e
