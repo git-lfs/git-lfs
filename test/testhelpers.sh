@@ -416,7 +416,6 @@ contains_same_elements() {
   res=$?
   set -e
   rm a.txt b.txt
-  pwd
   exit $res
 }
 
