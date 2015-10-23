@@ -18,7 +18,7 @@ begin_test "env with bare repo"
   tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
-  echo "SET EXPECTED"
+  echo "SET EXPECTED" 1>&2
 
   expected=$(printf "%s\n%s\n
 LocalWorkingDir=
@@ -32,11 +32,11 @@ BatchTransfer=true
 %s
 " "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
 
-  echo "SET ACTUAL"
+  echo "SET ACTUAL" 1>&2
 
   actual=$(git lfs env)
 
-  echo "ASSERT"
+  echo "ASSERT" 1>&2
 
   contains_same_elements "$expected" "$actual"
 
