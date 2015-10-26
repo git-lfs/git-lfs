@@ -6,13 +6,16 @@ begin_test "init again"
 (
   set -e
 
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  smudge="$(git config filter.lfs.smudge)"
+  clean="$(git config filter.lfs.clean)"
+
+  printf "$smudge" | grep "git-lfs smudge"
+  printf "$clean" | grep "git-lfs clean"
 
   git lfs init
 
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "$smudge" = "$(git config filter.lfs.smudge)" ]
+  [ "$clean" = "$(git config filter.lfs.clean)" ]
 )
 end_test
 
@@ -34,12 +37,12 @@ begin_test "init with old settings"
   grep -E "(clean|smudge) attribute should be" init.log
   [ `grep -c "(MISSING)" init.log` = "0" ]
 
-  [ "git lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
 
   git lfs init --force
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
 )
 end_test
 
@@ -85,7 +88,7 @@ Git LFS initialized."
 Git LFS initialized." = "$(git lfs init --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  [ -n "$LFS_DOCKER" ] && exit 0
+  has_test_dir || exit 0
 
   echo "test with bare repository"
   cd ..
@@ -127,16 +130,16 @@ begin_test "init --skip-smudge"
   set -e
 
   git lfs init
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
 
   git lfs init --skip-smudge
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs smudge --skip %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge --skip %f" = "$(git config --global filter.lfs.smudge)" ]
 
   git lfs init --force
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
 )
 end_test
 
@@ -169,7 +172,7 @@ begin_test "init --local outside repository"
 
   set +e
 
-  [ -n "$LFS_DOCKER" ] && exit 0
+  has_test_dir || exit 0
 
   git lfs init --local 2> err.log
   res=$?
