@@ -68,7 +68,7 @@ Run \`git lfs update --force\` to overwrite this hook."
   [ "Updated pre-push hook." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  [ -n "$LFS_DOCKER" ] && exit 0
+  has_test_dir || exit 0
 
   echo "test with bare repository"
   cd ..

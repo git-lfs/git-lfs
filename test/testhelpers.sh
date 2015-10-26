@@ -426,8 +426,14 @@ contains_same_elements() {
   exit $res
 }
 
-
 is_stdin_attached() {
   test -t0
   echo $?
+}
+
+has_test_dir() {
+  if [ -z "$GIT_LFS_TEST_DIR" ]; then
+    echo "No GIT_LFS_TEST_DIR. Skipping..."
+    exit 0
+  fi
 }
