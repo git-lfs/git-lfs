@@ -384,7 +384,7 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			uniqRemotes[remote] = remote == "origin"
 		}
 
-		if !allowed && key != "lfs.url" {
+		if !allowed && keyIsUnsafe(key) {
 			continue
 		}
 
@@ -402,4 +402,19 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			}
 		}
 	}
+}
+
+func keyIsUnsafe(key string) bool {
+	for _, safe := range safeKeys {
+		if safe == key {
+			return false
+		}
+	}
+	return true
+}
+
+var safeKeys = []string{
+	"lfs.url",
+	"lfs.fetchinclude",
+	"lfs.fetchexclude",
 }
