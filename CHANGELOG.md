@@ -16,6 +16,7 @@
 * Fix not setting global attribute when needed to b/c of local state #765 (@sinbad)
 * Fix clone fail when fetch is excluded globally #770 (@sinbad)
 * Fix for partial downloads problem #763 (@technoweenie)
+* Get integration tests passing on Windows #771 (@sinbad)
 
 ## v1.0 (1 October, 2015)
 
