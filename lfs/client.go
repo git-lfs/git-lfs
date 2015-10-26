@@ -425,7 +425,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, er
 	res, err := doAPIRequest(req, Config.PrivateAccess())
 
 	if err != nil {
-		if res.StatusCode == 401 {
+		if res != nil && res.StatusCode == 401 {
 			return res, nil, newAuthError(err)
 		}
 		return res, nil, err

@@ -337,7 +337,7 @@ func (c *Configuration) loadGitConfig() bool {
 	return true
 }
 
-func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, whitelisted bool) {
+func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
 		pieces := strings.SplitN(line, "=", 2)
@@ -345,7 +345,7 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			continue
 		}
 
-		allowed := !whitelisted
+		allowed := !onlySafe
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
 
@@ -355,12 +355,12 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			ext := c.extensions[name]
 			switch keyParts[3] {
 			case "clean":
-				if whitelisted {
+				if onlySafe {
 					continue
 				}
 				ext.Clean = value
 			case "smudge":
-				if whitelisted {
+				if onlySafe {
 					continue
 				}
 				ext.Smudge = value
@@ -375,7 +375,7 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			ext.Name = name
 			c.extensions[name] = ext
 		} else if len(keyParts) > 1 && keyParts[0] == "remote" {
-			if whitelisted && (len(keyParts) < 3 || keyParts[2] != "lfsurl") {
+			if onlySafe && (len(keyParts) == 3 && keyParts[2] != "lfsurl") {
 				continue
 			}
 
@@ -384,7 +384,7 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			uniqRemotes[remote] = remote == "origin"
 		}
 
-		if !allowed && key != "lfs.url" {
+		if !allowed && keyIsUnsafe(key) {
 			continue
 		}
 
@@ -402,4 +402,19 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			}
 		}
 	}
+}
+
+func keyIsUnsafe(key string) bool {
+	for _, safe := range safeKeys {
+		if safe == key {
+			return false
+		}
+	}
+	return true
+}
+
+var safeKeys = []string{
+	"lfs.url",
+	"lfs.fetchinclude",
+	"lfs.fetchexclude",
 }

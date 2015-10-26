@@ -84,7 +84,9 @@ func TestSuccessfulDownload(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
+
 	reader, size, err := Download("oid")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -213,6 +215,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
@@ -319,6 +322,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, err := Download("oid")
 	if err != nil {
@@ -419,6 +423,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	reader, size, err := Download("oid")
 	if err != nil {
@@ -550,6 +555,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	for _, redirect := range redirectCodes {
@@ -587,6 +593,7 @@ func TestDownloadAPIError(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	_, _, err := Download("oid")
 	if err == nil {
@@ -655,6 +662,7 @@ func TestDownloadStorageError(t *testing.T) {
 	})
 
 	defer Config.ResetConfig()
+	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
 	_, _, err := Download("oid")
 	if err == nil {

@@ -161,6 +161,12 @@ end_test
 
 begin_test "init --local outside repository"
 (
+  # If run inside the git-lfs source dir this will update its .git/config & cause issues
+  if [ "$GIT_LFS_TEST_DIR" == "" ]; then
+    echo "Skipping init --local because GIT_LFS_TEST_DIR is not set"
+    exit 0
+  fi
+
   set +e
 
   [ -n "$LFS_DOCKER" ] && exit 0

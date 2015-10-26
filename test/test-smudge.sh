@@ -38,6 +38,24 @@ begin_test "smudge --info"
 )
 end_test
 
+begin_test "smudge with temp file"
+(
+  set -e
+
+  cd repo
+
+  rm -rf .git/lfs/objects
+  mkdir -p .git/lfs/tmp/objects
+  touch .git/lfs/tmp/objects/fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254-1
+  pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | GIT_TRACE=5 git lfs smudge | tee smudge.log
+  [ "smudge a" = "$(cat smudge.log)" ] || {
+    rm -rf .git/lfs/tmp
+    git lfs logs last
+    exit 1
+  }
+)
+end_test
+
 begin_test "smudge with invalid pointer"
 (
   set -e
