@@ -64,9 +64,9 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   split_image_name "${DOCKER_FILE}" #set IMAGE_NAME and IMAGE_INFO
 
   #Auto build docker unless DOCKER_AUTOBUILD=0
-  if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
-    ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
-  fi
+  #if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
+  #  ${CUR_DIR}/build_dockers.bsh ${DOCKER_FILE}
+  #fi
 
   #It CAN'T be empty () with set -u... So I put some defaults in here
   OTHER_OPTIONS=("-it")
@@ -100,7 +100,7 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
                    -e FINAL_GID=${FINAL_GID} \
                    -v "${MINGW_PATCH}${REPO_DIR}:/src" \
                    -v "${MINGW_PATCH}${IMAGE_REPO_DIR}:/repo" \
-                   git-lfs/${IMAGE_NAME} ${DOCKER_CMD-}
+                   andyneff/build_git-lfs:${IMAGE_NAME} ${DOCKER_CMD-}
 
 done
 
