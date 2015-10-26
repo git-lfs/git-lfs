@@ -75,7 +75,7 @@ begin_test () {
     err="$TRASHDIR/err"
     trace="$TRASHDIR/trace"
 
-    exec 1>"$out" 2>"$err" 
+    exec 1>"$out" 2>"$err"
 
     # enabling GIT_TRACE can cause Windows git to stall, esp with fd 5
     # other fd numbers like 8/9 don't stall but still don't work, so disable
