@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	showlogs    = false
+	erroring    = false
 	maxprocs    = 4
 	testPattern = regexp.MustCompile(`test/test-([a-z\-]+)\.sh`)
 )
@@ -46,10 +46,18 @@ func mainIntegration() {
 	wg.Wait()
 	close(output)
 	printOutput(output)
+
+	if erroring {
+		os.Exit(1)
+	}
 }
 
 func runTest(output chan string, test string) {
-	out, _ := exec.Command("/bin/bash", test).CombinedOutput()
+	out, err := exec.Command("/bin/bash", test).CombinedOutput()
+	if err != nil {
+		erroring = true
+	}
+
 	output <- strings.TrimSpace(string(out))
 }
 
