@@ -227,6 +227,7 @@ setup() {
   echo
   echo "HOME: $HOME"
   echo "TMP: $TMPDIR"
+  echo "CREDS: $CREDSDIR"
   echo "lfstest-gitserver:"
   echo "  LFSTEST_URL=$LFS_URL_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
@@ -408,7 +409,7 @@ escape_path() {
 # As native_path but escape all backslash characters to "\\"
 native_path_escaped() {
   local unescaped=$(native_path "$1")
-  escape_path "$unescaped"    
+  escape_path "$unescaped"
 }
 
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
