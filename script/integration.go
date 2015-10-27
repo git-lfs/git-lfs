@@ -11,12 +11,20 @@ import (
 )
 
 var (
+	bashPath    string
+	debugging   = false
 	erroring    = false
 	maxprocs    = 4
-	testPattern = regexp.MustCompile(`test/test-([a-z\-]+)\.sh$`)
+	testPattern = regexp.MustCompile(`test[/\\]test-([a-z\-]+)\.sh$`)
 )
 
 func mainIntegration() {
+	if len(os.Getenv("DEBUG")) > 0 {
+		debugging = true
+	}
+
+	setBash()
+
 	if maxprocs < 1 {
 		maxprocs = 1
 	}
@@ -53,7 +61,7 @@ func mainIntegration() {
 }
 
 func runTest(output chan string, test string) {
-	out, err := exec.Command("/bin/bash", test).CombinedOutput()
+	out, err := exec.Command(bashPath, test).CombinedOutput()
 	if err != nil {
 		erroring = true
 	}
@@ -111,11 +119,31 @@ func testFiles() []string {
 func allTestFiles() []string {
 	files := make([]string, 0, 100)
 	filepath.Walk("test", func(path string, info os.FileInfo, err error) error {
+		if debugging {
+			fmt.Println("FOUND:", path)
+		}
 		if err != nil || info.IsDir() || !testPattern.MatchString(path) {
 			return nil
+		}
+
+		if debugging {
+			fmt.Println("MATCHING:", path)
 		}
 		files = append(files, path)
 		return nil
 	})
 	return files
+}
+
+func setBash() {
+	out, err := exec.Command("which", "bash").Output()
+	if err != nil {
+		fmt.Println("Unable to find bash:", err)
+		os.Exit(1)
+	}
+
+	bashPath = strings.TrimSpace(string(out))
+	if debugging {
+		fmt.Println("Using", bashPath)
+	}
 }
