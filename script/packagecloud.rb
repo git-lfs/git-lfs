@@ -6,6 +6,8 @@ packagecloud_token = ENV["PACKAGECLOUD_TOKEN"] || begin
   exit 1
 end
 
+require "json"
+
 begin
   require "packagecloud"
 rescue LoadError
