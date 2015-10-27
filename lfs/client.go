@@ -108,12 +108,15 @@ func (e *ClientError) Error() string {
 // Download will attempt to download the object with the given oid. The batched
 // API will be used, but if the server does not implement the batch operations
 // it will fall back to the legacy API.
-func Download(oid string) (io.ReadCloser, int64, error) {
+func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 	if !Config.BatchTransfer() {
 		return DownloadLegacy(oid)
 	}
 
-	objects := []*objectResource{&objectResource{Oid: oid}}
+	objects := []*objectResource{
+		&objectResource{Oid: oid, Size: size},
+	}
+
 	objs, err := Batch(objects, "download")
 	if err != nil {
 		if IsNotImplementedError(err) {

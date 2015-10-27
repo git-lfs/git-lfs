@@ -119,7 +119,7 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, err := Download(filepath.Base(mediafile))
+	reader, size, err := Download(filepath.Base(mediafile), ptr.Size)
 	if reader != nil {
 		defer reader.Close()
 	}
