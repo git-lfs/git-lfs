@@ -35,15 +35,9 @@ RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --define "dist ${RPM_DIST}")
 if [[ ${NODEPS:-0} != 0 ]]; then
   RPMBUILD=("${RPMBUILD[@]}" --nodeps)
 fi
-LOG=${CURDIR}/build.log
+
 SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
 export PATH=${PATH}:/usr/local/bin
-
-exec 6>&1
-exec 7>&2
-
-exec > $LOG
-exec 2>> $LOG
 
 set -vx
 
