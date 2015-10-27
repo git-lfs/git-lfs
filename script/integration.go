@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	bashPath    string
 	debugging   = false
 	erroring    = false
 	maxprocs    = 4
@@ -21,6 +22,8 @@ func mainIntegration() {
 	if len(os.Getenv("DEBUG")) > 0 {
 		debugging = true
 	}
+
+	setBash()
 
 	if maxprocs < 1 {
 		maxprocs = 1
@@ -58,7 +61,7 @@ func mainIntegration() {
 }
 
 func runTest(output chan string, test string) {
-	out, err := exec.Command("/bin/bash", test).CombinedOutput()
+	out, err := exec.Command(bashPath, test).CombinedOutput()
 	if err != nil {
 		erroring = true
 	}
@@ -130,4 +133,17 @@ func allTestFiles() []string {
 		return nil
 	})
 	return files
+}
+
+func setBash() {
+	out, err := exec.Command("which", "bash").Output()
+	if err != nil {
+		fmt.Println("Unable to find bash:", err)
+		os.Exit(1)
+	}
+
+	bashPath = strings.TrimSpace(string(out))
+	if debugging {
+		fmt.Println("Using", bashPath)
+	}
 }
