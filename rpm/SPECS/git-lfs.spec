@@ -40,8 +40,12 @@ mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 
 %check
-GOPATH=`pwd` ./script/test
-GOPATH=`pwd` ./script/integration
+export GOPATH=`pwd`
+export GIT_LFS_TEST_DIR=`pwd`/test_dir
+mkdir -p $GIT_LFS_TEST_DIR
+
+./script/test
+./script/integration
 
 %clean
 rm -rf %{buildroot}
