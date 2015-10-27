@@ -11,12 +11,17 @@
 * Improved default remote behaviour & validation for fetch/pull #713 (@sinbad)
 * Make fetch return error code when 1+ downloads failed #734 (@sinbad)
 * Improve lfs.InRepo() detection in `init`/`update` #756 (@technoweenie)
-* whitelist the valid keys read from .gitconfig #760 (@technoweenie)
 * Teach smudge to use the batch api #711 (@rubyist)
 * Fix not setting global attribute when needed to b/c of local state #765 (@sinbad)
 * Fix clone fail when fetch is excluded globally #770 (@sinbad)
 * Fix for partial downloads problem #763 (@technoweenie)
 * Get integration tests passing on Windows #771 (@sinbad)
+
+### Security
+
+* Whitelist the valid keys read from .gitconfig #760 (@technoweenie)
+
+This prevents unsafe git configuration values from being used by Git LFS.
 
 ## v1.0 (1 October, 2015)
 
