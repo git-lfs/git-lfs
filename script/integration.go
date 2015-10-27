@@ -11,12 +11,17 @@ import (
 )
 
 var (
+	debugging   = false
 	erroring    = false
 	maxprocs    = 4
 	testPattern = regexp.MustCompile(`test/test-([a-z\-]+)\.sh$`)
 )
 
 func mainIntegration() {
+	if len(os.Getenv("DEBUG")) > 0 {
+		debugging = true
+	}
+
 	if maxprocs < 1 {
 		maxprocs = 1
 	}
@@ -111,8 +116,15 @@ func testFiles() []string {
 func allTestFiles() []string {
 	files := make([]string, 0, 100)
 	filepath.Walk("test", func(path string, info os.FileInfo, err error) error {
+		if debugging {
+			fmt.Println("FOUND:", path)
+		}
 		if err != nil || info.IsDir() || !testPattern.MatchString(path) {
 			return nil
+		}
+
+		if debugging {
+			fmt.Println("MATCHING:", path)
 		}
 		files = append(files, path)
 		return nil
