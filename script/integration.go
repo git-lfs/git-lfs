@@ -13,7 +13,7 @@ import (
 var (
 	erroring    = false
 	maxprocs    = 4
-	testPattern = regexp.MustCompile(`test/test-([a-z\-]+)\.sh`)
+	testPattern = regexp.MustCompile(`test/test-([a-z\-]+)\.sh$`)
 )
 
 func mainIntegration() {
