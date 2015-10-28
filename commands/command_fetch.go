@@ -101,7 +101,9 @@ func init() {
 
 func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
 	// Use SkipDeletedBlobs to avoid fetching ALL previous versions of modified files
-	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanRefsMode, SkipDeletedBlobs: true}
+	opts := lfs.NewScanRefsOptions()
+	opts.ScanMode = lfs.ScanRefsMode
+	opts.SkipDeletedBlobs = true
 	return lfs.ScanRefs(ref, "", opts)
 }
 
@@ -200,7 +202,9 @@ func fetchAll() bool {
 func scanAll() []*lfs.WrappedPointer {
 	// converts to `git rev-list --all`
 	// We only pick up objects in real commits and not the reflog
-	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
+	opts := lfs.NewScanRefsOptions()
+	opts.ScanMode = lfs.ScanAllMode
+	opts.SkipDeletedBlobs = false
 
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
