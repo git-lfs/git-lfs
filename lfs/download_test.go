@@ -87,7 +87,7 @@ func TestSuccessfulDownload(t *testing.T) {
 	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	reader, size, err := Download("oid")
+	reader, size, err := Download("oid", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -219,7 +219,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
-		reader, size, err := Download("oid")
+		reader, size, err := Download("oid", 0)
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
@@ -324,7 +324,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, err := Download("oid")
+	reader, size, err := Download("oid", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -425,7 +425,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, err := Download("oid")
+	reader, size, err := Download("oid", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -559,7 +559,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
 	for _, redirect := range redirectCodes {
-		reader, size, err := Download("oid")
+		reader, size, err := Download("oid", 0)
 		if err != nil {
 			t.Fatalf("unexpected error for %d status: %s", redirect, err)
 		}
@@ -595,7 +595,7 @@ func TestDownloadAPIError(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, err := Download("oid")
+	_, _, err := Download("oid", 0)
 	if err == nil {
 		t.Fatal("no error?")
 	}
@@ -664,7 +664,7 @@ func TestDownloadStorageError(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.batch", "false")
 	Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, err := Download("oid")
+	_, _, err := Download("oid", 0)
 	if err == nil {
 		t.Fatal("no error?")
 	}
