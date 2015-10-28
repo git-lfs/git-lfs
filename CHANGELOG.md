@@ -1,5 +1,10 @@
 # Git LFS Changelog
 
+## 1.0.2 (28 October, 2015)
+
+* Fix issue with 'git lfs smudge' and the batch API. #795 (@technoweenie)
+* Fix race condition in the git scanning code. #801 (@technoweenie)
+
 ## 1.0.1 (23 October, 2015)
 
 * Downcase git config keys (prevents Auth loop) #690 (@WillHipschman)
