@@ -6,11 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
@@ -18,9 +19,8 @@ var (
 	pointerCompare string
 	pointerStdin   bool
 	pointerCmd     = &cobra.Command{
-		Use:   "pointer",
-		Short: "Build and compare pointers between different Git LFS implementations",
-		Run:   pointerCommand,
+		Use: "pointer",
+		Run: pointerCommand,
 	}
 )
 
@@ -51,7 +51,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size)
+		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
 		fmt.Printf("Git LFS pointer for %s\n\n", pointerFile)
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)

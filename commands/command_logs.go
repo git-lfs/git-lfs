@@ -2,42 +2,38 @@ package commands
 
 import (
 	"errors"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
 	logsCmd = &cobra.Command{
-		Use:   "logs",
-		Short: "View error logs",
-		Run:   logsCommand,
+		Use: "logs",
+		Run: logsCommand,
 	}
 
 	logsLastCmd = &cobra.Command{
-		Use:   "last",
-		Short: "View latest error log",
-		Run:   logsLastCommand,
+		Use: "last",
+		Run: logsLastCommand,
 	}
 
 	logsShowCmd = &cobra.Command{
-		Use:   "show",
-		Short: "View a single error log",
-		Run:   logsShowCommand,
+		Use: "show",
+		Run: logsShowCommand,
 	}
 
 	logsClearCmd = &cobra.Command{
-		Use:   "clear",
-		Short: "Clear all logs",
-		Run:   logsClearCommand,
+		Use: "clear",
+		Run: logsClearCommand,
 	}
 
 	logsBoomtownCmd = &cobra.Command{
-		Use:   "boomtown",
-		Short: "Trigger a sample error",
-		Run:   logsBoomtownCommand,
+		Use: "boomtown",
+		Run: logsBoomtownCommand,
 	}
 )
 
@@ -95,9 +91,12 @@ func sortedLogs() []string {
 		return []string{}
 	}
 
-	names := make([]string, len(fileinfos))
-	for index, info := range fileinfos {
-		names[index] = info.Name()
+	names := make([]string, 0, len(fileinfos))
+	for _, info := range fileinfos {
+		if info.IsDir() {
+			continue
+		}
+		names = append(names, info.Name())
 	}
 
 	return names

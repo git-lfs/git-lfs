@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -17,24 +18,21 @@ var (
 
 func mainRelease() {
 	if *ReleaseId < 1 {
-		fmt.Println("Need a valid github/git-lfs release id.")
-		fmt.Println("usage: script/release -id")
-		os.Exit(1)
+		log.Println("Need a valid github/git-lfs release id.")
+		log.Fatalln("usage: script/release -id")
 	}
 
 	file, err := os.Open("bin/releases/build_matrix.json")
 	if err != nil {
-		fmt.Println("Error opening build_matrix.json:", err)
-		fmt.Println("Ensure `script/bootstrap -all` has completed successfully")
-		os.Exit(1)
+		log.Println("Error opening build_matrix.json:", err)
+		log.Fatalln("Ensure `script/bootstrap -all` has completed successfully")
 	}
 
 	defer file.Close()
 
 	buildMatrix := make(map[string]Release)
 	if err := json.NewDecoder(file).Decode(&buildMatrix); err != nil {
-		fmt.Println("Error reading build_matrix.json:", err)
-		os.Exit(1)
+		log.Fatalln("Error reading build_matrix.json:", err)
 	}
 
 	for _, rel := range buildMatrix {
@@ -62,8 +60,7 @@ func release(rel Release) {
 
 	by, err := cmd.Output()
 	if err != nil {
-		fmt.Println("Error running curl:", err)
-		os.Exit(1)
+		log.Fatalln("Error running curl:", err)
 	}
 
 	fmt.Println(string(by))

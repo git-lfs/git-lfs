@@ -4,6 +4,8 @@ git-lfs-smudge(1) -- Git smudge filter that converts pointer in blobs to the act
 ## SYNOPSIS
 
 `git lfs smudge` [<path>]
+`git lfs smudge` --info [<path>]
+`git lfs smudge` --skip [<path>]
 
 ## DESCRIPTION
 
@@ -23,6 +25,9 @@ standard output.
 * `--info`:
     Display the file size and the local path to the Git LFS file.  If the file
     does not exist, show `--`.
+
+* `--skip`:
+    Skip automatic downloading of objects on clone or pull.
 
 ## SEE ALSO
 

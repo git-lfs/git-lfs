@@ -13,7 +13,7 @@ import (
 func TestSuccessStatus(t *testing.T) {
 	for _, status := range []int{200, 201, 202} {
 		res := &http.Response{StatusCode: status}
-		if err := handleResponse(res); err != nil {
+		if err := handleResponse(res, nil); err != nil {
 			t.Errorf("Unexpected error for HTTP %d: %s", status, err.Error())
 		}
 	}
@@ -59,19 +59,19 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		}
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json; charset=utf-8")
 
-		wErr := handleResponse(res)
-		if wErr == nil {
+		err = handleResponse(res, nil)
+		if err == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue
 		}
 
 		expected := fmt.Sprintf("custom error for %d", status)
-		if actual := wErr.Error(); actual != expected {
+		if actual := err.Error(); actual != expected {
 			t.Errorf("Expected for HTTP %d:\n%s\nACTUAL:\n%s", status, expected, actual)
 			continue
 		}
 
-		if wErr.Panic == (panicMsg != "panic") {
+		if IsFatalError(err) == (panicMsg != "panic") {
 			t.Errorf("Error for HTTP %d should %s", status, panicMsg)
 			continue
 		}
@@ -121,20 +121,20 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		// purposely wrong content type so it falls back to default
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json2")
 
-		wErr := handleResponse(res)
-		if wErr == nil {
+		err = handleResponse(res, nil)
+		if err == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue
 		}
 
 		expected := fmt.Sprintf(results[0], rawurl)
 
-		if actual := wErr.Error(); actual != expected {
+		if actual := err.Error(); actual != expected {
 			t.Errorf("Expected for HTTP %d:\n%s\nACTUAL:\n%s", status, expected, actual)
 			continue
 		}
 
-		if wErr.Panic == (results[1] != "panic") {
+		if IsFatalError(err) == (results[1] != "panic") {
 			t.Errorf("Error for HTTP %d should %s", status, results[1])
 			continue
 		}

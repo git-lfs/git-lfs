@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -eu
+
+#Test to see is using the repo installs really work
+
+CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
+
+${CUR_DIR}/run_dockers.bsh $(ls -d ${CUR_DIR}/git-lfs-test_*/) "${@}"

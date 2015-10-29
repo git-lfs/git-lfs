@@ -6,32 +6,27 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rubyist/tracerx"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
+
+	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 const (
-	mediaType = "application/vnd.git-lfs+json; charset-utf-8"
-)
-
-// The apiEvent* statuses (and the apiEvent channel) are used by
-// UploadQueue to know when it is OK to process uploads concurrently.
-const (
-	apiEventFail = iota
-	apiEventSuccess
+	mediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
 var (
-	lfsMediaTypeRE             = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
-	jsonMediaTypeRE            = regexp.MustCompile(`\Aapplication/json(;|\z)`)
-	objectRelationDoesNotExist = errors.New("relation does not exist")
-	hiddenHeaders              = map[string]bool{
+	lfsMediaTypeRE  = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
+	jsonMediaTypeRE = regexp.MustCompile(`\Aapplication/json(;|\z)`)
+	hiddenHeaders   = map[string]bool{
 		"Authorization": true,
 	}
 
@@ -42,40 +37,49 @@ var (
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
 		500: "Server error: %s",
 	}
-
-	apiEvent = make(chan int)
 )
 
-type objectResource struct {
-	Oid   string                   `json:"oid,omitempty"`
-	Size  int64                    `json:"size,omitempty"`
-	Links map[string]*linkRelation `json:"_links,omitempty"`
+type objectError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
-func (o *objectResource) NewRequest(relation, method string) (*http.Request, Creds, error) {
+func (e *objectError) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
+}
+
+type objectResource struct {
+	Oid     string                   `json:"oid,omitempty"`
+	Size    int64                    `json:"size"`
+	Actions map[string]*linkRelation `json:"actions,omitempty"`
+	Links   map[string]*linkRelation `json:"_links,omitempty"`
+	Error   *objectError             `json:"error,omitempty"`
+}
+
+func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, nil, objectRelationDoesNotExist
+		return nil, errors.New("relation does not exist")
 	}
 
-	req, creds, err := newClientRequest(method, rel.Href)
+	req, err := newClientRequest(method, rel.Href, rel.Header)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	for h, v := range rel.Header {
-		req.Header.Set(h, v)
-	}
-
-	return req, creds, nil
+	return req, nil
 }
 
 func (o *objectResource) Rel(name string) (*linkRelation, bool) {
-	if o.Links == nil {
-		return nil, false
+	var rel *linkRelation
+	var ok bool
+
+	if o.Actions != nil {
+		rel, ok = o.Actions[name]
+	} else {
+		rel, ok = o.Links[name]
 	}
 
-	rel, ok := o.Links[name]
 	return rel, ok
 }
 
@@ -101,26 +105,57 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
-func Download(oid string) (io.ReadCloser, int64, *WrappedError) {
-	req, creds, err := newApiRequest("GET", oid)
+// Download will attempt to download the object with the given oid. The batched
+// API will be used, but if the server does not implement the batch operations
+// it will fall back to the legacy API.
+func Download(oid string, size int64) (io.ReadCloser, int64, error) {
+	if !Config.BatchTransfer() {
+		return DownloadLegacy(oid)
+	}
+
+	objects := []*objectResource{
+		&objectResource{Oid: oid, Size: size},
+	}
+
+	objs, err := Batch(objects, "download")
+	if err != nil {
+		if IsNotImplementedError(err) {
+			git.Config.SetLocal("", "lfs.batch", "false")
+			return DownloadLegacy(oid)
+		}
+		return nil, 0, err
+	}
+
+	if len(objs) != 1 { // Expecting to find one object
+		return nil, 0, Error(fmt.Errorf("Object not found: %s", oid))
+	}
+
+	return DownloadObject(objs[0])
+}
+
+// DownloadLegacy attempts to download the object for the given oid using the
+// legacy API.
+func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
+	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, obj, err := doLegacyApiRequest(req)
+	if err != nil {
+		return nil, 0, err
 	}
-
-	req, creds, err = obj.NewRequest("download", "GET")
+	LogTransfer("lfs.api.download", res)
+	req, err = obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
 	}
 
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return nil, 0, wErr
+	res, err = doStorageRequest(req)
+	if err != nil {
+		return nil, 0, err
 	}
+	LogTransfer("lfs.data.download", res)
 
 	return res.Body, res.ContentLength, nil
 }
@@ -129,21 +164,109 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
+func DownloadCheck(oid string) (*objectResource, error) {
+	req, err := newApiRequest("GET", oid)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	res, obj, err := doLegacyApiRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	LogTransfer("lfs.api.download", res)
+
+	_, err = obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	return obj, nil
+}
+
+func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
+	req, err := obj.NewRequest("download", "GET")
+	if err != nil {
+		return nil, 0, Error(err)
+	}
+
+	res, err := doStorageRequest(req)
+	if err != nil {
+		return nil, 0, newRetriableError(err)
+	}
+	LogTransfer("lfs.data.download", res)
+
+	return res.Body, res.ContentLength, nil
+}
+
 func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
-	oid := filepath.Base(oidPath)
-	file, err := os.Open(oidPath)
-	if err != nil {
-		return Error(err)
+func Batch(objects []*objectResource, operation string) ([]*objectResource, error) {
+	if len(objects) == 0 {
+		return nil, nil
 	}
-	defer file.Close()
 
-	stat, err := file.Stat()
+	o := map[string]interface{}{"objects": objects, "operation": operation}
+
+	by, err := json.Marshal(o)
 	if err != nil {
-		return Error(err)
+		return nil, Error(err)
+	}
+
+	req, err := newBatchApiRequest(operation)
+	if err != nil {
+		return nil, Error(err)
+	}
+
+	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
+	req.ContentLength = int64(len(by))
+	req.Body = &byteCloser{bytes.NewReader(by)}
+
+	tracerx.Printf("api: batch %d files", len(objects))
+
+	res, objs, err := doApiBatchRequest(req)
+	if err != nil {
+		if res == nil {
+			return nil, newRetriableError(err)
+		}
+
+		if res.StatusCode == 0 {
+			return nil, newRetriableError(err)
+		}
+
+		if IsAuthError(err) {
+			Config.SetAccess("basic")
+			tracerx.Printf("api: batch not authorized, submitting with auth")
+			return Batch(objects, operation)
+		}
+
+		switch res.StatusCode {
+		case 404, 410:
+			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
+			return nil, newNotImplementedError(nil)
+		}
+
+		tracerx.Printf("api error: %s", err)
+		return nil, Error(err)
+	}
+	LogTransfer("lfs.api.batch", res)
+
+	if res.StatusCode != 200 {
+		return nil, Error(fmt.Errorf("Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode))
+	}
+
+	return objs, nil
+}
+
+func UploadCheck(oidPath string) (*objectResource, error) {
+	oid := filepath.Base(oidPath)
+
+	stat, err := os.Stat(oidPath)
+	if err != nil {
+		return nil, Error(err)
 	}
 
 	reqObj := &objectResource{
@@ -153,12 +276,12 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		return Error(err)
+		return nil, Error(err)
 	}
 
-	req, creds, err := newApiRequest("POST", oid)
+	req, err := newApiRequest("POST", oid)
 	if err != nil {
-		return Error(err)
+		return nil, Error(err)
 	}
 
 	req.Header.Set("Content-Type", mediaType)
@@ -166,28 +289,52 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
 
-	tracerx.Printf("api: uploading %s (%s)", filename, oid)
-	res, obj, wErr := doApiRequest(req, creds)
-	if wErr != nil {
-		sendApiEvent(apiEventFail)
-		return wErr
+	tracerx.Printf("api: uploading (%s)", oid)
+	res, obj, err := doLegacyApiRequest(req)
+	if err != nil {
+		if IsAuthError(err) {
+			Config.SetAccess("basic")
+			tracerx.Printf("api: upload check not authorized, submitting with auth")
+			return UploadCheck(oidPath)
+		}
+
+		return nil, newRetriableError(err)
+	}
+	LogTransfer("lfs.api.upload", res)
+
+	if res.StatusCode == 200 {
+		return nil, nil
 	}
 
-	sendApiEvent(apiEventSuccess)
+	if obj.Oid == "" {
+		obj.Oid = oid
+	}
+	if obj.Size == 0 {
+		obj.Size = reqObj.Size
+	}
+
+	return obj, nil
+}
+
+func UploadObject(o *objectResource, cb CopyCallback) error {
+	path, err := LocalMediaPath(o.Oid)
+	if err != nil {
+		return Error(err)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return Error(err)
+	}
+	defer file.Close()
 
 	reader := &CallbackReader{
 		C:         cb,
-		TotalSize: reqObj.Size,
+		TotalSize: o.Size,
 		Reader:    file,
 	}
 
-	if res.StatusCode == 200 {
-		// Drain the reader to update any progress bars
-		io.Copy(ioutil.Discard, reader)
-		return nil
-	}
-
-	req, creds, err = obj.NewRequest("upload", "PUT")
+	req, err := o.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
 	}
@@ -195,14 +342,26 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	if len(req.Header.Get("Content-Type")) == 0 {
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
-	req.Header.Set("Content-Length", strconv.FormatInt(reqObj.Size, 10))
-	req.ContentLength = reqObj.Size
 
+	if req.Header.Get("Transfer-Encoding") == "chunked" {
+		req.TransferEncoding = []string{"chunked"}
+	} else {
+		req.Header.Set("Content-Length", strconv.FormatInt(o.Size, 10))
+	}
+
+	req.ContentLength = o.Size
 	req.Body = ioutil.NopCloser(reader)
 
-	res, wErr = doHttpRequest(req, creds)
-	if wErr != nil {
-		return wErr
+	res, err := doStorageRequest(req)
+	if err != nil {
+		return newRetriableError(err)
+	}
+	LogTransfer("lfs.data.upload", res)
+
+	// A status code of 403 likely means that an authentication token for the
+	// upload has expired. This can be safely retried.
+	if res.StatusCode == 403 {
+		return newRetriableError(err)
 	}
 
 	if res.StatusCode > 299 {
@@ -212,10 +371,17 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	req, creds, err = obj.NewRequest("verify", "POST")
-	if err == objectRelationDoesNotExist {
+	if _, ok := o.Rel("verify"); !ok {
 		return nil
-	} else if err != nil {
+	}
+
+	req, err = o.NewRequest("verify", "POST")
+	if err != nil {
+		return Error(err)
+	}
+
+	by, err := json.Marshal(o)
+	if err != nil {
 		return Error(err)
 	}
 
@@ -223,92 +389,171 @@ func Upload(oidPath, filename string, cb CopyCallback) *WrappedError {
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
-	res, wErr = doHttpRequest(req, creds)
+	res, err = doAPIRequest(req, true)
+	if err != nil {
+		return err
+	}
 
+	LogTransfer("lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return wErr
+	return err
 }
 
-func doHttpRequest(req *http.Request, creds Creds) (*http.Response, *WrappedError) {
-	res, err := DoHTTP(Config, req)
+// doLegacyApiRequest runs the request to the LFS legacy API.
+func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, error) {
+	via := make([]*http.Request, 0, 4)
+	res, err := doApiRequestWithRedirects(req, via, true)
+	if err != nil {
+		return res, nil, err
+	}
 
-	var wErr *WrappedError
+	obj := &objectResource{}
+	err = decodeApiResponse(res, obj)
 
 	if err != nil {
-		wErr = Errorf(err, "Error for %s %s", res.Request.Method, res.Request.URL)
-	} else {
-		if creds != nil {
-			saveCredentials(creds, res)
-		}
-
-		wErr = handleResponse(res)
+		setErrorResponseContext(err, res)
+		return nil, nil, err
 	}
 
-	if wErr != nil {
-		if res != nil {
-			setErrorResponseContext(wErr, res)
-		} else {
-			setErrorRequestContext(wErr, req)
-		}
-	}
-
-	return res, wErr
+	return res, obj, nil
 }
 
-func doApiRequestWithRedirects(req *http.Request, creds Creds, via []*http.Request) (*http.Response, *WrappedError) {
-	res, wErr := doHttpRequest(req, creds)
-	if wErr != nil {
-		return res, wErr
+// doApiBatchRequest runs the request to the LFS batch API. If the API returns a
+// 401, the repo will be marked as having private access and the request will be
+// re-run. When the repo is marked as having private access, credentials will
+// be retrieved.
+func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, error) {
+	res, err := doAPIRequest(req, Config.PrivateAccess())
+
+	if err != nil {
+		if res != nil && res.StatusCode == 401 {
+			return res, nil, newAuthError(err)
+		}
+		return res, nil, err
+	}
+
+	var objs map[string][]*objectResource
+	err = decodeApiResponse(res, &objs)
+
+	if err != nil {
+		setErrorResponseContext(err, res)
+	}
+
+	return res, objs["objects"], err
+}
+
+// doStorageREquest runs the request to the storage API from a link provided by
+// the "actions" or "_links" properties an LFS API response.
+func doStorageRequest(req *http.Request) (*http.Response, error) {
+	creds, err := getCreds(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return doHttpRequest(req, creds)
+}
+
+// doAPIRequest runs the request to the LFS API, without parsing the response
+// body. If the API returns a 401, the repo will be marked as having private
+// access and the request will be re-run. When the repo is marked as having
+// private access, credentials will be retrieved.
+func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
+	via := make([]*http.Request, 0, 4)
+	return doApiRequestWithRedirects(req, via, useCreds)
+}
+
+// doHttpRequest runs the given HTTP request. LFS or Storage API requests should
+// use doApiBatchRequest() or doStorageRequest() instead.
+func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
+	res, err := Config.HttpClient().Do(req)
+	if res == nil {
+		res = &http.Response{
+			StatusCode: 0,
+			Header:     make(http.Header),
+			Request:    req,
+			Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+		}
+	}
+
+	if err != nil {
+		err = Error(err)
+	} else {
+		err = handleResponse(res, creds)
+	}
+
+	if err != nil {
+		if res != nil {
+			setErrorResponseContext(err, res)
+		} else {
+			setErrorRequestContext(err, req)
+		}
+	}
+
+	return res, err
+}
+
+func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
+	var creds Creds
+	if useCreds {
+		c, err := getCredsForAPI(req)
+		if err != nil {
+			return nil, err
+		}
+		creds = c
+	}
+
+	res, err := doHttpRequest(req, creds)
+	if err != nil {
+		return res, err
 	}
 
 	if res.StatusCode == 307 {
-		redirectedReq, redirectedCreds, err := newClientRequest(req.Method, res.Header.Get("Location"))
+		redirectTo := res.Header.Get("Location")
+		locurl, err := url.Parse(redirectTo)
+		if err == nil && !locurl.IsAbs() {
+			locurl = req.URL.ResolveReference(locurl)
+			redirectTo = locurl.String()
+		}
+
+		redirectedReq, err := newClientRequest(req.Method, redirectTo, nil)
 		if err != nil {
 			return res, Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
-		if seeker, ok := req.Body.(io.Seeker); ok {
-			_, err := seeker.Seek(0, 0)
-			if err != nil {
-				return res, Error(err)
-			}
-			redirectedReq.Body = req.Body
-			redirectedReq.ContentLength = req.ContentLength
-		} else {
+
+		// Avoid seeking and re-wrapping the countingReadCloser, just get the "real" body
+		realBody := req.Body
+		if wrappedBody, ok := req.Body.(*countingReadCloser); ok {
+			realBody = wrappedBody.ReadCloser
+		}
+
+		seeker, ok := realBody.(io.Seeker)
+		if !ok {
 			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
+
+		if _, err := seeker.Seek(0, 0); err != nil {
+			return res, Error(err)
+		}
+		redirectedReq.Body = realBody
+		redirectedReq.ContentLength = req.ContentLength
 
 		if err = checkRedirect(redirectedReq, via); err != nil {
 			return res, Errorf(err, err.Error())
 		}
 
-		return doApiRequestWithRedirects(redirectedReq, redirectedCreds, via)
+		return doApiRequestWithRedirects(redirectedReq, via, useCreds)
 	}
 
-	return res, wErr
+	return res, nil
 }
 
-func doApiRequest(req *http.Request, creds Creds) (*http.Response, *objectResource, *WrappedError) {
-	via := make([]*http.Request, 0, 4)
-	res, wErr := doApiRequestWithRedirects(req, creds, via)
-	if wErr != nil {
-		return res, nil, wErr
-	}
+func handleResponse(res *http.Response, creds Creds) error {
+	saveCredentials(creds, res)
 
-	obj := &objectResource{}
-	wErr = decodeApiResponse(res, obj)
-
-	if wErr != nil {
-		setErrorResponseContext(wErr, res)
-	}
-
-	return res, obj, wErr
-}
-
-func handleResponse(res *http.Response) *WrappedError {
 	if res.StatusCode < 400 {
 		return nil
 	}
@@ -319,20 +564,27 @@ func handleResponse(res *http.Response) *WrappedError {
 	}()
 
 	cliErr := &ClientError{}
-	wErr := decodeApiResponse(res, cliErr)
-	if wErr == nil {
+	err := decodeApiResponse(res, cliErr)
+	if err == nil {
 		if len(cliErr.Message) == 0 {
-			wErr = defaultError(res)
+			err = defaultError(res)
 		} else {
-			wErr = Error(cliErr)
+			err = Error(cliErr)
 		}
 	}
 
-	wErr.Panic = res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509
-	return wErr
+	if res.StatusCode == 401 {
+		return newAuthError(err)
+	}
+
+	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
+		return newFatalError(err)
+	}
+
+	return err
 }
 
-func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
+func decodeApiResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
 		return nil
@@ -349,7 +601,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) *WrappedError {
 	return nil
 }
 
-func defaultError(res *http.Response) *WrappedError {
+func defaultError(res *http.Response) error {
 	var msgFmt string
 
 	if f, ok := defaultErrors[res.StatusCode]; ok {
@@ -363,25 +615,15 @@ func defaultError(res *http.Response) *WrappedError {
 	return Error(fmt.Errorf(msgFmt, res.Request.URL))
 }
 
-func saveCredentials(creds Creds, res *http.Response) {
-	if creds == nil {
-		return
-	}
-
-	if res.StatusCode < 300 {
-		execCreds(creds, "approve")
-	} else if res.StatusCode == 401 {
-		execCreds(creds, "reject")
-	}
-}
-
-func newApiRequest(method, oid string) (*http.Request, Creds, error) {
+func newApiRequest(method, oid string) (*http.Request, error) {
 	endpoint := Config.Endpoint()
 	objectOid := oid
 	operation := "download"
 	if method == "POST" {
-		objectOid = ""
-		operation = "upload"
+		if oid != "batch" {
+			objectOid = ""
+			operation = "upload"
+		}
 	}
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
@@ -397,84 +639,119 @@ func newApiRequest(method, oid string) (*http.Request, Creds, error) {
 
 	u, err := ObjectUrl(endpoint, objectOid)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	req, creds, err := newClientRequest(method, u.String())
-	if err == nil {
-		req.Header.Set("Accept", mediaType)
-		if res.Header != nil {
-			for key, value := range res.Header {
-				req.Header.Set(key, value)
-			}
-		}
-	}
-	return req, creds, err
-}
-
-func newClientRequest(method, rawurl string) (*http.Request, Creds, error) {
-	req, err := http.NewRequest(method, rawurl, nil)
-	if err != nil {
-		return req, nil, err
-	}
-
-	req.Header.Set("User-Agent", UserAgent)
-	creds, err := getCreds(req)
-	return req, creds, err
-}
-
-func getCreds(req *http.Request) (Creds, error) {
-	if len(req.Header.Get("Authorization")) > 0 {
-		return nil, nil
-	}
-
-	apiUrl, err := Config.ObjectUrl("")
+	req, err := newClientRequest(method, u.String(), res.Header)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.URL.Scheme == apiUrl.Scheme &&
-		req.URL.Host == apiUrl.Host {
-		creds, err := credentials(req.URL)
-		if err != nil {
-			return nil, err
-		}
+	req.Header.Set("Accept", mediaType)
+	return req, nil
+}
 
-		token := fmt.Sprintf("%s:%s", creds["username"], creds["password"])
-		auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
-		req.Header.Set("Authorization", auth)
-		return creds, nil
+func newClientRequest(method, rawurl string, header map[string]string) (*http.Request, error) {
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	for key, value := range header {
+		req.Header.Set(key, value)
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+
+	return req, nil
 }
 
-func setErrorRequestContext(err *WrappedError, req *http.Request) {
-	err.Set("Endpoint", Config.Endpoint().Url)
-	err.Set("URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
-	setErrorHeaderContext(err, "Response", req.Header)
+func newBatchApiRequest(operation string) (*http.Request, error) {
+	endpoint := Config.Endpoint()
+
+	res, err := sshAuthenticate(endpoint, operation, "")
+	if err != nil {
+		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
+			operation, endpoint.SshUserAndHost, err.Error(),
+		)
+	}
+
+	if len(res.Href) > 0 {
+		endpoint.Url = res.Href
+	}
+
+	u, err := ObjectUrl(endpoint, "batch")
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := newBatchClientRequest("POST", u.String())
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", mediaType)
+	if res.Header != nil {
+		for key, value := range res.Header {
+			req.Header.Set(key, value)
+		}
+	}
+
+	return req, nil
 }
 
-func setErrorResponseContext(err *WrappedError, res *http.Response) {
-	err.Set("Status", res.Status)
+func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+
+	return req, nil
+}
+
+func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
+	if u.User != nil {
+		if pass, ok := u.User.Password(); ok {
+			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
+			setRequestAuth(req, u.User.Username(), pass)
+			return true
+		}
+	}
+
+	return false
+}
+
+func setRequestAuth(req *http.Request, user, pass string) {
+	if len(user) == 0 && len(pass) == 0 {
+		return
+	}
+
+	token := fmt.Sprintf("%s:%s", user, pass)
+	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	req.Header.Set("Authorization", auth)
+}
+
+func setErrorResponseContext(err error, res *http.Response) {
+	ErrorSetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
 }
 
-func setErrorHeaderContext(err *WrappedError, prefix string, head http.Header) {
+func setErrorRequestContext(err error, req *http.Request) {
+	ErrorSetContext(err, "Endpoint", Config.Endpoint().Url)
+	ErrorSetContext(err, "URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+	setErrorHeaderContext(err, "Response", req.Header)
+}
+
+func setErrorHeaderContext(err error, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
-			err.Set(contextKey, "--")
+			ErrorSetContext(err, contextKey, "--")
 		} else {
-			err.Set(contextKey, head.Get(key))
+			ErrorSetContext(err, contextKey, head.Get(key))
 		}
-	}
-}
-
-func sendApiEvent(event int) {
-	select {
-	case apiEvent <- event:
-	default:
 	}
 }

@@ -2,21 +2,23 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
 	statusCmd = &cobra.Command{
-		Use:   "status",
-		Short: "Show information about Git LFS objects that would be pushed",
-		Run:   statusCommand,
+		Use: "status",
+		Run: statusCommand,
 	}
 	porcelain = false
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not get the current ref")
@@ -50,17 +52,12 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	remoteRef, err := git.CurrentRemoteRef()
 	if err == nil {
 
-		pointers, err := lfs.ScanRefs(ref, "^"+remoteRef)
+		pointers, err := lfs.ScanRefs(ref.Sha, "^"+remoteRef.Sha, nil)
 		if err != nil {
 			Panic(err, "Could not scan for Git LFS objects")
 		}
 
-		remote, err := git.CurrentRemote()
-		if err != nil {
-			Panic(err, "Could not get current remote branch")
-		}
-
-		Print("Git LFS objects to be pushed to %s:\n", remote)
+		Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
 		for _, p := range pointers {
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}

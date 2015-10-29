@@ -2,8 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
+	"log"
 )
 
 type Release struct {
@@ -20,8 +19,9 @@ func main() {
 		mainBuild()
 	case "release":
 		mainRelease()
+	case "integration":
+		mainIntegration()
 	default:
-		fmt.Println("Unknown command:", *SubCommand)
-		os.Exit(1)
+		log.Fatalln("Unknown command:", *SubCommand)
 	}
 }

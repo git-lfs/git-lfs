@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+#################################################################################
+### DO not edit this. The REAL password does NOT go in here. Use gpg-agent!!! ###
+#################################################################################
+
+#$args and {*}$argv won't work in older versions of expect...
+#In case there are spaces in the files names.... 
+FILES=""
+for FILE in "${@}"; do
+  FILES+="${FILE/ /\\ } "
+done
+
+#https://bugzilla.redhat.com/show_bug.cgi?id=436812#c12
+#Still doesn't work on an RSA key
+CENTOS_VERSION=$(sed -r 's/.*release ([0-9.]*).*/\1/' /etc/redhat-release)
+if [[ ${CENTOS_VERSION} < 6 ]]; then
+  EXTRA_SIGN="--force-v3-sigs --digest-algo=sha1"
+fi
+
+expect -f - <<EOF
+
+spawn rpm --resign --define "__gpg $(which gpg2)" --define "_gpg_name foo" --define "__gpg_check_password_cmd /bin/true" --define "__gpg_sign_cmd %{__gpg} gpg --batch ${EXTRA_SIGN-} --no-verbose --no-armor --use-agent --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}" $FILES
+
+expect -exact "Enter pass phrase: "
+
+send -- "blank\r"
+
+expect eof
+
+EOF

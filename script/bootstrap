@@ -1,14 +1,15 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -e
+
+# Only set GOPATH on non-Windows platforms as Windows can't do the symlinking
+# that we need.
+if [ -z "$GOPATH" ] && uname -s | grep -vq "_NT-"; then
+  export GOPATH="$(pwd)"
+  mkdir -p src/github.com/github
+  [ -h src/github.com/github/git-lfs ] ||
+    ln -s "$GOPATH" src/github.com/github/git-lfs
+fi
 
 script/fmt
-
-rm -rf `pwd`/bin/*
-rm -rf `pwd`/.vendor/pkg
-
-export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
-mkdir -p `dirname $LOCALSRCDIR`
-rm -f $LOCALSRCDIR
-ln -s `pwd` $LOCALSRCDIR
-
-GOPATH="`pwd`/.vendor" \
-  go run script/*.go -cmd build "$@"
+rm -rf bin/*
+go run script/*.go -cmd build "$@"

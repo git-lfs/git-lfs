@@ -1,25 +1,33 @@
 package commands
 
 import (
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
 	envCmd = &cobra.Command{
-		Use:   "env",
-		Short: "Show the current environment",
-		Run:   envCommand,
+		Use: "env",
+		Run: envCommand,
 	}
 )
 
 func envCommand(cmd *cobra.Command, args []string) {
 	config := lfs.Config
-
 	endpoint := config.Endpoint()
 
+	gitV, err := git.Config.Version()
+	if err != nil {
+		gitV = "Error getting git version: " + err.Error()
+	}
+
+	Print(lfs.UserAgent)
+	Print(gitV)
+	Print("")
+
 	if len(endpoint.Url) > 0 {
-		Print("Endpoint=%s", endpoint.Url)
+		Print("Endpoint=%s (auth=%s)", endpoint.Url, config.Access())
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
@@ -27,7 +35,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 
 	for _, remote := range config.Remotes() {
 		remoteEndpoint := config.RemoteEndpoint(remote)
-		Print("Endpoint (%s)=%s", remote, remoteEndpoint.Url)
+		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, config.EndpointAccess(remoteEndpoint))
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
@@ -35,6 +43,11 @@ func envCommand(cmd *cobra.Command, args []string) {
 
 	for _, env := range lfs.Environ() {
 		Print(env)
+	}
+
+	for _, key := range []string{"filter.lfs.smudge", "filter.lfs.clean"} {
+		value, _ := lfs.Config.GitConfig(key)
+		Print("git config %s = %q", key, value)
 	}
 }
 

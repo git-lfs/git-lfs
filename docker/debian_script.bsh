@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+set -eu
+
+REPO_DIR=${REPO_DIR:-/repo}
+GIT_LFS_BUILD_DIR=${GIT_LFS_BUILD_DIR:-/tmp/docker_run/git-lfs}
+SRC_DIR=${SRC_DIR:-/src}
+REPO_CODENAME=${REPO_CODENAME:-$(source /etc/os-release; echo $VERSION | sed -r 's|.*\((.*)\)|\1|')}
+
+mkdir -p $(dirname "${GIT_LFS_BUILD_DIR}")
+cp -r -T "${SRC_DIR}" "${GIT_LFS_BUILD_DIR}"
+
+cd "${GIT_LFS_BUILD_DIR}"
+git clean -xdf .
+git checkout-index --force --all
+
+mkdir -p "${REPO_DIR}/conf/"
+sed 's|^Codename:.*|Codename: '${REPO_CODENAME}'|' /tmp/distributions > "${REPO_DIR}/conf/distributions"
+if [ -s /tmp/*.key ]; then
+  gpg --import /tmp/*.key || :
+  gpg -a --export > /repo/GPG-KEY-GITLFS
+  #I may need to cp /repo/GPG-KEY-GITLFS somewhere for git-lfs-repo deb generation???
+
+  echo "SignWith: yes" >> "${REPO_DIR}/conf/distributions"
+  echo ask-passphrase > "${REPO_DIR}/conf/options"
+  
+  dpkg-buildpackage -d -p/tmp/dpkg-package-gpg.bsh -b -ai386
+  git clean -xdf .
+  dpkg-buildpackage -d -p/tmp/dpkg-package-gpg.bsh
+else
+  dpkg-buildpackage -d -us -uc -b -ai386
+  git clean -xdf .
+  dpkg-buildpackage -d -us -uc
+fi
+
+#This will add the deb, xz, AND dsc! Perfect
+for DSC in $(ls /tmp/docker_run/*.changes); do
+  SOURCE_NAME=$(grep ^Source: "${DSC}" | sed -r 's/Source: (.*)/\1/')
+  BINARY_NAME=$(grep ^Binary: "${DSC}" | sed -r 's/Binary: (.*)/\1/')
+  reprepro -Vb "${REPO_DIR}" remove ${REPO_CODENAME} ${SOURCE_NAME} ${BINARY_NAME}
+done
+for DSC in $(ls /tmp/docker_run/*.changes); do
+  reprepro -Vb "${REPO_DIR}" include ${REPO_CODENAME} "${DSC}"
+  mv "${DSC}" "${DSC}.installed"
+done
+
+if [ "${FINAL_UID-}:${FINAL_GID-}" != ":" ]; then
+  chown ${FINAL_UID-}:${FINAL_GID-} -R /repo
+fi

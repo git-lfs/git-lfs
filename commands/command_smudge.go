@@ -2,19 +2,20 @@ package commands
 
 import (
 	"bytes"
-	"github.com/github/git-lfs/lfs"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 var (
 	smudgeInfo = false
+	smudgeSkip = false
 	smudgeCmd  = &cobra.Command{
-		Use:   "smudge",
-		Short: "Implements the Git smudge filter",
-		Run:   smudgeCommand,
+		Use: "smudge",
+		Run: smudgeCommand,
 	}
 )
 
@@ -22,6 +23,15 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
+	if smudgeSkip || lfs.Config.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
+		_, err := io.Copy(os.Stdout, os.Stdin)
+		if err != nil {
+			Panic(err, "Error writing data to stdout:")
+		}
+		return
+	}
+
+	// keeps the initial buffer from lfs.DecodePointer
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
 
@@ -56,14 +66,20 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	err = ptr.Smudge(os.Stdout, filename, cb)
+	cfg := lfs.Config
+	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	err = ptr.Smudge(os.Stdout, filename, download, cb)
 	if file != nil {
 		file.Close()
 	}
 
 	if err != nil {
 		ptr.Encode(os.Stdout)
-		LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
+		// Download declined error is ok to skip if we weren't requesting download
+		if !(lfs.IsDownloadDeclinedError(err) && !download) {
+			LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
+			os.Exit(2)
+		}
 	}
 }
 
@@ -72,14 +88,16 @@ func smudgeFilename(args []string, err error) string {
 		return args[0]
 	}
 
-	if smudgeErr, ok := err.(*lfs.SmudgeError); ok {
-		return filepath.Base(smudgeErr.Filename)
+	if lfs.IsSmudgeError(err) {
+		return filepath.Base(lfs.ErrorGetContext(err, "FileName").(string))
 	}
 
 	return "<unknown file>"
 }
 
 func init() {
-	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "Display the local path and size of the smudged file.")
+	// update man page
+	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
+	smudgeCmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
 	RootCmd.AddCommand(smudgeCmd)
 }

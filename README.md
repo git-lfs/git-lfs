@@ -2,49 +2,37 @@
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
-binaries available for Mac, Windows, Linux, and FreeBSD.
+binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
+[Git LFS website][page] for a high level overview of features.
 
-## Features
+See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
+sending patches. Related projects are listed on the [Implementations wiki
+page][impl]. You can chat with the team at: https://gitter.im/github/git-lfs
 
-By design, every git repository contains every version of every file. But
-for some types of projects, this is not reasonable or even practical.
-Multiple revisions of a large file take up space quickly, slowing down
-repository operations and making fetches unwieldy.
-
-Git LFS overcomes this limitation by storing the metadata for large files in
-Git and syncing the file contents to a configurable [Git LFS
-server](docs/api.md). Some of the key features include:
-
-* Tight integration with Git means you don't have to change your workflow after
-the initial configuration.
-
-* Large files are synced separately to a configurable Git LFS server over HTTPS,
-so you are not limited in where you push your Git repository.
-
-* Large files are only synced from the server when they are checked out, so your
-local repository doesn't carry the weight of every version of every file when it
-is not needed.
-
-* The meta data stored in Git is extensible for future use. It currently
-includes a hash of the contents of the file, and the file size so clients can
-display a progress bar while downloading or opt out of a large download.
-
-* Clients and servers can make use of all the features of HTTPS, such as caching
-content locally on a CDN, resumable uploads and downloads, or performing
-requests in parallel for faster transfers.
-
-See the [ROADMAP](ROADMAP.md) for other planned and desired features.
-
-## Known Implementations
-
-- [GitHub.com](https://github.com/early_access/large_file_storage) (support coming soon!)
-- [github/lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
+[page]: https://git-lfs.github.com/
+[impl]: https://github.com/github/git-lfs/wiki/Implementations
 
 ## Getting Started
 
-Download the [latest client][rel] and run the included install script.  The
-installer should run `git lfs init` for you, which sets up Git's global
-configuration settings for Git LFS.
+You can install Git LFS several different ways, depending on your setup and
+preferences.
+
+* Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs).
+* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`.
+* [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
+* You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
+
+Once installed, you can run `git lfs init` to setup the global Git hooks
+necessary for Git LFS to work. You can get help on specific commands directly:
+
+```bash
+$ git lfs help <subcommand>
+```
+
+The [official documentation](docs) has command references and specifications for
+the tool.
+
+Note: Git LFS requires Git v1.8.2 or higher.
 
 [rel]: https://github.com/github/git-lfs/releases
 
@@ -54,8 +42,8 @@ Git LFS uses `.gitattributes` files to configure which are managed by Git LFS.
 Here is a sample one that saves zips and mp3s:
 
     $ cat .gitattributes
-    *.mp3 filter=lfs -crlf
-    *.zip filter=lfs -crlf
+    *.mp3 filter=lfs -text
+    *.zip filter=lfs -text
 
 Git LFS can manage `.gitattributes` for you:
 
@@ -104,8 +92,3 @@ Once you've made your commits, push your files to the Git remote:
 
 See the [Git LFS overview](https://github.com/github/git-lfs/tree/master/docs)
 and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
-sending patches.

@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+
+. "test/testlib.sh"
+
+begin_test "smudge"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" repo
+
+  git lfs track "*.dat"
+  echo "smudge a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  # smudge works even though it hasn't been pushed, by reading from .git/lfs/objects
+  output="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | git lfs smudge)"
+  [ "smudge a" = "$output" ]
+
+  git push origin master
+
+  # download it from the git lfs server
+  rm -rf .git/lfs/objects
+  output="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | git lfs smudge)"
+  [ "smudge a" = "$output" ]
+)
+end_test
+
+begin_test "smudge --info"
+(
+  set -e
+
+  cd repo
+  output="$(pointer aaaaa15df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 123 | git lfs smudge --info)"
+  [ "123 --" = "$output" ]
+)
+end_test
+
+begin_test "smudge with temp file"
+(
+  set -e
+
+  cd repo
+
+  rm -rf .git/lfs/objects
+  mkdir -p .git/lfs/tmp/objects
+  touch .git/lfs/tmp/objects/fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254-1
+  pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9 | GIT_TRACE=5 git lfs smudge | tee smudge.log
+  [ "smudge a" = "$(cat smudge.log)" ] || {
+    rm -rf .git/lfs/tmp
+    git lfs logs last
+    exit 1
+  }
+)
+end_test
+
+begin_test "smudge with invalid pointer"
+(
+  set -e
+
+  cd repo
+  [ "wat" = "$(echo "wat" | git lfs smudge)" ]
+  [ "not a git-lfs file" = "$(echo "not a git-lfs file" | git lfs smudge)" ]
+  [ "version " = "$(echo "version " | git lfs smudge)" ]
+)
+end_test
+
+begin_test "smudge include/exclude"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-includeexclude"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" includeexclude
+
+  git lfs track "*.dat"
+  echo "smudge a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  pointer="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)"
+
+  # smudge works even though it hasn't been pushed, by reading from .git/lfs/objects
+  [ "smudge a" = "$(echo "$pointer" | git lfs smudge)" ]
+
+  git push origin master
+
+  # this WOULD download except we're going to prevent it with include/exclude
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchexclude" "a*"
+
+  [ "$pointer" = "$(echo "$pointer" | git lfs smudge a.dat)" ]
+)
+end_test
+
+begin_test "smudge with skip"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-skip"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "skip"
+
+  git lfs track "*.dat"
+  echo "smudge a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  pointer="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)"
+  [ "smudge a" = "$(echo "$pointer" | git lfs smudge)" ]
+  [ "$pointer" = "$(echo "$pointer" | GIT_LFS_SKIP_SMUDGE=1 git lfs smudge)" ]
+
+  git push origin master
+
+  echo "test clone with env"
+  export GIT_LFS_SKIP_SMUDGE=1
+  env | grep LFS_SKIP
+  clone_repo "$reponame" "skip-clone-env"
+  [ "$pointer" = "$(cat a.dat)" ]
+  [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
+
+  git lfs pull
+  [ "smudge a" = "$(cat a.dat)" ]
+
+  echo "test clone without env"
+  unset GIT_LFS_SKIP_SMUDGE
+  [ "$(env | grep LFS_SKIP)" == "" ]
+  clone_repo "$reponame" "no-skip"
+  [ "smudge a" = "$(cat a.dat)" ]
+  [ "1" = "$(grep -c "Downloading a.dat" clone.log)" ]
+
+  echo "test clone with init --skip-smudge"
+  git lfs init --skip-smudge
+  clone_repo "$reponame" "skip-clone-init"
+  [ "$pointer" = "$(cat a.dat)" ]
+  [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
+
+  git lfs init --force
+)
+end_test
+
+begin_test "smudge clone with include/exclude"
+(
+  set -e
+
+  reponame="smudge_include_exclude"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" "repo_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git add .gitattributes
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  [ "a" = "$(cat a.dat)" ]
+
+  assert_local_object "$contents_oid" 1
+
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  clone="$TRASHDIR/clone_$reponame"
+  git -c lfs.fetchexclude="a*" clone "$GITSERVER/$reponame" "$clone"
+  cd "$clone"
+
+  # Should have succeeded but not downloaded
+  refute_local_object "$contents_oid"
+
+)
+end_test
+

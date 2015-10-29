@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -18,6 +17,11 @@ func TestExistingUpload(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = tmp
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -51,7 +55,7 @@ func TestExistingUpload(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -60,7 +64,9 @@ func TestExistingUpload(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Oid:  reqObj.Oid,
+			Size: reqObj.Size,
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -97,23 +103,20 @@ func TestExistingUpload(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	// stores callbacks
-	calls := make([][]int64, 0, 5)
-	cb := func(total int64, written int64, current int) error {
-		calls = append(calls, []int64{total, written})
-		return nil
+	o, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	wErr := Upload(oidPath, "", cb)
-	if wErr != nil {
-		t.Fatal(wErr)
+	if o != nil {
+		t.Errorf("Got an object back")
 	}
 
 	if !postCalled {
@@ -133,6 +136,11 @@ func TestUploadWithRedirect(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = tmp
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -186,7 +194,7 @@ func TestUploadWithRedirect(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -195,7 +203,7 @@ func TestUploadWithRedirect(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -219,16 +227,21 @@ func TestUploadWithRedirect(t *testing.T) {
 		w.Write(by)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if obj != nil {
+		t.Fatal("Received an object")
 	}
 }
 
@@ -236,6 +249,11 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = tmp
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -269,7 +287,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -278,7 +296,9 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Oid:  reqObj.Oid,
+			Size: reqObj.Size,
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -369,7 +389,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -381,9 +401,10 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -395,9 +416,13 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		return nil
 	}
 
-	wErr := Upload(oidPath, "", cb)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = UploadObject(obj, cb)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if !postCalled {
@@ -428,6 +453,11 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = tmp
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -460,7 +490,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -469,7 +499,9 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Oid:  reqObj.Oid,
+			Size: reqObj.Size,
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -530,16 +562,21 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
-	if wErr != nil {
-		t.Fatal(wErr)
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = UploadObject(obj, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if !postCalled {
@@ -555,6 +592,11 @@ func TestUploadApiError(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = olddir
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -565,24 +607,25 @@ func TestUploadApiError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
-	if wErr == nil {
-		t.Fatal("no error?")
+	_, err := UploadCheck(oidPath)
+	if err == nil {
+		t.Fatal(err)
 	}
 
-	if wErr.Panic {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
 	if !postCalled {
@@ -594,6 +637,11 @@ func TestUploadStorageError(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = tmp
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -626,7 +674,7 @@ func TestUploadStorageError(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -635,7 +683,9 @@ func TestUploadStorageError(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Oid:  reqObj.Oid,
+			Size: reqObj.Size,
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -665,24 +715,29 @@ func TestUploadStorageError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
-	if wErr == nil {
-		t.Fatal("no error?")
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = UploadObject(obj, nil)
+	if err == nil {
+		t.Fatal("Expected an error")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/upload") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/upload") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
 	if !postCalled {
@@ -698,6 +753,11 @@ func TestUploadVerifyError(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
+	olddir := LocalMediaDir
+	LocalMediaDir = tmp
+	defer func() {
+		LocalMediaDir = olddir
+	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -731,7 +791,7 @@ func TestUploadVerifyError(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "oid" {
+		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
 			t.Errorf("invalid oid from request: %s", reqObj.Oid)
 		}
 
@@ -740,7 +800,9 @@ func TestUploadVerifyError(t *testing.T) {
 		}
 
 		obj := &objectResource{
-			Links: map[string]*linkRelation{
+			Oid:  reqObj.Oid,
+			Size: reqObj.Size,
+			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
 					Header: map[string]string{"A": "1"},
@@ -802,24 +864,29 @@ func TestUploadVerifyError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
+	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath := filepath.Join(tmp, "oid")
+	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	wErr := Upload(oidPath, "", nil)
-	if wErr == nil {
-		t.Fatal("no error?")
+	obj, err := UploadCheck(oidPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = UploadObject(obj, nil)
+	if err == nil {
+		t.Fatal("Expected an error")
 	}
 
-	if wErr.Panic {
+	if IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	if wErr.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/verify") {
-		t.Fatalf("Unexpected error: %s", wErr.Error())
+	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/verify") {
+		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
 	if !postCalled {
