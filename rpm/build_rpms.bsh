@@ -41,7 +41,7 @@ export PATH=${PATH}:/usr/local/bin
 
 set -vx
 
-echo "Downloading/checking for some essentials..." >&6
+echo "Downloading/checking for some essentials..."
 if which git > /dev/null 2>&1; then
   GIT_VERSION=($(git --version))
   IFS_OLD=${IFS}
@@ -81,7 +81,7 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
 fi
 
 if ! which go; then
-  echo "Installing go... one way or another" >&6
+  echo "Installing go... one way or another"
   if [[ ${VERSION_ID[0]} == 5 ]]; then
     $SUDO yum install -y curl.x86_64 glibc gcc
     ${CURDIR}/golang_patch.bsh
@@ -108,7 +108,7 @@ fi
 
 if [[ ${RUBY_VERSION[0]} < 2 ]]; then
   if [[ ${VERSION_ID[0]} < 7 ]]; then
-    echo "Downloading ruby..." >&6
+    echo "Downloading ruby..."
 
     if ! rpm -q epel-release; then
       $SUDO yum install -y epel-release #Optional part of centos
@@ -118,9 +118,9 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
     pushd ${CURDIR}/SOURCES
       curl -L -O http://cache.ruby-lang.org/pub/ruby/2.2/ruby-2.2.2.tar.gz
     popd
-    echo "Building ruby..." >&6
+    echo "Building ruby..."
     "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/ruby.spec
-    echo "Installing ruby..." >&6
+    echo "Installing ruby..."
     $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/x86_64/ruby*.rpm
   else
     $SUDO yum install -y ruby ruby-devel
@@ -128,7 +128,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
 fi
 
 if ! which ronn; then
-  echo "Downloading some ruby gems..." >&6
+  echo "Downloading some ruby gems..."
   pushd ${CURDIR}/SOURCES
     curl -L -O https://rubygems.org/downloads/rdiscount-2.1.8.gem
     curl -L -O https://rubygems.org/downloads/hpricot-0.8.6.gem
@@ -136,13 +136,13 @@ if ! which ronn; then
     curl -L -O https://rubygems.org/downloads/ronn-0.7.3.gem
   popd
 
-  echo "Building ruby gems..." >&6
+  echo "Building ruby gems..."
   "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-rdiscount.spec
   "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-mustache.spec
   "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-hpricot.spec
   "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-ronn.spec
 
-  echo "Installing ruby gems..." >&6
+  echo "Installing ruby gems..."
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
 fi
 
@@ -159,7 +159,7 @@ pushd ${CURDIR}/..
 popd
 
 #Prep the SOURCES dir for git-lfs
-echo "Zipping up current checkout of git-lfs..." >&6
+echo "Zipping up current checkout of git-lfs..."
   
 rm -rvf ${CURDIR}/tmptar
 mkdir -p ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}
@@ -181,9 +181,9 @@ rm -rvf ${CURDIR}/tmptar
 touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
 
-echo "Build git-lfs rpm..." >&6
+echo "Build git-lfs rpm..."
 
 #--no-deps added for now so you can compile without offical rpms installed
 "${RPMBUILD[@]}" --nodeps -ba ${CURDIR}/SPECS/git-lfs.spec
 
-echo "All Done!" >&6
+echo "All Done!"
