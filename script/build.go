@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -158,20 +159,23 @@ func buildCommand(dir, buildos, buildarch string) error {
 }
 
 func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
-	files := []string{
+	textfiles := []string{
 		"README.md", "CHANGELOG.md",
 	}
 
-	for _, filename := range files {
+	if buildos == "windows" {
+		return winInstaller(textfiles, buildos, buildarch, dir, buildMatrix)
+	} else {
+		return unixInstaller(textfiles, buildos, buildarch, dir, buildMatrix)
+	}
+}
+
+func unixInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	for _, filename := range textfiles {
 		cmd := exec.Command("cp", filename, filepath.Join(dir, filename))
 		if err := logAndRun(cmd); err != nil {
 			return err
 		}
-	}
-
-	// Windows installer is uploaded separately. See script/nsis.
-	if buildos == "windows" {
-		return nil
 	}
 
 	fullInstallPath := filepath.Join(dir, "install.sh")
@@ -190,6 +194,39 @@ func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Relea
 
 	cmd = exec.Command("tar", "czf", "../"+name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
+	return logAndRun(cmd)
+}
+
+func winInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	for _, filename := range textfiles {
+		by, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+
+		winEndings := strings.Replace(string(by), "\n", "\r\n", -1)
+		err = ioutil.WriteFile(filepath.Join(dir, filename), []byte(winEndings), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	installerPath := filepath.Dir(filepath.Dir(dir))
+	name := zipName(buildos, buildarch) + ".zip"
+	full := filepath.Join(installerPath, name)
+	matches, err := filepath.Glob(dir + "/*")
+	if err != nil {
+		return err
+	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+
+	args := make([]string, len(matches)+2)
+	args[0] = "-j" // junk the zip paths
+	args[1] = full
+	copy(args[2:], matches)
+
+	cmd := exec.Command("zip", args...)
 	return logAndRun(cmd)
 }
 

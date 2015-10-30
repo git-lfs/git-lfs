@@ -20,6 +20,8 @@ var (
 // updateCommand is used for updating parts of Git LFS that reside under
 // .git/lfs.
 func updateCommand(cmd *cobra.Command, args []string) {
+	requireInRepo()
+
 	if err := lfs.InstallHooks(updateForce); err != nil {
 		Error(err.Error())
 		Print("Run `git lfs update --force` to overwrite this hook.")

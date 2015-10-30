@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -105,7 +106,37 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
-func Download(oid string) (io.ReadCloser, int64, error) {
+// Download will attempt to download the object with the given oid. The batched
+// API will be used, but if the server does not implement the batch operations
+// it will fall back to the legacy API.
+func Download(oid string, size int64) (io.ReadCloser, int64, error) {
+	if !Config.BatchTransfer() {
+		return DownloadLegacy(oid)
+	}
+
+	objects := []*objectResource{
+		&objectResource{Oid: oid, Size: size},
+	}
+
+	objs, err := Batch(objects, "download")
+	if err != nil {
+		if IsNotImplementedError(err) {
+			git.Config.SetLocal("", "lfs.batch", "false")
+			return DownloadLegacy(oid)
+		}
+		return nil, 0, err
+	}
+
+	if len(objs) != 1 { // Expecting to find one object
+		return nil, 0, Error(fmt.Errorf("Object not found: %s", oid))
+	}
+
+	return DownloadObject(objs[0])
+}
+
+// DownloadLegacy attempts to download the object for the given oid using the
+// legacy API.
+func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
@@ -231,6 +262,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		tracerx.Printf("api error: %s", err)
+		return nil, Error(err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -416,7 +448,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, er
 	res, err := doAPIRequest(req, Config.PrivateAccess())
 
 	if err != nil {
-		if res.StatusCode == 401 {
+		if res != nil && res.StatusCode == 401 {
 			return res, nil, newAuthError(err)
 		}
 		return res, nil, err

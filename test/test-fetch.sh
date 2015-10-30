@@ -130,6 +130,20 @@ begin_test "fetch"
   git lfs fetch --include="c*,d*" --exclude="a*,b*" origin master newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
+
+  # test fail case error code
+  rm -rf .git/lfs/objects
+  delete_server_object "$reponame" "$b_oid"
+  refute_server_object "$reponame" "$b_oid"
+  # should return non-zero, but should also download all the other valid files too
+  set +e
+  git lfs fetch origin master newbranch
+  fetch_exit=$?
+  set -e
+  [ "$fetch_exit" != "0" ]
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$b_oid"
+
 )
 end_test
 
@@ -402,5 +416,73 @@ begin_test "fetch: outside git repository"
   fi
   [ "$res" = "128" ]
   grep "Not in a git repository" fetch.log
+)
+end_test
+
+begin_test "fetch with no origin remote"
+(
+  set -e
+
+  reponame="fetch-no-remote"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" no-remote-clone
+
+  clone_repo "$reponame" no-remote-repo
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git add .gitattributes
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  [ "a" = "$(cat a.dat)" ]
+
+  assert_local_object "$contents_oid" 1
+
+  refute_server_object "$reponame" "$contents_oid"
+
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
+
+
+  # change to the clone's working directory
+  cd ../no-remote-clone
+
+  # pull commits & lfs
+  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  assert_local_object "$contents_oid" 1
+
+  # now checkout detached HEAD so we're not tracking anything on remote
+  git checkout --detach
+
+  # delete lfs
+  rm -rf .git/lfs
+
+  # rename remote from 'origin' to 'something'
+  git remote rename origin something
+
+  # fetch should still pick this remote as in the case of no tracked remote,
+  # and no origin, but only 1 remote, should pick the only one as default
+  git lfs fetch
+  assert_local_object "$contents_oid" 1
+
+  # delete again, now add a second remote, also non-origin
+  rm -rf .git/lfs
+  git remote add something2 "$GITSERVER/$reponame"
+  git lfs fetch 2>&1 | grep "No default remote"
+  refute_local_object "$contents_oid"
+
+
 )
 end_test

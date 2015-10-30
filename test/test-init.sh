@@ -6,13 +6,16 @@ begin_test "init again"
 (
   set -e
 
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  smudge="$(git config filter.lfs.smudge)"
+  clean="$(git config filter.lfs.clean)"
+
+  printf "$smudge" | grep "git-lfs smudge"
+  printf "$clean" | grep "git-lfs clean"
 
   git lfs init
 
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "$smudge" = "$(git config filter.lfs.smudge)" ]
+  [ "$clean" = "$(git config filter.lfs.clean)" ]
 )
 end_test
 
@@ -34,12 +37,12 @@ begin_test "init with old settings"
   grep -E "(clean|smudge) attribute should be" init.log
   [ `grep -c "(MISSING)" init.log` = "0" ]
 
-  [ "git lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
 
   git lfs init --force
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
 )
 end_test
 
@@ -85,8 +88,7 @@ Git LFS initialized."
 Git LFS initialized." = "$(git lfs init --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  # TODO: FIX FOR DOCKER TESTS
-  exit 0
+  has_test_dir || exit 0
 
   echo "test with bare repository"
   cd ..
@@ -99,21 +101,45 @@ Git LFS initialized." = "$(git lfs init --force)" ]
 )
 end_test
 
+begin_test "init outside repository directory"
+(
+  set -e
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  git lfs init 2>&1 > check.log
+
+  if [ -d "hooks" ]; then
+    ls -al
+    echo "hooks dir exists"
+    exit 1
+  fi
+
+  cat check.log
+
+  # doesn't print this because being in a git repo is not necessary for init
+  [ "$(grep -c "Not in a git repository" check.log)" = "0" ]
+)
+end_test
+
 begin_test "init --skip-smudge"
 (
   set -e
 
   git lfs init
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
 
   git lfs init --skip-smudge
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs smudge --skip %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge --skip %f" = "$(git config --global filter.lfs.smudge)" ]
 
   git lfs init --force
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
 )
 end_test
 
@@ -138,10 +164,15 @@ end_test
 
 begin_test "init --local outside repository"
 (
+  # If run inside the git-lfs source dir this will update its .git/config & cause issues
+  if [ "$GIT_LFS_TEST_DIR" == "" ]; then
+    echo "Skipping init --local because GIT_LFS_TEST_DIR is not set"
+    exit 0
+  fi
+
   set +e
 
-  # TODO: FIX FOR DOCKER TESTS
-  exit 0
+  has_test_dir || exit 0
 
   git lfs init --local 2> err.log
   res=$?

@@ -62,6 +62,22 @@ refute_server_object() {
   grep "404 Not Found" http.log
 }
 
+# Delete an object on the lfs server. HTTP log is
+# written to http.log. JSON output is written to http.json.
+#
+#   $ delete_server_object "reponame" "oid"
+delete_server_object() {
+  local reponame="$1"
+  local oid="$2"
+  curl -v "$GITSERVER/$reponame.git/info/lfs/delete/$oid" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+
+  grep "200 OK" http.log
+}
+
 # check that the object does exist in the git lfs server. HTTP log is written
 # to http.log. JSON output is written to http.json.
 assert_server_object() {
@@ -211,6 +227,7 @@ setup() {
   echo
   echo "HOME: $HOME"
   echo "TMP: $TMPDIR"
+  echo "CREDS: $CREDSDIR"
   echo "lfstest-gitserver:"
   echo "  LFSTEST_URL=$LFS_URL_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
@@ -364,5 +381,59 @@ get_date() {
         ARGS="$ARGS -v$var"
     done
     date $ARGS -u +%Y-%m-%dT%TZ
+  fi
+}
+
+# Convert potentially MinGW bash paths to native Windows paths
+# Needed to match generic built paths in test scripts to native paths generated from Go
+native_path() {
+  local arg=$1
+  if [ $IS_WINDOWS == "1" ]; then
+    # Use params form to avoid interpreting any '\' characters
+    printf '%s' "$(cygpath -w $arg)"
+  else
+    printf '%s' "$arg"
+  fi
+}
+
+# escape any instance of '\' with '\\' on Windows
+escape_path() {
+  local unescaped="$1"
+  if [ $IS_WINDOWS == "1" ]; then
+    printf '%s' "${unescaped//\\/\\\\}"
+  else
+    printf '%s' "$unescaped"
+  fi
+}
+
+# As native_path but escape all backslash characters to "\\"
+native_path_escaped() {
+  local unescaped=$(native_path "$1")
+  escape_path "$unescaped"
+}
+
+# Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
+contains_same_elements() {
+  # Remove blank lines then sort
+  printf '%s' "$1" | grep -v '^$' | sort > a.txt
+  printf '%s' "$2" | grep -v '^$' | sort > b.txt
+
+  set +e
+  diff -u a.txt b.txt 1>&2
+  res=$?
+  set -e
+  rm a.txt b.txt
+  exit $res
+}
+
+is_stdin_attached() {
+  test -t0
+  echo $?
+}
+
+has_test_dir() {
+  if [ -z "$GIT_LFS_TEST_DIR" ]; then
+    echo "No GIT_LFS_TEST_DIR. Skipping..."
+    exit 0
   fi
 }
