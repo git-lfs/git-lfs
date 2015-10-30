@@ -23,7 +23,7 @@ Git remote: git@git-server.com:user/repo.git
 Git LFS endpoint: https://git-server.com/user/repo.git/info/lfs
 ```
 
-The [specification](spec.md) describes how clients can configure the Git LFS
+The [specification](/docs/spec.md) describes how clients can configure the Git LFS
 API endpoint manually.
 
 The [original v1 API][v1] is used for Git LFS v0.5.x. An experimental [v1
