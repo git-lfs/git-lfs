@@ -7,7 +7,7 @@ if [ -z "$GOPATH" ] && uname -s | grep -vq "_NT-"; then
   export GOPATH="$(pwd)"
   mkdir -p src/github.com/github
   [ -h src/github.com/github/git-lfs ] ||
-    ln -sf "$GOPATH" src/github.com/github/git-lfs
+    ln -s "$GOPATH" src/github.com/github/git-lfs
 fi
 
 script/fmt
