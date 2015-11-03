@@ -38,7 +38,8 @@ Function .onGUIInit
 FunctionEnd
 
 Function .onInstSuccess
-  MessageBox MB_OK "Open Git Bash and run 'git lfs init' to get started."
+  IfSilent +2
+    MessageBox MB_OK "Open Git Bash and run 'git lfs init' to get started."
 FunctionEnd
 
 Page license
