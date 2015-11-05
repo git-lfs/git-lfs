@@ -458,7 +458,7 @@ begin_test "env with bare repo"
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expected=$(printf "%s\n%s\n
-LocalWorkingDir=
+LocalWorkingDir=.
 LocalGitDir=%s
 LocalGitStorageDir=%s
 LocalMediaDir=%s
