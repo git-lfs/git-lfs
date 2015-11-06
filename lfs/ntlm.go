@@ -41,8 +41,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 		return nil, err
 	}
 
-	res, err := InitHandShake(handReq)
-
+	res, err := Config.HttpClient().Do(handReq)
 	if err != nil && res == nil {
 		return nil, err
 	}
@@ -87,10 +86,6 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 	return res, nil
 }
 
-func InitHandShake(request *http.Request) (*http.Response, error) {
-	return Config.HttpClient().Do(request)
-}
-
 func negotiate(request *http.Request, message string) ([]byte, error) {
 	request.Header.Add("Authorization", message)
 	res, err := Config.HttpClient().Do(request)
@@ -113,7 +108,6 @@ func negotiate(request *http.Request, message string) ([]byte, error) {
 
 func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error) {
 	challenge, err := ntlm.ParseChallengeMessage(challengeBytes)
-
 	if err != nil {
 		return nil, err
 	}
@@ -125,13 +119,12 @@ func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http
 
 	session.ProcessChallengeMessage(challenge)
 	authenticate, err := session.GenerateAuthenticateMessage()
-
 	if err != nil {
 		return nil, err
 	}
 
-	authenticateMessage := concatS("NTLM ", base64.StdEncoding.EncodeToString(authenticate.Bytes()))
-	request.Header.Add("Authorization", authenticateMessage)
+	authMsg := base64.StdEncoding.EncodeToString(authenticate.Bytes())
+	request.Header.Add("Authorization", "NTLM "+authMsg)
 	return Config.HttpClient().Do(request)
 }
 
@@ -191,21 +184,6 @@ func cloneRequest(request *http.Request) (*http.Request, error) {
 
 func getNegotiateMessage() string {
 	return "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
-}
-
-func concatS(ar ...string) string {
-
-	var buffer bytes.Buffer
-
-	for _, s := range ar {
-		buffer.WriteString(s)
-	}
-
-	return buffer.String()
-}
-
-func concat(ar ...[]byte) []byte {
-	return bytes.Join(ar, nil)
 }
 
 type myReader struct {
