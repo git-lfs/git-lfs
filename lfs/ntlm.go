@@ -144,7 +144,6 @@ func parseChallengeResponse(response *http.Response) ([]byte, error) {
 }
 
 func cloneRequest(request *http.Request) (*http.Request, error) {
-	var rdr1, rdr2 myReader
 	var clonedReq *http.Request
 	var err error
 
@@ -158,18 +157,15 @@ func cloneRequest(request *http.Request) (*http.Request, error) {
 			return nil, err
 		}
 
-		rdr1 = myReader{bytes.NewBuffer(buf)}
-		rdr2 = myReader{bytes.NewBuffer(buf)}
-		request.Body = rdr2 // OK since rdr2 implements the io.ReadCloser interface
-		clonedReq, err = http.NewRequest(request.Method, request.URL.String(), rdr1)
-
+		cloneReqBody := ioutil.NopCloser(bytes.NewBuffer(buf))
+		request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+		clonedReq, err = http.NewRequest(request.Method, request.URL.String(), cloneReqBody)
 		if err != nil {
 			return nil, err
 		}
 
 	} else {
 		clonedReq, err = http.NewRequest(request.Method, request.URL.String(), nil)
-
 		if err != nil {
 			return nil, err
 		}
@@ -188,9 +184,3 @@ func getNegotiateMessage() string {
 	return "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
 }
 
-type myReader struct {
-	*bytes.Buffer
-}
-
-// So that myReader implements the io.ReadCloser interface
-func (m myReader) Close() error { return nil }
