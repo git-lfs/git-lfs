@@ -158,6 +158,7 @@ func cloneRequest(request *http.Request) (*http.Request, error) {
 		clonedReq.Header.Add(k, request.Header.Get(k))
 	}
 
+	clonedReq.TransferEncoding = request.TransferEncoding
 	clonedReq.ContentLength = request.ContentLength
 
 	return clonedReq, nil
