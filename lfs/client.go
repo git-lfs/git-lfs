@@ -182,9 +182,6 @@ func DownloadCheck(oid string) (*objectResource, error) {
 		return nil, Error(err)
 	}
 
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
 	return obj, nil
 }
 
@@ -233,8 +230,6 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 
 	res, objs, err := doApiBatchRequest(req)
 
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
 	if err != nil {
 
 		if res == nil {
