@@ -94,10 +94,64 @@ func TestNtlmHeaderParseInvalidLength(t *testing.T) {
 }
 
 func TestNtlmHeaderParseInvalid(t *testing.T) {
-
 	res := http.Response{}
 	res.Header = make(map[string][]string)
 	res.Header.Add("Www-Authenticate", base64.StdEncoding.EncodeToString([]byte("NTLM I am a moose")))
 	_, err := parseChallengeResponse(&res)
 	assert.NotEqual(t, err, nil)
+}
+
+func TestCloneSmallBody(t *testing.T) {
+	cloneable1, err := newCloneableBody(strings.NewReader("abc"), 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cloneable2, err := cloneable1.CloneBody()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertCloneableBody(t, cloneable2, "abc", "abc")
+	assertCloneableBody(t, cloneable1, "abc", "abc")
+}
+
+func TestCloneBigBody(t *testing.T) {
+	cloneable1, err := newCloneableBody(strings.NewReader("abc"), 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cloneable2, err := cloneable1.CloneBody()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertCloneableBody(t, cloneable2, "abc", "ab")
+	assertCloneableBody(t, cloneable1, "abc", "ab")
+}
+
+func assertCloneableBody(t *testing.T, cloneable *cloneableBody, expectedBody, expectedBuffer string) {
+	buffer := string(cloneable.b)
+	if buffer != expectedBuffer {
+		t.Errorf("Expected buffer %q, got %q", expectedBody, buffer)
+	}
+
+	if cloneable.closed {
+		t.Errorf("already closed?")
+	}
+
+	by, err := ioutil.ReadAll(cloneable)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cloneable.Close(); err != nil {
+		t.Errorf("Error closing: %v", err)
+	}
+
+	actual := string(by)
+	if actual != expectedBody {
+		t.Errorf("Expected to read %q, got %q", expectedBody, actual)
+	}
 }

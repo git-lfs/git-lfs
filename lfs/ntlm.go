@@ -8,7 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
+	"sync/atomic"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
@@ -169,13 +171,147 @@ func cloneRequestBody(req *http.Request) (io.ReadCloser, error) {
 		return nil, nil
 	}
 
-	buf, err := ioutil.ReadAll(req.Body)
+	var cb *cloneableBody
+	var err error
+	hasExisting := false
+
+	// check to see if the request body is already a cloneableBody
+	body := req.Body
+	if existingCb, ok := body.(*cloneableBody); ok {
+		hasExisting = true
+		cb, err = existingCb.CloneBody()
+	} else {
+		cb, err = newCloneableBody(req.Body, 0)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-	return ioutil.NopCloser(bytes.NewBuffer(buf)), nil
+	// if the request body is NOT a cloneable body, replace it with one
+	if !hasExisting {
+		cb2, err := cb.CloneBody()
+		if err != nil {
+			return nil, err
+		}
+
+		req.Body = cb2
+	}
+
+	return cb, nil
+}
+
+type cloneableBody struct {
+	b      []byte    // in-memory buffer of body
+	f      *os.File  // file buffer of in-memory overflow
+	r      io.Reader // internal reader for Read()
+	closed bool      // tracks whether body is closed
+	dup    *dupTracker
+}
+
+func newCloneableBody(r io.Reader, limit int64) (*cloneableBody, error) {
+	if limit < 1 {
+		limit = 1048576 // default
+	}
+
+	b := &cloneableBody{}
+	buf := &bytes.Buffer{}
+	w, err := io.CopyN(buf, r, limit)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	b.b = buf.Bytes()
+	byReader := bytes.NewBuffer(b.b)
+
+	if w >= limit {
+		tmp, err := ioutil.TempFile("", "git-lfs-clone-reader")
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(tmp, r)
+		tmp.Close()
+		if err != nil {
+			os.RemoveAll(tmp.Name())
+			return nil, err
+		}
+
+		f, err := os.Open(tmp.Name())
+		if err != nil {
+			os.RemoveAll(tmp.Name())
+			return nil, err
+		}
+
+		dups := int32(0)
+		b.dup = &dupTracker{name: f.Name(), dups: &dups}
+		b.f = f
+		b.r = io.MultiReader(byReader, b.f)
+	} else {
+		// no file, so set the reader to just the in-memory buffer
+		b.r = byReader
+	}
+
+	return b, nil
+}
+
+func (b *cloneableBody) Read(p []byte) (int, error) {
+	if b.closed {
+		return 0, io.EOF
+	}
+	return b.r.Read(p)
+}
+
+func (b *cloneableBody) Close() error {
+	if !b.closed {
+		b.closed = true
+		if b.f == nil {
+			return nil
+		}
+
+		b.f.Close()
+		b.dup.Rm()
+	}
+	return nil
+}
+
+func (b *cloneableBody) CloneBody() (*cloneableBody, error) {
+	if b.closed {
+		return &cloneableBody{closed: true}, nil
+	}
+
+	b2 := &cloneableBody{b: b.b}
+
+	if b.f == nil {
+		b2.r = bytes.NewBuffer(b.b)
+	} else {
+		f, err := os.Open(b.f.Name())
+		if err != nil {
+			return nil, err
+		}
+		b2.f = f
+		b2.r = io.MultiReader(bytes.NewBuffer(b.b), b2.f)
+		b2.dup = b.dup
+		b.dup.Add()
+	}
+
+	return b2, nil
+}
+
+type dupTracker struct {
+	name string
+	dups *int32
+}
+
+func (t *dupTracker) Add() {
+	atomic.AddInt32(t.dups, 1)
+}
+
+func (t *dupTracker) Rm() {
+	newval := atomic.AddInt32(t.dups, -1)
+	if newval < 0 {
+		os.RemoveAll(t.name)
+	}
 }
 
 const ntlmNegotiateMessage = "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
