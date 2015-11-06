@@ -5,11 +5,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
 func (c *Configuration) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {

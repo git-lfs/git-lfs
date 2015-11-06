@@ -247,10 +247,10 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 
 		if IsAuthError(err) {
 			if isNtlmRequest(res) {
-				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
+				toggleAuthType("ntlm")
 				return Batch(objects, operation)
 			} else {
-				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
+				toggleAuthType("basic")
 				return Batch(objects, operation)
 			}
 		}
@@ -310,10 +310,10 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	if err != nil {
 		if IsAuthError(err) {
 			if isNtlmRequest(res) {
-				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
+				toggleAuthType("ntlm")
 				return UploadCheck(oidPath)
 			} else {
-				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
+				toggleAuthType("basic")
 				return UploadCheck(oidPath)
 			}
 		}
@@ -509,7 +509,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 
 	if err != nil {
 		if IsAuthError(err) && isNtlmRequest(res) {
-			toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
+			toggleAuthType("ntlm")
 			doHttpRequest(req, creds)
 		} else {
 			err = Error(err)
@@ -763,9 +763,9 @@ func isNtlmRequest(res *http.Response) bool {
 	return strings.HasPrefix(strings.ToLower(header), "ntlm")
 }
 
-func toggleAuthType(authType string, message string) {
+func toggleAuthType(authType string) {
 	Config.SetAccess(authType)
-	tracerx.Printf(message, authType)
+	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
