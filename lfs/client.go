@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -181,6 +182,9 @@ func DownloadCheck(oid string) (*objectResource, error) {
 		return nil, Error(err)
 	}
 
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
 	return obj, nil
 }
 
@@ -228,7 +232,11 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	tracerx.Printf("api: batch %d files", len(objects))
 
 	res, objs, err := doApiBatchRequest(req)
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
 	if err != nil {
+
 		if res == nil {
 			return nil, newRetriableError(err)
 		}
@@ -238,9 +246,13 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		if IsAuthError(err) {
-			Config.SetAccess("basic")
-			tracerx.Printf("api: batch not authorized, submitting with auth")
-			return Batch(objects, operation)
+			if isNtlmRequest(res) {
+				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
+				return Batch(objects, operation)
+			} else {
+				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
+				return Batch(objects, operation)
+			}
 		}
 
 		switch res.StatusCode {
@@ -291,11 +303,19 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doLegacyApiRequest(req)
+
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
 	if err != nil {
 		if IsAuthError(err) {
-			Config.SetAccess("basic")
-			tracerx.Printf("api: upload check not authorized, submitting with auth")
-			return UploadCheck(oidPath)
+			if isNtlmRequest(res) {
+				toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
+				return UploadCheck(oidPath)
+			} else {
+				toggleAuthType("basic", "api: batch not authorized, submitting with %s auth")
+				return UploadCheck(oidPath)
+			}
 		}
 
 		return nil, newRetriableError(err)
@@ -467,7 +487,17 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
-	res, err := Config.HttpClient().Do(req)
+	var (
+		res *http.Response
+		err error
+	)
+
+	if Config.NtlmAccess() {
+		res, err = DoNTLMRequest(req, true)
+	} else {
+		res, err = Config.HttpClient().Do(req)
+	}
+
 	if res == nil {
 		res = &http.Response{
 			StatusCode: 0,
@@ -478,7 +508,12 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		err = Error(err)
+		if IsAuthError(err) && isNtlmRequest(res) {
+			toggleAuthType("ntlm", "api: response indicates ntlm, submitting with %s auth")
+			doHttpRequest(req, creds)
+		} else {
+			err = Error(err)
+		}
 	} else {
 		err = handleResponse(res, creds)
 	}
@@ -723,7 +758,21 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
+func isNtlmRequest(res *http.Response) bool {
+	header := res.Header.Get("Www-Authenticate")
+	return strings.HasPrefix(strings.ToLower(header), "ntlm")
+}
+
+func toggleAuthType(authType string, message string) {
+	Config.SetAccess(authType)
+	tracerx.Printf(message, authType)
+}
+
 func setRequestAuth(req *http.Request, user, pass string) {
+	if Config.NtlmAccess() {
+		return
+	}
+
 	if len(user) == 0 && len(pass) == 0 {
 		return
 	}
