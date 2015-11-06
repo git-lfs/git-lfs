@@ -294,9 +294,6 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doLegacyApiRequest(req)
 
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
 	if err != nil {
 		if IsAuthError(err) {
 			setAuthType(res)
