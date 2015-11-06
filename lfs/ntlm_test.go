@@ -80,16 +80,17 @@ func TestNtlmHeaderParseValid(t *testing.T) {
 }
 
 func TestNtlmHeaderParseInvalidLength(t *testing.T) {
-
-	defer func() {
-		r := recover()
-		assert.NotEqual(t, r, nil)
-	}()
-
 	res := http.Response{}
 	res.Header = make(map[string][]string)
 	res.Header.Add("Www-Authenticate", "NTL")
-	_, _ = parseChallengeResponse(&res)
+	ret, err := parseChallengeResponse(&res)
+	if ret != nil {
+		t.Errorf("Unexpected challenge response: %v", ret)
+	}
+
+	if err == nil {
+		t.Errorf("Expected error, got none!")
+	}
 }
 
 func TestNtlmHeaderParseInvalid(t *testing.T) {
