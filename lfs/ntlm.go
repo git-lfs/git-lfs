@@ -130,6 +130,9 @@ func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http
 
 func parseChallengeResponse(response *http.Response) ([]byte, error) {
 	header := response.Header.Get("Www-Authenticate")
+	if len(header) < 6 {
+		return nil, fmt.Errorf("Invalid NTLM challenge response: %q", header)
+	}
 
 	//parse out the "NTLM " at the beginning of the response
 	challenge := header[5:]
