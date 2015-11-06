@@ -246,13 +246,8 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		if IsAuthError(err) {
-			if isNtlmRequest(res) {
-				toggleAuthType("ntlm")
-				return Batch(objects, operation)
-			} else {
-				toggleAuthType("basic")
-				return Batch(objects, operation)
-			}
+			setAuthType(res)
+			return Batch(objects, operation)
 		}
 
 		switch res.StatusCode {
@@ -309,13 +304,8 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 
 	if err != nil {
 		if IsAuthError(err) {
-			if isNtlmRequest(res) {
-				toggleAuthType("ntlm")
-				return UploadCheck(oidPath)
-			} else {
-				toggleAuthType("basic")
-				return UploadCheck(oidPath)
-			}
+			setAuthType(res)
+			return UploadCheck(oidPath)
 		}
 
 		return nil, newRetriableError(err)
@@ -508,8 +498,8 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		if IsAuthError(err) && isNtlmRequest(res) {
-			toggleAuthType("ntlm")
+		if IsAuthError(err) {
+			setAuthType(res)
 			doHttpRequest(req, creds)
 		} else {
 			err = Error(err)
@@ -758,14 +748,23 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
-func isNtlmRequest(res *http.Response) bool {
-	header := res.Header.Get("Www-Authenticate")
-	return strings.HasPrefix(strings.ToLower(header), "ntlm")
-}
-
-func toggleAuthType(authType string) {
+func setAuthType(res *http.Response) {
+	authType := getAuthType(res)
 	Config.SetAccess(authType)
 	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
+}
+
+func getAuthType(res *http.Response) string {
+	auth := res.Header.Get("Www-Authenticate")
+	if len(auth) < 1 {
+		auth = res.Header.Get("Lfs-Authenticate")
+	}
+
+	if strings.HasPrefix(strings.ToLower(auth), "ntlm") {
+		return "ntlm"
+	}
+
+	return "basic"
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
