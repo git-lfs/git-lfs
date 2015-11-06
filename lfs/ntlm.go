@@ -59,7 +59,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 			return nil, err
 		}
 
-		challengeMessage, err := negotiate(negotiateReq, getNegotiateMessage())
+		challengeMessage, err := negotiate(negotiateReq, ntlmNegotiateMessage)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +180,4 @@ func cloneRequest(request *http.Request) (*http.Request, error) {
 	return clonedReq, nil
 }
 
-func getNegotiateMessage() string {
-	return "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
-}
-
+const ntlmNegotiateMessage = "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
