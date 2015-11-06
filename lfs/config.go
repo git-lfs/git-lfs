@@ -117,6 +117,10 @@ func (c *Configuration) Endpoint() Endpoint {
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
+	if c.NtlmAccess() {
+		return 1
+	}
+
 	uploads := 3
 
 	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
