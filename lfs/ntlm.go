@@ -94,14 +94,13 @@ func negotiate(request *http.Request, message string) ([]byte, error) {
 		return nil, err
 	}
 
-	ret, err := parseChallengeResponse(res)
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
 
+	ret, err := parseChallengeResponse(res)
 	if err != nil {
 		return nil, err
 	}
-
-	defer res.Body.Close()
-	defer io.Copy(ioutil.Discard, res.Body)
 
 	return ret, nil
 }
