@@ -144,40 +144,37 @@ func parseChallengeResponse(response *http.Response) ([]byte, error) {
 }
 
 func cloneRequest(request *http.Request) (*http.Request, error) {
-	var clonedReq *http.Request
-	var err error
-
-	if request.Body != nil {
-		//If we have a body (POST/PUT etc.)
-		//We need to do some magic to copy the request without closing the body stream
-
-		buf, err := ioutil.ReadAll(request.Body)
-
-		if err != nil {
-			return nil, err
-		}
-
-		cloneReqBody := ioutil.NopCloser(bytes.NewBuffer(buf))
-		request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-		clonedReq, err = http.NewRequest(request.Method, request.URL.String(), cloneReqBody)
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-		clonedReq, err = http.NewRequest(request.Method, request.URL.String(), nil)
-		if err != nil {
-			return nil, err
-		}
+	cloneReqBody, err := cloneRequestBody(request)
+	if err != nil {
+		return nil, err
 	}
 
-	for k, v := range request.Header {
-		clonedReq.Header.Add(k, v[0])
+	clonedReq, err := http.NewRequest(request.Method, request.URL.String(), cloneReqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, _ := range request.Header {
+		clonedReq.Header.Add(k, request.Header.Get(k))
 	}
 
 	clonedReq.ContentLength = request.ContentLength
 
 	return clonedReq, nil
+}
+
+func cloneRequestBody(req *http.Request) (io.ReadCloser, error) {
+	if req.Body == nil {
+		return nil, nil
+	}
+
+	buf, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+	return ioutil.NopCloser(bytes.NewBuffer(buf)), nil
 }
 
 const ntlmNegotiateMessage = "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
