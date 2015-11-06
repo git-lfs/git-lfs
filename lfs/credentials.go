@@ -31,8 +31,7 @@ func getCreds(req *http.Request) (Creds, error) {
 // have to enter their passwords once for Git and Git LFS. It uses the same
 // URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
 func getCredsForAPI(req *http.Request) (Creds, error) {
-
-	if !Config.NtlmAccess() && skipCredsCheck(req) {
+	if skipCredsCheck(req) {
 		return nil, nil
 	}
 
@@ -61,7 +60,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 		return req.URL, nil
 	}
 
-	if !Config.NtlmAccess() && setRequestAuthFromUrl(req, apiUrl) {
+	if setRequestAuthFromUrl(req, apiUrl) {
 		return nil, nil
 	}
 
@@ -76,7 +75,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
 				gitRemoteUrl.Host == apiUrl.Host {
 
-				if !Config.NtlmAccess() && setRequestAuthFromUrl(req, gitRemoteUrl) {
+				if setRequestAuthFromUrl(req, gitRemoteUrl) {
 					return nil, nil
 				}
 
@@ -88,6 +87,10 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 }
 
 func skipCredsCheck(req *http.Request) bool {
+	if Config.NtlmAccess() {
+		return false
+	}
+
 	if len(req.Header.Get("Authorization")) > 0 {
 		return true
 	}
@@ -105,7 +108,7 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 
 	creds, err := execCreds(input, "fill")
 
-	if creds != nil && err == nil && !Config.NtlmAccess() {
+	if creds != nil && err == nil {
 		setRequestAuth(req, creds["username"], creds["password"])
 	}
 
