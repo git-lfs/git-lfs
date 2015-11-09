@@ -170,7 +170,7 @@ func processGitDirVar(gitDir, workTree string) (string, string, error) {
 	// core.worktree is specified, the current working directory is regarded as the top
 	// level of your working tree.”
 
-	wd, err := os.Getwd()
+	wd, err := Getwd()
 	if err != nil {
 		return "", "", err
 	}
