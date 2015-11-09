@@ -482,7 +482,59 @@ begin_test "fetch with no origin remote"
   git remote add something2 "$GITSERVER/$reponame"
   git lfs fetch 2>&1 | grep "No default remote"
   refute_local_object "$contents_oid"
+)
+end_test
 
+begin_test "fetch --prune"
+(
+  set -e
 
+  reponame="fetch_prune"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  content_head="HEAD content"
+  content_commit2="Content for commit 2 (prune)"
+  content_commit1="Content for commit 1 (prune)"
+  oid_head=$(calc_oid "$content_head")
+  oid_commit2=$(calc_oid "$content_commit2")
+  oid_commit1=$(calc_oid "$content_commit1")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit1}, \"Data\":\"$content_commit1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -35d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit2}, \"Data\":\"$content_commit2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -25d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # push all so no unpushed reason to not prune
+  git push origin master
+
+  # set no recents so max ability to prune
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentcommitsdays 0
+
+  # delete HEAD object to prove that we still download something
+  # also prune at the same time which will remove anything other than HEAD
+  delete_local_object "$oid_head"
+  git lfs fetch --prune
+  assert_local_object "$oid_head" "${#content_head}"
+  refute_local_object "$oid_commit1"
+  refute_local_object "$oid_commit2"
 )
 end_test

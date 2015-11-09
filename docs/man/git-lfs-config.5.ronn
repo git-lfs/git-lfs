@@ -46,6 +46,7 @@ lfs option can be scoped inside the configuration for a remote.
 
   If non-zero, fetches refs which have commits within N days of the current
   date. Only local refs are included unless lfs.fetchrecentremoterefs is true.
+  Also used as a basis for pruning old files.
   The default is 7 days.
 
 * `lfs.fetchrecentremoterefs`
@@ -61,12 +62,31 @@ lfs option can be scoped inside the configuration for a remote.
 
   In addition to fetching at refs, also fetches previous changes made within N
   days of the latest commit on the ref. This is useful if you're often reviewing
-  recent changes. The default is 0 (no previous changes).
+  recent changes.   Also used as a basis for pruning old files.
+  The default is 0 (no previous changes).
 
 * `lfs.fetchrecentalways`
 
   Always operate as if --recent was included in a `git lfs fetch` call. Default
   false.
+
+### Prune settings
+
+* `lfs.pruneoffsetdays`
+
+  The number of days added to the `lfs.fetchrecent*` settings to determine what
+  can be pruned. Default is 3 days, i.e. that anything fetched at the very
+  oldest edge of the 'recent window' is eligible for pruning 3 days later.
+
+* `lfs.pruneremotetocheck`
+
+  Set the remote that LFS files must have been pushed to in order for them to
+  be considered eligible for local pruning. Also the remote which is called if
+  --verify-remote is enabled.
+
+* `lfs.pruneverifyremotealways`
+
+  Always run `git lfs prune` as if `--verify-remote` was provided.
 
 ### Extensions
 
