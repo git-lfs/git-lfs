@@ -38,10 +38,10 @@ begin_test "track"
 
   out=$(git lfs track)
   echo "$out" | grep "Listing tracked paths"
-  echo "$out" | grep "*.mov (.git/info/attributes)"
+  echo "$out" | grep "*.mov ($(native_path_escaped ".git/info/attributes"))"
   echo "$out" | grep "*.jpg (.gitattributes)"
-  echo "$out" | grep "*.gif (a/.gitattributes)"
-  echo "$out" | grep "*.png (a/b/.gitattributes)"
+  echo "$out" | grep "*.gif ($(native_path_escaped "a/.gitattributes"))"
+  echo "$out" | grep "*.png ($(native_path_escaped "a/b/.gitattributes"))"
 )
 end_test
 
@@ -134,9 +134,9 @@ begin_test "track representation"
   cd track-representation
 
   git lfs track "*.jpg"
-  out=$(git lfs track "$PWD/*.jpg")
+  out=$(git lfs track "$(native_path "$PWD/")*.jpg")
 
-  if [ "$out" != "$PWD/*.jpg already supported" ]; then
+  if [ "$out" != "$(native_path "$PWD/")*.jpg already supported" ]; then
     echo "Track didn't recognize duplicate path"
     cat .gitattributes
     exit 1
@@ -179,7 +179,7 @@ begin_test "track absolute"
   git init track-absolute
   cd track-absolute
 
-  git lfs track "$PWD/*.jpg"
+  git lfs track "$(native_path "$PWD/")*.jpg"
   grep "^*.jpg" .gitattributes || {
     echo ".gitattributes doesn't contain the expected relative path *.jpg:"
     cat .gitattributes

@@ -84,15 +84,29 @@ func CurrentBranch() (string, error) {
 }
 
 func CurrentRemoteRef() (*Ref, error) {
-	remote, err := CurrentRemote()
+	remoteref, err := RemoteRefNameForCurrentBranch()
 	if err != nil {
 		return nil, err
 	}
 
-	return ResolveRef(remote)
+	return ResolveRef(remoteref)
 }
 
-func CurrentRemote() (string, error) {
+// RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
+func RemoteForCurrentBranch() (string, error) {
+	branch, err := CurrentBranch()
+	if err != nil {
+		return "", err
+	}
+	remote := RemoteForBranch(branch)
+	if remote == "" {
+		return "", errors.New("remote not found")
+	}
+	return remote, nil
+}
+
+// RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
+func RemoteRefNameForCurrentBranch() (string, error) {
 	branch, err := CurrentBranch()
 	if err != nil {
 		return "", err
@@ -102,12 +116,97 @@ func CurrentRemote() (string, error) {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := Config.Find(fmt.Sprintf("branch.%s.remote", branch))
+	remote := RemoteForBranch(branch)
 	if remote == "" {
 		return "", errors.New("remote not found")
 	}
 
-	return remote + "/" + branch, nil
+	remotebranch := RemoteBranchForLocalBranch(branch)
+
+	return remote + "/" + remotebranch, nil
+}
+
+// RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
+func RemoteForBranch(localBranch string) string {
+	return Config.Find(fmt.Sprintf("branch.%s.remote", localBranch))
+}
+
+// RemoteBranchForLocalBranch returns the name (only) of the remote branch that the local branch is tracking
+// If no specific branch is configured, returns local branch name
+func RemoteBranchForLocalBranch(localBranch string) string {
+	// get remote ref to track, may not be same name
+	merge := Config.Find(fmt.Sprintf("branch.%s.merge", localBranch))
+	if strings.HasPrefix(merge, "refs/heads/") {
+		return merge[11:]
+	} else {
+		return localBranch
+	}
+
+}
+
+func RemoteList() ([]string, error) {
+	cmd := execCommand("git", "remote")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git remote: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+
+	var ret []string
+	for scanner.Scan() {
+		ret = append(ret, strings.TrimSpace(scanner.Text()))
+	}
+	return ret, nil
+}
+
+// ValidateRemote checks that a named remote is valid for use
+// Mainly to check user-supplied remotes & fail more nicely
+func ValidateRemote(remote string) error {
+	remotes, err := RemoteList()
+	if err != nil {
+		return err
+	}
+	for _, r := range remotes {
+		if r == remote {
+			return nil
+		}
+	}
+	return errors.New("Invalid remote name")
+}
+
+// DefaultRemote returns the default remote based on:
+// 1. The currently tracked remote branch, if present
+// 2. "origin", if defined
+// 3. Any other SINGLE remote defined in .git/config
+// Returns an error if all of these fail, i.e. no tracked remote branch, no
+// "origin", and either no remotes defined or 2+ non-"origin" remotes
+func DefaultRemote() (string, error) {
+	tracked, err := RemoteForCurrentBranch()
+	if err == nil {
+		return tracked, nil
+	}
+
+	// Otherwise, check what remotes are defined
+	remotes, err := RemoteList()
+	if err != nil {
+		return "", err
+	}
+	switch len(remotes) {
+	case 0:
+		return "", errors.New("No remotes defined")
+	case 1: // always use a single remote whether it's origin or otherwise
+		return remotes[0], nil
+	default:
+		for _, remote := range remotes {
+			// Use origin if present
+			if remote == "origin" {
+				return remote, nil
+			}
+		}
+	}
+	return "", errors.New("Unable to pick default remote, too ambiguous")
 }
 
 func UpdateIndex(file string) error {
@@ -123,6 +222,12 @@ var Config = &gitConfig{}
 // Find returns the git config value for the key
 func (c *gitConfig) Find(val string) string {
 	output, _ := simpleExec("git", "config", val)
+	return output
+}
+
+// Find returns the git config value for the key
+func (c *gitConfig) FindGlobal(val string) string {
+	output, _ := simpleExec("git", "config", "--global", val)
 	return output
 }
 
@@ -354,6 +459,34 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 		return nil, errors.New(msg)
 	}
 
+}
+
+func RootDir() (string, error) {
+	cmd := execCommand("git", "rev-parse", "--show-toplevel")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
+	}
+
+	path := strings.TrimSpace(string(out))
+	if len(path) > 0 {
+		return filepath.Abs(path)
+	}
+	return "", nil
+
+}
+
+func GitDir() (string, error) {
+	cmd := execCommand("git", "rev-parse", "--git-dir")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
+	}
+	path := strings.TrimSpace(string(out))
+	if len(path) > 0 {
+		return filepath.Abs(path)
+	}
+	return "", nil
 }
 
 // GetAllWorkTreeHEADs returns the refs that all worktrees are using as HEADs

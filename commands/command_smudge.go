@@ -75,7 +75,11 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 
 	if err != nil {
 		ptr.Encode(os.Stdout)
-		LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
+		// Download declined error is ok to skip if we weren't requesting download
+		if !(lfs.IsDownloadDeclinedError(err) && !download) {
+			LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
+			os.Exit(2)
+		}
 	}
 }
 

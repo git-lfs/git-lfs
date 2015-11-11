@@ -50,8 +50,8 @@ const (
 
 // Progress from a sub-task of prune
 type PruneProgress struct {
-	ProgressType  PruneProgressType
-	Count int // Number of items done
+	ProgressType PruneProgressType
+	Count        int // Number of items done
 }
 type PruneProgressChan chan PruneProgress
 
@@ -300,7 +300,9 @@ func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan cha
 	defer waitg.Done()
 
 	// Only files AT ref, recent is checked in pruneTaskGetRetainedRecentRefs
-	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanRefsMode, SkipDeletedBlobs: true}
+	opts := lfs.NewScanRefsOptions()
+	opts.ScanMode = lfs.ScanRefsMode
+	opts.SkipDeletedBlobs = true
 	refchan, err := lfs.ScanRefsToChan(ref, "", opts)
 	if err != nil {
 		errorChan <- err
@@ -437,7 +439,9 @@ func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, errorChan chan er
 
 	// converts to `git rev-list --all`
 	// We only pick up objects in real commits and not the reflog
-	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
+	opts := lfs.NewScanRefsOptions()
+	opts.ScanMode = lfs.ScanAllMode
+	opts.SkipDeletedBlobs = false
 
 	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
 	if err != nil {

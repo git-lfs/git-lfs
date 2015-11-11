@@ -93,7 +93,13 @@ end_test
 
 begin_test "pointer --stdin without stdin"
 (
-  output=$(git lfs pointer --stdin 2>&1)
+  # this test doesn't work on Windows, it just operates like 'bad pointer' case
+  # stdin isn't detectable as detached, it just times out with no content
+  if [[ "$(is_stdin_attached)" == "0" ]]; then
+    echo "Skipping pointer without stdin because STDIN attached"
+    exit 0
+  fi
+  output=$(echo "" | git lfs pointer --stdin 2>&1)
   status=$?
 
   set -e
@@ -212,7 +218,7 @@ begin_test "pointer missing --pointer"
   set -e
 
   [ "1" = "$status" ]
-  [ "open missing-pointer: no such file or directory" = "$output" ]
+  [[ "$output" == open missing-pointer:* ]]
 )
 end_test
 

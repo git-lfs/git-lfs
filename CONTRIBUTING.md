@@ -41,6 +41,28 @@ of transferring data.
 You can see what the Git LFS team is prioritizing work on in the
 [roadmap](./ROADMAP.md).
 
+## Building
+
+Git LFS depends on having a working Go 1.5+ environment, with your standard
+`$GOROOT` and `$GOPATH` environment variables set. The easiest way to download
+Git LFS for making changes is `go get`:
+
+    $ go get github.com/github/git-lfs
+
+This clones the Git LFS repository to your `$GOPATH`. If you typically keep
+your projects in a specific directory, you can symlink it from `$GOPATH`:
+
+    $ cd ~/path/to/your/projects
+    $ ln -s $GOPATH/src/github.com/github/git-lfs
+
+From here, run `script/bootstrap` to build Git LFS in the `./bin` directory.
+Before submitting changes, be sure to run the Go tests and the shell integration
+tests:
+
+    $ script/test        # runs just the Go tests
+    $ script/integration # runs the shell tests in ./test
+    $ script/cibuild     # runs everything, with verbose debug output
+
 ## Submitting a pull request
 
 0. [Fork][] and clone the repository

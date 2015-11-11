@@ -6,8 +6,11 @@ begin_test "uninit outside repository"
 (
   set -e
 
-  [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
-  [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
+  smudge="$(git config filter.lfs.smudge)"
+  clean="$(git config filter.lfs.clean)"
+
+  printf "$smudge" | grep "git-lfs smudge"
+  printf "$clean" | grep "git-lfs clean"
 
   # uninit multiple times to trigger https://github.com/github/git-lfs/issues/529
   git lfs uninit
@@ -15,8 +18,8 @@ begin_test "uninit outside repository"
   git lfs uninit | tee uninit.log
   grep "configuration has been removed" uninit.log
 
-  [ "" = "$(git config filter.lfs.smudge)" ]
-  [ "" = "$(git config filter.lfs.clean)" ]
+  [ "" = "$(git config --global filter.lfs.smudge)" ]
+  [ "" = "$(git config --global filter.lfs.clean)" ]
 
   cat $HOME/.gitconfig
   [ "$(grep 'filter "lfs"' $HOME/.gitconfig -c)" = "0" ]

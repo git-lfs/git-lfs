@@ -57,11 +57,18 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	assert.Equal(t, &Ref{"master", RefTypeLocalBranch, outputs[2].Sha}, ref)
 	// Check remote
 	repo.AddRemote("origin")
-	test.RunGitCommand(t, true, "push", "-u", "origin", "master")
+	test.RunGitCommand(t, true, "push", "-u", "origin", "master:someremotebranch")
 	ref, err = CurrentRemoteRef()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, &Ref{"origin/master", RefTypeRemoteBranch, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{"origin/someremotebranch", RefTypeRemoteBranch, outputs[2].Sha}, ref)
 
+	refname, err := RemoteRefNameForCurrentBranch()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "origin/someremotebranch", refname)
+
+	remote, err := RemoteForCurrentBranch()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "origin", remote)
 }
 
 func TestRecentBranches(t *testing.T) {

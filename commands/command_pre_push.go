@@ -71,7 +71,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 func prePushRef(left, right string) {
 	// Just use scanner here
-	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: lfs.Config.CurrentRemote}
+	scanOpt := lfs.NewScanRefsOptions()
+	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
+	scanOpt.RemoteName = lfs.Config.CurrentRemote
+
 	pointers, err := lfs.ScanRefs(left, right, scanOpt)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
