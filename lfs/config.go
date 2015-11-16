@@ -398,8 +398,10 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
 
-		if origKey, ok := uniqKeys[key]; ok {
-			fmt.Fprintf(os.Stderr, "WARNING: The %q value clashes with the existing %q value.\n", pieces[0], origKey)
+		if origKey, ok := uniqKeys[key]; ok && c.gitConfig[key] != value {
+			fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
+			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
 		} else {
 			uniqKeys[key] = pieces[0]
 		}
