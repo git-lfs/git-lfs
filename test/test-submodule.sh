@@ -53,7 +53,7 @@ begin_test "submodule env"
   git lfs env | tee env.log
   cat env.log
   grep "Endpoint=$GITSERVER/$reponame.git/info/lfs (auth=none)$" env.log
-  grep "LocalWorkingDir=$" env.log
+  grep "LocalWorkingDir=.$" env.log
   grep "LocalGitDir=$(native_path_escaped "$TRASHDIR/repo/.git$")" env.log
   grep "LocalGitStorageDir=$(native_path_escaped "$TRASHDIR/repo/.git$")" env.log
   grep "LocalMediaDir=$(native_path_escaped "$TRASHDIR/repo/.git/lfs/objects$")" env.log

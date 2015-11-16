@@ -101,6 +101,12 @@ func ResolveDirs() {
 	var err error
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
+		if LocalWorkingDir, err = filepath.EvalSymlinks(LocalWorkingDir); err != nil {
+			panic(fmt.Sprintf("Error trying to evaluate symlinks for %q: %s", LocalWorkingDir, err))
+		}
+		if LocalGitDir, err = filepath.EvalSymlinks(LocalGitDir); err != nil {
+			panic(fmt.Sprintf("Error trying to evaluate symlinks for %q: %s", LocalGitDir, err))
+		}
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")

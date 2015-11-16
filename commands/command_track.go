@@ -56,6 +56,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	wd, _ := os.Getwd()
+	wd, _ = filepath.EvalSymlinks(wd)
 
 ArgsLoop:
 	for _, t := range args {
