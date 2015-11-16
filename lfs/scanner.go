@@ -610,15 +610,16 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	return blobs, nil
 }
 
-// ScanUnpushed scans history for all LFS pointers which have been added but not pushed to any remote
-func ScanUnpushed() ([]*WrappedPointer, error) {
+// ScanUnpushed scans history for all LFS pointers which have been added but not
+// pushed to the named remote. remoteName can be left blank to mean 'any remote'
+func ScanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 
 	start := time.Now()
 	defer func() {
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := logUnpushedSHAs()
+	pointerchan, err := ScanUnpushedToChan(remoteName)
 	if err != nil {
 		return nil, err
 	}
@@ -638,7 +639,7 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := logPreviousSHAs(ref, since)
+	pointerchan, err := ScanPreviousVersionsToChan(ref, since)
 	if err != nil {
 		return nil, err
 	}
@@ -650,12 +651,25 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 
 }
 
-// logUnpushedSHAs scans history for all LFS pointers which have been added but not pushed to any remote,
+// ScanPreviousVersionsToChan scans changes reachable from ref (commit) back to since.
+// Returns channel of pointers for *previous* versions that overlap that time. Does not
+// include pointers which were still in use at ref (use ScanRefsToChan for that)
+func ScanPreviousVersionsToChan(ref string, since time.Time) (chan *WrappedPointer, error) {
+	return logPreviousSHAs(ref, since)
+}
+
+// ScanUnpushedToChan scans history for all LFS pointers which have been added but
+// not pushed to the named remote. remoteName can be left blank to mean 'any remote'
 // return progressively in a channel
-func logUnpushedSHAs() (chan *WrappedPointer, error) {
+func ScanUnpushedToChan(remoteName string) (chan *WrappedPointer, error) {
 	logArgs := []string{"log",
 		"--branches", "--tags", // include all locally referenced commits
-		"--not", "--remotes", // but exclude everything reachable from any remote
+		"--not"} // but exclude everything that comes after
+
+	if len(remoteName) == 0 {
+		logArgs = append(logArgs, "--remotes")
+	} else {
+		logArgs = append(logArgs, fmt.Sprintf("--remotes=%v", remoteName))
 	}
 	// Add standard search args to find lfs references
 	logArgs = append(logArgs, logLfsSearchArgs...)

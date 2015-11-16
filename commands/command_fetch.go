@@ -19,6 +19,7 @@ var (
 	fetchExcludeArg string
 	fetchRecentArg  bool
 	fetchAllArg     bool
+	fetchPruneArg   bool
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
@@ -86,6 +87,12 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	if fetchPruneArg {
+		verify := lfs.Config.FetchPruneConfig().PruneVerifyRemoteAlways
+		// no dry-run or verbose options in fetch, assume false
+		prune(verify, false, false)
+	}
+
 	if !success {
 		Exit("Warning: errors occurred")
 	}
@@ -96,6 +103,7 @@ func init() {
 	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
 	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 	fetchCmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
+	fetchCmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
 	RootCmd.AddCommand(fetchCmd)
 }
 

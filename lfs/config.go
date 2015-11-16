@@ -35,6 +35,10 @@ type FetchPruneConfig struct {
 	// Number of days added to FetchRecent*; data outside combined window will be
 	// deleted when prune is run. (default 3)
 	PruneOffsetDays int
+	// Always verify with remote before pruning
+	PruneVerifyRemoteAlways bool
+	// Name of remote to check for unpushed and verify checks
+	PruneRemoteName string
 }
 
 type Configuration struct {
@@ -259,6 +263,8 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 			FetchRecentRefsIncludeRemotes: true,
 			FetchRecentCommitsDays:        0,
 			PruneOffsetDays:               3,
+			PruneVerifyRemoteAlways:       false,
+			PruneRemoteName:               "origin",
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {
 			n, err := strconv.Atoi(v)
@@ -287,6 +293,14 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 			if err == nil && n >= 0 {
 				c.fetchPruneConfig.PruneOffsetDays = n
 			}
+		}
+		if v, ok := c.GitConfig("lfs.pruneverifyremotealways"); ok {
+			if b, err := parseConfigBool(v); err == nil {
+				c.fetchPruneConfig.PruneVerifyRemoteAlways = b
+			}
+		}
+		if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
+			c.fetchPruneConfig.PruneRemoteName = v
 		}
 
 	}
