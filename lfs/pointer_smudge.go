@@ -293,7 +293,6 @@ type hashingReader struct {
 }
 
 func newHashingReader(r io.Reader) *hashingReader {
-	tracerx.Printf("NEW HASHING READER")
 	return &hashingReader{r, sha256.New()}
 }
 
