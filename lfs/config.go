@@ -327,28 +327,20 @@ func (c *Configuration) loadGitConfig() bool {
 
 	c.gitConfig = make(map[string]string)
 	c.extensions = make(map[string]Extension)
+	uniqRemotes := make(map[string]bool)
+
+	configFiles := []string{
+		filepath.Join(LocalWorkingDir, ".lfsconfig"),
+		filepath.Join(LocalWorkingDir, ".gitconfig"),
+	}
+	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
 
 	listOutput, err := git.Config.List()
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
 
-	configFile := filepath.Join(LocalWorkingDir, ".gitconfig")
-	fileOutput, err := git.Config.ListFromFile(configFile)
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config from %s: %s", configFile, err))
-	}
-
-	localConfig := filepath.Join(LocalGitDir, "config")
-	localOutput, err := git.Config.ListFromFile(localConfig)
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config from %s: %s", localConfig, err))
-	}
-
-	uniqRemotes := make(map[string]bool)
-	c.readGitConfig(fileOutput, uniqRemotes, true)
 	c.readGitConfig(listOutput, uniqRemotes, false)
-	c.readGitConfig(localOutput, uniqRemotes, false)
 
 	c.remotes = make([]string, 0, len(uniqRemotes))
 	for remote, isOrigin := range uniqRemotes {
@@ -359,6 +351,29 @@ func (c *Configuration) loadGitConfig() bool {
 	}
 
 	return true
+}
+
+func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex int, uniqRemotes map[string]bool) {
+	filename := filenames[filenameIndex]
+	_, err := os.Stat(filename)
+	if err == nil {
+		fileOutput, err := git.Config.ListFromFile(filename)
+		if err != nil {
+			panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
+		}
+		c.readGitConfig(fileOutput, uniqRemotes, true)
+		return
+	}
+
+	if os.IsNotExist(err) {
+		newIndex := filenameIndex + 1
+		if len(filenames) > newIndex {
+			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
+		}
+		return
+	}
+
+	panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
 }
 
 func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {

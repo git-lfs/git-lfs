@@ -296,6 +296,58 @@ BatchTransfer=false
 )
 end_test
 
+begin_test "env with .lfsconfig"
+(
+  set -e
+  reponame="env-with-lfsconfig"
+
+  git init $reponame
+  cd $reponame
+
+  git remote add origin "$GITSERVER/env-origin-remote"
+  echo '[remote "origin"]
+	lfsurl = http://foobar:8080/
+[lfs]
+     batch = false
+	concurrenttransfers = 5
+' > .lfsconfig
+echo '[remote "origin"]
+lfsurl = http://foobar:5050/
+[lfs]
+   batch = true
+concurrenttransfers = 50
+' > .gitconfig
+
+  localwd=$(native_path "$TRASHDIR/$reponame")
+  localgit=$(native_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  expected=$(printf '%s
+%s
+
+Endpoint=http://foobar:8080/ (auth=none)
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+TempDir=%s
+ConcurrentTransfers=3
+BatchTransfer=true
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+  actual=$(git lfs env)
+  contains_same_elements "$expected" "$actual"
+
+  mkdir a
+  cd a
+  actual2=$(git lfs env)
+  contains_same_elements "$expected" "$actual2"
+)
+end_test
+
 begin_test "env with .gitconfig"
 (
   set -e
