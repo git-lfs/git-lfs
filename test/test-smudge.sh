@@ -110,9 +110,15 @@ begin_test "smudge with skip"
 
   pointer="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)"
   [ "smudge a" = "$(echo "$pointer" | git lfs smudge)" ]
-  [ "$pointer" = "$(echo "$pointer" | GIT_LFS_SKIP_SMUDGE=1 git lfs smudge)" ]
 
   git push origin master
+
+  # Must clear the cache because smudge will use
+  # cached objects even with --skip/GIT_LFS_SKIP_SMUDGE
+  # (--skip applies to whether or not it downloads).
+  rm -rf .git/lfs/objects
+
+  [ "$pointer" = "$(echo "$pointer" | GIT_LFS_SKIP_SMUDGE=1 git lfs smudge)" ]
 
   echo "test clone with env"
   export GIT_LFS_SKIP_SMUDGE=1
