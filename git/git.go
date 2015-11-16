@@ -473,7 +473,6 @@ func RootDir() (string, error) {
 		return filepath.Abs(path)
 	}
 	return "", nil
-
 }
 
 func GitDir() (string, error) {
@@ -484,7 +483,11 @@ func GitDir() (string, error) {
 	}
 	path := strings.TrimSpace(string(out))
 	if len(path) > 0 {
-		return filepath.Abs(path)
+		path, err = filepath.Abs(path)
+		if err == nil {
+			path, err = filepath.EvalSymlinks(path)
+		}
+		return path, err
 	}
 	return "", nil
 }

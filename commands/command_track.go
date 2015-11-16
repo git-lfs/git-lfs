@@ -55,7 +55,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	wd, _ := os.Getwd()
+	wd, _ := lfs.Getwd()
 
 ArgsLoop:
 	for _, t := range args {
@@ -96,7 +96,7 @@ type mediaPath struct {
 
 func findPaths() []mediaPath {
 	paths := make([]mediaPath, 0)
-	wd, _ := os.Getwd()
+	wd, _ := lfs.Getwd()
 
 	for _, path := range findAttributeFiles() {
 		attributes, err := os.Open(path)

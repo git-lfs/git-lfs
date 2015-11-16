@@ -189,7 +189,7 @@ func GetPlatform() Platform {
 // but the user is in a subdir of their repo
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
 func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error) {
-	wd, err := os.Getwd()
+	wd, err := Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("Unable to get working dir: %v", err)
 	}
@@ -228,7 +228,7 @@ func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error
 // to be rooted but the user is in a subdir of their repo & expects to use relative args
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
 func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error) {
-	curdir, err := os.Getwd()
+	curdir, err := Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
 	}
@@ -303,4 +303,13 @@ func FileExistsOfSize(path string, sz int64) bool {
 	}
 
 	return !fi.IsDir() && fi.Size() == sz
+}
+
+// Getwd return Current Working Directory with all symlink resolved.
+func Getwd() (string, error) {
+	path, err := os.Getwd()
+	if err == nil {
+		path, err = filepath.EvalSymlinks(path)
+	}
+	return path, err
 }
