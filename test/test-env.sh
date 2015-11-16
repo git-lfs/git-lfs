@@ -443,7 +443,6 @@ BatchTransfer=true
 )
 end_test
 
-
 begin_test "env with bare repo"
 (
   set -e
@@ -471,5 +470,24 @@ BatchTransfer=true
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
+)
+end_test
+
+begin_test "env with multiple ssh remotes"
+(
+  set -e
+  reponame="env-with-ssh"
+  mkdir $reponame
+  cd $reponame
+  git init
+  git remote add origin git@git-server.com:user/repo.git
+  git remote add other git@other-git-server.com:user/repo.git
+
+  expected='Endpoint=https://git-server.com/user/repo.git/info/lfs (auth=none)
+  SSH=git@git-server.com:user/repo.git
+Endpoint (other)=https://other-git-server.com/user/repo.git/info/lfs (auth=none)
+  SSH=git@other-git-server.com:user/repo.git'
+
+  contains_same_elements "$expected" "$(git lfs env | grep -e "Endpoint" -e "SSH=")"
 )
 end_test
