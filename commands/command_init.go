@@ -7,7 +7,7 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
-// TODO: Remove for Git LFS v2.0
+// TODO: Remove for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
 
 var (
 	initCmd = &cobra.Command{
