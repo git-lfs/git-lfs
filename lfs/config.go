@@ -331,6 +331,8 @@ func (c *Configuration) loadGitConfig() bool {
 
 	configFiles := []string{
 		filepath.Join(LocalWorkingDir, ".lfsconfig"),
+
+		// TODO: remove .gitconfig support for Git LFS v2.0
 		filepath.Join(LocalWorkingDir, ".gitconfig"),
 	}
 	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
@@ -368,6 +370,9 @@ func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex
 	if os.IsNotExist(err) {
 		newIndex := filenameIndex + 1
 		if len(filenames) > newIndex {
+			expected := ".lfsconfig"
+			fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
+				filepath.Base(filenames[newIndex]), expected, expected)
 			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
 		}
 		return
