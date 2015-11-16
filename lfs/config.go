@@ -360,6 +360,12 @@ func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex
 	filename := filenames[filenameIndex]
 	_, err := os.Stat(filename)
 	if err == nil {
+		if filenameIndex > 0 && ShowConfigWarnings {
+			expected := ".lfsconfig"
+			fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
+				filepath.Base(filename), expected, expected)
+		}
+
 		fileOutput, err := git.Config.ListFromFile(filename)
 		if err != nil {
 			panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
@@ -371,11 +377,6 @@ func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex
 	if os.IsNotExist(err) {
 		newIndex := filenameIndex + 1
 		if len(filenames) > newIndex {
-			if ShowConfigWarnings {
-				expected := ".lfsconfig"
-				fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
-					filepath.Base(filenames[newIndex]), expected, expected)
-			}
 			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
 		}
 		return
