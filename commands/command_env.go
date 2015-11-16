@@ -36,8 +36,8 @@ func envCommand(cmd *cobra.Command, args []string) {
 	for _, remote := range config.Remotes() {
 		remoteEndpoint := config.RemoteEndpoint(remote)
 		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, config.EndpointAccess(remoteEndpoint))
-		if len(endpoint.SshUserAndHost) > 0 {
-			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
+		if len(remoteEndpoint.SshUserAndHost) > 0 {
+			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)
 		}
 	}
 
