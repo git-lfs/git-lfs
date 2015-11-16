@@ -132,7 +132,7 @@ func TestCloneBigBody(t *testing.T) {
 }
 
 func assertCloneableBody(t *testing.T, cloneable *cloneableBody, expectedBody, expectedBuffer string) {
-	buffer := string(cloneable.b)
+	buffer := string(cloneable.bytes)
 	if buffer != expectedBuffer {
 		t.Errorf("Expected buffer %q, got %q", expectedBody, buffer)
 	}

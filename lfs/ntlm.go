@@ -173,12 +173,12 @@ func cloneRequestBody(req *http.Request) (io.ReadCloser, error) {
 
 	var cb *cloneableBody
 	var err error
-	hasExisting := false
+	isCloneableBody := true
 
 	// check to see if the request body is already a cloneableBody
 	body := req.Body
 	if existingCb, ok := body.(*cloneableBody); ok {
-		hasExisting = true
+		isCloneableBody = false
 		cb, err = existingCb.CloneBody()
 	} else {
 		cb, err = newCloneableBody(req.Body, 0)
@@ -188,8 +188,7 @@ func cloneRequestBody(req *http.Request) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	// if the request body is NOT a cloneable body, replace it with one
-	if !hasExisting {
+	if isCloneableBody {
 		cb2, err := cb.CloneBody()
 		if err != nil {
 			return nil, err
@@ -202,9 +201,9 @@ func cloneRequestBody(req *http.Request) (io.ReadCloser, error) {
 }
 
 type cloneableBody struct {
-	b      []byte    // in-memory buffer of body
-	f      *os.File  // file buffer of in-memory overflow
-	r      io.Reader // internal reader for Read()
+	bytes  []byte    // in-memory buffer of body
+	file   *os.File  // file buffer of in-memory overflow
+	reader io.Reader // internal reader for Read()
 	closed bool      // tracks whether body is closed
 	dup    *dupTracker
 }
@@ -221,8 +220,8 @@ func newCloneableBody(r io.Reader, limit int64) (*cloneableBody, error) {
 		return nil, err
 	}
 
-	b.b = buf.Bytes()
-	byReader := bytes.NewBuffer(b.b)
+	b.bytes = buf.Bytes()
+	byReader := bytes.NewBuffer(b.bytes)
 
 	if w >= limit {
 		tmp, err := ioutil.TempFile("", "git-lfs-clone-reader")
@@ -245,11 +244,11 @@ func newCloneableBody(r io.Reader, limit int64) (*cloneableBody, error) {
 
 		dups := int32(0)
 		b.dup = &dupTracker{name: f.Name(), dups: &dups}
-		b.f = f
-		b.r = io.MultiReader(byReader, b.f)
+		b.file = f
+		b.reader = io.MultiReader(byReader, b.file)
 	} else {
 		// no file, so set the reader to just the in-memory buffer
-		b.r = byReader
+		b.reader = byReader
 	}
 
 	return b, nil
@@ -259,17 +258,17 @@ func (b *cloneableBody) Read(p []byte) (int, error) {
 	if b.closed {
 		return 0, io.EOF
 	}
-	return b.r.Read(p)
+	return b.reader.Read(p)
 }
 
 func (b *cloneableBody) Close() error {
 	if !b.closed {
 		b.closed = true
-		if b.f == nil {
+		if b.file == nil {
 			return nil
 		}
 
-		b.f.Close()
+		b.file.Close()
 		b.dup.Rm()
 	}
 	return nil
@@ -280,17 +279,17 @@ func (b *cloneableBody) CloneBody() (*cloneableBody, error) {
 		return &cloneableBody{closed: true}, nil
 	}
 
-	b2 := &cloneableBody{b: b.b}
+	b2 := &cloneableBody{bytes: b.bytes}
 
-	if b.f == nil {
-		b2.r = bytes.NewBuffer(b.b)
+	if b.file == nil {
+		b2.reader = bytes.NewBuffer(b.bytes)
 	} else {
-		f, err := os.Open(b.f.Name())
+		f, err := os.Open(b.file.Name())
 		if err != nil {
 			return nil, err
 		}
-		b2.f = f
-		b2.r = io.MultiReader(bytes.NewBuffer(b.b), b2.f)
+		b2.file = f
+		b2.reader = io.MultiReader(bytes.NewBuffer(b.bytes), b2.file)
 		b2.dup = b.dup
 		b.dup.Add()
 	}
