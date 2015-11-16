@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -40,6 +41,7 @@ type Configuration struct {
 	CurrentRemote         string
 	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
+	ntlmSession           ntlm.ClientSession
 	envVars               map[string]string
 	isTracingHttp         bool
 	isLoggingStats        bool
@@ -115,6 +117,10 @@ func (c *Configuration) Endpoint() Endpoint {
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
+	if c.NtlmAccess() {
+		return 1
+	}
+
 	uploads := 3
 
 	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
@@ -139,6 +145,10 @@ func (c *Configuration) BatchTransfer() bool {
 	}
 
 	return useBatch
+}
+
+func (c *Configuration) NtlmAccess() bool {
+	return c.Access() == "ntlm"
 }
 
 // PrivateAccess will retrieve the access value and return true if

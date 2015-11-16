@@ -38,7 +38,7 @@ The Git LFS API uses HTTP Basic Authentication to authorize requests. The
 credentials can come from the following places:
 
 1. Specified in the URL: `https://user:password@git-server.com/user/repo.git/info/lfs`.
-This is not recommended for security reasons because it relies on the 
+This is not recommended for security reasons because it relies on the
 credentials living in your local git config.
 2. `git-credential` will either retrieve the stored credentials for your Git
 host, or ask you to provide them. Successful requests will store the credentials
@@ -78,6 +78,9 @@ Invalid LFS operation: "wat"
 
 HTTPS is strongly encouraged for all production Git LFS servers.
 
+If your Git LFS server authenticates with NTLM then you must provide your credentials to `git-credential`
+in the form `username:DOMAIN\user password:password`.
+
 ### Hypermedia
 
 The Git LFS API uses hypermedia hints to instruct the client what to do next.
@@ -112,7 +115,7 @@ Any other response code is treated as an error.
 
 The Storage API is a generic API for directly uploading and downloading objects.
 Git LFS servers can offload object storage to cloud services like S3, or
-implemented natively in the Git LFS server. The only requirement is that 
+implemented natively in the Git LFS server. The only requirement is that
 hypermedia objects from the Git LFS API return the correct headers so clients
 can access the storage API properly.
 
