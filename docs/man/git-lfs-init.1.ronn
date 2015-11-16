@@ -11,6 +11,6 @@ This command is deprecated. Run "git lfs install" instead.
 
 ## SEE ALSO
 
-git-lfs-init(1), git-lfs-uninit(1).
+git-lfs-install(1), git-lfs-uninstall(1).
 
 Part of the git-lfs(1) suite.

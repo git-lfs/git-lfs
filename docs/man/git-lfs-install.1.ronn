@@ -31,6 +31,6 @@ filters if they are not already set.
 
 ## SEE ALSO
 
-git-lfs-uninit(1).
+git-lfs-uninstall(1).
 
 Part of the git-lfs(1) suite.

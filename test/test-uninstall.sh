@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-begin_test "uninit outside repository"
+begin_test "uninstall outside repository"
 (
   set -e
 
@@ -12,11 +12,11 @@ begin_test "uninit outside repository"
   printf "$smudge" | grep "git-lfs smudge"
   printf "$clean" | grep "git-lfs clean"
 
-  # uninit multiple times to trigger https://github.com/github/git-lfs/issues/529
-  git lfs uninit
+  # uninstall multiple times to trigger https://github.com/github/git-lfs/issues/529
+  git lfs uninstall
   git lfs init
-  git lfs uninit | tee uninit.log
-  grep "configuration has been removed" uninit.log
+  git lfs uninstall | tee uninstall.log
+  grep "configuration has been removed" uninstall.log
 
   [ "" = "$(git config --global filter.lfs.smudge)" ]
   [ "" = "$(git config --global filter.lfs.clean)" ]
@@ -26,7 +26,7 @@ begin_test "uninit outside repository"
 )
 end_test
 
-begin_test "uninit inside repository with default pre-push hook"
+begin_test "uninstall inside repository with default pre-push hook"
 (
   set -e
 
@@ -42,7 +42,7 @@ begin_test "uninit inside repository with default pre-push hook"
   [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
 
-  git lfs uninit
+  git lfs uninstall
 
   [ -f .git/hooks/pre-push ] && {
     echo "expected .git/hooks/pre-push to be deleted"
@@ -53,7 +53,7 @@ begin_test "uninit inside repository with default pre-push hook"
 )
 end_test
 
-begin_test "uninit inside repository without git lfs pre-push hook"
+begin_test "uninstall inside repository without git lfs pre-push hook"
 (
   set -e
 
@@ -71,7 +71,7 @@ begin_test "uninit inside repository without git lfs pre-push hook"
   [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
 
-  git lfs uninit
+  git lfs uninstall
 
   [ -f .git/hooks/pre-push ]
   [ "" = "$(git config filter.lfs.smudge)" ]
@@ -79,7 +79,7 @@ begin_test "uninit inside repository without git lfs pre-push hook"
 )
 end_test
 
-begin_test "uninit hooks inside repository"
+begin_test "uninstall hooks inside repository"
 (
   set -e
 
@@ -95,7 +95,7 @@ begin_test "uninit hooks inside repository"
   [ "git-lfs smudge %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
 
-  git lfs uninit hooks
+  git lfs uninstall hooks
 
   [ -f .git/hooks/pre-push ] && {
     echo "expected .git/hooks/pre-push to be deleted"
