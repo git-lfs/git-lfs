@@ -215,3 +215,20 @@ begin_test "track in gitDir"
   exit 1
 )
 end_test
+
+begin_test "track in symlinked dir"
+(
+  set -e
+
+  git init track-symlinkdst
+  ln -s track-symlinkdst track-symlinksrc
+  cd track-symlinksrc
+
+  git lfs track "*.png"
+  grep "^*.png" .gitattributes || {
+    echo ".gitattributes doesn't contain the expected relative path *.png:"
+    cat .gitattributes
+    exit 1
+  }
+)
+end_test

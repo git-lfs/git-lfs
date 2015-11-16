@@ -62,8 +62,13 @@ ArgsLoop:
 		absT, relT := absRelPath(t, wd)
 
 		if !filepath.HasPrefix(absT, lfs.LocalWorkingDir) {
-			Print("%s is outside repository", t)
-			os.Exit(128)
+			// check symlinks; LocalWorkingDir has symlinks resolved by rev-parse
+			// have to resolve dir without track pattern
+			actualDirT, err := filepath.EvalSymlinks(filepath.Dir(absT))
+			if err != nil || !filepath.HasPrefix(actualDirT, lfs.LocalWorkingDir) {
+				Print("%s is outside repository", t)
+				os.Exit(128)
+			}
 		}
 
 		for _, k := range knownPaths {
