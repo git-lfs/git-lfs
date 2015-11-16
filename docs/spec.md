@@ -153,7 +153,7 @@ a credential cache helper to save passwords for future users.
 ## Intercepting Git
 
 Git LFS uses the `clean` and `smudge` filters to decide which files use it.  The
-global filters can be set up with `git lfs init`:
+global filters can be set up with `git lfs install`:
 
 ```
 $ git lfs init
@@ -201,5 +201,3 @@ $ cat .gitattributes
 ```
 
 Use the `git lfs track` command to view and add to `.gitattributes`.
-
-

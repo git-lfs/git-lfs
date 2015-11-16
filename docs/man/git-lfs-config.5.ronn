@@ -111,6 +111,6 @@ lfs option can be scoped inside the configuration for a remote.
 
 ## SEE ALSO
 
-git-config(1), git-lfs-init(1), gitattributes(5).
+git-config(1), git-lfs-install(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.

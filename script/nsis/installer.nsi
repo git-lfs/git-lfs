@@ -39,7 +39,7 @@ FunctionEnd
 
 Function .onInstSuccess
   IfSilent +2
-    MessageBox MB_OK "Open Git Bash and run 'git lfs init' to get started."
+    MessageBox MB_OK "Open Git Bash and run 'git lfs install' to get started."
 FunctionEnd
 
 Page license
