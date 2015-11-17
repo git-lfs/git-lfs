@@ -40,8 +40,13 @@ mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 
 %check
-GOPATH=`pwd` ./script/test
-GOPATH=`pwd` ./script/integration
+export GOPATH=`pwd`
+export GIT_LFS_TEST_DIR=$(mktemp -d)
+
+./script/test
+./script/integration
+
+rmdir ${GIT_LFS_TEST_DIR}
 
 %clean
 rm -rf %{buildroot}
@@ -53,6 +58,9 @@ rm -rf %{buildroot}
 /usr/share/man/man1/*.1.gz
 
 %changelog
+* Sat Oct 31 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.0.3-1
+- Added GIT_LFS_TEST_DIR to prevent future test race condition
+
 * Sun Aug 2 2015 Andrew Neff <andyneff@users.noreply.github.com> - 0.5.4-1
 - Added tests back in
 
