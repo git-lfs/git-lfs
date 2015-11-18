@@ -158,10 +158,7 @@ func traceHttpRequest(req *http.Request) {
 		return
 	}
 
-	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
-	for scanner.Scan() {
-		fmt.Fprintf(os.Stderr, "> %s\n", scanner.Text())
-	}
+	traceHttpDump(dump)
 }
 
 func traceHttpResponse(res *http.Response) {
@@ -180,24 +177,51 @@ func traceHttpResponse(res *http.Response) {
 		return
 	}
 
+	if isTraceableContent(res.Header) {
+		fmt.Fprintf(os.Stderr, "\n\n")
+	} else {
+		fmt.Fprintf(os.Stderr, "\n")
+	}
+
+	traceHttpDump(dump)
+}
+
+func traceHttpDump(dump []byte) {
 	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
+
 	for scanner.Scan() {
-		fmt.Fprintf(os.Stderr, "< %s\n", scanner.Text())
+		line := scanner.Text()
+		if strings.HasPrefix("authorization: basic", strings.ToLower(line)) {
+			fmt.Fprintf(os.Stderr, "< Authorization: Basic * * * * *\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "< %s\n", line)
+		}
 	}
 }
 
+func isTraceableContent(h http.Header) bool {
+	ctype := strings.ToLower(strings.SplitN(h.Get("Content-Type"), ";", 2)[0])
+	for _, tracedType := range tracedTypes {
+		if strings.Contains(ctype, tracedType) {
+			return true
+		}
+	}
+	return false
+}
+
 func countingRequest(req *http.Request) *countingReadCloser {
-	return &countingReadCloser{request: req, ReadCloser: req.Body}
+	return &countingReadCloser{request: req, ReadCloser: req.Body, isTraceableType: isTraceableContent(req.Header)}
 }
 
 func countingResponse(res *http.Response) *countingReadCloser {
-	return &countingReadCloser{response: res, ReadCloser: res.Body}
+	return &countingReadCloser{response: res, ReadCloser: res.Body, isTraceableType: isTraceableContent(res.Header)}
 }
 
 type countingReadCloser struct {
-	Count    int
-	request  *http.Request
-	response *http.Response
+	Count           int
+	request         *http.Request
+	response        *http.Response
+	isTraceableType bool
 	io.ReadCloser
 }
 
@@ -209,19 +233,8 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 
 	c.Count += n
 
-	if Config.isTracingHttp {
-		contentType := ""
-		if c.response != nil { // Response, only print certain kinds of data
-			contentType = strings.ToLower(strings.SplitN(c.response.Header.Get("Content-Type"), ";", 2)[0])
-		} else {
-			contentType = strings.ToLower(strings.SplitN(c.request.Header.Get("Content-Type"), ";", 2)[0])
-		}
-
-		for _, tracedType := range tracedTypes {
-			if strings.Contains(contentType, tracedType) {
-				fmt.Fprint(os.Stderr, string(b[0:n]))
-			}
-		}
+	if Config.isTracingHttp && c.isTraceableType {
+		fmt.Fprint(os.Stderr, string(b[0:n]))
 	}
 
 	if err == io.EOF && Config.isLoggingStats {
