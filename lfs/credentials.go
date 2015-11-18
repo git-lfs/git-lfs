@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -109,9 +110,17 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 	}
 
 	creds, err := execCreds(input, "fill")
+	if creds == nil || len(creds) < 1 {
+		errmsg := fmt.Sprintf("Git credentials for %s not found", u)
+		if err != nil {
+			errmsg = errmsg + ":\n" + err.Error()
+		} else {
+			errmsg = errmsg + "."
+		}
+		err = errors.New(errmsg)
+	}
 
-	if err != nil || creds == nil || len(creds) < 1 {
-		tracerx.Printf("No credentials for %s", u)
+	if err != nil {
 		return nil, err
 	}
 

@@ -515,16 +515,6 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 	var creds Creds
 	if useCreds {
 		c, err := getCredsForAPI(req)
-		if c == nil || len(c) < 1 {
-			errmsg := fmt.Sprintf("Git credentials for %s not found", req.URL)
-			if err != nil {
-				errmsg = errmsg + ":\n" + err.Error()
-			} else {
-				errmsg = errmsg + "."
-			}
-			return nil, errors.New(errmsg)
-		}
-
 		if err != nil {
 			return nil, err
 		}
