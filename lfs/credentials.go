@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // getCreds gets the credentials for the given request's URL, and sets its
@@ -108,9 +110,13 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 
 	creds, err := execCreds(input, "fill")
 
-	if creds != nil && err == nil {
-		setRequestAuth(req, creds["username"], creds["password"])
+	if err != nil || creds == nil || len(creds) < 1 {
+		tracerx.Printf("No credentials for %s", u)
+		return nil, err
 	}
+
+	tracerx.Printf("Filled credentials for %s", u)
+	setRequestAuth(req, creds["username"], creds["password"])
 
 	return creds, err
 }
