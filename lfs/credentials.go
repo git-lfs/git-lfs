@@ -195,6 +195,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 		if len(pieces) < 2 || len(pieces[1]) < 1 {
 			continue
 		}
+		tracerx.Printf("writing creds: %q = %q", pieces[0], pieces[1])
 		creds[pieces[0]] = pieces[1]
 	}
 
