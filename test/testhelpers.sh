@@ -220,7 +220,7 @@ setup() {
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
   mkdir "$HOME"
-  git lfs init
+  git lfs install
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"

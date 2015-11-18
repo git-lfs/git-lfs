@@ -14,7 +14,7 @@ begin_test "uninstall outside repository"
 
   # uninstall multiple times to trigger https://github.com/github/git-lfs/issues/529
   git lfs uninstall
-  git lfs init
+  git lfs install
   git lfs uninstall | tee uninstall.log
   grep "configuration has been removed" uninstall.log
 
@@ -34,7 +34,7 @@ begin_test "uninstall inside repository with default pre-push hook"
   mkdir "$reponame"
   cd "$reponame"
   git init
-  git lfs init
+  git lfs install
 
   [ -f .git/hooks/pre-push ]
   grep "git-lfs" .git/hooks/pre-push
@@ -61,7 +61,7 @@ begin_test "uninstall inside repository without git lfs pre-push hook"
   mkdir "$reponame"
   cd "$reponame"
   git init
-  git lfs init
+  git lfs install
   echo "something something git-lfs" > .git/hooks/pre-push
 
 
@@ -87,7 +87,7 @@ begin_test "uninstall hooks inside repository"
   mkdir "$reponame"
   cd "$reponame"
   git init
-  git lfs init
+  git lfs install
 
   [ -f .git/hooks/pre-push ]
   grep "git-lfs" .git/hooks/pre-push

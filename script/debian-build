@@ -32,7 +32,7 @@ fi
 
 ./script/bootstrap
 install -D bin/git-lfs /usr/local/bin
-git lfs init
+git lfs install
 
 apt-get -y install build-essential groff man
 if grep -q Debian /etc/issue; then

@@ -138,12 +138,12 @@ begin_test "smudge with skip"
   [ "1" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   echo "test clone with init --skip-smudge"
-  git lfs init --skip-smudge
+  git lfs install --skip-smudge
   clone_repo "$reponame" "skip-clone-init"
   [ "$pointer" = "$(cat a.dat)" ]
   [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
-  git lfs init --force
+  git lfs install --force
 )
 end_test
 
@@ -190,4 +190,3 @@ begin_test "smudge clone with include/exclude"
 
 )
 end_test
-
