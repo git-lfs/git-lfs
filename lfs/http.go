@@ -210,11 +210,21 @@ func isTraceableContent(h http.Header) bool {
 }
 
 func countingRequest(req *http.Request) *countingReadCloser {
-	return &countingReadCloser{request: req, ReadCloser: req.Body, isTraceableType: isTraceableContent(req.Header)}
+	return &countingReadCloser{
+		request:         req,
+		ReadCloser:      req.Body,
+		isTraceableType: isTraceableContent(req.Header),
+		useGitTrace:     false,
+	}
 }
 
 func countingResponse(res *http.Response) *countingReadCloser {
-	return &countingReadCloser{response: res, ReadCloser: res.Body, isTraceableType: isTraceableContent(res.Header)}
+	return &countingReadCloser{
+		response:        res,
+		ReadCloser:      res.Body,
+		isTraceableType: isTraceableContent(res.Header),
+		useGitTrace:     true,
+	}
 }
 
 type countingReadCloser struct {
@@ -222,6 +232,7 @@ type countingReadCloser struct {
 	request         *http.Request
 	response        *http.Response
 	isTraceableType bool
+	useGitTrace     bool
 	io.ReadCloser
 }
 
@@ -233,8 +244,15 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 
 	c.Count += n
 
-	if Config.isTracingHttp && c.isTraceableType {
-		fmt.Fprint(os.Stderr, string(b[0:n]))
+	if c.isTraceableType {
+		chunk := string(b[0:n])
+		if c.useGitTrace {
+			tracerx.Printf("HTTP: %s", chunk)
+		}
+
+		if Config.isTracingHttp {
+			fmt.Fprint(os.Stderr, chunk)
+		}
 	}
 
 	if err == io.EOF && Config.isLoggingStats {
