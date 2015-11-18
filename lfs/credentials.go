@@ -12,11 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-<<<<<<< HEAD
 	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
-=======
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
->>>>>>> cred-fixes
 )
 
 // getCreds gets the credentials for the given request's URL, and sets its
