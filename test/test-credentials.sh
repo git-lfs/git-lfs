@@ -2,6 +2,30 @@
 
 . "test/testlib.sh"
 
+begin_test "attempt private access without credential helper"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" without-creds
+
+  git lfs track "*.dat"
+  echo "hi" > hi.dat
+  git add hi.dat
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git config --unset credential.helper
+  git config --global --unset credential.helper
+
+  GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
+
+  repourl="$GITSERVER/$reponame.git/info/lfs/objects/batch"
+  grep "Git credentials for $repourl not found" push.log
+)
+end_test
+
 begin_test "credentials without useHttpPath, with bad path password"
 (
   set -e
@@ -75,7 +99,7 @@ begin_test "credentials with useHttpPath, with correct password"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
 
-  # creating new branch does not re-sent any objects existing on other
+  # creating new branch does not re-send any objects existing on other
   # remote branches anymore, generate new object, different from prev tests
   contents="b"
   contents_oid=$(calc_oid "$contents")
