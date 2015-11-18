@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	Config        = NewConfig()
-	defaultRemote = "origin"
+	Config             = NewConfig()
+	defaultRemote      = "origin"
+	ShowConfigWarnings = false
 )
 
 // FetchPruneConfig collects together the config options that control fetching and pruning
@@ -327,28 +328,22 @@ func (c *Configuration) loadGitConfig() bool {
 
 	c.gitConfig = make(map[string]string)
 	c.extensions = make(map[string]Extension)
+	uniqRemotes := make(map[string]bool)
+
+	configFiles := []string{
+		filepath.Join(LocalWorkingDir, ".lfsconfig"),
+
+		// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
+		filepath.Join(LocalWorkingDir, ".gitconfig"),
+	}
+	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
 
 	listOutput, err := git.Config.List()
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
 
-	configFile := filepath.Join(LocalWorkingDir, ".gitconfig")
-	fileOutput, err := git.Config.ListFromFile(configFile)
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config from %s: %s", configFile, err))
-	}
-
-	localConfig := filepath.Join(LocalGitDir, "config")
-	localOutput, err := git.Config.ListFromFile(localConfig)
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config from %s: %s", localConfig, err))
-	}
-
-	uniqRemotes := make(map[string]bool)
-	c.readGitConfig(fileOutput, uniqRemotes, true)
 	c.readGitConfig(listOutput, uniqRemotes, false)
-	c.readGitConfig(localOutput, uniqRemotes, false)
 
 	c.remotes = make([]string, 0, len(uniqRemotes))
 	for remote, isOrigin := range uniqRemotes {
@@ -361,8 +356,39 @@ func (c *Configuration) loadGitConfig() bool {
 	return true
 }
 
+func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex int, uniqRemotes map[string]bool) {
+	filename := filenames[filenameIndex]
+	_, err := os.Stat(filename)
+	if err == nil {
+		if filenameIndex > 0 && ShowConfigWarnings {
+			expected := ".lfsconfig"
+			fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
+				filepath.Base(filename), expected, expected)
+		}
+
+		fileOutput, err := git.Config.ListFromFile(filename)
+		if err != nil {
+			panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
+		}
+		c.readGitConfig(fileOutput, uniqRemotes, true)
+		return
+	}
+
+	if os.IsNotExist(err) {
+		newIndex := filenameIndex + 1
+		if len(filenames) > newIndex {
+			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
+		}
+		return
+	}
+
+	panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
+}
+
 func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {
 	lines := strings.Split(output, "\n")
+	uniqKeys := make(map[string]string)
+
 	for _, line := range lines {
 		pieces := strings.SplitN(line, "=", 2)
 		if len(pieces) < 2 {
@@ -372,6 +398,14 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 		allowed := !onlySafe
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
+
+		if origKey, ok := uniqKeys[key]; ok && c.gitConfig[key] != value {
+			fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
+			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+		} else {
+			uniqKeys[key] = pieces[0]
+		}
 
 		keyParts := strings.Split(key, ".")
 		if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
