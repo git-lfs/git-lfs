@@ -192,7 +192,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	creds := make(Creds)
 	for _, line := range strings.Split(output.String(), "\n") {
 		pieces := strings.SplitN(line, "=", 2)
-		if len(pieces) < 2 {
+		if len(pieces) < 2 || len(pieces[1]) < 1 {
 			continue
 		}
 		creds[pieces[0]] = pieces[1]
