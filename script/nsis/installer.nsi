@@ -3,9 +3,9 @@ OutFile "GitLFSInstaller.exe"
 
 InstallDir $DESKTOP
 
-VIProductVersion "1.0.2.0"
-VIAddVersionKey FileVersion      "1.0.2.0"
-VIAddVersionKey ProductVersion   "1.0.2.0"
+VIProductVersion "1.1.0.0"
+VIAddVersionKey FileVersion      "1.1.0.0"
+VIAddVersionKey ProductVersion   "1.1.0.0"
 VIAddVersionKey ProductName      "Git LFS"
 VIAddVersionKey Comments         "Git LFS"
 VIAddVersionKey CompanyName      "GitHub, Inc"

@@ -1,5 +1,15 @@
 # Git LFS Changelog
 
+## 1.1.0 (18 November, 2015)
+
+* NTLM auth support #820 (@WillHipschman, @technoweenie)
+* Add `prune` command #742 (@sinbad)
+* Use .lfsconfig instead of .gitconfig #837 (@technoweenie)
+* Rename "init" command #838 (@technoweenie)
+* Raise error if credentials are needed #842 (@technoweenie)
+* Support git repos in symlinked directories #818 (@sinbad, @difro, @jiangxin)
+* Fix "git lfs env" to show correct SSH remote info #828 (@jiangxin)
+
 ## 1.0.2 (28 October, 2015)
 
 * Fix issue with 'git lfs smudge' and the batch API. #795 (@technoweenie)
