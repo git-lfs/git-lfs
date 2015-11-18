@@ -158,7 +158,7 @@ func traceHttpRequest(req *http.Request) {
 		return
 	}
 
-	traceHttpDump(dump)
+	traceHttpDump(">", dump)
 }
 
 func traceHttpResponse(res *http.Response) {
@@ -183,18 +183,18 @@ func traceHttpResponse(res *http.Response) {
 		fmt.Fprintf(os.Stderr, "\n")
 	}
 
-	traceHttpDump(dump)
+	traceHttpDump("<", dump)
 }
 
-func traceHttpDump(dump []byte) {
+func traceHttpDump(direction string, dump []byte) {
 	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix("authorization: basic", strings.ToLower(line)) {
-			fmt.Fprintf(os.Stderr, "< Authorization: Basic * * * * *\n")
+		if !Config.isDebuggingHttp && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
+			fmt.Fprintf(os.Stderr, "%s Authorization: Basic * * * * *\n", direction)
 		} else {
-			fmt.Fprintf(os.Stderr, "< %s\n", line)
+			fmt.Fprintf(os.Stderr, "%s %s\n", direction, line)
 		}
 	}
 }

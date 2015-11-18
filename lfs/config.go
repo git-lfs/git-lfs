@@ -49,6 +49,7 @@ type Configuration struct {
 	ntlmSession           ntlm.ClientSession
 	envVars               map[string]string
 	isTracingHttp         bool
+	isDebuggingHttp       bool
 	isLoggingStats        bool
 
 	loading           sync.Mutex // guards initialization of gitConfig and remotes
@@ -67,6 +68,7 @@ func NewConfig() *Configuration {
 		envVars:       make(map[string]string),
 	}
 	c.isTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
+	c.isDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
 	c.isLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
 	return c
 }
