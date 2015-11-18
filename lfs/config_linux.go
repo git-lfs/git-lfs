@@ -2,5 +2,5 @@
 package lfs
 
 func init() {
-  netrcBasename = ".netrc"
+	netrcBasename = ".netrc"
 }
