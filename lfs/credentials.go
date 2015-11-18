@@ -181,7 +181,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 		// 'git credential' exits with 128 if the helper doesn't fill the username
 		// and password values.
 		if subCommand == "fill" && err.Error() == "exit status 128" {
-			return input, nil
+			return nil, nil
 		}
 	}
 
