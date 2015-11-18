@@ -2,30 +2,6 @@
 
 . "test/testlib.sh"
 
-begin_test "attempt private access without credential helper"
-(
-  set -e
-
-  reponame="$(basename "$0" ".sh")"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" without-creds
-
-  git lfs track "*.dat"
-  echo "hi" > hi.dat
-  git add hi.dat
-  git add .gitattributes
-  git commit -m "initial commit"
-
-  git config --unset credential.helper
-  git config --global --unset credential.helper
-
-  GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
-
-  grep "Git credentials for $GITSERVER/$reponame not found" push.log
-)
-end_test
-exit 0
-
 begin_test "credentials without useHttpPath, with bad path password"
 (
   set -e
