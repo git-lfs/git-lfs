@@ -7,12 +7,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -99,18 +96,12 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 }
 
 func setCredURLFromNetrc(req *http.Request) bool {
-	home := os.Getenv("HOME")
-	if len(home) == 0 {
-		return false
-	}
-
-	nrc := filepath.Join(home, ".netrc")
 	host, _, err := net.SplitHostPort(req.URL.Host)
 	if err != nil {
 		return false
 	}
 
-	machine, err := netrc.FindMachine(nrc, host)
+	machine, err := Config.FindNetrcHost(host)
 	if err != nil || machine == nil {
 		return false
 	}
