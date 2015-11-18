@@ -50,7 +50,7 @@ begin_test "batch error handling"
 
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log
-  grep "Invalid status for POST" push.log
+  grep "Unable to parse HTTP response" push.log
 )
 end_test
 

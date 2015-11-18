@@ -8,11 +8,12 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 const (
-	Version            = "1.0.0"
+	Version            = "1.0.2"
 	tempDirPerms       = 0755
 	localMediaDirPerms = 0755
 	localLogDirPerms   = 0755
@@ -27,6 +28,7 @@ var (
 	LocalGitDir        string // parent of index / config / hooks etc
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
+	LocalObjectTempDir string // where temporarily downloading objects are stored
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -92,7 +94,7 @@ func Environ() []string {
 }
 
 func InRepo() bool {
-	return LocalWorkingDir != ""
+	return LocalGitDir != ""
 }
 
 func ResolveDirs() {
@@ -111,7 +113,8 @@ func ResolveDirs() {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
 
-		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
+		LocalObjectTempDir = filepath.Join(TempDir, "objects")
+		if err := os.MkdirAll(LocalObjectTempDir, tempDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 	}
@@ -145,12 +148,7 @@ func resolveGitDir() (string, string, error) {
 		return processGitDirVar(gitDir, workTree)
 	}
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", "", err
-	}
-
-	workTreeR, gitDirR, err := recursiveResolveGitDir(wd)
+	workTreeR, gitDirR, err := resolveGitDirFromCurrentDir()
 	if err != nil {
 		return "", "", err
 	}
@@ -195,32 +193,19 @@ func processWorkTreeVar(gitDir, workTree string) (string, string, error) {
 	return absWorkTree, gitDir, nil
 }
 
-func recursiveResolveGitDir(dir string) (string, string, error) {
-	var cleanDir = filepath.Clean(dir)
-	if cleanDir[len(cleanDir)-1] == os.PathSeparator {
-		return "", "", fmt.Errorf("Git repository not found")
-	}
+func resolveGitDirFromCurrentDir() (string, string, error) {
 
-	if filepath.Base(dir) == gitExt {
-		// We're in the `.git` directory.  Make no assumptions about the working directory.
-		return "", dir, nil
-	}
-
-	gitDir := filepath.Join(dir, gitExt)
-	info, err := os.Stat(gitDir)
+	// Get root of the git working dir
+	gitDir, err := git.GitDir()
 	if err != nil {
-		// Found neither a directory nor a file named `.git`.
-		// Move one directory up.
-		return recursiveResolveGitDir(filepath.Dir(dir))
+		return "", "", err
 	}
 
-	if !info.IsDir() {
-		// Found a file named `.git` (we're in a submodule).
-		return resolveDotGitFile(gitDir)
-	}
+	// Allow this to fail, will do so if GIT_DIR isn't set but GIT_WORK_TREE is rel
+	// Dealt with by parent
+	rootDir, _ := git.RootDir()
 
-	// Found the `.git` directory.
-	return dir, gitDir, nil
+	return rootDir, gitDir, nil
 }
 
 func resolveDotGitFile(file string) (string, string, error) {
@@ -288,3 +273,57 @@ const (
 	gitExt       = ".git"
 	gitPtrPrefix = "gitdir: "
 )
+
+// AllLocalObjects returns a slice of the the objects stored in the local LFS store
+// This does not necessarily mean referenced by commits, just stored
+// Note: reports final SHA only, extensions are ignored
+func AllLocalObjects() []*Pointer {
+	c := AllLocalObjectsChan()
+	ret := make([]*Pointer, 0, 100)
+	for p := range c {
+		ret = append(ret, p)
+	}
+	return ret
+}
+
+// AllLocalObjectsChan returns a channel of all the objects stored in the local LFS store
+// This does not necessarily mean referenced by commits, just stored
+// You should not alter the store until this channel is closed
+// Note: reports final SHA only, extensions are ignored
+func AllLocalObjectsChan() <-chan *Pointer {
+	ret := make(chan *Pointer, chanBufSize)
+
+	go func() {
+		defer close(ret)
+
+		scanStorageDir(LocalMediaDir, ret)
+	}()
+	return ret
+}
+
+func scanStorageDir(dir string, c chan *Pointer) {
+	// ioutil.ReadDir and filepath.Walk do sorting which is unnecessary & inefficient
+	dirf, err := os.Open(dir)
+	if err != nil {
+		return
+	}
+	defer dirf.Close()
+
+	direntries, err := dirf.Readdir(0)
+	if err != nil {
+		tracerx.Printf("Problem with Readdir in %v: %v", dir, err)
+		return
+	}
+	for _, dirfi := range direntries {
+		if dirfi.IsDir() {
+			subpath := filepath.Join(dir, dirfi.Name())
+			scanStorageDir(subpath, c)
+		} else {
+			// Make sure it's really an object file & not .DS_Store etc
+			if oidRE.MatchString(dirfi.Name()) {
+				c <- NewPointer(dirfi.Name(), dirfi.Size(), nil)
+			}
+		}
+	}
+
+}

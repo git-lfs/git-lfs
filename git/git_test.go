@@ -1,6 +1,7 @@
 package git_test // to avoid import cycles
 
 import (
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -56,11 +57,18 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	assert.Equal(t, &Ref{"master", RefTypeLocalBranch, outputs[2].Sha}, ref)
 	// Check remote
 	repo.AddRemote("origin")
-	test.RunGitCommand(t, true, "push", "-u", "origin", "master")
+	test.RunGitCommand(t, true, "push", "-u", "origin", "master:someremotebranch")
 	ref, err = CurrentRemoteRef()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, &Ref{"origin/master", RefTypeRemoteBranch, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{"origin/someremotebranch", RefTypeRemoteBranch, outputs[2].Sha}, ref)
 
+	refname, err := RemoteRefNameForCurrentBranch()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "origin/someremotebranch", refname)
+
+	remote, err := RemoteForCurrentBranch()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "origin", remote)
 }
 
 func TestRecentBranches(t *testing.T) {
@@ -183,4 +191,84 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 
 	_, err := CurrentRef()
 	assert.NotEqual(t, nil, err)
+}
+
+func TestWorkTrees(t *testing.T) {
+
+	// Only git 2.5+
+	if !Config.IsGitVersionAtLeast("2.5.0") {
+		return
+	}
+
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	// test commits; we'll just modify the same file each time since we're
+	// only interested in branches & dates
+	inputs := []*test.CommitInput{
+		{ // 0
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+			},
+		},
+		{ // 1
+			NewBranch: "branch2",
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 25},
+			},
+		},
+		{ // 2
+			NewBranch:      "branch3",
+			ParentBranches: []string{"master"}, // back on master
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 30},
+			},
+		},
+		{ // 3
+			NewBranch:      "branch4",
+			ParentBranches: []string{"master"}, // back on master
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 40},
+			},
+		},
+	}
+	outputs := repo.AddCommits(inputs)
+	// Checkout master again otherwise can't create a worktree from branch4 if we're on it here
+	test.RunGitCommand(t, true, "checkout", "master")
+
+	// We can create worktrees as subfolders for convenience
+	// Each one is checked out to a different branch
+	// Note that we *won't* create one for branch3
+	test.RunGitCommand(t, true, "worktree", "add", "branch2_wt", "branch2")
+	test.RunGitCommand(t, true, "worktree", "add", "branch4_wt", "branch4")
+
+	refs, err := GetAllWorkTreeHEADs(filepath.Join(repo.Path, ".git"))
+	assert.Equal(t, nil, err)
+	expectedRefs := []*Ref{
+		&Ref{"master", RefTypeLocalBranch, outputs[0].Sha},
+		&Ref{"branch2", RefTypeLocalBranch, outputs[1].Sha},
+		&Ref{"branch4", RefTypeLocalBranch, outputs[3].Sha},
+	}
+	// Need to sort for consistent comparison
+	sort.Sort(test.RefsByName(expectedRefs))
+	sort.Sort(test.RefsByName(refs))
+	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
+}
+
+func TestVersionCompare(t *testing.T) {
+
+	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2.6.0"))
+	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2.6"))
+	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2"))
+	assert.Equal(t, true, IsVersionAtLeast("2.6.10", "2.6.5"))
+	assert.Equal(t, true, IsVersionAtLeast("2.8.1", "2.7.2"))
+
+	assert.Equal(t, false, IsVersionAtLeast("1.6.0", "2"))
+	assert.Equal(t, false, IsVersionAtLeast("2.5.0", "2.6"))
+	assert.Equal(t, false, IsVersionAtLeast("2.5.0", "2.5.1"))
+	assert.Equal(t, false, IsVersionAtLeast("2.5.2", "2.5.10"))
 }

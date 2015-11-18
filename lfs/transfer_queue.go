@@ -227,7 +227,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objects {
 			if o.Error != nil {
-				q.errorc <- Error(o.Error)
+				q.errorc <- Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 				q.meter.Skip(o.Size)
 				q.wait.Done()
 				continue

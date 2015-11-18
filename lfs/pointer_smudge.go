@@ -1,14 +1,17 @@
 package lfs
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-	contentaddressable "github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/go-contentaddressable"
 )
 
 func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCallback) error {
@@ -99,7 +102,6 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 		defer reader.Close()
 	}
 
-	// TODO this can be unified with the same code in downloadFile
 	if err != nil {
 		return Errorf(err, "Error downloading %s", mediafile)
 	}
@@ -108,18 +110,7 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 		ptr.Size = size
 	}
 
-	mediaFile, err := contentaddressable.NewFile(mediafile)
-	if err != nil {
-		return Errorf(err, "Error opening media file buffer.")
-	}
-
-	_, err = CopyWithCallback(mediaFile, reader, ptr.Size, cb)
-	if err == nil {
-		err = mediaFile.Accept()
-	}
-	mediaFile.Close()
-
-	if err != nil {
+	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
 		return Errorf(err, "Error buffering media file.")
 	}
 
@@ -128,35 +119,88 @@ func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb Copy
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, err := Download(filepath.Base(mediafile))
+	reader, size, err := Download(filepath.Base(mediafile), ptr.Size)
 	if reader != nil {
 		defer reader.Close()
 	}
 
 	if err != nil {
-		return Errorf(err, "Error downloading %s.", mediafile)
+		return Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}
 
 	if ptr.Size == 0 {
 		ptr.Size = size
 	}
 
-	mediaFile, err := contentaddressable.NewFile(mediafile)
-	if err != nil {
-		return Errorf(err, "Error opening media file buffer.")
-	}
-
-	_, err = CopyWithCallback(mediaFile, reader, ptr.Size, cb)
-	if err == nil {
-		err = mediaFile.Accept()
-	}
-	mediaFile.Close()
-
-	if err != nil {
-		return Errorf(err, "Error buffering media file.")
+	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
+		return Errorf(err, "Error buffering media file: %s", err)
 	}
 
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
+}
+
+// Writes the content of reader to filename atomically by writing to a temp file
+// first, and confirming the content SHA-256 is valid. This is basically a copy
+// of atomic.WriteFile() at:
+//
+//   https://github.com/natefinch/atomic/blob/a62ce929ffcc871a51e98c6eba7b20321e3ed62d/atomic.go#L12-L17
+//
+// filename - Absolute path to a file to write, with the filename a 64 character
+//            SHA-256 hex signature.
+// reader   - Any io.Reader
+// size     - Expected byte size of the content. Used for the progress bar in
+//            the optional CopyCallback.
+// cb       - Optional CopyCallback object for providing download progress to
+//            external Git LFS tools.
+func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb CopyCallback) error {
+	oid := filepath.Base(filename)
+	f, err := ioutil.TempFile(LocalObjectTempDir, oid+"-")
+	if err != nil {
+		return fmt.Errorf("cannot create temp file: %v", err)
+	}
+
+	defer func() {
+		if err != nil {
+			// Don't leave the temp file lying around on error.
+			_ = os.Remove(f.Name()) // yes, ignore the error, not much we can do about it.
+		}
+	}()
+
+	hasher := newHashingReader(reader)
+
+	// ensure we always close f. Note that this does not conflict with  the
+	// close below, as close is idempotent.
+	defer f.Close()
+	name := f.Name()
+	written, err := CopyWithCallback(f, hasher, size, cb)
+	if err != nil {
+		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("can't close tempfile %q: %v", name, err)
+	}
+
+	if actual := hasher.Hash(); actual != oid {
+		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", oid, actual, written)
+	}
+
+	// get the file mode from the original file and use that for the replacement
+	// file, too.
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		// no original file
+	} else if err != nil {
+		return err
+	} else {
+		if err := os.Chmod(name, info.Mode()); err != nil {
+			return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
+		}
+	}
+
+	if err := os.Rename(name, filename); err != nil {
+		return fmt.Errorf("cannot replace %q with tempfile %q: %v", filename, name, err)
+	}
+	return nil
 }
 
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) error {
@@ -191,7 +235,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 
 		// pipe extensions in reverse order
 		var extsR []Extension
-		for i, _ := range exts {
+		for i := range exts {
 			ext := exts[len(exts)-1-i]
 			extsR = append(extsR, ext)
 		}
@@ -230,15 +274,40 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		// setup reader
 		reader, err = os.Open(response.file.Name())
 		if err != nil {
-			return Errorf(err, "Error opening smudged file.")
+			return Errorf(err, "Error opening smudged file: %s", err)
 		}
 		defer reader.Close()
 	}
 
 	_, err = CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
-		return Errorf(err, "Error reading from media file.")
+		return Errorf(err, "Error reading from media file: %s", err)
 	}
 
 	return nil
+}
+
+type hashingReader struct {
+	reader io.Reader
+	hasher hash.Hash
+}
+
+func newHashingReader(r io.Reader) *hashingReader {
+	return &hashingReader{r, sha256.New()}
+}
+
+func (r *hashingReader) Hash() string {
+	return hex.EncodeToString(r.hasher.Sum(nil))
+}
+
+func (r *hashingReader) Read(b []byte) (int, error) {
+	w, err := r.reader.Read(b)
+	if err == nil || err == io.EOF {
+		_, e := r.hasher.Write(b[0:w])
+		if e != nil && err == nil {
+			return w, e
+		}
+	}
+
+	return w, err
 }

@@ -1,0 +1,56 @@
+version: 1.0.{build}
+init:
+- cmd: >-
+    set REPO_DIR=%cd%
+
+
+    mkdir %BASHROOT%
+
+    cd %BASHROOT%
+
+
+    curl -LOk https://github.com/git-for-windows/git/releases/download/v2.6.2.windows.1/PortableGit-2.6.2-64-bit.7z.exe
+
+
+    7z x PortableGit-2.6.2-64-bit.7z.exe > nul
+
+
+    mkdir c:\go15
+
+    cd \go15
+
+
+    curl -LO https://storage.googleapis.com/golang/go1.5.1.windows-amd64.zip
+
+    unzip -o go1.5.1.windows-amd64.zip > nul
+
+
+    set PATH=%BASHROOT%\bin;%GOROOT%\bin;%PATH%
+
+
+    cd %REPO_DIR%
+environment:
+  GOROOT: c:\go15\go
+  BASHROOT: c:\bash2
+install:
+- cmd: 
+build_script:
+- cmd: >-
+    mkdir src\github.com\github
+
+
+    mklink /J src\github.com\github\git-lfs .
+
+
+    set GOPATH=%CD%
+
+
+    go version
+
+
+    bash script\bootstrap
+
+
+    mv bin\git-lfs bin\git-lfs.exe
+artifacts:
+- path: bin\git-lfs.exe

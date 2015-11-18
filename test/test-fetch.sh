@@ -130,6 +130,20 @@ begin_test "fetch"
   git lfs fetch --include="c*,d*" --exclude="a*,b*" origin master newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
+
+  # test fail case error code
+  rm -rf .git/lfs/objects
+  delete_server_object "$reponame" "$b_oid"
+  refute_server_object "$reponame" "$b_oid"
+  # should return non-zero, but should also download all the other valid files too
+  set +e
+  git lfs fetch origin master newbranch
+  fetch_exit=$?
+  set -e
+  [ "$fetch_exit" != "0" ]
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$b_oid"
+
 )
 end_test
 
@@ -402,5 +416,125 @@ begin_test "fetch: outside git repository"
   fi
   [ "$res" = "128" ]
   grep "Not in a git repository" fetch.log
+)
+end_test
+
+begin_test "fetch with no origin remote"
+(
+  set -e
+
+  reponame="fetch-no-remote"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" no-remote-clone
+
+  clone_repo "$reponame" no-remote-repo
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git add .gitattributes
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  [ "a" = "$(cat a.dat)" ]
+
+  assert_local_object "$contents_oid" 1
+
+  refute_server_object "$reponame" "$contents_oid"
+
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
+
+
+  # change to the clone's working directory
+  cd ../no-remote-clone
+
+  # pull commits & lfs
+  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  assert_local_object "$contents_oid" 1
+
+  # now checkout detached HEAD so we're not tracking anything on remote
+  git checkout --detach
+
+  # delete lfs
+  rm -rf .git/lfs
+
+  # rename remote from 'origin' to 'something'
+  git remote rename origin something
+
+  # fetch should still pick this remote as in the case of no tracked remote,
+  # and no origin, but only 1 remote, should pick the only one as default
+  git lfs fetch
+  assert_local_object "$contents_oid" 1
+
+  # delete again, now add a second remote, also non-origin
+  rm -rf .git/lfs
+  git remote add something2 "$GITSERVER/$reponame"
+  git lfs fetch 2>&1 | grep "No default remote"
+  refute_local_object "$contents_oid"
+)
+end_test
+
+begin_test "fetch --prune"
+(
+  set -e
+
+  reponame="fetch_prune"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  content_head="HEAD content"
+  content_commit2="Content for commit 2 (prune)"
+  content_commit1="Content for commit 1 (prune)"
+  oid_head=$(calc_oid "$content_head")
+  oid_commit2=$(calc_oid "$content_commit2")
+  oid_commit1=$(calc_oid "$content_commit1")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit1}, \"Data\":\"$content_commit1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -35d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit2}, \"Data\":\"$content_commit2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -25d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # push all so no unpushed reason to not prune
+  git push origin master
+
+  # set no recents so max ability to prune
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentcommitsdays 0
+
+  # delete HEAD object to prove that we still download something
+  # also prune at the same time which will remove anything other than HEAD
+  delete_local_object "$oid_head"
+  git lfs fetch --prune
+  assert_local_object "$oid_head" "${#content_head}"
+  refute_local_object "$oid_commit1"
+  refute_local_object "$oid_commit2"
 )
 end_test

@@ -30,6 +30,10 @@ This does not update the working copy.
   --include/--exclude. Ignores any globally configured include and exclude paths
   to ensure that all objects are downloaded.
 
+* `--prune` `-p`:
+  Prune old and unreferenced objects after fetching, equivalent to running
+  `git lfs prune` afterwards. See git-lfs-prune(1) for more details.
+
 ## INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in certain
@@ -132,7 +136,7 @@ What changes are considered 'recent' is based on a number of gitconfig options:
 
 ## SEE ALSO
 
-git-lfs-checkout(1), git-lfs-pull(1).
+git-lfs-checkout(1), git-lfs-pull(1), git-lfs-prune(1).
 
 Part of the git-lfs(1) suite.
 

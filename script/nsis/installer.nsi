@@ -3,9 +3,9 @@ OutFile "GitLFSInstaller.exe"
 
 InstallDir $DESKTOP
 
-VIProductVersion "1.0.0.0"
-VIAddVersionKey FileVersion      "1.0.0.0"
-VIAddVersionKey ProductVersion   "1.0.0.0"
+VIProductVersion "1.0.2.0"
+VIAddVersionKey FileVersion      "1.0.2.0"
+VIAddVersionKey ProductVersion   "1.0.2.0"
 VIAddVersionKey ProductName      "Git LFS"
 VIAddVersionKey Comments         "Git LFS"
 VIAddVersionKey CompanyName      "GitHub, Inc"
@@ -38,7 +38,8 @@ Function .onGUIInit
 FunctionEnd
 
 Function .onInstSuccess
-  MessageBox MB_OK "Open Git Bash and run 'git lfs init' to get started."
+  IfSilent +2
+    MessageBox MB_OK "Open Git Bash and run 'git lfs install' to get started."
 FunctionEnd
 
 Page license

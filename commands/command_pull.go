@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -20,12 +22,17 @@ func pullCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) > 0 {
 		// Remote is first arg
+		if err := git.ValidateRemote(args[0]); err != nil {
+			Panic(err, fmt.Sprintf("Invalid remote name '%v'", args[0]))
+		}
 		lfs.Config.CurrentRemote = args[0]
 	} else {
-		trackedRemote, err := git.CurrentRemote()
-		if err == nil {
-			lfs.Config.CurrentRemote = trackedRemote
-		} // otherwise leave as default (origin)
+		// Actively find the default remote, don't just assume origin
+		defaultRemote, err := git.DefaultRemote()
+		if err != nil {
+			Panic(err, "No default remote")
+		}
+		lfs.Config.CurrentRemote = defaultRemote
 	}
 
 	ref, err := git.CurrentRef()

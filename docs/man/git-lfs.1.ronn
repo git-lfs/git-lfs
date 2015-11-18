@@ -37,8 +37,8 @@ commands and low level ("plumbing") commands.
     Download git LFS files from a remote
 * git-lfs-fsck(1):
     Check GIT LFS files for consistency.
-* git-lfs-init(1):
-    Ensure Git LFS is configured properly.
+* git-lfs-install(1):
+    Install Git LFS configuration.
 * git-lfs-logs(1):
     Show errors from the git-lfs command.
 * git-lfs-ls-files(1):

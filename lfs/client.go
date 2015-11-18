@@ -14,7 +14,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -104,7 +106,37 @@ func (e *ClientError) Error() string {
 	return msg
 }
 
-func Download(oid string) (io.ReadCloser, int64, error) {
+// Download will attempt to download the object with the given oid. The batched
+// API will be used, but if the server does not implement the batch operations
+// it will fall back to the legacy API.
+func Download(oid string, size int64) (io.ReadCloser, int64, error) {
+	if !Config.BatchTransfer() {
+		return DownloadLegacy(oid)
+	}
+
+	objects := []*objectResource{
+		&objectResource{Oid: oid, Size: size},
+	}
+
+	objs, err := Batch(objects, "download")
+	if err != nil {
+		if IsNotImplementedError(err) {
+			git.Config.SetLocal("", "lfs.batch", "false")
+			return DownloadLegacy(oid)
+		}
+		return nil, 0, err
+	}
+
+	if len(objs) != 1 { // Expecting to find one object
+		return nil, 0, Error(fmt.Errorf("Object not found: %s", oid))
+	}
+
+	return DownloadObject(objs[0])
+}
+
+// DownloadLegacy attempts to download the object for the given oid using the
+// legacy API.
+func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, 0, Error(err)
@@ -197,7 +229,9 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	tracerx.Printf("api: batch %d files", len(objects))
 
 	res, objs, err := doApiBatchRequest(req)
+
 	if err != nil {
+
 		if res == nil {
 			return nil, newRetriableError(err)
 		}
@@ -207,8 +241,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		if IsAuthError(err) {
-			Config.SetAccess("basic")
-			tracerx.Printf("api: batch not authorized, submitting with auth")
+			setAuthType(res)
 			return Batch(objects, operation)
 		}
 
@@ -219,6 +252,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 		}
 
 		tracerx.Printf("api error: %s", err)
+		return nil, Error(err)
 	}
 	LogTransfer("lfs.api.batch", res)
 
@@ -259,10 +293,10 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 
 	tracerx.Printf("api: uploading (%s)", oid)
 	res, obj, err := doLegacyApiRequest(req)
+
 	if err != nil {
 		if IsAuthError(err) {
-			Config.SetAccess("basic")
-			tracerx.Printf("api: upload check not authorized, submitting with auth")
+			setAuthType(res)
 			return UploadCheck(oidPath)
 		}
 
@@ -396,7 +430,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, er
 	res, err := doAPIRequest(req, Config.PrivateAccess())
 
 	if err != nil {
-		if res.StatusCode == 401 {
+		if res != nil && res.StatusCode == 401 {
 			return res, nil, newAuthError(err)
 		}
 		return res, nil, err
@@ -435,7 +469,17 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
 func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
-	res, err := Config.HttpClient().Do(req)
+	var (
+		res *http.Response
+		err error
+	)
+
+	if Config.NtlmAccess() {
+		res, err = DoNTLMRequest(req, true)
+	} else {
+		res, err = Config.HttpClient().Do(req)
+	}
+
 	if res == nil {
 		res = &http.Response{
 			StatusCode: 0,
@@ -446,7 +490,12 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		err = Error(err)
+		if IsAuthError(err) {
+			setAuthType(res)
+			doHttpRequest(req, creds)
+		} else {
+			err = Error(err)
+		}
 	} else {
 		err = handleResponse(res, creds)
 	}
@@ -680,7 +729,7 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 }
 
 func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
-	if u.User != nil {
+	if !Config.NtlmAccess() && u.User != nil {
 		if pass, ok := u.User.Password(); ok {
 			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
 			setRequestAuth(req, u.User.Username(), pass)
@@ -691,7 +740,30 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
+func setAuthType(res *http.Response) {
+	authType := getAuthType(res)
+	Config.SetAccess(authType)
+	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
+}
+
+func getAuthType(res *http.Response) string {
+	auth := res.Header.Get("Www-Authenticate")
+	if len(auth) < 1 {
+		auth = res.Header.Get("Lfs-Authenticate")
+	}
+
+	if strings.HasPrefix(strings.ToLower(auth), "ntlm") {
+		return "ntlm"
+	}
+
+	return "basic"
+}
+
 func setRequestAuth(req *http.Request, user, pass string) {
+	if Config.NtlmAccess() {
+		return
+	}
+
 	if len(user) == 0 && len(pass) == 0 {
 		return
 	}
