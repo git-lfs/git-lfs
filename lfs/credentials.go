@@ -115,7 +115,7 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 		return nil, err
 	}
 
-	tracerx.Printf("Filled credentials for %s", u)
+	tracerx.Printf("Filled credentials for %s // %d / %q / %q / %v", u, len(creds), creds["username"], creds["password"], creds)
 	setRequestAuth(req, creds["username"], creds["password"])
 
 	return creds, err
