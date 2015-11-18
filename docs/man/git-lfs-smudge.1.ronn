@@ -31,6 +31,6 @@ standard output.
 
 ## SEE ALSO
 
-git-lfs-init(1), gitattributes(5).
+git-lfs-install(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.

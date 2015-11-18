@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-begin_test "init again"
+begin_test "install again"
 (
   set -e
 
@@ -12,14 +12,14 @@ begin_test "init again"
   printf "$smudge" | grep "git-lfs smudge"
   printf "$clean" | grep "git-lfs clean"
 
-  git lfs init
+  git lfs install
 
   [ "$smudge" = "$(git config filter.lfs.smudge)" ]
   [ "$clean" = "$(git config filter.lfs.clean)" ]
 )
 end_test
 
-begin_test "init with old settings"
+begin_test "install with old settings"
 (
   set -e
 
@@ -27,31 +27,31 @@ begin_test "init with old settings"
   git config --global filter.lfs.clean "git lfs clean %f"
 
   set +e
-  git lfs init 2> init.log
+  git lfs install 2> install.log
   res=$?
   set -e
 
   [ "$res" = 2 ]
 
-  cat init.log
-  grep -E "(clean|smudge) attribute should be" init.log
-  [ `grep -c "(MISSING)" init.log` = "0" ]
+  cat install.log
+  grep -E "(clean|smudge) attribute should be" install.log
+  [ `grep -c "(MISSING)" install.log` = "0" ]
 
   [ "git lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
 
-  git lfs init --force
+  git lfs install --force
   [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
 )
 end_test
 
-begin_test "init updates repo hooks"
+begin_test "install updates repo hooks"
 (
   set -e
 
-  mkdir init-repo-hooks
-  cd init-repo-hooks
+  mkdir install-repo-hooks
+  cd install-repo-hooks
   git init
 
   pre_push_hook="#!/bin/sh
@@ -59,7 +59,7 @@ command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configu
 git lfs pre-push \"\$@\""
 
   [ "Updated pre-push hook.
-Git LFS initialized." = "$(git lfs init)" ]
+Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook
@@ -67,7 +67,7 @@ Git LFS initialized." = "$(git lfs init)" ]
   echo "#!/bin/sh
 git lfs push --stdin \$*" > .git/hooks/pre-push
   [ "Updated pre-push hook.
-Git LFS initialized." = "$(git lfs init)" ]
+Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # don't replace unexpected hook
@@ -80,28 +80,28 @@ Git LFS initialized."
 
   echo "test" > .git/hooks/pre-push
   [ "test" = "$(cat .git/hooks/pre-push)" ]
-  [ "$expected" = "$(git lfs init 2>&1)" ]
+  [ "$expected" = "$(git lfs install 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
 
   # force replace unexpected hook
   [ "Updated pre-push hook.
-Git LFS initialized." = "$(git lfs init --force)" ]
+Git LFS initialized." = "$(git lfs install --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   has_test_dir || exit 0
 
   echo "test with bare repository"
   cd ..
-  git clone --mirror init-repo-hooks bare-init-repo-hooks
-  cd bare-init-repo-hooks
+  git clone --mirror install-repo-hooks bare-install-repo-hooks
+  cd bare-install-repo-hooks
   git lfs env
-  git lfs init
+  git lfs install
   ls -al hooks
   [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
 )
 end_test
 
-begin_test "init outside repository directory"
+begin_test "install outside repository directory"
 (
   set -e
   if [ -d "hooks" ]; then
@@ -110,7 +110,7 @@ begin_test "init outside repository directory"
     exit 1
   fi
 
-  git lfs init 2>&1 > check.log
+  git lfs install 2>&1 > check.log
 
   if [ -d "hooks" ]; then
     ls -al
@@ -120,41 +120,41 @@ begin_test "init outside repository directory"
 
   cat check.log
 
-  # doesn't print this because being in a git repo is not necessary for init
+  # doesn't print this because being in a git repo is not necessary for install
   [ "$(grep -c "Not in a git repository" check.log)" = "0" ]
 )
 end_test
 
-begin_test "init --skip-smudge"
+begin_test "install --skip-smudge"
 (
   set -e
 
-  git lfs init
+  git lfs install
   [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
 
-  git lfs init --skip-smudge
+  git lfs install --skip-smudge
   [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge --skip %f" = "$(git config --global filter.lfs.smudge)" ]
 
-  git lfs init --force
+  git lfs install --force
   [ "git-lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
 )
 end_test
 
-begin_test "init --local"
+begin_test "install --local"
 (
   set -e
 
-  # old values that should be ignored by `init --local`
+  # old values that should be ignored by `install --local`
   git config --global filter.lfs.smudge "git lfs smudge %f"
   git config --global filter.lfs.clean "git lfs clean %f"
 
-  mkdir init-local-repo
-  cd init-local-repo
+  mkdir install-local-repo
+  cd install-local-repo
   git init
-  git lfs init --local
+  git lfs install --local
 
   [ "git-lfs clean %f" = "$(git config filter.lfs.clean)" ]
   [ "git-lfs clean %f" = "$(git config --local filter.lfs.clean)" ]
@@ -162,11 +162,11 @@ begin_test "init --local"
 )
 end_test
 
-begin_test "init --local outside repository"
+begin_test "install --local outside repository"
 (
   # If run inside the git-lfs source dir this will update its .git/config & cause issues
   if [ "$GIT_LFS_TEST_DIR" == "" ]; then
-    echo "Skipping init --local because GIT_LFS_TEST_DIR is not set"
+    echo "Skipping install --local because GIT_LFS_TEST_DIR is not set"
     exit 0
   fi
 
@@ -174,7 +174,7 @@ begin_test "init --local outside repository"
 
   has_test_dir || exit 0
 
-  git lfs init --local 2> err.log
+  git lfs install --local 2> err.log
   res=$?
 
   [ "Not in a git repository." = "$(cat err.log)" ]
