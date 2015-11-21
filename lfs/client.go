@@ -25,6 +25,8 @@ const (
 )
 
 var (
+	ErrorBuffer     = &bytes.Buffer{}
+	ErrorWriter     = io.MultiWriter(os.Stderr, ErrorBuffer)
 	lfsMediaTypeRE  = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
 	jsonMediaTypeRE = regexp.MustCompile(`\Aapplication/json(;|\z)`)
 	hiddenHeaders   = map[string]bool{
@@ -340,6 +342,28 @@ func UploadObject(u *Uploadable, cb CopyCallback) error {
 	req, err := o.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
+	}
+
+	if len(req.Header.Get("X-Lfs-Object-Id")) == 0 {
+		req.Header.Set("X-Lfs-Object-Id", o.Oid)
+	}
+
+	if len(req.Header.Get("X-Lfs-File-Name")) == 0 {
+		req.Header.Set("X-Lfs-File-Name", u.Filename)
+	}
+
+	currentRef, err := git.CurrentRef()
+	if err != nil {
+		PrintError(err, "Failed to resolve current git ref while uploading %s", u.Filename)
+	} else {
+		req.Header.Set("X-Lfs-Git-Ref", currentRef.Sha)
+	}
+
+	currentBranch, err := git.CurrentBranch()
+	if err != nil {
+		PrintError(err, "Failed to resolve current git branch while uploading %s", u.Filename)
+	} else {
+		req.Header.Set("X-Lfs-Git-Branch", currentBranch)
 	}
 
 	if len(req.Header.Get("Content-Type")) == 0 {
@@ -795,4 +819,13 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
+}
+
+func PrintError(err error, format string, args ...interface{}) {
+	line := format
+	if len(args) > 0 {
+		line = fmt.Sprintf(format, args...)
+	}
+	fmt.Fprintln(ErrorWriter, line)
+	fmt.Fprintln(ErrorWriter, err.Error())
 }

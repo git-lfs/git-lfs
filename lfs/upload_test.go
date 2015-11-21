@@ -11,6 +11,8 @@ import (
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/github/git-lfs/git"
 )
 
 func TestExistingUpload(t *testing.T) {
@@ -341,6 +343,24 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		if r.Header.Get("Content-Length") != "4" {
 			t.Error("Invalid Content-Length")
+		}
+
+		if r.Header.Get("X-Lfs-Object-Id") != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
+			t.Errorf("Invalid object ID header")
+		}
+
+		if r.Header.Get("X-Lfs-File-Name") != "path/to/file" {
+			t.Errorf("Invalid file name header")
+		}
+
+		currentBranch, err := git.CurrentBranch()
+		if r.Header.Get("X-Lfs-Git-Branch") != currentBranch {
+			t.Errorf("Invalid branch header")
+		}
+
+		currentRef, err := git.CurrentRef()
+		if r.Header.Get("X-Lfs-Git-Ref") != currentRef.Sha {
+			t.Errorf("Invalid ref header")
 		}
 
 		if r.Header.Get("Transfer-Encoding") != "" {
@@ -855,6 +875,24 @@ func TestUploadVerifyError(t *testing.T) {
 
 		if r.Header.Get("A") != "1" {
 			t.Error("Invalid A")
+		}
+
+		if r.Header.Get("X-Lfs-Object-Id") != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
+			t.Errorf("Invalid object ID header")
+		}
+
+		if r.Header.Get("X-Lfs-File-Name") != "path/to/file" {
+			t.Errorf("Invalid file name header")
+		}
+
+		currentBranch, err := git.CurrentBranch()
+		if r.Header.Get("X-Lfs-Git-Branch") != currentBranch {
+			t.Errorf("Invalid branch header")
+		}
+
+		currentRef, err := git.CurrentRef()
+		if r.Header.Get("X-Lfs-Git-Ref") != currentRef.Sha {
+			t.Errorf("Invalid ref header")
 		}
 
 		if r.Header.Get("Content-Type") != "application/octet-stream" {
