@@ -7,9 +7,6 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 )
 
-// different on unix vs windows
-var netrcBasename string
-
 type netrcfinder interface {
 	FindMachine(string) *netrc.Machine
 }
