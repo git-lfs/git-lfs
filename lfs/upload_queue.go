@@ -47,7 +47,7 @@ func (u *Uploadable) Transfer(cb CopyCallback) error {
 		return nil
 	}
 
-	return UploadObject(u.object, wcb)
+	return UploadObject(u, wcb)
 }
 
 func (u *Uploadable) Object() *objectResource {

@@ -318,8 +318,8 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 	return obj, nil
 }
 
-func UploadObject(o *objectResource, cb CopyCallback) error {
-	path, err := LocalMediaPath(o.Oid)
+func UploadObject(u *Uploadable, cb CopyCallback) error {
+	path, err := LocalMediaPath(u.oid)
 	if err != nil {
 		return Error(err)
 	}
@@ -330,6 +330,7 @@ func UploadObject(o *objectResource, cb CopyCallback) error {
 	}
 	defer file.Close()
 
+	o := u.object
 	reader := &CallbackReader{
 		C:         cb,
 		TotalSize: o.Size,

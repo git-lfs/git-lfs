@@ -420,7 +420,13 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, cb)
+
+	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = UploadObject(uploadable, cb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -574,7 +580,13 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, nil)
+
+	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = UploadObject(uploadable, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -727,7 +739,13 @@ func TestUploadStorageError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, nil)
+
+	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = UploadObject(uploadable, nil)
 	if err == nil {
 		t.Fatal("Expected an error")
 	}
@@ -876,7 +894,13 @@ func TestUploadVerifyError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, nil)
+
+	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = UploadObject(uploadable, nil)
 	if err == nil {
 		t.Fatal("Expected an error")
 	}
