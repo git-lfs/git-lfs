@@ -48,7 +48,7 @@ func shouldDeleteTempObject(path string) bool {
 		return true
 	}
 
-	if FileExists(localMediaPathNoCreate(oid)) {
+	if FileExists(LocalStorage.ObjectPath(oid)) {
 		tracerx.Printf("Removing existing tmp object file: %s", path)
 		return true
 	}

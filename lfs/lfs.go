@@ -51,24 +51,12 @@ func ResetTempDir() error {
 	return os.RemoveAll(TempDir)
 }
 
-func localMediaDirNoCreate(sha string) string {
-	return filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-}
-func localMediaPathNoCreate(sha string) string {
-	return filepath.Join(localMediaDirNoCreate(sha), sha)
+func LocalMediaPath(oid string) (string, error) {
+	return LocalStorage.BuildObjectPath(oid)
 }
 
-func LocalMediaPath(sha string) (string, error) {
-	path := localMediaDirNoCreate(sha)
-	if err := os.MkdirAll(path, localMediaDirPerms); err != nil {
-		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
-	}
-
-	return filepath.Join(path, sha), nil
-}
-
-func ObjectExistsOfSize(sha string, size int64) bool {
-	path := localMediaPathNoCreate(sha)
+func ObjectExistsOfSize(oid string, size int64) bool {
+	path := LocalStorage.ObjectPath(oid)
 	return FileExistsOfSize(path, size)
 }
 

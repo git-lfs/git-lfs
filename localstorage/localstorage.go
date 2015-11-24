@@ -1,6 +1,9 @@
 package localstorage
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 )
 
@@ -9,7 +12,8 @@ const (
 )
 
 var (
-	oidRE = regexp.MustCompile(`\A[[:alnum:]]{64}`)
+	oidRE                = regexp.MustCompile(`\A[[:alnum:]]{64}`)
+	dirPerms os.FileMode = 0755
 )
 
 // LocalStorage manages the locally stored LFS objects for a repository.
@@ -25,4 +29,21 @@ type Object struct {
 
 func New(dir string) *LocalStorage {
 	return &LocalStorage{dir}
+}
+
+func (s *LocalStorage) ObjectPath(oid string) string {
+	return filepath.Join(localObjectDir(s, oid), oid)
+}
+
+func (s *LocalStorage) BuildObjectPath(oid string) (string, error) {
+	dir := localObjectDir(s, oid)
+	if err := os.MkdirAll(dir, dirPerms); err != nil {
+		return "", fmt.Errorf("Error trying to create local storage directory in %q: %s", dir, err)
+	}
+
+	return filepath.Join(dir, oid), nil
+}
+
+func localObjectDir(s *LocalStorage, oid string) string {
+	return filepath.Join(s.Root, oid[0:2], oid[2:4])
 }
