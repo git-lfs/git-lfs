@@ -15,7 +15,7 @@ import (
 
 type ServerTest struct {
 	Name string
-	F    func(endp lfs.Endpoint, oidsExist, oidsMissing []string) error
+	F    func(oidsExist, oidsMissing []string) error
 }
 
 var (
@@ -45,12 +45,14 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		exit("Must supply either no file arguments or both the exists AND missing file")
 	}
 
+	// Configure the endpoint manually
 	var endp lfs.Endpoint
 	if len(cloneUrl) > 0 {
 		endp = lfs.NewEndpointFromCloneURL(cloneUrl)
 	} else {
 		endp = lfs.NewEndpoint(apiUrl)
 	}
+	lfs.Config.SetManualEndpoint(endp)
 
 	var oidsExist, oidsMissing []string
 	if len(args) >= 2 {
@@ -62,13 +64,13 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		oidsExist, oidsMissing = constructTestOids()
 		// Run a 'test' which is really just a setup task, but because it has to
 		// use the same APIs it's a test in its own right too
-		err := runTest(ServerTest{"Set up test data", setupTestData}, endp, oidsExist, oidsMissing)
+		err := runTest(ServerTest{"Set up test data", setupTestData}, oidsExist, oidsMissing)
 		if err != nil {
 			exit("Failed to set up test data, aborting")
 		}
 	}
 
-	runTests(endp, oidsExist, oidsMissing)
+	runTests(oidsExist, oidsMissing)
 }
 
 func readTestOids(filename string) []string {
@@ -109,16 +111,16 @@ func constructTestOids() (oidsExist, oidsMissing []string) {
 	return
 }
 
-func runTests(endp lfs.Endpoint, oidsExist, oidsMissing []string) {
+func runTests(oidsExist, oidsMissing []string) {
 
 	fmt.Printf("Running %d tests...\n", len(tests))
 	for _, t := range tests {
-		runTest(t, endp, oidsExist, oidsMissing)
+		runTest(t, oidsExist, oidsMissing)
 	}
 
 }
 
-func runTest(t ServerTest, endp lfs.Endpoint, oidsExist, oidsMissing []string) error {
+func runTest(t ServerTest, oidsExist, oidsMissing []string) error {
 	const linelen = 70
 	line := t.Name
 	if len(line) > linelen {
@@ -128,7 +130,7 @@ func runTest(t ServerTest, endp lfs.Endpoint, oidsExist, oidsMissing []string) e
 	}
 	fmt.Printf("%s...\r", line)
 
-	err := t.F(endp, oidsExist, oidsMissing)
+	err := t.F(oidsExist, oidsMissing)
 	if err != nil {
 		fmt.Printf("%s FAILED\n", line)
 		fmt.Println(err.Error())
@@ -138,7 +140,7 @@ func runTest(t ServerTest, endp lfs.Endpoint, oidsExist, oidsMissing []string) e
 	return err
 }
 
-func setupTestData(endp lfs.Endpoint, oidsExist, oidsMissing []string) error {
+func setupTestData(oidsExist, oidsMissing []string) error {
 	// TODO
 	return nil
 }
