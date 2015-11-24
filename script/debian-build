@@ -35,12 +35,8 @@ install -D bin/git-lfs /usr/local/bin
 git lfs install
 
 apt-get -y install build-essential groff man
-if grep -q Debian /etc/issue; then
-  apt-get install -y ruby ruby-dev
-elif grep -q Ubuntu /etc/issue; then
-  apt-get -y install ruby2.2 ruby2.2-dev
-  rm /usr/bin/ruby && sudo ln -s /usr/bin/ruby2.2 /usr/bin/ruby
-  rm -fr /usr/bin/gem && sudo ln -s /usr/bin/gem2.2 /usr/bin/gem
+if grep -q 'Debian\|Ubuntu' /etc/issue; then
+  apt-get -y install ruby ruby-dev
 else
   {
     echo "unknown Debian release"
