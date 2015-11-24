@@ -7,15 +7,21 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
+type TestObject struct {
+	Oid  string
+	Size int64
+}
+
 type ServerTest struct {
 	Name string
-	F    func(oidsExist, oidsMissing []string) error
+	F    func(oidsExist, oidsMissing []TestObject) error
 }
 
 var (
@@ -54,7 +60,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	}
 	lfs.Config.SetManualEndpoint(endp)
 
-	var oidsExist, oidsMissing []string
+	var oidsExist, oidsMissing []TestObject
 	if len(args) >= 2 {
 		fmt.Printf("Reading test data from files (no server content changes)\n")
 		oidsExist = readTestOids(args[0])
@@ -73,28 +79,33 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	runTests(oidsExist, oidsMissing)
 }
 
-func readTestOids(filename string) []string {
+func readTestOids(filename string) []TestObject {
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
 		exit("Error opening file %s", filename)
 	}
 	defer f.Close()
 
-	var ret []string
+	var ret []TestObject
 	rdr := bufio.NewReader(f)
 	line, err := rdr.ReadString('\n')
 	for err == nil {
-		ret = append(ret, strings.TrimSpace(line))
+		fields := strings.Fields(strings.TrimSpace(line))
+		if len(fields) == 2 {
+			sz, _ := strconv.ParseInt(fields[1], 10, 64)
+			ret = append(ret, TestObject{Oid: fields[0], Size: sz})
+		}
+
 		line, err = rdr.ReadString('\n')
 	}
 
 	return ret
 }
 
-func constructTestOids() (oidsExist, oidsMissing []string) {
+func constructTestOids() (oidsExist, oidsMissing []TestObject) {
 	const oidCount = 50
-	oidsExist = make([]string, 0, oidCount)
-	oidsMissing = make([]string, 0, oidCount)
+	oidsExist = make([]TestObject, 0, oidCount)
+	oidsMissing = make([]TestObject, 0, oidCount)
 
 	// Generate SHAs, not random so repeatable
 	rand.Seed(int64(oidCount))
@@ -102,16 +113,18 @@ func constructTestOids() (oidsExist, oidsMissing []string) {
 	for i := 0; i < oidCount; i++ {
 		runningSha.Write([]byte{byte(rand.Intn(256))})
 		oid := hex.EncodeToString(runningSha.Sum(nil))
-		oidsExist = append(oidsExist, oid)
+		sz := int64(rand.Intn(200)) + 50
+		oidsExist = append(oidsExist, TestObject{Oid: oid, Size: sz})
 
 		runningSha.Write([]byte{byte(rand.Intn(256))})
 		oid = hex.EncodeToString(runningSha.Sum(nil))
-		oidsMissing = append(oidsMissing, oid)
+		sz = int64(rand.Intn(200)) + 50
+		oidsMissing = append(oidsMissing, TestObject{Oid: oid, Size: sz})
 	}
 	return
 }
 
-func runTests(oidsExist, oidsMissing []string) {
+func runTests(oidsExist, oidsMissing []TestObject) {
 
 	fmt.Printf("Running %d tests...\n", len(tests))
 	for _, t := range tests {
@@ -120,7 +133,7 @@ func runTests(oidsExist, oidsMissing []string) {
 
 }
 
-func runTest(t ServerTest, oidsExist, oidsMissing []string) error {
+func runTest(t ServerTest, oidsExist, oidsMissing []TestObject) error {
 	const linelen = 70
 	line := t.Name
 	if len(line) > linelen {
@@ -140,7 +153,7 @@ func runTest(t ServerTest, oidsExist, oidsMissing []string) error {
 	return err
 }
 
-func setupTestData(oidsExist, oidsMissing []string) error {
+func setupTestData(oidsExist, oidsMissing []TestObject) error {
 	// TODO
 	return nil
 }
