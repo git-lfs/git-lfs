@@ -92,27 +92,28 @@ func ResolveDirs() {
 	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
 	if err == nil {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
-		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
-		LocalStorage = localstorage.New(LocalMediaDir)
-		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
-		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
-			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
+
+		ls, err := localstorage.New(
+			filepath.Join(LocalGitStorageDir, "lfs", "objects"),
+			filepath.Join(TempDir, "objects"),
+		)
+
+		if err != nil {
+			panic(fmt.Sprintf("Error trying to init LocalStorage: %s", err))
 		}
 
+		LocalStorage = ls
+		LocalMediaDir = ls.RootDir
+		LocalObjectTempDir = ls.TempDir
+		LocalLogDir = filepath.Join(ls.RootDir, "logs")
 		if err := os.MkdirAll(LocalLogDir, localLogDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
-		}
-
-		LocalObjectTempDir = filepath.Join(TempDir, "objects")
-		if err := os.MkdirAll(LocalObjectTempDir, tempDirPerms); err != nil {
-			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 	}
 }
 
 func init() {
-
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
 

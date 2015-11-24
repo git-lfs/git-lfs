@@ -27,7 +27,7 @@ func (s *LocalStorage) ScanObjectsChan() <-chan Object {
 
 	go func() {
 		defer close(ch)
-		scanObjects(s.Root, ch)
+		scanObjects(s.RootDir, ch)
 	}()
 
 	return ch
