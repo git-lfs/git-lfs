@@ -1,7 +1,6 @@
-package lfs
+package localstorage
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,27 +9,28 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-func ClearTempObjects() {
-	if len(LocalObjectTempDir) == 0 {
-		return
+func (s *LocalStorage) ClearTempObjects() error {
+	if len(s.TempDir) == 0 {
+		return nil
 	}
 
-	d, err := os.Open(LocalObjectTempDir)
+	d, err := os.Open(s.TempDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", LocalObjectTempDir, err)
-		return
+		return err
 	}
 
 	filenames, _ := d.Readdirnames(-1)
 	for _, filename := range filenames {
-		path := filepath.Join(LocalObjectTempDir, filename)
-		if shouldDeleteTempObject(path) {
+		path := filepath.Join(s.TempDir, filename)
+		if shouldDeleteTempObject(s, path) {
 			os.RemoveAll(path)
 		}
 	}
+
+	return nil
 }
 
-func shouldDeleteTempObject(path string) bool {
+func shouldDeleteTempObject(s *LocalStorage, path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false
@@ -48,7 +48,8 @@ func shouldDeleteTempObject(path string) bool {
 		return true
 	}
 
-	if FileExists(LocalStorage.ObjectPath(oid)) {
+	fi, err := os.Stat(s.ObjectPath(oid))
+	if err == nil && !fi.IsDir() {
 		tracerx.Printf("Removing existing tmp object file: %s", path)
 		return true
 	}
