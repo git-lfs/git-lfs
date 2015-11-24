@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	. "github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
@@ -18,13 +18,16 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 		repo.Cleanup()
 	}()
 
-	actual := AllLocalObjects()
-
-	assert.Equal(t, []*Pointer{}, actual, "Should be no objects")
+	actual := lfs.LocalStorage.AllObjects()
+	if len(actual) > 0 {
+		for _, file := range actual {
+			t.Logf("Found: %v", file)
+		}
+		t.Error("Should be no objects")
+	}
 }
 
 func TestAllCurrentObjectsSome(t *testing.T) {
-
 	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
@@ -47,11 +50,16 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 
 	outputs := repo.AddCommits(inputs)
 
-	expected := make([]*Pointer, 0, numFiles)
+	expected := make([]*lfs.Pointer, 0, numFiles)
 	for _, f := range outputs[0].Files {
 		expected = append(expected, f)
 	}
-	actual := AllLocalObjects()
+
+	actualObjects := lfs.LocalStorage.AllObjects()
+	actual := make([]*lfs.Pointer, len(actualObjects))
+	for idx, f := range actualObjects {
+		actual[idx] = lfs.NewPointer(f.Oid, f.Size, nil)
+	}
 
 	// sort to ensure comparison is equal
 	sort.Sort(test.PointersByOid(expected))

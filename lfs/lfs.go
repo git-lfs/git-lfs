@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -29,6 +30,7 @@ var (
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored
+	LocalStorage       *localstorage.LocalStorage
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -103,6 +105,7 @@ func ResolveDirs() {
 	if err == nil {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
+		LocalStorage = localstorage.New(LocalMediaDir)
 		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
@@ -273,57 +276,3 @@ const (
 	gitExt       = ".git"
 	gitPtrPrefix = "gitdir: "
 )
-
-// AllLocalObjects returns a slice of the the objects stored in the local LFS store
-// This does not necessarily mean referenced by commits, just stored
-// Note: reports final SHA only, extensions are ignored
-func AllLocalObjects() []*Pointer {
-	c := AllLocalObjectsChan()
-	ret := make([]*Pointer, 0, 100)
-	for p := range c {
-		ret = append(ret, p)
-	}
-	return ret
-}
-
-// AllLocalObjectsChan returns a channel of all the objects stored in the local LFS store
-// This does not necessarily mean referenced by commits, just stored
-// You should not alter the store until this channel is closed
-// Note: reports final SHA only, extensions are ignored
-func AllLocalObjectsChan() <-chan *Pointer {
-	ret := make(chan *Pointer, chanBufSize)
-
-	go func() {
-		defer close(ret)
-
-		scanStorageDir(LocalMediaDir, ret)
-	}()
-	return ret
-}
-
-func scanStorageDir(dir string, c chan *Pointer) {
-	// ioutil.ReadDir and filepath.Walk do sorting which is unnecessary & inefficient
-	dirf, err := os.Open(dir)
-	if err != nil {
-		return
-	}
-	defer dirf.Close()
-
-	direntries, err := dirf.Readdir(0)
-	if err != nil {
-		tracerx.Printf("Problem with Readdir in %v: %v", dir, err)
-		return
-	}
-	for _, dirfi := range direntries {
-		if dirfi.IsDir() {
-			subpath := filepath.Join(dir, dirfi.Name())
-			scanStorageDir(subpath, c)
-		} else {
-			// Make sure it's really an object file & not .DS_Store etc
-			if oidRE.MatchString(dirfi.Name()) {
-				c <- NewPointer(dirfi.Name(), dirfi.Size(), nil)
-			}
-		}
-	}
-
-}

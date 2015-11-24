@@ -11,6 +11,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -56,7 +57,7 @@ type PruneProgress struct {
 type PruneProgressChan chan PruneProgress
 
 func prune(verifyRemote, dryRun, verbose bool) {
-	localObjects := make([]*lfs.Pointer, 0, 100)
+	localObjects := make([]localstorage.Object, 0, 100)
 	retainedObjects := lfs.NewStringSetWithCapacity(100)
 	var reachableObjects lfs.StringSet
 	var taskwait sync.WaitGroup
@@ -123,20 +124,22 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
 		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
 	}
-	for _, pointer := range localObjects {
-		if !retainedObjects.Contains(pointer.Oid) {
-			prunableObjects = append(prunableObjects, pointer.Oid)
-			totalSize += pointer.Size
+	for _, file := range localObjects {
+		if !retainedObjects.Contains(file.Oid) {
+			prunableObjects = append(prunableObjects, file.Oid)
+			totalSize += file.Size
 			if verbose {
 				// Save up verbose output for the end, spinner still going
-				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", pointer.Oid, humanizeBytes(pointer.Size)))
+				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", file.Oid, humanizeBytes(file.Size)))
 			}
 			if verifyRemote {
-				tracerx.Printf("VERIFYING: %v", pointer.Oid)
+				tracerx.Printf("VERIFYING: %v", file.Oid)
+				pointer := lfs.NewPointer(file.Oid, file.Size, nil)
 				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
 			}
 		}
 	}
+
 	if verifyRemote {
 		// this channel is filled with oids for which Check() succeeded & Transfer() was called
 		verifyc := verifyQueue.Watch()
@@ -285,12 +288,12 @@ func pruneDeleteFiles(prunableObjects []string) {
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetLocalObjects(outLocalObjects *[]*lfs.Pointer, progChan PruneProgressChan, waitg *sync.WaitGroup) {
+func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	localObjectsChan := lfs.AllLocalObjectsChan()
-	for p := range localObjectsChan {
-		*outLocalObjects = append(*outLocalObjects, p)
+	localObjectsChan := lfs.LocalStorage.ScanObjectsChan()
+	for f := range localObjectsChan {
+		*outLocalObjects = append(*outLocalObjects, f)
 		progChan <- PruneProgress{PruneProgressTypeLocal, 1}
 	}
 }
