@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	Config             = NewConfig()
-	defaultRemote      = "origin"
-	ShowConfigWarnings = false
+	Config                 = NewConfig()
+	ShowConfigWarnings     = false
+	defaultRemote          = "origin"
+	gitConfigWarningPrefix = "lfs."
 )
 
 // FetchPruneConfig collects together the config options that control fetching and pruning
@@ -401,10 +402,12 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
 
-		if origKey, ok := uniqKeys[key]; ok && c.gitConfig[key] != value {
-			fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
-			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
-			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+		if origKey, ok := uniqKeys[key]; ok {
+			if ShowConfigWarnings && c.gitConfig[key] != value && strings.HasPrefix(key, gitConfigWarningPrefix) {
+				fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+			}
 		} else {
 			uniqKeys[key] = pieces[0]
 		}
