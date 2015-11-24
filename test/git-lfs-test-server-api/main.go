@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/github/git-lfs/test"
+
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -66,11 +68,8 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		oidsExist = readTestOids(args[0])
 		oidsMissing = readTestOids(args[1])
 	} else {
-		fmt.Printf("Creating test data (will modify server contents)\n")
-		oidsExist, oidsMissing = constructTestOids()
-		// Run a 'test' which is really just a setup task, but because it has to
-		// use the same APIs it's a test in its own right too
-		err := runTest(ServerTest{"Set up test data", setupTestData}, oidsExist, oidsMissing)
+		var err error
+		oidsExist, oidsMissing, err = buildTestData()
 		if err != nil {
 			exit("Failed to set up test data, aborting")
 		}
@@ -102,26 +101,68 @@ func readTestOids(filename string) []TestObject {
 	return ret
 }
 
-func constructTestOids() (oidsExist, oidsMissing []TestObject) {
+type testDataCallback struct{}
+
+func (*testDataCallback) Fatalf(format string, args ...interface{}) {
+	exit(format, args...)
+}
+func (*testDataCallback) Errorf(format string, args ...interface{}) {
+	fmt.Printf(format, args...)
+}
+
+func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
 
-	// Generate SHAs, not random so repeatable
+	// Build test data for existing files & upload
+	// Use test repo for this to simplify the process of making sure data matches oid
+	// We're not performing a real test at this point (although an upload fail will break it)
+	var callback testDataCallback
+	repo := test.NewRepo(&callback)
+	repo.Pushd()
+	defer repo.Cleanup()
+	// just one commit
+	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
+	var totalSize int64
+	for i := 0; i < oidCount; i++ {
+		filename := fmt.Sprintf("file%d.dat", i)
+		sz := int64(rand.Intn(200)) + 50
+		commit.Files = append(commit.Files, &test.FileInput{Filename: filename, Size: sz})
+		totalSize += sz
+	}
+	outputs := repo.AddCommits([]*test.CommitInput{&commit})
+
+	// now upload
+	uploadQueue := lfs.NewUploadQueue(len(oidsExist), totalSize, false)
+	for _, f := range outputs[0].Files {
+		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
+
+		u, err := lfs.NewUploadable(f.Oid, "Test file")
+		if err != nil {
+			return nil, nil, err
+		}
+		uploadQueue.Add(u)
+	}
+	uploadQueue.Wait()
+
+	for _, err := range uploadQueue.Errors() {
+		if lfs.IsFatalError(err) {
+			exit("Fatal error setting up test data: %s", err)
+		}
+	}
+
+	// Generate SHAs for missing files, random but repeatable
+	// No actual file content needed for these
 	rand.Seed(int64(oidCount))
 	runningSha := sha256.New()
 	for i := 0; i < oidCount; i++ {
 		runningSha.Write([]byte{byte(rand.Intn(256))})
 		oid := hex.EncodeToString(runningSha.Sum(nil))
 		sz := int64(rand.Intn(200)) + 50
-		oidsExist = append(oidsExist, TestObject{Oid: oid, Size: sz})
-
-		runningSha.Write([]byte{byte(rand.Intn(256))})
-		oid = hex.EncodeToString(runningSha.Sum(nil))
-		sz = int64(rand.Intn(200)) + 50
 		oidsMissing = append(oidsMissing, TestObject{Oid: oid, Size: sz})
 	}
-	return
+	return oidsExist, oidsMissing, nil
 }
 
 func runTests(oidsExist, oidsMissing []TestObject) {
@@ -151,11 +192,6 @@ func runTest(t ServerTest, oidsExist, oidsMissing []TestObject) error {
 		fmt.Printf("%s OK\n", line)
 	}
 	return err
-}
-
-func setupTestData(oidsExist, oidsMissing []TestObject) error {
-	// TODO
-	return nil
 }
 
 // Exit prints a formatted message and exits.
