@@ -40,12 +40,12 @@ var (
 	}
 )
 
-type objectError struct {
+type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-func (e *objectError) Error() string {
+func (e *ObjectError) Error() string {
 	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
 }
 
@@ -54,7 +54,7 @@ type ObjectResource struct {
 	Size    int64                    `json:"size"`
 	Actions map[string]*linkRelation `json:"actions,omitempty"`
 	Links   map[string]*linkRelation `json:"_links,omitempty"`
-	Error   *objectError             `json:"error,omitempty"`
+	Error   *ObjectError             `json:"error,omitempty"`
 }
 
 func (o *ObjectResource) NewRequest(relation, method string) (*http.Request, error) {
