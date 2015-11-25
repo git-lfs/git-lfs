@@ -204,6 +204,10 @@ func exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
+func addTest(name string, f func(oidsExist, oidsMissing []TestObject) error) {
+	tests = append(tests, ServerTest{Name: name, F: f})
+}
+
 func init() {
 	RootCmd.Flags().StringVarP(&apiUrl, "url", "u", "", "URL of the API (must supply this or --clone)")
 	RootCmd.Flags().StringVarP(&cloneUrl, "clone", "c", "", "Clone URL from which to find API (must supply this or --url)")
