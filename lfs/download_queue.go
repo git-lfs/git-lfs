@@ -3,14 +3,14 @@ package lfs
 // The ability to check that a file can be downloaded
 type DownloadCheckable struct {
 	Pointer *WrappedPointer
-	object  *objectResource
+	object  *ObjectResource
 }
 
 func NewDownloadCheckable(p *WrappedPointer) *DownloadCheckable {
 	return &DownloadCheckable{Pointer: p}
 }
 
-func (d *DownloadCheckable) Check() (*objectResource, error) {
+func (d *DownloadCheckable) Check() (*ObjectResource, error) {
 	return DownloadCheck(d.Pointer.Oid)
 }
 
@@ -20,7 +20,7 @@ func (d *DownloadCheckable) Transfer(cb CopyCallback) error {
 	return nil
 }
 
-func (d *DownloadCheckable) Object() *objectResource {
+func (d *DownloadCheckable) Object() *ObjectResource {
 	return d.object
 }
 
@@ -36,7 +36,7 @@ func (d *DownloadCheckable) Name() string {
 	return d.Pointer.Name
 }
 
-func (d *DownloadCheckable) SetObject(o *objectResource) {
+func (d *DownloadCheckable) SetObject(o *ObjectResource) {
 	d.object = o
 }
 

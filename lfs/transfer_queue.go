@@ -13,13 +13,13 @@ const (
 )
 
 type Transferable interface {
-	Check() (*objectResource, error)
+	Check() (*ObjectResource, error)
 	Transfer(CopyCallback) error
-	Object() *objectResource
+	Object() *ObjectResource
 	Oid() string
 	Size() int64
 	Name() string
-	SetObject(*objectResource)
+	SetObject(*ObjectResource)
 }
 
 // TransferQueue provides a queue that will allow concurrent transfers.
@@ -197,9 +197,9 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		tracerx.Printf("tq: sending batch of size %d", len(batch))
 
-		transfers := make([]*objectResource, 0, len(batch))
+		transfers := make([]*ObjectResource, 0, len(batch))
 		for _, t := range batch {
-			transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
+			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
 		objects, err := Batch(transfers, q.transferKind)

@@ -67,9 +67,9 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	return nil
 }
 
-// PointerSmudgeObject uses a Pointer and objectResource to download the object to the
+// PointerSmudgeObject uses a Pointer and ObjectResource to download the object to the
 // media directory. It does not write the file to the working directory.
-func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) error {
+func PointerSmudgeObject(ptr *Pointer, obj *ObjectResource, cb CopyCallback) error {
 	mediafile, err := LocalMediaPath(obj.Oid)
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *objectResource, cb CopyCallback) err
 	return nil
 }
 
-func downloadObject(ptr *Pointer, obj *objectResource, mediafile string, cb CopyCallback) error {
+func downloadObject(ptr *Pointer, obj *ObjectResource, mediafile string, cb CopyCallback) error {
 	reader, size, err := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
