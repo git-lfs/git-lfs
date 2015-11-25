@@ -32,8 +32,9 @@ var (
 		Short: "Test a Git LFS API server for compliance",
 		Run:   testServerApi,
 	}
-	apiUrl   string
-	cloneUrl string
+	apiUrl     string
+	cloneUrl   string
+	savePrefix string
 
 	tests []ServerTest
 )
@@ -51,6 +52,10 @@ func testServerApi(cmd *cobra.Command, args []string) {
 
 	if len(args) != 0 && len(args) != 2 {
 		exit("Must supply either no file arguments or both the exists AND missing file")
+	}
+
+	if len(args) != 0 && len(savePrefix) > 0 {
+		exit("Cannot combine input files and --save option")
 	}
 
 	// Force loading of config before we alter it
@@ -77,6 +82,14 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		if err != nil {
 			exit("Failed to set up test data, aborting")
 		}
+		if len(savePrefix) > 0 {
+			existFile := savePrefix + "_exists"
+			missingFile := savePrefix + "_missing"
+			saveTestOids(existFile, oidsExist)
+			saveTestOids(missingFile, oidsMissing)
+			fmt.Printf("Wrote test to %s, %s for future use\n", existFile, missingFile)
+		}
+
 	}
 
 	runTests(oidsExist, oidsMissing)
@@ -169,6 +182,19 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	return oidsExist, oidsMissing, nil
 }
 
+func saveTestOids(filename string, objs []TestObject) {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		exit("Error opening file %s", filename)
+	}
+	defer f.Close()
+
+	for _, o := range objs {
+		f.WriteString(fmt.Sprintf("%s %d\n", o.Oid, o.Size))
+	}
+
+}
+
 func runTests(oidsExist, oidsMissing []TestObject) {
 
 	fmt.Printf("Running %d tests...\n", len(tests))
@@ -208,7 +234,17 @@ func addTest(name string, f func(oidsExist, oidsMissing []TestObject) error) {
 	tests = append(tests, ServerTest{Name: name, F: f})
 }
 
+func callBatchApi(op string, objs []TestObject) ([]*lfs.ObjectResource, error) {
+
+	apiobjs := make([]*lfs.ObjectResource, 0, len(objs))
+	for _, o := range objs {
+		apiobjs = append(apiobjs, &lfs.ObjectResource{Oid: o.Oid, Size: o.Size})
+	}
+	return lfs.Batch(apiobjs, op)
+}
+
 func init() {
 	RootCmd.Flags().StringVarP(&apiUrl, "url", "u", "", "URL of the API (must supply this or --clone)")
 	RootCmd.Flags().StringVarP(&cloneUrl, "clone", "c", "", "Clone URL from which to find API (must supply this or --url)")
+	RootCmd.Flags().StringVarP(&savePrefix, "save", "s", "", "Saves generated data to <prefix>_exists|missing for subsequent use")
 }
