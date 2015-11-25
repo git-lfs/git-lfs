@@ -71,6 +71,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		oidsExist = readTestOids(args[0])
 		oidsMissing = readTestOids(args[1])
 	} else {
+		fmt.Printf("Creating test data (will upload to server)\n")
 		var err error
 		oidsExist, oidsMissing, err = buildTestData()
 		if err != nil {
