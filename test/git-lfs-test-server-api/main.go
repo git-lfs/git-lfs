@@ -53,6 +53,9 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		exit("Must supply either no file arguments or both the exists AND missing file")
 	}
 
+	// Force loading of config before we alter it
+	lfs.Config.AllGitConfig()
+
 	// Configure the endpoint manually
 	var endp lfs.Endpoint
 	if len(cloneUrl) > 0 {
