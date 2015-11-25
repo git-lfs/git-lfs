@@ -51,7 +51,7 @@ func (e *objectError) Error() string {
 	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
 }
 
-type objectResource struct {
+type ObjectResource struct {
 	Oid     string                   `json:"oid,omitempty"`
 	Size    int64                    `json:"size"`
 	Actions map[string]*linkRelation `json:"actions,omitempty"`
@@ -59,7 +59,7 @@ type objectResource struct {
 	Error   *objectError             `json:"error,omitempty"`
 }
 
-func (o *objectResource) NewRequest(relation, method string) (*http.Request, error) {
+func (o *ObjectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
 		return nil, errors.New("relation does not exist")
@@ -73,7 +73,7 @@ func (o *objectResource) NewRequest(relation, method string) (*http.Request, err
 	return req, nil
 }
 
-func (o *objectResource) Rel(name string) (*linkRelation, bool) {
+func (o *ObjectResource) Rel(name string) (*linkRelation, bool) {
 	var rel *linkRelation
 	var ok bool
 
@@ -116,8 +116,8 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 		return DownloadLegacy(oid)
 	}
 
-	objects := []*objectResource{
-		&objectResource{Oid: oid, Size: size},
+	objects := []*ObjectResource{
+		&ObjectResource{Oid: oid, Size: size},
 	}
 
 	objs, err := Batch(objects, "download")
@@ -167,7 +167,7 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
-func DownloadCheck(oid string) (*objectResource, error) {
+func DownloadCheck(oid string) (*ObjectResource, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, Error(err)
@@ -187,7 +187,7 @@ func DownloadCheck(oid string) (*objectResource, error) {
 	return obj, nil
 }
 
-func DownloadObject(obj *objectResource) (io.ReadCloser, int64, error) {
+func DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, error) {
 	req, err := obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
@@ -206,7 +206,7 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*objectResource, operation string) ([]*objectResource, error) {
+func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -265,7 +265,7 @@ func Batch(objects []*objectResource, operation string) ([]*objectResource, erro
 	return objs, nil
 }
 
-func UploadCheck(oidPath string) (*objectResource, error) {
+func UploadCheck(oidPath string) (*ObjectResource, error) {
 	oid := filepath.Base(oidPath)
 
 	stat, err := os.Stat(oidPath)
@@ -273,7 +273,7 @@ func UploadCheck(oidPath string) (*objectResource, error) {
 		return nil, Error(err)
 	}
 
-	reqObj := &objectResource{
+	reqObj := &ObjectResource{
 		Oid:  oid,
 		Size: stat.Size(),
 	}
@@ -429,14 +429,14 @@ func UploadObject(u *Uploadable, cb CopyCallback) error {
 }
 
 // doLegacyApiRequest runs the request to the LFS legacy API.
-func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, error) {
+func doLegacyApiRequest(req *http.Request) (*http.Response, *ObjectResource, error) {
 	via := make([]*http.Request, 0, 4)
 	res, err := doApiRequestWithRedirects(req, via, true)
 	if err != nil {
 		return res, nil, err
 	}
 
-	obj := &objectResource{}
+	obj := &ObjectResource{}
 	err = decodeApiResponse(res, obj)
 
 	if err != nil {
@@ -451,7 +451,7 @@ func doLegacyApiRequest(req *http.Request) (*http.Response, *objectResource, err
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, error) {
+func doApiBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error) {
 	res, err := doAPIRequest(req, Config.PrivateAccess())
 
 	if err != nil {
@@ -461,7 +461,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*objectResource, er
 		return res, nil, err
 	}
 
-	var objs map[string][]*objectResource
+	var objs map[string][]*ObjectResource
 	err = decodeApiResponse(res, &objs)
 
 	if err != nil {
