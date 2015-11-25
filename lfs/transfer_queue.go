@@ -199,7 +199,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		transfers := make([]*ObjectResource, 0, len(batch))
 		for _, t := range batch {
-			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
+			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size(), Name: t.Name()})
 		}
 
 		objects, err := Batch(transfers, q.transferKind)

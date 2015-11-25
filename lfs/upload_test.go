@@ -345,14 +345,6 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Error("Invalid Content-Length")
 		}
 
-		if r.Header.Get("X-Lfs-Object-Id") != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
-			t.Errorf("Invalid object ID header")
-		}
-
-		if r.Header.Get("X-Lfs-File-Name") != "path/to/file" {
-			t.Errorf("Invalid file name header")
-		}
-
 		currentBranch, err := git.CurrentBranch()
 		if r.Header.Get("X-Lfs-Git-Branch") != currentBranch {
 			t.Errorf("Invalid branch header")
@@ -441,12 +433,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = UploadObject(uploadable, cb)
+	err = UploadObject(obj, cb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -601,12 +588,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = UploadObject(uploadable, nil)
+	err = UploadObject(obj, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -760,12 +742,7 @@ func TestUploadStorageError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = UploadObject(uploadable, nil)
+	err = UploadObject(obj, nil)
 	if err == nil {
 		t.Fatal("Expected an error")
 	}
@@ -877,14 +854,6 @@ func TestUploadVerifyError(t *testing.T) {
 			t.Error("Invalid A")
 		}
 
-		if r.Header.Get("X-Lfs-Object-Id") != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
-			t.Errorf("Invalid object ID header")
-		}
-
-		if r.Header.Get("X-Lfs-File-Name") != "path/to/file" {
-			t.Errorf("Invalid file name header")
-		}
-
 		currentBranch, err := git.CurrentBranch()
 		if r.Header.Get("X-Lfs-Git-Branch") != currentBranch {
 			t.Errorf("Invalid branch header")
@@ -933,12 +902,7 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	uploadable := &Uploadable{oid: obj.Oid, OidPath: oidPath, Filename: "path/to/file", size: obj.Size, object: obj}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = UploadObject(uploadable, nil)
+	err = UploadObject(obj, nil)
 	if err == nil {
 		t.Fatal("Expected an error")
 	}

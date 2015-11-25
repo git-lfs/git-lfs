@@ -54,6 +54,7 @@ func (e *objectError) Error() string {
 type ObjectResource struct {
 	Oid     string                   `json:"oid,omitempty"`
 	Size    int64                    `json:"size"`
+	Name    string                   `json:"name,omitempty"`
 	Actions map[string]*linkRelation `json:"actions,omitempty"`
 	Links   map[string]*linkRelation `json:"_links,omitempty"`
 	Error   *objectError             `json:"error,omitempty"`
@@ -320,8 +321,8 @@ func UploadCheck(oidPath string) (*ObjectResource, error) {
 	return obj, nil
 }
 
-func UploadObject(u *Uploadable, cb CopyCallback) error {
-	path, err := LocalMediaPath(u.oid)
+func UploadObject(o *ObjectResource, cb CopyCallback) error {
+	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
 		return Error(err)
 	}
@@ -332,7 +333,6 @@ func UploadObject(u *Uploadable, cb CopyCallback) error {
 	}
 	defer file.Close()
 
-	o := u.object
 	reader := &CallbackReader{
 		C:         cb,
 		TotalSize: o.Size,
@@ -342,14 +342,6 @@ func UploadObject(u *Uploadable, cb CopyCallback) error {
 	req, err := o.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
-	}
-
-	if len(req.Header.Get("X-Lfs-Object-Id")) == 0 {
-		req.Header.Set("X-Lfs-Object-Id", o.Oid)
-	}
-
-	if len(req.Header.Get("X-Lfs-File-Name")) == 0 {
-		req.Header.Set("X-Lfs-File-Name", u.Filename)
 	}
 
 	currentRef, err := git.CurrentRef()
