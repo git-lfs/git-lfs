@@ -346,14 +346,14 @@ func UploadObject(o *ObjectResource, cb CopyCallback) error {
 
 	currentRef, err := git.CurrentRef()
 	if err != nil {
-		PrintError(err, "Failed to resolve current git ref while uploading %s", u.Filename)
+		PrintError(err, "Failed to resolve current git ref while uploading %s", o.Oid)
 	} else {
 		req.Header.Set("X-Lfs-Git-Ref", currentRef.Sha)
 	}
 
 	currentBranch, err := git.CurrentBranch()
 	if err != nil {
-		PrintError(err, "Failed to resolve current git branch while uploading %s", u.Filename)
+		PrintError(err, "Failed to resolve current git branch while uploading %s", o.Oid)
 	} else {
 		req.Header.Set("X-Lfs-Git-Branch", currentBranch)
 	}
