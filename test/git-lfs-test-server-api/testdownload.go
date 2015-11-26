@@ -44,8 +44,8 @@ func downloadAllMissing(oidsExist, oidsMissing []TestObject) error {
 		return err
 	}
 
-	if len(retobjs) != len(oidsExist) {
-		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", len(oidsExist), len(retobjs))
+	if len(retobjs) != len(oidsMissing) {
+		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", len(oidsMissing), len(retobjs))
 	}
 
 	var errbuf bytes.Buffer
