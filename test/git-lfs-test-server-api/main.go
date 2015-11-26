@@ -243,6 +243,32 @@ func callBatchApi(op string, objs []TestObject) ([]*lfs.ObjectResource, error) {
 	return lfs.Batch(apiobjs, op)
 }
 
+// Combine 2 slices into one by "randomly" interleaving
+// Not actually random, same sequence each time so repeatable
+func interleaveTestData(slice1, slice2 []TestObject) []TestObject {
+	// Predictable sequence, mixin existing & missing semi-randomly
+	rand.Seed(21)
+	count := len(slice1) + len(slice2)
+	ret := make([]TestObject, 0, count)
+	slice1Idx := 0
+	slice2Idx := 0
+	for left := count; left > 0; {
+		for i := rand.Intn(3) + 1; slice1Idx < len(slice1) && i > 0; i-- {
+			obj := slice1[slice1Idx]
+			ret = append(ret, obj)
+			slice1Idx++
+			left--
+		}
+		for i := rand.Intn(3) + 1; slice2Idx < len(slice2) && i > 0; i-- {
+			obj := slice2[slice2Idx]
+			ret = append(ret, obj)
+			slice2Idx++
+			left--
+		}
+	}
+	return ret
+}
+
 func init() {
 	RootCmd.Flags().StringVarP(&apiUrl, "url", "u", "", "URL of the API (must supply this or --clone)")
 	RootCmd.Flags().StringVarP(&cloneUrl, "clone", "c", "", "Clone URL from which to find API (must supply this or --url)")

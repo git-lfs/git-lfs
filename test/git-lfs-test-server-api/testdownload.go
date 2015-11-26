@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/rand"
 
 	"github.com/github/git-lfs/lfs"
 )
@@ -72,37 +71,22 @@ func downloadAllMissing(oidsExist, oidsMissing []TestObject) error {
 func downloadMixed(oidsExist, oidsMissing []TestObject) error {
 
 	existSet := lfs.NewStringSetWithCapacity(len(oidsExist))
+	for _, o := range oidsExist {
+		existSet.Add(o.Oid)
+	}
 	missingSet := lfs.NewStringSetWithCapacity(len(oidsMissing))
-
-	// Predictable sequence, mixin existing & missing semi-randomly
-	rand.Seed(21)
-	count := len(oidsExist) + len(oidsMissing)
-	calloids := make([]TestObject, 0, count)
-	existIdx := 0
-	missingIdx := 0
-	for left := count; left > 0; {
-		for i := rand.Intn(3) + 1; existIdx < len(oidsExist) && i > 0; i-- {
-			obj := oidsExist[existIdx]
-			existSet.Add(obj.Oid)
-			calloids = append(calloids, obj)
-			existIdx++
-			left--
-		}
-		for i := rand.Intn(3) + 1; missingIdx < len(oidsMissing) && i > 0; i-- {
-			obj := oidsMissing[missingIdx]
-			missingSet.Add(obj.Oid)
-			calloids = append(calloids, obj)
-			missingIdx++
-			left--
-		}
+	for _, o := range oidsMissing {
+		missingSet.Add(o.Oid)
 	}
 
+	calloids := interleaveTestData(oidsExist, oidsMissing)
 	retobjs, err := callBatchApi("download", calloids)
 
 	if err != nil {
 		return err
 	}
 
+	count := len(oidsExist) + len(oidsMissing)
 	if len(retobjs) != count {
 		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", count, len(retobjs))
 	}
