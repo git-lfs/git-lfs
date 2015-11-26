@@ -350,11 +350,6 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Errorf("Invalid branch header")
 		}
 
-		currentRef, err := git.CurrentRef()
-		if r.Header.Get("X-Lfs-Git-Ref") != currentRef.Sha {
-			t.Errorf("Invalid ref header")
-		}
-
 		if r.Header.Get("Transfer-Encoding") != "" {
 			t.Fatal("Transfer-Encoding is set")
 		}
@@ -857,11 +852,6 @@ func TestUploadVerifyError(t *testing.T) {
 		currentBranch, err := git.CurrentBranch()
 		if r.Header.Get("X-Lfs-Git-Branch") != currentBranch {
 			t.Errorf("Invalid branch header")
-		}
-
-		currentRef, err := git.CurrentRef()
-		if r.Header.Get("X-Lfs-Git-Ref") != currentRef.Sha {
-			t.Errorf("Invalid ref header")
 		}
 
 		if r.Header.Get("Content-Type") != "application/octet-stream" {

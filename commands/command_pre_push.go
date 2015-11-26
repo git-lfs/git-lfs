@@ -93,7 +93,7 @@ func prePushRef(left, right string) {
 		skipObjects = prePushCheckForMissingObjects(pointers)
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun, left)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {

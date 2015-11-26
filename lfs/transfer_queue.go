@@ -40,6 +40,7 @@ type TransferQueue struct {
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
+	gitRev        string
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
@@ -202,7 +203,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size(), Name: t.Name()})
 		}
 
-		objects, err := Batch(transfers, q.transferKind)
+		objects, err := Batch(transfers, q.transferKind, q.gitRev)
 		if err != nil {
 			if IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
