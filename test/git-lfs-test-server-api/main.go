@@ -92,7 +92,11 @@ func testServerApi(cmd *cobra.Command, args []string) {
 
 	}
 
-	runTests(oidsExist, oidsMissing)
+	ok := runTests(oidsExist, oidsMissing)
+	if !ok {
+		exit("One or more tests failed, see above")
+	}
+	fmt.Println("All tests passed")
 }
 
 func readTestOids(filename string) []TestObject {
@@ -195,13 +199,17 @@ func saveTestOids(filename string, objs []TestObject) {
 
 }
 
-func runTests(oidsExist, oidsMissing []TestObject) {
+func runTests(oidsExist, oidsMissing []TestObject) bool {
 
+	ok := true
 	fmt.Printf("Running %d tests...\n", len(tests))
 	for _, t := range tests {
-		runTest(t, oidsExist, oidsMissing)
+		err := runTest(t, oidsExist, oidsMissing)
+		if err != nil {
+			ok = false
+		}
 	}
-
+	return ok
 }
 
 func runTest(t ServerTest, oidsExist, oidsMissing []TestObject) error {
