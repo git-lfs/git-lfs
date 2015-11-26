@@ -115,7 +115,7 @@ func downloadMixed(oidsExist, oidsMissing []TestObject) error {
 				errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %s\n", o.Oid, link))
 			}
 			if o.Error == nil {
-				errbuf.WriteString(fmt.Sprintf("Download should include an error for missing object %s, was %s\n", o.Oid))
+				errbuf.WriteString(fmt.Sprintf("Download should include an error for missing object %s", o.Oid))
 			} else if o.Error.Code != 404 {
 				errbuf.WriteString(fmt.Sprintf("Download error code for missing object %s should be 404, got %d\n", o.Oid, o.Error.Code))
 			}
