@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -93,7 +94,17 @@ func prePushRef(left, right string) {
 		skipObjects = prePushCheckForMissingObjects(pointers)
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun, left)
+	ref, err := git.CurrentRef()
+	if err != nil {
+		if Debugging || lfs.IsFatalError(err) {
+			LoggedError(err, err.Error())
+		} else {
+			Error(err.Error())
+		}
+	}
+
+	metadata := lfs.NewUploadTransferMetadata(ref.Sha, ref.Name)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun, metadata)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {

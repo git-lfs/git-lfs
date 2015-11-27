@@ -121,7 +121,8 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 		&ObjectResource{Oid: oid, Size: size},
 	}
 
-	objs, err := Batch(objects, "download", "")
+	metadata := newDownloadTransferMetadata()
+	objs, err := Batch(objects, metadata)
 	if err != nil {
 		if IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
@@ -207,19 +208,21 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*ObjectResource, operation string, gitRev string) ([]*ObjectResource, error) {
+func Batch(objects []*ObjectResource, metadata *TransferMetadata) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	o := map[string]interface{}{"objects": objects, "operation": operation, "rev": gitRev}
+	o := map[string]interface{}{
+		"objects": objects, "operation": metadata.operation, "rev": metadata.gitRev, "ref": metadata.gitRef,
+	}
 
 	by, err := json.Marshal(o)
 	if err != nil {
 		return nil, Error(err)
 	}
 
-	req, err := newBatchApiRequest(operation)
+	req, err := newBatchApiRequest(metadata.operation)
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -245,7 +248,7 @@ func Batch(objects []*ObjectResource, operation string, gitRev string) ([]*Objec
 
 		if IsAuthError(err) {
 			setAuthType(res)
-			return Batch(objects, operation, gitRev)
+			return Batch(objects, metadata)
 		}
 
 		switch res.StatusCode {
@@ -342,13 +345,6 @@ func UploadObject(o *ObjectResource, cb CopyCallback) error {
 	req, err := o.NewRequest("upload", "PUT")
 	if err != nil {
 		return Error(err)
-	}
-
-	currentBranch, err := git.CurrentBranch()
-	if err != nil {
-		PrintError(err, "Failed to resolve current git branch while uploading %s", o.Oid)
-	} else {
-		req.Header.Set("X-Lfs-Git-Branch", currentBranch)
 	}
 
 	if len(req.Header.Get("Content-Type")) == 0 {

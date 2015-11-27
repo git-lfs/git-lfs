@@ -42,9 +42,8 @@ func (d *DownloadCheckable) SetObject(o *ObjectResource) {
 
 // NewDownloadCheckQueue builds a checking queue, allowing `workers` concurrent check operations.
 func NewDownloadCheckQueue(files int, size int64, dryRun bool) *TransferQueue {
-	q := newTransferQueue(files, size, dryRun)
-	// API operation is still download, but it will only perform the API call (check)
-	q.transferKind = "download"
+	metadata := newDownloadTransferMetadata()
+	q := newTransferQueue(files, size, dryRun, metadata)
 	return q
 }
 
@@ -67,7 +66,7 @@ func (d *Downloadable) Transfer(cb CopyCallback) error {
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
 func NewDownloadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	q := newTransferQueue(files, size, dryRun)
-	q.transferKind = "download"
+	metadata := newDownloadTransferMetadata()
+	q := newTransferQueue(files, size, dryRun, metadata)
 	return q
 }
