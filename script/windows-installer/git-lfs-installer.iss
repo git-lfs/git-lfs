@@ -21,12 +21,13 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 LicenseFile=..\..\LICENSE.md
 OutputBaseFilename=Git-LFS-Installer
+OutputDir=..\..\
 Compression=lzma
 SolidCompression=yes
 DefaultDirName={code:GetExistingGitInstallation}
 UsePreviousAppDir=no
 DirExistsWarning=no
-DisableReadyPage=True
+DisableReadyPage=True 
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -35,6 +36,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: ..\..\git-lfs.exe; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InstallGitLFS;
 
 [Code]
+// Uses cmd to parse and find the location of Git through the env vars
 function GetExistingGitInstallation(Value: string): string;
 var
   TmpFileName: String;
