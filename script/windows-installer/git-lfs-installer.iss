@@ -26,12 +26,13 @@ SolidCompression=yes
 DefaultDirName={code:GetExistingGitInstallation}
 UsePreviousAppDir=no
 DirExistsWarning=no
+DisableReadyPage=True
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: ..\..\git-lfs.exe; DestDir: {code:GetExistingGitInstallation}; Flags: ignoreversion;
+Source: ..\..\git-lfs.exe; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InstallGitLFS;
 
 [Code]
 function GetExistingGitInstallation(Value: string): string;
@@ -46,7 +47,8 @@ begin
   Exec(
     ExpandConstant('{cmd}'),
     '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"', 
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode
+  );
 
   if LoadStringFromFile(TmpFileName, ExecStdOut) then begin
       if not (Pos('Git\cmd', ExtractFilePath(ExecStdOut)) = 0) then begin
@@ -58,4 +60,16 @@ begin
 
       DeleteFile(TmpFileName);
   end;
+end;
+
+procedure InstallGitLFS();
+var
+  ResultCode: integer;
+
+begin
+  Exec(
+    ExpandConstant('{cmd}'),
+    '/C "git lfs install"', 
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode
+  );
 end;
