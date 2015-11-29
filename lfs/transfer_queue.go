@@ -39,17 +39,17 @@ type TransferQueue struct {
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
-	metadata      *TransferMetadata
+	metadata      TransferMetadata
 }
 
 type TransferMetadata struct {
 	operation string
-	gitRev    string
-	gitRef    string
+	ref       string
+	commitOid string
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(files int, size int64, dryRun bool, metadata *TransferMetadata) *TransferQueue {
+func newTransferQueue(files int, size int64, dryRun bool, metadata TransferMetadata) *TransferQueue {
 	q := &TransferQueue{
 		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
@@ -69,20 +69,11 @@ func newTransferQueue(files int, size int64, dryRun bool, metadata *TransferMeta
 	return q
 }
 
-func newDownloadTransferMetadata() *TransferMetadata {
-	metadata := &TransferMetadata{
-		operation: "download",
-		gitRev:    "",
-		gitRef:    "",
-	}
-	return metadata
-}
-
-func newUploadTransferMetadata(gitRev string, gitRef string) *TransferMetadata {
-	metadata := &TransferMetadata{
-		operation: "upload",
-		gitRev:    gitRev,
-		gitRef:    gitRef,
+func newTransferMetadata(operation, ref, commitOid string) TransferMetadata {
+	metadata := TransferMetadata{
+		operation: operation,
+		ref:       ref,
+		commitOid: commitOid,
 	}
 	return metadata
 }

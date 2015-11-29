@@ -83,7 +83,7 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 
 	skipObjects := prePushCheckForMissingObjects(pointers)
 
-	metadata := lfs.NewUploadTransferMetadata("", "")
+	metadata := buildTransferMetadata("upload")
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun, metadata)
 	for i, pointer := range pointers {
 		if pushDryRun {
@@ -134,7 +134,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 		uploads = append(uploads, u)
 	}
 
-	metadata := lfs.NewUploadTransferMetadata("", "")
+	metadata := buildTransferMetadata("upload")
 	uploadQueue := lfs.NewUploadQueue(len(oids), totalSize, pushDryRun, metadata)
 
 	for _, u := range uploads {

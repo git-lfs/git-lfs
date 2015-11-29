@@ -121,7 +121,7 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 		&ObjectResource{Oid: oid, Size: size},
 	}
 
-	metadata := newDownloadTransferMetadata()
+	metadata := newTransferMetadata("download", "", "")
 	objs, err := Batch(objects, metadata)
 	if err != nil {
 		if IsNotImplementedError(err) {
@@ -208,13 +208,13 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*ObjectResource, metadata *TransferMetadata) ([]*ObjectResource, error) {
+func Batch(objects []*ObjectResource, metadata TransferMetadata) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
 	o := map[string]interface{}{
-		"objects": objects, "operation": metadata.operation, "rev": metadata.gitRev, "ref": metadata.gitRef,
+		"objects": objects, "operation": metadata.operation, "ref": metadata.ref, "commitOid": metadata.commitOid,
 	}
 
 	by, err := json.Marshal(o)

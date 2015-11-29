@@ -120,7 +120,8 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	if verifyRemote {
 		lfs.Config.CurrentRemote = lfs.Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
-		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
+		metadata := buildTransferMetadata("download")
+		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true, metadata)
 		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
 	}
 	for _, pointer := range localObjects {

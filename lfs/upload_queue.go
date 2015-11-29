@@ -71,13 +71,13 @@ func (u *Uploadable) SetObject(o *ObjectResource) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(files int, size int64, dryRun bool, metadata *TransferMetadata) *TransferQueue {
+func NewUploadQueue(files int, size int64, dryRun bool, metadata TransferMetadata) *TransferQueue {
 	q := newTransferQueue(files, size, dryRun, metadata)
 	return q
 }
 
-func NewUploadTransferMetadata(gitRev string, gitRef string) *TransferMetadata {
-	metadata := newUploadTransferMetadata(gitRev, gitRef)
+func NewTransferMetadata(operation, ref, commitOid string) TransferMetadata {
+	metadata := newTransferMetadata(operation, ref, commitOid)
 	return metadata
 }
 

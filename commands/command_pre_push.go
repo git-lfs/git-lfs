@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -94,16 +93,7 @@ func prePushRef(left, right string) {
 		skipObjects = prePushCheckForMissingObjects(pointers)
 	}
 
-	ref, err := git.CurrentRef()
-	if err != nil {
-		if Debugging || lfs.IsFatalError(err) {
-			LoggedError(err, err.Error())
-		} else {
-			Error(err.Error())
-		}
-	}
-
-	metadata := lfs.NewUploadTransferMetadata(ref.Sha, ref.Name)
+	metadata := buildTransferMetadata("upload")
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun, metadata)
 
 	for _, pointer := range pointers {
@@ -164,7 +154,8 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 		return nil
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
+	metadata := buildTransferMetadata("download")
+	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true, metadata)
 	for _, p := range missingLocalObjects {
 		checkQueue.Add(lfs.NewDownloadCheckable(p))
 	}
