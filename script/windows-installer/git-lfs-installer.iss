@@ -67,7 +67,6 @@ end;
 procedure InstallGitLFS();
 var
   ResultCode: integer;
-
 begin
   Exec(
     ExpandConstant('{cmd}'),
@@ -75,3 +74,16 @@ begin
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
 end;
+
+// Event function automatically called when uninstalling:function InitializeUninstall(): Boolean;
+var
+  ResultCode: integer;
+begin
+  Exec(
+    ExpandConstant('{cmd}'),
+    '/C "git lfs uninstall"', 
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode
+  );
+  Result := True;
+end;
+
