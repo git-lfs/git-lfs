@@ -5,6 +5,7 @@
 #define MyAppVersion "1.1.0"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
+#define MyAppFilePrefix "git-lfs-windows-amd64"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -19,7 +20,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 LicenseFile=..\..\LICENSE.md
-OutputBaseFilename=git-lfs-windows-amd64-{#MyAppVersion}
+OutputBaseFilename={#MyAppFilePrefix}-{#MyAppVersion}
 OutputDir=..\..\
 Compression=lzma
 SolidCompression=yes
