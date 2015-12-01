@@ -14,7 +14,7 @@ page][impl]. You can chat with the team at: https://gitter.im/github/git-lfs
 
 ## Getting Started
 
-You can install Git LFS several different ways, depending on your setup and
+You can install Git LFS in several different ways, depending on your setup and
 preferences.
 
 * Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs).
