@@ -2,10 +2,9 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Git LFS"
-#define MyAppVersion "1.1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
-#define MyAppExeName "Git-LFS-Installer.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -20,7 +19,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 LicenseFile=..\..\LICENSE.md
-OutputBaseFilename=Git-LFS-Installer
+OutputBaseFilename=git-lfs-windows-amd64-{#MyAppVersion}
 OutputDir=..\..\
 Compression=lzma
 SolidCompression=yes
