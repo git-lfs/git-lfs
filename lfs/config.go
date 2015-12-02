@@ -389,7 +389,6 @@ func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex
 
 func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {
 	lines := strings.Split(output, "\n")
-	uniqKeys := make(map[string]string)
 
 	for _, line := range lines {
 		pieces := strings.SplitN(line, "=", 2)
@@ -400,14 +399,6 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 		allowed := !onlySafe
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
-
-		if origKey, ok := uniqKeys[key]; ok && c.gitConfig[key] != value {
-			fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
-			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
-			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
-		} else {
-			uniqKeys[key] = pieces[0]
-		}
 
 		keyParts := strings.Split(key, ".")
 		if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
