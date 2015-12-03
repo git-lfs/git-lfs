@@ -9,7 +9,7 @@ binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
 
 ## Getting Started
 
-You can install Git LFS several different ways, depending on your setup and
+You can install Git LFS in several different ways, depending on your setup and
 preferences.
 
 * Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs).
@@ -29,7 +29,8 @@ $ git lfs install
 ```
 
 Now, it's time to add some large files to a repository. The first step is to
-specify file patterns to store with Git LFS:
+specify file patterns to store with Git LFS. These file patterns are stored in
+`.gitattributes`.
 
 ```bash
 $ mkdir large-repo
