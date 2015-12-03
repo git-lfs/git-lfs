@@ -139,7 +139,7 @@ func (p *ProgressMeter) update() {
 
 	padlen := width - len(out)
 	if 0 < padlen {
-			out += strings.Repeat(" ", padlen)
+		out += strings.Repeat(" ", padlen)
 	}
 
 	fmt.Fprintf(os.Stdout, out)
