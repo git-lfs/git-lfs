@@ -3,14 +3,9 @@
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
 binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
-[Git LFS website][page] for a high level overview of features.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
-sending patches. Related projects are listed on the [Implementations wiki
-page][impl]. You can chat with the team at: https://gitter.im/github/git-lfs
+[Git LFS website][page] for an overview of features.
 
 [page]: https://git-lfs.github.com/
-[impl]: https://github.com/github/git-lfs/wiki/Implementations
 
 ## Getting Started
 
@@ -22,73 +17,85 @@ preferences.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
 * You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
-Once installed, you can run `git lfs install` to setup the global Git hooks
-necessary for Git LFS to work. You can get help on specific commands directly:
+[rel]: https://github.com/github/git-lfs/releases
+
+Note: Git LFS requires Git v1.8.2 or higher.
+
+One installed, you need to setup the global Git hooks for Git LFS. This only
+needs to be run once per machine.
+
+```bash
+$ git lfs install
+```
+
+Now, it's time to add some large files to a repository. The first step is to
+specify file patterns to store with Git LFS. These file patterns are stored in
+`.gitattributes`.
+
+```bash
+$ mkdir large-repo
+$ cd large-repo
+$ git init
+
+# Add all zip files through Git LFS
+$ git lfs track "*.zip"
+```
+
+Now you're ready to push some commits:
+
+```bash
+$ git add my.zip
+$ git commit -m "add zip"
+```
+
+You can confirm that Git LFS is managing your zip file:
+
+```bash
+$ git lfs ls-files
+my.zip
+```
+
+Once you've made your commits, push your files to the Git remote:
+
+```bash
+$ git push origin master
+Sending my.zip
+LFS: 12.58 MB / 12.58 MB  100.00 %
+Counting objects: 2, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
+Total 5 (delta 1), reused 0 (delta 0)
+To https://github.com/github/git-lfs-test
+   67fcf6a..47b2002  master -> master
+```
+
+## Need Help?
+
+You can get help on specific commands directly:
 
 ```bash
 $ git lfs help <subcommand>
 ```
 
 The [official documentation](docs) has command references and specifications for
-the tool.
+the tool. You can ask questions in the [Git LFS chat room][chat], or [file a new
+issue][ish]. Be sure to include details about the problem so we can
+troubleshoot it.
 
-Note: Git LFS requires Git v1.8.2 or higher.
+1. Include the output of `git lfs env`, which shows how your Git environment
+is setup.
+2. Include `GIT_TRACE=1` in any bad Git commands to enable debug messages.
+3. If the output includes a message like `Errors logged to /path/to/.git/lfs/objects/logs/*.log`,
+throw the contents in the issue, or as a link to a Gist or paste site.
 
-[rel]: https://github.com/github/git-lfs/releases
+[chat]: https://gitter.im/github/git-lfs
+[ish]: https://github.com/github/git-lfs/issues
 
-### Configuration
+## Contributing
 
-Git LFS uses `.gitattributes` files to configure which files are managed by Git LFS.
-Here is a sample one that saves zips and mp3s:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
+sending patches. Related projects are listed on the [Implementations wiki
+page][impl]. You can also join [the project's chat room][chat].
 
-    $ cat .gitattributes
-    *.mp3 filter=lfs -text
-    *.zip filter=lfs -text
-
-Git LFS can manage `.gitattributes` for you:
-
-    $ git lfs track "*.mp3"
-    Tracking *.mp3
-
-    $ git lfs track "*.zip"
-    Tracking *.zip
-
-    $ git lfs track
-    Listing tracked paths
-        *.mp3 (.gitattributes)
-        *.zip (.gitattributes)
-
-    $ git lfs untrack "*.zip"
-    Untracking *.zip
-
-    $ git lfs track
-    Listing tracked paths
-        *.mp3 (.gitattributes)
-
-### Pushing commits
-
-Once setup, you're ready to push some commits:
-
-    $ git add my.zip
-    $ git commit -m "add zip"
-
-You can confirm that Git LFS is managing your zip file:
-
-    $ git lfs ls-files
-    my.zip
-
-Once you've made your commits, push your files to the Git remote:
-
-    $ git push origin master
-    Sending my.zip
-    12.58 MB / 12.58 MB  100.00 %
-    Counting objects: 2, done.
-    Delta compression using up to 8 threads.
-    Compressing objects: 100% (5/5), done.
-    Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
-    Total 5 (delta 1), reused 0 (delta 0)
-    To https://github.com/github/git-lfs-test
-       67fcf6a..47b2002  master -> master
-
-See the [Git LFS overview](https://github.com/github/git-lfs/tree/master/docs)
-and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
+[impl]: https://github.com/github/git-lfs/wiki/Implementations
