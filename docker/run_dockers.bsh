@@ -36,9 +36,8 @@ function split_image_name()
 { #$1 - image dockerfile
   #sets IMAGE_NAME to the basename of the dir containing the docker file
   #sets IMAGE_INFO to be the array name following my pattern
-  IMAGE_NAME=$(basename ${1%.*})
   local IFS=_
-  IMAGE_INFO=(${IMAGE_NAME})
+  IMAGE_INFO=($1)
 }
 
 # Parse Arguments
@@ -55,17 +54,17 @@ while [[ $# > 0 ]]; do
 done
 
 if [[ ${#IMAGES[@]} == 0 ]]; then
-  IMAGES=($(ls -d ${CUR_DIR}/git-lfs_*.dockerfile))
+  IMAGES=(centos_5 centos_6 centos_7 debian_7 debian_8)
 fi
 
 mkdir -p "${PACKAGE_DIR}"
 #Run docker to build pacakges
-for DOCKER_FILE in "${IMAGES[@]}"; do
-  split_image_name "${DOCKER_FILE}" #set IMAGE_NAME and IMAGE_INFO
+for IMAGE_NAME in "${IMAGES[@]}"; do
+  split_image_name "${IMAGE_NAME}" #set IMAGE_NAME and IMAGE_INFO
 
   #Auto pull docker unless DOCKER_AUTOPULL=0
   if [[ ${DOCKER_AUTOPULL-1} != 0 ]]; then
-    $SUDO docker pull andyneff/build_git-lfs:${IMAGE_NAME}
+    $SUDO docker pull andyneff/git-lfs_dockers:${IMAGE_NAME}
   fi
 
   #It CAN'T be empty () with set -u... So I put some defaults in here
@@ -94,14 +93,14 @@ for DOCKER_FILE in "${IMAGES[@]}"; do
   fi
 
   echo Compiling LFS in docker image ${IMAGE_NAME}
-  IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[1]}"/"${IMAGE_INFO[2]}"
+  IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[0]}"/"${IMAGE_INFO[1]}"
   $SUDO docker run "${OTHER_OPTIONS[@]}" ${DOCKER_OTHER_OPTIONS-} \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -e FINAL_UID=${FINAL_UID} \
                    -e FINAL_GID=${FINAL_GID} \
                    -v "${MINGW_PATCH}${REPO_DIR}:/src" \
                    -v "${MINGW_PATCH}${IMAGE_REPO_DIR}:/repo" \
-                   andyneff/build_git-lfs:${IMAGE_NAME} ${DOCKER_CMD-}
+                   andyneff/git-lfs_dockers:${IMAGE_NAME} ${DOCKER_CMD-}
 
 done
 
