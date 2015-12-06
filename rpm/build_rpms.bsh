@@ -67,16 +67,8 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
   if [[ ${VERSION_ID[0]} != 6 ]]; then
     $SUDO yum install -y git
   else
-    $SUDO yum install -y  curl-devel expat-devel gettext openssl-devel zlib-devel perl-Error perl-ExtUtils-MakeMaker emacs asciidoc xmlto gcc
-    #I only include emacs here because the real RHEL rpm create emacs hook, so I will too for MAX compatibility
-    pushd ${CURDIR}/SOURCES
-      curl -L -O http://vault.centos.org/6.6/os/Source/SPackages/git-1.7.1-3.el6_4.1.src.rpm
-      rpm2cpio git-1.7.1-3.el6_4.1.src.rpm | cpio -div git-init.el git.xinetd.in git.conf.httpd git-gui.desktop gitweb.conf.in
-      NEW_GIT_VERSION=$(\grep ^Version: ${CURDIR}/SPECS/git.spec | sed  's|Version:\s*\(.*\)|\1|')
-      curl -L -O http://kernel.org/pub/software/scm/git/git-${NEW_GIT_VERSION}.tar.xz
-      "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/git.spec
-      $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/*/git-${NEW_GIT_VERSION}*.rpm ${CURDIR}/RPMS/*/perl-Git-${NEW_GIT_VERSION}*.rpm
-    popd
+    curl https://setup.ius.io/ | $SUDO bash
+    yum install -y "git >= 1.8.2"
   fi
 fi
 
