@@ -260,10 +260,17 @@ func buildTransferMetadata(operation string) lfs.TransferMetadata {
 }
 
 func gitRef() *git.Ref {
-	ref, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Failed to resolve current git ref")
+	remoteRef, remoteErr := git.CurrentRemoteRef()
+
+	if remoteErr == nil {
+		return remoteRef
 	}
 
-	return ref
+	Debug("Failed to resolve current remote git ref. Falling back to local git ref: %s", remoteErr.Error())
+
+	localRef, localErr := git.CurrentRef()
+	if localErr != nil {
+		Panic(localErr, "Failed to resolve current local git ref")
+	}
+	return localRef
 }
