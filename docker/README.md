@@ -211,7 +211,7 @@ place. The general procedure for this is
     9. Enter a secure password, make sure you will not forget it
     10. Generate Entropy!
     
-    gpg --export-secret-key '<key ID>!' >
+    gpg --export-secret-key '<key ID>!' > filename.key
     
 e.g. `gpg --export-secret-key '547CF247!' > ./docker/git-lfs_centos_7.key`
     
@@ -221,6 +221,8 @@ Keep in mind, .key files must NEVER be accidentally committed to the repo.
 
 _What if you don't have gpg handy?_ Just enter one of the dockers (-- bash) and
 generate them in there, and save them in the /src dir to get them out of the docker.
+Or `docker run -it --rm -v $(pwd):/key OS_NAME:OS_VERSION bash`, and generate in
+that docker and save to the `/key` directory
 
 ### GPG Agent ###
 
@@ -268,7 +270,8 @@ fails for RSA. CentOS 5 will **not** work with 2048 bit DSA keys... I suspect
 
 You can make a 4096 RSA key for Debian and CentOS 6/7 (4 for step 1 above, and
 4096 for step 2) and a 1024 DSA key for CentOS 5 (3 for step 1 above, and 1024
-for step 2). And only have two keys... Or optionally a 4096 RSA subkey for Debain
+for step 2. And be sure to make the key in a CentOS 5 docker.). And only have two
+keys... Or optionally a 4096 RSA subkey for Debain
 [1]. Or a key for each distro. Dealers choice. You should have least two since 
 1024 bit isn't that great and you are only using it for CentOS 5 because nothing
 else works.

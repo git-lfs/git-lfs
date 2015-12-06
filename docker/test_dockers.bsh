@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
-set -eu
-
 #Test to see is using the repo installs really work
 
 CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
 
-${CUR_DIR}/run_dockers.bsh $(ls -d ${CUR_DIR}/git-lfs-test_*/) "${@}"
+${CUR_DIR}/run_dockers.bsh centos_5_test centos_6_test centos_7_test debian_7_test debian_8_test "${@}"
