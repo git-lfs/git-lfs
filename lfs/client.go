@@ -648,6 +648,7 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
 			endpoint.SshUserAndHost, err.Error(),
 		)
+		return nil, err
 	}
 
 	if len(res.Href) > 0 {
@@ -691,6 +692,7 @@ func newBatchApiRequest(operation string) (*http.Request, error) {
 		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
 			operation, endpoint.SshUserAndHost, err.Error(),
 		)
+		return nil, err
 	}
 
 	if len(res.Href) > 0 {
