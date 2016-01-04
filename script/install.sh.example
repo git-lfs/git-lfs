@@ -17,4 +17,4 @@ for g in git*; do
 done
 
 PATH+=:$prefix/bin
-git lfs init
+git lfs install

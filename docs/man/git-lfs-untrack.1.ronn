@@ -18,6 +18,6 @@ can be a glob pattern or a file path.
 
 ## SEE ALSO
 
-git-lfs-track(1), git-lfs-init(1), gitattributes(5).
+git-lfs-track(1), git-lfs-install(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.

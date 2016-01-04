@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/github/git-lfs/git"
@@ -76,6 +77,27 @@ type ScanRefsOptions struct {
 	RemoteName       string
 	SkipDeletedBlobs bool
 	nameMap          map[string]string
+	mutex            *sync.Mutex
+}
+
+func (o *ScanRefsOptions) GetName(sha string) (string, bool) {
+	o.mutex.Lock()
+	name, ok := o.nameMap[sha]
+	o.mutex.Unlock()
+	return name, ok
+}
+
+func (o *ScanRefsOptions) SetName(sha, name string) {
+	o.mutex.Lock()
+	o.nameMap[sha] = name
+	o.mutex.Unlock()
+}
+
+func NewScanRefsOptions() *ScanRefsOptions {
+	return &ScanRefsOptions{
+		nameMap: make(map[string]string, 0),
+		mutex:   &sync.Mutex{},
+	}
 }
 
 // ScanRefs takes a ref and returns a slice of WrappedPointer objects
@@ -100,19 +122,18 @@ func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (<-chan *WrappedPointer, error) {
 	if opt == nil {
-		opt = &ScanRefsOptions{}
+		opt = NewScanRefsOptions()
 	}
 	if refLeft == "" {
 		opt.ScanMode = ScanAllMode
 	}
-	opt.nameMap = make(map[string]string, 0)
 
 	start := time.Now()
 	defer func() {
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	revs, err := revListShas(refLeft, refRight, *opt)
+	revs, err := revListShas(refLeft, refRight, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +151,7 @@ func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (<-chan *Wra
 	retchan := make(chan *WrappedPointer, chanBufSize)
 	go func() {
 		for p := range pointerc {
-			if name, ok := opt.nameMap[p.Sha1]; ok {
+			if name, ok := opt.GetName(p.Sha1); ok {
 				p.Name = name
 			}
 			retchan <- p
@@ -141,23 +162,44 @@ func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (<-chan *Wra
 	return retchan, nil
 }
 
+type indexFileMap struct {
+	nameMap map[string]*indexFile
+	mutex   *sync.Mutex
+}
+
+func (m *indexFileMap) Get(sha string) (*indexFile, bool) {
+	m.mutex.Lock()
+	index, ok := m.nameMap[sha]
+	m.mutex.Unlock()
+	return index, ok
+}
+
+func (m *indexFileMap) Set(sha string, index *indexFile) {
+	m.mutex.Lock()
+	m.nameMap[sha] = index
+	m.mutex.Unlock()
+}
+
 // ScanIndex returns a slice of WrappedPointer objects for all
 // Git LFS pointers it finds in the index.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func ScanIndex() ([]*WrappedPointer, error) {
-	nameMap := make(map[string]*indexFile, 0)
+	indexMap := &indexFileMap{
+		nameMap: make(map[string]*indexFile, 0),
+		mutex:   &sync.Mutex{},
+	}
 
 	start := time.Now()
 	defer func() {
 		tracerx.PerformanceSince("scan-staging", start)
 	}()
 
-	revs, err := revListIndex(false, nameMap)
+	revs, err := revListIndex(false, indexMap)
 	if err != nil {
 		return nil, err
 	}
 
-	cachedRevs, err := revListIndex(true, nameMap)
+	cachedRevs, err := revListIndex(true, indexMap)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +233,7 @@ func ScanIndex() ([]*WrappedPointer, error) {
 
 	pointers := make([]*WrappedPointer, 0)
 	for p := range pointerc {
-		if e, ok := nameMap[p.Sha1]; ok {
+		if e, ok := indexMap.Get(p.Sha1); ok {
 			p.Name = e.Name
 			p.Status = e.Status
 			p.SrcName = e.SrcName
@@ -206,7 +248,7 @@ func ScanIndex() ([]*WrappedPointer, error) {
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
-func revListShas(refLeft, refRight string, opt ScanRefsOptions) (chan string, error) {
+func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (chan string, error) {
 	refArgs := []string{"rev-list", "--objects"}
 	switch opt.ScanMode {
 	case ScanRefsMode:
@@ -247,7 +289,7 @@ func revListShas(refLeft, refRight string, opt ScanRefsOptions) (chan string, er
 
 			sha1 := line[0:40]
 			if len(line) > 40 {
-				opt.nameMap[sha1] = line[41:len(line)]
+				opt.SetName(sha1, line[41:len(line)])
 			}
 			revs <- sha1
 		}
@@ -260,7 +302,7 @@ func revListShas(refLeft, refRight string, opt ScanRefsOptions) (chan string, er
 // revListIndex uses git diff-index to return the list of object sha1s
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
-func revListIndex(cache bool, nameMap map[string]*indexFile) (chan string, error) {
+func revListIndex(cache bool, indexMap *indexFileMap) (chan string, error) {
 	cmdArgs := []string{"diff-index", "-M"}
 	if cache {
 		cmdArgs = append(cmdArgs, "--cached")
@@ -297,7 +339,7 @@ func revListIndex(cache bool, nameMap map[string]*indexFile) (chan string, error
 				if status == "M" {
 					sha1 = description[2] // This one is modified but not added
 				}
-				nameMap[sha1] = &indexFile{files[len(files)-1], files[0], status}
+				indexMap.Set(sha1, &indexFile{files[len(files)-1], files[0], status})
 				revs <- sha1
 			}
 		}
@@ -568,15 +610,16 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	return blobs, nil
 }
 
-// ScanUnpushed scans history for all LFS pointers which have been added but not pushed to any remote
-func ScanUnpushed() ([]*WrappedPointer, error) {
+// ScanUnpushed scans history for all LFS pointers which have been added but not
+// pushed to the named remote. remoteName can be left blank to mean 'any remote'
+func ScanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 
 	start := time.Now()
 	defer func() {
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := logUnpushedSHAs()
+	pointerchan, err := ScanUnpushedToChan(remoteName)
 	if err != nil {
 		return nil, err
 	}
@@ -596,7 +639,7 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := logPreviousSHAs(ref, since)
+	pointerchan, err := ScanPreviousVersionsToChan(ref, since)
 	if err != nil {
 		return nil, err
 	}
@@ -608,12 +651,25 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 
 }
 
-// logUnpushedSHAs scans history for all LFS pointers which have been added but not pushed to any remote,
+// ScanPreviousVersionsToChan scans changes reachable from ref (commit) back to since.
+// Returns channel of pointers for *previous* versions that overlap that time. Does not
+// include pointers which were still in use at ref (use ScanRefsToChan for that)
+func ScanPreviousVersionsToChan(ref string, since time.Time) (chan *WrappedPointer, error) {
+	return logPreviousSHAs(ref, since)
+}
+
+// ScanUnpushedToChan scans history for all LFS pointers which have been added but
+// not pushed to the named remote. remoteName can be left blank to mean 'any remote'
 // return progressively in a channel
-func logUnpushedSHAs() (chan *WrappedPointer, error) {
+func ScanUnpushedToChan(remoteName string) (chan *WrappedPointer, error) {
 	logArgs := []string{"log",
 		"--branches", "--tags", // include all locally referenced commits
-		"--not", "--remotes", // but exclude everything reachable from any remote
+		"--not"} // but exclude everything that comes after
+
+	if len(remoteName) == 0 {
+		logArgs = append(logArgs, "--remotes")
+	} else {
+		logArgs = append(logArgs, fmt.Sprintf("--remotes=%v", remoteName))
 	}
 	// Add standard search args to find lfs references
 	logArgs = append(logArgs, logLfsSearchArgs...)

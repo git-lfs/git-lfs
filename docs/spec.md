@@ -128,8 +128,10 @@ of rules that Git LFS uses to determine a repository's Git LFS server:
 Git LFS runs two `git config` commands to build up the list of values that it
 uses:
 
-1. `git config -l -f .gitconfig` - This file is checked into the repository and
-can set defaults for every user that clones the repository.
+1. `git config -l -f .lfsconfig` - This file is checked into the repository and
+can set defaults for every user that clones the repository. Note: Git LFS used
+".gitconfig" instead of ".lfsconfig" until Git LFS v1.1. Git LFS will continue
+to read ".gitconfig" if ".lfsconfig" does not exist until Git LFS v2.0.
 2. `git config -l` - A user's local git configuration can override any settings
 from `.gitconfig`.
 
@@ -153,10 +155,10 @@ a credential cache helper to save passwords for future users.
 ## Intercepting Git
 
 Git LFS uses the `clean` and `smudge` filters to decide which files use it.  The
-global filters can be set up with `git lfs init`:
+global filters can be set up with `git lfs install`:
 
 ```
-$ git lfs init
+$ git lfs install
 ```
 
 These filters ensure that large files aren't written into the repository proper,
@@ -201,5 +203,3 @@ $ cat .gitattributes
 ```
 
 Use the `git lfs track` command to view and add to `.gitattributes`.
-
-

@@ -5,10 +5,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -224,6 +226,12 @@ func (c *gitConfig) Find(val string) string {
 }
 
 // Find returns the git config value for the key
+func (c *gitConfig) FindGlobal(val string) string {
+	output, _ := simpleExec("git", "config", "--global", val)
+	return output
+}
+
+// Find returns the git config value for the key
 func (c *gitConfig) FindLocal(val string) string {
 	output, _ := simpleExec("git", "config", "--local", val)
 	return output
@@ -272,15 +280,23 @@ func (c *gitConfig) List() (string, error) {
 
 // ListFromFile lists all of the git config values in the given config file
 func (c *gitConfig) ListFromFile(f string) (string, error) {
-	if _, err := os.Stat(f); os.IsNotExist(err) {
-		return "", nil
-	}
 	return simpleExec("git", "config", "-l", "-f", f)
 }
 
 // Version returns the git version
 func (c *gitConfig) Version() (string, error) {
 	return simpleExec("git", "version")
+}
+
+// IsVersionAtLeast returns whether the git version is the one specified or higher
+// argument is plain version string separated by '.' e.g. "2.3.1" but can omit minor/patch
+func (c *gitConfig) IsGitVersionAtLeast(ver string) bool {
+	gitver, err := c.Version()
+	if err != nil {
+		tracerx.Printf("Error getting git version: %v", err)
+		return false
+	}
+	return IsVersionAtLeast(gitver, ver)
 }
 
 // simpleExec is a small wrapper around os/exec.Command.
@@ -322,7 +338,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 
 	// Output is ordered by latest commit date first, so we can stop at the threshold
 	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`)
-
+	tracerx.Printf("RECENT: Getting refs >= %v", since)
 	var ret []*Ref
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -348,6 +364,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 				// the end
 				break
 			}
+			tracerx.Printf("RECENT: %v (%v)", ref, commitDate)
 			ret = append(ret, &Ref{ref, reftype, sha})
 		}
 	}
@@ -455,6 +472,7 @@ func RootDir() (string, error) {
 	return "", nil
 
 }
+
 func GitDir() (string, error) {
 	cmd := execCommand("git", "rev-parse", "--git-dir")
 	out, err := cmd.Output()
@@ -466,5 +484,109 @@ func GitDir() (string, error) {
 		return filepath.Abs(path)
 	}
 	return "", nil
+}
 
+// GetAllWorkTreeHEADs returns the refs that all worktrees are using as HEADs
+// This returns all worktrees plus the master working copy, and works even if
+// working dir is actually in a worktree right now
+// Pass in the git storage dir (parent of 'objects') to work from
+func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
+	worktreesdir := filepath.Join(storageDir, "worktrees")
+	dirf, err := os.Open(worktreesdir)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	var worktrees []*Ref
+	if err == nil {
+		// There are some worktrees
+		defer dirf.Close()
+		direntries, err := dirf.Readdir(0)
+		if err != nil {
+			return nil, err
+		}
+		for _, dirfi := range direntries {
+			if dirfi.IsDir() {
+				// to avoid having to chdir and run git commands to identify the commit
+				// just read the HEAD file & git rev-parse if necessary
+				// Since the git repo is shared the same rev-parse will work from this location
+				headfile := filepath.Join(worktreesdir, dirfi.Name(), "HEAD")
+				ref, err := parseRefFile(headfile)
+				if err != nil {
+					tracerx.Printf("Error reading %v for worktree, skipping: %v", headfile, err)
+					continue
+				}
+				worktrees = append(worktrees, ref)
+			}
+		}
+	}
+
+	// This has only established the separate worktrees, not the original checkout
+	// If the storageDir contains a HEAD file then there is a main checkout
+	// as well; this mus tbe resolveable whether you're in the main checkout or
+	// a worktree
+	headfile := filepath.Join(storageDir, "HEAD")
+	ref, err := parseRefFile(headfile)
+	if err == nil {
+		worktrees = append(worktrees, ref)
+	} else if !os.IsNotExist(err) { // ok if not exists, probably bare repo
+		tracerx.Printf("Error reading %v for main checkout, skipping: %v", headfile, err)
+	}
+
+	return worktrees, nil
+}
+
+// Manually parse a reference file like HEAD and return the Ref it resolves to
+func parseRefFile(filename string) (*Ref, error) {
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	contents := strings.TrimSpace(string(bytes))
+	if strings.HasPrefix(contents, "ref:") {
+		contents = strings.TrimSpace(contents[4:])
+	}
+	return ResolveRef(contents)
+}
+
+// IsVersionAtLeast compares 2 version strings (ok to be prefixed with 'git version', ignores)
+func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
+	// Capture 1-3 version digits, optionally prefixed with 'git version' and possibly
+	// with suffixes which we'll ignore (e.g. unstable builds, MinGW versions)
+	verregex := regexp.MustCompile(`(?:git version\s+)?(\d+)(?:.(\d+))?(?:.(\d+))?.*`)
+
+	var atleast uint64
+	// Support up to 1000 in major/minor/patch digits
+	const majorscale = 1000 * 1000
+	const minorscale = 1000
+
+	if match := verregex.FindStringSubmatch(desiredVersion); match != nil {
+		// Ignore errors as regex won't match anything other than digits
+		major, _ := strconv.Atoi(match[1])
+		atleast += uint64(major * majorscale)
+		if len(match) > 2 {
+			minor, _ := strconv.Atoi(match[2])
+			atleast += uint64(minor * minorscale)
+		}
+		if len(match) > 3 {
+			patch, _ := strconv.Atoi(match[3])
+			atleast += uint64(patch)
+		}
+	}
+
+	var actual uint64
+	if match := verregex.FindStringSubmatch(actualVersion); match != nil {
+		major, _ := strconv.Atoi(match[1])
+		actual += uint64(major * majorscale)
+		if len(match) > 2 {
+			minor, _ := strconv.Atoi(match[2])
+			actual += uint64(minor * minorscale)
+		}
+		if len(match) > 3 {
+			patch, _ := strconv.Atoi(match[3])
+			actual += uint64(patch)
+		}
+	}
+
+	return actual >= atleast
 }

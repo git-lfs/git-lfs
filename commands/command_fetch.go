@@ -19,6 +19,7 @@ var (
 	fetchExcludeArg string
 	fetchRecentArg  bool
 	fetchAllArg     bool
+	fetchPruneArg   bool
 )
 
 func fetchCommand(cmd *cobra.Command, args []string) {
@@ -86,6 +87,12 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	if fetchPruneArg {
+		verify := lfs.Config.FetchPruneConfig().PruneVerifyRemoteAlways
+		// no dry-run or verbose options in fetch, assume false
+		prune(verify, false, false)
+	}
+
 	if !success {
 		Exit("Warning: errors occurred")
 	}
@@ -96,12 +103,15 @@ func init() {
 	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
 	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 	fetchCmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
+	fetchCmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
 	RootCmd.AddCommand(fetchCmd)
 }
 
 func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
 	// Use SkipDeletedBlobs to avoid fetching ALL previous versions of modified files
-	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanRefsMode, SkipDeletedBlobs: true}
+	opts := lfs.NewScanRefsOptions()
+	opts.ScanMode = lfs.ScanRefsMode
+	opts.SkipDeletedBlobs = true
 	return lfs.ScanRefs(ref, "", opts)
 }
 
@@ -200,7 +210,9 @@ func fetchAll() bool {
 func scanAll() []*lfs.WrappedPointer {
 	// converts to `git rev-list --all`
 	// We only pick up objects in real commits and not the reflog
-	opts := &lfs.ScanRefsOptions{ScanMode: lfs.ScanAllMode, SkipDeletedBlobs: false}
+	opts := lfs.NewScanRefsOptions()
+	opts.ScanMode = lfs.ScanAllMode
+	opts.SkipDeletedBlobs = false
 
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")

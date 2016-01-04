@@ -1,5 +1,43 @@
 # Git LFS Changelog
 
+## 1.1.0 (18 November, 2015)
+
+* NTLM auth support #820 (@WillHipschman, @technoweenie)
+* Add `prune` command #742 (@sinbad)
+* Use .lfsconfig instead of .gitconfig #837 (@technoweenie)
+* Rename "init" command #838 (@technoweenie)
+* Raise error if credentials are needed #842 (@technoweenie)
+* Support git repos in symlinked directories #818 (@sinbad, @difro, @jiangxin)
+* Fix "git lfs env" to show correct SSH remote info #828 (@jiangxin)
+
+## 1.0.2 (28 October, 2015)
+
+* Fix issue with 'git lfs smudge' and the batch API. #795 (@technoweenie)
+* Fix race condition in the git scanning code. #801 (@technoweenie)
+
+## 1.0.1 (23 October, 2015)
+
+* Downcase git config keys (prevents Auth loop) #690 (@WillHipschman)
+* Show more info for unexpected http responses #710 (@rubyist)
+* Use separate stdout/stderr buffers for `git-lfs-authenticate` #718 (@bozaro)
+* Use LoggedError instead of Panic if update-index fails in checkout #735 (@sinbad)
+* `smudge` command exits with non-zero if the download fails #732 (@rubyist)
+* Use `git rev-parse` to find the git working dir #692 (@sinbad)
+* Improved default remote behaviour & validation for fetch/pull #713 (@sinbad)
+* Make fetch return error code when 1+ downloads failed #734 (@sinbad)
+* Improve lfs.InRepo() detection in `init`/`update` #756 (@technoweenie)
+* Teach smudge to use the batch api #711 (@rubyist)
+* Fix not setting global attribute when needed to b/c of local state #765 (@sinbad)
+* Fix clone fail when fetch is excluded globally #770 (@sinbad)
+* Fix for partial downloads problem #763 (@technoweenie)
+* Get integration tests passing on Windows #771 (@sinbad)
+
+### Security
+
+* Whitelist the valid keys read from .gitconfig #760 (@technoweenie)
+
+This prevents unsafe git configuration values from being used by Git LFS.
+
 ## v1.0 (1 October, 2015)
 
 * Manual reference is integrated into the "help" options #665 @sinbad

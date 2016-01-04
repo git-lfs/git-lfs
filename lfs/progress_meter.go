@@ -128,7 +128,7 @@ func (p *ProgressMeter) update() {
 	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
 	// skipped counts only show when > 0
 
-	out := fmt.Sprintf("\r(%d of %d files", p.finishedFiles, p.estimatedFiles)
+	out := fmt.Sprintf("\rGit LFS: (%d of %d files", p.finishedFiles, p.estimatedFiles)
 	if p.skippedFiles > 0 {
 		out += fmt.Sprintf(", %d skipped", p.skippedFiles)
 	}
@@ -137,8 +137,12 @@ func (p *ProgressMeter) update() {
 		out += fmt.Sprintf(", %s skipped", formatBytes(p.skippedBytes))
 	}
 
-	padding := strings.Repeat(" ", width-len(out))
-	fmt.Fprintf(os.Stdout, out+padding)
+	padlen := width - len(out)
+	if 0 < padlen {
+		out += strings.Repeat(" ", padlen)
+	}
+
+	fmt.Fprintf(os.Stdout, out)
 }
 
 // progressLogger provides a wrapper around an os.File that can either

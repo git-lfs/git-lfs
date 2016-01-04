@@ -2,11 +2,14 @@ package lfs
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os/exec"
 	"strings"
+
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // getCreds gets the credentials for the given request's URL, and sets its
@@ -83,11 +86,14 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 			}
 		}
 	}
-
 	return credsUrl, nil
 }
 
 func skipCredsCheck(req *http.Request) bool {
+	if Config.NtlmAccess() {
+		return false
+	}
+
 	if len(req.Header.Get("Authorization")) > 0 {
 		return true
 	}
@@ -104,10 +110,22 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 	}
 
 	creds, err := execCreds(input, "fill")
-
-	if creds != nil && err == nil {
-		setRequestAuth(req, creds["username"], creds["password"])
+	if creds == nil || len(creds) < 1 {
+		errmsg := fmt.Sprintf("Git credentials for %s not found", u)
+		if err != nil {
+			errmsg = errmsg + ":\n" + err.Error()
+		} else {
+			errmsg = errmsg + "."
+		}
+		err = errors.New(errmsg)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	tracerx.Printf("Filled credentials for %s", u)
+	setRequestAuth(req, creds["username"], creds["password"])
 
 	return creds, err
 }
@@ -172,7 +190,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 		// 'git credential' exits with 128 if the helper doesn't fill the username
 		// and password values.
 		if subCommand == "fill" && err.Error() == "exit status 128" {
-			return input, nil
+			return nil, nil
 		}
 	}
 
@@ -183,7 +201,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	creds := make(Creds)
 	for _, line := range strings.Split(output.String(), "\n") {
 		pieces := strings.SplitN(line, "=", 2)
-		if len(pieces) < 2 {
+		if len(pieces) < 2 || len(pieces[1]) < 1 {
 			continue
 		}
 		creds[pieces[0]] = pieces[1]

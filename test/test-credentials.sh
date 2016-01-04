@@ -75,7 +75,7 @@ begin_test "credentials with useHttpPath, with correct password"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
 
-  # creating new branch does not re-sent any objects existing on other
+  # creating new branch does not re-send any objects existing on other
   # remote branches anymore, generate new object, different from prev tests
   contents="b"
   contents_oid=$(calc_oid "$contents")

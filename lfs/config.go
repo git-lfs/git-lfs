@@ -11,12 +11,15 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 var (
-	Config        = NewConfig()
-	defaultRemote = "origin"
+	Config                 = NewConfig()
+	ShowConfigWarnings     = false
+	defaultRemote          = "origin"
+	gitConfigWarningPrefix = "lfs."
 )
 
 // FetchPruneConfig collects together the config options that control fetching and pruning
@@ -34,14 +37,20 @@ type FetchPruneConfig struct {
 	// Number of days added to FetchRecent*; data outside combined window will be
 	// deleted when prune is run. (default 3)
 	PruneOffsetDays int
+	// Always verify with remote before pruning
+	PruneVerifyRemoteAlways bool
+	// Name of remote to check for unpushed and verify checks
+	PruneRemoteName string
 }
 
 type Configuration struct {
 	CurrentRemote         string
 	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
+	ntlmSession           ntlm.ClientSession
 	envVars               map[string]string
 	isTracingHttp         bool
+	isDebuggingHttp       bool
 	isLoggingStats        bool
 
 	loading           sync.Mutex // guards initialization of gitConfig and remotes
@@ -60,6 +69,7 @@ func NewConfig() *Configuration {
 		envVars:       make(map[string]string),
 	}
 	c.isTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
+	c.isDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
 	c.isLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
 	return c
 }
@@ -115,6 +125,10 @@ func (c *Configuration) Endpoint() Endpoint {
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
+	if c.NtlmAccess() {
+		return 1
+	}
+
 	uploads := 3
 
 	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
@@ -139,6 +153,10 @@ func (c *Configuration) BatchTransfer() bool {
 	}
 
 	return useBatch
+}
+
+func (c *Configuration) NtlmAccess() bool {
+	return c.Access() == "ntlm"
 }
 
 // PrivateAccess will retrieve the access value and return true if
@@ -249,6 +267,8 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 			FetchRecentRefsIncludeRemotes: true,
 			FetchRecentCommitsDays:        0,
 			PruneOffsetDays:               3,
+			PruneVerifyRemoteAlways:       false,
+			PruneRemoteName:               "origin",
 		}
 		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {
 			n, err := strconv.Atoi(v)
@@ -278,6 +298,14 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 				c.fetchPruneConfig.PruneOffsetDays = n
 			}
 		}
+		if v, ok := c.GitConfig("lfs.pruneverifyremotealways"); ok {
+			if b, err := parseConfigBool(v); err == nil {
+				c.fetchPruneConfig.PruneVerifyRemoteAlways = b
+			}
+		}
+		if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
+			c.fetchPruneConfig.PruneRemoteName = v
+		}
 
 	}
 	return c.fetchPruneConfig
@@ -301,62 +329,131 @@ func (c *Configuration) loadGitConfig() bool {
 		return false
 	}
 
-	uniqRemotes := make(map[string]bool)
-
 	c.gitConfig = make(map[string]string)
 	c.extensions = make(map[string]Extension)
+	uniqRemotes := make(map[string]bool)
 
-	var output string
+	configFiles := []string{
+		filepath.Join(LocalWorkingDir, ".lfsconfig"),
+
+		// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
+		filepath.Join(LocalWorkingDir, ".gitconfig"),
+	}
+	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
+
 	listOutput, err := git.Config.List()
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
 
-	configFile := filepath.Join(LocalWorkingDir, ".gitconfig")
-	fileOutput, err := git.Config.ListFromFile(configFile)
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config from file: %s", err))
+	c.readGitConfig(listOutput, uniqRemotes, false)
+
+	c.remotes = make([]string, 0, len(uniqRemotes))
+	for remote, isOrigin := range uniqRemotes {
+		if isOrigin {
+			continue
+		}
+		c.remotes = append(c.remotes, remote)
 	}
 
-	localConfig := filepath.Join(LocalGitDir, "config")
-	localOutput, err := git.Config.ListFromFile(localConfig)
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config from file %s", err))
+	return true
+}
+
+func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex int, uniqRemotes map[string]bool) {
+	filename := filenames[filenameIndex]
+	_, err := os.Stat(filename)
+	if err == nil {
+		if filenameIndex > 0 && ShowConfigWarnings {
+			expected := ".lfsconfig"
+			fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
+				filepath.Base(filename), expected, expected)
+		}
+
+		fileOutput, err := git.Config.ListFromFile(filename)
+		if err != nil {
+			panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
+		}
+		c.readGitConfig(fileOutput, uniqRemotes, true)
+		return
 	}
 
-	output = fileOutput + "\n" + listOutput + "\n" + localOutput
+	if os.IsNotExist(err) {
+		newIndex := filenameIndex + 1
+		if len(filenames) > newIndex {
+			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
+		}
+		return
+	}
 
+	panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
+}
+
+func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {
 	lines := strings.Split(output, "\n")
+	uniqKeys := make(map[string]string)
+
 	for _, line := range lines {
 		pieces := strings.SplitN(line, "=", 2)
 		if len(pieces) < 2 {
 			continue
 		}
+
+		allowed := !onlySafe
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
-		c.gitConfig[key] = value
+
+		if origKey, ok := uniqKeys[key]; ok {
+			if ShowConfigWarnings && c.gitConfig[key] != value && strings.HasPrefix(key, gitConfigWarningPrefix) {
+				fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+			}
+		} else {
+			uniqKeys[key] = pieces[0]
+		}
 
 		keyParts := strings.Split(key, ".")
-		if len(keyParts) > 1 && keyParts[0] == "remote" {
-			remote := keyParts[1]
-			uniqRemotes[remote] = remote == "origin"
-		} else if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
+		if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
 			name := keyParts[2]
 			ext := c.extensions[name]
 			switch keyParts[3] {
 			case "clean":
+				if onlySafe {
+					continue
+				}
 				ext.Clean = value
 			case "smudge":
+				if onlySafe {
+					continue
+				}
 				ext.Smudge = value
 			case "priority":
+				allowed = true
 				p, err := strconv.Atoi(value)
 				if err == nil && p >= 0 {
 					ext.Priority = p
 				}
 			}
+
 			ext.Name = name
 			c.extensions[name] = ext
-		} else if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchinclude" {
+		} else if len(keyParts) > 1 && keyParts[0] == "remote" {
+			if onlySafe && (len(keyParts) == 3 && keyParts[2] != "lfsurl") {
+				continue
+			}
+
+			allowed = true
+			remote := keyParts[1]
+			uniqRemotes[remote] = remote == "origin"
+		}
+
+		if !allowed && keyIsUnsafe(key) {
+			continue
+		}
+
+		c.gitConfig[key] = value
+
+		if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchinclude" {
 			for _, inc := range strings.Split(value, ",") {
 				inc = strings.TrimSpace(inc)
 				c.fetchIncludePaths = append(c.fetchIncludePaths, inc)
@@ -368,14 +465,19 @@ func (c *Configuration) loadGitConfig() bool {
 			}
 		}
 	}
+}
 
-	c.remotes = make([]string, 0, len(uniqRemotes))
-	for remote, isOrigin := range uniqRemotes {
-		if isOrigin {
-			continue
+func keyIsUnsafe(key string) bool {
+	for _, safe := range safeKeys {
+		if safe == key {
+			return false
 		}
-		c.remotes = append(c.remotes, remote)
 	}
-
 	return true
+}
+
+var safeKeys = []string{
+	"lfs.url",
+	"lfs.fetchinclude",
+	"lfs.fetchexclude",
 }
