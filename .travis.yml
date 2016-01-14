@@ -1,5 +1,8 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
+os:
+  - linux
+  - osx
 go:
   - 1.5
 install: true
