@@ -86,14 +86,11 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 			}
 		}
 	}
+
 	return credsUrl, nil
 }
 
 func skipCredsCheck(req *http.Request) bool {
-	if Config.NtlmAccess() {
-		return false
-	}
-
 	if len(req.Header.Get("Authorization")) > 0 {
 		return true
 	}
