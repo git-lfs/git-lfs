@@ -27,7 +27,6 @@ type TransferQueue struct {
 	retrying      uint32
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
-	transferKind  string
 	errors        []error
 	transferables map[string]Transferable
 	retries       []Transferable
@@ -40,10 +39,17 @@ type TransferQueue struct {
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
+	metadata      TransferMetadata
+}
+
+type TransferMetadata struct {
+	operation string
+	ref       string
+	commitOid string
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
+func newTransferQueue(files int, size int64, dryRun bool, metadata TransferMetadata) *TransferQueue {
 	q := &TransferQueue{
 		meter:         NewProgressMeter(files, size, dryRun),
 		apic:          make(chan Transferable, batchSize),
@@ -52,6 +58,7 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		errorc:        make(chan error),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
+		metadata:      metadata,
 	}
 
 	q.errorwait.Add(1)
@@ -60,6 +67,15 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 	q.run()
 
 	return q
+}
+
+func newTransferMetadata(operation, ref, commitOid string) TransferMetadata {
+	metadata := TransferMetadata{
+		operation: operation,
+		ref:       ref,
+		commitOid: commitOid,
+	}
+	return metadata
 }
 
 // Add adds a Transferable to the transfer queue.
@@ -199,10 +215,12 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		transfers := make([]*ObjectResource, 0, len(batch))
 		for _, t := range batch {
-			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
+			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size(), Name: t.Name()})
 		}
 
-		objects, err := Batch(transfers, q.transferKind)
+		transferMetadata := q.metadata
+
+		objects, err := Batch(transfers, transferMetadata)
 		if err != nil {
 			if IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
@@ -233,7 +251,7 @@ func (q *TransferQueue) batchApiRoutine() {
 				continue
 			}
 
-			if _, ok := o.Rel(q.transferKind); ok {
+			if _, ok := o.Rel(transferMetadata.operation); ok {
 				// This object needs to be transferred
 				if transfer, ok := q.transferables[o.Oid]; ok {
 					transfer.SetObject(o)
@@ -267,9 +285,10 @@ func (q *TransferQueue) retryCollector() {
 }
 
 func (q *TransferQueue) transferWorker() {
+	transferMetadata := q.metadata
 	for transfer := range q.transferc {
 		cb := func(total, read int64, current int) error {
-			q.meter.TransferBytes(q.transferKind, transfer.Name(), read, total, current)
+			q.meter.TransferBytes(transferMetadata.operation, transfer.Name(), read, total, current)
 			return nil
 		}
 

@@ -93,7 +93,8 @@ func prePushRef(left, right string) {
 		skipObjects = prePushCheckForMissingObjects(pointers)
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
+	metadata := buildTransferMetadata("upload")
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun, metadata)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
@@ -153,7 +154,8 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 		return nil
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
+	metadata := buildTransferMetadata("download")
+	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true, metadata)
 	for _, p := range missingLocalObjects {
 		checkQueue.Add(lfs.NewDownloadCheckable(p))
 	}

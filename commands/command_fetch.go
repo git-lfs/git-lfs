@@ -247,7 +247,9 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
-	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+
+	metadata := buildTransferMetadata("download")
+	q := lfs.NewDownloadQueue(len(pointers), totalSize, false, metadata)
 
 	for _, p := range pointers {
 		// Only add to download queue if local file is not the right size already

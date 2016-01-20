@@ -25,6 +25,8 @@ const (
 )
 
 var (
+	ErrorBuffer     = &bytes.Buffer{}
+	ErrorWriter     = io.MultiWriter(os.Stderr, ErrorBuffer)
 	lfsMediaTypeRE  = regexp.MustCompile(`\Aapplication/vnd\.git\-lfs\+json(;|\z)`)
 	jsonMediaTypeRE = regexp.MustCompile(`\Aapplication/json(;|\z)`)
 	hiddenHeaders   = map[string]bool{
@@ -52,6 +54,7 @@ func (e *objectError) Error() string {
 type ObjectResource struct {
 	Oid     string                   `json:"oid,omitempty"`
 	Size    int64                    `json:"size"`
+	Name    string                   `json:"name,omitempty"`
 	Actions map[string]*linkRelation `json:"actions,omitempty"`
 	Links   map[string]*linkRelation `json:"_links,omitempty"`
 	Error   *objectError             `json:"error,omitempty"`
@@ -118,7 +121,8 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 		&ObjectResource{Oid: oid, Size: size},
 	}
 
-	objs, err := Batch(objects, "download")
+	metadata := newTransferMetadata("download", "", "")
+	objs, err := Batch(objects, metadata)
 	if err != nil {
 		if IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
@@ -204,19 +208,21 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+func Batch(objects []*ObjectResource, metadata TransferMetadata) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
-	o := map[string]interface{}{"objects": objects, "operation": operation}
+	o := map[string]interface{}{
+		"objects": objects, "operation": metadata.operation, "ref": metadata.ref, "commitOid": metadata.commitOid,
+	}
 
 	by, err := json.Marshal(o)
 	if err != nil {
 		return nil, Error(err)
 	}
 
-	req, err := newBatchApiRequest(operation)
+	req, err := newBatchApiRequest(metadata.operation)
 	if err != nil {
 		return nil, Error(err)
 	}
@@ -242,7 +248,7 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 
 		if IsAuthError(err) {
 			setAuthType(res)
-			return Batch(objects, operation)
+			return Batch(objects, metadata)
 		}
 
 		switch res.StatusCode {
@@ -796,4 +802,13 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
+}
+
+func PrintError(err error, format string, args ...interface{}) {
+	line := format
+	if len(args) > 0 {
+		line = fmt.Sprintf(format, args...)
+	}
+	fmt.Fprintln(ErrorWriter, line)
+	fmt.Fprintln(ErrorWriter, err.Error())
 }

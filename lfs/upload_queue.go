@@ -71,10 +71,14 @@ func (u *Uploadable) SetObject(o *ObjectResource) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	q := newTransferQueue(files, size, dryRun)
-	q.transferKind = "upload"
+func NewUploadQueue(files int, size int64, dryRun bool, metadata TransferMetadata) *TransferQueue {
+	q := newTransferQueue(files, size, dryRun, metadata)
 	return q
+}
+
+func NewTransferMetadata(operation, ref, commitOid string) TransferMetadata {
+	metadata := newTransferMetadata(operation, ref, commitOid)
+	return metadata
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it

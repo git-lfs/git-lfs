@@ -252,3 +252,25 @@ func init() {
 	RootCmd.SetHelpTemplate("{{.UsageString}}")
 	RootCmd.SetUsageFunc(usage)
 }
+
+func buildTransferMetadata(operation string) lfs.TransferMetadata {
+	ref := gitRef()
+	metadata := lfs.NewTransferMetadata(operation, ref.Name, ref.Sha)
+	return metadata
+}
+
+func gitRef() *git.Ref {
+	remoteRef, remoteErr := git.CurrentRemoteRef()
+
+	if remoteErr == nil {
+		return remoteRef
+	}
+
+	Debug("Failed to resolve current remote git ref. Falling back to local git ref: %s", remoteErr.Error())
+
+	localRef, localErr := git.CurrentRef()
+	if localErr != nil {
+		Panic(localErr, "Failed to resolve current local git ref")
+	}
+	return localRef
+}
