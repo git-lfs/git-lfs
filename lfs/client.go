@@ -422,7 +422,7 @@ func doLegacyApiRequest(req *http.Request) (*http.Response, *ObjectResource, err
 	return res, obj, nil
 }
 
-// HttpRequestToOperation determines the operation type for a http.Request
+// getOperationForHttpRequest determines the operation type for a http.Request
 func getOperationForHttpRequest(req *http.Request) string {
 	operation := "download"
 	if req.Method == "POST" || req.Method == "PUT" {
