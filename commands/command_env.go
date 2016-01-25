@@ -16,7 +16,7 @@ var (
 func envCommand(cmd *cobra.Command, args []string) {
 	lfs.ShowConfigWarnings = true
 	config := lfs.Config
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 
 	gitV, err := git.Config.Version()
 	if err != nil {
@@ -28,14 +28,14 @@ func envCommand(cmd *cobra.Command, args []string) {
 	Print("")
 
 	if len(endpoint.Url) > 0 {
-		Print("Endpoint=%s (auth=%s)", endpoint.Url, config.Access())
+		Print("Endpoint=%s (auth=%s)", endpoint.Url, config.EndpointAccess(endpoint))
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
 	}
 
 	for _, remote := range config.Remotes() {
-		remoteEndpoint := config.RemoteEndpoint(remote)
+		remoteEndpoint := config.RemoteEndpoint(remote, "download")
 		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, config.EndpointAccess(remoteEndpoint))
 		if len(remoteEndpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)

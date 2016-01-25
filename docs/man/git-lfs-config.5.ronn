@@ -17,6 +17,11 @@ lfs option can be scoped inside the configuration for a remote.
   The url used to call the Git LFS remote API. Default blank (derive from clone
   URL).
 
+* `lfs.pushurl` / `<remote>.lfspushurl`
+
+  The url used to call the Git LFS remote API when pushing. Default blank (derive
+  from either LFS non-push urls or clone url).
+
 * `lfs.concurrenttransfers`
 
   The number of concurrent uploads/downloads. Default 3.

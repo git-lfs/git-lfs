@@ -241,7 +241,7 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 		}
 
 		if IsAuthError(err) {
-			setAuthType(res)
+			setAuthType(req, res)
 			return Batch(objects, operation)
 		}
 
@@ -296,7 +296,7 @@ func UploadCheck(oidPath string) (*ObjectResource, error) {
 
 	if err != nil {
 		if IsAuthError(err) {
-			setAuthType(res)
+			setAuthType(req, res)
 			return UploadCheck(oidPath)
 		}
 
@@ -422,12 +422,21 @@ func doLegacyApiRequest(req *http.Request) (*http.Response, *ObjectResource, err
 	return res, obj, nil
 }
 
+// HttpRequestToOperation determines the operation type for a http.Request
+func getOperationForHttpRequest(req *http.Request) string {
+	operation := "download"
+	if req.Method == "POST" || req.Method == "PUT" {
+		operation = "upload"
+	}
+	return operation
+}
+
 // doApiBatchRequest runs the request to the LFS batch API. If the API returns a
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
 func doApiBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error) {
-	res, err := doAPIRequest(req, Config.PrivateAccess())
+	res, err := doAPIRequest(req, Config.PrivateAccess(getOperationForHttpRequest(req)))
 
 	if err != nil {
 		if res != nil && res.StatusCode == 401 {
@@ -474,7 +483,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 		err error
 	)
 
-	if Config.NtlmAccess() {
+	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		res, err = DoNTLMRequest(req, true)
 	} else {
 		res, err = Config.HttpClient().Do(req)
@@ -491,7 +500,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 
 	if err != nil {
 		if IsAuthError(err) {
-			setAuthType(res)
+			setAuthType(req, res)
 			doHttpRequest(req, creds)
 		} else {
 			err = Error(err)
@@ -633,7 +642,6 @@ func defaultError(res *http.Response) error {
 }
 
 func newApiRequest(method, oid string) (*http.Request, error) {
-	endpoint := Config.Endpoint()
 	objectOid := oid
 	operation := "download"
 	if method == "POST" {
@@ -642,6 +650,7 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 			operation = "upload"
 		}
 	}
+	endpoint := Config.Endpoint(operation)
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
@@ -685,7 +694,7 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 }
 
 func newBatchApiRequest(operation string) (*http.Request, error) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint(operation)
 
 	res, err := sshAuthenticate(endpoint, operation, "")
 	if err != nil {
@@ -731,7 +740,7 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 }
 
 func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
-	if !Config.NtlmAccess() && u.User != nil {
+	if !Config.NtlmAccess(getOperationForHttpRequest(req)) && u.User != nil {
 		if pass, ok := u.User.Password(); ok {
 			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
 			setRequestAuth(req, u.User.Username(), pass)
@@ -742,9 +751,10 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
-func setAuthType(res *http.Response) {
+func setAuthType(req *http.Request, res *http.Response) {
 	authType := getAuthType(res)
-	Config.SetAccess(authType)
+	operation := getOperationForHttpRequest(req)
+	Config.SetAccess(operation, authType)
 	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
 }
 
@@ -762,7 +772,7 @@ func getAuthType(res *http.Response) string {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	if Config.NtlmAccess() {
+	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		return
 	}
 
@@ -782,7 +792,7 @@ func setErrorResponseContext(err error, res *http.Response) {
 }
 
 func setErrorRequestContext(err error, req *http.Request) {
-	ErrorSetContext(err, "Endpoint", Config.Endpoint().Url)
+	ErrorSetContext(err, "Endpoint", Config.Endpoint(getOperationForHttpRequest(req)).Url)
 	ErrorSetContext(err, "URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
