@@ -45,6 +45,12 @@ func (w *CallbackReader) Read(p []byte) (int, error) {
 }
 
 func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb CopyCallback) (int64, error) {
+	if success, _ := CloneFile(writer, reader); success {
+		if cb != nil {
+			cb(totalSize, totalSize, 0)
+		}
+		return totalSize, nil
+	}
 	if cb == nil {
 		return io.Copy(writer, reader)
 	}
