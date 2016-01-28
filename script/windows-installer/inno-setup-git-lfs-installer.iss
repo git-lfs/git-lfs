@@ -5,7 +5,7 @@
 #define MyAppVersion "1.1.0"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
-#define MyAppFilePrefix "git-lfs-windows-amd64"
+#define MyAppFilePrefix "git-lfs-windows"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -24,19 +24,31 @@ OutputBaseFilename={#MyAppFilePrefix}-{#MyAppVersion}
 OutputDir=..\..\
 Compression=lzma
 SolidCompression=yes
-DefaultDirName={code:GetExistingGitInstallation}
+DefaultDirName={pf}\{#MyAppName}
 UsePreviousAppDir=no
 DirExistsWarning=no
 DisableReadyPage=True 
+ArchitecturesInstallIn64BitMode=x64
+ChangesEnvironment=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[Run]
+; Uninstalls the old Git LFS version that used a different installer in a different location:
+;  If we don't do this, Git will prefer the old version as it is in the same directory as it.
+Filename: "{code:GetExistingGitInstallation}\git-lfs-uninstaller.exe"; Parameters: "/S"; Flags: skipifdoesntexist
+
 [Files]
-Source: ..\..\git-lfs.exe; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InstallGitLFS;
+Source: ..\..\git-lfs-x64.exe; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: Is64BitInstallMode
+Source: ..\..\git-lfs-x86.exe; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: not Is64BitInstallMode
+
+[Registry]
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: NeedsAddPath('{app}')
 
 [Code]
-// Uses cmd to parse and find the location of Git through the env vars
+// Uses cmd to parse and find the location of Git through the env vars.
+// Currently only used to support running the uninstaller for the old Git LFS version.
 function GetExistingGitInstallation(Value: string): string;
 var
   TmpFileName: String;
@@ -64,6 +76,29 @@ begin
   end;
 end;
 
+// Checks to see if we need to add the dir to the env PATH variable.
+function NeedsAddPath(Param: string): boolean;
+var
+  OrigPath: string;
+  ParamExpanded: string;
+begin
+  //expand the setup constants like {app} from Param
+  ParamExpanded := ExpandConstant(Param);
+  if not RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+    'Path', OrigPath)
+  then begin
+    Result := True;
+    exit;
+  end;
+  // look for the path with leading and trailing semicolon and with or without \ ending
+  // Pos() returns 0 if not found
+  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;  
+  if Result = True then
+     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0; 
+end;
+
+// Runs the lfs initialization.
 procedure InstallGitLFS();
 var
   ResultCode: integer;
