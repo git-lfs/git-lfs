@@ -79,10 +79,6 @@ func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
-func CurrentBranch() (string, error) {
-	return simpleExec("git", "rev-parse", "--abbrev-ref", "HEAD")
-}
-
 func CurrentRemoteRef() (*Ref, error) {
 	remoteref, err := RemoteRefNameForCurrentBranch()
 	if err != nil {
@@ -94,34 +90,34 @@ func CurrentRemoteRef() (*Ref, error) {
 
 // RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
 func RemoteForCurrentBranch() (string, error) {
-	branch, err := CurrentBranch()
+	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
 	}
-	remote := RemoteForBranch(branch)
+	remote := RemoteForBranch(ref.Name)
 	if remote == "" {
-		return "", errors.New("remote not found")
+		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 	return remote, nil
 }
 
 // RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
 func RemoteRefNameForCurrentBranch() (string, error) {
-	branch, err := CurrentBranch()
+	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
 	}
 
-	if branch == "HEAD" {
+	if ref.Type == RefTypeHEAD || ref.Type == RefTypeOther {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := RemoteForBranch(branch)
+	remote := RemoteForBranch(ref.Name)
 	if remote == "" {
-		return "", errors.New("remote not found")
+		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 
-	remotebranch := RemoteBranchForLocalBranch(branch)
+	remotebranch := RemoteBranchForLocalBranch(ref.Name)
 
 	return remote + "/" + remotebranch, nil
 }
