@@ -30,7 +30,7 @@ var (
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored
-	LocalStorage       *localstorage.LocalStorage
+	Objects            *localstorage.LocalStorage
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -52,11 +52,11 @@ func ResetTempDir() error {
 }
 
 func LocalMediaPath(oid string) (string, error) {
-	return LocalStorage.BuildObjectPath(oid)
+	return Objects.BuildObjectPath(oid)
 }
 
 func ObjectExistsOfSize(oid string, size int64) bool {
-	path := LocalStorage.ObjectPath(oid)
+	path := Objects.ObjectPath(oid)
 	return FileExistsOfSize(path, size)
 }
 
@@ -94,7 +94,7 @@ func ResolveDirs() {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 
-		ls, err := localstorage.New(
+		objs, err := localstorage.New(
 			filepath.Join(LocalGitStorageDir, "lfs", "objects"),
 			filepath.Join(TempDir, "objects"),
 		)
@@ -103,10 +103,10 @@ func ResolveDirs() {
 			panic(fmt.Sprintf("Error trying to init LocalStorage: %s", err))
 		}
 
-		LocalStorage = ls
-		LocalMediaDir = ls.RootDir
-		LocalObjectTempDir = ls.TempDir
-		LocalLogDir = filepath.Join(ls.RootDir, "logs")
+		Objects = objs
+		LocalMediaDir = objs.RootDir
+		LocalObjectTempDir = objs.TempDir
+		LocalLogDir = filepath.Join(objs.RootDir, "logs")
 		if err := os.MkdirAll(LocalLogDir, localLogDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
