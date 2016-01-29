@@ -149,7 +149,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
 func traceHttpRequest(req *http.Request) {
-	tracerx.Printf("HTTP: %", traceHttpReq(req))
+	tracerx.Printf("HTTP: %s", traceHttpReq(req))
 
 	if Config.isTracingHttp == false {
 		return
