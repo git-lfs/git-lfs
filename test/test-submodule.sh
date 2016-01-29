@@ -26,6 +26,7 @@ begin_test "submodule local git dir"
   git push origin master
 
   grep "sub module" sub/dir/README || {
+    echo "submodule not setup correctly?"
     cat sub/dir/README
     exit 1
   }
