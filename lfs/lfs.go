@@ -3,6 +3,7 @@ package lfs
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -325,5 +326,8 @@ func scanStorageDir(dir string, c chan *Pointer) {
 			}
 		}
 	}
+}
 
+func traceHttpReq(req *http.Request) string {
+	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
 }
