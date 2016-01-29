@@ -47,6 +47,8 @@ func NewEndpoint(rawurl string) Endpoint {
 		return endpointFromSshUrl(u)
 	case "http", "https":
 		return endpointFromHttpUrl(u)
+	case "git":
+		return endpointFromGitUrl(u)
 	case "":
 		return endpointFromBareSshUrl(u)
 	default:
@@ -123,6 +125,11 @@ func endpointFromSshUrl(u *url.URL) Endpoint {
 // Construct a new endpoint from a HTTP URL
 func endpointFromHttpUrl(u *url.URL) Endpoint {
 	// just pass this straight through
+	return Endpoint{Url: u.String()}
+}
+
+func endpointFromGitUrl(u *url.URL) Endpoint {
+	u.Scheme = "https"
 	return Endpoint{Url: u.String()}
 }
 

@@ -243,6 +243,32 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", endpoint.SshPort)
 }
 
+func TestGitEndpointAddsLfsSuffix(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{"remote.origin.url": "git://example.com/foo/bar"},
+		remotes:   []string{},
+	}
+
+	endpoint := config.Endpoint("download")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
+}
+
+func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{"remote.origin.url": "git://example.com/foo/bar.git"},
+		remotes:   []string{},
+	}
+
+	endpoint := config.Endpoint("download")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
+}
+
 func TestConcurrentTransfersSetValue(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{
