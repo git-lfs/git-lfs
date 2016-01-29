@@ -8,7 +8,7 @@ import (
 )
 
 func TestSSHGetExeAndArgsSsh(t *testing.T) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint("download")
 	endpoint.SshUserAndHost = "user@foo.com"
 	oldGITSSH := Config.Getenv("GIT_SSH")
 	Config.Setenv("GIT_SSH", "")
@@ -20,7 +20,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint("download")
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 	oldGITSSH := Config.Getenv("GIT_SSH")
@@ -33,7 +33,7 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsPlink(t *testing.T) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint("download")
 	endpoint.SshUserAndHost = "user@foo.com"
 	oldGITSSH := Config.Getenv("GIT_SSH")
 	// this will run on non-Windows platforms too but no biggie
@@ -47,7 +47,7 @@ func TestSSHGetExeAndArgsPlink(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint("download")
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 	oldGITSSH := Config.Getenv("GIT_SSH")
@@ -62,7 +62,7 @@ func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint("download")
 	endpoint.SshUserAndHost = "user@foo.com"
 	oldGITSSH := Config.Getenv("GIT_SSH")
 	// this will run on non-Windows platforms too but no biggie
@@ -76,7 +76,7 @@ func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
-	endpoint := Config.Endpoint()
+	endpoint := Config.Endpoint("download")
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 	oldGITSSH := Config.Getenv("GIT_SSH")

@@ -51,7 +51,8 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 }
 
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
-	apiUrl, err := Config.ObjectUrl("")
+	operation := getOperationForHttpRequest(req)
+	apiUrl, err := url.Parse(Config.Endpoint(operation).Url)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 
 	credsUrl := apiUrl
 	if len(Config.CurrentRemote) > 0 {
-		if u, ok := Config.GitConfig("remote." + Config.CurrentRemote + ".url"); ok {
+		if u := Config.GitRemoteUrl(Config.CurrentRemote, operation == "upload"); u != "" {
 			gitRemoteUrl, err := url.Parse(u)
 			if err != nil {
 				return nil, err
@@ -90,7 +91,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 }
 
 func skipCredsCheck(req *http.Request) bool {
-	if Config.NtlmAccess() {
+	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		return false
 	}
 

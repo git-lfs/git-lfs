@@ -12,7 +12,7 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "abc", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -27,7 +27,7 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 		remotes: []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "abc", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -42,7 +42,7 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 		remotes: []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "abc", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -59,7 +59,7 @@ func TestEndpointUseAlternateRemote(t *testing.T) {
 
 	config.CurrentRemote = "other"
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "def", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -71,7 +71,7 @@ func TestEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -83,8 +83,68 @@ func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+}
+
+func TestEndpointSeparateClonePushUrl(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"remote.origin.url":     "https://example.com/foo/bar.git",
+			"remote.origin.pushurl": "https://readwrite.com/foo/bar.git"},
+		remotes: []string{},
+	}
+
+	endpoint := config.Endpoint("download")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+
+	endpoint = config.Endpoint("upload")
+	assert.Equal(t, "https://readwrite.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+}
+
+func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"remote.origin.url":        "https://example.com/foo/bar.git",
+			"remote.origin.pushurl":    "https://readwrite.com/foo/bar.git",
+			"remote.origin.lfsurl":     "https://examplelfs.com/foo/bar",
+			"remote.origin.lfspushurl": "https://readwritelfs.com/foo/bar"},
+		remotes: []string{},
+	}
+
+	endpoint := config.Endpoint("download")
+	assert.Equal(t, "https://examplelfs.com/foo/bar", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+
+	endpoint = config.Endpoint("upload")
+	assert.Equal(t, "https://readwritelfs.com/foo/bar", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+}
+
+func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.url":     "https://readonly.com/foo/bar",
+			"lfs.pushurl": "https://write.com/foo/bar",
+		},
+		remotes: []string{},
+	}
+
+	endpoint := config.Endpoint("download")
+	assert.Equal(t, "https://readonly.com/foo/bar", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+
+	endpoint = config.Endpoint("upload")
+	assert.Equal(t, "https://write.com/foo/bar", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
 }
@@ -98,7 +158,7 @@ func TestSSHEndpointOverridden(t *testing.T) {
 		remotes: []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -111,7 +171,7 @@ func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
 	assert.Equal(t, "foo/bar", endpoint.SshPath)
@@ -124,7 +184,7 @@ func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
 	assert.Equal(t, "foo/bar", endpoint.SshPath)
@@ -137,7 +197,7 @@ func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
 	assert.Equal(t, "foo/bar.git", endpoint.SshPath)
@@ -150,7 +210,7 @@ func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "https://example.com/foo/bar.git", endpoint.Url)
 	assert.Equal(t, "git@example.com", endpoint.SshUserAndHost)
 	assert.Equal(t, "foo/bar.git", endpoint.SshPath)
@@ -163,7 +223,7 @@ func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
@@ -176,56 +236,11 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 		remotes:   []string{},
 	}
 
-	endpoint := config.Endpoint()
+	endpoint := config.Endpoint("download")
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
 	assert.Equal(t, "", endpoint.SshUserAndHost)
 	assert.Equal(t, "", endpoint.SshPath)
 	assert.Equal(t, "", endpoint.SshPort)
-}
-
-func TestObjectUrl(t *testing.T) {
-	defer Config.ResetConfig()
-	tests := map[string]string{
-		"http://example.com":      "http://example.com/objects/oid",
-		"http://example.com/":     "http://example.com/objects/oid",
-		"http://example.com/foo":  "http://example.com/foo/objects/oid",
-		"http://example.com/foo/": "http://example.com/foo/objects/oid",
-	}
-
-	for endpoint, expected := range tests {
-		Config.SetConfig("lfs.url", endpoint)
-		u, err := Config.ObjectUrl("oid")
-		if err != nil {
-			t.Errorf("Error building URL for %s: %s", endpoint, err)
-		} else {
-			if actual := u.String(); expected != actual {
-				t.Errorf("Expected %s, got %s", expected, u.String())
-			}
-		}
-	}
-}
-
-func TestObjectsUrl(t *testing.T) {
-	defer Config.ResetConfig()
-
-	tests := map[string]string{
-		"http://example.com":      "http://example.com/objects",
-		"http://example.com/":     "http://example.com/objects",
-		"http://example.com/foo":  "http://example.com/foo/objects",
-		"http://example.com/foo/": "http://example.com/foo/objects",
-	}
-
-	for endpoint, expected := range tests {
-		Config.SetConfig("lfs.url", endpoint)
-		u, err := Config.ObjectUrl("")
-		if err != nil {
-			t.Errorf("Error building URL for %s: %s", endpoint, err)
-		} else {
-			if actual := u.String(); expected != actual {
-				t.Errorf("Expected %s, got %s", expected, u.String())
-			}
-		}
-	}
 }
 
 func TestConcurrentTransfersSetValue(t *testing.T) {
@@ -333,20 +348,56 @@ func TestAccessConfig(t *testing.T) {
 			},
 		}
 
-		if access := config.Access(); access != expected.Access {
+		if access := config.Access("download"); access != expected.Access {
+			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		}
+		if access := config.Access("upload"); access != expected.Access {
 			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
 		}
 
-		if priv := config.PrivateAccess(); priv != expected.PrivateAccess {
+		if priv := config.PrivateAccess("download"); priv != expected.PrivateAccess {
+			t.Errorf("Expected PrivateAccess() with value %q to be %v, got %v", value, expected.PrivateAccess, priv)
+		}
+		if priv := config.PrivateAccess("upload"); priv != expected.PrivateAccess {
 			t.Errorf("Expected PrivateAccess() with value %q to be %v, got %v", value, expected.PrivateAccess, priv)
 		}
 	}
+
+	// Test again but with separate push url
+	for value, expected := range tests {
+		config := &Configuration{
+			gitConfig: map[string]string{
+				"lfs.url":                           "http://example.com",
+				"lfs.pushurl":                       "http://examplepush.com",
+				"lfs.http://example.com.access":     value,
+				"lfs.http://examplepush.com.access": value,
+				"lfs.https://example.com.access":    "bad",
+			},
+		}
+
+		if access := config.Access("download"); access != expected.Access {
+			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		}
+		if access := config.Access("upload"); access != expected.Access {
+			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		}
+
+		if priv := config.PrivateAccess("download"); priv != expected.PrivateAccess {
+			t.Errorf("Expected PrivateAccess() with value %q to be %v, got %v", value, expected.PrivateAccess, priv)
+		}
+		if priv := config.PrivateAccess("upload"); priv != expected.PrivateAccess {
+			t.Errorf("Expected PrivateAccess() with value %q to be %v, got %v", value, expected.PrivateAccess, priv)
+		}
+	}
+
 }
 
 func TestAccessAbsentConfig(t *testing.T) {
 	config := &Configuration{}
-	assert.Equal(t, "none", config.Access())
-	assert.Equal(t, false, config.PrivateAccess())
+	assert.Equal(t, "none", config.Access("download"))
+	assert.Equal(t, "none", config.Access("upload"))
+	assert.Equal(t, false, config.PrivateAccess("download"))
+	assert.Equal(t, false, config.PrivateAccess("upload"))
 }
 
 func TestLoadValidExtension(t *testing.T) {
