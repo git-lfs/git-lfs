@@ -60,7 +60,11 @@ type ObjectResource struct {
 func (o *ObjectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, errors.New("relation does not exist")
+		if relation == "download" {
+			return nil, errors.New("Object not found on the server.")
+		}
+		return nil, fmt.Errorf("No %q action for this object.", relation)
+
 	}
 
 	req, err := newClientRequest(method, rel.Href, rel.Header)
