@@ -291,7 +291,7 @@ func pruneDeleteFiles(prunableObjects []string) {
 func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	localObjectsChan := lfs.LocalStorage.ScanObjectsChan()
+	localObjectsChan := lfs.Objects.ScanObjectsChan()
 	for f := range localObjectsChan {
 		*outLocalObjects = append(*outLocalObjects, f)
 		progChan <- PruneProgress{PruneProgressTypeLocal, 1}

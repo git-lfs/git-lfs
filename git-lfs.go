@@ -37,12 +37,12 @@ func main() {
 }
 
 func clearTempObjects() {
-	s := lfs.LocalStorage
-	if s == nil {
+	objs := lfs.Objects
+	if objs == nil {
 		return
 	}
 
-	if err := s.ClearTempObjects(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", s.TempDir, err)
+	if err := objs.ClearTempObjects(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", objs.TempDir, err)
 	}
 }
