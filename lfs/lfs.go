@@ -179,22 +179,15 @@ func processGitDirVar(gitDir, workTree string) (string, string, error) {
 }
 
 func processWorkTreeVar(gitDir, workTree string) (string, string, error) {
-	// See `core.worktree` in `man git-config`:
-	// “The value [of core.worktree, GIT_WORK_TREE, or --work-tree] can be an absolute path
-	// or relative to the path to the .git directory, which is either specified
-	// by --git-dir or GIT_DIR, or automatically discovered.”
-
-	if filepath.IsAbs(workTree) {
-		return workTree, gitDir, nil
+	absWorkTree, err := filepath.Abs(workTree)
+	if err != nil {
+		return workTree, gitDir, err
 	}
 
-	base := filepath.Dir(filepath.Clean(gitDir))
-	absWorkTree := filepath.Join(base, workTree)
 	return absWorkTree, gitDir, nil
 }
 
 func resolveGitDirFromCurrentDir() (string, string, error) {
-
 	// Get root of the git working dir
 	gitDir, err := git.GitDir()
 	if err != nil {
