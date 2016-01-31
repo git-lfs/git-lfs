@@ -41,6 +41,17 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	}
 
 	stat, statErr := os.Stat(mediafile)
+
+	if statErr != nil || stat == nil {
+		altMediafile := LocalReferencePath(ptr.Oid)
+		if altMediafile != "" && FileExistsOfSize(altMediafile, ptr.Size) {
+			copyErr := LinkOrCopy(altMediafile, mediafile)
+			if copyErr == nil {
+				stat, statErr = os.Stat(mediafile)
+			}
+		}
+	}
+
 	if statErr == nil && stat != nil {
 		fileSize := stat.Size()
 		if fileSize == 0 || fileSize != ptr.Size {

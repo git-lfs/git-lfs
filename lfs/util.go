@@ -326,3 +326,35 @@ func FileExistsOfSize(path string, sz int64) bool {
 
 	return !fi.IsDir() && fi.Size() == sz
 }
+
+func CopyFileContents(src string, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	err = out.Sync()
+	return err
+}
+
+func LinkOrCopy(src string, dst string) error {
+	err := os.Link(src, dst)
+	if err == nil {
+		return err
+	}
+	return CopyFileContents(src, dst)
+}

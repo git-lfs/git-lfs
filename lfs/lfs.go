@@ -31,6 +31,7 @@ var (
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored
+	LocalReferenceDir  string // alternative local media dir (relative to clone reference repo)
 	objects            *localstorage.LocalStorage
 	LocalLogDir        string
 	checkedTempDir     string
@@ -56,6 +57,13 @@ func LocalMediaPath(oid string) (string, error) {
 	return objects.BuildObjectPath(oid)
 }
 
+func LocalReferencePath(sha string) string {
+	if LocalReferenceDir == "" {
+		return ""
+	}
+	return filepath.Join(LocalReferenceDir, sha[0:2], sha[2:4], sha)
+}
+
 func ObjectExistsOfSize(oid string, size int64) bool {
 	path := objects.ObjectPath(oid)
 	return FileExistsOfSize(path, size)
@@ -69,6 +77,7 @@ func Environ() []string {
 		fmt.Sprintf("LocalGitDir=%s", LocalGitDir),
 		fmt.Sprintf("LocalGitStorageDir=%s", LocalGitStorageDir),
 		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir),
+		fmt.Sprintf("LocalReferenceDir=%s", LocalReferenceDir),
 		fmt.Sprintf("TempDir=%s", TempDir),
 		fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers()),
 		fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer()),
@@ -98,6 +107,7 @@ func ResolveDirs() {
 		LocalWorkingDir = ResolveSymlinks(LocalWorkingDir)
 
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
+		LocalReferenceDir = resolveReferenceDir(LocalGitStorageDir)
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 
 		objs, err := localstorage.New(
@@ -180,6 +190,21 @@ func processGitRedirectFile(file, prefix string) (string, error) {
 	}
 
 	return dir, nil
+}
+
+func resolveReferenceDir(gitStorageDir string) string {
+	cloneReferencePath := filepath.Join(gitStorageDir, "objects", "info", "alternates")
+	if FileExists(cloneReferencePath) {
+		buffer, err := ioutil.ReadFile(cloneReferencePath)
+		if err == nil {
+			path := strings.TrimSpace(string(buffer[:]))
+			referenceLfsStoragePath := filepath.Join(filepath.Dir(path), "lfs", "objects")
+			if DirExists(referenceLfsStoragePath) {
+				return referenceLfsStoragePath
+			}
+		}
+	}
+	return ""
 }
 
 // From a git dir, get the location that objects are to be stored (we will store lfs alongside)
