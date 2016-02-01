@@ -60,7 +60,11 @@ type ObjectResource struct {
 func (o *ObjectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
-		return nil, errors.New("relation does not exist")
+		if relation == "download" {
+			return nil, errors.New("Object not found on the server.")
+		}
+		return nil, fmt.Errorf("No %q action for this object.", relation)
+
 	}
 
 	req, err := newClientRequest(method, rel.Href, rel.Header)
@@ -257,7 +261,7 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 	LogTransfer("lfs.api.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, Error(fmt.Errorf("Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode))
+		return nil, Error(fmt.Errorf("Invalid status for %s: %d", traceHttpReq(req), res.StatusCode))
 	}
 
 	return objs, nil
@@ -367,7 +371,7 @@ func UploadObject(o *ObjectResource, cb CopyCallback) error {
 	}
 
 	if res.StatusCode > 299 {
-		return Errorf(nil, "Invalid status for %s %s: %d", req.Method, req.URL, res.StatusCode)
+		return Errorf(nil, "Invalid status for %s: %d", traceHttpReq(req), res.StatusCode)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
@@ -621,7 +625,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return Errorf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
+		return Errorf(err, "Unable to parse HTTP response for %s", traceHttpReq(res.Request))
 	}
 
 	return nil
@@ -793,7 +797,7 @@ func setErrorResponseContext(err error, res *http.Response) {
 
 func setErrorRequestContext(err error, req *http.Request) {
 	ErrorSetContext(err, "Endpoint", Config.Endpoint(getOperationForHttpRequest(req)).Url)
-	ErrorSetContext(err, "URL", fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+	ErrorSetContext(err, "URL", traceHttpReq(req))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 

@@ -139,7 +139,9 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 		req.Header.Set(key, oldest.Header.Get(key))
 	}
 
-	tracerx.Printf("api: redirect %s %s to %s", oldest.Method, oldest.URL, req.URL)
+	oldestUrl := strings.SplitN(oldest.URL.String(), "?", 2)[0]
+	newUrl := strings.SplitN(req.URL.String(), "?", 2)[0]
+	tracerx.Printf("api: redirect %s %s to %s", oldest.Method, oldestUrl, newUrl)
 
 	return nil
 }
@@ -147,7 +149,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
 func traceHttpRequest(req *http.Request) {
-	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
+	tracerx.Printf("HTTP: %s", traceHttpReq(req))
 
 	if Config.isTracingHttp == false {
 		return
