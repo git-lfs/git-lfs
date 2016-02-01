@@ -451,7 +451,38 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 		msg := fmt.Sprintf("Unexpected output from git show: %v", string(out))
 		return nil, errors.New(msg)
 	}
+}
 
+func GitAndRootDirs() (string, string, error) {
+	cmd := execCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
+	out, err := cmd.CombinedOutput()
+	output := string(out)
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to call git rev-parse --git-dir --show-toplevel: %q", output)
+	}
+
+	paths := strings.Split(output, "\n")
+	pathLen := len(paths)
+
+	if pathLen == 0 {
+		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
+	}
+
+	absGitDir, err := filepath.Abs(paths[0])
+	if err != nil {
+		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[0], err)
+	}
+
+	if pathLen == 1 || len(paths[1]) == 0 {
+		return absGitDir, "", nil
+	}
+
+	absRootDir, err := filepath.Abs(paths[1])
+	if err != nil {
+		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[1], err)
+	}
+
+	return absGitDir, absRootDir, nil
 }
 
 func RootDir() (string, error) {
