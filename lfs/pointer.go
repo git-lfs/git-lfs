@@ -67,14 +67,16 @@ func (p *Pointer) Encode(writer io.Writer) (int, error) {
 
 func (p *Pointer) Encoded() string {
 	var buffer bytes.Buffer
-	if p.Size != 0 {
-		buffer.WriteString(fmt.Sprintf("version %s\n", latest))
-		for _, ext := range p.Extensions {
-			buffer.WriteString(fmt.Sprintf("ext-%d-%s %s:%s\n", ext.Priority, ext.Name, ext.OidType, ext.Oid))
-		}
-		buffer.WriteString(fmt.Sprintf("oid %s:%s\n", p.OidType, p.Oid))
-		buffer.WriteString(fmt.Sprintf("size %d\n", p.Size))
+	if p.Size == 0 {
+		return buffer.String()
 	}
+
+	buffer.WriteString(fmt.Sprintf("version %s\n", latest))
+	for _, ext := range p.Extensions {
+		buffer.WriteString(fmt.Sprintf("ext-%d-%s %s:%s\n", ext.Priority, ext.Name, ext.OidType, ext.Oid))
+	}
+	buffer.WriteString(fmt.Sprintf("oid %s:%s\n", p.OidType, p.Oid))
+	buffer.WriteString(fmt.Sprintf("size %d\n", p.Size))
 	return buffer.String()
 }
 
