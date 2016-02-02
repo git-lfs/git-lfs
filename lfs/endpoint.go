@@ -21,7 +21,18 @@ type Endpoint struct {
 // NewEndpointFromCloneURL creates an Endpoint from a git clone URL by appending
 // "[.git]/info/lfs".
 func NewEndpointFromCloneURL(url string) Endpoint {
-	e := NewEndpoint(url)
+	return NewEndpointFromCloneURLWithConfig(url, NewConfig())
+}
+
+// NewEndpoint initializes a new Endpoint for a given URL.
+func NewEndpoint(rawurl string) Endpoint {
+	return NewEndpointWithConfig(rawurl, NewConfig())
+}
+
+// NewEndpointFromCloneURLWithConfig creates an Endpoint from a git clone URL by appending
+// "[.git]/info/lfs".
+func NewEndpointFromCloneURLWithConfig(url string, c *Configuration) Endpoint {
+	e := NewEndpointWithConfig(url, c)
 	if e.Url == EndpointUrlUnknown {
 		return e
 	}
@@ -35,8 +46,8 @@ func NewEndpointFromCloneURL(url string) Endpoint {
 	return e
 }
 
-// NewEndpoint initializes a new Endpoint for a given URL.
-func NewEndpoint(rawurl string) Endpoint {
+// NewEndpointWithConfig initializes a new Endpoint for a given URL.
+func NewEndpointWithConfig(rawurl string, c *Configuration) Endpoint {
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		return Endpoint{Url: EndpointUrlUnknown}
@@ -48,7 +59,7 @@ func NewEndpoint(rawurl string) Endpoint {
 	case "http", "https":
 		return endpointFromHttpUrl(u)
 	case "git":
-		return endpointFromGitUrl(u)
+		return endpointFromGitUrl(u, c)
 	case "":
 		return endpointFromBareSshUrl(u)
 	default:
@@ -128,8 +139,8 @@ func endpointFromHttpUrl(u *url.URL) Endpoint {
 	return Endpoint{Url: u.String()}
 }
 
-func endpointFromGitUrl(u *url.URL) Endpoint {
-	u.Scheme = "https"
+func endpointFromGitUrl(u *url.URL, c *Configuration) Endpoint {
+	u.Scheme = c.GitProtocol()
 	return Endpoint{Url: u.String()}
 }
 

@@ -256,6 +256,22 @@ func TestGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", endpoint.SshPort)
 }
 
+func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"remote.origin.url": "git://example.com/foo/bar",
+			"lfs.gitprotocol":   "http",
+		},
+		remotes: []string{},
+	}
+
+	endpoint := config.Endpoint("download")
+	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", endpoint.Url)
+	assert.Equal(t, "", endpoint.SshUserAndHost)
+	assert.Equal(t, "", endpoint.SshPath)
+	assert.Equal(t, "", endpoint.SshPort)
+}
+
 func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
 	config := &Configuration{
 		gitConfig: map[string]string{"remote.origin.url": "git://example.com/foo/bar.git"},
