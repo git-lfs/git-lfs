@@ -112,7 +112,6 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
 // the forpush argument is to cater for separate remote.name.pushurl settings
 func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
-
 	if forpush {
 		if u, ok := c.GitConfig("remote." + remote + ".pushurl"); ok {
 			return u
@@ -128,15 +127,14 @@ func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 }
 
 func (c *Configuration) Endpoint(operation string) Endpoint {
-
 	if operation == "upload" {
 		if url, ok := c.GitConfig("lfs.pushurl"); ok {
-			return NewEndpoint(url)
+			return NewEndpointWithConfig(url, c)
 		}
 	}
 
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return NewEndpoint(url)
+		return NewEndpointWithConfig(url, c)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
@@ -252,16 +250,16 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
 		if url, ok := c.GitConfig("remote." + remote + ".lfspushurl"); ok {
-			return NewEndpoint(url)
+			return NewEndpointWithConfig(url, c)
 		}
 	}
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return NewEndpoint(url)
+		return NewEndpointWithConfig(url, c)
 	}
 
 	// finally fall back on git remote url (also supports pushurl)
 	if url := c.GitRemoteUrl(remote, operation == "upload"); url != "" {
-		return NewEndpointFromCloneURL(url)
+		return NewEndpointFromCloneURLWithConfig(url, c)
 	}
 
 	return Endpoint{}
@@ -270,6 +268,15 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
 	return c.remotes
+}
+
+// GitProtocol returns the protocol for the LFS API when converting from a
+// git:// remote url.
+func (c *Configuration) GitProtocol() string {
+	if value, ok := c.GitConfig("lfs.gitprotocol"); ok {
+		return value
+	}
+	return "https"
 }
 
 func (c *Configuration) Extensions() map[string]Extension {
@@ -505,7 +512,8 @@ func keyIsUnsafe(key string) bool {
 }
 
 var safeKeys = []string{
-	"lfs.url",
-	"lfs.fetchinclude",
 	"lfs.fetchexclude",
+	"lfs.fetchinclude",
+	"lfs.gitprotocol",
+	"lfs.url",
 }
