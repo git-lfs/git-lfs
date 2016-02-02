@@ -214,7 +214,7 @@ setup() {
       go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
     # Ensure API test util is built during tests to ensure it stays in sync
-    go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go"
+    go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
   fi
 
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
