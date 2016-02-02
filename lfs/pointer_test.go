@@ -29,6 +29,18 @@ func TestEncode(t *testing.T) {
 	assert.Equal(t, "EOF", err.Error())
 }
 
+func TestEncodeEmpty(t *testing.T) {
+	var buf bytes.Buffer
+	pointer := NewPointer("", 0, nil)
+	_, err := EncodePointer(&buf, pointer)
+	assert.Equal(t, nil, err)
+
+	bufReader := bufio.NewReader(&buf)
+	val, err := bufReader.ReadString('\n')
+	assert.Equal(t, "", val)
+	assert.Equal(t, "EOF", err.Error())
+}
+
 func TestEncodeExtensions(t *testing.T) {
 	var buf bytes.Buffer
 	exts := []*PointerExtension{
