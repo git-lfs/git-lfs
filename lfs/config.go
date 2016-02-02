@@ -512,7 +512,8 @@ func keyIsUnsafe(key string) bool {
 }
 
 var safeKeys = []string{
-	"lfs.url",
-	"lfs.fetchinclude",
 	"lfs.fetchexclude",
+	"lfs.fetchinclude",
+	"lfs.gitprotocol",
+	"lfs.url",
 }
