@@ -367,6 +367,14 @@ func (c *Configuration) loadGitConfig() bool {
 		// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
 		filepath.Join(LocalWorkingDir, ".gitconfig"),
 	}
+
+	gitRootDir, _ := git.RootDir()
+	if gitRootDir != "" {
+		configFiles = append(configFiles, filepath.Join(gitRootDir, ".lfsconfig"),
+			// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
+			filepath.Join(gitRootDir, ".gitconfig"))
+	}
+
 	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
 
 	listOutput, err := git.Config.List()
