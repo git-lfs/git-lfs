@@ -143,12 +143,7 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	cmd := exec.Command("go", args...)
 	if addenv {
-		cmd.Env = []string{
-			"GOOS=" + buildos,
-			"GOARCH=" + buildarch,
-			"GOPATH=" + os.Getenv("GOPATH"),
-			"GOROOT=" + os.Getenv("GOROOT"),
-		}
+		cmd.Env = buildGoEnv(buildos, buildarch)
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -156,6 +151,22 @@ func buildCommand(dir, buildos, buildarch string) error {
 		fmt.Println(string(output))
 	}
 	return err
+}
+
+func buildGoEnv(os, arch string) []string {
+	env := make([]string, 4, 7)
+	env[0] = "GOOS=" + os
+	env[1] = "GOARCH=" + arch
+	env[2] = "GOPATH=" + os.Getenv("GOPATH")
+	env[3] = "GOROOT=" + os.Getenv("GOROOT")
+	for _, key := range []string{"TMP", "TEMP", "TEMPDIR"} {
+		v := os.Getenv(key)
+		if len(v) == 0 {
+			continue
+		}
+		env = append(env, key+"="+v)
+	}
+	return env
 }
 
 func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
