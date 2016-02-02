@@ -60,6 +60,7 @@ type Configuration struct {
 	fetchIncludePaths []string
 	fetchExcludePaths []string
 	fetchPruneConfig  *FetchPruneConfig
+	manualEndpoint    *Endpoint
 }
 
 func NewConfig() *Configuration {
@@ -126,7 +127,16 @@ func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 
 }
 
+// Manually set an Endpoint to use instead of deriving from Git config
+func (c *Configuration) SetManualEndpoint(e Endpoint) {
+	c.manualEndpoint = &e
+}
+
 func (c *Configuration) Endpoint(operation string) Endpoint {
+	if c.manualEndpoint != nil {
+		return *c.manualEndpoint
+	}
+
 	if operation == "upload" {
 		if url, ok := c.GitConfig("lfs.pushurl"); ok {
 			return NewEndpointWithConfig(url, c)

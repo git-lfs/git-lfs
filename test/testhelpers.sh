@@ -213,6 +213,8 @@ setup() {
     for go in test/cmd/*.go; do
       go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
+    # Ensure API test util is built during tests to ensure it stays in sync
+    go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go"
   fi
 
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
