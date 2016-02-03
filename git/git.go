@@ -636,7 +636,4 @@ func init() {
 		}
 		env = append(env, kv)
 	}
-
-	fmt.Println(env)
-	fmt.Println(realEnv)
 }
