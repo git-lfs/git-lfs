@@ -367,3 +367,16 @@ begin_test "pre-push multiple branches"
 
 )
 end_test
+
+begin_test "pre-push with bad remote"
+(
+  set -e
+
+  cd repo
+
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push not-a-remote "$GITSERVER/$reponame" 2>&1 |
+    tee pre-push.log
+  grep "Invalid remote name" pre-push.log
+)
+end_test
