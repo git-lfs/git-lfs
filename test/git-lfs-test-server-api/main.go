@@ -155,7 +155,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(len(oidsExist), totalSize, false)
+	uploadQueue := lfs.NewUploadQueue(len(oidsExist), totalSize, "refs/heads/master", false)
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
@@ -248,7 +248,7 @@ func callBatchApi(op string, objs []TestObject) ([]*lfs.ObjectResource, error) {
 	for _, o := range objs {
 		apiobjs = append(apiobjs, &lfs.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
-	return lfs.Batch(apiobjs, op)
+	return lfs.Batch(apiobjs, op, "refs/heads/master")
 }
 
 // Combine 2 slices into one by "randomly" interleaving

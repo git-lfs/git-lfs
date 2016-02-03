@@ -59,17 +59,17 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		left, right := decodeRefs(line)
+		left, right, destRef := decodeRefs(line)
 		if left == prePushDeleteBranch {
 			continue
 		}
 
-		prePushRef(left, right)
+		prePushRef(left, right, destRef)
 
 	}
 }
 
-func prePushRef(left, right string) {
+func prePushRef(left, right, destRef string) {
 	// Just use scanner here
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
@@ -93,7 +93,7 @@ func prePushRef(left, right string) {
 		skipObjects = prePushCheckForMissingObjects(pointers)
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, destRef, prePushDryRun)
 
 	for _, pointer := range pointers {
 		if prePushDryRun {
@@ -172,21 +172,25 @@ func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnSer
 	return skipObjects
 }
 
-// decodeRefs pulls the sha1s out of the line read from the pre-push
+// decodeRefs pulls the sha1s and destination ref out of the line read from the pre-push
 // hook's stdin.
-func decodeRefs(input string) (string, string) {
+func decodeRefs(input string) (string, string, string) {
 	refs := strings.Split(strings.TrimSpace(input), " ")
-	var left, right string
+	var left, right, destRef string
 
 	if len(refs) > 1 {
 		left = refs[1]
+	}
+
+	if len(refs) > 2 {
+		destRef = refs[2]
 	}
 
 	if len(refs) > 3 {
 		right = "^" + refs[3]
 	}
 
-	return left, right
+	return left, right, destRef
 }
 
 func init() {
