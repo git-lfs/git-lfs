@@ -3,6 +3,7 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -455,10 +456,13 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 
 func GitAndRootDirs() (string, string, error) {
 	cmd := execCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
-	out, err := cmd.CombinedOutput()
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
+
+	out, err := cmd.Output()
 	output := string(out)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to call git rev-parse --git-dir --show-toplevel: %q", output)
+		return "", "", fmt.Errorf("Failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
 	}
 
 	paths := strings.Split(output, "\n")
@@ -616,4 +620,23 @@ func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
 	}
 
 	return actual >= atleast
+}
+
+// An env for an exec.Command without GIT_TRACE
+var env []string
+var traceEnv = "GIT_TRACE="
+
+func init() {
+	realEnv := os.Environ()
+	env = make([]string, 0, len(realEnv))
+
+	for _, kv := range realEnv {
+		if strings.HasPrefix(kv, traceEnv) {
+			continue
+		}
+		env = append(env, kv)
+	}
+
+	fmt.Println(env)
+	fmt.Println(realEnv)
 }
