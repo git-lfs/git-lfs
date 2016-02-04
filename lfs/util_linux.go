@@ -13,8 +13,8 @@ package lfs
 import "C"
 
 import (
-	"os"
 	"io"
+	"os"
 	"syscall"
 )
 
