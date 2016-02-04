@@ -22,8 +22,15 @@
         "additionalProperties": false
       }
     },
-    "ref": {
-      "type": "string"
+    "meta": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
     }
   },
   "required": ["objects", "operation"],

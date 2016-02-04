@@ -53,14 +53,16 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 > Authorization: Basic ... (if authentication is needed)
 >
 > {
->   "ref":"refs/heads/master",
 >   "operation": "upload",
 >   "objects": [
 >     {
 >       "oid": "1111111",
 >       "size": 123
 >     }
->   ]
+>   ],
+>   "meta": {
+>     "ref": "refs/heads/master"
+>   }
 > }
 >
 < HTTP/1.1 200 Ok

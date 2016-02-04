@@ -218,8 +218,14 @@ func Batch(objects []*ObjectResource, operation string, metadata *UploadMetadata
 	}
 
 	o := map[string]interface{}{"objects": objects, "operation": operation}
-	if metadata != nil && len(metadata.ref) > 0 {
-		o["ref"] = metadata.ref
+	if metadata != nil {
+		m := map[string]interface{}{}
+		if len(metadata.ref) > 0 {
+			m["ref"] = metadata.ref
+		}
+		if len(m) > 0 {
+			o["meta"] = m
+		}
 	}
 
 	by, err := json.Marshal(o)
