@@ -9,5 +9,7 @@ import (
 
 // execCommand is a small platform specific wrapper around os/exec.Command
 func execCommand(name string, arg ...string) *exec.Cmd {
-	return exec.Command(name, arg...)
+	cmd := exec.Command(name, arg...)
+	cmd.Env = env
+	return cmd
 }
