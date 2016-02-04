@@ -217,7 +217,10 @@ func Batch(objects []*ObjectResource, operation, destRef string) ([]*ObjectResou
 		return nil, nil
 	}
 
-	o := map[string]interface{}{"objects": objects, "operation": operation, "ref": destRef}
+	o := map[string]interface{}{"objects": objects, "operation": operation}
+	if len(destRef) > 0 {
+		o["ref"] = destRef
+	}
 
 	by, err := json.Marshal(o)
 	if err != nil {
