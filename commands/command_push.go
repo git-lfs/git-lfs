@@ -3,7 +3,6 @@ package commands
 import (
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -24,7 +23,7 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
-func uploadsBetweenRefs(left string, right string, destRef string) *lfs.TransferQueue {
+func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 	tracerx.Printf("Upload between %v and %v", left, right)
 
 	// Just use scanner here
@@ -32,7 +31,7 @@ func uploadsBetweenRefs(left string, right string, destRef string) *lfs.Transfer
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
-	return uploadPointers(pointers, destRef)
+	return uploadPointers(pointers)
 }
 
 func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue {
@@ -46,7 +45,7 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue
 		if len(refs) == 0 {
 			pointers := scanAll()
 			Print("Pushing objects...")
-			return uploadPointers(pointers, strings.Join(refs, ","))
+			return uploadPointers(pointers)
 		} else {
 			scanOpt.ScanMode = lfs.ScanRefsMode
 		}
@@ -73,10 +72,10 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue
 		i += 1
 	}
 
-	return uploadPointers(pointers, strings.Join(refs, ","))
+	return uploadPointers(pointers)
 }
 
-func uploadPointers(pointers []*lfs.WrappedPointer, destRef string) *lfs.TransferQueue {
+func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
@@ -84,7 +83,7 @@ func uploadPointers(pointers []*lfs.WrappedPointer, destRef string) *lfs.Transfe
 
 	skipObjects := prePushCheckForMissingObjects(pointers)
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, destRef, pushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, "", pushDryRun)
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s => %s", pointer.Oid, pointer.Name)
@@ -178,12 +177,12 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		left, right, destRef := decodeRefs(string(refsData))
+		left, right, _ := decodeRefs(string(refsData))
 		if left == pushDeleteBranch {
 			return
 		}
 
-		uploadQueue = uploadsBetweenRefs(left, right, destRef)
+		uploadQueue = uploadsBetweenRefs(left, right)
 	} else if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
