@@ -15,6 +15,15 @@ type Uploadable struct {
 	object   *ObjectResource
 }
 
+// UploadMetadata describes meta data of upload specification
+type UploadMetadata struct {
+	ref string
+}
+
+func NewUploadMetadata(destRef string) *UploadMetadata {
+	return &UploadMetadata{ref: destRef}
+}
+
 // NewUploadable builds the Uploadable from the given information.
 // "filename" can be empty if a raw object is pushed (see "object-id" flag in push command)/
 func NewUploadable(oid, filename string) (*Uploadable, error) {
@@ -71,10 +80,10 @@ func (u *Uploadable) SetObject(o *ObjectResource) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(files int, size int64, destRef string, dryRun bool) *TransferQueue {
+func NewUploadQueue(files int, size int64, dryRun bool, metadata *UploadMetadata) *TransferQueue {
 	q := newTransferQueue(files, size, dryRun)
 	q.transferKind = "upload"
-	q.destRef = destRef
+	q.metadata = metadata
 	return q
 }
 

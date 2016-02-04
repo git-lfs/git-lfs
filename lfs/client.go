@@ -209,17 +209,17 @@ func (b *byteCloser) Close() error {
 }
 
 func downloadBatch(objects []*ObjectResource) ([]*ObjectResource, error) {
-	return Batch(objects, "download", "")
+	return Batch(objects, "download", nil)
 }
 
-func Batch(objects []*ObjectResource, operation, destRef string) ([]*ObjectResource, error) {
+func Batch(objects []*ObjectResource, operation string, metadata *UploadMetadata) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
 	o := map[string]interface{}{"objects": objects, "operation": operation}
-	if len(destRef) > 0 {
-		o["ref"] = destRef
+	if metadata != nil && len(metadata.ref) > 0 {
+		o["ref"] = metadata.ref
 	}
 
 	by, err := json.Marshal(o)
@@ -253,7 +253,7 @@ func Batch(objects []*ObjectResource, operation, destRef string) ([]*ObjectResou
 
 		if IsAuthError(err) {
 			setAuthType(req, res)
-			return Batch(objects, operation, destRef)
+			return Batch(objects, operation, metadata)
 		}
 
 		switch res.StatusCode {

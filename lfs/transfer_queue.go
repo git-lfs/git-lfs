@@ -28,7 +28,7 @@ type TransferQueue struct {
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
-	destRef       string
+	metadata      *UploadMetadata
 	errors        []error
 	transferables map[string]Transferable
 	retries       []Transferable
@@ -203,7 +203,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
-		objects, err := Batch(transfers, q.transferKind, q.destRef)
+		objects, err := Batch(transfers, q.transferKind, q.metadata)
 		if err != nil {
 			if IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
