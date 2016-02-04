@@ -32,6 +32,22 @@ lfs option can be scoped inside the configuration for a remote.
   Default true. This setting transitions clients from the legacy to the newer
   batch API and will be gone in Git LFS v1.0.
 
+* `lfs.dialtimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait initiate a
+  connection. This does not include the time to send a request and wait for a
+  response. Default: 30 seconds
+
+* `lfs.tlstimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait for a TLS
+  handshake. Default: 30 seconds.
+
+* `lfs.keepalive`
+
+  Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
+  connections. Default: 30 minutes.
+
 ### Fetch settings
 
 * `lfs.fetchinclude`
