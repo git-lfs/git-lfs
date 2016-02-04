@@ -103,13 +103,18 @@ func (c *Configuration) HttpClient() *HttpClient {
 		return c.httpClient
 	}
 
+	dialtime := c.GitConfigInt("lfs.dialtimeout", 30)
+	keepalivetime := c.GitConfigInt("lfs.keepalive", 1800) // 30 minutes
+	tlstime := c.GitConfigInt("lfs.tlstimeout", 30)
+
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
-			Timeout:   5 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   time.Duration(dialtime) * time.Second,
+			KeepAlive: time.Duration(keepalivetime) * time.Second,
 		}).Dial,
-		TLSHandshakeTimeout: 5 * time.Second,
+		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
+		MaxIdleConnsPerHost: c.ConcurrentTransfers(),
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
