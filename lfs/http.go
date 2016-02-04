@@ -114,6 +114,7 @@ func (c *Configuration) HttpClient() *HttpClient {
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
+		MaxIdleConnsPerHost: c.ConcurrentTransfers(),
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
