@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Git LFS"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
 #define MyAppFilePrefix "git-lfs-windows"
@@ -27,7 +27,7 @@ SolidCompression=yes
 DefaultDirName={pf}\{#MyAppName}
 UsePreviousAppDir=no
 DirExistsWarning=no
-DisableReadyPage=True 
+DisableReadyPage=True
 ArchitecturesInstallIn64BitMode=x64
 ChangesEnvironment=yes
 
@@ -55,12 +55,12 @@ var
   ExecStdOut: AnsiString;
   ResultCode: integer;
 
-begin      
+begin
   TmpFileName := ExpandConstant('{tmp}') + '\git_location.txt';
-  
+
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"', 
+    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
 
@@ -93,9 +93,9 @@ begin
   end;
   // look for the path with leading and trailing semicolon and with or without \ ending
   // Pos() returns 0 if not found
-  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;  
+  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;
   if Result = True then
-     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0; 
+     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
 end;
 
 // Runs the lfs initialization.
@@ -105,7 +105,7 @@ var
 begin
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "git lfs install"', 
+    '/C "git lfs install"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
 end;
@@ -116,9 +116,8 @@ var
 begin
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "git lfs uninstall"', 
+    '/C "git lfs uninstall"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
   Result := True;
 end;
-
