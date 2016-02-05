@@ -220,8 +220,9 @@ func Batch(objects []*ObjectResource, operation string, metadata *TransferMetada
 	o := map[string]interface{}{"objects": objects, "operation": operation}
 	if metadata != nil {
 		m := map[string]interface{}{}
-		if len(metadata.ref) > 0 {
-			m["ref"] = metadata.ref
+		ref := normalizeRef(metadata.ref)
+		if len(ref) > 0 {
+			m["ref"] = ref
 		}
 		if len(m) > 0 {
 			o["meta"] = m
@@ -823,4 +824,14 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
+}
+
+func normalizeRef(ref string) string {
+	if len(ref) == 0 || ref == "HEAD" {
+		return ""
+	}
+	if strings.HasPrefix("refs/heads/", ref) {
+		return ref
+	}
+	return "refs/heads/" + ref
 }
