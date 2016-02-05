@@ -661,7 +661,6 @@ func CloneWithoutFilters(args []string) error {
 			strings.Contains(s, "warning: Clone succeeded, but checkout failed") ||
 			strings.Contains(s, "You can inspect what was checked out with 'git status'") ||
 			strings.Contains(s, "retry the checkout") ||
-			strings.Contains(s, "substr") ||
 			// Windows messages
 			strings.Contains(s, "error: cannot spawn : No such file or directory") ||
 			// blank formatting
