@@ -278,5 +278,5 @@ func TestGitAndRootDirs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, git, root+"/.git")
+	assert.Equal(t, git, filepath.Join(root, ".git"))
 }
