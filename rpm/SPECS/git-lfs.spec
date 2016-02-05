@@ -28,6 +28,9 @@ mkdir -p src/github.com/github
 ln -s $(pwd) src/github.com/github/%{name}
 
 %build
+%if 0%{?rhel} == 5
+  export CGO_ENABLED=0
+%endif
 %if %{_arch} == i386
   GOARCH=386 GOPATH=`pwd` ./script/bootstrap
 %else

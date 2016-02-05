@@ -134,21 +134,6 @@ begin_test "track representation"
   cd track-representation
 
   git lfs track "*.jpg"
-  out=$(git lfs track "$(native_path "$PWD/")*.jpg")
-
-  if [ "$out" != "$(native_path "$PWD/")*.jpg already supported" ]; then
-    echo "Track didn't recognize duplicate path"
-    cat .gitattributes
-    exit 1
-  fi
-
-  out2=$(git lfs track "a/../*.jpg")
-
-  if [ "$out2" != "a/../*.jpg already supported" ]; then
-    echo "Track didn't recognize duplicate path"
-    cat .gitattributes
-    exit 1
-  fi
 
   mkdir a
   git lfs track "a/test.file"
@@ -179,12 +164,9 @@ begin_test "track absolute"
   git init track-absolute
   cd track-absolute
 
-  git lfs track "$(native_path "$PWD/")*.jpg"
-  grep "^*.jpg" .gitattributes || {
-    echo ".gitattributes doesn't contain the expected relative path *.jpg:"
-    cat .gitattributes
-    exit 1
-  }
+  git lfs track "/images"
+  cat .gitattributes
+  grep "^/images" .gitattributes
 )
 end_test
 

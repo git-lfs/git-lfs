@@ -294,6 +294,21 @@ func (c *Configuration) Extensions() map[string]Extension {
 	return c.extensions
 }
 
+// GitConfigInt parses a git config value and returns it as an integer.
+func (c *Configuration) GitConfigInt(key string, def int) int {
+	s, _ := c.GitConfig(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	i, _ := strconv.Atoi(s)
+	if i < 1 {
+		return def
+	}
+
+	return i
+}
+
 func (c *Configuration) GitConfig(key string) (string, bool) {
 	c.loadGitConfig()
 	value, ok := c.gitConfig[strings.ToLower(key)]

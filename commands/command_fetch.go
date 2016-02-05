@@ -253,6 +253,31 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	}
 	q := lfs.NewDownloadQueue(len(pointers), totalSize, false, metadata)
 
+	if out != nil {
+		dlwatch := q.Watch()
+
+		go func() {
+			// fetch only reports single OID, but OID *might* be referenced by multiple
+			// WrappedPointers if same content is at multiple paths, so map oid->slice
+			oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
+			for _, pointer := range pointers {
+				plist := oidToPointers[pointer.Oid]
+				oidToPointers[pointer.Oid] = append(plist, pointer)
+			}
+
+			for oid := range dlwatch {
+				plist, ok := oidToPointers[oid]
+				if !ok {
+					continue
+				}
+				for _, p := range plist {
+					out <- p
+				}
+			}
+			close(out)
+		}()
+	}
+
 	for _, p := range pointers {
 		// Only add to download queue if local file is not the right size already
 		// This avoids previous case of over-reporting a requirement for files we already have
@@ -277,31 +302,6 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		}
 	}
 
-	if out != nil {
-		dlwatch := q.Watch()
-
-		go func() {
-			// fetch only reports single OID, but OID *might* be referenced by multiple
-			// WrappedPointers if same content is at multiple paths, so map oid->slice
-			oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
-			for _, pointer := range pointers {
-				plist := oidToPointers[pointer.Oid]
-				oidToPointers[pointer.Oid] = append(plist, pointer)
-			}
-
-			for oid := range dlwatch {
-				plist, ok := oidToPointers[oid]
-				if !ok {
-					continue
-				}
-				for _, p := range plist {
-					out <- p
-				}
-			}
-			close(out)
-		}()
-
-	}
 	processQueue := time.Now()
 	q.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
