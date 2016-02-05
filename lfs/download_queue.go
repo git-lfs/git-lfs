@@ -66,8 +66,9 @@ func (d *Downloadable) Transfer(cb CopyCallback) error {
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing `workers` concurrent downloads.
-func NewDownloadQueue(files int, size int64, dryRun bool) *TransferQueue {
+func NewDownloadQueue(files int, size int64, dryRun bool, metadata *TransferMetadata) *TransferQueue {
 	q := newTransferQueue(files, size, dryRun)
 	q.transferKind = "download"
+	q.metadata = metadata
 	return q
 }
