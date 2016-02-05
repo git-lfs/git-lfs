@@ -43,24 +43,19 @@ def distro_names_for(filename)
   raise "no distro for #{filename.inspect}"
 end
 
-def build_packages(filename)
-  distro_names = distro_names_for(filename)
+package_files = Dir.glob("repos/**/*.rpm") + Dir.glob("repos/**/*.deb")
+package_files.each do |full_path|
+  next if full_path =~ /repo-release/
+  pkg = Packagecloud::Package.new(:file => full_path)
+  distro_names = distro_names_for(full_path)
   distro_names.map do |distro_name|
     distro_id = $distro_id_map[distro_name] ||= $client.find_distribution_id(distro_name)
     if !distro_id
       raise "no distro id for #{distro_name.inspect}"
     end
-    Packagecloud::Package.new(open(filename), distro_id)
-  end
-end
 
-package_files = Dir.glob("repos/**/*.rpm") + Dir.glob("repos/**/*.deb")
-package_files.each do |full_path|
-  next if full_path =~ /repo-release/
-  packages = build_packages(full_path)
-  packages.each do |pkg|
-    puts "pushing #{full_path} to #{$distro_id_map.key(pkg.distro_version_id).inspect}"
-    $client.put_package("git-lfs", pkg)
+    puts "pushing #{full_path} to #{$distro_id_map.key(distro_id).inspect}"
+    $client.put_package("git-lfs", pkg, distro_id)
   end
 end
 
