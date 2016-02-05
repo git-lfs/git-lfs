@@ -212,7 +212,7 @@ func downloadBatch(objects []*ObjectResource) ([]*ObjectResource, error) {
 	return Batch(objects, "download", nil)
 }
 
-func Batch(objects []*ObjectResource, operation string, metadata *UploadMetadata) ([]*ObjectResource, error) {
+func Batch(objects []*ObjectResource, operation string, metadata *TransferMetadata) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}

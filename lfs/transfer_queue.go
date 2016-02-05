@@ -28,7 +28,7 @@ type TransferQueue struct {
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
-	metadata      *UploadMetadata
+	metadata      *TransferMetadata
 	errors        []error
 	transferables map[string]Transferable
 	retries       []Transferable
@@ -41,6 +41,15 @@ type TransferQueue struct {
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
+}
+
+// TransferMetadata describes meta data of upload specification
+type TransferMetadata struct {
+	ref string
+}
+
+func NewTransferMetadata(destRef string) *TransferMetadata {
+	return &TransferMetadata{ref: destRef}
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
