@@ -24,6 +24,6 @@ begin_test "attempt private access without credential helper"
 
   GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
 
-  grep "Git credentials for $GITSERVER/$reponame not found" push.log
+  grep "Authorization error: $GITSERVER/$reponame" push.log
 )
 end_test

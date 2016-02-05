@@ -3,6 +3,12 @@ language: go
 os:
   - linux
   - osx
+addons:
+  apt:
+    sources:
+    - git-core
+    packages:
+    - git
 go:
   - 1.5
 install: true
