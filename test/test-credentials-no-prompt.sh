@@ -4,6 +4,13 @@
 
 # these tests rely on GIT_TERMINAL_PROMPT to test properly
 ensure_git_version_isnt $VERSION_LOWER "2.3.0"
+# if there is a system cred helper we can't run this test 
+# can't disable without changing state outside test & probably don't have permission
+# this is common on OS X with certain versions of Git installed, default cred helper
+if [[ "$(git config --system credential.helper)" -ne "" ]]; then
+  echo "skip: $0 (system cred helper we can't disable)"
+  exit
+fi
 
 begin_test "attempt private access without credential helper"
 (
