@@ -785,7 +785,7 @@ func setRequestAuth(req *http.Request, user, pass string) {
 	}
 
 	token := fmt.Sprintf("%s:%s", user, pass)
-	auth := "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	auth := "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
 	req.Header.Set("Authorization", auth)
 }
 
