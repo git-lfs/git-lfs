@@ -21,15 +21,27 @@ $client = Packagecloud::Client.new(credentials)
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
 $distro_name_map = {
-  "centos/5" => %w(el/5),
-  "centos/6" => %w(el/6),
-  "centos/7" => %w(el/7),
-  "debian/7" => %w(debian/wheezy
-                   ubuntu/precise),
-  "debian/8" => %w(debian/jessie
-                   ubuntu/trusty
-                   ubuntu/vivid
-                   ubuntu/wily),
+  "centos/5" => %w(
+    el/5
+  ),
+  "centos/6" => %w(
+    el/6
+  ),
+  "centos/7" => %w(
+    el/7
+    fedora/22
+    fedora/23
+  ),
+  "debian/7" => %w(
+    debian/wheezy
+    ubuntu/precise
+  ),
+  "debian/8" => %w(
+    debian/jessie
+    ubuntu/trusty
+    ubuntu/vivid
+    ubuntu/wily
+  ),
 }
 
 # caches distro id lookups
