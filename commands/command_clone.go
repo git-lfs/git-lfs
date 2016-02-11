@@ -23,13 +23,13 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(args)
 	if err != nil {
-		Panic(err, "Error(s) during clone")
+		Exit("Error(s) during clone:\n%v", err)
 	}
 
 	// now execute pull (need to be inside dir)
 	cwd, err := os.Getwd()
 	if err != nil {
-		Panic(err, "Unable to derive current working dir")
+		Exit("Unable to derive current working dir: %v", err)
 	}
 
 	// Either the last argument was a relative or local dir, or we have to
@@ -49,7 +49,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 	err = os.Chdir(clonedir)
 	if err != nil {
-		Panic(err, "Unable to change directory to clone dir %q", clonedir)
+		Exit("Unable to change directory to clone dir %q: %v", clonedir, err)
 	}
 
 	// Make sure we pop back to dir we started in at the end
