@@ -2,6 +2,8 @@
 
 . "test/testlib.sh"
 
+ensure_git_version_isnt $VERSION_LOWER "2.2.0"
+
 begin_test "clone"
 (
   set -e
