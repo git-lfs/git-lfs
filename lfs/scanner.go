@@ -294,6 +294,7 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (chan string, e
 			revs <- sha1
 		}
 		close(revs)
+		cmd.Cmd.Wait()
 	}()
 
 	return revs, nil
@@ -344,6 +345,7 @@ func revListIndex(cache bool, indexMap *indexFileMap) (chan string, error) {
 			}
 		}
 		close(revs)
+		cmd.Cmd.Wait()
 	}()
 
 	return revs, nil
@@ -388,6 +390,7 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 			cmd.Stdin.Write([]byte(r + "\n"))
 		}
 		cmd.Stdin.Close()
+		cmd.Cmd.Wait()
 	}()
 
 	return smallRevs, nil
@@ -445,6 +448,7 @@ func catFileBatch(revs chan string) (chan *WrappedPointer, error) {
 			cmd.Stdin.Write([]byte(r + "\n"))
 		}
 		cmd.Stdin.Close()
+		cmd.Cmd.Wait()
 	}()
 
 	return pointers, nil
