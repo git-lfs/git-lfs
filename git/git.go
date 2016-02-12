@@ -663,8 +663,6 @@ func CloneWithoutFilters(args []string) error {
 	scanner := bufio.NewScanner(stderr)
 	for scanner.Scan() {
 		s := scanner.Text()
-		// Send all stderr to trace in case useful
-		tracerx.Printf(s)
 
 		// Swallow all the known messages from intentionally breaking filter
 		if strings.Contains(s, "error: external filter") ||
@@ -678,6 +676,8 @@ func CloneWithoutFilters(args []string) error {
 			strings.Contains(s, "error: cannot spawn : No such file or directory") ||
 			// blank formatting
 			len(strings.TrimSpace(s)) == 0 {
+			// Send filtered stderr to trace in case useful
+			tracerx.Printf(s)
 			continue
 		}
 		os.Stderr.WriteString(s)
