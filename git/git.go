@@ -643,7 +643,11 @@ func CloneWithoutFilters(args []string) error {
 
 	// Spool stdout directly to our own
 	cmd.Stdout = os.Stdout
+
 	// stderr needs filtering
+	// Known issue: because this isn't a real terminal, git progress reporting is
+	// suppressed so there's less output. We could potentially fix this by using
+	// a pseudo-TTY library like https://github.com/kr/pty
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("Failed to get stderr from git clone: %v", err)
@@ -655,6 +659,7 @@ func CloneWithoutFilters(args []string) error {
 
 	// Filter stderr to exclude messages caused by disabling the filters
 	// As of git 2.7 it still tries to call the blank filter but required=false
+	// this problem should be gone in git 2.8 https://github.com/git/git/commit/1a8630d
 	scanner := bufio.NewScanner(stderr)
 	for scanner.Scan() {
 		s := scanner.Text()
