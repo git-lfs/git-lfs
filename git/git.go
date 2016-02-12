@@ -648,22 +648,12 @@ func CloneWithoutFilters(args []string) error {
 	// Spool stdout directly to our own
 	cmd.Stdout = os.Stdout
 
-	// stderr needs filtering
-	// Known issue: because this isn't a real terminal, git progress reporting is
-	// suppressed so there's less output. We could potentially fix this by using
-	// a pseudo-TTY library like https://github.com/kr/pty
-	/*
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			return fmt.Errorf("Failed to get stderr from git clone: %v", err)
-		}
-	*/
-
 	// Assign pty/tty so git thinks it's a real terminal
 	outpty, outtty, err := pty.Open()
 	cmd.Stdin = outtty
 	cmd.Stdout = outtty
 	errpty, errtty, err := pty.Open()
+	// stderr needs filtering
 	cmd.Stderr = errtty
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
