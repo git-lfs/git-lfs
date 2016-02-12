@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,8 +14,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
+	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pty"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -648,43 +652,71 @@ func CloneWithoutFilters(args []string) error {
 	// Known issue: because this isn't a real terminal, git progress reporting is
 	// suppressed so there's less output. We could potentially fix this by using
 	// a pseudo-TTY library like https://github.com/kr/pty
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("Failed to get stderr from git clone: %v", err)
+	/*
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			return fmt.Errorf("Failed to get stderr from git clone: %v", err)
+		}
+	*/
+
+	// Assign pty/tty so git thinks it's a real terminal
+	outpty, outtty, err := pty.Open()
+	cmd.Stdin = outtty
+	cmd.Stdout = outtty
+	errpty, errtty, err := pty.Open()
+	cmd.Stderr = errtty
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
+	cmd.SysProcAttr.Setctty = true
+	cmd.SysProcAttr.Setsid = true
+
+	var outputWait sync.WaitGroup
+	outputWait.Add(2)
+	go func() {
+		io.Copy(os.Stdout, outpty)
+		outputWait.Done()
+	}()
+	go func() {
+		// Filter stderr to exclude messages caused by disabling the filters
+		// As of git 2.7 it still tries to call the blank filter but required=false
+		// this problem should be gone in git 2.8 https://github.com/git/git/commit/1a8630d
+		scanner := bufio.NewScanner(errpty)
+		for scanner.Scan() {
+			s := scanner.Text()
+
+			// Swallow all the known messages from intentionally breaking filter
+			if strings.Contains(s, "error: external filter") ||
+				strings.Contains(s, "error: cannot fork") ||
+				// Linux / Mac messages
+				strings.Contains(s, "error: cannot run : No such file or directory") ||
+				strings.Contains(s, "warning: Clone succeeded, but checkout failed") ||
+				strings.Contains(s, "You can inspect what was checked out with 'git status'") ||
+				strings.Contains(s, "retry the checkout") ||
+				// Windows messages
+				strings.Contains(s, "error: cannot spawn : No such file or directory") ||
+				// blank formatting
+				len(strings.TrimSpace(s)) == 0 {
+				// Send filtered stderr to trace in case useful
+				tracerx.Printf(s)
+				continue
+			}
+			os.Stderr.WriteString(s)
+			os.Stderr.WriteString("\n") // stripped by scanner
+		}
+		outputWait.Done()
+	}()
+
 	err = cmd.Start()
 	if err != nil {
 		return fmt.Errorf("Failed to start git clone: %v", err)
 	}
 
-	// Filter stderr to exclude messages caused by disabling the filters
-	// As of git 2.7 it still tries to call the blank filter but required=false
-	// this problem should be gone in git 2.8 https://github.com/git/git/commit/1a8630d
-	scanner := bufio.NewScanner(stderr)
-	for scanner.Scan() {
-		s := scanner.Text()
-
-		// Swallow all the known messages from intentionally breaking filter
-		if strings.Contains(s, "error: external filter") ||
-			strings.Contains(s, "error: cannot fork") ||
-			// Linux / Mac messages
-			strings.Contains(s, "error: cannot run : No such file or directory") ||
-			strings.Contains(s, "warning: Clone succeeded, but checkout failed") ||
-			strings.Contains(s, "You can inspect what was checked out with 'git status'") ||
-			strings.Contains(s, "retry the checkout") ||
-			// Windows messages
-			strings.Contains(s, "error: cannot spawn : No such file or directory") ||
-			// blank formatting
-			len(strings.TrimSpace(s)) == 0 {
-			// Send filtered stderr to trace in case useful
-			tracerx.Printf(s)
-			continue
-		}
-		os.Stderr.WriteString(s)
-		os.Stderr.WriteString("\n") // stripped by scanner
-	}
+	outtty.Close()
+	errtty.Close()
 
 	err = cmd.Wait()
+	outputWait.Wait()
 	if err != nil {
 		return fmt.Errorf("git clone failed: %v", err)
 	}
