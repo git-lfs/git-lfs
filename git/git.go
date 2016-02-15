@@ -630,16 +630,16 @@ func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
 // so that files in the working copy will be pointers and not real LFS data
 func CloneWithoutFilters(args []string) error {
 
-	// We can only support this on git version 2.2.0+
-	// Before that, setting filters to blank would break clone
+	// Before git 2.2, setting filters to blank fails, so use cat instead (slightly slower)
+	filterOverride := ""
 	if !Config.IsGitVersionAtLeast("2.2.0") {
-		return errors.New("git lfs clone requires git version 2.2.0+")
+		filterOverride = "cat"
 	}
 	// Disable the LFS filters while cloning to speed things up
 	// this is especially effective on Windows where even calling git-lfs at all
 	// with --skip-smudge is costly across many files in a checkout
 	cmdargs := []string{
-		"-c", "filter.lfs.smudge=",
+		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
 		"-c", "filter.lfs.required=false",
 		"clone"}
 	cmdargs = append(cmdargs, args...)
