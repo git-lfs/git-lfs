@@ -383,6 +383,7 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 			}
 		}
 		close(smallRevs)
+		cmd.Cmd.Wait()
 	}()
 
 	go func() {
@@ -390,7 +391,6 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 			cmd.Stdin.Write([]byte(r + "\n"))
 		}
 		cmd.Stdin.Close()
-		cmd.Cmd.Wait()
 	}()
 
 	return smallRevs, nil
@@ -441,6 +441,7 @@ func catFileBatch(revs chan string) (chan *WrappedPointer, error) {
 			}
 		}
 		close(pointers)
+		cmd.Cmd.Wait()
 	}()
 
 	go func() {
@@ -448,7 +449,6 @@ func catFileBatch(revs chan string) (chan *WrappedPointer, error) {
 			cmd.Stdin.Write([]byte(r + "\n"))
 		}
 		cmd.Stdin.Close()
-		cmd.Cmd.Wait()
 	}()
 
 	return pointers, nil
