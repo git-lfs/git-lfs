@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 var (
@@ -86,6 +88,7 @@ func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 
 func DecodePointerFromFile(file string) (*Pointer, error) {
 	// Check size before reading
+	tracerx.Printf("DEBUG STAT: %q", file)
 	stat, err := os.Stat(file)
 	if err != nil {
 		return nil, err
@@ -93,6 +96,8 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 	if stat.Size() > blobSizeCutoff {
 		return nil, newNotAPointerError(nil)
 	}
+
+	tracerx.Printf("DEBUG OPEN: %q", file)
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
