@@ -607,6 +607,7 @@ var lsTreeRE = regexp.MustCompile(`^\d+\s+blob\s+([0-9a-zA-Z]{40})\s+(\d+)\s+(.*
 
 func parseLsTree(reader io.Reader, output chan TreeBlob) {
 	scanner := bufio.NewScanner(reader)
+	scanner.Split(ScanNullLines)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		match := lsTreeRE.FindStringSubmatch(line)
@@ -625,6 +626,25 @@ func parseLsTree(reader io.Reader, output chan TreeBlob) {
 			output <- TreeBlob{sha1, filename}
 		}
 	}
+}
+
+func ScanNullLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	if i := bytes.IndexByte(data, '\000'); i >= 0 {
+		// We have a full null-terminated line.
+		return i + 1, data[0:i], nil
+	}
+
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+
+	// Request more data.
+	return 0, nil, nil
 }
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not

@@ -228,3 +228,21 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 	assert.Equal(t, int64(16849), pointers[2].Size)
 
 }
+
+func TestLsTreeParser(t *testing.T) {
+	stdout := "100644 blob d899f6551a51cf19763c5955c7a06a2726f018e9      42	.gitattributes\000100644 blob 4d343e022e11a8618db494dc3c501e80c7e18197     126	PB SCN 16 Odhrán.wav"
+
+	blobs := make(chan TreeBlob, 2)
+	parseLsTree(strings.NewReader(stdout), blobs)
+	close(blobs)
+
+	<-blobs // gitattributes
+	blob := <-blobs
+	if blob.Sha1 != "4d343e022e11a8618db494dc3c501e80c7e18197" {
+		t.Errorf("Bad sha1: %q", blob.Sha1)
+	}
+
+	if blob.Filename != "PB SCN 16 Odhrán.wav" {
+		t.Errorf("Bad name: %q", blob.Filename)
+	}
+}
