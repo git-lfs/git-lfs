@@ -582,6 +582,7 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	lsArgs := []string{"ls-tree",
 		"-r",          // recurse
 		"-l",          // report object size (we'll need this)
+		"-z",          // null line termination
 		"--full-tree", // start at the root regardless of where we are in it
 		ref}
 
