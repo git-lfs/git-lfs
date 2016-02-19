@@ -595,27 +595,36 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	blobs := make(chan TreeBlob, chanBufSize)
 
 	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
-		regex := regexp.MustCompile(`^\d+\s+blob\s+([0-9a-zA-Z]{40})\s+(\d+)\s+(.*)$`)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if match := regex.FindStringSubmatch(line); match != nil {
-				sz, err := strconv.ParseInt(match[2], 10, 64)
-				if err != nil {
-					continue
-				}
-				sha1 := match[1]
-				filename := match[3]
-				if sz < blobSizeCutoff {
-					blobs <- TreeBlob{sha1, filename}
-				}
-
-			}
-		}
+		parseLsTree(cmd.Stdout, blobs)
+		cmd.Wait()
 		close(blobs)
 	}()
 
 	return blobs, nil
+}
+
+var lsTreeRE = regexp.MustCompile(`^\d+\s+blob\s+([0-9a-zA-Z]{40})\s+(\d+)\s+(.*)$`)
+
+func parseLsTree(reader io.Reader, output chan TreeBlob) {
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		match := lsTreeRE.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+
+		sz, err := strconv.ParseInt(match[2], 10, 64)
+		if err != nil {
+			continue
+		}
+
+		sha1 := match[1]
+		filename := match[3]
+		if sz < blobSizeCutoff {
+			output <- TreeBlob{sha1, filename}
+		}
+	}
 }
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not
