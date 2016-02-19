@@ -604,26 +604,33 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	return blobs, nil
 }
 
-var lsTreeRE = regexp.MustCompile(`^\d+\s+blob\s+([0-9a-zA-Z]{40})\s+(\d+)\s+(.*)$`)
-
 func parseLsTree(reader io.Reader, output chan TreeBlob) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(ScanNullLines)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		match := lsTreeRE.FindStringSubmatch(line)
-		if match == nil {
+		line := scanner.Text()
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) < 2 {
 			continue
 		}
 
-		sz, err := strconv.ParseInt(match[2], 10, 64)
+		attrs := strings.SplitN(parts[0], " ", 4)
+		if len(attrs) < 4 {
+			continue
+		}
+
+		if attrs[1] != "blob" {
+			continue
+		}
+
+		sz, err := strconv.ParseInt(strings.TrimSpace(attrs[3]), 10, 64)
 		if err != nil {
 			continue
 		}
 
-		sha1 := match[1]
-		filename := match[3]
 		if sz < blobSizeCutoff {
+			sha1 := attrs[2]
+			filename := parts[1]
 			output <- TreeBlob{sha1, filename}
 		}
 	}
