@@ -606,7 +606,7 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 
 func parseLsTree(reader io.Reader, output chan TreeBlob) {
 	scanner := bufio.NewScanner(reader)
-	scanner.Split(ScanNullLines)
+	scanner.Split(scanNullLines)
 	for scanner.Scan() {
 		line := scanner.Text()
 		parts := strings.SplitN(line, "\t", 2)
@@ -636,7 +636,7 @@ func parseLsTree(reader io.Reader, output chan TreeBlob) {
 	}
 }
 
-func ScanNullLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func scanNullLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
