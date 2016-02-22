@@ -567,8 +567,10 @@ func catFileBatchTree(treeblobs chan TreeBlob) (chan *WrappedPointer, error) {
 				break
 			}
 		}
-		close(pointers)
+
 		cmd.Stdin.Close()
+		cmd.Wait()
+		close(pointers)
 	}()
 
 	return pointers, nil
@@ -691,7 +693,10 @@ func ScanUnpushedToChan(remoteName string) (chan *WrappedPointer, error) {
 
 	pchan := make(chan *WrappedPointer, chanBufSize)
 
-	go parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+		cmd.Wait()
+	}()
 
 	return pchan, nil
 
@@ -720,7 +725,10 @@ func logPreviousSHAs(ref string, since time.Time) (chan *WrappedPointer, error) 
 	// we pull out deletions, since we want the previous SHAs at commits in the range
 	// this means we pick up all previous versions that could have been checked
 	// out in the date range, not just if the commit which *introduced* them is in the range
-	go parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
+		cmd.Wait()
+	}()
 
 	return pchan, nil
 
