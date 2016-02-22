@@ -154,11 +154,12 @@ func buildCommand(dir, buildos, buildarch string) error {
 }
 
 func buildGoEnv(buildos, buildarch string) []string {
-	env := make([]string, 4, 7)
+	env := make([]string, 5, 8)
 	env[0] = "GOOS=" + buildos
 	env[1] = "GOARCH=" + buildarch
 	env[2] = "GOPATH=" + os.Getenv("GOPATH")
 	env[3] = "GOROOT=" + os.Getenv("GOROOT")
+	env[4] = "PATH=" + os.Getenv("PATH")
 	for _, key := range []string{"TMP", "TEMP", "TEMPDIR"} {
 		v := os.Getenv(key)
 		if len(v) == 0 {
