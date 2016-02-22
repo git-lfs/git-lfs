@@ -84,7 +84,7 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 
 	skipObjects := prePushCheckForMissingObjects(pointers)
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun, nil)
 	for i, pointer := range pointers {
 		if pushDryRun {
 			Print("push %s => %s", pointer.Oid, pointer.Name)
@@ -134,7 +134,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 		uploads = append(uploads, u)
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(oids), totalSize, pushDryRun)
+	uploadQueue := lfs.NewUploadQueue(len(oids), totalSize, pushDryRun, nil)
 
 	for _, u := range uploads {
 		uploadQueue.Add(u)
@@ -182,7 +182,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		left, right := decodeRefs(string(refsData))
+		left, right, _ := decodeRefs(string(refsData))
 		if left == pushDeleteBranch {
 			return
 		}
