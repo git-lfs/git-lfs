@@ -370,18 +370,27 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
+			lineLen := len(line)
+
 			// Format is:
 			// <sha1> <type> <size>
 			// type is at a fixed spot, if we see that it's "blob", we can avoid
 			// splitting the line just to get the size.
-			if line[41:45] == "blob" {
-				size, err := strconv.Atoi(line[46:len(line)])
-				if err != nil {
-					continue
-				}
-				if size < blobSizeCutoff {
-					smallRevs <- line[0:40]
-				}
+			if lineLen < 46 {
+				continue
+			}
+
+			if line[41:45] != "blob" {
+				continue
+			}
+
+			size, err := strconv.Atoi(line[46:lineLen])
+			if err != nil {
+				continue
+			}
+
+			if size < blobSizeCutoff {
+				smallRevs <- line[0:40]
 			}
 		}
 
