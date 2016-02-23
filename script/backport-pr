@@ -3,7 +3,9 @@
 # Backports a PR into a release branch:
 #
 #   # backport PR #123 into release-0.5-backport-123
-#   $ script/backport-pr 0.5 123
+#   $ git checkout master
+#   $ git pull
+#   $ script/backport-pr 1.1 1023
 
 relversion="v$1.x"
 relbranch="release-$1"
