@@ -120,6 +120,17 @@ func ResolveDirs() {
 	}
 }
 
+func ClearTempObjects() error {
+	if objects == nil {
+		return nil
+	}
+	return objects.ClearTempObjects()
+}
+
+func ScanObjectsChan() <-chan localstorage.Object {
+	return objects.ScanObjectsChan()
+}
+
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
