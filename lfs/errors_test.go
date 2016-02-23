@@ -85,3 +85,27 @@ func TestStack(t *testing.T) {
 		t.Error("expected to get a stack from a wrapped error")
 	}
 }
+
+func TestGetInnerError(t *testing.T) {
+	i := errors.New("inner")
+	err := GetInnerError(newWrappedError(i, "wrapped"))
+	if err == nil {
+		t.Fatal("No inner error found")
+	}
+
+	if msg := err.Error(); msg != "inner" {
+		t.Errorf("bad inner error: %q", msg)
+	}
+}
+
+func TestGetNestedInnerError(t *testing.T) {
+	i := errors.New("inner")
+	err := GetInnerError(newWrappedError(newWrappedError(i, "wrapped 2"), "wrapped"))
+	if err == nil {
+		t.Fatal("No inner error found")
+	}
+
+	if msg := err.Error(); msg != "inner" {
+		t.Errorf("bad inner error: %q", msg)
+	}
+}
