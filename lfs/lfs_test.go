@@ -18,7 +18,7 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 		repo.Cleanup()
 	}()
 
-	actual := lfs.Objects.AllObjects()
+	actual := lfs.AllObjects()
 	if len(actual) > 0 {
 		for _, file := range actual {
 			t.Logf("Found: %v", file)
@@ -55,7 +55,7 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 		expected = append(expected, f)
 	}
 
-	actualObjects := lfs.Objects.AllObjects()
+	actualObjects := lfs.AllObjects()
 	actual := make([]*lfs.Pointer, len(actualObjects))
 	for idx, f := range actualObjects {
 		actual[idx] = lfs.NewPointer(f.Oid, f.Size, nil)

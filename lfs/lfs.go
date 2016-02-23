@@ -31,7 +31,7 @@ var (
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored
-	Objects            *localstorage.LocalStorage
+	objects            *localstorage.LocalStorage
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -53,11 +53,11 @@ func ResetTempDir() error {
 }
 
 func LocalMediaPath(oid string) (string, error) {
-	return Objects.BuildObjectPath(oid)
+	return objects.BuildObjectPath(oid)
 }
 
 func ObjectExistsOfSize(oid string, size int64) bool {
-	path := Objects.ObjectPath(oid)
+	path := objects.ObjectPath(oid)
 	return FileExistsOfSize(path, size)
 }
 
@@ -104,7 +104,7 @@ func ResolveDirs() {
 			panic(fmt.Sprintf("Error trying to init LocalStorage: %s", err))
 		}
 
-		Objects = objs
+		objects = objs
 		LocalMediaDir = objs.RootDir
 		LocalObjectTempDir = objs.TempDir
 		LocalLogDir = filepath.Join(objs.RootDir, "logs")
@@ -190,4 +190,9 @@ const (
 
 func traceHttpReq(req *http.Request) string {
 	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
+}
+
+// only used in tests
+func AllObjects() []localstorage.Object {
+	return objects.AllObjects()
 }
