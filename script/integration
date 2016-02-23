@@ -46,4 +46,4 @@ parallel=${GIT_LFS_TEST_MAXPROCS:-4}
 echo "Running this maxprocs=$parallel"
 echo
 
-GIT_LFS_TEST_MAXPROCS=$parallel GIT_LFS_TEST_DIR="$GIT_LFS_TEST_DIR" SHUTDOWN_LFS="no" go run script/*.go -cmd integration "$@"
+GO15VENDOREXPERIMENT=0 GIT_LFS_TEST_MAXPROCS=$parallel GIT_LFS_TEST_DIR="$GIT_LFS_TEST_DIR" SHUTDOWN_LFS="no" go run script/*.go -cmd integration "$@"
