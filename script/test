@@ -7,4 +7,4 @@ suite="./${1:-"lfs"} ./${1:-"git"}"
 if [ $# -gt 0 ]; then
   shift
 fi
-go test $suite "$@"
+GO15VENDOREXPERIMENT=0 go test $suite "$@"
