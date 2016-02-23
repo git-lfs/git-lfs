@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -30,6 +31,7 @@ var (
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored
+	objects            *localstorage.LocalStorage
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -50,24 +52,12 @@ func ResetTempDir() error {
 	return os.RemoveAll(TempDir)
 }
 
-func localMediaDirNoCreate(sha string) string {
-	return filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-}
-func localMediaPathNoCreate(sha string) string {
-	return filepath.Join(localMediaDirNoCreate(sha), sha)
+func LocalMediaPath(oid string) (string, error) {
+	return objects.BuildObjectPath(oid)
 }
 
-func LocalMediaPath(sha string) (string, error) {
-	path := localMediaDirNoCreate(sha)
-	if err := os.MkdirAll(path, localMediaDirPerms); err != nil {
-		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
-	}
-
-	return filepath.Join(path, sha), nil
-}
-
-func ObjectExistsOfSize(sha string, size int64) bool {
-	path := localMediaPathNoCreate(sha)
+func ObjectExistsOfSize(oid string, size int64) bool {
+	path := objects.ObjectPath(oid)
 	return FileExistsOfSize(path, size)
 }
 
@@ -103,20 +93,23 @@ func ResolveDirs() {
 	LocalGitDir, LocalWorkingDir, err = git.GitAndRootDirs()
 	if err == nil {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
-		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
-		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
-		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
-			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
+
+		objs, err := localstorage.New(
+			filepath.Join(LocalGitStorageDir, "lfs", "objects"),
+			filepath.Join(TempDir, "objects"),
+		)
+
+		if err != nil {
+			panic(fmt.Sprintf("Error trying to init LocalStorage: %s", err))
 		}
 
+		objects = objs
+		LocalMediaDir = objs.RootDir
+		LocalObjectTempDir = objs.TempDir
+		LocalLogDir = filepath.Join(objs.RootDir, "logs")
 		if err := os.MkdirAll(LocalLogDir, localLogDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
-		}
-
-		LocalObjectTempDir = filepath.Join(TempDir, "objects")
-		if err := os.MkdirAll(LocalObjectTempDir, tempDirPerms); err != nil {
-			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
 		}
 	} else {
 		errMsg := err.Error()
@@ -125,6 +118,17 @@ func ResolveDirs() {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
 	}
+}
+
+func ClearTempObjects() error {
+	if objects == nil {
+		return nil
+	}
+	return objects.ClearTempObjects()
+}
+
+func ScanObjectsChan() <-chan localstorage.Object {
+	return objects.ScanObjectsChan()
 }
 
 func init() {
@@ -195,59 +199,11 @@ const (
 	gitPtrPrefix = "gitdir: "
 )
 
-// AllLocalObjects returns a slice of the the objects stored in the local LFS store
-// This does not necessarily mean referenced by commits, just stored
-// Note: reports final SHA only, extensions are ignored
-func AllLocalObjects() []*Pointer {
-	c := AllLocalObjectsChan()
-	ret := make([]*Pointer, 0, 100)
-	for p := range c {
-		ret = append(ret, p)
-	}
-	return ret
-}
-
-// AllLocalObjectsChan returns a channel of all the objects stored in the local LFS store
-// This does not necessarily mean referenced by commits, just stored
-// You should not alter the store until this channel is closed
-// Note: reports final SHA only, extensions are ignored
-func AllLocalObjectsChan() <-chan *Pointer {
-	ret := make(chan *Pointer, chanBufSize)
-
-	go func() {
-		defer close(ret)
-
-		scanStorageDir(LocalMediaDir, ret)
-	}()
-	return ret
-}
-
-func scanStorageDir(dir string, c chan *Pointer) {
-	// ioutil.ReadDir and filepath.Walk do sorting which is unnecessary & inefficient
-	dirf, err := os.Open(dir)
-	if err != nil {
-		return
-	}
-	defer dirf.Close()
-
-	direntries, err := dirf.Readdir(0)
-	if err != nil {
-		tracerx.Printf("Problem with Readdir in %v: %v", dir, err)
-		return
-	}
-	for _, dirfi := range direntries {
-		if dirfi.IsDir() {
-			subpath := filepath.Join(dir, dirfi.Name())
-			scanStorageDir(subpath, c)
-		} else {
-			// Make sure it's really an object file & not .DS_Store etc
-			if oidRE.MatchString(dirfi.Name()) {
-				c <- NewPointer(dirfi.Name(), dirfi.Size(), nil)
-			}
-		}
-	}
-}
-
 func traceHttpReq(req *http.Request) string {
 	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
+}
+
+// only used in tests
+func AllObjects() []localstorage.Object {
+	return objects.AllObjects()
 }

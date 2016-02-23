@@ -20,7 +20,7 @@ func main() {
 	go func() {
 		for {
 			sig := <-c
-			once.Do(lfs.ClearTempObjects)
+			once.Do(clearTempObjects)
 			fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
 
 			exitCode := 1
@@ -33,5 +33,11 @@ func main() {
 
 	commands.Run()
 	lfs.LogHttpStats()
-	once.Do(lfs.ClearTempObjects)
+	once.Do(clearTempObjects)
+}
+
+func clearTempObjects() {
+	if err := lfs.ClearTempObjects(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", lfs.LocalObjectTempDir, err)
+	}
 }
