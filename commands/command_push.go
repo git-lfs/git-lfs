@@ -100,11 +100,7 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 
 		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if err != nil {
-			if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
-			} else {
-				Exit(err.Error())
-			}
+			ExitWithError(err)
 		}
 		uploadQueue.Add(u)
 	}
