@@ -2,6 +2,9 @@
 #/ Usage: script/test          # run all tests
 #/        script/test <subdir> # run just a package's tests
 
+# Compatibility with go 1.6
+export GO15VENDOREXPERIMENT=0
+
 script/fmt
 suite="./${1:-"lfs"} ./${1:-"git"}"
 if [ $# -gt 0 ]; then

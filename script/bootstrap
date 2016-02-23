@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# Compatibility with go 1.6
+export GO15VENDOREXPERIMENT=0
+
 set -e
 
 # Only set GOPATH on non-Windows platforms as Windows can't do the symlinking
