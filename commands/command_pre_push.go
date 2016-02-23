@@ -115,10 +115,8 @@ func prePushRef(left, right string) {
 		if err != nil {
 			if lfs.IsCleanPointerError(err) {
 				Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
-			} else if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
 			} else {
-				Exit(err.Error())
+				ExitWithError(err)
 			}
 		}
 

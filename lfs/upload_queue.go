@@ -25,7 +25,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 
 	if len(filename) > 0 {
 		if err := ensureFile(filename, localMediaPath); err != nil {
-			return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
+			return nil, err
 		}
 	}
 
@@ -108,7 +108,7 @@ func ensureFile(smudgePath, cleanPath string) error {
 	}
 
 	if expectedOid != cleaned.Oid {
-		return fmt.Errorf("Expected %s to have an OID of %s, got %s", smudgePath, expectedOid, cleaned.Oid)
+		return fmt.Errorf("Trying to push %q with OID %s.\nNot found in %s.", smudgePath, expectedOid, filepath.Dir(cleanPath))
 	}
 
 	return nil
