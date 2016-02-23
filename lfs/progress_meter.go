@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -30,6 +31,7 @@ type ProgressMeter struct {
 	finished          chan interface{}
 	logger            *progressLogger
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
+	fileIndexMutex    *sync.Mutex
 	dryRun            bool
 }
 
@@ -45,6 +47,7 @@ func NewProgressMeter(estFiles int, estBytes int64, dryRun bool) *ProgressMeter 
 		logger:         logger,
 		startTime:      time.Now(),
 		fileIndex:      make(map[string]int64),
+		fileIndexMutex: &sync.Mutex{},
 		finished:       make(chan interface{}),
 		estimatedFiles: estFiles,
 		estimatedBytes: estBytes,
@@ -62,7 +65,9 @@ func (p *ProgressMeter) Start() {
 // TransferQueue.
 func (p *ProgressMeter) Add(name string) {
 	idx := atomic.AddInt64(&p.transferringFiles, 1)
+	p.fileIndexMutex.Lock()
 	p.fileIndex[name] = idx
+	p.fileIndexMutex.Unlock()
 }
 
 // Skip tells the progress meter that a file of size `size` is being skipped
@@ -81,7 +86,9 @@ func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64,
 // FinishTransfer increments the finished transfer count
 func (p *ProgressMeter) FinishTransfer(name string) {
 	atomic.AddInt64(&p.finishedFiles, 1)
+	p.fileIndexMutex.Lock()
 	delete(p.fileIndex, name)
+	p.fileIndexMutex.Unlock()
 }
 
 // Finish shuts down the ProgressMeter
@@ -95,7 +102,9 @@ func (p *ProgressMeter) Finish() {
 }
 
 func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
+	p.fileIndexMutex.Lock()
 	idx := p.fileIndex[name]
+	p.fileIndexMutex.Unlock()
 	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, p.estimatedFiles, read, total, name)
 	if err := p.logger.Write([]byte(line)); err != nil {
 		p.logger.Shutdown()
