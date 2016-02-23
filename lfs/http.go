@@ -103,13 +103,18 @@ func (c *Configuration) HttpClient() *HttpClient {
 		return c.httpClient
 	}
 
+	dialtime := c.GitConfigInt("lfs.dialtimeout", 30)
+	keepalivetime := c.GitConfigInt("lfs.keepalive", 1800) // 30 minutes
+	tlstime := c.GitConfigInt("lfs.tlstimeout", 30)
+
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
-			Timeout:   5 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   time.Duration(dialtime) * time.Second,
+			KeepAlive: time.Duration(keepalivetime) * time.Second,
 		}).Dial,
-		TLSHandshakeTimeout: 5 * time.Second,
+		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
+		MaxIdleConnsPerHost: c.ConcurrentTransfers(),
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
@@ -139,7 +144,9 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 		req.Header.Set(key, oldest.Header.Get(key))
 	}
 
-	tracerx.Printf("api: redirect %s %s to %s", oldest.Method, oldest.URL, req.URL)
+	oldestUrl := strings.SplitN(oldest.URL.String(), "?", 2)[0]
+	newUrl := strings.SplitN(req.URL.String(), "?", 2)[0]
+	tracerx.Printf("api: redirect %s %s to %s", oldest.Method, oldestUrl, newUrl)
 
 	return nil
 }
@@ -147,7 +154,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
 func traceHttpRequest(req *http.Request) {
-	tracerx.Printf("HTTP: %s %s", req.Method, req.URL.String())
+	tracerx.Printf("HTTP: %s", traceHttpReq(req))
 
 	if Config.isTracingHttp == false {
 		return

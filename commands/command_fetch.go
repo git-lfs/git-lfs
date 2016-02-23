@@ -242,12 +242,36 @@ func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bo
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
-
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
 	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+
+	if out != nil {
+		dlwatch := q.Watch()
+
+		go func() {
+			// fetch only reports single OID, but OID *might* be referenced by multiple
+			// WrappedPointers if same content is at multiple paths, so map oid->slice
+			oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
+			for _, pointer := range pointers {
+				plist := oidToPointers[pointer.Oid]
+				oidToPointers[pointer.Oid] = append(plist, pointer)
+			}
+
+			for oid := range dlwatch {
+				plist, ok := oidToPointers[oid]
+				if !ok {
+					continue
+				}
+				for _, p := range plist {
+					out <- p
+				}
+			}
+			close(out)
+		}()
+	}
 
 	for _, p := range pointers {
 		// Only add to download queue if local file is not the right size already
@@ -273,31 +297,6 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		}
 	}
 
-	if out != nil {
-		dlwatch := q.Watch()
-
-		go func() {
-			// fetch only reports single OID, but OID *might* be referenced by multiple
-			// WrappedPointers if same content is at multiple paths, so map oid->slice
-			oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
-			for _, pointer := range pointers {
-				plist := oidToPointers[pointer.Oid]
-				oidToPointers[pointer.Oid] = append(plist, pointer)
-			}
-
-			for oid := range dlwatch {
-				plist, ok := oidToPointers[oid]
-				if !ok {
-					continue
-				}
-				for _, p := range plist {
-					out <- p
-				}
-			}
-			close(out)
-		}()
-
-	}
 	processQueue := time.Now()
 	q.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
@@ -305,11 +304,7 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	ok := true
 	for _, err := range q.Errors() {
 		ok = false
-		if Debugging || lfs.IsFatalError(err) {
-			LoggedError(err, err.Error())
-		} else {
-			Error(err.Error())
-		}
+		ExitWithError(err)
 	}
 	return ok
 }

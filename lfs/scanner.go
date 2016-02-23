@@ -293,6 +293,8 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (chan string, e
 			}
 			revs <- sha1
 		}
+
+		cmd.Wait()
 		close(revs)
 	}()
 
@@ -343,6 +345,8 @@ func revListIndex(cache bool, indexMap *indexFileMap) (chan string, error) {
 				revs <- sha1
 			}
 		}
+
+		cmd.Wait()
 		close(revs)
 	}()
 
@@ -366,20 +370,31 @@ func catFileBatchCheck(revs chan string) (chan string, error) {
 		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
+			lineLen := len(line)
+
 			// Format is:
 			// <sha1> <type> <size>
 			// type is at a fixed spot, if we see that it's "blob", we can avoid
 			// splitting the line just to get the size.
-			if line[41:45] == "blob" {
-				size, err := strconv.Atoi(line[46:len(line)])
-				if err != nil {
-					continue
-				}
-				if size < blobSizeCutoff {
-					smallRevs <- line[0:40]
-				}
+			if lineLen < 46 {
+				continue
+			}
+
+			if line[41:45] != "blob" {
+				continue
+			}
+
+			size, err := strconv.Atoi(line[46:lineLen])
+			if err != nil {
+				continue
+			}
+
+			if size < blobSizeCutoff {
+				smallRevs <- line[0:40]
 			}
 		}
+
+		cmd.Wait()
 		close(smallRevs)
 	}()
 
@@ -437,6 +452,8 @@ func catFileBatch(revs chan string) (chan *WrappedPointer, error) {
 				break
 			}
 		}
+
+		cmd.Wait()
 		close(pointers)
 	}()
 
@@ -559,8 +576,10 @@ func catFileBatchTree(treeblobs chan TreeBlob) (chan *WrappedPointer, error) {
 				break
 			}
 		}
-		close(pointers)
+
 		cmd.Stdin.Close()
+		cmd.Wait()
+		close(pointers)
 	}()
 
 	return pointers, nil
@@ -574,6 +593,7 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	lsArgs := []string{"ls-tree",
 		"-r",          // recurse
 		"-l",          // report object size (we'll need this)
+		"-z",          // null line termination
 		"--full-tree", // start at the root regardless of where we are in it
 		ref}
 
@@ -587,27 +607,63 @@ func lsTreeBlobs(ref string) (chan TreeBlob, error) {
 	blobs := make(chan TreeBlob, chanBufSize)
 
 	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
-		regex := regexp.MustCompile(`^\d+\s+blob\s+([0-9a-zA-Z]{40})\s+(\d+)\s+(.*)$`)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if match := regex.FindStringSubmatch(line); match != nil {
-				sz, err := strconv.ParseInt(match[2], 10, 64)
-				if err != nil {
-					continue
-				}
-				sha1 := match[1]
-				filename := match[3]
-				if sz < blobSizeCutoff {
-					blobs <- TreeBlob{sha1, filename}
-				}
-
-			}
-		}
+		parseLsTree(cmd.Stdout, blobs)
+		cmd.Wait()
 		close(blobs)
 	}()
 
 	return blobs, nil
+}
+
+func parseLsTree(reader io.Reader, output chan TreeBlob) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(scanNullLines)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) < 2 {
+			continue
+		}
+
+		attrs := strings.SplitN(parts[0], " ", 4)
+		if len(attrs) < 4 {
+			continue
+		}
+
+		if attrs[1] != "blob" {
+			continue
+		}
+
+		sz, err := strconv.ParseInt(strings.TrimSpace(attrs[3]), 10, 64)
+		if err != nil {
+			continue
+		}
+
+		if sz < blobSizeCutoff {
+			sha1 := attrs[2]
+			filename := parts[1]
+			output <- TreeBlob{sha1, filename}
+		}
+	}
+}
+
+func scanNullLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	if i := bytes.IndexByte(data, '\000'); i >= 0 {
+		// We have a full null-terminated line.
+		return i + 1, data[0:i], nil
+	}
+
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+
+	// Request more data.
+	return 0, nil, nil
 }
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not
@@ -683,7 +739,10 @@ func ScanUnpushedToChan(remoteName string) (chan *WrappedPointer, error) {
 
 	pchan := make(chan *WrappedPointer, chanBufSize)
 
-	go parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+		cmd.Wait()
+	}()
 
 	return pchan, nil
 
@@ -712,7 +771,10 @@ func logPreviousSHAs(ref string, since time.Time) (chan *WrappedPointer, error) 
 	// we pull out deletions, since we want the previous SHAs at commits in the range
 	// this means we pick up all previous versions that could have been checked
 	// out in the date range, not just if the commit which *introduced* them is in the range
-	go parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
+		cmd.Wait()
+	}()
 
 	return pchan, nil
 

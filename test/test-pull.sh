@@ -18,58 +18,76 @@ begin_test "pull"
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
+  contents2="A"
+  contents2_oid=$(calc_oid "$contents2")
 
   printf "$contents" > a.dat
-  git add a.dat
-  git add .gitattributes
-  git commit -m "add a.dat" 2>&1 | tee commit.log
+  printf "$contents2" > á.dat
+  git add a.dat á.dat .gitattributes
+  git commit -m "add files" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
-  grep "2 files changed" commit.log
+  grep "3 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
+  ls -al
   [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "master" "á.dat" "$contents2_oid" 1
 
   refute_server_object "$reponame" "$contents_oid"
+  refute_server_object "$reponame" "$contents2_oid"
 
+  echo "initial push"
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "(2 of 2 files)" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
+  assert_server_object "$reponame" "$contents2_oid"
 
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  echo "normal pull"
+  git pull 2>&1 | tee pull.log
+  grep "Downloading a.dat (1 B)" pull.log
+  grep "Downloading á.dat (1 B)" pull.log
 
   [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
 
   assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
 
-
-  # Remove the working directory and lfs files
-  rm a.dat
+  echo "lfs pull"
+  rm a.dat á.dat
   rm -rf .git/lfs/objects
-  git lfs pull 2>&1 | grep "(1 of 1 files)"
+  git lfs pull 2>&1 | grep "(2 of 2 files)"
+  ls -al
   [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
 
-  # Try with remote arg
-  rm a.dat
+  echo "lfs pull with remote"
+  rm a.dat á.dat
   rm -rf .git/lfs/objects
-  git lfs pull origin 2>&1 | grep "(1 of 1 files)"
+  git lfs pull origin 2>&1 | grep "(2 of 2 files)"
   [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
 
-  # Remove just the working directory
-  rm a.dat
+  echo "lfs pull with local storage"
+  rm a.dat á.dat
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
 
-  # Test include / exclude filters supplied in gitconfig
+  echo "lfs pull with include/exclude filters in gitconfig"
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "a*"
   git lfs pull
@@ -81,7 +99,7 @@ begin_test "pull"
   git lfs pull
   refute_local_object "$contents_oid"
 
-  # Test include / exclude filters supplied on the command line
+  echo "lfs pull with include/exclude filters in command line"
   git config --unset "lfs.fetchexclude"
   rm -rf .git/lfs/objects
   git lfs pull --include="a*"

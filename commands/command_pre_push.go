@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -48,6 +49,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Remote is first arg
+	if err := git.ValidateRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q", args[0])
+	}
 	lfs.Config.CurrentRemote = args[0]
 
 	// We can be passed multiple lines of refs
@@ -110,10 +115,8 @@ func prePushRef(left, right string) {
 		if err != nil {
 			if lfs.IsCleanPointerError(err) {
 				Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
-			} else if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
 			} else {
-				Exit(err.Error())
+				ExitWithError(err)
 			}
 		}
 

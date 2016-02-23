@@ -17,6 +17,11 @@ lfs option can be scoped inside the configuration for a remote.
   The url used to call the Git LFS remote API. Default blank (derive from clone
   URL).
 
+* `lfs.pushurl` / `<remote>.lfspushurl`
+
+  The url used to call the Git LFS remote API when pushing. Default blank (derive
+  from either LFS non-push urls or clone url).
+
 * `lfs.concurrenttransfers`
 
   The number of concurrent uploads/downloads. Default 3.
@@ -26,6 +31,22 @@ lfs option can be scoped inside the configuration for a remote.
   Whether to use the batch API instead of requesting objects individually.
   Default true. This setting transitions clients from the legacy to the newer
   batch API and will be gone in Git LFS v1.0.
+
+* `lfs.dialtimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait initiate a
+  connection. This does not include the time to send a request and wait for a
+  response. Default: 30 seconds
+
+* `lfs.tlstimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait for a TLS
+  handshake. Default: 30 seconds.
+
+* `lfs.keepalive`
+
+  Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
+  connections. Default: 30 minutes.
 
 ### Fetch settings
 

@@ -1,5 +1,31 @@
 # Git LFS Changelog
 
+## 1.1.1 (4 February, 2016)
+
+### Features
+
+* Add copy-on-write support for Linux BTRFS filesystem #952 (@bozaro)
+* convert `git://` remotes to LFS servers automatically #964 (@technoweenie)
+* Fix `git lfs track` handling of absolute paths. #975  (@technoweenie)
+* Allow tunable http client timeouts #977 (@technoweenie)
+
+### Bugs
+
+* Suppress git config warnings for non-LFS keys #861 (@technoweenie)
+* Fix fallthrough when `git-lfs-authenticate` returns an error #909 (@sinbad)
+* Fix progress bar issue #883 (@pokehanai)
+* Support `remote.name.pushurl` config #949 (@sinbad)
+* Fix handling of `GIT_DIR` and `GIT_WORK_TREE` #963, #971 (@technoweenie)
+* Fix handling of zero length files #966 (@nathanhi)
+* Guard against invalid remotes passed to `push` and `pre-push` #974 (@technoweenie)
+* Fix race condition in `git lfs pull` #972 (@technoweenie)
+
+### Extra
+
+* Add server API test tool #868 (@sinbad)
+* Redo windows installer with innosetup #875 (@strich)
+* Pre-built packages are built with Go v1.5.3
+
 ## 1.1.0 (18 November, 2015)
 
 * NTLM auth support #820 (@WillHipschman, @technoweenie)

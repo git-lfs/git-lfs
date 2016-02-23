@@ -410,3 +410,12 @@ begin_test "push modified files"
   assert_server_object "$reponame" "$oid5"
 )
 end_test
+
+begin_test "push with invalid remote"
+(
+  set -e
+  cd repo
+  git lfs push not-a-remote 2>&1 | tee push.log
+  grep "Invalid remote name" push.log
+)
+end_test

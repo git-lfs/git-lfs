@@ -66,6 +66,10 @@ func (p *Pointer) Encode(writer io.Writer) (int, error) {
 }
 
 func (p *Pointer) Encoded() string {
+	if p.Size == 0 {
+		return ""
+	}
+
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("version %s\n", latest))
 	for _, ext := range p.Extensions {

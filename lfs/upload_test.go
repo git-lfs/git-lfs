@@ -47,7 +47,7 @@ func TestExistingUpload(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -63,7 +63,7 @@ func TestExistingUpload(t *testing.T) {
 			t.Errorf("invalid size from request: %d", reqObj.Size)
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
 			Actions: map[string]*linkRelation{
@@ -186,7 +186,7 @@ func TestUploadWithRedirect(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -202,7 +202,7 @@ func TestUploadWithRedirect(t *testing.T) {
 			t.Errorf("invalid size from request: %d", reqObj.Size)
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Actions: map[string]*linkRelation{
 				"upload": &linkRelation{
 					Href:   server.URL + "/upload",
@@ -279,7 +279,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -295,7 +295,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Errorf("invalid size from request: %d", reqObj.Size)
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
 			Actions: map[string]*linkRelation{
@@ -381,7 +381,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -482,7 +482,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -498,7 +498,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 			t.Errorf("invalid size from request: %d", reqObj.Size)
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
 			Actions: map[string]*linkRelation{
@@ -666,7 +666,7 @@ func TestUploadStorageError(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -682,7 +682,7 @@ func TestUploadStorageError(t *testing.T) {
 			t.Errorf("invalid size from request: %d", reqObj.Size)
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
 			Actions: map[string]*linkRelation{
@@ -783,7 +783,7 @@ func TestUploadVerifyError(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &objectResource{}
+		reqObj := &ObjectResource{}
 		err := json.NewDecoder(tee).Decode(reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
@@ -799,7 +799,7 @@ func TestUploadVerifyError(t *testing.T) {
 			t.Errorf("invalid size from request: %d", reqObj.Size)
 		}
 
-		obj := &objectResource{
+		obj := &ObjectResource{
 			Oid:  reqObj.Oid,
 			Size: reqObj.Size,
 			Actions: map[string]*linkRelation{

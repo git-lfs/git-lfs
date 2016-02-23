@@ -1,5 +1,5 @@
 Name:           git-lfs
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
@@ -9,7 +9,9 @@ URL:            https://git-lfs.github.com/
 Source0:        https://github.com/github/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  perl-Digest-SHA
-BuildRequires:  golang, tar, rubygem-ronn, git, which
+BuildRequires:  golang, tar, rubygem-ronn, which, git >= 1.8.2
+
+Requires: git >= 1.8.2
 
 %define debug_package %{nil}
 #I think this is because go links with --build-id=none for linux
@@ -26,6 +28,9 @@ mkdir -p src/github.com/github
 ln -s $(pwd) src/github.com/github/%{name}
 
 %build
+%if 0%{?rhel} == 5
+  export CGO_ENABLED=0
+%endif
 %if %{_arch} == i386
   GOARCH=386 GOPATH=`pwd` ./script/bootstrap
 %else
@@ -58,6 +63,9 @@ rm -rf %{buildroot}
 /usr/share/man/man1/*.1.gz
 
 %changelog
+* Sun Dec 6 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.1.0-1
+- Added Requires and version for git back in
+
 * Sat Oct 31 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.0.3-1
 - Added GIT_LFS_TEST_DIR to prevent future test race condition
 

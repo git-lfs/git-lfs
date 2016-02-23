@@ -21,15 +21,27 @@ $client = Packagecloud::Client.new(credentials)
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
 $distro_name_map = {
-  "centos/5" => %w(el/5),
-  "centos/6" => %w(el/6),
-  "centos/7" => %w(el/7),
-  "debian/7" => %w(debian/wheezy
-                   ubuntu/precise),
-  "debian/8" => %w(debian/jessie
-                   ubuntu/trusty
-                   ubuntu/vivid
-                   ubuntu/wily),
+  "centos/5" => %w(
+    el/5
+  ),
+  "centos/6" => %w(
+    el/6
+  ),
+  "centos/7" => %w(
+    el/7
+    fedora/22
+    fedora/23
+  ),
+  "debian/7" => %w(
+    debian/wheezy
+    ubuntu/precise
+  ),
+  "debian/8" => %w(
+    debian/jessie
+    ubuntu/trusty
+    ubuntu/vivid
+    ubuntu/wily
+  ),
 }
 
 # caches distro id lookups
@@ -43,24 +55,19 @@ def distro_names_for(filename)
   raise "no distro for #{filename.inspect}"
 end
 
-def build_packages(filename)
-  distro_names = distro_names_for(filename)
+package_files = Dir.glob("repos/**/*.rpm") + Dir.glob("repos/**/*.deb")
+package_files.each do |full_path|
+  next if full_path =~ /repo-release/
+  pkg = Packagecloud::Package.new(:file => full_path)
+  distro_names = distro_names_for(full_path)
   distro_names.map do |distro_name|
     distro_id = $distro_id_map[distro_name] ||= $client.find_distribution_id(distro_name)
     if !distro_id
       raise "no distro id for #{distro_name.inspect}"
     end
-    Packagecloud::Package.new(open(filename), distro_id)
-  end
-end
 
-package_files = Dir.glob("repos/**/*.rpm") + Dir.glob("repos/**/*.deb")
-package_files.each do |full_path|
-  next if full_path =~ /repo-release/
-  packages = build_packages(full_path)
-  packages.each do |pkg|
-    puts "pushing #{full_path} to #{$distro_id_map.key(pkg.distro_version_id).inspect}"
-    $client.put_package("git-lfs", pkg)
+    puts "pushing #{full_path} to #{$distro_id_map.key(distro_id).inspect}"
+    $client.put_package("git-lfs", pkg, distro_id)
   end
 end
 

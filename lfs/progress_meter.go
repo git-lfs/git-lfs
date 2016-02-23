@@ -137,8 +137,12 @@ func (p *ProgressMeter) update() {
 		out += fmt.Sprintf(", %s skipped", formatBytes(p.skippedBytes))
 	}
 
-	padding := strings.Repeat(" ", width-len(out))
-	fmt.Fprintf(os.Stdout, out+padding)
+	padlen := width - len(out)
+	if 0 < padlen {
+		out += strings.Repeat(" ", padlen)
+	}
+
+	fmt.Fprintf(os.Stdout, out)
 }
 
 // progressLogger provides a wrapper around an os.File that can either

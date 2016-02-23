@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -24,5 +25,5 @@ func expectedAuth(t *testing.T, server *httptest.Server) string {
 	}
 
 	token := fmt.Sprintf("%s:%s", u.Host, "monkey")
-	return "Basic " + base64.URLEncoding.EncodeToString([]byte(token))
+	return "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
 }

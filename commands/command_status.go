@@ -43,11 +43,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	branch, err := git.CurrentBranch()
-	if err != nil {
-		Panic(err, "Could not get current branch")
-	}
-	Print("On branch %s", branch)
+	Print("On branch %s", ref.Name)
 
 	remoteRef, err := git.CurrentRemoteRef()
 	if err == nil {

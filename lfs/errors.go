@@ -203,6 +203,15 @@ func IsRetriableError(err error) bool {
 	return false
 }
 
+func GetInnerError(err error) error {
+	if e, ok := err.(interface {
+		InnerError() error
+	}); ok {
+		return e.InnerError()
+	}
+	return nil
+}
+
 // Error wraps an error with an empty message.
 func Error(err error) error {
 	return Errorf(err, "")

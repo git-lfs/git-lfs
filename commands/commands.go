@@ -57,6 +57,17 @@ func Exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
+func ExitWithError(err error) {
+	if Debugging || lfs.IsFatalError(err) {
+		Panic(err, err.Error())
+	} else {
+		if inner := lfs.GetInnerError(err); inner != nil {
+			Error(inner.Error())
+		}
+		Exit(err.Error())
+	}
+}
+
 // Debug prints a formatted message if debugging is enabled.  The formatted
 // message also shows up in the panic log, if created.
 func Debug(format string, args ...interface{}) {

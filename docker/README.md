@@ -13,12 +13,7 @@
 
 1. Generate GPG keys for everything (See GPG Signing)
 2. `export REPO_HOSTNAME=repo.something.com`
-3. Generate all of the dependency RPMS
-
-        ./docker/run_dockers.bsh ./docker/git-lfs-full-build_*.dockerfile`
-        
-4. Generate git-lfs/repo packages and sign all packages (including the previous
-dependencies)
+4. Generate git-lfs/repo packages and sign all packages
 
         ./docker/run_dockers.bsh
         
@@ -40,44 +35,21 @@ mount points like
 
 ### Running Dockers ###
 
-In order to run the dockers, the docker has to be built, and then run with a
+In order to run the dockers, the docker has to be run with a
 lot of arguments to get the mount points right, etc... A convenient script is 
 supplied to make this all easy. Simply run
 
     ./docker/run_docker.bsh
     
-All the `git-lfs_*` images are built automatically, and then run.
+All the images are pulled automatically, and then run.
 
 To only run certain docker images, supply them as arguments, e.g.
 
-    ./docker/run_docker.bsh ./docker/git-lfs_debian_7.dockerfile
-    ./docker/run_docker.bsh ./docker/git-lfs_debian_*.dockerfile
-    ./docker/run_docker.bsh ./docker/git-lfs_*[6-8].dockerfile
-    
+    ./docker/run_docker.bsh debian_7
+    ./docker/run_docker.bsh centos_7 debian_8
+    ./docker/run_docker.bsh centos_{5,6,7}
+
 And only those images will be run.
-
-### Building Dockers (Optional) ###
-
-`run_dockers.bsh` calls `build_dockers.bsh`, but you can still call the
-script manually to get the building out of the way once while you go make a cup
-of tea/coffee.
-
-In order to use the docker **images**, they have to be built so that they are
-ready to be used. For OSes like Debian, this is a fairly quick process. 
-However CentOS takes considerably longer time, since it has to build go, ruby,
-or git from source, depending on the version. Fortunately, you can build the 
-docker images JUST once, and you won't have to build it again (until the 
-`DOCKER_LFS_BUILD_VERSION` changes.) The build script uses a downloaded release
-from github of git-lfs to bootstrap the CentOS image and build/install all the 
-necessary software.
-
-This means all the compiling, yum/apt-get/custom dependency compiling is done 
-once and saved. (This is done in CentOS by using the already existing 
-`./rpm/rpm_build.bsh` script to bootstrap the image and saving the image.)
-
-The script that takes care of ALL of these details for you is
-
-    ./docker/build_dockers.bsh
 
 ### Development in Dockers ###
 
@@ -85,7 +57,7 @@ Sometimes you don't want to just build git-lfs and destroy the container, you
 want to get in there, run a lot of command, debug, develop, etc... To do this, 
 the best command to run is bash, and then you have an interactive shell to use
 
-    ./docker/run_docker.bsh {image name(s)}.dockerfile -- bash
+    ./docker/run_docker.bsh {image name(s)} -- bash
 
 After listing the image(s) you want to run, add a double dash (--) and then any 
 command (and arguments) you want executed in the docker. Remember, the command
@@ -93,17 +65,17 @@ you are executing has to be in the docker image.
 
 ## Docker images ##
 
-There are currently three types of docker images:
+There are currently three type of docker images:
 
-1. Building images: `git-lfs_{OS NAME}_{OS VERSION}.dockerfile` - These build
+1. Building images: `{OS NAME}_{OS VERSION}` - These build
 git-lfs and save the package/repository in the `/repo` direrctory. This image
 also signs all rpms/debs if gpg signing is setup
-2. Environment building images: `git-lfs-full-build_{OS_NAME}_{OS_VERSION}.dockerfile` -
+2. Environment building images: `{OS_NAME}_{OS_VERSION}_env` -
 These build or install the environment (dependencies) for building git-lfs. These 
 are mostly important for CentOS because without these, many dependencies have 
 to be built by a developer. These containers should create packages for these 
 dependencies and place them in `/repo`
-3. Testing images: `git-lfs-test_{OS_NAME}_{OS_VERSION}.dockerfile` - These images
+3. Testing images: `{OS_NAME}_{OS_VERSION}_test` - These images
 should install the repo and download the git-lfs packages and dependencies to test
 that everything is working, including the GPG signatures. Unlike the first two types,
 testing images are not guaranteed to work without GPG signatures. They should 
@@ -111,9 +83,9 @@ also run the test and integration scripts after installing git-lfs to verify
 everything is working in a **non-developer** setup. (With the exception that go
 is needed to build the tests...)
 
-This default behavior for both `./docker/run_dockers.bsh` and 
-`./docker/build_dockers.bsh` is to run/build all of the _building images_. These
-containers will use the currently checked-out version of git-lfs and copied it 
+This default behavior for `./docker/run_dockers.bsh`
+is to run all of the _building images_. These
+containers will use the currently checked-out version of git-lfs and copy it 
 into the docker, and run `git clean -xdf` to remove any non-tracked files, 
 (but non-committed changes are kept). git-lfs is built, and a packages/repo is 
 created for each container.
@@ -122,18 +94,17 @@ These are all a developer would need to test the different OSes. And create the
 git-lfs rpm or deb packages in the `/repo` directory. 
 
 In order to distribute git-lfs **and** build dependencies, the dependencies that 
-that were built for you by `build_docker.bsh` need to be saved too. Most of these
+that were built to create the docker images need to be saved too. Most of these
 are downloaded by yum/apt-get and do not need to be saved, but a few are not.
 In order to save the necessary dependencies, call `./docker/run_dockers.bsh` on 
-`git-lfs-full-build_*.dockerfile` before `git-lfs_*.dockerfile` and the rpms 
-will be extracted from the bootstrapped images and saved in the `./repo` directory.
-(This _can_ be done in one command. Order matters)
+`{OS_NAME}_{OS_VERSION}_env` and the rpms 
+will be extracted from the images and saved in the `./repo` directory.
+(This _can_ be done in one command)
 
-    ./docker/run_dockers.bsh ./docker/git-lfs-full-build_*.dockerfile ./docker/git-lfs_*.dockerfile
+    ./docker/run_dockers.bsh centos_6_env centos_6
 
-This is most important for CentOS 6 where git 1.8.2 or newer is not available, 
-only git 1.7.1 is available, so every user either has to build git from source, 
-or use the rpms generated by the `git-lfs-full-build_centos_6` image. Calling
+This isn't all that important anymore, unless you want ruby2 and the gems used to
+make the man pages for Centos 5/6 where ruby2 is not natively available. Calling
 the environment building images only needs to be done once, they should remain in
 the `./repo` directory afterwards.
 
@@ -146,9 +117,9 @@ of the `run_docker.bsh` script.
 
 `REPO_HOSTNAME` - Override the hostname for all the repos generated/tested (see below)
 
-`DOCKER_AUTOBUILD` - Default 1. `run_docker.bsh` always calls `build_docker.bsh`
-to ensure your docker image is up-to-date. Sometimes you may not want this. If 
-set to 0, it will not build docker images before running.
+`DOCKER_AUTOPULL` - Default 1. `run_docker.bsh` always pulls the latest version of
+the lfs dockers. If set to 0, it will not check to see if a new pull is needed,
+and you will always run off of your currently cached images docker images.
 
 `AUTO_REMOVE` - Default 1. Docker containers are automatically deleted on 
 exit. If set to 0, the docker containers will not be automatically deleted upon 
@@ -161,14 +132,6 @@ with dns, etc... For example `DOCKER_OTHER_OPTIONS="--dns 8.8.8.8"`
 
 If for some reason on Windows, you need to add a -v mount, folder names need to
 start with `//driveleter/dir...` instead of `/driveleter/dir...` to fool MINGW32
-
-### Build Docker Environment Variables ###
-
-`export` before calling `run_docker.bsh`/`build_docker.bsh`. 
-
-`DOCKER_LFS_BUILD_VERSION` - The version of LFS used to bootstrap the (CentOS)
-environment. This does not need to be bumped every version. This can be a tag 
-or a sha.
 
 ## Deploying/Building Repositories ##
 
@@ -248,7 +211,7 @@ place. The general procedure for this is
     9. Enter a secure password, make sure you will not forget it
     10. Generate Entropy!
     
-    gpg --export-secret-key '<key ID>!' >
+    gpg --export-secret-key '<key ID>!' > filename.key
     
 e.g. `gpg --export-secret-key '547CF247!' > ./docker/git-lfs_centos_7.key`
     
@@ -258,6 +221,8 @@ Keep in mind, .key files must NEVER be accidentally committed to the repo.
 
 _What if you don't have gpg handy?_ Just enter one of the dockers (-- bash) and
 generate them in there, and save them in the /src dir to get them out of the docker.
+Or `docker run -it --rm -v $(pwd):/key OS_NAME:OS_VERSION bash`, and generate in
+that docker and save to the `/key` directory
 
 ### GPG Agent ###
 
@@ -305,7 +270,8 @@ fails for RSA. CentOS 5 will **not** work with 2048 bit DSA keys... I suspect
 
 You can make a 4096 RSA key for Debian and CentOS 6/7 (4 for step 1 above, and
 4096 for step 2) and a 1024 DSA key for CentOS 5 (3 for step 1 above, and 1024
-for step 2). And only have two keys... Or optionally a 4096 RSA subkey for Debain
+for step 2. And be sure to make the key in a CentOS 5 docker.). And only have two
+keys... Or optionally a 4096 RSA subkey for Debain
 [1]. Or a key for each distro. Dealers choice. You should have least two since 
 1024 bit isn't that great and you are only using it for CentOS 5 because nothing
 else works.
@@ -319,32 +285,12 @@ else works.
 
 ## Adding additional OSes ##
 
-To add another operating system, simply follow the already existing pattern, 
-and all the scripts will pick them up. A new dockerfile should be named to
+To add another operating system,  it needs to be added to the lfs_dockers 
+repo and uploaded to docker hub. Then all that is left is to add it to the 
+IMAGES list in `run_dockers.bsh` and `test_dockers.bsh`
 
-    ./docker/git-lfs_{OS NAME}_{OS VERSION #}.dockerfile
-    
-where **{OS NAME}** and **{OS VERSION #}** should not contain underscores (\_).
-Any files that needs to be added to the docker image must be in the `./docker`
-directory. This is the docker context root that all of the dockers are built in.
-
-The docker image should run a script that builds using the files in /src (but
-don't modify them...) and write its repo files to the /repo directory inside 
-the docker container. Writing to /repo in the docker will cause the files to 
-end up in
-
-    ./repos/{OS NAME}/{OS VERSION #}/
-    
-Unlike standard Dockerfiles, these support two extra features. The first one is
-the command `SOURCE`. Similar to `FROM`, only instead of inheriting the image,
-it just includes all the commands from another Dockerfile (Minus `FROM` and 
-`MAINTAINER` commands) instead. This is useful to make multiple images that work
-off of each other without having to know the container image names, and without 
-manually making multiple Dockerfiles have the exact same commands.
-
-The second feature is a variable substitution in the form of `[{ENV_VAR_NAME}]`
-These will be replaced with values from calling environment or blanked out if
-the environment variable is not defined.
+Follow the already existing pattern `{OS NAME}_{OS VERSION #}` where 
+**{OS NAME}** and **{OS VERSION #}** should not contain underscores (\_).
 
 ## Docker Cheat sheet ##
 

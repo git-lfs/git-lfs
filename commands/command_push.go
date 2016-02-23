@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -99,11 +100,7 @@ func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
 
 		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if err != nil {
-			if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
-			} else {
-				Exit(err.Error())
-			}
+			ExitWithError(err)
 		}
 		uploadQueue.Add(u)
 	}
@@ -159,6 +156,10 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Remote is first arg
+	if err := git.ValidateRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q", args[0])
+	}
 	lfs.Config.CurrentRemote = args[0]
 
 	if useStdin {
