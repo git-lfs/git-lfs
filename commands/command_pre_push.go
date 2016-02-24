@@ -55,6 +55,8 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 	lfs.Config.CurrentRemote = args[0]
 
+	uploadedOids := lfs.NewStringSet()
+
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -69,12 +71,11 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		prePushRef(left, right)
-
+		prePushRef(left, right, uploadedOids)
 	}
 }
 
-func prePushRef(left, right string) {
+func prePushRef(left, right string, uploadedOids lfs.StringSet) {
 	// Just use scanner here
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
@@ -85,17 +86,16 @@ func prePushRef(left, right string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
+	pointers = filteredPointers(pointers, uploadedOids)
+	pointers = filteredPointers(pointers, prePushCheckForMissingObjects(pointers))
+
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
 
-	// Objects to skip because they're missing locally but on server
-	var skipObjects lfs.StringSet
-
-	if !prePushDryRun {
-		// Do this as a pre-flight check since upload queue starts immediately
-		skipObjects = prePushCheckForMissingObjects(pointers)
+	if totalSize < 1 {
+		return
 	}
 
 	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
@@ -103,11 +103,6 @@ func prePushRef(left, right string) {
 	for _, pointer := range pointers {
 		if prePushDryRun {
 			Print("push %s => %s", pointer.Oid, pointer.Name)
-			continue
-		}
-
-		if skipObjects.Contains(pointer.Oid) {
-			// object missing locally but on server, don't bother
 			continue
 		}
 
@@ -120,6 +115,7 @@ func prePushRef(left, right string) {
 			}
 		}
 
+		uploadedOids.Add(pointer.Oid)
 		uploadQueue.Add(u)
 	}
 
@@ -137,7 +133,19 @@ func prePushRef(left, right string) {
 			os.Exit(2)
 		}
 	}
+}
 
+func filteredPointers(pointers []*lfs.WrappedPointer, filter lfs.StringSet) []*lfs.WrappedPointer {
+	filtered := make([]*lfs.WrappedPointer, 0, len(pointers))
+	for _, pointer := range pointers {
+		if filter.Contains(pointer.Oid) {
+			continue
+		}
+
+		filtered = append(filtered, pointer)
+	}
+
+	return filtered
 }
 
 func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer lfs.StringSet) {
