@@ -149,12 +149,15 @@ func RemoteList() ([]string, error) {
 		return nil, fmt.Errorf("Failed to call git remote: %v", err)
 	}
 	cmd.Start()
+	defer cmd.Wait()
+
 	scanner := bufio.NewScanner(outp)
 
 	var ret []string
 	for scanner.Scan() {
 		ret = append(ret, strings.TrimSpace(scanner.Text()))
 	}
+
 	return ret, nil
 }
 
@@ -327,6 +330,8 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
 	}
 	cmd.Start()
+	defer cmd.Wait()
+
 	scanner := bufio.NewScanner(outp)
 
 	// Output is like this:
@@ -365,7 +370,6 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 			ret = append(ret, &Ref{ref, reftype, sha})
 		}
 	}
-	cmd.Wait()
 
 	return ret, nil
 
