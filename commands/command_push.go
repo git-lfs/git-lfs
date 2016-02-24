@@ -45,17 +45,20 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) {
 
 	if pushAll {
 		if len(refs) == 0 {
-			pointers := scanAll()
-			Print("Pushing objects...")
-			uploadPointers(pointers)
-			return
-		} else {
-			scanOpt.ScanMode = lfs.ScanRefsMode
-		}
-	}
+			gitrefs, err := git.LocalRefs()
+			if err := nil {
+				Error(err.Error())
+				Exit("Error getting local refs.")
+			}
 
-	// keep a unique set of pointers
-	oidPointerMap := make(map[string]*lfs.WrappedPointer)
+			refs = make([]string, len(gitrefs))
+			for idx, gitref := range gitrefs {
+				refs[idx] = gitref.Name
+			}
+		}
+
+		scanOpt.ScanMode = lfs.ScanRefsMode
+	}
 
 	for _, ref := range refs {
 		pointers, err := lfs.ScanRefs(ref, "", scanOpt)
@@ -63,19 +66,8 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref)
 		}
 
-		for _, p := range pointers {
-			oidPointerMap[p.Oid] = p
-		}
+		uploadPointers(pointers)
 	}
-
-	i := 0
-	pointers := make([]*lfs.WrappedPointer, len(oidPointerMap))
-	for _, pointer := range oidPointerMap {
-		pointers[i] = pointer
-		i += 1
-	}
-
-	uploadPointers(pointers)
 }
 
 func uploadPointers(pointers []*lfs.WrappedPointer) {
