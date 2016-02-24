@@ -714,6 +714,59 @@ func CloneWithoutFilters(args []string) error {
 	return nil
 }
 
+// RemoteBranchList returns a list of branches for a remote, without any
+// remote/ or refs/heads prefixes
+// If retrieveFromRemote is true, this information is built by actually calling
+// the remote using 'git ls-remote'. Otherwise the cached remote branch
+// information held locally is used instead.
+func RemoteBranchList(remoteName string, retrieveFromRemote bool) ([]string, error) {
+
+	var ret []string
+	if retrieveFromRemote {
+		cmd := execCommand("git", "ls-remote", "--heads", "-q", remoteName)
+
+		outp, err := cmd.StdoutPipe()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to call git ls-remote: %v", err)
+		}
+		cmd.Start()
+		scanner := bufio.NewScanner(outp)
+
+		var ret []string
+		r := regexp.MustCompile(`[0-9a-fA-F]{40}\s+refs/heads/(.*)`)
+		for scanner.Scan() {
+			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+				// Don't match head
+				b := strings.TrimSpace(match[1])
+				if b != "HEAD" {
+					ret = append(ret, b)
+				}
+			}
+		}
+	} else {
+		cmd := execCommand("git", "branch", "-r", "--list", remoteName+"/\\*")
+
+		outp, err := cmd.StdoutPipe()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to call git branch -r --list: %v", err)
+		}
+		cmd.Start()
+		scanner := bufio.NewScanner(outp)
+
+		r := regexp.MustCompile(fmt.Sprintf(`\s*%v/(.*)`, remoteName))
+		for scanner.Scan() {
+			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+				// Don't match head
+				b := strings.TrimSpace(match[1])
+				if b != "HEAD" {
+					ret = append(ret, b)
+				}
+			}
+		}
+	}
+	return ret, nil
+}
+
 // An env for an exec.Command without GIT_TRACE
 var env []string
 var traceEnv = "GIT_TRACE="
