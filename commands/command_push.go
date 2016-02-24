@@ -121,11 +121,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 
 		u, err := lfs.NewUploadable(oid, "")
 		if err != nil {
-			if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
-			} else {
-				Exit(err.Error())
-			}
+			ExitWithError(err)
 		}
 		uploads = append(uploads, u)
 	}
@@ -206,6 +202,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			if Debugging || lfs.IsFatalError(err) {
 				LoggedError(err, err.Error())
 			} else {
+				if inner := lfs.GetInnerError(err); inner != nil {
+					Error(inner.Error())
+				}
 				Error(err.Error())
 			}
 		}
