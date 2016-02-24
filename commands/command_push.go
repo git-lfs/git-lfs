@@ -46,7 +46,7 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) {
 	if pushAll {
 		if len(refs) == 0 {
 			gitrefs, err := git.LocalRefs()
-			if err == nil {
+			if err != nil {
 				Error(err.Error())
 				Exit("Error getting local refs.")
 			}
