@@ -280,3 +280,21 @@ func TestGitAndRootDirs(t *testing.T) {
 
 	assert.Equal(t, git, filepath.Join(root, ".git"))
 }
+
+func TestLocalRefs(t *testing.T) {
+	refs, err := LocalRefs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, r := range refs {
+		switch r.Type {
+		case RefTypeHEAD:
+			t.Errorf("Local HEAD ref: %v", r)
+		case RefTypeOther:
+			t.Errorf("Stash or unknown ref: %v", r)
+		case RefTypeRemoteBranch, RefTypeRemoteTag:
+			t.Errorf("Remote ref: %v", r)
+		}
+	}
+}
