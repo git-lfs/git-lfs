@@ -100,3 +100,13 @@ sending patches. Related projects are listed on the [Implementations wiki
 page][impl]. You can also join [the project's chat room][chat].
 
 [impl]: https://github.com/github/git-lfs/wiki/Implementations
+
+## Core Team
+
+These are the humans that form the Git LFS core team, which runs the project.
+
+In alphabetical order:
+
+| [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) |
+|---|---|---|---|---|
+| [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) |
