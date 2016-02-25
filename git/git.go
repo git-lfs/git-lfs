@@ -714,16 +714,15 @@ func CloneWithoutFilters(args []string) error {
 	return nil
 }
 
-// RemoteBranchList returns a list of branches for a remote, without any
-// remote/ or refs/heads prefixes
+// RemoteRefsList returns a list of branches & tags for a remote
 // If retrieveFromRemote is true, this information is built by actually calling
 // the remote using 'git ls-remote'. Otherwise the cached remote branch
 // information held locally is used instead.
-func RemoteBranchList(remoteName string, retrieveFromRemote bool) ([]string, error) {
+func RemoteRefs(remoteName string, retrieveFromRemote bool) ([]*Ref, error) {
 
-	var ret []string
+	var ret []*Ref
 	if retrieveFromRemote {
-		cmd := execCommand("git", "ls-remote", "--heads", "-q", remoteName)
+		cmd := execCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
 
 		outp, err := cmd.StdoutPipe()
 		if err != nil {
@@ -732,34 +731,39 @@ func RemoteBranchList(remoteName string, retrieveFromRemote bool) ([]string, err
 		cmd.Start()
 		scanner := bufio.NewScanner(outp)
 
-		var ret []string
-		r := regexp.MustCompile(`[0-9a-fA-F]{40}\s+refs/heads/(.*)`)
+		r := regexp.MustCompile(`([0-9a-fA-F]{40})\s+refs/(heads|tags)/(.*)`)
 		for scanner.Scan() {
 			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+				name := strings.TrimSpace(match[3])
+				sha := match[1]
 				// Don't match head
-				b := strings.TrimSpace(match[1])
-				if b != "HEAD" {
-					ret = append(ret, b)
+				if name != "HEAD" {
+					if match[2] == "heads" {
+						ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+					} else {
+						ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
+					}
 				}
 			}
 		}
 	} else {
-		cmd := execCommand("git", "branch", "-r", "--list", remoteName+"/\\*")
+		cmd := execCommand("git", "show-ref")
 
 		outp, err := cmd.StdoutPipe()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to call git branch -r --list: %v", err)
+			return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
 		}
 		cmd.Start()
 		scanner := bufio.NewScanner(outp)
 
-		r := regexp.MustCompile(fmt.Sprintf(`\s*%v/(.*)`, remoteName))
+		r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
 		for scanner.Scan() {
 			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+				name := strings.TrimSpace(match[3])
+				sha := match[1]
 				// Don't match head
-				b := strings.TrimSpace(match[1])
-				if b != "HEAD" {
-					ret = append(ret, b)
+				if name != "HEAD" {
+					ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 				}
 			}
 		}
