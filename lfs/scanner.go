@@ -245,6 +245,52 @@ func ScanIndex() ([]*WrappedPointer, error) {
 
 }
 
+// Get additional arguments needed to limit 'git rev-list' to just the changes in revTo
+// that are also not on remoteName.
+func revListArgsRefVsRemote(refTo, remoteName string) []string {
+	// We need to check that the locally cached versions of remote refs are still
+	// present on the remote before we use them as a 'from' point. If the
+	// server implements garbage collection and a remote branch had been deleted
+	// since we last did 'git fetch --prune', then the objects in that branch may
+	// have also been deleted on the server if unreferenced.
+	// If some refs are missing on the remote, use a more explicit diff
+
+	cachedRemoteRefs, _ := git.RemoteRefs(remoteName, false)
+	actualRemoteRefs, _ := git.RemoteRefs(remoteName, true)
+
+	// Only check for missing refs on remote; if the ref is different it has moved
+	// forward probably, and if not and the ref has changed to a non-descendant
+	// (force push) then that will cause a re-evaluation in a subsequent command anyway
+	missingRefs := NewStringSet()
+	for _, cachedRef := range cachedRemoteRefs {
+		found := false
+		for _, realRemoteRef := range actualRemoteRefs {
+			if cachedRef.Type == realRemoteRef.Type && cachedRef.Name == realRemoteRef.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missingRefs.Add(cachedRef.Name)
+		}
+	}
+
+	if len(missingRefs) > 0 {
+		// Use only the non-missing refs as 'from' points
+		ret := []string{refTo, "--not"}
+		for _, cachedRef := range cachedRemoteRefs {
+			if !missingRefs.Contains(cachedRef.Name) {
+				ret = append(ret, fmt.Sprintf("refs/remotes/%v/%v", remoteName, cachedRef.Name))
+			}
+		}
+		return ret
+	} else {
+		// Safe to use cached
+		return []string{refTo, "--not", "--remotes=" + remoteName}
+	}
+
+}
+
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
@@ -265,7 +311,7 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (chan string, e
 	case ScanAllMode:
 		refArgs = append(refArgs, "--all")
 	case ScanLeftToRemoteMode:
-		refArgs = append(refArgs, refLeft, "--not", "--remotes="+opt.RemoteName)
+		refArgs = append(refArgs, revListArgsRefVsRemote(refLeft, opt.RemoteName)...)
 	default:
 		return nil, errors.New("scanner: unknown scan type: " + strconv.Itoa(int(opt.ScanMode)))
 	}
