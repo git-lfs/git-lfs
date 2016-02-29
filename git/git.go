@@ -759,7 +759,7 @@ func RemoteRefs(remoteName string, retrieveFromRemote bool) ([]*Ref, error) {
 		r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
 		for scanner.Scan() {
 			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
-				name := strings.TrimSpace(match[3])
+				name := strings.TrimSpace(match[2])
 				sha := match[1]
 				// Don't match head
 				if name != "HEAD" {
