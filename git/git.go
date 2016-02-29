@@ -714,7 +714,7 @@ func CloneWithoutFilters(args []string) error {
 	return nil
 }
 
-// RemoteRefsList returns a list of branches & tags for a remote
+// RemoteRefs returns a list of branches & tags for a remote
 // If retrieveFromRemote is true, this information is built by actually calling
 // the remote using 'git ls-remote'. Otherwise the cached remote branch
 // information held locally is used instead.
