@@ -1,5 +1,14 @@
 # Git LFS Changelog
 
+## 1.1.2 (1 March, 2016)
+
+* Fix Base64 issues with `?` #989 (@technoweenie)
+* Fix zombie git proc issue #1012 (@rlaakkol)
+* Fix problems with files containing unicode characters #1016 (@technoweenie)
+* Fix panic in `git cat-file` parser #1006 (@technoweenie)
+* Display error messages in non-fatal errors #1028 #1039 #1042 (@technoweenie)
+* Fix concurrent map access in progress meter (@technoweenie)
+
 ## 1.1.1 (4 February, 2016)
 
 ### Features
