@@ -144,7 +144,7 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 //
 //   `<remote> <remote ref>`
 //
-// Both a remote name ("origin") or a remote URL are accepted.
+// Remote must be a remote name, not a URL
 //
 // pushCommand calculates the git objects to send by looking comparing the range
 // of commits between the local and remote git servers.
