@@ -713,5 +713,7 @@ func isDockerConnectionError(err error) bool {
 		return false
 	}
 
-	return strings.Contains(err.Error(), "connection reset by peer")
+	e := err.Error()
+	return strings.Contains(e, "connection reset by peer") ||
+		strings.Contains(e, "connection refused")
 }
