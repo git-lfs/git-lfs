@@ -714,56 +714,59 @@ func CloneWithoutFilters(args []string) error {
 	return nil
 }
 
-// RemoteRefs returns a list of branches & tags for a remote
-// If retrieveFromRemote is true, this information is built by actually calling
-// the remote using 'git ls-remote'. Otherwise the cached remote branch
-// information held locally is used instead.
-func RemoteRefs(remoteName string, retrieveFromRemote bool) ([]*Ref, error) {
+// CachedRemoteRefs returns the list of branches & tags for a remote which are
+// currently cached locally. No remote request is made to verify them.
+func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 	var ret []*Ref
-	if retrieveFromRemote {
-		cmd := execCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
+	cmd := execCommand("git", "show-ref")
 
-		outp, err := cmd.StdoutPipe()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to call git ls-remote: %v", err)
-		}
-		cmd.Start()
-		scanner := bufio.NewScanner(outp)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
 
-		r := regexp.MustCompile(`([0-9a-fA-F]{40})\s+refs/(heads|tags)/(.*)`)
-		for scanner.Scan() {
-			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
-				name := strings.TrimSpace(match[3])
-				sha := match[1]
-				// Don't match head
-				if name != "HEAD" {
-					if match[2] == "heads" {
-						ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
-					} else {
-						ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
-					}
-				}
+	r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
+	for scanner.Scan() {
+		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+			name := strings.TrimSpace(match[2])
+			sha := match[1]
+			// Don't match head
+			if name != "HEAD" {
+				ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 			}
 		}
-	} else {
-		cmd := execCommand("git", "show-ref")
+	}
+	return ret, nil
+}
 
-		outp, err := cmd.StdoutPipe()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
-		}
-		cmd.Start()
-		scanner := bufio.NewScanner(outp)
+// RemoteRefs returns a list of branches & tags for a remote by actually
+// accessing the remote vir git ls-remote
+func RemoteRefs(remoteName string) ([]*Ref, error) {
 
-		r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
-		for scanner.Scan() {
-			if match := r.FindStringSubmatch(scanner.Text()); match != nil {
-				name := strings.TrimSpace(match[2])
-				sha := match[1]
-				// Don't match head
-				if name != "HEAD" {
+	var ret []*Ref
+	cmd := execCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git ls-remote: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+
+	r := regexp.MustCompile(`([0-9a-fA-F]{40})\s+refs/(heads|tags)/(.*)`)
+	for scanner.Scan() {
+		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+			name := strings.TrimSpace(match[3])
+			sha := match[1]
+			// Don't match head
+			if name != "HEAD" {
+				if match[2] == "heads" {
 					ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+				} else {
+					ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
 				}
 			}
 		}
