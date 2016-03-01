@@ -113,6 +113,9 @@ func TestExistingUpload(t *testing.T) {
 
 	o, err := UploadCheck(oidPath)
 	if err != nil {
+		if isDockerConnectionError(err) {
+			return
+		}
 		t.Fatal(err)
 	}
 	if o != nil {
@@ -237,6 +240,9 @@ func TestUploadWithRedirect(t *testing.T) {
 
 	obj, err := UploadCheck(oidPath)
 	if err != nil {
+		if isDockerConnectionError(err) {
+			return
+		}
 		t.Fatal(err)
 	}
 
@@ -418,6 +424,9 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 	obj, err := UploadCheck(oidPath)
 	if err != nil {
+		if isDockerConnectionError(err) {
+			return
+		}
 		t.Fatal(err)
 	}
 	err = UploadObject(obj, cb)
@@ -572,6 +581,9 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 
 	obj, err := UploadCheck(oidPath)
 	if err != nil {
+		if isDockerConnectionError(err) {
+			return
+		}
 		t.Fatal(err)
 	}
 	err = UploadObject(obj, nil)
@@ -622,6 +634,10 @@ func TestUploadApiError(t *testing.T) {
 
 	if IsFatalError(err) {
 		t.Fatal("should not panic")
+	}
+
+	if isDockerConnectionError(err) {
+		return
 	}
 
 	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects") {
@@ -725,6 +741,9 @@ func TestUploadStorageError(t *testing.T) {
 
 	obj, err := UploadCheck(oidPath)
 	if err != nil {
+		if isDockerConnectionError(err) {
+			return
+		}
 		t.Fatal(err)
 	}
 	err = UploadObject(obj, nil)
@@ -874,6 +893,9 @@ func TestUploadVerifyError(t *testing.T) {
 
 	obj, err := UploadCheck(oidPath)
 	if err != nil {
+		if isDockerConnectionError(err) {
+			return
+		}
 		t.Fatal(err)
 	}
 	err = UploadObject(obj, nil)
