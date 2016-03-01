@@ -732,11 +732,13 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 	for scanner.Scan() {
 		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
 			name := strings.TrimSpace(match[2])
-			sha := match[1]
 			// Don't match head
-			if name != "HEAD" {
-				ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+			if name == "HEAD" {
+				continue
 			}
+
+			sha := match[1]
+			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 		}
 	}
 	return ret, nil
@@ -760,14 +762,16 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 	for scanner.Scan() {
 		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
 			name := strings.TrimSpace(match[3])
-			sha := match[1]
 			// Don't match head
-			if name != "HEAD" {
-				if match[2] == "heads" {
-					ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
-				} else {
-					ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
-				}
+			if name == "HEAD" {
+				continue
+			}
+
+			sha := match[1]
+			if match[2] == "heads" {
+				ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+			} else {
+				ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
 			}
 		}
 	}
