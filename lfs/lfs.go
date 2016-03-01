@@ -237,3 +237,17 @@ func traceHttpReq(req *http.Request) string {
 func AllObjects() []localstorage.Object {
 	return objects.AllObjects()
 }
+
+func IfNoLocalObjExistsLinkOrCopyFromReferenceMedia(oid string, size int64) error {
+	if !ObjectExistsOfSize(oid, size) {
+		altMediafile := LocalReferencePath(oid)
+		mediafile, err := LocalMediaPath(oid)
+		if err != nil {
+			return err
+		}
+		if altMediafile != "" && FileExistsOfSize(altMediafile, size) {
+			return LinkOrCopy(altMediafile, mediafile)
+		}
+	}
+	return nil
+}
