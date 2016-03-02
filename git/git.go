@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/github/git-lfs/subprocess"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pty"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
@@ -59,14 +59,14 @@ func LsRemote(remote, remoteRef string) (string, error) {
 		return "", errors.New("remote required")
 	}
 	if remoteRef == "" {
-		return simpleExec("git", "ls-remote", remote)
+		return subprocess.SimpleExec("git", "ls-remote", remote)
 
 	}
-	return simpleExec("git", "ls-remote", remote, remoteRef)
+	return subprocess.SimpleExec("git", "ls-remote", remote, remoteRef)
 }
 
 func ResolveRef(ref string) (*Ref, error) {
-	outp, err := simpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
+	outp, err := subprocess.SimpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func RemoteBranchForLocalBranch(localBranch string) string {
 }
 
 func RemoteList() ([]string, error) {
-	cmd := execCommand("git", "remote")
+	cmd := subprocess.ExecCommand("git", "remote")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -211,7 +211,7 @@ func DefaultRemote() (string, error) {
 }
 
 func UpdateIndex(file string) error {
-	_, err := simpleExec("git", "update-index", "-q", "--refresh", file)
+	_, err := subprocess.SimpleExec("git", "update-index", "-q", "--refresh", file)
 	return err
 }
 
@@ -222,34 +222,34 @@ var Config = &gitConfig{}
 
 // Find returns the git config value for the key
 func (c *gitConfig) Find(val string) string {
-	output, _ := simpleExec("git", "config", val)
+	output, _ := subprocess.SimpleExec("git", "config", val)
 	return output
 }
 
 // Find returns the git config value for the key
 func (c *gitConfig) FindGlobal(val string) string {
-	output, _ := simpleExec("git", "config", "--global", val)
+	output, _ := subprocess.SimpleExec("git", "config", "--global", val)
 	return output
 }
 
 // Find returns the git config value for the key
 func (c *gitConfig) FindLocal(val string) string {
-	output, _ := simpleExec("git", "config", "--local", val)
+	output, _ := subprocess.SimpleExec("git", "config", "--local", val)
 	return output
 }
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *gitConfig) SetGlobal(key, val string) {
-	simpleExec("git", "config", "--global", key, val)
+	subprocess.SimpleExec("git", "config", "--global", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
 func (c *gitConfig) UnsetGlobal(key string) {
-	simpleExec("git", "config", "--global", "--unset", key)
+	subprocess.SimpleExec("git", "config", "--global", "--unset", key)
 }
 
 func (c *gitConfig) UnsetGlobalSection(key string) {
-	simpleExec("git", "config", "--global", "--remove-section", key)
+	subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
@@ -260,7 +260,7 @@ func (c *gitConfig) SetLocal(file, key, val string) {
 		args = append(args, "--file", file)
 	}
 	args = append(args, key, val)
-	simpleExec("git", args...)
+	subprocess.SimpleExec("git", args...)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
@@ -271,22 +271,22 @@ func (c *gitConfig) UnsetLocalKey(file, key string) {
 		args = append(args, "--file", file)
 	}
 	args = append(args, "--unset", key)
-	simpleExec("git", args...)
+	subprocess.SimpleExec("git", args...)
 }
 
 // List lists all of the git config values
 func (c *gitConfig) List() (string, error) {
-	return simpleExec("git", "config", "-l")
+	return subprocess.SimpleExec("git", "config", "-l")
 }
 
 // ListFromFile lists all of the git config values in the given config file
 func (c *gitConfig) ListFromFile(f string) (string, error) {
-	return simpleExec("git", "config", "-l", "-f", f)
+	return subprocess.SimpleExec("git", "config", "-l", "-f", f)
 }
 
 // Version returns the git version
 func (c *gitConfig) Version() (string, error) {
-	return simpleExec("git", "version")
+	return subprocess.SimpleExec("git", "version")
 }
 
 // IsVersionAtLeast returns whether the git version is the one specified or higher
@@ -300,29 +300,13 @@ func (c *gitConfig) IsGitVersionAtLeast(ver string) bool {
 	return IsVersionAtLeast(gitver, ver)
 }
 
-// simpleExec is a small wrapper around os/exec.Command.
-func simpleExec(name string, args ...string) (string, error) {
-	tracerx.Printf("run_command: '%s' %s", name, strings.Join(args, " "))
-	cmd := execCommand(name, args...)
-
-	output, err := cmd.Output()
-	if _, ok := err.(*exec.ExitError); ok {
-		return "", nil
-	}
-	if err != nil {
-		return fmt.Sprintf("Error running %s %s", name, args), err
-	}
-
-	return strings.Trim(string(output), " \n"), nil
-}
-
 // RecentBranches returns branches with commit dates on or after the given date/time
 // Return full Ref type for easier detection of duplicate SHAs etc
 // since: refs with commits on or after this date will be included
 // includeRemoteBranches: true to include refs on remote branches
 // onlyRemote: set to non-blank to only include remote branches on a single remote
 func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
-	cmd := execCommand("git", "for-each-ref",
+	cmd := subprocess.ExecCommand("git", "for-each-ref",
 		`--sort=-committerdate`,
 		`--format=%(refname) %(objectname) %(committerdate:iso)`,
 		"refs")
@@ -424,7 +408,7 @@ func FormatGitDate(tm time.Time) string {
 
 // Get summary information about a commit
 func GetCommitSummary(commit string) (*CommitSummary, error) {
-	cmd := execCommand("git", "show", "-s",
+	cmd := subprocess.ExecCommand("git", "show", "-s",
 		`--format=%H|%h|%P|%ai|%ci|%ae|%an|%ce|%cn|%s`, commit)
 
 	out, err := cmd.CombinedOutput()
@@ -459,7 +443,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 }
 
 func GitAndRootDirs() (string, string, error) {
-	cmd := execCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
+	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
 
@@ -494,7 +478,7 @@ func GitAndRootDirs() (string, string, error) {
 }
 
 func RootDir() (string, error) {
-	cmd := execCommand("git", "rev-parse", "--show-toplevel")
+	cmd := subprocess.ExecCommand("git", "rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("Failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
@@ -509,7 +493,7 @@ func RootDir() (string, error) {
 }
 
 func GitDir() (string, error) {
-	cmd := execCommand("git", "rev-parse", "--git-dir")
+	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir")
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
@@ -643,7 +627,7 @@ func CloneWithoutFilters(args []string) error {
 		"-c", "filter.lfs.required=false",
 		"clone"}
 	cmdargs = append(cmdargs, args...)
-	cmd := execCommand("git", cmdargs...)
+	cmd := subprocess.ExecCommand("git", cmdargs...)
 
 	// Spool stdout directly to our own
 	cmd.Stdout = os.Stdout
@@ -719,7 +703,7 @@ func CloneWithoutFilters(args []string) error {
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 	var ret []*Ref
-	cmd := execCommand("git", "show-ref")
+	cmd := subprocess.ExecCommand("git", "show-ref")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -749,7 +733,7 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 func RemoteRefs(remoteName string) ([]*Ref, error) {
 
 	var ret []*Ref
-	cmd := execCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
+	cmd := subprocess.ExecCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -776,20 +760,4 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 		}
 	}
 	return ret, nil
-}
-
-// An env for an exec.Command without GIT_TRACE
-var env []string
-var traceEnv = "GIT_TRACE="
-
-func init() {
-	realEnv := os.Environ()
-	env = make([]string, 0, len(realEnv))
-
-	for _, kv := range realEnv {
-		if strings.HasPrefix(kv, traceEnv) {
-			continue
-		}
-		env = append(env, kv)
-	}
 }
