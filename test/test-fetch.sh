@@ -538,3 +538,12 @@ begin_test "fetch --prune"
   refute_local_object "$oid_commit2"
 )
 end_test
+
+begin_test "fetch with invalid remote"
+(
+  set -e
+  cd repo
+  git lfs fetch not-a-remote 2>&1 | tee fetch.log
+  grep "Invalid remote name" fetch.log
+)
+end_test

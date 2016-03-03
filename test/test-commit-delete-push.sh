@@ -33,12 +33,12 @@ begin_test "commit, delete, then push"
   git rm deleted.dat
   git commit -m "did not need deleted.dat after all"
 
-  GIT_TRACE=1 git lfs push origin master --dry-run 2>&1 | tee dryrun.log
+  git lfs push origin master --dry-run 2>&1 | tee dryrun.log
   grep "push ee31ef227442936872744b50d3297385c08b40ffc7baeaf34a39e6d81d6cd9ee => deleted.dat" dryrun.log
   grep "push 3428719b7688c78a0cc8ba4b9e80b4e464c815fbccfd4b20695a15ffcefc22af => added.dat" dryrun.log
 
   git log
-  GIT_TRACE=1 git push origin master 2>&1 > push.log || {
+  git push origin master 2>&1 > push.log || {
     cat push.log
     git lfs logs last
     exit 1

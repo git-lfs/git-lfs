@@ -10,8 +10,12 @@ assert_pointer() {
   local oid="$3"
   local size="$4"
 
-  tree=$(git ls-tree -lr "$ref")
-  gitblob=$(echo "$tree" | grep "$path" | cut -f 3 -d " ")
+  gitblob=$(git ls-tree -lrz "$ref" |
+    while read -r -d $'\0' x; do
+      echo $x
+    done |
+    grep "$path" | cut -f 3 -d " ")
+
   actual=$(git cat-file -p $gitblob)
   expected=$(pointer $oid $size)
 
@@ -211,8 +215,10 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
-      go build -o "$BINPATH/$(basename $go .go)" "$go"
+      GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
+    # Ensure API test util is built during tests to ensure it stays in sync
+    GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
   fi
 
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
@@ -220,7 +226,7 @@ setup() {
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
   mkdir "$HOME"
-  git lfs init
+  git lfs install
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"

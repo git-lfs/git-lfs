@@ -3,8 +3,10 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,8 +14,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
+	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pty"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -79,10 +84,6 @@ func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
-func CurrentBranch() (string, error) {
-	return simpleExec("git", "rev-parse", "--abbrev-ref", "HEAD")
-}
-
 func CurrentRemoteRef() (*Ref, error) {
 	remoteref, err := RemoteRefNameForCurrentBranch()
 	if err != nil {
@@ -94,34 +95,34 @@ func CurrentRemoteRef() (*Ref, error) {
 
 // RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
 func RemoteForCurrentBranch() (string, error) {
-	branch, err := CurrentBranch()
+	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
 	}
-	remote := RemoteForBranch(branch)
+	remote := RemoteForBranch(ref.Name)
 	if remote == "" {
-		return "", errors.New("remote not found")
+		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 	return remote, nil
 }
 
 // RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
 func RemoteRefNameForCurrentBranch() (string, error) {
-	branch, err := CurrentBranch()
+	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
 	}
 
-	if branch == "HEAD" {
+	if ref.Type == RefTypeHEAD || ref.Type == RefTypeOther {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := RemoteForBranch(branch)
+	remote := RemoteForBranch(ref.Name)
 	if remote == "" {
-		return "", errors.New("remote not found")
+		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 
-	remotebranch := RemoteBranchForLocalBranch(branch)
+	remotebranch := RemoteBranchForLocalBranch(ref.Name)
 
 	return remote + "/" + remotebranch, nil
 }
@@ -455,7 +456,41 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 		msg := fmt.Sprintf("Unexpected output from git show: %v", string(out))
 		return nil, errors.New(msg)
 	}
+}
 
+func GitAndRootDirs() (string, string, error) {
+	cmd := execCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
+
+	out, err := cmd.Output()
+	output := string(out)
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
+	}
+
+	paths := strings.Split(output, "\n")
+	pathLen := len(paths)
+
+	if pathLen == 0 {
+		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
+	}
+
+	absGitDir, err := filepath.Abs(paths[0])
+	if err != nil {
+		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[0], err)
+	}
+
+	if pathLen == 1 || len(paths[1]) == 0 {
+		return absGitDir, "", nil
+	}
+
+	absRootDir, err := filepath.Abs(paths[1])
+	if err != nil {
+		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[1], err)
+	}
+
+	return absGitDir, absRootDir, nil
 }
 
 func RootDir() (string, error) {
@@ -589,4 +624,172 @@ func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
 	}
 
 	return actual >= atleast
+}
+
+// CloneWithoutFilters clones a git repo but without the smudge filter enabled
+// so that files in the working copy will be pointers and not real LFS data
+func CloneWithoutFilters(args []string) error {
+
+	// Before git 2.2, setting filters to blank fails, so use cat instead (slightly slower)
+	filterOverride := ""
+	if !Config.IsGitVersionAtLeast("2.2.0") {
+		filterOverride = "cat"
+	}
+	// Disable the LFS filters while cloning to speed things up
+	// this is especially effective on Windows where even calling git-lfs at all
+	// with --skip-smudge is costly across many files in a checkout
+	cmdargs := []string{
+		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
+		"-c", "filter.lfs.required=false",
+		"clone"}
+	cmdargs = append(cmdargs, args...)
+	cmd := execCommand("git", cmdargs...)
+
+	// Spool stdout directly to our own
+	cmd.Stdout = os.Stdout
+
+	// Assign pty/tty so git thinks it's a real terminal
+	outpty, outtty, err := pty.Open()
+	cmd.Stdin = outtty
+	cmd.Stdout = outtty
+	errpty, errtty, err := pty.Open()
+	// stderr needs filtering
+	cmd.Stderr = errtty
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setctty = true
+	cmd.SysProcAttr.Setsid = true
+
+	var outputWait sync.WaitGroup
+	outputWait.Add(2)
+	go func() {
+		io.Copy(os.Stdout, outpty)
+		outputWait.Done()
+	}()
+	go func() {
+		// Filter stderr to exclude messages caused by disabling the filters
+		// As of git 2.7 it still tries to call the blank filter but required=false
+		// this problem should be gone in git 2.8 https://github.com/git/git/commit/1a8630d
+		scanner := bufio.NewScanner(errpty)
+		for scanner.Scan() {
+			s := scanner.Text()
+
+			// Swallow all the known messages from intentionally breaking filter
+			if strings.Contains(s, "error: external filter") ||
+				strings.Contains(s, "error: cannot fork") ||
+				// Linux / Mac messages
+				strings.Contains(s, "error: cannot run : No such file or directory") ||
+				strings.Contains(s, "warning: Clone succeeded, but checkout failed") ||
+				strings.Contains(s, "You can inspect what was checked out with 'git status'") ||
+				strings.Contains(s, "retry the checkout") ||
+				// Windows messages
+				strings.Contains(s, "error: cannot spawn : No such file or directory") ||
+				// blank formatting
+				len(strings.TrimSpace(s)) == 0 {
+				// Send filtered stderr to trace in case useful
+				tracerx.Printf(s)
+				continue
+			}
+			os.Stderr.WriteString(s)
+			os.Stderr.WriteString("\n") // stripped by scanner
+		}
+		outputWait.Done()
+	}()
+
+	err = cmd.Start()
+	if err != nil {
+		return fmt.Errorf("Failed to start git clone: %v", err)
+	}
+
+	outtty.Close()
+	errtty.Close()
+
+	err = cmd.Wait()
+	outputWait.Wait()
+	if err != nil {
+		return fmt.Errorf("git clone failed: %v", err)
+	}
+
+	return nil
+}
+
+// CachedRemoteRefs returns the list of branches & tags for a remote which are
+// currently cached locally. No remote request is made to verify them.
+func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
+
+	var ret []*Ref
+	cmd := execCommand("git", "show-ref")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+
+	r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
+	for scanner.Scan() {
+		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+			name := strings.TrimSpace(match[2])
+			// Don't match head
+			if name == "HEAD" {
+				continue
+			}
+
+			sha := match[1]
+			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+		}
+	}
+	return ret, nil
+}
+
+// RemoteRefs returns a list of branches & tags for a remote by actually
+// accessing the remote vir git ls-remote
+func RemoteRefs(remoteName string) ([]*Ref, error) {
+
+	var ret []*Ref
+	cmd := execCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git ls-remote: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+
+	r := regexp.MustCompile(`([0-9a-fA-F]{40})\s+refs/(heads|tags)/(.*)`)
+	for scanner.Scan() {
+		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
+			name := strings.TrimSpace(match[3])
+			// Don't match head
+			if name == "HEAD" {
+				continue
+			}
+
+			sha := match[1]
+			if match[2] == "heads" {
+				ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+			} else {
+				ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
+			}
+		}
+	}
+	return ret, nil
+}
+
+// An env for an exec.Command without GIT_TRACE
+var env []string
+var traceEnv = "GIT_TRACE="
+
+func init() {
+	realEnv := os.Environ()
+	env = make([]string, 0, len(realEnv))
+
+	for _, kv := range realEnv {
+		if strings.HasPrefix(kv, traceEnv) {
+			continue
+		}
+		env = append(env, kv)
+	}
 }

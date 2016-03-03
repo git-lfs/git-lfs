@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 script/fmt
-go run script/*.go -cmd release "$@"
+GO15VENDOREXPERIMENT=0 go run script/*.go -cmd release "$@"

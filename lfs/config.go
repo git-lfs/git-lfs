@@ -3,7 +3,6 @@ package lfs
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,9 +16,10 @@ import (
 )
 
 var (
-	Config             = NewConfig()
-	defaultRemote      = "origin"
-	ShowConfigWarnings = false
+	Config                 = NewConfig()
+	ShowConfigWarnings     = false
+	defaultRemote          = "origin"
+	gitConfigWarningPrefix = "lfs."
 )
 
 // FetchPruneConfig collects together the config options that control fetching and pruning
@@ -61,6 +61,7 @@ type Configuration struct {
 	fetchIncludePaths []string
 	fetchExcludePaths []string
 	fetchPruneConfig  *FetchPruneConfig
+	manualEndpoint    *Endpoint
 	parsedNetrc       netrcfinder
 }
 
@@ -111,22 +112,54 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 	return b
 }
 
-func (c *Configuration) Endpoint() Endpoint {
+// GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
+// the forpush argument is to cater for separate remote.name.pushurl settings
+func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
+	if forpush {
+		if u, ok := c.GitConfig("remote." + remote + ".pushurl"); ok {
+			return u
+		}
+	}
+
+	if u, ok := c.GitConfig("remote." + remote + ".url"); ok {
+		return u
+	}
+
+	return ""
+
+}
+
+// Manually set an Endpoint to use instead of deriving from Git config
+func (c *Configuration) SetManualEndpoint(e Endpoint) {
+	c.manualEndpoint = &e
+}
+
+func (c *Configuration) Endpoint(operation string) Endpoint {
+	if c.manualEndpoint != nil {
+		return *c.manualEndpoint
+	}
+
+	if operation == "upload" {
+		if url, ok := c.GitConfig("lfs.pushurl"); ok {
+			return NewEndpointWithConfig(url, c)
+		}
+	}
+
 	if url, ok := c.GitConfig("lfs.url"); ok {
-		return NewEndpoint(url)
+		return NewEndpointWithConfig(url, c)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if endpoint := c.RemoteEndpoint(c.CurrentRemote); len(endpoint.Url) > 0 {
+		if endpoint := c.RemoteEndpoint(c.CurrentRemote, operation); len(endpoint.Url) > 0 {
 			return endpoint
 		}
 	}
 
-	return c.RemoteEndpoint(defaultRemote)
+	return c.RemoteEndpoint(defaultRemote, operation)
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
-	if c.NtlmAccess() {
+	if c.NtlmAccess("download") {
 		return 1
 	}
 
@@ -156,26 +189,26 @@ func (c *Configuration) BatchTransfer() bool {
 	return useBatch
 }
 
-func (c *Configuration) NtlmAccess() bool {
-	return c.Access() == "ntlm"
+func (c *Configuration) NtlmAccess(operation string) bool {
+	return c.Access(operation) == "ntlm"
 }
 
 // PrivateAccess will retrieve the access value and return true if
 // the value is set to private. When a repo is marked as having private
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
-func (c *Configuration) PrivateAccess() bool {
-	return c.Access() != "none"
+func (c *Configuration) PrivateAccess(operation string) bool {
+	return c.Access(operation) != "none"
 }
 
 // Access returns the access auth type.
-func (c *Configuration) Access() string {
-	return c.EndpointAccess(c.Endpoint())
+func (c *Configuration) Access(operation string) string {
+	return c.EndpointAccess(c.Endpoint(operation))
 }
 
 // SetAccess will set the private access flag in .git/config.
-func (c *Configuration) SetAccess(authType string) {
-	c.SetEndpointAccess(c.Endpoint(), authType)
+func (c *Configuration) SetAccess(operation string, authType string) {
+	c.SetEndpointAccess(c.Endpoint(operation), authType)
 }
 
 func (c *Configuration) FindNetrcHost(host string) (*netrc.Machine, error) {
@@ -235,16 +268,24 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return c.fetchExcludePaths
 }
 
-func (c *Configuration) RemoteEndpoint(remote string) Endpoint {
+func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
+
+	// Support separate push URL if specified and pushing
+	if operation == "upload" {
+		if url, ok := c.GitConfig("remote." + remote + ".lfspushurl"); ok {
+			return NewEndpointWithConfig(url, c)
+		}
+	}
 	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
-		return NewEndpoint(url)
+		return NewEndpointWithConfig(url, c)
 	}
 
-	if url, ok := c.GitConfig("remote." + remote + ".url"); ok {
-		return NewEndpointFromCloneURL(url)
+	// finally fall back on git remote url (also supports pushurl)
+	if url := c.GitRemoteUrl(remote, operation == "upload"); url != "" {
+		return NewEndpointFromCloneURLWithConfig(url, c)
 	}
 
 	return Endpoint{}
@@ -255,9 +296,33 @@ func (c *Configuration) Remotes() []string {
 	return c.remotes
 }
 
+// GitProtocol returns the protocol for the LFS API when converting from a
+// git:// remote url.
+func (c *Configuration) GitProtocol() string {
+	if value, ok := c.GitConfig("lfs.gitprotocol"); ok {
+		return value
+	}
+	return "https"
+}
+
 func (c *Configuration) Extensions() map[string]Extension {
 	c.loadGitConfig()
 	return c.extensions
+}
+
+// GitConfigInt parses a git config value and returns it as an integer.
+func (c *Configuration) GitConfigInt(key string, def int) int {
+	s, _ := c.GitConfig(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	i, _ := strconv.Atoi(s)
+	if i < 1 {
+		return def
+	}
+
+	return i
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
@@ -269,10 +334,6 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 func (c *Configuration) AllGitConfig() map[string]string {
 	c.loadGitConfig()
 	return c.gitConfig
-}
-
-func (c *Configuration) ObjectUrl(oid string) (*url.URL, error) {
-	return ObjectUrl(c.Endpoint(), oid)
 }
 
 func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
@@ -417,10 +478,12 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 		key := strings.ToLower(pieces[0])
 		value := pieces[1]
 
-		if origKey, ok := uniqKeys[key]; ok && c.gitConfig[key] != value {
-			fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
-			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
-			fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+		if origKey, ok := uniqKeys[key]; ok {
+			if ShowConfigWarnings && c.gitConfig[key] != value && strings.HasPrefix(key, gitConfigWarningPrefix) {
+				fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+			}
 		} else {
 			uniqKeys[key] = pieces[0]
 		}
@@ -490,7 +553,8 @@ func keyIsUnsafe(key string) bool {
 }
 
 var safeKeys = []string{
-	"lfs.url",
-	"lfs.fetchinclude",
 	"lfs.fetchexclude",
+	"lfs.fetchinclude",
+	"lfs.gitprotocol",
+	"lfs.url",
 }

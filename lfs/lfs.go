@@ -3,17 +3,19 @@ package lfs
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 const (
-	Version            = "1.0.2"
+	Version            = "1.1.1"
 	tempDirPerms       = 0755
 	localMediaDirPerms = 0755
 	localLogDirPerms   = 0755
@@ -29,6 +31,7 @@ var (
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored
+	objects            *localstorage.LocalStorage
 	LocalLogDir        string
 	checkedTempDir     string
 )
@@ -49,24 +52,12 @@ func ResetTempDir() error {
 	return os.RemoveAll(TempDir)
 }
 
-func localMediaDirNoCreate(sha string) string {
-	return filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-}
-func localMediaPathNoCreate(sha string) string {
-	return filepath.Join(localMediaDirNoCreate(sha), sha)
+func LocalMediaPath(oid string) (string, error) {
+	return objects.BuildObjectPath(oid)
 }
 
-func LocalMediaPath(sha string) (string, error) {
-	path := localMediaDirNoCreate(sha)
-	if err := os.MkdirAll(path, localMediaDirPerms); err != nil {
-		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
-	}
-
-	return filepath.Join(path, sha), nil
-}
-
-func ObjectExistsOfSize(sha string, size int64) bool {
-	path := localMediaPathNoCreate(sha)
+func ObjectExistsOfSize(oid string, size int64) bool {
+	path := objects.ObjectPath(oid)
 	return FileExistsOfSize(path, size)
 }
 
@@ -99,29 +90,48 @@ func InRepo() bool {
 
 func ResolveDirs() {
 	var err error
-	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
+	LocalGitDir, LocalWorkingDir, err = git.GitAndRootDirs()
 	if err == nil {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
-		LocalMediaDir = filepath.Join(LocalGitStorageDir, "lfs", "objects")
-		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
-		if err := os.MkdirAll(LocalMediaDir, localMediaDirPerms); err != nil {
-			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
+
+		objs, err := localstorage.New(
+			filepath.Join(LocalGitStorageDir, "lfs", "objects"),
+			filepath.Join(TempDir, "objects"),
+		)
+
+		if err != nil {
+			panic(fmt.Sprintf("Error trying to init LocalStorage: %s", err))
 		}
 
+		objects = objs
+		LocalMediaDir = objs.RootDir
+		LocalObjectTempDir = objs.TempDir
+		LocalLogDir = filepath.Join(objs.RootDir, "logs")
 		if err := os.MkdirAll(LocalLogDir, localLogDirPerms); err != nil {
 			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
 		}
-
-		LocalObjectTempDir = filepath.Join(TempDir, "objects")
-		if err := os.MkdirAll(LocalObjectTempDir, tempDirPerms); err != nil {
-			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
+	} else {
+		errMsg := err.Error()
+		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
+		if !strings.Contains(errMsg, "Not a git repository") {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
 	}
 }
 
-func init() {
+func ClearTempObjects() error {
+	if objects == nil {
+		return nil
+	}
+	return objects.ClearTempObjects()
+}
 
+func ScanObjectsChan() <-chan localstorage.Object {
+	return objects.ScanObjectsChan()
+}
+
+func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
 
@@ -138,91 +148,6 @@ func init() {
 		strings.Replace(runtime.Version(), "go", "", 1),
 		gitCommit,
 	)
-}
-
-func resolveGitDir() (string, string, error) {
-	gitDir := Config.Getenv("GIT_DIR")
-	workTree := Config.Getenv("GIT_WORK_TREE")
-
-	if gitDir != "" {
-		return processGitDirVar(gitDir, workTree)
-	}
-
-	workTreeR, gitDirR, err := resolveGitDirFromCurrentDir()
-	if err != nil {
-		return "", "", err
-	}
-
-	if workTree != "" {
-		return processWorkTreeVar(gitDirR, workTree)
-	}
-
-	return workTreeR, gitDirR, nil
-}
-
-func processGitDirVar(gitDir, workTree string) (string, string, error) {
-	if workTree != "" {
-		return processWorkTreeVar(gitDir, workTree)
-	}
-
-	// See `core.worktree` in `man git-config`:
-	// “If --git-dir or GIT_DIR is specified but none of --work-tree, GIT_WORK_TREE and
-	// core.worktree is specified, the current working directory is regarded as the top
-	// level of your working tree.”
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", "", err
-	}
-
-	return wd, gitDir, nil
-}
-
-func processWorkTreeVar(gitDir, workTree string) (string, string, error) {
-	// See `core.worktree` in `man git-config`:
-	// “The value [of core.worktree, GIT_WORK_TREE, or --work-tree] can be an absolute path
-	// or relative to the path to the .git directory, which is either specified
-	// by --git-dir or GIT_DIR, or automatically discovered.”
-
-	if filepath.IsAbs(workTree) {
-		return workTree, gitDir, nil
-	}
-
-	base := filepath.Dir(filepath.Clean(gitDir))
-	absWorkTree := filepath.Join(base, workTree)
-	return absWorkTree, gitDir, nil
-}
-
-func resolveGitDirFromCurrentDir() (string, string, error) {
-
-	// Get root of the git working dir
-	gitDir, err := git.GitDir()
-	if err != nil {
-		return "", "", err
-	}
-
-	// Allow this to fail, will do so if GIT_DIR isn't set but GIT_WORK_TREE is rel
-	// Dealt with by parent
-	rootDir, _ := git.RootDir()
-
-	return rootDir, gitDir, nil
-}
-
-func resolveDotGitFile(file string) (string, string, error) {
-	// The local working directory is the directory the `.git` file is located in.
-	wd := filepath.Dir(file)
-
-	// The `.git` file tells us where the submodules `.git` directory is.
-	gitDir, err := processDotGitFile(file)
-	if err != nil {
-		return "", "", err
-	}
-
-	return wd, gitDir, nil
-}
-
-func processDotGitFile(file string) (string, error) {
-	return processGitRedirectFile(file, gitPtrPrefix)
 }
 
 func processGitRedirectFile(file, prefix string) (string, error) {
@@ -274,56 +199,11 @@ const (
 	gitPtrPrefix = "gitdir: "
 )
 
-// AllLocalObjects returns a slice of the the objects stored in the local LFS store
-// This does not necessarily mean referenced by commits, just stored
-// Note: reports final SHA only, extensions are ignored
-func AllLocalObjects() []*Pointer {
-	c := AllLocalObjectsChan()
-	ret := make([]*Pointer, 0, 100)
-	for p := range c {
-		ret = append(ret, p)
-	}
-	return ret
+func traceHttpReq(req *http.Request) string {
+	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
 }
 
-// AllLocalObjectsChan returns a channel of all the objects stored in the local LFS store
-// This does not necessarily mean referenced by commits, just stored
-// You should not alter the store until this channel is closed
-// Note: reports final SHA only, extensions are ignored
-func AllLocalObjectsChan() <-chan *Pointer {
-	ret := make(chan *Pointer, chanBufSize)
-
-	go func() {
-		defer close(ret)
-
-		scanStorageDir(LocalMediaDir, ret)
-	}()
-	return ret
-}
-
-func scanStorageDir(dir string, c chan *Pointer) {
-	// ioutil.ReadDir and filepath.Walk do sorting which is unnecessary & inefficient
-	dirf, err := os.Open(dir)
-	if err != nil {
-		return
-	}
-	defer dirf.Close()
-
-	direntries, err := dirf.Readdir(0)
-	if err != nil {
-		tracerx.Printf("Problem with Readdir in %v: %v", dir, err)
-		return
-	}
-	for _, dirfi := range direntries {
-		if dirfi.IsDir() {
-			subpath := filepath.Join(dir, dirfi.Name())
-			scanStorageDir(subpath, c)
-		} else {
-			// Make sure it's really an object file & not .DS_Store etc
-			if oidRE.MatchString(dirfi.Name()) {
-				c <- NewPointer(dirfi.Name(), dirfi.Size(), nil)
-			}
-		}
-	}
-
+// only used in tests
+func AllObjects() []localstorage.Object {
+	return objects.AllObjects()
 }

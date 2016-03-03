@@ -260,7 +260,6 @@ func TestWorkTrees(t *testing.T) {
 }
 
 func TestVersionCompare(t *testing.T) {
-
 	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2.6.0"))
 	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2.6"))
 	assert.Equal(t, true, IsVersionAtLeast("2.6.0", "2"))
@@ -271,4 +270,13 @@ func TestVersionCompare(t *testing.T) {
 	assert.Equal(t, false, IsVersionAtLeast("2.5.0", "2.6"))
 	assert.Equal(t, false, IsVersionAtLeast("2.5.0", "2.5.1"))
 	assert.Equal(t, false, IsVersionAtLeast("2.5.2", "2.5.10"))
+}
+
+func TestGitAndRootDirs(t *testing.T) {
+	git, root, err := GitAndRootDirs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, git, filepath.Join(root, ".git"))
 }

@@ -158,7 +158,7 @@ Git LFS uses the `clean` and `smudge` filters to decide which files use it.  The
 global filters can be set up with `git lfs install`:
 
 ```
-$ git lfs init
+$ git lfs install
 ```
 
 These filters ensure that large files aren't written into the repository proper,

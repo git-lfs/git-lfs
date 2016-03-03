@@ -30,6 +30,7 @@ override_dh_auto_build:
 		cp -rf $(BUILD_DIR)/pkg/*/* $(BUILD_DIR)/pkg/; \
 	fi
 	rm $(BUILD_DIR)/bin/script
+	rm $(BUILD_DIR)/bin/man
 	./script/man
 
 override_dh_strip:

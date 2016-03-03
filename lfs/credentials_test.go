@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -75,7 +76,7 @@ func TestGetCredentialsForApi(t *testing.T) {
 			Config:        map[string]string{"lfs.url": "https://testuser:testpass@git-server.com"},
 			Method:        "GET",
 			Href:          "https://git-server.com/foo",
-			Authorization: "Basic " + base64.URLEncoding.EncodeToString([]byte("testuser:testpass")),
+			Authorization: "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte("testuser:testpass"))),
 		},
 		{
 			Desc:          "git url auth",
@@ -86,7 +87,7 @@ func TestGetCredentialsForApi(t *testing.T) {
 			},
 			Method:        "GET",
 			Href:          "https://git-server.com/foo",
-			Authorization: "Basic " + base64.URLEncoding.EncodeToString([]byte("gituser:gitpass")),
+			Authorization: "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte("gituser:gitpass"))),
 		},
 		{
 			Desc:     "username in url",
@@ -215,7 +216,7 @@ func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, 
 			}
 		} else {
 			rawtoken := fmt.Sprintf("%s:%s", check.Username, check.Password)
-			expected := "Basic " + base64.URLEncoding.EncodeToString([]byte(rawtoken))
+			expected := "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(rawtoken)))
 			if reqAuth != expected {
 				t.Errorf("[%s] Bad Authorization. Expected '%s', got '%s'", check.Desc, expected, reqAuth)
 			}

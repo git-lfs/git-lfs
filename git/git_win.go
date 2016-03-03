@@ -12,5 +12,6 @@ import (
 func execCommand(name string, arg ...string) *exec.Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.Env = env
 	return cmd
 }

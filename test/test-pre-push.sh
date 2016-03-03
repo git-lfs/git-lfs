@@ -367,3 +367,96 @@ begin_test "pre-push multiple branches"
 
 )
 end_test
+
+begin_test "pre-push with bad remote"
+(
+  set -e
+
+  cd repo
+
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push not-a-remote "$GITSERVER/$reponame" 2>&1 |
+    tee pre-push.log
+  grep "Invalid remote name" pre-push.log
+)
+end_test
+
+begin_test "pre-push unfetched deleted remote branch & server GC"
+(
+  # point of this is to simulate the case where the local cache of the remote
+  # branch state contains a branch which has actually been deleted on the remote,
+  # the client just doesn't know yet (hasn't done 'git fetch origin --prune')
+  # If the server GC'd the objects that deleted branch contained, but they were
+  # referenced by a branch being pushed (earlier commit), push might assume it
+  # doesn't have to push it, but it does. Tests that we check the real remote refs
+  # before making an assumption about the diff we need to push
+  set -e
+
+  reponame="$(basename "$0" ".sh")-server-deleted-branch-gc"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  NUMFILES=4
+  # generate content we'll use
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    content[$a]="filecontent$a"
+    oid[$a]=$(calc_oid "${content[$a]}")
+  done
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[0]}, \"Data\":\"${content[0]}\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content[1]}, \"Data\":\"${content[1]}\"}]
+  },
+  {
+    \"NewBranch\":\"branch-to-delete\",
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
+  },
+  {
+    \"NewBranch\":\"branch-to-push-after\",
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file4.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # push only the first 2 branches
+  git push origin master branch-to-delete
+  for ((a=0; a < 3 ; a++))
+  do
+    assert_server_object "$reponame" "${oid[$a]}"
+  done
+  # confirm we haven't pushed the last one yet
+  refute_server_object "$reponame" "${oid[3]}"
+  # copy the cached remote ref for the branch we're going to delete remotely
+  cp .git/refs/remotes/origin/branch-to-delete branch-to-delete.ref
+  # now delete the branch on the server
+  git push origin --delete branch-to-delete
+  # remove the OID in it, as if GC'd
+  delete_server_object "$reponame" "${oid[2]}"
+  refute_server_object "$reponame" "${oid[2]}"
+  # Now put the cached remote ref back, as if someone else had deleted it but
+  # we hadn't done git fetch --prune yet
+  mv branch-to-delete.ref .git/refs/remotes/origin/branch-to-delete
+  # Confirm that local cache of remote branch is back
+  git branch -r 2>&1 | tee branch-r.log 
+  grep "origin/branch-to-delete" branch-r.log
+  # Now push later branch which should now need to re-push previous commits LFS too
+  git push origin branch-to-push-after
+  # all objects should now be there even though cached remote branch claimed it already had file3.dat
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    assert_server_object "$reponame" "${oid[$a]}"
+  done
+
+)
+end_test

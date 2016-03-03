@@ -83,7 +83,7 @@ fi
 GOPATH=`pwd` ./script/bootstrap
 
 install -D bin/git-lfs /usr/local/bin
-git lfs init
+git lfs install
 
 if which ruby > /dev/null 2>&1; then
   IFS_OLD=${IFS}
@@ -98,7 +98,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
   if [[ ${REDHAT_VERSION[0]} < 7 ]]; then
     yum install -y tar
     #if gpg isn't installed, everything actually works. if it is, the key must be added or rvm won't work
-    which gpg2 > /dev/null 2>&1 && 
+    which gpg2 > /dev/null 2>&1 &&
       gpg2 --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
     which gpg > /dev/null 2>&1 &&
       gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3

@@ -35,15 +35,20 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		lfs.Config.CurrentRemote = defaultRemote
 	}
 
+	pull(determineIncludeExcludePaths(pullIncludeArg, pullExcludeArg))
+
+}
+
+func pull(includePaths, excludePaths []string) {
+
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")
 	}
 
-	includePaths, excludePaths := determineIncludeExcludePaths(pullIncludeArg, pullExcludeArg)
-
 	c := fetchRefToChan(ref.Sha, includePaths, excludePaths)
 	checkoutFromFetchChan(includePaths, excludePaths, c)
+
 }
 
 func init() {
