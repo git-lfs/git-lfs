@@ -250,6 +250,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		return
 	}
 
+	if repo == "netrctest" {
+		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		if err != nil || (user != "netrcuser" || pass != "netrcpass") {
+			w.WriteHeader(403)
+			return
+		}
+	}
+
 	type batchReq struct {
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`
@@ -540,6 +548,25 @@ func newLfsStorage() *lfsStorage {
 	}
 }
 
+func extractAuth(auth string) (string, string, error) {
+	if strings.HasPrefix(auth, "Basic ") {
+		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
+		decoded := string(decodeBy)
+
+		if err != nil {
+			return "", "", err
+		}
+
+		parts := strings.SplitN(decoded, ":", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1], nil
+		}
+		return "", "", nil
+	}
+
+	return "", "", nil
+}
+
 func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
@@ -547,32 +574,25 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if strings.HasPrefix(auth, "Basic ") {
-		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
-		decoded := string(decodeBy)
+	user, pass, err := extractAuth(auth)
+	if err != nil {
+		w.WriteHeader(403)
+		log.Printf("Error decoding auth: %s\n", err)
+		return true
+	}
 
-		if err != nil {
-			w.WriteHeader(403)
-			log.Printf("Error decoding auth: %s\n", err)
-			return true
+	switch user {
+	case "user":
+		if pass == "pass" {
+			return false
 		}
-
-		parts := strings.SplitN(decoded, ":", 2)
-		if len(parts) == 2 {
-			switch parts[0] {
-			case "user":
-				if parts[1] == "pass" {
-					return false
-				}
-			case "path":
-				if strings.HasPrefix(r.URL.Path, "/"+parts[1]) {
-					return false
-				}
-				log.Printf("auth attempt against: %q", r.URL.Path)
-			}
+	case "netrcuser":
+		return false
+	case "path":
+		if strings.HasPrefix(r.URL.Path, "/"+pass) {
+			return false
 		}
-
-		log.Printf("auth does not match: %q", decoded)
+		log.Printf("auth attempt against: %q", r.URL.Path)
 	}
 
 	w.WriteHeader(403)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -61,6 +62,7 @@ type Configuration struct {
 	fetchExcludePaths []string
 	fetchPruneConfig  *FetchPruneConfig
 	manualEndpoint    *Endpoint
+	parsedNetrc       netrcfinder
 }
 
 func NewConfig() *Configuration {
@@ -207,6 +209,20 @@ func (c *Configuration) Access(operation string) string {
 // SetAccess will set the private access flag in .git/config.
 func (c *Configuration) SetAccess(operation string, authType string) {
 	c.SetEndpointAccess(c.Endpoint(operation), authType)
+}
+
+func (c *Configuration) FindNetrcHost(host string) (*netrc.Machine, error) {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+	if c.parsedNetrc == nil {
+		n, err := c.parseNetrc()
+		if err != nil {
+			return nil, err
+		}
+		c.parsedNetrc = n
+	}
+
+	return c.parsedNetrc.FindMachine(host), nil
 }
 
 func (c *Configuration) EndpointAccess(e Endpoint) string {

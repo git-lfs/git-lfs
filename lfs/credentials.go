@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os/exec"
@@ -26,9 +27,10 @@ func getCreds(req *http.Request) (Creds, error) {
 // getCredsForAPI gets the credentials for LFS API requests and sets the given
 // request's Authorization header with them using Basic Authentication.
 // 1. Check the LFS URL for authentication. Ex: http://user:pass@example.com
-// 2. Check the Git remote URL for authentication IF it's the same scheme and
+// 2. Check netrc for authentication.
+// 3. Check the Git remote URL for authentication IF it's the same scheme and
 //    host of the LFS URL.
-// 3. Ask 'git credential' to fill in the password from one of the above URLs.
+// 4. Ask 'git credential' to fill in the password from one of the above URLs.
 //
 // This prefers the Git remote URL for checking credentials so that users only
 // have to enter their passwords once for Git and Git LFS. It uses the same
@@ -44,6 +46,10 @@ func getCredsForAPI(req *http.Request) (Creds, error) {
 	}
 
 	if credsUrl == nil {
+		return nil, nil
+	}
+
+	if setCredURLFromNetrc(req) {
 		return nil, nil
 	}
 
@@ -88,6 +94,21 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 		}
 	}
 	return credsUrl, nil
+}
+
+func setCredURLFromNetrc(req *http.Request) bool {
+	host, _, err := net.SplitHostPort(req.URL.Host)
+	if err != nil {
+		return false
+	}
+
+	machine, err := Config.FindNetrcHost(host)
+	if err != nil || machine == nil {
+		return false
+	}
+
+	setRequestAuth(req, machine.Login, machine.Password)
+	return true
 }
 
 func skipCredsCheck(req *http.Request) bool {

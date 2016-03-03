@@ -9,6 +9,7 @@ authors = [
 
 [dependencies]
 
+"github.com/bgentry/go-netrc/netrc"             = "9fd32a8b3d3d3f9d43c341bfe098430e07609480"
 "github.com/cheggaaa/pb"                        = "bd14546a551971ae7f460e6d6e527c5b56cd38d7"
 "github.com/kr/pretty"                          = "088c856450c08c03eb32f7a6c221e6eefaa10e6f"
 "github.com/kr/pty"                             = "5cf931ef8f76dccd0910001d74a58a7fca84a83d"
@@ -18,6 +19,6 @@ authors = [
 "github.com/rubyist/tracerx"                    = "d7bcc0bc315bed2a841841bee5dbecc8d7d7582f"
 "github.com/spf13/cobra"                        = "c55cdf33856a08e4822738728b41783292812889"
 "github.com/spf13/pflag"                        = "580b9be06c33d8ba9dcc8757ea56b7642472c2f5"
+"github.com/ThomsonReutersEikon/go-ntlm/ntlm"	  = "52b7efa603f1b809167b528b8bbaa467e36fdc02"
 "github.com/technoweenie/assert"                = "b25ea301d127043ffacf3b2545726e79b6632139"
 "github.com/technoweenie/go-contentaddressable" = "38171def3cd15e3b76eb156219b3d48704643899"
-"github.com/ThomsonReutersEikon/go-ntlm/ntlm"	= "52b7efa603f1b809167b528b8bbaa467e36fdc02"
