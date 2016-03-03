@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Version            = "1.1.1"
+	Version            = "1.1.2"
 	tempDirPerms       = 0755
 	localMediaDirPerms = 0755
 	localLogDirPerms   = 0755

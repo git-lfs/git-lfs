@@ -129,6 +129,9 @@ func prePushRef(left, right string) {
 			if Debugging || lfs.IsFatalError(err) {
 				LoggedError(err, err.Error())
 			} else {
+				if inner := lfs.GetInnerError(err); inner != nil {
+					Error(inner.Error())
+				}
 				Error(err.Error())
 			}
 		}
