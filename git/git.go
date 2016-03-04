@@ -153,13 +153,49 @@ func RemoteList() ([]string, error) {
 		return nil, fmt.Errorf("Failed to call git remote: %v", err)
 	}
 	cmd.Start()
+	defer cmd.Wait()
+
 	scanner := bufio.NewScanner(outp)
 
 	var ret []string
 	for scanner.Scan() {
 		ret = append(ret, strings.TrimSpace(scanner.Text()))
 	}
+
 	return ret, nil
+}
+
+// Refs returns all of the local and remote branches and tags for the current
+// repository. Other refs (HEAD, refs/stash, git notes) are ignored.
+func LocalRefs() ([]*Ref, error) {
+	cmd := execCommand("git", "show-ref")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
+	}
+	cmd.Start()
+	defer cmd.Wait()
+
+	var refs []*Ref
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 || len(parts[0]) != 40 || len(parts[1]) < 1 {
+			tracerx.Printf("Invalid line from git show-ref: %q", line)
+			continue
+		}
+
+		rtype, name := ParseRefToTypeAndName(parts[1])
+		if rtype != RefTypeLocalBranch && rtype != RefTypeLocalTag {
+			continue
+		}
+
+		refs = append(refs, &Ref{name, rtype, parts[0]})
+	}
+
+	return refs, nil
 }
 
 // ValidateRemote checks that a named remote is valid for use
@@ -331,6 +367,8 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
 	}
 	cmd.Start()
+	defer cmd.Wait()
+
 	scanner := bufio.NewScanner(outp)
 
 	// Output is like this:
@@ -369,7 +407,6 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 			ret = append(ret, &Ref{ref, reftype, sha})
 		}
 	}
-	cmd.Wait()
 
 	return ret, nil
 
