@@ -7,7 +7,7 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-func addUserPlatformCerts() {
+func addTrustedPlatformCerts() {
 	// Go loads only the system root certificates by default
 	// see https://github.com/golang/go/blob/master/src/crypto/x509/root_darwin.go
 	// We want to load certs configured in the Login keychain and System keychain,

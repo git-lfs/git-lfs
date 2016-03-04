@@ -5,6 +5,7 @@ import (
 )
 
 var (
+	// pool must include ALL certs to be trusted, including system root certs
 	trustedCerts *x509.CertPool
 )
 
@@ -21,6 +22,11 @@ func addCertsFromPEMData(data []byte) bool {
 }
 
 func init() {
-	addUserPlatformCerts()
+	// Platform-specific implementations of this method must load all
+	// certs to be trusted into trustedCerts, including replicating Go's system
+	// root loading. Go only supports passing a definitive list of certs or nil
+	// to tls.Config, and does not expose the systemRootsPool() it uses as
+	// the default if its nil, so we have to do everything.
+	addTrustedPlatformCerts()
 	addGitConfigCerts()
 }
