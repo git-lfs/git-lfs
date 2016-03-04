@@ -168,7 +168,7 @@ func RemoteList() ([]string, error) {
 // Refs returns all of the local and remote branches and tags for the current
 // repository. Other refs (HEAD, refs/stash, git notes) are ignored.
 func LocalRefs() ([]*Ref, error) {
-	cmd := execCommand("git", "show-ref")
+	cmd := execCommand("git", "show-ref", "--heads", "--tags")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
