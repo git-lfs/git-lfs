@@ -98,7 +98,8 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func (c *Configuration) HttpClient() *HttpClient {
+// HttpClient returns a new HttpClient for the given host (which may be "host:port")
+func (c *Configuration) HttpClient(host string) *HttpClient {
 	if c.httpClient != nil {
 		return c.httpClient
 	}
@@ -122,7 +123,7 @@ func (c *Configuration) HttpClient() *HttpClient {
 	if sslVerify == "false" || Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
-		tr.TLSClientConfig.RootCAs = trustedCerts
+		tr.TLSClientConfig.RootCAs = getRootCAsForHost(host)
 	}
 
 	c.httpClient = &HttpClient{

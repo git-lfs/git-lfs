@@ -1,7 +1,8 @@
 package lfs
 
-func addTrustedPlatformCerts() {
-	// Do nothing, use golang default by leaving trustedCerts nil
+import "crypto/x509"
 
-	// TODO support Windows Certificate Store
+func getRootCAsForHostFromPlatform(host string) *x509.CertPool {
+	// golang already supports Windows Certificate Store for self-signed certs
+	return nil
 }
