@@ -110,7 +110,7 @@ begin_test "cloneSSL"
   cd "$TRASHDIR"
 
   newclonedir="testclone1"
-  git -c http.sslcainfo="$LFS_CERT_FILE" lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
   grep "Git LFS:" lfsclone.log
   # should be no filter errors
@@ -129,7 +129,7 @@ begin_test "cloneSSL"
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
-  git -c http.sslcainfo="$LFS_CERT_FILE" clone "$SSLGITSERVER/$reponame" 2>&1 | tee lfsclone.log
+  git clone "$SSLGITSERVER/$reponame" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
   grep "Git LFS:" lfsclone.log
 

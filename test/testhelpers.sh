@@ -209,6 +209,9 @@ clone_repo_ssl() {
   cd "$dir"
 
   git config credential.helper lfstest
+  # set up SSL cert for future commands
+  git config http.sslcainfo "$LFS_CERT_FILE"
+  
   echo "$out" > clone_ssl.log
   echo "$out"
 }
