@@ -78,3 +78,61 @@ begin_test "clone"
 )
 end_test
 
+begin_test "cloneSSL"
+(
+  set -e
+
+  reponame="test-cloneSSL"
+  setup_remote_repo "$reponame"
+  clone_repo_ssl "$reponame" "$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":100},
+      {\"Filename\":\"file2.dat\",\"Size\":75}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":30}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now SSL clone again with 'git lfs clone', test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="testclone1"
+  git -c http.sslcainfo="$LFS_CERT_FILE" lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Git LFS:" lfsclone.log
+  # should be no filter errors
+  [ ! $(grep "filter" lfsclone.log) ]
+  [ ! $(grep "error" lfsclone.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+  [ $(wc -c < "file1.dat") -eq 110 ] 
+  [ $(wc -c < "file2.dat") -eq 75 ] 
+  [ $(wc -c < "file3.dat") -eq 30 ] 
+  popd
+
+
+  # Now check SSL clone with standard 'git clone' and smudge download
+  rm -rf "$reponame"
+  git -c http.sslcainfo="$LFS_CERT_FILE" clone "$SSLGITSERVER/$reponame" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Git LFS:" lfsclone.log
+
+)
+end_test
+

@@ -195,6 +195,23 @@ clone_repo() {
   echo "$out"
 }
 
+
+# clone_repo_ssl clones a repository from the test Git server to the subdirectory
+# $dir under $TRASHDIR, using the SSL endpoint. 
+# setup_remote_repo() needs to be run first. Output is written to clone_ssl.log.
+clone_repo_ssl() {
+  cd "$TRASHDIR"
+
+  local reponame="$1"
+  local dir="$2"
+  echo "clone local git repository $reponame to $dir"
+  out=$(git -c http.sslcainfo="$LFS_CERT_FILE" clone "$SSLGITSERVER/$reponame" "$dir" 2>&1)
+  cd "$dir"
+
+  git config credential.helper lfstest
+  echo "$out" > clone_ssl.log
+  echo "$out"
+}
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
@@ -221,7 +238,7 @@ setup() {
     GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
   fi
 
-  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
 
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
@@ -246,6 +263,8 @@ setup() {
   echo "CREDS: $CREDSDIR"
   echo "lfstest-gitserver:"
   echo "  LFSTEST_URL=$LFS_URL_FILE"
+  echo "  LFSTEST_SSL_URL=$LFS_SSL_URL_FILE"
+  echo "  LFSTEST_CERT=$LFS_CERT_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
   git config --global --get-regexp "lfs|credential|user"
@@ -266,6 +285,7 @@ setup() {
   fi
 
   wait_for_file "$LFS_URL_FILE"
+  wait_for_file "$LFS_SSL_URL_FILE"
 
   echo
 }
