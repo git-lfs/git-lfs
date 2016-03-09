@@ -75,9 +75,7 @@ func main() {
 	urlname := writeTestStateFile([]byte(server.URL), "LFSTEST_URL", "lfstest-gitserver")
 	defer os.RemoveAll(urlname)
 
-	// SSL URL must include 'localhost' not IP for cert matching
-	sslurl := strings.Replace(serverTLS.URL, "127.0.0.1", "localhost", 1)
-	sslurlname := writeTestStateFile([]byte(sslurl), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
+	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
 	certname := writeTestStateFile(serverTLS.TLS.Certificates[0].Certificate[0], "LFSTEST_CERT", "lfstest-gitserver-cert")
