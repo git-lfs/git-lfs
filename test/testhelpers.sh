@@ -205,13 +205,11 @@ clone_repo_ssl() {
   local reponame="$1"
   local dir="$2"
   echo "clone local git repository $reponame to $dir"
-  out=$(git -c http.sslcainfo="$LFS_CERT_FILE" clone "$SSLGITSERVER/$reponame" "$dir" 2>&1)
+  out=$(git clone "$SSLGITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
 
   git config credential.helper lfstest
-  # set up SSL cert for future commands
-  git config http.sslcainfo "$LFS_CERT_FILE"
-  
+
   echo "$out" > clone_ssl.log
   echo "$out"
 }
@@ -250,6 +248,8 @@ setup() {
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"
+  git config --global http.sslcainfo "$LFS_CERT_FILE"
+
   grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
     echo "global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
