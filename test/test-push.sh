@@ -153,13 +153,16 @@ begin_test "push --all (no ref args)"
 
   # dry run doesn't change
   git lfs push --dry-run --all origin 2>&1 | tee push.log
-  grep "push $oid1 => file1.dat" push.log
+  grep "push $oid1 => file1.dat" push.log && {
+    echo "Already pushed oid1"
+    exit 1
+  }
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid3 => file1.dat" push.log
   grep "push $oid4 => file1.dat" push.log
   grep "push $oid5 => file1.dat" push.log
   grep "push $extraoid => file2.dat" push.log
-  [ $(grep -c "push" push.log) -eq 6 ]
+  [ $(grep -c "push" push.log) -eq 5 ]
 
   git push --all origin 2>&1 | tee push.log
   [ `grep -c "2 of 2 files" push.log` -eq 1 ]
