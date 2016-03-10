@@ -89,9 +89,30 @@ func appendCertsFromFile(pool *x509.CertPool, filename string) *x509.CertPool {
 		tracerx.Printf("Error reading cert file %q: %v", filename, err)
 		return pool
 	}
+	// Firstly, try parsing as binary certificate
+	if certs, err := x509.ParseCertificates(data); err == nil {
+		return appendCerts(pool, certs)
+	}
+	// If not binary certs, try PEM data
 	return appendCertsFromPEMData(pool, data)
 }
 
+func appendCerts(pool *x509.CertPool, certs []*x509.Certificate) *x509.CertPool {
+	if len(certs) == 0 {
+		// important to return unmodified (may be nil)
+		return pool
+	}
+
+	if pool == nil {
+		pool = x509.NewCertPool()
+	}
+
+	for _, cert := range certs {
+		pool.AddCert(cert)
+	}
+
+	return pool
+}
 func appendCertsFromPEMData(pool *x509.CertPool, data []byte) *x509.CertPool {
 	if len(data) == 0 {
 		return pool
