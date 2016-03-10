@@ -109,7 +109,7 @@ begin_test "cloneSSL"
   # Now SSL clone again with 'git lfs clone', test specific clone dir
   cd "$TRASHDIR"
 
-  newclonedir="testclone1"
+  newclonedir="testcloneSSL1"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
   grep "Git LFS:" lfsclone.log
@@ -121,7 +121,7 @@ begin_test "cloneSSL"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 110 ] 
+  [ $(wc -c < "file1.dat") -eq 100 ] 
   [ $(wc -c < "file2.dat") -eq 75 ] 
   [ $(wc -c < "file3.dat") -eq 30 ] 
   popd
@@ -129,9 +129,7 @@ begin_test "cloneSSL"
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
-  git clone "$SSLGITSERVER/$reponame" 2>&1 | tee lfsclone.log
-  grep "Cloning into" lfsclone.log
-  grep "Git LFS:" lfsclone.log
+  git clone "$SSLGITSERVER/$reponame"
 
 )
 end_test
