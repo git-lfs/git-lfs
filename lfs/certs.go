@@ -29,42 +29,27 @@ func getRootCAsForHost(host string) *x509.CertPool {
 func appendRootCAsForHostFromGitconfig(pool *x509.CertPool, host string) *x509.CertPool {
 	// Accumulate certs from all these locations:
 
-	loaded := false
 	// GIT_SSL_CAINFO first
 	if cafile, ok := Config.envVars["GIT_SSL_CAINFO"]; ok {
-		pool = appendCertsFromFile(pool, cafile)
-		loaded = true
+		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>.sslcainfo
-	if !loaded {
-		// match url-specific gitconfig settings
-		// we know we have simply "host" or "host:port"
-		key := fmt.Sprintf("http.https://%v/.sslcainfo", host)
-		if cafile, ok := Config.GitConfig(key); ok {
-			pool = appendCertsFromFile(pool, cafile)
-			loaded = true
-		}
+	// we know we have simply "host" or "host:port"
+	key := fmt.Sprintf("http.https://%v/.sslcainfo", host)
+	if cafile, ok := Config.GitConfig(key); ok {
+		return appendCertsFromFile(pool, cafile)
 	}
 	// http.sslcainfo
-	if !loaded {
-		if cafile, ok := Config.GitConfig("http.sslcainfo"); ok {
-			pool = appendCertsFromFile(pool, cafile)
-			loaded = true
-		}
+	if cafile, ok := Config.GitConfig("http.sslcainfo"); ok {
+		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
-	if !loaded {
-		if cadir, ok := Config.envVars["GIT_SSL_CAPATH"]; ok {
-			pool = appendCertsFromFilesInDir(pool, cadir)
-			loaded = true
-		}
+	if cadir, ok := Config.envVars["GIT_SSL_CAPATH"]; ok {
+		return appendCertsFromFilesInDir(pool, cadir)
 	}
 	// http.sslcapath
-	if !loaded {
-		if cadir, ok := Config.GitConfig("http.sslcapath"); ok {
-			pool = appendCertsFromFilesInDir(pool, cadir)
-			loaded = true
-		}
+	if cadir, ok := Config.GitConfig("http.sslcapath"); ok {
+		return appendCertsFromFilesInDir(pool, cadir)
 	}
 
 	return pool
