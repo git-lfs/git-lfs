@@ -63,10 +63,7 @@ func uploadsBetweenRefAndRemote(cli *clientContext, refnames []string) {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
 
-		var metadata *lfs.TransferMetadata
-		if ref.Type == git.RefTypeLocalBranch && git.RemoteForBranch(ref.Name) == cli.RemoteName {
-			metadata = lfs.NewTransferMetadata(git.RemoteBranchForLocalBranch(ref.Name))
-		}
+		metadata := lfs.NewTransferMetadata(ref.NameOnRemote(cli.RemoteName))
 		cli.Upload(metadata, pointers)
 	}
 }

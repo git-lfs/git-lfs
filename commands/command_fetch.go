@@ -43,13 +43,11 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(args) > 1 {
-		for _, r := range args[1:] {
-			ref, err := git.ResolveRef(r)
-			if err != nil {
-				Panic(err, "Invalid ref argument")
-			}
-			refs = append(refs, ref)
+		resolvedrefs, err := git.ResolveRefs(args[1:])
+		if err != nil {
+			Panic(err, "Invalid ref argument")
 		}
+		refs = resolvedrefs
 	} else {
 		ref, err := git.CurrentRef()
 		if err != nil {
@@ -122,7 +120,7 @@ func fetchRefToChan(ref *git.Ref, include, exclude []string) chan *lfs.WrappedPo
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
-	metadata := lfs.NewTransferMetadata(ref.Name)
+	metadata := lfs.NewTransferMetadata(ref.NameOnRemote(lfs.Config.CurrentRemote))
 	go fetchAndReportToChan(pointers, include, exclude, metadata, c)
 
 	return c
@@ -134,7 +132,7 @@ func fetchRef(ref *git.Ref, include, exclude []string) bool {
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
-	metadata := lfs.NewTransferMetadata(ref.Name)
+	metadata := lfs.NewTransferMetadata(ref.NameOnRemote(lfs.Config.CurrentRemote))
 	return fetchPointers(pointers, include, exclude, metadata)
 }
 
@@ -145,7 +143,7 @@ func fetchPreviousVersions(ref *git.Ref, since time.Time, include, exclude []str
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS previous versions")
 	}
-	metadata := lfs.NewTransferMetadata(ref.Name)
+	metadata := lfs.NewTransferMetadata(ref.NameOnRemote(lfs.Config.CurrentRemote))
 	return fetchPointers(pointers, include, exclude, metadata)
 }
 
