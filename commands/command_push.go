@@ -39,39 +39,63 @@ func uploadsBetweenRefs(cli *clientContext, left string, right string) {
 	cli.Upload(nil, pointers)
 }
 
-func uploadsBetweenRefAndRemote(cli *clientContext, refs []string) {
-	tracerx.Printf("Upload refs %v to remote %v", cli.RemoteName, refs)
+func uploadsBetweenRefAndRemote(cli *clientContext, refnames []string) {
+	tracerx.Printf("Upload refs %v to remote %v", cli.RemoteName, refnames)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
 	scanOpt.RemoteName = cli.RemoteName
 
 	if pushAll {
-		if len(refs) == 0 {
-			gitrefs, err := git.LocalRefs()
-			if err != nil {
-				Error(err.Error())
-				Exit("Error getting local refs.")
-			}
-
-			refs = make([]string, len(gitrefs))
-			for idx, gitref := range gitrefs {
-				refs[idx] = gitref.Name
-			}
-		}
-
 		scanOpt.ScanMode = lfs.ScanRefsMode
 	}
 
+	refs, err := refsByNames(refnames)
+	if err != nil {
+		Error(err.Error())
+		Exit("Error getting local refs.")
+	}
+
 	for _, ref := range refs {
-		pointers, err := lfs.ScanRefs(ref, "", scanOpt)
+		pointers, err := lfs.ScanRefs(ref.Name, "", scanOpt)
 
 		if err != nil {
-			Panic(err, "Error scanning for Git LFS files in the %q ref", ref)
+			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
 
-		cli.Upload(nil, pointers)
+		var metadata *lfs.TransferMetadata
+		if ref.Type == git.RefTypeLocalBranch && git.RemoteForBranch(ref.Name) == cli.RemoteName {
+			metadata = lfs.NewTransferMetadata(git.RemoteBranchForLocalBranch(ref.Name))
+		}
+		cli.Upload(metadata, pointers)
 	}
+}
+
+func refsByNames(refnames []string) ([]*git.Ref, error) {
+	localrefs, err := git.LocalRefs()
+	if err != nil {
+		return nil, err
+	}
+
+	if pushAll && len(refnames) == 0 {
+		return localrefs, nil
+	}
+
+	reflookup := make(map[string]*git.Ref, len(localrefs))
+	for _, ref := range localrefs {
+		reflookup[ref.Name] = ref
+	}
+
+	refs := make([]*git.Ref, len(refnames))
+	for i, name := range refnames {
+		if ref, ok := reflookup[name]; ok {
+			refs[i] = ref
+		} else {
+			refs[i] = &git.Ref{name, git.RefTypeOther, name}
+		}
+	}
+
+	return refs, nil
 }
 
 func uploadsWithObjectIDs(cli *clientContext, oids []string) {

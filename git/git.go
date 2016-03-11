@@ -142,7 +142,6 @@ func RemoteBranchForLocalBranch(localBranch string) string {
 	} else {
 		return localBranch
 	}
-
 }
 
 func RemoteList() ([]string, error) {
