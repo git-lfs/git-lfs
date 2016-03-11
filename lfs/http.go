@@ -100,6 +100,9 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 
 // HttpClient returns a new HttpClient for the given host (which may be "host:port")
 func (c *Configuration) HttpClient(host string) *HttpClient {
+	c.httpClientsMutex.Lock()
+	defer c.httpClientsMutex.Unlock()
+
 	if c.httpClients == nil {
 		c.httpClients = make(map[string]*HttpClient)
 	}

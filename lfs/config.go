@@ -46,6 +46,7 @@ type FetchPruneConfig struct {
 type Configuration struct {
 	CurrentRemote         string
 	httpClients           map[string]*HttpClient
+	httpClientsMutex      sync.Mutex
 	redirectingHttpClient *http.Client
 	ntlmSession           ntlm.ClientSession
 	envVars               map[string]string
