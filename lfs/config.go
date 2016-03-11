@@ -47,7 +47,6 @@ type Configuration struct {
 	httpClient            *HttpClient
 	redirectingHttpClient *http.Client
 	ntlmSession           ntlm.ClientSession
-	uploadedOids          StringSet
 	envVars               map[string]string
 	isTracingHttp         bool
 	isDebuggingHttp       bool
@@ -68,7 +67,6 @@ func NewConfig() *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
-		uploadedOids:  NewStringSet(),
 	}
 	c.isTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
 	c.isDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
@@ -110,14 +108,6 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 		return def
 	}
 	return b
-}
-
-func (c *Configuration) HasUploaded(oid string) bool {
-	return c.uploadedOids.Contains(oid)
-}
-
-func (c *Configuration) Uploaded(oid string) {
-	c.uploadedOids.Add(oid)
 }
 
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)

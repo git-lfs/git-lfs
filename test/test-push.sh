@@ -333,29 +333,30 @@ begin_test "push object id(s)"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="$(basename "$0" ".sh")-object-ids"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" repo2
+  clone_repo "$reponame" repo-object-ids
 
   git lfs track "*.dat"
-  echo "push a" > a.dat
+  echo "push object a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
   git lfs push --object-id origin \
-    4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
+    c1a338929270651d8fb132411d725518353650bfc9ac991991dd4a8c2139d97a \
     2>&1 | tee push.log
-  grep "(0 of 1 files, 1 skipped)" push.log
+  grep "(1 of 1 files)" push.log
 
-  echo "push b" > b.dat
+  echo "push object b" > b.dat
   git add b.dat
   git commit -m "add b.dat"
+  git show
 
   git lfs push --object-id origin \
-    4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
-    82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 \
+    c1a338929270651d8fb132411d725518353650bfc9ac991991dd4a8c2139d97a \
+    7098284b1b16d67681313247191c217c5f185acaa40b5f00731574d70d75f2e1 \
     2>&1 | tee push.log
-  grep "(0 of 2 files, 2 skipped)" push.log
+  grep "(1 of 1 files)" push.log
 )
 end_test
 

@@ -6,24 +6,25 @@ import (
 	"github.com/github/git-lfs/lfs"
 )
 
-func scanObjectsLeftToRight(config *lfs.Configuration, left, right string, scanmode lfs.ScanningMode) ([]*lfs.WrappedPointer, error) {
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = scanmode
-	scanOpt.RemoteName = config.CurrentRemote
-
-	pointers, err := lfs.ScanRefs(left, right, scanOpt)
-	if err != nil {
-		return pointers, err
-	}
-
-	return filterUploadableObjects(config, pointers), nil
+type clientContext struct {
+	RemoteName   string
+	DryRun       bool
+	uploadedOids lfs.StringSet
 }
 
-func uploadObjects(config *lfs.Configuration, pointers []*lfs.WrappedPointer, dryRun bool) {
-	if dryRun {
+func newClient() *clientContext {
+	return &clientContext{
+		uploadedOids: lfs.NewStringSet(),
+	}
+}
+
+func (c *clientContext) Upload(unfilteredPointers []*lfs.WrappedPointer) {
+	pointers := c.filter(unfilteredPointers)
+
+	if c.DryRun {
 		for _, pointer := range pointers {
 			Print("push %s => %s", pointer.Oid, pointer.Name)
-			config.Uploaded(pointer.Oid)
+			c.uploadedOids.Add(pointer.Oid)
 		}
 		return
 	}
@@ -45,7 +46,7 @@ func uploadObjects(config *lfs.Configuration, pointers []*lfs.WrappedPointer, dr
 		}
 
 		uploadQueue.Add(u)
-		config.Uploaded(pointer.Oid)
+		c.uploadedOids.Add(pointer.Oid)
 	}
 
 	uploadQueue.Wait()
@@ -65,16 +66,16 @@ func uploadObjects(config *lfs.Configuration, pointers []*lfs.WrappedPointer, dr
 	}
 }
 
-func filterUploadableObjects(config *lfs.Configuration, pointers []*lfs.WrappedPointer) []*lfs.WrappedPointer {
-	uploadable := filterUploadedObjects(config, pointers)
-	filterServerObjects(config, uploadable)
-	return filterUploadedObjects(config, uploadable)
+func (c *clientContext) filter(pointers []*lfs.WrappedPointer) []*lfs.WrappedPointer {
+	uploadable := c.filterUploadedObjects(pointers)
+	c.filterServerObjects(uploadable)
+	return c.filterUploadedObjects(uploadable)
 }
 
-func filterUploadedObjects(config *lfs.Configuration, pointers []*lfs.WrappedPointer) []*lfs.WrappedPointer {
+func (c *clientContext) filterUploadedObjects(pointers []*lfs.WrappedPointer) []*lfs.WrappedPointer {
 	filtered := make([]*lfs.WrappedPointer, 0, len(pointers))
 	for _, pointer := range pointers {
-		if !config.HasUploaded(pointer.Oid) {
+		if !c.uploadedOids.Contains(pointer.Oid) {
 			filtered = append(filtered, pointer)
 		}
 	}
@@ -82,7 +83,7 @@ func filterUploadedObjects(config *lfs.Configuration, pointers []*lfs.WrappedPoi
 	return filtered
 }
 
-func filterServerObjects(config *lfs.Configuration, pointers []*lfs.WrappedPointer) {
+func (c *clientContext) filterServerObjects(pointers []*lfs.WrappedPointer) {
 	var missingLocalObjects []*lfs.WrappedPointer
 	var missingSize int64
 	for _, pointer := range pointers {
@@ -106,7 +107,7 @@ func filterServerObjects(config *lfs.Configuration, pointers []*lfs.WrappedPoint
 	done := make(chan int)
 	go func() {
 		for oid := range transferc {
-			config.Uploaded(oid)
+			c.uploadedOids.Add(oid)
 		}
 		done <- 1
 	}()

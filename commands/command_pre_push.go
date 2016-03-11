@@ -43,7 +43,6 @@ var (
 // In the case of deleting a branch, no attempts to push Git LFS objects will be
 // made.
 func prePushCommand(cmd *cobra.Command, args []string) {
-
 	if len(args) == 0 {
 		Print("This should be run through Git's pre-push hook.  Run `git lfs update` to install it.")
 		os.Exit(1)
@@ -54,6 +53,14 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 	lfs.Config.CurrentRemote = args[0]
+
+	cli := newClient()
+	cli.RemoteName = lfs.Config.CurrentRemote
+	cli.DryRun = prePushDryRun
+
+	scanOpt := lfs.NewScanRefsOptions()
+	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
+	scanOpt.RemoteName = cli.RemoteName
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
@@ -69,12 +76,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		pointers, err := scanObjectsLeftToRight(lfs.Config, left, right, lfs.ScanLeftToRemoteMode)
+		pointers, err := lfs.ScanRefs(left, right, scanOpt)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files")
 		}
 
-		uploadObjects(lfs.Config, pointers, prePushDryRun)
+		cli.Upload(pointers)
 	}
 }
 
