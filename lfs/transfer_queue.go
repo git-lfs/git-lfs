@@ -28,6 +28,7 @@ type TransferQueue struct {
 	meter         *ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
+	metadata      *TransferMetadata
 	errors        []error
 	transferables map[string]Transferable
 	retries       []Transferable
@@ -40,6 +41,15 @@ type TransferQueue struct {
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
+}
+
+// TransferMetadata describes meta data of upload specification
+type TransferMetadata struct {
+	ref string
+}
+
+func NewTransferMetadata(destRef string) *TransferMetadata {
+	return &TransferMetadata{ref: destRef}
 }
 
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
@@ -202,7 +212,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
-		objects, err := Batch(transfers, q.transferKind)
+		objects, err := Batch(transfers, q.transferKind, q.metadata)
 		if err != nil {
 			if IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")

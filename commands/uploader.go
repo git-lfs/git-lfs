@@ -18,7 +18,7 @@ func newClient() *clientContext {
 	}
 }
 
-func (c *clientContext) Upload(unfilteredPointers []*lfs.WrappedPointer) {
+func (c *clientContext) Upload(metadata *lfs.TransferMetadata, unfilteredPointers []*lfs.WrappedPointer) {
 	pointers := c.filter(unfilteredPointers)
 
 	if c.DryRun {
@@ -34,7 +34,7 @@ func (c *clientContext) Upload(unfilteredPointers []*lfs.WrappedPointer) {
 		totalSize += p.Size
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, false)
+	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, c.DryRun, metadata)
 	for _, pointer := range pointers {
 		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if err != nil {

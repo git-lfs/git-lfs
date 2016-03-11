@@ -36,7 +36,7 @@ func uploadsBetweenRefs(cli *clientContext, left string, right string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	cli.Upload(pointers)
+	cli.Upload(nil, pointers)
 }
 
 func uploadsBetweenRefAndRemote(cli *clientContext, refs []string) {
@@ -70,7 +70,7 @@ func uploadsBetweenRefAndRemote(cli *clientContext, refs []string) {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref)
 		}
 
-		cli.Upload(pointers)
+		cli.Upload(nil, pointers)
 	}
 }
 
@@ -81,7 +81,7 @@ func uploadsWithObjectIDs(cli *clientContext, oids []string) {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
 
-	cli.Upload(pointers)
+	cli.Upload(nil, pointers)
 }
 
 // pushCommand pushes local objects to a Git LFS server.  It takes two
@@ -125,7 +125,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		left, right := decodeRefs(string(refsData))
+		left, right, _ := decodeRefs(string(refsData))
 		if left == pushDeleteBranch {
 			return
 		}
