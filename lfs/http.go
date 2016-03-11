@@ -100,8 +100,11 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 
 // HttpClient returns a new HttpClient for the given host (which may be "host:port")
 func (c *Configuration) HttpClient(host string) *HttpClient {
-	if c.httpClient != nil {
-		return c.httpClient
+	if c.httpClients == nil {
+		c.httpClients = make(map[string]*HttpClient)
+	}
+	if client, ok := c.httpClients[host]; ok {
+		return client
 	}
 
 	dialtime := c.GitConfigInt("lfs.dialtimeout", 30)
@@ -126,11 +129,12 @@ func (c *Configuration) HttpClient(host string) *HttpClient {
 		tr.TLSClientConfig.RootCAs = getRootCAsForHost(host)
 	}
 
-	c.httpClient = &HttpClient{
+	client := &HttpClient{
 		&http.Client{Transport: tr, CheckRedirect: checkRedirect},
 	}
+	c.httpClients[host] = client
 
-	return c.httpClient
+	return client
 }
 
 func checkRedirect(req *http.Request, via []*http.Request) error {
