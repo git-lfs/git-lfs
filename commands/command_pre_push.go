@@ -55,8 +55,6 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 	lfs.Config.CurrentRemote = args[0]
 
-	uploadedOids := lfs.NewStringSet()
-
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -71,119 +69,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		prePushRef(left, right, uploadedOids)
-	}
-}
-
-func prePushRef(left, right string, uploadedOids lfs.StringSet) {
-	// Just use scanner here
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = lfs.Config.CurrentRemote
-
-	pointers, err := lfs.ScanRefs(left, right, scanOpt)
-	if err != nil {
-		Panic(err, "Error scanning for Git LFS files")
-	}
-
-	pointers = filteredPointers(pointers, uploadedOids)
-	pointers = filteredPointers(pointers, prePushCheckForMissingObjects(pointers))
-
-	totalSize := int64(0)
-	for _, p := range pointers {
-		totalSize += p.Size
-	}
-
-	if totalSize < 1 {
-		return
-	}
-
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
-
-	for _, pointer := range pointers {
-		if prePushDryRun {
-			Print("push %s => %s", pointer.Oid, pointer.Name)
-			continue
-		}
-
-		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
+		pointers, err := scanObjectsLeftToRight(lfs.Config, left, right, lfs.ScanLeftToRemoteMode)
 		if err != nil {
-			if lfs.IsCleanPointerError(err) {
-				Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
-			} else {
-				ExitWithError(err)
-			}
+			Panic(err, "Error scanning for Git LFS files")
 		}
 
-		uploadedOids.Add(pointer.Oid)
-		uploadQueue.Add(u)
+		uploadObjects(lfs.Config, pointers, prePushDryRun)
 	}
-
-	if !prePushDryRun {
-		uploadQueue.Wait()
-		for _, err := range uploadQueue.Errors() {
-			if Debugging || lfs.IsFatalError(err) {
-				LoggedError(err, err.Error())
-			} else {
-				if inner := lfs.GetInnerError(err); inner != nil {
-					Error(inner.Error())
-				}
-				Error(err.Error())
-			}
-		}
-
-		if len(uploadQueue.Errors()) > 0 {
-			os.Exit(2)
-		}
-	}
-}
-
-func filteredPointers(pointers []*lfs.WrappedPointer, filter lfs.StringSet) []*lfs.WrappedPointer {
-	filtered := make([]*lfs.WrappedPointer, 0, len(pointers))
-	for _, pointer := range pointers {
-		if filter.Contains(pointer.Oid) {
-			continue
-		}
-
-		filtered = append(filtered, pointer)
-	}
-
-	return filtered
-}
-
-func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer lfs.StringSet) {
-	var missingLocalObjects []*lfs.WrappedPointer
-	var missingSize int64
-	var skipObjects = lfs.NewStringSetWithCapacity(len(pointers))
-	for _, pointer := range pointers {
-		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
-			// We think we need to push this but we don't have it
-			// Store for server checking later
-			missingLocalObjects = append(missingLocalObjects, pointer)
-			missingSize += pointer.Size
-		}
-	}
-	if len(missingLocalObjects) == 0 {
-		return nil
-	}
-
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
-	for _, p := range missingLocalObjects {
-		checkQueue.Add(lfs.NewDownloadCheckable(p))
-	}
-	// this channel is filled with oids for which Check() succeeded & Transfer() was called
-	transferc := checkQueue.Watch()
-	done := make(chan int)
-	go func() {
-		for oid := range transferc {
-			skipObjects.Add(oid)
-		}
-		done <- 1
-	}()
-	// Currently this is needed to flush the batch but is not enough to sync transferc completely
-	checkQueue.Wait()
-	<-done
-	return skipObjects
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push

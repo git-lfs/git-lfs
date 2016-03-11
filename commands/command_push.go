@@ -28,20 +28,18 @@ func uploadsBetweenRefs(left string, right string) {
 	tracerx.Printf("Upload between %v and %v", left, right)
 
 	// Just use scanner here
-	pointers, err := lfs.ScanRefs(left, right, nil)
+	pointers, err := scanObjectsLeftToRight(lfs.Config, left, right, lfs.ScanRefsMode)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	uploadPointers(pointers)
+	uploadObjects(lfs.Config, pointers, pushDryRun)
 }
 
 func uploadsBetweenRefAndRemote(remote string, refs []string) {
 	tracerx.Printf("Upload refs %v to remote %v", remote, refs)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = remote
+	scanMode := lfs.ScanLeftToRemoteMode
 
 	if pushAll {
 		if len(refs) == 0 {
@@ -57,66 +55,16 @@ func uploadsBetweenRefAndRemote(remote string, refs []string) {
 			}
 		}
 
-		scanOpt.ScanMode = lfs.ScanRefsMode
+		scanMode = lfs.ScanRefsMode
 	}
 
-	uploadedOids := lfs.NewStringSet()
-
 	for _, ref := range refs {
-		pointers, err := lfs.ScanRefs(ref, "", scanOpt)
+		pointers, err := scanObjectsLeftToRight(lfs.Config, ref, "", scanMode)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref)
 		}
 
-		pointers = filteredPointers(pointers, uploadedOids)
-		pointers = filteredPointers(pointers, prePushCheckForMissingObjects(pointers))
-
-		uploadPointers(pointers)
-
-		for _, p := range pointers {
-			uploadedOids.Add(p.Oid)
-		}
-	}
-}
-
-func uploadPointers(pointers []*lfs.WrappedPointer) {
-	totalSize := int64(0)
-	for _, p := range pointers {
-		totalSize += p.Size
-	}
-
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
-	for i, pointer := range pointers {
-		if pushDryRun {
-			Print("push %s => %s", pointer.Oid, pointer.Name)
-			continue
-		}
-
-		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
-
-		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
-		if err != nil {
-			ExitWithError(err)
-		}
-		uploadQueue.Add(u)
-	}
-
-	if !pushDryRun {
-		uploadQueue.Wait()
-		for _, err := range uploadQueue.Errors() {
-			if Debugging || lfs.IsFatalError(err) {
-				LoggedError(err, err.Error())
-			} else {
-				if inner := lfs.GetInnerError(err); inner != nil {
-					Error(inner.Error())
-				}
-				Error(err.Error())
-			}
-		}
-
-		if len(uploadQueue.Errors()) > 0 {
-			os.Exit(2)
-		}
+		uploadObjects(lfs.Config, pointers, pushDryRun)
 	}
 }
 
@@ -125,7 +73,7 @@ func uploadsWithObjectIDs(oids []string) {
 	for idx, oid := range oids {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
-	uploadPointers(pointers)
+	uploadObjects(lfs.Config, pointers, pushDryRun)
 }
 
 // pushCommand pushes local objects to a Git LFS server.  It takes two
