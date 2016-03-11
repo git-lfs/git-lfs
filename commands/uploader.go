@@ -84,8 +84,8 @@ func (c *clientContext) filterUploadedObjects(pointers []*lfs.WrappedPointer) []
 }
 
 func (c *clientContext) filterServerObjects(pointers []*lfs.WrappedPointer) {
-	var missingLocalObjects []*lfs.WrappedPointer
-	var missingSize int64
+	missingLocalObjects := make([]*lfs.WrappedPointer, 0, len(pointers))
+	missingSize := int64(0)
 	for _, pointer := range pointers {
 		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
 			// We think we need to push this but we don't have it
