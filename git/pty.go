@@ -37,7 +37,7 @@ func (t *Tty) Stdout() (io.ReadCloser, error) {
 }
 
 func (t *Tty) Stderr() (io.ReadCloser, error) {
-	if t.outpty != nil {
+	if t.errpty != nil {
 		return t.errpty, nil
 	} else {
 		return t.cmd.StderrPipe()
