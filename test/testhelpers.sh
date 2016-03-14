@@ -289,6 +289,7 @@ setup() {
 
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"
+  wait_for_file "$LFS_CERT_FILE"
 
   echo
 }
