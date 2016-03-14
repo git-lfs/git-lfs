@@ -19,7 +19,7 @@ type Tty struct {
 
 func (t *Tty) Close() {
 	if t.outtty != nil {
-		t.outpty.Close()
+		t.outtty.Close()
 		t.outtty = nil
 	}
 	if t.errtty != nil {
