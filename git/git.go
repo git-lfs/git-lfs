@@ -643,9 +643,6 @@ func CloneWithoutFilters(args []string) error {
 	cmdargs = append(cmdargs, args...)
 	cmd := execCommand("git", cmdargs...)
 
-	// Spool stdout directly to our own
-	cmd.Stdout = os.Stdout
-
 	// Assign pty/tty so git thinks it's a real terminal
 	tty := NewTty(cmd)
 	stdout, err := tty.Stdout()
