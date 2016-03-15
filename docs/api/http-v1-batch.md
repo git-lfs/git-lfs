@@ -72,7 +72,7 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 <       "size": 123,
 <       "actions": {
 <         "upload": {
-<          "href": "https://some-upload.com",
+<           "href": "https://some-upload.com",
 <           "header": {
 <             "Key": "value"
 <           }
