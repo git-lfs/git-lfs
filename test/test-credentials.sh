@@ -140,15 +140,25 @@ password=path"
 )
 end_test
 
+
+if [[ $(uname) == *"MINGW"* ]]; then
+  NETRCFILE="$HOME/_netrc"
+else
+  NETRCFILE="$HOME/.netrc"
+fi
+
+
 begin_test "credentials from netrc"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\npassword netrcpass\n" >> "$HOME/.netrc"
+  printf "machine localhost\nlogin netrcuser\npassword netrcpass\n" >> "$NETRCFILE"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $HOME/.netrc
+  cat $NETRCFILE
 
+  # prevent prompts on Windows particularly
+  export SSH_ASKPASS=
 
   reponame="netrctest"
   setup_remote_repo "$reponame"
@@ -173,11 +183,13 @@ begin_test "credentials from netrc with bad password"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >> "$HOME/.netrc"
+  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >> "$NETRCFILE"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $HOME/.netrc
+  cat $NETRCFILE
 
+  # prevent prompts on Windows particularly
+  export SSH_ASKPASS=
 
   reponame="netrctest"
   setup_remote_repo "$reponame"
