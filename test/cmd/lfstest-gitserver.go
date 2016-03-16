@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -78,7 +79,11 @@ func main() {
 	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
-	certname := writeTestStateFile(serverTLS.TLS.Certificates[0].Certificate[0], "LFSTEST_CERT", "lfstest-gitserver-cert")
+	block := &pem.Block{}
+	block.Type = "CERTIFICATE"
+	block.Bytes = serverTLS.TLS.Certificates[0].Certificate[0]
+	pembytes := pem.EncodeToMemory(block)
+	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
 	defer os.RemoveAll(certname)
 
 	log.Println(server.URL)
