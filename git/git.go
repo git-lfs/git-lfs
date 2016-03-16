@@ -15,10 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pty"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -645,33 +643,28 @@ func CloneWithoutFilters(args []string) error {
 	cmdargs = append(cmdargs, args...)
 	cmd := execCommand("git", cmdargs...)
 
-	// Spool stdout directly to our own
-	cmd.Stdout = os.Stdout
-
 	// Assign pty/tty so git thinks it's a real terminal
-	outpty, outtty, err := pty.Open()
-	cmd.Stdin = outtty
-	cmd.Stdout = outtty
-	errpty, errtty, err := pty.Open()
-	// stderr needs filtering
-	cmd.Stderr = errtty
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	tty := NewTty(cmd)
+	stdout, err := tty.Stdout()
+	if err != nil {
+		return fmt.Errorf("Failed to get stdout: %v", err)
 	}
-	cmd.SysProcAttr.Setctty = true
-	cmd.SysProcAttr.Setsid = true
+	stderr, err := tty.Stderr()
+	if err != nil {
+		return fmt.Errorf("Failed to get stderr: %v", err)
+	}
 
 	var outputWait sync.WaitGroup
 	outputWait.Add(2)
 	go func() {
-		io.Copy(os.Stdout, outpty)
+		io.Copy(os.Stdout, stdout)
 		outputWait.Done()
 	}()
 	go func() {
 		// Filter stderr to exclude messages caused by disabling the filters
 		// As of git 2.7 it still tries to call the blank filter but required=false
 		// this problem should be gone in git 2.8 https://github.com/git/git/commit/1a8630d
-		scanner := bufio.NewScanner(errpty)
+		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			s := scanner.Text()
 
@@ -702,8 +695,7 @@ func CloneWithoutFilters(args []string) error {
 		return fmt.Errorf("Failed to start git clone: %v", err)
 	}
 
-	outtty.Close()
-	errtty.Close()
+	tty.Close()
 
 	err = cmd.Wait()
 	outputWait.Wait()

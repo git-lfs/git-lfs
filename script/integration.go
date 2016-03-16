@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -63,6 +64,9 @@ func mainIntegration() {
 func runTest(output chan string, test string) {
 	out, err := exec.Command(bashPath, test).CombinedOutput()
 	if err != nil {
+		if debugging {
+			fmt.Println("Error:", err)
+		}
 		erroring = true
 	}
 
@@ -136,7 +140,14 @@ func allTestFiles() []string {
 }
 
 func setBash() {
-	out, err := exec.Command("which", "bash").Output()
+	findcmd := "which"
+	if runtime.GOOS == "windows" {
+		// Can't use paths returned from which even if it's on PATH in Windows
+		// Because our Go binary is a separate Windows app & not MinGW, it
+		// can't understand paths like '/usr/bin/bash', needs Windows version
+		findcmd = "where"
+	}
+	out, err := exec.Command(findcmd, "bash").Output()
 	if err != nil {
 		fmt.Println("Unable to find bash:", err)
 		os.Exit(1)
@@ -145,5 +156,12 @@ func setBash() {
 	bashPath = strings.TrimSpace(string(out))
 	if debugging {
 		fmt.Println("Using", bashPath)
+	}
+
+	// Test
+	_, err = exec.Command(bashPath, "--version").CombinedOutput()
+	if err != nil {
+		fmt.Println("Error calling bash:", err)
+		os.Exit(1)
 	}
 }
