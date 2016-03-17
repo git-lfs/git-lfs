@@ -159,6 +159,12 @@ end_test
 
 begin_test "track absolute"
 (
+  # MinGW bash intercepts '/images' and passes 'C:/Program Files/Git/images' as arg!
+  if [[ $(uname) == *"MINGW"* ]]; then
+    echo "Skipping track absolute on Windows"
+    exit 0
+  fi
+
   set -e
 
   git init track-absolute
