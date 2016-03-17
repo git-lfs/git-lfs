@@ -2,6 +2,29 @@
 
 . "test/testlib.sh"
 
+begin_test "push with filename / branch mismatch"
+(
+  set -e
+  reponame="$(basename "$0" ".sh")-ambiguous-branch-name"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" repo
+
+  git checkout -b ambiguous-branch-name
+  git lfs track "*.dat"
+  echo "push me" > push.dat
+  echo "ambiguous-branch-name" > ambiguous-branch-name
+  git add .gitattributes push.dat ambiguous-branch-name
+  git commit -m "ambiguous-branch-name"
+
+  git lfs push --dry-run origin ambiguous-branch-name 2>&1 | tee push.log
+  echo "actual git command:"
+  git rev-list --objects ambiguous-branch-name --not --remotes=origin
+  exit 1
+)
+end_test
+
+exit 0
+
 begin_test "push"
 (
   set -e
