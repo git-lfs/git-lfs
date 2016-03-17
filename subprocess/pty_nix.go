@@ -1,6 +1,6 @@
 // +build !windows
 
-package git
+package subprocess
 
 import (
 	"os/exec"
