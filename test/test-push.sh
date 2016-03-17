@@ -132,7 +132,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "5 files" push.log # should be 6?
+  [ `grep -c "3 of 3 files" push.log` -eq 2 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -153,16 +153,21 @@ begin_test "push --all (no ref args)"
 
   # dry run doesn't change
   git lfs push --dry-run --all origin 2>&1 | tee push.log
-  grep "push $oid1 => file1.dat" push.log
+  grep "push $oid1 => file1.dat" push.log && {
+    echo "Already pushed oid1"
+    exit 1
+  }
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid3 => file1.dat" push.log
   grep "push $oid4 => file1.dat" push.log
   grep "push $oid5 => file1.dat" push.log
   grep "push $extraoid => file2.dat" push.log
-  [ $(grep -c "push" push.log) -eq 6 ]
+  [ $(grep -c "push" push.log) -eq 5 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "5 files, 1 skipped" push.log # should be 5?
+  [ `grep -c "2 of 2 files" push.log` -eq 1 ]
+  [ `grep -c "3 of 3 files" push.log` -eq 1 ]
+  [ `grep -c "Git LFS:" push.log` -eq 2 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
