@@ -628,7 +628,7 @@ func CloneWithoutFilters(args []string) error {
 	cmd := subprocess.ExecCommand("git", cmdargs...)
 
 	// Assign pty/tty so git thinks it's a real terminal
-	tty := NewTty(cmd)
+	tty := subprocess.NewTty(cmd)
 	stdout, err := tty.Stdout()
 	if err != nil {
 		return fmt.Errorf("Failed to get stdout: %v", err)
