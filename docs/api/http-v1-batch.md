@@ -105,7 +105,10 @@ when the object has not been previously uploaded.
 successfully uploading an object.  This is an optional relation for the case that
 the server has not verified the object.
 * `download` - This relation describes how to download the object content.  This
-only appears if an object has been previously uploaded.
+only appears if an object has been previously uploaded.  If object content is
+already available, the server should provide this action even if the request
+operation is `upload`, because the client can use the presence of this action to
+avoid duplicate uploads of object content which is already known to the server.
 
 An action can optionally include an `expires_at`, which is an ISO 8601 formatted
 timestamp for when the given action expires (usually due to a temporary token).
