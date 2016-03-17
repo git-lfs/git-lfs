@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -172,7 +173,38 @@ func ValidateRemote(remote string) error {
 			return nil
 		}
 	}
+
+	err = ValidateRemoteURL(remote)
+	if err == nil {
+		return nil
+	}
+
 	return errors.New("Invalid remote name")
+}
+
+// ValidateRemoteURL checks that a string is a valid Git remote URL
+func ValidateRemoteURL(remote string) error {
+	u, err := url.Parse(remote)
+	if err != nil {
+		return err
+	}
+
+	switch u.Scheme {
+	case "ssh", "http", "https", "git":
+		return nil
+	case "":
+		// This is either an invalid remote name (maybe the user made a typo
+		// when selecting a named remote) or a bare SSH URL like
+		// "x@y.com:path/to/resource.git". Guess that this is a URL in the latter
+		// form if the string contains a colon ":", and an invalid remote if it
+		// does not.
+		if strings.Contains(remote, ":") {
+			return nil
+		}
+		return errors.New("Invalid remote name")
+	default:
+		return errors.New("Invalid Remote URL protocol")
+	}
 }
 
 // DefaultRemote returns the default remote based on:

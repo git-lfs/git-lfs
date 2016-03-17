@@ -126,6 +126,11 @@ func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 		return u
 	}
 
+	err := git.ValidateRemoteURL(remote)
+	if err == nil {
+		return remote
+	}
+
 	return ""
 
 }
