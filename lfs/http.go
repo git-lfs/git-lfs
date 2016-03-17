@@ -98,9 +98,16 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func (c *Configuration) HttpClient() *HttpClient {
-	if c.httpClient != nil {
-		return c.httpClient
+// HttpClient returns a new HttpClient for the given host (which may be "host:port")
+func (c *Configuration) HttpClient(host string) *HttpClient {
+	c.httpClientsMutex.Lock()
+	defer c.httpClientsMutex.Unlock()
+
+	if c.httpClients == nil {
+		c.httpClients = make(map[string]*HttpClient)
+	}
+	if client, ok := c.httpClients[host]; ok {
+		return client
 	}
 
 	dialtime := c.GitConfigInt("lfs.dialtimeout", 30)
@@ -118,15 +125,19 @@ func (c *Configuration) HttpClient() *HttpClient {
 	}
 
 	sslVerify, _ := c.GitConfig("http.sslverify")
+	tr.TLSClientConfig = &tls.Config{}
 	if sslVerify == "false" || Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		tr.TLSClientConfig.InsecureSkipVerify = true
+	} else {
+		tr.TLSClientConfig.RootCAs = getRootCAsForHost(host)
 	}
 
-	c.httpClient = &HttpClient{
+	client := &HttpClient{
 		&http.Client{Transport: tr, CheckRedirect: checkRedirect},
 	}
+	c.httpClients[host] = client
 
-	return c.httpClient
+	return client
 }
 
 func checkRedirect(req *http.Request, via []*http.Request) error {

@@ -490,7 +490,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		res, err = DoNTLMRequest(req, true)
 	} else {
-		res, err = Config.HttpClient().Do(req)
+		res, err = Config.HttpClient(req.Host).Do(req)
 	}
 
 	if res == nil {

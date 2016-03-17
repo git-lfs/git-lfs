@@ -58,6 +58,7 @@ else
 fi
 
 GITSERVER=$(cat "$LFS_URL_FILE")
+SSLGITSERVER=$(cat "$LFS_SSL_URL_FILE")
 cd "$TRASHDIR"
 
 # Mark the beginning of a test. A subshell should immediately follow this

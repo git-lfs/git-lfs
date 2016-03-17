@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,6 +26,7 @@ var (
 	repoDir      string
 	largeObjects = newLfsStorage()
 	server       *httptest.Server
+	serverTLS    *httptest.Server
 
 	// maps OIDs to content strings. Both the LFS and Storage test servers below
 	// see OIDs.
@@ -48,6 +50,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
+	serverTLS = httptest.NewTLSServer(mux)
+
 	stopch := make(chan bool)
 
 	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
@@ -69,26 +73,41 @@ func main() {
 		gitHandler(w, r)
 	})
 
-	urlname := os.Getenv("LFSTEST_URL")
-	if len(urlname) == 0 {
-		urlname = "lfstest-gitserver"
-	}
+	urlname := writeTestStateFile([]byte(server.URL), "LFSTEST_URL", "lfstest-gitserver")
+	defer os.RemoveAll(urlname)
 
-	file, err := os.Create(urlname)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
+	defer os.RemoveAll(sslurlname)
 
-	file.Write([]byte(server.URL))
-	file.Close()
+	block := &pem.Block{}
+	block.Type = "CERTIFICATE"
+	block.Bytes = serverTLS.TLS.Certificates[0].Certificate[0]
+	pembytes := pem.EncodeToMemory(block)
+	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
+	defer os.RemoveAll(certname)
+
 	log.Println(server.URL)
-
-	defer func() {
-		os.RemoveAll(urlname)
-	}()
+	log.Println(serverTLS.URL)
 
 	<-stopch
 	log.Println("git server done")
+}
+
+// writeTestStateFile writes contents to either the file referenced by the
+// environment variable envVar, or defaultFilename if that's not set. Returns
+// the filename that was used
+func writeTestStateFile(contents []byte, envVar, defaultFilename string) string {
+	f := os.Getenv(envVar)
+	if len(f) == 0 {
+		f = defaultFilename
+	}
+	file, err := os.Create(f)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	file.Write(contents)
+	file.Close()
+	return f
 }
 
 type lfsObject struct {

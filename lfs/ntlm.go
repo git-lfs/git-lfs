@@ -43,7 +43,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 		return nil, err
 	}
 
-	res, err := Config.HttpClient().Do(handReq)
+	res, err := Config.HttpClient(handReq.Host).Do(handReq)
 	if err != nil && res == nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 
 func negotiate(request *http.Request, message string) ([]byte, error) {
 	request.Header.Add("Authorization", message)
-	res, err := Config.HttpClient().Do(request)
+	res, err := Config.HttpClient(request.Host).Do(request)
 
 	if res == nil && err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http
 
 	authMsg := base64.StdEncoding.EncodeToString(authenticate.Bytes())
 	request.Header.Add("Authorization", "NTLM "+authMsg)
-	return Config.HttpClient().Do(request)
+	return Config.HttpClient(request.Host).Do(request)
 }
 
 func parseChallengeResponse(response *http.Response) ([]byte, error) {
