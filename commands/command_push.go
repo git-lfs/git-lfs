@@ -36,7 +36,7 @@ func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
 }
 
 func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue {
-	tracerx.Printf("Upload refs %v to remote %v", remote, refs)
+	tracerx.Printf("Upload refs %v to remote %v", refs, remote)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
