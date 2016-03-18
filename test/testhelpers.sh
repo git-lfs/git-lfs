@@ -313,7 +313,12 @@ shutdown() {
     fi
 
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
-  fi
+
+    # delete entire lfs test root if we created it (double check pattern)
+    if [ -z "$KEEPTRASH" ] && [ "$RM_GIT_LFS_TEST_DIR" = "yes" ] && [[ $GIT_LFS_TEST_DIR == *"$TEMPDIR_PREFIX"* ]]; then
+      rm -rf "$GIT_LFS_TEST_DIR"
+    fi
+fi
 }
 
 ensure_git_version_isnt() {
