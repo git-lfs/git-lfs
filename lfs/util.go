@@ -279,6 +279,10 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 // ResolveSymlinks ensures that if the path supplied is a symlink, it is
 // resolved to the actual concrete path
 func ResolveSymlinks(path string) string {
+	if len(path) == 0 {
+		return path
+	}
+
 	if resolved, err := filepath.EvalSymlinks(path); err == nil {
 		return resolved
 	}
