@@ -9,6 +9,23 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
+// isCertVerificationDisabledForHost returns whether SSL certificate verification
+// has been disabled for the given host, or globally
+func isCertVerificationDisabledForHost(host string) bool {
+	hostSslVerify, _ := Config.GitConfig(fmt.Sprintf("http.https://%v/.sslverify", host))
+	if hostSslVerify == "false" {
+		return true
+	}
+
+	globalSslVerify, _ := Config.GitConfig("http.sslverify")
+	if globalSslVerify == "false" || Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
+		return true
+	}
+
+	return false
+
+}
+
 // getRootCAsForHost returns a certificate pool for that specific host (which may
 // be "host:port" loaded from either the gitconfig or from a platform-specific
 // source which is not included by default in the golang certificate search)

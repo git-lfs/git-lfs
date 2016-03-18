@@ -154,3 +154,44 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	assert.NotEqual(t, (*x509.CertPool)(nil), pool)
 
 }
+
+func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
+
+	assert.Equal(t, false, isCertVerificationDisabledForHost("anyhost.com"))
+
+	oldEnv := Config.envVars
+	defer func() {
+		Config.envVars = oldEnv
+	}()
+	Config.envVars = map[string]string{"GIT_SSL_NO_VERIFY": "1"}
+
+	assert.Equal(t, true, isCertVerificationDisabledForHost("anyhost.com"))
+}
+
+func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
+
+	assert.Equal(t, false, isCertVerificationDisabledForHost("anyhost.com"))
+
+	oldGitConfig := Config.gitConfig
+	defer func() {
+		Config.gitConfig = oldGitConfig
+	}()
+	Config.gitConfig = map[string]string{"http.sslverify": "false"}
+
+	assert.Equal(t, true, isCertVerificationDisabledForHost("anyhost.com"))
+}
+
+func TestCertVerifyDisabledHostConfig(t *testing.T) {
+
+	assert.Equal(t, false, isCertVerificationDisabledForHost("specifichost.com"))
+	assert.Equal(t, false, isCertVerificationDisabledForHost("otherhost.com"))
+
+	oldGitConfig := Config.gitConfig
+	defer func() {
+		Config.gitConfig = oldGitConfig
+	}()
+	Config.gitConfig = map[string]string{"http.https://specifichost.com/.sslverify": "false"}
+
+	assert.Equal(t, true, isCertVerificationDisabledForHost("specifichost.com"))
+	assert.Equal(t, false, isCertVerificationDisabledForHost("otherhost.com"))
+}

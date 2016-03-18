@@ -124,9 +124,8 @@ func (c *Configuration) HttpClient(host string) *HttpClient {
 		MaxIdleConnsPerHost: c.ConcurrentTransfers(),
 	}
 
-	sslVerify, _ := c.GitConfig("http.sslverify")
 	tr.TLSClientConfig = &tls.Config{}
-	if sslVerify == "false" || Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
+	if isCertVerificationDisabledForHost(host) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
 		tr.TLSClientConfig.RootCAs = getRootCAsForHost(host)
