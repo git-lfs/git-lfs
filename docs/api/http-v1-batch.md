@@ -99,16 +99,17 @@ schemas:
 
 Here are the valid actions:
 
-* `upload` - This relation describes how to upload the object.  Expect this with
-when the object has not been previously uploaded.
+* `upload` - This relation describes how to upload the object.  If the object
+has not previously been uploaded the server should provide this action.  If
+the object has been previously uploaded and the object content is known to the
+server, it should not provide this action.  When the action is not provided,
+the client should assume the server already knows the object content and skip
+uploading it.
 * `verify` - The server can specify a URL for the client to hit after
 successfully uploading an object.  This is an optional relation for the case that
 the server has not verified the object.
 * `download` - This relation describes how to download the object content.  This
-only appears if an object has been previously uploaded.  If object content is
-already available, the server should provide this action even if the request
-operation is `upload`, because the client can use the presence of this action to
-avoid duplicate uploads of object content which is already known to the server.
+only appears if an object has been previously uploaded.
 
 An action can optionally include an `expires_at`, which is an ISO 8601 formatted
 timestamp for when the given action expires (usually due to a temporary token).
