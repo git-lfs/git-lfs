@@ -2,8 +2,8 @@
 
 . "test/testlib.sh"
 
-envInitConfig='git config filter.lfs.smudge = "git-lfs smudge %f"
-git config filter.lfs.clean = "git-lfs clean %f"'
+envInitConfig='git config filter.lfs.smudge = "git-lfs smudge -- %f"
+git config filter.lfs.clean = "git-lfs clean -- %f"'
 
 begin_test "env with no remote"
 (

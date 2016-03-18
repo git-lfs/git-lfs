@@ -3,8 +3,8 @@
 . "test/testlib.sh"
 
 ensure_git_version_isnt $VERSION_LOWER "2.5.0"
-envInitConfig='git config filter.lfs.smudge = "git-lfs smudge %f"
-git config filter.lfs.clean = "git-lfs clean %f"'
+envInitConfig='git config filter.lfs.smudge = "git-lfs smudge -- %f"
+git config filter.lfs.clean = "git-lfs clean -- %f"'
 
 begin_test "git worktree"
 (
