@@ -316,6 +316,11 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (chan string, e
 		return nil, errors.New("scanner: unknown scan type: " + strconv.Itoa(int(opt.ScanMode)))
 	}
 
+	// Use "--" at the end of the command to disambiguate arguments as refs,
+	// so Git doesn't complain about ambiguity if you happen to also have a
+	// file named "master".
+	refArgs = append(refArgs, "--")
+
 	cmd, err := startCommand("git", refArgs...)
 	if err != nil {
 		return nil, err
