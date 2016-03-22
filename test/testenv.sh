@@ -3,9 +3,48 @@
 
 set -e
 
+UNAME=$(uname -s)
+IS_WINDOWS=0
+IS_MAC=0
+if [[ $UNAME == MINGW* || $UNAME == CYGWIN* ]]
+then
+  IS_WINDOWS=1
+elif [[ $UNAME == *Darwin* ]]
+then
+  IS_MAC=1
+fi
+
+resolve_symlink() {
+  local arg=$1
+  if [ $IS_WINDOWS == "1" ]; then
+    printf '%s' "$arg"
+  elif [ $IS_MAC == "1" ]; then
+    # no readlink -f on Mac
+    local oldwd=$(pwd)
+    local target=$arg
+
+    cd `dirname $target`
+    target=`basename $target`
+    while [ -L "$target" ]
+    do
+        target=`readlink $target`
+        cd `dirname $target`
+        target=`basename $target`
+    done
+
+    local resolveddir=`pwd -P`
+    cd "$oldwd"
+    printf '%s' "$resolveddir/$target"
+
+  else
+    readlink -f "$arg"
+  fi
+
+}
+
 # The root directory for the git-lfs repository by default.
 if [ -z "$ROOTDIR" ]; then
-  ROOTDIR=$(cd $(dirname "$0")/.. && pwd)
+  ROOTDIR=$(cd $(dirname "$0")/.. && pwd -P)
 fi
 
 # Where Git LFS outputs the compiled binaries
@@ -14,8 +53,16 @@ BINPATH="$ROOTDIR/bin"
 # Put bin path on PATH
 PATH="$BINPATH:$PATH"
 
+# Always provide a test dir outside our git repo if not specified
+TEMPDIR_PREFIX="git-lfs_TEMP"
+if [ -z "$GIT_LFS_TEST_DIR" ]; then
+    GIT_LFS_TEST_DIR=$(mktemp -d -t "$TEMPDIR_PREFIX")
+    GIT_LFS_TEST_DIR=$(resolve_symlink $GIT_LFS_TEST_DIR)
+    # cleanup either after single test or at end of integration (except on fail)
+    RM_GIT_LFS_TEST_DIR=yes
+fi 
 # create a temporary work space
-TMPDIR=${GIT_LFS_TEST_DIR:-"$ROOTDIR/tmp"}
+TMPDIR=$GIT_LFS_TEST_DIR
 
 # This is unique to every test file, and cleared after every test run.
 TRASHDIR="$TMPDIR/$(basename "$0")-$$"
@@ -55,13 +102,6 @@ LFS_CERT_FILE="$REMOTEDIR/cert"
 TESTHOME="$REMOTEDIR/home"
 
 GIT_CONFIG_NOSYSTEM=1
-
-UNAME=$(uname -s)
-IS_WINDOWS=0
-if [[ $UNAME == MINGW* || $UNAME == CYGWIN* ]]
-then
-  IS_WINDOWS=1
-fi
 
 export CREDSDIR
 

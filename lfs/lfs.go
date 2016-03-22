@@ -92,6 +92,11 @@ func ResolveDirs() {
 	var err error
 	LocalGitDir, LocalWorkingDir, err = git.GitAndRootDirs()
 	if err == nil {
+		// Make sure we've fully evaluated symlinks, failure to do consistently
+		// can cause discrepancies
+		LocalGitDir = ResolveSymlinks(LocalGitDir)
+		LocalWorkingDir = ResolveSymlinks(LocalWorkingDir)
+
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp") // temp files per worktree
 

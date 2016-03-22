@@ -199,6 +199,7 @@ func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error
 	if err != nil {
 		return nil, fmt.Errorf("Unable to get working dir: %v", err)
 	}
+	wd = ResolveSymlinks(wd)
 
 	// Early-out if working dir is root dir, same result
 	passthrough := false
@@ -238,6 +239,8 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 	if err != nil {
 		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
 	}
+	// Make sure to resolve symlinks
+	curdir = ResolveSymlinks(curdir)
 
 	// Early-out if working dir is root dir, same result
 	passthrough := false
@@ -254,7 +257,7 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 			}
 			var abs string
 			if filepath.IsAbs(p) {
-				abs = p
+				abs = ResolveSymlinks(p)
 			} else {
 				abs = filepath.Join(curdir, p)
 			}
@@ -271,6 +274,19 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 
 	return outchan, nil
 
+}
+
+// ResolveSymlinks ensures that if the path supplied is a symlink, it is
+// resolved to the actual concrete path
+func ResolveSymlinks(path string) string {
+	if len(path) == 0 {
+		return path
+	}
+
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return resolved
+	}
+	return path
 }
 
 // Are we running on Windows? Need to handle some extra path shenanigans
