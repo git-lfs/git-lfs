@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/github/git-lfs/git"
 
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -77,6 +80,25 @@ ArgsLoop:
 			continue
 		}
 		Print("Tracking %s", pattern)
+
+		// Make sure any existing git tracked files have their timestamp updated
+		// so they will now show as modifed
+		// note this is relative to current dir which is how we write .gitattributes
+		// deliberately not done in parallel as a chan because we'll be marking modified
+		gittracked, err := git.GetTrackedFiles(pattern)
+		if err != nil {
+			LoggedError(err, "Error getting git tracked files")
+			continue
+		}
+		now := time.Now()
+		for _, f := range gittracked {
+			err := os.Chtimes(f, now, now)
+			if err != nil {
+				LoggedError(err, "Error marking %q modified", f)
+				continue
+			}
+		}
+
 	}
 }
 
