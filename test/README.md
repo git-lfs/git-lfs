@@ -67,8 +67,8 @@ There are a few environment variables that you can set to change the test suite
 behavior:
 
 * `GIT_LFS_TEST_DIR=path` - This sets the directory that is used as the current
-working directory of the tests. By default, this is `.tmp`. It's recommended
-that this is set to a directory outside of any Git repository.
+working directory of the tests. By default, this will be in your temp dir. It's 
+recommended that this is set to a directory outside of any Git repository.
 * `GIT_LFS_TEST_MAXPROCS=N` - This tells `script/integration` how many tests to
 run in parallel.  Default: 4.
 * `KEEPTRASH=1` - This will leave the local repository data in a `tmp` directory

@@ -53,8 +53,16 @@ BINPATH="$ROOTDIR/bin"
 # Put bin path on PATH
 PATH="$BINPATH:$PATH"
 
+# Always provide a test dir outside our git repo if not specified
+TEMPDIR_PREFIX="git-lfs_TEMP"
+if [ -z "$GIT_LFS_TEST_DIR" ]; then
+    GIT_LFS_TEST_DIR=$(mktemp -d -t "$TEMPDIR_PREFIX")
+    GIT_LFS_TEST_DIR=$(resolve_symlink $GIT_LFS_TEST_DIR)
+    # cleanup either after single test or at end of integration (except on fail)
+    RM_GIT_LFS_TEST_DIR=yes
+fi 
 # create a temporary work space
-TMPDIR=${GIT_LFS_TEST_DIR:-"$ROOTDIR/tmp"}
+TMPDIR=$GIT_LFS_TEST_DIR
 
 # This is unique to every test file, and cleared after every test run.
 TRASHDIR="$TMPDIR/$(basename "$0")-$$"
