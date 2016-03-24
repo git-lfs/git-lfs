@@ -111,7 +111,7 @@ func downloadObject(ptr *Pointer, obj *ObjectResource, mediafile string, cb Copy
 	}
 
 	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
-		return Errorf(err, "Error buffering media file.")
+		return Errorf(err, "Error buffering media file: %s", err)
 	}
 
 	return nil
