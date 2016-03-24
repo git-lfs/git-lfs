@@ -54,7 +54,7 @@ BINPATH="$ROOTDIR/bin"
 PATH="$BINPATH:$PATH"
 
 # Always provide a test dir outside our git repo if not specified
-TEMPDIR_PREFIX="git-lfs_TEMP"
+TEMPDIR_PREFIX="git-lfs_TEMP.XXXXXX"
 if [ -z "$GIT_LFS_TEST_DIR" ]; then
     GIT_LFS_TEST_DIR=$(mktemp -d -t "$TEMPDIR_PREFIX")
     GIT_LFS_TEST_DIR=$(resolve_symlink $GIT_LFS_TEST_DIR)
