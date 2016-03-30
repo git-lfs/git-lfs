@@ -58,7 +58,6 @@ end
 package_files = Dir.glob("repos/**/*.rpm") + Dir.glob("repos/**/*.deb")
 package_files.each do |full_path|
   next if full_path =~ /repo-release/
-  pkg = Packagecloud::Package.new(:file => full_path)
   distro_names = distro_names_for(full_path)
   distro_names.map do |distro_name|
     distro_id = $distro_id_map[distro_name] ||= $client.find_distribution_id(distro_name)
@@ -67,6 +66,7 @@ package_files.each do |full_path|
     end
 
     puts "pushing #{full_path} to #{$distro_id_map.key(distro_id).inspect}"
+    pkg = Packagecloud::Package.new(:file => full_path)
     $client.put_package("git-lfs", pkg, distro_id)
   end
 end
