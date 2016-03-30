@@ -2,8 +2,8 @@
 
 # Usage: 
 #  ./run_dockers.bsh - Run all the docker images
-#  ./run_dockers.bsh lfs_centos_5 lfs_centos_7 - Run only CentOS 5 & 7 image
-#  ./run_dockers.bsh lfs_centos_6 -- bash #Runs bash in the CentOS 6 docker 
+#  ./run_dockers.bsh centos_5 centos_7 - Run only CentOS 5 & 7 image
+#  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker 
 #
 # Special Environmet Variables
 #  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
