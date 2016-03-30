@@ -67,7 +67,10 @@ package_files.each do |full_path|
     end
 
     puts "pushing #{full_path} to #{$distro_id_map.key(distro_id).inspect}"
-    $client.put_package("git-lfs", pkg, distro_id)
+    result = $client.put_package("git-lfs", pkg, distro_id)
+    result.succeeded || begin
+      raise "packagecloud put_package failed, error: #{result.response}"
+    end
   end
 end
 
