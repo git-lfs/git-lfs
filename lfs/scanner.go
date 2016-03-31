@@ -425,11 +425,14 @@ func revListIndex(cache bool, indexMap *indexFileMap) (*StringChannelWrapper, er
 			}
 		}
 
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git diff-index: %v %v", err, string(stderr))
-		}
+		// Note: deliberately not checking result code here, because doing that
+		// can fail fsck process too early since clean filter will detect errors
+		// and set this to non-zero. How to cope with this better?
+		// stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		// err := cmd.Wait()
+		// if err != nil {
+		// 	errchan <- fmt.Errorf("Error in git diff-index: %v %v", err, string(stderr))
+		// }
 		cmd.Wait()
 		close(revs)
 		close(errchan)
