@@ -350,7 +350,7 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 	cmd.Stdin.Close()
 
 	revs := make(chan string, chanBufSize)
-	errchan := make(chan error, 1)
+	errchan := make(chan error, 5) // may be multiple errors
 
 	go func() {
 		scanner := bufio.NewScanner(cmd.Stdout)
@@ -371,6 +371,14 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 		err := cmd.Wait()
 		if err != nil {
 			errchan <- fmt.Errorf("Error in git rev-list --objects: %v %v", err, string(stderr))
+		} else {
+			// Special case detection of ambiguous refs; lower level commands like
+			// git rev-list do not return non-zero exit codes in this case, just warn
+			ambiguousRegex := regexp.MustCompile(`warning: refname (.*) is ambiguous`)
+			if match := ambiguousRegex.FindStringSubmatch(string(stderr)); match != nil {
+				// Promote to fatal & exit
+				errchan <- fmt.Errorf("Error: ref %q is ambiguous", match[1])
+			}
 		}
 		close(revs)
 		close(errchan)

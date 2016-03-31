@@ -419,3 +419,68 @@ begin_test "push with invalid remote"
   grep "Invalid remote name" push.log
 )
 end_test
+
+begin_test "push ambiguous branch name"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-ambiguous-branch"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  NUMFILES=5
+  # generate content we'll use
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    content[$a]="filecontent$a"
+    oid[$a]=$(calc_oid "${content[$a]}")
+  done
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[0]}, \"Data\":\"${content[0]}\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content[1]}, \"Data\":\"${content[1]}\"}]
+  },
+  {
+    \"NewBranch\":\"ambiguous\",
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file4.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
+  },
+  {
+    \"ParentBranches\":[\"master\"],
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[4]}, \"Data\":\"${content[4]}\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # create tag with same name as branch
+  git tag ambiguous
+
+  # lfs push master, should work
+  git lfs push origin master
+
+  # push ambiguous, should fail
+  set +e
+  git lfs push origin ambiguous
+  if [ $? -eq 0 ]
+  then
+    exit 1
+  fi
+  set -e
+
+)
+end_test
+
