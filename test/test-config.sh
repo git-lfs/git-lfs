@@ -34,6 +34,12 @@ begin_test "default config"
   git config lfs.http://local-lfsconfig.access gitconfig
   git lfs env | tee env.log
   grep "Endpoint=http://local-lfsconfig (auth=gitconfig)" env.log
+
+  # test url.<url>.insteadOf replacement
+  git config url."http://actual-url/".insteadOf alias:
+  git config lfs.url alias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=http://actual-url/rest (auth=none)" env.log
 )
 end_test
 

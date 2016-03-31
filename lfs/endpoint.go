@@ -48,6 +48,9 @@ func NewEndpointFromCloneURLWithConfig(url string, c *Configuration) Endpoint {
 
 // NewEndpointWithConfig initializes a new Endpoint for a given URL.
 func NewEndpointWithConfig(rawurl string, c *Configuration) Endpoint {
+	for aliasurl, replacement := range c.insteadOfs {
+		rawurl = strings.Replace(rawurl, aliasurl, replacement, 1)
+	}
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		return Endpoint{Url: EndpointUrlUnknown}
