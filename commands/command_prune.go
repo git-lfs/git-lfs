@@ -311,9 +311,13 @@ func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan cha
 		errorChan <- err
 		return
 	}
-	for wp := range refchan {
+	for wp := range refchan.Results {
 		retainChan <- wp.Pointer.Oid
 		tracerx.Printf("RETAIN: %v via ref %v", wp.Pointer.Oid, ref)
+	}
+	err = refchan.Wait()
+	if err != nil {
+		errorChan <- err
 	}
 }
 
@@ -326,9 +330,13 @@ func pruneTaskGetPreviousVersionsOfRef(ref string, since time.Time, retainChan c
 		errorChan <- err
 		return
 	}
-	for wp := range refchan {
+	for wp := range refchan.Results {
 		retainChan <- wp.Pointer.Oid
 		tracerx.Printf("RETAIN: %v via ref %v >= %v", wp.Pointer.Oid, ref, since)
+	}
+	err = refchan.Wait()
+	if err != nil {
+		errorChan <- err
 	}
 }
 
@@ -398,9 +406,13 @@ func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, 
 		errorChan <- err
 		return
 	}
-	for wp := range refchan {
+	for wp := range refchan.Results {
 		retainChan <- wp.Pointer.Oid
 		tracerx.Printf("RETAIN: %v unpushed", wp.Pointer.Oid)
+	}
+	err = refchan.Wait()
+	if err != nil {
+		errorChan <- err
 	}
 }
 
@@ -452,8 +464,12 @@ func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, errorChan chan er
 		return
 	}
 
-	for p := range pointerchan {
+	for p := range pointerchan.Results {
 		outObjectSet.Add(p.Oid)
+	}
+	err = pointerchan.Wait()
+	if err != nil {
+		errorChan <- err
 	}
 
 }

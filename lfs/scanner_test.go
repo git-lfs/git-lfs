@@ -100,7 +100,10 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	// test + diff, no filtering
 	r := strings.NewReader(pointerParseLogOutput)
 	pchan := make(chan *WrappedPointer, chanBufSize)
-	go parseLogOutputToPointers(r, LogDiffAdditions, nil, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(r, LogDiffAdditions, nil, nil, pchan)
+		close(pchan)
+	}()
 	pointers := make([]*WrappedPointer, 0, 5)
 	for p := range pchan {
 		pointers = append(pointers, p)
@@ -132,7 +135,10 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	r = strings.NewReader(pointerParseLogOutput)
 	pointers = pointers[:0]
 	pchan = make(chan *WrappedPointer, chanBufSize)
-	go parseLogOutputToPointers(r, LogDiffAdditions, []string{"wave*"}, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(r, LogDiffAdditions, []string{"wave*"}, nil, pchan)
+		close(pchan)
+	}()
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
@@ -145,7 +151,10 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	r = strings.NewReader(pointerParseLogOutput)
 	pointers = pointers[:0]
 	pchan = make(chan *WrappedPointer, chanBufSize)
-	go parseLogOutputToPointers(r, LogDiffAdditions, nil, []string{"wave*"}, pchan)
+	go func() {
+		parseLogOutputToPointers(r, LogDiffAdditions, nil, []string{"wave*"}, pchan)
+		close(pchan)
+	}()
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
@@ -170,7 +179,10 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 	// test - diff, no filtering
 	r := strings.NewReader(pointerParseLogOutput)
 	pchan := make(chan *WrappedPointer, chanBufSize)
-	go parseLogOutputToPointers(r, LogDiffDeletions, nil, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(r, LogDiffDeletions, nil, nil, pchan)
+		close(pchan)
+	}()
 	pointers := make([]*WrappedPointer, 0, 5)
 	for p := range pchan {
 		pointers = append(pointers, p)
@@ -199,7 +211,10 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 	r = strings.NewReader(pointerParseLogOutput)
 	pointers = pointers[:0]
 	pchan = make(chan *WrappedPointer, chanBufSize)
-	go parseLogOutputToPointers(r, LogDiffDeletions, []string{"flare*"}, nil, pchan)
+	go func() {
+		parseLogOutputToPointers(r, LogDiffDeletions, []string{"flare*"}, nil, pchan)
+		close(pchan)
+	}()
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
@@ -212,7 +227,10 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 	r = strings.NewReader(pointerParseLogOutput)
 	pointers = pointers[:0]
 	pchan = make(chan *WrappedPointer, chanBufSize)
-	go parseLogOutputToPointers(r, LogDiffDeletions, nil, []string{"flare*"}, pchan)
+	go func() {
+		parseLogOutputToPointers(r, LogDiffDeletions, nil, []string{"flare*"}, pchan)
+		close(pchan)
+	}()
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
