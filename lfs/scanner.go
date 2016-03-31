@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -366,9 +367,10 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 			revs <- sha1
 		}
 
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git rev-list --objects: %v %v", err, string(stderr))
 		}
 		close(revs)
 		close(errchan)
@@ -423,10 +425,12 @@ func revListIndex(cache bool, indexMap *indexFileMap) (*StringChannelWrapper, er
 			}
 		}
 
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git diff-index: %v %v", err, string(stderr))
 		}
+		cmd.Wait()
 		close(revs)
 		close(errchan)
 	}()
@@ -476,9 +480,10 @@ func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error
 			}
 		}
 
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git cat-file --batch-check: %v %v", err, string(stderr))
 		}
 		close(smallRevs)
 		close(errchan)
@@ -547,9 +552,10 @@ func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
 			}
 		}
 
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err = cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
 		}
 		close(pointers)
 		close(errchan)
@@ -574,15 +580,20 @@ func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
 type wrappedCmd struct {
 	Stdin  io.WriteCloser
 	Stdout *bufio.Reader
+	Stderr *bufio.Reader
 	*exec.Cmd
 }
 
 // startCommand starts up a command and creates a stdin pipe and a buffered
-// stdout pipe, wrapped in a wrappedCmd. The stdout buffer will be of stdoutBufSize
+// stdout & stderr pipes, wrapped in a wrappedCmd. The stdout buffer will be of stdoutBufSize
 // bytes.
 func startCommand(command string, args ...string) (*wrappedCmd, error) {
 	cmd := exec.Command(command, args...)
 	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +608,12 @@ func startCommand(command string, args ...string) (*wrappedCmd, error) {
 		return nil, err
 	}
 
-	return &wrappedCmd{stdin, bufio.NewReaderSize(stdout, stdoutBufSize), cmd}, nil
+	return &wrappedCmd{
+		stdin,
+		bufio.NewReaderSize(stdout, stdoutBufSize),
+		bufio.NewReaderSize(stderr, stdoutBufSize),
+		cmd,
+	}, nil
 }
 
 // An entry from ls-tree or rev-list including a blob sha and tree path
@@ -691,9 +707,10 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 		cmd.Stdin.Close()
 
 		// also errors from our command
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err = cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git cat-file: %v %v", err, string(stderr))
 		}
 		close(pointers)
 		close(errchan)
@@ -726,9 +743,10 @@ func lsTreeBlobs(ref string) (*TreeBlobChannelWrapper, error) {
 
 	go func() {
 		parseLsTree(cmd.Stdout, blobs)
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git ls-tree: %v %v", err, string(stderr))
 		}
 		close(blobs)
 		close(errchan)
@@ -866,9 +884,10 @@ func ScanUnpushedToChan(remoteName string) (*PointerChannelWrapper, error) {
 
 	go func() {
 		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
 		}
 		close(pchan)
 		close(errchan)
@@ -904,9 +923,10 @@ func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error
 	// out in the date range, not just if the commit which *introduced* them is in the range
 	go func() {
 		parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- err
+			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
 		}
 		close(pchan)
 		close(errchan)
