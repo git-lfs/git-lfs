@@ -1055,13 +1055,14 @@ type PointerChannelWrapper struct {
 }
 
 // Construct a new channel wrapper for WrappedPointer
-// Caller can use s.Pointers directly for normal processing then call Wait() to finish & check for errors
+// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 // Scan function is required to create error channel large enough not to block (usually 1 is ok)
 func NewPointerChannelWrapper(pointerChan <-chan *WrappedPointer, errorChan <-chan error) *PointerChannelWrapper {
 	return &PointerChannelWrapper{&BaseChannelWrapper{errorChan}, pointerChan}
 }
 
 // ChannelWrapper for string channel functions to more easily return async error data via Wait()
+// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 // See NewStringChannelWrapper for construction / use
 type StringChannelWrapper struct {
 	*BaseChannelWrapper
@@ -1069,6 +1070,7 @@ type StringChannelWrapper struct {
 }
 
 // Construct a new channel wrapper for string
+// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 func NewStringChannelWrapper(stringChan <-chan string, errorChan <-chan error) *StringChannelWrapper {
 	return &StringChannelWrapper{&BaseChannelWrapper{errorChan}, stringChan}
 }
@@ -1081,6 +1083,7 @@ type TreeBlobChannelWrapper struct {
 }
 
 // Construct a new channel wrapper for TreeBlob
+// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 func NewTreeBlobChannelWrapper(treeBlobChan <-chan TreeBlob, errorChan <-chan error) *TreeBlobChannelWrapper {
 	return &TreeBlobChannelWrapper{&BaseChannelWrapper{errorChan}, treeBlobChan}
 }
