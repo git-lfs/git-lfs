@@ -122,7 +122,6 @@ func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer
 // ScanRefsToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-// Recommend using NewPointerChannelWrapper to wrap
 func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (*PointerChannelWrapper, error) {
 	if opt == nil {
 		opt = NewScanRefsOptions()
