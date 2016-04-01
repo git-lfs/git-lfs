@@ -376,7 +376,7 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 			ambiguousRegex := regexp.MustCompile(`warning: refname (.*) is ambiguous`)
 			if match := ambiguousRegex.FindStringSubmatch(string(stderr)); match != nil {
 				// Promote to fatal & exit
-				errchan <- fmt.Errorf("Error: ref %q is ambiguous", match[1])
+				errchan <- fmt.Errorf("Error: ref %s is ambiguous", match[1])
 			}
 		}
 		close(revs)
