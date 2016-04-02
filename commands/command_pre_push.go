@@ -7,6 +7,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -69,9 +70,11 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
+		tracerx.Printf("PREPUSH TRACE: prePushRef(%q, %q)", left, right)
 		prePushRef(left, right)
-
+		tracerx.Printf("PREPUSH TRACE: prePushRef(%q, %q) DONE", left, right)
 	}
+	tracerx.Printf("PREPUSH TRACE: DONE")
 }
 
 func prePushRef(left, right string) {
@@ -124,6 +127,7 @@ func prePushRef(left, right string) {
 	}
 
 	if !prePushDryRun {
+		tracerx.Printf("PREPUSH TRACE: Waiting...")
 		uploadQueue.Wait()
 		for _, err := range uploadQueue.Errors() {
 			if Debugging || lfs.IsFatalError(err) {
