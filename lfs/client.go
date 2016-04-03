@@ -122,7 +122,7 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 		&ObjectResource{Oid: oid, Size: size},
 	}
 
-	objs, err := Batch(objects, "download")
+	objs, err := downloadBatch(objects)
 	if err != nil {
 		if IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
@@ -208,12 +208,26 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+func downloadBatch(objects []*ObjectResource) ([]*ObjectResource, error) {
+	return Batch(objects, "download", nil)
+}
+
+func Batch(objects []*ObjectResource, operation string, metadata *TransferMetadata) ([]*ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
 	o := map[string]interface{}{"objects": objects, "operation": operation}
+	if metadata != nil {
+		m := map[string]interface{}{}
+		ref := normalizeRef(metadata.ref)
+		if len(ref) > 0 {
+			m["ref"] = ref
+		}
+		if len(m) > 0 {
+			o["meta"] = m
+		}
+	}
 
 	by, err := json.Marshal(o)
 	if err != nil {
@@ -246,7 +260,7 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 
 		if IsAuthError(err) {
 			setAuthType(req, res)
-			return Batch(objects, operation)
+			return Batch(objects, operation, metadata)
 		}
 
 		switch res.StatusCode {
@@ -810,4 +824,14 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
+}
+
+func normalizeRef(ref string) string {
+	if len(ref) == 0 || ref == "HEAD" {
+		return ""
+	}
+	if strings.HasPrefix("refs/heads/", ref) {
+		return ref
+	}
+	return "refs/heads/" + ref
 }
