@@ -283,7 +283,7 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		// which would only be skipped by PointerSmudgeObject later
 		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude)
 
-		lfs.IfNoLocalObjExistsLinkOrCopyFromReferenceMedia(p.Oid, p.Size)
+		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
 
 		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
 			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
