@@ -777,6 +777,6 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 		line := scanner.Text()
 		ret = append(ret, strings.TrimSpace(line))
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 
 }
