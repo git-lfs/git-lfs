@@ -3,6 +3,7 @@ package lfs
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -328,30 +329,34 @@ func FileExistsOfSize(path string, sz int64) bool {
 }
 
 func CopyFileContents(src string, dst string) error {
+	tmp, err := ioutil.TempFile(TempDir, filepath.Base(dst))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		tmp.Close()
+		_ = os.Remove(tmp.Name())
+	}()
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
-	out, err := os.Create(dst)
+	_, err = io.Copy(tmp, in)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		cerr := out.Close()
-		if err == nil {
-			err = cerr
-		}
-	}()
-	_, err = io.Copy(out, in)
+	err = tmp.Sync()
 	if err != nil {
 		return err
 	}
-	err = out.Sync()
-	return err
+	return os.Rename(tmp.Name(), dst)
 }
 
 func LinkOrCopy(src string, dst string) error {
+	if src == dst {
+		return nil
+	}
 	err := os.Link(src, dst)
 	if err == nil {
 		return err
