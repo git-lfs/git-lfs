@@ -460,3 +460,59 @@ begin_test "pre-push unfetched deleted remote branch & server GC"
 
 )
 end_test
+
+begin_test "pre-push delete branch"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-delete-branch"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  NUMFILES=4
+  # generate content we'll use
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    content[$a]="filecontent$a"
+    oid[$a]=$(calc_oid "${content[$a]}")
+  done
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[0]}, \"Data\":\"${content[0]}\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content[1]}, \"Data\":\"${content[1]}\"}]
+  },
+  {
+    \"NewBranch\":\"branch-to-delete\",
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
+  },
+  {
+    \"ParentBranches\":[\"master\"],
+    \"CommitDate\":\"$(get_date -0d)\",
+    \"Files\":[
+      {\"Filename\":\"file4.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # push all branches
+  git push origin master branch-to-delete
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    assert_server_object "$reponame" "${oid[$a]}"
+  done
+
+  # deleting a branch with git push should not fail 
+  # (requires correct special casing of "(delete) 0000000000.." in hook)
+  git push origin --delete branch-to-delete
+
+
+)
+end_test
