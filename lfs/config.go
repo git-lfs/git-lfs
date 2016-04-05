@@ -50,6 +50,7 @@ type Configuration struct {
 	redirectingHttpClient *http.Client
 	ntlmSession           ntlm.ClientSession
 	envVars               map[string]string
+	envVarsMutex          sync.Mutex
 	isTracingHttp         bool
 	isDebuggingHttp       bool
 	isLoggingStats        bool
@@ -78,6 +79,9 @@ func NewConfig() *Configuration {
 }
 
 func (c *Configuration) Getenv(key string) string {
+	c.envVarsMutex.Lock()
+	defer c.envVarsMutex.Unlock()
+
 	if i, ok := c.envVars[key]; ok {
 		return i
 	}
@@ -88,6 +92,9 @@ func (c *Configuration) Getenv(key string) string {
 }
 
 func (c *Configuration) Setenv(key, value string) error {
+	c.envVarsMutex.Lock()
+	defer c.envVarsMutex.Unlock()
+
 	// Check see if we have this in our cache, if so update it
 	if _, ok := c.envVars[key]; ok {
 		c.envVars[key] = value
