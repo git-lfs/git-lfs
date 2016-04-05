@@ -335,7 +335,7 @@ func CopyFileContents(src string, dst string) error {
 	}
 	defer func() {
 		tmp.Close()
-		_ = os.Remove(tmp.Name())
+		os.Remove(tmp.Name())
 	}()
 	in, err := os.Open(src)
 	if err != nil {
@@ -346,7 +346,7 @@ func CopyFileContents(src string, dst string) error {
 	if err != nil {
 		return err
 	}
-	err = tmp.Sync()
+	err = tmp.Close()
 	if err != nil {
 		return err
 	}
