@@ -37,6 +37,8 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+
 	if smudgeInfo {
 		localPath, err := lfs.LocalMediaPath(ptr.Oid)
 		if err != nil {
