@@ -225,10 +225,14 @@ func scanAll() []*lfs.WrappedPointer {
 
 	pointers := make([]*lfs.WrappedPointer, 0)
 
-	for p := range pointerchan {
+	for p := range pointerchan.Results {
 		numObjs++
 		spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
 		pointers = append(pointers, p)
+	}
+	err = pointerchan.Wait()
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
 	}
 
 	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))

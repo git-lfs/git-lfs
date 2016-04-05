@@ -15,11 +15,10 @@ var (
 		Use: "push",
 		Run: pushCommand,
 	}
-	pushDryRun       = false
-	pushDeleteBranch = "(delete)"
-	pushObjectIDs    = false
-	pushAll          = false
-	useStdin         = false
+	pushDryRun    = false
+	pushObjectIDs = false
+	pushAll       = false
+	useStdin      = false
 
 	// shares some global vars and functions with command_pre_push.go
 )
@@ -175,7 +174,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		left, right := decodeRefs(string(refsData))
-		if left == pushDeleteBranch {
+		if left == prePushDeleteBranch {
 			return
 		}
 

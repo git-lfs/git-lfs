@@ -16,7 +16,7 @@ var (
 		Run: prePushCommand,
 	}
 	prePushDryRun        = false
-	prePushDeleteBranch  = "(delete)"
+	prePushDeleteBranch  = strings.Repeat("0", 40)
 	prePushMissingErrMsg = "%s is an LFS pointer to %s, which does not exist in .git/lfs/objects.\n\nRun 'git lfs fsck' to verify Git LFS objects."
 )
 
