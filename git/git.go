@@ -757,3 +757,30 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 	}
 	return ret, nil
 }
+
+// GetTrackedFiles returns a list of files which are tracked in Git which match
+// the pattern specified (standard wildcard form)
+// Both pattern and the results are relative to the current working directory, not
+// the root of the repository
+func GetTrackedFiles(pattern string) ([]string, error) {
+	var ret []string
+	cmd := subprocess.ExecCommand("git",
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"ls-files",
+		"--cached", // include things which are staged but not committed right now
+		"--",       // no ambiguous patterns
+		pattern)
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git ls-files: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		line := scanner.Text()
+		ret = append(ret, strings.TrimSpace(line))
+	}
+	return ret, cmd.Wait()
+
+}

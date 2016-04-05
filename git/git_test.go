@@ -1,6 +1,8 @@
 package git_test // to avoid import cycles
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -279,4 +281,100 @@ func TestGitAndRootDirs(t *testing.T) {
 	}
 
 	assert.Equal(t, git, filepath.Join(root, ".git"))
+}
+
+func TestGetTrackedFiles(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	// test commits; we'll just modify the same file each time since we're
+	// only interested in branches
+	inputs := []*test.CommitInput{
+		{ // 0
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+				{Filename: "file2.txt", Size: 20},
+				{Filename: "folder1/file10.txt", Size: 20},
+				{Filename: "folder1/anotherfile.txt", Size: 20},
+			},
+		},
+		{ // 1
+			Files: []*test.FileInput{
+				{Filename: "file3.txt", Size: 20},
+				{Filename: "file4.txt", Size: 20},
+				{Filename: "folder2/something.txt", Size: 20},
+				{Filename: "folder2/folder3/deep.txt", Size: 20},
+			},
+		},
+	}
+	repo.AddCommits(inputs)
+
+	tracked, err := GetTrackedFiles("*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked) // for direct comparison
+	fulllist := []string{"file1.txt", "file2.txt", "file3.txt", "file4.txt", "folder1/anotherfile.txt", "folder1/file10.txt", "folder2/folder3/deep.txt", "folder2/something.txt"}
+	assert.Equal(t, fulllist, tracked)
+
+	tracked, err = GetTrackedFiles("*file*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	sublist := []string{"file1.txt", "file2.txt", "file3.txt", "file4.txt", "folder1/anotherfile.txt", "folder1/file10.txt"}
+	assert.Equal(t, sublist, tracked)
+
+	tracked, err = GetTrackedFiles("folder1/*")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	sublist = []string{"folder1/anotherfile.txt", "folder1/file10.txt"}
+	assert.Equal(t, sublist, tracked)
+
+	tracked, err = GetTrackedFiles("folder2/*")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	sublist = []string{"folder2/folder3/deep.txt", "folder2/something.txt"}
+	assert.Equal(t, sublist, tracked)
+
+	// relative dir
+	os.Chdir("folder1")
+	tracked, err = GetTrackedFiles("*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	sublist = []string{"anotherfile.txt", "file10.txt"}
+	assert.Equal(t, sublist, tracked)
+	os.Chdir("..")
+
+	// Test includes staged but uncommitted files
+	ioutil.WriteFile("z_newfile.txt", []byte("Hello world"), 0644)
+	test.RunGitCommand(t, true, "add", "z_newfile.txt")
+	tracked, err = GetTrackedFiles("*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	fulllist = append(fulllist, "z_newfile.txt")
+	assert.Equal(t, fulllist, tracked)
+
+	// Test includes modified files (not staged)
+	ioutil.WriteFile("file1.txt", []byte("Modifications"), 0644)
+	tracked, err = GetTrackedFiles("*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	assert.Equal(t, fulllist, tracked)
+
+	// Test includes modified files (staged)
+	test.RunGitCommand(t, true, "add", "file1.txt")
+	tracked, err = GetTrackedFiles("*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	assert.Equal(t, fulllist, tracked)
+
+	// Test excludes deleted files (not committed)
+	test.RunGitCommand(t, true, "rm", "file2.txt")
+	tracked, err = GetTrackedFiles("*.txt")
+	assert.Equal(t, nil, err)
+	sort.Strings(tracked)
+	deletedlist := []string{"file1.txt", "file3.txt", "file4.txt", "folder1/anotherfile.txt", "folder1/file10.txt", "folder2/folder3/deep.txt", "folder2/something.txt", "z_newfile.txt"}
+	assert.Equal(t, deletedlist, tracked)
+
 }
