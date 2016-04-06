@@ -141,6 +141,10 @@ func zshWriteCommandDetails(f *os.File) {
 		if len(cmd.Deprecated) > 0 {
 			continue
 		}
+		// Skip help command, that's manually dealt with in template
+		if cmd.Name() == "help" {
+			continue
+		}
 
 		fmt.Fprintf(f, "        %s)\n", cmd.Name())
 		fmt.Fprintf(f, "          _arguments \\\n")
