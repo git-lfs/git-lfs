@@ -14,8 +14,9 @@ var (
 	smudgeInfo = false
 	smudgeSkip = false
 	smudgeCmd  = &cobra.Command{
-		Use: "smudge",
-		Run: smudgeCommand,
+		Use:   "smudge",
+		Short: "Implements the Git smudge filter",
+		Run:   smudgeCommand,
 	}
 )
 

@@ -12,8 +12,9 @@ import (
 
 var (
 	prePushCmd = &cobra.Command{
-		Use: "pre-push",
-		Run: prePushCommand,
+		Use:   "pre-push",
+		Short: "Implements the Git pre-push hook",
+		Run:   prePushCommand,
 	}
 	prePushDryRun        = false
 	prePushDeleteBranch  = strings.Repeat("0", 40)

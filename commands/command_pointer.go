@@ -19,8 +19,9 @@ var (
 	pointerCompare string
 	pointerStdin   bool
 	pointerCmd     = &cobra.Command{
-		Use: "pointer",
-		Run: pointerCommand,
+		Use:   "pointer",
+		Short: "Build and compare pointers between different Git LFS implementations",
+		Run:   pointerCommand,
 	}
 )
 

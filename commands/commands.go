@@ -25,7 +25,8 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	RootCmd      = &cobra.Command{
-		Use: "git-lfs",
+		Use:   "git-lfs",
+		Short: "Git LFS provides large file storage to Git.",
 		Run: func(cmd *cobra.Command, args []string) {
 			versionCommand(cmd, args)
 			cmd.Usage()
