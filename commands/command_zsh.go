@@ -121,7 +121,7 @@ func zshWriteCommandList(f *os.File) {
 	for _, cmd := range RootCmd.Commands() {
 		// Only display non-deprecated commands
 		if len(cmd.Deprecated) == 0 {
-			fmt.Fprintf(f, "  '%s:%s'\n", cmd.Use, cmd.Short)
+			fmt.Fprintf(f, "  '%s:%s'\n", cmd.Name(), cmd.Short)
 		}
 	}
 }
@@ -142,7 +142,7 @@ func zshWriteCommandDetails(f *os.File) {
 			continue
 		}
 
-		fmt.Fprintf(f, "        %s)\n", cmd.Use)
+		fmt.Fprintf(f, "        %s)\n", cmd.Name())
 		fmt.Fprintf(f, "          _arguments \\\n")
 		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 			// Only non-deprecated flags
@@ -164,7 +164,7 @@ func zshWriteCommandDetails(f *os.File) {
 		})
 
 		// Determine non-opt arguments from ManPages, first line
-		if man, ok := ManPages[cmd.Use]; ok {
+		if man, ok := ManPages[cmd.Name()]; ok {
 			man1stLine := strings.SplitN(man, "\n", 1)[0]
 			if strings.Contains(man1stLine, "<remote>") {
 				fmt.Fprintf(f, "              '::remote:__git_remotes' \\\n")
