@@ -43,13 +43,11 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(args) > 1 {
-		for _, r := range args[1:] {
-			ref, err := git.ResolveRef(r)
-			if err != nil {
-				Panic(err, "Invalid ref argument")
-			}
-			refs = append(refs, ref)
+		resolvedrefs, err := git.ResolveRefs(args[1:])
+		if err != nil {
+			Panic(err, "Invalid ref argument")
 		}
+		refs = resolvedrefs
 	} else {
 		ref, err := git.CurrentRef()
 		if err != nil {
@@ -77,7 +75,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
 			Print("Fetching %v", ref.Name)
-			s := fetchRef(ref.Sha, includePaths, excludePaths)
+			s := fetchRef(ref, includePaths, excludePaths)
 			success = success && s
 		}
 
@@ -115,35 +113,38 @@ func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
 	return lfs.ScanRefs(ref, "", opts)
 }
 
-func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPointer {
+func fetchRefToChan(ref *git.Ref, include, exclude []string) chan *lfs.WrappedPointer {
 	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref)
+	pointers, err := pointersToFetchForRef(ref.Sha)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
-	go fetchAndReportToChan(pointers, include, exclude, c)
+	metadata := lfs.NewTransferMetadata(ref.NameOnRemote(lfs.Config.CurrentRemote))
+	go fetchAndReportToChan(pointers, include, exclude, metadata, c)
 
 	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(ref string, include, exclude []string) bool {
-	pointers, err := pointersToFetchForRef(ref)
+func fetchRef(ref *git.Ref, include, exclude []string) bool {
+	pointers, err := pointersToFetchForRef(ref.Sha)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
-	return fetchPointers(pointers, include, exclude)
+	metadata := lfs.NewTransferMetadata(ref.NameOnRemote(lfs.Config.CurrentRemote))
+	return fetchPointers(pointers, include, exclude, metadata)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
-func fetchPreviousVersions(ref string, since time.Time, include, exclude []string) bool {
-	pointers, err := lfs.ScanPreviousVersions(ref, since)
+func fetchPreviousVersions(ref *git.Ref, since time.Time, include, exclude []string) bool {
+	pointers, err := lfs.ScanPreviousVersions(ref.Sha, since)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS previous versions")
 	}
-	return fetchPointers(pointers, include, exclude)
+	metadata := lfs.NewTransferMetadata(ref.NameOnRemote(lfs.Config.CurrentRemote))
+	return fetchPointers(pointers, include, exclude, metadata)
 }
 
 // Fetch recent objects based on config
@@ -177,7 +178,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
 				Print("Fetching %v", ref.Name)
-				k := fetchRef(ref.Sha, include, exclude)
+				k := fetchRef(ref, include, exclude)
 				ok = ok && k
 			}
 		}
@@ -193,7 +194,8 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 			}
 			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
-			k := fetchPreviousVersions(commit, commitsSince, include, exclude)
+			commitRef := &git.Ref{Name: refName, Sha: commit}
+			k := fetchPreviousVersions(commitRef, commitsSince, include, exclude)
 			ok = ok && k
 		}
 
@@ -204,7 +206,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 func fetchAll() bool {
 	pointers := scanAll()
 	Print("Fetching objects...")
-	return fetchPointers(pointers, nil, nil)
+	return fetchPointers(pointers, nil, nil, nil)
 }
 
 func scanAll() []*lfs.WrappedPointer {
@@ -235,18 +237,19 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bool {
-	return fetchAndReportToChan(pointers, include, exclude, nil)
+func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string, metadata *lfs.TransferMetadata) bool {
+	return fetchAndReportToChan(pointers, include, exclude, metadata, nil)
 }
 
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
+func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, metadata *lfs.TransferMetadata, out chan<- *lfs.WrappedPointer) bool {
+
 	totalSize := int64(0)
 	for _, p := range pointers {
 		totalSize += p.Size
 	}
-	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+	q := lfs.NewDownloadQueue(len(pointers), totalSize, false, metadata)
 
 	if out != nil {
 		dlwatch := q.Watch()

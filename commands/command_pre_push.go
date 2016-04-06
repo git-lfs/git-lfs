@@ -43,7 +43,6 @@ var (
 // In the case of deleting a branch, no attempts to push Git LFS objects will be
 // made.
 func prePushCommand(cmd *cobra.Command, args []string) {
-
 	if len(args) == 0 {
 		Print("This should be run through Git's pre-push hook.  Run `git lfs update` to install it.")
 		os.Exit(1)
@@ -55,7 +54,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 	lfs.Config.CurrentRemote = args[0]
 
-	uploadedOids := lfs.NewStringSet()
+	cli := newClient()
+	cli.RemoteName = lfs.Config.CurrentRemote
+	cli.DryRun = prePushDryRun
+
+	scanOpt := lfs.NewScanRefsOptions()
+	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
+	scanOpt.RemoteName = cli.RemoteName
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
@@ -66,141 +71,41 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		left, right := decodeRefs(line)
+		left, right, destRef := decodeRefs(line)
 		if left == prePushDeleteBranch {
 			continue
 		}
 
-		prePushRef(left, right, uploadedOids)
-	}
-}
+		pointers, err := lfs.ScanRefs(left, right, scanOpt)
 
-func prePushRef(left, right string, uploadedOids lfs.StringSet) {
-	// Just use scanner here
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = lfs.Config.CurrentRemote
-
-	pointers, err := lfs.ScanRefs(left, right, scanOpt)
-	if err != nil {
-		Panic(err, "Error scanning for Git LFS files")
-	}
-
-	pointers = filteredPointers(pointers, uploadedOids)
-	pointers = filteredPointers(pointers, prePushCheckForMissingObjects(pointers))
-
-	totalSize := int64(0)
-	for _, p := range pointers {
-		totalSize += p.Size
-	}
-
-	if totalSize < 1 {
-		return
-	}
-
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, prePushDryRun)
-
-	for _, pointer := range pointers {
-		if prePushDryRun {
-			Print("push %s => %s", pointer.Oid, pointer.Name)
-			continue
-		}
-
-		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
 		if err != nil {
-			if lfs.IsCleanPointerError(err) {
-				Exit(prePushMissingErrMsg, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
-			} else {
-				ExitWithError(err)
-			}
+			Panic(err, "Error scanning for Git LFS files")
 		}
 
-		uploadedOids.Add(pointer.Oid)
-		uploadQueue.Add(u)
-	}
-
-	if !prePushDryRun {
-		uploadQueue.Wait()
-		for _, err := range uploadQueue.Errors() {
-			if Debugging || lfs.IsFatalError(err) {
-				LoggedError(err, err.Error())
-			} else {
-				if inner := lfs.GetInnerError(err); inner != nil {
-					Error(inner.Error())
-				}
-				Error(err.Error())
-			}
-		}
-
-		if len(uploadQueue.Errors()) > 0 {
-			os.Exit(2)
-		}
+		metadata := lfs.NewTransferMetadata(destRef)
+		cli.Upload(metadata, pointers)
 	}
 }
 
-func filteredPointers(pointers []*lfs.WrappedPointer, filter lfs.StringSet) []*lfs.WrappedPointer {
-	filtered := make([]*lfs.WrappedPointer, 0, len(pointers))
-	for _, pointer := range pointers {
-		if filter.Contains(pointer.Oid) {
-			continue
-		}
-
-		filtered = append(filtered, pointer)
-	}
-
-	return filtered
-}
-
-func prePushCheckForMissingObjects(pointers []*lfs.WrappedPointer) (objectsOnServer lfs.StringSet) {
-	var missingLocalObjects []*lfs.WrappedPointer
-	var missingSize int64
-	var skipObjects = lfs.NewStringSetWithCapacity(len(pointers))
-	for _, pointer := range pointers {
-		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
-			// We think we need to push this but we don't have it
-			// Store for server checking later
-			missingLocalObjects = append(missingLocalObjects, pointer)
-			missingSize += pointer.Size
-		}
-	}
-	if len(missingLocalObjects) == 0 {
-		return nil
-	}
-
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
-	for _, p := range missingLocalObjects {
-		checkQueue.Add(lfs.NewDownloadCheckable(p))
-	}
-	// this channel is filled with oids for which Check() succeeded & Transfer() was called
-	transferc := checkQueue.Watch()
-	done := make(chan int)
-	go func() {
-		for oid := range transferc {
-			skipObjects.Add(oid)
-		}
-		done <- 1
-	}()
-	// Currently this is needed to flush the batch but is not enough to sync transferc completely
-	checkQueue.Wait()
-	<-done
-	return skipObjects
-}
-
-// decodeRefs pulls the sha1s out of the line read from the pre-push
+// decodeRefs pulls the sha1s and destination ref out of the line read from the pre-push
 // hook's stdin.
-func decodeRefs(input string) (string, string) {
+func decodeRefs(input string) (string, string, string) {
 	refs := strings.Split(strings.TrimSpace(input), " ")
-	var left, right string
+	var left, right, destRef string
 
 	if len(refs) > 1 {
 		left = refs[1]
+	}
+
+	if len(refs) > 2 {
+		destRef = refs[2]
 	}
 
 	if len(refs) > 3 {
 		right = "^" + refs[3]
 	}
 
-	return left, right
+	return left, right, destRef
 }
 
 func init() {

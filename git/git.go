@@ -40,6 +40,22 @@ type Ref struct {
 	Sha  string
 }
 
+func (r *Ref) NameOnRemote(remotename string) string {
+	if r.Type != RefTypeLocalBranch {
+		return r.Name
+	}
+
+	if len(remotename) == 0 {
+		return r.Name
+	}
+
+	if RemoteForBranch(r.Name) != remotename {
+		return r.Name
+	}
+
+	return RemoteBranchForLocalBranch(r.Name)
+}
+
 // Some top level information about a commit (only first line of message)
 type CommitSummary struct {
 	Sha            string
@@ -78,6 +94,19 @@ func ResolveRef(ref string) (*Ref, error) {
 	fullref := &Ref{Sha: lines[0]}
 	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
 	return fullref, nil
+}
+
+func ResolveRefs(refnames []string) ([]*Ref, error) {
+	refs := make([]*Ref, len(refnames))
+	for i, name := range refnames {
+		ref, err := ResolveRef(name)
+		if err != nil {
+			return refs, err
+		}
+
+		refs[i] = ref
+	}
+	return refs, nil
 }
 
 func CurrentRef() (*Ref, error) {
@@ -142,7 +171,6 @@ func RemoteBranchForLocalBranch(localBranch string) string {
 	} else {
 		return localBranch
 	}
-
 }
 
 func RemoteList() ([]string, error) {
