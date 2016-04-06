@@ -62,6 +62,21 @@ func getHomeDir() string {
 	return usr.HomeDir
 }
 
+func getOhMyZshRootDir() string {
+	// Can't rely on ZSH_CUSTOM etc because it's only defined inside zsh shell, it's
+	// not actually a proper environment var visible in child processes
+	zsh := os.Getenv("ZSH")
+	if len(zsh) > 0 {
+		// Check that it is ohmyzsh
+		testfile := filepath.Join(zsh, "oh-my-zsh.sh")
+		if _, err := os.Stat(testfile); err == nil {
+			return zsh
+		}
+	}
+
+	return ""
+}
+
 func zshCommand(cmd *cobra.Command, args []string) {
 
 	var outputFile string
@@ -69,9 +84,15 @@ func zshCommand(cmd *cobra.Command, args []string) {
 	if len(zshOutputFile) > 0 {
 		outputFile = zshOutputFile
 	} else if zshOhMyZshCore {
-		outputFile = filepath.Join(getHomeDir(), ".oh-my-zsh", "plugins", "git-lfs", "git-lfs.plugin.zsh")
-	} else if ohmyssh := os.Getenv("ZSH_CUSTOM"); len(ohmyssh) > 0 {
-		outputFile = filepath.Join(ohmyssh, "plugins", "git-lfs", "git-lfs.plugin.zsh")
+		// Write to core oh-my-zsh for submission upstream
+		ohmyzsh := getOhMyZshRootDir()
+		if len(ohmyzsh) == 0 {
+			Exit("Could not locate oh-my-zsh root dir via $ZSH")
+		}
+		outputFile = filepath.Join(ohmyzsh, "plugins", "git-lfs", "git-lfs.plugin.zsh")
+	} else if ohmyzsh := getOhMyZshRootDir(); len(ohmyzsh) > 0 {
+		// default user-specific oh-my-zsh
+		outputFile = filepath.Join(getOhMyZshRootDir(), "custom", "plugins", "git-lfs", "git-lfs.plugin.zsh")
 	} else {
 		outputFile = filepath.Join(getHomeDir(), "_git-lfs.zsh")
 	}
