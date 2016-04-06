@@ -43,13 +43,11 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(args) > 1 {
-		for _, r := range args[1:] {
-			ref, err := git.ResolveRef(r)
-			if err != nil {
-				Panic(err, "Invalid ref argument")
-			}
-			refs = append(refs, ref)
+		resolvedrefs, err := git.ResolveRefs(args[1:])
+		if err != nil {
+			Panic(err, "Invalid ref argument: %v", args[1:])
 		}
+		refs = resolvedrefs
 	} else {
 		ref, err := git.CurrentRef()
 		if err != nil {

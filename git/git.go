@@ -78,6 +78,19 @@ func ResolveRef(ref string) (*Ref, error) {
 	return fullref, nil
 }
 
+func ResolveRefs(refnames []string) ([]*Ref, error) {
+	refs := make([]*Ref, len(refnames))
+	for i, name := range refnames {
+		ref, err := ResolveRef(name)
+		if err != nil {
+			return refs, err
+		}
+
+		refs[i] = ref
+	}
+	return refs, nil
+}
+
 func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
