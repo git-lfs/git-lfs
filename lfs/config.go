@@ -529,6 +529,8 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			allowed = true
 			remote := keyParts[1]
 			uniqRemotes[remote] = remote == "origin"
+		} else if len(keyParts) > 2 && keyParts[len(keyParts)-1] == "access" {
+			allowed = true
 		}
 
 		if !allowed && keyIsUnsafe(key) {
