@@ -1,33 +1,28 @@
 package commands
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
-)
+import "github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 
 // TODO: Remove for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
 
 var (
 	initCmd = &cobra.Command{
-		Use: "init",
-		Run: initCommand,
+		Use:        "init",
+		Deprecated: "Use 'git lfs install' now",
+		Run:        initCommand,
 	}
 
 	initHooksCmd = &cobra.Command{
-		Use: "hooks",
-		Run: initHooksCommand,
+		Use:        "hooks",
+		Deprecated: "Use 'git lfs install' now",
+		Run:        initHooksCommand,
 	}
 )
 
 func initCommand(cmd *cobra.Command, args []string) {
-	fmt.Fprintf(os.Stderr, "WARNING: 'git lfs init' is deprecated. Use 'git lfs install' now.\n")
 	installCommand(cmd, args)
 }
 
 func initHooksCommand(cmd *cobra.Command, args []string) {
-	fmt.Fprintf(os.Stderr, "WARNING: 'git lfs init' is deprecated. Use 'git lfs install' now.\n")
 	installHooksCommand(cmd, args)
 }
 
