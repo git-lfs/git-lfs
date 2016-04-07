@@ -175,7 +175,7 @@ func zshWriteCommandDetails(f *os.File) {
 				fmt.Fprintf(f, "              '::remote:__git_remotes' \\\n")
 			}
 			if strings.Contains(man1stLine, "<ref>") {
-				fmt.Fprintf(f, "              '*:ref:__git_ref_specs' \\\n")
+				fmt.Fprintf(f, "              '::ref:__git_branch_names' \\\n")
 			}
 			if strings.Contains(man1stLine, "<path>") {
 				fmt.Fprintf(f, "              '*:path:_files' \\\n")
