@@ -270,3 +270,31 @@ begin_test "pointer without args"
   [ "1" = "$status" ]
 )
 end_test
+
+begin_test "pointer stdout/stderr"
+(
+  set -e
+  echo "pointer-stdout-test" > pointer-stdout-test.txt
+  git lfs pointer --file=pointer-stdout-test.txt > stdout.txt 2> stderr.txt
+  echo "stdout:"
+  cat stdout.txt
+  [ $(wc -l stdout.txt | tr -s "[:space:]" " " | cut -f2 -d' ') -eq 3 ]
+  grep "oid sha256:e96ec1bd71eea8df78b24c64a7ab9d42dd7f821c4e503f0e2288273b9bff6c16" stdout.txt
+  [ $(grep -c "Git LFS pointer" stdout.txt) -eq 0 ]
+
+  echo "stderr:"
+  cat stderr.txt
+  grep "Git LFS pointer" stderr.txt
+  [ $(grep -c "oid sha256:" stderr.txt) -eq 0 ]
+)
+end_test
+
+begin_test "pointer to console"
+(
+  set -e
+  echo "pointer-stdout-test" > pointer-stdout-test.txt
+  git lfs pointer --file=pointer-stdout-test.txt 2>&1 | tee pointer.txt
+  grep "Git LFS pointer" pointer.txt
+  grep "oid sha256:e96ec1bd71eea8df78b24c64a7ab9d42dd7f821c4e503f0e2288273b9bff6c16" pointer.txt
+)
+end_test
