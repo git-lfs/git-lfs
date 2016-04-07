@@ -186,7 +186,6 @@ func LocalRefs() ([]*Ref, error) {
 		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
 	}
 	cmd.Start()
-	defer cmd.Wait()
 
 	var refs []*Ref
 	scanner := bufio.NewScanner(outp)
@@ -206,7 +205,7 @@ func LocalRefs() ([]*Ref, error) {
 		refs = append(refs, &Ref{name, rtype, parts[0]})
 	}
 
-	return refs, nil
+	return refs, cmd.Wait()
 }
 
 // ValidateRemote checks that a named remote is valid for use
