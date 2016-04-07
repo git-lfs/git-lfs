@@ -164,8 +164,8 @@ begin_test "push --all (no ref args)"
   git push --all origin 2>&1 | tee push.log
   grep "(2 of 3 files, 1 skipped)" push.log
   grep "(3 of 3 files)" push.log
-  grep "files)" push.log
-  grep "skipped)" push.log
+  [ $(grep -c "files)" push.log) -eq 1 ]
+  [ $(grep -c "skipped)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
