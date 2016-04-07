@@ -218,7 +218,9 @@ begin_test "pointer missing --pointer"
   set -e
 
   [ "1" = "$status" ]
-  [[ "$output" == open missing-pointer:* ]]
+
+  echo "$output"
+  echo "$output" | grep "open missing-pointer:"
 )
 end_test
 
