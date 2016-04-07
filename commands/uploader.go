@@ -9,55 +9,136 @@ import (
 var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
 
 type uploadContext struct {
-	RemoteName   string
 	DryRun       bool
 	uploadedOids lfs.StringSet
 }
 
-func newUploadContext() *uploadContext {
+func newUploadContext(dryRun bool) *uploadContext {
 	return &uploadContext{
+		DryRun:       dryRun,
 		uploadedOids: lfs.NewStringSet(),
-		RemoteName:   lfs.Config.CurrentRemote,
 	}
 }
 
-func (c *uploadContext) Upload(unfilteredPointers []*lfs.WrappedPointer) {
-	filtered := c.filterUploadedObjects(noSkip, unfilteredPointers)
+// AddUpload adds the given oid to the set of oids that have been uploaded in
+// the current process.
+func (c *uploadContext) AddUpload(oid string) {
+	c.uploadedOids.Add(oid)
+}
 
+// HasUploaded determines if the given oid has already been uploaded in the
+// current process.
+func (c *uploadContext) HasUploaded(oid string) bool {
+	return c.uploadedOids.Contains(oid)
+}
+
+func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.TransferQueue, []*lfs.WrappedPointer) {
+	numUnfiltered := len(unfiltered)
+	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
+	missingLocalObjects := make([]*lfs.WrappedPointer, 0, numUnfiltered)
+	numObjects := 0
 	totalSize := int64(0)
-	for _, p := range filtered {
+	missingSize := int64(0)
+
+	// separate out objects that _should_ be uploaded, but don't exist in
+	// .git/lfs/objects. Those will skipped if the server already has them.
+	for _, p := range unfiltered {
+		// object already uploaded in this process, skip!
+		if c.HasUploaded(p.Oid) {
+			continue
+		}
+
+		numObjects += 1
 		totalSize += p.Size
+
+		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+			uploadables = append(uploadables, p)
+		} else {
+			// We think we need to push this but we don't have it
+			// Store for server checking later
+			missingLocalObjects = append(missingLocalObjects, p)
+			missingSize += p.Size
+		}
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(filtered), totalSize, c.DryRun)
+	// check to see if the server has the missing objects.
+	c.checkMissing(missingLocalObjects, missingSize)
 
-	if c.DryRun {
-		for _, pointer := range filtered {
-			Print("push %s => %s", pointer.Oid, pointer.Name)
-			c.uploadedOids.Add(pointer.Oid)
+	// build the TransferQueue, automatically skipping any missing objects that
+	// the server already has.
+	uploadQueue := lfs.NewUploadQueue(numObjects, totalSize, c.DryRun)
+	for _, p := range missingLocalObjects {
+		if c.HasUploaded(p.Oid) {
+			uploadQueue.Skip(p.Size)
+		} else {
+			uploadables = append(uploadables, p)
 		}
+	}
+
+	return uploadQueue, uploadables
+}
+
+// This checks the given slice of pointers that don't exist in .git/lfs/objects
+// against the server. Anything the server already has does not need to be
+// uploaded again.
+func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize int64) {
+	numMissing := len(missing)
+	if numMissing == 0 {
 		return
 	}
 
-	c.filterServerObjects(filtered)
-	pointers := c.filterUploadedObjects(uploadQueue, filtered)
+	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize, true)
+	for _, p := range missing {
+		checkQueue.Add(lfs.NewDownloadCheckable(p))
+	}
 
-	for _, pointer := range pointers {
-		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
+	// this channel is filled with oids for which Check() succeeded & Transfer() was called
+	transferc := checkQueue.Watch()
+	done := make(chan int)
+	go func() {
+		for oid := range transferc {
+			c.AddUpload(oid)
+		}
+		done <- 1
+	}()
+
+	// Currently this is needed to flush the batch but is not enough to sync transferc completely
+	checkQueue.Wait()
+	<-done
+}
+
+func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
+	if c.DryRun {
+		for _, p := range unfiltered {
+			if c.HasUploaded(p.Oid) {
+				continue
+			}
+
+			Print("push %s => %s", p.Oid, p.Name)
+			c.AddUpload(p.Oid)
+		}
+
+		return
+	}
+
+	q, pointers := c.prepareUpload(unfiltered)
+	for _, p := range pointers {
+		u, err := lfs.NewUploadable(p.Oid, p.Name)
 		if err != nil {
 			if lfs.IsCleanPointerError(err) {
-				Exit(uploadMissingErr, pointer.Oid, pointer.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
+				Exit(uploadMissingErr, p.Oid, p.Name, lfs.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
 			} else {
 				ExitWithError(err)
 			}
 		}
 
-		uploadQueue.Add(u)
-		c.uploadedOids.Add(pointer.Oid)
+		q.Add(u)
+		c.AddUpload(p.Oid)
 	}
 
-	uploadQueue.Wait()
-	for _, err := range uploadQueue.Errors() {
+	q.Wait()
+
+	for _, err := range q.Errors() {
 		if Debugging || lfs.IsFatalError(err) {
 			LoggedError(err, err.Error())
 		} else {
@@ -68,63 +149,7 @@ func (c *uploadContext) Upload(unfilteredPointers []*lfs.WrappedPointer) {
 		}
 	}
 
-	if len(uploadQueue.Errors()) > 0 {
+	if len(q.Errors()) > 0 {
 		os.Exit(2)
 	}
 }
-
-func (c *uploadContext) filterUploadedObjects(q transferQueueSkip, pointers []*lfs.WrappedPointer) []*lfs.WrappedPointer {
-	filtered := make([]*lfs.WrappedPointer, 0, len(pointers))
-	for _, pointer := range pointers {
-		if c.uploadedOids.Contains(pointer.Oid) {
-			q.Skip(pointer.Size)
-		} else {
-			filtered = append(filtered, pointer)
-		}
-	}
-
-	return filtered
-}
-
-func (c *uploadContext) filterServerObjects(pointers []*lfs.WrappedPointer) {
-	missingLocalObjects := make([]*lfs.WrappedPointer, 0, len(pointers))
-	missingSize := int64(0)
-	for _, pointer := range pointers {
-		if !lfs.ObjectExistsOfSize(pointer.Oid, pointer.Size) {
-			// We think we need to push this but we don't have it
-			// Store for server checking later
-			missingLocalObjects = append(missingLocalObjects, pointer)
-			missingSize += pointer.Size
-		}
-	}
-	if len(missingLocalObjects) == 0 {
-		return
-	}
-
-	checkQueue := lfs.NewDownloadCheckQueue(len(missingLocalObjects), missingSize, true)
-	for _, p := range missingLocalObjects {
-		checkQueue.Add(lfs.NewDownloadCheckable(p))
-	}
-	// this channel is filled with oids for which Check() succeeded & Transfer() was called
-	transferc := checkQueue.Watch()
-	done := make(chan int)
-	go func() {
-		for oid := range transferc {
-			c.uploadedOids.Add(oid)
-		}
-		done <- 1
-	}()
-	// Currently this is needed to flush the batch but is not enough to sync transferc completely
-	checkQueue.Wait()
-	<-done
-}
-
-type transferQueueSkip interface {
-	Skip(int64)
-}
-
-type skipNoOp struct{}
-
-func (s *skipNoOp) Skip(n int64) {}
-
-var noSkip = &skipNoOp{}

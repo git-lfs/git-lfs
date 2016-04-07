@@ -51,14 +51,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	if err := git.ValidateRemote(args[0]); err != nil {
 		Exit("Invalid remote name %q", args[0])
 	}
-	lfs.Config.CurrentRemote = args[0]
 
-	ctx := newUploadContext()
-	ctx.DryRun = prePushDryRun
+	lfs.Config.CurrentRemote = args[0]
+	ctx := newUploadContext(prePushDryRun)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = ctx.RemoteName
+	scanOpt.RemoteName = lfs.Config.CurrentRemote
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
@@ -79,7 +78,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Error scanning for Git LFS files")
 		}
 
-		ctx.Upload(pointers)
+		upload(ctx, pointers)
 	}
 }
 

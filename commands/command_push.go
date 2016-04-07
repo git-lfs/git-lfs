@@ -28,22 +28,22 @@ func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanRefsMode
-	scanOpt.RemoteName = ctx.RemoteName
+	scanOpt.RemoteName = lfs.Config.CurrentRemote
 
 	pointers, err := lfs.ScanRefs(left, right, scanOpt)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	ctx.Upload(pointers)
+	upload(ctx, pointers)
 }
 
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
-	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.RemoteName)
+	tracerx.Printf("Upload refs %v to remote %v", refnames, lfs.Config.CurrentRemote)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = ctx.RemoteName
+	scanOpt.RemoteName = lfs.Config.CurrentRemote
 
 	if pushAll {
 		scanOpt.ScanMode = lfs.ScanRefsMode
@@ -61,7 +61,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
 
-		ctx.Upload(pointers)
+		upload(ctx, pointers)
 	}
 }
 
@@ -72,7 +72,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
 
-	ctx.Upload(pointers)
+	upload(ctx, pointers)
 }
 
 func refsByNames(refnames []string) ([]*git.Ref, error) {
@@ -121,10 +121,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	if err := git.ValidateRemote(args[0]); err != nil {
 		Exit("Invalid remote name %q", args[0])
 	}
-	lfs.Config.CurrentRemote = args[0]
 
-	ctx := newUploadContext()
-	ctx.DryRun = pushDryRun
+	lfs.Config.CurrentRemote = args[0]
+	ctx := newUploadContext(pushDryRun)
 
 	if useStdin {
 		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
