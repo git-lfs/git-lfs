@@ -3,6 +3,12 @@
 This is a high level overview of some of the big changes we want to make for
 Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
+## Bugs
+
+* git index issues [#937](https://github.com/github/git-lfs/issues/937)
+* use git proxy settings [#1125](https://github.com/github/git-lfs/issues/1125)
+* Not following 301 redirect [#1129](https://github.com/github/git-lfs/issues/1129)
+
 ## Upcoming Features
 
 * File locking [#666](https://github.com/github/git-lfs/pull/666)
