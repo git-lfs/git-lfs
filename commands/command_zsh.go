@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	fileTemplate1 = `#compdef git-lfs
-#description manage large files with git-lfs
+	fileTemplate1 = `
 
 _git-lfs() {
   local -a commands help
@@ -43,6 +42,8 @@ _git-lfs() {
       ;;
   esac
 }
+
+compdef _git-lfs git-lfs
 `
 	zshCmd = &cobra.Command{
 		Use:   "zsh",
