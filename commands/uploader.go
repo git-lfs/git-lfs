@@ -22,7 +22,7 @@ func newUploadContext(dryRun bool) *uploadContext {
 
 // AddUpload adds the given oid to the set of oids that have been uploaded in
 // the current process.
-func (c *uploadContext) AddUpload(oid string) {
+func (c *uploadContext) SetUploaded(oid string) {
 	c.uploadedOids.Add(oid)
 }
 
@@ -97,7 +97,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	done := make(chan int)
 	go func() {
 		for oid := range transferc {
-			c.AddUpload(oid)
+			c.SetUploaded(oid)
 		}
 		done <- 1
 	}()
@@ -115,7 +115,7 @@ func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 			}
 
 			Print("push %s => %s", p.Oid, p.Name)
-			c.AddUpload(p.Oid)
+			c.SetUploaded(p.Oid)
 		}
 
 		return
@@ -133,7 +133,7 @@ func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 		}
 
 		q.Add(u)
-		c.AddUpload(p.Oid)
+		c.SetUploaded(p.Oid)
 	}
 
 	q.Wait()
