@@ -51,7 +51,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 	//If the status is 401 then we need to re-authenticate, otherwise it was successful
 	if res.StatusCode == 401 {
 
-		creds, err := getCredsForAPI(request)
+		creds, err := getCreds(request)
 		if err != nil {
 			return nil, err
 		}

@@ -277,15 +277,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 	}
 
-	if repo == "requirecreds" {
-		auth := r.Header.Get("Authorization")
-		user, pass, err := extractAuth(auth)
-		if err != nil || (user != "requirecreds" || pass != "pass") {
-			errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-			w.Write([]byte(`{"message":"` + errmsg + `"}`))
-			w.WriteHeader(403)
-			return
-		}
+	if missingRequiredCreds(w, r, repo) {
+		return
 	}
 
 	type batchReq struct {
@@ -379,6 +372,10 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
+
+	if missingRequiredCreds(w, r, repo) {
+		return
+	}
 
 	log.Printf("storage %s %s repo: %s\n", r.Method, oid, repo)
 	switch r.Method {
@@ -501,6 +498,29 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
+	if repo != "requirecreds" {
+		return false
+	}
+
+	auth := r.Header.Get("Authorization")
+	user, pass, err := extractAuth(auth)
+	if err != nil {
+		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
+		w.WriteHeader(403)
+		return true
+	}
+
+	if user != "requirecreds" || pass != "pass" {
+		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
+		w.Write([]byte(`{"message":"` + errmsg + `"}`))
+		w.WriteHeader(403)
+		return true
+	}
+
+	return false
 }
 
 func testingChunkedTransferEncoding(r *http.Request) bool {
