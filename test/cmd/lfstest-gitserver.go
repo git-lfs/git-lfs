@@ -277,6 +277,15 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 	}
 
+	if repo == "requirecreds" {
+		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		if err != nil || (user != "requirecreds" || pass != "pass") {
+			w.Write([]byte("SUP"))
+			w.WriteHeader(403)
+			return
+		}
+	}
+
 	type batchReq struct {
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`
@@ -605,7 +614,7 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 		if pass == "pass" {
 			return false
 		}
-	case "netrcuser":
+	case "netrcuser", "requirecreds":
 		return false
 	case "path":
 		if strings.HasPrefix(r.URL.Path, "/"+pass) {
