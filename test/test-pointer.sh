@@ -278,7 +278,7 @@ begin_test "pointer stdout/stderr"
   git lfs pointer --file=pointer-stdout-test.txt > stdout.txt 2> stderr.txt
   echo "stdout:"
   cat stdout.txt
-  [ $(wc -l stdout.txt | tr -s "[:space:]" " " | cut -f2 -d' ') -eq 3 ]
+  [ $(wc -l stdout.txt | sed -e 's/^[[:space:]]*//' | cut -f1 -d' ') -eq 3 ]
   grep "oid sha256:e96ec1bd71eea8df78b24c64a7ab9d42dd7f821c4e503f0e2288273b9bff6c16" stdout.txt
   [ $(grep -c "Git LFS pointer" stdout.txt) -eq 0 ]
 
