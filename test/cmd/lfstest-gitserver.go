@@ -278,9 +278,11 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	}
 
 	if repo == "requirecreds" {
-		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		auth := r.Header.Get("Authorization")
+		user, pass, err := extractAuth(auth)
 		if err != nil || (user != "requirecreds" || pass != "pass") {
-			w.Write([]byte("SUP"))
+			errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
+			w.Write([]byte(`{"message":"` + errmsg + `"}`))
 			w.WriteHeader(403)
 			return
 		}

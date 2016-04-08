@@ -216,19 +216,38 @@ begin_test "credentials from lfs.url"
 
   reponame="requirecreds"
   setup_remote_repo "$reponame"
-
   clone_repo "$reponame" requirecreds-lfsurl
-  gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
-  git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
-  git lfs env
 
   git lfs track "*.dat"
   echo "push a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
+  echo "bad push"
+  git lfs env
+  git lfs push origin master 2>&1 | tee push.log
+  grep "(0 of 1 files)" push.log
+
+  echo "good push"
+  gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
+  git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
+  git lfs env
   git lfs push origin master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
+
+  echo "bad fetch"
+  rm -rf .git/lfs/objects
+  git config lfs.url http://$gitserverhost/$reponame.git/info/lfs
+  git lfs env
+  git lfs fetch --all 2>&1 | tee fetch.log
+  grep "(0 of 1 files)" fetch.log
+
+  echo "good fetch"
+  rm -rf .git/lfs/objects
+  git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
+  git lfs env
+  git lfs fetch --all 2>&1 | tee fetch.log
+  grep "(1 of 1 files)" fetch.log
 )
 end_test
 
@@ -238,19 +257,37 @@ begin_test "credentials from remote.origin.url"
 
   reponame="requirecreds"
   setup_remote_repo "$reponame"
-
   clone_repo "$reponame" requirecreds-remoteurl
-  gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
-  git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
-  git lfs env
 
   git lfs track "*.dat"
   echo "push b" > b.dat
   git add .gitattributes b.dat
   git commit -m "add b.dat"
 
+  echo "bad push"
+  git lfs env
+  git lfs push origin master 2>&1 | tee push.log
+  grep "(0 of 1 files)" push.log
+
+  echo "good push"
+  gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
+  git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
+  git lfs env
   git lfs push origin master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
-  exit 1
+
+  echo "bad fetch"
+  rm -rf .git/lfs/objects
+  git config remote.origin.url http://$gitserverhost/$reponame.git
+  git lfs env
+  git lfs fetch --all 2>&1 | tee fetch.log
+  grep "(0 of 1 files)" fetch.log
+
+  echo "good fetch"
+  rm -rf .git/lfs/objects
+  git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
+  git lfs env
+  git lfs fetch --all 2>&1 | tee fetch.log
+  grep "(1 of 1 files)" fetch.log
 )
 end_test
