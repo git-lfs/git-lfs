@@ -3,6 +3,7 @@ package lfs
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -32,9 +33,7 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 	exe, args := sshGetExeAndArgs(endpoint)
 	args = append(args,
-		"git-lfs-authenticate",
-		endpoint.SshPath,
-		operation, oid)
+		fmt.Sprintf("git-lfs-authenticate %s %s %s", endpoint.SshPath, operation, oid))
 
 	cmd := exec.Command(exe, args...)
 
