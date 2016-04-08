@@ -189,7 +189,7 @@ begin_test "pre-push with missing pointer not on server"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
-  grep "new.dat is an LFS pointer to 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c, which does not exist in .git/lfs/objects" push.log
+  grep "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c does not exist in .git/lfs/objects. Tried new.dat, which matches 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c." push.log
 )
 end_test
 
@@ -254,7 +254,7 @@ begin_test "pre-push with missing pointer not on server (BATCH)"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
-  grep "new.dat is an LFS pointer to 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c, which does not exist in .git/lfs/objects" push.log
+  grep "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c does not exist in .git/lfs/objects. Tried new.dat, which matches 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c." push.log
 )
 end_test
 
@@ -448,7 +448,7 @@ begin_test "pre-push unfetched deleted remote branch & server GC"
   # we hadn't done git fetch --prune yet
   mv branch-to-delete.ref .git/refs/remotes/origin/branch-to-delete
   # Confirm that local cache of remote branch is back
-  git branch -r 2>&1 | tee branch-r.log 
+  git branch -r 2>&1 | tee branch-r.log
   grep "origin/branch-to-delete" branch-r.log
   # Now push later branch which should now need to re-push previous commits LFS too
   git push origin branch-to-push-after
@@ -509,7 +509,7 @@ begin_test "pre-push delete branch"
     assert_server_object "$reponame" "${oid[$a]}"
   done
 
-  # deleting a branch with git push should not fail 
+  # deleting a branch with git push should not fail
   # (requires correct special casing of "(delete) 0000000000.." in hook)
   git push origin --delete branch-to-delete
 

@@ -75,6 +75,10 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.apic <- t
 }
 
+func (q *TransferQueue) Skip(size int64) {
+	q.meter.Skip(size)
+}
+
 // Wait waits for the queue to finish processing all transfers. Once Wait is
 // called, Add will no longer add transferables to the queue. Any failed
 // transfers will be automatically retried once.
@@ -153,7 +157,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			q.meter.Add(t.Name())
 			q.transferc <- t
 		} else {
-			q.meter.Skip(t.Size())
+			q.Skip(t.Size())
 			q.wait.Done()
 		}
 	}
@@ -228,7 +232,7 @@ func (q *TransferQueue) batchApiRoutine() {
 		for _, o := range objects {
 			if o.Error != nil {
 				q.errorc <- Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
-				q.meter.Skip(o.Size)
+				q.Skip(o.Size)
 				q.wait.Done()
 				continue
 			}
@@ -240,11 +244,11 @@ func (q *TransferQueue) batchApiRoutine() {
 					q.meter.Add(transfer.Name())
 					q.transferc <- transfer
 				} else {
-					q.meter.Skip(transfer.Size())
+					q.Skip(transfer.Size())
 					q.wait.Done()
 				}
 			} else {
-				q.meter.Skip(o.Size)
+				q.Skip(o.Size)
 				q.wait.Done()
 			}
 		}

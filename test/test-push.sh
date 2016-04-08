@@ -132,7 +132,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "5 files" push.log # should be 6?
+  [ $(grep -c "(3 of 3 files)" push.log) -eq 2 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -151,7 +151,7 @@ begin_test "push --all (no ref args)"
   refute_server_object "$reponame-$suffix-2" "$extraoid"
   rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
 
-  # dry run doesn't change
+  echo "dry run missing local object that exists on server"
   git lfs push --dry-run --all origin 2>&1 | tee push.log
   grep "push $oid1 => file1.dat" push.log
   grep "push $oid2 => file1.dat" push.log
@@ -162,7 +162,10 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "5 files, 1 skipped" push.log # should be 5?
+  grep "(2 of 3 files, 1 skipped)" push.log
+  grep "(3 of 3 files)" push.log
+  [ $(grep -c "files)" push.log) -eq 1 ]
+  [ $(grep -c "skipped)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -483,4 +486,3 @@ begin_test "push ambiguous branch name"
 
 )
 end_test
-

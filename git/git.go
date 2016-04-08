@@ -78,6 +78,19 @@ func ResolveRef(ref string) (*Ref, error) {
 	return fullref, nil
 }
 
+func ResolveRefs(refnames []string) ([]*Ref, error) {
+	refs := make([]*Ref, len(refnames))
+	for i, name := range refnames {
+		ref, err := ResolveRef(name)
+		if err != nil {
+			return refs, err
+		}
+
+		refs[i] = ref
+	}
+	return refs, nil
+}
+
 func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
@@ -161,6 +174,38 @@ func RemoteList() ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+// Refs returns all of the local and remote branches and tags for the current
+// repository. Other refs (HEAD, refs/stash, git notes) are ignored.
+func LocalRefs() ([]*Ref, error) {
+	cmd := subprocess.ExecCommand("git", "show-ref", "--heads", "--tags")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
+	}
+	cmd.Start()
+
+	var refs []*Ref
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 || len(parts[0]) != 40 || len(parts[1]) < 1 {
+			tracerx.Printf("Invalid line from git show-ref: %q", line)
+			continue
+		}
+
+		rtype, name := ParseRefToTypeAndName(parts[1])
+		if rtype != RefTypeLocalBranch && rtype != RefTypeLocalTag {
+			continue
+		}
+
+		refs = append(refs, &Ref{name, rtype, parts[0]})
+	}
+
+	return refs, cmd.Wait()
 }
 
 // ValidateRemote checks that a named remote is valid for use
