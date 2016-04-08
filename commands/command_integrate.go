@@ -165,9 +165,13 @@ func zshWriteCommandDetails(f *os.File) {
 			if len(flag.Deprecated) > 0 {
 				return
 			}
-			argJoin := "="
 			safeUsage := strings.Replace(flag.Usage, "'", "'\\''", -1)
-			// TODO how to determine if flag is boolean, set argJoin to blank?
+
+			var argJoin string
+			// Only way to detect an option without an explicit value?
+			if flag.DefValue != "false" {
+				argJoin = "="
+			}
 			if len(flag.Shorthand) > 0 {
 				if len(flag.Name) > 0 {
 					fmt.Fprintf(f, "            '(-%s)--%s%s[%s]' \\\n", flag.Shorthand, flag.Name, argJoin, safeUsage)
