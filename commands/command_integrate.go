@@ -45,10 +45,10 @@ _git-lfs() {
 
 compdef _git-lfs git-lfs
 `
-	zshCmd = &cobra.Command{
-		Use:   "zsh",
-		Short: "Generate zsh completions script for git-lfs",
-		Run:   zshCommand,
+	integrateCmd = &cobra.Command{
+		Use:   "integrate",
+		Short: "Integrate git-lfs with external tools",
+		Run:   integrateCommand,
 	}
 
 	zshOutputFile  string
@@ -78,8 +78,19 @@ func getOhMyZshRootDir() string {
 	return ""
 }
 
-func zshCommand(cmd *cobra.Command, args []string) {
+func integrateCommand(cmd *cobra.Command, args []string) {
 
+	if len(args) == 0 {
+		Exit("Required: tool argument")
+	}
+
+	switch args[0] {
+	case "zsh":
+		zshCommand(args[1:])
+	}
+}
+
+func zshCommand(args []string) {
 	var outputFile string
 
 	if len(zshOutputFile) > 0 {
@@ -185,7 +196,7 @@ func zshWriteCommandDetails(f *os.File) {
 	}
 }
 func init() {
-	zshCmd.Flags().StringVarP(&zshOutputFile, "output", "o", "", "Write zsh script to the named file")
-	zshCmd.Flags().BoolVarP(&zshOhMyZshCore, "oh-my-zsh-core", "", false, "Install in Oh My Zsh core plugins folder instead of custom")
-	RootCmd.AddCommand(zshCmd)
+	integrateCmd.Flags().StringVarP(&zshOutputFile, "output", "o", "", "Write zsh script to the named file")
+	integrateCmd.Flags().BoolVarP(&zshOhMyZshCore, "oh-my-zsh-core", "", false, "Install in Oh My Zsh core plugins folder instead of custom")
+	RootCmd.AddCommand(integrateCmd)
 }
