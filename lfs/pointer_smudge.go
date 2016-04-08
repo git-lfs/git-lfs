@@ -40,7 +40,10 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		return err
 	}
 
+	LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+
 	stat, statErr := os.Stat(mediafile)
+
 	if statErr == nil && stat != nil {
 		fileSize := stat.Size()
 		if fileSize == 0 || fileSize != ptr.Size {
