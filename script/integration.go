@@ -89,8 +89,8 @@ func runTest(output chan string, testname string) {
 		sendTestOutput(output, testname, buf, err)
 		return
 	case <-time.After(3 * time.Minute):
-		cmd.Process.Kill()
 		sendTestOutput(output, testname, buf, errors.New("Timed out"))
+		cmd.Process.Kill()
 		return
 	}
 
@@ -106,11 +106,12 @@ func sendTestOutput(output chan string, testname string, buf *bytes.Buffer, err 
 	if err == nil {
 		output <- cli
 	} else {
+		basetestname := filepath.Base(testname)
 		if debugging {
-			fmt.Printf("Error on %s: %s\n", testname, err)
+			fmt.Printf("Error on %s: %s\n", basetestname, err)
 		}
 		erroring = true
-		output <- fmt.Sprintf("error: %s => %s\n%s", testname, err, cli)
+		output <- fmt.Sprintf("error: %s => %s\n%s", basetestname, err, cli)
 	}
 }
 
