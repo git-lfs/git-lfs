@@ -13,12 +13,16 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
 * File locking [#666](https://github.com/github/git-lfs/pull/666)
 * Resumable uploads and downloads [#414](https://github.com/github/git-lfs/issues/414)
+* Wrapped versions of `git pull` & `git checkout` that optimize without filters
+like `git lfs clone`
+* Remove non-batch API route in client
 
 ## Possible Features
 
 * Binary diffing - reduce the amount of content sent over the wire.
 * Client side metrics reporting, so the Git LFS server can optionally track
 how clients are performing.
+* Pure SSH: full API & transfer support for SSH without redirect to HTTP
 
 ## Project Related
 
