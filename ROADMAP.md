@@ -3,9 +3,11 @@
 This is a high level overview of some of the big changes we want to make for
 Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
-## Bugs
+## Bugs/Features
 
 * git index issues [#937](https://github.com/github/git-lfs/issues/937)
+* `authenticated` property on urls
+* Use `expires_at` to quickly put objects in the queue to hit the API again to refresh tokens.
 * use git proxy settings [#1125](https://github.com/github/git-lfs/issues/1125)
 * Not following 301 redirect [#1129](https://github.com/github/git-lfs/issues/1129)
 
