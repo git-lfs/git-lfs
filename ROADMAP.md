@@ -3,42 +3,38 @@
 This is a high level overview of some of the big changes we want to make for
 Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
-## Releases
+## Bugs/Features
 
-* 0.5 - Initial release using the [original HTTP API](docs/api/http-v1-original.md)
-* 0.6 - First release using the [batch HTTP API](docs/api/http-v1-batch.md),
-        with a fallback to the original API.
-* 0.7 - Drops support for the original API.
+* git index issues [#937](https://github.com/github/git-lfs/issues/937)
+* `authenticated` property on urls [#960](https://github.com/github/git-lfs/issues/960)
+* Use `expires_at` to quickly put objects in the queue to hit the API again to refresh tokens.
+* Add ref information to upload request [#969](https://github.com/github/git-lfs/issues/969)
+* Accept raw remote URLs as valid [#1085](https://github.com/github/git-lfs/issues/1085)
+* use git proxy settings [#1125](https://github.com/github/git-lfs/issues/1125)
+* Not following 301 redirect [#1129](https://github.com/github/git-lfs/issues/1129)
+* add all lfs.* git config keys to git lfs env output
 
-## v1.0
+## Upcoming Features
 
-These are the features that we feel are important for a v1 release of Git LFS,
-and we have a good idea how they could work.
-
-* Fast, efficient uploading and downloading ([#414](https://github.com/github/git-lfs/issues/414)).
-* Improved local storage management ([#490](https://github.com/github/git-lfs/issues/490)).
-* [Extensions](docs/proposals/extensions.md) ([#486](https://github.com/github/git-lfs/pull/486)).
-* Improved installation/upgrade experience ([#531](https://github.com/github/git-lfs/issues/531)).
-* Ability to remove objects from the command line through the API.
-* Go 1.5+
+* File locking [#666](https://github.com/github/git-lfs/pull/666)
+* Resumable uploads and downloads [#414](https://github.com/github/git-lfs/issues/414)
+* Wrapped versions of `git pull` & `git checkout` that optimize without filters
+like `git lfs clone`
+* Remove non-batch API route in client
 
 ## Possible Features
 
-These are features that require some more research. It's very possible that
-these can make it in for v1.0 if there's a great proposal.
-
-* File locking
 * Binary diffing - reduce the amount of content sent over the wire.
 * Client side metrics reporting, so the Git LFS server can optionally track
 how clients are performing.
+* Pure SSH: full API & transfer support for SSH without redirect to HTTP
 
 ## Project Related
 
 These are items that don't affect Git LFS end users.
 
-* Releases through common package repositories: RPM, Apt, Chocolatey, Homebrew.
 * CI builds for Windows.
 * Automated build servers that build Git LFS on native platforms.
 * Automated QA test suite for running release candidates through a gauntlet of
 open source and proprietary Git LFS environments.
-* Automatic updates of the Git LFS client.
+* Automatic updates of the Git LFS client. [#531](https://github.com/github/git-lfs/issues/531)
