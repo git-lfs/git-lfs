@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -61,16 +64,55 @@ func mainIntegration() {
 	}
 }
 
-func runTest(output chan string, test string) {
-	out, err := exec.Command(bashPath, test).CombinedOutput()
+func runTest(output chan string, testname string) {
+	buf := &bytes.Buffer{}
+	cmd := exec.Command(bashPath, testname)
+	cmd.Stdout = buf
+	cmd.Stderr = buf
+
+	err := cmd.Start()
 	if err != nil {
-		if debugging {
-			fmt.Println("Error:", err)
-		}
-		erroring = true
+		sendTestOutput(output, testname, buf, err)
+		return
 	}
 
-	output <- strings.TrimSpace(string(out))
+	done := make(chan error)
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			done <- err
+		}
+		close(done)
+	}()
+
+	select {
+	case err = <-done:
+		sendTestOutput(output, testname, buf, err)
+		return
+	case <-time.After(3 * time.Minute):
+		sendTestOutput(output, testname, buf, errors.New("Timed out"))
+		cmd.Process.Kill()
+		return
+	}
+
+	sendTestOutput(output, testname, buf, nil)
+}
+
+func sendTestOutput(output chan string, testname string, buf *bytes.Buffer, err error) {
+	cli := strings.TrimSpace(buf.String())
+	if len(cli) == 0 {
+		cli = fmt.Sprintf("<no output for %s>", testname)
+	}
+
+	if err == nil {
+		output <- cli
+	} else {
+		basetestname := filepath.Base(testname)
+		if debugging {
+			fmt.Printf("Error on %s: %s\n", basetestname, err)
+		}
+		erroring = true
+		output <- fmt.Sprintf("error: %s => %s\n%s", basetestname, err, cli)
+	}
 }
 
 func printOutput(output <-chan string) {

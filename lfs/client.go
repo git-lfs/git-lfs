@@ -527,7 +527,7 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
 	var creds Creds
 	if useCreds {
-		c, err := getCredsForAPI(req)
+		c, err := getCreds(req)
 		if err != nil {
 			return nil, err
 		}

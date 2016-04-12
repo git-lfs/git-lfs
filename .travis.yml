@@ -12,6 +12,10 @@ env:
     - GIT_LFS_TEST_DIR="$HOME/git-lfs-tests"
 
 matrix:
+  fast_finish: true
+  allow_failures:
+    - os: osx
+      go: 1.6
   include:
     - env: git-latest
       os: linux

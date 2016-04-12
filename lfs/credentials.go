@@ -13,18 +13,7 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-// getCreds gets the credentials for the given request's URL, and sets its
-// Authorization header with them using Basic Authentication. This is like
-// getCredsForAPI(), but skips checking the LFS url or git remote.
-func getCreds(req *http.Request) (Creds, error) {
-	if skipCredsCheck(req) {
-		return nil, nil
-	}
-
-	return fillCredentials(req, req.URL)
-}
-
-// getCredsForAPI gets the credentials for LFS API requests and sets the given
+// getCreds gets the credentials for LFS API requests and sets the given
 // request's Authorization header with them using Basic Authentication.
 // 1. Check the LFS URL for authentication. Ex: http://user:pass@example.com
 // 2. Check netrc for authentication.
@@ -35,7 +24,7 @@ func getCreds(req *http.Request) (Creds, error) {
 // This prefers the Git remote URL for checking credentials so that users only
 // have to enter their passwords once for Git and Git LFS. It uses the same
 // URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
-func getCredsForAPI(req *http.Request) (Creds, error) {
+func getCreds(req *http.Request) (Creds, error) {
 	if skipCredsCheck(req) {
 		return nil, nil
 	}

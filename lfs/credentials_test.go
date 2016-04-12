@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetCredentialsForApi(t *testing.T) {
-	checkGetCredentials(t, getCredsForAPI, []*getCredentialCheck{
+	checkGetCredentials(t, getCreds, []*getCredentialCheck{
 		{
 			Desc:     "simple",
 			Config:   map[string]string{"lfs.url": "https://git-server.com"},
@@ -107,47 +107,6 @@ func TestGetCredentialsForApi(t *testing.T) {
 			SkipAuth: true,
 		},
 	})
-}
-
-func TestGetCredentials(t *testing.T) {
-	checks := []*getCredentialCheck{
-		{
-			Desc:     "git server",
-			Method:   "GET",
-			Href:     "https://git-server.com/foo",
-			Protocol: "https",
-			Host:     "git-server.com",
-			Username: "git-server.com",
-			Password: "monkey",
-		},
-		{
-			Desc:     "separate lfs server",
-			Method:   "GET",
-			Href:     "https://lfs-server.com/foo",
-			Protocol: "https",
-			Host:     "lfs-server.com",
-			Username: "lfs-server.com",
-			Password: "monkey",
-		},
-		{
-			Desc:     "?token query",
-			Config:   map[string]string{"lfs.url": "https://git-server.com"},
-			Method:   "GET",
-			Href:     "https://git-server.com/foo?token=abc",
-			SkipAuth: true,
-		},
-	}
-
-	// these properties should not change the outcome
-	for _, check := range checks {
-		check.CurrentRemote = "origin"
-		check.Config = map[string]string{
-			"lfs.url":           "https://testuser:testuser@git-server.com",
-			"remote.origin.url": "https://gituser:gitpass@git-server.com",
-		}
-	}
-
-	checkGetCredentials(t, getCreds, checks)
 }
 
 func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, error), checks []*getCredentialCheck) {
