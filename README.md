@@ -1,37 +1,36 @@
 # Git Large File Storage [![Build Status](https://travis-ci.org/github/git-lfs.svg?branch=master)](https://travis-ci.org/github/git-lfs)
 
-Git LFS is a command line extension and [specification](docs/spec.md) for
-managing large files with Git. The client is written in Go, with pre-compiled
-binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
-[Git LFS website][page] for an overview of features.
-
-[page]: https://git-lfs.github.com/
+[Git LFS][page] is a command line extension and [specification][specification] for
+managing large files with Git.   
+The client is written in Go, with pre-compiled
+binaries available for Mac, Windows, Linux, and FreeBSD.   
+Check out the [Git LFS website][page] for an overview of features.
 
 ## Getting Started
 
 You can install Git LFS in several different ways, depending on your setup and
 preferences.
 
-* Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs/install).
-* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`.
-* Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs.install`.
+* Linux users can install Debian or RPM packages from [PackageCloud][PackageCloud].
+* Mac users can install from [Homebrew][Homebrew] with `brew install git-lfs`.
+* Windows users can install from [Chocolatey][Chocolatey] with `choco install git-lfs.install`.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
-* You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
+* You can build it with Go 1.5+. See the [Contributing Guide][contributing] for instructions.
 
-[rel]: https://github.com/github/git-lfs/releases
 
-Note: Git LFS requires Git v1.8.2 or higher.
+**Note:** Git LFS requires Git v1.8.2 or higher.
 
-One installed, you need to setup the global Git hooks for Git LFS. This only
-needs to be run once per machine.
+One installed, you need to setup the global [Git hooks][hooks] for Git LFS.   
+This only needs to be run once per machine.
 
 ```bash
 $ git lfs install
 ```
 
-Now, it's time to add some large files to a repository. The first step is to
-specify file patterns to store with Git LFS. These file patterns are stored in
-`.gitattributes`.
+Now, it's time to add some large files to a repository.   
+The first step is to
+specify file patterns to store with Git LFS.   
+These file patterns are stored in [`.gitattributes`][gitattributes].
 
 ```bash
 $ mkdir large-repo
@@ -80,27 +79,24 @@ You can get help on specific commands directly:
 $ git lfs help <subcommand>
 ```
 
-The [official documentation](docs) has command references and specifications for
+The [official documentation][docs] has command references and specifications for
 the tool. You can ask questions in the [Git LFS chat room][chat], or [file a new
-issue][ish]. Be sure to include details about the problem so we can
+issue][ish].   
+Be sure to include details about the problem so we can
 troubleshoot it.
 
 1. Include the output of `git lfs env`, which shows how your Git environment
 is setup.
-2. Include `GIT_TRACE=1` in any bad Git commands to enable debug messages.
+2. Include [`GIT_TRACE=1`][git_trace] in any bad Git commands to enable debug messages.
 3. If the output includes a message like `Errors logged to /path/to/.git/lfs/objects/logs/*.log`,
 throw the contents in the issue, or as a link to a Gist or paste site.
 
-[chat]: https://gitter.im/github/git-lfs
-[ish]: https://github.com/github/git-lfs/issues
-
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
-sending patches. Related projects are listed on the [Implementations wiki
-page][impl]. You can also join [the project's chat room][chat].
+- See [CONTRIBUTING.md][contributing] for info on working on Git LFS and sending patches. 
+- Related projects are listed on the [Implementations wiki page][impl]. 
+- You can also join [the project's chat room][chat].
 
-[impl]: https://github.com/github/git-lfs/wiki/Implementations
 
 ## Core Team
 
@@ -111,3 +107,20 @@ In alphabetical order:
 | [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) |
 |---|---|---|---|---|
 | [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) |
+
+
+<!-- README links: -->
+[docs]:docs
+[specification]:docs/spec.md
+[contributing]:CONTRIBUTING.md
+[page]:https://git-lfs.github.com/
+[chat]:https://gitter.im/github/git-lfs
+[Chocolatey]:https://chocolatey.org/
+[ish]:https://github.com/github/git-lfs/issues
+[Homebrew]:https://github.com/Homebrew/homebrew
+[rel]:https://github.com/github/git-lfs/releases
+[gitattributes]:https://git-scm.com/docs/gitattributes
+[impl]:https://github.com/github/git-lfs/wiki/Implementations
+[PackageCloud]:https://packagecloud.io/github/git-lfs/install
+[hooks]:https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+[git_trace]:https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables#Debugging
