@@ -45,6 +45,7 @@ Source: ..\..\git-lfs-x86.exe; DestDir: "{app}"; Flags: ignoreversion; DestName:
 
 [Registry]
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: NeedsAddPath('{app}')
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: string; ValueName: "GIT_LFS_PATH"; ValueData: "{app}"
 
 [Code]
 // Uses cmd to parse and find the location of Git through the env vars.
@@ -55,12 +56,12 @@ var
   ExecStdOut: AnsiString;
   ResultCode: integer;
 
-begin
+begin      
   TmpFileName := ExpandConstant('{tmp}') + '\git_location.txt';
-
+  
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"',
+    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"', 
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
 
@@ -93,9 +94,9 @@ begin
   end;
   // look for the path with leading and trailing semicolon and with or without \ ending
   // Pos() returns 0 if not found
-  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;
+  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;  
   if Result = True then
-     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
+    Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0; 
 end;
 
 // Runs the lfs initialization.
@@ -105,9 +106,13 @@ var
 begin
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "git lfs install"',
+    ExpandConstant('/C ""{app}\git-lfs.exe" install"'), 
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
+  if not ResultCode = 1 then
+    MsgBox(
+    'Git LFS was not able to automatically initialize itself. ' +
+    'Please run "git lfs install" from the commandline.', mbInformation, MB_OK);
 end;
 
 // Event function automatically called when uninstalling:function InitializeUninstall(): Boolean;
@@ -116,8 +121,9 @@ var
 begin
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "git lfs uninstall"',
+    ExpandConstant('/C ""{app}\git-lfs.exe" uninstall"'), 
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
   Result := True;
 end;
+
