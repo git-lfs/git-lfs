@@ -38,6 +38,9 @@ $distro_name_map = {
   ),
   "debian/8" => %w(
     debian/jessie
+    linuxmint/rebecca
+    linuxmint/rafaela
+    linuxmint/rosa
     ubuntu/trusty
     ubuntu/vivid
     ubuntu/wily
@@ -87,5 +90,5 @@ package_files.each do |full_path|
 
   next unless os
 
-  puts "[#{os}](https://packagecloud.io/github/git-lfs/packages/#{distro}/#{File.basename(full_path)}/download)"
+  puts "[#{os}](https://packagecloud.io/#{packagecloud_user}/git-lfs/packages/#{distro}/#{File.basename(full_path)}/download)"
 end
