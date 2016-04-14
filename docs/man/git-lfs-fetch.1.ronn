@@ -61,7 +61,7 @@ will have objects fetched for them.
   Don't fetch any LFS objects referenced in the folder media/reallybigfiles, but
   fetch everything else
 
-* `git config lfs.fetchinclude "media"`<br/>
+* `git config lfs.fetchinclude "media"`
   `git config lfs.fetchexclude "media/excessive"`
 
   Only fetch LFS objects in the 'media' folder, but exclude those in one of its
