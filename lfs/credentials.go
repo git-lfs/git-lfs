@@ -86,13 +86,27 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 }
 
 func setCredURLFromNetrc(req *http.Request) bool {
-	host, _, err := net.SplitHostPort(req.URL.Host)
-	if err != nil {
-		return false
+	hostname := req.URL.Host
+	var host string
+
+	if strings.Contains(hostname, ":") {
+		var err error
+		host, _, err = net.SplitHostPort(hostname)
+		if err != nil {
+			tracerx.Printf("netrc: error parsing %q: %s", hostname, err)
+			return false
+		}
+	} else {
+		host = hostname
 	}
 
 	machine, err := Config.FindNetrcHost(host)
-	if err != nil || machine == nil {
+	if err != nil {
+		tracerx.Printf("netrc: error finding match for %q: %s", hostname, err)
+		return false
+	}
+
+	if machine == nil {
 		return false
 	}
 
