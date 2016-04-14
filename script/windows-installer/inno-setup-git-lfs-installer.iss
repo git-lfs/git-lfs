@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Git LFS"
-#define MyAppVersion "1.1.2"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
 #define MyAppFilePrefix "git-lfs-windows"
@@ -110,7 +110,8 @@ begin
   );
 end;
 
-// Event function automatically called when uninstalling:function InitializeUninstall(): Boolean;
+// Event function automatically called when uninstalling:
+function InitializeUninstall(): Boolean;
 var
   ResultCode: integer;
 begin
