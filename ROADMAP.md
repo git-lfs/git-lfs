@@ -18,6 +18,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 * Investigate `git lfs checkout` hardlinking instead of copying files.
 * Investigate `--shared` and `--dissociate` options for `git clone` (similar to `--references`)
 * Investigate `GIT_SSH_COMMAND` [#1142](https://github.com/github/git-lfs/issues/1142)
+* Teach `git lfs install` to use `git config --system` instead of `git config --global` by default.
 
 ## Upcoming Features
 
