@@ -20,6 +20,9 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 * Investigate `GIT_SSH_COMMAND` [#1142](https://github.com/github/git-lfs/issues/1142)
 * Teach `git lfs install` to use `git config --system` instead of `git config --global` by default.
 * Don't allow `git lfs track` to operate on `.git*` or `.lfs*` files [#1099](https://github.com/github/git-lfs/issues/1099)
+* Investigate `git -c lfs.url=... lfs clone` usage
+* Test that manpages are built and included [#1149](https://github.com/github/git-lfs/pull/1149)
+* Update CI to build from source outside of git repo
 
 ## Upcoming Features
 
