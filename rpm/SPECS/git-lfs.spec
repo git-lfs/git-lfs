@@ -42,7 +42,9 @@ GOPATH=`pwd` ./script/man
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 install -D bin/git-lfs ${RPM_BUILD_ROOT}/usr/bin/git-lfs
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
+mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man5
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
+install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
 %check
 export GOPATH=`pwd`
@@ -61,6 +63,7 @@ rm -rf %{buildroot}
 %doc LICENSE.md README.md
 /usr/bin/git-lfs
 /usr/share/man/man1/*.1.gz
+/usr/share/man/man5/*.5.gz
 
 %changelog
 * Sun Dec 6 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.1.0-1
