@@ -125,6 +125,7 @@ release.
 * Build packages:
   * rpm
   * apt
+* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/github/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566)) 
 
 ## Resources
 
