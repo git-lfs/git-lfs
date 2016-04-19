@@ -90,5 +90,8 @@ func init() {
 	cloneCmd.Flags().StringVarP(&cloneFlags.Config, "config", "c", "", "See 'git clone --help'")
 	cloneCmd.Flags().BoolVarP(&cloneFlags.SingleBranch, "single-branch", "", false, "See 'git clone --help'")
 	cloneCmd.Flags().BoolVarP(&cloneFlags.NoSingleBranch, "no-single-branch", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Verbose, "verbose", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
 	RootCmd.AddCommand(cloneCmd)
 }

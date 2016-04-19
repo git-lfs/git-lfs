@@ -701,6 +701,12 @@ type CloneFlags struct {
 	SingleBranch bool
 	// --no-single-branch
 	NoSingleBranch bool
+	// --verbose
+	Verbose bool
+	// --ipv4
+	Ipv4 bool
+	// --ipv6
+	Ipv6 bool
 }
 
 // CloneWithoutFilters clones a git repo but without the smudge filter enabled
@@ -735,6 +741,12 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	}
 	if flags.Dissociate {
 		cmdargs = append(cmdargs, "--dissociate")
+	}
+	if flags.Ipv4 {
+		cmdargs = append(cmdargs, "--ipv4")
+	}
+	if flags.Ipv6 {
+		cmdargs = append(cmdargs, "--ipv6")
 	}
 	if flags.Local {
 		cmdargs = append(cmdargs, "--local")
@@ -783,6 +795,9 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	}
 	if len(flags.Upload) > 0 {
 		cmdargs = append(cmdargs, "--upload-pack", flags.Upload)
+	}
+	if flags.Verbose {
+		cmdargs = append(cmdargs, "--verbose")
 	}
 
 	// Now args
