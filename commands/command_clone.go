@@ -62,7 +62,12 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	// Now just call pull with default args
-	lfs.Config.CurrentRemote = "origin" // always origin after clone
+	// Support --origin option to clone
+	if len(cloneFlags.Origin) > 0 {
+		lfs.Config.CurrentRemote = cloneFlags.Origin
+	} else {
+		lfs.Config.CurrentRemote = "origin"
+	}
 
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
