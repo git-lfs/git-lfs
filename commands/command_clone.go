@@ -63,7 +63,13 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 	// Now just call pull with default args
 	lfs.Config.CurrentRemote = "origin" // always origin after clone
-	pull(nil, nil)
+
+	if cloneFlags.NoCheckout {
+		// If --no-checkout then we shouldn't check out, just fetch instead
+		fetchRef("HEAD", nil, nil)
+	} else {
+		pull(nil, nil)
+	}
 
 }
 
