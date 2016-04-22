@@ -508,28 +508,6 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 	assert.Equal(t, true, fp.PruneVerifyRemoteAlways)
 }
 
-func TestProxyFromGitConfig(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{
-			"http.proxy": "http://proxy.foo.com:8888",
-		},
-	}
-	proxy := config.Proxy()
-
-	assert.Equal(t, "http://proxy.foo.com:8888", proxy)
-}
-
-func TestProxyFromEnvironment(t *testing.T) {
-	config := &Configuration{
-		gitConfig: map[string]string{},
-		envVars: map[string]string{
-			"HTTP_PROXY": "foo.com",
-		},
-	}
-	proxy := config.Proxy()
-	assert.Equal(t, "foo.com", proxy)
-}
-
 // only used for tests
 func (c *Configuration) SetConfig(key, value string) {
 	if c.loadGitConfig() {
