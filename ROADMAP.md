@@ -23,6 +23,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 * Investigate `git -c lfs.url=... lfs clone` usage
 * Test that manpages are built and included [#1149](https://github.com/github/git-lfs/pull/1149)
 * Update CI to build from source outside of git repo [#1156](https://github.com/github/git-lfs/issues/1156#issuecomment-211574343)
+* Teach `git lfs track` and others to warn when `git lfs install` hasn't been run (or auto-install) [#1167](https://github.com/github/git-lfs/issues/1167)
 
 ## Upcoming Features
 
