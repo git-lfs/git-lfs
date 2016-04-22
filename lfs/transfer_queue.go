@@ -37,6 +37,7 @@ type TransferQueue struct {
 	retriesc      chan Transferable // Channel for processing retries
 	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
+	trMutex       *sync.Mutex
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
@@ -52,6 +53,7 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 		errorc:        make(chan error),
 		workers:       Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
+		trMutex:       &sync.Mutex{},
 	}
 
 	q.errorwait.Add(1)
@@ -65,7 +67,9 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
 	q.wait.Add(1)
+	q.trMutex.Lock()
 	q.transferables[t.Oid()] = t
+	q.trMutex.Unlock()
 
 	if q.batcher != nil {
 		q.batcher.Add(t)
@@ -239,7 +243,11 @@ func (q *TransferQueue) batchApiRoutine() {
 
 			if _, ok := o.Rel(q.transferKind); ok {
 				// This object needs to be transferred
-				if transfer, ok := q.transferables[o.Oid]; ok {
+				q.trMutex.Lock()
+				transfer, ok := q.transferables[o.Oid]
+				q.trMutex.Unlock()
+
+				if ok {
 					transfer.SetObject(o)
 					q.meter.Add(transfer.Name())
 					q.transferc <- transfer
