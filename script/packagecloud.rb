@@ -44,6 +44,7 @@ $distro_name_map = {
     ubuntu/trusty
     ubuntu/vivid
     ubuntu/wily
+    ubuntu/xenial
   ),
 }
 
