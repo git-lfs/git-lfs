@@ -568,3 +568,11 @@ var safeKeys = []string{
 	"lfs.gitprotocol",
 	"lfs.url",
 }
+
+func (c *Configuration) Proxy() string {
+	if proxy, ok := c.GitConfig("http.proxy"); ok {
+		return proxy
+	}
+
+	return c.Getenv("HTTP_PROXY")
+}
