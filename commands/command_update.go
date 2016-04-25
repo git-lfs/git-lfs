@@ -22,13 +22,6 @@ var (
 func updateCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
-	if err := lfs.InstallHooks(updateForce); err != nil {
-		Error(err.Error())
-		Exit("Run `git lfs update --force` to overwrite this hook.")
-	} else {
-		Print("Updated pre-push hook.")
-	}
-
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
 	for key, value := range lfs.Config.AllGitConfig() {
 		matches := lfsAccessRE.FindStringSubmatch(key)
@@ -46,6 +39,14 @@ func updateCommand(cmd *cobra.Command, args []string) {
 			Print("Removed invalid %s access of %s.", matches[1], value)
 		}
 	}
+
+	if err := lfs.InstallHooks(updateForce); err != nil {
+		Error(err.Error())
+		Exit("Run `git lfs update --force` to overwrite this hook.")
+	} else {
+		Print("Updated pre-push hook.")
+	}
+
 }
 
 func init() {
