@@ -657,9 +657,61 @@ func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
 	return actual >= atleast
 }
 
+// For compatibility with git clone we must mirror all flags in CloneWithoutFilters
+type CloneFlags struct {
+	// --template <template_directory>
+	TemplateDirectory string
+	// -l --local
+	Local bool
+	// -s --shared
+	Shared bool
+	// --no-hardlinks
+	NoHardlinks bool
+	// -q --quiet
+	Quiet bool
+	// -n --no-checkout
+	NoCheckout bool
+	// --progress
+	Progress bool
+	// --bare
+	Bare bool
+	// --mirror
+	Mirror bool
+	// -o <name> --origin <name>
+	Origin string
+	// -b <name> --branch <name>
+	Branch string
+	// -u <upload-pack> --upload-pack <pack>
+	Upload string
+	// --reference <repository>
+	Reference string
+	// --dissociate
+	Dissociate bool
+	// --separate-git-dir <git dir>
+	SeparateGit string
+	// --depth <depth>
+	Depth string
+	// --recursive
+	Recursive bool
+	// --recurse-submodules
+	RecurseSubmodules bool
+	// -c <value> --config <value>
+	Config string
+	// --single-branch
+	SingleBranch bool
+	// --no-single-branch
+	NoSingleBranch bool
+	// --verbose
+	Verbose bool
+	// --ipv4
+	Ipv4 bool
+	// --ipv6
+	Ipv6 bool
+}
+
 // CloneWithoutFilters clones a git repo but without the smudge filter enabled
 // so that files in the working copy will be pointers and not real LFS data
-func CloneWithoutFilters(args []string) error {
+func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
 	// Before git 2.2, setting filters to blank fails, so use cat instead (slightly slower)
 	filterOverride := ""
@@ -673,6 +725,82 @@ func CloneWithoutFilters(args []string) error {
 		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
 		"-c", "filter.lfs.required=false",
 		"clone"}
+
+	// flags
+	if flags.Bare {
+		cmdargs = append(cmdargs, "--bare")
+	}
+	if len(flags.Branch) > 0 {
+		cmdargs = append(cmdargs, "--branch", flags.Branch)
+	}
+	if len(flags.Config) > 0 {
+		cmdargs = append(cmdargs, "--config", flags.Config)
+	}
+	if len(flags.Depth) > 0 {
+		cmdargs = append(cmdargs, "--depth", flags.Depth)
+	}
+	if flags.Dissociate {
+		cmdargs = append(cmdargs, "--dissociate")
+	}
+	if flags.Ipv4 {
+		cmdargs = append(cmdargs, "--ipv4")
+	}
+	if flags.Ipv6 {
+		cmdargs = append(cmdargs, "--ipv6")
+	}
+	if flags.Local {
+		cmdargs = append(cmdargs, "--local")
+	}
+	if flags.Mirror {
+		cmdargs = append(cmdargs, "--mirror")
+	}
+	if flags.NoCheckout {
+		cmdargs = append(cmdargs, "--no-checkout")
+	}
+	if flags.NoHardlinks {
+		cmdargs = append(cmdargs, "--no-hardlinks")
+	}
+	if flags.NoSingleBranch {
+		cmdargs = append(cmdargs, "--no-single-branch")
+	}
+	if len(flags.Origin) > 0 {
+		cmdargs = append(cmdargs, "--origin", flags.Origin)
+	}
+	if flags.Progress {
+		cmdargs = append(cmdargs, "--progress")
+	}
+	if flags.Quiet {
+		cmdargs = append(cmdargs, "--quiet")
+	}
+	if flags.Recursive {
+		cmdargs = append(cmdargs, "--recursive")
+	}
+	if flags.RecurseSubmodules {
+		cmdargs = append(cmdargs, "--recurse-submodules")
+	}
+	if len(flags.Reference) > 0 {
+		cmdargs = append(cmdargs, "--reference", flags.Reference)
+	}
+	if len(flags.SeparateGit) > 0 {
+		cmdargs = append(cmdargs, "--separate-git-dir", flags.SeparateGit)
+	}
+	if flags.Shared {
+		cmdargs = append(cmdargs, "--shared")
+	}
+	if flags.SingleBranch {
+		cmdargs = append(cmdargs, "--single-branch")
+	}
+	if len(flags.TemplateDirectory) > 0 {
+		cmdargs = append(cmdargs, "--template", flags.TemplateDirectory)
+	}
+	if len(flags.Upload) > 0 {
+		cmdargs = append(cmdargs, "--upload-pack", flags.Upload)
+	}
+	if flags.Verbose {
+		cmdargs = append(cmdargs, "--verbose")
+	}
+
+	// Now args
 	cmdargs = append(cmdargs, args...)
 	cmd := subprocess.ExecCommand("git", cmdargs...)
 

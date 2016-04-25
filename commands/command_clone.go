@@ -16,12 +16,14 @@ var (
 		Use: "clone",
 		Run: cloneCommand,
 	}
+
+	cloneFlags git.CloneFlags
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
 
 	// We pass all args to git clone
-	err := git.CloneWithoutFilters(args)
+	err := git.CloneWithoutFilters(cloneFlags, args)
 	if err != nil {
 		Exit("Error(s) during clone:\n%v", err)
 	}
@@ -60,11 +62,47 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	// Now just call pull with default args
-	lfs.Config.CurrentRemote = "origin" // always origin after clone
-	pull(nil, nil)
+	// Support --origin option to clone
+	if len(cloneFlags.Origin) > 0 {
+		lfs.Config.CurrentRemote = cloneFlags.Origin
+	} else {
+		lfs.Config.CurrentRemote = "origin"
+	}
+
+	if cloneFlags.NoCheckout || cloneFlags.Bare {
+		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
+		fetchRef("HEAD", nil, nil)
+	} else {
+		pull(nil, nil)
+	}
 
 }
 
 func init() {
+	// Mirror all git clone flags
+	cloneCmd.Flags().StringVarP(&cloneFlags.TemplateDirectory, "template", "", "", "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Local, "local", "l", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Shared, "shared", "s", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.NoHardlinks, "no-hardlinks", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Quiet, "quiet", "q", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.NoCheckout, "no-checkout", "n", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Progress, "progress", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Bare, "bare", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Mirror, "mirror", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.Origin, "origin", "o", "", "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.Branch, "branch", "b", "", "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.Upload, "upload-pack", "u", "", "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.Reference, "reference", "", "", "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Dissociate, "dissociate", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.SeparateGit, "separate-git-dir", "", "", "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.Depth, "depth", "", "", "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Recursive, "recursive", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.RecurseSubmodules, "recurse-submodules", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().StringVarP(&cloneFlags.Config, "config", "c", "", "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.SingleBranch, "single-branch", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.NoSingleBranch, "no-single-branch", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Verbose, "verbose", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
+	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
 	RootCmd.AddCommand(cloneCmd)
 }
