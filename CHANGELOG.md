@@ -1,5 +1,9 @@
 # Git LFS Changelog
 
+## Next
+
+* Pass `git lfs clone` flags through to `git clone` properly. [#1160](https://github.com/github/git-lfs/pull/1160) (@sinbad)
+
 ## 1.2.0 (14 April 2016)
 
 ### Features
