@@ -2,7 +2,7 @@
 
 ## Next
 
-* Pass `git lfs clone` flags through to `git clone` properly. [#1160](https://github.com/github/git-lfs/pull/1160) (@sinbad)
+* Pass `git lfs clone` flags through to `git clone` properly. #1160 (@sinbad)
 
 ## 1.2.0 (14 April 2016)
 
@@ -22,7 +22,7 @@
 * Fix silent failure to push LFS objects when ref matches a filename in the working copy #1096 (@epriestley)
 * Fix problems with using LFS in symlinked folders #818 (@sinbad)
 * Fix git lfs push silently misbehaving on ambiguous refs; fail like git push instead #1118 (@sinbad)
-* Whitelist lfs.*.access config in local ~/.lfsconfig #1122 (@rjbell4)
+* Whitelist `lfs.*.access` config in local ~/.lfsconfig #1122 (@rjbell4)
 * Only write the encoded pointer information to Stdout #1105 (@sschuberth)
 * Use hardcoded auth from remote or lfs config when accessing the storage api #1136 (@technoweenie, @jonmagic)
 * SSH should be called more strictly with command as one argument #1134 (@sinbad)
