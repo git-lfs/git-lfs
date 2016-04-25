@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -67,7 +68,11 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 	if opt.Local {
 		currentValue = git.Config.FindLocal(key)
 	} else {
-		currentValue = git.Config.FindGlobal(key)
+		if os.Geteuid() == 0 {
+			currentValue = git.Config.FindSystem(key)
+		} else {
+			currentValue = git.Config.FindGlobal(key)
+		}
 	}
 
 	if opt.Force || shouldReset(currentValue) {
@@ -75,8 +80,13 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 			git.Config.UnsetLocalKey("", key)
 			git.Config.SetLocal("", key, value)
 		} else {
-			git.Config.UnsetGlobal(key)
-			git.Config.SetGlobal(key, value)
+			if os.Geteuid() == 0 {
+				git.Config.UnsetSystem(key)
+				git.Config.SetSystem(key, value)
+			} else {
+				git.Config.UnsetGlobal(key)
+				git.Config.SetGlobal(key, value)
+			}
 		}
 
 		return nil
@@ -90,7 +100,11 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 
 // Uninstall removes all properties in the path of this property.
 func (a *Attribute) Uninstall() {
-	git.Config.UnsetGlobalSection(a.Section)
+	if os.Geteuid() == 0 {
+		git.Config.UnsetSystemSection(a.Section)
+	} else {
+		git.Config.UnsetGlobalSection(a.Section)
+	}
 }
 
 // shouldReset determines whether or not a value is resettable given its current
