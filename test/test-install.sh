@@ -75,8 +75,7 @@ Git LFS initialized." = "$(git lfs install)" ]
 
 test
 
-Run \`git lfs update --force\` to overwrite this hook.
-Git LFS initialized."
+Run \`git lfs update --force\` to overwrite this hook."
 
   echo "test" > .git/hooks/pre-push
   [ "test" = "$(cat .git/hooks/pre-push)" ]
