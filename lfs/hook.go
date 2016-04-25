@@ -105,7 +105,7 @@ func (h *Hook) matchesCurrent() (bool, error) {
 	}
 
 	contents := strings.TrimSpace(string(by))
-	if contents == h.Contents {
+	if contents == h.Contents || len(contents) == 0 {
 		return true, nil
 	}
 
