@@ -3,6 +3,7 @@
 ## Next
 
 * Pass `git lfs clone` flags through to `git clone` properly. #1160 (@sinbad)
+* Return non-zero exit code when `git lfs install/update` fails to install hooks
 
 ## 1.2.0 (14 April 2016)
 
