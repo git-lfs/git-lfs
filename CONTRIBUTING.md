@@ -74,9 +74,27 @@ them as separate pull requests.
 
 ## Building
 
+### Prerequisites
+
 Git LFS depends on having a working Go 1.5+ environment, with your standard
-`$GOROOT` and `$GOPATH` environment variables set. The easiest way to download
-Git LFS for making changes is `go get`:
+`$GOROOT` and `$GOPATH` environment variables set.
+
+On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
+
+```
+$ sudo yum install gcc
+$ sudo yum install perl-Digest-SHA
+```
+
+In order to run the RPM build `rpm/build_rpms.bsh` you will also need to:
+
+`$ sudo yum install ruby-devel`
+
+(note on an AWS instance you may first need to `sudo yum-config-manager --enable rhui-REGION-rhel-server-optional`)
+
+### Building Git LFS
+
+The easiest way to download Git LFS for making changes is `go get`:
 
     $ go get github.com/github/git-lfs
 
