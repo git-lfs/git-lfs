@@ -64,6 +64,15 @@ Run \`git lfs update --force\` to overwrite this hook."
   [ "$expected" = "$(git lfs update 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
 
+  # Make sure returns non-zero
+  set +e
+  git lfs update
+  if [ $? -eq 0 ]
+  then
+    exit 1
+  fi
+  set -e
+
   # force replace unexpected hook
   [ "Updated pre-push hook." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]

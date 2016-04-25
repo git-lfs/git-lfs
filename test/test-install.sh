@@ -83,6 +83,15 @@ Git LFS initialized."
   [ "$expected" = "$(git lfs install 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
 
+  # Make sure returns non-zero
+  set +e
+  git lfs install
+  if [ $? -eq 0 ]
+  then
+    exit 1
+  fi
+  set -e
+
   # force replace unexpected hook
   [ "Updated pre-push hook.
 Git LFS initialized." = "$(git lfs install --force)" ]
