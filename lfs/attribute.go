@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
@@ -32,8 +31,9 @@ type Attribute struct {
 
 // InstallOptions serves as an argument to Install().
 type InstallOptions struct {
-	Force bool
-	Local bool
+	Force  bool
+	Local  bool
+	System bool
 }
 
 // Install instructs Git to set all keys and values relative to the root
@@ -67,26 +67,22 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 	var currentValue string
 	if opt.Local {
 		currentValue = git.Config.FindLocal(key)
+	} else if opt.System {
+		currentValue = git.Config.FindSystem(key)
 	} else {
-		if os.Geteuid() == 0 {
-			currentValue = git.Config.FindSystem(key)
-		} else {
-			currentValue = git.Config.FindGlobal(key)
-		}
+		currentValue = git.Config.FindGlobal(key)
 	}
 
 	if opt.Force || shouldReset(currentValue) {
 		if opt.Local {
 			git.Config.UnsetLocalKey("", key)
 			git.Config.SetLocal("", key, value)
+		} else if opt.System {
+			git.Config.UnsetSystem(key)
+			git.Config.SetSystem(key, value)
 		} else {
-			if os.Geteuid() == 0 {
-				git.Config.UnsetSystem(key)
-				git.Config.SetSystem(key, value)
-			} else {
-				git.Config.UnsetGlobal(key)
-				git.Config.SetGlobal(key, value)
-			}
+			git.Config.UnsetGlobal(key)
+			git.Config.SetGlobal(key, value)
 		}
 
 		return nil
@@ -100,11 +96,9 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 
 // Uninstall removes all properties in the path of this property.
 func (a *Attribute) Uninstall() {
-	if os.Geteuid() == 0 {
-		git.Config.UnsetSystemSection(a.Section)
-	} else {
-		git.Config.UnsetGlobalSection(a.Section)
-	}
+	// uninstall from both system and global
+	git.Config.UnsetSystemSection(a.Section)
+	git.Config.UnsetGlobalSection(a.Section)
 }
 
 // shouldReset determines whether or not a value is resettable given its current

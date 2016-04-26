@@ -47,7 +47,7 @@ install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
 %post
-git lfs install
+git lfs install --system
 
 %preun
 git lfs uninstall
