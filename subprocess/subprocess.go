@@ -17,14 +17,20 @@ func SimpleExec(name string, args ...string) (string, error) {
 	cmd := ExecCommand(name, args...)
 
 	output, err := cmd.Output()
-	if _, ok := err.(*exec.ExitError); ok {
-		return "", nil
-	}
-	if err != nil {
-		return fmt.Sprintf("Error running %s %s", name, args), err
+	if exitError, ok := err.(*exec.ExitError); ok {
+		errorOutput := strings.TrimSpace(string(exitError.Stderr))
+		if errorOutput == "" {
+			// some commands might write nothing to stderr but something to stdout in error-conditions, in which case, we'll use that
+			// in the error string
+			errorOutput = strings.TrimSpace(string(output))
+		}
+		formattedErr := fmt.Errorf("Error running %s %s: '%s' '%s'", name, args, errorOutput, strings.TrimSpace(exitError.Error()))
+
+		// return "" as output in error case, for callers that don't care about errors but rely on "" returned, in-case stdout != ""
+		return "", formattedErr
 	}
 
-	return strings.Trim(string(output), " \n"), nil
+	return strings.Trim(string(output), " \n"), err
 }
 
 // An env for an exec.Command without GIT_TRACE

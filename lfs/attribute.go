@@ -74,18 +74,21 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 	}
 
 	if opt.Force || shouldReset(currentValue) {
+		var err error
 		if opt.Local {
+			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetLocalKey("", key)
-			git.Config.SetLocal("", key, value)
+			_, err = git.Config.SetLocal("", key, value)
 		} else if opt.System {
+			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetSystem(key)
-			git.Config.SetSystem(key, value)
+			_, err = git.Config.SetSystem(key, value)
 		} else {
+			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetGlobal(key)
-			git.Config.SetGlobal(key, value)
+			_, err = git.Config.SetGlobal(key, value)
 		}
-
-		return nil
+		return err
 	} else if currentValue != value {
 		return fmt.Errorf("The %s attribute should be \"%s\" but is \"%s\"",
 			key, value, currentValue)

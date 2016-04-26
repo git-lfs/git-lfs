@@ -304,55 +304,55 @@ func (c *gitConfig) FindLocal(val string) string {
 }
 
 // SetGlobal sets the git config value for the key in the global config
-func (c *gitConfig) SetGlobal(key, val string) {
-	subprocess.SimpleExec("git", "config", "--global", key, val)
+func (c *gitConfig) SetGlobal(key, val string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
-func (c *gitConfig) SetSystem(key, val string) {
-	subprocess.SimpleExec("git", "config", "--system", key, val)
+func (c *gitConfig) SetSystem(key, val string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
-func (c *gitConfig) UnsetGlobal(key string) {
-	subprocess.SimpleExec("git", "config", "--global", "--unset", key)
+func (c *gitConfig) UnsetGlobal(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", "--unset", key)
 }
 
 // UnsetSystem removes the git config value for the key from the system config
-func (c *gitConfig) UnsetSystem(key string) {
-	subprocess.SimpleExec("git", "config", "--system", "--unset", key)
+func (c *gitConfig) UnsetSystem(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", "--unset", key)
 }
 
 // UnsetGlobalSection removes the entire named section from the global config
-func (c *gitConfig) UnsetGlobalSection(key string) {
-	subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
+func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
 }
 
 // UnsetGlobalSection removes the entire named section from the system config
-func (c *gitConfig) UnsetSystemSection(key string) {
-	subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
+func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
-func (c *gitConfig) SetLocal(file, key, val string) {
+func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
 	args := make([]string, 1, 5)
 	args[0] = "config"
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
 	args = append(args, key, val)
-	subprocess.SimpleExec("git", args...)
+	return subprocess.SimpleExec("git", args...)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
-func (c *gitConfig) UnsetLocalKey(file, key string) {
+func (c *gitConfig) UnsetLocalKey(file, key string) (string, error) {
 	args := make([]string, 1, 5)
 	args[0] = "config"
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
 	args = append(args, "--unset", key)
-	subprocess.SimpleExec("git", args...)
+	return subprocess.SimpleExec("git", args...)
 }
 
 // List lists all of the git config values
