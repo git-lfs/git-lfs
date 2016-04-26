@@ -14,7 +14,8 @@ var (
 		Run: updateCommand,
 	}
 
-	updateForce = false
+	updateForce  = false
+	updateManual = false
 )
 
 // updateCommand is used for updating parts of Git LFS that reside under
@@ -40,16 +41,25 @@ func updateCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := lfs.InstallHooks(updateForce); err != nil {
-		Error(err.Error())
-		Exit("Run `git lfs update --force` to overwrite this hook.")
+	if updateForce && updateManual {
+		Exit("You cannot use --force and --manual options together")
+	}
+
+	if updateManual {
+		Print(lfs.GetHookInstallSteps())
 	} else {
-		Print("Updated pre-push hook.")
+		if err := lfs.InstallHooks(updateForce); err != nil {
+			Error(err.Error())
+			Exit("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook.")
+		} else {
+			Print("Updated pre-push hook.")
+		}
 	}
 
 }
 
 func init() {
-	updateCmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite hooks.")
+	updateCmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
+	updateCmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
 	RootCmd.AddCommand(updateCmd)
 }
