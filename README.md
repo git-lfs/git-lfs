@@ -13,7 +13,7 @@ You can install Git LFS in several different ways, depending on your setup and
 preferences.
 
 * Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs/install).  See the [Installation Guide](./INSTALLING.md) for details.
-* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`.
+* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.
 * Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs.install`.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
 * You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
