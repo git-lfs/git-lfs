@@ -65,7 +65,7 @@ func LsRemote(remote, remoteRef string) (string, error) {
 func ResolveRef(ref string) (*Ref, error) {
 	outp, err := subprocess.SimpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
 	}
 	if outp == "" {
 		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
