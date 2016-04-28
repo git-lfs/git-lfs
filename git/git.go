@@ -6,14 +6,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/github/git-lfs/subprocess"
@@ -713,9 +711,15 @@ type CloneFlags struct {
 // so that files in the working copy will be pointers and not real LFS data
 func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
-	// Before git 2.2, setting filters to blank fails, so use cat instead (slightly slower)
+	// Before git 2.8, setting filters to blank causes lots of warnings, so use cat instead (slightly slower)
+	// Also pre 2.2 it failed completely. We used to use it anyway in git 2.2-2.7 and
+	// suppress the messages in stderr, but doing that with standard StderrPipe suppresses
+	// the git clone output (git thinks it's not a terminal) and makes it look like it's
+	// not working. You can get around that with https://github.com/kr/pty but that
+	// causes difficult issues with passing through Stdin for login prompts
+	// This way is simpler & more practical.
 	filterOverride := ""
-	if !Config.IsGitVersionAtLeast("2.2.0") {
+	if !Config.IsGitVersionAtLeast("2.8.0") {
 		filterOverride = "cat"
 	}
 	// Disable the LFS filters while cloning to speed things up
@@ -804,62 +808,17 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	cmdargs = append(cmdargs, args...)
 	cmd := subprocess.ExecCommand("git", cmdargs...)
 
-	// Assign pty/tty so git thinks it's a real terminal
-	tty := subprocess.NewTty(cmd)
-	stdout, err := tty.Stdout()
-	if err != nil {
-		return fmt.Errorf("Failed to get stdout: %v", err)
-	}
-	stderr, err := tty.Stderr()
-	if err != nil {
-		return fmt.Errorf("Failed to get stderr: %v", err)
-	}
+	// Assign all streams direct
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 
-	var outputWait sync.WaitGroup
-	outputWait.Add(2)
-	go func() {
-		io.Copy(os.Stdout, stdout)
-		outputWait.Done()
-	}()
-	go func() {
-		// Filter stderr to exclude messages caused by disabling the filters
-		// As of git 2.7 it still tries to call the blank filter but required=false
-		// this problem should be gone in git 2.8 https://github.com/git/git/commit/1a8630d
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			s := scanner.Text()
-
-			// Swallow all the known messages from intentionally breaking filter
-			if strings.Contains(s, "error: external filter") ||
-				strings.Contains(s, "error: cannot fork") ||
-				// Linux / Mac messages
-				strings.Contains(s, "error: cannot run : No such file or directory") ||
-				strings.Contains(s, "warning: Clone succeeded, but checkout failed") ||
-				strings.Contains(s, "You can inspect what was checked out with 'git status'") ||
-				strings.Contains(s, "retry the checkout") ||
-				// Windows messages
-				strings.Contains(s, "error: cannot spawn : No such file or directory") ||
-				// blank formatting
-				len(strings.TrimSpace(s)) == 0 {
-				// Send filtered stderr to trace in case useful
-				tracerx.Printf(s)
-				continue
-			}
-			os.Stderr.WriteString(s)
-			os.Stderr.WriteString("\n") // stripped by scanner
-		}
-		outputWait.Done()
-	}()
-
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("Failed to start git clone: %v", err)
 	}
 
-	tty.Close()
-
 	err = cmd.Wait()
-	outputWait.Wait()
 	if err != nil {
 		return fmt.Errorf("git clone failed: %v", err)
 	}
