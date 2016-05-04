@@ -1,5 +1,10 @@
 package lfs
 
+import (
+	"bytes"
+	"fmt"
+)
+
 var (
 	// prePushHook invokes `git lfs push` at the pre-push phase.
 	prePushHook = &Hook{
@@ -36,6 +41,18 @@ var (
 		},
 	}
 )
+
+// Get user-readable manual install steps for hooks
+func GetHookInstallSteps() string {
+
+	var buf bytes.Buffer
+	for _, h := range hooks {
+		buf.WriteString(fmt.Sprintf("Add the following to .git/hooks/%s :\n\n", h.Type))
+		buf.WriteString(h.Contents)
+		buf.WriteString("\n")
+	}
+	return buf.String()
+}
 
 // InstallHooks installs all hooks in the `hooks` var.
 func InstallHooks(force bool) error {

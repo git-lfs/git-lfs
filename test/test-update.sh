@@ -65,7 +65,9 @@ git lfs pre-push \"$@\""
 
 test
 
-Run \`git lfs update --force\` to overwrite this hook."
+To resolve this, either:
+  1: run \`git lfs update --manual\` for instructions on how to merge hooks.
+  2: run \`git lfs update --force\` to overwrite your hook."
 
   [ "$expected" = "$(git lfs update 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
@@ -78,6 +80,16 @@ Run \`git lfs update --force\` to overwrite this hook."
     exit 1
   fi
   set -e
+
+  # test manual steps
+  expected="Add the following to .git/hooks/pre-push :
+
+#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\n\"; exit 2; }
+git lfs pre-push \"\$@\""
+
+  [ "$expected" = "$(git lfs update --manual 2>&1)" ]
+  [ "test" = "$(cat .git/hooks/pre-push)" ]
 
   # force replace unexpected hook
   [ "Updated pre-push hook." = "$(git lfs update --force)" ]
