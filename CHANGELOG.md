@@ -6,6 +6,7 @@
 * Return non-zero exit code when `git lfs install/update` fails to install hooks #1178 (@sinbad)
 * Fix problems with user prompts in `git lfs clone` #1185 (@sinbad)
 * fix concurrent map read and map write #1179 (@technoweenie)
+* `git lfs update` now has a `--manual` flag to assist with merging hooks #1182 (@sinbad)
 
 ## 1.2.0 (14 April 2016)
 
