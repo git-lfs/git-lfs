@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
 	var fileName string
-	var cb lfs.CopyCallback
+	var cb progress.CopyCallback
 	var file *os.File
 	var fileSize int64
 	if len(args) > 0 {

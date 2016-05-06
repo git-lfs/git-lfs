@@ -8,14 +8,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-)
 
-type CallbackReader struct {
-	C         CopyCallback
-	TotalSize int64
-	ReadSize  int64
-	io.Reader
-}
+	"github.com/github/git-lfs/progress"
+)
 
 type Platform int
 
@@ -29,23 +24,7 @@ const (
 
 var currentPlatform = PlatformUndetermined
 
-type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
-
-func (w *CallbackReader) Read(p []byte) (int, error) {
-	n, err := w.Reader.Read(p)
-
-	if n > 0 {
-		w.ReadSize += int64(n)
-	}
-
-	if err == nil && w.C != nil {
-		err = w.C(w.TotalSize, w.ReadSize, n)
-	}
-
-	return n, err
-}
-
-func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb CopyCallback) (int64, error) {
+func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {
 	if success, _ := CloneFile(writer, reader); success {
 		if cb != nil {
 			cb(totalSize, totalSize, 0)
@@ -56,7 +35,7 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 		return io.Copy(writer, reader)
 	}
 
-	cbReader := &CallbackReader{
+	cbReader := &progress.CallbackReader{
 		C:         cb,
 		TotalSize: totalSize,
 		Reader:    reader,
@@ -64,7 +43,7 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 	return io.Copy(writer, cbReader)
 }
 
-func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
+func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
 	logPath := Config.Getenv("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
@@ -86,7 +65,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 
 	var prevWritten int64
 
-	cb := CopyCallback(func(total int64, written int64, current int) error {
+	cb := progress.CopyCallback(func(total int64, written int64, current int) error {
 		if written != prevWritten {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()

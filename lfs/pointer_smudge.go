@@ -10,11 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCallback) error {
+func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb progress.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
@@ -34,7 +35,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb CopyCa
 	return nil
 }
 
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, cb CopyCallback) error {
+func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, cb progress.CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 // PointerSmudgeObject uses a Pointer and ObjectResource to download the object to the
 // media directory. It does not write the file to the working directory.
-func PointerSmudgeObject(ptr *Pointer, obj *ObjectResource, cb CopyCallback) error {
+func PointerSmudgeObject(ptr *Pointer, obj *ObjectResource, cb progress.CopyCallback) error {
 	mediafile, err := LocalMediaPath(obj.Oid)
 	if err != nil {
 		return err
@@ -99,7 +100,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *ObjectResource, cb CopyCallback) err
 	return nil
 }
 
-func downloadObject(ptr *Pointer, obj *ObjectResource, mediafile string, cb CopyCallback) error {
+func downloadObject(ptr *Pointer, obj *ObjectResource, mediafile string, cb progress.CopyCallback) error {
 	reader, size, err := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
@@ -120,7 +121,7 @@ func downloadObject(ptr *Pointer, obj *ObjectResource, mediafile string, cb Copy
 	return nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb CopyCallback) error {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 	reader, size, err := Download(filepath.Base(mediafile), ptr.Size)
 	if reader != nil {
@@ -155,7 +156,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 //            the optional CopyCallback.
 // cb       - Optional CopyCallback object for providing download progress to
 //            external Git LFS tools.
-func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb CopyCallback) error {
+func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb progress.CopyCallback) error {
 	oid := filepath.Base(filename)
 	f, err := ioutil.TempFile(LocalObjectTempDir, oid+"-")
 	if err != nil {
@@ -206,7 +207,7 @@ func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb Copy
 	return nil
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb CopyCallback) error {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) error {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return Errorf(err, "Error opening media file.")

@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/github/git-lfs/progress"
 )
 
 var (
@@ -57,7 +59,7 @@ func NewPointerExtension(name string, priority int, oid string) *PointerExtensio
 	return &PointerExtension{name, priority, oid, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, cb CopyCallback) error {
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, cb progress.CopyCallback) error {
 	return PointerSmudge(writer, p, workingfile, download, cb)
 }
 

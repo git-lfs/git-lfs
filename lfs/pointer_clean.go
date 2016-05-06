@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+
+	"github.com/github/git-lfs/progress"
 )
 
 type cleanedAsset struct {
@@ -13,7 +15,7 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCallback) (*cleanedAsset, error) {
+func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
 	extensions, err := SortExtensions(Config.Extensions())
 	if err != nil {
 		return nil, err
@@ -56,7 +58,7 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCall
 	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
-func copyToTemp(reader io.Reader, fileSize int64, cb CopyCallback) (oid string, size int64, tmp *os.File, err error) {
+func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
 	tmp, err = TempFile("")
 	if err != nil {
 		return

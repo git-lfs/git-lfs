@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/github/git-lfs/progress"
 )
 
 // Uploadable describes a file that can be uploaded.
@@ -41,7 +43,7 @@ func (u *Uploadable) Check() (*ObjectResource, error) {
 	return UploadCheck(u.OidPath)
 }
 
-func (u *Uploadable) Transfer(cb CopyCallback) error {
+func (u *Uploadable) Transfer(cb progress.CopyCallback) error {
 	wcb := func(total, read int64, current int) error {
 		cb(total, read, current)
 		return nil

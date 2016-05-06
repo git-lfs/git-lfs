@@ -1,5 +1,7 @@
 package lfs
 
+import "github.com/github/git-lfs/progress"
+
 // The ability to check that a file can be downloaded
 type DownloadCheckable struct {
 	Pointer *WrappedPointer
@@ -14,7 +16,7 @@ func (d *DownloadCheckable) Check() (*ObjectResource, error) {
 	return DownloadCheck(d.Pointer.Oid)
 }
 
-func (d *DownloadCheckable) Transfer(cb CopyCallback) error {
+func (d *DownloadCheckable) Transfer(cb progress.CopyCallback) error {
 	// just report completion of check but don't do anything
 	cb(d.Size(), d.Size(), int(d.Size()))
 	return nil
@@ -57,7 +59,7 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 	return &Downloadable{DownloadCheckable: NewDownloadCheckable(p)}
 }
 
-func (d *Downloadable) Transfer(cb CopyCallback) error {
+func (d *Downloadable) Transfer(cb progress.CopyCallback) error {
 	err := PointerSmudgeObject(d.Pointer.Pointer, d.object, cb)
 	if err != nil {
 		return Error(err)

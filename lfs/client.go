@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -322,7 +323,7 @@ func UploadCheck(oidPath string) (*ObjectResource, error) {
 	return obj, nil
 }
 
-func UploadObject(o *ObjectResource, cb CopyCallback) error {
+func UploadObject(o *ObjectResource, cb progress.CopyCallback) error {
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
 		return Error(err)
@@ -334,7 +335,7 @@ func UploadObject(o *ObjectResource, cb CopyCallback) error {
 	}
 	defer file.Close()
 
-	reader := &CallbackReader{
+	reader := &progress.CallbackReader{
 		C:         cb,
 		TotalSize: o.Size,
 		Reader:    file,

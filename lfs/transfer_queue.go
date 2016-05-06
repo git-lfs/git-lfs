@@ -15,7 +15,7 @@ const (
 
 type Transferable interface {
 	Check() (*ObjectResource, error)
-	Transfer(CopyCallback) error
+	Transfer(progress.CopyCallback) error
 	Object() *ObjectResource
 	Oid() string
 	Size() int64
