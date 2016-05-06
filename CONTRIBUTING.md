@@ -3,9 +3,7 @@
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
 
-This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are expected to uphold this code.
-
-[code-of-conduct]: http://todogroup.org/opencodeofconduct/#Git%20LFS/opensource@github.com
+This project adheres to the [Open Code of Conduct][./CODE-OF-CONDUCT.md]. By participating, you are expected to uphold this code.
 
 ## Feature Requests
 
@@ -125,7 +123,7 @@ release.
 * Build packages:
   * rpm
   * apt
-* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/github/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566)) 
+* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/github/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566))
 
 ## Resources
 
