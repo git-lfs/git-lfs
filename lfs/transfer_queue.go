@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -25,7 +26,7 @@ type Transferable interface {
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
 	retrying      uint32
-	meter         *ProgressMeter
+	meter         *progress.ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
 	errors        []error
@@ -46,7 +47,7 @@ type TransferQueue struct {
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
 func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 	q := &TransferQueue{
-		meter:         NewProgressMeter(files, size, dryRun),
+		meter:         progress.NewProgressMeter(files, size, dryRun, Config.Getenv("GIT_LFS_PROGRESS")),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),

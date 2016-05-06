@@ -6,6 +6,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -214,7 +215,7 @@ func scanAll() []*lfs.WrappedPointer {
 
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
-	spinner := lfs.NewSpinner()
+	spinner := progress.NewSpinner()
 	var numObjs int64
 	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
 	if err != nil {

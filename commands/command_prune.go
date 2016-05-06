@@ -12,6 +12,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/localstorage"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -217,7 +218,7 @@ func pruneCheckErrors(taskErrors []error) {
 func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	spinner := lfs.NewSpinner()
+	spinner := progress.NewSpinner()
 	localCount := 0
 	retainCount := 0
 	verifyCount := 0
@@ -262,7 +263,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 }
 
 func pruneDeleteFiles(prunableObjects []string) {
-	spinner := lfs.NewSpinner()
+	spinner := progress.NewSpinner()
 	var problems bytes.Buffer
 	// In case we fail to delete some
 	var deletedFiles int

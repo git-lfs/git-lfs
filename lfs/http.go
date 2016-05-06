@@ -19,31 +19,31 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-type transferStats struct {
+type httpTransferStats struct {
 	HeaderSize int
 	BodySize   int
 	Start      time.Time
 	Stop       time.Time
 }
 
-type transfer struct {
-	requestStats  *transferStats
-	responseStats *transferStats
+type httpTransfer struct {
+	requestStats  *httpTransferStats
+	responseStats *httpTransferStats
 }
 
 var (
 	// TODO should use some locks
-	transfers           = make(map[*http.Response]*transfer)
-	transferBuckets     = make(map[string][]*http.Response)
-	transfersLock       sync.Mutex
-	transferBucketsLock sync.Mutex
+	httpTransfers           = make(map[*http.Response]*httpTransfer)
+	httpTransferBuckets     = make(map[string][]*http.Response)
+	httpTransfersLock       sync.Mutex
+	httpTransferBucketsLock sync.Mutex
 )
 
 func LogTransfer(key string, res *http.Response) {
 	if Config.isLoggingStats {
-		transferBucketsLock.Lock()
-		transferBuckets[key] = append(transferBuckets[key], res)
-		transferBucketsLock.Unlock()
+		httpTransferBucketsLock.Lock()
+		httpTransferBuckets[key] = append(httpTransferBuckets[key], res)
+		httpTransferBucketsLock.Unlock()
 	}
 }
 
@@ -84,15 +84,15 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 			resHeaderSize = len(dump)
 		}
 
-		reqstats := &transferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
+		reqstats := &httpTransferStats{HeaderSize: reqHeaderSize, BodySize: crc.Count}
 
 		// Response body size cannot be figured until it is read. Do not rely on a Content-Length
 		// header because it may not exist or be -1 in the case of chunked responses.
-		resstats := &transferStats{HeaderSize: resHeaderSize, Start: start}
-		t := &transfer{requestStats: reqstats, responseStats: resstats}
-		transfersLock.Lock()
-		transfers[res] = t
-		transfersLock.Unlock()
+		resstats := &httpTransferStats{HeaderSize: resHeaderSize, Start: start}
+		t := &httpTransfer{requestStats: reqstats, responseStats: resstats}
+		httpTransfersLock.Lock()
+		httpTransfers[res] = t
+		httpTransfersLock.Unlock()
 	}
 
 	return res, err
@@ -273,22 +273,22 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 	}
 
 	if err == io.EOF && Config.isLoggingStats {
-		// This transfer is done, we're checking it this way so we can also
-		// catch transfers where the caller forgets to Close() the Body.
+		// This httpTransfer is done, we're checking it this way so we can also
+		// catch httpTransfers where the caller forgets to Close() the Body.
 		if c.response != nil {
-			transfersLock.Lock()
-			if transfer, ok := transfers[c.response]; ok {
-				transfer.responseStats.BodySize = c.Count
-				transfer.responseStats.Stop = time.Now()
+			httpTransfersLock.Lock()
+			if httpTransfer, ok := httpTransfers[c.response]; ok {
+				httpTransfer.responseStats.BodySize = c.Count
+				httpTransfer.responseStats.Stop = time.Now()
 			}
-			transfersLock.Unlock()
+			httpTransfersLock.Unlock()
 		}
 	}
 	return n, err
 }
 
 // LogHttpStats is intended to be called after all HTTP operations for the
-// commmand have finished. It dumps k/v logs, one line per transfer into
+// commmand have finished. It dumps k/v logs, one line per httpTransfer into
 // a log file with the current timestamp.
 func LogHttpStats() {
 	if !Config.isLoggingStats {
@@ -303,9 +303,9 @@ func LogHttpStats() {
 
 	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", Config.ConcurrentTransfers(), Config.BatchTransfer(), time.Now().Unix(), Version)
 
-	for key, responses := range transferBuckets {
+	for key, responses := range httpTransferBuckets {
 		for _, response := range responses {
-			stats := transfers[response]
+			stats := httpTransfers[response]
 			fmt.Fprintf(file, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
 				key,
 				stats.requestStats.HeaderSize,
