@@ -5,7 +5,7 @@ help is essential for keeping it great.
 
 This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are expected to uphold this code.
 
-[code-of-conduct]: http://todogroup.org/opencodeofconduct/#Git/adminxax@XAXIPHONE
+[code-of-conduct]: https://gist.github.com/adminXAX/7887bb64db0404b7b84519e5bd749480
 
 ## Feature Requests
 
