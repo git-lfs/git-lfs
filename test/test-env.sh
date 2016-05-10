@@ -31,6 +31,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -68,6 +69,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -112,6 +114,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -154,6 +157,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -198,6 +202,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -243,6 +248,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -290,6 +296,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=5
 BatchTransfer=false
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -343,6 +350,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -390,6 +398,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -430,6 +439,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -481,6 +491,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -500,6 +511,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -530,6 +542,7 @@ LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 %s
 %s
 " "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -555,5 +568,75 @@ Endpoint (other)=https://other-git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=git@other-git-server.com:user/repo.git'
 
   contains_same_elements "$expected" "$(git lfs env | grep -e "Endpoint" -e "SSH=")"
+)
+end_test
+
+begin_test "env with skip download errors"
+(
+  set -e
+  reponame="env-with-skip-dl"
+  git init $reponame
+  cd $reponame
+
+  git config lfs.skipdownloaderrors 1
+
+  localgit=$(native_path "$TRASHDIR/$reponame")
+  localgitstore=$(native_path "$TRASHDIR/$reponame")
+  localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+
+  localwd=$(native_path "$TRASHDIR/$reponame")
+  localgit=$(native_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+
+  expectedenabled=$(printf '%s
+%s
+
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDir=
+TempDir=%s
+ConcurrentTransfers=3
+BatchTransfer=true
+SkipDownloadErrors=true
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+  actual=$(git lfs env)
+  contains_same_elements "$expectedenabled" "$actual"
+
+  git config --unset lfs.skipdownloaderrors
+  # prove it's usually off
+  expecteddisabled=$(printf '%s
+%s
+
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDir=
+TempDir=%s
+ConcurrentTransfers=3
+BatchTransfer=true
+SkipDownloadErrors=true
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+  actual=$(git lfs env)
+  contains_same_elements "$expecteddisabled" "$actual"
+
+  # now enable via env var
+  actual=$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs env)
+  contains_same_elements "$expectedenabled" "$actual"
+
+
+
+
 )
 end_test
