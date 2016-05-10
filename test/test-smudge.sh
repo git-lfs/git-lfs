@@ -190,3 +190,46 @@ begin_test "smudge clone with include/exclude"
 
 )
 end_test
+
+begin_test "smudge skip download failure"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-skipdownloadfail"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" skipdownloadfail
+
+  git lfs track "*.dat"
+  echo "smudge a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  pointer="$(pointer fcf5015df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 9)"
+
+  # smudge works even though it hasn't been pushed, by reading from .git/lfs/objects
+  [ "smudge a" = "$(echo "$pointer" | git lfs smudge)" ]
+
+  git push origin master
+
+  # make it try to download but we're going to make it fail
+  rm -rf .git/lfs/objects
+  git remote set-url origin httpnope://nope.com/nope
+
+  # this should fail
+  set +e
+  echo "$pointer" | git lfs smudge a.dat; test ${PIPESTATUS[1]} -ne 0 
+  set -e
+
+  git config lfs.skipdownloaderrors true
+  echo "$pointer" | git lfs smudge a.dat
+
+  # check content too
+  [ "$pointer" = "$(echo "$pointer" | git lfs smudge a.dat)" ]
+
+  # now try env var
+  git config --unset lfs.skipdownloaderrors
+
+  echo "$pointer" | GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs smudge a.dat
+
+)
+end_test

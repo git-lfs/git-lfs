@@ -28,6 +28,7 @@ LocalReferenceDir=
 TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
@@ -50,6 +51,7 @@ LocalReferenceDir=
 TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename/lfs/tmp")
 ConcurrentTransfers=3
 BatchTransfer=true
+SkipDownloadErrors=false
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")

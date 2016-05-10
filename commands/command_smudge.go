@@ -63,7 +63,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	cfg := lfs.Config
 	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
-	if smudgeSkip || lfs.Config.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
+	if smudgeSkip || cfg.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
 		download = false
 	}
 
@@ -77,7 +77,9 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		// Download declined error is ok to skip if we weren't requesting download
 		if !(lfs.IsDownloadDeclinedError(err) && !download) {
 			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
-			os.Exit(2)
+			if !cfg.SkipDownloadErrors() {
+				os.Exit(2)
+			}
 		}
 	}
 }
