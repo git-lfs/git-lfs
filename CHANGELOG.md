@@ -7,6 +7,7 @@
 * Fix problems with user prompts in `git lfs clone` #1185 (@sinbad)
 * fix concurrent map read and map write #1179 (@technoweenie)
 * `git lfs update` now has a `--manual` flag to assist with merging hooks #1182 (@sinbad)
+* Added `lfs.skipdownloaderrors` config setting and `GIT_LFS_SKIP_DOWNLOAD_ERRORS` env var to allow smudge to continue on download fail #1213 (@sinbad)
 
 ## 1.2.0 (14 April 2016)
 
