@@ -130,6 +130,20 @@ lfs option can be scoped inside the configuration for a remote.
   If set to "basic" then credentials will be requested before making batch
   requests to this url, otherwise a public request will initially be attempted.
 
+* `lfs.skipdownloaderrors`
+
+  Causes Git LFS not to abort the smudge filter when a download error is
+  encountered, which allows actions such as checkout to work when you are unable
+  to download the LFS content. LFS files which could not download will contain
+  pointer content instead.
+
+  Note that this will result in git commands which call the smudge filter to
+  report success even in cases when LFS downloads fail, which may affect
+  scripts.
+
+  You can also set the environment variable GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 to 
+  get the same effect. 
+  
 ## SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5).
