@@ -18,7 +18,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 * Investigate `git lfs checkout` hardlinking instead of copying files.
 * Investigate `--shared` and `--dissociate` options for `git clone` (similar to `--references`)
 * Investigate `GIT_SSH_COMMAND` [#1142](https://github.com/github/git-lfs/issues/1142)
-* Teach `git lfs install` to use `git config --system` instead of `git config --global` by default.
+* Teach `git lfs install` to use `git config --system` instead of `git config --global` by default [#1177](https://github.com/github/git-lfs/pull/1177)
 * Don't allow `git lfs track` to operate on `.git*` or `.lfs*` files [#1099](https://github.com/github/git-lfs/issues/1099)
 * Investigate `git -c lfs.url=... lfs clone` usage
 * Test that manpages are built and included [#1149](https://github.com/github/git-lfs/pull/1149)
