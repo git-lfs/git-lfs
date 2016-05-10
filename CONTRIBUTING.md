@@ -3,7 +3,7 @@
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
 
-This project adheres to the [Open Code of Conduct][./CODE-OF-CONDUCT.md]. By participating, you are expected to uphold this code.
+This project adheres to the [Open Code of Conduct](./CODE-OF-CONDUCT.md). By participating, you are expected to uphold this code.
 
 ## Feature Requests
 
