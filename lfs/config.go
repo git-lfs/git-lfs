@@ -59,6 +59,7 @@ type Configuration struct {
 	gitConfig         map[string]string
 	origConfig        map[string]string
 	remotes           []string
+	insteadOfs        map[string]string
 	extensions        map[string]Extension
 	fetchIncludePaths []string
 	fetchExcludePaths []string
@@ -304,6 +305,11 @@ func (c *Configuration) Remotes() []string {
 	return c.remotes
 }
 
+func (c *Configuration) InsteadOfs() map[string]string {
+	c.loadGitConfig()
+	return c.insteadOfs
+}
+
 // GitProtocol returns the protocol for the LFS API when converting from a
 // git:// remote url.
 func (c *Configuration) GitProtocol() string {
@@ -435,6 +441,8 @@ func (c *Configuration) loadGitConfig() bool {
 	c.gitConfig = make(map[string]string)
 	c.extensions = make(map[string]Extension)
 	uniqRemotes := make(map[string]bool)
+	uniqInsteadOfs := make(map[string]string)
+	c.insteadOfs = make(map[string]string)
 
 	configFiles := []string{
 		filepath.Join(LocalWorkingDir, ".lfsconfig"),
@@ -442,12 +450,17 @@ func (c *Configuration) loadGitConfig() bool {
 		// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
 		filepath.Join(LocalWorkingDir, ".gitconfig"),
 	}
-	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
 
 	listOutput, err := git.Config.List()
+
 	if err != nil {
 		panic(fmt.Errorf("Error listing git config: %s", err))
 	}
+
+	c.readGitInsteadOfConfig(listOutput, uniqInsteadOfs)
+	c.insteadOfs = uniqInsteadOfs
+
+	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
 
 	c.readGitConfig(listOutput, uniqRemotes, false)
 
@@ -556,6 +569,11 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 			continue
 		}
 
+		if len(keyParts) == 3 && (keyParts[2] == "url" || keyParts[2] == "pushurl") {
+			for aliasurl, replacement := range c.insteadOfs {
+				value = strings.Replace(value, aliasurl, replacement, 1)
+			}
+		}
 		c.gitConfig[key] = value
 
 		if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchinclude" {
@@ -568,6 +586,38 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 				ex = strings.TrimSpace(ex)
 				c.fetchExcludePaths = append(c.fetchExcludePaths, ex)
 			}
+		}
+	}
+}
+
+// Special handling for url.<url>.insteadOf, since <url> will contain '.'
+func (c *Configuration) readGitInsteadOfConfig(output string, uniqInsteadOfs map[string]string) {
+	lines := strings.Split(output, "\n")
+	uniqKeys := make(map[string]string)
+	for _, line := range lines {
+		pieces := strings.SplitN(line, "=", 2)
+		if len(pieces) < 2 {
+			continue
+		}
+
+		key := strings.ToLower(pieces[0])
+		value := pieces[1]
+
+		if origKey, ok := uniqKeys[key]; ok {
+			if ShowConfigWarnings && c.gitConfig[key] != value && strings.HasPrefix(key, gitConfigWarningPrefix) {
+				fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
+				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
+			}
+		} else {
+			uniqKeys[key] = pieces[0]
+		}
+		firstIdx := strings.Index(key, ".")
+		lastIdx := strings.LastIndex(key, ".")
+		if key[:firstIdx] == "url" && key[lastIdx+1:] == "insteadof" {
+			replacement := key[firstIdx+1 : lastIdx]
+			aliasurl := value
+			uniqInsteadOfs[aliasurl] = replacement
 		}
 	}
 }
