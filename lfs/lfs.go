@@ -82,7 +82,25 @@ func Environ() []string {
 		fmt.Sprintf("ConcurrentTransfers=%d", Config.ConcurrentTransfers()),
 		fmt.Sprintf("BatchTransfer=%v", Config.BatchTransfer()),
 		fmt.Sprintf("SkipDownloadErrors=%v", Config.SkipDownloadErrors()),
+		fmt.Sprintf("FetchRecentAlways=%v", Config.FetchPruneConfig().FetchRecentAlways),
+		fmt.Sprintf("FetchRecentRefsDays=%d", Config.FetchPruneConfig().FetchRecentRefsDays),
+		fmt.Sprintf("FetchRecentCommitsDays=%d", Config.FetchPruneConfig().FetchRecentCommitsDays),
+		fmt.Sprintf("FetchRecentRefsIncludeRemotes=%v", Config.FetchPruneConfig().FetchRecentRefsIncludeRemotes),
+		fmt.Sprintf("PruneOffsetDays=%d", Config.FetchPruneConfig().PruneOffsetDays),
+		fmt.Sprintf("PruneVerifyRemoteAlways=%v", Config.FetchPruneConfig().PruneVerifyRemoteAlways),
+		fmt.Sprintf("PruneRemoteName=%s", Config.FetchPruneConfig().PruneRemoteName),
+		fmt.Sprintf("AccessDownload=%s", Config.Access("download")),
+		fmt.Sprintf("AccessUpload=%s", Config.Access("upload")),
 	)
+	if len(Config.FetchExcludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(Config.FetchExcludePaths(), ", ")))
+	}
+	if len(Config.FetchIncludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchInclude=%s", strings.Join(Config.FetchIncludePaths(), ", ")))
+	}
+	for _, ext := range Config.Extensions() {
+		env = append(env, fmt.Sprintf("Extension[%d]=%s", ext.Priority, ext.Name))
+	}
 
 	for _, e := range osEnviron {
 		if !strings.Contains(e, "GIT_") {
