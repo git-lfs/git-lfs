@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -221,8 +222,8 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 	}
 
 	if len(ptr.Extensions) > 0 {
-		registeredExts := Config.Extensions()
-		extensions := make(map[string]Extension)
+		registeredExts := config.Config.Extensions()
+		extensions := make(map[string]config.Extension)
 		for _, ptrExt := range ptr.Extensions {
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
@@ -232,13 +233,13 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 			ext.Priority = ptrExt.Priority
 			extensions[ext.Name] = ext
 		}
-		exts, err := SortExtensions(extensions)
+		exts, err := config.SortExtensions(extensions)
 		if err != nil {
 			return Error(err)
 		}
 
 		// pipe extensions in reverse order
-		var extsR []Extension
+		var extsR []config.Extension
 		for i := range exts {
 			ext := exts[len(exts)-1-i]
 			extsR = append(extsR, ext)

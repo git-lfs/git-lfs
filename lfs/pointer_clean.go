@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/progress"
 )
 
@@ -16,7 +17,7 @@ type cleanedAsset struct {
 }
 
 func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
-	extensions, err := SortExtensions(Config.Extensions())
+	extensions, err := config.Config.SortedExtensions()
 	if err != nil {
 		return nil, err
 	}

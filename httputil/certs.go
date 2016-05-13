@@ -1,4 +1,4 @@
-package lfs
+package httputil
 
 import (
 	"crypto/x509"
@@ -6,19 +6,20 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 // isCertVerificationDisabledForHost returns whether SSL certificate verification
 // has been disabled for the given host, or globally
 func isCertVerificationDisabledForHost(host string) bool {
-	hostSslVerify, _ := Config.GitConfig(fmt.Sprintf("http.https://%v/.sslverify", host))
+	hostSslVerify, _ := config.Config.GitConfig(fmt.Sprintf("http.https://%v/.sslverify", host))
 	if hostSslVerify == "false" {
 		return true
 	}
 
-	globalSslVerify, _ := Config.GitConfig("http.sslverify")
-	if globalSslVerify == "false" || Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
+	globalSslVerify, _ := config.Config.GitConfig("http.sslverify")
+	if globalSslVerify == "false" || config.Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
 		return true
 	}
 
@@ -47,25 +48,25 @@ func appendRootCAsForHostFromGitconfig(pool *x509.CertPool, host string) *x509.C
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first
-	if cafile, ok := Config.envVars["GIT_SSL_CAINFO"]; ok {
+	if cafile := config.Config.Getenv("GIT_SSL_CAINFO"); len(cafile) > 0 {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>.sslcainfo
 	// we know we have simply "host" or "host:port"
 	key := fmt.Sprintf("http.https://%v/.sslcainfo", host)
-	if cafile, ok := Config.GitConfig(key); ok {
+	if cafile, ok := config.Config.GitConfig(key); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.sslcainfo
-	if cafile, ok := Config.GitConfig("http.sslcainfo"); ok {
+	if cafile, ok := config.Config.GitConfig("http.sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
-	if cadir, ok := Config.envVars["GIT_SSL_CAPATH"]; ok {
+	if cadir := config.Config.Getenv("GIT_SSL_CAPATH"); len(cadir) > 0 {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 	// http.sslcapath
-	if cadir, ok := Config.GitConfig("http.sslcapath"); ok {
+	if cadir, ok := config.Config.GitConfig("http.sslcapath"); ok {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 

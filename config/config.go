@@ -1,8 +1,7 @@
-package lfs
+package config
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -44,16 +43,13 @@ type FetchPruneConfig struct {
 }
 
 type Configuration struct {
-	CurrentRemote         string
-	httpClients           map[string]*HttpClient
-	httpClientsMutex      sync.Mutex
-	redirectingHttpClient *http.Client
-	ntlmSession           ntlm.ClientSession
-	envVars               map[string]string
-	envVarsMutex          sync.Mutex
-	isTracingHttp         bool
-	isDebuggingHttp       bool
-	isLoggingStats        bool
+	CurrentRemote   string
+	NtlmSession     ntlm.ClientSession
+	envVars         map[string]string
+	envVarsMutex    sync.Mutex
+	IsTracingHttp   bool
+	IsDebuggingHttp bool
+	IsLoggingStats  bool
 
 	loading           sync.Mutex // guards initialization of gitConfig and remotes
 	gitConfig         map[string]string
@@ -72,9 +68,9 @@ func NewConfig() *Configuration {
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
-	c.isTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
-	c.isDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
-	c.isLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
+	c.IsTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
+	c.IsDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
+	c.IsLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
 	return c
 }
 
@@ -233,6 +229,11 @@ func (c *Configuration) FindNetrcHost(host string) (*netrc.Machine, error) {
 	return c.parsedNetrc.FindMachine(host), nil
 }
 
+// Manually override the netrc config
+func (c *Configuration) SetNetrc(n netrcfinder) {
+	c.parsedNetrc = n
+}
+
 func (c *Configuration) EndpointAccess(e Endpoint) string {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
 	if v, ok := c.GitConfig(key); ok && len(v) > 0 {
@@ -316,6 +317,11 @@ func (c *Configuration) GitProtocol() string {
 func (c *Configuration) Extensions() map[string]Extension {
 	c.loadGitConfig()
 	return c.extensions
+}
+
+// SortedExtensions gets the list of extensions ordered by Priority
+func (c *Configuration) SortedExtensions() ([]Extension, error) {
+	return SortExtensions(c.Extensions())
 }
 
 // GitConfigInt parses a git config value and returns it as an integer.
@@ -582,4 +588,27 @@ var safeKeys = []string{
 	"lfs.fetchinclude",
 	"lfs.gitprotocol",
 	"lfs.url",
+}
+
+// only used for tests
+func (c *Configuration) SetConfig(key, value string) {
+	if c.loadGitConfig() {
+		c.loading.Lock()
+		c.origConfig = make(map[string]string)
+		for k, v := range c.gitConfig {
+			c.origConfig[k] = v
+		}
+		c.loading.Unlock()
+	}
+
+	c.gitConfig[key] = value
+}
+
+func (c *Configuration) ResetConfig() {
+	c.loading.Lock()
+	c.gitConfig = make(map[string]string)
+	for k, v := range c.origConfig {
+		c.gitConfig[k] = v
+	}
+	c.loading.Unlock()
 }

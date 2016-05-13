@@ -1,4 +1,4 @@
-package lfs
+package config
 
 import (
 	"testing"

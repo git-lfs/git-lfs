@@ -1,4 +1,4 @@
-package lfs
+package httputil
 
 import (
 	"bufio"
@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -37,10 +38,13 @@ var (
 	httpTransferBuckets     = make(map[string][]*http.Response)
 	httpTransfersLock       sync.Mutex
 	httpTransferBucketsLock sync.Mutex
+	httpClients             map[string]*HttpClient
+	httpClientsMutex        sync.Mutex
+	UserAgent               string
 )
 
 func LogTransfer(key string, res *http.Response) {
-	if Config.isLoggingStats {
+	if config.Config.IsLoggingStats {
 		httpTransferBucketsLock.Lock()
 		httpTransferBuckets[key] = append(httpTransferBuckets[key], res)
 		httpTransferBucketsLock.Unlock()
@@ -72,7 +76,7 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	cresp := countingResponse(res)
 	res.Body = cresp
 
-	if Config.isLoggingStats {
+	if config.Config.IsLoggingStats {
 		reqHeaderSize := 0
 		resHeaderSize := 0
 
@@ -98,15 +102,30 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-// HttpClient returns a new HttpClient for the given host (which may be "host:port")
-func (c *Configuration) HttpClient(host string) *HttpClient {
-	c.httpClientsMutex.Lock()
-	defer c.httpClientsMutex.Unlock()
-
-	if c.httpClients == nil {
-		c.httpClients = make(map[string]*HttpClient)
+func NewHttpRequest(method, rawurl string, header map[string]string) (*http.Request, error) {
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, err
 	}
-	if client, ok := c.httpClients[host]; ok {
+
+	for key, value := range header {
+		req.Header.Set(key, value)
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+
+	return req, nil
+}
+
+// NewHttpClient returns a new HttpClient for the given host (which may be "host:port")
+func NewHttpClient(c *config.Configuration, host string) *HttpClient {
+	httpClientsMutex.Lock()
+	defer httpClientsMutex.Unlock()
+
+	if httpClients == nil {
+		httpClients = make(map[string]*HttpClient)
+	}
+	if client, ok := httpClients[host]; ok {
 		return client
 	}
 
@@ -132,14 +151,14 @@ func (c *Configuration) HttpClient(host string) *HttpClient {
 	}
 
 	client := &HttpClient{
-		&http.Client{Transport: tr, CheckRedirect: checkRedirect},
+		&http.Client{Transport: tr, CheckRedirect: CheckRedirect},
 	}
-	c.httpClients[host] = client
+	httpClients[host] = client
 
 	return client
 }
 
-func checkRedirect(req *http.Request, via []*http.Request) error {
+func CheckRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 3 {
 		return errors.New("stopped after 3 redirects")
 	}
@@ -164,9 +183,9 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
 func traceHttpRequest(req *http.Request) {
-	tracerx.Printf("HTTP: %s", traceHttpReq(req))
+	tracerx.Printf("HTTP: %s", TraceHttpReq(req))
 
-	if Config.isTracingHttp == false {
+	if config.Config.IsTracingHttp == false {
 		return
 	}
 
@@ -185,7 +204,7 @@ func traceHttpResponse(res *http.Response) {
 
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	if Config.isTracingHttp == false {
+	if config.Config.IsTracingHttp == false {
 		return
 	}
 
@@ -208,7 +227,7 @@ func traceHttpDump(direction string, dump []byte) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !Config.isDebuggingHttp && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
+		if !config.Config.IsDebuggingHttp && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
 			fmt.Fprintf(os.Stderr, "%s Authorization: Basic * * * * *\n", direction)
 		} else {
 			fmt.Fprintf(os.Stderr, "%s %s\n", direction, line)
@@ -226,8 +245,8 @@ func isTraceableContent(h http.Header) bool {
 	return false
 }
 
-func countingRequest(req *http.Request) *countingReadCloser {
-	return &countingReadCloser{
+func countingRequest(req *http.Request) *CountingReadCloser {
+	return &CountingReadCloser{
 		request:         req,
 		ReadCloser:      req.Body,
 		isTraceableType: isTraceableContent(req.Header),
@@ -235,8 +254,8 @@ func countingRequest(req *http.Request) *countingReadCloser {
 	}
 }
 
-func countingResponse(res *http.Response) *countingReadCloser {
-	return &countingReadCloser{
+func countingResponse(res *http.Response) *CountingReadCloser {
+	return &CountingReadCloser{
 		response:        res,
 		ReadCloser:      res.Body,
 		isTraceableType: isTraceableContent(res.Header),
@@ -244,7 +263,7 @@ func countingResponse(res *http.Response) *countingReadCloser {
 	}
 }
 
-type countingReadCloser struct {
+type CountingReadCloser struct {
 	Count           int
 	request         *http.Request
 	response        *http.Response
@@ -253,7 +272,7 @@ type countingReadCloser struct {
 	io.ReadCloser
 }
 
-func (c *countingReadCloser) Read(b []byte) (int, error) {
+func (c *CountingReadCloser) Read(b []byte) (int, error) {
 	n, err := c.ReadCloser.Read(b)
 	if err != nil && err != io.EOF {
 		return n, err
@@ -267,12 +286,12 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 			tracerx.Printf("HTTP: %s", chunk)
 		}
 
-		if Config.isTracingHttp {
+		if config.Config.IsTracingHttp {
 			fmt.Fprint(os.Stderr, chunk)
 		}
 	}
 
-	if err == io.EOF && Config.isLoggingStats {
+	if err == io.EOF && config.Config.IsLoggingStats {
 		// This httpTransfer is done, we're checking it this way so we can also
 		// catch httpTransfers where the caller forgets to Close() the Body.
 		if c.response != nil {
@@ -291,7 +310,7 @@ func (c *countingReadCloser) Read(b []byte) (int, error) {
 // commmand have finished. It dumps k/v logs, one line per httpTransfer into
 // a log file with the current timestamp.
 func LogHttpStats() {
-	if !Config.isLoggingStats {
+	if !config.Config.IsLoggingStats {
 		return
 	}
 
@@ -301,7 +320,7 @@ func LogHttpStats() {
 		return
 	}
 
-	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", Config.ConcurrentTransfers(), Config.BatchTransfer(), time.Now().Unix(), Version)
+	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", config.Config.ConcurrentTransfers(), config.Config.BatchTransfer(), time.Now().Unix(), config.Version)
 
 	for key, responses := range httpTransferBuckets {
 		for _, response := range responses {
@@ -322,11 +341,19 @@ func LogHttpStats() {
 }
 
 func statsLogFile() (*os.File, error) {
-	logBase := filepath.Join(LocalLogDir, "http")
+	logBase := filepath.Join(config.LocalLogDir, "http")
 	if err := os.MkdirAll(logBase, 0755); err != nil {
 		return nil, err
 	}
 
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
 	return os.Create(filepath.Join(logBase, logFile))
+}
+
+func TraceHttpReq(req *http.Request) string {
+	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
+}
+
+func init() {
+	UserAgent = config.VersionDesc
 }

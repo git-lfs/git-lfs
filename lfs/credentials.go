@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -47,7 +48,7 @@ func getCreds(req *http.Request) (Creds, error) {
 
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	operation := getOperationForHttpRequest(req)
-	apiUrl, err := url.Parse(Config.Endpoint(operation).Url)
+	apiUrl, err := url.Parse(config.Config.Endpoint(operation).Url)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +65,8 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	}
 
 	credsUrl := apiUrl
-	if len(Config.CurrentRemote) > 0 {
-		if u := Config.GitRemoteUrl(Config.CurrentRemote, operation == "upload"); u != "" {
+	if len(config.Config.CurrentRemote) > 0 {
+		if u := config.Config.GitRemoteUrl(config.Config.CurrentRemote, operation == "upload"); u != "" {
 			gitRemoteUrl, err := url.Parse(u)
 			if err != nil {
 				return nil, err
@@ -100,7 +101,7 @@ func setCredURLFromNetrc(req *http.Request) bool {
 		host = hostname
 	}
 
-	machine, err := Config.FindNetrcHost(host)
+	machine, err := config.Config.FindNetrcHost(host)
 	if err != nil {
 		tracerx.Printf("netrc: error finding match for %q: %s", hostname, err)
 		return false
@@ -115,7 +116,7 @@ func setCredURLFromNetrc(req *http.Request) bool {
 }
 
 func skipCredsCheck(req *http.Request) bool {
-	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
+	if config.Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		return false
 	}
 
@@ -207,7 +208,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	}
 
 	if _, ok := err.(*exec.ExitError); ok {
-		if !Config.GetenvBool("GIT_TERMINAL_PROMPT", true) {
+		if !config.Config.GetenvBool("GIT_TERMINAL_PROMPT", true) {
 			return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
 				input["protocol"], input["host"])
 		}

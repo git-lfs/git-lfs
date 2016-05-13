@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -28,7 +29,7 @@ func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanRefsMode
-	scanOpt.RemoteName = lfs.Config.CurrentRemote
+	scanOpt.RemoteName = config.Config.CurrentRemote
 
 	pointers, err := lfs.ScanRefs(left, right, scanOpt)
 	if err != nil {
@@ -39,11 +40,11 @@ func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 }
 
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
-	tracerx.Printf("Upload refs %v to remote %v", refnames, lfs.Config.CurrentRemote)
+	tracerx.Printf("Upload refs %v to remote %v", refnames, config.Config.CurrentRemote)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = lfs.Config.CurrentRemote
+	scanOpt.RemoteName = config.Config.CurrentRemote
 
 	if pushAll {
 		scanOpt.ScanMode = lfs.ScanRefsMode
@@ -122,7 +123,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	lfs.Config.CurrentRemote = args[0]
+	config.Config.CurrentRemote = args[0]
 	ctx := newUploadContext(pushDryRun)
 
 	if useStdin {

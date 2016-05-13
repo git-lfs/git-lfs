@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 )
 
@@ -122,7 +123,7 @@ func (n *fakeNetrc) FindMachine(host string) *netrc.Machine {
 }
 
 func TestNetrcWithHostAndPort(t *testing.T) {
-	Config.parsedNetrc = &fakeNetrc{}
+	config.Config.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://some-host:123/foo/bar")
 	if err != nil {
 		t.Fatal(err)
@@ -144,7 +145,7 @@ func TestNetrcWithHostAndPort(t *testing.T) {
 }
 
 func TestNetrcWithHost(t *testing.T) {
-	Config.parsedNetrc = &fakeNetrc{}
+	config.Config.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://some-host/foo/bar")
 	if err != nil {
 		t.Fatal(err)
@@ -166,7 +167,7 @@ func TestNetrcWithHost(t *testing.T) {
 }
 
 func TestNetrcWithBadHost(t *testing.T) {
-	Config.parsedNetrc = &fakeNetrc{}
+	config.Config.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://other-host/foo/bar")
 	if err != nil {
 		t.Fatal(err)
@@ -188,13 +189,13 @@ func TestNetrcWithBadHost(t *testing.T) {
 }
 
 func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, error), checks []*getCredentialCheck) {
-	existingRemote := Config.CurrentRemote
+	existingRemote := config.Config.CurrentRemote
 	for _, check := range checks {
 		t.Logf("Checking %q", check.Desc)
-		Config.CurrentRemote = check.CurrentRemote
+		config.Config.CurrentRemote = check.CurrentRemote
 
 		for key, value := range check.Config {
-			Config.SetConfig(key, value)
+			config.Config.SetConfig(key, value)
 		}
 
 		req, err := http.NewRequest(check.Method, check.Href, nil)
@@ -259,8 +260,8 @@ func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, 
 			}
 		}
 
-		Config.ResetConfig()
-		Config.CurrentRemote = existingRemote
+		config.Config.ResetConfig()
+		config.Config.CurrentRemote = existingRemote
 	}
 }
 

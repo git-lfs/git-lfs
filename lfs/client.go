@@ -11,12 +11,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
@@ -115,7 +118,7 @@ func (e *ClientError) Error() string {
 // API will be used, but if the server does not implement the batch operations
 // it will fall back to the legacy API.
 func Download(oid string, size int64) (io.ReadCloser, int64, error) {
-	if !Config.BatchTransfer() {
+	if !config.Config.BatchTransfer() {
 		return DownloadLegacy(oid)
 	}
 
@@ -151,7 +154,7 @@ func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	LogTransfer("lfs.api.download", res)
+	httputil.LogTransfer("lfs.api.download", res)
 	req, err = obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
@@ -161,7 +164,7 @@ func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	LogTransfer("lfs.data.download", res)
+	httputil.LogTransfer("lfs.data.download", res)
 
 	return res.Body, res.ContentLength, nil
 }
@@ -180,7 +183,7 @@ func DownloadCheck(oid string) (*ObjectResource, error) {
 	if err != nil {
 		return nil, err
 	}
-	LogTransfer("lfs.api.download", res)
+	httputil.LogTransfer("lfs.api.download", res)
 
 	_, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -200,7 +203,7 @@ func DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, error) {
 	if err != nil {
 		return nil, 0, newRetriableError(err)
 	}
-	LogTransfer("lfs.data.download", res)
+	httputil.LogTransfer("lfs.data.download", res)
 
 	return res.Body, res.ContentLength, nil
 }
@@ -259,10 +262,10 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 		tracerx.Printf("api error: %s", err)
 		return nil, Error(err)
 	}
-	LogTransfer("lfs.api.batch", res)
+	httputil.LogTransfer("lfs.api.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, Error(fmt.Errorf("Invalid status for %s: %d", traceHttpReq(req), res.StatusCode))
+		return nil, Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
 	}
 
 	return objs, nil
@@ -307,7 +310,7 @@ func UploadCheck(oidPath string) (*ObjectResource, error) {
 
 		return nil, newRetriableError(err)
 	}
-	LogTransfer("lfs.api.upload", res)
+	httputil.LogTransfer("lfs.api.upload", res)
 
 	if res.StatusCode == 200 {
 		return nil, nil
@@ -363,7 +366,7 @@ func UploadObject(o *ObjectResource, cb progress.CopyCallback) error {
 	if err != nil {
 		return newRetriableError(err)
 	}
-	LogTransfer("lfs.data.upload", res)
+	httputil.LogTransfer("lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
@@ -372,7 +375,7 @@ func UploadObject(o *ObjectResource, cb progress.CopyCallback) error {
 	}
 
 	if res.StatusCode > 299 {
-		return Errorf(nil, "Invalid status for %s: %d", traceHttpReq(req), res.StatusCode)
+		return Errorf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
@@ -401,7 +404,7 @@ func UploadObject(o *ObjectResource, cb progress.CopyCallback) error {
 		return err
 	}
 
-	LogTransfer("lfs.data.verify", res)
+	httputil.LogTransfer("lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
@@ -441,7 +444,7 @@ func getOperationForHttpRequest(req *http.Request) string {
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
 func doApiBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error) {
-	res, err := doAPIRequest(req, Config.PrivateAccess(getOperationForHttpRequest(req)))
+	res, err := doAPIRequest(req, config.Config.PrivateAccess(getOperationForHttpRequest(req)))
 
 	if err != nil {
 		if res != nil && res.StatusCode == 401 {
@@ -488,10 +491,10 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 		err error
 	)
 
-	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
+	if config.Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		res, err = DoNTLMRequest(req, true)
 	} else {
-		res, err = Config.HttpClient(req.Host).Do(req)
+		res, err = httputil.NewHttpClient(config.Config, req.Host).Do(req)
 	}
 
 	if res == nil {
@@ -555,9 +558,9 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 
 		via = append(via, req)
 
-		// Avoid seeking and re-wrapping the countingReadCloser, just get the "real" body
+		// Avoid seeking and re-wrapping the CountingReadCloser, just get the "real" body
 		realBody := req.Body
-		if wrappedBody, ok := req.Body.(*countingReadCloser); ok {
+		if wrappedBody, ok := req.Body.(*httputil.CountingReadCloser); ok {
 			realBody = wrappedBody.ReadCloser
 		}
 
@@ -572,7 +575,7 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
 
-		if err = checkRedirect(redirectedReq, via); err != nil {
+		if err = httputil.CheckRedirect(redirectedReq, via); err != nil {
 			return res, Errorf(err, err.Error())
 		}
 
@@ -626,7 +629,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return Errorf(err, "Unable to parse HTTP response for %s", traceHttpReq(res.Request))
+		return Errorf(err, "Unable to parse HTTP response for %s", httputil.TraceHttpReq(res.Request))
 	}
 
 	return nil
@@ -655,7 +658,7 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 			operation = "upload"
 		}
 	}
-	endpoint := Config.Endpoint(operation)
+	endpoint := config.Config.Endpoint(operation)
 
 	res, err := sshAuthenticate(endpoint, operation, oid)
 	if err != nil {
@@ -699,7 +702,7 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 }
 
 func newBatchApiRequest(operation string) (*http.Request, error) {
-	endpoint := Config.Endpoint(operation)
+	endpoint := config.Config.Endpoint(operation)
 
 	res, err := sshAuthenticate(endpoint, operation, "")
 	if err != nil {
@@ -745,7 +748,7 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 }
 
 func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
-	if !Config.NtlmAccess(getOperationForHttpRequest(req)) && u.User != nil {
+	if !config.Config.NtlmAccess(getOperationForHttpRequest(req)) && u.User != nil {
 		if pass, ok := u.User.Password(); ok {
 			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
 			setRequestAuth(req, u.User.Username(), pass)
@@ -759,7 +762,7 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 func setAuthType(req *http.Request, res *http.Response) {
 	authType := getAuthType(res)
 	operation := getOperationForHttpRequest(req)
-	Config.SetAccess(operation, authType)
+	config.Config.SetAccess(operation, authType)
 	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
 }
 
@@ -777,7 +780,7 @@ func getAuthType(res *http.Response) string {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	if Config.NtlmAccess(getOperationForHttpRequest(req)) {
+	if config.Config.NtlmAccess(getOperationForHttpRequest(req)) {
 		return
 	}
 
@@ -797,8 +800,8 @@ func setErrorResponseContext(err error, res *http.Response) {
 }
 
 func setErrorRequestContext(err error, req *http.Request) {
-	ErrorSetContext(err, "Endpoint", Config.Endpoint(getOperationForHttpRequest(req)).Url)
-	ErrorSetContext(err, "URL", traceHttpReq(req))
+	ErrorSetContext(err, "Endpoint", config.Config.Endpoint(getOperationForHttpRequest(req)).Url)
+	ErrorSetContext(err, "URL", httputil.TraceHttpReq(req))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
@@ -811,4 +814,17 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 			ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
+}
+
+func ObjectUrl(endpoint config.Endpoint, oid string) (*url.URL, error) {
+	u, err := url.Parse(endpoint.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, "objects")
+	if len(oid) > 0 {
+		u.Path = path.Join(u.Path, oid)
+	}
+	return u, nil
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 
 	"github.com/github/git-lfs/lfs"
@@ -23,12 +24,12 @@ var (
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
-	if lfs.LocalGitDir == "" {
+	if config.LocalGitDir == "" {
 		Print("Not a git repository.")
 		os.Exit(128)
 	}
 
-	if lfs.LocalWorkingDir == "" {
+	if config.LocalWorkingDir == "" {
 		Print("This operation must be run in a work tree.")
 		os.Exit(128)
 	}
@@ -59,9 +60,9 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	wd, _ := os.Getwd()
-	relpath, err := filepath.Rel(lfs.LocalWorkingDir, wd)
+	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
 	if err != nil {
-		Exit("Current directory %q outside of git working directory %q.", wd, lfs.LocalWorkingDir)
+		Exit("Current directory %q outside of git working directory %q.", wd, config.LocalWorkingDir)
 	}
 
 ArgsLoop:
@@ -122,7 +123,7 @@ func findPaths() []mediaPath {
 			line := scanner.Text()
 			if strings.Contains(line, "filter=lfs") {
 				fields := strings.Fields(line)
-				relfile, _ := filepath.Rel(lfs.LocalWorkingDir, path)
+				relfile, _ := filepath.Rel(config.LocalWorkingDir, path)
 				pattern := fields[0]
 				if reldir := filepath.Dir(relfile); len(reldir) > 0 {
 					pattern = filepath.Join(reldir, pattern)
@@ -139,12 +140,12 @@ func findPaths() []mediaPath {
 func findAttributeFiles() []string {
 	paths := make([]string, 0)
 
-	repoAttributes := filepath.Join(lfs.LocalGitDir, "info", "attributes")
+	repoAttributes := filepath.Join(config.LocalGitDir, "info", "attributes")
 	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
 		paths = append(paths, repoAttributes)
 	}
 
-	filepath.Walk(lfs.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(config.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

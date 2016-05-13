@@ -4,6 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -47,12 +48,12 @@ type TransferQueue struct {
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
 func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 	q := &TransferQueue{
-		meter:         progress.NewProgressMeter(files, size, dryRun, Config.Getenv("GIT_LFS_PROGRESS")),
+		meter:         progress.NewProgressMeter(files, size, dryRun, config.Config.Getenv("GIT_LFS_PROGRESS")),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
-		workers:       Config.ConcurrentTransfers(),
+		workers:       config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 	}
@@ -335,7 +336,7 @@ func (q *TransferQueue) run() {
 		go q.transferWorker()
 	}
 
-	if Config.BatchTransfer() {
+	if config.Config.BatchTransfer() {
 		tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
 		q.batcher = NewBatcher(batchSize)
 		go q.batchApiRoutine()

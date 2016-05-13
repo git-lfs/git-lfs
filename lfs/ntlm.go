@@ -12,12 +12,14 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
-func (c *Configuration) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {
-	if c.ntlmSession != nil {
-		return c.ntlmSession, nil
+func ntlmClientSession(c *config.Configuration, creds Creds) (ntlm.ClientSession, error) {
+	if c.NtlmSession != nil {
+		return c.NtlmSession, nil
 	}
 	splits := strings.Split(creds["username"], "\\")
 
@@ -33,7 +35,7 @@ func (c *Configuration) ntlmClientSession(creds Creds) (ntlm.ClientSession, erro
 	}
 
 	session.SetUserInfo(splits[1], creds["password"], strings.ToUpper(splits[0]))
-	c.ntlmSession = session
+	c.NtlmSession = session
 	return session, nil
 }
 
@@ -43,7 +45,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 		return nil, err
 	}
 
-	res, err := Config.HttpClient(handReq.Host).Do(handReq)
+	res, err := httputil.NewHttpClient(config.Config, handReq.Host).Do(handReq)
 	if err != nil && res == nil {
 		return nil, err
 	}
@@ -90,7 +92,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 
 func negotiate(request *http.Request, message string) ([]byte, error) {
 	request.Header.Add("Authorization", message)
-	res, err := Config.HttpClient(request.Host).Do(request)
+	res, err := httputil.NewHttpClient(config.Config, request.Host).Do(request)
 
 	if res == nil && err != nil {
 		return nil, err
@@ -113,7 +115,7 @@ func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http
 		return nil, err
 	}
 
-	session, err := Config.ntlmClientSession(creds)
+	session, err := ntlmClientSession(config.Config, creds)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +128,7 @@ func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http
 
 	authMsg := base64.StdEncoding.EncodeToString(authenticate.Bytes())
 	request.Header.Add("Authorization", "NTLM "+authMsg)
-	return Config.HttpClient(request.Host).Do(request)
+	return httputil.NewHttpClient(config.Config, request.Host).Do(request)
 }
 
 func parseChallengeResponse(response *http.Response) ([]byte, error) {

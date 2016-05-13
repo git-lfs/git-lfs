@@ -1,4 +1,4 @@
-package lfs
+package config
 
 import (
 	"fmt"
@@ -142,17 +142,4 @@ func endpointFromHttpUrl(u *url.URL) Endpoint {
 func endpointFromGitUrl(u *url.URL, c *Configuration) Endpoint {
 	u.Scheme = c.GitProtocol()
 	return Endpoint{Url: u.String()}
-}
-
-func ObjectUrl(endpoint Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
 }

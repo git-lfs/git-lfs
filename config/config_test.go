@@ -1,4 +1,4 @@
-package lfs
+package config
 
 import (
 	"testing"
@@ -506,27 +506,4 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 	assert.Equal(t, 30, fp.PruneOffsetDays)
 	assert.Equal(t, "upstream", fp.PruneRemoteName)
 	assert.Equal(t, true, fp.PruneVerifyRemoteAlways)
-}
-
-// only used for tests
-func (c *Configuration) SetConfig(key, value string) {
-	if c.loadGitConfig() {
-		c.loading.Lock()
-		c.origConfig = make(map[string]string)
-		for k, v := range c.gitConfig {
-			c.origConfig[k] = v
-		}
-		c.loading.Unlock()
-	}
-
-	c.gitConfig[key] = value
-}
-
-func (c *Configuration) ResetConfig() {
-	c.loading.Lock()
-	c.gitConfig = make(map[string]string)
-	for k, v := range c.origConfig {
-		c.gitConfig[k] = v
-	}
-	c.loading.Unlock()
 }

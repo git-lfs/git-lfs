@@ -1,4 +1,4 @@
 // +build windows
-package lfs
+package config
 
 var netrcBasename = "_netrc"

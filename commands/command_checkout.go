@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
@@ -117,7 +118,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
 	}
-	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, lfs.Config.Getenv("GIT_LFS_PROGRESS"))
+	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, config.Config.Getenv("GIT_LFS_PROGRESS"))
 	progress.Start()
 	totalBytes = 0
 	for _, pointer := range pointers {

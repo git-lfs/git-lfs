@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/progress"
 )
 
@@ -87,7 +88,7 @@ func ensureFile(smudgePath, cleanPath string) error {
 	}
 
 	expectedOid := filepath.Base(cleanPath)
-	localPath := filepath.Join(LocalWorkingDir, smudgePath)
+	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
 		return err

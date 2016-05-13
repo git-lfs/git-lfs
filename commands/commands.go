@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -139,11 +140,11 @@ func logPanic(loggedError error) string {
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(lfs.LocalLogDir, name+".log")
+	full := filepath.Join(config.LocalLogDir, name+".log")
 
-	if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
+	if err := os.MkdirAll(config.LocalLogDir, 0755); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
@@ -219,7 +220,7 @@ func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclu
 			includePaths = append(includePaths, inc)
 		}
 	} else {
-		includePaths = lfs.Config.FetchIncludePaths()
+		includePaths = config.Config.FetchIncludePaths()
 	}
 	if len(excludeArg) > 0 {
 		for _, ex := range strings.Split(excludeArg, ",") {
@@ -227,7 +228,7 @@ func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclu
 			excludePaths = append(excludePaths, ex)
 		}
 	} else {
-		excludePaths = lfs.Config.FetchExcludePaths()
+		excludePaths = config.Config.FetchExcludePaths()
 	}
 	return includePaths, excludePaths
 }

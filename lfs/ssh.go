@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -18,7 +19,7 @@ type sshAuthResponse struct {
 	ExpiresAt string            `json:"expires_at"`
 }
 
-func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse, error) {
+func sshAuthenticate(endpoint config.Endpoint, operation, oid string) (sshAuthResponse, error) {
 
 	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
 	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
@@ -60,7 +61,7 @@ func sshAuthenticate(endpoint Endpoint, operation, oid string) (sshAuthResponse,
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
+func sshGetExeAndArgs(endpoint config.Endpoint) (exe string, baseargs []string) {
 	if len(endpoint.SshUserAndHost) == 0 {
 		return "", nil
 	}
@@ -68,7 +69,7 @@ func sshGetExeAndArgs(endpoint Endpoint) (exe string, baseargs []string) {
 	isPlink := false
 	isTortoise := false
 
-	ssh := Config.Getenv("GIT_SSH")
+	ssh := config.Config.Getenv("GIT_SSH")
 	if ssh == "" {
 		ssh = "ssh"
 	} else {

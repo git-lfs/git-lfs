@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/github/git-lfs/commands"
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/lfs"
 )
 
@@ -38,6 +39,6 @@ func main() {
 
 func clearTempObjects() {
 	if err := lfs.ClearTempObjects(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", lfs.LocalObjectTempDir, err)
+		fmt.Fprintf(os.Stderr, "Error opening %q to clear old temp files: %s\n", config.LocalObjectTempDir, err)
 	}
 }
