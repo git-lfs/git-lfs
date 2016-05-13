@@ -29,6 +29,15 @@ TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
 BatchTransfer=true
 SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+AccessDownload=none
+AccessUpload=none
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
@@ -52,6 +61,15 @@ TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename/
 ConcurrentTransfers=3
 BatchTransfer=true
 SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+AccessDownload=none
+AccessUpload=none
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")

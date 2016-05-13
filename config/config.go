@@ -340,14 +340,18 @@ func (c *Configuration) GitConfigInt(key string, def int) int {
 }
 
 // GitConfigBool parses a git config value and returns true if defined as
-// anything other than blank or "0"
+// true, 1, on, yes
 func (c *Configuration) GitConfigBool(key string) bool {
 	s, _ := c.GitConfig(key)
 	if len(s) == 0 {
 		return false
 	}
 
-	return s != "0"
+	ret, err := parseConfigBool(s)
+	if err != nil {
+		return false
+	}
+	return ret
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
