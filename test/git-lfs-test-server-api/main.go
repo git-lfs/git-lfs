@@ -59,7 +59,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	}
 
 	// Force loading of config before we alter it
-	lfs.Config.AllGitConfig()
+	config.Config.AllGitConfig()
 
 	// Configure the endpoint manually
 	var endp config.Endpoint
@@ -68,7 +68,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	} else {
 		endp = config.NewEndpoint(apiUrl)
 	}
-	lfs.Config.SetManualEndpoint(endp)
+	config.Config.SetManualEndpoint(endp)
 
 	var oidsExist, oidsMissing []TestObject
 	if len(args) >= 2 {
