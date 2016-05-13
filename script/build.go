@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/config"
 )
 
 var (
@@ -96,7 +96,7 @@ func mainBuild() {
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := "git-lfs-" + lfs.Version
+	name := "git-lfs-" + config.Version
 	dir := "bin"
 
 	if addenv {
@@ -262,7 +262,7 @@ func logAndRun(cmd *exec.Cmd) error {
 }
 
 func zipName(os, arch string) string {
-	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, lfs.Version)
+	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, config.Version)
 }
 
 func releaseLabel(buildos, buildarch string) string {

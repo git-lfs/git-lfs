@@ -15,7 +15,7 @@ var (
 )
 
 func envCommand(cmd *cobra.Command, args []string) {
-	lfs.ShowConfigWarnings = true
+	config.ShowConfigWarnings = true
 	cfg := config.Config
 	endpoint := cfg.Endpoint("download")
 
