@@ -599,7 +599,7 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 	}
 	endpoint := config.Config.Endpoint(operation)
 
-	res, err := sshAuthenticate(endpoint, operation, oid)
+	res, err := credentials.SshAuthenticate(endpoint, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
 			endpoint.SshUserAndHost, err.Error(),
@@ -643,7 +643,7 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 func newBatchApiRequest(operation string) (*http.Request, error) {
 	endpoint := config.Config.Endpoint(operation)
 
-	res, err := sshAuthenticate(endpoint, operation, "")
+	res, err := credentials.SshAuthenticate(endpoint, operation, "")
 	if err != nil {
 		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
 			operation, endpoint.SshUserAndHost, err.Error(),

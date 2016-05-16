@@ -1,4 +1,4 @@
-package lfs
+package credentials
 
 import (
 	"path/filepath"

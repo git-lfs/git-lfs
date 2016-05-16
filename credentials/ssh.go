@@ -1,4 +1,4 @@
-package lfs
+package credentials
 
 import (
 	"bytes"
@@ -12,19 +12,19 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-type sshAuthResponse struct {
+type SshAuthResponse struct {
 	Message   string            `json:"-"`
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt string            `json:"expires_at"`
 }
 
-func sshAuthenticate(endpoint config.Endpoint, operation, oid string) (sshAuthResponse, error) {
+func SshAuthenticate(endpoint config.Endpoint, operation, oid string) (SshAuthResponse, error) {
 
 	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
 	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
 
-	res := sshAuthResponse{}
+	res := SshAuthResponse{}
 	if len(endpoint.SshUserAndHost) == 0 {
 		return res, nil
 	}
