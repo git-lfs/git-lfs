@@ -112,7 +112,7 @@ support:
 ## Implementation details
 ### Types
 To make the implementing locking on the lfs-test-server as well as other servers
-in the future easier, it makes sense to create a `lfs/lock` package that can be
+in the future easier, it makes sense to create a `lock` package that can be
 depended upon from any server. This will go along with Steve's refactor which
 touches the `lfs` package quite a bit.
 
