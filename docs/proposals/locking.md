@@ -108,3 +108,188 @@ support:
 |9  |Cater for read-only binary files when merging locally<ul><li>Because files are read-only this might prevent merge from working when actually it's valid.</li><li>Always fine to merge the latest version of a binary file to anywhere else</li><li>Fine to merge the non-latest version if user is aware that this may cause merge problems (see Breaking the rules)</li><li>Therefore this feature is about dealing with the read-only flag and issuing a warning if not the latest</li></ul>|
 |10 |List current locks<ul><li>That the current user has</li><li>That anyone has</li><li>Potentially scoped to folder</li></ul>|`git lfs lock --list [paths...]`
 |11 |Reject a push containing a binary file currently locked by someone else|pre-receive hook on server, allow --force to override (i.e. existing parameter to git push)
+
+## Implementation details
+### Types
+To make the implementing locking on the lfs-test-server as well as other servers
+in the future easier, it makes sense to create a `lfs/lock` package that can be
+depended upon from any server. This will go along with Steve's refactor which
+touches the `lfs` package quite a bit.
+
+Below are enumerated some of the types that will presumably land in this
+sub-package.
+
+```go
+// Lock represents a single lock that against a particular path.
+//
+// Locks returned from the API may or may not be currently active, according to
+// the Expired flag.
+type Lock struct {
+        // Path is an absolute path to the file that is locked as a part of this
+        // lock.
+        Path string `json:"path"`
+        // Creator is the author who initiated this lock.
+        Creator struct {
+               Name  string `json:"name"`
+               Email string `json:"email"`
+        } `json:"creator"`
+        // CreatedAt is a required parameter that represents the instant in time
+        // that this lock was created. For most server implementations, this
+        // should be set to the instant at which the lock was initially
+        // received.
+        CreatedAt time.Time `json:"created_at"`
+        // ExpiresAt is an optional parameter that represents the instant in
+        // time that the lock stopped being active. If the lock is still active,
+        // the server can either a) not send this field, or b) send the
+        // zero-value of time.Time.
+        ExpiresAt time.Time `json:"expired_at,omitempty"`
+}
+
+// Active returns whether or not the given lock is still active against the file
+// that it is protecting.
+func (l *Lock) Active() bool {
+        return time.IsZero(l.ExpiresAt)
+}
+```
+
+### Proposed Commands
+
+#### `git lfs lock <path>`
+
+The `lock` command will be used in accordance with the multi-branch flow as
+proposed above to request that lock be granted to the specific path passed an
+argument to the command.
+
+```go
+// LockRequest encapsulates the payload sent across the API when a client would
+// like to obtain a lock against a particular path on a given remote.
+type LockRequest struct {
+        // Path is the path that the client would like to obtain a lock against.
+        Path      string `json:"path"`
+        // Remote is the remote on which the client would like to obtain the
+        // lock.
+        Remote    string `json:"remote"`
+        // Committer is the individual that wishes to obtain the lock.
+        Committer struct {
+              // Name is the name of the individual who would like to obtain the
+              // lock, for instance: "Rick Olson".
+              Name string `json:"name"`
+              // Email is the email assopsicated with the individual who would
+              // like to obtain the lock, for instance: "rick@github.com".
+              Email string `json:"email"`
+        } `json:"committer"`
+}
+```
+
+```go
+// LockResponse encapsulates the information sent over the API in response to
+// a `LockRequest`.
+type LockResponse struct {
+        // Lock is the Lock that was optionally created in response to the
+        // payload that was sent (see above).
+        //
+        // If the lock was unable to be created, this field will hold the
+        // zero-value of Lock and the Err field will provide a more detailed set
+        // of information.
+        //
+        // If an error was experienced in creating this lock, then the
+        // zero-value of Lock should be sent here instead.
+        Lock Lock `json:"lock"`
+        // Err is the optional error that was encountered while trying to create
+        // the above lock.
+        Err error `json:"error,omitempty"`
+}
+```
+
+
+#### `git lfs unlock <path>`
+
+The `unlock` command is responsible for releasing the lock against a particular
+file. The command takes a `<path>` argument which the LFS client will have to
+internally resolve into a UUID to unlock.
+
+The API associated with this command can also be used on the server to remove
+existing locks after a push.
+
+```go
+// An UnlockRequest is sent by the client over the API when they wish to remove
+// a lock associated with the given UUID.
+type UnlockRequest struct {
+        // UUID is the identifier of the lock that the client wishes to remove.
+        UUID string `json:"path"`
+}
+```
+
+```go
+// UnlockResult is the result sent back from the API when asked to remove a
+// lock.
+type UnlockResult struct {
+        // Lock is the lock corresponding to the asked-about lock in the
+        // `UnlockPayload` (see above). If no matching lock was found, this
+        // field will take the zero-value of Lock, and Err will be non-nil.
+        Lock Lock `json:"lock"`
+        // Err is an optional field which holds any error that was experienced
+        // while removing the lock.
+        Err error `json:"error,omitempty"`
+}
+```
+
+Clients can determine whether or not their lock was removed by calling the
+`Active()` method on the returned Lock, if `UnlockResult.Err` is non-nil.
+
+#### `git lfs locks (-r <remote>|-b <branch|-p <path>)|(-u uuid)`
+
+For many operations, the LFS client will need to have knowledge of existing
+locks on the server. Additionally, the client should not have to self-sort/index
+this (potentially) large set. To remove this need, both the `locks` command and
+corresponding API method take several filters.
+
+Clients should turn the flag-values that were passed during the command
+invocation into `Filter`s as described below, and batched up into the `Filters`
+field in the `LockListRequest`.
+
+```go
+// Property is a constant-type that narrows fields pertaining to the server's
+// Locks.
+type Property string
+
+const (
+        UUID   Property = "uuid"
+        Branch Property = "branch"
+        // (etc) ...
+)
+
+// LockListRequest encapsulates the request sent to the server when the client
+// would like a list of locks that match the given criteria.
+type LockListRequest struct {
+        // Filters is the set of filters to query against. If the client wishes
+        // to obtain a list of all locks, an empty array should be passed here.
+        Filters []{
+                // Prop is the property to search against.
+                Prop Property `json:"prop"`
+                // Value is the value that the property must take.
+                Value string `json:"value"`
+        } `json:"filters"`
+        // Page is the numerical page of the result set to return.
+        Page int `json:"page"`
+        // Limit is the maximum number of locks to return in a single page.
+        Limit int `json:"limit"`
+}
+```
+
+```go
+// LockList encapsulates a set of Locks.
+type LockList struct {
+        // Locks is the set of locks returned back, typically matching the query
+        // parameters sent in the LockListRequest call. If no locks were matched
+        // from a given query, then `Locks` will be represented as an empty
+        // array.
+        Locks []Lock `json:"locks"`
+        // HasMore represents whether or not the server has more information to
+        // return against the given query.
+        HasMore bool `json:"has_more"`
+        // Err populates any error that was encountered during the search. If no
+        // error was encountered and the operation was succesful, then a value
+        // of nil will be passed here.
+        Err error `json:"error,omitempty"`
+}
