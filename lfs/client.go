@@ -16,8 +16,8 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/credentials"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
@@ -405,7 +405,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*api.ObjectResource
 // doStorageREquest runs the request to the storage API from a link provided by
 // the "actions" or "_links" properties an LFS API response.
 func doStorageRequest(req *http.Request) (*http.Response, error) {
-	creds, err := credentials.GetCreds(req)
+	creds, err := auth.GetCreds(req)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +424,7 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
-func doHttpRequest(req *http.Request, creds credentials.Creds) (*http.Response, error) {
+func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) {
 	var (
 		res *http.Response
 		err error
@@ -468,9 +468,9 @@ func doHttpRequest(req *http.Request, creds credentials.Creds) (*http.Response, 
 }
 
 func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
-	var creds credentials.Creds
+	var creds auth.Creds
 	if useCreds {
-		c, err := credentials.GetCreds(req)
+		c, err := auth.GetCreds(req)
 		if err != nil {
 			return nil, err
 		}
@@ -524,8 +524,8 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 	return res, nil
 }
 
-func handleResponse(res *http.Response, creds credentials.Creds) error {
-	credentials.SaveCredentials(creds, res)
+func handleResponse(res *http.Response, creds auth.Creds) error {
+	auth.SaveCredentials(creds, res)
 
 	if res.StatusCode < 400 {
 		return nil
@@ -599,7 +599,7 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 	}
 	endpoint := config.Config.Endpoint(operation)
 
-	res, err := credentials.SshAuthenticate(endpoint, operation, oid)
+	res, err := auth.SshAuthenticate(endpoint, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
 			endpoint.SshUserAndHost, err.Error(),
@@ -643,7 +643,7 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 func newBatchApiRequest(operation string) (*http.Request, error) {
 	endpoint := config.Config.Endpoint(operation)
 
-	res, err := credentials.SshAuthenticate(endpoint, operation, "")
+	res, err := auth.SshAuthenticate(endpoint, operation, "")
 	if err != nil {
 		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
 			operation, endpoint.SshUserAndHost, err.Error(),

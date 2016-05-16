@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/credentials"
+	"github.com/github/git-lfs/auth"
 )
 
 var (
-	TestCredentialsFunc credentials.CredentialFunc
-	origCredentialsFunc credentials.CredentialFunc
+	TestCredentialsFunc auth.CredentialFunc
+	origCredentialsFunc auth.CredentialFunc
 )
 
 func tempdir(t *testing.T) string {
@@ -36,8 +36,8 @@ func expectedAuth(t *testing.T, server *httptest.Server) string {
 }
 
 func init() {
-	TestCredentialsFunc = func(input credentials.Creds, subCommand string) (credentials.Creds, error) {
-		output := make(credentials.Creds)
+	TestCredentialsFunc = func(input auth.Creds, subCommand string) (auth.Creds, error) {
+		output := make(auth.Creds)
 		for key, value := range input {
 			output[key] = value
 		}
@@ -51,10 +51,10 @@ func init() {
 
 // Override the credentials func for testing
 func SetupTestCredentialsFunc() {
-	origCredentialsFunc = credentials.SetCredentialsFunc(TestCredentialsFunc)
+	origCredentialsFunc = auth.SetCredentialsFunc(TestCredentialsFunc)
 }
 
 // Put the original credentials func back
 func RestoreCredentialsFunc() {
-	credentials.SetCredentialsFunc(origCredentialsFunc)
+	auth.SetCredentialsFunc(origCredentialsFunc)
 }

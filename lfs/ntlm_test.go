@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/credentials"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
@@ -18,12 +18,12 @@ func TestNtlmClientSession(t *testing.T) {
 	//Make sure to clear ntlmSession so test order doesn't matter.
 	config.Config.NtlmSession = nil
 
-	creds := credentials.Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
+	creds := auth.Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
 	_, err := ntlmClientSession(config.Config, creds)
 	assert.Equal(t, err, nil)
 
 	//The second call should ignore creds and give the session we just created.
-	badCreds := credentials.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
+	badCreds := auth.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
 	_, err = ntlmClientSession(config.Config, badCreds)
 	assert.Equal(t, err, nil)
 
@@ -36,7 +36,7 @@ func TestNtlmClientSessionBadCreds(t *testing.T) {
 	//Make sure to clear ntlmSession so test order doesn't matter.
 	config.Config.NtlmSession = nil
 
-	creds := credentials.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
+	creds := auth.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
 	_, err := ntlmClientSession(config.Config, creds)
 	assert.NotEqual(t, err, nil)
 

@@ -1,4 +1,4 @@
-package credentials
+package auth
 
 import (
 	"path/filepath"
