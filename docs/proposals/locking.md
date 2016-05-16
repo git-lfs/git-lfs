@@ -1,20 +1,20 @@
 # Locking feature proposal
 
-We need the ability to lock files to discourage (we can never prevent) parallel 
-editing of binary files which will result in an unmergeable situation. This is 
-not a common theme in git (for obvious reasons, it conflicts with its 
-distributed, parallel nature), but is a requirement of any binary management 
-system, since files are very often completely unmergeable, and no-one likes 
+We need the ability to lock files to discourage (we can never prevent) parallel
+editing of binary files which will result in an unmergeable situation. This is
+not a common theme in git (for obvious reasons, it conflicts with its
+distributed, parallel nature), but is a requirement of any binary management
+system, since files are very often completely unmergeable, and no-one likes
 having to throw their work away & do it again.
 
-## What not to do: single branch model 
+## What not to do: single branch model
 
 The simplest way to organise locking is to require that if binary files are only
-ever edited on a single branch, and therefore editing this file can follow a 
+ever edited on a single branch, and therefore editing this file can follow a
 simple sequence:
 
 1. File starts out read-only locally
-2. User locks the file, user is required to have the latest version locally from 
+2. User locks the file, user is required to have the latest version locally from
    the 'main' branch
 3. User edits file & commits 1 or more times
 4. User pushes these commits to the main branch
@@ -23,49 +23,49 @@ simple sequence:
 ## A more usable approach: multi-branch model
 
 In practice teams need to work on more than one branch, and sometimes that work
-will have corresponding binary edits. 
+will have corresponding binary edits.
 
 It's important to remember that the core requirement is to prevent *unintended
-parallel edits of an unmergeable file*. 
+parallel edits of an unmergeable file*.
 
 One way to address this would be to say that locking a file locks it across all
 branches, and that lock is only released when the branch where the edit is is
-merged back into a 'primary' branch. The problem is that although that allows 
+merged back into a 'primary' branch. The problem is that although that allows
 branching and also prevents merge conflicts, it forces merging of feature
 branches before a further edit can be made by someone else.
 
 An alternative is that locking a file locks it across all branches, but when the
 lock is released, further locks on that file can only be taken on a descendant
-of the latest edit that has been made, whichever branch it is on. That means 
+of the latest edit that has been made, whichever branch it is on. That means
 a change to the rules of the lock sequence, namely:
 
 1. File starts out read-only locally
 2. User tries to lock a file. This is only allowed if:
    * The file is not already locked by anyone else, AND
    * One of the following are true:
-      * The user has, or agrees to check out, a descendant of the latest commit 
+      * The user has, or agrees to check out, a descendant of the latest commit
         that was made for that file, whatever branch that was on, OR
-      * The user stays on their current commit but resets the locked file to the 
+      * The user stays on their current commit but resets the locked file to the
         state of the latest commit (making it modified locally, and
-        also cherry-picking changes for that file in practice). 
+        also cherry-picking changes for that file in practice).
 3. User edits file & commits 1 or more times, on any branch they like
 4. User pushes the commits
 5. File is unlocked if:
-   * the latest commit to that file has been pushed (on any branch), and 
+   * the latest commit to that file has been pushed (on any branch), and
    * the file is not locally edited
 
-This means that long-running branches can be maintained but that editing of a 
-binary file must always incorporate the latest binary edits. This means that if 
-this system is always respected, there is only ever one linear stream of 
-development for this binary file, even though that 'thread' may wind its way 
-across many different branches in the process. 
+This means that long-running branches can be maintained but that editing of a
+binary file must always incorporate the latest binary edits. This means that if
+this system is always respected, there is only ever one linear stream of
+development for this binary file, even though that 'thread' may wind its way
+across many different branches in the process.
 
-This does mean that no-one's changes are accidentally lost, but it does mean 
-that we are either making new branches dependent on others, OR we're 
+This does mean that no-one's changes are accidentally lost, but it does mean
+that we are either making new branches dependent on others, OR we're
 cherry-picking changes to individual files across branches. This does change
 the traditional git workflow, but importantly it achieves the core requirement
 of never *accidentally* losing anyone's changes. How changes are threaded
-across branches is always under the user's control. 
+across branches is always under the user's control.
 
 ## Breaking the rules
 We must allow the user to break the rules if they know what they are doing.
@@ -98,7 +98,7 @@ support:
 |No | Feature | Notes
 |---|---------|------------------
 |1  |Lock server must be available at same API URL|
-|2  |Identify unmergeable files as subset of lfs files|`git lfs track -b` ? 
+|2  |Identify unmergeable files as subset of lfs files|`git lfs track -b` ?
 |3  |Make unmergeable files read-only on checkout|Perform in smudge filter
 |4  |Lock a file<ul><li>Check with server which must atomically check/set</li><li>Check person requesting the lock is checked out on a commit which is a descendent of the last edit of that file (locally or on server, although last lock shouldn't have been released until push anyway), or allow --force to break rule</li><li>Record lock on server</li><li>Make file read/write locally if success</li></ul>|`git lfs lock <file>`?
 |5  |Release a lock<ul><li>Check if locally modified, if so must discard</li><li>Check if user has more recent commit of this file than server, if so must push first</li><li>Release lock on server atomically</li><li>Make local file read-only</li></ul>|`git lfs unlock <file>`?
