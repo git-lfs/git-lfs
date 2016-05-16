@@ -15,6 +15,7 @@ import (
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/httputil"
 )
 
 func TestExistingUpload(t *testing.T) {
@@ -662,7 +663,7 @@ func TestUploadApiError(t *testing.T) {
 		return
 	}
 
-	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects") {
+	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
@@ -781,7 +782,7 @@ func TestUploadStorageError(t *testing.T) {
 		t.Fatal("should not panic")
 	}
 
-	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/upload") {
+	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/upload") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
@@ -937,7 +938,7 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal("should not panic")
 	}
 
-	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/verify") {
+	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 

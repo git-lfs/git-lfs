@@ -14,7 +14,6 @@ import (
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -51,7 +50,7 @@ func GetCreds(req *http.Request) (Creds, error) {
 }
 
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
-	operation := httputil.GetOperationForRequest(req)
+	operation := GetOperationForRequest(req)
 	apiUrl, err := url.Parse(config.Config.Endpoint(operation).Url)
 	if err != nil {
 		return nil, err
@@ -120,7 +119,7 @@ func setCredURLFromNetrc(req *http.Request) bool {
 }
 
 func skipCredsCheck(req *http.Request) bool {
-	if config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) {
+	if config.Config.NtlmAccess(GetOperationForRequest(req)) {
 		return false
 	}
 
@@ -242,7 +241,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 }
 
 func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
-	if !config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) && u.User != nil {
+	if !config.Config.NtlmAccess(GetOperationForRequest(req)) && u.User != nil {
 		if pass, ok := u.User.Password(); ok {
 			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
 			setRequestAuth(req, u.User.Username(), pass)
@@ -254,7 +253,7 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	if config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) {
+	if config.Config.NtlmAccess(GetOperationForRequest(req)) {
 		return
 	}
 
@@ -280,4 +279,13 @@ func SetCredentialsFunc(f CredentialFunc) CredentialFunc {
 	oldf := execCreds
 	execCreds = f
 	return oldf
+}
+
+// GetOperationForRequest determines the operation type for a http.Request
+func GetOperationForRequest(req *http.Request) string {
+	operation := "download"
+	if req.Method == "POST" || req.Method == "PUT" {
+		operation = "upload"
+	}
+	return operation
 }

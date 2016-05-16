@@ -14,6 +14,7 @@ import (
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/httputil"
 )
 
 func TestSuccessfulDownload(t *testing.T) {
@@ -650,7 +651,7 @@ func TestDownloadAPIError(t *testing.T) {
 		return
 	}
 
-	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects/oid") {
+	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects/oid") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
@@ -727,7 +728,7 @@ func TestDownloadStorageError(t *testing.T) {
 		t.Fatal("should panic")
 	}
 
-	if err.Error() != fmt.Sprintf(defaultErrors[500], server.URL+"/download") {
+	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(500), server.URL+"/download") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 

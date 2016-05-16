@@ -102,21 +102,6 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func NewHttpRequest(method, rawurl string, header map[string]string) (*http.Request, error) {
-	req, err := http.NewRequest(method, rawurl, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for key, value := range header {
-		req.Header.Set(key, value)
-	}
-
-	req.Header.Set("User-Agent", UserAgent)
-
-	return req, nil
-}
-
 // NewHttpClient returns a new HttpClient for the given host (which may be "host:port")
 func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	httpClientsMutex.Lock()
@@ -352,15 +337,6 @@ func statsLogFile() (*os.File, error) {
 
 func TraceHttpReq(req *http.Request) string {
 	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
-}
-
-// GetOperationForRequest determines the operation type for a http.Request
-func GetOperationForRequest(req *http.Request) string {
-	operation := "download"
-	if req.Method == "POST" || req.Method == "PUT" {
-		operation = "upload"
-	}
-	return operation
 }
 
 func init() {
