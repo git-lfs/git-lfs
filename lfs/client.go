@@ -108,7 +108,7 @@ func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 		return nil, 0, errutil.Error(err)
 	}
 
-	res, err = doStorageRequest(req)
+	res, err = doHttpRequestWithCreds(req)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -147,7 +147,7 @@ func DownloadObject(obj *api.ObjectResource) (io.ReadCloser, int64, error) {
 		return nil, 0, errutil.Error(err)
 	}
 
-	res, err := doStorageRequest(req)
+	res, err := doHttpRequestWithCreds(req)
 	if err != nil {
 		return nil, 0, errutil.NewRetriableError(err)
 	}
@@ -310,7 +310,7 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 	req.ContentLength = o.Size
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := doStorageRequest(req)
+	res, err := doHttpRequestWithCreds(req)
 	if err != nil {
 		return errutil.NewRetriableError(err)
 	}
@@ -402,9 +402,8 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*api.ObjectResource
 	return res, objs["objects"], err
 }
 
-// doStorageREquest runs the request to the storage API from a link provided by
-// the "actions" or "_links" properties an LFS API response.
-func doStorageRequest(req *http.Request) (*http.Response, error) {
+// doHttpRequestWithCreds performs doHttpRequest with creds added
+func doHttpRequestWithCreds(req *http.Request) (*http.Response, error) {
 	creds, err := auth.GetCreds(req)
 	if err != nil {
 		return nil, err
@@ -423,7 +422,7 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 }
 
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
-// use doApiBatchRequest() or doStorageRequest() instead.
+// use doApiBatchRequest() or doHttpRequestWithCreds() instead.
 func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) {
 	var (
 		res *http.Response
