@@ -696,7 +696,7 @@ func newClientRequest(method, rawurl string, header map[string]string) (*http.Re
 		req.Header.Set(key, value)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", httputil.UserAgent)
 
 	return req, nil
 }
@@ -742,7 +742,7 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", httputil.UserAgent)
 
 	return req, nil
 }

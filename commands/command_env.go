@@ -24,7 +24,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		gitV = "Error getting git version: " + err.Error()
 	}
 
-	Print(lfs.UserAgent)
+	Print(config.VersionDesc)
 	Print(gitV)
 	Print("")
 

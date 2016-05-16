@@ -21,7 +21,6 @@ const (
 
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
-	UserAgent          string
 	objects            *localstorage.LocalStorage
 	LocalMediaDir      string // root of lfs objects
 	LocalObjectTempDir string // where temporarily downloading objects are stored

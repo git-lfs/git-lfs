@@ -169,7 +169,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 		gitV = "Error getting git version: " + err.Error()
 	}
 
-	fmt.Fprintln(w, lfs.UserAgent)
+	fmt.Fprintln(w, config.VersionDesc)
 	fmt.Fprintln(w, gitV)
 
 	// log the command that was run
