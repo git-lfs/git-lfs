@@ -169,8 +169,10 @@ type LockRequest struct {
         // Remote is the remote on which the client would like to obtain the
         // lock.
         Remote    string `json:"remote"`
-        // Head is a ref pointing to the latest commit that the client has.
-        Head string `json:"head"`
+        // LatestRemoteCommit is the SHA of the last known commit from the
+        // remote that we are trying to create the lock against, as found in
+        // `.git/refs/origin/<name>`.
+        LatestRemoteCommit string `json:"latest_remote_commit"`
         // Committer is the individual that wishes to obtain the lock.
         Committer struct {
               // Name is the name of the individual who would like to obtain the
@@ -188,7 +190,10 @@ type LockRequest struct {
 // a `LockRequest`.
 type LockResponse struct {
         // Lock is the Lock that was optionally created in response to the
-        // payload that was sent (see above).
+        // payload that was sent (see above). If the lock already exists, then
+        // the existing lock is sent in this field instead, and the author of
+        // that lock remains the same, meaning that the client failed to obtain
+        // that lock. An HTTP status of "409 - Conflict" is used here.
         //
         // If the lock was unable to be created, this field will hold the
         // zero-value of Lock and the Err field will provide a more detailed set
