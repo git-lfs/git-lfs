@@ -169,6 +169,8 @@ type LockRequest struct {
         // Remote is the remote on which the client would like to obtain the
         // lock.
         Remote    string `json:"remote"`
+        // Head is a ref pointing to the latest commit that the client has.
+        Head string `json:"head"`
         // Committer is the individual that wishes to obtain the lock.
         Committer struct {
               // Name is the name of the individual who would like to obtain the
@@ -195,6 +197,9 @@ type LockResponse struct {
         // If an error was experienced in creating this lock, then the
         // zero-value of Lock should be sent here instead.
         Lock Lock `json:"lock"`
+        // CommitNeeded holds the minimum commit SHA that client must have to
+        // obtain the lock.
+        CommitNeeded string `json:"commit_needed"`
         // Err is the optional error that was encountered while trying to create
         // the above lock.
         Err error `json:"error,omitempty"`
