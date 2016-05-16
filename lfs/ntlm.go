@@ -13,11 +13,12 @@ import (
 	"sync/atomic"
 
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/credentials"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
-func ntlmClientSession(c *config.Configuration, creds Creds) (ntlm.ClientSession, error) {
+func ntlmClientSession(c *config.Configuration, creds credentials.Creds) (ntlm.ClientSession, error) {
 	if c.NtlmSession != nil {
 		return c.NtlmSession, nil
 	}
@@ -53,7 +54,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 	//If the status is 401 then we need to re-authenticate, otherwise it was successful
 	if res.StatusCode == 401 {
 
-		creds, err := getCreds(request)
+		creds, err := credentials.GetCreds(request)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +84,7 @@ func DoNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 			return DoNTLMRequest(challengeReq, false)
 		}
 
-		saveCredentials(creds, res)
+		credentials.SaveCredentials(creds, res)
 
 		return res, nil
 	}
@@ -109,7 +110,7 @@ func negotiate(request *http.Request, message string) ([]byte, error) {
 	return ret, nil
 }
 
-func challenge(request *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error) {
+func challenge(request *http.Request, challengeBytes []byte, creds credentials.Creds) (*http.Response, error) {
 	challenge, err := ntlm.ParseChallengeMessage(challengeBytes)
 	if err != nil {
 		return nil, err

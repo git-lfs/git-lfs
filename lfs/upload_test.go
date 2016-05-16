@@ -14,9 +14,12 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 )
 
 func TestExistingUpload(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -136,9 +139,13 @@ func TestExistingUpload(t *testing.T) {
 	if verifyCalled {
 		t.Errorf("verify not skipped")
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestUploadWithRedirect(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -252,9 +259,13 @@ func TestUploadWithRedirect(t *testing.T) {
 	if obj != nil {
 		t.Fatal("Received an object")
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestSuccessfulUploadWithVerify(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -459,9 +470,13 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	if lastCall[0] != 4 || lastCall[1] != 4 {
 		t.Errorf("Last CopyCallback call should be the total")
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestSuccessfulUploadWithoutVerify(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -601,9 +616,13 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	if !putCalled {
 		t.Errorf("PUT not called")
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestUploadApiError(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -635,7 +654,7 @@ func TestUploadApiError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if IsFatalError(err) {
+	if errutil.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
@@ -650,9 +669,13 @@ func TestUploadApiError(t *testing.T) {
 	if !postCalled {
 		t.Errorf("POST not called")
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestUploadStorageError(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -754,7 +777,7 @@ func TestUploadStorageError(t *testing.T) {
 		t.Fatal("Expected an error")
 	}
 
-	if IsFatalError(err) {
+	if errutil.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
@@ -769,9 +792,13 @@ func TestUploadStorageError(t *testing.T) {
 	if !putCalled {
 		t.Errorf("PUT not called")
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestUploadVerifyError(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
@@ -906,7 +933,7 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal("Expected an error")
 	}
 
-	if IsFatalError(err) {
+	if errutil.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
@@ -925,4 +952,6 @@ func TestUploadVerifyError(t *testing.T) {
 	if !verifyCalled {
 		t.Errorf("verify not called")
 	}
+
+	RestoreCredentialsFunc()
 }

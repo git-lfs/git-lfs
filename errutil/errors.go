@@ -1,4 +1,4 @@
-package lfs
+package errutil
 
 // The LFS error system provides a simple wrapper around Go errors and the
 // ability to inspect errors. It is strongly influenced by Dave Cheney's post
@@ -39,9 +39,9 @@ package lfs
 // Example:
 //
 //	err := lfs.SomeFunction()
-//	lfs.ErrorSetContext(err, "foo", "bar")
-//	lfs.ErrorGetContext(err, "foo") // => "bar"
-//	lfs.ErrorDelContext(err, "foo")
+//	errutil.ErrorSetContext(err, "foo", "bar")
+//	errutil.ErrorGetContext(err, "foo") // => "bar"
+//	errutil.ErrorDelContext(err, "foo")
 //
 // Wrapped errors also contain the stack from the point at which they are
 // called. The stack is accessed via ErrorStack(). Calling ErrorStack() on a
@@ -173,6 +173,17 @@ func IsBadPointerKeyError(err error) bool {
 		return IsBadPointerKeyError(e.InnerError())
 	}
 	return false
+}
+
+// If an error is abad pointer error of any type, returns NotAPointerError
+func StandardizeBadPointerError(err error) error {
+	if IsBadPointerKeyError(err) {
+		badErr := err.(badPointerKeyError)
+		if badErr.Expected == "version" {
+			return NewNotAPointerError(err)
+		}
+	}
+	return err
 }
 
 // IsDownloadDeclinedError indicates that the smudge operation should not download.
@@ -369,7 +380,7 @@ func (e fatalError) Fatal() bool {
 	return true
 }
 
-func newFatalError(err error) error {
+func NewFatalError(err error) error {
 	return fatalError{newWrappedError(err, "Fatal error")}
 }
 
@@ -387,7 +398,7 @@ func (e notImplementedError) NotImplemented() bool {
 	return true
 }
 
-func newNotImplementedError(err error) error {
+func NewNotImplementedError(err error) error {
 	return notImplementedError{newWrappedError(err, "Not implemented")}
 }
 
@@ -405,7 +416,7 @@ func (e authError) AuthError() bool {
 	return true
 }
 
-func newAuthError(err error) error {
+func NewAuthError(err error) error {
 	return authError{newWrappedError(err, "Authentication required")}
 }
 
@@ -423,7 +434,7 @@ func (e invalidPointerError) InvalidPointer() bool {
 	return true
 }
 
-func newInvalidPointerError(err error) error {
+func NewInvalidPointerError(err error) error {
 	return invalidPointerError{newWrappedError(err, "Invalid pointer")}
 }
 
@@ -441,7 +452,7 @@ func (e invalidRepoError) InvalidRepo() bool {
 	return true
 }
 
-func newInvalidRepoError(err error) error {
+func NewInvalidRepoError(err error) error {
 	return invalidRepoError{newWrappedError(err, "Not in a git repository")}
 }
 
@@ -459,7 +470,7 @@ func (e smudgeError) SmudgeError() bool {
 	return true
 }
 
-func newSmudgeError(err error, oid, filename string) error {
+func NewSmudgeError(err error, oid, filename string) error {
 	e := smudgeError{newWrappedError(err, "Smudge error")}
 	ErrorSetContext(e, "OID", oid)
 	ErrorSetContext(e, "FileName", filename)
@@ -480,7 +491,7 @@ func (e cleanPointerError) CleanPointerError() bool {
 	return true
 }
 
-func newCleanPointerError(err error, pointer *Pointer, bytes []byte) error {
+func NewCleanPointerError(err error, pointer interface{}, bytes []byte) error {
 	e := cleanPointerError{newWrappedError(err, "Clean pointer error")}
 	ErrorSetContext(e, "pointer", pointer)
 	ErrorSetContext(e, "bytes", bytes)
@@ -501,7 +512,7 @@ func (e notAPointerError) NotAPointerError() bool {
 	return true
 }
 
-func newNotAPointerError(err error) error {
+func NewNotAPointerError(err error) error {
 	return notAPointerError{newWrappedError(err, "Not a valid Git LFS pointer file.")}
 }
 
@@ -519,7 +530,7 @@ func (e badPointerKeyError) BadPointerKeyError() bool {
 	return true
 }
 
-func newBadPointerKeyError(expected, actual string) error {
+func NewBadPointerKeyError(expected, actual string) error {
 	err := fmt.Errorf("Error parsing LFS Pointer. Expected key %s, got %s", expected, actual)
 	return badPointerKeyError{expected, actual, newWrappedError(err, "")}
 }
@@ -538,7 +549,7 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 	return true
 }
 
-func newDownloadDeclinedError(err error) error {
+func NewDownloadDeclinedError(err error) error {
 	return downloadDeclinedError{newWrappedError(err, "File missing and download is not allowed")}
 }
 
@@ -556,7 +567,7 @@ func (e retriableError) RetriableError() bool {
 	return true
 }
 
-func newRetriableError(err error) error {
+func NewRetriableError(err error) error {
 	return retriableError{newWrappedError(err, "")}
 }
 

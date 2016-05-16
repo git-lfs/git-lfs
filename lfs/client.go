@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +17,8 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/credentials"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
@@ -75,7 +76,7 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 
 	objs, err := Batch(objects, "download")
 	if err != nil {
-		if IsNotImplementedError(err) {
+		if errutil.IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
 			return DownloadLegacy(oid)
 		}
@@ -83,7 +84,7 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 	}
 
 	if len(objs) != 1 { // Expecting to find one object
-		return nil, 0, Error(fmt.Errorf("Object not found: %s", oid))
+		return nil, 0, errutil.Error(fmt.Errorf("Object not found: %s", oid))
 	}
 
 	return DownloadObject(objs[0])
@@ -94,7 +95,7 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
-		return nil, 0, Error(err)
+		return nil, 0, errutil.Error(err)
 	}
 
 	res, obj, err := doLegacyApiRequest(req)
@@ -104,7 +105,7 @@ func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
 	httputil.LogTransfer("lfs.api.download", res)
 	req, err = obj.NewRequest("download", "GET")
 	if err != nil {
-		return nil, 0, Error(err)
+		return nil, 0, errutil.Error(err)
 	}
 
 	res, err = doStorageRequest(req)
@@ -123,7 +124,7 @@ type byteCloser struct {
 func DownloadCheck(oid string) (*api.ObjectResource, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	res, obj, err := doLegacyApiRequest(req)
@@ -134,7 +135,7 @@ func DownloadCheck(oid string) (*api.ObjectResource, error) {
 
 	_, err = obj.NewRequest("download", "GET")
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	return obj, nil
@@ -143,12 +144,12 @@ func DownloadCheck(oid string) (*api.ObjectResource, error) {
 func DownloadObject(obj *api.ObjectResource) (io.ReadCloser, int64, error) {
 	req, err := obj.NewRequest("download", "GET")
 	if err != nil {
-		return nil, 0, Error(err)
+		return nil, 0, errutil.Error(err)
 	}
 
 	res, err := doStorageRequest(req)
 	if err != nil {
-		return nil, 0, newRetriableError(err)
+		return nil, 0, errutil.NewRetriableError(err)
 	}
 	httputil.LogTransfer("lfs.data.download", res)
 
@@ -168,12 +169,12 @@ func Batch(objects []*api.ObjectResource, operation string) ([]*api.ObjectResour
 
 	by, err := json.Marshal(o)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	req, err := newBatchApiRequest(operation)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	req.Header.Set("Content-Type", mediaType)
@@ -188,14 +189,14 @@ func Batch(objects []*api.ObjectResource, operation string) ([]*api.ObjectResour
 	if err != nil {
 
 		if res == nil {
-			return nil, newRetriableError(err)
+			return nil, errutil.NewRetriableError(err)
 		}
 
 		if res.StatusCode == 0 {
-			return nil, newRetriableError(err)
+			return nil, errutil.NewRetriableError(err)
 		}
 
-		if IsAuthError(err) {
+		if errutil.IsAuthError(err) {
 			setAuthType(req, res)
 			return Batch(objects, operation)
 		}
@@ -203,16 +204,16 @@ func Batch(objects []*api.ObjectResource, operation string) ([]*api.ObjectResour
 		switch res.StatusCode {
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, newNotImplementedError(nil)
+			return nil, errutil.NewNotImplementedError(nil)
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 	httputil.LogTransfer("lfs.api.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
+		return nil, errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
 	}
 
 	return objs, nil
@@ -223,7 +224,7 @@ func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 
 	stat, err := os.Stat(oidPath)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	reqObj := &api.ObjectResource{
@@ -233,12 +234,12 @@ func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	req, err := newApiRequest("POST", oid)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	req.Header.Set("Content-Type", mediaType)
@@ -250,12 +251,12 @@ func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 	res, obj, err := doLegacyApiRequest(req)
 
 	if err != nil {
-		if IsAuthError(err) {
+		if errutil.IsAuthError(err) {
 			setAuthType(req, res)
 			return UploadCheck(oidPath)
 		}
 
-		return nil, newRetriableError(err)
+		return nil, errutil.NewRetriableError(err)
 	}
 	httputil.LogTransfer("lfs.api.upload", res)
 
@@ -276,12 +277,12 @@ func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 	defer file.Close()
 
@@ -293,7 +294,7 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 
 	req, err := o.NewRequest("upload", "PUT")
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 
 	if len(req.Header.Get("Content-Type")) == 0 {
@@ -311,18 +312,18 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 
 	res, err := doStorageRequest(req)
 	if err != nil {
-		return newRetriableError(err)
+		return errutil.NewRetriableError(err)
 	}
 	httputil.LogTransfer("lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
 	if res.StatusCode == 403 {
-		return newRetriableError(err)
+		return errutil.NewRetriableError(err)
 	}
 
 	if res.StatusCode > 299 {
-		return Errorf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
+		return errutil.Errorf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
@@ -334,12 +335,12 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 
 	req, err = o.NewRequest("verify", "POST")
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 
 	by, err := json.Marshal(o)
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 
 	req.Header.Set("Content-Type", mediaType)
@@ -377,25 +378,16 @@ func doLegacyApiRequest(req *http.Request) (*http.Response, *api.ObjectResource,
 	return res, obj, nil
 }
 
-// getOperationForHttpRequest determines the operation type for a http.Request
-func getOperationForHttpRequest(req *http.Request) string {
-	operation := "download"
-	if req.Method == "POST" || req.Method == "PUT" {
-		operation = "upload"
-	}
-	return operation
-}
-
 // doApiBatchRequest runs the request to the LFS batch API. If the API returns a
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
 func doApiBatchRequest(req *http.Request) (*http.Response, []*api.ObjectResource, error) {
-	res, err := doAPIRequest(req, config.Config.PrivateAccess(getOperationForHttpRequest(req)))
+	res, err := doAPIRequest(req, config.Config.PrivateAccess(httputil.GetOperationForRequest(req)))
 
 	if err != nil {
 		if res != nil && res.StatusCode == 401 {
-			return res, nil, newAuthError(err)
+			return res, nil, errutil.NewAuthError(err)
 		}
 		return res, nil, err
 	}
@@ -413,7 +405,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*api.ObjectResource
 // doStorageREquest runs the request to the storage API from a link provided by
 // the "actions" or "_links" properties an LFS API response.
 func doStorageRequest(req *http.Request) (*http.Response, error) {
-	creds, err := getCreds(req)
+	creds, err := credentials.GetCreds(req)
 	if err != nil {
 		return nil, err
 	}
@@ -432,13 +424,13 @@ func doAPIRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 
 // doHttpRequest runs the given HTTP request. LFS or Storage API requests should
 // use doApiBatchRequest() or doStorageRequest() instead.
-func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
+func doHttpRequest(req *http.Request, creds credentials.Creds) (*http.Response, error) {
 	var (
 		res *http.Response
 		err error
 	)
 
-	if config.Config.NtlmAccess(getOperationForHttpRequest(req)) {
+	if config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) {
 		res, err = DoNTLMRequest(req, true)
 	} else {
 		res, err = httputil.NewHttpClient(config.Config, req.Host).Do(req)
@@ -454,11 +446,11 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 	}
 
 	if err != nil {
-		if IsAuthError(err) {
+		if errutil.IsAuthError(err) {
 			setAuthType(req, res)
 			doHttpRequest(req, creds)
 		} else {
-			err = Error(err)
+			err = errutil.Error(err)
 		}
 	} else {
 		err = handleResponse(res, creds)
@@ -476,9 +468,9 @@ func doHttpRequest(req *http.Request, creds Creds) (*http.Response, error) {
 }
 
 func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
-	var creds Creds
+	var creds credentials.Creds
 	if useCreds {
-		c, err := getCreds(req)
+		c, err := credentials.GetCreds(req)
 		if err != nil {
 			return nil, err
 		}
@@ -500,7 +492,7 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 
 		redirectedReq, err := newClientRequest(req.Method, redirectTo, nil)
 		if err != nil {
-			return res, Errorf(err, err.Error())
+			return res, errutil.Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
@@ -513,17 +505,17 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 
 		seeker, ok := realBody.(io.Seeker)
 		if !ok {
-			return res, Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+			return res, errutil.Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
 		if _, err := seeker.Seek(0, 0); err != nil {
-			return res, Error(err)
+			return res, errutil.Error(err)
 		}
 		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = httputil.CheckRedirect(redirectedReq, via); err != nil {
-			return res, Errorf(err, err.Error())
+			return res, errutil.Errorf(err, err.Error())
 		}
 
 		return doApiRequestWithRedirects(redirectedReq, via, useCreds)
@@ -532,8 +524,8 @@ func doApiRequestWithRedirects(req *http.Request, via []*http.Request, useCreds 
 	return res, nil
 }
 
-func handleResponse(res *http.Response, creds Creds) error {
-	saveCredentials(creds, res)
+func handleResponse(res *http.Response, creds credentials.Creds) error {
+	credentials.SaveCredentials(creds, res)
 
 	if res.StatusCode < 400 {
 		return nil
@@ -550,16 +542,16 @@ func handleResponse(res *http.Response, creds Creds) error {
 		if len(cliErr.Message) == 0 {
 			err = defaultError(res)
 		} else {
-			err = Error(cliErr)
+			err = errutil.Error(cliErr)
 		}
 	}
 
 	if res.StatusCode == 401 {
-		return newAuthError(err)
+		return errutil.NewAuthError(err)
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
-		return newFatalError(err)
+		return errutil.NewFatalError(err)
 	}
 
 	return err
@@ -576,7 +568,7 @@ func decodeApiResponse(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return Errorf(err, "Unable to parse HTTP response for %s", httputil.TraceHttpReq(res.Request))
+		return errutil.Errorf(err, "Unable to parse HTTP response for %s", httputil.TraceHttpReq(res.Request))
 	}
 
 	return nil
@@ -593,7 +585,7 @@ func defaultError(res *http.Response) error {
 		msgFmt = defaultErrors[500] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
 	}
 
-	return Error(fmt.Errorf(msgFmt, res.Request.URL))
+	return errutil.Error(fmt.Errorf(msgFmt, res.Request.URL))
 }
 
 func newApiRequest(method, oid string) (*http.Request, error) {
@@ -694,21 +686,9 @@ func newBatchClientRequest(method, rawurl string) (*http.Request, error) {
 	return req, nil
 }
 
-func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
-	if !config.Config.NtlmAccess(getOperationForHttpRequest(req)) && u.User != nil {
-		if pass, ok := u.User.Password(); ok {
-			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
-			setRequestAuth(req, u.User.Username(), pass)
-			return true
-		}
-	}
-
-	return false
-}
-
 func setAuthType(req *http.Request, res *http.Response) {
 	authType := getAuthType(res)
-	operation := getOperationForHttpRequest(req)
+	operation := httputil.GetOperationForRequest(req)
 	config.Config.SetAccess(operation, authType)
 	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
 }
@@ -726,29 +706,15 @@ func getAuthType(res *http.Response) string {
 	return "basic"
 }
 
-func setRequestAuth(req *http.Request, user, pass string) {
-	if config.Config.NtlmAccess(getOperationForHttpRequest(req)) {
-		return
-	}
-
-	if len(user) == 0 && len(pass) == 0 {
-		return
-	}
-
-	token := fmt.Sprintf("%s:%s", user, pass)
-	auth := "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
-	req.Header.Set("Authorization", auth)
-}
-
 func setErrorResponseContext(err error, res *http.Response) {
-	ErrorSetContext(err, "Status", res.Status)
+	errutil.ErrorSetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(err, res.Request)
 }
 
 func setErrorRequestContext(err error, req *http.Request) {
-	ErrorSetContext(err, "Endpoint", config.Config.Endpoint(getOperationForHttpRequest(req)).Url)
-	ErrorSetContext(err, "URL", httputil.TraceHttpReq(req))
+	errutil.ErrorSetContext(err, "Endpoint", config.Config.Endpoint(httputil.GetOperationForRequest(req)).Url)
+	errutil.ErrorSetContext(err, "URL", httputil.TraceHttpReq(req))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
@@ -756,9 +722,9 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
-			ErrorSetContext(err, contextKey, "--")
+			errutil.ErrorSetContext(err, contextKey, "--")
 		} else {
-			ErrorSetContext(err, contextKey, head.Get(key))
+			errutil.ErrorSetContext(err, contextKey, head.Get(key))
 		}
 	}
 }

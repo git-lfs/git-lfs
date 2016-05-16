@@ -1,38 +1,42 @@
-package lfs
+package credentials
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-// getCreds gets the credentials for LFS API requests and sets the given
+// getCreds gets the credentials for a HTTP request and sets the given
 // request's Authorization header with them using Basic Authentication.
-// 1. Check the LFS URL for authentication. Ex: http://user:pass@example.com
+// 1. Check the URL for authentication. Ex: http://user:pass@example.com
 // 2. Check netrc for authentication.
 // 3. Check the Git remote URL for authentication IF it's the same scheme and
-//    host of the LFS URL.
+//    host of the URL.
 // 4. Ask 'git credential' to fill in the password from one of the above URLs.
 //
 // This prefers the Git remote URL for checking credentials so that users only
 // have to enter their passwords once for Git and Git LFS. It uses the same
 // URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
-func getCreds(req *http.Request) (Creds, error) {
+func GetCreds(req *http.Request) (Creds, error) {
 	if skipCredsCheck(req) {
 		return nil, nil
 	}
 
 	credsUrl, err := getCredURLForAPI(req)
 	if err != nil {
-		return nil, Error(err)
+		return nil, errutil.Error(err)
 	}
 
 	if credsUrl == nil {
@@ -47,7 +51,7 @@ func getCreds(req *http.Request) (Creds, error) {
 }
 
 func getCredURLForAPI(req *http.Request) (*url.URL, error) {
-	operation := getOperationForHttpRequest(req)
+	operation := httputil.GetOperationForRequest(req)
 	apiUrl, err := url.Parse(config.Config.Endpoint(operation).Url)
 	if err != nil {
 		return nil, err
@@ -116,7 +120,7 @@ func setCredURLFromNetrc(req *http.Request) bool {
 }
 
 func skipCredsCheck(req *http.Request) bool {
-	if config.Config.NtlmAccess(getOperationForHttpRequest(req)) {
+	if config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) {
 		return false
 	}
 
@@ -156,7 +160,7 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 	return creds, err
 }
 
-func saveCredentials(creds Creds, res *http.Response) {
+func SaveCredentials(creds Creds, res *http.Response) {
 	if creds == nil {
 		return
 	}
@@ -186,7 +190,8 @@ func (c Creds) Buffer() *bytes.Buffer {
 	return buf
 }
 
-type credentialFunc func(Creds, string) (Creds, error)
+// Credentials function which will be called whenever credentials are requested
+type CredentialFunc func(Creds, string) (Creds, error)
 
 func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	output := new(bytes.Buffer)
@@ -236,4 +241,43 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	return creds, nil
 }
 
-var execCreds credentialFunc = execCredsCommand
+func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
+	if !config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) && u.User != nil {
+		if pass, ok := u.User.Password(); ok {
+			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
+			setRequestAuth(req, u.User.Username(), pass)
+			return true
+		}
+	}
+
+	return false
+}
+
+func setRequestAuth(req *http.Request, user, pass string) {
+	if config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) {
+		return
+	}
+
+	if len(user) == 0 && len(pass) == 0 {
+		return
+	}
+
+	token := fmt.Sprintf("%s:%s", user, pass)
+	auth := "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
+	req.Header.Set("Authorization", auth)
+}
+
+var execCreds CredentialFunc = execCredsCommand
+
+// GetCredentialsFunc returns the current credentials function
+func GetCredentialsFunc() CredentialFunc {
+	return execCreds
+}
+
+// SetCredentialsFunc overrides the default credentials function (which is to call git)
+// Returns the previous credentials func
+func SetCredentialsFunc(f CredentialFunc) CredentialFunc {
+	oldf := execCreds
+	execCreds = f
+	return oldf
+}

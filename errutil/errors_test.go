@@ -1,4 +1,4 @@
-package lfs
+package errutil
 
 import (
 	"errors"

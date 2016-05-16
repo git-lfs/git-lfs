@@ -7,6 +7,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
 )
 
@@ -24,7 +25,7 @@ type Uploadable struct {
 func NewUploadable(oid, filename string) (*Uploadable, error) {
 	localMediaPath, err := LocalMediaPath(oid)
 	if err != nil {
-		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, errutil.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	if len(filename) > 0 {
@@ -35,7 +36,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 
 	fi, err := os.Stat(localMediaPath)
 	if err != nil {
-		return nil, Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, errutil.Errorf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil

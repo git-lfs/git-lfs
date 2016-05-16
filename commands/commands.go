@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
@@ -59,10 +60,10 @@ func Exit(format string, args ...interface{}) {
 }
 
 func ExitWithError(err error) {
-	if Debugging || lfs.IsFatalError(err) {
+	if Debugging || errutil.IsFatalError(err) {
 		Panic(err, err.Error())
 	} else {
-		if inner := lfs.GetInnerError(err); inner != nil {
+		if inner := errutil.GetInnerError(err); inner != nil {
 			Error(inner.Error())
 		}
 		Exit(err.Error())
@@ -193,7 +194,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 		}
 		w.Write(err.Stack())
 	} else {
-		w.Write(lfs.Stack())
+		w.Write(errutil.Stack())
 	}
 	fmt.Fprintln(w, "\nENV:")
 

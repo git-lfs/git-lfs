@@ -13,9 +13,12 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 )
 
 func TestSuccessfulDownload(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -112,11 +115,15 @@ func TestSuccessfulDownload(t *testing.T) {
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
 	}
+
+	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // called multiple times to return different 3xx status codes
 func TestSuccessfulDownloadWithRedirects(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -248,11 +255,15 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
 		}
 	}
+
+	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // the api request returns a custom Authorization header
 func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -355,11 +366,15 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
 	}
+
+	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // download is served from a second server
 func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -459,11 +474,15 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
 	}
+
+	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // download is served from a second server
 func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -597,9 +616,13 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
 		}
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestDownloadAPIError(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -619,7 +642,7 @@ func TestDownloadAPIError(t *testing.T) {
 		t.Fatal("no error?")
 	}
 
-	if IsFatalError(err) {
+	if errutil.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
@@ -630,9 +653,13 @@ func TestDownloadAPIError(t *testing.T) {
 	if err.Error() != fmt.Sprintf(defaultErrors[404], server.URL+"/media/objects/oid") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestDownloadStorageError(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -696,13 +723,15 @@ func TestDownloadStorageError(t *testing.T) {
 		return
 	}
 
-	if !IsFatalError(err) {
+	if !errutil.IsFatalError(err) {
 		t.Fatal("should panic")
 	}
 
 	if err.Error() != fmt.Sprintf(defaultErrors[500], server.URL+"/download") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
+
+	RestoreCredentialsFunc()
 }
 
 // guards against connection errors that only seem to happen on debian docker

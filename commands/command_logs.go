@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -81,7 +81,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := lfs.Errorf(errors.New("Inner error message!"), "Error!")
+	err := errutil.Errorf(errors.New("Inner error message!"), "Error!")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }

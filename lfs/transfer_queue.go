@@ -6,6 +6,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -215,7 +216,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		objects, err := Batch(transfers, q.transferKind)
 		if err != nil {
-			if IsNotImplementedError(err) {
+			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
 
 				go q.legacyFallback(batch)
@@ -238,7 +239,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objects {
 			if o.Error != nil {
-				q.errorc <- Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
+				q.errorc <- errutil.Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 				q.Skip(o.Size)
 				q.wait.Done()
 				continue
@@ -352,7 +353,7 @@ func (q *TransferQueue) retry(t Transferable) {
 }
 
 func (q *TransferQueue) canRetry(err error) bool {
-	if !IsRetriableError(err) || atomic.LoadUint32(&q.retrying) == 1 {
+	if !errutil.IsRetriableError(err) || atomic.LoadUint32(&q.retrying) == 1 {
 		return false
 	}
 

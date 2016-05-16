@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
 )
 
@@ -65,7 +66,7 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 func (d *Downloadable) Transfer(cb progress.CopyCallback) error {
 	err := PointerSmudgeObject(d.Pointer.Pointer, d.object, cb)
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 	return nil
 }

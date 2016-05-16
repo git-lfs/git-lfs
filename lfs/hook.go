@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -75,7 +76,7 @@ func (h *Hook) Upgrade() error {
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
 	if !InRepo() {
-		return newInvalidRepoError(nil)
+		return errutil.NewInvalidRepoError(nil)
 	}
 
 	match, err := h.matchesCurrent()

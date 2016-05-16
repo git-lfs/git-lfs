@@ -354,6 +354,15 @@ func TraceHttpReq(req *http.Request) string {
 	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
 }
 
+// GetOperationForRequest determines the operation type for a http.Request
+func GetOperationForRequest(req *http.Request) string {
+	operation := "download"
+	if req.Method == "POST" || req.Method == "PUT" {
+		operation = "upload"
+	}
+	return operation
+}
+
 func init() {
 	UserAgent = config.VersionDesc
 }

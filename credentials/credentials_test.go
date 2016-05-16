@@ -1,4 +1,4 @@
-package lfs
+package credentials
 
 import (
 	"encoding/base64"
@@ -13,7 +13,9 @@ import (
 )
 
 func TestGetCredentialsForApi(t *testing.T) {
-	checkGetCredentials(t, getCreds, []*getCredentialCheck{
+	SetupTestCredentialsFunc()
+
+	checkGetCredentials(t, GetCreds, []*getCredentialCheck{
 		{
 			Desc:     "simple",
 			Config:   map[string]string{"lfs.url": "https://git-server.com"},
@@ -111,6 +113,8 @@ func TestGetCredentialsForApi(t *testing.T) {
 			SkipAuth: true,
 		},
 	})
+
+	RestoreCredentialsFunc()
 }
 
 type fakeNetrc struct{}
@@ -123,6 +127,8 @@ func (n *fakeNetrc) FindMachine(host string) *netrc.Machine {
 }
 
 func TestNetrcWithHostAndPort(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	config.Config.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://some-host:123/foo/bar")
 	if err != nil {
@@ -142,9 +148,13 @@ func TestNetrcWithHostAndPort(t *testing.T) {
 	if auth != "Basic YWJjOmRlZg==" {
 		t.Fatalf("bad basic auth: %q", auth)
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestNetrcWithHost(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	config.Config.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://some-host/foo/bar")
 	if err != nil {
@@ -164,9 +174,13 @@ func TestNetrcWithHost(t *testing.T) {
 	if auth != "Basic YWJjOmRlZg==" {
 		t.Fatalf("bad basic auth: %q", auth)
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func TestNetrcWithBadHost(t *testing.T) {
+	SetupTestCredentialsFunc()
+
 	config.Config.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://other-host/foo/bar")
 	if err != nil {
@@ -186,6 +200,8 @@ func TestNetrcWithBadHost(t *testing.T) {
 	if auth != "" {
 		t.Fatalf("bad basic auth: %q", auth)
 	}
+
+	RestoreCredentialsFunc()
 }
 
 func checkGetCredentials(t *testing.T, getCredsFunc func(*http.Request) (Creds, error), checks []*getCredentialCheck) {
@@ -286,8 +302,13 @@ func (c *getCredentialCheck) ExpectCreds() bool {
 		len(c.Password) > 0 || len(c.Path) > 0
 }
 
+var (
+	TestCredentialsFunc CredentialFunc
+	origCredentialsFunc CredentialFunc
+)
+
 func init() {
-	execCreds = func(input Creds, subCommand string) (Creds, error) {
+	TestCredentialsFunc = func(input Creds, subCommand string) (Creds, error) {
 		output := make(Creds)
 		for key, value := range input {
 			output[key] = value
@@ -298,4 +319,14 @@ func init() {
 		output["password"] = "monkey"
 		return output, nil
 	}
+}
+
+// Override the credentials func for testing
+func SetupTestCredentialsFunc() {
+	origCredentialsFunc = SetCredentialsFunc(TestCredentialsFunc)
+}
+
+// Put the original credentials func back
+func RestoreCredentialsFunc() {
+	SetCredentialsFunc(origCredentialsFunc)
 }

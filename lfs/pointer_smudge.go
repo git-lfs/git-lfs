@@ -12,6 +12,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -25,7 +26,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb progre
 	}
 	defer file.Close()
 	if err := PointerSmudge(file, ptr, filename, download, cb); err != nil {
-		if IsDownloadDeclinedError(err) {
+		if errutil.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, os.SEEK_SET)
 			ptr.Encode(file)
@@ -60,14 +61,14 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		if download {
 			err = downloadFile(writer, ptr, workingfile, mediafile, cb)
 		} else {
-			return newDownloadDeclinedError(nil)
+			return errutil.NewDownloadDeclinedError(nil)
 		}
 	} else {
 		err = readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}
 
 	if err != nil {
-		return newSmudgeError(err, ptr.Oid, mediafile)
+		return errutil.NewSmudgeError(err, ptr.Oid, mediafile)
 	}
 
 	return nil
@@ -95,7 +96,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *api.ObjectResource, cb progress.Copy
 		err := downloadObject(ptr, obj, mediafile, cb)
 
 		if err != nil {
-			return newSmudgeError(err, obj.Oid, mediafile)
+			return errutil.NewSmudgeError(err, obj.Oid, mediafile)
 		}
 	}
 
@@ -109,7 +110,7 @@ func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb 
 	}
 
 	if err != nil {
-		return Errorf(err, "Error downloading %s", mediafile)
+		return errutil.Errorf(err, "Error downloading %s", mediafile)
 	}
 
 	if ptr.Size == 0 {
@@ -117,7 +118,7 @@ func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb 
 	}
 
 	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
-		return Errorf(err, "Error buffering media file: %s", err)
+		return errutil.Errorf(err, "Error buffering media file: %s", err)
 	}
 
 	return nil
@@ -131,7 +132,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 
 	if err != nil {
-		return Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
+		return errutil.Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}
 
 	if ptr.Size == 0 {
@@ -139,7 +140,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 
 	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
-		return Errorf(err, "Error buffering media file: %s", err)
+		return errutil.Errorf(err, "Error buffering media file: %s", err)
 	}
 
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
@@ -212,7 +213,7 @@ func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb prog
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) error {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return Errorf(err, "Error opening media file.")
+		return errutil.Errorf(err, "Error opening media file.")
 	}
 	defer reader.Close()
 
@@ -229,14 +230,14 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
 				err := fmt.Errorf("Extension '%s' is not configured.", ptrExt.Name)
-				return Error(err)
+				return errutil.Error(err)
 			}
 			ext.Priority = ptrExt.Priority
 			extensions[ext.Name] = ext
 		}
 		exts, err := config.SortExtensions(extensions)
 		if err != nil {
-			return Error(err)
+			return errutil.Error(err)
 		}
 
 		// pipe extensions in reverse order
@@ -250,7 +251,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 
 		response, err := pipeExtensions(request)
 		if err != nil {
-			return Error(err)
+			return errutil.Error(err)
 		}
 
 		actualExts := make(map[string]*pipeExtResult)
@@ -262,32 +263,32 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
 			err = fmt.Errorf("Actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
-			return Error(err)
+			return errutil.Error(err)
 		}
 
 		for _, expected := range ptr.Extensions {
 			actual := actualExts[expected.Name]
 			if actual.name != expected.Name {
 				err = fmt.Errorf("Actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
-				return Error(err)
+				return errutil.Error(err)
 			}
 			if actual.oidOut != expected.Oid {
 				err = fmt.Errorf("Actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
-				return Error(err)
+				return errutil.Error(err)
 			}
 		}
 
 		// setup reader
 		reader, err = os.Open(response.file.Name())
 		if err != nil {
-			return Errorf(err, "Error opening smudged file: %s", err)
+			return errutil.Errorf(err, "Error opening smudged file: %s", err)
 		}
 		defer reader.Close()
 	}
 
 	_, err = CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
-		return Errorf(err, "Error reading from media file: %s", err)
+		return errutil.Errorf(err, "Error reading from media file: %s", err)
 	}
 
 	return nil
