@@ -226,7 +226,7 @@ existing locks after a push.
 // a lock associated with the given UUID.
 type UnlockRequest struct {
         // UUID is the identifier of the lock that the client wishes to remove.
-        UUID string `json:"path"`
+        UUID string `json:"uuid"`
 }
 ```
 
