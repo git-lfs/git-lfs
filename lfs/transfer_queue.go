@@ -4,6 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/progress"
@@ -15,13 +16,13 @@ const (
 )
 
 type Transferable interface {
-	Check() (*ObjectResource, error)
+	Check() (*api.ObjectResource, error)
 	Transfer(progress.CopyCallback) error
-	Object() *ObjectResource
+	Object() *api.ObjectResource
 	Oid() string
 	Size() int64
 	Name() string
-	SetObject(*ObjectResource)
+	SetObject(*api.ObjectResource)
 }
 
 // TransferQueue provides a queue that will allow concurrent transfers.
@@ -207,9 +208,9 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		tracerx.Printf("tq: sending batch of size %d", len(batch))
 
-		transfers := make([]*ObjectResource, 0, len(batch))
+		transfers := make([]*api.ObjectResource, 0, len(batch))
 		for _, t := range batch {
-			transfers = append(transfers, &ObjectResource{Oid: t.Oid(), Size: t.Size()})
+			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
 		objects, err := Batch(transfers, q.transferKind)

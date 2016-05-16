@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
@@ -74,7 +75,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 // PointerSmudgeObject uses a Pointer and ObjectResource to download the object to the
 // media directory. It does not write the file to the working directory.
-func PointerSmudgeObject(ptr *Pointer, obj *ObjectResource, cb progress.CopyCallback) error {
+func PointerSmudgeObject(ptr *Pointer, obj *api.ObjectResource, cb progress.CopyCallback) error {
 	mediafile, err := LocalMediaPath(obj.Oid)
 	if err != nil {
 		return err
@@ -101,7 +102,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *ObjectResource, cb progress.CopyCall
 	return nil
 }
 
-func downloadObject(ptr *Pointer, obj *ObjectResource, mediafile string, cb progress.CopyCallback) error {
+func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb progress.CopyCallback) error {
 	reader, size, err := DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()

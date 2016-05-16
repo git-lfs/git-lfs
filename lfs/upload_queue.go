@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/progress"
 )
@@ -15,7 +16,7 @@ type Uploadable struct {
 	OidPath  string
 	Filename string
 	size     int64
-	object   *ObjectResource
+	object   *api.ObjectResource
 }
 
 // NewUploadable builds the Uploadable from the given information.
@@ -40,7 +41,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil
 }
 
-func (u *Uploadable) Check() (*ObjectResource, error) {
+func (u *Uploadable) Check() (*api.ObjectResource, error) {
 	return UploadCheck(u.OidPath)
 }
 
@@ -53,7 +54,7 @@ func (u *Uploadable) Transfer(cb progress.CopyCallback) error {
 	return UploadObject(u.object, wcb)
 }
 
-func (u *Uploadable) Object() *ObjectResource {
+func (u *Uploadable) Object() *api.ObjectResource {
 	return u.object
 }
 
@@ -69,7 +70,7 @@ func (u *Uploadable) Name() string {
 	return u.Filename
 }
 
-func (u *Uploadable) SetObject(o *ObjectResource) {
+func (u *Uploadable) SetObject(o *api.ObjectResource) {
 	u.object = o
 }
 

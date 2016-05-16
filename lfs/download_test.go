@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 )
 
@@ -39,11 +40,11 @@ func TestSuccessfulDownload(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &ObjectResource{
+		obj := &api.ObjectResource{
 			Oid:  "oid",
 			Size: 4,
-			Actions: map[string]*linkRelation{
-				"download": &linkRelation{
+			Actions: map[string]*api.LinkRelation{
+				"download": &api.LinkRelation{
 					Href:   server.URL + "/download",
 					Header: map[string]string{"A": "1"},
 				},
@@ -173,11 +174,11 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &ObjectResource{
+		obj := &api.ObjectResource{
 			Oid:  "oid",
 			Size: 4,
-			Actions: map[string]*linkRelation{
-				"download": &linkRelation{
+			Actions: map[string]*api.LinkRelation{
+				"download": &api.LinkRelation{
 					Href:   server.URL + "/download",
 					Header: map[string]string{"A": "1"},
 				},
@@ -276,11 +277,11 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &ObjectResource{
+		obj := &api.ObjectResource{
 			Oid:  "oid",
 			Size: 4,
-			Actions: map[string]*linkRelation{
-				"download": &linkRelation{
+			Actions: map[string]*api.LinkRelation{
+				"download": &api.LinkRelation{
 					Href: server.URL + "/download",
 					Header: map[string]string{
 						"A":             "1",
@@ -387,11 +388,11 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &ObjectResource{
+		obj := &api.ObjectResource{
 			Oid:  "oid",
 			Size: 4,
-			Actions: map[string]*linkRelation{
-				"download": &linkRelation{
+			Actions: map[string]*api.LinkRelation{
+				"download": &api.LinkRelation{
 					Href:   server2.URL + "/download",
 					Header: map[string]string{"A": "1"},
 				},
@@ -522,11 +523,11 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &ObjectResource{
+		obj := &api.ObjectResource{
 			Oid:  "oid",
 			Size: 4,
-			Actions: map[string]*linkRelation{
-				"download": &linkRelation{
+			Actions: map[string]*api.LinkRelation{
+				"download": &api.LinkRelation{
 					Href:   server3.URL + "/download",
 					Header: map[string]string{"A": "1"},
 				},
@@ -656,11 +657,11 @@ func TestDownloadStorageError(t *testing.T) {
 			t.Error("Invalid Authorization")
 		}
 
-		obj := &ObjectResource{
+		obj := &api.ObjectResource{
 			Oid:  "oid",
 			Size: 4,
-			Actions: map[string]*linkRelation{
-				"download": &linkRelation{
+			Actions: map[string]*api.LinkRelation{
+				"download": &api.LinkRelation{
 					Href:   server.URL + "/download",
 					Header: map[string]string{"A": "1"},
 				},

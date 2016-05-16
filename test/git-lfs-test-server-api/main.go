@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
@@ -242,11 +243,11 @@ func addTest(name string, f func(oidsExist, oidsMissing []TestObject) error) {
 	tests = append(tests, ServerTest{Name: name, F: f})
 }
 
-func callBatchApi(op string, objs []TestObject) ([]*lfs.ObjectResource, error) {
+func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
 
-	apiobjs := make([]*lfs.ObjectResource, 0, len(objs))
+	apiobjs := make([]*api.ObjectResource, 0, len(objs))
 	for _, o := range objs {
-		apiobjs = append(apiobjs, &lfs.ObjectResource{Oid: o.Oid, Size: o.Size})
+		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
 	return lfs.Batch(apiobjs, op)
 }

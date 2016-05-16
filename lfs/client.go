@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
@@ -44,59 +44,6 @@ var (
 	}
 )
 
-type ObjectError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func (e *ObjectError) Error() string {
-	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
-}
-
-type ObjectResource struct {
-	Oid     string                   `json:"oid,omitempty"`
-	Size    int64                    `json:"size"`
-	Actions map[string]*linkRelation `json:"actions,omitempty"`
-	Links   map[string]*linkRelation `json:"_links,omitempty"`
-	Error   *ObjectError             `json:"error,omitempty"`
-}
-
-func (o *ObjectResource) NewRequest(relation, method string) (*http.Request, error) {
-	rel, ok := o.Rel(relation)
-	if !ok {
-		if relation == "download" {
-			return nil, errors.New("Object not found on the server.")
-		}
-		return nil, fmt.Errorf("No %q action for this object.", relation)
-
-	}
-
-	req, err := newClientRequest(method, rel.Href, rel.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-func (o *ObjectResource) Rel(name string) (*linkRelation, bool) {
-	var rel *linkRelation
-	var ok bool
-
-	if o.Actions != nil {
-		rel, ok = o.Actions[name]
-	} else {
-		rel, ok = o.Links[name]
-	}
-
-	return rel, ok
-}
-
-type linkRelation struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
-}
-
 type ClientError struct {
 	Message          string `json:"message"`
 	DocumentationUrl string `json:"documentation_url,omitempty"`
@@ -122,8 +69,8 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 		return DownloadLegacy(oid)
 	}
 
-	objects := []*ObjectResource{
-		&ObjectResource{Oid: oid, Size: size},
+	objects := []*api.ObjectResource{
+		&api.ObjectResource{Oid: oid, Size: size},
 	}
 
 	objs, err := Batch(objects, "download")
@@ -173,7 +120,7 @@ type byteCloser struct {
 	*bytes.Reader
 }
 
-func DownloadCheck(oid string) (*ObjectResource, error) {
+func DownloadCheck(oid string) (*api.ObjectResource, error) {
 	req, err := newApiRequest("GET", oid)
 	if err != nil {
 		return nil, Error(err)
@@ -193,7 +140,7 @@ func DownloadCheck(oid string) (*ObjectResource, error) {
 	return obj, nil
 }
 
-func DownloadObject(obj *ObjectResource) (io.ReadCloser, int64, error) {
+func DownloadObject(obj *api.ObjectResource) (io.ReadCloser, int64, error) {
 	req, err := obj.NewRequest("download", "GET")
 	if err != nil {
 		return nil, 0, Error(err)
@@ -212,7 +159,7 @@ func (b *byteCloser) Close() error {
 	return nil
 }
 
-func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+func Batch(objects []*api.ObjectResource, operation string) ([]*api.ObjectResource, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -271,7 +218,7 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 	return objs, nil
 }
 
-func UploadCheck(oidPath string) (*ObjectResource, error) {
+func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 	oid := filepath.Base(oidPath)
 
 	stat, err := os.Stat(oidPath)
@@ -279,7 +226,7 @@ func UploadCheck(oidPath string) (*ObjectResource, error) {
 		return nil, Error(err)
 	}
 
-	reqObj := &ObjectResource{
+	reqObj := &api.ObjectResource{
 		Oid:  oid,
 		Size: stat.Size(),
 	}
@@ -326,7 +273,7 @@ func UploadCheck(oidPath string) (*ObjectResource, error) {
 	return obj, nil
 }
 
-func UploadObject(o *ObjectResource, cb progress.CopyCallback) error {
+func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 	path, err := LocalMediaPath(o.Oid)
 	if err != nil {
 		return Error(err)
@@ -412,14 +359,14 @@ func UploadObject(o *ObjectResource, cb progress.CopyCallback) error {
 }
 
 // doLegacyApiRequest runs the request to the LFS legacy API.
-func doLegacyApiRequest(req *http.Request) (*http.Response, *ObjectResource, error) {
+func doLegacyApiRequest(req *http.Request) (*http.Response, *api.ObjectResource, error) {
 	via := make([]*http.Request, 0, 4)
 	res, err := doApiRequestWithRedirects(req, via, true)
 	if err != nil {
 		return res, nil, err
 	}
 
-	obj := &ObjectResource{}
+	obj := &api.ObjectResource{}
 	err = decodeApiResponse(res, obj)
 
 	if err != nil {
@@ -443,7 +390,7 @@ func getOperationForHttpRequest(req *http.Request) string {
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func doApiBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error) {
+func doApiBatchRequest(req *http.Request) (*http.Response, []*api.ObjectResource, error) {
 	res, err := doAPIRequest(req, config.Config.PrivateAccess(getOperationForHttpRequest(req)))
 
 	if err != nil {
@@ -453,7 +400,7 @@ func doApiBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, er
 		return res, nil, err
 	}
 
-	var objs map[string][]*ObjectResource
+	var objs map[string][]*api.ObjectResource
 	err = decodeApiResponse(res, &objs)
 
 	if err != nil {
