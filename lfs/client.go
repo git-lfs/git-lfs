@@ -431,7 +431,7 @@ func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) 
 	)
 
 	if config.Config.NtlmAccess(httputil.GetOperationForRequest(req)) {
-		res, err = DoNTLMRequest(req, true)
+		res, err = auth.DoNTLMRequest(req, true)
 	} else {
 		res, err = httputil.NewHttpClient(config.Config, req.Host).Do(req)
 	}

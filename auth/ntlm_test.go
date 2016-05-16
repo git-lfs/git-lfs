@@ -1,4 +1,4 @@
-package lfs
+package auth
 
 import (
 	"bytes"
