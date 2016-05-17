@@ -3,8 +3,10 @@ package git_test // to avoid import cycles
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -277,7 +279,12 @@ func TestVersionCompare(t *testing.T) {
 func TestGitAndRootDirs(t *testing.T) {
 	git, root, err := GitAndRootDirs()
 	if err != nil {
-		t.Fatal(err)
+		errmsg := err.Error()
+		if strings.Contains(errmsg, "Not a git repository") {
+			t.Skip("Not a git repository")
+		} else {
+			t.Fatal(errmsg)
+		}
 	}
 
 	assert.Equal(t, git, filepath.Join(root, ".git"))
@@ -382,6 +389,9 @@ func TestGetTrackedFiles(t *testing.T) {
 func TestLocalRefs(t *testing.T) {
 	refs, err := LocalRefs()
 	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			t.Skip("Not a git repository")
+		}
 		t.Fatal(err)
 	}
 

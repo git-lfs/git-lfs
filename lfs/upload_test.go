@@ -106,7 +106,7 @@ func TestExistingUpload(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestUploadWithRedirect(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/redirect")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -410,7 +410,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -574,7 +574,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -622,7 +622,7 @@ func TestUploadApiError(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -734,7 +734,7 @@ func TestUploadStorageError(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -886,7 +886,7 @@ func TestUploadVerifyError(t *testing.T) {
 	defer Config.ResetConfig()
 	Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath := uploadMediaPath(t, "988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -922,4 +922,12 @@ func TestUploadVerifyError(t *testing.T) {
 	if !verifyCalled {
 		t.Errorf("verify not called")
 	}
+}
+
+func uploadMediaPath(t *testing.T, oid string) string {
+	if objects == nil {
+		t.Skip("Not in a git repository")
+	}
+	oidPath, _ := LocalMediaPath(oid)
+	return oidPath
 }
