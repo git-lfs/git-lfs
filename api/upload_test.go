@@ -1,4 +1,4 @@
-package api
+package api_test // prevent import cycles
 
 import (
 	"bytes"
@@ -16,6 +16,8 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
+	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/test"
 )
 
@@ -116,12 +118,12 @@ func TestExistingUpload(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	o, err := UploadCheck(oidPath)
+	o, err := api.UploadCheck(oidPath)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -247,12 +249,12 @@ func TestUploadWithRedirect(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/redirect")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	obj, err := UploadCheck(oidPath)
+	obj, err := api.UploadCheck(oidPath)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -428,7 +430,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
@@ -440,14 +442,14 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		return nil
 	}
 
-	obj, err := UploadCheck(oidPath)
+	obj, err := api.UploadCheck(oidPath)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, cb)
+	err = uploadObject(obj, cb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -596,19 +598,19 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	obj, err := UploadCheck(oidPath)
+	obj, err := api.UploadCheck(oidPath)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, nil)
+	err = uploadObject(obj, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -648,12 +650,12 @@ func TestUploadApiError(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := UploadCheck(oidPath)
+	_, err := api.UploadCheck(oidPath)
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -764,19 +766,19 @@ func TestUploadStorageError(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	obj, err := UploadCheck(oidPath)
+	obj, err := api.UploadCheck(oidPath)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, nil)
+	err = uploadObject(obj, nil)
 	if err == nil {
 		t.Fatal("Expected an error")
 	}
@@ -920,19 +922,19 @@ func TestUploadVerifyError(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	oidPath, _ := LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
+	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
 		t.Fatal(err)
 	}
 
-	obj, err := UploadCheck(oidPath)
+	obj, err := api.UploadCheck(oidPath)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	err = UploadObject(obj, nil)
+	err = uploadObject(obj, nil)
 	if err == nil {
 		t.Fatal("Expected an error")
 	}
@@ -956,5 +958,27 @@ func TestUploadVerifyError(t *testing.T) {
 	if !verifyCalled {
 		t.Errorf("verify not called")
 	}
+
+}
+
+func uploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
+	path, err := lfs.LocalMediaPath(o.Oid)
+	if err != nil {
+		return errutil.Error(err)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return errutil.Error(err)
+	}
+	defer file.Close()
+
+	reader := &progress.CallbackReader{
+		C:         cb,
+		TotalSize: o.Size,
+		Reader:    file,
+	}
+
+	return api.UploadObject(o, reader)
 
 }

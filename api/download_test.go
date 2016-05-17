@@ -1,4 +1,4 @@
-package api
+package api_test
 
 import (
 	"encoding/base64"
@@ -101,7 +101,7 @@ func TestSuccessfulDownload(t *testing.T) {
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	reader, size, err := Download("oid", 0)
+	reader, size, err := api.Download("oid", 0)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -241,7 +241,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	config.Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
-		reader, size, err := Download("oid", 0)
+		reader, size, err := api.Download("oid", 0)
 		if err != nil {
 			if isDockerConnectionError(err) {
 				return
@@ -354,7 +354,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, err := Download("oid", 0)
+	reader, size, err := api.Download("oid", 0)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -463,7 +463,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	reader, size, err := Download("oid", 0)
+	reader, size, err := api.Download("oid", 0)
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -605,7 +605,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
 	for _, redirect := range redirectCodes {
-		reader, size, err := Download("oid", 0)
+		reader, size, err := api.Download("oid", 0)
 		if err != nil {
 			if isDockerConnectionError(err) {
 				return
@@ -649,7 +649,7 @@ func TestDownloadAPIError(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, err := Download("oid", 0)
+	_, _, err := api.Download("oid", 0)
 	if err == nil {
 		t.Fatal("no error?")
 	}
@@ -728,7 +728,7 @@ func TestDownloadStorageError(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, err := Download("oid", 0)
+	_, _, err := api.Download("oid", 0)
 	if err == nil {
 		t.Fatal("no error?")
 	}
