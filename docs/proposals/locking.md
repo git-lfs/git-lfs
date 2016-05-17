@@ -248,7 +248,7 @@ type UnlockResult struct {
 ```
 
 Clients can determine whether or not their lock was removed by calling the
-`Active()` method on the returned Lock, if `UnlockResult.Err` is non-nil.
+`Active()` method on the returned Lock, if `UnlockResult.Err` is nil.
 
 #### `git lfs locks (-r <remote>|-b <branch|-p <path>)|(-i id)`
 
