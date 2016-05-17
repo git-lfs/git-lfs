@@ -128,8 +128,8 @@ type Lock struct {
         // Path is an absolute path to the file that is locked as a part of this
         // lock.
         Path string `json:"path"`
-        // Creator is the author who initiated this lock.
-        Creator struct {
+        // Committer is the author who initiated this lock.
+        Committer struct {
                Name  string `json:"name"`
                Email string `json:"email"`
         } `json:"creator"`
