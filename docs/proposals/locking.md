@@ -125,6 +125,9 @@ sub-package.
 // Locks returned from the API may or may not be currently active, according to
 // the Expired flag.
 type Lock struct {
+        // Id is the unique identifier corresponding to this particular Lock. It
+        // must be consistent with the local copy, and the server's copy.
+        Id string `json:"id"`
         // Path is an absolute path to the file that is locked as a part of this
         // lock.
         Path string `json:"path"`
@@ -216,17 +219,17 @@ type LockResponse struct {
 
 The `unlock` command is responsible for releasing the lock against a particular
 file. The command takes a `<path>` argument which the LFS client will have to
-internally resolve into a UUID to unlock.
+internally resolve into a Id to unlock.
 
 The API associated with this command can also be used on the server to remove
 existing locks after a push.
 
 ```go
 // An UnlockRequest is sent by the client over the API when they wish to remove
-// a lock associated with the given UUID.
+// a lock associated with the given Id.
 type UnlockRequest struct {
-        // UUID is the identifier of the lock that the client wishes to remove.
-        UUID string `json:"uuid"`
+        // Id is the identifier of the lock that the client wishes to remove.
+        Id string `json:"id"`
 }
 ```
 
@@ -247,7 +250,7 @@ type UnlockResult struct {
 Clients can determine whether or not their lock was removed by calling the
 `Active()` method on the returned Lock, if `UnlockResult.Err` is non-nil.
 
-#### `git lfs locks (-r <remote>|-b <branch|-p <path>)|(-u uuid)`
+#### `git lfs locks (-r <remote>|-b <branch|-p <path>)|(-i id)`
 
 For many operations, the LFS client will need to have knowledge of existing
 locks on the server. Additionally, the client should not have to self-sort/index
@@ -264,8 +267,8 @@ field in the `LockListRequest`.
 type Property string
 
 const (
-        UUID   Property = "uuid"
         Branch Property = "branch"
+        Id     Property = "id"
         // (etc) ...
 )
 
