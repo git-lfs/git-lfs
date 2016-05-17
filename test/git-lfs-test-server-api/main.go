@@ -250,7 +250,7 @@ func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
 	for _, o := range objs {
 		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
-	return lfs.Batch(apiobjs, op)
+	return api.Batch(apiobjs, op)
 }
 
 // Combine 2 slices into one by "randomly" interleaving

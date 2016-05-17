@@ -214,7 +214,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
-		objects, err := Batch(transfers, q.transferKind)
+		objects, err := api.Batch(transfers, q.transferKind)
 		if err != nil {
 			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
