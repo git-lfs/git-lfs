@@ -264,7 +264,7 @@ func IsWindows() bool {
 }
 
 func CopyFileContents(src string, dst string) error {
-	tmp, err := ioutil.TempFile(TempDir, filepath.Base(dst))
+	tmp, err := ioutil.TempFile(TempDir(), filepath.Base(dst))
 	if err != nil {
 		return err
 	}

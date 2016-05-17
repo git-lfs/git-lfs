@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,66 +12,39 @@ import (
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
-const (
-	tempDirPerms       = 0755
-	localMediaDirPerms = 0755
-	localLogDirPerms   = 0755
-)
-
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
-	objects            *localstorage.LocalStorage
-	LocalMediaDir      string // root of lfs objects
-	LocalObjectTempDir string // where temporarily downloading objects are stored
-	TempDir            = filepath.Join(os.TempDir(), "git-lfs")
-	checkedTempDir     string
 )
 
-func ResolveDirs() {
-
-	config.ResolveGitBasicDirs()
-	TempDir = filepath.Join(config.LocalGitDir, "lfs", "tmp") // temp files per worktree
-
-	objs, err := localstorage.New(
-		filepath.Join(config.LocalGitStorageDir, "lfs", "objects"),
-		filepath.Join(TempDir, "objects"),
-	)
-
-	if err != nil {
-		panic(fmt.Sprintf("Error trying to init LocalStorage: %s", err))
+// LocalMediaDir returns the root of lfs objects
+func LocalMediaDir() string {
+	if localstorage.Objects() != nil {
+		return localstorage.Objects().RootDir
 	}
+	return ""
+}
 
-	objects = objs
-	LocalMediaDir = objs.RootDir
-	LocalObjectTempDir = objs.TempDir
-	config.LocalLogDir = filepath.Join(objs.RootDir, "logs")
-	if err := os.MkdirAll(config.LocalLogDir, localLogDirPerms); err != nil {
-		panic(fmt.Errorf("Error trying to create log directory in '%s': %s", config.LocalLogDir, err))
+func LocalObjectTempDir() string {
+	if localstorage.Objects() != nil {
+		return localstorage.Objects().TempDir
 	}
+	return ""
+}
+
+func TempDir() string {
+	return localstorage.TempDir
 }
 
 func TempFile(prefix string) (*os.File, error) {
-	if checkedTempDir != TempDir {
-		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
-			return nil, err
-		}
-		checkedTempDir = TempDir
-	}
-
-	return ioutil.TempFile(TempDir, prefix)
-}
-
-func ResetTempDir() error {
-	checkedTempDir = ""
-	return os.RemoveAll(TempDir)
+	return localstorage.TempFile(prefix)
 }
 
 func LocalMediaPath(oid string) (string, error) {
-	return objects.BuildObjectPath(oid)
+	return localstorage.Objects().BuildObjectPath(oid)
 }
 
 func LocalMediaPathReadOnly(oid string) string {
-	return objects.ObjectPath(oid)
+	return localstorage.Objects().ObjectPath(oid)
 }
 
 func LocalReferencePath(sha string) string {
@@ -83,7 +55,7 @@ func LocalReferencePath(sha string) string {
 }
 
 func ObjectExistsOfSize(oid string, size int64) bool {
-	path := objects.ObjectPath(oid)
+	path := localstorage.Objects().ObjectPath(oid)
 	return tools.FileExistsOfSize(path, size)
 }
 
@@ -94,9 +66,9 @@ func Environ() []string {
 		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),
 		fmt.Sprintf("LocalGitDir=%s", config.LocalGitDir),
 		fmt.Sprintf("LocalGitStorageDir=%s", config.LocalGitStorageDir),
-		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir),
+		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
 		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
-		fmt.Sprintf("TempDir=%s", TempDir),
+		fmt.Sprintf("TempDir=%s", TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", config.Config.ConcurrentTransfers()),
 		fmt.Sprintf("BatchTransfer=%v", config.Config.BatchTransfer()),
 		fmt.Sprintf("SkipDownloadErrors=%v", config.Config.SkipDownloadErrors()),
@@ -135,21 +107,21 @@ func InRepo() bool {
 }
 
 func ClearTempObjects() error {
-	if objects == nil {
+	if localstorage.Objects() == nil {
 		return nil
 	}
-	return objects.ClearTempObjects()
+	return localstorage.Objects().ClearTempObjects()
 }
 
 func ScanObjectsChan() <-chan localstorage.Object {
-	return objects.ScanObjectsChan()
+	return localstorage.Objects().ScanObjectsChan()
 }
 
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
 
-	ResolveDirs()
+	localstorage.ResolveDirs()
 }
 
 const (
@@ -159,7 +131,7 @@ const (
 
 // only used in tests
 func AllObjects() []localstorage.Object {
-	return objects.AllObjects()
+	return localstorage.Objects().AllObjects()
 }
 
 func LinkOrCopyFromReference(oid string, size int64) error {

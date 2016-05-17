@@ -8,7 +8,7 @@ import (
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -60,7 +60,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	defer os.Chdir(cwd)
 
 	// Also need to derive dirs now
-	lfs.ResolveDirs()
+	localstorage.ResolveDirs()
 	requireInRepo()
 
 	// Now just call pull with default args

@@ -28,7 +28,7 @@ type Object struct {
 	Size int64
 }
 
-func New(storageDir, tempDir string) (*LocalStorage, error) {
+func NewStorage(storageDir, tempDir string) (*LocalStorage, error) {
 	if err := os.MkdirAll(storageDir, dirPerms); err != nil {
 		return nil, err
 	}
