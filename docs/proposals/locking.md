@@ -133,22 +133,22 @@ type Lock struct {
                Name  string `json:"name"`
                Email string `json:"email"`
         } `json:"creator"`
-        // CreatedAt is a required parameter that represents the instant in time
+        // LockedAt is a required parameter that represents the instant in time
         // that this lock was created. For most server implementations, this
         // should be set to the instant at which the lock was initially
         // received.
-        CreatedAt time.Time `json:"created_at"`
+        LockedAt time.Time `json:"locked_at"`
         // ExpiresAt is an optional parameter that represents the instant in
         // time that the lock stopped being active. If the lock is still active,
         // the server can either a) not send this field, or b) send the
         // zero-value of time.Time.
-        ExpiresAt time.Time `json:"expired_at,omitempty"`
+        UnlockedAt time.Time `json:"unlocked_at,omitempty"`
 }
 
 // Active returns whether or not the given lock is still active against the file
 // that it is protecting.
 func (l *Lock) Active() bool {
-        return time.IsZero(l.ExpiresAt)
+        return time.IsZero(l.UnlockedAt)
 }
 ```
 
