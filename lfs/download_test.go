@@ -42,7 +42,7 @@ func TestSuccessfulDownload(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -67,7 +67,7 @@ func TestSuccessfulDownload(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -181,7 +181,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -206,7 +206,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -289,7 +289,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -405,7 +405,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -430,7 +430,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -522,7 +522,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -545,7 +545,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -570,7 +570,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -690,7 +690,7 @@ func TestDownloadStorageError(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -715,7 +715,7 @@ func TestDownloadStorageError(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)

@@ -6,25 +6,17 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 
 	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-)
-
-const (
-	MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
 // Download will attempt to download the object with the given oid. The batched
@@ -58,7 +50,7 @@ func Download(oid string, size int64) (io.ReadCloser, int64, error) {
 // DownloadLegacy attempts to download the object for the given oid using the
 // legacy API.
 func DownloadLegacy(oid string) (io.ReadCloser, int64, error) {
-	req, err := newApiRequest("GET", oid)
+	req, err := api.NewRequest("GET", oid)
 	if err != nil {
 		return nil, 0, errutil.Error(err)
 	}
@@ -87,7 +79,7 @@ type byteCloser struct {
 }
 
 func DownloadCheck(oid string) (*api.ObjectResource, error) {
-	req, err := newApiRequest("GET", oid)
+	req, err := api.NewRequest("GET", oid)
 	if err != nil {
 		return nil, errutil.Error(err)
 	}
@@ -137,12 +129,12 @@ func Batch(objects []*api.ObjectResource, operation string) ([]*api.ObjectResour
 		return nil, errutil.Error(err)
 	}
 
-	req, err := newBatchApiRequest(operation)
+	req, err := api.NewBatchRequest(operation)
 	if err != nil {
 		return nil, errutil.Error(err)
 	}
 
-	req.Header.Set("Content-Type", MediaType)
+	req.Header.Set("Content-Type", api.MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
@@ -202,12 +194,12 @@ func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 		return nil, errutil.Error(err)
 	}
 
-	req, err := newApiRequest("POST", oid)
+	req, err := api.NewRequest("POST", oid)
 	if err != nil {
 		return nil, errutil.Error(err)
 	}
 
-	req.Header.Set("Content-Type", MediaType)
+	req.Header.Set("Content-Type", api.MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
@@ -308,7 +300,7 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 		return errutil.Error(err)
 	}
 
-	req.Header.Set("Content-Type", MediaType)
+	req.Header.Set("Content-Type", api.MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
@@ -322,89 +314,4 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 	res.Body.Close()
 
 	return err
-}
-
-func newApiRequest(method, oid string) (*http.Request, error) {
-	objectOid := oid
-	operation := "download"
-	if method == "POST" {
-		if oid != "batch" {
-			objectOid = ""
-			operation = "upload"
-		}
-	}
-	endpoint := config.Config.Endpoint(operation)
-
-	res, err := auth.SshAuthenticate(endpoint, operation, oid)
-	if err != nil {
-		tracerx.Printf("ssh: attempted with %s.  Error: %s",
-			endpoint.SshUserAndHost, err.Error(),
-		)
-		return nil, err
-	}
-
-	if len(res.Href) > 0 {
-		endpoint.Url = res.Href
-	}
-
-	u, err := ObjectUrl(endpoint, objectOid)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := httputil.NewHttpRequest(method, u.String(), res.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", MediaType)
-	return req, nil
-}
-
-func newBatchApiRequest(operation string) (*http.Request, error) {
-	endpoint := config.Config.Endpoint(operation)
-
-	res, err := auth.SshAuthenticate(endpoint, operation, "")
-	if err != nil {
-		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
-			operation, endpoint.SshUserAndHost, err.Error(),
-		)
-		return nil, err
-	}
-
-	if len(res.Href) > 0 {
-		endpoint.Url = res.Href
-	}
-
-	u, err := ObjectUrl(endpoint, "batch")
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := httputil.NewHttpRequest("POST", u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", MediaType)
-	if res.Header != nil {
-		for key, value := range res.Header {
-			req.Header.Set(key, value)
-		}
-	}
-
-	return req, nil
-}
-
-func ObjectUrl(endpoint config.Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
 }

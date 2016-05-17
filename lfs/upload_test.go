@@ -48,11 +48,11 @@ func TestExistingUpload(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -96,7 +96,7 @@ func TestExistingUpload(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -194,11 +194,11 @@ func TestUploadWithRedirect(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -239,7 +239,7 @@ func TestUploadWithRedirect(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -294,11 +294,11 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -342,7 +342,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -400,7 +400,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Error("Invalid B")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Error("Invalid Content-Type")
 		}
 
@@ -504,11 +504,11 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -548,7 +548,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -703,11 +703,11 @@ func TestUploadStorageError(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -751,7 +751,7 @@ func TestUploadStorageError(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -827,11 +827,11 @@ func TestUploadVerifyError(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != MediaType {
+		if r.Header.Get("Accept") != api.MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != MediaType {
+		if r.Header.Get("Content-Type") != api.MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -875,7 +875,7 @@ func TestUploadVerifyError(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", MediaType)
+		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
