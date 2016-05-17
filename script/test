@@ -3,8 +3,8 @@
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
-suite="./${1:-"api"} ./${1:-"lfs"} ./${1:-"git"}"
 if [ $# -gt 0 ]; then
-  shift
+    GO15VENDOREXPERIMENT=0 go test "./$1"
+else 
+    GO15VENDOREXPERIMENT=0 go test ./...
 fi
-GO15VENDOREXPERIMENT=0 go test $suite "$@"
