@@ -36,12 +36,12 @@
 <   lock: {
 <     id: "some-uuid",
 <     path: "/path/to/file",
-<     committer": {
+<     committer: {
 <       name: "Jane Doe",
 <       email: "jane@example.com"
 <     },
 <     commit_sha: "d3adbeef",
-<     locked_at: "2016-05-17T15:49:06+00:00",
+<     locked_at: "2016-05-17T15:49:06+00:00"
 <   }
 < }
 ```
@@ -64,8 +64,8 @@
 < {
 <   lock: {
 <     /* the previously created lock */
-<   }
-<   error: "already created lock",
+<   },
+<   error: "already created lock"
 < }
 ```
 
@@ -75,7 +75,7 @@
 < Content-Type: application/vnd.git-lfs+json
 <
 < {
-<   "error": "unable to create lock"
+<   error: "unable to create lock"
 < }
 ```
 
@@ -104,7 +104,7 @@
 <   lock: {
 <     id: "some-uuid",
 <     path: "/path/to/file",
-<     committer": {
+<     committer: {
 <       name: "Jane Doe",
 <       email: "jane@example.com"
 <     },
@@ -164,7 +164,7 @@ Note: no matching locks yields a payload of `locks: []`, and a status of 200.
 <     }
 <   ],
 <   next_cursor: "optional-next-id",
-<   error: "optional error",
+<   error: "optional error"
 < }
 ```
 
