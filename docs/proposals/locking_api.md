@@ -1,6 +1,6 @@
 # Locking API proposal
 
-## POST /api/v1/locks
+## POST /locks
 
 | Method  | Accept                         | Content-Type                   | Authorization |
 |---------|--------------------------------|--------------------------------|---------------|
@@ -9,7 +9,7 @@
 ### Request
 
 ```
-> GET https://git-lfs-server.com/api/v1/locks
+> GET https://git-lfs-server.com/locks
 > Accept: application/vnd.git-lfs+json
 > Authorization: Basic
 > Content-Type: application/vnd.git-lfs+json
@@ -78,7 +78,7 @@
 < }
 ```
 
-## POST /api/v1/locks/:id/unlock
+## POST /locks/:id/unlock
 
 | Method  | Accept                         | Content-Type | Authorization |
 |---------|--------------------------------|--------------|---------------|
@@ -87,7 +87,7 @@
 ### Request
 
 ```
-> POST https://git-lfs-server.com/api/v1/locks/:id/unlock
+> POST https://git-lfs-server.com/locks/:id/unlock
 > Accept: application/vnd.git-lfs+json
 > Authorization: Basic
 ```
@@ -124,7 +124,7 @@
 < }
 ```
 
-## GET /api/v1/locks
+## GET /locks
 
 | Method | Accept                        | Content-Type | Authorization |
 |--------|-------------------------------|--------------|---------------|
@@ -133,7 +133,7 @@
 ### Request
 
 ```
-> GET https://git-lfs-server.com/api/v1/locks?filters...&cursor=&limit=
+> GET https://git-lfs-server.com/locks?filters...&cursor=&limit=
 > Accept: application/vnd.git-lfs+json
 > Authorization: Basic
 ```
