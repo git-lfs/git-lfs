@@ -283,8 +283,13 @@ type LockListRequest struct {
                 // Value is the value that the property must take.
                 Value string `json:"value"`
         } `json:"filters"`
-        // Page is the numerical page of the result set to return.
-        Page int `json:"page"`
+        // Cursor is an optional field used to tell the server which lock was
+        // seen last, if scanning through multiple pages of results.
+        //
+        // Servers must return a list of locks sorted in reverse chronological
+        // order, so the Cursor provides a consistent method of viewing all
+        // locks, even if more were created between two requests.
+        Cursor string `json:"cursor,omitempty"`
         // Limit is the maximum number of locks to return in a single page.
         Limit int `json:"limit"`
 }
@@ -298,9 +303,10 @@ type LockList struct {
         // from a given query, then `Locks` will be represented as an empty
         // array.
         Locks []Lock `json:"locks"`
-        // HasMore represents whether or not the server has more information to
-        // return against the given query.
-        HasMore bool `json:"has_more"`
+        // NextCursor returns the Id of the Lock the client should update its
+        // cursor to, if there are multiple pages of results for a particular
+        // `LockListRequest`.
+        NextCursor string `json:"next_cursor,omitempty"`
         // Err populates any error that was encountered during the search. If no
         // error was encountered and the operation was succesful, then a value
         // of nil will be passed here.
