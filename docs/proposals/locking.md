@@ -136,6 +136,10 @@ type Lock struct {
                Name  string `json:"name"`
                Email string `json:"email"`
         } `json:"creator"`
+        // CommitSHA is the commit that this Lock was created against. It is
+        // strictly equal to the SHA of the minimum commit negotiated in order
+        // to create this lock.
+        CommitSHA string `json:"commit_sha"
         // LockedAt is a required parameter that represents the instant in time
         // that this lock was created. For most server implementations, this
         // should be set to the instant at which the lock was initially

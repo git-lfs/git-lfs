@@ -40,6 +40,7 @@
 <       name: "Jane Doe",
 <       email: "jane@example.com"
 <     },
+<     commit_sha: "d3adbeef",
 <     locked_at: "2016-05-17T15:49:06+00:00",
 <   }
 < }
@@ -107,6 +108,7 @@
 <       name: "Jane Doe",
 <       email: "jane@example.com"
 <     },
+<     commit_sha: "d3adbeef",
 <     locked_at: "2016-05-17T15:49:06+00:00",
 <     unlocked_at: "2016-05-17T15:49:06+00:00"
 <   }
@@ -157,6 +159,7 @@ Note: no matching locks yields a payload of `locks: []`, and a status of 200.
 <         name: "Jane Doe",
 <         email: "jane@example.com"
 <       },
+<       commit_sha: "1ec245f",
 <       locked_at: "2016-05-17T15:49:06+00:00"
 <     }
 <   ],
