@@ -173,9 +173,6 @@ argument to the command.
 type LockRequest struct {
         // Path is the path that the client would like to obtain a lock against.
         Path      string `json:"path"`
-        // Remote is the remote on which the client would like to obtain the
-        // lock.
-        Remote    string `json:"remote"`
         // LatestRemoteCommit is the SHA of the last known commit from the
         // remote that we are trying to create the lock against, as found in
         // `.git/refs/origin/<name>`.
