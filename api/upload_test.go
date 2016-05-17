@@ -1,4 +1,4 @@
-package lfs_test // avoid import cycle
+package api
 
 import (
 	"bytes"
@@ -16,7 +16,6 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
-	. "github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
 )
 

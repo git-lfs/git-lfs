@@ -17,7 +17,7 @@ func NewDownloadCheckable(p *WrappedPointer) *DownloadCheckable {
 }
 
 func (d *DownloadCheckable) Check() (*api.ObjectResource, error) {
-	return DownloadCheck(d.Pointer.Oid)
+	return api.DownloadCheck(d.Pointer.Oid)
 }
 
 func (d *DownloadCheckable) Transfer(cb progress.CopyCallback) error {

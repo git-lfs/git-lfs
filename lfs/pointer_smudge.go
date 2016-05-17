@@ -104,7 +104,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *api.ObjectResource, cb progress.Copy
 }
 
 func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb progress.CopyCallback) error {
-	reader, size, err := DownloadObject(obj)
+	reader, size, err := api.DownloadObject(obj)
 	if reader != nil {
 		defer reader.Close()
 	}
@@ -126,7 +126,7 @@ func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb 
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, err := Download(filepath.Base(mediafile), ptr.Size)
+	reader, size, err := api.Download(filepath.Base(mediafile), ptr.Size)
 	if reader != nil {
 		defer reader.Close()
 	}

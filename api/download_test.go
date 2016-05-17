@@ -1,4 +1,4 @@
-package lfs_test
+package api
 
 import (
 	"encoding/base64"
@@ -14,10 +14,10 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
-	. "github.com/github/git-lfs/lfs"
 )
 
 func TestSuccessfulDownload(t *testing.T) {
@@ -778,4 +778,33 @@ func expectedAuth(t *testing.T, server *httptest.Server) string {
 
 	token := fmt.Sprintf("%s:%s", u.Host, "monkey")
 	return "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
+}
+
+var (
+	TestCredentialsFunc auth.CredentialFunc
+	origCredentialsFunc auth.CredentialFunc
+)
+
+func init() {
+	TestCredentialsFunc = func(input auth.Creds, subCommand string) (auth.Creds, error) {
+		output := make(auth.Creds)
+		for key, value := range input {
+			output[key] = value
+		}
+		if _, ok := output["username"]; !ok {
+			output["username"] = input["host"]
+		}
+		output["password"] = "monkey"
+		return output, nil
+	}
+}
+
+// Override the credentials func for testing
+func SetupTestCredentialsFunc() {
+	origCredentialsFunc = auth.SetCredentialsFunc(TestCredentialsFunc)
+}
+
+// Put the original credentials func back
+func RestoreCredentialsFunc() {
+	auth.SetCredentialsFunc(origCredentialsFunc)
 }

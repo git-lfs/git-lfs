@@ -43,7 +43,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 }
 
 func (u *Uploadable) Check() (*api.ObjectResource, error) {
-	return UploadCheck(u.OidPath)
+	return api.UploadCheck(u.OidPath)
 }
 
 func (u *Uploadable) Transfer(cb progress.CopyCallback) error {
@@ -52,7 +52,24 @@ func (u *Uploadable) Transfer(cb progress.CopyCallback) error {
 		return nil
 	}
 
-	return UploadObject(u.object, wcb)
+	path, err := LocalMediaPath(u.object.Oid)
+	if err != nil {
+		return errutil.Error(err)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return errutil.Error(err)
+	}
+	defer file.Close()
+
+	reader := &progress.CallbackReader{
+		C:         wcb,
+		TotalSize: u.object.Size,
+		Reader:    file,
+	}
+
+	return api.UploadObject(u.object, reader)
 }
 
 func (u *Uploadable) Object() *api.ObjectResource {
