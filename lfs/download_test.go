@@ -1,11 +1,13 @@
-package lfs
+package lfs_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -15,10 +17,14 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
+	. "github.com/github/git-lfs/lfs"
 )
 
 func TestSuccessfulDownload(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -36,7 +42,7 @@ func TestSuccessfulDownload(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -61,7 +67,7 @@ func TestSuccessfulDownload(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -116,14 +122,15 @@ func TestSuccessfulDownload(t *testing.T) {
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
 	}
-
-	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // called multiple times to return different 3xx status codes
 func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -174,7 +181,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -199,7 +206,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -256,14 +263,15 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
 		}
 	}
-
-	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // the api request returns a custom Authorization header
 func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -281,7 +289,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -367,14 +375,15 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
 	}
-
-	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // download is served from a second server
 func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -396,7 +405,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -421,7 +430,7 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -475,14 +484,15 @@ func TestSuccessfulDownloadFromSeparateHost(t *testing.T) {
 	if body := string(by); body != "test" {
 		t.Errorf("unexpected body: %s", body)
 	}
-
-	RestoreCredentialsFunc()
 }
 
 // nearly identical to TestSuccessfulDownload
 // download is served from a second server
 func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -512,7 +522,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -535,7 +545,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -560,7 +570,7 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -617,12 +627,13 @@ func TestSuccessfulDownloadFromSeparateRedirectedHost(t *testing.T) {
 			t.Errorf("unexpected body for %d status: %s", redirect, body)
 		}
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestDownloadAPIError(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -655,11 +666,13 @@ func TestDownloadAPIError(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
-	RestoreCredentialsFunc()
 }
 
 func TestDownloadStorageError(t *testing.T) {
 	SetupTestCredentialsFunc()
+	defer func() {
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -677,7 +690,7 @@ func TestDownloadStorageError(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Error("Invalid Accept")
 		}
 
@@ -702,7 +715,7 @@ func TestDownloadStorageError(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -731,8 +744,6 @@ func TestDownloadStorageError(t *testing.T) {
 	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(500), server.URL+"/download") {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
-
-	RestoreCredentialsFunc()
 }
 
 // guards against connection errors that only seem to happen on debian docker
@@ -749,4 +760,22 @@ func isDockerConnectionError(err error) bool {
 	e := err.Error()
 	return strings.Contains(e, "connection reset by peer") ||
 		strings.Contains(e, "connection refused")
+}
+
+func tempdir(t *testing.T) string {
+	dir, err := ioutil.TempDir("", "git-lfs-test")
+	if err != nil {
+		t.Fatalf("Error getting temp dir: %s", err)
+	}
+	return dir
+}
+
+func expectedAuth(t *testing.T, server *httptest.Server) string {
+	u, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	token := fmt.Sprintf("%s:%s", u.Host, "monkey")
+	return "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
 }

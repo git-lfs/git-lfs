@@ -1,4 +1,4 @@
-package lfs
+package lfs_test // avoid import cycle
 
 import (
 	"bytes"
@@ -16,19 +16,23 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
+	. "github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/test"
 )
 
 func TestExistingUpload(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = tmp
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -44,11 +48,11 @@ func TestExistingUpload(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -92,7 +96,7 @@ func TestExistingUpload(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -140,21 +144,21 @@ func TestExistingUpload(t *testing.T) {
 	if verifyCalled {
 		t.Errorf("verify not skipped")
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestUploadWithRedirect(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = tmp
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -190,11 +194,11 @@ func TestUploadWithRedirect(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -235,7 +239,7 @@ func TestUploadWithRedirect(t *testing.T) {
 		}
 
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(200)
 		w.Write(by)
@@ -260,21 +264,21 @@ func TestUploadWithRedirect(t *testing.T) {
 	if obj != nil {
 		t.Fatal("Received an object")
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestSuccessfulUploadWithVerify(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = tmp
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -290,11 +294,11 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -338,7 +342,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -396,7 +400,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 			t.Error("Invalid B")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Error("Invalid Content-Type")
 		}
 
@@ -471,21 +475,21 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	if lastCall[0] != 4 || lastCall[1] != 4 {
 		t.Errorf("Last CopyCallback call should be the total")
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = tmp
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -500,11 +504,11 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -544,7 +548,7 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -617,21 +621,21 @@ func TestSuccessfulUploadWithoutVerify(t *testing.T) {
 	if !putCalled {
 		t.Errorf("PUT not called")
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestUploadApiError(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = olddir
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -670,21 +674,21 @@ func TestUploadApiError(t *testing.T) {
 	if !postCalled {
 		t.Errorf("POST not called")
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestUploadStorageError(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = tmp
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -699,11 +703,11 @@ func TestUploadStorageError(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -747,7 +751,7 @@ func TestUploadStorageError(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -793,21 +797,21 @@ func TestUploadStorageError(t *testing.T) {
 	if !putCalled {
 		t.Errorf("PUT not called")
 	}
-
-	RestoreCredentialsFunc()
 }
 
 func TestUploadVerifyError(t *testing.T) {
 	SetupTestCredentialsFunc()
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+		RestoreCredentialsFunc()
+	}()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
-	olddir := LocalMediaDir
-	LocalMediaDir = tmp
-	defer func() {
-		LocalMediaDir = olddir
-	}()
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
@@ -823,11 +827,11 @@ func TestUploadVerifyError(t *testing.T) {
 			return
 		}
 
-		if r.Header.Get("Accept") != mediaType {
+		if r.Header.Get("Accept") != MediaType {
 			t.Errorf("Invalid Accept")
 		}
 
-		if r.Header.Get("Content-Type") != mediaType {
+		if r.Header.Get("Content-Type") != MediaType {
 			t.Errorf("Invalid Content-Type")
 		}
 
@@ -871,7 +875,7 @@ func TestUploadVerifyError(t *testing.T) {
 
 		postCalled = true
 		head := w.Header()
-		head.Set("Content-Type", mediaType)
+		head.Set("Content-Type", MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
 		w.WriteHeader(202)
 		w.Write(by)
@@ -954,5 +958,4 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Errorf("verify not called")
 	}
 
-	RestoreCredentialsFunc()
 }

@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	mediaType = "application/vnd.git-lfs+json; charset=utf-8"
+	MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
 // Download will attempt to download the object with the given oid. The batched
@@ -142,7 +142,7 @@ func Batch(objects []*api.ObjectResource, operation string) ([]*api.ObjectResour
 		return nil, errutil.Error(err)
 	}
 
-	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Type", MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
@@ -207,7 +207,7 @@ func UploadCheck(oidPath string) (*api.ObjectResource, error) {
 		return nil, errutil.Error(err)
 	}
 
-	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Type", MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = &byteCloser{bytes.NewReader(by)}
@@ -308,7 +308,7 @@ func UploadObject(o *api.ObjectResource, cb progress.CopyCallback) error {
 		return errutil.Error(err)
 	}
 
-	req.Header.Set("Content-Type", mediaType)
+	req.Header.Set("Content-Type", MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
 	req.Body = ioutil.NopCloser(bytes.NewReader(by))
@@ -357,7 +357,7 @@ func newApiRequest(method, oid string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req.Header.Set("Accept", mediaType)
+	req.Header.Set("Accept", MediaType)
 	return req, nil
 }
 
@@ -386,7 +386,7 @@ func newBatchApiRequest(operation string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req.Header.Set("Accept", mediaType)
+	req.Header.Set("Accept", MediaType)
 	if res.Header != nil {
 		for key, value := range res.Header {
 			req.Header.Set(key, value)
