@@ -36,6 +36,7 @@ NpW5Hh0w4/5iIetCkJ0=
 -----END CERTIFICATE-----`
 
 func TestCertFromSSLCAInfoConfig(t *testing.T) {
+	defer config.Config.ResetConfig()
 
 	tempfile, err := ioutil.TempFile("", "testcert")
 	assert.Equal(t, nil, err, "Error creating temp cert file")
@@ -45,12 +46,8 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	assert.Equal(t, nil, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	oldGitConfig := config.Config.gitConfig
-	defer func() {
-		config.Config.gitConfig = oldGitConfig
-	}()
-
-	config.Config.gitConfig = map[string]string{"http.https://git-lfs.local/.sslcainfo": tempfile.Name()}
+	config.Config.ClearConfig()
+	config.Config.SetConfig("http.https://git-lfs.local/.sslcainfo", tempfile.Name())
 
 	// Should match
 	pool := getRootCAsForHost("git-lfs.local")
@@ -65,7 +62,8 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	assert.Equal(t, (*x509.CertPool)(nil), pool)
 
 	// Now use global sslcainfo
-	config.Config.gitConfig = map[string]string{"http.sslcainfo": tempfile.Name()}
+	config.Config.ClearConfig()
+	config.Config.SetConfig("http.sslcainfo", tempfile.Name())
 
 	// Should match anything
 	pool = getRootCAsForHost("git-lfs.local")
@@ -87,12 +85,11 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	assert.Equal(t, nil, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	oldEnv := config.Config.envVars
+	oldEnv := config.Config.GetAllEnv()
 	defer func() {
-		config.Config.envVars = oldEnv
+		config.Config.SetAllEnv(oldEnv)
 	}()
-
-	config.Config.envVars = map[string]string{"GIT_SSL_CAINFO": tempfile.Name()}
+	config.Config.SetAllEnv(map[string]string{"GIT_SSL_CAINFO": tempfile.Name()})
 
 	// Should match any host at all
 	pool := getRootCAsForHost("git-lfs.local")
@@ -105,6 +102,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 }
 
 func TestCertFromSSLCAPathConfig(t *testing.T) {
+	defer config.Config.ResetConfig()
 
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Equal(t, nil, err, "Error creating temp cert dir")
@@ -113,12 +111,8 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Equal(t, nil, err, "Error creating cert file")
 
-	oldGitConfig := config.Config.gitConfig
-	defer func() {
-		config.Config.gitConfig = oldGitConfig
-	}()
-
-	config.Config.gitConfig = map[string]string{"http.sslcapath": tempdir}
+	config.Config.ClearConfig()
+	config.Config.SetConfig("http.sslcapath", tempdir)
 
 	// Should match any host at all
 	pool := getRootCAsForHost("git-lfs.local")
@@ -139,12 +133,11 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Equal(t, nil, err, "Error creating cert file")
 
-	oldEnv := config.Config.envVars
+	oldEnv := config.Config.GetAllEnv()
 	defer func() {
-		config.Config.envVars = oldEnv
+		config.Config.SetAllEnv(oldEnv)
 	}()
-
-	config.Config.envVars = map[string]string{"GIT_SSL_CAPATH": tempdir}
+	config.Config.SetAllEnv(map[string]string{"GIT_SSL_CAPATH": tempdir})
 
 	// Should match any host at all
 	pool := getRootCAsForHost("git-lfs.local")
@@ -160,38 +153,34 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 
 	assert.Equal(t, false, isCertVerificationDisabledForHost("anyhost.com"))
 
-	oldEnv := config.Config.envVars
+	oldEnv := config.Config.GetAllEnv()
 	defer func() {
-		config.Config.envVars = oldEnv
+		config.Config.SetAllEnv(oldEnv)
 	}()
-	config.Config.envVars = map[string]string{"GIT_SSL_NO_VERIFY": "1"}
+	config.Config.SetAllEnv(map[string]string{"GIT_SSL_NO_VERIFY": "1"})
 
 	assert.Equal(t, true, isCertVerificationDisabledForHost("anyhost.com"))
 }
 
 func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
+	defer config.Config.ResetConfig()
 
 	assert.Equal(t, false, isCertVerificationDisabledForHost("anyhost.com"))
 
-	oldGitConfig := config.Config.gitConfig
-	defer func() {
-		config.Config.gitConfig = oldGitConfig
-	}()
-	config.Config.gitConfig = map[string]string{"http.sslverify": "false"}
+	config.Config.ClearConfig()
+	config.Config.SetConfig("http.sslverify", "false")
 
 	assert.Equal(t, true, isCertVerificationDisabledForHost("anyhost.com"))
 }
 
 func TestCertVerifyDisabledHostConfig(t *testing.T) {
+	defer config.Config.ResetConfig()
 
 	assert.Equal(t, false, isCertVerificationDisabledForHost("specifichost.com"))
 	assert.Equal(t, false, isCertVerificationDisabledForHost("otherhost.com"))
 
-	oldGitConfig := config.Config.gitConfig
-	defer func() {
-		config.Config.gitConfig = oldGitConfig
-	}()
-	config.Config.gitConfig = map[string]string{"http.https://specifichost.com/.sslverify": "false"}
+	config.Config.ClearConfig()
+	config.Config.SetConfig("http.https://specifichost.com/.sslverify", "false")
 
 	assert.Equal(t, true, isCertVerificationDisabledForHost("specifichost.com"))
 	assert.Equal(t, false, isCertVerificationDisabledForHost("otherhost.com"))

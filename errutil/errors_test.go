@@ -16,7 +16,7 @@ func TestChecksHandleGoErrors(t *testing.T) {
 func TestCheckHandlesWrappedErrors(t *testing.T) {
 	err := errors.New("Go error")
 
-	fatal := newFatalError(err)
+	fatal := NewFatalError(err)
 
 	if !IsFatalError(fatal) {
 		t.Error("expected error to be fatal")
@@ -26,8 +26,8 @@ func TestCheckHandlesWrappedErrors(t *testing.T) {
 func TestBehaviorWraps(t *testing.T) {
 	err := errors.New("Go error")
 
-	fatal := newFatalError(err)
-	ni := newNotImplementedError(fatal)
+	fatal := NewFatalError(err)
+	ni := NewNotImplementedError(fatal)
 
 	if !IsNotImplementedError(ni) {
 		t.Error("expected erro to be not implemeted")
@@ -54,7 +54,7 @@ func TestContextOnGoErrors(t *testing.T) {
 }
 
 func TestContextOnWrappedErrors(t *testing.T) {
-	err := newFatalError(errors.New("Go error"))
+	err := NewFatalError(errors.New("Go error"))
 
 	ErrorSetContext(err, "foo", "bar")
 
@@ -80,7 +80,7 @@ func TestStack(t *testing.T) {
 		t.Error("expected to get no stack from a Go error")
 	}
 
-	s = ErrorStack(newFatalError(errors.New("Go error")))
+	s = ErrorStack(NewFatalError(errors.New("Go error")))
 	if len(s) == 0 {
 		t.Error("expected to get a stack from a wrapped error")
 	}

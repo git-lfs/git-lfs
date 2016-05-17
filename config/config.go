@@ -100,6 +100,27 @@ func (c *Configuration) Setenv(key, value string) error {
 	return os.Setenv(key, value)
 }
 
+func (c *Configuration) GetAllEnv() map[string]string {
+	c.envVarsMutex.Lock()
+	defer c.envVarsMutex.Unlock()
+
+	ret := make(map[string]string)
+	for k, v := range c.envVars {
+		ret[k] = v
+	}
+	return ret
+}
+
+func (c *Configuration) SetAllEnv(env map[string]string) {
+	c.envVarsMutex.Lock()
+	defer c.envVarsMutex.Unlock()
+
+	c.envVars = make(map[string]string)
+	for k, v := range env {
+		c.envVars[k] = v
+	}
+}
+
 // GetenvBool parses a boolean environment variable and returns the result as a bool.
 // If the environment variable is unset, empty, or if the parsing fails,
 // the value of def (default) is returned instead.
@@ -606,6 +627,19 @@ func (c *Configuration) SetConfig(key, value string) {
 	}
 
 	c.gitConfig[key] = value
+}
+
+func (c *Configuration) ClearConfig() {
+	if c.loadGitConfig() {
+		c.loading.Lock()
+		c.origConfig = make(map[string]string)
+		for k, v := range c.gitConfig {
+			c.origConfig[k] = v
+		}
+		c.loading.Unlock()
+	}
+
+	c.gitConfig = make(map[string]string)
 }
 
 func (c *Configuration) ResetConfig() {
