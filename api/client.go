@@ -27,8 +27,8 @@ type Client struct {
 	// initialized when the client is constructed, and remains immutable
 	// throughout the duration of the *Client.
 	base *url.URL
-	// http is the lifecycle used by all requests through this client.
-	http *HttpLifecycle
+	// lifecycle is the lifecycle used by all requests through this client.
+	lifecycle Lifecycle
 }
 
 // NewClient instantiates and returns a new instance of *Client with a base path
@@ -38,15 +38,19 @@ type Client struct {
 //
 // Assuming all goes well, a *Client is returned as expected, along with a `nil`
 // error.
-func NewClient(root string) (*Client, error) {
+func NewClient(root string, lifecycle Lifecycle) (*Client, error) {
 	base, err := url.Parse(root)
 	if err != nil {
 		return nil, err
 	}
 
+	if lifecycle == nil {
+		lifecycle = NewHttpLifecycle(base)
+	}
+
 	return &Client{
-		base: base,
-		http: NewHttpLifecycle(base),
+		base:      base,
+		lifecycle: lifecycle,
 	}, nil
 }
 
@@ -61,15 +65,19 @@ func NewClient(root string) (*Client, error) {
 // along with a `nil` error. At this point, the body of the response has been
 // serialized into `schema.Into`, and the body is closed.
 func (c *Client) Do(schema *RequestSchema) (Response, error) {
-	req, err := c.http.Build(schema)
+	req, err := c.lifecycle.Build(schema)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.http.Execute(req, schema.Into)
+	resp, err := c.lifecycle.Execute(req, schema.Into)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp, c.http.Cleanup(resp)
+	if err = c.lifecycle.Cleanup(resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

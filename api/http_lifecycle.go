@@ -57,7 +57,14 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 	}
 
 	// TODO(taylor): attach creds!
-	return http.NewRequest(schema.Method, path.String(), body)
+	req, err := http.NewRequest(schema.Method, path.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.URL.RawQuery = l.QueryParameters(schema).Encode()
+
+	return req, nil
 }
 
 // Execute implements the Lifecycle.Execute function.
@@ -126,4 +133,15 @@ func (l *HttpLifecycle) Body(schema *RequestSchema) (io.ReadCloser, error) {
 	}
 
 	return ioutil.NopCloser(bytes.NewReader(body)), nil
+}
+
+func (l *HttpLifecycle) QueryParameters(schema *RequestSchema) url.Values {
+	vals := url.Values{}
+	if schema.Query != nil {
+		for k, v := range schema.Query {
+			vals.Add(k, v)
+		}
+	}
+
+	return vals
 }
