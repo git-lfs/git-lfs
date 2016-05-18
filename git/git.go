@@ -184,9 +184,13 @@ func LocalRefs() ([]*Ref, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
 	}
-	cmd.Start()
 
 	var refs []*Ref
+
+	if err := cmd.Start(); err != nil {
+		return refs, err
+	}
+
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())

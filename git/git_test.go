@@ -275,6 +275,13 @@ func TestVersionCompare(t *testing.T) {
 }
 
 func TestGitAndRootDirs(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
 	git, root, err := GitAndRootDirs()
 	if err != nil {
 		t.Fatal(err)
@@ -380,12 +387,38 @@ func TestGetTrackedFiles(t *testing.T) {
 }
 
 func TestLocalRefs(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	repo.AddCommits([]*test.CommitInput{
+		{
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+			},
+		},
+		{
+			NewBranch:      "branch",
+			ParentBranches: []string{"master"},
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+			},
+		},
+	})
+
+	test.RunGitCommand(t, true, "tag", "v1")
+
 	refs, err := LocalRefs()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	actual := make(map[string]bool)
 	for _, r := range refs {
+		t.Logf("REF: %s", r.Name)
 		switch r.Type {
 		case RefTypeHEAD:
 			t.Errorf("Local HEAD ref: %v", r)
@@ -393,6 +426,22 @@ func TestLocalRefs(t *testing.T) {
 			t.Errorf("Stash or unknown ref: %v", r)
 		case RefTypeRemoteBranch, RefTypeRemoteTag:
 			t.Errorf("Remote ref: %v", r)
+		default:
+			actual[r.Name] = true
 		}
+	}
+
+	expected := []string{"master", "branch", "v1"}
+	found := 0
+	for _, refname := range expected {
+		if actual[refname] {
+			found += 1
+		} else {
+			t.Errorf("could not find ref %q", refname)
+		}
+	}
+
+	if found != len(expected) {
+		t.Errorf("Unexpected local refs: %v", actual)
 	}
 }
