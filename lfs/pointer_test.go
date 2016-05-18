@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
@@ -80,7 +81,7 @@ func TestDecodeTinyFile(t *testing.T) {
 		t.Errorf("pointer was decoded: %v", p)
 	}
 
-	if !IsNotAPointerError(err) {
+	if !errutil.IsNotAPointerError(err) {
 		t.Errorf("error is not a NotAPointerError: %s: '%v'", reflect.TypeOf(err), err)
 	}
 }

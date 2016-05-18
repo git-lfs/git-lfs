@@ -10,9 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/github/git-lfs/test"
-
+	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/test"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -59,16 +61,16 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	}
 
 	// Force loading of config before we alter it
-	lfs.Config.AllGitConfig()
+	config.Config.AllGitConfig()
 
 	// Configure the endpoint manually
-	var endp lfs.Endpoint
+	var endp config.Endpoint
 	if len(cloneUrl) > 0 {
-		endp = lfs.NewEndpointFromCloneURL(cloneUrl)
+		endp = config.NewEndpointFromCloneURL(cloneUrl)
 	} else {
-		endp = lfs.NewEndpoint(apiUrl)
+		endp = config.NewEndpoint(apiUrl)
 	}
-	lfs.Config.SetManualEndpoint(endp)
+	config.Config.SetManualEndpoint(endp)
 
 	var oidsExist, oidsMissing []TestObject
 	if len(args) >= 2 {
@@ -168,7 +170,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	uploadQueue.Wait()
 
 	for _, err := range uploadQueue.Errors() {
-		if lfs.IsFatalError(err) {
+		if errutil.IsFatalError(err) {
 			exit("Fatal error setting up test data: %s", err)
 		}
 	}
@@ -242,13 +244,13 @@ func addTest(name string, f func(oidsExist, oidsMissing []TestObject) error) {
 	tests = append(tests, ServerTest{Name: name, F: f})
 }
 
-func callBatchApi(op string, objs []TestObject) ([]*lfs.ObjectResource, error) {
+func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
 
-	apiobjs := make([]*lfs.ObjectResource, 0, len(objs))
+	apiobjs := make([]*api.ObjectResource, 0, len(objs))
 	for _, o := range objs {
-		apiobjs = append(apiobjs, &lfs.ObjectResource{Oid: o.Oid, Size: o.Size})
+		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
-	return lfs.Batch(apiobjs, op)
+	return api.Batch(apiobjs, op)
 }
 
 // Combine 2 slices into one by "randomly" interleaving

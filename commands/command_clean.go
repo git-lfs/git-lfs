@@ -3,7 +3,9 @@ package commands
 import (
 	"os"
 
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -19,7 +21,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
 	var fileName string
-	var cb lfs.CopyCallback
+	var cb progress.CopyCallback
 	var file *os.File
 	var fileSize int64
 	if len(args) > 0 {
@@ -48,8 +50,8 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		defer cleaned.Teardown()
 	}
 
-	if lfs.IsCleanPointerError(err) {
-		os.Stdout.Write(lfs.ErrorGetContext(err, "bytes").([]byte))
+	if errutil.IsCleanPointerError(err) {
+		os.Stdout.Write(errutil.ErrorGetContext(err, "bytes").([]byte))
 		return
 	}
 

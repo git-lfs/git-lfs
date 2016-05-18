@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/localstorage"
+	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ func pruneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	verify := !pruneDoNotVerifyArg &&
-		(lfs.Config.FetchPruneConfig().PruneVerifyRemoteAlways || pruneVerifyArg)
+		(config.Config.FetchPruneConfig().PruneVerifyRemoteAlways || pruneVerifyArg)
 
 	prune(verify, pruneDryRunArg, pruneVerboseArg)
 
@@ -119,7 +120,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	var totalSize int64
 	var verboseOutput bytes.Buffer
 	if verifyRemote {
-		lfs.Config.CurrentRemote = lfs.Config.FetchPruneConfig().PruneRemoteName
+		config.Config.CurrentRemote = config.Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
 		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
 		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
@@ -217,7 +218,7 @@ func pruneCheckErrors(taskErrors []error) {
 func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	spinner := lfs.NewSpinner()
+	spinner := progress.NewSpinner()
 	localCount := 0
 	retainCount := 0
 	verifyCount := 0
@@ -262,7 +263,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 }
 
 func pruneDeleteFiles(prunableObjects []string) {
-	spinner := lfs.NewSpinner()
+	spinner := progress.NewSpinner()
 	var problems bytes.Buffer
 	// In case we fail to delete some
 	var deletedFiles int
@@ -358,7 +359,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 	go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
 
 	// Now recent
-	fetchconf := lfs.Config.FetchPruneConfig()
+	fetchconf := config.Config.FetchPruneConfig()
 	if fetchconf.FetchRecentRefsDays > 0 {
 		pruneRefDays := fetchconf.FetchRecentRefsDays + fetchconf.PruneOffsetDays
 		tracerx.Printf("PRUNE: Retaining non-HEAD refs within %d (%d+%d) days", pruneRefDays, fetchconf.FetchRecentRefsDays, fetchconf.PruneOffsetDays)
@@ -399,7 +400,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	remoteName := lfs.Config.FetchPruneConfig().PruneRemoteName
+	remoteName := config.Config.FetchPruneConfig().PruneRemoteName
 
 	refchan, err := lfs.ScanUnpushedToChan(remoteName)
 	if err != nil {
@@ -422,7 +423,7 @@ func pruneTaskGetRetainedWorktree(retainChan chan string, errorChan chan error, 
 
 	// Retain other worktree HEADs too
 	// Working copy, branch & maybe commit is different but repo is shared
-	allWorktreeRefs, err := git.GetAllWorkTreeHEADs(lfs.LocalGitStorageDir)
+	allWorktreeRefs, err := git.GetAllWorkTreeHEADs(config.LocalGitStorageDir)
 	if err != nil {
 		errorChan <- err
 		return

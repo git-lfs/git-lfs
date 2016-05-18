@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
@@ -13,7 +14,7 @@ func TestWriterWithCallback(t *testing.T) {
 	called := 0
 	calledRead := make([]int64, 0, 2)
 
-	reader := &CallbackReader{
+	reader := &progress.CallbackReader{
 		TotalSize: 5,
 		Reader:    bytes.NewBufferString("BOOYA"),
 		C: func(total int64, read int64, current int) error {

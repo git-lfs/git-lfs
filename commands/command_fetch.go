@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -32,14 +34,14 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if err := git.ValidateRemote(args[0]); err != nil {
 			Exit("Invalid remote name %q", args[0])
 		}
-		lfs.Config.CurrentRemote = args[0]
+		config.Config.CurrentRemote = args[0]
 	} else {
 		// Actively find the default remote, don't just assume origin
 		defaultRemote, err := git.DefaultRemote()
 		if err != nil {
 			Exit("No default remote")
 		}
-		lfs.Config.CurrentRemote = defaultRemote
+		config.Config.CurrentRemote = defaultRemote
 	}
 
 	if len(args) > 1 {
@@ -64,7 +66,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if fetchIncludeArg != "" || fetchExcludeArg != "" {
 			Exit("Cannot combine --all with --include or --exclude")
 		}
-		if len(lfs.Config.FetchIncludePaths()) > 0 || len(lfs.Config.FetchExcludePaths()) > 0 {
+		if len(config.Config.FetchIncludePaths()) > 0 || len(config.Config.FetchExcludePaths()) > 0 {
 			Print("Ignoring global include / exclude paths to fulfil --all")
 		}
 		success = fetchAll()
@@ -79,14 +81,14 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			success = success && s
 		}
 
-		if fetchRecentArg || lfs.Config.FetchPruneConfig().FetchRecentAlways {
+		if fetchRecentArg || config.Config.FetchPruneConfig().FetchRecentAlways {
 			s := fetchRecent(refs, includePaths, excludePaths)
 			success = success && s
 		}
 	}
 
 	if fetchPruneArg {
-		verify := lfs.Config.FetchPruneConfig().PruneVerifyRemoteAlways
+		verify := config.Config.FetchPruneConfig().PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
 		prune(verify, false, false)
 	}
@@ -146,7 +148,7 @@ func fetchPreviousVersions(ref string, since time.Time, include, exclude []strin
 
 // Fetch recent objects based on config
 func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool {
-	fetchconf := lfs.Config.FetchPruneConfig()
+	fetchconf := config.Config.FetchPruneConfig()
 
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
@@ -162,7 +164,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 	if fetchconf.FetchRecentRefsDays > 0 {
 		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, lfs.Config.CurrentRemote)
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, config.Config.CurrentRemote)
 		if err != nil {
 			Panic(err, "Could not scan for recent refs")
 		}
@@ -214,7 +216,7 @@ func scanAll() []*lfs.WrappedPointer {
 
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
-	spinner := lfs.NewSpinner()
+	spinner := progress.NewSpinner()
 	var numObjs int64
 	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
 	if err != nil {

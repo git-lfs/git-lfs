@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
@@ -60,7 +62,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	cfg := lfs.Config
+	cfg := config.Config
 	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	if smudgeSkip || cfg.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
@@ -75,7 +77,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ptr.Encode(os.Stdout)
 		// Download declined error is ok to skip if we weren't requesting download
-		if !(lfs.IsDownloadDeclinedError(err) && !download) {
+		if !(errutil.IsDownloadDeclinedError(err) && !download) {
 			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
 			if !cfg.SkipDownloadErrors() {
 				os.Exit(2)
@@ -89,8 +91,8 @@ func smudgeFilename(args []string, err error) string {
 		return args[0]
 	}
 
-	if lfs.IsSmudgeError(err) {
-		return filepath.Base(lfs.ErrorGetContext(err, "FileName").(string))
+	if errutil.IsSmudgeError(err) {
+		return filepath.Base(errutil.ErrorGetContext(err, "FileName").(string))
 	}
 
 	return "<unknown file>"
