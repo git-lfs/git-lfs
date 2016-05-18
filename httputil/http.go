@@ -1,3 +1,5 @@
+// Package httputil provides additional helper functions for http services
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package httputil
 
 import (

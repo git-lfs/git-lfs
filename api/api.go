@@ -1,3 +1,5 @@
+// Package api provides the interface for querying LFS servers (metadata)
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package api
 
 import (

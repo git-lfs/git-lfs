@@ -1,3 +1,5 @@
+// Package tools contains other helper functions too small to justify their own package
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package tools
 
 import (

@@ -1,3 +1,5 @@
+// Package errutil provides common error handling tools
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package errutil
 
 // The LFS error system provides a simple wrapper around Go errors and the

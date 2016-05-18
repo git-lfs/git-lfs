@@ -1,3 +1,5 @@
+// Package lfs brings together the core LFS functionality
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package lfs
 
 import (

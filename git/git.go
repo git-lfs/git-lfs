@@ -1,4 +1,5 @@
 // Package git contains various commands that shell out to git
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package git
 
 import (

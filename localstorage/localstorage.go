@@ -1,3 +1,5 @@
+// Package localstorage handles LFS content stored locally
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package localstorage
 
 import (
