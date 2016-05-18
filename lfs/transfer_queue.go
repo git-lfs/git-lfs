@@ -174,13 +174,13 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 // legacyFallback is used when a batch request is made to a server that does
 // not support the batch endpoint. When this happens, the Transferables are
 // fed from the batcher into apic to be processed individually.
-func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
+func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
 	tracerx.Printf("tq: batch api not implemented, falling back to individual")
 
 	q.launchIndividualApiRoutines()
 
 	for _, t := range failedBatch {
-		q.apic <- t
+		q.apic <- t.(Transferable)
 	}
 
 	for {
@@ -190,7 +190,7 @@ func (q *TransferQueue) legacyFallback(failedBatch []Transferable) {
 		}
 
 		for _, t := range batch {
-			q.apic <- t
+			q.apic <- t.(Transferable)
 		}
 	}
 }
@@ -210,7 +210,8 @@ func (q *TransferQueue) batchApiRoutine() {
 		tracerx.Printf("tq: sending batch of size %d", len(batch))
 
 		transfers := make([]*api.ObjectResource, 0, len(batch))
-		for _, t := range batch {
+		for _, i := range batch {
+			t := i.(Transferable)
 			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
@@ -225,7 +226,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 			if q.canRetry(err) {
 				for _, t := range batch {
-					q.retry(t)
+					q.retry(t.(Transferable))
 				}
 			} else {
 				q.errorc <- err
