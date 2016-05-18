@@ -23,6 +23,8 @@ const (
 //   fmt.Println(apiResponse.Lock)
 // ```
 type Client struct {
+	Locks LockService
+
 	// base is root URL that all requests will be made against. It is
 	// initialized when the client is constructed, and remains immutable
 	// throughout the duration of the *Client.

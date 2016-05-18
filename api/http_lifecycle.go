@@ -89,7 +89,7 @@ func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, 
 
 	if into != nil {
 		decoder := json.NewDecoder(resp.Body)
-		if err = decoder.Decode(&into); err != nil {
+		if err = decoder.Decode(into); err != nil {
 			return nil, err
 		}
 	}
