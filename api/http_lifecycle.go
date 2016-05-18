@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-
-	"github.com/github/git-lfs/api"
 )
 
 // HttpLifecycle serves as the default implementation of the Lifecycle interface
@@ -47,7 +45,7 @@ func NewHttpLifecycle(root *url.URL) *HttpLifecycle {
 //
 // Finally, all of these components are combined together and the resulting
 // request is returned.
-func (l *HttpLifecycle) Build(schema *api.RequestSchema) (*http.Request, error) {
+func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 	path, err := l.AbsolutePath(schema.Path)
 	if err != nil {
 		return nil, err
@@ -76,8 +74,8 @@ func (l *HttpLifecycle) Build(schema *api.RequestSchema) (*http.Request, error) 
 //
 // Otherwise, the api.Response is returned, along with no error, signaling that
 // the request completed successfully.
-func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (api.Response, error) {
-	resp, err := l.c.Do(req)
+func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, error) {
+	resp, err := l.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +92,7 @@ func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (api.Respon
 
 // Cleanup implements the Lifecycle.Cleanup function by closing the Body
 // attached to the repsonse.
-func (l *HttpLifecycle) Cleanup(resp api.Response) error {
+func (l *HttpLifecycle) Cleanup(resp Response) error {
 	return resp.Body().Close()
 }
 
@@ -117,7 +115,7 @@ func (l *HttpLifecycle) AbsolutePath(path string) (*url.URL, error) {
 //
 // If an error was encountered while attempting to marshal the body, then that
 // will be returned instead, along with a nil io.Reader.
-func (l *HttpLifecycle) Body(schema *api.RequestSchema) (io.ReadCloser, error) {
+func (l *HttpLifecycle) Body(schema *RequestSchema) (io.ReadCloser, error) {
 	if schema.Body == nil {
 		return nil, nil
 	}
