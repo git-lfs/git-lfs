@@ -1,5 +1,6 @@
 bin/
 benchmark/
+out/
 
 # only allow man/*.\d.ronn files
 man/*
