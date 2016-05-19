@@ -14,6 +14,7 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
@@ -179,7 +180,7 @@ func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb prog
 	// close below, as close is idempotent.
 	defer f.Close()
 	name := f.Name()
-	written, err := CopyWithCallback(f, hasher, size, cb)
+	written, err := tools.CopyWithCallback(f, hasher, size, cb)
 	if err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
 	}
@@ -286,7 +287,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		defer reader.Close()
 	}
 
-	_, err = CopyWithCallback(writer, reader, ptr.Size, cb)
+	_, err = tools.CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
 		return errutil.Errorf(err, "Error reading from media file: %s", err)
 	}

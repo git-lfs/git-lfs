@@ -1,6 +1,10 @@
 package tools
 
-import "io"
+import (
+	"io"
+
+	"github.com/github/git-lfs/progress"
+)
 
 type readSeekCloserWrapper struct {
 	readSeeker io.ReadSeeker
@@ -22,4 +26,24 @@ func (r *readSeekCloserWrapper) Close() error {
 // to make it an io.ReadCloser
 func NewReadSeekCloserWrapper(r io.ReadSeeker) io.ReadCloser {
 	return &readSeekCloserWrapper{r}
+}
+
+// CopyWithCallback copies reader to writer while performing a progress callback
+func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {
+	if success, _ := CloneFile(writer, reader); success {
+		if cb != nil {
+			cb(totalSize, totalSize, 0)
+		}
+		return totalSize, nil
+	}
+	if cb == nil {
+		return io.Copy(writer, reader)
+	}
+
+	cbReader := &progress.CallbackReader{
+		C:         cb,
+		TotalSize: totalSize,
+		Reader:    reader,
+	}
+	return io.Copy(writer, cbReader)
 }

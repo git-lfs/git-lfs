@@ -10,6 +10,7 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 )
 
 type cleanedAsset struct {
@@ -82,7 +83,7 @@ func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid
 	}
 
 	multi := io.MultiReader(bytes.NewReader(by), reader)
-	size, err = CopyWithCallback(writer, multi, fileSize, cb)
+	size, err = tools.CopyWithCallback(writer, multi, fileSize, cb)
 
 	if err != nil {
 		return
