@@ -20,9 +20,9 @@ var (
 // file content to a remote store. Each TransferAdapter accepts one or more requests
 // which it may schedule and parallelise in whatever way it chooses, clients of
 // this interface will receive notifications of progress and completion asynchronously.
-// TransferAdapters support transfers in one direction; you should use implementations
-// of the sub-interface UploadAdapter and DownloadAdapter for groups of items in
-// a direction.
+// TransferAdapters support transfers in one direction; if an implementation
+// provides support for upload and download, it should be instantiated twice,
+// advertising support for each direction separately.
 type TransferAdapter interface {
 	// Name returns the identifier of this adapter, must be unique within a Direction
 	// (separate sets for upload and download so may be an entry in both)
