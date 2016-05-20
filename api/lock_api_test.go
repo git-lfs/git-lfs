@@ -152,3 +152,44 @@ func TestUnlockResponseDoesNotAllowLockAndError(t *testing.T) {
 		Err: "some-error",
 	})
 }
+
+func TestLockListWithLocks(t *testing.T) {
+	schema.Validate(t, schema.LockListSchema, &api.LockList{
+		Locks: []api.Lock{
+			api.Lock{Id: "foo"},
+			api.Lock{Id: "bar"},
+		},
+	})
+}
+
+func TestLockListWithNoResults(t *testing.T) {
+	schema.Validate(t, schema.LockListSchema, &api.LockList{
+		Locks: []api.Lock{},
+	})
+}
+
+func TestLockListWithNextCursor(t *testing.T) {
+	schema.Validate(t, schema.LockListSchema, &api.LockList{
+		Locks: []api.Lock{
+			api.Lock{Id: "foo"},
+			api.Lock{Id: "bar"},
+		},
+		NextCursor: "baz",
+	})
+}
+
+func TestLockListWithError(t *testing.T) {
+	schema.Validate(t, schema.LockListSchema, &api.LockList{
+		Err: "some error",
+	})
+}
+
+func TestLockListWithErrorAndLocks(t *testing.T) {
+	schema.Refute(t, schema.LockListSchema, &api.LockList{
+		Locks: []api.Lock{
+			api.Lock{Id: "foo"},
+			api.Lock{Id: "bar"},
+		},
+		Err: "this isn't possible!",
+	})
+}

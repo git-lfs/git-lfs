@@ -185,5 +185,5 @@ type LockList struct {
 	// Err populates any error that was encountered during the search. If no
 	// error was encountered and the operation was succesful, then a value
 	// of nil will be passed here.
-	Err error `json:"error,omitempty"`
+	Err string `json:"error,omitempty"`
 }
