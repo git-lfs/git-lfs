@@ -22,6 +22,55 @@ func TestSuccessfullyObtainingALock(t *testing.T) {
 	}, got)
 }
 
+func TestLockSearchWithFilters(t *testing.T) {
+	got, body := LockService.Search(&api.LockSearchRequest{
+		Filters: []api.Filter{
+			{"branch", "master"},
+			{"path", "/path/to/file"},
+		},
+	})
+
+	AssertSchema(t, &api.RequestSchema{
+		Method: http.MethodGet,
+		Query: map[string]string{
+			"branch": "master",
+			"path":   "/path/to/file",
+		},
+		Path: "/locks",
+		Into: body,
+	}, got)
+}
+
+func TestLockSearchWithNextCursor(t *testing.T) {
+	got, body := LockService.Search(&api.LockSearchRequest{
+		Cursor: "some-lock-id",
+	})
+
+	AssertSchema(t, &api.RequestSchema{
+		Method: http.MethodGet,
+		Query: map[string]string{
+			"cursor": "some-lock-id",
+		},
+		Path: "/locks",
+		Into: body,
+	}, got)
+}
+
+func TestLockSearchWithLimit(t *testing.T) {
+	got, body := LockService.Search(&api.LockSearchRequest{
+		Limit: 20,
+	})
+
+	AssertSchema(t, &api.RequestSchema{
+		Method: http.MethodGet,
+		Query: map[string]string{
+			"limit": "20",
+		},
+		Path: "/locks",
+		Into: body,
+	}, got)
+}
+
 func TestLockRequest(t *testing.T) {
 	schema.Validate(t, schema.LockRequestSchema, &api.LockRequest{
 		Path:               "/path/to/lock",

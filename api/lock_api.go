@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -16,6 +17,30 @@ func (s *LockService) Lock(req *LockRequest) (*RequestSchema, *LockResponse) {
 		Method: http.MethodPost,
 		Path:   "/locks",
 		Body:   req,
+		Into:   &resp,
+	}, &resp
+}
+
+func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList) {
+	var resp LockList
+
+	query := make(map[string]string)
+	for _, filter := range req.Filters {
+		query[filter.Property] = filter.Value
+	}
+
+	if req.Cursor != "" {
+		query["cursor"] = req.Cursor
+	}
+
+	if req.Limit != 0 {
+		query["limit"] = strconv.Itoa(req.Limit)
+	}
+
+	return &RequestSchema{
+		Method: http.MethodGet,
+		Path:   "/locks",
+		Query:  query,
 		Into:   &resp,
 	}, &resp
 }
@@ -121,4 +146,44 @@ type UnlockResponse struct {
 	// Err is an optional field which holds any error that was experienced
 	// while removing the lock.
 	Err string `json:"error,omitempty"`
+}
+
+type Filter struct {
+	// Property is the property to search against.
+	// Value is the value that the property must take.
+	Property, Value string
+}
+
+// LockSearchRequest encapsulates the request sent to the server when the client
+// would like a list of locks that match the given criteria.
+type LockSearchRequest struct {
+	// Filters is the set of filters to query against. If the client wishes
+	// to obtain a list of all locks, an empty array should be passed here.
+	Filters []Filter
+	// Cursor is an optional field used to tell the server which lock was
+	// seen last, if scanning through multiple pages of results.
+	//
+	// Servers must return a list of locks sorted in reverse chronological
+	// order, so the Cursor provides a consistent method of viewing all
+	// locks, even if more were created between two requests.
+	Cursor string
+	// Limit is the maximum number of locks to return in a single page.
+	Limit int
+}
+
+// LockList encapsulates a set of Locks.
+type LockList struct {
+	// Locks is the set of locks returned back, typically matching the query
+	// parameters sent in the LockListRequest call. If no locks were matched
+	// from a given query, then `Locks` will be represented as an empty
+	// array.
+	Locks []Lock `json:"locks"`
+	// NextCursor returns the Id of the Lock the client should update its
+	// cursor to, if there are multiple pages of results for a particular
+	// `LockListRequest`.
+	NextCursor string `json:"next_cursor,omitempty"`
+	// Err populates any error that was encountered during the search. If no
+	// error was encountered and the operation was succesful, then a value
+	// of nil will be passed here.
+	Err error `json:"error,omitempty"`
 }
