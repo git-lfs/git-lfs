@@ -19,6 +19,9 @@ type HttpLifecycle struct {
 	root *url.URL
 	// client is the *http.Client used to execute these requests.
 	client *http.Client
+	// authenticateRequests stores whether or not the HttpLifecycle should
+	// authenticate its HTTP requests
+	authenticateRequests bool
 }
 
 var _ Lifecycle = new(HttpLifecycle)
@@ -43,26 +46,33 @@ func NewHttpLifecycle(root *url.URL) *HttpLifecycle {
 // serializing it into JSON, then that error will be returned and the
 // *http.Request will not be generated.
 //
+// In all cases, credentials are attached to the HTTP request as described in
+// the `auth` package (see github.com/github/git-lfs/auth#GetCreds).
+//
 // Finally, all of these components are combined together and the resulting
 // request is returned.
 func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
-	path, err := l.AbsolutePath(schema.Path)
+	path, err := l.absolutePath(schema.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := l.Body(schema)
+	body, err := l.body(schema)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(taylor): attach creds!
 	req, err := http.NewRequest(schema.Method, path.String(), body)
 	if err != nil {
 		return nil, err
 	}
 
-	req.URL.RawQuery = l.QueryParameters(schema).Encode()
+	// ASK(@sinbad): is this the correct usage?
+	// if _, err = auth.GetCreds(req); err != nil {
+	// 	return nil, err
+	// }
+
+	req.URL.RawQuery = l.queryParameters(schema).Encode()
 
 	return req, nil
 }
@@ -98,15 +108,15 @@ func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, 
 }
 
 // Cleanup implements the Lifecycle.Cleanup function by closing the Body
-// attached to the repsonse.
+// attached to the response.
 func (l *HttpLifecycle) Cleanup(resp Response) error {
 	return resp.Body().Close()
 }
 
-// AbsolutePath returns the absolute path made by combining a given relative
+// absolutePath returns the absolute path made by combining a given relative
 // path with the owned "base" path. If there was an error in parsing the
 // relative path, then that error will be returned.
-func (l *HttpLifecycle) AbsolutePath(path string) (*url.URL, error) {
+func (l *HttpLifecycle) absolutePath(path string) (*url.URL, error) {
 	rel, err := url.Parse(path)
 	if err != nil {
 		return nil, err
@@ -116,13 +126,13 @@ func (l *HttpLifecycle) AbsolutePath(path string) (*url.URL, error) {
 	return l.root.ResolveReference(rel), nil
 }
 
-// Body returns an io.Reader which reads out a JSON-encoded copy of the payload
+// body returns an io.Reader which reads out a JSON-encoded copy of the payload
 // attached to a given *RequestSchema, if it is present. If no body is present
 // in the request, then nil is returned instead.
 //
 // If an error was encountered while attempting to marshal the body, then that
 // will be returned instead, along with a nil io.Reader.
-func (l *HttpLifecycle) Body(schema *RequestSchema) (io.ReadCloser, error) {
+func (l *HttpLifecycle) body(schema *RequestSchema) (io.ReadCloser, error) {
 	if schema.Body == nil {
 		return nil, nil
 	}
@@ -135,7 +145,10 @@ func (l *HttpLifecycle) Body(schema *RequestSchema) (io.ReadCloser, error) {
 	return ioutil.NopCloser(bytes.NewReader(body)), nil
 }
 
-func (l *HttpLifecycle) QueryParameters(schema *RequestSchema) url.Values {
+// queryParameters returns a url.Values containing all of the provided query
+// parameters as given in the *RequestSchema. If no query parameters were given,
+// then an empty url.Values is returned instead.
+func (l *HttpLifecycle) queryParameters(schema *RequestSchema) url.Values {
 	vals := url.Values{}
 	if schema.Query != nil {
 		for k, v := range schema.Query {
