@@ -3,7 +3,8 @@ package api
 
 import "net/http"
 
-// TODO(taylor): extract interface for *http.Request; update methods.
+// TODO: extract interface for *http.Request; update methods. This will be in a
+// later iteration of the API client.
 
 // A Lifecycle represents and encapsulates the behavior on an API request from
 // inception to cleanup.
@@ -13,7 +14,8 @@ import "net/http"
 // several more fine-grained methods that are used by the client to manage the
 // lifecycle of a request in a platform-agnostic fashion.
 type Lifecycle interface {
-	// Build creates a sendable request by using the given RequestSchema.
+	// Build creates a sendable request by using the given RequestSchema as
+	// a model.
 	Build(req *RequestSchema) (*http.Request, error)
 
 	// Execute transforms generated request into a wrapped repsonse, (and
@@ -24,7 +26,7 @@ type Lifecycle interface {
 	// Cleanup is called after the request has been completed and its
 	// response has been processed. It is meant to preform any post-request
 	// actions necessary, like closing or resetting the connection. If an
-	// error was encountered in doin this operation, it should be returned
-	// from this method, or otherwise nil.
+	// error was encountered in doing this operation, it should be returned
+	// from this method, otherwise nil.
 	Cleanup(resp Response) error
 }
