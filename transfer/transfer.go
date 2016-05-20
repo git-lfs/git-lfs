@@ -2,7 +2,11 @@
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package transfer
 
-import "github.com/github/git-lfs/progress"
+import (
+	"sync"
+
+	"github.com/github/git-lfs/progress"
+)
 
 type Direction int
 
@@ -12,6 +16,7 @@ const (
 )
 
 var (
+	adapterMutex     sync.Mutex
 	downloadAdapters = make(map[string]TransferAdapter)
 	uploadAdapters   = make(map[string]TransferAdapter)
 )
@@ -82,6 +87,9 @@ func GetAdapters(dir Direction) []TransferAdapter {
 
 // GetDownloadAdapters returns a list of registered adapters able to perform downloads
 func GetDownloadAdapters() []TransferAdapter {
+	adapterMutex.Lock()
+	defer adapterMutex.Unlock()
+
 	ret := make([]TransferAdapter, 0, len(downloadAdapters))
 	for _, a := range downloadAdapters {
 		ret = append(ret, a)
@@ -91,6 +99,9 @@ func GetDownloadAdapters() []TransferAdapter {
 
 // GetUploadAdapters returns a list of registered adapters able to perform uploads
 func GetUploadAdapters() []TransferAdapter {
+	adapterMutex.Lock()
+	defer adapterMutex.Unlock()
+
 	ret := make([]TransferAdapter, 0, len(uploadAdapters))
 	for _, a := range uploadAdapters {
 		ret = append(ret, a)
@@ -101,6 +112,9 @@ func GetUploadAdapters() []TransferAdapter {
 // RegisterAdapter registers an upload or download adapter. If an adapter is
 // already registered for that direction with the same name, it is overridden
 func RegisterAdapter(adapter TransferAdapter) {
+	adapterMutex.Lock()
+	defer adapterMutex.Unlock()
+
 	switch adapter.Direction() {
 	case Upload:
 		uploadAdapters[adapter.Name()] = adapter
@@ -111,6 +125,9 @@ func RegisterAdapter(adapter TransferAdapter) {
 
 // Get a specific adapter by name and direction
 func GetAdapter(name string, dir Direction) (TransferAdapter, bool) {
+	adapterMutex.Lock()
+	defer adapterMutex.Unlock()
+
 	switch dir {
 	case Upload:
 		if u, ok := uploadAdapters[name]; ok {
