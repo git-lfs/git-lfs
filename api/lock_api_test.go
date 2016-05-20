@@ -14,7 +14,7 @@ var LockService api.LockService
 func TestSuccessfullyObtainingALock(t *testing.T) {
 	got, body := LockService.Lock(new(api.LockRequest))
 
-	AssertSchema(t, &api.RequestSchema{
+	AssertRequestSchema(t, &api.RequestSchema{
 		Method: http.MethodPost,
 		Path:   "/locks",
 		Body:   new(api.LockRequest),
@@ -30,7 +30,7 @@ func TestLockSearchWithFilters(t *testing.T) {
 		},
 	})
 
-	AssertSchema(t, &api.RequestSchema{
+	AssertRequestSchema(t, &api.RequestSchema{
 		Method: http.MethodGet,
 		Query: map[string]string{
 			"branch": "master",
@@ -46,7 +46,7 @@ func TestLockSearchWithNextCursor(t *testing.T) {
 		Cursor: "some-lock-id",
 	})
 
-	AssertSchema(t, &api.RequestSchema{
+	AssertRequestSchema(t, &api.RequestSchema{
 		Method: http.MethodGet,
 		Query: map[string]string{
 			"cursor": "some-lock-id",
@@ -61,7 +61,7 @@ func TestLockSearchWithLimit(t *testing.T) {
 		Limit: 20,
 	})
 
-	AssertSchema(t, &api.RequestSchema{
+	AssertRequestSchema(t, &api.RequestSchema{
 		Method: http.MethodGet,
 		Query: map[string]string{
 			"limit": "20",
