@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -65,7 +66,7 @@ func TestHttpLifecycleExecutesRequestWithoutBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 
-		assert.Equal(t, "/path", r.Path.RelativeURI())
+		assert.Equal(t, "/path", r.URL.RequestURI())
 	}))
 	defer server.Close()
 
