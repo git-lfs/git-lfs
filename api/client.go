@@ -23,6 +23,8 @@ const (
 //   fmt.Println(apiResponse.Lock)
 // ```
 type Client struct {
+	// Locks is the LockService used to interact with the Git LFS file-
+	// locking API.
 	Locks LockService
 
 	// base is root URL that all requests will be made against. It is
@@ -35,8 +37,8 @@ type Client struct {
 
 // NewClient instantiates and returns a new instance of *Client with a base path
 // initialized to the given `root`. If `root` is unable to be parsed according
-// to the rules of `url.Parse`, then a `nil` client will be returned, and the
-// parse error will be returned instead.
+// to the rules of `url.Parse`, then a `nil` client will be returned, along with
+// the assosicated parsing error.
 //
 // Assuming all goes well, a *Client is returned as expected, along with a `nil`
 // error.
@@ -63,9 +65,9 @@ func NewClient(root string, lifecycle Lifecycle) (*Client, error) {
 // the request, then it will be returned immediately, and the request can be
 // treated as invalid.
 //
-// If no error occured, an some api.Response implementation will be returned,
-// along with a `nil` error. At this point, the body of the response has been
-// serialized into `schema.Into`, and the body is closed.
+// If no error occured, an api.Response will be returned, along with a `nil`
+// error. At this point, the body of the response has been serialized into
+// `schema.Into`, and the body has been closed.
 func (c *Client) Do(schema *RequestSchema) (Response, error) {
 	req, err := c.lifecycle.Build(schema)
 	if err != nil {
