@@ -20,8 +20,8 @@ func (s *LockService) Lock(req *LockRequest) (*RequestSchema, *LockResponse) {
 	}, &resp
 }
 
-func (s *LockService) Unlock(l *Lock) (*RequestSchema, UnlockResult) {
-	var resp UnlockResult
+func (s *LockService) Unlock(l *Lock) (*RequestSchema, UnlockResponse) {
+	var resp UnlockResponse
 
 	return &RequestSchema{
 		Method: http.MethodPost,
@@ -102,23 +102,23 @@ type LockResponse struct {
 	//
 	// If an error was experienced in creating this lock, then the
 	// zero-value of Lock should be sent here instead.
-	Lock Lock `json:"lock"`
+	Lock *Lock `json:"lock"`
 	// CommitNeeded holds the minimum commit SHA that client must have to
 	// obtain the lock.
 	CommitNeeded string `json:"commit_needed,omitempty"`
 	// Err is the optional error that was encountered while trying to create
 	// the above lock.
-	Err error `json:"error,omitempty"`
+	Err string `json:"error,omitempty"`
 }
 
-// UnlockResult is the result sent back from the API when asked to remove a
+// UnlockResponse is the result sent back from the API when asked to remove a
 // lock.
-type UnlockResult struct {
+type UnlockResponse struct {
 	// Lock is the lock corresponding to the asked-about lock in the
 	// `UnlockPayload` (see above). If no matching lock was found, this
 	// field will take the zero-value of Lock, and Err will be non-nil.
-	Lock Lock `json:"lock"`
+	Lock *Lock `json:"lock"`
 	// Err is an optional field which holds any error that was experienced
 	// while removing the lock.
-	Err error `json:"error,omitempty"`
+	Err string `json:"error,omitempty"`
 }
