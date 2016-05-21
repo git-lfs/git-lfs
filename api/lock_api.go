@@ -7,9 +7,22 @@ import (
 	"time"
 )
 
-type LockService struct {
-}
+// LockService is an API service which encapsulates the Git LFS Locking API.
+type LockService struct{}
 
+// Lock generates a *RequestSchema that is used to preform the "attempt lock"
+// API method.
+//
+// If a lock is already present, or if the server was unable to generate the
+// lock, the Err field of the LockResponse type will be populated with a more
+// detailed error describing the situation.
+//
+// If the caller does not have the minimum commit necessary to obtain the lock
+// on that file, then the CommitNeeded field will be populated in the
+// LockResponse, signaling that more commits are needed.
+//
+// In the successful case, a new Lock will be returned and granted to the
+// caller.
 func (s *LockService) Lock(req *LockRequest) (*RequestSchema, *LockResponse) {
 	var resp LockResponse
 
@@ -21,6 +34,26 @@ func (s *LockService) Lock(req *LockRequest) (*RequestSchema, *LockResponse) {
 	}, &resp
 }
 
+// Search generates a *RequestSchema that is used to preform the "search for
+// locks" API method.
+//
+// Searches can be scoped to match specific parameters by using the Filters
+// field in the given LockSearchRequest. If no matching Locks were found, then
+// the Locks field of the response will be empty.
+//
+// If the client expects that the server will return many locks, then the client
+// can choose to paginate that response. Pagination is preformed by limiting the
+// amount of results per page, and the server will inform the client of the ID
+// of the last returned lock. Since the server is guaranteed to return results
+// in reverse chronological order, the client simply sends the last ID it
+// processed along with the next request, and the server will continue where it
+// left off.
+//
+// If the server was unable to process the lock search request, then the Error
+// field will be populated in the response.
+//
+// In the successful case, one or more locks will be returned as a part of the
+// response.
 func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList) {
 	var resp LockList
 
@@ -45,14 +78,23 @@ func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList)
 	}, &resp
 }
 
-func (s *LockService) Unlock(l *Lock) (*RequestSchema, UnlockResponse) {
+// Unlock generates a *RequestSchema that is used to preform the "unlock" API
+// method.
+//
+// It generates a bodyless request that simply directs to POST
+// /locks/:id/unlock.
+//
+// This method's corresponding response type will either contain a reference to
+// the lock that was unlocked, or an error that was experienced by the server in
+// unlocking it.
+func (s *LockService) Unlock(l *Lock) (*RequestSchema, *UnlockResponse) {
 	var resp UnlockResponse
 
 	return &RequestSchema{
 		Method: http.MethodPost,
 		Path:   fmt.Sprintf("/locks/%s/unlock", l.Id),
-		Into:   resp,
-	}, resp
+		Into:   &resp,
+	}, &resp
 }
 
 // Lock represents a single lock that against a particular path.
@@ -90,6 +132,7 @@ func (l *Lock) Active() bool {
 	return l.UnlockedAt.IsZero()
 }
 
+// Committer represents a "First Last <email@domain.com>" pair.
 type Committer struct {
 	// Name is the name of the individual who would like to obtain the
 	// lock, for instance: "Rick Olson".
@@ -148,6 +191,7 @@ type UnlockResponse struct {
 	Err string `json:"error,omitempty"`
 }
 
+// Filter represents a single qualifier to apply against a set of locks.
 type Filter struct {
 	// Property is the property to search against.
 	// Value is the value that the property must take.
