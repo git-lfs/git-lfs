@@ -17,8 +17,9 @@ import (
 
 var (
 	checkoutCmd = &cobra.Command{
-		Use: "checkout",
-		Run: checkoutCommand,
+		Use:   "checkout",
+		Short: "Checks out LFS files into the working copy",
+		Run:   checkoutCommand,
 	}
 )
 

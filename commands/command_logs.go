@@ -13,28 +13,33 @@ import (
 
 var (
 	logsCmd = &cobra.Command{
-		Use: "logs",
-		Run: logsCommand,
+		Use:   "logs",
+		Short: "View error logs",
+		Run:   logsCommand,
 	}
 
 	logsLastCmd = &cobra.Command{
-		Use: "last",
-		Run: logsLastCommand,
+		Use:   "last",
+		Short: "View latest error log",
+		Run:   logsLastCommand,
 	}
 
 	logsShowCmd = &cobra.Command{
-		Use: "show",
-		Run: logsShowCommand,
+		Use:   "show",
+		Short: "View a single error log",
+		Run:   logsShowCommand,
 	}
 
 	logsClearCmd = &cobra.Command{
-		Use: "clear",
-		Run: logsClearCommand,
+		Use:   "clear",
+		Short: "Clear all logs",
+		Run:   logsClearCommand,
 	}
 
 	logsBoomtownCmd = &cobra.Command{
-		Use: "boomtown",
-		Run: logsBoomtownCommand,
+		Use:   "boomtown",
+		Short: "Trigger a sample error",
+		Run:   logsBoomtownCommand,
 	}
 )
 

@@ -13,8 +13,9 @@ import (
 
 var (
 	untrackCmd = &cobra.Command{
-		Use: "untrack",
-		Run: untrackCommand,
+		Use:   "untrack",
+		Short: "Stop tracking a file / pattern in Git LFS",
+		Run:   untrackCommand,
 	}
 )
 

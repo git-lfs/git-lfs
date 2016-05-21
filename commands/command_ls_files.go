@@ -11,8 +11,9 @@ import (
 var (
 	longOIDs   = false
 	lsFilesCmd = &cobra.Command{
-		Use: "ls-files",
-		Run: lsFilesCommand,
+		Use:   "ls-files",
+		Short: "Show information about Git LFS files",
+		Run:   lsFilesCommand,
 	}
 )
 

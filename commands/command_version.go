@@ -9,8 +9,9 @@ var (
 	lovesComics bool
 
 	versionCmd = &cobra.Command{
-		Use: "version",
-		Run: versionCommand,
+		Use:   "version",
+		Short: "Show the version number",
+		Run:   versionCommand,
 	}
 )
 

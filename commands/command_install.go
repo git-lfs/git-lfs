@@ -7,13 +7,15 @@ import (
 
 var (
 	installCmd = &cobra.Command{
-		Use: "install",
-		Run: installCommand,
+		Use:   "install",
+		Short: "Install the default Git LFS configuration",
+		Run:   installCommand,
 	}
 
 	installHooksCmd = &cobra.Command{
-		Use: "hooks",
-		Run: installHooksCommand,
+		Use:   "hooks",
+		Short: "Install hooks for the current repository",
+		Run:   installHooksCommand,
 	}
 
 	forceInstall      = false

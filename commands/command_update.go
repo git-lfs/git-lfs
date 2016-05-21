@@ -11,8 +11,9 @@ import (
 
 var (
 	updateCmd = &cobra.Command{
-		Use: "update",
-		Run: updateCommand,
+		Use:   "update",
+		Short: "Update local Git LFS configuration",
+		Run:   updateCommand,
 	}
 
 	updateForce  = false

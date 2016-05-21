@@ -14,8 +14,9 @@ import (
 
 var (
 	fetchCmd = &cobra.Command{
-		Use: "fetch",
-		Run: fetchCommand,
+		Use:   "fetch",
+		Short: "Downloads LFS files",
+		Run:   fetchCommand,
 	}
 	fetchIncludeArg string
 	fetchExcludeArg string

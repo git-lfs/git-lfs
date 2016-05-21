@@ -15,8 +15,9 @@ import (
 
 var (
 	cloneCmd = &cobra.Command{
-		Use: "clone",
-		Run: cloneCommand,
+		Use:   "clone",
+		Short: "Clone a git repo with LFS content more efficiently",
+		Run:   cloneCommand,
 	}
 
 	cloneFlags git.CloneFlags
