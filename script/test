@@ -6,5 +6,7 @@ script/fmt
 if [ $# -gt 0 ]; then
     GO15VENDOREXPERIMENT=1 go test "./$1"
 else
-    GO15VENDOREXPERIMENT=1 go test $(go list ./... | grep -v /vendor/)
+    # NOTE: olekukonko/ts has a failure in TestSize as described in
+    # https://github.com/olekukonko/ts/issues/3.
+    GO15VENDOREXPERIMENT=1 go test ./...
 fi
