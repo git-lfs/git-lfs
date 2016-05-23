@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
-glide update -s
+glide update -s -u
 glide install -s -u
+
+rm -rf vendor/github.com/ThomsonReutersEikon/log4go/examples
+rm -rf vendor/github.com/ThomsonReutersEikon/go-ntlm/utils
