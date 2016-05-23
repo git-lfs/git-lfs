@@ -4,7 +4,7 @@
 
 script/fmt
 if [ $# -gt 0 ]; then
-    GO15VENDOREXPERIMENT=0 go test "./$1"
+    GO15VENDOREXPERIMENT=1 go test "./$1"
 else
-    GO15VENDOREXPERIMENT=0 go test $(go list ./... | grep -v /vendor/)
+    GO15VENDOREXPERIMENT=1 go test $(go list ./... | grep -v /vendor/)
 fi
