@@ -1,5 +1,5 @@
-hash: 1e9829c101da10af5fb20af5e85d872bbbbba1eb924972614121dc3282d35ea4
-updated: 2016-05-23T16:47:27.50226743-06:00
+hash: 37412dc1ad154f55d7aebe5a937ef74ac15fa0dea30ba040d59e4b0135d03025
+updated: 2016-05-23T16:51:06.736505156-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -30,11 +30,9 @@ imports:
 - name: github.com/technoweenie/go-contentaddressable
   version: 38171def3cd15e3b76eb156219b3d48704643899
 - name: github.com/ThomsonReutersEikon/go-ntlm
-  version: 52b7efa603f1b809167b528b8bbaa467e36fdc02
+  version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
   subpackages:
   - ntlm
-- name: github.com/ThomsonReutersEikon/log4go
-  version: 173466d4d37ffd4ca9c400bc0b67d57b4a73cdae
 - name: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - name: github.com/xeipuuv/gojsonreference
