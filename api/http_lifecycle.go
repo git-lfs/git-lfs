@@ -10,7 +10,6 @@ import (
 	"net/url"
 
 	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/httputil"
 )
 
@@ -21,11 +20,6 @@ type HttpLifecycle struct {
 	// root is the root of the API server, from which all other sub-paths are
 	// relativized
 	root *url.URL
-	// client is the *http.Client used to execute these requests.
-	client *httputil.HttpClient
-	// authenticateRequests stores whether or not the HttpLifecycle should
-	// authenticate its HTTP requests
-	authenticateRequests bool
 }
 
 var _ Lifecycle = new(HttpLifecycle)
@@ -34,8 +28,7 @@ var _ Lifecycle = new(HttpLifecycle)
 // new *http.Client, and the given root (see above).
 func NewHttpLifecycle(root *url.URL) *HttpLifecycle {
 	return &HttpLifecycle{
-		root:   root,
-		client: httputil.NewHttpClient(config.Config, root.Host),
+		root: root,
 	}
 }
 
@@ -95,7 +88,7 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 // Otherwise, the api.Response is returned, along with no error, signaling that
 // the request completed successfully.
 func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, error) {
-	resp, err := l.client.Do(req)
+	resp, err := httputil.DoHttpRequestWithRedirects(req, []*http.Request{}, true)
 	if err != nil {
 		return nil, err
 	}
