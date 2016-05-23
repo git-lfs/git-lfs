@@ -12,8 +12,8 @@ import (
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/rubyist/tracerx"
+	"github.com/spf13/cobra"
 )
 
 var (

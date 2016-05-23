@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/github/git-lfs/subprocess"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 type RefType int

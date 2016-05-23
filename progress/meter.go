@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/olekukonko/ts"
+	"github.com/olekukonko/ts"
 )
 
 // ProgressMeter provides a progress bar type output for the TransferQueue. It

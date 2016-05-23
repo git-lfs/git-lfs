@@ -11,9 +11,9 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/bgentry/go-netrc/netrc"
+	"github.com/rubyist/tracerx"
 )
 
 var (

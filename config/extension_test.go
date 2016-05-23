@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestSortExtensions(t *testing.T) {

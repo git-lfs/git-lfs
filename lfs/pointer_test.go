@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestEncode(t *testing.T) {

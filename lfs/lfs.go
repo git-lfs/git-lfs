@@ -11,7 +11,7 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 var (
