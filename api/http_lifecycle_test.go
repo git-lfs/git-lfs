@@ -5,27 +5,38 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
 
 	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 var (
 	root, _ = url.Parse("https://example.com")
 )
 
-func TestHttpLifecycleMakesRequestsAgainstAbsolutePath(t *testing.T) {
+type HttpLifecycleTestSuite struct {
+	suite.Suite
+}
+
+func (suite *HttpLifecycleTestSuite) SetupTest() {
+	SetupTestCredentialsFunc()
+}
+
+func (suite *HttpLifecycleTestSuite) TearDownTest() {
+	RestoreCredentialsFunc()
+}
+
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleMakesRequestsAgainstAbsolutePath() {
 	l := api.NewHttpLifecycle(root)
 	req, err := l.Build(&api.RequestSchema{
 		Path: "/foo",
 	})
 
-	assert.Nil(t, err)
-	assert.Equal(t, "https://example.com/foo", req.URL.String())
+	suite.Assert().Nil(err)
+	suite.Assert().Equal("https://example.com/foo", req.URL.String())
 }
 
-func TestHttpLifecycleAttachesQueryParameters(t *testing.T) {
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleAttachesQueryParameters() {
 	l := api.NewHttpLifecycle(root)
 	req, err := l.Build(&api.RequestSchema{
 		Path: "/foo",
@@ -34,11 +45,11 @@ func TestHttpLifecycleAttachesQueryParameters(t *testing.T) {
 		},
 	})
 
-	assert.Nil(t, err)
-	assert.Equal(t, "https://example.com/foo?a=b", req.URL.String())
+	suite.Assert().Nil(err)
+	suite.Assert().Equal("https://example.com/foo?a=b", req.URL.String())
 }
 
-func TestHttpLifecycleAttachesBodyWhenPresent(t *testing.T) {
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleAttachesBodyWhenPresent() {
 	l := api.NewHttpLifecycle(root)
 	req, err := l.Build(&api.RequestSchema{
 		Body: struct {
@@ -46,40 +57,40 @@ func TestHttpLifecycleAttachesBodyWhenPresent(t *testing.T) {
 		}{"bar"},
 	})
 
-	assert.Nil(t, err)
+	suite.Assert().Nil(err)
 
 	body, err := ioutil.ReadAll(req.Body)
-	assert.Nil(t, err)
-	assert.Equal(t, "{\"foo\":\"bar\"}", string(body))
+	suite.Assert().Nil(err)
+	suite.Assert().Equal("{\"foo\":\"bar\"}", string(body))
 }
 
-func TestHttpLifecycleDoesNotAttachBodyWhenEmpty(t *testing.T) {
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleDoesNotAttachBodyWhenEmpty() {
 	l := api.NewHttpLifecycle(root)
 	req, err := l.Build(&api.RequestSchema{})
 
-	assert.Nil(t, err)
-	assert.Nil(t, req.Body)
+	suite.Assert().Nil(err)
+	suite.Assert().Nil(req.Body)
 }
 
-func TestHttpLifecycleExecutesRequestWithoutBody(t *testing.T) {
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithoutBody() {
 	var called bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 
-		assert.Equal(t, "/path", r.URL.RequestURI())
+		suite.Assert().Equal("/path", r.URL.RequestURI())
 	}))
 	defer server.Close()
 
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/path", nil)
 
-	l := api.NewHttpLifecycle(nil)
+	l := api.NewHttpLifecycle(root)
 	_, err := l.Execute(req, nil)
 
-	assert.True(t, called)
-	assert.Nil(t, err)
+	suite.Assert().True(called)
+	suite.Assert().Nil(err)
 }
 
-func TestHttpLifecycleExecutesRequestWithBody(t *testing.T) {
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithBody() {
 	type Response struct {
 		Foo string `json:"foo"`
 	}
@@ -94,11 +105,11 @@ func TestHttpLifecycleExecutesRequestWithBody(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/path", nil)
 
-	l := api.NewHttpLifecycle(nil)
+	l := api.NewHttpLifecycle(root)
 	resp := new(Response)
 	_, err := l.Execute(req, resp)
 
-	assert.True(t, called)
-	assert.Nil(t, err)
-	assert.Equal(t, "bar", resp.Foo)
+	suite.Assert().True(called)
+	suite.Assert().Nil(err)
+	suite.Assert().Equal("bar", resp.Foo)
 }

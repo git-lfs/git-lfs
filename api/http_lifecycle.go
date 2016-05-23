@@ -8,6 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/github/git-lfs/auth"
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/httputil"
 )
 
 // HttpLifecycle serves as the default implementation of the Lifecycle interface
@@ -18,7 +22,7 @@ type HttpLifecycle struct {
 	// relativized
 	root *url.URL
 	// client is the *http.Client used to execute these requests.
-	client *http.Client
+	client *httputil.HttpClient
 	// authenticateRequests stores whether or not the HttpLifecycle should
 	// authenticate its HTTP requests
 	authenticateRequests bool
@@ -31,7 +35,7 @@ var _ Lifecycle = new(HttpLifecycle)
 func NewHttpLifecycle(root *url.URL) *HttpLifecycle {
 	return &HttpLifecycle{
 		root:   root,
-		client: new(http.Client),
+		client: httputil.NewHttpClient(config.Config, root.Host),
 	}
 }
 
@@ -67,10 +71,9 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 		return nil, err
 	}
 
-	// ASK(@sinbad): is this the correct usage?
-	// if _, err = auth.GetCreds(req); err != nil {
-	// 	return nil, err
-	// }
+	if _, err = auth.GetCreds(req); err != nil {
+		return nil, err
+	}
 
 	req.URL.RawQuery = l.queryParameters(schema).Encode()
 
