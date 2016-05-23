@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-#/ Usage: script/test          # run all tests
+#/ Usage: script/test          # run all non-vendored tests
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
 if [ $# -gt 0 ]; then
     GO15VENDOREXPERIMENT=0 go test "./$1"
-else 
-    GO15VENDOREXPERIMENT=0 go test ./...
+else
+    GO15VENDOREXPERIMENT=0 go test $(go list ./... | grep -v /vendor/)
 fi
