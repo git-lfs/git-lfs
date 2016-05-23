@@ -1,5 +1,5 @@
-hash: 37412dc1ad154f55d7aebe5a937ef74ac15fa0dea30ba040d59e4b0135d03025
-updated: 2016-05-23T16:51:06.736505156-06:00
+hash: 182ec7291ff418398a7e1cc9190418d72e4e7eb46768e80f35d2b2f881a8e2d5
+updated: 2016-05-23T17:06:38.815752608-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -26,7 +26,7 @@ imports:
 - name: github.com/stretchr/testify
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
 - name: github.com/technoweenie/assert
-  version: b25ea301d127043ffacf3b2545726e79b6632139
+  version: 0f66abfb116300e00d4b33811ab014405abf77b4
 - name: github.com/technoweenie/go-contentaddressable
   version: 38171def3cd15e3b76eb156219b3d48704643899
 - name: github.com/ThomsonReutersEikon/go-ntlm

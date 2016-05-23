@@ -2,12 +2,20 @@ package point
 
 import (
 	"testing"
+
 	"github.com/technoweenie/assert"
 )
 
-func TestAsserts(t *testing.T) {
+func TestAssertEqual(t *testing.T) {
+	p1 := Point{1, 1}
+	p2 := Point{1, 1}
+
+	assert.Equal(t, p1, p2)
+}
+
+func TestAssertNotEqual(t *testing.T) {
 	p1 := Point{1, 1}
 	p2 := Point{2, 1}
 
-	assert.Equal(t, p1, p2)
+	assert.NotEqual(t, p1, p2)
 }
