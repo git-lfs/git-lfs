@@ -26,6 +26,7 @@ import:
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
 - package: github.com/ThomsonReutersEikon/go-ntlm
   version: 52b7efa603f1b809167b528b8bbaa467e36fdc02
+  # go-ntlm includes a util/ directory, which was removed
   subpackages:
   - ntlm
 - package: github.com/technoweenie/assert
@@ -39,3 +40,4 @@ import:
 - package: github.com/xeipuuv/gojsonschema
   version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
 - package: github.com/ThomsonReutersEikon/log4go
+  # log4go includes an examples/ directory, which was removed
