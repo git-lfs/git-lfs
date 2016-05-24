@@ -26,7 +26,9 @@ type Transferable interface {
 	SetObject(*api.ObjectResource)
 }
 
-// TransferQueue provides a queue that will allow concurrent transfers.
+// TransferQueue organises the wider process of uploading and downloading,
+// including calling the API, passing the actual transfer request to transfer
+// adapters, and dealing with progress, errors and retries
 type TransferQueue struct {
 	retrying      uint32
 	meter         *progress.ProgressMeter
@@ -163,6 +165,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 		if obj != nil {
 			t.SetObject(obj)
 			q.meter.Add(t.Name())
+			// TODO @sinbad send to transfer adapter
 			q.transferc <- t
 		} else {
 			q.Skip(t.Size())
@@ -255,6 +258,7 @@ func (q *TransferQueue) batchApiRoutine() {
 				if ok {
 					transfer.SetObject(o)
 					q.meter.Add(transfer.Name())
+					// TODO @sinbad send this to transfer adapter
 					q.transferc <- transfer
 				} else {
 					q.Skip(transfer.Size())
@@ -283,6 +287,7 @@ func (q *TransferQueue) retryCollector() {
 	q.retrywait.Done()
 }
 
+// TODO @sinbad remove this, replace with callbacks including progress and retry
 func (q *TransferQueue) transferWorker() {
 	for transfer := range q.transferc {
 		cb := func(total, read int64, current int) error {
@@ -334,6 +339,7 @@ func (q *TransferQueue) run() {
 	go q.errorCollector()
 	go q.retryCollector()
 
+	// TODO @sinbad remove launching of transfer worker
 	tracerx.Printf("tq: starting %d transfer workers", q.workers)
 	for i := 0; i < q.workers; i++ {
 		go q.transferWorker()
