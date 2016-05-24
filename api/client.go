@@ -3,10 +3,6 @@ package api
 
 import "net/url"
 
-const (
-	MediaType = "application/vnd.git-lfs+json; charset=utf-8"
-)
-
 // Client exposes the LFS API to callers through a multitude of different
 // services and transport mechanisms. Callers can make a *RequestSchema using
 // any service that is attached to the Client, and then execute a request based

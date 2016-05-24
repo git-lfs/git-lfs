@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockLifecycle struct {

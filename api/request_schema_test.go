@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 // AssertRequestSchema encapsulates a single assertion of equality against two
