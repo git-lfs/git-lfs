@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestWriterWithCallback(t *testing.T) {

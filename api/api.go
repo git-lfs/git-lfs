@@ -18,7 +18,7 @@ import (
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/tools"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {

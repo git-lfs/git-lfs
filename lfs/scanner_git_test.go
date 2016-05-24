@@ -11,7 +11,7 @@ import (
 
 	. "github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestScanUnpushed(t *testing.T) {

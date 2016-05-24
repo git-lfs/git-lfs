@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/technoweenie/assert"
 )
 
 var (

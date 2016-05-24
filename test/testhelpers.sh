@@ -197,7 +197,7 @@ clone_repo() {
 
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
-# $dir under $TRASHDIR, using the SSL endpoint. 
+# $dir under $TRASHDIR, using the SSL endpoint.
 # setup_remote_repo() needs to be run first. Output is written to clone_ssl.log.
 clone_repo_ssl() {
   cd "$TRASHDIR"
@@ -233,10 +233,10 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
-      GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/$(basename $go .go)" "$go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
     # Ensure API test util is built during tests to ensure it stays in sync
-    GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
+    GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
   fi
 
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &

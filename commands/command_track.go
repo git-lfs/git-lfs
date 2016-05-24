@@ -13,7 +13,7 @@ import (
 	"github.com/github/git-lfs/git"
 
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (

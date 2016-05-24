@@ -6,7 +6,7 @@ import (
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (

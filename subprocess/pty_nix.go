@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/kr/pty"
+	"github.com/kr/pty"
 )
 
 // NewTty creates a pseudo-TTY for a command and modifies it appropriately so

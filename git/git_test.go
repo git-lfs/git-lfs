@@ -10,7 +10,7 @@ import (
 
 	. "github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/test"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/technoweenie/assert"
 )
 
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
