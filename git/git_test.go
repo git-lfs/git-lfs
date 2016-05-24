@@ -10,7 +10,7 @@ import (
 
 	. "github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/test"
-	"github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
@@ -66,7 +66,7 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 
 	refname, err := RemoteRefNameForCurrentBranch()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, "origin/someremotebranch", refname)
+	assert.Equal(t, "refs/remotes/origin/someremotebranch", refname)
 
 	remote, err := RemoteForCurrentBranch()
 	assert.Equal(t, nil, err)

@@ -134,7 +134,7 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 
 	remotebranch := RemoteBranchForLocalBranch(ref.Name)
 
-	return remote + "/" + remotebranch, nil
+	return strings.Join([]string{"refs", "remotes", remote, remotebranch}, "/"), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
