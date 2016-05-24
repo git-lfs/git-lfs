@@ -10,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cheggaaa/pb"
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
-	"github.com/cheggaaa/pb"
 	"github.com/rubyist/tracerx"
 )
 
