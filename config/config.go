@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/github/git-lfs/git"
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
+	"github.com/github/git-lfs/git"
 	"github.com/rubyist/tracerx"
 )
 
