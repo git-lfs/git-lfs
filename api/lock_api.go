@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 )
@@ -27,7 +26,7 @@ func (s *LockService) Lock(req *LockRequest) (*RequestSchema, *LockResponse) {
 	var resp LockResponse
 
 	return &RequestSchema{
-		Method: http.MethodPost,
+		Method: "POST",
 		Path:   "/locks",
 		Body:   req,
 		Into:   &resp,
@@ -71,7 +70,7 @@ func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList)
 	}
 
 	return &RequestSchema{
-		Method: http.MethodGet,
+		Method: "GET",
 		Path:   "/locks",
 		Query:  query,
 		Into:   &resp,
@@ -91,7 +90,7 @@ func (s *LockService) Unlock(l *Lock) (*RequestSchema, *UnlockResponse) {
 	var resp UnlockResponse
 
 	return &RequestSchema{
-		Method: http.MethodPost,
+		Method: "POST",
 		Path:   fmt.Sprintf("/locks/%s/unlock", l.Id),
 		Into:   &resp,
 	}, &resp

@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"net/http"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ func TestSuccessfullyObtainingALock(t *testing.T) {
 	got, body := LockService.Lock(new(api.LockRequest))
 
 	AssertRequestSchema(t, &api.RequestSchema{
-		Method: http.MethodPost,
+		Method: "POST",
 		Path:   "/locks",
 		Body:   new(api.LockRequest),
 		Into:   body,
@@ -31,7 +30,7 @@ func TestLockSearchWithFilters(t *testing.T) {
 	})
 
 	AssertRequestSchema(t, &api.RequestSchema{
-		Method: http.MethodGet,
+		Method: "GET",
 		Query: map[string]string{
 			"branch": "master",
 			"path":   "/path/to/file",
@@ -47,7 +46,7 @@ func TestLockSearchWithNextCursor(t *testing.T) {
 	})
 
 	AssertRequestSchema(t, &api.RequestSchema{
-		Method: http.MethodGet,
+		Method: "GET",
 		Query: map[string]string{
 			"cursor": "some-lock-id",
 		},
@@ -62,7 +61,7 @@ func TestLockSearchWithLimit(t *testing.T) {
 	})
 
 	AssertRequestSchema(t, &api.RequestSchema{
-		Method: http.MethodGet,
+		Method: "GET",
 		Query: map[string]string{
 			"limit": "20",
 		},

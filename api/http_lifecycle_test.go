@@ -81,7 +81,7 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithoutBody
 	}))
 	defer server.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL+"/path", nil)
+	req, _ := http.NewRequest("GET", server.URL+"/path", nil)
 
 	l := api.NewHttpLifecycle(root)
 	_, err := l.Execute(req, nil)
@@ -103,7 +103,7 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithBody() 
 	}))
 	defer server.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL+"/path", nil)
+	req, _ := http.NewRequest("GET", server.URL+"/path", nil)
 
 	l := api.NewHttpLifecycle(root)
 	resp := new(Response)
