@@ -116,7 +116,8 @@ func RemoteForCurrentBranch() (string, error) {
 	return remote, nil
 }
 
-// RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
+// RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
+// that the current branch is tracking.
 func RemoteRefNameForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
@@ -134,7 +135,7 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 
 	remotebranch := RemoteBranchForLocalBranch(ref.Name)
 
-	return remote + "/" + remotebranch, nil
+	return fmt.Sprintf("refs/remotes/%s/%s", remote, remotebranch), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
