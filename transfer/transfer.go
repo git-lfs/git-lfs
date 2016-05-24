@@ -5,6 +5,8 @@ package transfer
 import (
 	"sync"
 
+	"github.com/github/git-lfs/api"
+
 	"github.com/github/git-lfs/progress"
 )
 
@@ -28,6 +30,11 @@ var (
 // TransferAdapters support transfers in one direction; if an implementation
 // provides support for upload and download, it should be instantiated twice,
 // advertising support for each direction separately.
+// Note that TransferAdapter only implements the actual upload/download of content
+// itself; organising the wider process including calling the API to get URLs,
+// handling progress reporting and retries is the job of the core TransferQueue.
+// This is so that the orchestration remains core & standard but TransferAdapter
+// can be changed to physically transfer to different hosts with less code.
 type TransferAdapter interface {
 	// Name returns the identifier of this adapter, must be unique within a Direction
 	// (separate sets for upload and download so may be an entry in both)
@@ -43,11 +50,11 @@ type TransferAdapter interface {
 	Begin(cb progress.CopyCallback, completion chan TransferResult) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
-	Add(t Transfer)
+	Add(t *Transfer)
 	// Indicate that all transfers have been scheduled and resources can be released
 	// once the queued items have completed.
 	// This call blocks until all items have been processed
-	End() error
+	End()
 	// ClearTempStorage clears any temporary files, such as unfinished downloads that
 	// would otherwise be resumed
 	ClearTempStorage() error
@@ -57,20 +64,20 @@ type TransferAdapter interface {
 type Transfer struct {
 	// Name of the file that triggered this transfer
 	Name string
-	// oid identifier
-	Oid string
-	// size of file to be transferred
-	Size int64
-	// link which api provided as source/dest for this transfer
-	Link string
+	// Object from API which provides the core data for this transfer
+	Object *api.ObjectResource
 	// Path for uploads is the source of data to send, for downloads is the
 	// location to place the final result
 	Path string
 }
 
+func NewTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
+	return &Transfer{name, obj, path}
+}
+
 // Result of a transfer returned through CompletionChannel()
 type TransferResult struct {
-	*Transfer
+	Transfer *Transfer
 	// This will be non-nil if there was an error transferring this item
 	Error error
 }
