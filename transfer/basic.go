@@ -74,9 +74,8 @@ func (a *basicAdapter) End() {
 }
 
 func (a *basicAdapter) ClearTempStorage() error {
-	// Not actually necessary for this adapter, the only temp files are deleted
-	// immediately via defer
-	return nil
+	// Should be empty already but also remove dir
+	return os.RemoveAll(a.tempDir())
 }
 
 // worker function, many of these run per adapter
@@ -109,7 +108,12 @@ func (a *basicAdapter) worker(workerNum int) {
 }
 
 func (a *basicAdapter) tempDir() string {
-	return filepath.Join(os.TempDir(), "git-lfs-basic")
+	// Must be dedicated to this adapter as deleted by ClearTempStorage
+	d := filepath.Join(os.TempDir(), "git-lfs-basic-temp")
+	if err := os.MkdirAll(d, 0755); err != nil {
+		return os.TempDir()
+	}
+	return d
 }
 
 func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
