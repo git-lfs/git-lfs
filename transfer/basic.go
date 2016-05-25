@@ -154,10 +154,19 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return err
+		return errutil.Error(err)
 	}
-	// TODO @sinbad - use custom wrapper to signalAuthOnResponse earlier
-	req.Body = f
+	defer f.Close()
+
+	// Ensure progress callbacks made while uploading
+	reader := &progress.CallbackReader{
+		C:         a.cb,
+		TotalSize: t.Object.Size,
+		Reader:    f,
+	}
+
+	// TODO @sinbad - use extra custom wrapper to signalAuthOnResponse earlier
+	req.Body = ioutil.NopCloser(reader)
 
 	res, err := httputil.DoHttpRequest(req, true)
 	if err != nil {
