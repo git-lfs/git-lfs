@@ -29,8 +29,6 @@ import:
   # go-ntlm includes a util/ directory, which was removed
   subpackages:
   - ntlm
-- package: github.com/technoweenie/assert
-  version: 0f66abfb116300e00d4b33811ab014405abf77b4
 - package: github.com/technoweenie/go-contentaddressable
   version: 38171def3cd15e3b76eb156219b3d48704643899
 - package: github.com/xeipuuv/gojsonpointer
