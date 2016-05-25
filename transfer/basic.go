@@ -159,13 +159,20 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 	defer f.Close()
 
 	// Ensure progress callbacks made while uploading
-	reader := &progress.CallbackReader{
+	var reader io.Reader
+	reader = &progress.CallbackReader{
 		C:         a.cb,
 		TotalSize: t.Object.Size,
 		Reader:    f,
 	}
 
-	// TODO @sinbad - use extra custom wrapper to signalAuthOnResponse earlier
+	if signalAuthOnResponse {
+		// Signal auth was ok on first read; this frees up other workers to start
+		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
+			a.authWait.Done()
+		})
+	}
+
 	req.Body = ioutil.NopCloser(reader)
 
 	res, err := httputil.DoHttpRequest(req, true)
@@ -184,17 +191,29 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 		return errutil.Errorf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
 	}
 
-	// Signal auth OK on success response, before starting download to free up
-	// other workers immediately
-	// TODO @sinbad remove this when custom readcloser wrapper does it instead
-	if signalAuthOnResponse {
-		a.authWait.Done()
-	}
-
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
 	return api.VerifyUpload(t.Object)
+}
+
+// startCallbackReader is a reader wrapper which calls a function as soon as the
+// first Read() call is made. This callback is only made once
+type startCallbackReader struct {
+	r      io.Reader
+	cb     func(*startCallbackReader)
+	cbDone bool
+}
+
+func (s *startCallbackReader) Read(p []byte) (n int, err error) {
+	if !s.cbDone && s.cb != nil {
+		s.cb(s)
+		s.cbDone = true
+	}
+	return s.r.Read(p)
+}
+func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCallbackReader {
+	return &startCallbackReader{r, cb, false}
 }
 
 func init() {
