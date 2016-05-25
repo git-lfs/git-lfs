@@ -3,7 +3,7 @@ package point
 import (
 	"testing"
 
-	"github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAssertEqual(t *testing.T) {

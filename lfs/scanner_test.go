@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -108,7 +108,7 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
-	assert.Equal(t, 5, len(pointers))
+	assert.Len(t, pointers, 5)
 
 	// modification, + side
 	assert.Equal(t, "radial_1.png", pointers[0].Name)
@@ -142,7 +142,7 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
-	assert.Equal(t, 1, len(pointers))
+	assert.Len(t, pointers, 1)
 	assert.Equal(t, "waveNM.png", pointers[0].Name)
 	assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", pointers[0].Oid)
 	assert.Equal(t, int64(125873), pointers[0].Size)
@@ -158,7 +158,7 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
-	assert.Equal(t, 4, len(pointers))
+	assert.Len(t, pointers, 4)
 	assert.Equal(t, "radial_1.png", pointers[0].Name)
 	assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", pointers[0].Oid)
 	assert.Equal(t, int64(3152388), pointers[0].Size)
@@ -188,7 +188,7 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 		pointers = append(pointers, p)
 	}
 
-	assert.Equal(t, 4, len(pointers))
+	assert.Len(t, pointers, 4)
 
 	// deletion, - side
 	assert.Equal(t, "smoke_1.png", pointers[0].Name)
@@ -218,7 +218,7 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
-	assert.Equal(t, 1, len(pointers))
+	assert.Len(t, pointers, 1)
 	assert.Equal(t, "flare_1.png", pointers[0].Name)
 	assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", pointers[0].Oid)
 	assert.Equal(t, int64(72982), pointers[0].Size)
@@ -234,7 +234,7 @@ func TestParseLogOutputToPointersDeletion(t *testing.T) {
 	for p := range pchan {
 		pointers = append(pointers, p)
 	}
-	assert.Equal(t, 3, len(pointers))
+	assert.Len(t, pointers, 3)
 	assert.Equal(t, "smoke_1.png", pointers[0].Name)
 	assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", pointers[0].Oid)
 	assert.Equal(t, int64(35022), pointers[0].Size)

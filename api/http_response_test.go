@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/api"
-	"github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWrappedHttpResponsesMatchInternal(t *testing.T) {
