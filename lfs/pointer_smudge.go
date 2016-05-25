@@ -57,6 +57,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 	if statErr != nil || stat == nil {
 		if download {
+			// TODO @sinbad use adapter, use readLocalFile on completion callback
 			err = downloadFile(writer, ptr, workingfile, mediafile, cb)
 		} else {
 			return errutil.NewDownloadDeclinedError(nil)
@@ -91,6 +92,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *api.ObjectResource, cb progress.Copy
 	}
 
 	if statErr != nil || stat == nil {
+		// TODO @sinbad use adapter, use readLocalFile on completion callback
 		err := downloadObject(ptr, obj, mediafile, cb)
 
 		if err != nil {
@@ -101,6 +103,7 @@ func PointerSmudgeObject(ptr *Pointer, obj *api.ObjectResource, cb progress.Copy
 	return nil
 }
 
+// TODO @sinbad remove
 func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb progress.CopyCallback) error {
 	reader, size, err := api.DownloadObject(obj)
 	if reader != nil {
@@ -122,6 +125,7 @@ func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb 
 	return nil
 }
 
+// TODO @sinbad remove
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 	reader, size, err := api.Download(filepath.Base(mediafile), ptr.Size)
@@ -144,6 +148,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
+// TODO @sinbad remove bufferDownloadedFile
 // Writes the content of reader to filename atomically by writing to a temp file
 // first, and confirming the content SHA-256 is valid. This is basically a copy
 // of atomic.WriteFile() at:
