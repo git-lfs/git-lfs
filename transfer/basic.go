@@ -70,7 +70,8 @@ func (a *basicAdapter) End() {
 }
 
 func (a *basicAdapter) ClearTempStorage() error {
-	// TODO @sinbad
+	// Not actually necessary for this adapter, the only temp files are deleted
+	// immediately via defer
 	return nil
 }
 
