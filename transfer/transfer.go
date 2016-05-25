@@ -131,20 +131,27 @@ func RegisterAdapter(adapter TransferAdapter) {
 	}
 }
 
-// Get a specific adapter by name and direction
-func GetAdapter(name string, dir Direction) (TransferAdapter, bool) {
+// Get a specific adapter by name and direction, or nil if doesn't exist
+func GetAdapter(name string, dir Direction) TransferAdapter {
 	adapterMutex.Lock()
 	defer adapterMutex.Unlock()
 
 	switch dir {
 	case Upload:
 		if u, ok := uploadAdapters[name]; ok {
-			return u, true
+			return u
 		}
 	case Download:
 		if d, ok := downloadAdapters[name]; ok {
-			return d, true
+			return d
 		}
 	}
-	return nil, false
+	return nil
+}
+
+func GetDownloadAdapter(name string) TransferAdapter {
+	return GetAdapter(name, Download)
+}
+func GetUploadAdapter(name string) TransferAdapter {
+	return GetAdapter(name, Upload)
 }

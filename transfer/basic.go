@@ -19,6 +19,10 @@ import (
 	"github.com/github/git-lfs/progress"
 )
 
+const (
+	BasicAdapterName = "basic"
+)
+
 // Base implementation of basic all-or-nothing HTTP upload / download adapter
 type basicAdapter struct {
 	direction Direction
@@ -42,7 +46,7 @@ func (a *basicAdapter) Direction() Direction {
 }
 
 func (a *basicAdapter) Name() string {
-	return "basic"
+	return BasicAdapterName
 }
 
 func (a *basicAdapter) Begin(cb progress.CopyCallback, completion chan TransferResult) error {
@@ -64,7 +68,7 @@ func (a *basicAdapter) Add(t *Transfer) {
 }
 
 func (a *basicAdapter) End() {
-	a.jobChan.Close()
+	close(a.jobChan)
 	// wait for all transfers to complete
 	a.workerWait.Wait()
 }

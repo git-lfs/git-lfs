@@ -9,6 +9,7 @@ import (
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/transfer"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
@@ -17,47 +18,52 @@ const (
 )
 
 type Transferable interface {
-	Check() (*api.ObjectResource, error)
-	Transfer(progress.CopyCallback) error
-	Object() *api.ObjectResource
 	Oid() string
 	Size() int64
 	Name() string
+	Path() string
+	Object() *api.ObjectResource
 	SetObject(*api.ObjectResource)
+	// Legacy API check - TODO remove this and only support batch
+	LegacyCheck() (*api.ObjectResource, error)
 }
 
 // TransferQueue organises the wider process of uploading and downloading,
 // including calling the API, passing the actual transfer request to transfer
 // adapters, and dealing with progress, errors and retries
 type TransferQueue struct {
-	retrying      uint32
-	meter         *progress.ProgressMeter
-	workers       int // Number of transfer workers to spawn
-	transferKind  string
-	errors        []error
-	transferables map[string]Transferable
-	retries       []Transferable
-	batcher       *Batcher
-	apic          chan Transferable // Channel for processing individual API requests
-	transferc     chan Transferable // Channel for processing transfers
-	retriesc      chan Transferable // Channel for processing retries
-	errorc        chan error        // Channel for processing errors
-	watchers      []chan string
-	trMutex       *sync.Mutex
-	errorwait     sync.WaitGroup
-	retrywait     sync.WaitGroup
-	wait          sync.WaitGroup
+	adapter           transfer.TransferAdapter
+	adapterInProgress bool
+	adapterResultChan chan transfer.TransferResult
+	adapterInitMutex  sync.Mutex
+	dryRun            bool
+	retrying          uint32
+	meter             *progress.ProgressMeter
+	errors            []error
+	transferables     map[string]Transferable
+	retries           []Transferable
+	batcher           *Batcher
+	apic              chan Transferable // Channel for processing individual API requests
+	retriesc          chan Transferable // Channel for processing retries
+	errorc            chan error        // Channel for processing errors
+	watchers          []chan string
+	trMutex           *sync.Mutex
+	errorwait         sync.WaitGroup
+	retrywait         sync.WaitGroup
+	wait              sync.WaitGroup // Incremented on Add(), decremented on transfer complete or skip
+	oldApiWorkers     int            // Number of non-batch API workers to spawn (deprecated)
 }
 
-// newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
-func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
+// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
+func newTransferQueue(files int, size int64, dryRun bool, adapter transfer.TransferAdapter) *TransferQueue {
 	q := &TransferQueue{
+		adapter:       adapter,
+		dryRun:        dryRun,
 		meter:         progress.NewProgressMeter(files, size, dryRun, config.Config.Getenv("GIT_LFS_PROGRESS")),
 		apic:          make(chan Transferable, batchSize),
-		transferc:     make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
-		workers:       config.Config.ConcurrentTransfers(),
+		oldApiWorkers: config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 	}
@@ -85,8 +91,87 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.apic <- t
 }
 
+func (q *TransferQueue) addToAdapter(t Transferable) {
+
+	tr := transfer.NewTransfer(t.Name(), t.Object(), t.Path())
+
+	if q.dryRun {
+		// Don't actually transfer
+		res := transfer.TransferResult{tr, nil}
+		q.handleTransferResult(res)
+		return
+	}
+	q.ensureAdapterBegun()
+	q.adapter.Add(tr)
+}
+
 func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
+}
+
+func (q *TransferQueue) transferKind() string {
+	if q.adapter.Direction() == transfer.Download {
+		return "download"
+	} else {
+		return "upload"
+	}
+}
+
+func (q *TransferQueue) ensureAdapterBegun() {
+	q.adapterInitMutex.Lock()
+	defer q.adapterInitMutex.Unlock()
+
+	if q.adapterInProgress {
+		return
+	}
+
+	adapterResultChan := make(chan transfer.TransferResult, 20)
+
+	// Progress callback - receives byte updates
+	// TODO @sinbad this has to be specific to transfers to have Name()???
+	cb := func(total, read int64, current int) error {
+		q.meter.TransferBytes(q.transferKind(), "TODO @sinbad NAME?", read, total, current)
+		return nil
+	}
+
+	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
+	q.adapter.Begin(cb, adapterResultChan)
+	q.adapterInProgress = true
+
+	// Collector for completed transfers
+	// q.wait.Done() in handleTransferResult is enough to know when this is complete for all transfers
+	go func() {
+		for res := range adapterResultChan {
+			q.handleTransferResult(res)
+		}
+	}()
+
+}
+
+func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
+	if res.Error != nil {
+		if q.canRetry(res.Error) {
+			tracerx.Printf("tq: retrying object %s", res.Transfer.Object.Oid)
+			q.trMutex.Lock()
+			t, ok := q.transferables[res.Transfer.Object.Oid]
+			q.trMutex.Unlock()
+			if ok {
+				q.retry(t)
+			} else {
+				q.errorc <- res.Error
+			}
+		} else {
+			q.errorc <- res.Error
+		}
+	} else {
+		oid := res.Transfer.Object.Oid
+		for _, c := range q.watchers {
+			c <- oid
+		}
+	}
+	q.meter.FinishTransfer(res.Transfer.Name)
+	q.wait.Done()
+
 }
 
 // Wait waits for the queue to finish processing all transfers. Once Wait is
@@ -118,7 +203,10 @@ func (q *TransferQueue) Wait() {
 	atomic.StoreUint32(&q.retrying, 0)
 
 	close(q.apic)
-	close(q.transferc)
+	if q.adapterInProgress {
+		q.adapter.End()
+		q.adapterInProgress = false
+	}
 	close(q.errorc)
 
 	for _, watcher := range q.watchers {
@@ -141,9 +229,10 @@ func (q *TransferQueue) Watch() chan string {
 // a POST call for each object, feeding the results to the transfer workers.
 // If configured, the object transfers can still happen concurrently, the
 // sequential nature here is only for the meta POST calls.
+// TODO eliminate this path, support batch only
 func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
-		obj, err := t.Check()
+		obj, err := t.LegacyCheck()
 		if err != nil {
 			if q.canRetry(err) {
 				q.retry(t)
@@ -165,8 +254,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 		if obj != nil {
 			t.SetObject(obj)
 			q.meter.Add(t.Name())
-			// TODO @sinbad send to transfer adapter
-			q.transferc <- t
+			q.addToAdapter(t)
 		} else {
 			q.Skip(t.Size())
 			q.wait.Done()
@@ -177,6 +265,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 // legacyFallback is used when a batch request is made to a server that does
 // not support the batch endpoint. When this happens, the Transferables are
 // fed from the batcher into apic to be processed individually.
+// TODO remove this in favour of batch only
 func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
 	tracerx.Printf("tq: batch api not implemented, falling back to individual")
 
@@ -218,7 +307,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
-		objects, err := api.Batch(transfers, q.transferKind)
+		objects, err := api.Batch(transfers, q.transferKind())
 		if err != nil {
 			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
@@ -249,7 +338,7 @@ func (q *TransferQueue) batchApiRoutine() {
 				continue
 			}
 
-			if _, ok := o.Rel(q.transferKind); ok {
+			if _, ok := o.Rel(q.transferKind()); ok {
 				// This object needs to be transferred
 				q.trMutex.Lock()
 				transfer, ok := q.transferables[o.Oid]
@@ -258,8 +347,7 @@ func (q *TransferQueue) batchApiRoutine() {
 				if ok {
 					transfer.SetObject(o)
 					q.meter.Add(transfer.Name())
-					// TODO @sinbad send this to transfer adapter
-					q.transferc <- transfer
+					q.addToAdapter(transfer)
 				} else {
 					q.Skip(transfer.Size())
 					q.wait.Done()
@@ -287,34 +375,6 @@ func (q *TransferQueue) retryCollector() {
 	q.retrywait.Done()
 }
 
-// TODO @sinbad remove this, replace with callbacks including progress and retry
-func (q *TransferQueue) transferWorker() {
-	for transfer := range q.transferc {
-		cb := func(total, read int64, current int) error {
-			q.meter.TransferBytes(q.transferKind, transfer.Name(), read, total, current)
-			return nil
-		}
-
-		if err := transfer.Transfer(cb); err != nil {
-			if q.canRetry(err) {
-				tracerx.Printf("tq: retrying object %s", transfer.Oid())
-				q.retry(transfer)
-			} else {
-				q.errorc <- err
-			}
-		} else {
-			oid := transfer.Oid()
-			for _, c := range q.watchers {
-				c <- oid
-			}
-		}
-
-		q.meter.FinishTransfer(transfer.Name())
-
-		q.wait.Done()
-	}
-}
-
 // launchIndividualApiRoutines first launches a single api worker. When it
 // receives the first successful api request it launches workers - 1 more
 // workers. This prevents being prompted for credentials multiple times at once
@@ -326,7 +386,7 @@ func (q *TransferQueue) launchIndividualApiRoutines() {
 
 		<-apiWaiter
 
-		for i := 0; i < q.workers-1; i++ {
+		for i := 0; i < q.oldApiWorkers-1; i++ {
 			go q.individualApiRoutine(nil)
 		}
 	}()
@@ -338,12 +398,6 @@ func (q *TransferQueue) launchIndividualApiRoutines() {
 func (q *TransferQueue) run() {
 	go q.errorCollector()
 	go q.retryCollector()
-
-	// TODO @sinbad remove launching of transfer worker
-	tracerx.Printf("tq: starting %d transfer workers", q.workers)
-	for i := 0; i < q.workers; i++ {
-		go q.transferWorker()
-	}
 
 	if config.Config.BatchTransfer() {
 		tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
