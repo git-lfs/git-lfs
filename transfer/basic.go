@@ -34,7 +34,6 @@ type basicAdapter struct {
 func newBasicAdapter(d Direction) *basicAdapter {
 	return &basicAdapter{
 		direction: d,
-		jobChan:   make(chan *Transfer, 100),
 	}
 }
 
@@ -49,6 +48,7 @@ func (a *basicAdapter) Name() string {
 func (a *basicAdapter) Begin(cb progress.CopyCallback, completion chan TransferResult) error {
 	a.cb = cb
 	a.outChan = completion
+	a.jobChan = make(chan *Transfer, 100)
 
 	numworkers := config.Config.ConcurrentTransfers()
 	a.workerWait.Add(numworkers)
@@ -64,6 +64,7 @@ func (a *basicAdapter) Add(t *Transfer) {
 }
 
 func (a *basicAdapter) End() {
+	a.jobChan.Close()
 	// wait for all transfers to complete
 	a.workerWait.Wait()
 }
