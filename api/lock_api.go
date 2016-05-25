@@ -26,10 +26,11 @@ func (s *LockService) Lock(req *LockRequest) (*RequestSchema, *LockResponse) {
 	var resp LockResponse
 
 	return &RequestSchema{
-		Method: "POST",
-		Path:   "/locks",
-		Body:   req,
-		Into:   &resp,
+		Method:    "POST",
+		Path:      "/locks",
+		Operation: UploadOperation,
+		Body:      req,
+		Into:      &resp,
 	}, &resp
 }
 
@@ -70,10 +71,11 @@ func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList)
 	}
 
 	return &RequestSchema{
-		Method: "GET",
-		Path:   "/locks",
-		Query:  query,
-		Into:   &resp,
+		Method:    "GET",
+		Path:      "/locks",
+		Operation: UploadOperation,
+		Query:     query,
+		Into:      &resp,
 	}, &resp
 }
 
@@ -90,9 +92,10 @@ func (s *LockService) Unlock(l *Lock) (*RequestSchema, *UnlockResponse) {
 	var resp UnlockResponse
 
 	return &RequestSchema{
-		Method: "POST",
-		Path:   fmt.Sprintf("/locks/%s/unlock", l.Id),
-		Into:   &resp,
+		Method:    "POST",
+		Path:      fmt.Sprintf("/locks/%s/unlock", l.Id),
+		Operation: UploadOperation,
+		Into:      &resp,
 	}, &resp
 }
 

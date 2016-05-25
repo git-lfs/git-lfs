@@ -4,31 +4,45 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 
 	"github.com/github/git-lfs/auth"
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/httputil"
 )
+
+var (
+	// ErrNoOperationGiven is an error which is returned when no operation
+	// is provided in a RequestSchema object.
+	ErrNoOperationGiven = errors.New("lfs/api: no operation provided in schema")
+)
+
+// EndpointSource is an interface which encapsulates the behavior of returning
+// `config.Endpoint`s based on a particular operation.
+type EndpointSource interface {
+	// Endpoint returns the `config.Endpoint` assosciated with a given
+	// operation.
+	Endpoint(operation string) config.Endpoint
+}
 
 // HttpLifecycle serves as the default implementation of the Lifecycle interface
 // for HTTP requests. Internally, it leverages the *http.Client type to execute
 // HTTP requests against a root *url.URL, as given in `NewHttpLifecycle`.
 type HttpLifecycle struct {
-	// root is the root of the API server, from which all other sub-paths are
-	// relativized
-	root *url.URL
+	endpoints EndpointSource
 }
 
 var _ Lifecycle = new(HttpLifecycle)
 
 // NewHttpLifecycle initializes a new instance of the *HttpLifecycle type with a
 // new *http.Client, and the given root (see above).
-func NewHttpLifecycle(root *url.URL) *HttpLifecycle {
+func NewHttpLifecycle(endpoints EndpointSource) *HttpLifecycle {
 	return &HttpLifecycle{
-		root: root,
+		endpoints: endpoints,
 	}
 }
 
@@ -49,7 +63,7 @@ func NewHttpLifecycle(root *url.URL) *HttpLifecycle {
 // Finally, all of these components are combined together and the resulting
 // request is returned.
 func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
-	path, err := l.absolutePath(schema.Path)
+	path, err := l.absolutePath(schema.Operation, schema.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -110,16 +124,27 @@ func (l *HttpLifecycle) Cleanup(resp Response) error {
 }
 
 // absolutePath returns the absolute path made by combining a given relative
-// path with the owned "base" path. If there was an error in parsing the
-// relative path, then that error will be returned.
-func (l *HttpLifecycle) absolutePath(path string) (*url.URL, error) {
+// path with the root URL of the endpoint corresponding to the given operation.
+//
+// If there was an error in parsing the relative path, then that error will be
+// returned.
+func (l *HttpLifecycle) absolutePath(operation Operation, path string) (*url.URL, error) {
+	if len(operation) == 0 {
+		return nil, ErrNoOperationGiven
+	}
+
+	root, err := url.Parse(l.endpoints.Endpoint(string(operation)).Url)
+	if err != nil {
+		return nil, err
+	}
+
 	rel, err := url.Parse(path)
 	if err != nil {
 		return nil, err
 
 	}
 
-	return l.root.ResolveReference(rel), nil
+	return root.ResolveReference(rel), nil
 }
 
 // body returns an io.Reader which reads out a JSON-encoded copy of the payload

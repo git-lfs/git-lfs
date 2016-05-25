@@ -9,13 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewClientRejectsInvalidRoots(t *testing.T) {
-	client, err := api.NewClient("%", nil)
-
-	assert.Nil(t, client)
-	assert.Equal(t, "parse %: invalid URL escape \"%\"", err.Error())
-}
-
 func TestClientUsesLifecycleToExecuteSchemas(t *testing.T) {
 	schema := new(api.RequestSchema)
 	req := new(http.Request)
@@ -26,7 +19,7 @@ func TestClientUsesLifecycleToExecuteSchemas(t *testing.T) {
 	lifecycle.On("Execute", req, schema.Into).Return(resp, nil).Once()
 	lifecycle.On("Cleanup", resp).Return(nil).Once()
 
-	client, _ := api.NewClient("/", lifecycle)
+	client := api.NewClient(lifecycle)
 	r1, err := client.Do(schema)
 
 	assert.Equal(t, resp, r1)
@@ -40,7 +33,7 @@ func TestClientHaltsIfSchemaCannotBeBuilt(t *testing.T) {
 	lifecycle := new(MockLifecycle)
 	lifecycle.On("Build", schema).Return(nil, errors.New("uh-oh!")).Once()
 
-	client, _ := api.NewClient("/", lifecycle)
+	client := api.NewClient(lifecycle)
 	resp, err := client.Do(schema)
 
 	lifecycle.AssertExpectations(t)
@@ -56,7 +49,7 @@ func TestClientHaltsIfSchemaCannotBeExecuted(t *testing.T) {
 	lifecycle.On("Build", schema).Return(req, nil).Once()
 	lifecycle.On("Execute", req, schema.Into).Return(nil, errors.New("uh-oh!")).Once()
 
-	client, _ := api.NewClient("/", lifecycle)
+	client := api.NewClient(lifecycle)
 	resp, err := client.Do(schema)
 
 	lifecycle.AssertExpectations(t)
@@ -74,7 +67,7 @@ func TestClientReturnsCleanupErrors(t *testing.T) {
 	lifecycle.On("Execute", req, schema.Into).Return(resp, nil).Once()
 	lifecycle.On("Cleanup", resp).Return(errors.New("uh-oh!")).Once()
 
-	client, _ := api.NewClient("/", lifecycle)
+	client := api.NewClient(lifecycle)
 	r1, err := client.Do(schema)
 
 	lifecycle.AssertExpectations(t)

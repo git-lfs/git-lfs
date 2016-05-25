@@ -14,10 +14,11 @@ func TestSuccessfullyObtainingALock(t *testing.T) {
 	got, body := LockService.Lock(new(api.LockRequest))
 
 	AssertRequestSchema(t, &api.RequestSchema{
-		Method: "POST",
-		Path:   "/locks",
-		Body:   new(api.LockRequest),
-		Into:   body,
+		Method:    "POST",
+		Path:      "/locks",
+		Operation: api.UploadOperation,
+		Body:      new(api.LockRequest),
+		Into:      body,
 	}, got)
 }
 
@@ -35,8 +36,9 @@ func TestLockSearchWithFilters(t *testing.T) {
 			"branch": "master",
 			"path":   "/path/to/file",
 		},
-		Path: "/locks",
-		Into: body,
+		Path:      "/locks",
+		Operation: api.UploadOperation,
+		Into:      body,
 	}, got)
 }
 
@@ -50,8 +52,9 @@ func TestLockSearchWithNextCursor(t *testing.T) {
 		Query: map[string]string{
 			"cursor": "some-lock-id",
 		},
-		Path: "/locks",
-		Into: body,
+		Path:      "/locks",
+		Operation: api.UploadOperation,
+		Into:      body,
 	}, got)
 }
 
@@ -65,8 +68,9 @@ func TestLockSearchWithLimit(t *testing.T) {
 		Query: map[string]string{
 			"limit": "20",
 		},
-		Path: "/locks",
-		Into: body,
+		Path:      "/locks",
+		Operation: api.UploadOperation,
+		Into:      body,
 	}, got)
 }
 
