@@ -1,7 +1,14 @@
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package api
 
-import "net/url"
+import "github.com/github/git-lfs/config"
+
+type Operation string
+
+const (
+	UploadOperation   Operation = "upload"
+	DownloadOperation Operation = "download"
+)
 
 // Client exposes the LFS API to callers through a multitude of different
 // services and transport mechanisms. Callers can make a *RequestSchema using
@@ -23,35 +30,20 @@ type Client struct {
 	// locking API.
 	Locks LockService
 
-	// base is root URL that all requests will be made against. It is
-	// initialized when the client is constructed, and remains immutable
-	// throughout the duration of the *Client.
-	base *url.URL
 	// lifecycle is the lifecycle used by all requests through this client.
 	lifecycle Lifecycle
 }
 
-// NewClient instantiates and returns a new instance of *Client with a base path
-// initialized to the given `root`. If `root` is unable to be parsed according
-// to the rules of `url.Parse`, then a `nil` client will be returned, along with
-// the assosicated parsing error.
+// NewClient instantiates and returns a new instance of *Client, with the given
+// lifecycle.
 //
-// Assuming all goes well, a *Client is returned as expected, along with a `nil`
-// error.
-func NewClient(root string, lifecycle Lifecycle) (*Client, error) {
-	base, err := url.Parse(root)
-	if err != nil {
-		return nil, err
-	}
-
+// If no lifecycle is given, a HttpLifecycle is used by default.
+func NewClient(lifecycle Lifecycle) *Client {
 	if lifecycle == nil {
-		lifecycle = NewHttpLifecycle(base)
+		lifecycle = NewHttpLifecycle(config.Config)
 	}
 
-	return &Client{
-		base:      base,
-		lifecycle: lifecycle,
-	}, nil
+	return &Client{lifecycle: lifecycle}
 }
 
 // Do preforms the request assosicated with the given *RequestSchema by

@@ -4,15 +4,28 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"testing"
 
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
 	"github.com/stretchr/testify/suite"
 )
 
+type NopEndpointSource struct {
+	Root string
+}
+
+func (e *NopEndpointSource) Endpoint(op string) config.Endpoint {
+	return config.Endpoint{Url: e.Root}
+}
+
 var (
-	root, _ = url.Parse("https://example.com")
+	source = &NopEndpointSource{"https://example.com"}
 )
+
+func TestHttpLifecycleSuite(t *testing.T) {
+	suite.Run(t, new(HttpLifecycleTestSuite))
+}
 
 type HttpLifecycleTestSuite struct {
 	suite.Suite
@@ -27,9 +40,10 @@ func (suite *HttpLifecycleTestSuite) TearDownTest() {
 }
 
 func (suite *HttpLifecycleTestSuite) TestHttpLifecycleMakesRequestsAgainstAbsolutePath() {
-	l := api.NewHttpLifecycle(root)
+	l := api.NewHttpLifecycle(source)
 	req, err := l.Build(&api.RequestSchema{
-		Path: "/foo",
+		Path:      "/foo",
+		Operation: api.DownloadOperation,
 	})
 
 	suite.Assert().Nil(err)
@@ -37,9 +51,10 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleMakesRequestsAgainstAbsolu
 }
 
 func (suite *HttpLifecycleTestSuite) TestHttpLifecycleAttachesQueryParameters() {
-	l := api.NewHttpLifecycle(root)
+	l := api.NewHttpLifecycle(source)
 	req, err := l.Build(&api.RequestSchema{
-		Path: "/foo",
+		Path:      "/foo",
+		Operation: api.DownloadOperation,
 		Query: map[string]string{
 			"a": "b",
 		},
@@ -50,8 +65,9 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleAttachesQueryParameters() 
 }
 
 func (suite *HttpLifecycleTestSuite) TestHttpLifecycleAttachesBodyWhenPresent() {
-	l := api.NewHttpLifecycle(root)
+	l := api.NewHttpLifecycle(source)
 	req, err := l.Build(&api.RequestSchema{
+		Operation: api.DownloadOperation,
 		Body: struct {
 			Foo string `json:"foo"`
 		}{"bar"},
@@ -65,11 +81,23 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleAttachesBodyWhenPresent() 
 }
 
 func (suite *HttpLifecycleTestSuite) TestHttpLifecycleDoesNotAttachBodyWhenEmpty() {
-	l := api.NewHttpLifecycle(root)
-	req, err := l.Build(&api.RequestSchema{})
+	l := api.NewHttpLifecycle(source)
+	req, err := l.Build(&api.RequestSchema{
+		Operation: api.DownloadOperation,
+	})
 
 	suite.Assert().Nil(err)
 	suite.Assert().Nil(req.Body)
+}
+
+func (suite *HttpLifecycleTestSuite) TestHttpLifecycleErrsWithoutOperation() {
+	l := api.NewHttpLifecycle(source)
+	req, err := l.Build(&api.RequestSchema{
+		Path: "/foo",
+	})
+
+	suite.Assert().Equal(api.ErrNoOperationGiven, err)
+	suite.Assert().Nil(req)
 }
 
 func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithoutBody() {
@@ -83,7 +111,7 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithoutBody
 
 	req, _ := http.NewRequest("GET", server.URL+"/path", nil)
 
-	l := api.NewHttpLifecycle(root)
+	l := api.NewHttpLifecycle(source)
 	_, err := l.Execute(req, nil)
 
 	suite.Assert().True(called)
@@ -105,7 +133,7 @@ func (suite *HttpLifecycleTestSuite) TestHttpLifecycleExecutesRequestWithBody() 
 
 	req, _ := http.NewRequest("GET", server.URL+"/path", nil)
 
-	l := api.NewHttpLifecycle(root)
+	l := api.NewHttpLifecycle(source)
 	resp := new(Response)
 	_, err := l.Execute(req, resp)
 
