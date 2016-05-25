@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
+	"github.com/github/git-lfs/tools"
 
 	"github.com/github/git-lfs/progress"
 )
@@ -100,6 +102,10 @@ func (a *basicAdapter) worker(workerNum int) {
 	a.workerWait.Done()
 }
 
+func (a *basicAdapter) tempDir() string {
+	return filepath.Join(os.TempDir(), "git-lfs-basic")
+}
+
 func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 	rel, ok := t.Object.Rel("download")
 	if !ok {
@@ -116,6 +122,7 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 		return errutil.NewRetriableError(err)
 	}
 	httputil.LogTransfer("lfs.data.download", res)
+	defer res.Body.Close()
 
 	// Signal auth OK on success response, before starting download to free up
 	// other workers immediately
@@ -124,9 +131,37 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 	}
 
 	// Now do transfer of content
-	// TODO @sinbad - re-use bufferDownloadedFile?
+	f, err := ioutil.TempFile(a.tempDir(), t.Object.Oid+"-")
+	if err != nil {
+		return fmt.Errorf("cannot create temp file: %v", err)
+	}
 
-	return nil
+	defer func() {
+		if err != nil {
+			// Don't leave the temp file lying around on error.
+			_ = os.Remove(f.Name()) // yes, ignore the error, not much we can do about it.
+		}
+	}()
+
+	hasher := tools.NewHashingReader(res.Body)
+
+	// ensure we always close f. Note that this does not conflict with  the
+	// close below, as close is idempotent.
+	defer f.Close()
+	tempfilename := f.Name()
+	written, err := tools.CopyWithCallback(f, hasher, res.ContentLength, a.cb)
+	if err != nil {
+		return fmt.Errorf("cannot write data to tempfile %q: %v", tempfilename, err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("can't close tempfile %q: %v", tempfilename, err)
+	}
+
+	if actual := hasher.Hash(); actual != t.Object.Oid {
+		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", t.Object.Oid, actual, written)
+	}
+
+	return tools.RenameFileCopyPermissions(tempfilename, t.Path)
 
 }
 func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {

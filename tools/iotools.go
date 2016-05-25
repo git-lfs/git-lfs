@@ -1,6 +1,9 @@
 package tools
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"hash"
 	"io"
 
 	"github.com/github/git-lfs/progress"
@@ -46,4 +49,30 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb pr
 		Reader:    reader,
 	}
 	return io.Copy(writer, cbReader)
+}
+
+// HashingReader wraps a reader and calculates the hash of the data as it is read
+type HashingReader struct {
+	reader io.Reader
+	hasher hash.Hash
+}
+
+func NewHashingReader(r io.Reader) *HashingReader {
+	return &HashingReader{r, sha256.New()}
+}
+
+func (r *HashingReader) Hash() string {
+	return hex.EncodeToString(r.hasher.Sum(nil))
+}
+
+func (r *HashingReader) Read(b []byte) (int, error) {
+	w, err := r.reader.Read(b)
+	if err == nil || err == io.EOF {
+		_, e := r.hasher.Write(b[0:w])
+		if e != nil && err == nil {
+			return w, e
+		}
+	}
+
+	return w, err
 }

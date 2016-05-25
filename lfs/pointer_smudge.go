@@ -1,10 +1,7 @@
 package lfs
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"hash"
 	"io"
 	"io/ioutil"
 	"os"
@@ -174,7 +171,7 @@ func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb prog
 		}
 	}()
 
-	hasher := newHashingReader(reader)
+	hasher := tools.NewHashingReader(reader)
 
 	// ensure we always close f. Note that this does not conflict with  the
 	// close below, as close is idempotent.
@@ -293,29 +290,4 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 	}
 
 	return nil
-}
-
-type hashingReader struct {
-	reader io.Reader
-	hasher hash.Hash
-}
-
-func newHashingReader(r io.Reader) *hashingReader {
-	return &hashingReader{r, sha256.New()}
-}
-
-func (r *hashingReader) Hash() string {
-	return hex.EncodeToString(r.hasher.Sum(nil))
-}
-
-func (r *hashingReader) Read(b []byte) (int, error) {
-	w, err := r.reader.Read(b)
-	if err == nil || err == io.EOF {
-		_, e := r.hasher.Write(b[0:w])
-		if e != nil && err == nil {
-			return w, e
-		}
-	}
-
-	return w, err
 }
