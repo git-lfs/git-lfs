@@ -107,6 +107,9 @@ func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, 
 		return nil, err
 	}
 
+	// TODO(taylor): check status >=500, handle content type, return error,
+	// halt immediately.
+
 	if into != nil {
 		decoder := json.NewDecoder(resp.Body)
 		if err = decoder.Decode(into); err != nil {
