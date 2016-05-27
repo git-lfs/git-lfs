@@ -128,9 +128,8 @@ func (q *TransferQueue) ensureAdapterBegun() {
 	adapterResultChan := make(chan transfer.TransferResult, 20)
 
 	// Progress callback - receives byte updates
-	// TODO @sinbad this has to be specific to transfers to have Name()???
-	cb := func(total, read int64, current int) error {
-		q.meter.TransferBytes(q.transferKind(), "TODO @sinbad NAME?", read, total, current)
+	cb := func(name string, total, read int64, current int) error {
+		q.meter.TransferBytes(q.transferKind(), name, read, total, current)
 		return nil
 	}
 

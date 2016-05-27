@@ -6,8 +6,6 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/api"
-
-	"github.com/github/git-lfs/progress"
 )
 
 type Direction int
@@ -22,6 +20,8 @@ var (
 	downloadAdapters = make(map[string]TransferAdapter)
 	uploadAdapters   = make(map[string]TransferAdapter)
 )
+
+type TransferProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
 // TransferAdapter is implemented by types which can upload and/or download LFS
 // file content to a remote store. Each TransferAdapter accepts one or more requests
@@ -47,7 +47,7 @@ type TransferAdapter interface {
 	// one or more Add calls. The passed in callback will receive updates on
 	// progress, and the completion channel will receive completion notifications
 	// Either argument may be nil if not required by the client
-	Begin(cb progress.CopyCallback, completion chan TransferResult) error
+	Begin(cb TransferProgressCallback, completion chan TransferResult) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
 	Add(t *Transfer)

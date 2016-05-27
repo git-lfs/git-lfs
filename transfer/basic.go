@@ -27,7 +27,7 @@ const (
 type basicAdapter struct {
 	direction Direction
 	jobChan   chan *Transfer
-	cb        progress.CopyCallback
+	cb        TransferProgressCallback
 	outChan   chan TransferResult
 	// WaitGroup to sync the completion of all workers
 	workerWait sync.WaitGroup
@@ -49,7 +49,7 @@ func (a *basicAdapter) Name() string {
 	return BasicAdapterName
 }
 
-func (a *basicAdapter) Begin(cb progress.CopyCallback, completion chan TransferResult) error {
+func (a *basicAdapter) Begin(cb TransferProgressCallback, completion chan TransferResult) error {
 	a.cb = cb
 	a.outChan = completion
 	a.jobChan = make(chan *Transfer, 100)
@@ -176,7 +176,11 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 	// close below, as close is idempotent.
 	defer f.Close()
 	tempfilename := f.Name()
-	written, err := tools.CopyWithCallback(f, hasher, res.ContentLength, a.cb)
+	// Wrap callback to give name context
+	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+	}
+	written, err := tools.CopyWithCallback(f, hasher, res.ContentLength, ccb)
 	if err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", tempfilename, err)
 	}
@@ -221,9 +225,13 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 	defer f.Close()
 
 	// Ensure progress callbacks made while uploading
+	// Wrap callback to give name context
+	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+	}
 	var reader io.Reader
 	reader = &progress.CallbackReader{
-		C:         a.cb,
+		C:         ccb,
 		TotalSize: t.Object.Size,
 		Reader:    f,
 	}
