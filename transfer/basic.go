@@ -76,6 +76,9 @@ func (a *basicAdapter) End() {
 	close(a.jobChan)
 	// wait for all transfers to complete
 	a.workerWait.Wait()
+	if a.outChan != nil {
+		close(a.outChan)
+	}
 }
 
 func (a *basicAdapter) ClearTempStorage() error {
