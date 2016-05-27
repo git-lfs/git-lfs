@@ -14,9 +14,9 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
-	"github.com/github/git-lfs/tools"
-
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
 )
 
 const (
@@ -54,6 +54,8 @@ func (a *basicAdapter) Begin(cb progress.CopyCallback, completion chan TransferR
 	a.outChan = completion
 	a.jobChan = make(chan *Transfer, 100)
 
+	tracerx.Printf("xfer: adapter %q Begin()", a.Name())
+
 	numworkers := config.Config.ConcurrentTransfers()
 	a.workerWait.Add(numworkers)
 	a.authWait.Add(1)
@@ -64,10 +66,12 @@ func (a *basicAdapter) Begin(cb progress.CopyCallback, completion chan TransferR
 }
 
 func (a *basicAdapter) Add(t *Transfer) {
+	tracerx.Printf("xfer: adapter %q Add() for %q", a.Name(), t.Object.Oid)
 	a.jobChan <- t
 }
 
 func (a *basicAdapter) End() {
+	tracerx.Printf("xfer: adapter %q End()", a.Name())
 	close(a.jobChan)
 	// wait for all transfers to complete
 	a.workerWait.Wait()
@@ -83,6 +87,7 @@ func (a *basicAdapter) worker(workerNum int) {
 
 	isFirstWorker := workerNum == 0
 	signalAuthOnResponse := isFirstWorker
+	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
 
 	for t := range a.jobChan {
 		if !isFirstWorker {
@@ -91,6 +96,7 @@ func (a *basicAdapter) worker(workerNum int) {
 			// make sure only 1 login prompt is presented if necessary
 			a.authWait.Wait()
 		}
+		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
 		var err error
 		switch a.Direction() {
 		case Download:
@@ -103,6 +109,7 @@ func (a *basicAdapter) worker(workerNum int) {
 		a.outChan <- res
 
 		signalAuthOnResponse = false
+		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Object.Oid)
 	}
 	a.workerWait.Done()
 }
