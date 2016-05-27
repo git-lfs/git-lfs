@@ -110,8 +110,10 @@ func (a *basicAdapter) worker(workerNum int) {
 			err = a.upload(t, signalAuthOnResponse)
 		}
 
-		res := TransferResult{t, err}
-		a.outChan <- res
+		if a.outChan != nil {
+			res := TransferResult{t, err}
+			a.outChan <- res
+		}
 
 		// Only need to signal for auth once
 		signalAuthOnResponse = false
@@ -179,7 +181,10 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 	tempfilename := f.Name()
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+		if a.cb != nil {
+			return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+		}
+		return nil
 	}
 	written, err := tools.CopyWithCallback(f, hasher, res.ContentLength, ccb)
 	if err != nil {
@@ -228,7 +233,10 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+		if a.cb != nil {
+			return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+		}
+		return nil
 	}
 	var reader io.Reader
 	reader = &progress.CallbackReader{
