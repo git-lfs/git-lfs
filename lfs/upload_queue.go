@@ -46,7 +46,7 @@ func (u *Uploadable) Path() string {
 
 // TODO remove this legacy method & only support batch
 func (u *Uploadable) LegacyCheck() (*api.ObjectResource, error) {
-	return api.UploadCheck(u.OidPath)
+	return api.UploadCheck(u.Oid(), u.Size())
 }
 
 // NewUploadable builds the Uploadable from the given information.
