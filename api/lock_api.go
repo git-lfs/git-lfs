@@ -88,13 +88,14 @@ func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList)
 // This method's corresponding response type will either contain a reference to
 // the lock that was unlocked, or an error that was experienced by the server in
 // unlocking it.
-func (s *LockService) Unlock(l *Lock) (*RequestSchema, *UnlockResponse) {
+func (s *LockService) Unlock(req *UnlockRequest) (*RequestSchema, *UnlockResponse) {
 	var resp UnlockResponse
 
 	return &RequestSchema{
 		Method:    "POST",
-		Path:      fmt.Sprintf("/locks/%s/unlock", l.Id),
+		Path:      fmt.Sprintf("/locks/%s/unlock", req.Id),
 		Operation: UploadOperation,
+		Body:      req,
 		Into:      &resp,
 	}, &resp
 }
@@ -179,6 +180,16 @@ type LockResponse struct {
 	// Err is the optional error that was encountered while trying to create
 	// the above lock.
 	Err string `json:"error,omitempty"`
+}
+
+// UnlockRequest encapsulates the data sent in an API request to remove a lock.
+type UnlockRequest struct {
+	// Id is the Id of the lock that the user wishes to unlock.
+	Id string `json:"id"`
+	// Force determines whether or not the lock should be "forcibly"
+	// unlocked; that is to say whether or not a given individual should be
+	// able to break a different individual's lock.
+	Force bool `json:"force"`
 }
 
 // UnlockResponse is the result sent back from the API when asked to remove a

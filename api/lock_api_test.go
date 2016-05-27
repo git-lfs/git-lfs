@@ -74,6 +74,24 @@ func TestLockSearchWithLimit(t *testing.T) {
 	}, got)
 }
 
+func TestUnlockingALock(t *testing.T) {
+	got, body := LockService.Unlock(&api.UnlockRequest{
+		Id:    "some-lock-id",
+		Force: true,
+	})
+
+	AssertRequestSchema(t, &api.RequestSchema{
+		Method:    "POST",
+		Path:      "/locks/some-lock-id/unlock",
+		Operation: api.UploadOperation,
+		Body: &api.UnlockRequest{
+			Id:    "some-lock-id",
+			Force: true,
+		},
+		Into: body,
+	}, got)
+}
+
 func TestLockRequest(t *testing.T) {
 	schema.Validate(t, schema.LockRequestSchema, &api.LockRequest{
 		Path:               "/path/to/lock",
@@ -130,6 +148,13 @@ func TestLockResponseInvalidWithCommitAndError(t *testing.T) {
 	schema.Refute(t, schema.LockResponseSchema, &api.LockResponse{
 		Err:          "some error",
 		CommitNeeded: "deadbeef",
+	})
+}
+
+func TestUnlockRequest(t *testing.T) {
+	schema.Validate(t, schema.UnlockRequestSchema, &api.UnlockRequest{
+		Id:    "some-lock-id",
+		Force: false,
 	})
 }
 

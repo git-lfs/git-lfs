@@ -19,5 +19,6 @@ const (
 	LockListSchema       = "lock_list_schema.json"
 	LockRequestSchema    = "lock_request_schema.json"
 	LockResponseSchema   = "lock_response_schema.json"
+	UnlockRequestSchema  = "unlock_request_schema.json"
 	UnlockResponseSchema = "unlock_response_schema.json"
 )
