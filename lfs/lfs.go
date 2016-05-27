@@ -84,11 +84,11 @@ func Environ() []string {
 		fmt.Sprintf("AccessDownload=%s", config.Config.Access("download")),
 		fmt.Sprintf("AccessUpload=%s", config.Config.Access("upload")),
 	)
-	if len(config.Config.FetchExcludePaths()) > 0 {
-		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(config.Config.FetchExcludePaths(), ", ")))
+	if len(config.Config.GlobalFetchExcludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(config.Config.GlobalFetchExcludePaths(), ", ")))
 	}
-	if len(config.Config.FetchIncludePaths()) > 0 {
-		env = append(env, fmt.Sprintf("FetchInclude=%s", strings.Join(config.Config.FetchIncludePaths(), ", ")))
+	if len(config.Config.GlobalFetchIncludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchInclude=%s", strings.Join(config.Config.GlobalFetchIncludePaths(), ", ")))
 	}
 	for _, ext := range config.Config.Extensions() {
 		env = append(env, fmt.Sprintf("Extension[%d]=%s", ext.Priority, ext.Name))
