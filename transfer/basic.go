@@ -85,17 +85,21 @@ func (a *basicAdapter) ClearTempStorage() error {
 // worker function, many of these run per adapter
 func (a *basicAdapter) worker(workerNum int) {
 
-	isFirstWorker := workerNum == 0
-	signalAuthOnResponse := isFirstWorker
 	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
+	waitForAuth := workerNum > 0
+	signalAuthOnResponse := workerNum == 0
+
+	// First worker is the only one allowed to start immediately
+	// The rest wait until successful response from 1st worker to
+	// make sure only 1 login prompt is presented if necessary
+	// Deliberately outside jobChan processing so we know worker 0 will process 1st item
+	if waitForAuth {
+		tracerx.Printf("xfer: adapter %q worker %d waiting for Auth", a.Name(), workerNum)
+		a.authWait.Wait()
+		tracerx.Printf("xfer: adapter %q worker %d auth signal received", a.Name(), workerNum)
+	}
 
 	for t := range a.jobChan {
-		if !isFirstWorker {
-			// First worker is the only one allowed to start immediately
-			// The rest wait until successful response from 1st worker to
-			// make sure only 1 login prompt is presented if necessary
-			a.authWait.Wait()
-		}
 		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
 		var err error
 		switch a.Direction() {
