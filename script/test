@@ -7,7 +7,7 @@ if [ $# -gt 0 ]; then
     GO15VENDOREXPERIMENT=1 go test "./$1"
 else
     GO15VENDOREXPERIMENT=1 go test \
-      $(go list ./... \
+      $(GO15VENDOREXPERIMENT=1 go list ./... \
           | grep -v "github.com/olekukonko/ts" \
           | grep -v "github.com/technoweenie/go-contentaddressable" \
       )
