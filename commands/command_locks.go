@@ -17,8 +17,13 @@ var (
 func locksCommand(cmd *cobra.Command, args []string) {
 	setLockRemoteFor(config.Config)
 
+	filters, err := locksCmdFlags.Filters()
+	if err != nil {
+		Error(err.Error())
+	}
+
 	s, resp := API.Locks.Search(&api.LockSearchRequest{
-		Filters: locksCmdFlags.Filters(),
+		Filters: filters,
 		Cursor:  locksCmdFlags.Cursor,
 		Limit:   locksCmdFlags.Limit,
 	})
@@ -66,15 +71,20 @@ type locksFlags struct {
 // Filters produces a slice of api.Filter instances based on the internal state
 // of this locksFlags instance. The return value of this method is capable (and
 // recommend to be used with) the api.LockSearchRequest type.
-func (l *locksFlags) Filters() []api.Filter {
+func (l *locksFlags) Filters() ([]api.Filter, error) {
 	filters := make([]api.Filter, 0)
 
 	if l.Path != "" {
-		filters = append(filters, api.Filter{"path", l.Path})
+		path, err := lockPath(l.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		filters = append(filters, api.Filter{"path", path})
 	}
 	if l.Id != "" {
 		filters = append(filters, api.Filter{"id", l.Id})
 	}
 
-	return filters
+	return filters, nil
 }

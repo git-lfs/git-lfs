@@ -1,6 +1,10 @@
 package commands
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
@@ -38,8 +42,13 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit("Unable to determine lastest remote ref for branch.")
 	}
 
+	path, err := lockPath(args[0])
+	if err != nil {
+		Error(err.Error())
+	}
+
 	s, resp := API.Locks.Lock(&api.LockRequest{
-		Path:               args[0],
+		Path:               path,
 		Committer:          api.CurrentCommitter(),
 		LatestRemoteCommit: latest.Sha,
 	})
@@ -55,6 +64,22 @@ func lockCommand(cmd *cobra.Command, args []string) {
 	}
 
 	Print("\n'%s' was locked (%s)", args[0], resp.Lock.Id)
+}
+
+func lockPath(file string) (string, error) {
+	repo, err := git.RootDir()
+	if err != nil {
+		return "", err
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	abs := filepath.Join(wd, file)
+
+	return strings.TrimPrefix(repo, abs), nil
 }
 
 func init() {

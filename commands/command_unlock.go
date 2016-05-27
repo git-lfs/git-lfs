@@ -30,10 +30,13 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 	var id string
 	if len(args) != 0 {
-		if matchedId, err := lockIdFromPath(args[0]); err != nil {
+		path, err := lockPath(args[0])
+		if err != nil {
 			Error(err.Error())
-		} else {
-			id = matchedId
+		}
+
+		if id, err = lockIdFromPath(path); err != nil {
+			Error(err.Error())
 		}
 	} else if unlockId != "" {
 		id = unlockId
