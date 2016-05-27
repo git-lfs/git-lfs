@@ -2,11 +2,22 @@ package commands
 
 import (
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/spf13/cobra"
 )
 
 var (
+	lockRemote     string
+	lockRemoteHelp = "specify which remote to use when interacting with locks"
+
+	// TODO(taylor): consider making this (and the above flag) a property of
+	// some parent-command, or another similarly less ugly way of handling
+	// this
+	setLockRemoteFor = func(c *config.Configuration) {
+		c.CurrentRemote = lockRemote
+	}
+
 	lockCmd = &cobra.Command{
 		Use: "lock",
 		Run: lockCommand,
@@ -14,6 +25,8 @@ var (
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
+	setLockRemoteFor(config.Config)
+
 	if len(args) == 0 {
 		Print("Usage: git lfs lock <path>")
 		return
@@ -45,5 +58,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	lockCmd.Flags().StringVarP(&lockRemote, "remote", "r", config.Config.CurrentRemote, lockRemoteHelp)
+
 	RootCmd.AddCommand(lockCmd)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,8 @@ var (
 )
 
 func unlockCommand(cmd *cobra.Command, args []string) {
+	setLockRemoteFor(config.Config)
+
 	var id string
 	if len(args) != 0 {
 		if matchedId, err := lockIdFromPath(args[0]); err != nil {
@@ -84,6 +87,8 @@ func lockIdFromPath(path string) (string, error) {
 }
 
 func init() {
+	unlockCmd.Flags().StringVarP(&lockRemote, "remote", "r", config.Config.CurrentRemote, lockRemoteHelp)
+
 	unlockCmd.Flags().StringVarP(&unlockId, "id", "i", "", "unlock a lock by its ID")
 
 	RootCmd.AddCommand(unlockCmd)
