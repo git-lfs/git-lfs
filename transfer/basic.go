@@ -112,8 +112,14 @@ func (a *basicAdapter) worker(workerNum int) {
 		res := TransferResult{t, err}
 		a.outChan <- res
 
+		// Only need to signal for auth once
 		signalAuthOnResponse = false
+
 		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Object.Oid)
+	}
+	// This will only happen if no jobs were submitted; just wake up all workers to finish
+	if signalAuthOnResponse {
+		a.authWait.Done()
 	}
 	a.workerWait.Done()
 }
