@@ -75,10 +75,7 @@ func TestLockSearchWithLimit(t *testing.T) {
 }
 
 func TestUnlockingALock(t *testing.T) {
-	got, body := LockService.Unlock(&api.UnlockRequest{
-		Id:    "some-lock-id",
-		Force: true,
-	})
+	got, body := LockService.Unlock("some-lock-id", true)
 
 	AssertRequestSchema(t, &api.RequestSchema{
 		Method:    "POST",

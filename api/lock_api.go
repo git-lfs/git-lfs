@@ -80,22 +80,19 @@ func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList)
 }
 
 // Unlock generates a *RequestSchema that is used to preform the "unlock" API
-// method.
-//
-// It generates a bodyless request that simply directs to POST
-// /locks/:id/unlock.
+// method, against a particular lock potentially with --force.
 //
 // This method's corresponding response type will either contain a reference to
 // the lock that was unlocked, or an error that was experienced by the server in
 // unlocking it.
-func (s *LockService) Unlock(req *UnlockRequest) (*RequestSchema, *UnlockResponse) {
+func (s *LockService) Unlock(id string, force bool) (*RequestSchema, *UnlockResponse) {
 	var resp UnlockResponse
 
 	return &RequestSchema{
 		Method:    "POST",
-		Path:      fmt.Sprintf("/locks/%s/unlock", req.Id),
+		Path:      fmt.Sprintf("/locks/%s/unlock", id),
 		Operation: UploadOperation,
-		Body:      req,
+		Body:      &UnlockRequest{id, force},
 		Into:      &resp,
 	}, &resp
 }
