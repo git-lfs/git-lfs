@@ -44,10 +44,11 @@ type TransferAdapter interface {
 	// type may be instantiated once for each direction
 	Direction() Direction
 	// Begin a new batch of uploads or downloads. Call this first, followed by
-	// one or more Add calls. The passed in callback will receive updates on
+	// one or more Add calls. maxConcurrency controls the number of transfers
+	// that may be done at once. The passed in callback will receive updates on
 	// progress, and the completion channel will receive completion notifications
 	// Either argument may be nil if not required by the client
-	Begin(cb TransferProgressCallback, completion chan TransferResult) error
+	Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
 	Add(t *Transfer)

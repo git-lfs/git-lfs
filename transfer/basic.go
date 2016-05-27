@@ -25,10 +25,11 @@ const (
 
 // Base implementation of basic all-or-nothing HTTP upload / download adapter
 type basicAdapter struct {
-	direction Direction
-	jobChan   chan *Transfer
-	cb        TransferProgressCallback
-	outChan   chan TransferResult
+	direction      Direction
+	jobChan        chan *Transfer
+	cb             TransferProgressCallback
+	outChan        chan TransferResult
+	maxConcurrency int
 	// WaitGroup to sync the completion of all workers
 	workerWait sync.WaitGroup
 	// WaitGroup to serialise the first transfer response to perform login if needed
@@ -37,7 +38,8 @@ type basicAdapter struct {
 
 func newBasicAdapter(d Direction) *basicAdapter {
 	return &basicAdapter{
-		direction: d,
+		direction:      d,
+		maxConcurrency: config.Config.ConcurrentTransfers(),
 	}
 }
 
@@ -49,17 +51,16 @@ func (a *basicAdapter) Name() string {
 	return BasicAdapterName
 }
 
-func (a *basicAdapter) Begin(cb TransferProgressCallback, completion chan TransferResult) error {
+func (a *basicAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
 	a.cb = cb
 	a.outChan = completion
 	a.jobChan = make(chan *Transfer, 100)
 
 	tracerx.Printf("xfer: adapter %q Begin()", a.Name())
 
-	numworkers := config.Config.ConcurrentTransfers()
-	a.workerWait.Add(numworkers)
+	a.workerWait.Add(maxConcurrency)
 	a.authWait.Add(1)
-	for i := 0; i < numworkers; i++ {
+	for i := 0; i < maxConcurrency; i++ {
 		go a.worker(i)
 	}
 	return nil

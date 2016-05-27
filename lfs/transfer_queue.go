@@ -134,7 +134,7 @@ func (q *TransferQueue) ensureAdapterBegun() {
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	q.adapter.Begin(cb, adapterResultChan)
+	q.adapter.Begin(config.Config.ConcurrentTransfers(), cb, adapterResultChan)
 	q.adapterInProgress = true
 
 	// Collector for completed transfers
