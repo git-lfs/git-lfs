@@ -6,21 +6,21 @@ import (
 )
 
 var (
-	locksFlags = new(locksFlags)
-	locksCmd   = &cobra.Command{
+	locksCmdFlags = new(locksFlags)
+	locksCmd      = &cobra.Command{
 		Use: "locks",
 		Run: locksCommand,
 	}
 )
 
 func locksCommand(cmd *cobra.Command, args []string) {
-	s, resp := api.C.Locks.Search(&api.LockSearchRequest{
-		Filters: locksFlags.Filters(),
-		Cursor:  locksFlags.Cursor,
-		Limit:   locksFlags.Limit,
+	s, resp := API.Locks.Search(&api.LockSearchRequest{
+		Filters: locksCmdFlags.Filters(),
+		Cursor:  locksCmdFlags.Cursor,
+		Limit:   locksCmdFlags.Limit,
 	})
 
-	if _, err := api.Do(s); err != nil {
+	if _, err := API.Do(s); err != nil {
 		Error(err.Error())
 		Exit("Error communicating with LFS API.")
 	}
@@ -32,10 +32,10 @@ func locksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	locksCmd.Flags().StringVarP(&locksFlags.Path, "path", "p", "", "filter locks results matching a particular path")
-	locksCmd.Flags().StringVarP(&locksFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
-	locksCmd.Flags().StringVarP(&locksFlags.Cursor, "cursor", "c", "", "cursor for last seen lock result")
-	locksCmd.Flags().IntVarP(&locksFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
+	locksCmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
+	locksCmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
+	locksCmd.Flags().StringVarP(&locksCmdFlags.Cursor, "cursor", "c", "", "cursor for last seen lock result")
+	locksCmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
 
 	RootCmd.AddCommand(locksCmd)
 }

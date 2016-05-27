@@ -26,7 +26,7 @@ import (
 var (
 	// API is a package-local instance of the API client for use within
 	// various command implementations.
-	API = api.NewClient()
+	API = api.NewClient(nil)
 
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}

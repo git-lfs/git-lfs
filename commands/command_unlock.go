@@ -27,16 +27,16 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	id, err := idFromPath(args[0])
+	lock, err := lockFromPath(args[0])
 	if err != nil {
 		Error(err.Error())
 	}
 
-	s, resp := api.C.Locks.Unlock(&api.Lock{
-		Id: id,
+	s, resp := API.Locks.Unlock(&api.Lock{
+		Id: lock.Id,
 	})
 
-	if _, err = api.Do(s); err != nil {
+	if _, err = API.Do(s); err != nil {
 		Error(err.Error())
 		Exit("Error communicating with LFS API.")
 	}
@@ -49,7 +49,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	Print("'%s' was unlocked (%s)", args[0], resp.Lock.Id)
 }
 
-// idFromPath makes a call to the LFS API and resolves the ID for the file
+// lockFromPath makes a call to the LFS API and resolves the Lock for the file
 // locked at the given path.
 //
 // If the API call failed, an error will be returned. If multiple locks matched
@@ -58,24 +58,24 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 //
 // If the API call is successful, and only one lock matches the given filepath,
 // then its ID will be returned, along with a value of "nil" for the error.
-func idFromPath(path string) (string, error) {
-	s, resp := api.C.Locks.Search(&api.LockSearchRequest{
+func lockFromPath(path string) (*api.Lock, error) {
+	s, resp := API.Locks.Search(&api.LockSearchRequest{
 		Filters: []api.Filter{
 			{"path", path},
 		},
 	})
 
-	if _, err := api.Do(s); err != nil {
-		return "", err
+	if _, err := API.Do(s); err != nil {
+		return nil, err
 	}
 
 	switch len(resp.Locks) {
 	case 0:
-		return "", errNoMatchingLocks
+		return nil, errNoMatchingLocks
 	case 1:
-		return "", errLockAmbiguous
+		return nil, errLockAmbiguous
 	default:
-		return resp.Locks[0], Id, nil
+		return &resp.Locks[0], nil
 	}
 }
 
