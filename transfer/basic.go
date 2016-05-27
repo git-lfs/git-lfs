@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
@@ -25,11 +24,10 @@ const (
 
 // Base implementation of basic all-or-nothing HTTP upload / download adapter
 type basicAdapter struct {
-	direction      Direction
-	jobChan        chan *Transfer
-	cb             TransferProgressCallback
-	outChan        chan TransferResult
-	maxConcurrency int
+	direction Direction
+	jobChan   chan *Transfer
+	cb        TransferProgressCallback
+	outChan   chan TransferResult
 	// WaitGroup to sync the completion of all workers
 	workerWait sync.WaitGroup
 	// WaitGroup to serialise the first transfer response to perform login if needed
@@ -38,8 +36,7 @@ type basicAdapter struct {
 
 func newBasicAdapter(d Direction) *basicAdapter {
 	return &basicAdapter{
-		direction:      d,
-		maxConcurrency: config.Config.ConcurrentTransfers(),
+		direction: d,
 	}
 }
 
