@@ -16,9 +16,9 @@ const (
 )
 
 var (
-	adapterMutex     sync.Mutex
-	downloadAdapters = make(map[string]TransferAdapter)
-	uploadAdapters   = make(map[string]TransferAdapter)
+	factoryMutex             sync.Mutex
+	downloadAdapterFactories = make(map[string]TransferAdapterFactory)
+	uploadAdapterFactories   = make(map[string]TransferAdapterFactory)
 )
 
 type TransferProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
@@ -36,8 +36,8 @@ type TransferProgressCallback func(name string, totalSize, readSoFar int64, read
 // This is so that the orchestration remains core & standard but TransferAdapter
 // can be changed to physically transfer to different hosts with less code.
 type TransferAdapter interface {
-	// Name returns the identifier of this adapter, must be unique within a Direction
-	// (separate sets for upload and download so may be an entry in both)
+	// Name returns the name of this adapter, which is the same for all instances
+	// of this type of adapter
 	Name() string
 	// Direction returns whether this instance is an upload or download instance
 	// TransferAdapter instances can only be one or the other, although the same
@@ -59,6 +59,17 @@ type TransferAdapter interface {
 	// ClearTempStorage clears any temporary files, such as unfinished downloads that
 	// would otherwise be resumed
 	ClearTempStorage() error
+}
+
+// TransferAdapterFactory creates new instances of TransferAdapter
+type TransferAdapterFactory interface {
+	// Name returns the identifier of this adapter, must be unique within a Direction
+	// (separate sets for upload and download so may be an entry in both)
+	Name() string
+	// Direction returns whether this factory creates instances which upload or download
+	Direction() Direction
+	// New creates a new TransferAdapter of the correct type
+	New() TransferAdapter
 }
 
 // General struct for both uploads and downloads
@@ -83,76 +94,76 @@ type TransferResult struct {
 	Error error
 }
 
-// GetAdapters returns a list of registered adapters for the given direction
-func GetAdapters(dir Direction) []TransferAdapter {
+// GetAdapterFactories returns a list of registered adapter factories for the given direction
+func GetAdapterFactories(dir Direction) []TransferAdapterFactory {
 	switch dir {
 	case Upload:
-		return GetUploadAdapters()
+		return GetUploadAdapterFactories()
 	case Download:
-		return GetDownloadAdapters()
+		return GetDownloadAdapterFactories()
 	}
 	return nil
 }
 
-// GetDownloadAdapters returns a list of registered adapters able to perform downloads
-func GetDownloadAdapters() []TransferAdapter {
-	adapterMutex.Lock()
-	defer adapterMutex.Unlock()
+// GetDownloadAdapterFactories returns a list of registered adapters able to perform downloads
+func GetDownloadAdapterFactories() []TransferAdapterFactory {
+	factoryMutex.Lock()
+	defer factoryMutex.Unlock()
 
-	ret := make([]TransferAdapter, 0, len(downloadAdapters))
-	for _, a := range downloadAdapters {
+	ret := make([]TransferAdapterFactory, 0, len(downloadAdapterFactories))
+	for _, a := range downloadAdapterFactories {
 		ret = append(ret, a)
 	}
 	return ret
 }
 
-// GetUploadAdapters returns a list of registered adapters able to perform uploads
-func GetUploadAdapters() []TransferAdapter {
-	adapterMutex.Lock()
-	defer adapterMutex.Unlock()
+// GetUploadAdapterFactories returns a list of registered adapters able to perform uploads
+func GetUploadAdapterFactories() []TransferAdapterFactory {
+	factoryMutex.Lock()
+	defer factoryMutex.Unlock()
 
-	ret := make([]TransferAdapter, 0, len(uploadAdapters))
-	for _, a := range uploadAdapters {
+	ret := make([]TransferAdapterFactory, 0, len(uploadAdapterFactories))
+	for _, a := range uploadAdapterFactories {
 		ret = append(ret, a)
 	}
 	return ret
 }
 
-// RegisterAdapter registers an upload or download adapter. If an adapter is
+// RegisterAdapterFactory registers an upload or download adapter factory. If an adapter is
 // already registered for that direction with the same name, it is overridden
-func RegisterAdapter(adapter TransferAdapter) {
-	adapterMutex.Lock()
-	defer adapterMutex.Unlock()
+func RegisterAdapterFactory(f TransferAdapterFactory) {
+	factoryMutex.Lock()
+	defer factoryMutex.Unlock()
 
-	switch adapter.Direction() {
+	switch f.Direction() {
 	case Upload:
-		uploadAdapters[adapter.Name()] = adapter
+		uploadAdapterFactories[f.Name()] = f
 	case Download:
-		downloadAdapters[adapter.Name()] = adapter
+		downloadAdapterFactories[f.Name()] = f
 	}
 }
 
 // Get a specific adapter by name and direction, or nil if doesn't exist
-func GetAdapter(name string, dir Direction) TransferAdapter {
-	adapterMutex.Lock()
-	defer adapterMutex.Unlock()
+func NewAdapter(name string, dir Direction) TransferAdapter {
+	factoryMutex.Lock()
+	defer factoryMutex.Unlock()
 
 	switch dir {
 	case Upload:
-		if u, ok := uploadAdapters[name]; ok {
-			return u
+		if u, ok := uploadAdapterFactories[name]; ok {
+			return u.New()
 		}
 	case Download:
-		if d, ok := downloadAdapters[name]; ok {
-			return d
+		if d, ok := downloadAdapterFactories[name]; ok {
+			return d.New()
 		}
 	}
 	return nil
 }
 
-func GetDownloadAdapter(name string) TransferAdapter {
-	return GetAdapter(name, Download)
+func NewDownloadAdapter(name string) TransferAdapter {
+	return NewAdapter(name, Download)
 }
-func GetUploadAdapter(name string) TransferAdapter {
-	return GetAdapter(name, Upload)
+func NewUploadAdapter(name string) TransferAdapter {
+	return NewAdapter(name, Upload)
 }

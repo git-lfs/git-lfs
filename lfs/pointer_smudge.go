@@ -85,7 +85,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		ptr.Size = obj.Size
 	}
 
-	adapter := transfer.GetDownloadAdapter(transfer.BasicAdapterName)
+	adapter := transfer.NewDownloadAdapter(transfer.BasicAdapterName)
 	tcb := func(name string, totalSize, readSoFar int64, readSinceLast int) error {
 		return cb(totalSize, readSoFar, readSinceLast)
 	}

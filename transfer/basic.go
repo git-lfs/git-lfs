@@ -34,12 +34,6 @@ type basicAdapter struct {
 	authWait sync.WaitGroup
 }
 
-func newBasicAdapter(d Direction) *basicAdapter {
-	return &basicAdapter{
-		direction: d,
-	}
-}
-
 func (a *basicAdapter) Direction() Direction {
 	return a.direction
 }
@@ -295,9 +289,24 @@ func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCa
 	return &startCallbackReader{r, cb, false}
 }
 
+type basicAdapterFactory struct {
+	direction Direction
+}
+
+func (f *basicAdapterFactory) Name() string {
+	return BasicAdapterName
+}
+
+func (f *basicAdapterFactory) Direction() Direction {
+	return f.direction
+}
+
+func (f *basicAdapterFactory) New() TransferAdapter {
+	return &basicAdapter{
+		direction: f.direction,
+	}
+}
 func init() {
-	ul := newBasicAdapter(Upload)
-	RegisterAdapter(ul)
-	dl := newBasicAdapter(Download)
-	RegisterAdapter(dl)
+	RegisterAdapterFactory(&basicAdapterFactory{Upload})
+	RegisterAdapterFactory(&basicAdapterFactory{Download})
 }
