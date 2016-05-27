@@ -15,6 +15,9 @@ var (
 	// were found
 	errLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
 
+	// unlockId holds the value attached to the optional --id flag
+	unlockId string
+
 	unlockCmd = &cobra.Command{
 		Use: "unlock",
 		Run: unlockCommand,
@@ -22,21 +25,22 @@ var (
 )
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		Print("Usage: git lfs unlock <path>")
-		return
+	var id string
+	if len(args) != 0 {
+		if matchedId, err := lockIdFromPath(args[0]); err != nil {
+			Error(err.Error())
+		} else {
+			id = matchedId
+		}
+	} else if unlockId != "" {
+		id = unlockId
+	} else {
+		Error("Usage: git lfs unlock (--id my-lock-id | <path>)")
 	}
 
-	lock, err := lockFromPath(args[0])
-	if err != nil {
-		Error(err.Error())
-	}
+	s, resp := API.Locks.Unlock(&api.Lock{Id: id})
 
-	s, resp := API.Locks.Unlock(&api.Lock{
-		Id: lock.Id,
-	})
-
-	if _, err = API.Do(s); err != nil {
+	if _, err := API.Do(s); err != nil {
 		Error(err.Error())
 		Exit("Error communicating with LFS API.")
 	}
@@ -49,7 +53,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	Print("'%s' was unlocked (%s)", args[0], resp.Lock.Id)
 }
 
-// lockFromPath makes a call to the LFS API and resolves the Lock for the file
+// lockIdFromPath makes a call to the LFS API and resolves the ID for the locked
 // locked at the given path.
 //
 // If the API call failed, an error will be returned. If multiple locks matched
@@ -58,7 +62,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 //
 // If the API call is successful, and only one lock matches the given filepath,
 // then its ID will be returned, along with a value of "nil" for the error.
-func lockFromPath(path string) (*api.Lock, error) {
+func lockIdFromPath(path string) (string, error) {
 	s, resp := API.Locks.Search(&api.LockSearchRequest{
 		Filters: []api.Filter{
 			{"path", path},
@@ -66,19 +70,21 @@ func lockFromPath(path string) (*api.Lock, error) {
 	})
 
 	if _, err := API.Do(s); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	switch len(resp.Locks) {
 	case 0:
-		return nil, errNoMatchingLocks
+		return "", errNoMatchingLocks
 	case 1:
-		return nil, errLockAmbiguous
+		return "", errLockAmbiguous
 	default:
-		return &resp.Locks[0], nil
+		return resp.Locks[0].Id, nil
 	}
 }
 
 func init() {
+	unlockCmd.Flags().StringVarP(&unlockId, "id", "i", "", "unlock a lock by its ID")
+
 	RootCmd.AddCommand(unlockCmd)
 }
