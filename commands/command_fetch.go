@@ -66,13 +66,13 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if fetchIncludeArg != "" || fetchExcludeArg != "" {
 			Exit("Cannot combine --all with --include or --exclude")
 		}
-		if len(config.Config.FetchIncludePaths()) > 0 || len(config.Config.FetchExcludePaths()) > 0 {
+		if len(config.Config.GlobalFetchIncludePaths()) > 0 || len(config.Config.GlobalFetchExcludePaths()) > 0 {
 			Print("Ignoring global include / exclude paths to fulfil --all")
 		}
 		success = fetchAll()
 
 	} else { // !all
-		includePaths, excludePaths := determineIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
+		includePaths, excludePaths := config.Config.FetchIncludeExcludePaths(fetchIncludeArg, fetchExcludeArg)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
