@@ -119,3 +119,34 @@ begin_test "checkout: outside git repository"
   grep "Not in a git repository" checkout.log
 )
 end_test
+
+begin_test "checkout --unstaged"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-unstaged"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-unstaged
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+
+  contents="something something"
+
+  printf "$contents" > file1.dat
+  git add file1.dat
+  git add .gitattributes
+  git commit -m "add files"
+
+  # Remove the working directory
+  rm -f file1.dat
+
+  echo "checkout should replace all"
+  git lfs checkout --unstaged
+  [ "$contents" = "$(cat file1.dat)" ]
+
+  echo "large files should not be staged"
+  git diff-files
+  git diff-files | grep file1.dat
+)
+end_test

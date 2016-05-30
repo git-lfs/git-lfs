@@ -20,6 +20,7 @@ var (
 		Use: "checkout",
 		Run: checkoutCommand,
 	}
+	checkoutUnstagedArg bool
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
@@ -43,6 +44,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	checkoutCmd.Flags().BoolVarP(&checkoutUnstagedArg, "unstaged", "u", false, "Do not add files to the index")
 	RootCmd.AddCommand(checkoutCmd)
 }
 
@@ -207,7 +209,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			}
 		}
 
-		if cmd == nil {
+		if cmd == nil && !checkoutUnstagedArg {
 			// Fire up the update-index command
 			cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
 			updateIdxStdin, err = cmd.StdinPipe()
@@ -221,7 +223,9 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 		}
 
-		updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
+		if updateIdxStdin != nil {
+			updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
+		}
 	}
 	close(repopathchan)
 

@@ -3,7 +3,7 @@ git-lfs-checkout(1) -- Update working copy with file content if available
 
 ## SYNOPSIS
 
-`git lfs checkout` <filespec>...
+`git lfs checkout` [options] <filespec>...
 
 ## DESCRIPTION
 
@@ -17,6 +17,11 @@ pointer content with the same SHA, the real file content is written, provided
 we have it in the local store. Modified files are never overwritten.
 
 Filespecs can be provided as arguments to restrict the files which are updated.
+
+## OPTIONS
+
+* `--unstaged` `-u`:
+  Do not add files to the index, keeping them unstaged.
 
 ## EXAMPLES
 
