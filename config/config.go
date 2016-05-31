@@ -3,6 +3,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -75,6 +76,29 @@ func NewConfig() *Configuration {
 	c.IsDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
 	c.IsLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
 	return c
+}
+
+// NewFromValues returns a new *config.Configuration instance as if it had
+// been read from the .gitconfig specified by "gitconfig" parameter.
+//
+// NOTE: this method should only be called during testing.
+func NewFromValues(gitconfig map[string]string) *Configuration {
+	config := &Configuration{
+		gitConfig: make(map[string]string, 0),
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	for k, v := range gitconfig {
+		fmt.Fprintf(buf, "%s=%s\n", k, v)
+	}
+
+	config.readGitConfig(
+		string(buf.Bytes()),
+		map[string]bool{},
+		false,
+	)
+
+	return config
 }
 
 func (c *Configuration) Getenv(key string) string {
