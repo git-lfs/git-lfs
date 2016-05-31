@@ -34,8 +34,9 @@ begin_test "attempt private access without credential helper"
   git add .gitattributes
   git commit -m "initial commit"
 
-  git config --unset credential.helper
-  git config --global --unset credential.helper
+  git config --global credential.helper lfsnoop
+  git config credential.helper lfsnoop
+  git config -l
 
   GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
   grep "Authorization error: $GITSERVER/$reponame" push.log ||
