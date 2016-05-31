@@ -1,2 +1,5 @@
 #!/usr/bin/env bash
-nut install
+glide update -s -u
+glide install -s -u
+
+rm -rf vendor/github.com/ThomsonReutersEikon/go-ntlm/utils

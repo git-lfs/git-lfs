@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/github/git-lfs/subprocess"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 type RefType int
@@ -116,7 +116,8 @@ func RemoteForCurrentBranch() (string, error) {
 	return remote, nil
 }
 
-// RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
+// RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
+// that the current branch is tracking.
 func RemoteRefNameForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
@@ -134,7 +135,7 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 
 	remotebranch := RemoteBranchForLocalBranch(ref.Name)
 
-	return remote + "/" + remotebranch, nil
+	return fmt.Sprintf("refs/remotes/%s/%s", remote, remotebranch), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
@@ -184,9 +185,13 @@ func LocalRefs() ([]*Ref, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
 	}
-	cmd.Start()
 
 	var refs []*Ref
+
+	if err := cmd.Start(); err != nil {
+		return refs, err
+	}
+
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())

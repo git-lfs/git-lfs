@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/bmizerany/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCopyWithCallback(t *testing.T) {
@@ -20,10 +20,10 @@ func TestCopyWithCallback(t *testing.T) {
 		assert.Equal(t, 5, int(total))
 		return nil
 	})
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, 5, int(n))
 
 	assert.Equal(t, 1, called)
-	assert.Equal(t, 1, len(calledWritten))
+	assert.Len(t, calledWritten, 1)
 	assert.Equal(t, 5, int(calledWritten[0]))
 }

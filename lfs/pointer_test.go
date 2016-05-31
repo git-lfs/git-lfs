@@ -9,14 +9,14 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncode(t *testing.T) {
 	var buf bytes.Buffer
 	pointer := NewPointer("booya", 12345, nil)
 	_, err := EncodePointer(&buf, pointer)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	bufReader := bufio.NewReader(&buf)
 	assertLine(t, bufReader, "version https://git-lfs.github.com/spec/v1\n")
@@ -51,7 +51,7 @@ func TestEncodeExtensions(t *testing.T) {
 	}
 	pointer := NewPointer("main_oid", 12345, exts)
 	_, err := EncodePointer(&buf, pointer)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	bufReader := bufio.NewReader(&buf)
 	assertLine(t, bufReader, "version https://git-lfs.github.com/spec/v1\n")
@@ -70,7 +70,7 @@ func TestEncodeExtensions(t *testing.T) {
 
 func assertLine(t *testing.T, r *bufio.Reader, expected string) {
 	actual, err := r.ReadString('\n')
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, expected, actual)
 }
 
@@ -290,5 +290,5 @@ size 12345`,
 }
 
 func assertEqualWithExample(t *testing.T, example string, expected, actual interface{}) {
-	assert.Equalf(t, expected, actual, "Example:\n%s", strings.TrimSpace(example))
+	assert.Equal(t, expected, actual, "Example:\n%s", strings.TrimSpace(example))
 }

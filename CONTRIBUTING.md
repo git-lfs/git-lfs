@@ -94,8 +94,8 @@ tests:
 
 ## Updating 3rd party packages
 
-0. Update `Nut.toml`.
-0. Run `script/vendor` to update the code in the `.vendor/src` directory.
+0. Update `glide.yaml`.
+0. Run `script/vendor` to update the code in the `vendor` directory.
 0. Commit the change.  Git LFS vendors the full source code in the repository.
 0. Submit a pull request.
 

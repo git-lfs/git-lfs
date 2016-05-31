@@ -3,7 +3,7 @@ package lfs
 import (
 	"testing"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBatcherSizeMet(t *testing.T) {
@@ -65,7 +65,7 @@ func runBatcherTests(cases []batcherTestCase, t *testing.T) {
 		items := c.ItemCount
 		for i := 0; i < c.Batches(); i++ {
 			group := b.Next()
-			assert.Equal(t, c.BatchSize, len(group))
+			assert.Len(t, group, c.BatchSize)
 			items -= c.BatchSize
 		}
 	}

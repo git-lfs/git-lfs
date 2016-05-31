@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSSHGetExeAndArgsSsh(t *testing.T) {

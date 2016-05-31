@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/olekukonko/ts"
+	"github.com/olekukonko/ts"
 )
 
 // Indeterminate progress indicator 'spinner'

@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
 func ntlmClientSession(c *config.Configuration, creds auth.Creds) (ntlm.ClientSession, error) {

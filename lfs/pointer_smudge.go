@@ -6,15 +6,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/transfer"
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/cheggaaa/pb"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb progress.CopyCallback) error {

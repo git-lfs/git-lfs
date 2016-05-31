@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSortExtensions(t *testing.T) {
@@ -32,7 +32,7 @@ func TestSortExtensions(t *testing.T) {
 
 	sorted, err := SortExtensions(m)
 
-	assert.Equal(t, err, nil)
+	assert.Nil(t, err)
 
 	for i, ext := range sorted {
 		name := names[i]
@@ -61,6 +61,6 @@ func TestSortExtensionsDuplicatePriority(t *testing.T) {
 
 	sorted, err := SortExtensions(m)
 
-	assert.NotEqual(t, err, nil)
-	assert.Equal(t, len(sorted), 0)
+	assert.NotNil(t, err)
+	assert.Empty(t, sorted)
 }

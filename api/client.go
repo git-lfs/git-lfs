@@ -1,155 +1,75 @@
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package api
 
-import (
-	"net/http"
-	"net/url"
-	"path"
+import "github.com/github/git-lfs/config"
 
-	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/httputil"
-
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-)
+type Operation string
 
 const (
-	MediaType = "application/vnd.git-lfs+json; charset=utf-8"
+	UploadOperation   Operation = "upload"
+	DownloadOperation Operation = "download"
 )
 
-// doLegacyApiRequest runs the request to the LFS legacy API.
-func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error) {
-	via := make([]*http.Request, 0, 4)
-	res, err := httputil.DoHttpRequestWithRedirects(req, via, true)
-	if err != nil {
-		return res, nil, err
-	}
+// Client exposes the LFS API to callers through a multitude of different
+// services and transport mechanisms. Callers can make a *RequestSchema using
+// any service that is attached to the Client, and then execute a request based
+// on that schema using the `Do()` method.
+//
+// A prototypical example follows:
+// ```
+//   apiResponse, schema := client.Locks.Lock(request)
+//   resp, err := client.Do(schema)
+//   if err != nil {
+//       handleErr(err)
+//   }
+//
+//   fmt.Println(apiResponse.Lock)
+// ```
+type Client struct {
+	// Locks is the LockService used to interact with the Git LFS file-
+	// locking API.
+	Locks LockService
 
-	obj := &ObjectResource{}
-	err = httputil.DecodeResponse(res, obj)
-
-	if err != nil {
-		httputil.SetErrorResponseContext(err, res)
-		return nil, nil, err
-	}
-
-	return res, obj, nil
+	// lifecycle is the lifecycle used by all requests through this client.
+	lifecycle Lifecycle
 }
 
-// doApiBatchRequest runs the request to the LFS batch API. If the API returns a
-// 401, the repo will be marked as having private access and the request will be
-// re-run. When the repo is marked as having private access, credentials will
-// be retrieved.
-func DoBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error) {
-	res, err := DoRequest(req, config.Config.PrivateAccess(auth.GetOperationForRequest(req)))
-
-	if err != nil {
-		if res != nil && res.StatusCode == 401 {
-			return res, nil, errutil.NewAuthError(err)
-		}
-		return res, nil, err
+// NewClient instantiates and returns a new instance of *Client, with the given
+// lifecycle.
+//
+// If no lifecycle is given, a HttpLifecycle is used by default.
+func NewClient(lifecycle Lifecycle) *Client {
+	if lifecycle == nil {
+		lifecycle = NewHttpLifecycle(config.Config)
 	}
 
-	var objs map[string][]*ObjectResource
-	err = httputil.DecodeResponse(res, &objs)
-
-	if err != nil {
-		httputil.SetErrorResponseContext(err, res)
-	}
-
-	return res, objs["objects"], err
+	return &Client{lifecycle: lifecycle}
 }
 
-// DoRequest runs a request to the LFS API, without parsing the response
-// body. If the API returns a 401, the repo will be marked as having private
-// access and the request will be re-run. When the repo is marked as having
-// private access, credentials will be retrieved.
-func DoRequest(req *http.Request, useCreds bool) (*http.Response, error) {
-	via := make([]*http.Request, 0, 4)
-	return httputil.DoHttpRequestWithRedirects(req, via, useCreds)
-}
-
-func NewRequest(method, oid string) (*http.Request, error) {
-	objectOid := oid
-	operation := "download"
-	if method == "POST" {
-		if oid != "batch" {
-			objectOid = ""
-			operation = "upload"
-		}
-	}
-	endpoint := config.Config.Endpoint(operation)
-
-	res, err := auth.SshAuthenticate(endpoint, operation, oid)
-	if err != nil {
-		tracerx.Printf("ssh: attempted with %s.  Error: %s",
-			endpoint.SshUserAndHost, err.Error(),
-		)
-		return nil, err
-	}
-
-	if len(res.Href) > 0 {
-		endpoint.Url = res.Href
-	}
-
-	u, err := ObjectUrl(endpoint, objectOid)
+// Do preforms the request assosicated with the given *RequestSchema by
+// delegating into the Lifecycle in use.
+//
+// If any error was encountered while either building, executing or cleaning up
+// the request, then it will be returned immediately, and the request can be
+// treated as invalid.
+//
+// If no error occured, an api.Response will be returned, along with a `nil`
+// error. At this point, the body of the response has been serialized into
+// `schema.Into`, and the body has been closed.
+func (c *Client) Do(schema *RequestSchema) (Response, error) {
+	req, err := c.lifecycle.Build(schema)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := httputil.NewHttpRequest(method, u.String(), res.Header)
+	resp, err := c.lifecycle.Execute(req, schema.Into)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Accept", MediaType)
-	return req, nil
-}
-
-func NewBatchRequest(operation string) (*http.Request, error) {
-	endpoint := config.Config.Endpoint(operation)
-
-	res, err := auth.SshAuthenticate(endpoint, operation, "")
-	if err != nil {
-		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
-			operation, endpoint.SshUserAndHost, err.Error(),
-		)
+	if err = c.lifecycle.Cleanup(resp); err != nil {
 		return nil, err
 	}
 
-	if len(res.Href) > 0 {
-		endpoint.Url = res.Href
-	}
-
-	u, err := ObjectUrl(endpoint, "batch")
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := httputil.NewHttpRequest("POST", u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", MediaType)
-	if res.Header != nil {
-		for key, value := range res.Header {
-			req.Header.Set(key, value)
-		}
-	}
-
-	return req, nil
-}
-
-func ObjectUrl(endpoint config.Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, "objects")
-	if len(oid) > 0 {
-		u.Path = path.Join(u.Path, oid)
-	}
-	return u, nil
+	return resp, nil
 }

@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {
@@ -363,7 +363,7 @@ func TestBatchAbsentIsTrue(t *testing.T) {
 	config := &Configuration{}
 
 	v := config.BatchTransfer()
-	assert.Equal(t, true, v)
+	assert.True(t, v)
 }
 
 func TestAccessConfig(t *testing.T) {
@@ -438,8 +438,8 @@ func TestAccessAbsentConfig(t *testing.T) {
 	config := &Configuration{}
 	assert.Equal(t, "none", config.Access("download"))
 	assert.Equal(t, "none", config.Access("upload"))
-	assert.Equal(t, false, config.PrivateAccess("download"))
-	assert.Equal(t, false, config.PrivateAccess("upload"))
+	assert.False(t, config.PrivateAccess("download"))
+	assert.False(t, config.PrivateAccess("upload"))
 }
 
 func TestLoadValidExtension(t *testing.T) {
@@ -481,10 +481,10 @@ func TestFetchPruneConfigDefault(t *testing.T) {
 	assert.Equal(t, 7, fp.FetchRecentRefsDays)
 	assert.Equal(t, 0, fp.FetchRecentCommitsDays)
 	assert.Equal(t, 3, fp.PruneOffsetDays)
-	assert.Equal(t, true, fp.FetchRecentRefsIncludeRemotes)
+	assert.True(t, fp.FetchRecentRefsIncludeRemotes)
 	assert.Equal(t, 3, fp.PruneOffsetDays)
 	assert.Equal(t, "origin", fp.PruneRemoteName)
-	assert.Equal(t, false, fp.PruneVerifyRemoteAlways)
+	assert.False(t, fp.PruneVerifyRemoteAlways)
 
 }
 func TestFetchPruneConfigCustom(t *testing.T) {
@@ -502,8 +502,8 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 
 	assert.Equal(t, 12, fp.FetchRecentRefsDays)
 	assert.Equal(t, 9, fp.FetchRecentCommitsDays)
-	assert.Equal(t, false, fp.FetchRecentRefsIncludeRemotes)
+	assert.False(t, fp.FetchRecentRefsIncludeRemotes)
 	assert.Equal(t, 30, fp.PruneOffsetDays)
 	assert.Equal(t, "upstream", fp.PruneRemoteName)
-	assert.Equal(t, true, fp.PruneVerifyRemoteAlways)
+	assert.True(t, fp.PruneVerifyRemoteAlways)
 }

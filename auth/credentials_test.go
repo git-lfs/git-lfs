@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 )
 
 func TestGetCredentialsForApi(t *testing.T) {

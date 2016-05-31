@@ -10,7 +10,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/transfer"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 const (

@@ -14,7 +14,7 @@ import (
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/tools"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 // BatchOrLegacy calls the Batch API and falls back on the Legacy API
