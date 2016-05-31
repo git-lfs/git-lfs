@@ -86,8 +86,11 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 
 	adapter := transfer.NewDownloadAdapter(transfer.BasicAdapterName)
-	tcb := func(name string, totalSize, readSoFar int64, readSinceLast int) error {
-		return cb(totalSize, readSoFar, readSinceLast)
+	var tcb transfer.TransferProgressCallback
+	if cb != nil {
+		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {
+			return cb(totalSize, readSoFar, readSinceLast)
+		}
 	}
 	// Single download
 	adapterResultChan := make(chan transfer.TransferResult, 1)
