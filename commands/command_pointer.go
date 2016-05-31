@@ -11,7 +11,7 @@ import (
 	"os/exec"
 
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -52,13 +52,13 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		}
 
 		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
-		fmt.Printf("Git LFS pointer for %s\n\n", pointerFile)
+		fmt.Fprintf(os.Stderr, "Git LFS pointer for %s\n\n", pointerFile)
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
 		if comparing {
 			buildOid = gitHashObject(buf.Bytes())
-			fmt.Printf("\nGit blob OID: %s\n\n", buildOid)
+			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n\n", buildOid)
 		}
 	} else {
 		comparing = false
@@ -81,22 +81,22 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		if !pointerStdin {
 			pointerName = pointerCompare
 		}
-		fmt.Printf("Pointer from %s\n\n", pointerName)
+		fmt.Fprintf(os.Stderr, "Pointer from %s\n\n", pointerName)
 
 		if err != nil {
 			Error(err.Error())
 			os.Exit(1)
 		}
 
-		fmt.Printf(buf.String())
+		fmt.Fprintf(os.Stderr, buf.String())
 		if comparing {
 			compareOid = gitHashObject(buf.Bytes())
-			fmt.Printf("\nGit blob OID: %s\n", compareOid)
+			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n", compareOid)
 		}
 	}
 
 	if comparing && buildOid != compareOid {
-		fmt.Printf("\nPointers do not match\n")
+		fmt.Fprintf(os.Stderr, "\nPointers do not match\n")
 		os.Exit(1)
 	}
 

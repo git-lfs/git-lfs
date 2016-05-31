@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/github/git-lfs/commands"
+	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
 )
 
@@ -20,7 +21,7 @@ func main() {
 	go func() {
 		for {
 			sig := <-c
-			once.Do(lfs.ClearTempObjects)
+			once.Do(clearTempObjects)
 			fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
 
 			exitCode := 1
@@ -32,6 +33,12 @@ func main() {
 	}()
 
 	commands.Run()
-	lfs.LogHttpStats()
-	once.Do(lfs.ClearTempObjects)
+	httputil.LogHttpStats()
+	once.Do(clearTempObjects)
+}
+
+func clearTempObjects() {
+	if err := lfs.ClearTempObjects(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
+	}
 }

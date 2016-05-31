@@ -17,6 +17,11 @@ lfs option can be scoped inside the configuration for a remote.
   The url used to call the Git LFS remote API. Default blank (derive from clone
   URL).
 
+* `lfs.pushurl` / `<remote>.lfspushurl`
+
+  The url used to call the Git LFS remote API when pushing. Default blank (derive
+  from either LFS non-push urls or clone url).
+
 * `lfs.concurrenttransfers`
 
   The number of concurrent uploads/downloads. Default 3.
@@ -26,6 +31,22 @@ lfs option can be scoped inside the configuration for a remote.
   Whether to use the batch API instead of requesting objects individually.
   Default true. This setting transitions clients from the legacy to the newer
   batch API and will be gone in Git LFS v1.0.
+
+* `lfs.dialtimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait initiate a
+  connection. This does not include the time to send a request and wait for a
+  response. Default: 30 seconds
+
+* `lfs.tlstimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait for a TLS
+  handshake. Default: 30 seconds.
+
+* `lfs.keepalive`
+
+  Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
+  connections. Default: 30 minutes.
 
 ### Fetch settings
 
@@ -46,6 +67,7 @@ lfs option can be scoped inside the configuration for a remote.
 
   If non-zero, fetches refs which have commits within N days of the current
   date. Only local refs are included unless lfs.fetchrecentremoterefs is true.
+  Also used as a basis for pruning old files.
   The default is 7 days.
 
 * `lfs.fetchrecentremoterefs`
@@ -61,12 +83,31 @@ lfs option can be scoped inside the configuration for a remote.
 
   In addition to fetching at refs, also fetches previous changes made within N
   days of the latest commit on the ref. This is useful if you're often reviewing
-  recent changes. The default is 0 (no previous changes).
+  recent changes.   Also used as a basis for pruning old files.
+  The default is 0 (no previous changes).
 
 * `lfs.fetchrecentalways`
 
   Always operate as if --recent was included in a `git lfs fetch` call. Default
   false.
+
+### Prune settings
+
+* `lfs.pruneoffsetdays`
+
+  The number of days added to the `lfs.fetchrecent*` settings to determine what
+  can be pruned. Default is 3 days, i.e. that anything fetched at the very
+  oldest edge of the 'recent window' is eligible for pruning 3 days later.
+
+* `lfs.pruneremotetocheck`
+
+  Set the remote that LFS files must have been pushed to in order for them to
+  be considered eligible for local pruning. Also the remote which is called if
+  --verify-remote is enabled.
+
+* `lfs.pruneverifyremotealways`
+
+  Always run `git lfs prune` as if `--verify-remote` was provided.
 
 ### Extensions
 
@@ -89,8 +130,22 @@ lfs option can be scoped inside the configuration for a remote.
   If set to "basic" then credentials will be requested before making batch
   requests to this url, otherwise a public request will initially be attempted.
 
+* `lfs.skipdownloaderrors`
+
+  Causes Git LFS not to abort the smudge filter when a download error is
+  encountered, which allows actions such as checkout to work when you are unable
+  to download the LFS content. LFS files which could not download will contain
+  pointer content instead.
+
+  Note that this will result in git commands which call the smudge filter to
+  report success even in cases when LFS downloads fail, which may affect
+  scripts.
+
+  You can also set the environment variable GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 to 
+  get the same effect. 
+  
 ## SEE ALSO
 
-git-config(1), git-lfs-init(1), gitattributes(5).
+git-config(1), git-lfs-install(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.

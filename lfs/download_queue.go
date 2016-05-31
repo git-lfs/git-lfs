@@ -1,26 +1,32 @@
 package lfs
 
+import (
+	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/progress"
+)
+
 // The ability to check that a file can be downloaded
 type DownloadCheckable struct {
 	Pointer *WrappedPointer
-	object  *objectResource
+	object  *api.ObjectResource
 }
 
 func NewDownloadCheckable(p *WrappedPointer) *DownloadCheckable {
 	return &DownloadCheckable{Pointer: p}
 }
 
-func (d *DownloadCheckable) Check() (*objectResource, error) {
-	return DownloadCheck(d.Pointer.Oid)
+func (d *DownloadCheckable) Check() (*api.ObjectResource, error) {
+	return api.DownloadCheck(d.Pointer.Oid)
 }
 
-func (d *DownloadCheckable) Transfer(cb CopyCallback) error {
+func (d *DownloadCheckable) Transfer(cb progress.CopyCallback) error {
 	// just report completion of check but don't do anything
 	cb(d.Size(), d.Size(), int(d.Size()))
 	return nil
 }
 
-func (d *DownloadCheckable) Object() *objectResource {
+func (d *DownloadCheckable) Object() *api.ObjectResource {
 	return d.object
 }
 
@@ -36,7 +42,7 @@ func (d *DownloadCheckable) Name() string {
 	return d.Pointer.Name
 }
 
-func (d *DownloadCheckable) SetObject(o *objectResource) {
+func (d *DownloadCheckable) SetObject(o *api.ObjectResource) {
 	d.object = o
 }
 
@@ -57,10 +63,10 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 	return &Downloadable{DownloadCheckable: NewDownloadCheckable(p)}
 }
 
-func (d *Downloadable) Transfer(cb CopyCallback) error {
+func (d *Downloadable) Transfer(cb progress.CopyCallback) error {
 	err := PointerSmudgeObject(d.Pointer.Pointer, d.object, cb)
 	if err != nil {
-		return Error(err)
+		return errutil.Error(err)
 	}
 	return nil
 }

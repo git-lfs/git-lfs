@@ -1,3 +1,5 @@
+// +build testtools
+
 package main
 
 import (
@@ -7,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,6 +28,7 @@ var (
 	repoDir      string
 	largeObjects = newLfsStorage()
 	server       *httptest.Server
+	serverTLS    *httptest.Server
 
 	// maps OIDs to content strings. Both the LFS and Storage test servers below
 	// see OIDs.
@@ -48,6 +52,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
+	serverTLS = httptest.NewTLSServer(mux)
+
 	stopch := make(chan bool)
 
 	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
@@ -69,26 +75,41 @@ func main() {
 		gitHandler(w, r)
 	})
 
-	urlname := os.Getenv("LFSTEST_URL")
-	if len(urlname) == 0 {
-		urlname = "lfstest-gitserver"
-	}
+	urlname := writeTestStateFile([]byte(server.URL), "LFSTEST_URL", "lfstest-gitserver")
+	defer os.RemoveAll(urlname)
 
-	file, err := os.Create(urlname)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
+	defer os.RemoveAll(sslurlname)
 
-	file.Write([]byte(server.URL))
-	file.Close()
+	block := &pem.Block{}
+	block.Type = "CERTIFICATE"
+	block.Bytes = serverTLS.TLS.Certificates[0].Certificate[0]
+	pembytes := pem.EncodeToMemory(block)
+	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
+	defer os.RemoveAll(certname)
+
 	log.Println(server.URL)
-
-	defer func() {
-		os.RemoveAll(urlname)
-	}()
+	log.Println(serverTLS.URL)
 
 	<-stopch
 	log.Println("git server done")
+}
+
+// writeTestStateFile writes contents to either the file referenced by the
+// environment variable envVar, or defaultFilename if that's not set. Returns
+// the filename that was used
+func writeTestStateFile(contents []byte, envVar, defaultFilename string) string {
+	f := os.Getenv(envVar)
+	if len(f) == 0 {
+		f = defaultFilename
+	}
+	file, err := os.Create(f)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	file.Write(contents)
+	file.Close()
+	return f
 }
 
 type lfsObject struct {
@@ -250,6 +271,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		return
 	}
 
+	if repo == "netrctest" {
+		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		if err != nil || (user != "netrcuser" || pass != "netrcpass") {
+			w.WriteHeader(403)
+			return
+		}
+	}
+
+	if missingRequiredCreds(w, r, repo) {
+		return
+	}
+
 	type batchReq struct {
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`
@@ -341,6 +374,10 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
+
+	if missingRequiredCreds(w, r, repo) {
+		return
+	}
 
 	log.Printf("storage %s %s repo: %s\n", r.Method, oid, repo)
 	switch r.Method {
@@ -465,6 +502,29 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(307)
 }
 
+func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
+	if repo != "requirecreds" {
+		return false
+	}
+
+	auth := r.Header.Get("Authorization")
+	user, pass, err := extractAuth(auth)
+	if err != nil {
+		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
+		w.WriteHeader(403)
+		return true
+	}
+
+	if user != "requirecreds" || pass != "pass" {
+		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
+		w.Write([]byte(`{"message":"` + errmsg + `"}`))
+		w.WriteHeader(403)
+		return true
+	}
+
+	return false
+}
+
 func testingChunkedTransferEncoding(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
 }
@@ -540,6 +600,25 @@ func newLfsStorage() *lfsStorage {
 	}
 }
 
+func extractAuth(auth string) (string, string, error) {
+	if strings.HasPrefix(auth, "Basic ") {
+		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
+		decoded := string(decodeBy)
+
+		if err != nil {
+			return "", "", err
+		}
+
+		parts := strings.SplitN(decoded, ":", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1], nil
+		}
+		return "", "", nil
+	}
+
+	return "", "", nil
+}
+
 func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
@@ -547,32 +626,25 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if strings.HasPrefix(auth, "Basic ") {
-		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
-		decoded := string(decodeBy)
+	user, pass, err := extractAuth(auth)
+	if err != nil {
+		w.WriteHeader(403)
+		log.Printf("Error decoding auth: %s\n", err)
+		return true
+	}
 
-		if err != nil {
-			w.WriteHeader(403)
-			log.Printf("Error decoding auth: %s\n", err)
-			return true
+	switch user {
+	case "user":
+		if pass == "pass" {
+			return false
 		}
-
-		parts := strings.SplitN(decoded, ":", 2)
-		if len(parts) == 2 {
-			switch parts[0] {
-			case "user":
-				if parts[1] == "pass" {
-					return false
-				}
-			case "path":
-				if strings.HasPrefix(r.URL.Path, "/"+parts[1]) {
-					return false
-				}
-				log.Printf("auth attempt against: %q", r.URL.Path)
-			}
+	case "netrcuser", "requirecreds":
+		return false
+	case "path":
+		if strings.HasPrefix(r.URL.Path, "/"+pass) {
+			return false
 		}
-
-		log.Printf("auth does not match: %q", decoded)
+		log.Printf("auth attempt against: %q", r.URL.Path)
 	}
 
 	w.WriteHeader(403)

@@ -4,9 +4,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/rubyist/tracerx"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -14,130 +16,91 @@ var (
 		Use: "push",
 		Run: pushCommand,
 	}
-	pushDryRun       = false
-	pushDeleteBranch = "(delete)"
-	pushObjectIDs    = false
-	pushAll          = false
-	useStdin         = false
+	pushDryRun    = false
+	pushObjectIDs = false
+	pushAll       = false
+	useStdin      = false
 
 	// shares some global vars and functions with command_pre_push.go
 )
 
-func uploadsBetweenRefs(left string, right string) *lfs.TransferQueue {
+func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 	tracerx.Printf("Upload between %v and %v", left, right)
 
-	// Just use scanner here
-	pointers, err := lfs.ScanRefs(left, right, nil)
+	scanOpt := lfs.NewScanRefsOptions()
+	scanOpt.ScanMode = lfs.ScanRefsMode
+	scanOpt.RemoteName = config.Config.CurrentRemote
+
+	pointers, err := lfs.ScanRefs(left, right, scanOpt)
 	if err != nil {
 		Panic(err, "Error scanning for Git LFS files")
 	}
-	return uploadPointers(pointers)
+
+	upload(ctx, pointers)
 }
 
-func uploadsBetweenRefAndRemote(remote string, refs []string) *lfs.TransferQueue {
-	tracerx.Printf("Upload refs %v to remote %v", remote, refs)
+func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
+	tracerx.Printf("Upload refs %v to remote %v", refnames, config.Config.CurrentRemote)
 
-	scanOpt := &lfs.ScanRefsOptions{ScanMode: lfs.ScanLeftToRemoteMode, RemoteName: remote}
+	scanOpt := lfs.NewScanRefsOptions()
+	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
+	scanOpt.RemoteName = config.Config.CurrentRemote
 
 	if pushAll {
-		if len(refs) == 0 {
-			pointers := scanAll()
-			Print("Pushing objects...")
-			return uploadPointers(pointers)
-		} else {
-			scanOpt.ScanMode = lfs.ScanRefsMode
-		}
+		scanOpt.ScanMode = lfs.ScanRefsMode
 	}
 
-	// keep a unique set of pointers
-	oidPointerMap := make(map[string]*lfs.WrappedPointer)
+	refs, err := refsByNames(refnames)
+	if err != nil {
+		Error(err.Error())
+		Exit("Error getting local refs.")
+	}
 
 	for _, ref := range refs {
-		pointers, err := lfs.ScanRefs(ref, "", scanOpt)
+		pointers, err := lfs.ScanRefs(ref.Name, "", scanOpt)
 		if err != nil {
-			Panic(err, "Error scanning for Git LFS files in the %q ref", ref)
+			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
 
-		for _, p := range pointers {
-			oidPointerMap[p.Oid] = p
-		}
+		upload(ctx, pointers)
 	}
-
-	i := 0
-	pointers := make([]*lfs.WrappedPointer, len(oidPointerMap))
-	for _, pointer := range oidPointerMap {
-		pointers[i] = pointer
-		i += 1
-	}
-
-	return uploadPointers(pointers)
 }
 
-func uploadPointers(pointers []*lfs.WrappedPointer) *lfs.TransferQueue {
-	totalSize := int64(0)
-	for _, p := range pointers {
-		totalSize += p.Size
+func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
+	pointers := make([]*lfs.WrappedPointer, len(oids))
+
+	for idx, oid := range oids {
+		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
 
-	skipObjects := prePushCheckForMissingObjects(pointers)
-
-	uploadQueue := lfs.NewUploadQueue(len(pointers), totalSize, pushDryRun)
-	for i, pointer := range pointers {
-		if pushDryRun {
-			Print("push %s => %s", pointer.Oid, pointer.Name)
-			continue
-		}
-
-		if _, skip := skipObjects[pointer.Oid]; skip {
-			// object missing locally but on server, don't bother
-			continue
-		}
-
-		tracerx.Printf("prepare upload: %s %s %d/%d", pointer.Oid, pointer.Name, i+1, len(pointers))
-
-		u, err := lfs.NewUploadable(pointer.Oid, pointer.Name)
-		if err != nil {
-			if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
-			} else {
-				Exit(err.Error())
-			}
-		}
-		uploadQueue.Add(u)
-	}
-
-	return uploadQueue
+	upload(ctx, pointers)
 }
 
-func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
-	uploads := []*lfs.Uploadable{}
-	totalSize := int64(0)
-
-	for i, oid := range oids {
-		if pushDryRun {
-			Print("push object ID %s", oid)
-			continue
-		}
-		tracerx.Printf("prepare upload: %s %d/%d", oid, i+1, len(oids))
-
-		u, err := lfs.NewUploadable(oid, "")
-		if err != nil {
-			if Debugging || lfs.IsFatalError(err) {
-				Panic(err, err.Error())
-			} else {
-				Exit(err.Error())
-			}
-		}
-		uploads = append(uploads, u)
+func refsByNames(refnames []string) ([]*git.Ref, error) {
+	localrefs, err := git.LocalRefs()
+	if err != nil {
+		return nil, err
 	}
 
-	uploadQueue := lfs.NewUploadQueue(len(oids), totalSize, pushDryRun)
-
-	for _, u := range uploads {
-		uploadQueue.Add(u)
+	if pushAll && len(refnames) == 0 {
+		return localrefs, nil
 	}
 
-	return uploadQueue
+	reflookup := make(map[string]*git.Ref, len(localrefs))
+	for _, ref := range localrefs {
+		reflookup[ref.Name] = ref
+	}
+
+	refs := make([]*git.Ref, len(refnames))
+	for i, name := range refnames {
+		if ref, ok := reflookup[name]; ok {
+			refs[i] = ref
+		} else {
+			refs[i] = &git.Ref{name, git.RefTypeOther, name}
+		}
+	}
+
+	return refs, nil
 }
 
 // pushCommand pushes local objects to a Git LFS server.  It takes two
@@ -145,19 +108,23 @@ func uploadsWithObjectIDs(oids []string) *lfs.TransferQueue {
 //
 //   `<remote> <remote ref>`
 //
-// Both a remote name ("origin") or a remote URL are accepted.
+// Remote must be a remote name, not a URL
 //
 // pushCommand calculates the git objects to send by looking comparing the range
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
-	var uploadQueue *lfs.TransferQueue
-
 	if len(args) == 0 {
 		Print("Specify a remote and a remote branch name (`git lfs push origin master`)")
 		os.Exit(1)
 	}
 
-	lfs.Config.CurrentRemote = args[0]
+	// Remote is first arg
+	if err := git.ValidateRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q", args[0])
+	}
+
+	config.Config.CurrentRemote = args[0]
+	ctx := newUploadContext(pushDryRun)
 
 	if useStdin {
 		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
@@ -176,40 +143,25 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		left, right := decodeRefs(string(refsData))
-		if left == pushDeleteBranch {
+		if left == prePushDeleteBranch {
 			return
 		}
 
-		uploadQueue = uploadsBetweenRefs(left, right)
+		uploadsBetweenRefs(ctx, left, right)
 	} else if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
 			return
 		}
 
-		uploadQueue = uploadsWithObjectIDs(args[1:])
+		uploadsWithObjectIDs(ctx, args[1:])
 	} else {
 		if len(args) < 1 {
 			Print("Usage: git lfs push --dry-run <remote> [ref]")
 			return
 		}
 
-		uploadQueue = uploadsBetweenRefAndRemote(args[0], args[1:])
-	}
-
-	if !pushDryRun {
-		uploadQueue.Wait()
-		for _, err := range uploadQueue.Errors() {
-			if Debugging || lfs.IsFatalError(err) {
-				LoggedError(err, err.Error())
-			} else {
-				Error(err.Error())
-			}
-		}
-
-		if len(uploadQueue.Errors()) > 0 {
-			os.Exit(2)
-		}
+		uploadsBetweenRefAndRemote(ctx, args[1:])
 	}
 }
 

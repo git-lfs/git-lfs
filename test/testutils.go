@@ -21,6 +21,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/localstorage"
 )
 
 type RepoType int
@@ -74,7 +75,7 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	lfs.ResolveDirs()
+	localstorage.ResolveDirs()
 }
 
 func (r *Repo) Popd() {
@@ -418,3 +419,10 @@ type WrappedPointersByOid []*lfs.WrappedPointer
 func (a WrappedPointersByOid) Len() int           { return len(a) }
 func (a WrappedPointersByOid) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a WrappedPointersByOid) Less(i, j int) bool { return a[i].Pointer.Oid < a[j].Pointer.Oid }
+
+// PointersByOid implements sort.Interface for []*lfs.Pointer based on oid
+type PointersByOid []*lfs.Pointer
+
+func (a PointersByOid) Len() int           { return len(a) }
+func (a PointersByOid) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a PointersByOid) Less(i, j int) bool { return a[i].Oid < a[j].Oid }

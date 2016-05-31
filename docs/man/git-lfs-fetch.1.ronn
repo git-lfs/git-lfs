@@ -30,6 +30,10 @@ This does not update the working copy.
   --include/--exclude. Ignores any globally configured include and exclude paths
   to ensure that all objects are downloaded.
 
+* `--prune` `-p`:
+  Prune old and unreferenced objects after fetching, equivalent to running
+  `git lfs prune` afterwards. See git-lfs-prune(1) for more details.
+
 ## INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in certain
@@ -57,7 +61,7 @@ will have objects fetched for them.
   Don't fetch any LFS objects referenced in the folder media/reallybigfiles, but
   fetch everything else
 
-* `git config lfs.fetchinclude "media"`<br/>
+* `git config lfs.fetchinclude "media"`<br>
   `git config lfs.fetchexclude "media/excessive"`
 
   Only fetch LFS objects in the 'media' folder, but exclude those in one of its
@@ -65,8 +69,8 @@ will have objects fetched for them.
 
 ## DEFAULT REMOTE
 
-Without arguments, fetch downloads from the default remote.  The default remote 
-is the same as for `git fetch`, i.e. based on the remote branch you're tracking 
+Without arguments, fetch downloads from the default remote.  The default remote
+is the same as for `git fetch`, i.e. based on the remote branch you're tracking
 first, or origin otherwise.
 
 ## DEFAULT REFS
@@ -78,34 +82,34 @@ included. See [RECENT CHANGES] for details.
 ## RECENT CHANGES
 
 If the `--recent` option is specified, or if the gitconfig option
-`lfs.fetchrecentalways` is true, then after the current ref (or those in the 
-arguments) is fetched, we also search for 'recent' changes to fetch 
-objects for, so that it's more convenient to checkout or diff those commits 
-without incurring further downloads. 
+`lfs.fetchrecentalways` is true, then after the current ref (or those in the
+arguments) is fetched, we also search for 'recent' changes to fetch
+objects for, so that it's more convenient to checkout or diff those commits
+without incurring further downloads.
 
 What changes are considered 'recent' is based on a number of gitconfig options:
 
 * `lfs.fetchrecentrefsdays`
-  If non-zero, includes branches which have commits within N days of the current 
+  If non-zero, includes branches which have commits within N days of the current
   date. Only local refs are included unless lfs.fetchrecentremoterefs is true.
   The default is 7 days.
 
 * `lfs.fetchrecentremoterefs`
   If true, fetches remote refs (for the remote you're fetching) as well as local
-  refs in the recent window. This is useful to fetch objects for remote branches 
-  you might want to check out later. The default is true; if you set this to 
-  false, fetching for those branches will only occur when you either check them 
-  out (losing the advantage of fetch --recent), or create a tracking local 
+  refs in the recent window. This is useful to fetch objects for remote branches
+  you might want to check out later. The default is true; if you set this to
+  false, fetching for those branches will only occur when you either check them
+  out (losing the advantage of fetch --recent), or create a tracking local
   branch separately then fetch again.
 
 * `lfs.fetchrecentcommitsdays`
-  In addition to fetching at branches, also fetches changes made within N 
-  days of the latest commit on the branch. This is useful if you're often 
+  In addition to fetching at branches, also fetches changes made within N
+  days of the latest commit on the branch. This is useful if you're often
   reviewing recent changes. The default is 0 (no previous changes).
 
 * `lfs.fetchrecentalways`
   Always operate as if --recent was provided on the command line.
-  
+
 
 ## EXAMPLES
 
@@ -113,7 +117,7 @@ What changes are considered 'recent' is based on a number of gitconfig options:
 
   `git lfs fetch`
 
-* Fetch the LFS objects for the current ref AND recent changes from default 
+* Fetch the LFS objects for the current ref AND recent changes from default
   remote
 
   `git lfs fetch --recent`
@@ -132,7 +136,6 @@ What changes are considered 'recent' is based on a number of gitconfig options:
 
 ## SEE ALSO
 
-git-lfs-checkout(1), git-lfs-pull(1).
+git-lfs-checkout(1), git-lfs-pull(1), git-lfs-prune(1).
 
 Part of the git-lfs(1) suite.
-

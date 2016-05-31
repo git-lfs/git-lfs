@@ -4,8 +4,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/github/git-lfs/progress"
+	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -13,19 +17,19 @@ const (
 )
 
 type Transferable interface {
-	Check() (*objectResource, error)
-	Transfer(CopyCallback) error
-	Object() *objectResource
+	Check() (*api.ObjectResource, error)
+	Transfer(progress.CopyCallback) error
+	Object() *api.ObjectResource
 	Oid() string
 	Size() int64
 	Name() string
-	SetObject(*objectResource)
+	SetObject(*api.ObjectResource)
 }
 
 // TransferQueue provides a queue that will allow concurrent transfers.
 type TransferQueue struct {
 	retrying      uint32
-	meter         *ProgressMeter
+	meter         *progress.ProgressMeter
 	workers       int // Number of transfer workers to spawn
 	transferKind  string
 	errors        []error
@@ -37,6 +41,7 @@ type TransferQueue struct {
 	retriesc      chan Transferable // Channel for processing retries
 	errorc        chan error        // Channel for processing errors
 	watchers      []chan string
+	trMutex       *sync.Mutex
 	errorwait     sync.WaitGroup
 	retrywait     sync.WaitGroup
 	wait          sync.WaitGroup
@@ -45,13 +50,14 @@ type TransferQueue struct {
 // newTransferQueue builds a TransferQueue, allowing `workers` concurrent transfers.
 func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 	q := &TransferQueue{
-		meter:         NewProgressMeter(files, size, dryRun),
+		meter:         progress.NewProgressMeter(files, size, dryRun, config.Config.Getenv("GIT_LFS_PROGRESS")),
 		apic:          make(chan Transferable, batchSize),
 		transferc:     make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
-		workers:       Config.ConcurrentTransfers(),
+		workers:       config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
+		trMutex:       &sync.Mutex{},
 	}
 
 	q.errorwait.Add(1)
@@ -65,7 +71,9 @@ func newTransferQueue(files int, size int64, dryRun bool) *TransferQueue {
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
 	q.wait.Add(1)
+	q.trMutex.Lock()
 	q.transferables[t.Oid()] = t
+	q.trMutex.Unlock()
 
 	if q.batcher != nil {
 		q.batcher.Add(t)
@@ -73,6 +81,10 @@ func (q *TransferQueue) Add(t Transferable) {
 	}
 
 	q.apic <- t
+}
+
+func (q *TransferQueue) Skip(size int64) {
+	q.meter.Skip(size)
 }
 
 // Wait waits for the queue to finish processing all transfers. Once Wait is
@@ -153,7 +165,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			q.meter.Add(t.Name())
 			q.transferc <- t
 		} else {
-			q.meter.Skip(t.Size())
+			q.Skip(t.Size())
 			q.wait.Done()
 		}
 	}
@@ -197,14 +209,14 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		tracerx.Printf("tq: sending batch of size %d", len(batch))
 
-		transfers := make([]*objectResource, 0, len(batch))
+		transfers := make([]*api.ObjectResource, 0, len(batch))
 		for _, t := range batch {
-			transfers = append(transfers, &objectResource{Oid: t.Oid(), Size: t.Size()})
+			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
-		objects, err := Batch(transfers, q.transferKind)
+		objects, err := api.Batch(transfers, q.transferKind)
 		if err != nil {
-			if IsNotImplementedError(err) {
+			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
 
 				go q.legacyFallback(batch)
@@ -227,24 +239,28 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objects {
 			if o.Error != nil {
-				q.errorc <- Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
-				q.meter.Skip(o.Size)
+				q.errorc <- errutil.Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
+				q.Skip(o.Size)
 				q.wait.Done()
 				continue
 			}
 
 			if _, ok := o.Rel(q.transferKind); ok {
 				// This object needs to be transferred
-				if transfer, ok := q.transferables[o.Oid]; ok {
+				q.trMutex.Lock()
+				transfer, ok := q.transferables[o.Oid]
+				q.trMutex.Unlock()
+
+				if ok {
 					transfer.SetObject(o)
 					q.meter.Add(transfer.Name())
 					q.transferc <- transfer
 				} else {
-					q.meter.Skip(transfer.Size())
+					q.Skip(transfer.Size())
 					q.wait.Done()
 				}
 			} else {
-				q.meter.Skip(o.Size)
+				q.Skip(o.Size)
 				q.wait.Done()
 			}
 		}
@@ -322,7 +338,7 @@ func (q *TransferQueue) run() {
 		go q.transferWorker()
 	}
 
-	if Config.BatchTransfer() {
+	if config.Config.BatchTransfer() {
 		tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
 		q.batcher = NewBatcher(batchSize)
 		go q.batchApiRoutine()
@@ -337,7 +353,7 @@ func (q *TransferQueue) retry(t Transferable) {
 }
 
 func (q *TransferQueue) canRetry(err error) bool {
-	if !IsRetriableError(err) || atomic.LoadUint32(&q.retrying) == 1 {
+	if !errutil.IsRetriableError(err) || atomic.LoadUint32(&q.retrying) == 1 {
 		return false
 	}
 

@@ -1,0 +1,61 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+
+    "type": "object",
+    "oneOf": [
+        {
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            },
+            "required": ["error"]
+        },
+        {
+            "properties": {
+                "commit_needed": {
+                    "type": "string"
+                }
+            },
+            "required": ["commit_needed"]
+        },
+        {
+            "properties": {
+                "lock": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "string"
+                        },
+                        "path": {
+                            "type": "string"
+                        },
+                        "committer": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "email": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": ["name", "email"]
+                        },
+                        "commit_sha": {
+                            "type": "string"
+                        },
+                        "locked_at": {
+                            "type": "string"
+                        },
+                        "unlocked_at": {
+                            "type": "string"
+                        }
+                    },
+                    "required": ["id", "path", "commit_sha", "locked_at"]
+                }
+            },
+            "required": ["lock"]
+        }
+    ]
+}

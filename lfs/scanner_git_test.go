@@ -11,7 +11,7 @@ import (
 
 	. "github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestScanUnpushed(t *testing.T) {
@@ -53,28 +53,37 @@ func TestScanUnpushed(t *testing.T) {
 	repo.AddRemote("origin")
 	repo.AddRemote("upstream")
 
-	pointers, err := ScanUnpushed()
-	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
-	assert.Equal(t, 4, len(pointers), "Should be 4 pointers because none pushed")
+	pointers, err := ScanUnpushed("")
+	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
+	assert.Len(t, pointers, 4, "Should be 4 pointers because none pushed")
 
 	test.RunGitCommand(t, true, "push", "origin", "branch2")
 	// Branch2 will have pushed 2 commits
-	pointers, err = ScanUnpushed()
-	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
-	assert.Equal(t, 2, len(pointers), "Should be 2 pointers")
+	pointers, err = ScanUnpushed("")
+	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
+	assert.Len(t, pointers, 2, "Should be 2 pointers")
 
 	test.RunGitCommand(t, true, "push", "upstream", "master")
 	// Master pushes 1 more commit
-	pointers, err = ScanUnpushed()
-	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
-	assert.Equal(t, 1, len(pointers), "Should be 1 pointer")
+	pointers, err = ScanUnpushed("")
+	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
+	assert.Len(t, pointers, 1, "Should be 1 pointer")
 
 	test.RunGitCommand(t, true, "push", "origin", "branch3")
 	// All pushed (somewhere)
-	pointers, err = ScanUnpushed()
-	assert.Equal(t, nil, err, "Should be no error calling ScanUnpushed")
-	assert.Equal(t, 0, len(pointers), "Should be 0 pointers unpushed")
+	pointers, err = ScanUnpushed("")
+	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
+	assert.Empty(t, pointers, "Should be 0 pointers unpushed")
 
+	// Check origin
+	pointers, err = ScanUnpushed("origin")
+	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
+	assert.Empty(t, pointers, "Should be 0 pointers unpushed to origin")
+
+	// Check upstream
+	pointers, err = ScanUnpushed("upstream")
+	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
+	assert.Len(t, pointers, 2, "Should be 2 pointers unpushed to upstream")
 }
 
 func TestScanPreviousVersions(t *testing.T) {

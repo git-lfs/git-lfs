@@ -10,8 +10,12 @@ assert_pointer() {
   local oid="$3"
   local size="$4"
 
-  tree=$(git ls-tree -lr "$ref")
-  gitblob=$(echo "$tree" | grep "$path" | cut -f 3 -d " ")
+  gitblob=$(git ls-tree -lrz "$ref" |
+    while read -r -d $'\0' x; do
+      echo $x
+    done |
+    grep "$path" | cut -f 3 -d " ")
+
   actual=$(git cat-file -p $gitblob)
   expected=$(pointer $oid $size)
 
@@ -45,6 +49,16 @@ refute_local_object() {
     exit 1
   fi
 }
+
+# delete_local_object deletes the local storage for an oid
+# $ delete_local_object "some-oid"
+delete_local_object() {
+  local oid="$1"
+  local cfg=`git lfs env | grep LocalMediaDir`
+  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  rm "$f"
+}
+
 
 # check that the object does not exist in the git lfs server. HTTP log is
 # written to http.log. JSON output is written to http.json.
@@ -181,6 +195,24 @@ clone_repo() {
   echo "$out"
 }
 
+
+# clone_repo_ssl clones a repository from the test Git server to the subdirectory
+# $dir under $TRASHDIR, using the SSL endpoint.
+# setup_remote_repo() needs to be run first. Output is written to clone_ssl.log.
+clone_repo_ssl() {
+  cd "$TRASHDIR"
+
+  local reponame="$1"
+  local dir="$2"
+  echo "clone local git repository $reponame to $dir"
+  out=$(git clone "$SSLGITSERVER/$reponame" "$dir" 2>&1)
+  cd "$dir"
+
+  git config credential.helper lfstest
+
+  echo "$out" > clone_ssl.log
+  echo "$out"
+}
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
@@ -201,19 +233,23 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
-      go build -o "$BINPATH/$(basename $go .go)" "$go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
+    # Ensure API test util is built during tests to ensure it stays in sync
+    GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
   fi
 
-  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_DIR="$REMOTEDIR" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
 
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
   mkdir "$HOME"
-  git lfs init
+  git lfs install
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"
+  git config --global http.sslcainfo "$LFS_CERT_FILE"
+
   grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
     echo "global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
@@ -227,8 +263,11 @@ setup() {
   echo
   echo "HOME: $HOME"
   echo "TMP: $TMPDIR"
+  echo "CREDS: $CREDSDIR"
   echo "lfstest-gitserver:"
   echo "  LFSTEST_URL=$LFS_URL_FILE"
+  echo "  LFSTEST_SSL_URL=$LFS_SSL_URL_FILE"
+  echo "  LFSTEST_CERT=$LFS_CERT_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
   git config --global --get-regexp "lfs|credential|user"
@@ -249,6 +288,8 @@ setup() {
   fi
 
   wait_for_file "$LFS_URL_FILE"
+  wait_for_file "$LFS_SSL_URL_FILE"
+  wait_for_file "$LFS_CERT_FILE"
 
   echo
 }
@@ -272,7 +313,12 @@ shutdown() {
     fi
 
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
-  fi
+
+    # delete entire lfs test root if we created it (double check pattern)
+    if [ -z "$KEEPTRASH" ] && [ "$RM_GIT_LFS_TEST_DIR" = "yes" ] && [[ $GIT_LFS_TEST_DIR == *"$TEMPDIR_PREFIX"* ]]; then
+      rm -rf "$GIT_LFS_TEST_DIR"
+    fi
+fi
 }
 
 ensure_git_version_isnt() {
@@ -380,5 +426,59 @@ get_date() {
         ARGS="$ARGS -v$var"
     done
     date $ARGS -u +%Y-%m-%dT%TZ
+  fi
+}
+
+# Convert potentially MinGW bash paths to native Windows paths
+# Needed to match generic built paths in test scripts to native paths generated from Go
+native_path() {
+  local arg=$1
+  if [ $IS_WINDOWS == "1" ]; then
+    # Use params form to avoid interpreting any '\' characters
+    printf '%s' "$(cygpath -w $arg)"
+  else
+    printf '%s' "$arg"
+  fi
+}
+
+# escape any instance of '\' with '\\' on Windows
+escape_path() {
+  local unescaped="$1"
+  if [ $IS_WINDOWS == "1" ]; then
+    printf '%s' "${unescaped//\\/\\\\}"
+  else
+    printf '%s' "$unescaped"
+  fi
+}
+
+# As native_path but escape all backslash characters to "\\"
+native_path_escaped() {
+  local unescaped=$(native_path "$1")
+  escape_path "$unescaped"
+}
+
+# Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
+contains_same_elements() {
+  # Remove blank lines then sort
+  printf '%s' "$1" | grep -v '^$' | sort > a.txt
+  printf '%s' "$2" | grep -v '^$' | sort > b.txt
+
+  set +e
+  diff -u a.txt b.txt 1>&2
+  res=$?
+  set -e
+  rm a.txt b.txt
+  exit $res
+}
+
+is_stdin_attached() {
+  test -t0
+  echo $?
+}
+
+has_test_dir() {
+  if [ -z "$GIT_LFS_TEST_DIR" ]; then
+    echo "No GIT_LFS_TEST_DIR. Skipping..."
+    exit 0
   fi
 }

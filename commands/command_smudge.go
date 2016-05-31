@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -23,14 +25,6 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
-	if smudgeSkip || lfs.Config.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
-		_, err := io.Copy(os.Stdout, os.Stdin)
-		if err != nil {
-			Panic(err, "Error writing data to stdout:")
-		}
-		return
-	}
-
 	// keeps the initial buffer from lfs.DecodePointer
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
@@ -44,6 +38,8 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		}
 		return
 	}
+
+	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 
 	if smudgeInfo {
 		localPath, err := lfs.LocalMediaPath(ptr.Oid)
@@ -66,8 +62,13 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	cfg := lfs.Config
+	cfg := config.Config
 	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+
+	if smudgeSkip || cfg.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
+		download = false
+	}
+
 	err = ptr.Smudge(os.Stdout, filename, download, cb)
 	if file != nil {
 		file.Close()
@@ -76,9 +77,11 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ptr.Encode(os.Stdout)
 		// Download declined error is ok to skip if we weren't requesting download
-		if !(lfs.IsDownloadDeclinedError(err) && !download) {
-			LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
-			os.Exit(2)
+		if !(errutil.IsDownloadDeclinedError(err) && !download) {
+			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
+			if !cfg.SkipDownloadErrors() {
+				os.Exit(2)
+			}
 		}
 	}
 }
@@ -88,8 +91,8 @@ func smudgeFilename(args []string, err error) string {
 		return args[0]
 	}
 
-	if lfs.IsSmudgeError(err) {
-		return filepath.Base(lfs.ErrorGetContext(err, "FileName").(string))
+	if errutil.IsSmudgeError(err) {
+		return filepath.Base(errutil.ErrorGetContext(err, "FileName").(string))
 	}
 
 	return "<unknown file>"

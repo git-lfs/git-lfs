@@ -5,7 +5,6 @@ set -e
 
 SHUTDOWN_LFS=no
 SHOW_LOGS=yes
-TESTS=( "$@" )
 
 atexit() {
   res=${1:-$?}
@@ -47,15 +46,4 @@ parallel=${GIT_LFS_TEST_MAXPROCS:-4}
 echo "Running this maxprocs=$parallel"
 echo
 
-if [ ${#TESTS[@]} -eq 0 ]
-then
-  testfiles=(test/test-*.sh)
-else
-  for ((i=0; i<${#TESTS[@]}; i++)); do
-    testfiles[i]=test/test-${TESTS[i]}.sh
-  done
-fi
-
-for file in "${testfiles[@]}"; do
-  echo "0$(cat .$(basename $file).time 2>/dev/null || true) $file"
-done | sort -rnk1 | awk '{ print $2 }' | xargs -I % -P $parallel -n 1 /bin/bash % --batch
+GO15VENDOREXPERIMENT=1 GIT_LFS_TEST_MAXPROCS=$parallel GIT_LFS_TEST_DIR="$GIT_LFS_TEST_DIR" SHUTDOWN_LFS="no" go run script/*.go -cmd integration "$@"

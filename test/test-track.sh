@@ -38,10 +38,10 @@ begin_test "track"
 
   out=$(git lfs track)
   echo "$out" | grep "Listing tracked paths"
-  echo "$out" | grep "*.mov (.git/info/attributes)"
+  echo "$out" | grep "*.mov ($(native_path_escaped ".git/info/attributes"))"
   echo "$out" | grep "*.jpg (.gitattributes)"
-  echo "$out" | grep "*.gif (a/.gitattributes)"
-  echo "$out" | grep "*.png (a/b/.gitattributes)"
+  echo "$out" | grep "*.gif ($(native_path_escaped "a/.gitattributes"))"
+  echo "$out" | grep "*.png ($(native_path_escaped "a/b/.gitattributes"))"
 )
 end_test
 
@@ -134,21 +134,6 @@ begin_test "track representation"
   cd track-representation
 
   git lfs track "*.jpg"
-  out=$(git lfs track "$PWD/*.jpg")
-
-  if [ "$out" != "$PWD/*.jpg already supported" ]; then
-    echo "Track didn't recognize duplicate path"
-    cat .gitattributes
-    exit 1
-  fi
-
-  out2=$(git lfs track "a/../*.jpg")
-
-  if [ "$out2" != "a/../*.jpg already supported" ]; then
-    echo "Track didn't recognize duplicate path"
-    cat .gitattributes
-    exit 1
-  fi
 
   mkdir a
   git lfs track "a/test.file"
@@ -174,17 +159,20 @@ end_test
 
 begin_test "track absolute"
 (
+  # MinGW bash intercepts '/images' and passes 'C:/Program Files/Git/images' as arg!
+  if [[ $(uname) == *"MINGW"* ]]; then
+    echo "Skipping track absolute on Windows"
+    exit 0
+  fi
+
   set -e
 
   git init track-absolute
   cd track-absolute
 
-  git lfs track "$PWD/*.jpg"
-  grep "^*.jpg" .gitattributes || {
-    echo ".gitattributes doesn't contain the expected relative path *.jpg:"
-    cat .gitattributes
-    exit 1
-  }
+  git lfs track "/images"
+  cat .gitattributes
+  grep "^/images" .gitattributes
 )
 end_test
 
@@ -213,5 +201,22 @@ begin_test "track in gitDir"
 
   # fail if track passed
   exit 1
+)
+end_test
+
+begin_test "track in symlinked dir"
+(
+  set -e
+
+  git init track-symlinkdst
+  ln -s track-symlinkdst track-symlinksrc
+  cd track-symlinksrc
+
+  git lfs track "*.png"
+  grep "^*.png" .gitattributes || {
+    echo ".gitattributes doesn't contain the expected relative path *.png:"
+    cat .gitattributes
+    exit 1
+  }
 )
 end_test

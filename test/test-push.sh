@@ -132,7 +132,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "5 files" push.log # should be 6?
+  [ $(grep -c "(3 of 3 files)" push.log) -eq 2 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -151,7 +151,7 @@ begin_test "push --all (no ref args)"
   refute_server_object "$reponame-$suffix-2" "$extraoid"
   rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
 
-  # dry run doesn't change
+  echo "dry run missing local object that exists on server"
   git lfs push --dry-run --all origin 2>&1 | tee push.log
   grep "push $oid1 => file1.dat" push.log
   grep "push $oid2 => file1.dat" push.log
@@ -162,7 +162,10 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "5 files, 1 skipped" push.log # should be 5?
+  grep "(2 of 3 files, 1 skipped)" push.log
+  grep "(3 of 3 files)" push.log
+  [ $(grep -c "files)" push.log) -eq 1 ]
+  [ $(grep -c "skipped)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -408,5 +411,78 @@ begin_test "push modified files"
   assert_server_object "$reponame" "$oid3"
   assert_server_object "$reponame" "$oid4"
   assert_server_object "$reponame" "$oid5"
+)
+end_test
+
+begin_test "push with invalid remote"
+(
+  set -e
+  cd repo
+  git lfs push not-a-remote 2>&1 | tee push.log
+  grep "Invalid remote name" push.log
+)
+end_test
+
+begin_test "push ambiguous branch name"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-ambiguous-branch"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  NUMFILES=5
+  # generate content we'll use
+  for ((a=0; a < NUMFILES ; a++))
+  do
+    content[$a]="filecontent$a"
+    oid[$a]=$(calc_oid "${content[$a]}")
+  done
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[0]}, \"Data\":\"${content[0]}\"},
+      {\"Filename\":\"file2.dat\",\"Size\":${#content[1]}, \"Data\":\"${content[1]}\"}]
+  },
+  {
+    \"NewBranch\":\"ambiguous\",
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file4.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
+  },
+  {
+    \"ParentBranches\":[\"master\"],
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":${#content[4]}, \"Data\":\"${content[4]}\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # create tag with same name as branch
+  git tag ambiguous
+
+  # lfs push master, should work
+  git lfs push origin master
+
+  # push ambiguous, should fail
+  set +e
+  git lfs push origin ambiguous
+  if [ $? -eq 0 ]
+  then
+    exit 1
+  fi
+  set -e
+
 )
 end_test

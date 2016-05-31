@@ -6,10 +6,13 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/github/git-lfs/progress"
+	"github.com/rubyist/tracerx"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -116,7 +119,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
 	}
-	progress := lfs.NewProgressMeter(len(pointers), totalBytes, false)
+	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, config.Config.Getenv("GIT_LFS_PROGRESS"))
 	progress.Start()
 	totalBytes = 0
 	for _, pointer := range pointers {
@@ -176,7 +179,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		// Check the content - either missing or still this pointer (not exist is ok)
 		filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
 		if err != nil && !os.IsNotExist(err) {
-			if lfs.IsNotAPointerError(err) {
+			if errutil.IsNotAPointerError(err) {
 				// File has non-pointer content, leave it alone
 				continue
 			}
@@ -195,7 +198,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, nil)
 		if err != nil {
-			if lfs.IsDownloadDeclinedError(err) {
+			if errutil.IsDownloadDeclinedError(err) {
 				// acceptable error, data not local (fetch not run or include/exclude)
 				LoggedError(err, "Skipped checkout for %v, content not local. Use fetch to download.", pointer.Name)
 			} else {

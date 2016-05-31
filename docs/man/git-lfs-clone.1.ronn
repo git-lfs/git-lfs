@@ -1,0 +1,26 @@
+git-lfs-clone(1) -- Efficiently clone a LFS-enabled repository
+========================================================================
+
+## SYNOPSIS
+
+`git lfs clone` [git clone options] <repository> [<directory>]
+
+## DESCRIPTION
+
+Clone an LFS enabled Git repository more efficiently by disabling LFS during the
+git clone, then performing a 'git lfs pull' directly afterwards.
+
+This is faster than a regular 'git clone' because that will download LFS content
+using the smudge filter, which is executed individually per file in the working
+copy. This is relatively inefficient compared to the batch mode and parallel
+downloads performed by 'git lfs pull'.
+
+## OPTIONS
+
+All options supported by 'git clone'
+
+## SEE ALSO
+
+git-clone(1), git-lfs-pull(1).
+
+Part of the git-lfs(1) suite.

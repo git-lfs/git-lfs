@@ -3,22 +3,7 @@
 Hi there! We're thrilled that you'd like to contribute to this project. Your
 help is essential for keeping it great.
 
-This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are expected to uphold this code.
-
-[code-of-conduct]: http://todogroup.org/opencodeofconduct/#Git%20LFS/opensource@github.com
-
-## Issue Labels
-
-The Git LFS teams mark issues and pull requests with the following labels:
-
-* `bug` - An issue describing a bug.
-* `enhancement` - An issue for a possible new feature.
-* `review` - An issue ready to be reviewed.
-* `release` - A checklist issue showing items marked for an upcoming release.
-* `roadmap` - A checklist issue with tasks to fulfill something from the
-[roadmap](./ROADMAP.md)
-* `storage` - Used internally by the core contributors from GitHub. It just
-means we're paying extra attention to it.
+This project adheres to the [Open Code of Conduct](./CODE-OF-CONDUCT.md). By participating, you are expected to uphold this code.
 
 ## Feature Requests
 
@@ -40,6 +25,50 @@ of transferring data.
 
 You can see what the Git LFS team is prioritizing work on in the
 [roadmap](./ROADMAP.md).
+
+## Project Management
+
+The Git LFS project is managed completely through this open source project and
+its [chat room][chat]. The [roadmap][] shows the high level items that are
+prioritized for future work. Suggestions for major features should be submitted
+as a pull request that adds a markdown file to `docs/proposals` discussing the
+feature. This gives the community time to discuss it before a lot of code has
+been written. Roadmap items are linked to one or more Issue task lists ([example][roadmap-items]), with the `roadmap` label, that go into more detail.
+
+[chat]: https://gitter.im/github/git-lfs
+[roadmap]: ./ROADMAP.md
+[roadmap-items]: https://github.com/github/git-lfs/issues/490
+
+The Git LFS teams mark issues and pull requests with the following labels:
+
+* `bug` - An issue describing a bug.
+* `core-team` - An issue relating to the governance of the project.
+* `enhancement` - An issue for a possible new feature.
+* `review` - A pull request ready to be reviewed.
+* `release` - A checklist issue showing items marked for an upcoming release.
+* `roadmap` - A checklist issue with tasks to fulfill something from the
+[roadmap](./ROADMAP.md)
+
+## Submitting a pull request
+
+0. [Fork][] and clone the repository
+0. Configure and install the dependencies: `script/bootstrap`
+0. Make sure the tests pass on your machine: `script/test`
+0. Create a new branch: `git checkout -b my-branch-name`
+0. Make your change, add tests, and make sure the tests still pass
+0. Push to your fork and [submit a pull request][pr]
+0. Accept the [GitHub CLA][cla]
+0. Pat yourself on the back and wait for your pull request to be reviewed.
+
+Here are a few things you can do that will increase the likelihood of your pull request being accepted:
+
+* Follow the [style guide][style] where possible.
+* Write tests.
+* Update documentation as necessary.  Commands have [man pages](./docs/man).
+* Keep your change as focused as possible. If there are multiple changes you
+would like to make that are not dependent upon each other, consider submitting
+them as separate pull requests.
+* Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
 
 ## Building
 
@@ -63,31 +92,10 @@ tests:
     $ script/integration # runs the shell tests in ./test
     $ script/cibuild     # runs everything, with verbose debug output
 
-## Submitting a pull request
-
-0. [Fork][] and clone the repository
-0. Configure and install the dependencies: `script/bootstrap`
-0. Make sure the tests pass on your machine: `script/test`
-0. Create a new branch: `git checkout -b my-branch-name`
-0. Make your change, add tests, and make sure the tests still pass
-0. Push to your fork and [submit a pull request][pr]
-0. Accept the [GitHub CLA][cla]
-0. Pat your self on the back and wait for your pull request to be reviewed.
-
-Here are a few things you can do that will increase the likelihood of your pull request being accepted:
-
-- Follow the [style guide][style] where possible.
-- Write tests.
-- Update documentation as necessary.  Commands have [man pages](./docs/man).
-- Keep your change as focused as possible. If there are multiple changes you
-would like to make that are not dependent upon each other, consider submitting
-them as separate pull requests.
-- Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
-
 ## Updating 3rd party packages
 
-0. Update `Nut.toml`.
-0. Run `script/vendor` to update the code in the `.vendor/src` directory.
+0. Update `glide.yaml`.
+0. Run `script/vendor` to update the code in the `vendor` directory.
 0. Commit the change.  Git LFS vendors the full source code in the repository.
 0. Submit a pull request.
 
@@ -108,12 +116,14 @@ cross compiling with Mac, Linux, FreeBSD, and Windows support).
 * Run `script/release -id {id}` to upload all of the compiled binaries to the
 release.
 * Publish the Release on GitHub.
-* Update [Git LFS website](https://github.com/github/git-lfs.github.com/blob/gh-pages/_config.yml#L4).
+* Update [Git LFS website](https://github.com/github/git-lfs.github.com/blob/gh-pages/_config.yml#L4)
+(release engineer access rights required).
 * Ping external teams on GitHub:
   * @github/desktop
 * Build packages:
   * rpm
   * apt
+* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/github/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566))
 
 ## Resources
 

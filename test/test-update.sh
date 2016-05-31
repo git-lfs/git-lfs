@@ -39,6 +39,12 @@ git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   [ "Updated pre-push hook." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
+  # replace blank hook
+  rm .git/hooks/pre-push
+  touch .git/hooks/pre-push
+  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+
   # replace old hook 4
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }
@@ -59,16 +65,37 @@ git lfs pre-push \"$@\""
 
 test
 
-Run \`git lfs update --force\` to overwrite this hook."
+To resolve this, either:
+  1: run \`git lfs update --manual\` for instructions on how to merge hooks.
+  2: run \`git lfs update --force\` to overwrite your hook."
 
   [ "$expected" = "$(git lfs update 2>&1)" ]
+  [ "test" = "$(cat .git/hooks/pre-push)" ]
+
+  # Make sure returns non-zero
+  set +e
+  git lfs update
+  if [ $? -eq 0 ]
+  then
+    exit 1
+  fi
+  set -e
+
+  # test manual steps
+  expected="Add the following to .git/hooks/pre-push :
+
+#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\n\"; exit 2; }
+git lfs pre-push \"\$@\""
+
+  [ "$expected" = "$(git lfs update --manual 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
 
   # force replace unexpected hook
   [ "Updated pre-push hook." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
-  [ -n "$LFS_DOCKER" ] && exit 0
+  has_test_dir || exit 0
 
   echo "test with bare repository"
   cd ..

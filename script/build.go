@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -11,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/config"
 )
 
 var (
@@ -46,7 +47,7 @@ func mainBuild() {
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
 	if len(cmd) > 0 {
-		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/lfs.GitCommit=" + string(cmd))
+		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/config.GitCommit=" + string(cmd))
 	}
 
 	buildMatrix := make(map[string]Release)
@@ -95,7 +96,7 @@ func mainBuild() {
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := "git-lfs-" + lfs.Version
+	name := "git-lfs-" + config.Version
 	dir := "bin"
 
 	if addenv {
@@ -142,12 +143,7 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	cmd := exec.Command("go", args...)
 	if addenv {
-		cmd.Env = []string{
-			"GOOS=" + buildos,
-			"GOARCH=" + buildarch,
-			"GOPATH=" + os.Getenv("GOPATH"),
-			"GOROOT=" + os.Getenv("GOROOT"),
-		}
+		cmd.Env = buildGoEnv(buildos, buildarch)
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -157,21 +153,42 @@ func buildCommand(dir, buildos, buildarch string) error {
 	return err
 }
 
+func buildGoEnv(buildos, buildarch string) []string {
+	env := make([]string, 6, 9)
+	env[0] = "GOOS=" + buildos
+	env[1] = "GOARCH=" + buildarch
+	env[2] = "GOPATH=" + os.Getenv("GOPATH")
+	env[3] = "GOROOT=" + os.Getenv("GOROOT")
+	env[4] = "PATH=" + os.Getenv("PATH")
+	env[5] = "GO15VENDOREXPERIMENT=" + os.Getenv("GO15VENDOREXPERIMENT")
+	for _, key := range []string{"TMP", "TEMP", "TEMPDIR"} {
+		v := os.Getenv(key)
+		if len(v) == 0 {
+			continue
+		}
+		env = append(env, key+"="+v)
+	}
+	return env
+}
+
 func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
-	files := []string{
+	textfiles := []string{
 		"README.md", "CHANGELOG.md",
 	}
 
-	for _, filename := range files {
+	if buildos == "windows" {
+		return winInstaller(textfiles, buildos, buildarch, dir, buildMatrix)
+	} else {
+		return unixInstaller(textfiles, buildos, buildarch, dir, buildMatrix)
+	}
+}
+
+func unixInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	for _, filename := range textfiles {
 		cmd := exec.Command("cp", filename, filepath.Join(dir, filename))
 		if err := logAndRun(cmd); err != nil {
 			return err
 		}
-	}
-
-	// Windows installer is uploaded separately. See script/nsis.
-	if buildos == "windows" {
-		return nil
 	}
 
 	fullInstallPath := filepath.Join(dir, "install.sh")
@@ -190,6 +207,39 @@ func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Relea
 
 	cmd = exec.Command("tar", "czf", "../"+name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
+	return logAndRun(cmd)
+}
+
+func winInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	for _, filename := range textfiles {
+		by, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+
+		winEndings := strings.Replace(string(by), "\n", "\r\n", -1)
+		err = ioutil.WriteFile(filepath.Join(dir, filename), []byte(winEndings), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	installerPath := filepath.Dir(filepath.Dir(dir))
+	name := zipName(buildos, buildarch) + ".zip"
+	full := filepath.Join(installerPath, name)
+	matches, err := filepath.Glob(dir + "/*")
+	if err != nil {
+		return err
+	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+
+	args := make([]string, len(matches)+2)
+	args[0] = "-j" // junk the zip paths
+	args[1] = full
+	copy(args[2:], matches)
+
+	cmd := exec.Command("zip", args...)
 	return logAndRun(cmd)
 }
 
@@ -212,7 +262,7 @@ func logAndRun(cmd *exec.Cmd) error {
 }
 
 func zipName(os, arch string) string {
-	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, lfs.Version)
+	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, config.Version)
 }
 
 func releaseLabel(buildos, buildarch string) string {

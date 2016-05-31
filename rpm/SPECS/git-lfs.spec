@@ -1,15 +1,17 @@
 Name:           git-lfs
-Version:        1.0.0
+Version:        1.2.0
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
 Group:          Applications/Archiving
 License:        MIT
 URL:            https://git-lfs.github.com/
-Source0:        https://github.com/github/git-lfs/archive/%{name}-%{version}.tar.gz
+Source0:        https://github.com/github/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:  golang, tar, which, bison, rubygem-ronn, git
 BuildRequires:  perl-Digest-SHA
+BuildRequires:  golang, tar, rubygem-ronn, which, git >= 1.8.2
+
+Requires: git >= 1.8.2
 
 %define debug_package %{nil}
 #I think this is because go links with --build-id=none for linux
@@ -26,6 +28,9 @@ mkdir -p src/github.com/github
 ln -s $(pwd) src/github.com/github/%{name}
 
 %build
+%if 0%{?rhel} == 5
+  export CGO_ENABLED=0
+%endif
 %if %{_arch} == i386
   GOARCH=386 GOPATH=`pwd` ./script/bootstrap
 %else
@@ -37,11 +42,18 @@ GOPATH=`pwd` ./script/man
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 install -D bin/git-lfs ${RPM_BUILD_ROOT}/usr/bin/git-lfs
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
+mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man5
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
+install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
 %check
-GOPATH=`pwd` ./script/test
-GOPATH=`pwd` ./script/integration
+export GOPATH=`pwd`
+export GIT_LFS_TEST_DIR=$(mktemp -d)
+
+./script/test
+./script/integration
+
+rmdir ${GIT_LFS_TEST_DIR}
 
 %clean
 rm -rf %{buildroot}
@@ -51,8 +63,15 @@ rm -rf %{buildroot}
 %doc LICENSE.md README.md
 /usr/bin/git-lfs
 /usr/share/man/man1/*.1.gz
+/usr/share/man/man5/*.5.gz
 
 %changelog
+* Sun Dec 6 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.1.0-1
+- Added Requires and version for git back in
+
+* Sat Oct 31 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.0.3-1
+- Added GIT_LFS_TEST_DIR to prevent future test race condition
+
 * Sun Aug 2 2015 Andrew Neff <andyneff@users.noreply.github.com> - 0.5.4-1
 - Added tests back in
 

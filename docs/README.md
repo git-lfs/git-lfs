@@ -16,5 +16,5 @@ Quick intro to Git LFS.
 
 ## Developer Docs
 
-Details of how the Git LFS client work are in the [official specification](spec.md).
+Details of how the Git LFS client works are in the [official specification](spec.md).
 There is also an [API specification](api) that describes how the server works.

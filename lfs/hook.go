@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -26,7 +29,7 @@ func (h *Hook) Exists() bool {
 // Path returns the desired (or actual, if installed) location where this hook
 // should be installed, relative to the local Git directory.
 func (h *Hook) Path() string {
-	return filepath.Join(LocalGitDir, "hooks", string(h.Type))
+	return filepath.Join(config.LocalGitDir, "hooks", string(h.Type))
 }
 
 // Install installs this Git hook on disk, or upgrades it if it does exist, and
@@ -34,7 +37,7 @@ func (h *Hook) Path() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	if err := os.MkdirAll(filepath.Join(LocalGitDir, "hooks"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(config.LocalGitDir, "hooks"), 0755); err != nil {
 		return err
 	}
 
@@ -73,7 +76,7 @@ func (h *Hook) Upgrade() error {
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
 	if !InRepo() {
-		return newInvalidRepoError(nil)
+		return errutil.NewInvalidRepoError(nil)
 	}
 
 	match, err := h.matchesCurrent()
@@ -105,7 +108,7 @@ func (h *Hook) matchesCurrent() (bool, error) {
 	}
 
 	contents := strings.TrimSpace(string(by))
-	if contents == h.Contents {
+	if contents == h.Contents || len(contents) == 0 {
 		return true, nil
 	}
 

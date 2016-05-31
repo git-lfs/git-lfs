@@ -93,7 +93,13 @@ end_test
 
 begin_test "pointer --stdin without stdin"
 (
-  output=$(git lfs pointer --stdin 2>&1)
+  # this test doesn't work on Windows, it just operates like 'bad pointer' case
+  # stdin isn't detectable as detached, it just times out with no content
+  if [[ "$(is_stdin_attached)" == "0" ]]; then
+    echo "Skipping pointer without stdin because STDIN attached"
+    exit 0
+  fi
+  output=$(echo "" | git lfs pointer --stdin 2>&1)
   status=$?
 
   set -e
@@ -212,7 +218,9 @@ begin_test "pointer missing --pointer"
   set -e
 
   [ "1" = "$status" ]
-  [ "open missing-pointer: no such file or directory" = "$output" ]
+
+  echo "$output"
+  echo "$output" | grep "open missing-pointer:"
 )
 end_test
 
@@ -260,5 +268,33 @@ begin_test "pointer without args"
 
   [ "Nothing to do!" = "$output" ]
   [ "1" = "$status" ]
+)
+end_test
+
+begin_test "pointer stdout/stderr"
+(
+  set -e
+  echo "pointer-stdout-test" > pointer-stdout-test.txt
+  git lfs pointer --file=pointer-stdout-test.txt > stdout.txt 2> stderr.txt
+  echo "stdout:"
+  cat stdout.txt
+  [ $(wc -l stdout.txt | sed -e 's/^[[:space:]]*//' | cut -f1 -d' ') -eq 3 ]
+  grep "oid sha256:e96ec1bd71eea8df78b24c64a7ab9d42dd7f821c4e503f0e2288273b9bff6c16" stdout.txt
+  [ $(grep -c "Git LFS pointer" stdout.txt) -eq 0 ]
+
+  echo "stderr:"
+  cat stderr.txt
+  grep "Git LFS pointer" stderr.txt
+  [ $(grep -c "oid sha256:" stderr.txt) -eq 0 ]
+)
+end_test
+
+begin_test "pointer to console"
+(
+  set -e
+  echo "pointer-stdout-test" > pointer-stdout-test.txt
+  git lfs pointer --file=pointer-stdout-test.txt 2>&1 | tee pointer.txt
+  grep "Git LFS pointer" pointer.txt
+  grep "oid sha256:e96ec1bd71eea8df78b24c64a7ab9d42dd7f821c4e503f0e2288273b9bff6c16" pointer.txt
 )
 end_test

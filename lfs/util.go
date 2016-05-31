@@ -3,18 +3,16 @@ package lfs
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-)
 
-type CallbackReader struct {
-	C         CopyCallback
-	TotalSize int64
-	ReadSize  int64
-	io.Reader
-}
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
+)
 
 type Platform int
 
@@ -28,28 +26,18 @@ const (
 
 var currentPlatform = PlatformUndetermined
 
-type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
-
-func (w *CallbackReader) Read(p []byte) (int, error) {
-	n, err := w.Reader.Read(p)
-
-	if n > 0 {
-		w.ReadSize += int64(n)
+func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {
+	if success, _ := CloneFile(writer, reader); success {
+		if cb != nil {
+			cb(totalSize, totalSize, 0)
+		}
+		return totalSize, nil
 	}
-
-	if err == nil && w.C != nil {
-		err = w.C(w.TotalSize, w.ReadSize, n)
-	}
-
-	return n, err
-}
-
-func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb CopyCallback) (int64, error) {
 	if cb == nil {
 		return io.Copy(writer, reader)
 	}
 
-	cbReader := &CallbackReader{
+	cbReader := &progress.CallbackReader{
 		C:         cb,
 		TotalSize: totalSize,
 		Reader:    reader,
@@ -57,8 +45,8 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 	return io.Copy(writer, cbReader)
 }
 
-func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallback, *os.File, error) {
-	logPath := Config.Getenv("GIT_LFS_PROGRESS")
+func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
+	logPath := config.Config.Getenv("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}
@@ -79,7 +67,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (CopyCallba
 
 	var prevWritten int64
 
-	cb := CopyCallback(func(total int64, written int64, current int) error {
+	cb := progress.CopyCallback(func(total int64, written int64, current int) error {
 		if written != prevWritten {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()
@@ -101,11 +89,7 @@ func wrapProgressError(err error, event, filename string) error {
 	return nil
 }
 
-var localDirSet = map[string]struct{}{
-	".":   {},
-	"./":  {},
-	".\\": {},
-}
+var localDirSet = NewStringSetFromSlice([]string{".", "./", ".\\"})
 
 // Return whether a given filename passes the include / exclude path filters
 // Only paths that are in includePaths and outside excludePaths are passed
@@ -197,10 +181,11 @@ func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error
 	if err != nil {
 		return nil, fmt.Errorf("Unable to get working dir: %v", err)
 	}
+	wd = tools.ResolveSymlinks(wd)
 
 	// Early-out if working dir is root dir, same result
 	passthrough := false
-	if LocalWorkingDir == wd {
+	if config.LocalWorkingDir == wd {
 		passthrough = true
 	}
 
@@ -212,7 +197,7 @@ func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error
 				outchan <- f
 				continue
 			}
-			abs := filepath.Join(LocalWorkingDir, f)
+			abs := filepath.Join(config.LocalWorkingDir, f)
 			rel, err := filepath.Rel(wd, abs)
 			if err != nil {
 				// Use absolute file instead
@@ -236,10 +221,12 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 	if err != nil {
 		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
 	}
+	// Make sure to resolve symlinks
+	curdir = tools.ResolveSymlinks(curdir)
 
 	// Early-out if working dir is root dir, same result
 	passthrough := false
-	if LocalWorkingDir == curdir {
+	if config.LocalWorkingDir == curdir {
 		passthrough = true
 	}
 
@@ -252,11 +239,11 @@ func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error)
 			}
 			var abs string
 			if filepath.IsAbs(p) {
-				abs = p
+				abs = tools.ResolveSymlinks(p)
 			} else {
 				abs = filepath.Join(curdir, p)
 			}
-			reltoroot, err := filepath.Rel(LocalWorkingDir, abs)
+			reltoroot, err := filepath.Rel(config.LocalWorkingDir, abs)
 			if err != nil {
 				// Can't do this, use absolute as best fallback
 				outchan <- abs
@@ -276,35 +263,38 @@ func IsWindows() bool {
 	return GetPlatform() == PlatformWindows
 }
 
-// FileOrDirExists determines if a file/dir exists, returns IsDir() results too.
-func FileOrDirExists(path string) (exists bool, isDir bool) {
-	fi, err := os.Stat(path)
+func CopyFileContents(src string, dst string) error {
+	tmp, err := ioutil.TempFile(TempDir(), filepath.Base(dst))
 	if err != nil {
-		return false, false
-	} else {
-		return true, fi.IsDir()
+		return err
 	}
-}
-
-// FileExists determines if a file (NOT dir) exists.
-func FileExists(path string) bool {
-	ret, isDir := FileOrDirExists(path)
-	return ret && !isDir
-}
-
-// DirExists determines if a dir (NOT file) exists.
-func DirExists(path string) bool {
-	ret, isDir := FileOrDirExists(path)
-	return ret && isDir
-}
-
-// FileExistsOfSize determines if a file exists and is of a specific size.
-func FileExistsOfSize(path string, sz int64) bool {
-	fi, err := os.Stat(path)
-
+	defer func() {
+		tmp.Close()
+		os.Remove(tmp.Name())
+	}()
+	in, err := os.Open(src)
 	if err != nil {
-		return false
+		return err
 	}
+	defer in.Close()
+	_, err = io.Copy(tmp, in)
+	if err != nil {
+		return err
+	}
+	err = tmp.Close()
+	if err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), dst)
+}
 
-	return !fi.IsDir() && fi.Size() == sz
+func LinkOrCopy(src string, dst string) error {
+	if src == dst {
+		return nil
+	}
+	err := os.Link(src, dst)
+	if err == nil {
+		return err
+	}
+	return CopyFileContents(src, dst)
 }
