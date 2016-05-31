@@ -35,7 +35,8 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		config.Config.CurrentRemote = defaultRemote
 	}
 
-	pull(config.Config.FetchIncludeExcludePaths(pullIncludeArg, pullExcludeArg))
+	pull(determineIncludeExcludePaths(config.Config, pullIncludeArg, pullExcludeArg))
+
 }
 
 func pull(includePaths, excludePaths []string) {

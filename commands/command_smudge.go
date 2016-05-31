@@ -63,7 +63,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	cfg := config.Config
-	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.GlobalFetchIncludePaths(), cfg.GlobalFetchExcludePaths())
+	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	if smudgeSkip || cfg.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
 		download = false

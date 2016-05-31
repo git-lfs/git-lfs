@@ -15,6 +15,7 @@ import (
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -208,6 +209,11 @@ type ErrorWithStack interface {
 	Context() map[string]string
 	InnerError() string
 	Stack() []byte
+}
+
+func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg string) (include, exclude []string) {
+	return tools.CleanPathsDefault(includeArg, ",", config.FetchIncludePaths()),
+		tools.CleanPathsDefault(excludeArg, ",", config.FetchExcludePaths())
 }
 
 func printHelp(commandName string) {

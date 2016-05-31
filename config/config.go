@@ -13,6 +13,7 @@ import (
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -291,12 +292,12 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 	}
 }
 
-func (c *Configuration) GlobalFetchIncludePaths() []string {
+func (c *Configuration) FetchIncludePaths() []string {
 	c.loadGitConfig()
 	return c.fetchIncludePaths
 }
 
-func (c *Configuration) GlobalFetchExcludePaths() []string {
+func (c *Configuration) FetchExcludePaths() []string {
 	c.loadGitConfig()
 	return c.fetchExcludePaths
 }
@@ -591,63 +592,12 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 		if len(keyParts) == 2 && keyParts[0] == "lfs" {
 			switch keyParts[1] {
 			case "fetchinclude":
-				c.fetchIncludePaths = cleanPaths(value, ",")
+				c.fetchIncludePaths = tools.CleanPaths(value, ",")
 			case "fetchexclude":
-				c.fetchExcludePaths = cleanPaths(value, ",")
+				c.fetchExcludePaths = tools.CleanPaths(value, ",")
 			}
 		}
 	}
-}
-
-// FetchIncludeExcludePaths is a convenience method for returning both the
-// include and exclude path for a given set of arguments by delegating into the
-// FetchIncludePaths and FetchExcludePaths functions respectively.
-func (c *Configuration) FetchIncludeExcludePaths(include, exclude string) (includes, exclues []string) {
-	return c.FetchIncludePaths(include), c.FetchExcludePaths(exclude)
-}
-
-// FetchIncludePaths returns the comma seperated include paths contained in the
-// given argument, or the GlobalFetchIncludePaths, if none were present.
-func (c *Configuration) FetchIncludePaths(args string) (includes []string) {
-	return cleanPathsDefault(args, ",", c.GlobalFetchIncludePaths())
-}
-
-// FetchExcludePaths returns the comma seperated include paths contained in the
-// given argument, or the GlobalFetchExcludePaths, if none were present.
-func (c *Configuration) FetchExcludePaths(args string) (excludes []string) {
-	return cleanPathsDefault(args, ",", c.GlobalFetchExcludePaths())
-}
-
-// cleanPathsDefault cleans the paths contained in the given `paths` argument
-// delimited by the `delim`, argument. If an empty set is returned from that
-// split, then the fallback argument is returned instead.
-func cleanPathsDefault(paths, delim string, fallback []string) []string {
-	cleaned := cleanPaths(paths, delim)
-	if len(cleaned) == 0 {
-		return fallback
-	}
-
-	return cleaned
-}
-
-// cleanPaths splits the given `paths` argument by the delimiter argument, and
-// then "cleans" that path according to the filepath.Clean function (see
-// https://golang.org/pkg/file/filepath#Clean).
-func cleanPaths(paths, delim string) (cleaned []string) {
-	// If paths is an empty string, splitting it will yield [""], which will
-	// become the filepath ".". To avoid this, bail out if trimmed paths
-	// argument is empty.
-	if paths = strings.TrimSpace(paths); len(paths) == 0 {
-		return
-	}
-
-	for _, part := range strings.Split(paths, delim) {
-		part = strings.TrimSpace(part)
-
-		cleaned = append(cleaned, filepath.Clean(part))
-	}
-
-	return cleaned
 }
 
 func keyIsUnsafe(key string) bool {
