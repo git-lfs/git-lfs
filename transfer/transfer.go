@@ -15,10 +15,16 @@ const (
 	Download = Direction(iota)
 )
 
+// NewTransferAdapterFunc creates new instances of TransferAdapter. Code that wishes
+// to provide new TransferAdapter instances should pass an implementation of this
+// function to RegisterNewTransferAdapterFunc
+// name and dir are to provide context if one func implements many instances
+type NewTransferAdapterFunc func(name string, dir Direction) TransferAdapter
+
 var (
-	factoryMutex             sync.Mutex
-	downloadAdapterFactories = make(map[string]TransferAdapterFactory)
-	uploadAdapterFactories   = make(map[string]TransferAdapterFactory)
+	funcMutex            sync.Mutex
+	downloadAdapterFuncs = make(map[string]NewTransferAdapterFunc)
+	uploadAdapterFuncs   = make(map[string]NewTransferAdapterFunc)
 )
 
 type TransferProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
@@ -41,7 +47,7 @@ type TransferAdapter interface {
 	Name() string
 	// Direction returns whether this instance is an upload or download instance
 	// TransferAdapter instances can only be one or the other, although the same
-	// type may be instantiated once for each direction
+	// type may be instantiated for each direction
 	Direction() Direction
 	// Begin a new batch of uploads or downloads. Call this first, followed by
 	// one or more Add calls. maxConcurrency controls the number of transfers
@@ -61,17 +67,6 @@ type TransferAdapter interface {
 	ClearTempStorage() error
 }
 
-// TransferAdapterFactory creates new instances of TransferAdapter
-type TransferAdapterFactory interface {
-	// Name returns the identifier of this adapter, must be unique within a Direction
-	// (separate sets for upload and download so may be an entry in both)
-	Name() string
-	// Direction returns whether this factory creates instances which upload or download
-	Direction() Direction
-	// New creates a new TransferAdapter of the correct type
-	New() TransferAdapter
-}
-
 // General struct for both uploads and downloads
 type Transfer struct {
 	// Name of the file that triggered this transfer
@@ -83,6 +78,7 @@ type Transfer struct {
 	Path string
 }
 
+// NewTransfer creates a new Transfer instance
 func NewTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
 	return &Transfer{name, obj, path}
 }
@@ -94,76 +90,80 @@ type TransferResult struct {
 	Error error
 }
 
-// GetAdapterFactories returns a list of registered adapter factories for the given direction
-func GetAdapterFactories(dir Direction) []TransferAdapterFactory {
+// GetAdapterNames returns a list of the names of adapters available to be created
+func GetAdapterNames(dir Direction) []string {
 	switch dir {
 	case Upload:
-		return GetUploadAdapterFactories()
+		return GetUploadAdapterNames()
 	case Download:
-		return GetDownloadAdapterFactories()
+		return GetDownloadAdapterNames()
 	}
 	return nil
 }
 
-// GetDownloadAdapterFactories returns a list of registered adapters able to perform downloads
-func GetDownloadAdapterFactories() []TransferAdapterFactory {
-	factoryMutex.Lock()
-	defer factoryMutex.Unlock()
+// GetDownloadAdapterNames returns a list of the names of download adapters available to be created
+func GetDownloadAdapterNames() []string {
+	funcMutex.Lock()
+	defer funcMutex.Unlock()
 
-	ret := make([]TransferAdapterFactory, 0, len(downloadAdapterFactories))
-	for _, a := range downloadAdapterFactories {
-		ret = append(ret, a)
+	ret := make([]string, 0, len(downloadAdapterFuncs))
+	for n, _ := range downloadAdapterFuncs {
+		ret = append(ret, n)
 	}
 	return ret
 }
 
-// GetUploadAdapterFactories returns a list of registered adapters able to perform uploads
-func GetUploadAdapterFactories() []TransferAdapterFactory {
-	factoryMutex.Lock()
-	defer factoryMutex.Unlock()
+// GetUploadAdapterNames returns a list of the names of upload adapters available to be created
+func GetUploadAdapterNames() []string {
+	funcMutex.Lock()
+	defer funcMutex.Unlock()
 
-	ret := make([]TransferAdapterFactory, 0, len(uploadAdapterFactories))
-	for _, a := range uploadAdapterFactories {
-		ret = append(ret, a)
+	ret := make([]string, 0, len(uploadAdapterFuncs))
+	for n, _ := range uploadAdapterFuncs {
+		ret = append(ret, n)
 	}
 	return ret
 }
 
-// RegisterAdapterFactory registers an upload or download adapter factory. If an adapter is
-// already registered for that direction with the same name, it is overridden
-func RegisterAdapterFactory(f TransferAdapterFactory) {
-	factoryMutex.Lock()
-	defer factoryMutex.Unlock()
+// RegisterNewTransferAdapterFunc registers a new function for creating upload
+// or download adapters. If a function with that name & direction is already
+// registered, it is overridden
+func RegisterNewTransferAdapterFunc(name string, dir Direction, f NewTransferAdapterFunc) {
+	funcMutex.Lock()
+	defer funcMutex.Unlock()
 
-	switch f.Direction() {
+	switch dir {
 	case Upload:
-		uploadAdapterFactories[f.Name()] = f
+		uploadAdapterFuncs[name] = f
 	case Download:
-		downloadAdapterFactories[f.Name()] = f
+		downloadAdapterFuncs[name] = f
 	}
 }
 
-// Get a specific adapter by name and direction, or nil if doesn't exist
+// Create a new adapter by name and direction, or nil if doesn't exist
 func NewAdapter(name string, dir Direction) TransferAdapter {
-	factoryMutex.Lock()
-	defer factoryMutex.Unlock()
+	funcMutex.Lock()
+	defer funcMutex.Unlock()
 
 	switch dir {
 	case Upload:
-		if u, ok := uploadAdapterFactories[name]; ok {
-			return u.New()
+		if u, ok := uploadAdapterFuncs[name]; ok {
+			return u(name, dir)
 		}
 	case Download:
-		if d, ok := downloadAdapterFactories[name]; ok {
-			return d.New()
+		if d, ok := downloadAdapterFuncs[name]; ok {
+			return d(name, dir)
 		}
 	}
 	return nil
 }
 
+// Create a new download adapter by name, or nil if doesn't exist
 func NewDownloadAdapter(name string) TransferAdapter {
 	return NewAdapter(name, Download)
 }
+
+// Create a new upload adapter by name, or nil if doesn't exist
 func NewUploadAdapter(name string) TransferAdapter {
 	return NewAdapter(name, Upload)
 }
