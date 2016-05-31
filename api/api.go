@@ -19,7 +19,7 @@ import (
 
 // BatchOrLegacy calls the Batch API and falls back on the Legacy API
 // This is for simplicity, legacy route is not most optimal (serial)
-// TODO remove when legacy API removed
+// TODO LEGACY API: remove when legacy API removed
 func BatchOrLegacy(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
 	if !config.Config.BatchTransfer() {
 		return Legacy(objects, operation)
@@ -107,7 +107,7 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 }
 
 // Legacy calls the legacy API serially and returns ObjectResources
-// TODO remove when legacy API removed
+// TODO LEGACY API: remove when legacy API removed
 func Legacy(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
 	retobjs := make([]*ObjectResource, 0, len(objects))
 	dl := operation == "download"
@@ -129,7 +129,7 @@ func Legacy(objects []*ObjectResource, operation string) ([]*ObjectResource, err
 	return retobjs, globalErr
 }
 
-// TODO remove when legacy API removed
+// TODO LEGACY API: remove when legacy API removed
 func DownloadCheck(oid string) (*ObjectResource, error) {
 	req, err := NewRequest("GET", oid)
 	if err != nil {
@@ -150,7 +150,7 @@ func DownloadCheck(oid string) (*ObjectResource, error) {
 	return obj, nil
 }
 
-// TODO remove when legacy API removed
+// TODO LEGACY API: remove when legacy API removed
 func UploadCheck(oid string, size int64) (*ObjectResource, error) {
 
 	reqObj := &ObjectResource{

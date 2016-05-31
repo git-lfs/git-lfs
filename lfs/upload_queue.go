@@ -44,7 +44,7 @@ func (u *Uploadable) Path() string {
 	return u.OidPath
 }
 
-// TODO remove this legacy method & only support batch
+// TODO LEGACY API: remove when legacy API removed
 func (u *Uploadable) LegacyCheck() (*api.ObjectResource, error) {
 	return api.UploadCheck(u.Oid(), u.Size())
 }

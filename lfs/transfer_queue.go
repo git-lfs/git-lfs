@@ -228,7 +228,7 @@ func (q *TransferQueue) Watch() chan string {
 // a POST call for each object, feeding the results to the transfer workers.
 // If configured, the object transfers can still happen concurrently, the
 // sequential nature here is only for the meta POST calls.
-// TODO eliminate this path, support batch only
+// TODO LEGACY API: remove when legacy API removed
 func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.LegacyCheck()
@@ -264,7 +264,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 // legacyFallback is used when a batch request is made to a server that does
 // not support the batch endpoint. When this happens, the Transferables are
 // fed from the batcher into apic to be processed individually.
-// TODO remove this in favour of batch only
+// TODO LEGACY API: remove when legacy API removed
 func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
 	tracerx.Printf("tq: batch api not implemented, falling back to individual")
 

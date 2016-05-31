@@ -25,7 +25,7 @@ type ObjectResource struct {
 	Error   *ObjectError             `json:"error,omitempty"`
 }
 
-// TODO @sinbad remove
+// TODO LEGACY API: remove when legacy API removed
 func (o *ObjectResource) NewRequest(relation, method string) (*http.Request, error) {
 	rel, ok := o.Rel(relation)
 	if !ok {
