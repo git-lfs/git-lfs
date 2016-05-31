@@ -47,13 +47,14 @@ func (a *basicAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, co
 	a.outChan = completion
 	a.jobChan = make(chan *Transfer, 100)
 
-	tracerx.Printf("xfer: adapter %q Begin()", a.Name())
+	tracerx.Printf("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
 
 	a.workerWait.Add(maxConcurrency)
 	a.authWait.Add(1)
 	for i := 0; i < maxConcurrency; i++ {
 		go a.worker(i)
 	}
+	tracerx.Printf("xfer: adapter %q started", a.Name())
 	return nil
 }
 
@@ -70,6 +71,7 @@ func (a *basicAdapter) End() {
 	if a.outChan != nil {
 		close(a.outChan)
 	}
+	tracerx.Printf("xfer: adapter %q stopped", a.Name())
 }
 
 func (a *basicAdapter) ClearTempStorage() error {
@@ -118,6 +120,7 @@ func (a *basicAdapter) worker(workerNum int) {
 	if signalAuthOnResponse {
 		a.authWait.Done()
 	}
+	tracerx.Printf("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
 	a.workerWait.Done()
 }
 
