@@ -530,3 +530,13 @@ func (c *Configuration) ResetConfig() {
 	}
 	c.loading.Unlock()
 }
+
+func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
+	config := NewFromValues(map[string]string{
+		"lfs.fetchinclude": "/path/to/clean/",
+		"lfs.fetchexclude": "/other/path/to/clean/",
+	})
+
+	assert.Equal(t, []string{"/path/to/clean"}, config.FetchIncludePaths())
+	assert.Equal(t, []string{"/other/path/to/clean"}, config.FetchExcludePaths())
+}

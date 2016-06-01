@@ -403,6 +403,68 @@ begin_test "fetch-all"
 )
 end_test
 
+begin_test "fetch include/exclude with unclean paths"
+(
+  set -e
+
+  reponame="fetch-unclean-paths"
+  setup_remote_repo $reponame
+  clone_repo $reponame include_exclude_repo
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  mkdir dir
+  printf "$contents" > dir/a.dat
+
+  git add dir/a.dat
+  git add .gitattributes
+  git commit -m "add dir/a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 dir/a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  [ "a" = "$(cat dir/a.dat)" ]
+
+  assert_local_object "$contents_oid" 1
+  refute_server_object "$contents_oid"
+
+  git push origin master 2>&1 | tee push.log
+  grep "(1 of 1 files)" push.log
+  grep "master -> master" push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  echo "lfs pull with include/exclude filters in gitconfig"
+
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchinclude" "dir/"
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+  git config --unset "lfs.fetchinclude"
+
+  rm -rf .git/lfs/objects
+  git config "lfs.fetchexclude" "dir/"
+  git lfs pull
+  refute_local_object "$contents_oid"
+  git config --unset "lfs.fetchexclude"
+
+  echo "lfs pull with include/exclude filters in arguments"
+
+  rm -rf .git/lfs/objects
+  git lfs pull -I="dir/"
+  assert_local_object "$contents_oid" 1
+
+  rm -rf .git/lfs/objects
+  git lfs pull -X="dir/"
+  refute_local_object "$contents_oid"
+)
+end_test
+
 begin_test "fetch: outside git repository"
 (
   set +e
