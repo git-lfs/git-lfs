@@ -26,7 +26,7 @@ Example request:
 >
 > {
 >   "operation": "upload",
->   "transfers": [ "tus.io", "basic" ]
+>   "transfers": [ "tus.io", "basic" ],
 >   "objects": [
 >     {
 >       "oid": "1111111",
