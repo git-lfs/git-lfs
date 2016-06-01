@@ -111,7 +111,7 @@ func TestExistingUpload(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload")
+	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -237,7 +237,7 @@ func TestUploadWithRedirect(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload")
+	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -379,7 +379,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload")
+	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -431,7 +431,7 @@ func TestUploadApiError(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	_, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload")
+	_, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -549,7 +549,7 @@ func TestUploadVerifyError(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload")
+	o, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return

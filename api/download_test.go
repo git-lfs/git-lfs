@@ -77,7 +77,7 @@ func TestSuccessfulDownload(t *testing.T) {
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
 
-	obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download")
+	obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -184,7 +184,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	config.Config.SetConfig("lfs.url", server.URL+"/redirect")
 
 	for _, redirect := range redirectCodes {
-		obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download")
+		obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 		if err != nil {
 			if isDockerConnectionError(err) {
 				return
@@ -260,7 +260,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download")
+	obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -294,7 +294,7 @@ func TestDownloadAPIError(t *testing.T) {
 	defer config.Config.ResetConfig()
 	config.Config.SetConfig("lfs.batch", "false")
 	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	_, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download")
+	_, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err == nil {
 		t.Fatal("no error?")
 	}

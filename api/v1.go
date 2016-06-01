@@ -36,11 +36,21 @@ func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error)
 	return res, obj, nil
 }
 
+type BatchRequest struct {
+	TransferAdapterNames []string          `json:"transfers"`
+	Operation            string            `json:"operation"`
+	Objects              []*ObjectResource `json:"objects"`
+}
+type BatchResponse struct {
+	TransferAdapterName string            `json:"transfer"`
+	Objects             []*ObjectResource `json:"objects"`
+}
+
 // doApiBatchRequest runs the request to the LFS batch API. If the API returns a
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func DoBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error) {
+func DoBatchRequest(req *http.Request) (*http.Response, *BatchResponse, error) {
 	res, err := DoRequest(req, config.Config.PrivateAccess(auth.GetOperationForRequest(req)))
 
 	if err != nil {
@@ -50,14 +60,14 @@ func DoBatchRequest(req *http.Request) (*http.Response, []*ObjectResource, error
 		return res, nil, err
 	}
 
-	var objs map[string][]*ObjectResource
-	err = httputil.DecodeResponse(res, &objs)
+	resp := &BatchResponse{}
+	err = httputil.DecodeResponse(res, resp)
 
 	if err != nil {
 		httputil.SetErrorResponseContext(err, res)
 	}
 
-	return res, objs["objects"], err
+	return res, resp, err
 }
 
 // DoRequest runs a request to the LFS API, without parsing the response
