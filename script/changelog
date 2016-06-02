@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+#
+# Interactively generates a changelog over a range of commits:
+
+commit_summary() {
+  local hash=$1
+
+  pr=$(git show $hash | grep -o "#\([0-9]*\)" | cut -c 2-)
+  prjson="$(curl -n https://api.github.com/repos/github/git-lfs/pulls/$pr 2>/dev/null)"
+  title="$(echo $prjson | jq -r -e ".title")"
+  id="$(echo $prjson | jq -r -e ".number")"
+  author="$(echo $prjson | jq -r -e ".user.login")"
+
+  echo "- $title #$id (@$author)"
+}
+
+range=$1
+
+if [ "$range" = "" ]; then
+  echo "Usage: $0 [options] base..next"
+  exit 1
+fi
+
+features=""
+bugs=""
+misc=""
+
+for rev in $(git rev-list --merges $range); do
+  git show $rev
+
+  echo ""
+  echo "Categorize this change: [f,b,m,s] ?"
+
+  read -n 1 opt
+
+  if [ "$opt" = "s" ]; then
+    continue
+  fi
+
+  summary="$(commit_summary $rev)"
+
+  case $opt in
+    f)
+      features="$(printf "%s\n%s\n" "$features" "$summary")"
+      ;;
+    b)
+      bugs="$(printf "%s\n%s\n" "$bugs" "$summary")"
+      ;;
+    m)
+      misc="$(printf "%s\n%s\n" "$misc" "$summary")"
+      ;;
+    *)
+      echo "Usage: [f,b,m,s]"
+      exit 1
+  esac
+done
+
+echo "" >&2
+
+cat <<- EOF
+# Features$features
+
+# Bugs$bugs
+
+# Misc$misc
+EOF
