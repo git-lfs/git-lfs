@@ -11,7 +11,7 @@ commit_summary() {
   id="$(echo $prjson | jq -r -e ".number")"
   author="$(echo $prjson | jq -r -e ".user.login")"
 
-  echo "- $title #$id (@$author)"
+  echo "* $title #$id (@$author)"
 }
 
 range=$1
