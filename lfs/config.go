@@ -11,14 +11,11 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
-<<<<<<< HEAD:lfs/config.go
+	"github.com/github/git-lfs/tools"
+
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
-=======
-	"github.com/github/git-lfs/tools"
-	"github.com/rubyist/tracerx"
->>>>>>> 5bed973... Merge pull request #1257 from ttaylorr/config-include-exclude:config/config.go
 )
 
 var (

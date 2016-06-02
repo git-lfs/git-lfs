@@ -11,14 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-<<<<<<< HEAD
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
-=======
 	"github.com/github/git-lfs/tools"
-	"github.com/spf13/cobra"
->>>>>>> 5bed973... Merge pull request #1257 from ttaylorr/config-include-exclude
+
+	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
 )
 
 // Populate man pages
@@ -213,34 +211,9 @@ type ErrorWithStack interface {
 	Stack() []byte
 }
 
-<<<<<<< HEAD
-// determineIncludeExcludePaths is a common function to take the string arguments
-// for include/exclude and derive slices either from these options or from the
-// common global config
-func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclude []string) {
-	var includePaths, excludePaths []string
-	if len(includeArg) > 0 {
-		for _, inc := range strings.Split(includeArg, ",") {
-			inc = strings.TrimSpace(inc)
-			includePaths = append(includePaths, inc)
-		}
-	} else {
-		includePaths = lfs.Config.FetchIncludePaths()
-	}
-	if len(excludeArg) > 0 {
-		for _, ex := range strings.Split(excludeArg, ",") {
-			ex = strings.TrimSpace(ex)
-			excludePaths = append(excludePaths, ex)
-		}
-	} else {
-		excludePaths = lfs.Config.FetchExcludePaths()
-	}
-	return includePaths, excludePaths
-=======
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg string) (include, exclude []string) {
 	return tools.CleanPathsDefault(includeArg, ",", config.FetchIncludePaths()),
 		tools.CleanPathsDefault(excludeArg, ",", config.FetchExcludePaths())
->>>>>>> 5bed973... Merge pull request #1257 from ttaylorr/config-include-exclude
 }
 
 func printHelp(commandName string) {
