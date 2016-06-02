@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/tools"
+
 	"github.com/github/git-lfs/vendor/_nuts/github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
@@ -76,6 +79,29 @@ func NewConfig() *Configuration {
 	c.isDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
 	c.isLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
 	return c
+}
+
+// NewFromValues returns a new *config.Configuration instance as if it had
+// been read from the .gitconfig specified by "gitconfig" parameter.
+//
+// NOTE: this method should only be called during testing.
+func NewFromValues(gitconfig map[string]string) *Configuration {
+	config := &Configuration{
+		gitConfig: make(map[string]string, 0),
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	for k, v := range gitconfig {
+		fmt.Fprintf(buf, "%s=%s\n", k, v)
+	}
+
+	config.readGitConfig(
+		string(buf.Bytes()),
+		map[string]bool{},
+		false,
+	)
+
+	return config
 }
 
 func (c *Configuration) Getenv(key string) string {
@@ -271,6 +297,7 @@ func (c *Configuration) FetchIncludePaths() []string {
 	c.loadGitConfig()
 	return c.fetchIncludePaths
 }
+
 func (c *Configuration) FetchExcludePaths() []string {
 	c.loadGitConfig()
 	return c.fetchExcludePaths
@@ -558,15 +585,12 @@ func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool
 
 		c.gitConfig[key] = value
 
-		if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchinclude" {
-			for _, inc := range strings.Split(value, ",") {
-				inc = strings.TrimSpace(inc)
-				c.fetchIncludePaths = append(c.fetchIncludePaths, inc)
-			}
-		} else if len(keyParts) == 2 && keyParts[0] == "lfs" && keyParts[1] == "fetchexclude" {
-			for _, ex := range strings.Split(value, ",") {
-				ex = strings.TrimSpace(ex)
-				c.fetchExcludePaths = append(c.fetchExcludePaths, ex)
+		if len(keyParts) == 2 && keyParts[0] == "lfs" {
+			switch keyParts[1] {
+			case "fetchinclude":
+				c.fetchIncludePaths = tools.CleanPaths(value, ",")
+			case "fetchexclude":
+				c.fetchExcludePaths = tools.CleanPaths(value, ",")
 			}
 		}
 	}
