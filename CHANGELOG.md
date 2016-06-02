@@ -1,5 +1,14 @@
 # Git LFS Changelog
 
+## Next
+
+* Pass `git lfs clone` flags through to `git clone` properly. #1160 (@sinbad)
+* Return non-zero exit code when `git lfs install/update` fails to install hooks #1178 (@sinbad)
+* Fix problems with user prompts in `git lfs clone` #1185 (@sinbad)
+* fix concurrent map read and map write #1179 (@technoweenie)
+* `git lfs update` now has a `--manual` flag to assist with merging hooks #1182 (@sinbad)
+* Added `lfs.skipdownloaderrors` config setting and `GIT_LFS_SKIP_DOWNLOAD_ERRORS` env var to allow smudge to continue on download fail #1213 (@sinbad)
+
 ## 1.2.0 (14 April 2016)
 
 ### Features
@@ -18,7 +27,7 @@
 * Fix silent failure to push LFS objects when ref matches a filename in the working copy #1096 (@epriestley)
 * Fix problems with using LFS in symlinked folders #818 (@sinbad)
 * Fix git lfs push silently misbehaving on ambiguous refs; fail like git push instead #1118 (@sinbad)
-* Whitelist lfs.*.access config in local ~/.lfsconfig #1122 (@rjbell4)
+* Whitelist `lfs.*.access` config in local ~/.lfsconfig #1122 (@rjbell4)
 * Only write the encoded pointer information to Stdout #1105 (@sschuberth)
 * Use hardcoded auth from remote or lfs config when accessing the storage api #1136 (@technoweenie, @jonmagic)
 * SSH should be called more strictly with command as one argument #1134 (@sinbad)
