@@ -11,6 +11,12 @@ commit_summary() {
   id="$(echo $prjson | jq -r -e ".number")"
   author="$(echo $prjson | jq -r -e ".user.login")"
 
+  # If the title begins with "Backport", then strip everything until the actual
+  # pull-request title.
+  if grep -q "Backport" <(echo $title); then
+    title="$(echo $title | sed 's/^[^:]*: //g')"
+  fi
+
   echo "* $title #$id (@$author)"
 }
 
