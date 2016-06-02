@@ -262,6 +262,10 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			}
 		}
 
+		// Legacy API has no support for anything but basic transfer adapter
+		if q.adapter == nil {
+			q.chooseAdapter(transfer.BasicAdapterName)
+		}
 		if obj != nil {
 			t.SetObject(obj)
 			q.meter.Add(t.Name())
