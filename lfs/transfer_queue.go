@@ -320,6 +320,10 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
+		if len(transfers) == 0 {
+			continue
+		}
+
 		bresp, err := api.Batch(transfers, q.transferKind(), transferAdapterNames)
 		if err != nil {
 			if errutil.IsNotImplementedError(err) {

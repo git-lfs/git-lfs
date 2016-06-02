@@ -55,7 +55,7 @@ func BatchOrLegacySingle(inobj *ObjectResource, operation string, transferAdapte
 // Batch calls the batch API and returns object results
 func Batch(objects []*ObjectResource, operation string, transferAdapters []string) (*BatchResponse, error) {
 	if len(objects) == 0 {
-		return nil, nil
+		return &BatchResponse{}, nil
 	}
 
 	o := &BatchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
