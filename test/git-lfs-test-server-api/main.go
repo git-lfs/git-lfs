@@ -250,11 +250,11 @@ func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
 	for _, o := range objs {
 		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
-	bresp, err := api.Batch(apiobjs, op, []string{"basic"})
+	o, _, err := api.Batch(apiobjs, op, []string{"basic"})
 	if err != nil {
 		return nil, err
 	}
-	return bresp.Objects, nil
+	return o, nil
 }
 
 // Combine 2 slices into one by "randomly" interleaving

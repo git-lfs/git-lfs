@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/github/git-lfs/api"
+	"github.com/rubyist/tracerx"
 )
 
 type Direction int
@@ -140,6 +141,20 @@ func RegisterNewTransferAdapterFunc(name string, dir Direction, f NewTransferAda
 	}
 }
 
+// Create a new adapter by name and direction; default to BasicAdapterName if doesn't exist
+func NewAdapterOrDefault(name string, dir Direction) TransferAdapter {
+	if len(name) == 0 {
+		name = BasicAdapterName
+	}
+
+	a := NewAdapter(name, dir)
+	if a == nil {
+		tracerx.Printf("Defaulting to basic transfer adapter since %q did not exist", name)
+		a = NewAdapter(BasicAdapterName, dir)
+	}
+	return a
+}
+
 // Create a new adapter by name and direction, or nil if doesn't exist
 func NewAdapter(name string, dir Direction) TransferAdapter {
 	funcMutex.Lock()
@@ -158,12 +173,12 @@ func NewAdapter(name string, dir Direction) TransferAdapter {
 	return nil
 }
 
-// Create a new download adapter by name, or nil if doesn't exist
+// Create a new download adapter by name, or BasicAdapterName if doesn't exist
 func NewDownloadAdapter(name string) TransferAdapter {
-	return NewAdapter(name, Download)
+	return NewAdapterOrDefault(name, Download)
 }
 
-// Create a new upload adapter by name, or nil if doesn't exist
+// Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func NewUploadAdapter(name string) TransferAdapter {
-	return NewAdapter(name, Upload)
+	return NewAdapterOrDefault(name, Upload)
 }

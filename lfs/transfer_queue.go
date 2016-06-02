@@ -92,16 +92,10 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.apic <- t
 }
 
-func (q *TransferQueue) chooseAdapter(name string) error {
-	if len(name) > 0 {
-		q.adapter = transfer.NewAdapter(name, q.direction)
-	}
-	if q.adapter == nil {
-		tracerx.Printf("Defaulting to basic transfer adapter")
-		q.adapter = transfer.NewAdapter(transfer.BasicAdapterName, q.direction)
-	}
-	return nil
+func (q *TransferQueue) chooseAdapter(name string) {
+	q.adapter = transfer.NewAdapterOrDefault(name, q.direction)
 }
+
 func (q *TransferQueue) addToAdapter(t Transferable) {
 
 	tr := transfer.NewTransfer(t.Name(), t.Object(), t.Path())
@@ -328,7 +322,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			continue
 		}
 
-		bresp, err := api.Batch(transfers, q.transferKind(), transferAdapterNames)
+		objs, adapterName, err := api.Batch(transfers, q.transferKind(), transferAdapterNames)
 		if err != nil {
 			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
@@ -350,11 +344,11 @@ func (q *TransferQueue) batchApiRoutine() {
 		}
 
 		if q.adapter == nil {
-			q.chooseAdapter(bresp.TransferAdapterName)
+			q.chooseAdapter(adapterName)
 		}
 		startProgress.Do(q.meter.Start)
 
-		for _, o := range bresp.Objects {
+		for _, o := range objs {
 			if o.Error != nil {
 				q.errorc <- errutil.Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 				q.Skip(o.Size)

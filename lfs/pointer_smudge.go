@@ -77,7 +77,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
 	xfers := transfer.GetDownloadAdapterNames()
-	obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
+	obj, adapterName, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
 		return errutil.Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}
@@ -86,7 +86,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		ptr.Size = obj.Size
 	}
 
-	adapter := transfer.NewDownloadAdapter(transfer.BasicAdapterName)
+	adapter := transfer.NewDownloadAdapter(adapterName)
 	var tcb transfer.TransferProgressCallback
 	if cb != nil {
 		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {

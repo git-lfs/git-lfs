@@ -20,53 +20,49 @@ import (
 // BatchOrLegacy calls the Batch API and falls back on the Legacy API
 // This is for simplicity, legacy route is not most optimal (serial)
 // TODO LEGACY API: remove when legacy API removed
-func BatchOrLegacy(objects []*ObjectResource, operation string, transferAdapters []string) (*BatchResponse, error) {
+func BatchOrLegacy(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
 	if !config.Config.BatchTransfer() {
-		bresp := &BatchResponse{TransferAdapterName: "basic"}
 		objs, err := Legacy(objects, operation)
-		bresp.Objects = objs
-		return bresp, err
+		return objs, "", err
 	}
-	bresp, err := Batch(objects, operation, transferAdapters)
+	objs, adapterName, err := Batch(objects, operation, transferAdapters)
 	if err != nil {
 		if errutil.IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
-			bresp = &BatchResponse{TransferAdapterName: "basic"}
 			objs, err := Legacy(objects, operation)
-			bresp.Objects = objs
-			return bresp, err
+			return objs, "", err
 		}
-		return nil, err
+		return nil, "", err
 	}
-	return bresp, nil
+	return objs, adapterName, nil
 }
 
-func BatchOrLegacySingle(inobj *ObjectResource, operation string, transferAdapters []string) (*ObjectResource, error) {
-	bresp, err := BatchOrLegacy([]*ObjectResource{inobj}, operation, transferAdapters)
+func BatchOrLegacySingle(inobj *ObjectResource, operation string, transferAdapters []string) (obj *ObjectResource, transferAdapter string, e error) {
+	objs, adapterName, err := BatchOrLegacy([]*ObjectResource{inobj}, operation, transferAdapters)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	if bresp != nil && len(bresp.Objects) > 0 {
-		return bresp.Objects[0], nil
+	if len(objs) > 0 {
+		return objs[0], adapterName, nil
 	}
-	return nil, fmt.Errorf("Object not found")
+	return nil, "", fmt.Errorf("Object not found")
 }
 
 // Batch calls the batch API and returns object results
-func Batch(objects []*ObjectResource, operation string, transferAdapters []string) (*BatchResponse, error) {
+func Batch(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
 	if len(objects) == 0 {
-		return &BatchResponse{}, nil
+		return nil, "", nil
 	}
 
-	o := &BatchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
+	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
 	by, err := json.Marshal(o)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, "", errutil.Error(err)
 	}
 
 	req, err := NewBatchRequest(operation)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, "", errutil.Error(err)
 	}
 
 	req.Header.Set("Content-Type", MediaType)
@@ -81,11 +77,11 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 	if err != nil {
 
 		if res == nil {
-			return nil, errutil.NewRetriableError(err)
+			return nil, "", errutil.NewRetriableError(err)
 		}
 
 		if res.StatusCode == 0 {
-			return nil, errutil.NewRetriableError(err)
+			return nil, "", errutil.NewRetriableError(err)
 		}
 
 		if errutil.IsAuthError(err) {
@@ -96,19 +92,19 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 		switch res.StatusCode {
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, errutil.NewNotImplementedError(nil)
+			return nil, "", errutil.NewNotImplementedError(nil)
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, errutil.Error(err)
+		return nil, "", errutil.Error(err)
 	}
 	httputil.LogTransfer("lfs.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
+		return nil, "", errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
 	}
 
-	return bresp, nil
+	return bresp.Objects, bresp.TransferAdapterName, nil
 }
 
 // Legacy calls the legacy API serially and returns ObjectResources

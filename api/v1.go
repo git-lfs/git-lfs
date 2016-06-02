@@ -36,12 +36,12 @@ func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error)
 	return res, obj, nil
 }
 
-type BatchRequest struct {
+type batchRequest struct {
 	TransferAdapterNames []string          `json:"transfers"`
 	Operation            string            `json:"operation"`
 	Objects              []*ObjectResource `json:"objects"`
 }
-type BatchResponse struct {
+type batchResponse struct {
 	TransferAdapterName string            `json:"transfer"`
 	Objects             []*ObjectResource `json:"objects"`
 }
@@ -50,7 +50,7 @@ type BatchResponse struct {
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func DoBatchRequest(req *http.Request) (*http.Response, *BatchResponse, error) {
+func DoBatchRequest(req *http.Request) (*http.Response, *batchResponse, error) {
 	res, err := DoRequest(req, config.Config.PrivateAccess(auth.GetOperationForRequest(req)))
 
 	if err != nil {
@@ -60,7 +60,7 @@ func DoBatchRequest(req *http.Request) (*http.Response, *BatchResponse, error) {
 		return res, nil, err
 	}
 
-	resp := &BatchResponse{}
+	resp := &batchResponse{}
 	err = httputil.DecodeResponse(res, resp)
 
 	if err != nil {
