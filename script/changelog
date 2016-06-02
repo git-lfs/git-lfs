@@ -34,16 +34,32 @@ misc=""
 for rev in $(git rev-list --merges $range); do
   git show $rev
 
-  echo ""
-  echo "Categorize this change: [f,b,m,s] ?"
+  processed=0
+  while [ $processed -eq 0 ]; do
+    echo "Categorize this change: [f,b,m,s,?] ?"
+    read -n 1 opt
+    echo ""
 
-  read -n 1 opt
+    case $opt in
+      [fbms])
+        processed=1
+        ;;
+      ?)
+        echo "f - mark this merge as a feature"
+        echo "b - mark this merge as a bugfix"
+        echo "m - make this merge as a misc. change"
+        echo "s - skip this merge, excluding it from the changelog"
+        echo "? - display this help message"
+        ;;
+      *)
+        echo "Unknown option: $opt, try again."
+        ;;
+    esac
+  done
 
-  if [ "$opt" = "s" ]; then
-    continue
+  if [ $opt != "s" ]; then
+    summary="$(commit_summary $rev)"
   fi
-
-  summary="$(commit_summary $rev)"
 
   case $opt in
     f)
@@ -55,9 +71,6 @@ for rev in $(git rev-list --merges $range); do
     m)
       misc="$(printf "%s\n%s\n" "$misc" "$summary")"
       ;;
-    *)
-      echo "Usage: [f,b,m,s]"
-      exit 1
   esac
 done
 
