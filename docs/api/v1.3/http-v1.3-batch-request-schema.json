@@ -29,6 +29,5 @@
       }
     }
   },
-  "required": ["objects", "operation"],
-  "additionalProperties": false
+  "required": ["objects", "operation"]
 }
