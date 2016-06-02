@@ -58,9 +58,12 @@ done
 echo "" >&2
 
 cat <<- EOF
-# Features$features
+### Features
+$features
 
-# Bugs$bugs
+### Bugs
+$bugs
 
-# Misc$misc
+### Misc
+$misc
 EOF
