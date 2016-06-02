@@ -92,8 +92,30 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.apic <- t
 }
 
-func (q *TransferQueue) chooseAdapter(name string) {
+func (q *TransferQueue) useAdapter(name string) {
+	q.adapterInitMutex.Lock()
+	defer q.adapterInitMutex.Unlock()
+
+	if q.adapter != nil {
+		if q.adapter.Name() == name {
+			// re-use, this is the normal path
+			return
+		}
+		// If the adapter we're using isn't the same as the one we've been
+		// told to use now, must wait for the current one to finish then switch
+		// This will probably never happen but is just in case server starts
+		// changing adapter support in between batches
+		q.finishAdapter()
+	}
 	q.adapter = transfer.NewAdapterOrDefault(name, q.direction)
+}
+
+func (q *TransferQueue) finishAdapter() {
+	if q.adapterInProgress {
+		q.adapter.End()
+		q.adapterInProgress = false
+		q.adapter = nil
+	}
 }
 
 func (q *TransferQueue) addToAdapter(t Transferable) {
@@ -207,11 +229,7 @@ func (q *TransferQueue) Wait() {
 	atomic.StoreUint32(&q.retrying, 0)
 
 	close(q.apic)
-	if q.adapterInProgress {
-		q.adapter.End()
-		q.adapterInProgress = false
-		q.adapter = nil
-	}
+	q.finishAdapter()
 	close(q.errorc)
 
 	for _, watcher := range q.watchers {
@@ -257,9 +275,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 		}
 
 		// Legacy API has no support for anything but basic transfer adapter
-		if q.adapter == nil {
-			q.chooseAdapter(transfer.BasicAdapterName)
-		}
+		q.useAdapter(transfer.BasicAdapterName)
 		if obj != nil {
 			t.SetObject(obj)
 			q.meter.Add(t.Name())
@@ -343,9 +359,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			continue
 		}
 
-		if q.adapter == nil {
-			q.chooseAdapter(adapterName)
-		}
+		q.useAdapter(adapterName)
 		startProgress.Do(q.meter.Start)
 
 		for _, o := range objs {
