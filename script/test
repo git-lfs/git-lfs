@@ -9,6 +9,7 @@ else
     GO15VENDOREXPERIMENT=1 go test \
       $(GO15VENDOREXPERIMENT=1 go list ./... \
           | grep -v "github.com/olekukonko/ts" \
+          | grep -v "github.com/xeipuuv/gojsonschema" \
           | grep -v "github.com/technoweenie/go-contentaddressable" \
       )
 fi
