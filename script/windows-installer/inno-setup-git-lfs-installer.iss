@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Git LFS"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.2.1"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
 #define MyAppFilePrefix "git-lfs-windows"
@@ -56,12 +56,12 @@ var
   ExecStdOut: AnsiString;
   ResultCode: integer;
 
-begin      
+begin
   TmpFileName := ExpandConstant('{tmp}') + '\git_location.txt';
-  
+
   Exec(
     ExpandConstant('{cmd}'),
-    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"', 
+    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
 
@@ -94,9 +94,9 @@ begin
   end;
   // look for the path with leading and trailing semicolon and with or without \ ending
   // Pos() returns 0 if not found
-  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;  
+  Result := Pos(';' + UpperCase(ParamExpanded) + ';', ';' + UpperCase(OrigPath) + ';') = 0;
   if Result = True then
-    Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0; 
+    Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
 end;
 
 // Runs the lfs initialization.
@@ -106,7 +106,7 @@ var
 begin
   Exec(
     ExpandConstant('{cmd}'),
-    ExpandConstant('/C ""{app}\git-lfs.exe" install"'), 
+    ExpandConstant('/C ""{app}\git-lfs.exe" install"'),
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
   if not ResultCode = 1 then
@@ -122,9 +122,8 @@ var
 begin
   Exec(
     ExpandConstant('{cmd}'),
-    ExpandConstant('/C ""{app}\git-lfs.exe" uninstall"'), 
+    ExpandConstant('/C ""{app}\git-lfs.exe" uninstall"'),
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode
   );
   Result := True;
 end;
-
