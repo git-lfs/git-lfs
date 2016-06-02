@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/tools"
@@ -211,7 +210,7 @@ type ErrorWithStack interface {
 	Stack() []byte
 }
 
-func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg string) (include, exclude []string) {
+func determineIncludeExcludePaths(config *lfs.Configuration, includeArg, excludeArg string) (include, exclude []string) {
 	return tools.CleanPathsDefault(includeArg, ",", config.FetchIncludePaths()),
 		tools.CleanPathsDefault(excludeArg, ",", config.FetchExcludePaths())
 }

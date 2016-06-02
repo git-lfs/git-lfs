@@ -3,12 +3,12 @@ package commands
 import (
 	"testing"
 
-	"github.com/github/git-lfs/config"
-	"github.com/stretchr/testify/assert"
+	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
 var (
-	cfg = config.NewFromValues(map[string]string{
+	cfg = lfs.NewFromValues(map[string]string{
 		"lfs.fetchinclude": "/default/include",
 		"lfs.fetchexclude": "/default/exclude",
 	})

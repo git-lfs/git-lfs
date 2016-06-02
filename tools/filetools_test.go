@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/tools"
-	"github.com/stretchr/testify/assert"
+	"github.com/github/git-lfs/vendor/_nuts/github.com/technoweenie/assert"
 )
 
 func TestCleanPathsCleansPaths(t *testing.T) {
@@ -16,7 +16,7 @@ func TestCleanPathsCleansPaths(t *testing.T) {
 func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 	cleaned := tools.CleanPaths("", ",")
 
-	assert.Empty(t, cleaned)
+	assert.Equal(t, 0, len(cleaned))
 }
 
 func TestCleanPathsDefaultReturnsInputWhenResultsPresent(t *testing.T) {
