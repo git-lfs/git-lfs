@@ -91,9 +91,9 @@ func lockIdFromPath(path string) (string, error) {
 	case 0:
 		return "", errNoMatchingLocks
 	case 1:
-		return "", errLockAmbiguous
-	default:
 		return resp.Locks[0].Id, nil
+	default:
+		return "", errLockAmbiguous
 	}
 }
 
