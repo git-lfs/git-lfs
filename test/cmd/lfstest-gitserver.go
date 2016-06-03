@@ -594,6 +594,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			ll := &LockList{}
 			locks := getLocks()
 
 			if cursor := r.FormValue("cursor"); cursor != "" {
@@ -632,20 +633,20 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 						Err: "unable to parse limit amount",
 					})
 				} else {
-					size = int(math.Min(float64(len(locks)), float64(size)))
+					size = int(math.Min(float64(len(locks)), 3))
 					if size < 0 {
 						locks = []Lock{}
 					} else {
 						locks = locks[:size]
+						if size+1 < len(locks) {
+							ll.NextCursor = locks[size+1].Id
+						}
 					}
 
 				}
 			}
 
-			ll := &LockList{Locks: locks}
-			if len(locks) > 0 {
-				ll.NextCursor = locks[len(locks)-1].Id
-			}
+			ll.Locks = locks
 
 			enc.Encode(ll)
 		}
