@@ -22,19 +22,36 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	s, resp := API.Locks.Search(&api.LockSearchRequest{
-		Filters: filters,
-		Cursor:  locksCmdFlags.Cursor,
-		Limit:   locksCmdFlags.Limit,
-	})
+	var locks []api.Lock
 
-	if _, err := API.Do(s); err != nil {
-		Error(err.Error())
-		Exit("Error communicating with LFS API.")
+	query := &api.LockSearchRequest{Filters: filters}
+	for {
+		s, resp := API.Locks.Search(query)
+		if _, err := API.Do(s); err != nil {
+			Error(err.Error())
+			Exit("Error communicating with LFS API.")
+		}
+
+		if resp.Err != "" {
+			Error(resp.Err)
+		}
+
+		locks = append(locks, resp.Locks...)
+
+		if locksCmdFlags.Limit > 0 && len(locks) > locksCmdFlags.Limit {
+			locks = locks[:locksCmdFlags.Limit]
+			break
+		}
+
+		if resp.NextCursor != "" {
+			query.Cursor = resp.NextCursor
+		} else {
+			break
+		}
 	}
 
-	Print("\n%d lock(s) matched query:", len(resp.Locks))
-	for _, lock := range resp.Locks {
+	Print("\n%d lock(s) matched query:", len(locks))
+	for _, lock := range locks {
 		Print("%s\t%s <%s>", lock.Path, lock.Committer.Name, lock.Committer.Email)
 	}
 }
@@ -44,7 +61,6 @@ func init() {
 
 	locksCmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 	locksCmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
-	locksCmd.Flags().StringVarP(&locksCmdFlags.Cursor, "cursor", "c", "", "cursor for last seen lock result")
 	locksCmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
 
 	RootCmd.AddCommand(locksCmd)
@@ -59,10 +75,6 @@ type locksFlags struct {
 	// Id is an optional filter parameter used to filtere against the lock's
 	// ID.
 	Id string
-	// cursor is an optional request parameter used to indicate to the
-	// server the position of the last lock seen by the client in a
-	// paginated request.
-	Cursor string
 	// limit is an optional request parameter sent to the server used to
 	// limit the
 	Limit int
