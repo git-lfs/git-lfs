@@ -578,13 +578,15 @@ func (c LocksByCreatedAt) Len() int           { return len(c) }
 func (c LocksByCreatedAt) Less(i, j int) bool { return c[i].LockedAt.Before(c[j].LockedAt) }
 func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
+var lockRe = regexp.MustCompile(`/locks/?$`)
+
 func locksHandler(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
 	switch r.Method {
 	case "GET":
-		if r.URL.Path != "/locks/" {
+		if !lockRe.MatchString(r.URL.Path) {
 			http.NotFound(w, r)
 		} else {
 			if err := r.ParseForm(); err != nil {
