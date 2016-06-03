@@ -13,7 +13,7 @@ begin_test "list a single lock"
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock $id
 
-  git lfs locks | tee locks.log
+  git lfs locks --path "f.dat" | tee locks.log
   grep "1 lock(s) matched query" locks.log
   grep "f.dat" locks.log
 )
