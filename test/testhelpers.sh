@@ -129,19 +129,16 @@ assert_server_lock() {
 
 # refute that a lock with the given ID exists on the test server
 refute_server_lock() {
-  local $id="$1"
+  local id="$1"
 
   curl -v "$GITSERVER/locks/" \
     -u "user:pass" \
     -o http.json \
-    -H "Accept:application/vnd.git-lfs+json" 2>&1 |
-    tee http.log
+    -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log
 
   grep "200 OK" http.log
-  if grep -q "$id" http.json; then
-    cat http.json
-    exit 1
-  fi
+
+  [ $(grep -c "$id" http.json) -eq 0 ]
 }
 
 # pointer returns a string Git LFS pointer file.
