@@ -79,7 +79,7 @@ func lockPath(file string) (string, error) {
 
 	abs := filepath.Join(wd, file)
 
-	return strings.TrimPrefix(repo, abs), nil
+	return strings.TrimPrefix(abs, repo), nil
 }
 
 func init() {
