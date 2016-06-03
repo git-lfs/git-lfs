@@ -672,6 +672,15 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 
+			for _, l := range getLocks() {
+				if l.Path == lockRequest.Path {
+					enc.Encode(&LockResponse{
+						Err: "lock already created",
+					})
+					return
+				}
+			}
+
 			var id [20]byte
 			rand.Read(id[:])
 
