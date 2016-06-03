@@ -266,7 +266,7 @@ setup_remote_repo_with_file() {
   grep "create mode 100644 $filename" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  git push 2>&1 | tee push.log
+  git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
 }
 
