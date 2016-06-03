@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -14,14 +15,18 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -62,6 +67,7 @@ func main() {
 
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
+	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			if !skipIfBadAuth(w, r) {
@@ -500,6 +506,194 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+type Committer struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type Lock struct {
+	Id         string    `json:"id"`
+	Path       string    `json:"path"`
+	Committer  Committer `json:"committer"`
+	CommitSHA  string    `json:"commit_sha"`
+	LockedAt   time.Time `json:"locked_at"`
+	UnlockedAt time.Time `json:"unlocked_at,omitempty"`
+}
+
+type LockRequest struct {
+	Path               string    `json:"path"`
+	LatestRemoteCommit string    `json:"latest_remote_commit"`
+	Committer          Committer `json:"committer"`
+}
+
+type LockResponse struct {
+	Lock         *Lock  `json:"lock"`
+	CommitNeeded string `json:"commit_needed,omitempty"`
+	Err          string `json:"error,omitempty"`
+}
+
+type UnlockRequest struct {
+	Id    string `json:"id"`
+	Force bool   `json:"force"`
+}
+
+type UnlockResponse struct {
+	Lock *Lock  `json:"lock"`
+	Err  string `json:"error,omitempty"`
+}
+
+type LockList struct {
+	Locks      []Lock `json:"locks"`
+	NextCursor string `json:"next_cursor,omitempty"`
+	Err        string `json:"error,omitempty"`
+}
+
+var (
+	lmu   sync.RWMutex
+	locks = []Lock{}
+)
+
+func addLocks(l ...Lock) {
+	lmu.Lock()
+	defer lmu.Unlock()
+
+	locks = append(locks, l...)
+
+	sort.Sort(LocksByCreatedAt(locks))
+}
+
+func getLocks() []Lock {
+	lmu.RLock()
+	defer lmu.RUnlock()
+
+	return locks
+}
+
+type LocksByCreatedAt []Lock
+
+func (c LocksByCreatedAt) Len() int           { return len(c) }
+func (c LocksByCreatedAt) Less(i, j int) bool { return c[i].LockedAt.Before(c[j].LockedAt) }
+func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+
+func locksHandler(w http.ResponseWriter, r *http.Request) {
+	dec := json.NewDecoder(r.Body)
+	enc := json.NewEncoder(w)
+
+	switch r.Method {
+	case "GET":
+		if r.URL.Path != "/locks/" {
+			http.NotFound(w, r)
+		} else {
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, "could not parse form values", http.StatusInternalServerError)
+				return
+			}
+
+			locks := getLocks()
+
+			if cursor := r.FormValue("cursor"); cursor != "" {
+				lastSeen := -1
+				for i, l := range locks {
+					if l.Id == cursor {
+						lastSeen = i
+						break
+					}
+				}
+
+				if lastSeen > -1 {
+					locks = locks[lastSeen:]
+				} else {
+					enc.Encode(&LockList{
+						Err: fmt.Sprintf("cursor (%s) not found", cursor),
+					})
+				}
+			}
+
+			if limit := r.FormValue("limit"); limit != "" {
+				size, err := strconv.Atoi(r.FormValue("limit"))
+				if err != nil {
+					enc.Encode(&LockList{
+						Err: "unable to parse limit amount",
+					})
+				} else {
+					size = int(math.Min(float64(len(locks)), float64(size)))
+					if size < 0 {
+						locks = []Lock{}
+					} else {
+						locks = locks[:size]
+					}
+
+				}
+			}
+
+			ll := &LockList{Locks: locks}
+			if len(locks) > 0 {
+				ll.NextCursor = locks[len(locks)-1].Id
+			}
+
+			enc.Encode(ll)
+		}
+	case "POST":
+		if strings.HasSuffix(r.URL.Path, "unlock") {
+			var unlockRequest UnlockRequest
+			if err := dec.Decode(&unlockRequest); err != nil {
+				enc.Encode(&UnlockResponse{
+					Err: err.Error(),
+				})
+			}
+
+			lockIndex := -1
+			for i, l := range locks {
+				if l.Id == unlockRequest.Id {
+					lockIndex = i
+					break
+				}
+			}
+
+			if lockIndex > -1 {
+				enc.Encode(&UnlockResponse{
+					Lock: &locks[lockIndex],
+				})
+
+				locks = append(locks[:lockIndex], locks[lockIndex+1:]...)
+			} else {
+				enc.Encode(&UnlockResponse{
+					Err: "unable to find lock",
+				})
+			}
+		} else {
+			var lockRequest LockRequest
+			if err := dec.Decode(&lockRequest); err != nil {
+				enc.Encode(&LockResponse{
+					Err: err.Error(),
+				})
+			}
+
+			var id [20]byte
+			rand.Read(id[:])
+
+			lock := &Lock{
+				Id:        fmt.Sprintf("%x", id[:]),
+				Path:      lockRequest.Path,
+				Committer: lockRequest.Committer,
+				CommitSHA: lockRequest.LatestRemoteCommit,
+				LockedAt:  time.Now(),
+			}
+
+			addLocks(*lock)
+
+			// TODO(taylor): commit_needed case
+			// TODO(taylor): err case
+
+			enc.Encode(&LockResponse{
+				Lock: lock,
+			})
+		}
+	default:
+		http.NotFound(w, r)
+	}
 }
 
 func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
