@@ -141,12 +141,18 @@ func (c *Configuration) HttpClient(host string) *HttpClient {
 }
 
 func proxyFromGitConfigOrEnvironment(req *http.Request) (*url.URL, error) {
+	proxyURL, err := http.ProxyFromEnvironment(req)
+
+	if proxyURL != nil {
+		return proxyURL, err
+	}
+
 	if proxy, ok := Config.GitConfig("http.proxy"); ok {
 		proxyURL, err := url.Parse(proxy)
 		return proxyURL, err
 	}
 
-	return http.ProxyFromEnvironment(req)
+	return proxyURL, err
 }
 
 func checkRedirect(req *http.Request, via []*http.Request) error {
