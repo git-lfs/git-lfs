@@ -8,14 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/tools"
-	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -24,104 +22,12 @@ const (
 
 // Base implementation of basic all-or-nothing HTTP upload / download adapter
 type basicAdapter struct {
-	direction Direction
-	jobChan   chan *Transfer
-	cb        TransferProgressCallback
-	outChan   chan TransferResult
-	// WaitGroup to sync the completion of all workers
-	workerWait sync.WaitGroup
-	// WaitGroup to serialise the first transfer response to perform login if needed
-	authWait sync.WaitGroup
-}
-
-func (a *basicAdapter) Direction() Direction {
-	return a.direction
-}
-
-func (a *basicAdapter) Name() string {
-	return BasicAdapterName
-}
-
-func (a *basicAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
-	a.cb = cb
-	a.outChan = completion
-	a.jobChan = make(chan *Transfer, 100)
-
-	tracerx.Printf("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
-
-	a.workerWait.Add(maxConcurrency)
-	a.authWait.Add(1)
-	for i := 0; i < maxConcurrency; i++ {
-		go a.worker(i)
-	}
-	tracerx.Printf("xfer: adapter %q started", a.Name())
-	return nil
-}
-
-func (a *basicAdapter) Add(t *Transfer) {
-	tracerx.Printf("xfer: adapter %q Add() for %q", a.Name(), t.Object.Oid)
-	a.jobChan <- t
-}
-
-func (a *basicAdapter) End() {
-	tracerx.Printf("xfer: adapter %q End()", a.Name())
-	close(a.jobChan)
-	// wait for all transfers to complete
-	a.workerWait.Wait()
-	if a.outChan != nil {
-		close(a.outChan)
-	}
-	tracerx.Printf("xfer: adapter %q stopped", a.Name())
+	*adapterBase
 }
 
 func (a *basicAdapter) ClearTempStorage() error {
 	// Should be empty already but also remove dir
 	return os.RemoveAll(a.tempDir())
-}
-
-// worker function, many of these run per adapter
-func (a *basicAdapter) worker(workerNum int) {
-
-	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
-	waitForAuth := workerNum > 0
-	signalAuthOnResponse := workerNum == 0
-
-	// First worker is the only one allowed to start immediately
-	// The rest wait until successful response from 1st worker to
-	// make sure only 1 login prompt is presented if necessary
-	// Deliberately outside jobChan processing so we know worker 0 will process 1st item
-	if waitForAuth {
-		tracerx.Printf("xfer: adapter %q worker %d waiting for Auth", a.Name(), workerNum)
-		a.authWait.Wait()
-		tracerx.Printf("xfer: adapter %q worker %d auth signal received", a.Name(), workerNum)
-	}
-
-	for t := range a.jobChan {
-		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
-		var err error
-		switch a.Direction() {
-		case Download:
-			err = a.download(t, signalAuthOnResponse)
-		case Upload:
-			err = a.upload(t, signalAuthOnResponse)
-		}
-
-		if a.outChan != nil {
-			res := TransferResult{t, err}
-			a.outChan <- res
-		}
-
-		// Only need to signal for auth once
-		signalAuthOnResponse = false
-
-		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Object.Oid)
-	}
-	// This will only happen if no jobs were submitted; just wake up all workers to finish
-	if signalAuthOnResponse {
-		a.authWait.Done()
-	}
-	tracerx.Printf("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
-	a.workerWait.Done()
 }
 
 func (a *basicAdapter) tempDir() string {
@@ -133,7 +39,12 @@ func (a *basicAdapter) tempDir() string {
 	return d
 }
 
-func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
+// Adapter for basic downloads
+type basicDownloadAdapter struct {
+	*basicAdapter
+}
+
+func (a *basicDownloadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("download")
 	if !ok {
 		return errors.New("Object not found on the server.")
@@ -153,8 +64,8 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 
 	// Signal auth OK on success response, before starting download to free up
 	// other workers immediately
-	if signalAuthOnResponse {
-		a.authWait.Done()
+	if authOkFunc != nil {
+		authOkFunc()
 	}
 
 	// Now do transfer of content
@@ -178,8 +89,8 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 	tempfilename := f.Name()
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		if a.cb != nil {
-			return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+		if cb != nil {
+			return cb(t.Name, totalSize, readSoFar, readSinceLast)
 		}
 		return nil
 	}
@@ -198,7 +109,13 @@ func (a *basicAdapter) download(t *Transfer, signalAuthOnResponse bool) error {
 	return tools.RenameFileCopyPermissions(tempfilename, t.Path)
 
 }
-func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
+
+// Adapter for basic uploads
+type basicUploadAdapter struct {
+	*basicAdapter
+}
+
+func (a *basicUploadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("upload")
 	if !ok {
 		return fmt.Errorf("No upload action for this object.")
@@ -230,8 +147,8 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		if a.cb != nil {
-			return a.cb(t.Name, totalSize, readSoFar, readSinceLast)
+		if cb != nil {
+			return cb(t.Name, totalSize, readSoFar, readSinceLast)
 		}
 		return nil
 	}
@@ -242,10 +159,10 @@ func (a *basicAdapter) upload(t *Transfer, signalAuthOnResponse bool) error {
 		Reader:    f,
 	}
 
-	if signalAuthOnResponse {
-		// Signal auth was ok on first read; this frees up other workers to start
+	// Signal auth was ok on first read; this frees up other workers to start
+	if authOkFunc != nil {
 		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
-			a.authWait.Done()
+			authOkFunc()
 		})
 	}
 
@@ -292,11 +209,25 @@ func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCa
 	return &startCallbackReader{r, cb, false}
 }
 
+func newBasicAdapter(name string, dir Direction) *basicAdapter {
+	return &basicAdapter{newAdapterBase(name, dir, nil)}
+}
+
 func init() {
 	newfunc := func(name string, dir Direction) TransferAdapter {
-		return &basicAdapter{
-			direction: dir,
+		switch dir {
+		case Download:
+			bd := &basicDownloadAdapter{newBasicAdapter(name, dir)}
+			// self implements impl
+			bd.transferImpl = bd
+			return bd
+		case Upload:
+			bu := &basicUploadAdapter{newBasicAdapter(name, dir)}
+			// self implements impl
+			bu.transferImpl = bu
+			return bu
 		}
+		return nil
 	}
 	RegisterNewTransferAdapterFunc(BasicAdapterName, Upload, newfunc)
 	RegisterNewTransferAdapterFunc(BasicAdapterName, Download, newfunc)
