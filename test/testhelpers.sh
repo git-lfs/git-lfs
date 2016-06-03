@@ -110,6 +110,40 @@ assert_server_object() {
   }
 }
 
+# assert that a lock with the given ID exists on the test server
+assert_server_lock() {
+  local id="$1"
+
+  curl -v "$GITSERVER/locks/" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept:application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+
+  grep "200 OK" http.log
+  grep "$id" http.json || {
+    cat http.json
+    exit 1
+  }
+}
+
+# refute that a lock with the given ID exists on the test server
+refute_server_lock() {
+  local $id="$1"
+
+  curl -v "$GITSERVER/locks/" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept:application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+
+  grep "200 OK" http.log
+  if grep -q "$id" http.json; then
+    cat http.json
+    exit 1
+  fi
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123
@@ -213,6 +247,32 @@ clone_repo_ssl() {
   echo "$out" > clone_ssl.log
   echo "$out"
 }
+
+# setup_remote_repo_with_file creates a remote repo, clones it locally, commits
+# a file tracked by LFS, and pushes it to the remote:
+#
+#     setup_remote_repo_with_file "reponame" "filename"
+setup_remote_repo_with_file() {
+  local reponame="$1"
+  local filename="$2"
+
+  setup_remote_repo "remote_$reponame"
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "$filename"
+  echo "$filename" > "$filename"
+  git add .gitattributes $filename
+  git commit -m "add $filename" | tee commit.log
+
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 $filename" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  git push 2>&1 | tee push.log
+  grep "master -> master" push.log
+}
+
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
