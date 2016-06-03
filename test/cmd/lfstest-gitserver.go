@@ -614,6 +614,17 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
+			if path := r.FormValue("path"); path != "" {
+				var filtered []Lock
+				for _, l := range locks {
+					if l.Path == path {
+						filtered = append(filtered, l)
+					}
+				}
+
+				locks = filtered
+			}
+
 			if limit := r.FormValue("limit"); limit != "" {
 				size, err := strconv.Atoi(r.FormValue("limit"))
 				if err != nil {
