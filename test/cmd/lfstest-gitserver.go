@@ -67,6 +67,7 @@ func main() {
 
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
+	mux.HandleFunc("/locks", locksHandler)
 	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
