@@ -12,8 +12,11 @@ endif
 
 BUILD_DIR := obj-$(DEB_HOST_GNU_TYPE)
 export DH_GOPKG := github.com/github/git-lfs
-export DH_GOLANG_EXCLUDES := test
+# DH_GOLANG_EXCLUDES typically incorporates vendor exclusions from script/test
+export DH_GOLANG_EXCLUDES := test github.com/olekukonko/ts/* github.com/xeipuuv/gojsonschema/* github.com/technoweenie/go-contentaddressable/* github.com/spf13/cobra/*
 export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
+# by-default, dh_golang only copies *.go and other source - this upsets a bunch of vendor test routines
+export DH_GOLANG_INSTALL_ALL := 1
 
 %:
 	dh $@ --buildsystem=golang --with=golang
