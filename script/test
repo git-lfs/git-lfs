@@ -6,9 +6,12 @@ script/fmt
 if [ $# -gt 0 ]; then
     GO15VENDOREXPERIMENT=1 go test "./$1"
 else
+    # The following vendor test-exclusion grep-s typically need to match the same set in
+    # debian/rules variable DH_GOLANG_EXCLUDES, so update those when adding here.
     GO15VENDOREXPERIMENT=1 go test \
       $(GO15VENDOREXPERIMENT=1 go list ./... \
           | grep -v "github.com/olekukonko/ts" \
+          | grep -v "github.com/xeipuuv/gojsonschema" \
           | grep -v "github.com/technoweenie/go-contentaddressable" \
       )
 fi

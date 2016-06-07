@@ -70,6 +70,12 @@ func sshGetExeAndArgs(endpoint config.Endpoint) (exe string, baseargs []string) 
 	isTortoise := false
 
 	ssh := config.Config.Getenv("GIT_SSH")
+	cmdArgs := strings.Fields(config.Config.Getenv("GIT_SSH_COMMAND"))
+	if len(cmdArgs) > 0 {
+		ssh = cmdArgs[0]
+		cmdArgs = cmdArgs[1:]
+	}
+
 	if ssh == "" {
 		ssh = "ssh"
 	} else {
@@ -82,7 +88,11 @@ func sshGetExeAndArgs(endpoint config.Endpoint) (exe string, baseargs []string) 
 		isTortoise = strings.EqualFold(basessh, "tortoiseplink")
 	}
 
-	args := make([]string, 0, 4)
+	args := make([]string, 0, 4+len(cmdArgs))
+	if len(cmdArgs) > 0 {
+		args = append(args, cmdArgs...)
+	}
+
 	if isTortoise {
 		// TortoisePlink requires the -batch argument to behave like ssh/plink
 		args = append(args, "-batch")
