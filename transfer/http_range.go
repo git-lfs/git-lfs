@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/rubyist/tracerx"
+
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/tools"
@@ -64,6 +66,7 @@ func (a *httpRangeAdapter) checkResumeDownload(t *Transfer) (outFile *os.File, f
 		f.Close()
 		return nil, 0, nil, err
 	}
+	tracerx.Printf("http-range: Attempting to resume download of %q from byte %d", t.Object.Oid, n)
 	return f, n, hash, nil
 
 }
@@ -112,6 +115,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 	if fromByte > 0 {
 		if res.StatusCode == 206 {
 			// Successful range request
+			tracerx.Printf("http-range: server accepted resume download request: %q from byte %d", t.Object.Oid, fromByte)
 			// Advance progress callback; must split into max int sizes though
 			const maxInt = int(^uint(0) >> 1)
 			for read := int64(0); read < fromByte; {
@@ -127,6 +131,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 			}
 		} else {
 			// Abort resume, perform regular download
+			tracerx.Printf("http-range: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
@@ -177,6 +182,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 
 	// Notice that on failure we do not delete the partially downloaded file.
 	// Instead we will resume next time
+	tracerx.Printf("http-range: successfully downloaded bytes %d to %d for %q ", fromByte, t.Object.Size, t.Object.Oid)
 
 	return tools.RenameFileCopyPermissions(dlfilename, t.Path)
 
