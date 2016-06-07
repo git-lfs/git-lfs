@@ -45,7 +45,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
-		"status-batch-resume-206",
+		"status-batch-resume-206", "batch-resume-fail-fallback",
 	}
 )
 
@@ -345,7 +345,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			o.Err = &lfsError{Code: 422, Message: "welp"}
 		case "status-batch-500":
 			o.Err = &lfsError{Code: 500, Message: "welp"}
-		case "status-batch-resume-206":
+		case "status-batch-resume-206", "batch-resume-fail-fallback":
 			for _, t := range objs.Transfers {
 				if t == "http-range" {
 					transferChoice = "http-range"
@@ -385,12 +385,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	w.Write(by)
 }
 
+// Persistent state across requests
+var batchResumeFailFallbackStorageAttempts = 0
+
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
-
 	if missingRequiredCreds(w, r, repo) {
 		return
 	}
@@ -456,9 +458,23 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					if match != nil && len(match) > 1 {
 						statusCode = 206
 						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
+						w.Header().Set("Content-Range", fmt.Sprintf("bytes=%d-%d", resumeAt, len(by)))
 					}
 				} else {
 					byteLimit = 10
+				}
+			} else if len(by) == len("batch-resume-fail-fallback") && string(by) == "batch-resume-fail-fallback" {
+				// Fail any Range: request even though we said we supported it
+				// To make sure client can fall back
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					w.WriteHeader(416)
+					return
+				}
+				if batchResumeFailFallbackStorageAttempts == 0 {
+					// Truncate output on FIRST attempt to cause resume
+					// Second attempt (without range header) is fallback, complete successfully
+					byteLimit = 8
+					batchResumeFailFallbackStorageAttempts++
 				}
 			}
 			w.WriteHeader(statusCode)

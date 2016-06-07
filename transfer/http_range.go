@@ -8,13 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/localstorage"
-
-	"github.com/rubyist/tracerx"
-
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
+	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -110,6 +108,13 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 
 	res, err := httputil.DoHttpRequest(req, true)
 	if err != nil {
+		// Special-case status code 416 () - fall back
+		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
+			tracerx.Printf("http-range: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
+			dlFile.Close()
+			os.Remove(dlFile.Name())
+			return a.download(t, cb, authOkFunc, nil, 0, nil)
+		}
 		return errutil.NewRetriableError(err)
 	}
 	httputil.LogTransfer("lfs.data.download", res)
@@ -158,7 +163,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 
 	if dlFile == nil {
 		// New file start
-		dlFile, err := os.OpenFile(a.downloadFilename(t), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		dlFile, err = os.OpenFile(a.downloadFilename(t), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
