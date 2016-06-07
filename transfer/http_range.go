@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/github/git-lfs/localstorage"
+
 	"github.com/rubyist/tracerx"
 
 	"github.com/github/git-lfs/errutil"
@@ -30,7 +32,9 @@ func (a *httpRangeAdapter) ClearTempStorage() error {
 
 func (a *httpRangeAdapter) tempDir() string {
 	// Must be dedicated to this adapter as deleted by ClearTempStorage
-	d := filepath.Join(os.TempDir(), "git-lfs-http-range-temp")
+	// Also make local to this repo not global, and separate to localstorage temp,
+	// which gets cleared at the end of every invocation
+	d := filepath.Join(localstorage.Objects().RootDir, "incomplete")
 	if err := os.MkdirAll(d, 0755); err != nil {
 		return os.TempDir()
 	}
