@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -44,6 +45,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
+		"status-batch-resume-206",
 	}
 )
 
@@ -284,8 +286,13 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	}
 
 	type batchReq struct {
+		Transfers []string    `json:"transfers"`
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`
+	}
+	type batchResp struct {
+		Transfer string      `json:"transfer,omitempty"`
+		Objects  []lfsObject `json:"objects"`
 	}
 
 	buf := &bytes.Buffer{}
@@ -304,6 +311,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
+	var transferChoice string
 	for _, obj := range objs.Objects {
 		action := objs.Operation
 
@@ -337,6 +345,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			o.Err = &lfsError{Code: 422, Message: "welp"}
 		case "status-batch-500":
 			o.Err = &lfsError{Code: 500, Message: "welp"}
+		case "status-batch-resume-206":
+			for _, t := range objs.Transfers {
+				if t == "http-range" {
+					transferChoice = "http-range"
+					break
+				}
+			}
+			fallthrough
 		default: // regular 200 response
 			if addAction {
 				o.Actions = map[string]lfsLink{
@@ -355,7 +371,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		res = append(res, o)
 	}
 
-	ores := map[string][]lfsObject{"objects": res}
+	ores := batchResp{Transfer: transferChoice, Objects: res}
 
 	by, err := json.Marshal(ores)
 	if err != nil {
@@ -427,9 +443,32 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		parts := strings.Split(r.URL.Path, "/")
 		oid := parts[len(parts)-1]
+		statusCode := 200
+		byteLimit := 0
+		resumeAt := int64(0)
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			w.Write(by)
+			if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+				// Resume if header includes range, otherwise deliberately interrupt
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
+					match := regex.FindStringSubmatch(rangeHdr)
+					if match != nil && len(match) > 1 {
+						statusCode = 206
+						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
+					}
+				} else {
+					byteLimit = 10
+				}
+			}
+			w.WriteHeader(statusCode)
+			if byteLimit > 0 {
+				w.Write(by[0:byteLimit])
+			} else if resumeAt > 0 {
+				w.Write(by[resumeAt:])
+			} else {
+				w.Write(by)
+			}
 			return
 		}
 
