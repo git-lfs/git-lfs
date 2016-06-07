@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
@@ -120,10 +122,33 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 	httputil.LogTransfer("lfs.data.download", res)
 	defer res.Body.Close()
 
-	// Range request must return 206 to confirm
+	// Range request must return 206 & content range to confirm
 	if fromByte > 0 {
+		rangeRequestOk := false
+		var failReason string
+		// check 206 and Content-Range, fall back if either not as expected
 		if res.StatusCode == 206 {
-			// Successful range request
+			// Probably a successful range request, check Content-Range
+			if rangeHdr := res.Header.Get("Content-Range"); rangeHdr != "" {
+				regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
+				match := regex.FindStringSubmatch(rangeHdr)
+				if match != nil && len(match) > 1 {
+					contentStart, _ := strconv.ParseInt(match[1], 10, 32)
+					if contentStart == fromByte {
+						rangeRequestOk = true
+					} else {
+						failReason = fmt.Sprintf("Content-Range start byte incorrect: %s expected %d", match[1], fromByte)
+					}
+				} else {
+					failReason = fmt.Sprintf("badly formatted Content-Range header: %q", rangeHdr)
+				}
+			} else {
+				failReason = "missing Content-Range header in response"
+			}
+		} else {
+			failReason = fmt.Sprintf("expected status code 206, received %d", res.StatusCode)
+		}
+		if rangeRequestOk {
 			tracerx.Printf("http-range: server accepted resume download request: %q from byte %d", t.Object.Oid, fromByte)
 			// Advance progress callback; must split into max int sizes though
 			const maxInt = int(^uint(0) >> 1)
@@ -140,7 +165,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 			}
 		} else {
 			// Abort resume, perform regular download
-			tracerx.Printf("http-range: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
+			tracerx.Printf("http-range: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Object.Oid, fromByte, failReason)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
