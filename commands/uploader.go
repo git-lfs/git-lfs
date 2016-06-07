@@ -88,9 +88,9 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		return
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize, true)
+	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize)
 	for _, p := range missing {
-		checkQueue.Add(lfs.NewDownloadCheckable(p))
+		checkQueue.Add(lfs.NewDownloadable(p))
 	}
 
 	// this channel is filled with oids for which Check() succeeded & Transfer() was called

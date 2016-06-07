@@ -11,16 +11,16 @@ import "sync/atomic"
 type Batcher struct {
 	exited     uint32
 	batchSize  int
-	input      chan Transferable
-	batchReady chan []Transferable
+	input      chan interface{}
+	batchReady chan []interface{}
 }
 
 // NewBatcher creates a Batcher with the batchSize.
 func NewBatcher(batchSize int) *Batcher {
 	b := &Batcher{
 		batchSize:  batchSize,
-		input:      make(chan Transferable, batchSize),
-		batchReady: make(chan []Transferable),
+		input:      make(chan interface{}, batchSize),
+		batchReady: make(chan []interface{}),
 	}
 
 	go b.acceptInput()
@@ -29,9 +29,9 @@ func NewBatcher(batchSize int) *Batcher {
 
 // Add adds an item to the batcher. Add is safe to call from multiple
 // goroutines.
-func (b *Batcher) Add(t Transferable) {
+func (b *Batcher) Add(t interface{}) {
 	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
-		b.input = make(chan Transferable, b.batchSize)
+		b.input = make(chan interface{}, b.batchSize)
 		go b.acceptInput()
 	}
 
@@ -40,7 +40,7 @@ func (b *Batcher) Add(t Transferable) {
 
 // Next will wait for the one of the above batch triggers to occur and return
 // the accumulated batch.
-func (b *Batcher) Next() []Transferable {
+func (b *Batcher) Next() []interface{} {
 	return <-b.batchReady
 }
 
@@ -58,7 +58,7 @@ func (b *Batcher) acceptInput() {
 	exit := false
 
 	for {
-		batch := make([]Transferable, 0, b.batchSize)
+		batch := make([]interface{}, 0, b.batchSize)
 	Loop:
 		for len(batch) < b.batchSize {
 			t, ok := <-b.input

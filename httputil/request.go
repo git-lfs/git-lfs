@@ -62,7 +62,6 @@ func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) 
 			err = errutil.Error(err)
 		}
 	} else {
-		// TODO(sinbad) stop handling the response here, separate response processing to api package
 		err = handleResponse(res, creds)
 	}
 

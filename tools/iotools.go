@@ -1,6 +1,13 @@
 package tools
 
-import "io"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"hash"
+	"io"
+
+	"github.com/github/git-lfs/progress"
+)
 
 type readSeekCloserWrapper struct {
 	readSeeker io.ReadSeeker
@@ -22,4 +29,50 @@ func (r *readSeekCloserWrapper) Close() error {
 // to make it an io.ReadCloser
 func NewReadSeekCloserWrapper(r io.ReadSeeker) io.ReadCloser {
 	return &readSeekCloserWrapper{r}
+}
+
+// CopyWithCallback copies reader to writer while performing a progress callback
+func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {
+	if success, _ := CloneFile(writer, reader); success {
+		if cb != nil {
+			cb(totalSize, totalSize, 0)
+		}
+		return totalSize, nil
+	}
+	if cb == nil {
+		return io.Copy(writer, reader)
+	}
+
+	cbReader := &progress.CallbackReader{
+		C:         cb,
+		TotalSize: totalSize,
+		Reader:    reader,
+	}
+	return io.Copy(writer, cbReader)
+}
+
+// HashingReader wraps a reader and calculates the hash of the data as it is read
+type HashingReader struct {
+	reader io.Reader
+	hasher hash.Hash
+}
+
+func NewHashingReader(r io.Reader) *HashingReader {
+	return &HashingReader{r, sha256.New()}
+}
+
+func (r *HashingReader) Hash() string {
+	return hex.EncodeToString(r.hasher.Sum(nil))
+}
+
+func (r *HashingReader) Read(b []byte) (int, error) {
+	w, err := r.reader.Read(b)
+	if err == nil || err == io.EOF {
+		_, e := r.hasher.Write(b[0:w])
+		if e != nil && err == nil {
+			return w, e
+		}
+	}
+
+	return w, err
 }

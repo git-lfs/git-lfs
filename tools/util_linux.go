@@ -1,6 +1,6 @@
 // +build linux,cgo
 
-package lfs
+package tools
 
 /*
 #include <sys/ioctl.h>

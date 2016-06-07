@@ -26,25 +26,6 @@ const (
 
 var currentPlatform = PlatformUndetermined
 
-func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {
-	if success, _ := CloneFile(writer, reader); success {
-		if cb != nil {
-			cb(totalSize, totalSize, 0)
-		}
-		return totalSize, nil
-	}
-	if cb == nil {
-		return io.Copy(writer, reader)
-	}
-
-	cbReader := &progress.CallbackReader{
-		C:         cb,
-		TotalSize: totalSize,
-		Reader:    reader,
-	}
-	return io.Copy(writer, cbReader)
-}
-
 func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
 	logPath := config.Config.Getenv("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {

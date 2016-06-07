@@ -3,6 +3,7 @@
 package tools
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,6 +53,26 @@ func ResolveSymlinks(path string) string {
 		return resolved
 	}
 	return path
+}
+
+// RenameFileCopyPermissions moves srcfile to destfile, replacing destfile if
+// necessary and also copying the permissions of destfile if it already exists
+func RenameFileCopyPermissions(srcfile, destfile string) error {
+	info, err := os.Stat(destfile)
+	if os.IsNotExist(err) {
+		// no original file
+	} else if err != nil {
+		return err
+	} else {
+		if err := os.Chmod(srcfile, info.Mode()); err != nil {
+			return fmt.Errorf("can't set filemode on file %q: %v", srcfile, err)
+		}
+	}
+
+	if err := os.Rename(srcfile, destfile); err != nil {
+		return fmt.Errorf("cannot replace %q with %q: %v", destfile, srcfile, err)
+	}
+	return nil
 }
 
 // CleanPaths splits the given `paths` argument by the delimiter argument, and
