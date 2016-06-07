@@ -1,6 +1,6 @@
-# Git LFS v1 Original API
+# Git LFS v1 Legacy API
 
-This describes the original API for Git LFS v0.5.x. It's already deprecated by
+This describes the legacy API for Git LFS v0.5.x. It's already deprecated by
 the [batch API][batch].  All requests should have:
 
     Accept: application/vnd.git-lfs+json

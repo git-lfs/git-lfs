@@ -32,6 +32,7 @@ type Transferable interface {
 // including calling the API, passing the actual transfer request to transfer
 // adapters, and dealing with progress, errors and retries
 type TransferQueue struct {
+	direction         transfer.Direction
 	adapter           transfer.TransferAdapter
 	adapterInProgress bool
 	adapterResultChan chan transfer.TransferResult
@@ -55,9 +56,9 @@ type TransferQueue struct {
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(files int, size int64, dryRun bool, adapter transfer.TransferAdapter) *TransferQueue {
+func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
 	q := &TransferQueue{
-		adapter:       adapter,
+		direction:     dir,
 		dryRun:        dryRun,
 		meter:         progress.NewProgressMeter(files, size, dryRun, config.Config.Getenv("GIT_LFS_PROGRESS")),
 		apic:          make(chan Transferable, batchSize),
@@ -91,6 +92,32 @@ func (q *TransferQueue) Add(t Transferable) {
 	q.apic <- t
 }
 
+func (q *TransferQueue) useAdapter(name string) {
+	q.adapterInitMutex.Lock()
+	defer q.adapterInitMutex.Unlock()
+
+	if q.adapter != nil {
+		if q.adapter.Name() == name {
+			// re-use, this is the normal path
+			return
+		}
+		// If the adapter we're using isn't the same as the one we've been
+		// told to use now, must wait for the current one to finish then switch
+		// This will probably never happen but is just in case server starts
+		// changing adapter support in between batches
+		q.finishAdapter()
+	}
+	q.adapter = transfer.NewAdapterOrDefault(name, q.direction)
+}
+
+func (q *TransferQueue) finishAdapter() {
+	if q.adapterInProgress {
+		q.adapter.End()
+		q.adapterInProgress = false
+		q.adapter = nil
+	}
+}
+
 func (q *TransferQueue) addToAdapter(t Transferable) {
 
 	tr := transfer.NewTransfer(t.Name(), t.Object(), t.Path())
@@ -110,7 +137,7 @@ func (q *TransferQueue) Skip(size int64) {
 }
 
 func (q *TransferQueue) transferKind() string {
-	if q.adapter.Direction() == transfer.Download {
+	if q.direction == transfer.Download {
 		return "download"
 	} else {
 		return "upload"
@@ -202,10 +229,7 @@ func (q *TransferQueue) Wait() {
 	atomic.StoreUint32(&q.retrying, 0)
 
 	close(q.apic)
-	if q.adapterInProgress {
-		q.adapter.End()
-		q.adapterInProgress = false
-	}
+	q.finishAdapter()
 	close(q.errorc)
 
 	for _, watcher := range q.watchers {
@@ -250,6 +274,8 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 			}
 		}
 
+		// Legacy API has no support for anything but basic transfer adapter
+		q.useAdapter(transfer.BasicAdapterName)
 		if obj != nil {
 			t.SetObject(obj)
 			q.meter.Add(t.Name())
@@ -292,6 +318,8 @@ func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
 func (q *TransferQueue) batchApiRoutine() {
 	var startProgress sync.Once
 
+	transferAdapterNames := transfer.GetAdapterNames(q.direction)
+
 	for {
 		batch := q.batcher.Next()
 		if batch == nil {
@@ -306,7 +334,11 @@ func (q *TransferQueue) batchApiRoutine() {
 			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
 		}
 
-		objects, err := api.Batch(transfers, q.transferKind())
+		if len(transfers) == 0 {
+			continue
+		}
+
+		objs, adapterName, err := api.Batch(transfers, q.transferKind(), transferAdapterNames)
 		if err != nil {
 			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
@@ -327,9 +359,10 @@ func (q *TransferQueue) batchApiRoutine() {
 			continue
 		}
 
+		q.useAdapter(adapterName)
 		startProgress.Do(q.meter.Start)
 
-		for _, o := range objects {
+		for _, o := range objs {
 			if o.Error != nil {
 				q.errorc <- errutil.Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 				q.Skip(o.Size)

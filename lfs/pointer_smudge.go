@@ -76,7 +76,8 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
-	obj, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download")
+	xfers := transfer.GetDownloadAdapterNames()
+	obj, adapterName, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
 		return errutil.Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}
@@ -85,7 +86,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		ptr.Size = obj.Size
 	}
 
-	adapter := transfer.NewDownloadAdapter(transfer.BasicAdapterName)
+	adapter := transfer.NewDownloadAdapter(adapterName)
 	var tcb transfer.TransferProgressCallback
 	if cb != nil {
 		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {

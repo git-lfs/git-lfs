@@ -20,48 +20,49 @@ import (
 // BatchOrLegacy calls the Batch API and falls back on the Legacy API
 // This is for simplicity, legacy route is not most optimal (serial)
 // TODO LEGACY API: remove when legacy API removed
-func BatchOrLegacy(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+func BatchOrLegacy(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
 	if !config.Config.BatchTransfer() {
-		return Legacy(objects, operation)
+		objs, err := Legacy(objects, operation)
+		return objs, "", err
 	}
-	objs, err := Batch(objects, operation)
+	objs, adapterName, err := Batch(objects, operation, transferAdapters)
 	if err != nil {
 		if errutil.IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
-			return Legacy(objects, operation)
+			objs, err := Legacy(objects, operation)
+			return objs, "", err
 		}
-		return nil, err
+		return nil, "", err
 	}
-	return objs, nil
+	return objs, adapterName, nil
 }
 
-func BatchOrLegacySingle(inobj *ObjectResource, operation string) (*ObjectResource, error) {
-	objs, err := BatchOrLegacy([]*ObjectResource{inobj}, operation)
+func BatchOrLegacySingle(inobj *ObjectResource, operation string, transferAdapters []string) (obj *ObjectResource, transferAdapter string, e error) {
+	objs, adapterName, err := BatchOrLegacy([]*ObjectResource{inobj}, operation, transferAdapters)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if len(objs) > 0 {
-		return objs[0], nil
+		return objs[0], adapterName, nil
 	}
-	return nil, fmt.Errorf("Object not found")
+	return nil, "", fmt.Errorf("Object not found")
 }
 
 // Batch calls the batch API and returns object results
-func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+func Batch(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
 	if len(objects) == 0 {
-		return nil, nil
+		return nil, "", nil
 	}
 
-	o := map[string]interface{}{"objects": objects, "operation": operation}
-
+	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
 	by, err := json.Marshal(o)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, "", errutil.Error(err)
 	}
 
 	req, err := NewBatchRequest(operation)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, "", errutil.Error(err)
 	}
 
 	req.Header.Set("Content-Type", MediaType)
@@ -71,39 +72,39 @@ func Batch(objects []*ObjectResource, operation string) ([]*ObjectResource, erro
 
 	tracerx.Printf("api: batch %d files", len(objects))
 
-	res, objs, err := DoBatchRequest(req)
+	res, bresp, err := DoBatchRequest(req)
 
 	if err != nil {
 
 		if res == nil {
-			return nil, errutil.NewRetriableError(err)
+			return nil, "", errutil.NewRetriableError(err)
 		}
 
 		if res.StatusCode == 0 {
-			return nil, errutil.NewRetriableError(err)
+			return nil, "", errutil.NewRetriableError(err)
 		}
 
 		if errutil.IsAuthError(err) {
 			httputil.SetAuthType(req, res)
-			return Batch(objects, operation)
+			return Batch(objects, operation, transferAdapters)
 		}
 
 		switch res.StatusCode {
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, errutil.NewNotImplementedError(nil)
+			return nil, "", errutil.NewNotImplementedError(nil)
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, errutil.Error(err)
+		return nil, "", errutil.Error(err)
 	}
 	httputil.LogTransfer("lfs.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
+		return nil, "", errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
 	}
 
-	return objs, nil
+	return bresp.Objects, bresp.TransferAdapterName, nil
 }
 
 // Legacy calls the legacy API serially and returns ObjectResources

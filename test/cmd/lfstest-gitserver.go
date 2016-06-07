@@ -133,8 +133,8 @@ type lfsError struct {
 func lfsHandler(w http.ResponseWriter, r *http.Request) {
 	repo, err := repoFromLfsUrl(r.URL.Path)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -510,15 +510,15 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
 		w.WriteHeader(403)
+		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
 		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
 		w.WriteHeader(403)
+		w.Write([]byte(`{"message":"` + errmsg + `"}`))
 		return true
 	}
 

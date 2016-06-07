@@ -47,10 +47,10 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 // NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
 func NewDownloadCheckQueue(files int, size int64) *TransferQueue {
 	// Always dry run
-	return newTransferQueue(files, size, true, transfer.NewDownloadAdapter(transfer.BasicAdapterName))
+	return newTransferQueue(files, size, true, transfer.Download)
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
 func NewDownloadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	return newTransferQueue(files, size, dryRun, transfer.NewDownloadAdapter(transfer.BasicAdapterName))
+	return newTransferQueue(files, size, dryRun, transfer.Download)
 }

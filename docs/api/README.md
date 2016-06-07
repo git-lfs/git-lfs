@@ -7,12 +7,12 @@ flow might look like:
 push`) objects.
 2. The client contacts the Git LFS API to get information about transferring
 the objects.
-3. The client then transfers the objects through the storage API.
+3. The client then transfers the objects through the transfer API.
 
 ## HTTP API
 
 The Git LFS HTTP API is responsible for authenticating the user requests, and
-returning the proper info for the Git LFS client to use the storage API. By
+returning the proper info for the Git LFS client to use the transfer API. By
 default, API endpoint is based on the current Git remote. For example:
 
 ```
@@ -26,11 +26,17 @@ Git LFS endpoint: https://git-server.com/user/repo.git/info/lfs
 The [specification](/docs/spec.md) describes how clients can configure the Git LFS
 API endpoint manually.
 
-The [original v1 API][v1] is used for Git LFS v0.5.x. An experimental [v1
-batch API][batch] is in the works for v0.6.x.
+The [legacy v1 API][legacy] was used for Git LFS v0.5.x. From 0.6.x the 
+[batch API][batch] should always be used where available. 
 
-[v1]: ./http-v1-original.md
-[batch]: ./http-v1-batch.md
+[legacy]: ./v1/http-v1-legacy.md
+[batch]: ./v1/http-v1-batch.md
+
+From v1.3 there are [optional extensions to the batch API][batch v1.3] for more 
+flexible transfers.
+
+[batch v1.3]: ./v1.3/http-v1.3-batch.md
+
 
 ### Authentication
 
@@ -81,43 +87,19 @@ HTTPS is strongly encouraged for all production Git LFS servers.
 If your Git LFS server authenticates with NTLM then you must provide your credentials to `git-credential`
 in the form `username:DOMAIN\user password:password`.
 
-### Hypermedia
+## Transfer API
 
-The Git LFS API uses hypermedia hints to instruct the client what to do next.
-These links are included in a `_links` property.  Possible relations for objects
-include:
-
-* `self` - This points to the object's canonical API URL.
-* `download` - Follow this link with a GET and the optional header values to
-download the object content.
-* `upload` - Upload the object content to this link with a PUT.
-* `verify` - Optional link for the client to POST after an upload.  If
-included, the client assumes this step is required after uploading an object.
-See the "Verification" section below for more.
-
-Link relations specify the `href`, and optionally a collection of header values
-to set for the request.  These are optional, and depend on the backing object
-store that the Git LFS API is using.  
-
-The Git LFS client will automatically send the same credentials to the followed
-link relation as Basic Authentication IF:
-
-* The url scheme, host, and port all match the Git LFS API endpoint's.
-* The link relation does not specify an Authorization header.
-
-If the host name is different, the Git LFS API needs to send enough information
-through the href query or header values to authenticate the request.
-
-The Git LFS client expects a 200 or 201 response from these hypermedia requests.
-Any other response code is treated as an error.
-
-## Storage API
-
-The Storage API is a generic API for directly uploading and downloading objects.
+The transfer API is a generic API for directly uploading and downloading objects.
 Git LFS servers can offload object storage to cloud services like S3, or
 implemented natively in the Git LFS server. The only requirement is that
 hypermedia objects from the Git LFS API return the correct headers so clients
-can access the storage API properly.
+can access the transfer API properly.
+
+As of v1.3 there can be multiple ways files can be uploaded or downloaded, see
+the [v1.3 API doc](v1.3/http-v1.3-batch.md) for details. The following section
+describes the basic transfer method which is the default.
+
+### The basic transfer API
 
 The client downloads objects through individual GET requests. The URL and any
 special headers are provided by  a "download" hypermedia link:
@@ -125,7 +107,7 @@ special headers are provided by  a "download" hypermedia link:
 ```
 # the hypermedia object from the Git LFS API
 # {
-#   "_links": {
+#   "actions": {
 #     "download": {
 #       "href": "https://storage-server.com/OID",
 #       "header": {
@@ -152,7 +134,7 @@ are provided by an "upload" hypermedia link:
 ```
 # the hypermedia object from the Git LFS API
 # {
-#   "_links": {
+#   "actions": {
 #     "upload": {
 #       "href": "https://storage-server.com/OID",
 #       "header": {

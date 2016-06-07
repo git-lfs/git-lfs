@@ -1,12 +1,12 @@
 # Git LFS v1 Batch API
 
-The Git LFS Batch API works like the [original v1 API][v1], but uses a single
+The Git LFS Batch API works like the [legacy v1 API][v1], but uses a single
 endpoint that accepts multiple OIDs. All requests should have the following:
 
     Accept: application/vnd.git-lfs+json
     Content-Type: application/vnd.git-lfs+json
 
-[v1]: ./http-v1-original.md
+[v1]: ./http-v1-legacy.md
 
 This is a newer API introduced in Git LFS v0.5.2, and made the default in
 Git LFS v0.6.0. The client automatically detects if the server does not
@@ -21,7 +21,7 @@ manually through the Git config:
 
 ## Authentication
 
-The Batch API authenticates the same as the original v1 API with one exception:
+The Batch API authenticates the same as the legacy v1 API with one exception:
 The client will attempt to make requests without any authentication. This
 slight change allows anonymous access to public Git LFS objects. The client
 stores the result of this in the `lfs.<url>.access` config setting, where <url>
