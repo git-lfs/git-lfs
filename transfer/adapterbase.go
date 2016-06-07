@@ -99,6 +99,7 @@ func (a *adapterBase) worker(workerNum int) {
 		if signalAuthOnResponse {
 			authCallback = func() {
 				a.authWait.Done()
+				signalAuthOnResponse = false
 			}
 		}
 		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
@@ -109,9 +110,6 @@ func (a *adapterBase) worker(workerNum int) {
 			res := TransferResult{t, err}
 			a.outChan <- res
 		}
-
-		// Only need to signal for auth once
-		signalAuthOnResponse = false
 
 		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Object.Oid)
 	}
