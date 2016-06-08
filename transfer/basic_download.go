@@ -17,20 +17,16 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-const (
-	HttpRangeAdapterName = "http-range"
-)
-
-// Download adapter that can resume downloads using HTTP Range headers
-type httpRangeAdapter struct {
+// Adapter for basic HTTP downloads, includes resuming via HTTP Range
+type basicDownloadAdapter struct {
 	*adapterBase
 }
 
-func (a *httpRangeAdapter) ClearTempStorage() error {
+func (a *basicDownloadAdapter) ClearTempStorage() error {
 	return os.RemoveAll(a.tempDir())
 }
 
-func (a *httpRangeAdapter) tempDir() string {
+func (a *basicDownloadAdapter) tempDir() string {
 	// Must be dedicated to this adapter as deleted by ClearTempStorage
 	// Also make local to this repo not global, and separate to localstorage temp,
 	// which gets cleared at the end of every invocation
@@ -41,7 +37,7 @@ func (a *httpRangeAdapter) tempDir() string {
 	return d
 }
 
-func (a *httpRangeAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *basicDownloadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
 
 	f, fromByte, hashSoFar, err := a.checkResumeDownload(t)
 	if err != nil {
@@ -51,7 +47,7 @@ func (a *httpRangeAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, 
 }
 
 // Checks to see if a download can be resumed, and if so returns a non-nil locked file, byte start and hash
-func (a *httpRangeAdapter) checkResumeDownload(t *Transfer) (outFile *os.File, fromByte int64, hashSoFar hash.Hash, e error) {
+func (a *basicDownloadAdapter) checkResumeDownload(t *Transfer) (outFile *os.File, fromByte int64, hashSoFar hash.Hash, e error) {
 	// lock the file by opening it for read/write, rather than checking Stat() etc
 	// which could be subject to race conditions by other processes
 	f, err := os.OpenFile(a.downloadFilename(t), os.O_RDWR, 0644)
@@ -70,19 +66,19 @@ func (a *httpRangeAdapter) checkResumeDownload(t *Transfer) (outFile *os.File, f
 		f.Close()
 		return nil, 0, nil, err
 	}
-	tracerx.Printf("http-range: Attempting to resume download of %q from byte %d", t.Object.Oid, n)
+	tracerx.Printf("xfer: Attempting to resume download of %q from byte %d", t.Object.Oid, n)
 	return f, n, hash, nil
 
 }
 
 // Create or open a download file for resuming
-func (a *httpRangeAdapter) downloadFilename(t *Transfer) string {
+func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
 	// Not a temp file since we will be resuming it
 	return filepath.Join(a.tempDir(), t.Object.Oid+".tmp")
 }
 
 // download starts or resumes and download. Always closes dlFile if non-nil
-func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
+func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
 
 	if dlFile != nil {
 		// ensure we always close dlFile. Note that this does not conflict with the
@@ -112,7 +108,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
-			tracerx.Printf("http-range: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
+			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
@@ -149,7 +145,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 			failReason = fmt.Sprintf("expected status code 206, received %d", res.StatusCode)
 		}
 		if rangeRequestOk {
-			tracerx.Printf("http-range: server accepted resume download request: %q from byte %d", t.Object.Oid, fromByte)
+			tracerx.Printf("xfer: server accepted resume download request: %q from byte %d", t.Object.Oid, fromByte)
 			// Advance progress callback; must split into max int sizes though
 			const maxInt = int(^uint(0) >> 1)
 			for read := int64(0); read < fromByte; {
@@ -165,7 +161,7 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 			}
 		} else {
 			// Abort resume, perform regular download
-			tracerx.Printf("http-range: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Object.Oid, fromByte, failReason)
+			tracerx.Printf("xfer: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Object.Oid, fromByte, failReason)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
@@ -214,10 +210,6 @@ func (a *httpRangeAdapter) download(t *Transfer, cb TransferProgressCallback, au
 		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", t.Object.Oid, actual, written)
 	}
 
-	// Notice that on failure we do not delete the partially downloaded file.
-	// Instead we will resume next time
-	tracerx.Printf("http-range: successfully downloaded bytes %d to %d for %q ", fromByte, t.Object.Size, t.Object.Oid)
-
 	return tools.RenameFileCopyPermissions(dlfilename, t.Path)
 
 }
@@ -226,14 +218,14 @@ func init() {
 	newfunc := func(name string, dir Direction) TransferAdapter {
 		switch dir {
 		case Download:
-			hd := &httpRangeAdapter{newAdapterBase(name, dir, nil)}
+			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}
 			// self implements impl
-			hd.transferImpl = hd
-			return hd
+			bd.transferImpl = bd
+			return bd
 		case Upload:
-			panic("Should never ask a HTTP Range adapter to upload")
+			panic("Should never ask this func to upload")
 		}
 		return nil
 	}
-	RegisterNewTransferAdapterFunc(HttpRangeAdapterName, Download, newfunc)
+	RegisterNewTransferAdapterFunc(BasicAdapterName, Download, newfunc)
 }

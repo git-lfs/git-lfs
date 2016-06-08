@@ -14,8 +14,8 @@ begin_test "resume-http-range"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
 
-  # this string announces to server that we want http-range support and to
-  # interrupt the transfer when started from 0 to cause resume
+  # this string announces to server that we want a test that
+  # interrupts the transfer when started from 0 to cause resume
   contents="status-batch-resume-206"
   contents_oid=$(calc_oid "$contents")
 
@@ -37,7 +37,7 @@ begin_test "resume-http-range"
   # now fetch again, this should try to resume and server should send remainder
   # this time (it does not cut short when Range is requested)
   GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresume.log
-  grep "http-range: server accepted resume" fetchresume.log
+  grep "xfer: server accepted resume" fetchresume.log
   assert_local_object "$contents_oid" "${#contents}"
 
 )
@@ -56,8 +56,7 @@ begin_test "resume-http-range-fallback"
   grep "Tracking \*.dat" track.log
 
   # this string announces to server that we want it to abort the download part
-  # way and tell us it supports http-range, but reject the Range: header and
-  # fall back on re-downloading instead
+  # way, but reject the Range: header and fall back on re-downloading instead
   contents="batch-resume-fail-fallback"
   contents_oid=$(calc_oid "$contents")
 
@@ -79,7 +78,7 @@ begin_test "resume-http-range-fallback"
   # now fetch again, this should try to resume but server should reject the Range
   # header, which should cause client to re-download
   GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresumefallback.log
-  grep "http-range: server rejected resume" fetchresumefallback.log
+  grep "xfer: server rejected resume" fetchresumefallback.log
   # re-download should still have worked
   assert_local_object "$contents_oid" "${#contents}"
 

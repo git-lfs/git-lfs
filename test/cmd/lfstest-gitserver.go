@@ -345,14 +345,6 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			o.Err = &lfsError{Code: 422, Message: "welp"}
 		case "status-batch-500":
 			o.Err = &lfsError{Code: 500, Message: "welp"}
-		case "status-batch-resume-206", "batch-resume-fail-fallback":
-			for _, t := range objs.Transfers {
-				if t == "http-range" {
-					transferChoice = "http-range"
-					break
-				}
-			}
-			fallthrough
 		default: // regular 200 response
 			if addAction {
 				o.Actions = map[string]lfsLink{
