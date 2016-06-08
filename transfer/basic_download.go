@@ -164,7 +164,16 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 			tracerx.Printf("xfer: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Object.Oid, fromByte, failReason)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
-			return a.download(t, cb, authOkFunc, nil, 0, nil)
+			if res.StatusCode == 200 {
+				// If status code was 200 then server just ignored Range header and
+				// sent everything. Don't re-request, use this one from byte 0
+				dlFile = nil
+				fromByte = 0
+				hash = nil
+			} else {
+				// re-request needed
+				return a.download(t, cb, authOkFunc, nil, 0, nil)
+			}
 		}
 	}
 
