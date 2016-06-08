@@ -126,7 +126,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		if res.StatusCode == 206 {
 			// Probably a successful range request, check Content-Range
 			if rangeHdr := res.Header.Get("Content-Range"); rangeHdr != "" {
-				regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
+				regex := regexp.MustCompile(`bytes (\d+)\-.*`)
 				match := regex.FindStringSubmatch(rangeHdr)
 				if match != nil && len(match) > 1 {
 					contentStart, _ := strconv.ParseInt(match[1], 10, 32)
