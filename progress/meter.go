@@ -125,7 +125,7 @@ func (p *ProgressMeter) writer() {
 }
 
 func (p *ProgressMeter) update() {
-	if p.dryRun || p.estimatedFiles == 0 {
+	if p.dryRun || (p.estimatedFiles == 0 && p.skippedFiles == 0) {
 		return
 	}
 
