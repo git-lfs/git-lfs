@@ -47,7 +47,7 @@ To only run certain docker images, supply them as arguments, e.g.
 
     ./docker/run_docker.bsh debian_7
     ./docker/run_docker.bsh centos_7 debian_8
-    ./docker/run_docker.bsh centos_{5,6,7}
+    ./docker/run_docker.bsh centos_{6,7}
 
 And only those images will be run.
 
@@ -104,7 +104,7 @@ will be extracted from the images and saved in the `./repo` directory.
     ./docker/run_dockers.bsh centos_6_env centos_6
 
 This isn't all that important anymore, unless you want ruby2 and the gems used to
-make the man pages for Centos 5/6 where ruby2 is not natively available. Calling
+make the man pages for CentOS 6 where ruby2 is not natively available. Calling
 the environment building images only needs to be done once, they should remain in
 the `./repo` directory afterwards.
 
@@ -262,19 +262,9 @@ also work with 4096 bit RSA signing keys.
 CentOS will **not** work with subkeys[3]. CentOS 6 and 7 will work with 4096 bit 
 RSA signing keys
 
-CentOS 5 will **not** work with v4 signatures. The rpms will be so unrecognizable 
-that it can't even be installed with --nogpgcheck. It should work with RSA on v3.
-However, it does not. It builds v3 correctly, but for some reason the GPG check
-fails for RSA. CentOS 5 will **not** work with 2048 bit DSA keys... I suspect 
-2048 is too big for it to fathom. CentOS 5 **will** work with 1024 bit DSA keys.
-
 You can make a 4096 RSA key for Debian and CentOS 6/7 (4 for step 1 above, and
-4096 for step 2) and a 1024 DSA key for CentOS 5 (3 for step 1 above, and 1024
-for step 2. And be sure to make the key in a CentOS 5 docker.). And only have two
-keys... Or optionally a 4096 RSA subkey for Debain
-[1]. Or a key for each distro. Dealers choice. You should have least two since 
-1024 bit isn't that great and you are only using it for CentOS 5 because nothing
-else works.
+4096 for step 2). And only have two keys... Or optionally a 4096 RSA subkey for Debain
+[1]. Or a key for each distro. Dealers choice.
 
 [1] https://www.digitalocean.com/community/tutorials/how-to-use-reprepro-for-a-secure-package-repository-on-ubuntu-14-04
 
