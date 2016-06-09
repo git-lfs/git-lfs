@@ -129,7 +129,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 				regex := regexp.MustCompile(`bytes (\d+)\-.*`)
 				match := regex.FindStringSubmatch(rangeHdr)
 				if match != nil && len(match) > 1 {
-					contentStart, _ := strconv.ParseInt(match[1], 10, 32)
+					contentStart, _ := strconv.ParseInt(match[1], 10, 64)
 					if contentStart == fromByte {
 						rangeRequestOk = true
 					} else {
