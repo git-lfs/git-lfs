@@ -147,17 +147,19 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		if rangeRequestOk {
 			tracerx.Printf("xfer: server accepted resume download request: %q from byte %d", t.Object.Oid, fromByte)
 			// Advance progress callback; must split into max int sizes though
-			const maxInt = int(^uint(0) >> 1)
-			for read := int64(0); read < fromByte; {
-				remainder := fromByte - read
-				if remainder > int64(maxInt) {
-					read += int64(maxInt)
-					cb(t.Name, t.Object.Size, read, maxInt)
-				} else {
-					read += remainder
-					cb(t.Name, t.Object.Size, read, int(remainder))
-				}
+			if cb != nil {
+				const maxInt = int(^uint(0) >> 1)
+				for read := int64(0); read < fromByte; {
+					remainder := fromByte - read
+					if remainder > int64(maxInt) {
+						read += int64(maxInt)
+						cb(t.Name, t.Object.Size, read, maxInt)
+					} else {
+						read += remainder
+						cb(t.Name, t.Object.Size, read, int(remainder))
+					}
 
+				}
 			}
 		} else {
 			// Abort resume, perform regular download
