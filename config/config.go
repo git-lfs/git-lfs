@@ -227,6 +227,21 @@ func (c *Configuration) ConcurrentTransfers() int {
 	return uploads
 }
 
+// BasicTransfersOnly returns whether to only allow "basic" HTTP transfers
+func (c *Configuration) BasicTransfersOnly() bool {
+	value, ok := c.GitConfig("lfs.basictransfersonly")
+	if !ok || len(value) == 0 {
+		return false
+	}
+
+	basicOnly, err := parseConfigBool(value)
+	if err != nil {
+		return false
+	}
+
+	return basicOnly
+}
+
 func (c *Configuration) BatchTransfer() bool {
 	value, ok := c.GitConfig("lfs.batch")
 	if !ok || len(value) == 0 {

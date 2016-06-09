@@ -336,6 +336,35 @@ func TestConcurrentTransfersNegativeValue(t *testing.T) {
 	assert.Equal(t, 3, n)
 }
 
+func TestBasicTransfersOnlySetValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.basictransfersonly": "true",
+		},
+	}
+
+	b := config.BasicTransfersOnly()
+	assert.Equal(t, true, b)
+}
+
+func TestBasicTransfersOnlyDefault(t *testing.T) {
+	config := &Configuration{}
+
+	b := config.BasicTransfersOnly()
+	assert.Equal(t, false, b)
+}
+
+func TestBasicTransfersOnlyInvalidValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.basictransfersonly": "wat",
+		},
+	}
+
+	b := config.BasicTransfersOnly()
+	assert.Equal(t, false, b)
+}
+
 func TestBatch(t *testing.T) {
 	tests := map[string]bool{
 		"":         true,

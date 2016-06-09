@@ -72,6 +72,7 @@ func Environ() []string {
 		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
 		fmt.Sprintf("TempDir=%s", TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", config.Config.ConcurrentTransfers()),
+		fmt.Sprintf("BasicTransfersOnly=%v", config.Config.BasicTransfersOnly()),
 		fmt.Sprintf("BatchTransfer=%v", config.Config.BatchTransfer()),
 		fmt.Sprintf("SkipDownloadErrors=%v", config.Config.SkipDownloadErrors()),
 		fmt.Sprintf("FetchRecentAlways=%v", config.Config.FetchPruneConfig().FetchRecentAlways),

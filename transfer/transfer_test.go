@@ -3,6 +3,8 @@ package transfer
 import (
 	"testing"
 
+	"github.com/github/git-lfs/config"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -102,4 +104,21 @@ func testAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Download, da.Direction())
 	}
 
+}
+
+func testAdapterRegButBasicOnly(t *testing.T) {
+	assert := assert.New(t)
+
+	config.Config.SetConfig("lfs.basictransfersonly", "yes")
+	RegisterNewTransferAdapterFunc("test", Upload, newTestAdapter)
+	RegisterNewTransferAdapterFunc("test", Download, newTestAdapter)
+	// Will still be created if we ask for them
+	assert.NotNil(NewUploadAdapter("test"))
+	assert.NotNil(NewDownloadAdapter("test"))
+
+	// But list will exclude
+	ld := GetDownloadAdapterNames()
+	assert.Equal([]string{BasicAdapterName}, ld)
+	lu := GetUploadAdapterNames()
+	assert.Equal([]string{BasicAdapterName}, lu)
 }
