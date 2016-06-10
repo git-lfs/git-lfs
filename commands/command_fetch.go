@@ -289,6 +289,8 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 			q.Add(lfs.NewDownloadable(p))
 		} else {
+			// Ensure progress matches
+			q.Skip(p.Size)
 			if !passFilter {
 				tracerx.Printf("Skipping %v [%v], include/exclude filters applied", p.Name, p.Oid)
 			} else {

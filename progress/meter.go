@@ -23,7 +23,7 @@ type ProgressMeter struct {
 	currentBytes      int64
 	skippedBytes      int64
 	started           int32
-	estimatedFiles    int
+	estimatedFiles    int32
 	startTime         time.Time
 	finished          chan interface{}
 	logger            *progressLogger
@@ -46,7 +46,7 @@ func NewProgressMeter(estFiles int, estBytes int64, dryRun bool, logPath string)
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		finished:       make(chan interface{}),
-		estimatedFiles: estFiles,
+		estimatedFiles: int32(estFiles),
 		estimatedBytes: estBytes,
 		dryRun:         dryRun,
 	}
@@ -72,6 +72,10 @@ func (p *ProgressMeter) Add(name string) {
 func (p *ProgressMeter) Skip(size int64) {
 	atomic.AddInt64(&p.skippedFiles, 1)
 	atomic.AddInt64(&p.skippedBytes, size)
+	// Reduce bytes and files so progress easier to parse
+	atomic.AddInt32(&p.estimatedFiles, -1)
+	atomic.AddInt64(&p.estimatedBytes, -size)
+
 }
 
 // TransferBytes increments the number of bytes transferred
@@ -121,7 +125,7 @@ func (p *ProgressMeter) writer() {
 }
 
 func (p *ProgressMeter) update() {
-	if p.dryRun || p.estimatedFiles == 0 {
+	if p.dryRun || (p.estimatedFiles == 0 && p.skippedFiles == 0) {
 		return
 	}
 
