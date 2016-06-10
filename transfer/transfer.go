@@ -5,6 +5,8 @@ package transfer
 import (
 	"sync"
 
+	"github.com/github/git-lfs/config"
+
 	"github.com/github/git-lfs/api"
 	"github.com/rubyist/tracerx"
 )
@@ -104,6 +106,11 @@ func GetAdapterNames(dir Direction) []string {
 
 // GetDownloadAdapterNames returns a list of the names of download adapters available to be created
 func GetDownloadAdapterNames() []string {
+
+	if config.Config.BasicTransfersOnly() {
+		return []string{BasicAdapterName}
+	}
+
 	funcMutex.Lock()
 	defer funcMutex.Unlock()
 
@@ -116,6 +123,11 @@ func GetDownloadAdapterNames() []string {
 
 // GetUploadAdapterNames returns a list of the names of upload adapters available to be created
 func GetUploadAdapterNames() []string {
+
+	if config.Config.BasicTransfersOnly() {
+		return []string{BasicAdapterName}
+	}
+
 	funcMutex.Lock()
 	defer funcMutex.Unlock()
 
