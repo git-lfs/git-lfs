@@ -101,7 +101,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 			return fmt.Errorf("Cannot restart %v from %d without a file & hash", t.Object.Oid, fromByte)
 		}
 		// We could just use a start byte, but since we know the length be specific
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Object.Size))
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Object.Size-1))
 	}
 
 	res, err := httputil.DoHttpRequest(req, true)
