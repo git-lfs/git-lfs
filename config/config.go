@@ -228,6 +228,7 @@ func (c *Configuration) ConcurrentTransfers() int {
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers
+// Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
 	value, ok := c.GitConfig("lfs.basictransfersonly")
 	if !ok || len(value) == 0 {
