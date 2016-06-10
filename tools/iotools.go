@@ -51,6 +51,11 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb pr
 	return io.Copy(writer, cbReader)
 }
 
+// Get a new Hash instance of the type used to hash LFS content
+func NewLfsContentHash() hash.Hash {
+	return sha256.New()
+}
+
 // HashingReader wraps a reader and calculates the hash of the data as it is read
 type HashingReader struct {
 	reader io.Reader
@@ -58,7 +63,11 @@ type HashingReader struct {
 }
 
 func NewHashingReader(r io.Reader) *HashingReader {
-	return &HashingReader{r, sha256.New()}
+	return &HashingReader{r, NewLfsContentHash()}
+}
+
+func NewHashingReaderPreloadHash(r io.Reader, hash hash.Hash) *HashingReader {
+	return &HashingReader{r, hash}
 }
 
 func (r *HashingReader) Hash() string {
