@@ -39,7 +39,7 @@ been written. Roadmap items are linked to one or more Issue task lists ([example
 
 [chat]: https://gitter.im/github/git-lfs
 [roadmap]: ./ROADMAP.md
-[roadmap-items]: https://github.com/github/git-lfs/issues/490
+[roadmap-items]: https://github.com/xaxadmin/git-lfs/issues/490
 
 The Git LFS teams mark issues and pull requests with the following labels:
 
@@ -78,13 +78,13 @@ Git LFS depends on having a working Go 1.5+ environment, with your standard
 `$GOROOT` and `$GOPATH` environment variables set. The easiest way to download
 Git LFS for making changes is `go get`:
 
-    $ go get github.com/github/git-lfs
+    $ go get github.com/xaxadmin/git-lfs
 
 This clones the Git LFS repository to your `$GOPATH`. If you typically keep
 your projects in a specific directory, you can symlink it from `$GOPATH`:
 
     $ cd ~/path/to/your/projects
-    $ ln -s $GOPATH/src/github.com/github/git-lfs
+    $ ln -s $GOPATH/src/github.com/xaxadmin/git-lfs
 
 From here, run `script/bootstrap` to build Git LFS in the `./bin` directory.
 Before submitting changes, be sure to run the Go tests and the shell integration
@@ -105,27 +105,27 @@ tests:
 
 If you are the current maintainer:
 
-* Create a [new draft Release](https://github.com/github/git-lfs/releases/new).
+* Create a [new draft Release](https://github.com/xaxadmin/git-lfs/releases/new).
 List any changes with links to related PRs.
 * Make sure your local dependencies are up to date: `script/bootstrap`
 * Ensure that tests are green: `script/cibuild`
-* Bump the version in `lfs/lfs.go`, [like this](https://github.com/github/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
+* Bump the version in `lfs/lfs.go`, [like this](https://github.com/xaxadmin/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
 * Add the new version to the top of CHANGELOG.md
 * Build for all platforms with `script/bootstrap -all` (you need Go setup for
 cross compiling with Mac, Linux, FreeBSD, and Windows support).
 * Test the command locally.  The compiled version will be in `bin/releases/{os}-{arch}/git-lfs-{version}/git-lfs`
-* Get the draft Release ID from the GitHub API: `curl -in https://api.github.com/repos/github/git-lfs/releases`
+* Get the draft Release ID from the GitHub API: `curl -in https://api.github.com/repos/xaxadmin/git-lfs/releases`
 * Run `script/release -id {id}` to upload all of the compiled binaries to the
 release.
 * Publish the Release on GitHub.
-* Update [Git LFS website](https://github.com/github/git-lfs.github.com/blob/gh-pages/_config.yml#L4)
+* Update [Git LFS website](https://github.com/xaxadmin/git-lfs.github.com/blob/gh-pages/_config.yml#L4)
 (release engineer access rights required).
 * Ping external teams on GitHub:
   * @github/desktop
 * Build packages:
   * rpm
   * apt
-* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/github/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566)) 
+* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/xaxadmin/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/xaxadmin/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566)) 
 
 ## Resources
 
@@ -133,7 +133,7 @@ release.
 - [Using Pull Requests](https://help.github.com/articles/using-pull-requests/)
 - [GitHub Help](https://help.github.com)
 
-[fork]: https://github.com/github/git-lfs/fork
-[pr]: https://github.com/github/git-lfs/compare
+[fork]: https://github.com/xaxadmin/git-lfs/fork
+[pr]: https://github.com/xaxadmin/git-lfs/compare
 [style]: https://github.com/golang/go/wiki/CodeReviewComments
-[cla]: https://cla.github.com/github/git-lfs/accept
+[cla]: https://cla.github.com/xaxadmin/git-lfs/accept
