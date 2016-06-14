@@ -22,8 +22,8 @@ preferences.
 
 Note: Git LFS requires Git v1.8.2 or higher.
 
-One installed, you need to setup the global Git hooks for Git LFS. This only
-needs to be run once per machine.
+Once installed, you need to setup the global Git hooks for Git LFS. This only
+needs to be done once per machine.
 
 ```bash
 $ git lfs install
@@ -105,7 +105,7 @@ page][impl]. You can also join [the project's chat room][chat].
 ### Using LFS from other Go code
 
 At the moment git-lfs is only focussed on the stability of its command line
-interface, and the [server APIs](docs/api/README.md). The contents of the 
+interface, and the [server APIs](docs/api/README.md). The contents of the
 source packages is subject to change. We therefore currently discourage other
 Go code from depending on the git-lfs packages directly; an API to be used by
 external Go code may be provided in future.
