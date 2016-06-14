@@ -46,7 +46,7 @@ func (a *tusUploadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, 
 		return err
 	}
 	req.Header.Set("Tus-Resumable", TusVersion)
-	res, err := httputil.DoHttpRequest(req, true)
+	res, err := httputil.DoHttpRequest(req, false)
 	if err != nil {
 		return errutil.NewRetriableError(err)
 	}
@@ -127,7 +127,7 @@ func (a *tusUploadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, 
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err = httputil.DoHttpRequest(req, true)
+	res, err = httputil.DoHttpRequest(req, false)
 	if err != nil {
 		return errutil.NewRetriableError(err)
 	}
