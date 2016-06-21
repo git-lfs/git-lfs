@@ -122,7 +122,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	if verifyRemote {
 		config.Config.CurrentRemote = config.Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
-		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
+		verifyQueue = lfs.NewDownloadCheckQueue(0, 0)
 		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
 	}
 	for _, file := range localObjects {
@@ -136,7 +136,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 			if verifyRemote {
 				tracerx.Printf("VERIFYING: %v", file.Oid)
 				pointer := lfs.NewPointer(file.Oid, file.Size, nil)
-				verifyQueue.Add(lfs.NewDownloadCheckable(&lfs.WrappedPointer{Pointer: pointer}))
+				verifyQueue.Add(lfs.NewDownloadable(&lfs.WrappedPointer{Pointer: pointer}))
 			}
 		}
 	}

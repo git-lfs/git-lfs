@@ -26,6 +26,12 @@ lfs option can be scoped inside the configuration for a remote.
 
   The number of concurrent uploads/downloads. Default 3.
 
+* `lfs.basictransfersonly`
+
+  If set to true, only basic HTTP upload/download transfers will be used, 
+  ignoring any more advanced transfers that the client/server may support.
+  This is primarily to work around bugs or incompatibilities.
+
 * `lfs.batch`
 
   Whether to use the batch API instead of requesting objects individually.

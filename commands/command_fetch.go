@@ -50,7 +50,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Invalid ref argument: %v", args[1:])
 		}
 		refs = resolvedrefs
-	} else {
+	} else if !fetchAllArg {
 		ref, err := git.CurrentRef()
 		if err != nil {
 			Panic(err, "Could not fetch")
@@ -289,6 +289,8 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 			q.Add(lfs.NewDownloadable(p))
 		} else {
+			// Ensure progress matches
+			q.Skip(p.Size)
 			if !passFilter {
 				tracerx.Printf("Skipping %v [%v], include/exclude filters applied", p.Name, p.Oid)
 			} else {

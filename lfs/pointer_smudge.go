@@ -1,16 +1,15 @@
 package lfs
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/cheggaaa/pb"
+	"github.com/github/git-lfs/tools"
+	"github.com/github/git-lfs/transfer"
+
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
@@ -74,140 +73,38 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	return nil
 }
 
-// PointerSmudgeObject uses a Pointer and ObjectResource to download the object to the
-// media directory. It does not write the file to the working directory.
-func PointerSmudgeObject(ptr *Pointer, obj *api.ObjectResource, cb progress.CopyCallback) error {
-	mediafile, err := LocalMediaPath(obj.Oid)
-	if err != nil {
-		return err
-	}
-
-	stat, statErr := os.Stat(mediafile)
-	if statErr == nil && stat != nil {
-		fileSize := stat.Size()
-		if fileSize == 0 || fileSize != obj.Size {
-			tracerx.Printf("Removing %s, size %d is invalid", mediafile, fileSize)
-			os.RemoveAll(mediafile)
-			stat = nil
-		}
-	}
-
-	if statErr != nil || stat == nil {
-		err := downloadObject(ptr, obj, mediafile, cb)
-
-		if err != nil {
-			return errutil.NewSmudgeError(err, obj.Oid, mediafile)
-		}
-	}
-
-	return nil
-}
-
-func downloadObject(ptr *Pointer, obj *api.ObjectResource, mediafile string, cb progress.CopyCallback) error {
-	reader, size, err := api.DownloadObject(obj)
-	if reader != nil {
-		defer reader.Close()
-	}
-
-	if err != nil {
-		return errutil.Errorf(err, "Error downloading %s", mediafile)
-	}
-
-	if ptr.Size == 0 {
-		ptr.Size = size
-	}
-
-	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
-		return errutil.Errorf(err, "Error buffering media file: %s", err)
-	}
-
-	return nil
-}
-
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
-	reader, size, err := api.Download(filepath.Base(mediafile), ptr.Size)
-	if reader != nil {
-		defer reader.Close()
-	}
 
+	xfers := transfer.GetDownloadAdapterNames()
+	obj, adapterName, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
 		return errutil.Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}
 
 	if ptr.Size == 0 {
-		ptr.Size = size
+		ptr.Size = obj.Size
 	}
 
-	if err := bufferDownloadedFile(mediafile, reader, ptr.Size, cb); err != nil {
-		return errutil.Errorf(err, "Error buffering media file: %s", err)
+	adapter := transfer.NewDownloadAdapter(adapterName)
+	var tcb transfer.TransferProgressCallback
+	if cb != nil {
+		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {
+			return cb(totalSize, readSoFar, readSinceLast)
+		}
+	}
+	// Single download
+	adapterResultChan := make(chan transfer.TransferResult, 1)
+	adapter.Begin(1, tcb, adapterResultChan)
+	adapter.Add(transfer.NewTransfer(filepath.Base(workingfile), obj, mediafile))
+	adapter.End()
+	res := <-adapterResultChan
+
+	if res.Error != nil {
+		return errutil.Errorf(err, "Error buffering media file: %s", res.Error)
 	}
 
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
-}
-
-// Writes the content of reader to filename atomically by writing to a temp file
-// first, and confirming the content SHA-256 is valid. This is basically a copy
-// of atomic.WriteFile() at:
-//
-//   https://github.com/natefinch/atomic/blob/a62ce929ffcc871a51e98c6eba7b20321e3ed62d/atomic.go#L12-L17
-//
-// filename - Absolute path to a file to write, with the filename a 64 character
-//            SHA-256 hex signature.
-// reader   - Any io.Reader
-// size     - Expected byte size of the content. Used for the progress bar in
-//            the optional CopyCallback.
-// cb       - Optional CopyCallback object for providing download progress to
-//            external Git LFS tools.
-func bufferDownloadedFile(filename string, reader io.Reader, size int64, cb progress.CopyCallback) error {
-	oid := filepath.Base(filename)
-	f, err := ioutil.TempFile(LocalObjectTempDir(), oid+"-")
-	if err != nil {
-		return fmt.Errorf("cannot create temp file: %v", err)
-	}
-
-	defer func() {
-		if err != nil {
-			// Don't leave the temp file lying around on error.
-			_ = os.Remove(f.Name()) // yes, ignore the error, not much we can do about it.
-		}
-	}()
-
-	hasher := newHashingReader(reader)
-
-	// ensure we always close f. Note that this does not conflict with  the
-	// close below, as close is idempotent.
-	defer f.Close()
-	name := f.Name()
-	written, err := CopyWithCallback(f, hasher, size, cb)
-	if err != nil {
-		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
-	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("can't close tempfile %q: %v", name, err)
-	}
-
-	if actual := hasher.Hash(); actual != oid {
-		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", oid, actual, written)
-	}
-
-	// get the file mode from the original file and use that for the replacement
-	// file, too.
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		// no original file
-	} else if err != nil {
-		return err
-	} else {
-		if err := os.Chmod(name, info.Mode()); err != nil {
-			return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
-		}
-	}
-
-	if err := os.Rename(name, filename); err != nil {
-		return fmt.Errorf("cannot replace %q with tempfile %q: %v", filename, name, err)
-	}
-	return nil
 }
 
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) error {
@@ -286,35 +183,10 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		defer reader.Close()
 	}
 
-	_, err = CopyWithCallback(writer, reader, ptr.Size, cb)
+	_, err = tools.CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
 		return errutil.Errorf(err, "Error reading from media file: %s", err)
 	}
 
 	return nil
-}
-
-type hashingReader struct {
-	reader io.Reader
-	hasher hash.Hash
-}
-
-func newHashingReader(r io.Reader) *hashingReader {
-	return &hashingReader{r, sha256.New()}
-}
-
-func (r *hashingReader) Hash() string {
-	return hex.EncodeToString(r.hasher.Sum(nil))
-}
-
-func (r *hashingReader) Read(b []byte) (int, error) {
-	w, err := r.reader.Read(b)
-	if err == nil || err == io.EOF {
-		_, e := r.hasher.Write(b[0:w])
-		if e != nil && err == nil {
-			return w, e
-		}
-	}
-
-	return w, err
 }

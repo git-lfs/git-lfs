@@ -49,6 +49,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
+		"status-batch-resume-206", "batch-resume-fail-fallback",
 	}
 )
 
@@ -140,8 +141,8 @@ type lfsError struct {
 func lfsHandler(w http.ResponseWriter, r *http.Request) {
 	repo, err := repoFromLfsUrl(r.URL.Path)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -291,8 +292,13 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	}
 
 	type batchReq struct {
+		Transfers []string    `json:"transfers"`
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`
+	}
+	type batchResp struct {
+		Transfer string      `json:"transfer,omitempty"`
+		Objects  []lfsObject `json:"objects"`
 	}
 
 	buf := &bytes.Buffer{}
@@ -311,6 +317,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
+	var transferChoice string
 	for _, obj := range objs.Objects {
 		action := objs.Operation
 
@@ -362,7 +369,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		res = append(res, o)
 	}
 
-	ores := map[string][]lfsObject{"objects": res}
+	ores := batchResp{Transfer: transferChoice, Objects: res}
 
 	by, err := json.Marshal(ores)
 	if err != nil {
@@ -376,12 +383,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	w.Write(by)
 }
 
+// Persistent state across requests
+var batchResumeFailFallbackStorageAttempts = 0
+
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
-
 	if missingRequiredCreds(w, r, repo) {
 		return
 	}
@@ -434,9 +443,46 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		parts := strings.Split(r.URL.Path, "/")
 		oid := parts[len(parts)-1]
+		statusCode := 200
+		byteLimit := 0
+		resumeAt := int64(0)
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			w.Write(by)
+			if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+				// Resume if header includes range, otherwise deliberately interrupt
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
+					match := regex.FindStringSubmatch(rangeHdr)
+					if match != nil && len(match) > 1 {
+						statusCode = 206
+						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
+						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
+					}
+				} else {
+					byteLimit = 10
+				}
+			} else if len(by) == len("batch-resume-fail-fallback") && string(by) == "batch-resume-fail-fallback" {
+				// Fail any Range: request even though we said we supported it
+				// To make sure client can fall back
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					w.WriteHeader(416)
+					return
+				}
+				if batchResumeFailFallbackStorageAttempts == 0 {
+					// Truncate output on FIRST attempt to cause resume
+					// Second attempt (without range header) is fallback, complete successfully
+					byteLimit = 8
+					batchResumeFailFallbackStorageAttempts++
+				}
+			}
+			w.WriteHeader(statusCode)
+			if byteLimit > 0 {
+				w.Write(by[0:byteLimit])
+			} else if resumeAt > 0 {
+				w.Write(by[resumeAt:])
+			} else {
+				w.Write(by)
+			}
 			return
 		}
 
@@ -728,15 +774,15 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
 		w.WriteHeader(403)
+		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
 		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
 		w.WriteHeader(403)
+		w.Write([]byte(`{"message":"` + errmsg + `"}`))
 		return true
 	}
 

@@ -8,7 +8,7 @@ import (
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/transfer"
 )
 
 // Uploadable describes a file that can be uploaded.
@@ -18,6 +18,35 @@ type Uploadable struct {
 	Filename string
 	size     int64
 	object   *api.ObjectResource
+}
+
+func (u *Uploadable) Object() *api.ObjectResource {
+	return u.object
+}
+
+func (u *Uploadable) Oid() string {
+	return u.oid
+}
+
+func (u *Uploadable) Size() int64 {
+	return u.size
+}
+
+func (u *Uploadable) Name() string {
+	return u.Filename
+}
+
+func (u *Uploadable) SetObject(o *api.ObjectResource) {
+	u.object = o
+}
+
+func (u *Uploadable) Path() string {
+	return u.OidPath
+}
+
+// TODO LEGACY API: remove when legacy API removed
+func (u *Uploadable) LegacyCheck() (*api.ObjectResource, error) {
+	return api.UploadCheck(u.Oid(), u.Size())
 }
 
 // NewUploadable builds the Uploadable from the given information.
@@ -42,61 +71,9 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil
 }
 
-func (u *Uploadable) Check() (*api.ObjectResource, error) {
-	return api.UploadCheck(u.OidPath)
-}
-
-func (u *Uploadable) Transfer(cb progress.CopyCallback) error {
-	wcb := func(total, read int64, current int) error {
-		cb(total, read, current)
-		return nil
-	}
-
-	path, err := LocalMediaPath(u.object.Oid)
-	if err != nil {
-		return errutil.Error(err)
-	}
-
-	file, err := os.Open(path)
-	if err != nil {
-		return errutil.Error(err)
-	}
-	defer file.Close()
-
-	reader := &progress.CallbackReader{
-		C:         wcb,
-		TotalSize: u.object.Size,
-		Reader:    file,
-	}
-
-	return api.UploadObject(u.object, reader)
-}
-
-func (u *Uploadable) Object() *api.ObjectResource {
-	return u.object
-}
-
-func (u *Uploadable) Oid() string {
-	return u.oid
-}
-
-func (u *Uploadable) Size() int64 {
-	return u.size
-}
-
-func (u *Uploadable) Name() string {
-	return u.Filename
-}
-
-func (u *Uploadable) SetObject(o *api.ObjectResource) {
-	u.object = o
-}
-
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
 func NewUploadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	q := newTransferQueue(files, size, dryRun)
-	q.transferKind = "upload"
-	return q
+	return newTransferQueue(files, size, dryRun, transfer.Upload)
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
