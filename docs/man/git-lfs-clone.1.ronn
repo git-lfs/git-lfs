@@ -19,6 +19,23 @@ downloads performed by 'git lfs pull'.
 
 All options supported by 'git clone'
 
+* `-I` <paths> `--include=`<paths>:
+  See [INCLUDE AND EXCLUDE]
+
+* `-X` <paths> `--exclude=`<paths>:
+  See [INCLUDE AND EXCLUDE]
+
+## INCLUDE AND EXCLUDE
+
+You can configure Git LFS to only fetch objects to satisfy references in certain
+paths of the repo, and/or to exclude certain paths of the repo, to reduce the
+time you spend downloading things you do not use.
+
+In lfsconfig, set lfs.fetchinclude and lfs.fetchexclude to comma-separated lists
+of paths to include/exclude in the fetch (wildcard matching as per gitignore).
+Only paths which are matched by fetchinclude and not matched by fetchexclude
+will have objects fetched for them.
+
 ## SEE ALSO
 
 git-clone(1), git-lfs-pull(1).
