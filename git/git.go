@@ -67,12 +67,21 @@ func ResolveRef(ref string) (*Ref, error) {
 	if err != nil {
 		return nil, err
 	}
-	lines := strings.Split(outp, "\n")
-	if len(lines) <= 1 {
+	if outp == "" {
 		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
 	}
 
+	lines := strings.Split(outp, "\n")
 	fullref := &Ref{Sha: lines[0]}
+
+	if len(lines) == 1 {
+		// ref is a sha1 and has no symbolic-full-name
+		fullref.Name = lines[0] // fullref.Sha
+		fullref.Type = RefTypeOther
+		return fullref, nil
+	}
+
+	// parse the symbolic-full-name
 	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
 	return fullref, nil
 }

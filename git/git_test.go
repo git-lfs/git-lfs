@@ -71,6 +71,10 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	remote, err := RemoteForCurrentBranch()
 	assert.Nil(t, err)
 	assert.Equal(t, "origin", remote)
+
+	ref, err = ResolveRef(outputs[2].Sha)
+	assert.Nil(t, err)
+	assert.Equal(t, &Ref{outputs[2].Sha, RefTypeOther, outputs[2].Sha}, ref)
 }
 
 func TestRecentBranches(t *testing.T) {
