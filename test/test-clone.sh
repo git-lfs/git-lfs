@@ -273,11 +273,11 @@ begin_test "clone (with include/exclude args)"
 )
 end_test
 
-begin_test "clone (with include .lfsconfig)"
+begin_test "clone (with .lfsconfig)"
 (
   set -e
 
-  reponame="clone_include_lfsconfig"
+  reponame="clone_with_lfsconfig"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -292,74 +292,75 @@ begin_test "clone (with include .lfsconfig)"
   contents_b_oid=$(calc_oid "$contents_b")
   printf "$contents_b" > "b.dat"
 
-  git config -f ".lfsconfig" "lfs.fetchinclude" "a*"
 
-  git add a.dat b.dat .gitattributes .lfsconfig
+
+  git add a.dat b.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
-  grep "4 files changed" commit.log
+  grep "3 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 b.dat" commit.log
-  grep "create mode 100644 .lfsconfig" commit.log
   grep "create mode 100644 .gitattributes" commit.log
+
+  git config -f ".lfsconfig" "lfs.fetchinclude" "a*"
+  git add ".lfsconfig"
+  git commit -m "config lfs.fetchinclude a*" 2>&1 | tee commit.log
+  grep "master" commit.log
+  grep "1 file changed" commit.log
+  grep "create mode 100644 .lfsconfig" commit.log
 
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
   grep "Git LFS: (2 of 2 files)" push.log
 
-  cd "$TRASHDIR"
+  pushd "$TRASHDIR"
 
-  local_reponame="clone_with_config_includes"
+  echo "test: clone with lfs.fetchinclude in .lfsconfig"
+  local_reponame="clone_with_config_include"
   git lfs clone "$GITSERVER/$reponame" "$local_reponame"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
   popd
-)
-end_test
 
-begin_test "clone (with exclude .lfsconfig)"
-(
-  set -e
+  echo "test: clone with lfs.fetchinclude in .lfsconfig, and args"
+  local_reponame="clone_with_config_include_and_args"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "b.dat"
+  pushd "$local_reponame"
+  refute_local_object "$contents_a_oid"
+  assert_local_object "$contents_b_oid" 1
+  popd
 
-  reponame="clone_exclude_lfsconfig"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" "$reponame"
-
-  git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
-
-  contents_a="a"
-  contents_a_oid=$(calc_oid "$contents_a")
-  printf "$contents_a" > "a.dat"
-
-  contents_b="b"
-  contents_b_oid=$(calc_oid "$contents_b")
-  printf "$contents_b" > "b.dat"
+  popd
 
   git config -f ".lfsconfig" "lfs.fetchinclude" "b*"
   git config -f ".lfsconfig" "lfs.fetchexclude" "a*"
-
-  git add a.dat b.dat .gitattributes .lfsconfig
-  git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
-  grep "4 files changed" commit.log
-  grep "create mode 100644 a.dat" commit.log
-  grep "create mode 100644 b.dat" commit.log
-  grep "create mode 100644 .lfsconfig" commit.log
-  grep "create mode 100644 .gitattributes" commit.log
-
+  git add .lfsconfig
+  git commit -m "config lfs.fetchinclude a*" 2>&1 | tee commit.log
+  grep "master" commit.log
+  grep "1 file changed" commit.log
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
-  grep "Git LFS: (2 of 2 files)" push.log
 
-  cd "$TRASHDIR"
+  pushd "$TRASHDIR"
 
-  local_reponame="clone_with_config_excludes"
+  echo "test: clone with lfs.fetchexclude in .lfsconfig"
+  local_reponame="clone_with_config_exclude"
   git lfs clone "$GITSERVER/$reponame" "$local_reponame"
   pushd "$local_reponame"
+  cat ".lfsconfig"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
+  popd
+
+  echo "test: clone with lfs.fetchexclude in .lfsconfig, and args"
+  local_reponame="clone_with_config_exclude_and_args"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a.dat" -X "b.dat"
+  pushd "$local_reponame"
+  assert_local_object "$contents_a_oid" 1
+  refute_local_object "$contents_b_oid"
+  popd
+
   popd
 )
 end_test
