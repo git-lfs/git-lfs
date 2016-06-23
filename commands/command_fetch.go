@@ -50,7 +50,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Invalid ref argument: %v", args[1:])
 		}
 		refs = resolvedrefs
-	} else {
+	} else if !fetchAllArg {
 		ref, err := git.CurrentRef()
 		if err != nil {
 			Panic(err, "Could not fetch")
