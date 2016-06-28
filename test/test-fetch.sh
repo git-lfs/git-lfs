@@ -80,6 +80,20 @@ begin_test "fetch"
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
 
+  # test with master commit sha1 specified
+  rm -rf .git/lfs/objects
+  master_sha1=$(git rev-parse master)
+  git lfs fetch origin "$master_sha1"
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$b_oid" 1
+
+  # test with newbranch commit sha1 specified
+  rm -rf .git/lfs/objects
+  newbranch_sha1=$(git rev-parse newbranch)
+  git lfs fetch origin "$newbranch_sha1"
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
+
   # Test include / exclude filters supplied in gitconfig
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "a*"

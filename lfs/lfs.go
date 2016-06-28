@@ -14,6 +14,10 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+const (
+	Version = "1.2.1"
+)
+
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
 )
