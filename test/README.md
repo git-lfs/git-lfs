@@ -77,6 +77,9 @@ and the remote repository data in `test/remote`.
 tests when you're running the same test script multiple times without changing
 any Go code.
 
+Also ensure that your `noproxy` environment variable contains `127.0.0.1` host,
+to allow git commands to reach the local Git server `lfstest-gitserver`.
+
 ### Test Suite
 
 The `testenv.sh` script includes some global variables used in tests.  This
