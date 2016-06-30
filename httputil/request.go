@@ -56,8 +56,14 @@ func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) 
 
 	if err != nil {
 		if errutil.IsAuthError(err) {
-			SetAuthType(req, res)
-			doHttpRequest(req, creds)
+			authType := GetAuthType(res)
+			oldAuthType := SetAuthType(req, authType)
+			if authType != oldAuthType {
+				tracerx.Printf("api: http response indicates %q authentication. (old was %q) Resubmitting...", authType, oldAuthType)
+				doHttpRequest(req, creds)
+			} else {
+				err = errutil.Error(err)
+			}
 		} else {
 			err = errutil.Error(err)
 		}
@@ -164,11 +170,11 @@ func NewHttpRequest(method, rawurl string, header map[string]string) (*http.Requ
 	return req, nil
 }
 
-func SetAuthType(req *http.Request, res *http.Response) {
-	authType := GetAuthType(res)
+func SetAuthType(req *http.Request, authType string) string {
 	operation := auth.GetOperationForRequest(req)
+	oldAuthType := config.Config.Access(operation)
 	config.Config.SetAccess(operation, authType)
-	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
+	return oldAuthType
 }
 
 func GetAuthType(res *http.Response) string {
