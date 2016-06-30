@@ -85,8 +85,11 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 		}
 
 		if errutil.IsAuthError(err) {
-			httputil.SetAuthType(req, res)
-			return Batch(objects, operation, transferAdapters)
+			authType := httputil.GetAuthType(res)
+			oldAuthType := httputil.SetAuthType(req, authType)
+			if authType != oldAuthType {
+				return Batch(objects, operation, transferAdapters)				
+			}
 		}
 
 		switch res.StatusCode {
@@ -179,7 +182,7 @@ func UploadCheck(oid string, size int64) (*ObjectResource, error) {
 
 	if err != nil {
 		if errutil.IsAuthError(err) {
-			httputil.SetAuthType(req, res)
+			httputil.SetAuthType(req, httputil.GetAuthType(res))
 			return UploadCheck(oid, size)
 		}
 
