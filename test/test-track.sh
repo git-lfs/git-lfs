@@ -45,6 +45,45 @@ begin_test "track"
 )
 end_test
 
+begin_test "track --no-touch"
+(
+  set -e
+
+  reponame="track_no_touch"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  touch foo.dat
+  git add foo.dat
+
+  original_atime="$(stat -f '%a' foo.dat)"
+
+  sleep 1
+  git lfs track --no-touch "foo.dat"
+  new_atime="$(stat -f '%a' foo.dat)"
+
+  [ "$original_atime" -eq "$new_atime" ]
+)
+end_test
+
+begin_test "track --verbose"
+(
+  set -e
+
+  reponame="track_verbose_logs"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  touch foo.dat
+  git add foo.dat
+
+  git lfs track --verbose "foo.dat" 2>&1 > track.log
+  grep "touching foo.dat" track.log
+)
+end_test
+
 begin_test "track directory"
 (
   set -e

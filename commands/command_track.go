@@ -25,6 +25,9 @@ var (
 		Use: "track",
 		Run: trackCommand,
 	}
+
+	trackNoTouchFlag        bool
+	trackVerboseLoggingFlag bool
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -114,11 +117,18 @@ ArgsLoop:
 		}
 		Print("Tracking %s", pattern)
 
-		for _, f := range gittracked {
-			err := os.Chtimes(f, now, now)
-			if err != nil {
-				LoggedError(err, "Error marking %q modified", f)
-				continue
+		if !trackNoTouchFlag {
+			now := time.Now()
+			for _, f := range gittracked {
+				if trackVerboseLoggingFlag {
+					Print("Git LFS Track: touching %s", f)
+				}
+
+				err := os.Chtimes(f, now, now)
+				if err != nil {
+					LoggedError(err, "Error marking %q modified", f)
+					continue
+				}
 			}
 		}
 	}
@@ -217,5 +227,8 @@ func blocklistItem(name string) string {
 }
 
 func init() {
+	trackCmd.Flags().BoolVarP(&trackNoTouchFlag, "no-touch", "n", false, "skip modifying files matched by the glob")
+	trackCmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
+
 	RootCmd.AddCommand(trackCmd)
 }
