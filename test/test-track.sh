@@ -57,13 +57,9 @@ begin_test "track --no-touch"
   touch foo.dat
   git add foo.dat
 
-  original_atime="$(stat -f '%a' foo.dat)"
+  git lfs track -v --no-touch "foo.dat" 2>&1 > track.log
 
-  sleep 1
-  git lfs track --no-touch "foo.dat"
-  new_atime="$(stat -f '%a' foo.dat)"
-
-  [ "$original_atime" -eq "$new_atime" ]
+  [ "0" -eq "$(grep -c 'Git LFS: touching foo.dat' track.log)" ]
 )
 end_test
 
