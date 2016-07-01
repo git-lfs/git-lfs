@@ -91,11 +91,13 @@ ArgsLoop:
 		// Since all `git-lfs track` calls are relative to the root of
 		// the repository, the leading slash is simply removed for its
 		// implicit counterpart.
+		Print("Searching for files matching pattern: %s", pattern)
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
 			LoggedError(err, "Error getting git tracked files")
 			continue
 		}
+		Print("Found %d files matching pattern: %s", len(gittracked), pattern)
 		now := time.Now()
 
 		var matchedBlocklist bool
