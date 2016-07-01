@@ -119,12 +119,18 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	var verifiedObjects lfs.StringSet
 	var totalSize int64
 	var verboseOutput bytes.Buffer
+	var verifyc chan string
+
 	if verifyRemote {
 		config.Config.CurrentRemote = config.Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
 		verifyQueue = lfs.NewDownloadCheckQueue(0, 0, true)
 		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
+
+		// this channel is filled with oids for which Check() succeeded & Transfer() was called
+		verifyc = verifyQueue.Watch()
 	}
+
 	for _, file := range localObjects {
 		if !retainedObjects.Contains(file.Oid) {
 			prunableObjects = append(prunableObjects, file.Oid)
@@ -133,6 +139,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 				// Save up verbose output for the end, spinner still going
 				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", file.Oid, humanizeBytes(file.Size)))
 			}
+
 			if verifyRemote {
 				tracerx.Printf("VERIFYING: %v", file.Oid)
 				pointer := lfs.NewPointer(file.Oid, file.Size, nil)
@@ -142,8 +149,6 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	}
 
 	if verifyRemote {
-		// this channel is filled with oids for which Check() succeeded & Transfer() was called
-		verifyc := verifyQueue.Watch()
 		var verifywait sync.WaitGroup
 		verifywait.Add(1)
 		go func() {
