@@ -21,6 +21,17 @@ the currently-tracked paths.
   If enabled, have `git lfs track` log files which it will touch. Disabled by
   default.
 
+* `--dry-run` `d`:
+  If enabled, have `git lfs track` log all actions it would normally take
+  (adding entries to .gitattributes, touching files on disk, etc) without
+  preforming any mutative operations to the disk.
+
+  `git lfs track --dry-run [files]` is equivalent to calling
+  `git lfs track --no-touch --verbose` and reverting any changes made to
+  .gitattributes.
+
+  Disabled by default.
+
 ## EXAMPLES
 
 * List the paths that Git LFS is currently tracking:
