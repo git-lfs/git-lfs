@@ -17,6 +17,10 @@ import (
 )
 
 var (
+	blacklistedTrackArguments = []string{
+		".gitattributes", // TODO
+	}
+
 	trackCmd = &cobra.Command{
 		Use: "track",
 		Run: trackCommand,
@@ -67,6 +71,11 @@ func trackCommand(cmd *cobra.Command, args []string) {
 
 ArgsLoop:
 	for _, pattern := range args {
+		if forbidden := isBlacklisted(pattern); forbidden != "" {
+			Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, forbidden, forbidden)
+			continue
+		}
+
 		for _, known := range knownPaths {
 			if known.Path == filepath.Join(relpath, pattern) {
 				Print("%s already supported", pattern)
@@ -179,6 +188,16 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
+}
+
+func isBlacklisted(pattern string) string {
+	for _, b := range blacklistedTrackArguments {
+		if matched, _ := filepath.Match(pattern, b); matched {
+			return b
+		}
+	}
+
+	return ""
 }
 
 func init() {
