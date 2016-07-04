@@ -499,23 +499,21 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 	case "HEAD":
 		// tus.io
-		if len(r.Header.Get("Tus-Resumable")) == 0 {
-			log.Fatal("Missing Tus-Resumable header in request")
+		if !validateTusHeaders(r) {
 			w.WriteHeader(400)
 			return
 		}
 		parts := strings.Split(r.URL.Path, "/")
 		oid := parts[len(parts)-1]
+		var offset int64
 		if by, ok := largeObjects.GetIncomplete(repo, oid); ok {
-			w.Header().Set("Upload-Offset", strconv.FormatInt(int64(len(by)), 10))
-		} else {
-			w.Header().Set("Upload-Offset", "0")
+			offset = int64(len(by))
 		}
+		w.Header().Set("Upload-Offset", strconv.FormatInt(offset, 10))
 		w.WriteHeader(200)
 	case "PATCH":
 		// tus.io
-		if len(r.Header.Get("Tus-Resumable")) == 0 {
-			log.Fatal("Missing Tus-Resumable header in request")
+		if !validateTusHeaders(r) {
 			w.WriteHeader(400)
 			return
 		}
@@ -592,6 +590,15 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(405)
 	}
+}
+
+func validateTusHeaders(r *http.Request) bool {
+	if len(r.Header.Get("Tus-Resumable")) == 0 {
+		log.Fatal("Missing Tus-Resumable header in request")
+		return false
+	}
+	return true
+
 }
 
 func gitHandler(w http.ResponseWriter, r *http.Request) {
