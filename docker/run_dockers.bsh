@@ -2,7 +2,7 @@
 
 # Usage: 
 #  ./run_dockers.bsh - Run all the docker images
-#  ./run_dockers.bsh centos_5 centos_7 - Run only CentOS 5 & 7 image
+#  ./run_dockers.bsh centos_6 centos_7 - Run only CentOS 6 & 7 image
 #  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker 
 #
 # Special Environmet Variables
@@ -54,7 +54,7 @@ while [[ $# > 0 ]]; do
 done
 
 if [[ ${#IMAGES[@]} == 0 ]]; then
-  IMAGES=(centos_5 centos_6 centos_7 debian_7 debian_8)
+  IMAGES=(centos_6 centos_7 debian_7 debian_8)
 fi
 
 mkdir -p "${PACKAGE_DIR}"

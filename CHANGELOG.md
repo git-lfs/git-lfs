@@ -1,5 +1,30 @@
 # Git LFS Changelog
 
+## 1.2.1 (2 June 2016)
+
+### Features
+
+* Add missing config details to `env` command #1217 (@sinbad)
+* Allow smudge filter to return 0 on download failure #1213 (@sinbad)
+* Add `git lfs update --manual` option & promote it on hook install fail #1182 (@sinbad)
+* Pass `git lfs clone` flags through to `git clone` correctly, respect some options #1160 (@sinbad)
+
+### Bugs
+
+* Clean trailing `/` from include/exclude paths #1278 (@ttaylorr)
+* Fix problems with user prompts in `git lfs clone` #1185 (@sinbad)
+* Fix failure to return non-zero exit code when lfs install/update fails to install hooks #1178 (@sinbad)
+* Fix missing man page #1149 (@javabrett)
+* fix concurrent map read and map write #1179 (@technoweenie)
+
+### Misc
+
+* Allow additional fields on request & response schema #1276 (@sinbad)
+* Fix installer error on win32. #1198 (@teo-tsirpanis)
+* Applied same -ldflags -X name value -> name=value fix #1193 (@javabrett)
+* add instructions to install from MacPorts #1186 (@skymoo)
+* Add xenial repo #1170 (@graingert)
+
 ## 1.2.0 (14 April 2016)
 
 ### Features
@@ -18,7 +43,7 @@
 * Fix silent failure to push LFS objects when ref matches a filename in the working copy #1096 (@epriestley)
 * Fix problems with using LFS in symlinked folders #818 (@sinbad)
 * Fix git lfs push silently misbehaving on ambiguous refs; fail like git push instead #1118 (@sinbad)
-* Whitelist lfs.*.access config in local ~/.lfsconfig #1122 (@rjbell4)
+* Whitelist `lfs.*.access` config in local ~/.lfsconfig #1122 (@rjbell4)
 * Only write the encoded pointer information to Stdout #1105 (@sschuberth)
 * Use hardcoded auth from remote or lfs config when accessing the storage api #1136 (@technoweenie, @jonmagic)
 * SSH should be called more strictly with command as one argument #1134 (@sinbad)
