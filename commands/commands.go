@@ -120,9 +120,17 @@ func PipeCommand(name string, args ...string) error {
 }
 
 func requireStdin(msg string) {
-	stat, _ := os.Stdin.Stat()
-	if stat == nil || (stat.Mode()&os.ModeCharDevice) != 0 {
-		Error("Cannot read from STDIN. %s", msg)
+	var out string
+
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		out = fmt.Sprintf("Cannot read from STDIN. %s (%s)", msg, err)
+	} else if (stat.Mode() & os.ModeCharDevice) != 0 {
+		out = fmt.Sprintf("Cannot read from STDIN. %s", msg)
+	}
+
+	if len(out) > 0 {
+		Error(out)
 		os.Exit(1)
 	}
 }
