@@ -87,7 +87,7 @@ ArgsLoop:
 		// Since all `git-lfs track` calls are relative to the root of
 		// the repository, the leading slash is simply removed for its
 		// implicit counterpart.
-		gittracked, err := git.GetTrackedFiles(gitPath(pattern))
+		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
 			LoggedError(err, "Error getting git tracked files")
 			continue
@@ -122,16 +122,6 @@ ArgsLoop:
 			}
 		}
 	}
-}
-
-// gitPath returns the given string "p", stripped of its leading slash if it
-// contains one. Otherwise, it returns "p" in its entirety.
-func gitPath(p string) string {
-	if strings.HasPrefix(p, "/") {
-		return p[1:]
-	}
-
-	return p
 }
 
 type mediaPath struct {

@@ -910,13 +910,16 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // Both pattern and the results are relative to the current working directory, not
 // the root of the repository
 func GetTrackedFiles(pattern string) ([]string, error) {
+	safePattern := sanitizePattern(pattern)
+	sanitized := len(safePattern) < len(pattern)
+
 	var ret []string
 	cmd := subprocess.ExecCommand("git",
 		"-c", "core.quotepath=false", // handle special chars in filenames
 		"ls-files",
 		"--cached", // include things which are staged but not committed right now
 		"--",       // no ambiguous patterns
-		pattern)
+		safePattern)
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -926,8 +929,23 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		// If the given pattern was sanitized, then skip all files which
+		// are not direct cendantsof the repository's root.
+		if sanitized && filepath.Dir(line) != "." {
+			continue
+		}
+
 		ret = append(ret, strings.TrimSpace(line))
 	}
 	return ret, cmd.Wait()
 
+}
+
+func sanitizePattern(pattern string) string {
+	if strings.HasPrefix(pattern, "/") {
+		return pattern[1:]
+	}
+
+	return pattern
 }
