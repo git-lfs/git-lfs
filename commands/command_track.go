@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	blacklistedPrefixes = []string{
+	prefixBlocklist = []string{
 		".git", ".lfs",
 	}
 
@@ -94,15 +94,15 @@ ArgsLoop:
 		}
 		now := time.Now()
 
-		var blacklisted bool
+		var matchedBlocklist bool
 		for _, f := range gittracked {
-			if forbidden := blacklistItem(f); forbidden != "" {
+			if forbidden := blocklistItem(f); forbidden != "" {
 				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
-				blacklisted = true
+				matchedBlocklist = true
 			}
 
 		}
-		if blacklisted {
+		if matchedBlocklist {
 			continue
 		}
 
@@ -202,12 +202,12 @@ func needsTrailingLinebreak(filename string) bool {
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
 }
 
-// blacklistItem returns the name of the blacklist item preventing the given
+// blocklistItem returns the name of the blocklist item preventing the given
 // file-name from being tracked, or an empty string, if there is none.
-func blacklistItem(name string) string {
+func blocklistItem(name string) string {
 	base := filepath.Base(name)
 
-	for _, p := range blacklistedPrefixes {
+	for _, p := range prefixBlocklist {
 		if strings.HasPrefix(base, p) {
 			return p
 		}

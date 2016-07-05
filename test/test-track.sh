@@ -221,11 +221,11 @@ begin_test "track in symlinked dir"
 )
 end_test
 
-begin_test "track blacklisted files by name"
+begin_test "track blocklisted files by name"
 (
   set -e
 
-  repo="track_blacklisted_by_name"
+  repo="track_blocklisted_by_name"
   mkdir "$repo"
   cd "$repo"
   git init
@@ -238,11 +238,11 @@ begin_test "track blacklisted files by name"
 )
 end_test
 
-begin_test "track blacklisted files with glob"
+begin_test "track blocklisted files with glob"
 (
   set -e
 
-  repo="track_blacklisted_glob"
+  repo="track_blocklisted_glob"
   mkdir "$repo"
   cd "$repo"
   git init
