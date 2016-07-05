@@ -130,3 +130,21 @@ func (a *adapterBase) worker(workerNum int) {
 	tracerx.Printf("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
 	a.workerWait.Done()
 }
+
+func advanceCallbackProgress(cb TransferProgressCallback, t *Transfer, numBytes int64) {
+	if cb != nil {
+		// Must split into max int sizes since read count is int
+		const maxInt = int(^uint(0) >> 1)
+		for read := int64(0); read < numBytes; {
+			remainder := numBytes - read
+			if remainder > int64(maxInt) {
+				read += int64(maxInt)
+				cb(t.Name, t.Object.Size, read, maxInt)
+			} else {
+				read += remainder
+				cb(t.Name, t.Object.Size, read, int(remainder))
+			}
+
+		}
+	}
+}

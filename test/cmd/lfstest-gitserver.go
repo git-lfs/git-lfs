@@ -318,7 +318,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
+	testingTus := testingTusUploadInBatchReq(r)
+	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
 	var transferChoice string
+	if testingTus {
+		for _, t := range objs.Transfers {
+			if t == "tus" {
+				transferChoice = "tus"
+				break
+			}
+
+		}
+	}
 	for _, obj := range objs.Objects {
 		action := objs.Operation
 
@@ -373,6 +384,9 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		if testingChunked {
 			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
 		}
+		if testingTusInterrupt {
+			o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
+		}
 
 		res = append(res, o)
 	}
@@ -419,6 +433,7 @@ func serveExpired(repo string) {
 
 // Persistent state across requests
 var batchResumeFailFallbackStorageAttempts = 0
+var tusStorageAttempts = 0
 
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
@@ -465,6 +480,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 		hash := sha256.New()
 		buf := &bytes.Buffer{}
+
 		io.Copy(io.MultiWriter(hash, buf), r.Body)
 		oid := hex.EncodeToString(hash.Sum(nil))
 		if !strings.HasSuffix(r.URL.Path, "/"+oid) {
@@ -521,9 +537,108 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(404)
+	case "HEAD":
+		// tus.io
+		if !validateTusHeaders(r) {
+			w.WriteHeader(400)
+			return
+		}
+		parts := strings.Split(r.URL.Path, "/")
+		oid := parts[len(parts)-1]
+		var offset int64
+		if by, ok := largeObjects.GetIncomplete(repo, oid); ok {
+			offset = int64(len(by))
+		}
+		w.Header().Set("Upload-Offset", strconv.FormatInt(offset, 10))
+		w.WriteHeader(200)
+	case "PATCH":
+		// tus.io
+		if !validateTusHeaders(r) {
+			w.WriteHeader(400)
+			return
+		}
+		parts := strings.Split(r.URL.Path, "/")
+		oid := parts[len(parts)-1]
+
+		offsetHdr := r.Header.Get("Upload-Offset")
+		offset, err := strconv.ParseInt(offsetHdr, 10, 64)
+		if err != nil {
+			log.Fatal("Unable to parse Upload-Offset header in request: ", err)
+			w.WriteHeader(400)
+			return
+		}
+		hash := sha256.New()
+		buf := &bytes.Buffer{}
+		out := io.MultiWriter(hash, buf)
+
+		if by, ok := largeObjects.GetIncomplete(repo, oid); ok {
+			if offset != int64(len(by)) {
+				log.Fatal(fmt.Sprintf("Incorrect offset in request, got %d expected %d", offset, len(by)))
+				w.WriteHeader(400)
+				return
+			}
+			_, err := out.Write(by)
+			if err != nil {
+				log.Fatal("Error reading incomplete bytes from store: ", err)
+				w.WriteHeader(500)
+				return
+			}
+			largeObjects.DeleteIncomplete(repo, oid)
+			log.Printf("Resuming upload of %v at byte %d", oid, offset)
+		}
+
+		// As a test, we intentionally break the upload from byte 0 by only
+		// reading some bytes the quitting & erroring, this forces a resume
+		// any offset > 0 will work ok
+		var copyErr error
+		if r.Header.Get("Lfs-Tus-Interrupt") == "true" && offset == 0 {
+			chdr := r.Header.Get("Content-Length")
+			contentLen, err := strconv.ParseInt(chdr, 10, 64)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("Invalid Content-Length %q", chdr))
+				w.WriteHeader(400)
+				return
+			}
+			truncated := contentLen / 3
+			_, _ = io.CopyN(out, r.Body, truncated)
+			r.Body.Close()
+			copyErr = fmt.Errorf("Simulated copy error")
+		} else {
+			_, copyErr = io.Copy(out, r.Body)
+		}
+		if copyErr != nil {
+			b := buf.Bytes()
+			if len(b) > 0 {
+				log.Printf("Incomplete upload of %v, %d bytes", oid, len(b))
+				largeObjects.SetIncomplete(repo, oid, b)
+			}
+			w.WriteHeader(500)
+		} else {
+			checkoid := hex.EncodeToString(hash.Sum(nil))
+			if checkoid != oid {
+				log.Fatal(fmt.Sprintf("Incorrect oid after calculation, got %q expected %q", checkoid, oid))
+				w.WriteHeader(403)
+				return
+			}
+
+			b := buf.Bytes()
+			largeObjects.Set(repo, oid, b)
+			w.Header().Set("Upload-Offset", strconv.FormatInt(int64(len(b)), 10))
+			w.WriteHeader(204)
+		}
+
 	default:
 		w.WriteHeader(405)
 	}
+}
+
+func validateTusHeaders(r *http.Request) bool {
+	if len(r.Header.Get("Tus-Resumable")) == 0 {
+		log.Fatal("Missing Tus-Resumable header in request")
+		return false
+	}
+	return true
+
 }
 
 func gitHandler(w http.ResponseWriter, r *http.Request) {
@@ -827,6 +942,13 @@ func testingChunkedTransferEncoding(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
 }
 
+func testingTusUploadInBatchReq(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-tus-upload")
+}
+func testingTusUploadInterruptedInBatchReq(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-tus-upload-interrupt")
+}
+
 var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)
 
 func repoFromLfsUrl(urlpath string) (string, error) {
@@ -843,8 +965,9 @@ func repoFromLfsUrl(urlpath string) (string, error) {
 }
 
 type lfsStorage struct {
-	objects map[string]map[string][]byte
-	mutex   *sync.Mutex
+	objects    map[string]map[string][]byte
+	incomplete map[string]map[string][]byte
+	mutex      *sync.Mutex
 }
 
 func (s *lfsStorage) Get(repo, oid string) ([]byte, bool) {
@@ -891,10 +1014,43 @@ func (s *lfsStorage) Delete(repo, oid string) {
 	}
 }
 
+func (s *lfsStorage) GetIncomplete(repo, oid string) ([]byte, bool) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.incomplete[repo]
+	if !ok {
+		return nil, ok
+	}
+
+	by, ok := repoObjects[oid]
+	return by, ok
+}
+
+func (s *lfsStorage) SetIncomplete(repo, oid string, by []byte) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.incomplete[repo]
+	if !ok {
+		repoObjects = make(map[string][]byte)
+		s.incomplete[repo] = repoObjects
+	}
+	repoObjects[oid] = by
+}
+
+func (s *lfsStorage) DeleteIncomplete(repo, oid string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.incomplete[repo]
+	if ok {
+		delete(repoObjects, oid)
+	}
+}
+
 func newLfsStorage() *lfsStorage {
 	return &lfsStorage{
-		objects: make(map[string]map[string][]byte),
-		mutex:   &sync.Mutex{},
+		objects:    make(map[string]map[string][]byte),
+		incomplete: make(map[string]map[string][]byte),
+		mutex:      &sync.Mutex{},
 	}
 }
 
