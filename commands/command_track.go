@@ -17,6 +17,10 @@ import (
 )
 
 var (
+	prefixBlocklist = []string{
+		".git", ".lfs",
+	}
+
 	trackCmd = &cobra.Command{
 		Use: "track",
 		Run: trackCommand,
@@ -74,24 +78,42 @@ ArgsLoop:
 			}
 		}
 
-		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
-		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
-		if err != nil {
-			Print("Error adding path %s", pattern)
-			continue
-		}
-		Print("Tracking %s", pattern)
-
 		// Make sure any existing git tracked files have their timestamp updated
 		// so they will now show as modifed
 		// note this is relative to current dir which is how we write .gitattributes
 		// deliberately not done in parallel as a chan because we'll be marking modified
+		//
+		// NOTE: `git ls-files` does not do well with leading slashes.
+		// Since all `git-lfs track` calls are relative to the root of
+		// the repository, the leading slash is simply removed for its
+		// implicit counterpart.
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
 			LoggedError(err, "Error getting git tracked files")
 			continue
 		}
 		now := time.Now()
+
+		var matchedBlocklist bool
+		for _, f := range gittracked {
+			if forbidden := blocklistItem(f); forbidden != "" {
+				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
+				matchedBlocklist = true
+			}
+
+		}
+		if matchedBlocklist {
+			continue
+		}
+
+		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
+		_, err = attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
+		if err != nil {
+			Print("Error adding path %s", pattern)
+			continue
+		}
+		Print("Tracking %s", pattern)
+
 		for _, f := range gittracked {
 			err := os.Chtimes(f, now, now)
 			if err != nil {
@@ -99,7 +121,6 @@ ArgsLoop:
 				continue
 			}
 		}
-
 	}
 }
 
@@ -179,6 +200,20 @@ func needsTrailingLinebreak(filename string) bool {
 	}
 
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
+}
+
+// blocklistItem returns the name of the blocklist item preventing the given
+// file-name from being tracked, or an empty string, if there is none.
+func blocklistItem(name string) string {
+	base := filepath.Base(name)
+
+	for _, p := range prefixBlocklist {
+		if strings.HasPrefix(base, p) {
+			return p
+		}
+	}
+
+	return ""
 }
 
 func init() {
