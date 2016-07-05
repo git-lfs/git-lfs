@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/github/git-lfs/httputil"
 )
@@ -58,6 +59,7 @@ func (o *ObjectResource) Rel(name string) (*LinkRelation, bool) {
 }
 
 type LinkRelation struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
