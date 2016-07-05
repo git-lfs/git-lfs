@@ -60,7 +60,7 @@ func (o *ObjectResource) Rel(name string) (*LinkRelation, bool) {
 
 func (o *ObjectResource) IsExpired(now time.Time) bool {
 	for _, a := range o.Actions {
-		if a.ExpiresAt.Before(now) {
+		if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(now) {
 			return true
 		}
 	}
