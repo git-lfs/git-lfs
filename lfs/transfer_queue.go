@@ -194,8 +194,10 @@ func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
 		for _, c := range q.watchers {
 			c <- oid
 		}
+
+		q.meter.FinishTransfer(res.Transfer.Name)
 	}
-	q.meter.FinishTransfer(res.Transfer.Name)
+
 	q.wait.Done()
 
 }
