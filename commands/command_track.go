@@ -18,7 +18,7 @@ import (
 
 var (
 	blacklistedPrefixes = []string{
-		".git", ".lfs", // TODO
+		".git", ".lfs",
 	}
 
 	trackCmd = &cobra.Command{
