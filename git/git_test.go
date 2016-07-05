@@ -357,6 +357,12 @@ func TestGetTrackedFiles(t *testing.T) {
 	assert.Equal(t, sublist, tracked)
 	os.Chdir("..")
 
+	// absolute paths only includes matches in repo root
+	tracked, err = GetTrackedFiles("/*.txt")
+	assert.Nil(t, err)
+	sort.Strings(tracked)
+	assert.Equal(t, []string{"file1.txt", "file2.txt", "file3.txt", "file4.txt"}, tracked)
+
 	// Test includes staged but uncommitted files
 	ioutil.WriteFile("z_newfile.txt", []byte("Hello world"), 0644)
 	test.RunGitCommand(t, true, "add", "z_newfile.txt")

@@ -220,3 +220,38 @@ begin_test "track in symlinked dir"
   }
 )
 end_test
+
+begin_test "track blocklisted files by name"
+(
+  set -e
+
+  repo="track_blocklisted_by_name"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  touch .gitattributes
+  git add .gitattributes
+
+  git lfs track .gitattributes 2>&1 > track.log
+  grep "Pattern .gitattributes matches forbidden file .gitattributes" track.log
+)
+end_test
+
+begin_test "track blocklisted files with glob"
+(
+  set -e
+
+  repo="track_blocklisted_glob"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  touch .gitattributes
+  git add .gitattributes
+
+  git lfs track ".git*" 2>&1 > track.log
+  grep "Pattern .git\* matches forbidden file" track.log
+)
+end_test
+
