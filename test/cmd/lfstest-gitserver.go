@@ -49,7 +49,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
-		"status-batch-resume-206", "batch-resume-fail-fallback",
+		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action",
 	}
 )
 
@@ -128,8 +128,9 @@ type lfsObject struct {
 }
 
 type lfsLink struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
 type lfsError struct {
@@ -340,7 +341,9 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			}
 		}
 
-		switch oidHandlers[obj.Oid] {
+		handler := oidHandlers[obj.Oid]
+
+		switch handler {
 		case "status-batch-403":
 			o.Err = &lfsError{Code: 403, Message: "welp"}
 		case "status-batch-404":
@@ -353,12 +356,17 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			o.Err = &lfsError{Code: 500, Message: "welp"}
 		default: // regular 200 response
 			if addAction {
-				o.Actions = map[string]lfsLink{
-					action: lfsLink{
-						Href:   lfsUrl(repo, obj.Oid),
-						Header: map[string]string{},
-					},
+				a := lfsLink{
+					Href:   lfsUrl(repo, obj.Oid),
+					Header: map[string]string{},
 				}
+
+				if handler == "return-expired-action" && canServeExpired(repo) {
+					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
+					serveExpired(repo)
+				}
+
+				o.Actions = map[string]lfsLink{action: a}
 			}
 		}
 
@@ -381,6 +389,32 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 	w.WriteHeader(200)
 	w.Write(by)
+}
+
+// emu guards expiredRepos
+var emu sync.Mutex
+
+// expiredRepos is a map keyed by repository name, valuing to whether or not it
+// has yet served an expired object.
+var expiredRepos = map[string]bool{}
+
+// canServeExpired returns whether or not a repository is capable of serving an
+// expired object. In other words, canServeExpired returns whether or not the
+// given repo has yet served an expired object.
+func canServeExpired(repo string) bool {
+	emu.Lock()
+	defer emu.Unlock()
+
+	return !expiredRepos[repo]
+}
+
+// serveExpired marks the given repo as having served an expired object, making
+// it unable for that same repository to return an expired object in the future
+func serveExpired(repo string) {
+	emu.Lock()
+	defer emu.Unlock()
+
+	expiredRepos[repo] = true
 }
 
 // Persistent state across requests
