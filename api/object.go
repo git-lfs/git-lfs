@@ -58,6 +58,16 @@ func (o *ObjectResource) Rel(name string) (*LinkRelation, bool) {
 	return rel, ok
 }
 
+func (o *ObjectResource) IsExpired(now time.Time) bool {
+	for _, a := range o.Actions {
+		if a.ExpiresAt.Before(now) {
+			return true
+		}
+	}
+
+	return false
+}
+
 type LinkRelation struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
