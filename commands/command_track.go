@@ -78,38 +78,60 @@ ArgsLoop:
 			}
 		}
 
+		// Make sure any existing git tracked files have their timestamp updated
+		// so they will now show as modifed
+		// note this is relative to current dir which is how we write .gitattributes
+		// deliberately not done in parallel as a chan because we'll be marking modified
+		//
+		// NOTE: `git ls-files` does not do well with leading slashes.
+		// Since all `git-lfs track` calls are relative to the root of
+		// the repository, the leading slash is simply removed for its
+		// implicit counterpart.
+		gittracked, err := git.GetTrackedFiles(gitPath(pattern))
+		if err != nil {
+			LoggedError(err, "Error getting git tracked files")
+			continue
+		}
+		now := time.Now()
+
+		var blacklisted bool
+		for _, f := range gittracked {
+			if forbidden := blacklistItem(f); forbidden != "" {
+				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
+				blacklisted = true
+			}
+
+		}
+		if blacklisted {
+			continue
+		}
+
 		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
-		_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
+		_, err = attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
 		if err != nil {
 			Print("Error adding path %s", pattern)
 			continue
 		}
 		Print("Tracking %s", pattern)
 
-		// Make sure any existing git tracked files have their timestamp updated
-		// so they will now show as modifed
-		// note this is relative to current dir which is how we write .gitattributes
-		// deliberately not done in parallel as a chan because we'll be marking modified
-		gittracked, err := git.GetTrackedFiles(pattern)
-		if err != nil {
-			LoggedError(err, "Error getting git tracked files")
-			continue
-		}
-		now := time.Now()
 		for _, f := range gittracked {
-			if forbidden := blacklistItem(f); forbidden != "" {
-				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
-				continue
-			}
-
 			err := os.Chtimes(f, now, now)
 			if err != nil {
 				LoggedError(err, "Error marking %q modified", f)
 				continue
 			}
 		}
-
 	}
+}
+
+// gitPath returns the given string "p", stripped of its leading slash if it
+// contains one. Otherwise, it returns "p" in its entirety.
+func gitPath(p string) string {
+	if strings.HasPrefix(p, "/") {
+		return p[1:]
+	}
+
+	return p
 }
 
 type mediaPath struct {
