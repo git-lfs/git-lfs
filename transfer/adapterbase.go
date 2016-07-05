@@ -1,8 +1,11 @@
 package transfer
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
+	"github.com/github/git-lfs/errutil"
 	"github.com/rubyist/tracerx"
 )
 
@@ -103,8 +106,15 @@ func (a *adapterBase) worker(workerNum int) {
 			}
 		}
 		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
+
 		// Actual transfer happens here
-		err := a.transferImpl.DoTransfer(t, a.cb, authCallback)
+		var err error
+		if t.Object.IsExpired(time.Now()) {
+			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
+			err = errutil.NewRetriableError(fmt.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
+		} else {
+			err = a.transferImpl.DoTransfer(t, a.cb, authCallback)
+		}
 
 		if a.outChan != nil {
 			res := TransferResult{t, err}
