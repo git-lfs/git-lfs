@@ -3,6 +3,7 @@ package lfs
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
@@ -174,6 +175,12 @@ func (q *TransferQueue) ensureAdapterBegun() {
 
 }
 
+// NOTE(taylor): this function seems to be what we're looking for. It is called
+// after the transfer has been completed, see the goroutine that
+// ensureAdapterBegun spawns (L170-174).
+//
+// If the transfer completed successfully, we should check all of the action
+// expires_at fields and retry if any of them are out of date.
 func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
 	if res.Error != nil {
 		if q.canRetry(res.Error) {
@@ -190,6 +197,18 @@ func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
 			q.errorc <- res.Error
 		}
 	} else {
+		now := time.Now()
+		for _, action := range res.Transfer.Object.Actions {
+			if action.ExpiresAt.After(now) {
+				q.trMutex.Lock()
+				t := q.transferables[res.Transfer.Object.Oid]
+				q.trMutex.Unlock()
+
+				q.retry(t)
+				return
+			}
+		}
+
 		oid := res.Transfer.Object.Oid
 		for _, c := range q.watchers {
 			c <- oid
