@@ -230,6 +230,9 @@ begin_test "track blacklisted files by name"
   cd "$repo"
   git init
 
+  touch .gitattributes
+  git add .gitattributes
+
   git lfs track .gitattributes 2>&1 > track.log
   grep "Pattern .gitattributes matches forbidden file .gitattributes" track.log
 )
@@ -243,6 +246,9 @@ begin_test "track blacklisted files with glob"
   mkdir "$repo"
   cd "$repo"
   git init
+
+  touch .gitattributes
+  git add .gitattributes
 
   git lfs track ".git*" 2>&1 > track.log
   grep "Pattern .git\* matches forbidden file" track.log
