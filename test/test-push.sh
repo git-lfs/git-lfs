@@ -508,7 +508,6 @@ begin_test "push (retry with expired actions)"
   GIT_TRACE=1 git push origin master 2>&1 | tee push.log
 
   [ "1" -eq "$(grep -c "expired, retrying..." push.log)" ]
-  # TODO(taylor); figure out why (2 of 1 files) is outputted
-  # grep "(1 of 1 files)" push.log
+  grep "(1 of 1 files)" push.log
 )
 end_test
