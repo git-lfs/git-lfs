@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	blacklistedTrackArguments = []string{
-		".gitattributes", // TODO
+	blacklistedPrefixes = []string{
+		".git", ".lfs", // TODO
 	}
 
 	trackCmd = &cobra.Command{
@@ -71,11 +71,6 @@ func trackCommand(cmd *cobra.Command, args []string) {
 
 ArgsLoop:
 	for _, pattern := range args {
-		if forbidden := isBlacklisted(pattern); forbidden != "" {
-			Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, forbidden, forbidden)
-			continue
-		}
-
 		for _, known := range knownPaths {
 			if known.Path == filepath.Join(relpath, pattern) {
 				Print("%s already supported", pattern)
@@ -102,6 +97,11 @@ ArgsLoop:
 		}
 		now := time.Now()
 		for _, f := range gittracked {
+			if forbidden := blacklistItem(f); forbidden != "" {
+				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
+				continue
+			}
+
 			err := os.Chtimes(f, now, now)
 			if err != nil {
 				LoggedError(err, "Error marking %q modified", f)
@@ -190,10 +190,14 @@ func needsTrailingLinebreak(filename string) bool {
 	return !strings.HasSuffix(string(buf[0:bytesRead]), "\n")
 }
 
-func isBlacklisted(pattern string) string {
-	for _, b := range blacklistedTrackArguments {
-		if matched, _ := filepath.Match(pattern, b); matched {
-			return b
+// blacklistItem returns the name of the blacklist item preventing the given
+// file-name from being tracked, or an empty string, if there is none.
+func blacklistItem(name string) string {
+	base := filepath.Base(name)
+
+	for _, p := range blacklistedPrefixes {
+		if strings.HasPrefix(base, p) {
+			return p
 		}
 	}
 
