@@ -9,6 +9,12 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+const (
+	// objectExpirationGracePeriod is the grace period applied to objects
+	// when checking whether or not they have expired.
+	objectExpirationGracePeriod = 5 * time.Second
+)
+
 // adapterBase implements the common functionality for core adapters which
 // process transfers with N workers handling an oid each, and which wait for
 // authentication to succeed on one worker before proceeding
@@ -109,7 +115,7 @@ func (a *adapterBase) worker(workerNum int) {
 
 		// Actual transfer happens here
 		var err error
-		if t.Object.IsExpired(time.Now()) {
+		if t.Object.IsExpired(time.Now().Add(objectExpirationGracePeriod)) {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
 			err = errutil.NewRetriableError(fmt.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
 		} else {
