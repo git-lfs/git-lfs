@@ -45,24 +45,6 @@ begin_test "track"
 )
 end_test
 
-begin_test "track --no-touch"
-(
-  set -e
-
-  reponame="track_no_touch"
-  mkdir "$reponame"
-  cd "$reponame"
-  git init
-
-  touch foo.dat
-  git add foo.dat
-
-  git lfs track -v --no-touch "foo.dat" 2>&1 > track.log
-
-  [ "0" -eq "$(grep -c 'Git LFS: touching foo.dat' track.log)" ]
-)
-end_test
-
 begin_test "track --verbose"
 (
   set -e

@@ -26,7 +26,6 @@ var (
 		Run: trackCommand,
 	}
 
-	trackNoTouchFlag        bool
 	trackVerboseLoggingFlag bool
 	trackDryRunFlag         bool
 )
@@ -122,18 +121,16 @@ ArgsLoop:
 		}
 		Print("Tracking %s", pattern)
 
-		if !trackNoTouchFlag || trackDryRunFlag {
-			for _, f := range gittracked {
-				if trackVerboseLoggingFlag || trackDryRunFlag {
-					Print("Git LFS: touching %s", f)
-				}
+		for _, f := range gittracked {
+			if trackVerboseLoggingFlag || trackDryRunFlag {
+				Print("Git LFS: touching %s", f)
+			}
 
-				if !trackDryRunFlag {
-					err := os.Chtimes(f, now, now)
-					if err != nil {
-						LoggedError(err, "Error marking %q modified", f)
-						continue
-					}
+			if !trackDryRunFlag {
+				err := os.Chtimes(f, now, now)
+				if err != nil {
+					LoggedError(err, "Error marking %q modified", f)
+					continue
 				}
 			}
 		}
@@ -233,7 +230,6 @@ func blocklistItem(name string) string {
 }
 
 func init() {
-	trackCmd.Flags().BoolVarP(&trackNoTouchFlag, "no-touch", "n", false, "skip modifying files matched by the glob")
 	trackCmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
 	trackCmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
 
