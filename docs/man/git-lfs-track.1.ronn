@@ -13,10 +13,6 @@ the currently-tracked paths.
 
 ## OPTIONS
 
-* `--no-touch` `-n`:
-  If enabled, prevent `git lfs track` from touching files matched by the
-  provided pattern glob. Disabled by default.
-
 * `--verbose` `-v`:
   If enabled, have `git lfs track` log files which it will touch. Disabled by
   default.
@@ -26,9 +22,8 @@ the currently-tracked paths.
   (adding entries to .gitattributes, touching files on disk, etc) without
   performing any mutative operations to the disk.
 
-  `git lfs track --dry-run [files]` is equivalent to calling
-  `git lfs track --no-touch --verbose` and reverting any changes made to
-  .gitattributes.
+  `git lfs track --dry-run [files]` also implicitly mocks the behavior of
+  passing the `--verbose`, and will log in greater detail what it is doing.
 
   Disabled by default.
 
