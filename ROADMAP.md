@@ -7,7 +7,6 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 
 * git index issues [#937](https://github.com/github/git-lfs/issues/937)
 * `authenticated` property on urls [#960](https://github.com/github/git-lfs/issues/960)
-* Use `expires_at` to quickly put objects in the queue to hit the API again to refresh tokens.
 * Add ref information to upload request [#969](https://github.com/github/git-lfs/issues/969)
 * Accept raw remote URLs as valid [#1085](https://github.com/github/git-lfs/issues/1085)
 * use git proxy settings [#1125](https://github.com/github/git-lfs/issues/1125)
