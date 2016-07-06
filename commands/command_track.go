@@ -25,6 +25,9 @@ var (
 		Use: "track",
 		Run: trackCommand,
 	}
+
+	trackVerboseLoggingFlag bool
+	trackDryRunFlag         bool
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -87,10 +90,16 @@ ArgsLoop:
 		// Since all `git-lfs track` calls are relative to the root of
 		// the repository, the leading slash is simply removed for its
 		// implicit counterpart.
+		if trackVerboseLoggingFlag {
+			Print("Searching for files matching pattern: %s", pattern)
+		}
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
 			LoggedError(err, "Error getting git tracked files")
 			continue
+		}
+		if trackVerboseLoggingFlag {
+			Print("Found %d files previously added to Git matching pattern: %s", len(gittracked), pattern)
 		}
 		now := time.Now()
 
@@ -106,19 +115,27 @@ ArgsLoop:
 			continue
 		}
 
-		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
-		_, err = attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
-		if err != nil {
-			Print("Error adding path %s", pattern)
-			continue
+		if !trackDryRunFlag {
+			encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
+			_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
+			if err != nil {
+				Print("Error adding path %s", pattern)
+				continue
+			}
 		}
 		Print("Tracking %s", pattern)
 
 		for _, f := range gittracked {
-			err := os.Chtimes(f, now, now)
-			if err != nil {
-				LoggedError(err, "Error marking %q modified", f)
-				continue
+			if trackVerboseLoggingFlag || trackDryRunFlag {
+				Print("Git LFS: touching %s", f)
+			}
+
+			if !trackDryRunFlag {
+				err := os.Chtimes(f, now, now)
+				if err != nil {
+					LoggedError(err, "Error marking %q modified", f)
+					continue
+				}
 			}
 		}
 	}
@@ -217,5 +234,8 @@ func blocklistItem(name string) string {
 }
 
 func init() {
+	trackCmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
+	trackCmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
+
 	RootCmd.AddCommand(trackCmd)
 }

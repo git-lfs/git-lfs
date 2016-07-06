@@ -3,13 +3,34 @@ git-lfs-track(1) - View or add Git LFS paths to Git attributes
 
 ## SYNOPSIS
 
-`git lfs track` [<path>...]
+`git lfs track` [options] [<path>...]
 
 ## DESCRIPTION
 
 Start tracking the given path(s) through Git LFS.  The <path> argument
 can be a pattern or a file path.  If no paths are provided, simply list
 the currently-tracked paths.
+
+## OPTIONS
+
+* `--no-touch` `-n`:
+  If enabled, prevent `git lfs track` from touching files matched by the
+  provided pattern glob. Disabled by default.
+
+* `--verbose` `-v`:
+  If enabled, have `git lfs track` log files which it will touch. Disabled by
+  default.
+
+* `--dry-run` `-d`:
+  If enabled, have `git lfs track` log all actions it would normally take
+  (adding entries to .gitattributes, touching files on disk, etc) without
+  performing any mutative operations to the disk.
+
+  `git lfs track --dry-run [files]` is equivalent to calling
+  `git lfs track --no-touch --verbose` and reverting any changes made to
+  .gitattributes.
+
+  Disabled by default.
 
 ## EXAMPLES
 
