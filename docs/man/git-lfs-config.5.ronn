@@ -22,16 +22,6 @@ lfs option can be scoped inside the configuration for a remote.
   The url used to call the Git LFS remote API when pushing. Default blank (derive
   from either LFS non-push urls or clone url).
 
-* `lfs.concurrenttransfers`
-
-  The number of concurrent uploads/downloads. Default 3.
-
-* `lfs.basictransfersonly`
-
-  If set to true, only basic HTTP upload/download transfers will be used, 
-  ignoring any more advanced transfers that the client/server may support.
-  This is primarily to work around bugs or incompatibilities.
-
 * `lfs.batch`
 
   Whether to use the batch API instead of requesting objects individually.
@@ -53,6 +43,64 @@ lfs option can be scoped inside the configuration for a remote.
 
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
+
+### Transfer (upload / download) settings
+
+  These settings control how the upload and download of LFS content occurs.
+
+* `lfs.concurrenttransfers`
+
+  The number of concurrent uploads/downloads. Default 3.
+
+* `lfs.basictransfersonly`
+
+  If set to true, only basic HTTP upload/download transfers will be used, 
+  ignoring any more advanced transfers that the client/server may support.
+  This is primarily to work around bugs or incompatibilities.
+
+  The git-lfs client supports basic HTTP downloads, resumable HTTP downloads 
+  (using `Range` headers), and resumable uploads via tus.io protocol. Custom
+  transfer methods can be added via `lfs.customtransfer` (see next section).
+  However setting this value to true limits the client to simple HTTP.
+
+* `lfs.customtransfer.<name>.path`
+
+  `lfs.customtransfer.<name>` is a settings group which defines a custom
+  transfer hook which allows you to upload/download via an intermediate process,
+  using any mechanism you like (rather than just HTTP). `path` should point to
+  the process you wish to invoke. The protocol between the git-lfs client and
+  the custom transfer process is defined in git-lfs-customtransfers(5).
+  
+  <name> must be a unique identifier that the LFS server understands. When
+  calling the LFS API the client will include a list of supported transfer
+  types. If the server also supports this named transfer type, it will select it
+  and actions returned from the API will be in relation to that transfer type
+  (may not be traditional URLs for example). Only if the server accepts <name>
+  as a transfer it supports will this custom transfer process be invoked.
+
+* `lfs.customtransfer.<name>.args`
+
+  If the custom transfer process requires any arguments, these can be provided
+  here. This does not relate to the actual LFS content, which is communicated
+  over the protocol defined in git-lfs-customtransfers(5).
+
+* `lfs.customtransfer.<name>.priority`
+
+  Optional relative priority if there are multiple custom transfers defined.
+  This merely affects the order they are listed in the call to the LFS API, 
+  and the server will pick the first one it supports. A lower number is a higher
+  priority (default 5).
+
+* `lfs.customtransfer.<name>.concurrent`
+
+  If true (the default), git-lfs will invoke the custom transfer process
+  multiple times in parallel, according to `lfs.concurrenttransfers`, splitting
+  the transfer workload between the processes.
+
+* `lfs.customtransfer.<name>.direction`
+
+  Specifies which direction the custom transfer process supports, either 
+  "download", "upload", or "both". The default if unspecified is "both".
 
 ### Fetch settings
 
@@ -152,6 +200,6 @@ lfs option can be scoped inside the configuration for a remote.
   
 ## SEE ALSO
 
-git-config(1), git-lfs-install(1), gitattributes(5).
+git-config(1), git-lfs-install(1), gitattributes(5), git-lfs-customtransfers(5).
 
 Part of the git-lfs(1) suite.

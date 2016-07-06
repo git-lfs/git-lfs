@@ -1,0 +1,172 @@
+git-lfs-customtransfers(5) -- git-lfs custom transfers
+======================================================
+
+## INTRODUCTION
+
+git-lfs supports multiple ways to transfer (upload and download) files. In the
+core client, the basic way to do this is via a one-off HTTP request via the URL
+returned from the LFS API for a given object. The core client also supports
+extensions to allow resuming of downloads (via `Range` headers) and uploads (via
+the tus.io protocol).
+
+Multiple transfer approaches are supported by the client including in the LFS
+API request a list of transfer types it can support, in order of preference.
+When replying, the API server will pick the first one of these it supports, and
+make any necessary adjustments to the returned object actions so they will work
+with that transfer type.
+
+## CUSTOM TRANSFER TYPES
+
+Some people might want to be able to transfer content in other ways, however.
+To enable this, git-lfs has an option to configure Custom Transfers, which are
+simply processes which must adhere to the protocol defined later in this
+document. git-lfs will invoke the process at the start of all transfers, 
+and will communicate with the process via stdin/stdout for each transfer.
+
+## CONFIGURATION
+
+A custom transfer process is defined under a settings group called
+`lfs.customtransfer.<name>`, where <name> is an identifier (see NAMING below).
+
+* `lfs.customtransfer.<name>.path`
+
+  `path` should point to the process you wish to invoke. This will be invoked
+  once at the start of all transfers and the protocol over stdin/stdout is
+  defined below in PROTOCOL.
+  
+* `lfs.customtransfer.<name>.args`
+
+  If the custom transfer process requires any arguments, these can be provided
+  here. Typically you would only need this if your process was multi-purpose or
+  particularly flexible, most of the time you won't need it.
+
+* `lfs.customtransfer.<name>.priority`
+
+  Optional relative priority if there are multiple custom transfers defined.
+  This merely affects the order they are listed in the call to the LFS API, 
+  and the server will pick the first one it supports. A lower number is a higher
+  priority (default 5).
+
+* `lfs.customtransfer.<name>.concurrent`
+
+  If true (the default), git-lfs will invoke the custom transfer process
+  multiple times in parallel, according to `lfs.concurrenttransfers`, splitting
+  the transfer workload between the processes.
+
+  If you would prefer that only one instance of the transfer process is invoked,
+  maybe because you want to do your own parallelism internally (e.g. slicing 
+  files into parts), set this to false.
+
+* `lfs.customtransfer.<name>.direction`
+
+  Specifies which direction the custom transfer process supports, either 
+  "download", "upload", or "both". The default if unspecified is "both".
+
+## NAMING
+
+Each custom transfer must have a name which is unique to the underlying
+mechanism, and the client and the server must agree on that name. The client
+will advertise this name to the server as a supported transfer approach, and if
+the server supports it, it will return relevant object action links. Because
+these may be very different from standard HTTP URLs it's important that the
+client and server agree on the name.
+
+For example, let's say I've implemented a custom transfer process which uses
+NFS. I could call this transfer type 'nfs' - although it's not specific to my
+configuration exactly, it is specific to the way NFS works, and the server will
+need to give me different URLs. Assuming I define my transfer like this, and the
+server supports it, I might start getting object action links back like
+nfs://<host>/path/to/object
+
+## PROTOCOL
+
+The git-lfs client communicates with the custom transfer process via the stdin
+and stdout streams. No file content is communicated on these streams, only
+request / response metadata. The metadata exchanged is always in JSON format.
+External files will be referenced when actual content is exchanged.
+
+The protocol consists of 3 stages:
+
+### Stage 1: Intiation
+
+Immediately after invoking a custom transfer process, git-lfs sends initiation
+data to the process over stdin. This tells the process useful information about
+the configuration of git-lfs so it doesn't have to re-read any configuration
+files itself.
+
+TODO: JSON initiation request structure
+      - include type "initiate"
+      - include operation "upload" / "download"
+      - include all lfs config, maybe all git config?
+
+The transfer process should store the information it needs from the intiation
+structure, and also perform any one-off setup tasks it needs to do. It should
+then respond on stdout with a simple confirmation structure (or an error if
+something went wrong during initiation)
+
+TODO: JSON initiation response structure
+    - include error
+
+### Stage 2: 0..N Transfers
+
+After the initiation exchange, git-lfs will send any number of transfer 
+requests. For uploads these look like this:
+
+TODO: JSON upload request structure
+      - include type "uploadrequest"
+      - oid & size
+      - upload includes file location "source"
+
+Note how the request includes a file path where the transfer process should read 
+the data from.
+
+For downloads the request sent from git-lfs to the transfer process is:
+
+TODO: JSON download request structure
+      - include type "downloadrequest"
+      - oid & size
+
+Note there is no file path included in the download request; the transfer 
+process should create a file itself and return the path in the final response
+after completion (see below).
+
+In order to support progress reporting while data is uploading / downloading, 
+the transfer process should post periodic messages to stdout as follows:
+
+TODO: Progress reporting - as JSON progress response?
+      - include type "progress"
+      - usual bytes done, bytes since last
+
+Finally, once the transfer is completed, the transfer process should post a
+message of this type to its stdout:
+
+TODO: JSON completion structure
+      - include type "transfercomplete"
+      - include error
+      - download includes file location
+
+For downloads, the transfer process includes the location of the downloaded 
+file, which it implicitly reliquishes control of back to git-lfs. git-lfs will
+move this file into the final storage location. 
+
+Errors for a single transfer request should not terminate the process. The error
+should be returned in the response structure instead.
+
+### Stage 3: Finish & Cleanup
+
+When all transfers have been processed, git-lfs will send the following message
+to the stdin of the transfer process:
+
+TODO: JSON finish structure
+      - include type "finish"
+
+On receiving this message the transfer process should clean up and terminate.
+No response is expected.
+
+Any unexpected fatal errors in the transfer process (not errors specific to a
+transfer request) should set the exit code to non-zero and print information to 
+stderr. Otherwise the exit code should be 0 even if some transfers failed.
+
+
+
+
