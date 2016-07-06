@@ -486,3 +486,28 @@ begin_test "push ambiguous branch name"
 
 )
 end_test
+
+begin_test "push (retry with expired actions)"
+(
+  set -e
+
+  reponame="push_retry_expired_action"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  printf "return-expired-action" > a.dat
+  git add .gitattributes a.dat
+
+  git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+
+  [ "1" -eq "$(grep -c "expired, retrying..." push.log)" ]
+  grep "(1 of 1 files)" push.log
+)
+end_test

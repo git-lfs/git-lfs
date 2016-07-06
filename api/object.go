@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/github/git-lfs/httputil"
 )
@@ -57,7 +58,23 @@ func (o *ObjectResource) Rel(name string) (*LinkRelation, bool) {
 	return rel, ok
 }
 
+// IsExpired returns true if any of the actions in this object resource have an
+// ExpiresAt field that is after the given instant "now".
+//
+// If the object contains no actions, or none of the actions it does contain
+// have non-zero ExpiresAt fields, the object is not expired.
+func (o *ObjectResource) IsExpired(now time.Time) bool {
+	for _, a := range o.Actions {
+		if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(now) {
+			return true
+		}
+	}
+
+	return false
+}
+
 type LinkRelation struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
