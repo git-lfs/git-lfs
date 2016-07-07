@@ -69,7 +69,8 @@ lfs option can be scoped inside the configuration for a remote.
   transfer hook which allows you to upload/download via an intermediate process,
   using any mechanism you like (rather than just HTTP). `path` should point to
   the process you wish to invoke. The protocol between the git-lfs client and
-  the custom transfer process is defined in git-lfs-customtransfers(5).
+  the custom transfer process is documented at
+  https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md
   
   <name> must be a unique identifier that the LFS server understands. When
   calling the LFS API the client will include a list of supported transfer
@@ -81,8 +82,7 @@ lfs option can be scoped inside the configuration for a remote.
 * `lfs.customtransfer.<name>.args`
 
   If the custom transfer process requires any arguments, these can be provided
-  here. This does not relate to the actual LFS content, which is communicated
-  over the protocol defined in git-lfs-customtransfers(5).
+  here. 
 
 * `lfs.customtransfer.<name>.priority`
 
@@ -200,6 +200,6 @@ lfs option can be scoped inside the configuration for a remote.
   
 ## SEE ALSO
 
-git-config(1), git-lfs-install(1), gitattributes(5), git-lfs-customtransfers(5).
+git-config(1), git-lfs-install(1), gitattributes(5)
 
 Part of the git-lfs(1) suite.
