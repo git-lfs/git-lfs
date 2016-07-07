@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -281,7 +282,7 @@ func revListArgsRefVsRemote(refTo, remoteName string) []string {
 	// Only check for missing refs on remote; if the ref is different it has moved
 	// forward probably, and if not and the ref has changed to a non-descendant
 	// (force push) then that will cause a re-evaluation in a subsequent command anyway
-	missingRefs := NewStringSet()
+	missingRefs := tools.NewStringSet()
 	for _, cachedRef := range cachedRemoteRefs {
 		found := false
 		for _, realRemoteRef := range actualRemoteRefs {

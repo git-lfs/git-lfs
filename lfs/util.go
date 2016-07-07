@@ -70,7 +70,7 @@ func wrapProgressError(err error, event, filename string) error {
 	return nil
 }
 
-var localDirSet = NewStringSetFromSlice([]string{".", "./", ".\\"})
+var localDirSet = tools.NewStringSetFromSlice([]string{".", "./", ".\\"})
 
 // Return whether a given filename passes the include / exclude path filters
 // Only paths that are in includePaths and outside excludePaths are passed
