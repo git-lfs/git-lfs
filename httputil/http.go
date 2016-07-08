@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,21 +143,6 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	httpClients[host] = client
 
 	return client
-}
-
-func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Request) (*url.URL, error) {
-	return func(req *http.Request) (*url.URL, error) {
-		proxyURL, err := http.ProxyFromEnvironment(req)
-		if proxyURL != nil || err != nil {
-			return proxyURL, err
-		}
-
-		if proxy, ok := c.GitConfig("http.proxy"); ok {
-			return url.Parse(proxy)
-		}
-
-		return nil, nil
-	}
 }
 
 func CheckRedirect(req *http.Request, via []*http.Request) error {

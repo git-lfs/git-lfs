@@ -85,6 +85,7 @@ func NewConfig() *Configuration {
 func NewFromValues(gitconfig map[string]string) *Configuration {
 	config := &Configuration{
 		gitConfig: make(map[string]string, 0),
+		envVars:   make(map[string]string, 0),
 	}
 
 	buf := bytes.NewBuffer([]byte{})
