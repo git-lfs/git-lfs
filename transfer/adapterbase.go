@@ -43,9 +43,9 @@ type transferImplementation interface {
 	// Implementations can run some startup logic here & return some context if needed
 	WorkerStarting(workerNum int) (interface{}, error)
 	// WorkerEnding is called when a worker goroutine is shutting down
-	// Implementations can clean up per-worker resources here, context is as returned from WorkerStarted
+	// Implementations can clean up per-worker resources here, context is as returned from WorkerStarting
 	WorkerEnding(workerNum int, ctx interface{})
-	// DoTransfer performs a single transfer within a worker. ctx is any context returned from WorkerStarted
+	// DoTransfer performs a single transfer within a worker. ctx is any context returned from WorkerStarting
 	DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error
 }
 
