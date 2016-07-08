@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,7 +122,7 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	tlstime := c.GitConfigInt("lfs.tlstimeout", 30)
 
 	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy: proxyFromGitConfigOrEnvironment,
 		Dial: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
@@ -143,6 +144,21 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	httpClients[host] = client
 
 	return client
+}
+
+func proxyFromGitConfigOrEnvironment(req *http.Request) (*url.URL, error) {
+	proxyURL, err := http.ProxyFromEnvironment(req)
+
+	if proxyURL != nil {
+		return proxyURL, err
+	}
+
+	if proxy, ok := Config.GitConfig("http.proxy"); ok {
+		proxyURL, err := url.Parse(proxy)
+		return proxyURL, err
+	}
+
+	return proxyURL, err
 }
 
 func CheckRedirect(req *http.Request, via []*http.Request) error {
