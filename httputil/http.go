@@ -149,8 +149,7 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Request) (*url.URL, error) {
 	return func(req *http.Request) (*url.URL, error) {
 		proxyURL, err := http.ProxyFromEnvironment(req)
-		fmt.Printf("YO: %v\n", proxyURL)
-		if proxyURL != nil {
+		if proxyURL != nil || err != nil {
 			return proxyURL, err
 		}
 
