@@ -304,7 +304,7 @@ func revListArgsRefVsRemote(refTo, remoteName string) ([]string, bool) {
 				commits = append(commits, "^"+cachedRef.Sha)
 			}
 		}
-		return commits
+		return commits, true
 	} else {
 		// Safe to use cached
 		return []string{refTo, "--not", "--remotes=" + remoteName}, false
