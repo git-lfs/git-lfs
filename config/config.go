@@ -405,11 +405,11 @@ func (c *Configuration) GitConfigInt(key string, def int) int {
 }
 
 // GitConfigBool parses a git config value and returns true if defined as
-// true, 1, on, yes
-func (c *Configuration) GitConfigBool(key string) bool {
+// true, 1, on, yes, or def if not defined
+func (c *Configuration) GitConfigBool(key string, def bool) bool {
 	s, _ := c.GitConfig(key)
 	if len(s) == 0 {
-		return false
+		return def
 	}
 
 	ret, err := parseConfigBool(s)
@@ -482,7 +482,7 @@ func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
-	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors")
+	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
 }
 
 func parseConfigBool(str string) (bool, error) {
