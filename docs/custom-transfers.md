@@ -148,7 +148,7 @@ The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": null}
+{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": null}
 ```
 
 * `oid`: the identifier of the LFS object
@@ -157,7 +157,7 @@ then a final completion message as follows:
 Or if there was an error in the transfer:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
+{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
 ```
 
 ##### Downloads
