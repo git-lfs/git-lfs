@@ -8,11 +8,10 @@ returned from the LFS API for a given object. The core client also supports
 extensions to allow resuming of downloads (via `Range` headers) and uploads (via
 the [tus.io](http://tus.io) protocol).
 
-Multiple transfer approaches are supported by the client including in the LFS
-API request a list of transfer types it can support, in order of preference.
-When replying, the API server will pick the first one of these it supports, and
-make any necessary adjustments to the returned object actions so they will work
-with that transfer type.
+In the LFS API request the client includes a list of transfer types it can
+support. When replying, the API server will pick the best one of these it
+supports, and make any necessary adjustments to the returned object actions so
+they will work with that transfer type.
 
 ## Custom Transfer Types
 
@@ -40,13 +39,6 @@ A custom transfer process is defined under a settings group called
   If the custom transfer process requires any arguments, these can be provided
   here. Typically you would only need this if your process was multi-purpose or
   particularly flexible, most of the time you won't need it.
-
-* `lfs.customtransfer.<name>.priority`
-
-  Optional relative priority if there are multiple custom transfers defined.
-  This merely affects the order they are listed in the call to the LFS API, 
-  and the server will pick the first one it supports. A lower number is a higher
-  priority (default 5).
 
 * `lfs.customtransfer.<name>.concurrent`
 

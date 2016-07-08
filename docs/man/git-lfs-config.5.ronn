@@ -84,13 +84,6 @@ lfs option can be scoped inside the configuration for a remote.
   If the custom transfer process requires any arguments, these can be provided
   here. 
 
-* `lfs.customtransfer.<name>.priority`
-
-  Optional relative priority if there are multiple custom transfers defined.
-  This merely affects the order they are listed in the call to the LFS API, 
-  and the server will pick the first one it supports. A lower number is a higher
-  priority (default 5).
-
 * `lfs.customtransfer.<name>.concurrent`
 
   If true (the default), git-lfs will invoke the custom transfer process
