@@ -267,6 +267,9 @@ func ScanIndex() ([]*WrappedPointer, error) {
 
 // Get additional arguments needed to limit 'git rev-list' to just the changes in revTo
 // that are also not on remoteName.
+//
+// Returns a slice of string args, and false if --stdin is not needed.
+// Returns a slice of string commit args and true if --stdin is needed.
 func revListArgsRefVsRemote(refTo, remoteName string) ([]string, bool) {
 	// We need to check that the locally cached versions of remote refs are still
 	// present on the remote before we use them as a 'from' point. If the
@@ -297,7 +300,7 @@ func revListArgsRefVsRemote(refTo, remoteName string) ([]string, bool) {
 
 	if len(missingRefs) > 0 {
 		// Use only the non-missing refs as 'from' points
-		commits := make([]string, 1, len(cachedRemoteRefs) + 1)
+		commits := make([]string, 1, len(cachedRemoteRefs)+1)
 		commits[0] = refTo
 		for _, cachedRef := range cachedRemoteRefs {
 			if !missingRefs.Contains(cachedRef.Name) {
