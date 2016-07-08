@@ -45,6 +45,44 @@ begin_test "track"
 )
 end_test
 
+begin_test "track --verbose"
+(
+  set -e
+
+  reponame="track_verbose_logs"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  touch foo.dat
+  git add foo.dat
+
+  git lfs track --verbose "foo.dat" 2>&1 > track.log
+  grep "touching foo.dat" track.log
+)
+end_test
+
+begin_test "track --dry-run"
+(
+  set -e
+
+  reponame="track_dry_run"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  touch foo.dat
+  git add foo.dat
+
+  git lfs track --dry-run "foo.dat" 2>&1 > track.log
+  grep "Tracking foo.dat" track.log
+  grep "Git LFS: touching foo.dat" track.log
+
+  git status --porcelain 2>&1 > status.log
+  grep "A  foo.dat" status.log
+)
+end_test
+
 begin_test "track directory"
 (
   set -e
@@ -220,3 +258,38 @@ begin_test "track in symlinked dir"
   }
 )
 end_test
+
+begin_test "track blocklisted files by name"
+(
+  set -e
+
+  repo="track_blocklisted_by_name"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  touch .gitattributes
+  git add .gitattributes
+
+  git lfs track .gitattributes 2>&1 > track.log
+  grep "Pattern .gitattributes matches forbidden file .gitattributes" track.log
+)
+end_test
+
+begin_test "track blocklisted files with glob"
+(
+  set -e
+
+  repo="track_blocklisted_glob"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  touch .gitattributes
+  git add .gitattributes
+
+  git lfs track ".git*" 2>&1 > track.log
+  grep "Pattern .git\* matches forbidden file" track.log
+)
+end_test
+

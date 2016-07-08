@@ -1,4 +1,5 @@
 // Package git contains various commands that shell out to git
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package git
 
 import (
@@ -15,7 +16,7 @@ import (
 	"time"
 
 	"github.com/github/git-lfs/subprocess"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 type RefType int
@@ -66,12 +67,21 @@ func ResolveRef(ref string) (*Ref, error) {
 	if err != nil {
 		return nil, err
 	}
-	lines := strings.Split(outp, "\n")
-	if len(lines) <= 1 {
+	if outp == "" {
 		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
 	}
 
+	lines := strings.Split(outp, "\n")
 	fullref := &Ref{Sha: lines[0]}
+
+	if len(lines) == 1 {
+		// ref is a sha1 and has no symbolic-full-name
+		fullref.Name = lines[0] // fullref.Sha
+		fullref.Type = RefTypeOther
+		return fullref, nil
+	}
+
+	// parse the symbolic-full-name
 	fullref.Type, fullref.Name = ParseRefToTypeAndName(lines[1])
 	return fullref, nil
 }
@@ -115,7 +125,8 @@ func RemoteForCurrentBranch() (string, error) {
 	return remote, nil
 }
 
-// RemoteRefForCurrentBranch returns the full remote ref (remote/remotebranch) that the current branch is tracking
+// RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
+// that the current branch is tracking.
 func RemoteRefNameForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
@@ -133,7 +144,7 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 
 	remotebranch := RemoteBranchForLocalBranch(ref.Name)
 
-	return remote + "/" + remotebranch, nil
+	return fmt.Sprintf("refs/remotes/%s/%s", remote, remotebranch), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
@@ -183,9 +194,13 @@ func LocalRefs() ([]*Ref, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
 	}
-	cmd.Start()
 
 	var refs []*Ref
+
+	if err := cmd.Start(); err != nil {
+		return refs, err
+	}
+
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -895,13 +910,16 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // Both pattern and the results are relative to the current working directory, not
 // the root of the repository
 func GetTrackedFiles(pattern string) ([]string, error) {
+	safePattern := sanitizePattern(pattern)
+	sanitized := len(safePattern) < len(pattern)
+
 	var ret []string
 	cmd := subprocess.ExecCommand("git",
 		"-c", "core.quotepath=false", // handle special chars in filenames
 		"ls-files",
 		"--cached", // include things which are staged but not committed right now
 		"--",       // no ambiguous patterns
-		pattern)
+		safePattern)
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -911,8 +929,23 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		// If the given pattern was sanitized, then skip all files which
+		// are not direct cendantsof the repository's root.
+		if sanitized && filepath.Dir(line) != "." {
+			continue
+		}
+
 		ret = append(ret, strings.TrimSpace(line))
 	}
 	return ret, cmd.Wait()
 
+}
+
+func sanitizePattern(pattern string) string {
+	if strings.HasPrefix(pattern, "/") {
+		return pattern[1:]
+	}
+
+	return pattern
 }

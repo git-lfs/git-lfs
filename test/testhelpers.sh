@@ -110,6 +110,37 @@ assert_server_object() {
   }
 }
 
+# assert that a lock with the given ID exists on the test server
+assert_server_lock() {
+  local id="$1"
+
+  curl -v "$GITSERVER/locks/" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept:application/vnd.git-lfs+json" 2>&1 |
+    tee http.log
+
+  grep "200 OK" http.log
+  grep "$id" http.json || {
+    cat http.json
+    exit 1
+  }
+}
+
+# refute that a lock with the given ID exists on the test server
+refute_server_lock() {
+  local id="$1"
+
+  curl -v "$GITSERVER/locks/" \
+    -u "user:pass" \
+    -o http.json \
+    -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log
+
+  grep "200 OK" http.log
+
+  [ $(grep -c "$id" http.json) -eq 0 ]
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123
@@ -197,7 +228,7 @@ clone_repo() {
 
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
-# $dir under $TRASHDIR, using the SSL endpoint. 
+# $dir under $TRASHDIR, using the SSL endpoint.
 # setup_remote_repo() needs to be run first. Output is written to clone_ssl.log.
 clone_repo_ssl() {
   cd "$TRASHDIR"
@@ -213,6 +244,32 @@ clone_repo_ssl() {
   echo "$out" > clone_ssl.log
   echo "$out"
 }
+
+# setup_remote_repo_with_file creates a remote repo, clones it locally, commits
+# a file tracked by LFS, and pushes it to the remote:
+#
+#     setup_remote_repo_with_file "reponame" "filename"
+setup_remote_repo_with_file() {
+  local reponame="$1"
+  local filename="$2"
+
+  setup_remote_repo "remote_$reponame"
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "$filename"
+  echo "$filename" > "$filename"
+  git add .gitattributes $filename
+  git commit -m "add $filename" | tee commit.log
+
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 $filename" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  git push origin master 2>&1 | tee push.log
+  grep "master -> master" push.log
+}
+
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
@@ -233,10 +290,10 @@ setup() {
 
   if [ -z "$SKIPCOMPILE" ]; then
     for go in test/cmd/*.go; do
-      GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/$(basename $go .go)" "$go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
     # Ensure API test util is built during tests to ensure it stays in sync
-    GO15VENDOREXPERIMENT=0 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
+    GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
   fi
 
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &

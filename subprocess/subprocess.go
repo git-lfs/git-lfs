@@ -1,3 +1,5 @@
+// Package subprocess provides helper functions for forking new processes
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package subprocess
 
 import (
@@ -6,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/github/git-lfs/vendor/_nuts/github.com/rubyist/tracerx"
+	"github.com/rubyist/tracerx"
 )
 
 // SimpleExec is a small wrapper around os/exec.Command.

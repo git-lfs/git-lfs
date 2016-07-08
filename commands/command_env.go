@@ -1,9 +1,10 @@
 package commands
 
 import (
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -14,29 +15,29 @@ var (
 )
 
 func envCommand(cmd *cobra.Command, args []string) {
-	lfs.ShowConfigWarnings = true
-	config := lfs.Config
-	endpoint := config.Endpoint("download")
+	config.ShowConfigWarnings = true
+	cfg := config.Config
+	endpoint := cfg.Endpoint("download")
 
 	gitV, err := git.Config.Version()
 	if err != nil {
 		gitV = "Error getting git version: " + err.Error()
 	}
 
-	Print(lfs.UserAgent)
+	Print(config.VersionDesc)
 	Print(gitV)
 	Print("")
 
 	if len(endpoint.Url) > 0 {
-		Print("Endpoint=%s (auth=%s)", endpoint.Url, config.EndpointAccess(endpoint))
+		Print("Endpoint=%s (auth=%s)", endpoint.Url, cfg.EndpointAccess(endpoint))
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
 	}
 
-	for _, remote := range config.Remotes() {
-		remoteEndpoint := config.RemoteEndpoint(remote, "download")
-		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, config.EndpointAccess(remoteEndpoint))
+	for _, remote := range cfg.Remotes() {
+		remoteEndpoint := cfg.RemoteEndpoint(remote, "download")
+		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, cfg.EndpointAccess(remoteEndpoint))
 		if len(remoteEndpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)
 		}
@@ -47,7 +48,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, key := range []string{"filter.lfs.smudge", "filter.lfs.clean"} {
-		value, _ := lfs.Config.GitConfig(key)
+		value, _ := cfg.GitConfig(key)
 		Print("git config %s = %q", key, value)
 	}
 }

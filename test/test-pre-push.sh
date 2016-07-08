@@ -100,7 +100,7 @@ begin_test "pre-push 307 redirects"
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/redirect307/rel/$reponame.git/info/lfs" 2>&1 |
     tee push.log
-  grep "(0 of 1 files, 1 skipped)" push.log
+  grep "(0 of 0 files, 1 skipped)" push.log
 
   assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
 
@@ -116,7 +116,7 @@ begin_test "pre-push 307 redirects"
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/redirect307/abs/$reponame.git/info/lfs" 2>&1 |
     tee push.log
-  grep "(0 of 1 files, 1 skipped)" push.log
+  grep "(0 of 0 files, 1 skipped)" push.log
 )
 end_test
 

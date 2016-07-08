@@ -22,8 +22,8 @@ preferences.
 
 Note: Git LFS requires Git v1.8.2 or higher.
 
-One installed, you need to setup the global Git hooks for Git LFS. This only
-needs to be run once per machine.
+Once installed, you need to setup the global Git hooks for Git LFS. This only
+needs to be done once per machine.
 
 ```bash
 $ git lfs install
@@ -102,12 +102,20 @@ page][impl]. You can also join [the project's chat room][chat].
 
 [impl]: https://github.com/github/git-lfs/wiki/Implementations
 
+### Using LFS from other Go code
+
+At the moment git-lfs is only focussed on the stability of its command line
+interface, and the [server APIs](docs/api/README.md). The contents of the
+source packages is subject to change. We therefore currently discourage other
+Go code from depending on the git-lfs packages directly; an API to be used by
+external Go code may be provided in future.
+
 ## Core Team
 
 These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) |
-|---|---|---|---|---|
-| [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) |
+| [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) | [@ttaylorr](https://github.com/ttaylorr) |
+|---|---|---|---|---|---|
+| [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) | [![](https://avatars3.githubusercontent.com/u/443245?v=3&s=100)](https://github.com/ttaylorr) |

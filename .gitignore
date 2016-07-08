@@ -1,5 +1,6 @@
 bin/
 benchmark/
+out/
 
 # only allow man/*.\d.ronn files
 man/*
@@ -24,3 +25,5 @@ docker/*.key
 
 src
 commands/mancontent_gen.go
+
+lfstest-*

@@ -21,6 +21,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/localstorage"
 )
 
 type RepoType int
@@ -74,7 +75,7 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	lfs.ResolveDirs()
+	localstorage.ResolveDirs()
 }
 
 func (r *Repo) Popd() {

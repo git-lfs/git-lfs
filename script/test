@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
-#/ Usage: script/test          # run all tests
+#/ Usage: script/test          # run all non-vendored tests
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
-suite="./${1:-"lfs"} ./${1:-"git"}"
 if [ $# -gt 0 ]; then
-  shift
+    GO15VENDOREXPERIMENT=1 go test "./$@"
+else
+    # The following vendor test-exclusion grep-s typically need to match the same set in
+    # debian/rules variable DH_GOLANG_EXCLUDES, so update those when adding here.
+    GO15VENDOREXPERIMENT=1 go test \
+      $(GO15VENDOREXPERIMENT=1 go list ./... \
+          | grep -v "github.com/olekukonko/ts" \
+          | grep -v "github.com/xeipuuv/gojsonschema" \
+          | grep -v "github.com/technoweenie/go-contentaddressable" \
+      )
 fi
-GO15VENDOREXPERIMENT=0 go test $suite "$@"

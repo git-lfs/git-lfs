@@ -1,8 +1,11 @@
+// +build testtools
+
 package main
 
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -12,14 +15,18 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -42,6 +49,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
+		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action",
 	}
 )
 
@@ -60,6 +68,8 @@ func main() {
 
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
+	mux.HandleFunc("/locks", locksHandler)
+	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			if !skipIfBadAuth(w, r) {
@@ -118,8 +128,9 @@ type lfsObject struct {
 }
 
 type lfsLink struct {
-	Href   string            `json:"href"`
-	Header map[string]string `json:"header,omitempty"`
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
 type lfsError struct {
@@ -131,8 +142,8 @@ type lfsError struct {
 func lfsHandler(w http.ResponseWriter, r *http.Request) {
 	repo, err := repoFromLfsUrl(r.URL.Path)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -282,8 +293,13 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	}
 
 	type batchReq struct {
+		Transfers []string    `json:"transfers"`
 		Operation string      `json:"operation"`
 		Objects   []lfsObject `json:"objects"`
+	}
+	type batchResp struct {
+		Transfer string      `json:"transfer,omitempty"`
+		Objects  []lfsObject `json:"objects"`
 	}
 
 	buf := &bytes.Buffer{}
@@ -302,6 +318,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
+	testingTus := testingTusUploadInBatchReq(r)
+	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
+	var transferChoice string
+	if testingTus {
+		for _, t := range objs.Transfers {
+			if t == "tus" {
+				transferChoice = "tus"
+				break
+			}
+
+		}
+	}
 	for _, obj := range objs.Objects {
 		action := objs.Operation
 
@@ -324,7 +352,9 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			}
 		}
 
-		switch oidHandlers[obj.Oid] {
+		handler := oidHandlers[obj.Oid]
+
+		switch handler {
 		case "status-batch-403":
 			o.Err = &lfsError{Code: 403, Message: "welp"}
 		case "status-batch-404":
@@ -337,23 +367,31 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			o.Err = &lfsError{Code: 500, Message: "welp"}
 		default: // regular 200 response
 			if addAction {
-				o.Actions = map[string]lfsLink{
-					action: lfsLink{
-						Href:   lfsUrl(repo, obj.Oid),
-						Header: map[string]string{},
-					},
+				a := lfsLink{
+					Href:   lfsUrl(repo, obj.Oid),
+					Header: map[string]string{},
 				}
+
+				if handler == "return-expired-action" && canServeExpired(repo) {
+					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
+					serveExpired(repo)
+				}
+
+				o.Actions = map[string]lfsLink{action: a}
 			}
 		}
 
 		if testingChunked {
 			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
 		}
+		if testingTusInterrupt {
+			o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
+		}
 
 		res = append(res, o)
 	}
 
-	ores := map[string][]lfsObject{"objects": res}
+	ores := batchResp{Transfer: transferChoice, Objects: res}
 
 	by, err := json.Marshal(ores)
 	if err != nil {
@@ -367,12 +405,41 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	w.Write(by)
 }
 
+// emu guards expiredRepos
+var emu sync.Mutex
+
+// expiredRepos is a map keyed by repository name, valuing to whether or not it
+// has yet served an expired object.
+var expiredRepos = map[string]bool{}
+
+// canServeExpired returns whether or not a repository is capable of serving an
+// expired object. In other words, canServeExpired returns whether or not the
+// given repo has yet served an expired object.
+func canServeExpired(repo string) bool {
+	emu.Lock()
+	defer emu.Unlock()
+
+	return !expiredRepos[repo]
+}
+
+// serveExpired marks the given repo as having served an expired object, making
+// it unable for that same repository to return an expired object in the future
+func serveExpired(repo string) {
+	emu.Lock()
+	defer emu.Unlock()
+
+	expiredRepos[repo] = true
+}
+
+// Persistent state across requests
+var batchResumeFailFallbackStorageAttempts = 0
+var tusStorageAttempts = 0
+
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
-
 	if missingRequiredCreds(w, r, repo) {
 		return
 	}
@@ -413,6 +480,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 		hash := sha256.New()
 		buf := &bytes.Buffer{}
+
 		io.Copy(io.MultiWriter(hash, buf), r.Body)
 		oid := hex.EncodeToString(hash.Sum(nil))
 		if !strings.HasSuffix(r.URL.Path, "/"+oid) {
@@ -425,16 +493,152 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		parts := strings.Split(r.URL.Path, "/")
 		oid := parts[len(parts)-1]
+		statusCode := 200
+		byteLimit := 0
+		resumeAt := int64(0)
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			w.Write(by)
+			if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+				// Resume if header includes range, otherwise deliberately interrupt
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
+					match := regex.FindStringSubmatch(rangeHdr)
+					if match != nil && len(match) > 1 {
+						statusCode = 206
+						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
+						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
+					}
+				} else {
+					byteLimit = 10
+				}
+			} else if len(by) == len("batch-resume-fail-fallback") && string(by) == "batch-resume-fail-fallback" {
+				// Fail any Range: request even though we said we supported it
+				// To make sure client can fall back
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					w.WriteHeader(416)
+					return
+				}
+				if batchResumeFailFallbackStorageAttempts == 0 {
+					// Truncate output on FIRST attempt to cause resume
+					// Second attempt (without range header) is fallback, complete successfully
+					byteLimit = 8
+					batchResumeFailFallbackStorageAttempts++
+				}
+			}
+			w.WriteHeader(statusCode)
+			if byteLimit > 0 {
+				w.Write(by[0:byteLimit])
+			} else if resumeAt > 0 {
+				w.Write(by[resumeAt:])
+			} else {
+				w.Write(by)
+			}
 			return
 		}
 
 		w.WriteHeader(404)
+	case "HEAD":
+		// tus.io
+		if !validateTusHeaders(r) {
+			w.WriteHeader(400)
+			return
+		}
+		parts := strings.Split(r.URL.Path, "/")
+		oid := parts[len(parts)-1]
+		var offset int64
+		if by, ok := largeObjects.GetIncomplete(repo, oid); ok {
+			offset = int64(len(by))
+		}
+		w.Header().Set("Upload-Offset", strconv.FormatInt(offset, 10))
+		w.WriteHeader(200)
+	case "PATCH":
+		// tus.io
+		if !validateTusHeaders(r) {
+			w.WriteHeader(400)
+			return
+		}
+		parts := strings.Split(r.URL.Path, "/")
+		oid := parts[len(parts)-1]
+
+		offsetHdr := r.Header.Get("Upload-Offset")
+		offset, err := strconv.ParseInt(offsetHdr, 10, 64)
+		if err != nil {
+			log.Fatal("Unable to parse Upload-Offset header in request: ", err)
+			w.WriteHeader(400)
+			return
+		}
+		hash := sha256.New()
+		buf := &bytes.Buffer{}
+		out := io.MultiWriter(hash, buf)
+
+		if by, ok := largeObjects.GetIncomplete(repo, oid); ok {
+			if offset != int64(len(by)) {
+				log.Fatal(fmt.Sprintf("Incorrect offset in request, got %d expected %d", offset, len(by)))
+				w.WriteHeader(400)
+				return
+			}
+			_, err := out.Write(by)
+			if err != nil {
+				log.Fatal("Error reading incomplete bytes from store: ", err)
+				w.WriteHeader(500)
+				return
+			}
+			largeObjects.DeleteIncomplete(repo, oid)
+			log.Printf("Resuming upload of %v at byte %d", oid, offset)
+		}
+
+		// As a test, we intentionally break the upload from byte 0 by only
+		// reading some bytes the quitting & erroring, this forces a resume
+		// any offset > 0 will work ok
+		var copyErr error
+		if r.Header.Get("Lfs-Tus-Interrupt") == "true" && offset == 0 {
+			chdr := r.Header.Get("Content-Length")
+			contentLen, err := strconv.ParseInt(chdr, 10, 64)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("Invalid Content-Length %q", chdr))
+				w.WriteHeader(400)
+				return
+			}
+			truncated := contentLen / 3
+			_, _ = io.CopyN(out, r.Body, truncated)
+			r.Body.Close()
+			copyErr = fmt.Errorf("Simulated copy error")
+		} else {
+			_, copyErr = io.Copy(out, r.Body)
+		}
+		if copyErr != nil {
+			b := buf.Bytes()
+			if len(b) > 0 {
+				log.Printf("Incomplete upload of %v, %d bytes", oid, len(b))
+				largeObjects.SetIncomplete(repo, oid, b)
+			}
+			w.WriteHeader(500)
+		} else {
+			checkoid := hex.EncodeToString(hash.Sum(nil))
+			if checkoid != oid {
+				log.Fatal(fmt.Sprintf("Incorrect oid after calculation, got %q expected %q", checkoid, oid))
+				w.WriteHeader(403)
+				return
+			}
+
+			b := buf.Bytes()
+			largeObjects.Set(repo, oid, b)
+			w.Header().Set("Upload-Offset", strconv.FormatInt(int64(len(b)), 10))
+			w.WriteHeader(204)
+		}
+
 	default:
 		w.WriteHeader(405)
 	}
+}
+
+func validateTusHeaders(r *http.Request) bool {
+	if len(r.Header.Get("Tus-Resumable")) == 0 {
+		log.Fatal("Missing Tus-Resumable header in request")
+		return false
+	}
+	return true
+
 }
 
 func gitHandler(w http.ResponseWriter, r *http.Request) {
@@ -500,6 +704,217 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(307)
 }
 
+type Committer struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type Lock struct {
+	Id         string    `json:"id"`
+	Path       string    `json:"path"`
+	Committer  Committer `json:"committer"`
+	CommitSHA  string    `json:"commit_sha"`
+	LockedAt   time.Time `json:"locked_at"`
+	UnlockedAt time.Time `json:"unlocked_at,omitempty"`
+}
+
+type LockRequest struct {
+	Path               string    `json:"path"`
+	LatestRemoteCommit string    `json:"latest_remote_commit"`
+	Committer          Committer `json:"committer"`
+}
+
+type LockResponse struct {
+	Lock         *Lock  `json:"lock"`
+	CommitNeeded string `json:"commit_needed,omitempty"`
+	Err          string `json:"error,omitempty"`
+}
+
+type UnlockRequest struct {
+	Id    string `json:"id"`
+	Force bool   `json:"force"`
+}
+
+type UnlockResponse struct {
+	Lock *Lock  `json:"lock"`
+	Err  string `json:"error,omitempty"`
+}
+
+type LockList struct {
+	Locks      []Lock `json:"locks"`
+	NextCursor string `json:"next_cursor,omitempty"`
+	Err        string `json:"error,omitempty"`
+}
+
+var (
+	lmu   sync.RWMutex
+	locks = []Lock{}
+)
+
+func addLocks(l ...Lock) {
+	lmu.Lock()
+	defer lmu.Unlock()
+
+	locks = append(locks, l...)
+
+	sort.Sort(LocksByCreatedAt(locks))
+}
+
+func getLocks() []Lock {
+	lmu.RLock()
+	defer lmu.RUnlock()
+
+	return locks
+}
+
+type LocksByCreatedAt []Lock
+
+func (c LocksByCreatedAt) Len() int           { return len(c) }
+func (c LocksByCreatedAt) Less(i, j int) bool { return c[i].LockedAt.Before(c[j].LockedAt) }
+func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+
+var lockRe = regexp.MustCompile(`/locks/?$`)
+
+func locksHandler(w http.ResponseWriter, r *http.Request) {
+	dec := json.NewDecoder(r.Body)
+	enc := json.NewEncoder(w)
+
+	switch r.Method {
+	case "GET":
+		if !lockRe.MatchString(r.URL.Path) {
+			http.NotFound(w, r)
+		} else {
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, "could not parse form values", http.StatusInternalServerError)
+				return
+			}
+
+			ll := &LockList{}
+			locks := getLocks()
+
+			if cursor := r.FormValue("cursor"); cursor != "" {
+				lastSeen := -1
+				for i, l := range locks {
+					if l.Id == cursor {
+						lastSeen = i
+						break
+					}
+				}
+
+				if lastSeen > -1 {
+					locks = locks[lastSeen:]
+				} else {
+					enc.Encode(&LockList{
+						Err: fmt.Sprintf("cursor (%s) not found", cursor),
+					})
+				}
+			}
+
+			if path := r.FormValue("path"); path != "" {
+				var filtered []Lock
+				for _, l := range locks {
+					if l.Path == path {
+						filtered = append(filtered, l)
+					}
+				}
+
+				locks = filtered
+			}
+
+			if limit := r.FormValue("limit"); limit != "" {
+				size, err := strconv.Atoi(r.FormValue("limit"))
+				if err != nil {
+					enc.Encode(&LockList{
+						Err: "unable to parse limit amount",
+					})
+				} else {
+					size = int(math.Min(float64(len(locks)), 3))
+					if size < 0 {
+						locks = []Lock{}
+					} else {
+						locks = locks[:size]
+						if size+1 < len(locks) {
+							ll.NextCursor = locks[size+1].Id
+						}
+					}
+
+				}
+			}
+
+			ll.Locks = locks
+
+			enc.Encode(ll)
+		}
+	case "POST":
+		if strings.HasSuffix(r.URL.Path, "unlock") {
+			var unlockRequest UnlockRequest
+			if err := dec.Decode(&unlockRequest); err != nil {
+				enc.Encode(&UnlockResponse{
+					Err: err.Error(),
+				})
+			}
+
+			lockIndex := -1
+			for i, l := range locks {
+				if l.Id == unlockRequest.Id {
+					lockIndex = i
+					break
+				}
+			}
+
+			if lockIndex > -1 {
+				enc.Encode(&UnlockResponse{
+					Lock: &locks[lockIndex],
+				})
+
+				locks = append(locks[:lockIndex], locks[lockIndex+1:]...)
+			} else {
+				enc.Encode(&UnlockResponse{
+					Err: "unable to find lock",
+				})
+			}
+		} else {
+			var lockRequest LockRequest
+			if err := dec.Decode(&lockRequest); err != nil {
+				enc.Encode(&LockResponse{
+					Err: err.Error(),
+				})
+			}
+
+			for _, l := range getLocks() {
+				if l.Path == lockRequest.Path {
+					enc.Encode(&LockResponse{
+						Err: "lock already created",
+					})
+					return
+				}
+			}
+
+			var id [20]byte
+			rand.Read(id[:])
+
+			lock := &Lock{
+				Id:        fmt.Sprintf("%x", id[:]),
+				Path:      lockRequest.Path,
+				Committer: lockRequest.Committer,
+				CommitSHA: lockRequest.LatestRemoteCommit,
+				LockedAt:  time.Now(),
+			}
+
+			addLocks(*lock)
+
+			// TODO(taylor): commit_needed case
+			// TODO(taylor): err case
+
+			enc.Encode(&LockResponse{
+				Lock: lock,
+			})
+		}
+	default:
+		http.NotFound(w, r)
+	}
+}
+
 func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
 	if repo != "requirecreds" {
 		return false
@@ -508,15 +923,15 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
 		w.WriteHeader(403)
+		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
 		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
 		w.WriteHeader(403)
+		w.Write([]byte(`{"message":"` + errmsg + `"}`))
 		return true
 	}
 
@@ -525,6 +940,13 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 
 func testingChunkedTransferEncoding(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
+}
+
+func testingTusUploadInBatchReq(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-tus-upload")
+}
+func testingTusUploadInterruptedInBatchReq(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-tus-upload-interrupt")
 }
 
 var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)
@@ -543,8 +965,9 @@ func repoFromLfsUrl(urlpath string) (string, error) {
 }
 
 type lfsStorage struct {
-	objects map[string]map[string][]byte
-	mutex   *sync.Mutex
+	objects    map[string]map[string][]byte
+	incomplete map[string]map[string][]byte
+	mutex      *sync.Mutex
 }
 
 func (s *lfsStorage) Get(repo, oid string) ([]byte, bool) {
@@ -591,10 +1014,43 @@ func (s *lfsStorage) Delete(repo, oid string) {
 	}
 }
 
+func (s *lfsStorage) GetIncomplete(repo, oid string) ([]byte, bool) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.incomplete[repo]
+	if !ok {
+		return nil, ok
+	}
+
+	by, ok := repoObjects[oid]
+	return by, ok
+}
+
+func (s *lfsStorage) SetIncomplete(repo, oid string, by []byte) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.incomplete[repo]
+	if !ok {
+		repoObjects = make(map[string][]byte)
+		s.incomplete[repo] = repoObjects
+	}
+	repoObjects[oid] = by
+}
+
+func (s *lfsStorage) DeleteIncomplete(repo, oid string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	repoObjects, ok := s.incomplete[repo]
+	if ok {
+		delete(repoObjects, oid)
+	}
+}
+
 func newLfsStorage() *lfsStorage {
 	return &lfsStorage{
-		objects: make(map[string]map[string][]byte),
-		mutex:   &sync.Mutex{},
+		objects:    make(map[string]map[string][]byte),
+		incomplete: make(map[string]map[string][]byte),
+		mutex:      &sync.Mutex{},
 	}
 }
 

@@ -11,15 +11,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/github/git-lfs/tools"
+	"github.com/spf13/cobra"
 )
 
 // Populate man pages
 //go:generate go run ../docs/man/mangen.go
 
 var (
+	// API is a package-local instance of the API client for use within
+	// various command implementations.
+	API = api.NewClient(nil)
+
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
@@ -58,10 +66,10 @@ func Exit(format string, args ...interface{}) {
 }
 
 func ExitWithError(err error) {
-	if Debugging || lfs.IsFatalError(err) {
+	if Debugging || errutil.IsFatalError(err) {
 		Panic(err, err.Error())
 	} else {
-		if inner := lfs.GetInnerError(err); inner != nil {
+		if inner := errutil.GetInnerError(err); inner != nil {
 			Error(inner.Error())
 		}
 		Exit(err.Error())
@@ -112,9 +120,17 @@ func PipeCommand(name string, args ...string) error {
 }
 
 func requireStdin(msg string) {
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		Error("Cannot read from STDIN. %s", msg)
+	var out string
+
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		out = fmt.Sprintf("Cannot read from STDIN. %s (%s)", msg, err)
+	} else if (stat.Mode() & os.ModeCharDevice) != 0 {
+		out = fmt.Sprintf("Cannot read from STDIN. %s", msg)
+	}
+
+	if len(out) > 0 {
+		Error(out)
 		os.Exit(1)
 	}
 }
@@ -139,11 +155,11 @@ func logPanic(loggedError error) string {
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(lfs.LocalLogDir, name+".log")
+	full := filepath.Join(config.LocalLogDir, name+".log")
 
-	if err := os.MkdirAll(lfs.LocalLogDir, 0755); err != nil {
+	if err := os.MkdirAll(config.LocalLogDir, 0755); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", lfs.LocalLogDir, err.Error())
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
@@ -168,7 +184,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 		gitV = "Error getting git version: " + err.Error()
 	}
 
-	fmt.Fprintln(w, lfs.UserAgent)
+	fmt.Fprintln(w, config.VersionDesc)
 	fmt.Fprintln(w, gitV)
 
 	// log the command that was run
@@ -192,7 +208,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 		}
 		w.Write(err.Stack())
 	} else {
-		w.Write(lfs.Stack())
+		w.Write(errutil.Stack())
 	}
 	fmt.Fprintln(w, "\nENV:")
 
@@ -208,28 +224,9 @@ type ErrorWithStack interface {
 	Stack() []byte
 }
 
-// determineIncludeExcludePaths is a common function to take the string arguments
-// for include/exclude and derive slices either from these options or from the
-// common global config
-func determineIncludeExcludePaths(includeArg, excludeArg string) (include, exclude []string) {
-	var includePaths, excludePaths []string
-	if len(includeArg) > 0 {
-		for _, inc := range strings.Split(includeArg, ",") {
-			inc = strings.TrimSpace(inc)
-			includePaths = append(includePaths, inc)
-		}
-	} else {
-		includePaths = lfs.Config.FetchIncludePaths()
-	}
-	if len(excludeArg) > 0 {
-		for _, ex := range strings.Split(excludeArg, ",") {
-			ex = strings.TrimSpace(ex)
-			excludePaths = append(excludePaths, ex)
-		}
-	} else {
-		excludePaths = lfs.Config.FetchExcludePaths()
-	}
-	return includePaths, excludePaths
+func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg string) (include, exclude []string) {
+	return tools.CleanPathsDefault(includeArg, ",", config.FetchIncludePaths()),
+		tools.CleanPathsDefault(excludeArg, ",", config.FetchExcludePaths())
 }
 
 func printHelp(commandName string) {

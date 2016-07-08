@@ -9,24 +9,16 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
-)
 
-// An Extension describes how to manipulate files during smudge and clean.
-// Extensions are parsed from the Git config.
-type Extension struct {
-	Name     string
-	Clean    string
-	Smudge   string
-	Priority int
-}
+	"github.com/github/git-lfs/config"
+)
 
 type pipeRequest struct {
 	action     string
 	reader     io.Reader
 	fileName   string
-	extensions []Extension
+	extensions []config.Extension
 }
 
 type pipeResponse struct {
@@ -46,30 +38,6 @@ type extCommand struct {
 	err    *bytes.Buffer
 	hasher hash.Hash
 	result *pipeExtResult
-}
-
-// SortExtensions sorts a map of extensions in ascending order by Priority
-func SortExtensions(m map[string]Extension) ([]Extension, error) {
-	pMap := make(map[int]Extension)
-	priorities := make([]int, 0, len(m))
-	for n, ext := range m {
-		p := ext.Priority
-		if _, exist := pMap[p]; exist {
-			err := fmt.Errorf("duplicate priority %d on %s", p, n)
-			return nil, err
-		}
-		pMap[p] = ext
-		priorities = append(priorities, p)
-	}
-
-	sort.Ints(priorities)
-
-	result := make([]Extension, len(priorities))
-	for i, p := range priorities {
-		result[i] = pMap[p]
-	}
-
-	return result, nil
 }
 
 func pipeExtensions(request *pipeRequest) (response pipeResponse, err error) {

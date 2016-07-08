@@ -11,6 +11,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/progress"
 )
 
 var (
@@ -57,7 +60,7 @@ func NewPointerExtension(name string, priority int, oid string) *PointerExtensio
 	return &PointerExtension{name, priority, oid, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, cb CopyCallback) error {
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, cb progress.CopyCallback) error {
 	return PointerSmudge(writer, p, workingfile, download, cb)
 }
 
@@ -91,7 +94,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	if stat.Size() > blobSizeCutoff {
-		return nil, newNotAPointerError(nil)
+		return nil, errutil.NewNotAPointerError(nil)
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
@@ -120,7 +123,7 @@ func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
 
 func verifyVersion(version string) error {
 	if len(version) == 0 {
-		return newNotAPointerError(errors.New("Missing version"))
+		return errutil.NewNotAPointerError(errors.New("Missing version"))
 	}
 
 	for _, v := range v1Aliases {
@@ -135,11 +138,8 @@ func verifyVersion(version string) error {
 func decodeKV(data []byte) (*Pointer, error) {
 	kvps, exts, err := decodeKVData(data)
 	if err != nil {
-		if IsBadPointerKeyError(err) {
-			badErr := err.(badPointerKeyError)
-			if badErr.Expected == "version" {
-				return nil, newNotAPointerError(err)
-			}
+		if errutil.IsBadPointerKeyError(err) {
+			return nil, errutil.StandardizeBadPointerError(err)
 		}
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 	kvps = make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		err = newNotAPointerError(err)
+		err = errutil.NewNotAPointerError(err)
 		return
 	}
 
@@ -262,7 +262,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		if expected := pointerKeys[line]; key != expected {
 			if !extRE.Match([]byte(key)) {
-				err = newBadPointerKeyError(expected, key)
+				err = errutil.NewBadPointerKeyError(expected, key)
 				return
 			}
 			if exts == nil {

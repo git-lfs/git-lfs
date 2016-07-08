@@ -8,9 +8,13 @@ end
 
 require "json"
 
+packagecloud_ruby_minimum_version = "1.0.4"
 begin
+  gem "packagecloud-ruby", ">=#{packagecloud_ruby_minimum_version}"
   require "packagecloud"
+  puts "Using packagecloud-ruby:#{Gem.loaded_specs["packagecloud-ruby"].version}"
 rescue LoadError
+  puts "Requires packagecloud-ruby >=#{packagecloud_ruby_minimum_version}"
   puts %(gem install packagecloud-ruby)
   exit 1
 end

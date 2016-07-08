@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/github/git-lfs/localstorage"
+	"github.com/github/git-lfs/tools"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -17,7 +19,9 @@ var (
 		Run: cloneCommand,
 	}
 
-	cloneFlags git.CloneFlags
+	cloneFlags      git.CloneFlags
+	cloneIncludeArg string
+	cloneExcludeArg string
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
@@ -37,14 +41,14 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// Either the last argument was a relative or local dir, or we have to
 	// derive it from the clone URL
 	clonedir, err := filepath.Abs(args[len(args)-1])
-	if err != nil || !lfs.DirExists(clonedir) {
+	if err != nil || !tools.DirExists(clonedir) {
 		// Derive from clone URL instead
 		base := path.Base(args[len(args)-1])
 		if strings.HasSuffix(base, ".git") {
 			base = base[:len(base)-4]
 		}
 		clonedir, _ = filepath.Abs(base)
-		if !lfs.DirExists(clonedir) {
+		if !tools.DirExists(clonedir) {
 			Exit("Unable to find clone dir at %q", clonedir)
 		}
 	}
@@ -58,22 +62,23 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	defer os.Chdir(cwd)
 
 	// Also need to derive dirs now
-	lfs.ResolveDirs()
+	localstorage.ResolveDirs()
 	requireInRepo()
 
 	// Now just call pull with default args
 	// Support --origin option to clone
 	if len(cloneFlags.Origin) > 0 {
-		lfs.Config.CurrentRemote = cloneFlags.Origin
+		config.Config.CurrentRemote = cloneFlags.Origin
 	} else {
-		lfs.Config.CurrentRemote = "origin"
+		config.Config.CurrentRemote = "origin"
 	}
 
+	include, exclude := determineIncludeExcludePaths(config.Config, cloneIncludeArg, cloneExcludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		fetchRef("HEAD", nil, nil)
+		fetchRef("HEAD", include, exclude)
 	} else {
-		pull(nil, nil)
+		pull(include, exclude)
 	}
 
 }
@@ -104,5 +109,9 @@ func init() {
 	cloneCmd.Flags().BoolVarP(&cloneFlags.Verbose, "verbose", "", false, "See 'git clone --help'")
 	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
 	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
+
+	cloneCmd.Flags().StringVarP(&cloneIncludeArg, "include", "I", "", "Include a list of paths")
+	cloneCmd.Flags().StringVarP(&cloneExcludeArg, "exclude", "X", "", "Exclude a list of paths")
+
 	RootCmd.AddCommand(cloneCmd)
 }

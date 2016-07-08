@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/vendor/_nuts/github.com/spf13/cobra"
+	"github.com/github/git-lfs/config"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -31,17 +31,17 @@ func extListCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	config := lfs.Config
+	cfg := config.Config
 	for _, key := range args {
-		ext := config.Extensions()[key]
+		ext := cfg.Extensions()[key]
 		printExt(ext)
 	}
 }
 
 func printAllExts() {
-	config := lfs.Config
+	cfg := config.Config
 
-	extensions, err := lfs.SortExtensions(config.Extensions())
+	extensions, err := cfg.SortedExtensions()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -51,7 +51,7 @@ func printAllExts() {
 	}
 }
 
-func printExt(ext lfs.Extension) {
+func printExt(ext config.Extension) {
 	Print("Extension: %s", ext.Name)
 	Print("    clean = %s", ext.Clean)
 	Print("    smudge = %s", ext.Smudge)

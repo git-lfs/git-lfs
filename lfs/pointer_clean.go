@@ -6,6 +6,11 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+
+	"github.com/github/git-lfs/config"
+	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 )
 
 type cleanedAsset struct {
@@ -13,8 +18,8 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCallback) (*cleanedAsset, error) {
-	extensions, err := SortExtensions(Config.Extensions())
+func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
+	extensions, err := config.Config.SortedExtensions()
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +61,7 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb CopyCall
 	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
-func copyToTemp(reader io.Reader, fileSize int64, cb CopyCallback) (oid string, size int64, tmp *os.File, err error) {
+func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
 	tmp, err = TempFile("")
 	if err != nil {
 		return
@@ -73,12 +78,12 @@ func copyToTemp(reader io.Reader, fileSize int64, cb CopyCallback) (oid string, 
 
 	by, ptr, err := DecodeFrom(reader)
 	if err == nil && len(by) < 512 {
-		err = newCleanPointerError(err, ptr, by)
+		err = errutil.NewCleanPointerError(err, ptr, by)
 		return
 	}
 
 	multi := io.MultiReader(bytes.NewReader(by), reader)
-	size, err = CopyWithCallback(writer, multi, fileSize, cb)
+	size, err = tools.CopyWithCallback(writer, multi, fileSize, cb)
 
 	if err != nil {
 		return
