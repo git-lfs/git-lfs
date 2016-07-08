@@ -39,7 +39,14 @@ type adapterBase struct {
 // If authOkFunc is not nil, implementations must call it as early as possible
 // when authentication succeeded, before the whole file content is transferred
 type transferImplementation interface {
-	DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error
+	// WorkerStarting is called when a worker goroutine starts to process jobs
+	// Implementations can run some startup logic here & return some context if needed
+	WorkerStarting(workerNum int) (interface{}, error)
+	// WorkerEnding is called when a worker goroutine is shutting down
+	// Implementations can clean up per-worker resources here, context is as returned from WorkerStarted
+	WorkerEnding(workerNum int, ctx interface{})
+	// DoTransfer performs a single transfer within a worker. ctx is any context returned from WorkerStarted
+	DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error
 }
 
 func newAdapterBase(name string, dir Direction, ti transferImplementation) *adapterBase {
@@ -64,7 +71,11 @@ func (a *adapterBase) Begin(maxConcurrency int, cb TransferProgressCallback, com
 	a.workerWait.Add(maxConcurrency)
 	a.authWait.Add(1)
 	for i := 0; i < maxConcurrency; i++ {
-		go a.worker(i)
+		ctx, err := a.transferImpl.WorkerStarting(i)
+		if err != nil {
+			return err
+		}
+		go a.worker(i, ctx)
 	}
 	tracerx.Printf("xfer: adapter %q started", a.Name())
 	return nil
@@ -87,7 +98,7 @@ func (a *adapterBase) End() {
 }
 
 // worker function, many of these run per adapter
-func (a *adapterBase) worker(workerNum int) {
+func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 
 	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
 	waitForAuth := workerNum > 0
@@ -119,7 +130,7 @@ func (a *adapterBase) worker(workerNum int) {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
 			err = errutil.NewRetriableError(fmt.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
 		} else {
-			err = a.transferImpl.DoTransfer(t, a.cb, authCallback)
+			err = a.transferImpl.DoTransfer(ctx, t, a.cb, authCallback)
 		}
 
 		if a.outChan != nil {
@@ -134,6 +145,7 @@ func (a *adapterBase) worker(workerNum int) {
 		a.authWait.Done()
 	}
 	tracerx.Printf("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
+	a.transferImpl.WorkerEnding(workerNum, ctx)
 	a.workerWait.Done()
 }
 
