@@ -122,7 +122,7 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	tlstime := c.GitConfigInt("lfs.tlstimeout", 30)
 
 	tr := &http.Transport{
-		Proxy: proxyFromGitConfigOrEnvironment,
+		Proxy: ProxyFromGitConfigOrEnvironment(c),
 		Dial: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
@@ -146,19 +146,20 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	return client
 }
 
-func proxyFromGitConfigOrEnvironment(req *http.Request) (*url.URL, error) {
-	proxyURL, err := http.ProxyFromEnvironment(req)
+func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Request) (*url.URL, error) {
+	return func(req *http.Request) (*url.URL, error) {
+		proxyURL, err := http.ProxyFromEnvironment(req)
+		fmt.Printf("YO: %v\n", proxyURL)
+		if proxyURL != nil {
+			return proxyURL, err
+		}
 
-	if proxyURL != nil {
-		return proxyURL, err
+		if proxy, ok := c.GitConfig("http.proxy"); ok {
+			return url.Parse(proxy)
+		}
+
+		return nil, nil
 	}
-
-	if proxy, ok := Config.GitConfig("http.proxy"); ok {
-		proxyURL, err := url.Parse(proxy)
-		return proxyURL, err
-	}
-
-	return proxyURL, err
 }
 
 func CheckRedirect(req *http.Request, via []*http.Request) error {
