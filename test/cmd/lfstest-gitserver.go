@@ -320,11 +320,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	testingChunked := testingChunkedTransferEncoding(r)
 	testingTus := testingTusUploadInBatchReq(r)
 	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
+	testingCustomTransfer := testingCustomTransfer(r)
 	var transferChoice string
+	var searchForTransfer string
 	if testingTus {
+		searchForTransfer = "tus"
+	} else if testingCustomTransfer {
+		searchForTransfer = "testcustom"
+	}
+	if len(searchForTransfer) > 0 {
 		for _, t := range objs.Transfers {
-			if t == "tus" {
-				transferChoice = "tus"
+			if t == searchForTransfer {
+				transferChoice = searchForTransfer
 				break
 			}
 
@@ -947,6 +954,9 @@ func testingTusUploadInBatchReq(r *http.Request) bool {
 }
 func testingTusUploadInterruptedInBatchReq(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-tus-upload-interrupt")
+}
+func testingCustomTransfer(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-custom-transfer")
 }
 
 var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)

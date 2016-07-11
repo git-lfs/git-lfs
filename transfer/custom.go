@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 
@@ -36,6 +37,8 @@ func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, c
 	}
 	a.originalConcurrency = maxConcurrency
 
+	tracerx.Printf("xfer: Custom transfer adapter %q using concurrency %d", a.name, useConcurrency)
+
 	// Use common workers impl, but downgrade workers to number of processes
 	return a.adapterBase.Begin(useConcurrency, cb, completion)
 }
@@ -49,6 +52,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 
 	// Start a process per worker
 	// If concurrent = false we have already dialled back workers to 1
+	tracerx.Printf("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
 	cmd := subprocess.ExecCommand(a.path, a.args)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -64,6 +68,8 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	}
 
 	// TODO send initiate message
+
+	tracerx.Printf("xfer: %q for worker %d started OK", a.name, workerNum)
 
 	// Save this process context and use in future callbacks
 	return &customAdapterWorkerContext{cmd, outp, inp}, nil
@@ -87,12 +93,25 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	if ctx == nil {
 		return fmt.Errorf("Custom transfer %q was not properly initialized, see previous errors", a.name)
 	}
+	// TODO
 	// customCtx, ok := ctx.(*customAdapterWorkerContext)
 	// if !ok {
 	// 	return fmt.Errorf("Context object for custom transfer %q was of the wrong type", a.name)
 	// }
-	// TODO send transfer request, receive progress and completion
 
+	// TODO call authOK on first non-zero progress
+	if authOkFunc != nil {
+		authOkFunc()
+	}
+
+	// TODO send transfer request, receive progress and completion
+	if cb != nil {
+		advanceCallbackProgress(cb, t, t.Object.Size)
+	}
+
+	if a.direction == Upload {
+		return api.VerifyUpload(t.Object)
+	}
 	return nil
 }
 
