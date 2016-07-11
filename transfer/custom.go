@@ -242,7 +242,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 		switch respIdx {
 		case 0:
 			// Progress
-			prog := possResps[0].(customAdapterProgressResponse)
+			prog := possResps[respIdx].(customAdapterProgressResponse)
 			if prog.Oid != t.Object.Oid {
 				return fmt.Errorf("Unexpected oid %q in response, expecting %q", prog.Oid, t.Object.Oid)
 			}
@@ -252,7 +252,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 			wasAuthOk = prog.BytesSoFar > 0
 		case 1:
 			// Download/Upload complete
-			comp := possResps[0].(customAdapterTransferResponse)
+			comp := possResps[respIdx].(customAdapterTransferResponse)
 			if comp.Oid != t.Object.Oid {
 				return fmt.Errorf("Unexpected oid %q in response, expecting %q", comp.Oid, t.Object.Oid)
 			}
