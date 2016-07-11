@@ -1,6 +1,8 @@
 package transfer
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
@@ -24,9 +26,42 @@ type customAdapter struct {
 }
 
 type customAdapterWorkerContext struct {
-	cmd    *exec.Cmd
-	stdout io.ReadCloser
-	stdin  io.WriteCloser
+	cmd         *exec.Cmd
+	stdout      io.ReadCloser
+	bufferedOut *bufio.Reader
+	stdin       io.WriteCloser
+}
+
+type customAdapterInitRequest struct {
+	Operation           string `json:"operation"`
+	Concurrent          bool   `json:"concurrent"`
+	ConcurrentTransfers int    `json:"concurrenttransfers"`
+}
+type customAdapterInitResponse struct {
+	Error *api.ObjectError `json:"error,omitempty"`
+}
+type customAdapterUploadRequest struct {
+	Oid    string            `json:"oid"`
+	Size   int64             `json:"size"`
+	Path   string            `json:"path"`
+	Action *api.LinkRelation `json:"action"`
+}
+type customAdapterUploadResponse struct {
+	Oid   string           `json:"oid"`
+	Error *api.ObjectError `json:"error,omitempty"`
+}
+type customAdapterDownloadRequest struct {
+	Oid    string            `json:"oid"`
+	Size   int64             `json:"size"`
+	Action *api.LinkRelation `json:"action"`
+}
+type customAdapterDownloadResponse struct {
+	Oid   string           `json:"oid"`
+	Path  string           `json:"path,omitempty"`
+	Error *api.ObjectError `json:"error,omitempty"`
+}
+type customAdapterTerminateRequest struct {
+	Complete bool `json:"complete"`
 }
 
 func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
@@ -66,13 +101,70 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start custom transfer command %q remote: %v", a.path, err)
 	}
+	// Set up buffered reader/writer since we operate on lines
+	ctx := &customAdapterWorkerContext{cmd, outp, bufio.NewReader(outp), inp}
 
-	// TODO send initiate message
+	// send initiate message
+	op := "upload"
+	if a.direction == Download {
+		op = "download"
+	}
+	initReq := &customAdapterInitRequest{op, a.concurrent, a.originalConcurrency}
+	var initResp customAdapterInitResponse
+	err = a.exchangeMessage(ctx, initReq, &initResp)
+	if err != nil {
+		a.abortWorkerProcess(ctx)
+		return nil, err
+	}
 
 	tracerx.Printf("xfer: %q for worker %d started OK", a.name, workerNum)
 
 	// Save this process context and use in future callbacks
-	return &customAdapterWorkerContext{cmd, outp, inp}, nil
+	return ctx, nil
+}
+
+// exchangeMessage sends a message to a process and reads a response if resp != nil
+// Only fatal errors to communicate return an error, errors may be embedded in reply
+func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, resp interface{}) error {
+	b, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+	// Line oriented JSON
+	b = append(b, '\n')
+	_, err = ctx.stdin.Write(b)
+	if err != nil {
+		return err
+	}
+	// Read response if needed
+	if resp != nil {
+		line, err := ctx.bufferedOut.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal([]byte(line), resp)
+	}
+	return nil
+}
+
+// shutdownWorkerProcess terminates gracefully a custom adapter process
+// returns an error if it couldn't shut down gracefully (caller may abortWorkerProcess)
+func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) error {
+	termReq := &customAdapterTerminateRequest{true}
+	err := a.exchangeMessage(ctx, termReq, nil)
+	if err != nil {
+		return err
+	}
+	return ctx.cmd.Wait()
+}
+
+// abortWorkerProcess terminates & aborts untidily, most probably breakdown of comms or internal error
+func (a *customAdapter) abortWorkerProcess(ctx *customAdapterWorkerContext) {
+	ctx.stdin.Close()
+	ctx.stdout.Close()
+	ctx.cmd.Process.Kill()
+	ctx.cmd = nil
+
 }
 func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 	customCtx, ok := ctx.(*customAdapterWorkerContext)
@@ -81,11 +173,10 @@ func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 		return
 	}
 
-	// TODO send finish message
-
-	err := customCtx.cmd.Wait()
+	err := a.shutdownWorkerProcess(customCtx)
 	if err != nil {
-		tracerx.Printf("xfer: error finishing up custom transfer process %q: %v", a.name, err)
+		tracerx.Printf("xfer: error finishing up custom transfer process %q, aborting: %v", a.name, err)
+		a.abortWorkerProcess(customCtx)
 	}
 }
 
