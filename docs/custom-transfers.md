@@ -137,12 +137,18 @@ For uploads the request sent from git-lfs to the transfer process will look
 like this:
 
 ```json
-{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png" }
+{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
 * `path`: the file which the transfer process should read the upload data from
+* `action`: the "upload" action copied from the response from the batch API.
+  This contains "href" and "header" contents, which are named per HTTP
+  conventions, but can be interpreted however the custom transfer agent wishes
+  (this is an NFS example, but it doesn't even have to be an URL). Generally,
+  "href" will give the primary connection details, with "header" containing any
+  miscellaneous information needed.
 
 The transfer process should post one or more [progress messages](#progress) and 
 then a final completion message as follows:
@@ -166,11 +172,17 @@ For downloads the request sent from git-lfs to the transfer process will look
 like this:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245 }
+{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
+* `action`: the "download" action copied from the response from the batch API.
+  This contains "href" and "header" contents, which are named per HTTP
+  conventions, but can be interpreted however the custom transfer agent wishes
+  (this is an NFS example, but it doesn't even have to be an URL). Generally,
+  "href" will give the primary connection details, with "header" containing any
+  miscellaneous information needed.
 
 Note there is no file path included in the download request; the transfer 
 process should create a file itself and return the path in the final response
@@ -233,6 +245,18 @@ No response is expected.
 Any unexpected fatal errors in the transfer process (not errors specific to a
 transfer request) should set the exit code to non-zero and print information to 
 stderr. Otherwise the exit code should be 0 even if some transfers failed.
+
+## A Note On Verify Actions
+
+You may have noticed that that only the "upload" and "download" actions are
+passed to the custom transfer agent for processing, what about the "verify" 
+action, if the API returns one?
+
+Custom transfer agents do not handle the verification process, only the 
+upload and download of content. The verify link is typically used to notify
+a system *other* than the actual content store after an upload was completed,
+therefore it makes more sense for that to be handled via the normal API process.
+
 
 
 
