@@ -43,19 +43,10 @@ type customAdapterInitRequest struct {
 type customAdapterInitResponse struct {
 	Error *api.ObjectError `json:"error,omitempty"`
 }
-type customAdapterUploadRequest struct {
+type customAdapterTransferRequest struct { // common between upload/download
 	Oid    string            `json:"oid"`
 	Size   int64             `json:"size"`
-	Path   string            `json:"path"`
-	Action *api.LinkRelation `json:"action"`
-}
-type customAdapterUploadResponse struct {
-	Oid   string           `json:"oid"`
-	Error *api.ObjectError `json:"error,omitempty"`
-}
-type customAdapterDownloadRequest struct {
-	Oid    string            `json:"oid"`
-	Size   int64             `json:"size"`
+	Path   string            `json:"path,omitempty"`
 	Action *api.LinkRelation `json:"action"`
 }
 type customAdapterTransferResponse struct { // common between upload/download
@@ -113,11 +104,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	ctx := &customAdapterWorkerContext{cmd, outp, bufio.NewReader(outp), inp}
 
 	// send initiate message
-	op := "upload"
-	if a.direction == Download {
-		op = "download"
-	}
-	initReq := &customAdapterInitRequest{op, a.concurrent, a.originalConcurrency}
+	initReq := &customAdapterInitRequest{a.getOperationName(), a.concurrent, a.originalConcurrency}
 	var initResp customAdapterInitResponse
 	err = a.exchangeMessage(ctx, initReq, &initResp)
 	if err != nil {
@@ -129,6 +116,13 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 
 	// Save this process context and use in future callbacks
 	return ctx, nil
+}
+
+func (a *customAdapter) getOperationName() string {
+	if a.direction == Download {
+		return "download"
+	}
+	return "upload"
 }
 
 // sendMessage sends a JSON message to the custom adapter process
@@ -223,19 +217,13 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	}
 	var authCalled bool
 
-	var req interface{}
-	if a.direction == Download {
-		rel, ok := t.Object.Rel("download")
-		if !ok {
-			return errors.New("Object not found on the server.")
-		}
-		req = &customAdapterDownloadRequest{t.Object.Oid, t.Object.Size, rel}
-	} else {
-		rel, ok := t.Object.Rel("upload")
-		if !ok {
-			return errors.New("Object not found on the server.")
-		}
-		req = &customAdapterUploadRequest{t.Object.Oid, t.Object.Size, localstorage.Objects().ObjectPath(t.Object.Oid), rel}
+	rel, ok := t.Object.Rel(a.getOperationName())
+	if !ok {
+		return errors.New("Object not found on the server.")
+	}
+	req := &customAdapterTransferRequest{t.Object.Oid, t.Object.Size, "", rel}
+	if a.direction == Upload {
+		req.Path = localstorage.Objects().ObjectPath(t.Object.Oid)
 	}
 	err := a.sendMessage(customCtx, req)
 	if err != nil {
