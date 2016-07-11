@@ -155,6 +155,8 @@ func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) e
 	if err != nil {
 		return err
 	}
+	ctx.stdin.Close()
+	ctx.stdout.Close()
 	return ctx.cmd.Wait()
 }
 
@@ -163,8 +165,6 @@ func (a *customAdapter) abortWorkerProcess(ctx *customAdapterWorkerContext) {
 	ctx.stdin.Close()
 	ctx.stdout.Close()
 	ctx.cmd.Process.Kill()
-	ctx.cmd = nil
-
 }
 func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 	customCtx, ok := ctx.(*customAdapterWorkerContext)
