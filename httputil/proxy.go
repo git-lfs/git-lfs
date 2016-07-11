@@ -11,6 +11,7 @@ import (
 	"github.com/github/git-lfs/config"
 )
 
+// Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.
 func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Request) (*url.URL, error) {
 	https_proxy := c.Getenv("HTTPS_PROXY")
 	if len(https_proxy) == 0 {
@@ -66,6 +67,7 @@ func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Req
 }
 
 // canonicalAddr returns url.Host but always with a ":port" suffix
+// Copied from "net/http".ProxyFromEnvironment in the go std lib.
 func canonicalAddr(url *url.URL) string {
 	addr := url.Host
 	if !hasPort(addr) {
@@ -77,6 +79,7 @@ func canonicalAddr(url *url.URL) string {
 // useProxy reports whether requests to addr should use a proxy,
 // according to the NO_PROXY or no_proxy environment variable.
 // addr is always a canonicalAddr with a host and port.
+// Copied from "net/http".ProxyFromEnvironment in the go std lib.
 func useProxy(no_proxy, addr string) bool {
 	if len(addr) == 0 {
 		return true
@@ -129,6 +132,7 @@ func useProxy(no_proxy, addr string) bool {
 
 // Given a string of the form "host", "host:port", or "[ipv6::address]:port",
 // return true if the string includes a port.
+// Copied from "net/http".ProxyFromEnvironment in the go std lib.
 func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
 
 var (
