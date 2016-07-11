@@ -95,7 +95,10 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 	// Single download
 	adapterResultChan := make(chan transfer.TransferResult, 1)
-	adapter.Begin(1, tcb, adapterResultChan)
+	err = adapter.Begin(1, tcb, adapterResultChan)
+	if err != nil {
+		return err
+	}
 	adapter.Add(transfer.NewTransfer(filepath.Base(workingfile), obj, mediafile))
 	adapter.End()
 	res := <-adapterResultChan

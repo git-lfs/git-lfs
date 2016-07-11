@@ -128,7 +128,13 @@ func (q *TransferQueue) addToAdapter(t Transferable) {
 		q.handleTransferResult(res)
 		return
 	}
-	q.ensureAdapterBegun()
+	err := q.ensureAdapterBegun()
+	if err != nil {
+		q.errorc <- err
+		q.Skip(t.Size())
+		q.wait.Done()
+		return
+	}
 	q.adapter.Add(tr)
 }
 
@@ -144,12 +150,12 @@ func (q *TransferQueue) transferKind() string {
 	}
 }
 
-func (q *TransferQueue) ensureAdapterBegun() {
+func (q *TransferQueue) ensureAdapterBegun() error {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
 
 	if q.adapterInProgress {
-		return
+		return nil
 	}
 
 	adapterResultChan := make(chan transfer.TransferResult, 20)
@@ -161,7 +167,10 @@ func (q *TransferQueue) ensureAdapterBegun() {
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	q.adapter.Begin(config.Config.ConcurrentTransfers(), cb, adapterResultChan)
+	err := q.adapter.Begin(config.Config.ConcurrentTransfers(), cb, adapterResultChan)
+	if err != nil {
+		return err
+	}
 	q.adapterInProgress = true
 
 	// Collector for completed transfers
@@ -172,6 +181,7 @@ func (q *TransferQueue) ensureAdapterBegun() {
 		}
 	}()
 
+	return nil
 }
 
 func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
