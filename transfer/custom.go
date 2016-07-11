@@ -3,11 +3,14 @@ package transfer
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/github/git-lfs/localstorage"
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/subprocess"
@@ -55,13 +58,18 @@ type customAdapterDownloadRequest struct {
 	Size   int64             `json:"size"`
 	Action *api.LinkRelation `json:"action"`
 }
-type customAdapterDownloadResponse struct {
+type customAdapterTransferResponse struct { // common between upload/download
 	Oid   string           `json:"oid"`
-	Path  string           `json:"path,omitempty"`
+	Path  string           `json:"path,omitempty"` // always blank for upload
 	Error *api.ObjectError `json:"error,omitempty"`
 }
 type customAdapterTerminateRequest struct {
 	Complete bool `json:"complete"`
+}
+type customAdapterProgressResponse struct {
+	Oid            string `json:"oid"`
+	BytesSoFar     int64  `json:"bytesSoFar"`
+	BytesSinceLast int    `json:"bytesSinceLast"`
 }
 
 func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
@@ -123,9 +131,8 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	return ctx, nil
 }
 
-// exchangeMessage sends a message to a process and reads a response if resp != nil
-// Only fatal errors to communicate return an error, errors may be embedded in reply
-func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, resp interface{}) error {
+// sendMessage sends a JSON message to the custom adapter process
+func (a *customAdapter) sendMessage(ctx *customAdapterWorkerContext, req interface{}) error {
 	b, err := json.Marshal(req)
 	if err != nil {
 		return err
@@ -136,13 +143,38 @@ func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, re
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// readResponse reads one of 1..N possible responses and populates the first one which
+// was unmarshalled correctly. This allows us to listen for one of possibly many responses
+// Returns the index of the item which was populated
+func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext, possResps []interface{}) (int, error) {
+	line, err := ctx.bufferedOut.ReadString('\n')
+	if err != nil {
+		return 0, err
+	}
+	for i, resp := range possResps {
+		if json.Unmarshal([]byte(line), resp) == nil {
+			return i, nil
+		}
+	}
+	return 0, fmt.Errorf("Response %q did not match any of possible responses %v", string(line), possResps)
+
+}
+
+// exchangeMessage sends a message to a process and reads a response if resp != nil
+// Only fatal errors to communicate return an error, errors may be embedded in reply
+func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, resp interface{}) error {
+
+	err := a.sendMessage(ctx, req)
+	if err != nil {
+		return err
+	}
 	// Read response if needed
 	if resp != nil {
-		line, err := ctx.bufferedOut.ReadString('\n')
-		if err != nil {
-			return err
-		}
-		return json.Unmarshal([]byte(line), resp)
+		_, err = a.readResponse(ctx, []interface{}{resp})
+		return err
 	}
 	return nil
 }
@@ -184,22 +216,72 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	if ctx == nil {
 		return fmt.Errorf("Custom transfer %q was not properly initialized, see previous errors", a.name)
 	}
-	// TODO
-	// customCtx, ok := ctx.(*customAdapterWorkerContext)
-	// if !ok {
-	// 	return fmt.Errorf("Context object for custom transfer %q was of the wrong type", a.name)
-	// }
 
-	// TODO call authOK on first non-zero progress
-	if authOkFunc != nil {
-		authOkFunc()
+	customCtx, ok := ctx.(*customAdapterWorkerContext)
+	if !ok {
+		return fmt.Errorf("Context object for custom transfer %q was of the wrong type", a.name)
+	}
+	var authCalled bool
+
+	var req interface{}
+	if a.direction == Download {
+		rel, ok := t.Object.Rel("download")
+		if !ok {
+			return errors.New("Object not found on the server.")
+		}
+		req = &customAdapterDownloadRequest{t.Object.Oid, t.Object.Size, rel}
+	} else {
+		rel, ok := t.Object.Rel("upload")
+		if !ok {
+			return errors.New("Object not found on the server.")
+		}
+		req = &customAdapterUploadRequest{t.Object.Oid, t.Object.Size, localstorage.Objects().ObjectPath(t.Object.Oid), rel}
+	}
+	err := a.sendMessage(customCtx, req)
+	if err != nil {
+		return err
 	}
 
-	// TODO send transfer request, receive progress and completion
-	if cb != nil {
-		advanceCallbackProgress(cb, t, t.Object.Size)
+	// 1..N replies (including progress & one of download / upload)
+	possResps := []interface{}{&customAdapterProgressResponse{}, &customAdapterTransferResponse{}}
+	var complete bool
+	for !complete {
+		respIdx, err := a.readResponse(customCtx, possResps)
+		if err != nil {
+			return err
+		}
+		var wasAuthOk bool
+		switch respIdx {
+		case 0:
+			// Progress
+			prog := possResps[0].(customAdapterProgressResponse)
+			if prog.Oid != t.Object.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", prog.Oid, t.Object.Oid)
+			}
+			if cb != nil {
+				cb(t.Name, t.Object.Size, prog.BytesSoFar, prog.BytesSinceLast)
+			}
+			wasAuthOk = prog.BytesSoFar > 0
+		case 1:
+			// Download/Upload complete
+			comp := possResps[0].(customAdapterTransferResponse)
+			if comp.Oid != t.Object.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", comp.Oid, t.Object.Oid)
+			}
+			if comp.Error != nil {
+				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, comp.Error.Error())
+			}
+			wasAuthOk = true
+			complete = true
+		}
+		// Call auth on first progress or success
+		if wasAuthOk && authOkFunc != nil && !authCalled {
+			authOkFunc()
+			authCalled = true
+		}
 	}
 
+	// Send verify if successful upload
 	if a.direction == Upload {
 		return api.VerifyUpload(t.Object)
 	}
