@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,11 +29,33 @@ type customAdapter struct {
 	originalConcurrency int
 }
 
+// Struct to capture stderr and write to trace
+type traceWriter struct {
+	buf bytes.Buffer
+}
+
+func (t *traceWriter) Write(b []byte) (int, error) {
+	n, err := t.buf.Write(b)
+	t.Flush()
+	return n, err
+}
+func (t *traceWriter) Flush() {
+	var err error
+	for err == nil {
+		var s string
+		s, err = t.buf.ReadString('\n')
+		if len(s) > 0 {
+			tracerx.Printf("xfer_custom_stderr: %v", strings.TrimSpace(s))
+		}
+	}
+}
+
 type customAdapterWorkerContext struct {
 	cmd         *exec.Cmd
 	stdout      io.ReadCloser
 	bufferedOut *bufio.Reader
 	stdin       io.WriteCloser
+	errTracer   *traceWriter
 }
 
 type customAdapterInitRequest struct {
@@ -96,12 +119,15 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get stdin for custom transfer command %q remote: %v", a.path, err)
 	}
+	// Capture stderr to trace
+	tracer := &traceWriter{}
+	cmd.Stderr = tracer
 	err = cmd.Start()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start custom transfer command %q remote: %v", a.path, err)
 	}
 	// Set up buffered reader/writer since we operate on lines
-	ctx := &customAdapterWorkerContext{cmd, outp, bufio.NewReader(outp), inp}
+	ctx := &customAdapterWorkerContext{cmd, outp, bufio.NewReader(outp), inp, tracer}
 
 	// send initiate message
 	initReq := &customAdapterInitRequest{a.getOperationName(), a.concurrent, a.originalConcurrency}
@@ -176,6 +202,8 @@ func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, re
 // shutdownWorkerProcess terminates gracefully a custom adapter process
 // returns an error if it couldn't shut down gracefully (caller may abortWorkerProcess)
 func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) error {
+	defer ctx.errTracer.Flush()
+
 	termReq := &customAdapterTerminateRequest{true}
 	err := a.exchangeMessage(ctx, termReq, nil)
 	if err != nil {
