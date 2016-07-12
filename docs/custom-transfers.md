@@ -102,9 +102,10 @@ the configuration.
 
 The message will look like this:
 ```json
-{ "operation":"download", "concurrent": true, "concurrenttransfers": 3 }
+{ "id":"init", "operation":"download", "concurrent": true, "concurrenttransfers": 3 }
 ```
 
+* `id`: Always "init" to identify this message
 * `operation`: will be "upload" or "download" depending on transfer direction
 * `concurrent`: reflects the value of `lfs.customtransfer.<name>.concurrent`, in
   case the process needs to know
@@ -114,10 +115,10 @@ The message will look like this:
 
 The transfer process should use the information it needs from the intiation
 structure, and also perform any one-off setup tasks it needs to do. It should
-then respond on stdout with a simple confirmation structure, as follows:
+then respond on stdout with a simple empty confirmation structure, as follows:
 
 ```json
-{ "error": null }
+{ }
 ```
 
 Or if there was an error:
@@ -137,9 +138,10 @@ For uploads the request sent from git-lfs to the transfer process will look
 like this:
 
 ```json
-{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
+{ "id":"upload", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
+* `id`: Always "upload" to identify this message
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
 * `path`: the file which the transfer process should read the upload data from
@@ -154,17 +156,21 @@ The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
-{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": null}
+{ "id":"complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a"}
 ```
 
+* `id`: Always "complete" to identify this message
 * `oid`: the identifier of the LFS object
-* `error`: Should be null if there was no error
 
 Or if there was an error in the transfer:
 
 ```json
-{ "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
+{ "id":"complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
 ```
+
+* `id`: Always "complete" to identify this message
+* `oid`: the identifier of the LFS object
+* `error`: Should contain a `code` and `message` explaining the error
 
 ##### Downloads
 
@@ -172,9 +178,10 @@ For downloads the request sent from git-lfs to the transfer process will look
 like this:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
+{ "id":"download", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
+* `id`: Always "download" to identify this message
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
 * `action`: the "download" action copied from the response from the batch API.
@@ -192,9 +199,10 @@ The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png", "error": null}
+{ "id":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png", "error": null}
 ```
 
+* `id`: Always "complete" to identify this message
 * `oid`: the identifier of the LFS object
 * `path`: the path to a file containing the downloaded data, which the transfer
   process reliquishes control of to git-lfs. git-lfs will move the file into LFS
@@ -204,7 +212,7 @@ then a final completion message as follows:
 Or, if there was a failure transferring this item:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
+{ "id":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
 ```
 
 Errors for a single transfer request should not terminate the process. The error
@@ -221,9 +229,10 @@ the transfer process should post messages to stdout as follows before sending
 the final completion message:
 
 ```json
-{ "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "bytesSoFar": 1234, "bytesSinceLast": 64 }
+{ "id":"progress", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "bytesSoFar": 1234, "bytesSinceLast": 64 }
 ```
 
+* `id`: Always "progress" to identify this message
 * `oid`: the identifier of the LFS object
 * `bytesSoFar`: the total number of bytes transferred so far
 * `bytesSinceLast`: the number of bytes transferred since the last progress 
@@ -238,7 +247,7 @@ When all transfers have been processed, git-lfs will send the following message
 to the stdin of the transfer process:
 
 ```json
-{ "complete": true }
+{ "id":"terminate" }
 ```
 
 On receiving this message the transfer process should clean up and terminate.

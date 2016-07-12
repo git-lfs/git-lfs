@@ -60,31 +60,47 @@ type customAdapterWorkerContext struct {
 }
 
 type customAdapterInitRequest struct {
+	Id                  string `json:"id"`
 	Operation           string `json:"operation"`
 	Concurrent          bool   `json:"concurrent"`
 	ConcurrentTransfers int    `json:"concurrenttransfers"`
 }
-type customAdapterInitResponse struct {
-	Error *api.ObjectError `json:"error,omitempty"`
+
+func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers int) *customAdapterInitRequest {
+	return &customAdapterInitRequest{"init", op, concurrent, concurrentTransfers}
 }
+
 type customAdapterTransferRequest struct { // common between upload/download
+	Id     string            `json:"id"`
 	Oid    string            `json:"oid"`
 	Size   int64             `json:"size"`
 	Path   string            `json:"path,omitempty"`
 	Action *api.LinkRelation `json:"action"`
 }
-type customAdapterTransferResponse struct { // common between upload/download
-	Oid   string           `json:"oid"`
-	Path  string           `json:"path,omitempty"` // always blank for upload
-	Error *api.ObjectError `json:"error,omitempty"`
+
+func NewCustomAdapterUploadRequest(oid string, size int64, path string, action *api.LinkRelation) *customAdapterTransferRequest {
+	return &customAdapterTransferRequest{"upload", oid, size, path, action}
 }
+func NewCustomAdapterDownloadRequest(oid string, size int64, action *api.LinkRelation) *customAdapterTransferRequest {
+	return &customAdapterTransferRequest{"download", oid, size, "", action}
+}
+
 type customAdapterTerminateRequest struct {
-	Complete bool `json:"complete"`
+	MessageType string `json:"type"`
 }
-type customAdapterProgressResponse struct {
-	Oid            string `json:"oid"`
-	BytesSoFar     int64  `json:"bytesSoFar"`
-	BytesSinceLast int    `json:"bytesSinceLast"`
+
+func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
+	return &customAdapterTerminateRequest{"terminate"}
+}
+
+// A common struct that allows all types of response to be identified
+type customAdapterResponseMessage struct {
+	Id             string           `json:"id"`
+	Error          *api.ObjectError `json:"error"`
+	Oid            string           `json:"oid"`
+	Path           string           `json:"path,omitempty"` // always blank for upload
+	BytesSoFar     int64            `json:"bytesSoFar"`
+	BytesSinceLast int              `json:"bytesSinceLast"`
 }
 
 func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
@@ -131,12 +147,15 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	ctx := &customAdapterWorkerContext{cmd, outp, bufio.NewReader(outp), inp, tracer}
 
 	// send initiate message
-	initReq := &customAdapterInitRequest{a.getOperationName(), a.concurrent, a.originalConcurrency}
-	var initResp customAdapterInitResponse
-	err = a.exchangeMessage(ctx, initReq, &initResp)
+	initReq := NewCustomAdapterInitRequest(a.getOperationName(), a.concurrent, a.originalConcurrency)
+	resp, err := a.exchangeMessage(ctx, initReq)
 	if err != nil {
 		a.abortWorkerProcess(ctx)
 		return nil, err
+	}
+	if resp.Error != nil {
+		a.abortWorkerProcess(ctx)
+		return nil, fmt.Errorf("Error initializing custom adapter %q: %v", a.name, resp.Error.Error())
 	}
 
 	tracerx.Printf("xfer: %q for worker %d started OK", a.name, workerNum)
@@ -167,37 +186,25 @@ func (a *customAdapter) sendMessage(ctx *customAdapterWorkerContext, req interfa
 	return nil
 }
 
-// readResponse reads one of 1..N possible responses and populates the first one which
-// was unmarshalled correctly. This allows us to listen for one of possibly many responses
-// Returns the index of the item which was populated
-func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext, possResps []interface{}) (int, error) {
+func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAdapterResponseMessage, error) {
 	line, err := ctx.bufferedOut.ReadString('\n')
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	for i, resp := range possResps {
-		if json.Unmarshal([]byte(line), resp) == nil {
-			return i, nil
-		}
-	}
-	return 0, fmt.Errorf("Response %q did not match any of possible responses %v", string(line), possResps)
-
+	resp := &customAdapterResponseMessage{}
+	err = json.Unmarshal([]byte(line), resp)
+	return resp, err
 }
 
 // exchangeMessage sends a message to a process and reads a response if resp != nil
 // Only fatal errors to communicate return an error, errors may be embedded in reply
-func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, resp interface{}) error {
+func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req interface{}) (*customAdapterResponseMessage, error) {
 
 	err := a.sendMessage(ctx, req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	// Read response if needed
-	if resp != nil {
-		_, err = a.readResponse(ctx, []interface{}{resp})
-		return err
-	}
-	return nil
+	return a.readResponse(ctx)
 }
 
 // shutdownWorkerProcess terminates gracefully a custom adapter process
@@ -205,8 +212,8 @@ func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req, re
 func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) error {
 	defer ctx.errTracer.Flush()
 
-	termReq := &customAdapterTerminateRequest{true}
-	err := a.exchangeMessage(ctx, termReq, nil)
+	termReq := NewCustomAdapterTerminateRequest()
+	err := a.sendMessage(ctx, termReq)
 	if err != nil {
 		return err
 	}
@@ -250,9 +257,11 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	if !ok {
 		return errors.New("Object not found on the server.")
 	}
-	req := &customAdapterTransferRequest{t.Object.Oid, t.Object.Size, "", rel}
+	var req *customAdapterTransferRequest
 	if a.direction == Upload {
-		req.Path = localstorage.Objects().ObjectPath(t.Object.Oid)
+		req = NewCustomAdapterUploadRequest(t.Object.Oid, t.Object.Size, localstorage.Objects().ObjectPath(t.Object.Oid), rel)
+	} else {
+		req = NewCustomAdapterDownloadRequest(t.Object.Oid, t.Object.Size, rel)
 	}
 	err := a.sendMessage(customCtx, req)
 	if err != nil {
@@ -260,41 +269,38 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	}
 
 	// 1..N replies (including progress & one of download / upload)
-	possResps := []interface{}{&customAdapterProgressResponse{}, &customAdapterTransferResponse{}}
 	var complete bool
 	for !complete {
-		respIdx, err := a.readResponse(customCtx, possResps)
+		resp, err := a.readResponse(customCtx)
 		if err != nil {
 			return err
 		}
 		var wasAuthOk bool
-		switch respIdx {
-		case 0:
+		switch resp.Id {
+		case "progress":
 			// Progress
-			prog := possResps[respIdx].(customAdapterProgressResponse)
-			if prog.Oid != t.Object.Oid {
-				return fmt.Errorf("Unexpected oid %q in response, expecting %q", prog.Oid, t.Object.Oid)
+			if resp.Oid != t.Object.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
 			}
 			if cb != nil {
-				cb(t.Name, t.Object.Size, prog.BytesSoFar, prog.BytesSinceLast)
+				cb(t.Name, t.Object.Size, resp.BytesSoFar, resp.BytesSinceLast)
 			}
-			wasAuthOk = prog.BytesSoFar > 0
-		case 1:
+			wasAuthOk = resp.BytesSoFar > 0
+		case "complete":
 			// Download/Upload complete
-			comp := possResps[respIdx].(customAdapterTransferResponse)
-			if comp.Oid != t.Object.Oid {
-				return fmt.Errorf("Unexpected oid %q in response, expecting %q", comp.Oid, t.Object.Oid)
+			if resp.Oid != t.Object.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
 			}
-			if comp.Error != nil {
-				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, comp.Error.Error())
+			if resp.Error != nil {
+				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, resp.Error.Error())
 			}
 			if a.direction == Download {
 				// So we don't have to blindly trust external providers, check SHA
-				if err = tools.VerifyFileHash(t.Object.Oid, comp.Path); err != nil {
+				if err = tools.VerifyFileHash(t.Object.Oid, resp.Path); err != nil {
 					return fmt.Errorf("Downloaded file failed checks: %v", err)
 				}
 				// Move file to final location
-				if err = tools.RenameFileCopyPermissions(comp.Path, t.Path); err != nil {
+				if err = tools.RenameFileCopyPermissions(resp.Path, t.Path); err != nil {
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
