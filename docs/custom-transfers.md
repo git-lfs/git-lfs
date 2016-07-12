@@ -210,6 +210,10 @@ Or, if there was a failure transferring this item:
 Errors for a single transfer request should not terminate the process. The error
 should be returned in the response structure instead.
 
+The custom transfer adapter does not need to check the SHA of the file content
+it has downloaded, git-lfs will do that before moving the final content into
+the LFS store.
+
 ##### Progress
 
 In order to support progress reporting while data is uploading / downloading, 

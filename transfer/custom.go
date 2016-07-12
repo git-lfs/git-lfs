@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/localstorage"
+	"github.com/github/git-lfs/tools"
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/subprocess"
@@ -287,20 +288,31 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 			if comp.Error != nil {
 				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, comp.Error.Error())
 			}
+			if a.direction == Download {
+				// So we don't have to blindly trust external providers, check SHA
+				if err = tools.VerifyFileHash(t.Object.Oid, comp.Path); err != nil {
+					return fmt.Errorf("Downloaded file failed checks: %v", err)
+				}
+				// Move file to final location
+				if err = tools.RenameFileCopyPermissions(comp.Path, t.Path); err != nil {
+					return fmt.Errorf("Failed to copy downloaded file: %v", err)
+				}
+			} else if a.direction == Upload {
+				if err = api.VerifyUpload(t.Object); err != nil {
+					return err
+				}
+			}
 			wasAuthOk = true
 			complete = true
 		}
-		// Call auth on first progress or success
+		// Fall through from both progress and completion messages
+		// Call auth on first progress or success to free up other workers
 		if wasAuthOk && authOkFunc != nil && !authCalled {
 			authOkFunc()
 			authCalled = true
 		}
 	}
 
-	// Send verify if successful upload
-	if a.direction == Upload {
-		return api.VerifyUpload(t.Object)
-	}
 	return nil
 }
 
