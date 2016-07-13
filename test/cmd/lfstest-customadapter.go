@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/github/git-lfs/api"
@@ -32,30 +33,38 @@ func main() {
 		line := scanner.Text()
 		var req request
 		if err := json.Unmarshal([]byte(line), &req); err != nil {
-			errWriter.WriteString(fmt.Sprintf("Unable to parse request: %v\n", line))
+			writeToStderr(fmt.Sprintf("Unable to parse request: %v\n", line), errWriter)
 			continue
 		}
 
 		switch req.Id {
 		case "init":
-			errWriter.WriteString(fmt.Sprintf("Initialised test custom adapter for %s\n", req.Operation))
+			writeToStderr(fmt.Sprintf("Initialised test custom adapter for %s\n", req.Operation), errWriter)
 			resp := &initResponse{}
-			sendResponse(resp, writer)
+			sendResponse(resp, writer, errWriter)
 		case "download":
-			errWriter.WriteString(fmt.Sprintf("Received download request for %s\n", req.Oid))
+			writeToStderr(fmt.Sprintf("Received download request for %s\n", req.Oid), errWriter)
 			performDownload(req.Oid, req.Size, req.Action, writer, errWriter)
 		case "upload":
-			errWriter.WriteString(fmt.Sprintf("Received upload request for %s\n", req.Oid))
+			writeToStderr(fmt.Sprintf("Received upload request for %s\n", req.Oid), errWriter)
 			performUpload(req.Oid, req.Size, req.Action, req.Path, writer, errWriter)
 		case "terminate":
-			errWriter.WriteString("Terminating test custom adapter gracefully.\n")
+			writeToStderr("Terminating test custom adapter gracefully.\n", errWriter)
 			break
 		}
 	}
 
 }
 
-func sendResponse(r interface{}, writer *bufio.Writer) error {
+func writeToStderr(msg string, errWriter *bufio.Writer) {
+	if !strings.HasSuffix(msg, "\n") {
+		msg = msg + "\n"
+	}
+	errWriter.WriteString(msg)
+	errWriter.Flush()
+}
+
+func sendResponse(r interface{}, writer, errWriter *bufio.Writer) error {
 	b, err := json.Marshal(r)
 	if err != nil {
 		return err
@@ -67,22 +76,23 @@ func sendResponse(r interface{}, writer *bufio.Writer) error {
 		return err
 	}
 	writer.Flush()
+	writeToStderr(fmt.Sprintf("Sent message %v", string(b)), errWriter)
 	return nil
 }
 
 func sendTransferError(oid string, code int, message string, writer, errWriter *bufio.Writer) {
 	resp := &transferResponse{"complete", oid, "", &transferError{code, message}}
-	err := sendResponse(resp, writer)
+	err := sendResponse(resp, writer, errWriter)
 	if err != nil {
-		errWriter.WriteString(fmt.Sprintf("Unable to send transfer error: %v", err))
+		writeToStderr(fmt.Sprintf("Unable to send transfer error: %v\n", err), errWriter)
 	}
 }
 
 func sendProgress(oid string, bytesSoFar int64, bytesSinceLast int, writer, errWriter *bufio.Writer) {
 	resp := &progressResponse{"progress", oid, bytesSoFar, bytesSinceLast}
-	err := sendResponse(resp, writer)
+	err := sendResponse(resp, writer, errWriter)
 	if err != nil {
-		errWriter.WriteString(fmt.Sprintf("Unable to send progress update: %v", err))
+		writeToStderr(fmt.Sprintf("Unable to send progress update: %v\n", err), errWriter)
 	}
 }
 
@@ -127,9 +137,9 @@ func performDownload(oid string, size int64, a *action, writer, errWriter *bufio
 
 	// completed
 	complete := &transferResponse{"complete", oid, dlfilename, nil}
-	err = sendResponse(complete, writer)
+	err = sendResponse(complete, writer, errWriter)
 	if err != nil {
-		errWriter.WriteString(fmt.Sprintf("Unable to send transfer error: %v", err))
+		writeToStderr(fmt.Sprintf("Unable to send completion message: %v\n", err), errWriter)
 	}
 }
 
