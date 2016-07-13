@@ -265,11 +265,11 @@ func ScanIndex() ([]*WrappedPointer, error) {
 
 }
 
-// Get additional arguments needed to limit 'git rev-list' to just the changes in revTo
-// that are also not on remoteName.
+// Get additional arguments needed to limit 'git rev-list' to just the changes
+// in revTo that are also not on remoteName.
 //
-// Returns a slice of string args, and false if --stdin is not needed.
-// Returns a slice of string commit args and true if --stdin is needed.
+// Returns a slice of string command arguments, and a slice of string git
+// commits to pass to `git rev-list` via STDIN.
 func revListArgsRefVsRemote(refTo, remoteName string) ([]string, []string) {
 	// We need to check that the locally cached versions of remote refs are still
 	// present on the remote before we use them as a 'from' point. If the
