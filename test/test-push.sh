@@ -511,3 +511,34 @@ begin_test "push (retry with expired actions)"
   grep "(1 of 1 files)" push.log
 )
 end_test
+
+begin_test "push (with invalid object size)"
+(
+  set -e
+
+  reponame="push-invalid-object-size"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  contents="return-invalid-size"
+  printf "$contents" > a.dat
+
+  git add a.dat .gitattributes
+  git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  set +e
+  git push 2>&1 2> push.log
+  res="$?"
+  set -e
+
+  grep "invalid size (got: -1)" push.log
+  [ "0" -ne "$res" ]
+
+  refute_server_object "$reponame" "$(calc_oid "$contents")"
+)
+end_test
