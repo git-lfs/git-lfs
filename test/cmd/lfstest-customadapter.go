@@ -200,6 +200,13 @@ func performUpload(oid string, size int64, a *action, fromPath string, writer, e
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
+	// completed
+	complete := &transferResponse{"complete", oid, "", nil}
+	err = sendResponse(complete, writer, errWriter)
+	if err != nil {
+		writeToStderr(fmt.Sprintf("Unable to send completion message: %v\n", err), errWriter)
+	}
+
 }
 
 // Structs reimplemented so closer to a real external implementation
