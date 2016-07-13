@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -32,7 +33,8 @@ type customAdapter struct {
 
 // Struct to capture stderr and write to trace
 type traceWriter struct {
-	buf bytes.Buffer
+	buf         bytes.Buffer
+	processName string
 }
 
 func (t *traceWriter) Write(b []byte) (int, error) {
@@ -46,12 +48,13 @@ func (t *traceWriter) Flush() {
 		var s string
 		s, err = t.buf.ReadString('\n')
 		if len(s) > 0 {
-			tracerx.Printf("xfer_custom_stderr: %v", strings.TrimSpace(s))
+			tracerx.Printf("xfer[%v]: %v", t.processName, strings.TrimSpace(s))
 		}
 	}
 }
 
 type customAdapterWorkerContext struct {
+	workerNum   int
 	cmd         *exec.Cmd
 	stdout      io.ReadCloser
 	bufferedOut *bufio.Reader
@@ -138,13 +141,14 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	}
 	// Capture stderr to trace
 	tracer := &traceWriter{}
+	tracer.processName = filepath.Base(a.path)
 	cmd.Stderr = tracer
 	err = cmd.Start()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start custom transfer command %q remote: %v", a.path, err)
 	}
 	// Set up buffered reader/writer since we operate on lines
-	ctx := &customAdapterWorkerContext{cmd, outp, bufio.NewReader(outp), inp, tracer}
+	ctx := &customAdapterWorkerContext{workerNum, cmd, outp, bufio.NewReader(outp), inp, tracer}
 
 	// send initiate message
 	initReq := NewCustomAdapterInitRequest(a.getOperationName(), a.concurrent, a.originalConcurrency)
@@ -155,10 +159,10 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	}
 	if resp.Error != nil {
 		a.abortWorkerProcess(ctx)
-		return nil, fmt.Errorf("Error initializing custom adapter %q: %v", a.name, resp.Error.Error())
+		return nil, fmt.Errorf("Error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error.Error())
 	}
 
-	tracerx.Printf("xfer: %q for worker %d started OK", a.name, workerNum)
+	tracerx.Printf("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
 
 	// Save this process context and use in future callbacks
 	return ctx, nil
@@ -177,12 +181,14 @@ func (a *customAdapter) sendMessage(ctx *customAdapterWorkerContext, req interfa
 	if err != nil {
 		return err
 	}
+	tracerx.Printf("xfer: Custom adapter worker %d sending message: %v", ctx.workerNum, string(b))
 	// Line oriented JSON
 	b = append(b, '\n')
 	_, err = ctx.stdin.Write(b)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -191,6 +197,7 @@ func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAd
 	if err != nil {
 		return nil, err
 	}
+	tracerx.Printf("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, line)
 	resp := &customAdapterResponseMessage{}
 	err = json.Unmarshal([]byte(line), resp)
 	return resp, err
@@ -212,6 +219,7 @@ func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req int
 func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) error {
 	defer ctx.errTracer.Flush()
 
+	tracerx.Printf("xfer: Shutting down adapter worker %d", ctx.workerNum)
 	termReq := NewCustomAdapterTerminateRequest()
 	err := a.sendMessage(ctx, termReq)
 	if err != nil {
@@ -224,6 +232,7 @@ func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) e
 
 // abortWorkerProcess terminates & aborts untidily, most probably breakdown of comms or internal error
 func (a *customAdapter) abortWorkerProcess(ctx *customAdapterWorkerContext) {
+	tracerx.Printf("xfer: Aborting worker process: %d", ctx.workerNum)
 	ctx.stdin.Close()
 	ctx.stdout.Close()
 	ctx.cmd.Process.Kill()
@@ -237,7 +246,7 @@ func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 
 	err := a.shutdownWorkerProcess(customCtx)
 	if err != nil {
-		tracerx.Printf("xfer: error finishing up custom transfer process %q, aborting: %v", a.name, err)
+		tracerx.Printf("xfer: error finishing up custom transfer process %q worker %d, aborting: %v", a.path, customCtx.workerNum, err)
 		a.abortWorkerProcess(customCtx)
 	}
 }
