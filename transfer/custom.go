@@ -374,7 +374,3 @@ func ConfigureCustomAdapters() {
 	}
 
 }
-
-func init() {
-	ConfigureCustomAdapters()
-}
