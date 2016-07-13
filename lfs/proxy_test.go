@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/github/git-lfs/config"
@@ -18,14 +17,9 @@ func TestProxyFromEnvironment(t *testing.T) {
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
 	})
 
-	u, err := url.Parse("https://some-host.com:123/foo/bar")
+	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	req := &http.Request{
-		URL:    u,
-		Header: http.Header{},
 	}
 
 	proxyURL, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
@@ -39,14 +33,9 @@ func TestProxyFromGitConfig(t *testing.T) {
 		"http.proxy": "https://proxy-from-git-config:8080",
 	})
 
-	u, err := url.Parse("http://some-host.com:123/foo/bar")
+	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	req := &http.Request{
-		URL:    u,
-		Header: http.Header{},
 	}
 
 	proxyURL, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
@@ -57,13 +46,10 @@ func TestProxyFromGitConfig(t *testing.T) {
 
 func TestProxyIsNil(t *testing.T) {
 	cfg := config.NewConfig()
-	u, err := url.Parse("http://some-host.com:123/foo/bar")
+
+	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	req := &http.Request{
-		URL:    u,
-		Header: http.Header{},
 	}
 
 	proxyURL, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
