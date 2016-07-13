@@ -50,8 +50,7 @@ begin_test "pull zero len file"
   clone_repo "$reponame" clone
   rm clone.log
 
-  git status 2>&1 | tee status.log
-  grep "working (directory|tree) clean" status.log
+  git status | grep -E "working (directory|tree) clean"
   ls -al
 
   if [ -s "empty.dat" ]; then
