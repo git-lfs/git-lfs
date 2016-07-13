@@ -70,7 +70,7 @@ func sendResponse(r interface{}, writer *bufio.Writer) error {
 	return nil
 }
 
-func sendTransferError(oid string, code int, message string, writer *bufio.Writer, errWriter *bufio.Writer) {
+func sendTransferError(oid string, code int, message string, writer, errWriter *bufio.Writer) {
 	resp := &transferResponse{"complete", oid, "", &transferError{code, message}}
 	err := sendResponse(resp, writer)
 	if err != nil {
@@ -78,7 +78,7 @@ func sendTransferError(oid string, code int, message string, writer *bufio.Write
 	}
 }
 
-func sendProgress(oid string, bytesSoFar int64, bytesSinceLast int, writer *bufio.Writer, errWriter *bufio.Writer) {
+func sendProgress(oid string, bytesSoFar int64, bytesSinceLast int, writer, errWriter *bufio.Writer) {
 	resp := &progressResponse{"progress", oid, bytesSoFar, bytesSinceLast}
 	err := sendResponse(resp, writer)
 	if err != nil {
@@ -86,7 +86,7 @@ func sendProgress(oid string, bytesSoFar int64, bytesSinceLast int, writer *bufi
 	}
 }
 
-func performDownload(oid string, size int64, a *action, writer *bufio.Writer, errWriter *bufio.Writer) {
+func performDownload(oid string, size int64, a *action, writer, errWriter *bufio.Writer) {
 	// We just use the URLs we're given, so we're just a proxy for the direct method
 	// but this is enough to test intermediate custom adapters
 	req, err := httputil.NewHttpRequest("GET", a.Href, a.Header)
@@ -133,7 +133,7 @@ func performDownload(oid string, size int64, a *action, writer *bufio.Writer, er
 	}
 }
 
-func performUpload(oid string, size int64, a *action, fromPath string, writer *bufio.Writer, errWriter *bufio.Writer) {
+func performUpload(oid string, size int64, a *action, fromPath string, writer, errWriter *bufio.Writer) {
 	// We just use the URLs we're given, so we're just a proxy for the direct method
 	// but this is enough to test intermediate custom adapters
 	req, err := httputil.NewHttpRequest("PUT", a.Href, a.Header)
