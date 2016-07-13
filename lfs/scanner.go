@@ -270,7 +270,7 @@ func ScanIndex() ([]*WrappedPointer, error) {
 //
 // Returns a slice of string args, and false if --stdin is not needed.
 // Returns a slice of string commit args and true if --stdin is needed.
-func revListArgsRefVsRemote(refTo, remoteName string) ([]string, bool) {
+func revListArgsRefVsRemote(refTo, remoteName string) ([]string, []string) {
 	// We need to check that the locally cached versions of remote refs are still
 	// present on the remote before we use them as a 'from' point. If the
 	// server implements garbage collection and a remote branch had been deleted
@@ -307,10 +307,10 @@ func revListArgsRefVsRemote(refTo, remoteName string) ([]string, bool) {
 				commits = append(commits, "^"+cachedRef.Sha)
 			}
 		}
-		return commits, true
+		return []string{"--stdin"}, commits
 	} else {
 		// Safe to use cached
-		return []string{refTo, "--not", "--remotes=" + remoteName}, false
+		return []string{refTo, "--not", "--remotes=" + remoteName}, nil
 	}
 }
 
@@ -335,10 +335,9 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 	case ScanAllMode:
 		refArgs = append(refArgs, "--all")
 	case ScanLeftToRemoteMode:
-		commits, useStdin := revListArgsRefVsRemote(refLeft, opt.RemoteName)
-		if !useStdin {
-			refArgs = append(refArgs, commits...)
-		} else {
+		args, commits := revListArgsRefVsRemote(refLeft, opt.RemoteName)
+		refArgs = append(refArgs, args...)
+		if len(commits) > 0 {
 			stdin = commits
 		}
 	default:
