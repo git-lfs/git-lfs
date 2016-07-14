@@ -89,30 +89,36 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 < }
 ```
 
-The response will be an object containing an array of objects with one of
-multiple actions, each with an `href` property and an optional `header`
-property. The requests and responses need to validate with the included JSON
-schemas:
+The response will contains an array of objects with the following properties:
+
+* `oid` - The LFS object string OID.
+* `size` - The integer size in bytes of the LFS object. Must be at least 0.
+* `actions` - A hash of potential actions that the client can perform with the
+  object. Its properties include:
+  * `href` - This is the string URL used to perfrom the action.
+  * `header` - This is a hash of string HTTP header key/value pairs to apply to
+    the transfer request.
+  * `expires_at` - String ISO 8601 formatted timestamp for when the given action
+    expires (usually due to a temporary token).
+
+The valid actions include:
+
+  * `upload` - This relation describes how to upload the object.  If the object
+    has not previously been uploaded the server should provide this action.  If
+    the object has been previously uploaded and the object content is known to
+    the server, it should not provide this action.  When the action is not
+    provided, the client should assume the server already knows the object
+    content and skip uploading it.
+  * `verify` - The server can specify a URL for the client to hit after
+    successfully uploading an object.  This is an optional relation for the case
+    that the server has not verified the object.
+  * `download` - This relation describes how to download the object content.
+    This only appears if an object has been previously uploaded.
+
+The requests and responses need to validate with the included JSON schemas:
 
 * [Batch request](./http-v1-batch-request-schema.json)
 * [Batch response](./http-v1-batch-response-schema.json)
-
-Here are the valid actions:
-
-* `upload` - This relation describes how to upload the object.  If the object
-has not previously been uploaded the server should provide this action.  If
-the object has been previously uploaded and the object content is known to the
-server, it should not provide this action.  When the action is not provided,
-the client should assume the server already knows the object content and skip
-uploading it.
-* `verify` - The server can specify a URL for the client to hit after
-successfully uploading an object.  This is an optional relation for the case that
-the server has not verified the object.
-* `download` - This relation describes how to download the object content.  This
-only appears if an object has been previously uploaded.
-
-An action can optionally include an `expires_at`, which is an ISO 8601 formatted
-timestamp for when the given action expires (usually due to a temporary token).
 
 ```json
 {
