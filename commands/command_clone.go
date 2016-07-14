@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/github/git-lfs/subprocess"
+
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/localstorage"
@@ -79,8 +81,36 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		fetchRef("HEAD", include, exclude)
 	} else {
 		pull(include, exclude)
+
+		err := postCloneSubmodules(args)
+		if err != nil {
+			Exit("Error performing 'git lfs pull' for submodules: %v", err)
+		}
 	}
 
+}
+
+func postCloneSubmodules(args []string) error {
+	// In git 2.9+ the filter option will have been passed through to submodules
+	// So we need to lfs pull inside each, if the original clone command
+	if !git.Config.IsGitVersionAtLeast("2.9.0") {
+		// In earlier versions submodules would have used smudge filter
+		return nil
+	}
+	// Also we only do this if --recursive or --recurse-submodules was provided
+	if !cloneFlags.Recursive && !cloneFlags.RecurseSubmodules {
+		return nil
+	}
+
+	// Use `git submodule foreach --recursive` to cascade into nested submodules
+	// Also good to call a new instance of git-lfs rather than do things
+	// inside this instance, since that way we get a clean env in that subrepo
+	cmd := subprocess.ExecCommand("git", "submodule", "foreach", "--recursive",
+		"git lfs pull")
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }
 
 func init() {
