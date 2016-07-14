@@ -117,7 +117,7 @@ func performDownload(oid string, size int64, a *action, writer, errWriter *bufio
 	}
 	defer dlFile.Close()
 	dlfilename := dlFile.Name()
-	// Wrap callback to give name context
+	// Turn callback into progress messages
 	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
 		sendProgress(oid, readSoFar, readSinceLast, writer, errWriter)
 		return nil
@@ -170,8 +170,7 @@ func performUpload(oid string, size int64, a *action, fromPath string, writer, e
 	}
 	defer f.Close()
 
-	// Ensure progress callbacks made while uploading
-	// Wrap callback to give name context
+	// Turn callback into progress messages
 	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
 		sendProgress(oid, readSoFar, readSinceLast, writer, errWriter)
 		return nil
