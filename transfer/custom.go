@@ -159,7 +159,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	}
 	if resp.Error != nil {
 		a.abortWorkerProcess(ctx)
-		return nil, fmt.Errorf("Error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error.Error())
+		return nil, fmt.Errorf("Error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error)
 	}
 
 	tracerx.Printf("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
@@ -301,7 +301,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
 			}
 			if resp.Error != nil {
-				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, resp.Error.Error())
+				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, resp.Error)
 			}
 			if a.direction == Download {
 				// So we don't have to blindly trust external providers, check SHA
