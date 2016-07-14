@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
@@ -216,14 +217,24 @@ func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) e
 	defer ctx.errTracer.Flush()
 
 	tracerx.Printf("xfer: Shutting down adapter worker %d", ctx.workerNum)
-	termReq := NewCustomAdapterTerminateRequest()
-	err := a.sendMessage(ctx, termReq)
-	if err != nil {
+
+	finishChan := make(chan error, 1)
+	go func() {
+		termReq := NewCustomAdapterTerminateRequest()
+		err := a.sendMessage(ctx, termReq)
+		if err != nil {
+			finishChan <- err
+		}
+		ctx.stdin.Close()
+		ctx.stdout.Close()
+		finishChan <- ctx.cmd.Wait()
+	}()
+	select {
+	case err := <-finishChan:
 		return err
+	case <-time.After(30 * time.Second):
+		return fmt.Errorf("Timeout while shutting down worker process %d", ctx.workerNum)
 	}
-	ctx.stdin.Close()
-	ctx.stdout.Close()
-	return ctx.cmd.Wait()
 }
 
 // abortWorkerProcess terminates & aborts untidily, most probably breakdown of comms or internal error
