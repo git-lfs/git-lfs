@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/tools"
@@ -237,7 +236,7 @@ type request struct {
 }
 
 type initResponse struct {
-	Error *api.ObjectError `json:"error,omitempty"`
+	Error *transferError `json:"error,omitempty"`
 }
 type transferResponse struct {
 	Id    string         `json:"id"`
