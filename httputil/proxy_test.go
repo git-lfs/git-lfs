@@ -24,7 +24,7 @@ func TestProxyFromEnvironment(t *testing.T) {
 	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
 	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 }
 
 func TestProxyFromGitConfig(t *testing.T) {
@@ -40,7 +40,7 @@ func TestProxyFromGitConfig(t *testing.T) {
 	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
 	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 }
 
 func TestProxyIsNil(t *testing.T) {
