@@ -1,11 +1,10 @@
-package lfs
+package httputil
 
 import (
 	"net/http"
 	"testing"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/httputil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +21,7 @@ func TestProxyFromEnvironment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	proxyURL, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
+	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
 	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
 	assert.Equal(t, nil, err)
@@ -38,7 +37,7 @@ func TestProxyFromGitConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	proxyURL, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
+	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
 	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
 	assert.Equal(t, nil, err)
@@ -52,7 +51,7 @@ func TestProxyIsNil(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	proxyURL, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
+	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
 	assert.Nil(t, proxyURL)
 	assert.Nil(t, err)
@@ -71,7 +70,7 @@ func TestProxyNoProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	proxyUrl, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
+	proxyUrl, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
 	assert.Nil(t, proxyUrl)
 	assert.Nil(t, err)
