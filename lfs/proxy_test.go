@@ -57,3 +57,22 @@ func TestProxyIsNil(t *testing.T) {
 	assert.Nil(t, proxyURL)
 	assert.Nil(t, err)
 }
+
+func TestProxyNoProxy(t *testing.T) {
+	cfg := config.NewFromValues(map[string]string{
+		"http.proxy": "https://proxy-from-git-config:8080",
+	})
+	cfg.SetAllEnv(map[string]string{
+		"NO_PROXY": "some-host",
+	})
+
+	req, err := http.NewRequest("GET", "https://some-host:8080", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proxyUrl, err := httputil.ProxyFromGitConfigOrEnvironment(cfg)(req)
+
+	assert.Nil(t, proxyUrl)
+	assert.Nil(t, err)
+}
