@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
 
 	"github.com/github/git-lfs/api"
@@ -275,7 +274,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
-		req = NewCustomAdapterUploadRequest(t.Object.Oid, t.Object.Size, localstorage.Objects().ObjectPath(t.Object.Oid), rel)
+		req = NewCustomAdapterUploadRequest(t.Object.Oid, t.Object.Size, t.Path, rel)
 	} else {
 		req = NewCustomAdapterDownloadRequest(t.Object.Oid, t.Object.Size, rel)
 	}
