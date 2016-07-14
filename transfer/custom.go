@@ -185,11 +185,7 @@ func (a *customAdapter) sendMessage(ctx *customAdapterWorkerContext, req interfa
 	// Line oriented JSON
 	b = append(b, '\n')
 	_, err = ctx.stdin.Write(b)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAdapterResponseMessage, error) {
