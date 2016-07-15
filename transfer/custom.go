@@ -348,32 +348,33 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 func ConfigureCustomAdapters() {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
 	for k, v := range config.Config.AllGitConfig() {
-		if match := pathRegex.FindStringSubmatch(k); match != nil {
-			name := match[1]
-			path := v
-			// retrieve other values
-			args, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-			concurrent := config.Config.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-			direction, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
-			if len(direction) == 0 {
-				direction = "both"
-			} else {
-				direction = strings.ToLower(direction)
-			}
+		match := pathRegex.FindStringSubmatch(k)
+		if match == nil {
+			continue
+		}
 
-			// Separate closure for each since we need to capture vars above
-			newfunc := func(name string, dir Direction) TransferAdapter {
-				return newCustomAdapter(name, dir, path, args, concurrent)
-			}
+		name := match[1]
+		path := v
+		// retrieve other values
+		args, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
+		concurrent := config.Config.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
+		direction, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+		if len(direction) == 0 {
+			direction = "both"
+		} else {
+			direction = strings.ToLower(direction)
+		}
 
-			if direction == "download" || direction == "both" {
-				RegisterNewTransferAdapterFunc(name, Download, newfunc)
-			}
-			if direction == "upload" || direction == "both" {
-				RegisterNewTransferAdapterFunc(name, Upload, newfunc)
-			}
+		// Separate closure for each since we need to capture vars above
+		newfunc := func(name string, dir Direction) TransferAdapter {
+			return newCustomAdapter(name, dir, path, args, concurrent)
+		}
 
+		if direction == "download" || direction == "both" {
+			RegisterNewTransferAdapterFunc(name, Download, newfunc)
+		}
+		if direction == "upload" || direction == "both" {
+			RegisterNewTransferAdapterFunc(name, Upload, newfunc)
 		}
 	}
-
 }
