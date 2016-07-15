@@ -41,7 +41,4 @@ fi
 
 setup
 
-echo "Running this maxprocs=$parallel"
-echo
-
 GO15VENDOREXPERIMENT=1 GIT_LFS_TEST_MAXPROCS=$GIT_LFS_TEST_MAXPROCS GIT_LFS_TEST_DIR="$GIT_LFS_TEST_DIR" SHUTDOWN_LFS="no" go run script/*.go -cmd integration "$@"

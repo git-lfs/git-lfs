@@ -39,6 +39,8 @@ func mainIntegration() {
 		maxprocs = max
 	}
 
+	fmt.Println("Running this maxprocs", maxprocs)
+
 	files := testFiles()
 
 	if len(files) == 0 {
