@@ -351,13 +351,10 @@ func ConfigureCustomAdapters() {
 		if match := pathRegex.FindStringSubmatch(k); match != nil {
 			name := match[1]
 			path := v
-			var args string
-			var concurrent bool
-			var direction string
 			// retrieve other values
-			args, _ = config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-			concurrent = config.Config.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-			direction, _ = config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+			args, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
+			concurrent := config.Config.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
+			direction, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
 			if len(direction) == 0 {
 				direction = "both"
 			} else {
