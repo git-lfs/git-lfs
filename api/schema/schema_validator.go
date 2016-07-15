@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -24,8 +25,11 @@ func NewSchemaValidator(t *testing.T, schemaName string, got interface{}) *Schem
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Platform compatibility: use "/" separators always for file://
-	dir = strings.Replace(dir, "\\", "/", -1)
+
+	if runtime.GOOS == "windows" {
+		// Platform compatibility: use "/" separators always for file://
+		dir = strings.Replace(dir, "\\", "/", -1)
+	}
 
 	schema := gojsonschema.NewReferenceLoader(fmt.Sprintf(
 		"file:///%s/schema/%s", dir, schemaName),
