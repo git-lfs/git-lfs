@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"strconv"
 )
 
 var (
@@ -66,7 +66,6 @@ func mainIntegration() {
 }
 
 func runTest(output chan string, testname string) {
-	fmt.Println("RUN TEST", testname)
 	buf := &bytes.Buffer{}
 	cmd := exec.Command(bashPath, testname)
 	cmd.Stdout = buf
@@ -98,7 +97,6 @@ func runTest(output chan string, testname string) {
 }
 
 func sendTestOutput(output chan string, testname string, buf *bytes.Buffer, err error) {
-	fmt.Println("SEND TEST OUTPUT", testname, "ERROR?", err)
 	cli := strings.TrimSpace(buf.String())
 	if len(cli) == 0 {
 		cli = fmt.Sprintf("<no output for %s>", testname)
