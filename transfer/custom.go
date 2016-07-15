@@ -325,6 +325,8 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 			}
 			wasAuthOk = true
 			complete = true
+		default:
+			return fmt.Errorf("Invalid message Id %q from custom adapter %q", resp.Id, a.name)
 		}
 		// Fall through from both progress and completion messages
 		// Call auth on first progress or success to free up other workers
