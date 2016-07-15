@@ -199,7 +199,7 @@ The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
-{ "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png", "error": null}
+{ "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png"}
 ```
 
 * `event`: Always "complete" to identify this message
@@ -207,13 +207,16 @@ then a final completion message as follows:
 * `path`: the path to a file containing the downloaded data, which the transfer
   process reliquishes control of to git-lfs. git-lfs will move the file into LFS
   storage.
-* `error`: Should be null if there was no error
 
 Or, if there was a failure transferring this item:
 
 ```json
 { "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
 ```
+
+* `event`: Always "complete" to identify this message
+* `oid`: the identifier of the LFS object
+* `error`: Should contain a `code` and `message` explaining the error
 
 Errors for a single transfer request should not terminate the process. The error
 should be returned in the response structure instead.
