@@ -92,7 +92,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 func postCloneSubmodules(args []string) error {
 	// In git 2.9+ the filter option will have been passed through to submodules
-	// So we need to lfs pull inside each, if the original clone command
+	// So we need to lfs pull inside each
 	if !git.Config.IsGitVersionAtLeast("2.9.0") {
 		// In earlier versions submodules would have used smudge filter
 		return nil
