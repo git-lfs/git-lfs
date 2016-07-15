@@ -94,8 +94,6 @@ func runTest(output chan string, testname string) {
 		cmd.Process.Kill()
 		return
 	}
-
-	sendTestOutput(output, testname, buf, nil)
 }
 
 func sendTestOutput(output chan string, testname string, buf *bytes.Buffer, err error) {
