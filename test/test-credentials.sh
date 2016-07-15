@@ -12,6 +12,7 @@ begin_test "credentials without useHttpPath, with bad path password"
   printf "path:wrong" > "$CREDSDIR/127.0.0.1--$reponame"
 
   clone_repo "$reponame" without-path
+  git config credential.useHttpPath false
   git checkout -b without-path
 
   git lfs track "*.dat" 2>&1 | tee track.log
@@ -40,7 +41,6 @@ begin_test "credentials with useHttpPath, with wrong password"
   printf "path:wrong" > "$CREDSDIR/127.0.0.1--$reponame"
 
   clone_repo "$reponame" with-path-wrong-pass
-  git config credential.useHttpPath true
   git checkout -b with-path-wrong-pass
 
   git lfs track "*.dat" 2>&1 | tee track.log
@@ -69,7 +69,6 @@ begin_test "credentials with useHttpPath, with correct password"
   printf "path:$reponame" > "$CREDSDIR/127.0.0.1--$reponame"
 
   clone_repo "$reponame" with-path-correct-pass
-  git config credential.useHttpPath true
   git checkout -b with-path-correct-pass
 
   git lfs track "*.dat" 2>&1 | tee track.log
@@ -102,6 +101,21 @@ begin_test "git credential"
   git init
 
   echo "protocol=http
+host=credential-test.com
+path=some/path" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
+  cat cred.log
+
+  expected="protocol=http
+host=credential-test.com
+path=some/path
+username=git
+password=path"
+
+  [ "$expected" = "$(cat cred.log)" ]
+
+  git config credential.useHttpPath false
+
+  echo "protocol=http
 host=credential-test.com" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
   cat cred.log
 
@@ -120,21 +134,6 @@ path=some/path" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
 host=credential-test.com
 username=git
 password=server"
-
-  [ "$expected" = "$(cat cred.log)" ]
-
-  git config credential.useHttpPath true
-
-  echo "protocol=http
-host=credential-test.com
-path=some/path" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
-  cat cred.log
-
-  expected="protocol=http
-host=credential-test.com
-path=some/path
-username=git
-password=path"
 
   [ "$expected" = "$(cat cred.log)" ]
 )

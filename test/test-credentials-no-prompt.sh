@@ -34,7 +34,6 @@ begin_test "attempt private access without credential helper"
   git add .gitattributes
   git commit -m "initial commit"
 
-  git config credential.usehttppath true
   git config --global credential.helper lfsnoop
   git config credential.helper lfsnoop
   git config -l
