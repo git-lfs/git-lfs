@@ -5,6 +5,7 @@ go: 1.6
 
 os:
   - linux
+  - osx
 
 env:
   global:
@@ -14,8 +15,6 @@ env:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: plain-osx
   include:
     - env: git-from-source
       os: linux
@@ -60,8 +59,6 @@ matrix:
         - >
           brew update;
           brew install git;
-    - env: plain-osx
-      os: osx
 
 before_install:
   - >
