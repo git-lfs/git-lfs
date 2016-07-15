@@ -266,9 +266,12 @@ func ScanIndex() ([]*WrappedPointer, error) {
 
 }
 
-// Get additional arguments needed to limit 'git rev-list' to just the changes in revTo
-// that are also not on remoteName.
-func revListArgsRefVsRemote(refTo, remoteName string) []string {
+// Get additional arguments needed to limit 'git rev-list' to just the changes
+// in revTo that are also not on remoteName.
+//
+// Returns a slice of string command arguments, and a slice of string git
+// commits to pass to `git rev-list` via STDIN.
+func revListArgsRefVsRemote(refTo, remoteName string) ([]string, []string) {
 	// We need to check that the locally cached versions of remote refs are still
 	// present on the remote before we use them as a 'from' point. If the
 	// server implements garbage collection and a remote branch had been deleted
@@ -298,18 +301,18 @@ func revListArgsRefVsRemote(refTo, remoteName string) []string {
 
 	if len(missingRefs) > 0 {
 		// Use only the non-missing refs as 'from' points
-		ret := []string{refTo, "--not"}
+		commits := make([]string, 1, len(cachedRemoteRefs)+1)
+		commits[0] = refTo
 		for _, cachedRef := range cachedRemoteRefs {
 			if !missingRefs.Contains(cachedRef.Name) {
-				ret = append(ret, fmt.Sprintf("refs/remotes/%v/%v", remoteName, cachedRef.Name))
+				commits = append(commits, "^"+cachedRef.Sha)
 			}
 		}
-		return ret
+		return []string{"--stdin"}, commits
 	} else {
 		// Safe to use cached
-		return []string{refTo, "--not", "--remotes=" + remoteName}
+		return []string{refTo, "--not", "--remotes=" + remoteName}, nil
 	}
-
 }
 
 // revListShas uses git rev-list to return the list of object sha1s
@@ -317,6 +320,7 @@ func revListArgsRefVsRemote(refTo, remoteName string) []string {
 // channel from which sha1 strings can be read.
 func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannelWrapper, error) {
 	refArgs := []string{"rev-list", "--objects"}
+	var stdin []string
 	switch opt.ScanMode {
 	case ScanRefsMode:
 		if opt.SkipDeletedBlobs {
@@ -332,7 +336,11 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 	case ScanAllMode:
 		refArgs = append(refArgs, "--all")
 	case ScanLeftToRemoteMode:
-		refArgs = append(refArgs, revListArgsRefVsRemote(refLeft, opt.RemoteName)...)
+		args, commits := revListArgsRefVsRemote(refLeft, opt.RemoteName)
+		refArgs = append(refArgs, args...)
+		if len(commits) > 0 {
+			stdin = commits
+		}
 	default:
 		return nil, errors.New("scanner: unknown scan type: " + strconv.Itoa(int(opt.ScanMode)))
 	}
@@ -345,6 +353,10 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 	cmd, err := startCommand("git", refArgs...)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(stdin) > 0 {
+		cmd.Stdin.Write([]byte(strings.Join(stdin, "\n")))
 	}
 
 	cmd.Stdin.Close()
