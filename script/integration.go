@@ -30,11 +30,6 @@ func mainIntegration() {
 
 	setBash()
 
-	if runtime.GOOS == "darwin" {
-		// set default maxprocs to 1 because of osxkeychain issues
-		maxprocs = 1
-	}
-
 	if max, _ := strconv.Atoi(os.Getenv("GIT_LFS_TEST_MAXPROCS")); max > 0 {
 		maxprocs = max
 	}
