@@ -2,6 +2,8 @@
 
 . "test/testlib.sh"
 
+ensure_git_version_isnt $VERSION_LOWER "2.3.0"
+
 begin_test "credentials without useHttpPath, with bad path password"
 (
   set -e
