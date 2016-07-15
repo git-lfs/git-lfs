@@ -36,7 +36,7 @@ func main() {
 			continue
 		}
 
-		switch req.Id {
+		switch req.Event {
 		case "init":
 			writeToStderr(fmt.Sprintf("Initialised test custom adapter for %s\n", req.Operation), errWriter)
 			resp := &initResponse{}
@@ -224,7 +224,7 @@ type transferError struct {
 
 // Combined request struct which can accept anything
 type request struct {
-	Id                  string  `json:"id"`
+	Event               string  `json:"event"`
 	Operation           string  `json:"operation"`
 	Concurrent          bool    `json:"concurrent"`
 	ConcurrentTransfers int     `json:"concurrenttransfers"`
@@ -238,13 +238,13 @@ type initResponse struct {
 	Error *transferError `json:"error,omitempty"`
 }
 type transferResponse struct {
-	Id    string         `json:"id"`
+	Event string         `json:"event"`
 	Oid   string         `json:"oid"`
 	Path  string         `json:"path,omitempty"` // always blank for upload
 	Error *transferError `json:"error,omitempty"`
 }
 type progressResponse struct {
-	Id             string `json:"id"`
+	Event          string `json:"event"`
 	Oid            string `json:"oid"`
 	BytesSoFar     int64  `json:"bytesSoFar"`
 	BytesSinceLast int    `json:"bytesSinceLast"`

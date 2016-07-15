@@ -63,7 +63,7 @@ type customAdapterWorkerContext struct {
 }
 
 type customAdapterInitRequest struct {
-	Id                  string `json:"id"`
+	Event               string `json:"Event"`
 	Operation           string `json:"operation"`
 	Concurrent          bool   `json:"concurrent"`
 	ConcurrentTransfers int    `json:"concurrenttransfers"`
@@ -74,7 +74,7 @@ func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers
 }
 
 type customAdapterTransferRequest struct { // common between upload/download
-	Id     string            `json:"id"`
+	Event  string            `json:"event"`
 	Oid    string            `json:"oid"`
 	Size   int64             `json:"size"`
 	Path   string            `json:"path,omitempty"`
@@ -98,7 +98,7 @@ func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
 
 // A common struct that allows all types of response to be identified
 type customAdapterResponseMessage struct {
-	Id             string           `json:"id"`
+	Event          string           `json:"event"`
 	Error          *api.ObjectError `json:"error"`
 	Oid            string           `json:"oid"`
 	Path           string           `json:"path,omitempty"` // always blank for upload
@@ -291,7 +291,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 			return err
 		}
 		var wasAuthOk bool
-		switch resp.Id {
+		switch resp.Event {
 		case "progress":
 			// Progress
 			if resp.Oid != t.Object.Oid {
@@ -326,7 +326,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 			wasAuthOk = true
 			complete = true
 		default:
-			return fmt.Errorf("Invalid message Id %q from custom adapter %q", resp.Id, a.name)
+			return fmt.Errorf("Invalid message %q from custom adapter %q", resp.Event, a.name)
 		}
 		// Fall through from both progress and completion messages
 		// Call auth on first progress or success to free up other workers
