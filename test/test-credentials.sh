@@ -275,5 +275,12 @@ begin_test "credentials from remote.origin.url"
   git lfs env
   git lfs push origin master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
+
+  echo "bad fetch"
+  rm -rf .git/lfs/objects
+  git config remote.origin.url http://$gitserverhost/$reponame.git
+  git lfs env
+  git lfs fetch --all 2>&1 | tee fetch.log
+  grep "(0 of 1 files)" fetch.log
 )
 end_test
