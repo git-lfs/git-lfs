@@ -364,3 +364,82 @@ begin_test "clone (with .lfsconfig)"
   popd
 )
 end_test
+
+begin_test "clone with submodules"
+(
+  set -e
+
+  # set up a doubly nested submodule, each with LFS content
+  reponame="submod-root"
+  submodname1="submod-level1"
+  submodname2="submod-level2"
+
+  setup_remote_repo "$reponame"
+  setup_remote_repo "$submodname1"
+  setup_remote_repo "$submodname2"
+
+  clone_repo "$submodname2" submod2
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents_sub2="Inception. Now, before you bother telling me it's impossible..."
+  contents_sub2_oid=$(calc_oid "$contents_sub2")
+  printf "$contents_sub2" > "sub2.dat"
+  git add sub2.dat .gitattributes 
+  git commit -m "Nested submodule level 2"
+  git push origin master
+
+
+  clone_repo "$submodname1" submod1
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents_sub1="We're dreaming?"
+  contents_sub1_oid=$(calc_oid "$contents_sub1")
+  printf "$contents_sub1" > "sub1.dat"
+  # add submodule2 as submodule of submodule1
+  git submodule add "$GITSERVER/$submodname2" sub2
+  git submodule update
+  git add sub2 sub1.dat .gitattributes 
+  git commit -m "Nested submodule level 1"
+  git push origin master
+
+
+  clone_repo "$reponame" rootrepo
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents_root="Downwards is the only way forwards."
+  contents_root_oid=$(calc_oid "$contents_root")
+  printf "$contents_root" > "root.dat"
+  # add submodule1 as submodule of root
+  git submodule add "$GITSERVER/$submodname1" sub1
+  git submodule update
+  git add sub1 root.dat .gitattributes 
+  git commit -m "Root repo"
+  git push origin master
+
+  pushd "$TRASHDIR"
+
+  local_reponame="submod-clone"
+  git lfs clone --recursive "$GITSERVER/$reponame" "$local_reponame"
+
+  # check everything is where it should be
+  cd $local_reponame
+  # check LFS store and working copy
+  assert_local_object "$contents_root_oid" "${#contents_root}"
+  [ $(wc -c < "root.dat") -eq ${#contents_root} ] 
+  # and so on for nested subs
+  cd sub1
+  assert_local_object "$contents_sub1_oid" "${#contents_sub1}"
+  [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ] 
+  cd sub2
+  assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
+  [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ] 
+
+
+  popd
+
+
+)
+end_test
