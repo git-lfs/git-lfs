@@ -60,7 +60,7 @@ if [ -z "$GIT_LFS_TEST_DIR" ]; then
     GIT_LFS_TEST_DIR=$(resolve_symlink $GIT_LFS_TEST_DIR)
     # cleanup either after single test or at end of integration (except on fail)
     RM_GIT_LFS_TEST_DIR=yes
-fi 
+fi
 # create a temporary work space
 TMPDIR=$GIT_LFS_TEST_DIR
 
@@ -102,6 +102,7 @@ LFS_CERT_FILE="$REMOTEDIR/cert"
 TESTHOME="$REMOTEDIR/home"
 
 GIT_CONFIG_NOSYSTEM=1
+GIT_TERMINAL_PROMPT=0
 
 export CREDSDIR
 
@@ -113,4 +114,9 @@ fi
 mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
+
+if [ $IS_WINDOWS == "1" ]; then
+  # prevent Windows OpenSSH from opening GUI prompts
+  SSH_ASKPASS=""
+fi
 . "test/testhelpers.sh"

@@ -71,15 +71,20 @@ func main() {
 	mux.HandleFunc("/locks", locksHandler)
 	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		id, ok := reqId(w)
+		if !ok {
+			return
+		}
+
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if !skipIfBadAuth(w, r) {
-				lfsHandler(w, r)
+			if !skipIfBadAuth(w, r, id) {
+				lfsHandler(w, r, id)
 			}
 
 			return
 		}
 
-		log.Printf("git http-backend %s %s\n", r.Method, r.URL)
+		debug(id, "git http-backend %s %s", r.Method, r.URL)
 		gitHandler(w, r)
 	})
 
@@ -96,11 +101,11 @@ func main() {
 	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
 	defer os.RemoveAll(certname)
 
-	log.Println(server.URL)
-	log.Println(serverTLS.URL)
+	debug("init", "server url: %s", server.URL)
+	debug("init", "server tls url: %s", serverTLS.URL)
 
 	<-stopch
-	log.Println("git server done")
+	debug("init", "git server done")
 }
 
 // writeTestStateFile writes contents to either the file referenced by the
@@ -139,7 +144,7 @@ type lfsError struct {
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
-func lfsHandler(w http.ResponseWriter, r *http.Request) {
+func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 	repo, err := repoFromLfsUrl(r.URL.Path)
 	if err != nil {
 		w.WriteHeader(500)
@@ -147,17 +152,17 @@ func lfsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("git lfs %s %s repo: %s\n", r.Method, r.URL, repo)
+	debug(id, "git lfs %s %s repo: %s", r.Method, r.URL, repo)
 	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
 	switch r.Method {
 	case "POST":
 		if strings.HasSuffix(r.URL.String(), "batch") {
-			lfsBatchHandler(w, r, repo)
+			lfsBatchHandler(w, r, id, repo)
 		} else {
-			lfsPostHandler(w, r, repo)
+			lfsPostHandler(w, r, id, repo)
 		}
 	case "GET":
-		lfsGetHandler(w, r, repo)
+		lfsGetHandler(w, r, id, repo)
 	default:
 		w.WriteHeader(405)
 	}
@@ -167,7 +172,7 @@ func lfsUrl(repo, oid string) string {
 	return server.URL + "/storage/" + oid + "?r=" + repo
 }
 
-func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
+func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
 	obj := &lfsObject{}
@@ -175,10 +180,10 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
-	log.Println("REQUEST")
-	log.Println(buf.String())
-	log.Printf("OID: %s\n", obj.Oid)
-	log.Printf("Size: %d\n", obj.Size)
+	debug(id, "REQUEST")
+	debug(id, buf.String())
+	debug(id, "OID: %s", obj.Oid)
+	debug(id, "Size: %d", obj.Size)
 
 	if err != nil {
 		log.Fatal(err)
@@ -222,21 +227,21 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		log.Fatal(err)
 	}
 
-	log.Println("RESPONSE: 202")
-	log.Println(string(by))
+	debug(id, "RESPONSE: 202")
+	debug(id, string(by))
 
 	w.WriteHeader(202)
 	w.Write(by)
 }
 
-func lfsGetHandler(w http.ResponseWriter, r *http.Request, repo string) {
+func lfsGetHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 
 	// Support delete for testing
 	if len(parts) > 1 && parts[len(parts)-2] == "delete" {
 		largeObjects.Delete(repo, oid)
-		log.Println("DELETE:", oid)
+		debug(id, "DELETE:", oid)
 		w.WriteHeader(200)
 		return
 	}
@@ -262,14 +267,14 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		log.Fatal(err)
 	}
 
-	log.Println("RESPONSE: 200")
-	log.Println(string(by))
+	debug(id, "RESPONSE: 200")
+	debug(id, string(by))
 
 	w.WriteHeader(200)
 	w.Write(by)
 }
 
-func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
+func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	if repo == "batchunsupported" {
 		w.WriteHeader(404)
 		return
@@ -309,8 +314,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
-	log.Println("REQUEST")
-	log.Println(buf.String())
+	debug(id, "REQUEST")
+	debug(id, buf.String())
 
 	if err != nil {
 		log.Fatal(err)
@@ -409,8 +414,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		log.Fatal(err)
 	}
 
-	log.Println("RESPONSE: 200")
-	log.Println(string(by))
+	debug(id, "RESPONSE: 200")
+	debug(id, string(by))
 
 	w.WriteHeader(200)
 	w.Write(by)
@@ -448,6 +453,11 @@ var tusStorageAttempts = 0
 
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
+	id, ok := reqId(w)
+	if !ok {
+		return
+	}
+
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
@@ -455,7 +465,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("storage %s %s repo: %s\n", r.Method, oid, repo)
+	debug(id, "storage %s %s repo: %s", r.Method, oid, repo)
 	switch r.Method {
 	case "PUT":
 		switch oidHandlers[oid] {
@@ -485,7 +495,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if !valid {
-				log.Fatal("Chunked transfer encoding expected")
+				debug(id, "Chunked transfer encoding expected")
 			}
 		}
 
@@ -550,7 +560,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 	case "HEAD":
 		// tus.io
-		if !validateTusHeaders(r) {
+		if !validateTusHeaders(r, id) {
 			w.WriteHeader(400)
 			return
 		}
@@ -564,7 +574,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	case "PATCH":
 		// tus.io
-		if !validateTusHeaders(r) {
+		if !validateTusHeaders(r, id) {
 			w.WriteHeader(400)
 			return
 		}
@@ -595,7 +605,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			largeObjects.DeleteIncomplete(repo, oid)
-			log.Printf("Resuming upload of %v at byte %d", oid, offset)
+			debug(id, "Resuming upload of %v at byte %d", oid, offset)
 		}
 
 		// As a test, we intentionally break the upload from byte 0 by only
@@ -620,7 +630,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		if copyErr != nil {
 			b := buf.Bytes()
 			if len(b) > 0 {
-				log.Printf("Incomplete upload of %v, %d bytes", oid, len(b))
+				debug(id, "Incomplete upload of %v, %d bytes", oid, len(b))
 				largeObjects.SetIncomplete(repo, oid, b)
 			}
 			w.WriteHeader(500)
@@ -643,13 +653,12 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateTusHeaders(r *http.Request) bool {
+func validateTusHeaders(r *http.Request, id string) bool {
 	if len(r.Header.Get("Tus-Resumable")) == 0 {
-		log.Fatal("Missing Tus-Resumable header in request")
+		debug(id, "Missing Tus-Resumable header in request")
 		return false
 	}
 	return true
-
 }
 
 func gitHandler(w http.ResponseWriter, r *http.Request) {
@@ -697,6 +706,11 @@ func gitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func redirect307Handler(w http.ResponseWriter, r *http.Request) {
+	id, ok := reqId(w)
+	if !ok {
+		return
+	}
+
 	// Send a redirect to info/lfs
 	// Make it either absolute or relative depending on subpath
 	parts := strings.Split(r.URL.Path, "/")
@@ -707,7 +721,7 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	} else if parts[2] == "abs" {
 		redirectTo = server.URL + "/" + strings.Join(parts[3:], "/")
 	} else {
-		log.Fatal(fmt.Errorf("Invalid URL for redirect: %v", r.URL))
+		debug(id, "Invalid URL for redirect: %v", r.URL)
 		w.WriteHeader(404)
 		return
 	}
@@ -1087,7 +1101,7 @@ func extractAuth(auth string) (string, string, error) {
 	return "", "", nil
 }
 
-func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
+func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
 		w.WriteHeader(401)
@@ -1097,7 +1111,7 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 	user, pass, err := extractAuth(auth)
 	if err != nil {
 		w.WriteHeader(403)
-		log.Printf("Error decoding auth: %s\n", err)
+		debug(id, "Error decoding auth: %s", err)
 		return true
 	}
 
@@ -1112,11 +1126,11 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request) bool {
 		if strings.HasPrefix(r.URL.Path, "/"+pass) {
 			return false
 		}
-		log.Printf("auth attempt against: %q", r.URL.Path)
+		debug(id, "auth attempt against: %q", r.URL.Path)
 	}
 
 	w.WriteHeader(403)
-	log.Printf("Bad auth: %q\n", auth)
+	debug(id, "Bad auth: %q", auth)
 	return true
 }
 
@@ -1127,4 +1141,23 @@ func init() {
 		h.Write([]byte(content))
 		oidHandlers[hex.EncodeToString(h.Sum(nil))] = content
 	}
+}
+
+func debug(reqid, msg string, args ...interface{}) {
+	fullargs := make([]interface{}, len(args)+1)
+	fullargs[0] = reqid
+	for i, a := range args {
+		fullargs[i+1] = a
+	}
+	log.Printf("[%s] "+msg+"\n", fullargs...)
+}
+
+func reqId(w http.ResponseWriter) (string, bool) {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		http.Error(w, "error generating id: "+err.Error(), 500)
+		return "", false
+	}
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), true
 }
