@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -29,9 +30,11 @@ func mainIntegration() {
 
 	setBash()
 
-	if maxprocs < 1 {
-		maxprocs = 1
+	if max, _ := strconv.Atoi(os.Getenv("GIT_LFS_TEST_MAXPROCS")); max > 0 {
+		maxprocs = max
 	}
+
+	fmt.Println("Running this maxprocs", maxprocs)
 
 	files := testFiles()
 
@@ -93,8 +96,6 @@ func runTest(output chan string, testname string) {
 		cmd.Process.Kill()
 		return
 	}
-
-	sendTestOutput(output, testname, buf, nil)
 }
 
 func sendTestOutput(output chan string, testname string, buf *bytes.Buffer, err error) {
