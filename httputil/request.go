@@ -21,6 +21,14 @@ type ClientError struct {
 	RequestId        string `json:"request_id,omitempty"`
 }
 
+const (
+	WwwAuthenticateHeader = "Www-Authenticate"
+	LfsAuthenticateHeader = "Lfs-Authenticate"
+	BasicAuthType         = "basic"
+	NtlmAuthType          = "ntlm"
+	NegotiateAuthType     = "negotiate"
+)
+
 func (e *ClientError) Error() string {
 	msg := e.Message
 	if len(e.DocumentationUrl) > 0 {
@@ -172,14 +180,19 @@ func SetAuthType(req *http.Request, res *http.Response) {
 }
 
 func GetAuthType(res *http.Response) string {
-	auth := res.Header.Get("Www-Authenticate")
-	if len(auth) < 1 {
-		auth = res.Header.Get("Lfs-Authenticate")
+
+	for _, headerName := range []string{WwwAuthenticateHeader, LfsAuthenticateHeader} {
+		authHeaders := res.Header[headerName]
+		for _, auth := range authHeaders {
+
+			authLower := strings.ToLower(auth)
+			// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTML.
+			// Since git-lfs current does not support Kerberos, we will return NTLM in this case.
+			if strings.HasPrefix(authLower, NtlmAuthType) || strings.HasPrefix(authLower, NegotiateAuthType) {
+				return NtlmAuthType
+			}
+		}
 	}
 
-	if strings.HasPrefix(strings.ToLower(auth), "ntlm") {
-		return "ntlm"
-	}
-
-	return "basic"
+	return BasicAuthType
 }
