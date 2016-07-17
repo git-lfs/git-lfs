@@ -114,4 +114,9 @@ fi
 mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
+
+if [ $IS_WINDOWS == "1" ]; then
+  # prevent Windows OpenSSH from opening GUI prompts
+  SSH_ASKPASS=""
+fi
 . "test/testhelpers.sh"
