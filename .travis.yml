@@ -15,8 +15,6 @@ env:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - os: osx
   include:
     - env: git-from-source
       os: linux
