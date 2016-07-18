@@ -25,10 +25,12 @@ func NewSchemaValidator(t *testing.T, schemaName string, got interface{}) *Schem
 		t.Fatal(err)
 	}
 
+	// Platform compatibility: use "/" separators always for file://
+	dir = filepath.ToSlash(dir)
+
 	schema := gojsonschema.NewReferenceLoader(fmt.Sprintf(
-		"file:///%s",
-		filepath.Join(dir, "schema/", schemaName),
-	))
+		"file:///%s/schema/%s", dir, schemaName),
+	)
 
 	marshalled, err := json.Marshal(got)
 	if err != nil {
