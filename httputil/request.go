@@ -21,6 +21,13 @@ type ClientError struct {
 	RequestId        string `json:"request_id,omitempty"`
 }
 
+const (
+	WwwAuthenticateHeader = "Www-Authenticate"
+	LfsAuthenticateHeader = "Lfs-Authenticate"
+	BasicAuthType         = "basic"
+	NtlmAuthType          = "ntlm"
+)
+
 func (e *ClientError) Error() string {
 	msg := e.Message
 	if len(e.DocumentationUrl) > 0 {
@@ -172,14 +179,25 @@ func SetAuthType(req *http.Request, res *http.Response) {
 }
 
 func GetAuthType(res *http.Response) string {
-	auth := res.Header.Get("Www-Authenticate")
-	if len(auth) < 1 {
-		auth = res.Header.Get("Lfs-Authenticate")
+
+	authType := GetAuthTypeFromHeader(res, WwwAuthenticateHeader)
+	if authType == BasicAuthType {
+		// Let us check Lfs-Authenticate header to see if server supports NTML auth.
+		authType = GetAuthTypeFromHeader(res, LfsAuthenticateHeader)
 	}
 
-	if strings.HasPrefix(strings.ToLower(auth), "ntlm") {
-		return "ntlm"
+	return authType
+}
+
+func GetAuthTypeFromHeader(res *http.Response, headerName string) string {
+	authHeaders := res.Header[headerName]
+	for i := range authHeaders {
+		auth := authHeaders[i]
+
+		if strings.HasPrefix(strings.ToLower(auth), NtlmAuthType) {
+			return NtlmAuthType
+		}
 	}
 
-	return "basic"
+	return BasicAuthType
 }
