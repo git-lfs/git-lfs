@@ -22,11 +22,13 @@ type ClientError struct {
 }
 
 const (
-	WwwAuthenticateHeader = "Www-Authenticate"
-	LfsAuthenticateHeader = "Lfs-Authenticate"
-	BasicAuthType         = "basic"
-	NtlmAuthType          = "ntlm"
-	NegotiateAuthType     = "negotiate"
+	BasicAuthType     = "basic"
+	NtlmAuthType      = "ntlm"
+	NegotiateAuthType = "negotiate"
+)
+
+var (
+	AuthenticateHeaders = []string{"Www-Authenticate", "Lfs-Authenticate"}
 )
 
 func (e *ClientError) Error() string {
@@ -181,9 +183,8 @@ func SetAuthType(req *http.Request, res *http.Response) {
 
 func GetAuthType(res *http.Response) string {
 
-	for _, headerName := range []string{WwwAuthenticateHeader, LfsAuthenticateHeader} {
-		authHeaders := res.Header[headerName]
-		for _, auth := range authHeaders {
+	for _, headerName := range AuthenticateHeaders {
+		for _, auth := range res.Header[headerName] {
 
 			authLower := strings.ToLower(auth)
 			// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTML.

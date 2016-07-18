@@ -1,76 +1,45 @@
 package httputil
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestGetAutTypeNoAuthHeaders(t *testing.T) {
-	headers := map[string][]string{}
-
-	authType := GetAuthType(httpResponseFromHeaders(headers))
-
-	assert.Equal(t, BasicAuthType, authType)
+type AuthenticateHeaderTestCase struct {
+	ExpectedAuthType string
+	Headers          map[string][]string
 }
 
-func TestGetAutTypewwAuthenticateBasicNtlmBearer(t *testing.T) {
-	headers := map[string][]string{
-		"WWW-Authenticate": {"Basic", "NTLM", "Bearer"},
-	}
+func (c *AuthenticateHeaderTestCase) Assert(t *testing.T) {
+	t.Log("lfs/httputil: asserting auth type: %q for: %v", c.ExpectedAuthType, c.Headers)
 
-	authType := GetAuthType(httpResponseFromHeaders(headers))
-
-	assert.Equal(t, NtlmAuthType, authType)
+	assert.Equal(t, c.ExpectedAuthType, GetAuthType(c.HttpResponse()))
 }
 
-func TestGetAutTypeNoWwwAuthenticateLfsAuthenticateNtlm(t *testing.T) {
-	headers := map[string][]string{
-		"LFS-Authenticate": {"Basic", "NTLM", "Bearer"},
-	}
-
-	authType := GetAuthType(httpResponseFromHeaders(headers))
-
-	assert.Equal(t, NtlmAuthType, authType)
-}
-
-func TestGetAutTypeNoWwwAuthenticateLfsAuthenticateBasicNtlm(t *testing.T) {
-	headers := map[string][]string{
-		"LFS-Authenticate": {"Basic", "Ntlm"},
-	}
-
-	authType := GetAuthType(httpResponseFromHeaders(headers))
-
-	assert.Equal(t, NtlmAuthType, authType)
-}
-
-func TestGetAutTypeWwwAuthenticateBasicNegotiate(t *testing.T) {
-	headers := map[string][]string{
-		"Www-Authenticate": {"Basic", "Negotiate"},
-	}
-
-	authType := GetAuthType(httpResponseFromHeaders(headers))
-
-	assert.Equal(t, NtlmAuthType, authType)
-}
-
-func TestGetAutTypeWwwAuthenticateBasicLfsAuthenticateNtlm(t *testing.T) {
-	headers := map[string][]string{
-		"WWW-Authenticate": {"Basic"},
-		"LFS-Authenticate": {"Ntlm"},
-	}
-
-	authType := GetAuthType(httpResponseFromHeaders(headers))
-
-	assert.Equal(t, NtlmAuthType, authType)
-}
-
-func httpResponseFromHeaders(headers map[string][]string) *http.Response {
+func (c *AuthenticateHeaderTestCase) HttpResponse() *http.Response {
 	res := &http.Response{Header: make(http.Header)}
-	for key, values := range headers {
-		for _, val := range values {
-			res.Header.Add(key, val)
+
+	for k, vv := range c.Headers {
+		for _, v := range vv {
+			res.Header.Add(k, v)
 		}
 	}
+
 	return res
+}
+
+func TestGetAuthType(t *testing.T) {
+	for _, c := range []AuthenticateHeaderTestCase{
+		{BasicAuthType, map[string][]string{}},
+		{NtlmAuthType, map[string][]string{"WWW-Authenticate": {"Basic", "NTLM", "Bearer"}}},
+		{NtlmAuthType, map[string][]string{"LFS-Authenticate": {"Basic", "NTLM", "Bearer"}}},
+		{NtlmAuthType, map[string][]string{"LFS-Authenticate": {"Basic", "Ntlm"}}},
+		{NtlmAuthType, map[string][]string{"Www-Authenticate": {"Basic", "Ntlm"}}},
+		{NtlmAuthType, map[string][]string{"WWW-Authenticate": {"Basic"},
+			"LFS-Authenticate": {"Ntlm"}}},
+	} {
+		c.Assert(t)
+	}
 }
