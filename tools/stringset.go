@@ -7,7 +7,7 @@
 // Set is a modification of https://github.com/deckarep/golang-set
 // The MIT License (MIT)
 // Copyright (c) 2013 Ralph Caraveo (deckarep@gmail.com)
-package lfs
+package tools
 
 // The primary type that represents a set
 type StringSet map[string]struct{}

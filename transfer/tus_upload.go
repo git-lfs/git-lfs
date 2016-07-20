@@ -29,7 +29,13 @@ func (a *tusUploadAdapter) ClearTempStorage() error {
 	return nil
 }
 
-func (a *tusUploadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *tusUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
+	return nil, nil
+}
+func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
+}
+
+func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("upload")
 	if !ok {
 		return fmt.Errorf("No upload action for this object.")

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/tools"
 )
 
 // "upload" - all missing
@@ -66,11 +66,11 @@ func uploadAllExists(oidsExist, oidsMissing []TestObject) error {
 // "upload" - mix of missing & present
 func uploadMixed(oidsExist, oidsMissing []TestObject) error {
 
-	existSet := lfs.NewStringSetWithCapacity(len(oidsExist))
+	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)
 	}
-	missingSet := lfs.NewStringSetWithCapacity(len(oidsMissing))
+	missingSet := tools.NewStringSetWithCapacity(len(oidsMissing))
 	for _, o := range oidsMissing {
 		missingSet.Add(o.Oid)
 	}

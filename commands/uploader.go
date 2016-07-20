@@ -5,19 +5,20 @@ import (
 
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/tools"
 )
 
 var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
 
 type uploadContext struct {
 	DryRun       bool
-	uploadedOids lfs.StringSet
+	uploadedOids tools.StringSet
 }
 
 func newUploadContext(dryRun bool) *uploadContext {
 	return &uploadContext{
 		DryRun:       dryRun,
-		uploadedOids: lfs.NewStringSet(),
+		uploadedOids: tools.NewStringSet(),
 	}
 }
 

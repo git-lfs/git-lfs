@@ -37,7 +37,13 @@ func (a *basicDownloadAdapter) tempDir() string {
 	return d
 }
 
-func (a *basicDownloadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *basicDownloadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
+	return nil, nil
+}
+func (a *basicDownloadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
+}
+
+func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
 
 	f, fromByte, hashSoFar, err := a.checkResumeDownload(t)
 	if err != nil {

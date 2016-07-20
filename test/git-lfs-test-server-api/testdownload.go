@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/tools"
 )
 
 // "download" - all present
@@ -70,11 +70,11 @@ func downloadAllMissing(oidsExist, oidsMissing []TestObject) error {
 // "download" - mixture
 func downloadMixed(oidsExist, oidsMissing []TestObject) error {
 
-	existSet := lfs.NewStringSetWithCapacity(len(oidsExist))
+	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)
 	}
-	missingSet := lfs.NewStringSetWithCapacity(len(oidsMissing))
+	missingSet := tools.NewStringSetWithCapacity(len(oidsMissing))
 	for _, o := range oidsMissing {
 		missingSet.Add(o.Oid)
 	}
