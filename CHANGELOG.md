@@ -14,14 +14,12 @@
 * Add checkout --unstaged flag #1262 (@orivej)
 * cmd/clone: add include/exclude via flags and config #1321 (@ttaylorr)
 * Improve progress reporting when files skipped #1296 (@sinbad)
-* Lock commands #1256 (@ttaylorr)
+* Expiremental file locking commands #1236, #1259, #1256, #1386 (@ttaylorr)
 * Enhanced transfers: part 3 (resumable downloads) #1297 (@sinbad)
 * Enhanced transfers: part 2 #1279 (@sinbad)
 * Enhanced transfers: part 1 #1265 (@sinbad)
 * Implement support for GIT_SSH_COMMAND #1260 (@pdf)
-* api: add Force option to unlock requests #1259 (@ttaylorr)
 * Recognize include/exclude filters from config #1257 (@ttaylorr)
-* API Client and Lock Service #1236 (@ttaylorr)
 
 ### Bugs
 
@@ -42,7 +40,6 @@
 
 ### Misc
 
-* commands/test: make lock commands opt-in using GITLFSLOCKSENABLED=1 #1386 (@ttaylorr)
 * Added Linux Mint Sarah to package cloud script #1384 (@andyneff)
 * travis-ci: require successful tests against upcoming Git core release #1372 (@larsxschneider)
 * travis-ci: add a build job to test against upcoming versions of Git #1361 (@larsxschneider)
