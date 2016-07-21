@@ -4,7 +4,7 @@
 
 ### Features
 
-* use proxy from git config  #1358 (@technoweenie)
+* use proxy from git config #1173, #1358 (@jonmagic, @LizzHale, @technoweenie)
 * Enhanced transfers part 5: external custom transfer adapters #1367 (@sinbad)
 * In git 2.9+, run "git lfs pull" in submodules after "git lfs clone" #1373 (@sinbad)
 * cmd,doc,test: teach `git lfs track --{no-touch,verbose,dry-run}` #1344 (@ttaylorr)
