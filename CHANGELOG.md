@@ -1,5 +1,65 @@
 # Git LFS Changelog
 
+## 1.3.0 (21 July 2016)
+
+### Features
+
+* use proxy from git config  #1358 (@technoweenie)
+* Enhanced transfers part 5: external custom transfer adapters #1367 (@sinbad)
+* In git 2.9+, run "git lfs pull" in submodules after "git lfs clone" #1373 (@sinbad)
+* cmd,doc,test: teach `git lfs track --{no-touch,verbose,dry-run}` #1344 (@ttaylorr)
+* ⏳ Retry transfers with expired actions #1350 (@ttaylorr)
+* Safe track patterns #1346 (@ttaylorr)
+* Enhanced transfers part 4: resuming uploads via tus.io protocol #1303 (@sinbad)
+* Add checkout --unstaged flag #1262 (@orivej)
+* cmd/clone: add include/exclude via flags and config #1321 (@ttaylorr)
+* Improve progress reporting when files skipped #1296 (@sinbad)
+* Lock commands #1256 (@ttaylorr)
+* Enhanced transfers: part 3 (resumable downloads) #1297 (@sinbad)
+* Enhanced transfers: part 2 #1279 (@sinbad)
+* Enhanced transfers: part 1 #1265 (@sinbad)
+* Implement support for GIT_SSH_COMMAND #1260 (@pdf)
+* api: add Force option to unlock requests #1259 (@ttaylorr)
+* API Client and Lock Service #1236 (@ttaylorr)
+
+### Bugs
+
+* Fix bug in Windows installer under Win32. #1200 (@teo-tsirpanis)
+* Updated request.GetAuthType to handle multi-value auth headers #1379 (@VladimirKhvostov)
+* Windows fixes #1374 (@sinbad)
+* Handle artifactory responses #1371 (@ttaylorr)
+* use `git rev-list --stdin` instead of passing each remote ref #1359 (@technoweenie)
+* docs/man: move "logs" subcommands from OPTIONS to COMMANDS #1335 (@ttaylorr)
+* test/zero-len: update test for git v2.9.1 #1369 (@ttaylorr)
+* travis-ci: add a build job to test against upcoming versions of Git #1361 (@larsxschneider)
+* Unbreak building httputil on OpenBSD #1360 (@jasperla)
+* WIP transferqueue race fix #1255 (@technoweenie)
+* Safety check to `comands.requireStdin` #1349 (@ttaylorr)
+* Removed CentOS 5 from dockers. Fixed #1295. #1298 (@javabrett)
+* Fix 'git lfs fetch' with a sha1 ref #1323 (@omonnier)
+* Ignore HEAD ref when fetching with --all #1310 (@ttaylorr)
+* Config include exclude #1257 (@ttaylorr)
+* Return a fully remote ref to reduce chances of ref clashes #1248 (@technoweenie)
+
+### Misc
+
+* commands/test: make lock commands opt-in using GITLFSLOCKSENABLED=1 #1386 (@ttaylorr)
+* Added Linux Mint Sarah to package cloud script #1384 (@andyneff)
+* travis-ci: require successful tests against upcoming Git core release #1372 (@larsxschneider)
+* Create Makefiles for building with gccgo #1222 (@zeldin)
+* README: add @ttaylorr to core team #1332 (@ttaylorr)
+* Enforced a minimum gem version of 1.0.4 for packagecloud-ruby #1292 (@javabrett)
+* I think this should be "Once installed" and not "One installed", but … #1305 (@GabLeRoux)
+* script/test: propagate extra args to go test #1324 (@omonnier)
+* Add `lfs.basictransfersonly` option to disable non-basic transfer adapters #1299 (@sinbad)
+* Debian build vendor test excludes #1291 (@javabrett)
+* gitignore: ignore lfstest-\* files #1271 (@ttaylorr)
+* Disable gojsonschema test, causes failures when firewalls block it #1274 (@sinbad)
+* test: use noop credential helper for auth tests #1267 (@ttaylorr)
+* get git tests passing when run outside of repository #1229 (@technoweenie)
+* Package refactor no.1 #1226 (@sinbad)
+* vendor: vendor dependencies in vendor/ using Glide #1243 (@ttaylorr)
+
 ## 1.2.1 (2 June 2016)
 
 ### Features
