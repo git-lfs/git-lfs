@@ -20,6 +20,7 @@
 * Enhanced transfers: part 1 #1265 (@sinbad)
 * Implement support for GIT_SSH_COMMAND #1260 (@pdf)
 * api: add Force option to unlock requests #1259 (@ttaylorr)
+* Recognize include/exclude filters from config #1257 (@ttaylorr)
 * API Client and Lock Service #1236 (@ttaylorr)
 
 ### Bugs
@@ -37,7 +38,6 @@
 * Removed CentOS 5 from dockers. Fixed #1295. #1298 (@javabrett)
 * Fix 'git lfs fetch' with a sha1 ref #1323 (@omonnier)
 * Ignore HEAD ref when fetching with --all #1310 (@ttaylorr)
-* Config include exclude #1257 (@ttaylorr)
 * Return a fully remote ref to reduce chances of ref clashes #1248 (@technoweenie)
 
 ### Misc
