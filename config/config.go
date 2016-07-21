@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	Config                 = NewConfig()
+	Config                 = New()
 	ShowConfigWarnings     = false
 	defaultRemote          = "origin"
 	gitConfigWarningPrefix = "lfs."
@@ -67,7 +67,7 @@ type Configuration struct {
 	parsedNetrc       netrcfinder
 }
 
-func NewConfig() *Configuration {
+func New() *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),

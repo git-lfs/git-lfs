@@ -129,7 +129,7 @@ func TestNetrcWithHostAndPort(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	cfg := config.NewConfig()
+	cfg := config.New()
 	cfg.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://some-host:123/foo/bar")
 	if err != nil {
@@ -155,7 +155,7 @@ func TestNetrcWithHost(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	cfg := config.NewConfig()
+	cfg := config.New()
 	cfg.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://some-host/foo/bar")
 	if err != nil {
@@ -181,7 +181,7 @@ func TestNetrcWithBadHost(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	cfg := config.NewConfig()
+	cfg := config.New()
 	cfg.SetNetrc(&fakeNetrc{})
 	u, err := url.Parse("http://other-host/foo/bar")
 	if err != nil {
@@ -206,7 +206,7 @@ func TestNetrcWithBadHost(t *testing.T) {
 func checkGetCredentials(t *testing.T, getCredsFunc func(*config.Configuration, *http.Request) (Creds, error), checks []*getCredentialCheck) {
 	for _, check := range checks {
 		t.Logf("Checking %q", check.Desc)
-		cfg := config.NewConfig()
+		cfg := config.New()
 		cfg.CurrentRemote = check.CurrentRemote
 
 		for key, value := range check.Config {

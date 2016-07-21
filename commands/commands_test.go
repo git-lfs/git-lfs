@@ -29,7 +29,7 @@ func TestDetermineIncludeExcludePathsReturnsDefaultsWhenAbsent(t *testing.T) {
 }
 
 func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := config.New()
 	err := cfg.Setenv("GITLFSLOCKSENABLED", "1")
 
 	assert.Nil(t, err)
@@ -37,7 +37,7 @@ func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
 }
 
 func TestCommandEnabledDisabledByDefault(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := config.New()
 
 	// Since config.Configuration.Setenv makes a call to os.Setenv, we have
 	// to make sure that the LFSLOCKSENABLED enviornment variable is not

@@ -21,12 +21,12 @@ type Endpoint struct {
 // NewEndpointFromCloneURL creates an Endpoint from a git clone URL by appending
 // "[.git]/info/lfs".
 func NewEndpointFromCloneURL(url string) Endpoint {
-	return NewEndpointFromCloneURLWithConfig(url, NewConfig())
+	return NewEndpointFromCloneURLWithConfig(url, New())
 }
 
 // NewEndpoint initializes a new Endpoint for a given URL.
 func NewEndpoint(rawurl string) Endpoint {
-	return NewEndpointWithConfig(rawurl, NewConfig())
+	return NewEndpointWithConfig(rawurl, New())
 }
 
 // NewEndpointFromCloneURLWithConfig creates an Endpoint from a git clone URL by appending
