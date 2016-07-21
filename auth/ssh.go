@@ -19,20 +19,20 @@ type SshAuthResponse struct {
 	ExpiresAt string            `json:"expires_at"`
 }
 
-func SshAuthenticate(endpoint config.Endpoint, operation, oid string) (SshAuthResponse, error) {
-
+func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthResponse, config.Endpoint, error) {
 	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
 	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
 
+	endpoint := cfg.Endpoint(operation)
 	res := SshAuthResponse{}
 	if len(endpoint.SshUserAndHost) == 0 {
-		return res, nil
+		return res, endpoint, nil
 	}
 
 	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s %s",
 		endpoint.SshUserAndHost, endpoint.SshPath, operation, oid)
 
-	exe, args := sshGetExeAndArgs(endpoint)
+	exe, args := sshGetExeAndArgs(cfg, endpoint)
 	args = append(args,
 		fmt.Sprintf("git-lfs-authenticate %s %s %s", endpoint.SshPath, operation, oid))
 
@@ -56,12 +56,12 @@ func SshAuthenticate(endpoint config.Endpoint, operation, oid string) (SshAuthRe
 		err = json.Unmarshal(outbuf.Bytes(), &res)
 	}
 
-	return res, err
+	return res, endpoint, err
 }
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(endpoint config.Endpoint) (exe string, baseargs []string) {
+func sshGetExeAndArgs(cfg *config.Configuration, endpoint config.Endpoint) (exe string, baseargs []string) {
 	if len(endpoint.SshUserAndHost) == 0 {
 		return "", nil
 	}
@@ -69,8 +69,8 @@ func sshGetExeAndArgs(endpoint config.Endpoint) (exe string, baseargs []string) 
 	isPlink := false
 	isTortoise := false
 
-	ssh := config.Config.Getenv("GIT_SSH")
-	cmdArgs := strings.Fields(config.Config.Getenv("GIT_SSH_COMMAND"))
+	ssh := cfg.Getenv("GIT_SSH")
+	cmdArgs := strings.Fields(cfg.Getenv("GIT_SSH_COMMAND"))
 	if len(cmdArgs) > 0 {
 		ssh = cmdArgs[0]
 		cmdArgs = cmdArgs[1:]

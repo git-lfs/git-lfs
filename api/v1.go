@@ -88,9 +88,9 @@ func NewRequest(method, oid string) (*http.Request, error) {
 			operation = "upload"
 		}
 	}
-	endpoint := config.Config.Endpoint(operation)
 
-	res, err := auth.SshAuthenticate(endpoint, operation, oid)
+	cfg := config.Config
+	res, endpoint, err := auth.SshAuthenticate(cfg, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
 			endpoint.SshUserAndHost, err.Error(),
@@ -117,9 +117,8 @@ func NewRequest(method, oid string) (*http.Request, error) {
 }
 
 func NewBatchRequest(operation string) (*http.Request, error) {
-	endpoint := config.Config.Endpoint(operation)
-
-	res, err := auth.SshAuthenticate(endpoint, operation, "")
+	cfg := config.Config
+	res, endpoint, err := auth.SshAuthenticate(cfg, operation, "")
 	if err != nil {
 		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
 			operation, endpoint.SshUserAndHost, err.Error(),

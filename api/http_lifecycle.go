@@ -78,7 +78,7 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 		return nil, err
 	}
 
-	if _, err = auth.GetCreds(req); err != nil {
+	if _, err = auth.GetCreds(config.Config, req); err != nil {
 		return nil, err
 	}
 

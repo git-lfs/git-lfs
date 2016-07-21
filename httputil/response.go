@@ -57,7 +57,7 @@ func GetDefaultError(code int) string {
 
 // Check the response from a HTTP request for problems
 func handleResponse(res *http.Response, creds auth.Creds) error {
-	auth.SaveCredentials(creds, res)
+	auth.SaveCredentials(config.Config, creds, res)
 
 	if res.StatusCode < 400 {
 		return nil

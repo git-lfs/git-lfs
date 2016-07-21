@@ -90,7 +90,7 @@ func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) 
 func DoHttpRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 	var creds auth.Creds
 	if useCreds {
-		c, err := auth.GetCreds(req)
+		c, err := auth.GetCreds(config.Config, req)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func DoHttpRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 func DoHttpRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
 	var creds auth.Creds
 	if useCreds {
-		c, err := auth.GetCreds(req)
+		c, err := auth.GetCreds(config.Config, req)
 		if err != nil {
 			return nil, err
 		}

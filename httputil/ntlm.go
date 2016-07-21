@@ -53,7 +53,7 @@ func doNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 	//If the status is 401 then we need to re-authenticate, otherwise it was successful
 	if res.StatusCode == 401 {
 
-		creds, err := auth.GetCreds(request)
+		creds, err := auth.GetCreds(config.Config, request)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func doNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 			return doNTLMRequest(challengeReq, false)
 		}
 
-		auth.SaveCredentials(creds, res)
+		auth.SaveCredentials(config.Config, creds, res)
 
 		return res, nil
 	}

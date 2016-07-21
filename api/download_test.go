@@ -353,7 +353,7 @@ var (
 )
 
 func init() {
-	TestCredentialsFunc = func(input auth.Creds, subCommand string) (auth.Creds, error) {
+	TestCredentialsFunc = func(cfg *config.Configuration, input auth.Creds, subCommand string) (auth.Creds, error) {
 		output := make(auth.Creds)
 		for key, value := range input {
 			output[key] = value
