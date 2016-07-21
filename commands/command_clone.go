@@ -69,12 +69,12 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// Now just call pull with default args
 	// Support --origin option to clone
 	if len(cloneFlags.Origin) > 0 {
-		Config.CurrentRemote = cloneFlags.Origin
+		cfg.CurrentRemote = cloneFlags.Origin
 	} else {
-		Config.CurrentRemote = "origin"
+		cfg.CurrentRemote = "origin"
 	}
 
-	include, exclude := determineIncludeExcludePaths(Config, cloneIncludeArg, cloneExcludeArg)
+	include, exclude := determineIncludeExcludePaths(cfg, cloneIncludeArg, cloneExcludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
 		fetchRef("HEAD", include, exclude)

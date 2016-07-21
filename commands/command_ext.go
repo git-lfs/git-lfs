@@ -32,13 +32,13 @@ func extListCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, key := range args {
-		ext := Config.Extensions()[key]
+		ext := cfg.Extensions()[key]
 		printExt(ext)
 	}
 }
 
 func printAllExts() {
-	extensions, err := Config.SortedExtensions()
+	extensions, err := cfg.SortedExtensions()
 	if err != nil {
 		fmt.Println(err)
 		return

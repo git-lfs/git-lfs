@@ -52,12 +52,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	Config.CurrentRemote = args[0]
+	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = Config.CurrentRemote
+	scanOpt.RemoteName = cfg.CurrentRemote
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
