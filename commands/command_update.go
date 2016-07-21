@@ -3,7 +3,6 @@ package commands
 import (
 	"regexp"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
