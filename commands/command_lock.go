@@ -109,7 +109,7 @@ func lockPath(file string) (string, error) {
 func init() {
 	lockCmd.Flags().StringVarP(&lockRemote, "remote", "r", config.Config.CurrentRemote, lockRemoteHelp)
 
-	if isCommandEnabled("locks") {
+	if isCommandEnabled(config.Config, "locks") {
 		RootCmd.AddCommand(lockCmd)
 	}
 }

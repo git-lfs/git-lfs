@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -254,17 +253,15 @@ func usage(cmd *cobra.Command) error {
 	return nil
 }
 
-// isCommandEnabled returns whether the environment variable GITLFS<cmd>ENABLED
-// is equal to 1, returning false by default if the enviornment variable is not
-// specified.
+// isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
+// is "truthy" according to config.GetenvBool (see
+// github.com/github/git-lfs/config#Configuration.GetenvBool), returning false
+// by default if the enviornment variable is not specified.
 //
 // This function call should only guard commands that do not yet have stable
 // APIs or solid server implementations.
-func isCommandEnabled(cmd string) bool {
-	env := os.Getenv(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)))
-	v, _ := strconv.Atoi(env)
-
-	return v == 1
+func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
+	return cfg.GetenvBool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
 }
 
 func init() {
