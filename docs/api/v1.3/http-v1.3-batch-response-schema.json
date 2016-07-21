@@ -36,7 +36,8 @@
             "type": "string"
           },
           "size": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0
           },
           "actions": {
             "type": "object",

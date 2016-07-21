@@ -3,8 +3,11 @@
 package tools
 
 import (
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -76,11 +79,12 @@ func RenameFileCopyPermissions(srcfile, destfile string) error {
 }
 
 // CleanPaths splits the given `paths` argument by the delimiter argument, and
-// then "cleans" that path according to the filepath.Clean function (see
-// https://golang.org/pkg/file/filepath#Clean).
+// then "cleans" that path according to the path.Clean function (see
+// https://golang.org/pkg/path#Clean).
+// Note always cleans to '/' path separators regardless of platform (git friendly)
 func CleanPaths(paths, delim string) (cleaned []string) {
 	// If paths is an empty string, splitting it will yield [""], which will
-	// become the filepath ".". To avoid this, bail out if trimmed paths
+	// become the path ".". To avoid this, bail out if trimmed paths
 	// argument is empty.
 	if paths = strings.TrimSpace(paths); len(paths) == 0 {
 		return
@@ -89,7 +93,7 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 	for _, part := range strings.Split(paths, delim) {
 		part = strings.TrimSpace(part)
 
-		cleaned = append(cleaned, filepath.Clean(part))
+		cleaned = append(cleaned, path.Clean(part))
 	}
 
 	return cleaned
@@ -98,6 +102,7 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 // CleanPathsDefault cleans the paths contained in the given `paths` argument
 // delimited by the `delim`, argument. If an empty set is returned from that
 // split, then the fallback argument is returned instead.
+// Note always cleans to '/' path separators regardless of platform (git friendly)
 func CleanPathsDefault(paths, delim string, fallback []string) []string {
 	cleaned := CleanPaths(paths, delim)
 	if len(cleaned) == 0 {
@@ -105,4 +110,27 @@ func CleanPathsDefault(paths, delim string, fallback []string) []string {
 	}
 
 	return cleaned
+}
+
+// VerifyFileHash reads a file and verifies whether the SHA is correct
+// Returns an error if there is a problem
+func VerifyFileHash(oid, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	h := NewLfsContentHash()
+	_, err = io.Copy(h, f)
+	if err != nil {
+		return err
+	}
+
+	calcOid := hex.EncodeToString(h.Sum(nil))
+	if calcOid != oid {
+		return fmt.Errorf("File %q has an invalid hash %s, expected %s", path, calcOid, oid)
+	}
+
+	return nil
 }

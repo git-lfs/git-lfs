@@ -111,6 +111,8 @@ func GetDownloadAdapterNames() []string {
 		return []string{BasicAdapterName}
 	}
 
+	initCoreAdaptersIfRequired()
+
 	funcMutex.Lock()
 	defer funcMutex.Unlock()
 
@@ -127,6 +129,8 @@ func GetUploadAdapterNames() []string {
 	if config.Config.BasicTransfersOnly() {
 		return []string{BasicAdapterName}
 	}
+
+	initCoreAdaptersIfRequired()
 
 	funcMutex.Lock()
 	defer funcMutex.Unlock()
@@ -169,6 +173,8 @@ func NewAdapterOrDefault(name string, dir Direction) TransferAdapter {
 
 // Create a new adapter by name and direction, or nil if doesn't exist
 func NewAdapter(name string, dir Direction) TransferAdapter {
+	initCoreAdaptersIfRequired()
+
 	funcMutex.Lock()
 	defer funcMutex.Unlock()
 
@@ -193,4 +199,15 @@ func NewDownloadAdapter(name string) TransferAdapter {
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func NewUploadAdapter(name string) TransferAdapter {
 	return NewAdapterOrDefault(name, Upload)
+}
+
+var initCoreOnce sync.Once
+
+func initCoreAdaptersIfRequired() {
+	// It's important to late-init custom adapters because they rely on Config
+	// And if we cause Config to load too early it causes issues
+	// That's why this isn't in an init() block
+	initCoreOnce.Do(func() {
+		ConfigureCustomAdapters()
+	})
 }

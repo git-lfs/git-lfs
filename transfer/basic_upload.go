@@ -37,7 +37,13 @@ func (a *basicUploadAdapter) tempDir() string {
 	return d
 }
 
-func (a *basicUploadAdapter) DoTransfer(t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *basicUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
+	return nil, nil
+}
+func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
+}
+
+func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("upload")
 	if !ok {
 		return fmt.Errorf("No upload action for this object.")

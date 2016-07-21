@@ -11,7 +11,6 @@ unchanged.
 
 The v1.3 request adds an additional optional top-level field, `transfers`, 
 which is an array of strings naming the transfer methods this client supports.
-The transfer methods are in decreasing order of preference.
 
 The default transfer method which simply uploads and downloads using simple HTTP 
 `PUT` and `GET`, named "basic", is always supported and is implied.
@@ -51,8 +50,7 @@ include the chosen one in the response in the new `transfer` field. If only
 `"basic"` is supported, the field is optional since that is the default.
 
 If the server supports more than one of the named transfer methods, it should
-pick the first one it supports, since the client will list them in order of
-preference.
+pick the best one it supports.
 
 Example response to the previous request if the server also supports `tus.io`:
 

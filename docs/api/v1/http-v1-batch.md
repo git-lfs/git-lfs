@@ -89,30 +89,36 @@ authentication info, regardless of how `lfs.<url>.access` is configured.
 < }
 ```
 
-The response will be an object containing an array of objects with one of
-multiple actions, each with an `href` property and an optional `header`
-property. The requests and responses need to validate with the included JSON
-schemas:
+The response will contains an array of objects with the following properties:
+
+* `oid` - The LFS object string OID.
+* `size` - The integer size in bytes of the LFS object. Must be at least 0.
+* `actions` - A hash of potential actions that the client can perform with the
+  object. Its properties include:
+  * `href` - This is the string URL used to perfrom the action.
+  * `header` - This is a hash of string HTTP header key/value pairs to apply to
+    the transfer request.
+  * `expires_at` - String ISO 8601 formatted timestamp for when the given action
+    expires (usually due to a temporary token).
+
+The valid actions include:
+
+  * `upload` - This relation describes how to upload the object.  If the object
+    has not previously been uploaded the server should provide this action.  If
+    the object has been previously uploaded and the object content is known to
+    the server, it should not provide this action.  When the action is not
+    provided, the client should assume the server already knows the object
+    content and skip uploading it.
+  * `verify` - The server can specify a URL for the client to hit after
+    successfully uploading an object.  This is an optional relation for the case
+    that the server has not verified the object.
+  * `download` - This relation describes how to download the object content.
+    This only appears if an object has been previously uploaded.
+
+The requests and responses need to validate with the included JSON schemas:
 
 * [Batch request](./http-v1-batch-request-schema.json)
 * [Batch response](./http-v1-batch-response-schema.json)
-
-Here are the valid actions:
-
-* `upload` - This relation describes how to upload the object.  If the object
-has not previously been uploaded the server should provide this action.  If
-the object has been previously uploaded and the object content is known to the
-server, it should not provide this action.  When the action is not provided,
-the client should assume the server already knows the object content and skip
-uploading it.
-* `verify` - The server can specify a URL for the client to hit after
-successfully uploading an object.  This is an optional relation for the case that
-the server has not verified the object.
-* `download` - This relation describes how to download the object content.  This
-only appears if an object has been previously uploaded.
-
-An action can optionally include an `expires_at`, which is an ISO 8601 formatted
-timestamp for when the given action expires (usually due to a temporary token).
 
 ```json
 {
@@ -285,65 +291,3 @@ track usage.
 
 Some server errors may trigger the client to retry requests, such as 500, 502,
 503, and 504.
-
-## Extended upload & download protocols
-
-By default it is assumed that all transfers (uploads & downloads) will be
-performed via a singular HTTP resource and that the URLs provided in the
-response are implemented as such. In this case each object is uploaded or
-downloaded in its entirety through that one URL.
-
-However, in order to support more advanced transfer features such as resuming,
-chunking or delegation to other services, the client can indicate in the request
-its ability to handle other transfer mechanisms. 
-
-Here's a possible example:
-
-```json
-{
-  "operation": "upload",
-  "accept-transfers": "tus,resumable.js",
-  "objects": [
-    {
-      "oid": "1111111",
-      "size": 123
-    }
-  ]
-}
-```
-
-The `accept-transfers` field is a comma-separated list of identifiers which the
-client is able to support, in order of preference. In this hypothetical example
-the client is indicating it is able to support resumable uploads using either
-the tus.io protocol, or the resumable.js protocol. It is implicit that basic
-HTTP resources are always supported regardless of the presence or content of
-this item.
-
-If the server is able to support one of the extended transfer mechanisms, it can
-provide resources specific to that mechanism in the response, with an indicator
-of which one it picked:
-
-```json
-{
-  "transfer": "tus",
-  "objects": [
-   {
-      "oid": "1111111",
-      "size": 123,
-      "actions": {
-        "upload": {
-          "href": "https://my.tus.server.com/files/1111111"
-        }
-      }
-    }
-  ]
-}
-```
-
-In this case the server has chosen [tus.io](http://tus.io); in this case the
-underlying transport is still HTTP, so the `href` is still a web URL, but the
-exact sequence of calls and the headers sent & received are different from a
-single resource upload. Other transfers may use other protocols.
-
-__Note__: these API features are provided for future extension and the examples
-shown may not represent actual features present in the current client).

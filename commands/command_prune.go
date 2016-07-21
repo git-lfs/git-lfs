@@ -12,6 +12,7 @@ import (
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -59,8 +60,8 @@ type PruneProgressChan chan PruneProgress
 
 func prune(verifyRemote, dryRun, verbose bool) {
 	localObjects := make([]localstorage.Object, 0, 100)
-	retainedObjects := lfs.NewStringSetWithCapacity(100)
-	var reachableObjects lfs.StringSet
+	retainedObjects := tools.NewStringSetWithCapacity(100)
+	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
 
 	// Add all the base funcs to the waitgroup before starting them, in case
@@ -90,7 +91,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	go pruneTaskGetRetainedUnpushed(retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedWorktree(retainChan, errorChan, &taskwait)
 	if verifyRemote {
-		reachableObjects = lfs.NewStringSetWithCapacity(100)
+		reachableObjects = tools.NewStringSetWithCapacity(100)
 		go pruneTaskGetReachableObjects(&reachableObjects, errorChan, &taskwait)
 	}
 
@@ -116,7 +117,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 
 	// Build list of prunables (also queue for verify at same time if applicable)
 	var verifyQueue *lfs.TransferQueue
-	var verifiedObjects lfs.StringSet
+	var verifiedObjects tools.StringSet
 	var totalSize int64
 	var verboseOutput bytes.Buffer
 	var verifyc chan string
@@ -125,7 +126,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 		config.Config.CurrentRemote = config.Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
 		verifyQueue = lfs.NewDownloadCheckQueue(0, 0)
-		verifiedObjects = lfs.NewStringSetWithCapacity(len(localObjects) / 2)
+		verifiedObjects = tools.NewStringSetWithCapacity(len(localObjects) / 2)
 
 		// this channel is filled with oids for which Check() succeeded & Transfer() was called
 		verifyc = verifyQueue.Watch()
@@ -188,7 +189,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 
 }
 
-func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects lfs.StringSet) {
+func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects tools.StringSet) {
 	// There's no issue if an object is not reachable and missing, only if reachable & missing
 	var problems bytes.Buffer
 	for _, oid := range prunableObjects {
@@ -246,7 +247,7 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 	spinner.Finish(OutputWriter, msg)
 }
 
-func pruneTaskCollectRetained(outRetainedObjects *lfs.StringSet, retainChan chan string,
+func pruneTaskCollectRetained(outRetainedObjects *tools.StringSet, retainChan chan string,
 	progressChan PruneProgressChan, retainwait *sync.WaitGroup) {
 
 	defer retainwait.Done()
@@ -352,7 +353,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 
 	// We actually increment the waitg in this func since we kick off sub-goroutines
 	// Make a list of what unique commits to keep, & search backward from
-	commits := lfs.NewStringSet()
+	commits := tools.NewStringSet()
 	// Do current first
 	ref, err := git.CurrentRef()
 	if err != nil {
@@ -435,7 +436,7 @@ func pruneTaskGetRetainedWorktree(retainChan chan string, errorChan chan error, 
 	}
 	// Don't repeat any commits, worktrees are always on their own branches but
 	// may point to the same commit
-	commits := lfs.NewStringSet()
+	commits := tools.NewStringSet()
 	// current HEAD is done elsewhere
 	headref, err := git.CurrentRef()
 	if err != nil {
@@ -455,7 +456,7 @@ func pruneTaskGetRetainedWorktree(retainChan chan string, errorChan chan error, 
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetReachableObjects(outObjectSet *lfs.StringSet, errorChan chan error, waitg *sync.WaitGroup) {
+func pruneTaskGetReachableObjects(outObjectSet *tools.StringSet, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// converts to `git rev-list --all`
