@@ -68,7 +68,11 @@ begin
   if LoadStringFromFile(TmpFileName, ExecStdOut) then begin
       if not (Pos('Git\cmd', ExtractFilePath(ExecStdOut)) = 0) then begin
         // Proxy Git path detected
-        Result := ExpandConstant('{pf}')+'\Git\mingw64\bin';
+        Result := ExpandConstant('{pf}');
+      if Is64BitInstallMode then
+        Result := Result + '\Git\mingw64\bin'
+      else
+        Result := Result + '\Git\mingw32\bin';
       end else begin
         Result := ExtractFilePath(ExecStdOut);
       end;
