@@ -103,5 +103,8 @@ func init() {
 	unlockCmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 	unlockCmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
 
-	RootCmd.AddCommand(unlockCmd)
+	if isCommandEnabled(config.Config, "locks") {
+		RootCmd.AddCommand(unlockCmd)
+	}
+
 }

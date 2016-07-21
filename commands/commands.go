@@ -253,6 +253,17 @@ func usage(cmd *cobra.Command) error {
 	return nil
 }
 
+// isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
+// is "truthy" according to config.GetenvBool (see
+// github.com/github/git-lfs/config#Configuration.GetenvBool), returning false
+// by default if the enviornment variable is not specified.
+//
+// This function call should only guard commands that do not yet have stable
+// APIs or solid server implementations.
+func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
+	return cfg.GetenvBool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
+}
+
 func init() {
 	log.SetOutput(ErrorWriter)
 	// Set up help/usage funcs based on manpage text
