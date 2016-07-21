@@ -37,7 +37,7 @@ func pruneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	verify := !pruneDoNotVerifyArg &&
-		(config.Config.FetchPruneConfig().PruneVerifyRemoteAlways || pruneVerifyArg)
+		(Config.FetchPruneConfig().PruneVerifyRemoteAlways || pruneVerifyArg)
 
 	prune(verify, pruneDryRunArg, pruneVerboseArg)
 
@@ -123,7 +123,7 @@ func prune(verifyRemote, dryRun, verbose bool) {
 	var verifyc chan string
 
 	if verifyRemote {
-		config.Config.CurrentRemote = config.Config.FetchPruneConfig().PruneRemoteName
+		Config.CurrentRemote = Config.FetchPruneConfig().PruneRemoteName
 		// build queue now, no estimates or progress output
 		verifyQueue = lfs.NewDownloadCheckQueue(0, 0)
 		verifiedObjects = tools.NewStringSetWithCapacity(len(localObjects) / 2)
@@ -365,7 +365,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 	go pruneTaskGetRetainedAtRef(ref.Sha, retainChan, errorChan, waitg)
 
 	// Now recent
-	fetchconf := config.Config.FetchPruneConfig()
+	fetchconf := Config.FetchPruneConfig()
 	if fetchconf.FetchRecentRefsDays > 0 {
 		pruneRefDays := fetchconf.FetchRecentRefsDays + fetchconf.PruneOffsetDays
 		tracerx.Printf("PRUNE: Retaining non-HEAD refs within %d (%d+%d) days", pruneRefDays, fetchconf.FetchRecentRefsDays, fetchconf.PruneOffsetDays)
@@ -406,7 +406,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(retainChan chan string, errorChan 
 func pruneTaskGetRetainedUnpushed(retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	remoteName := config.Config.FetchPruneConfig().PruneRemoteName
+	remoteName := Config.FetchPruneConfig().PruneRemoteName
 
 	refchan, err := lfs.ScanUnpushedToChan(remoteName)
 	if err != nil {

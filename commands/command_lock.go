@@ -30,7 +30,7 @@ var (
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(config.Config)
+	setLockRemoteFor(Config)
 
 	if len(args) == 0 {
 		Print("Usage: git lfs lock <path>")
@@ -107,9 +107,9 @@ func lockPath(file string) (string, error) {
 }
 
 func init() {
-	lockCmd.Flags().StringVarP(&lockRemote, "remote", "r", config.Config.CurrentRemote, lockRemoteHelp)
+	lockCmd.Flags().StringVarP(&lockRemote, "remote", "r", Config.CurrentRemote, lockRemoteHelp)
 
-	if isCommandEnabled(config.Config, "locks") {
+	if isCommandEnabled(Config, "locks") {
 		RootCmd.AddCommand(lockCmd)
 	}
 }

@@ -16,8 +16,7 @@ var (
 
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
-	cfg := config.Config
-	endpoint := cfg.Endpoint("download")
+	endpoint := Config.Endpoint("download")
 
 	gitV, err := git.Config.Version()
 	if err != nil {
@@ -29,15 +28,15 @@ func envCommand(cmd *cobra.Command, args []string) {
 	Print("")
 
 	if len(endpoint.Url) > 0 {
-		Print("Endpoint=%s (auth=%s)", endpoint.Url, cfg.EndpointAccess(endpoint))
+		Print("Endpoint=%s (auth=%s)", endpoint.Url, Config.EndpointAccess(endpoint))
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
 	}
 
-	for _, remote := range cfg.Remotes() {
-		remoteEndpoint := cfg.RemoteEndpoint(remote, "download")
-		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, cfg.EndpointAccess(remoteEndpoint))
+	for _, remote := range Config.Remotes() {
+		remoteEndpoint := Config.RemoteEndpoint(remote, "download")
+		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, Config.EndpointAccess(remoteEndpoint))
 		if len(remoteEndpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)
 		}
@@ -48,7 +47,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, key := range []string{"filter.lfs.smudge", "filter.lfs.clean"} {
-		value, _ := cfg.GitConfig(key)
+		value, _ := Config.GitConfig(key)
 		Print("git config %s = %q", key, value)
 	}
 }

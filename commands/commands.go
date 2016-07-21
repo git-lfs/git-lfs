@@ -40,6 +40,7 @@ var (
 		},
 	}
 	ManPages = make(map[string]string, 20)
+	Config   = config.Config
 )
 
 // Error prints a formatted message to Stderr.  It also gets printed to the

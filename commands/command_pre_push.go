@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -53,12 +52,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	config.Config.CurrentRemote = args[0]
+	Config.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = config.Config.CurrentRemote
+	scanOpt.RemoteName = Config.CurrentRemote
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)

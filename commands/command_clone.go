@@ -8,7 +8,6 @@ import (
 
 	"github.com/github/git-lfs/subprocess"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
@@ -70,12 +69,12 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// Now just call pull with default args
 	// Support --origin option to clone
 	if len(cloneFlags.Origin) > 0 {
-		config.Config.CurrentRemote = cloneFlags.Origin
+		Config.CurrentRemote = cloneFlags.Origin
 	} else {
-		config.Config.CurrentRemote = "origin"
+		Config.CurrentRemote = "origin"
 	}
 
-	include, exclude := determineIncludeExcludePaths(config.Config, cloneIncludeArg, cloneExcludeArg)
+	include, exclude := determineIncludeExcludePaths(Config, cloneIncludeArg, cloneExcludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
 		fetchRef("HEAD", include, exclude)
