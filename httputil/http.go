@@ -121,7 +121,7 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	tlstime := c.GitConfigInt("lfs.tlstimeout", 30)
 
 	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy: ProxyFromGitConfigOrEnvironment(c),
 		Dial: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
