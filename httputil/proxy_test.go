@@ -8,9 +8,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProxyFromEnvironment(t *testing.T) {
+func TestProxyFromGitConfig(t *testing.T) {
 	cfg := config.NewFromValues(map[string]string{
 		"http.proxy": "https://proxy-from-git-config:8080",
+	})
+	cfg.SetAllEnv(map[string]string{
+		"HTTPS_PROXY": "https://proxy-from-env:8080",
+	})
+
+	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
+
+	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
+	assert.Nil(t, err)
+}
+
+func TestHttpProxyFromGitConfig(t *testing.T) {
+	cfg := config.NewFromValues(map[string]string{
+		"http.proxy": "http://proxy-from-git-config:8080",
 	})
 	cfg.SetAllEnv(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
@@ -27,19 +46,20 @@ func TestProxyFromEnvironment(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestProxyFromGitConfig(t *testing.T) {
-	cfg := config.NewFromValues(map[string]string{
-		"http.proxy": "https://proxy-from-git-config:8080",
+func TestProxyFromEnvironment(t *testing.T) {
+	cfg := config.NewConfig()
+	cfg.SetAllEnv(map[string]string{
+		"HTTPS_PROXY": "https://proxy-from-env:8080",
 	})
 
-	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
+	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	proxyURL, err := ProxyFromGitConfigOrEnvironment(cfg)(req)
 
-	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
+	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
 	assert.Nil(t, err)
 }
 
