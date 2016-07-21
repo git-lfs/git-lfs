@@ -8,12 +8,12 @@ begin_test "list a single lock"
 
   setup_remote_repo_with_file "locks_list_single" "f.dat"
 
-  git lfs lock "f.dat" | tee lock.log
+  GITLFSLOCKSENABLED=1 git lfs lock "f.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock $id
 
-  git lfs locks --path "f.dat" | tee locks.log
+  GITLFSLOCKSENABLED=1 git lfs locks --path "f.dat" | tee locks.log
   grep "1 lock(s) matched query" locks.log
   grep "f.dat" locks.log
 )
@@ -42,13 +42,13 @@ begin_test "list locks with a limit"
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
 
-  git lfs lock "g_1.dat" | tee lock.log
+  GITLFSLOCKSENABLED=1 git lfs lock "g_1.dat" | tee lock.log
   assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
 
-  git lfs lock "g_2.dat" | tee lock.log
+  GITLFSLOCKSENABLED=1 git lfs lock "g_2.dat" | tee lock.log
   assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
 
-  git lfs locks --limit 1 | tee locks.log
+  GITLFSLOCKSENABLED=1 git lfs locks --limit 1 | tee locks.log
   grep "1 lock(s) matched query" locks.log
 )
 end_test
@@ -79,12 +79,12 @@ begin_test "list locks with pagination"
   grep "master -> master" push.log
 
   for i in $(seq 1 5); do
-    git lfs lock "h_$i.dat" | tee lock.log
+    GITLFSLOCKSENABLED=1 git lfs lock "h_$i.dat" | tee lock.log
     assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
   done
 
   # The server will return, at most, three locks at a time
-  git lfs locks --limit 4 | tee locks.log
+  GITLFSLOCKSENABLED=1 git lfs locks --limit 4 | tee locks.log
   grep "4 lock(s) matched query" locks.log
 )
 end_test

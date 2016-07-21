@@ -63,7 +63,9 @@ func init() {
 	locksCmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 	locksCmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
 
-	RootCmd.AddCommand(locksCmd)
+	if isCommandEnabled("locks") {
+		RootCmd.AddCommand(locksCmd)
+	}
 }
 
 // locksFlags wraps up and holds all of the flags that can be given to the

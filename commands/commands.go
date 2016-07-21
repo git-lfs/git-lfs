@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -251,6 +252,19 @@ func help(cmd *cobra.Command, args []string) {
 func usage(cmd *cobra.Command) error {
 	printHelp(cmd.Name())
 	return nil
+}
+
+// isCommandEnabled returns whether the environment variable GITLFS<cmd>ENABLED
+// is equal to 1, returning false by default if the enviornment variable is not
+// specified.
+//
+// This function call should only guard commands that do not yet have stable
+// APIs or solid server implementations.
+func isCommandEnabled(cmd string) bool {
+	env := os.Getenv(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)))
+	v, _ := strconv.Atoi(env)
+
+	return v == 1
 }
 
 func init() {
