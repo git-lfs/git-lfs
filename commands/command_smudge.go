@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -62,7 +61,6 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	cfg := config.Config
 	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	if smudgeSkip || cfg.GetenvBool("GIT_LFS_SKIP_SMUDGE", false) {
