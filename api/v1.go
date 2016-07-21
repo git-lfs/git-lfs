@@ -37,7 +37,7 @@ func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error)
 }
 
 type batchRequest struct {
-	TransferAdapterNames []string          `json:"transfers"`
+	TransferAdapterNames []string          `json:"transfers,omitempty"`
 	Operation            string            `json:"operation"`
 	Objects              []*ObjectResource `json:"objects"`
 }

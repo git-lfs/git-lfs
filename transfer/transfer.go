@@ -108,7 +108,7 @@ func GetAdapterNames(dir Direction) []string {
 func GetDownloadAdapterNames() []string {
 
 	if config.Config.BasicTransfersOnly() {
-		return []string{BasicAdapterName}
+		return nil
 	}
 
 	initCoreAdaptersIfRequired()
@@ -127,7 +127,7 @@ func GetDownloadAdapterNames() []string {
 func GetUploadAdapterNames() []string {
 
 	if config.Config.BasicTransfersOnly() {
-		return []string{BasicAdapterName}
+		return nil
 	}
 
 	initCoreAdaptersIfRequired()
