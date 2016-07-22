@@ -5,7 +5,7 @@
 ### Features
 
 * use proxy from git config #1173, #1358 (@jonmagic, @LizzHale, @technoweenie)
-* Enhanced upload/download of LFS content: #1265 #1279 #1297 #1367 (@sinbad)
+* Enhanced upload/download of LFS content: #1265 #1279 #1297 #1303 #1367 (@sinbad)
   * Resumable downloads using HTTP range headers
   * Resumable uploads using [tus.io protocol](http://tus.io)
   * Pluggable [custom transfer adapters](https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md) 
@@ -13,7 +13,6 @@
 * cmd,doc,test: teach `git lfs track --{no-touch,verbose,dry-run}` #1344 (@ttaylorr)
 * ⏳ Retry transfers with expired actions #1350 (@ttaylorr)
 * Safe track patterns #1346 (@ttaylorr)
-* Enhanced transfers part 4: resuming uploads via tus.io protocol #1303 (@sinbad)
 * Add checkout --unstaged flag #1262 (@orivej)
 * cmd/clone: add include/exclude via flags and config #1321 (@ttaylorr)
 * Improve progress reporting when files skipped #1296 (@sinbad)
