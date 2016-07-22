@@ -15,6 +15,7 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/tools"
 	"github.com/spf13/cobra"
@@ -106,6 +107,13 @@ func Panic(err error, format string, args ...interface{}) {
 
 func Run() {
 	RootCmd.Execute()
+	httputil.LogHttpStats(cfg)
+}
+
+func Cleanup() {
+	if err := lfs.ClearTempObjects(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
+	}
 }
 
 func PipeMediaCommand(name string, args ...string) error {

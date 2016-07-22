@@ -35,8 +35,6 @@ NpW5Hh0w4/5iIetCkJ0=
 -----END CERTIFICATE-----`
 
 func TestCertFromSSLCAInfoConfig(t *testing.T) {
-	defer config.Config.ResetConfig()
-
 	tempfile, err := ioutil.TempFile("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
 	defer os.Remove(tempfile.Name())
@@ -45,37 +43,34 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	config.Config.ClearConfig()
-	config.Config.SetConfig("http.https://git-lfs.local/.sslcainfo", tempfile.Name())
+	cfg := config.New()
+	cfg.SetConfig("http.https://git-lfs.local/.sslcainfo", tempfile.Name())
 
-	// Should match
-	pool := getRootCAsForHost("git-lfs.local")
+	t.Log("Should match")
+	pool := getRootCAsForHost(cfg, "git-lfs.local")
 	assert.NotNil(t, pool)
 
-	// Shouldn't match
-	pool = getRootCAsForHost("wronghost.com")
+	t.Log("Should not match")
+	pool = getRootCAsForHost(cfg, "wronghost.com")
 	assert.Nil(t, pool)
 
-	// Ports have to match
-	pool = getRootCAsForHost("git-lfs.local:8443")
+	t.Log("Ports have to match")
+	pool = getRootCAsForHost(cfg, "git-lfs.local:8443")
 	assert.Nil(t, pool)
 
-	// Now use global sslcainfo
-	config.Config.ClearConfig()
-	config.Config.SetConfig("http.sslcainfo", tempfile.Name())
+	cfg.SetConfig("http.sslcainfo", tempfile.Name())
 
-	// Should match anything
-	pool = getRootCAsForHost("git-lfs.local")
+	t.Log("Should match anything")
+	pool = getRootCAsForHost(cfg, "git-lfs.local")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("wronghost.com")
+	pool = getRootCAsForHost(cfg, "wronghost.com")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("git-lfs.local:8443")
+	pool = getRootCAsForHost(cfg, "git-lfs.local:8443")
 	assert.NotNil(t, pool)
 
 }
 
 func TestCertFromSSLCAInfoEnv(t *testing.T) {
-
 	tempfile, err := ioutil.TempFile("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
 	defer os.Remove(tempfile.Name())
@@ -84,25 +79,20 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	oldEnv := config.Config.GetAllEnv()
-	defer func() {
-		config.Config.SetAllEnv(oldEnv)
-	}()
-	config.Config.SetAllEnv(map[string]string{"GIT_SSL_CAINFO": tempfile.Name()})
+	cfg := config.New()
+	cfg.SetAllEnv(map[string]string{"GIT_SSL_CAINFO": tempfile.Name()})
 
 	// Should match any host at all
-	pool := getRootCAsForHost("git-lfs.local")
+	pool := getRootCAsForHost(cfg, "git-lfs.local")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("wronghost.com")
+	pool = getRootCAsForHost(cfg, "wronghost.com")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("notthisone.com:8888")
+	pool = getRootCAsForHost(cfg, "notthisone.com:8888")
 	assert.NotNil(t, pool)
 
 }
 
 func TestCertFromSSLCAPathConfig(t *testing.T) {
-	defer config.Config.ResetConfig()
-
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Nil(t, err, "Error creating temp cert dir")
 	defer os.RemoveAll(tempdir)
@@ -110,21 +100,20 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	config.Config.ClearConfig()
-	config.Config.SetConfig("http.sslcapath", tempdir)
+	cfg := config.New()
+	cfg.SetConfig("http.sslcapath", tempdir)
 
 	// Should match any host at all
-	pool := getRootCAsForHost("git-lfs.local")
+	pool := getRootCAsForHost(cfg, "git-lfs.local")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("wronghost.com")
+	pool = getRootCAsForHost(cfg, "wronghost.com")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("notthisone.com:8888")
+	pool = getRootCAsForHost(cfg, "notthisone.com:8888")
 	assert.NotNil(t, pool)
 
 }
 
 func TestCertFromSSLCAPathEnv(t *testing.T) {
-
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Nil(t, err, "Error creating temp cert dir")
 	defer os.RemoveAll(tempdir)
@@ -132,55 +121,41 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	oldEnv := config.Config.GetAllEnv()
-	defer func() {
-		config.Config.SetAllEnv(oldEnv)
-	}()
-	config.Config.SetAllEnv(map[string]string{"GIT_SSL_CAPATH": tempdir})
+	cfg := config.New()
+	cfg.SetAllEnv(map[string]string{"GIT_SSL_CAPATH": tempdir})
 
 	// Should match any host at all
-	pool := getRootCAsForHost("git-lfs.local")
+	pool := getRootCAsForHost(cfg, "git-lfs.local")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("wronghost.com")
+	pool = getRootCAsForHost(cfg, "wronghost.com")
 	assert.NotNil(t, pool)
-	pool = getRootCAsForHost("notthisone.com:8888")
+	pool = getRootCAsForHost(cfg, "notthisone.com:8888")
 	assert.NotNil(t, pool)
 
 }
 
 func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
+	cfg := config.New()
+	assert.False(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 
-	assert.False(t, isCertVerificationDisabledForHost("anyhost.com"))
-
-	oldEnv := config.Config.GetAllEnv()
-	defer func() {
-		config.Config.SetAllEnv(oldEnv)
-	}()
-	config.Config.SetAllEnv(map[string]string{"GIT_SSL_NO_VERIFY": "1"})
-
-	assert.True(t, isCertVerificationDisabledForHost("anyhost.com"))
+	cfg.SetAllEnv(map[string]string{"GIT_SSL_NO_VERIFY": "1"})
+	assert.True(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 }
 
 func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
-	defer config.Config.ResetConfig()
+	cfg := config.New()
+	assert.False(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 
-	assert.False(t, isCertVerificationDisabledForHost("anyhost.com"))
-
-	config.Config.ClearConfig()
-	config.Config.SetConfig("http.sslverify", "false")
-
-	assert.True(t, isCertVerificationDisabledForHost("anyhost.com"))
+	cfg.SetConfig("http.sslverify", "false")
+	assert.True(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 }
 
 func TestCertVerifyDisabledHostConfig(t *testing.T) {
-	defer config.Config.ResetConfig()
+	cfg := config.New()
+	assert.False(t, isCertVerificationDisabledForHost(cfg, "specifichost.com"))
+	assert.False(t, isCertVerificationDisabledForHost(cfg, "otherhost.com"))
 
-	assert.False(t, isCertVerificationDisabledForHost("specifichost.com"))
-	assert.False(t, isCertVerificationDisabledForHost("otherhost.com"))
-
-	config.Config.ClearConfig()
-	config.Config.SetConfig("http.https://specifichost.com/.sslverify", "false")
-
-	assert.True(t, isCertVerificationDisabledForHost("specifichost.com"))
-	assert.False(t, isCertVerificationDisabledForHost("otherhost.com"))
+	cfg.SetConfig("http.https://specifichost.com/.sslverify", "false")
+	assert.True(t, isCertVerificationDisabledForHost(cfg, "specifichost.com"))
+	assert.False(t, isCertVerificationDisabledForHost(cfg, "otherhost.com"))
 }

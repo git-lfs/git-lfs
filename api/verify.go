@@ -7,13 +7,13 @@ import (
 	"io/ioutil"
 	"strconv"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
 )
 
 // VerifyUpload calls the "verify" API link relation on obj if it exists
 func VerifyUpload(obj *ObjectResource) error {
-
 	// Do we need to do verify?
 	if _, ok := obj.Rel("verify"); !ok {
 		return nil
@@ -38,7 +38,8 @@ func VerifyUpload(obj *ObjectResource) error {
 		return err
 	}
 
-	httputil.LogTransfer("lfs.data.verify", res)
+	cfg := config.Config
+	httputil.LogTransfer(cfg, "lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 

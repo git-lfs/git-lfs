@@ -13,10 +13,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/tools"
 )
+
+var cfg = config.New()
 
 // This test custom adapter just acts as a bridge for uploads/downloads
 // in order to demonstrate & test the custom transfer adapter protocols
@@ -103,7 +106,7 @@ func performDownload(oid string, size int64, a *action, writer, errWriter *bufio
 		sendTransferError(oid, 2, err.Error(), writer, errWriter)
 		return
 	}
-	res, err := httputil.DoHttpRequest(req, true)
+	res, err := httputil.DoHttpRequest(cfg, req, true)
 	if err != nil {
 		sendTransferError(oid, res.StatusCode, err.Error(), writer, errWriter)
 		return
@@ -184,7 +187,7 @@ func performUpload(oid string, size int64, a *action, fromPath string, writer, e
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := httputil.DoHttpRequest(req, true)
+	res, err := httputil.DoHttpRequest(cfg, req, true)
 	if err != nil {
 		sendTransferError(oid, res.StatusCode, fmt.Sprintf("Error uploading data for %s: %v", oid, err), writer, errWriter)
 		return

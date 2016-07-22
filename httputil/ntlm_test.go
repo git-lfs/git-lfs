@@ -14,34 +14,22 @@ import (
 )
 
 func TestNtlmClientSession(t *testing.T) {
-
-	//Make sure to clear ntlmSession so test order doesn't matter.
-	config.Config.NtlmSession = nil
-
+	cfg := config.New()
 	creds := auth.Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
-	_, err := ntlmClientSession(config.Config, creds)
+	_, err := ntlmClientSession(cfg, creds)
 	assert.Nil(t, err)
 
 	//The second call should ignore creds and give the session we just created.
 	badCreds := auth.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
-	_, err = ntlmClientSession(config.Config, badCreds)
+	_, err = ntlmClientSession(cfg, badCreds)
 	assert.Nil(t, err)
-
-	//clean up
-	config.Config.NtlmSession = nil
 }
 
 func TestNtlmClientSessionBadCreds(t *testing.T) {
-
-	//Make sure to clear ntlmSession so test order doesn't matter.
-	config.Config.NtlmSession = nil
-
+	cfg := config.New()
 	creds := auth.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
-	_, err := ntlmClientSession(config.Config, creds)
+	_, err := ntlmClientSession(cfg, creds)
 	assert.NotNil(t, err)
-
-	//clean up
-	config.Config.NtlmSession = nil
 }
 
 func TestNtlmCloneRequest(t *testing.T) {

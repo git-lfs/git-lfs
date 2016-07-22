@@ -21,7 +21,8 @@ import (
 // This is for simplicity, legacy route is not most optimal (serial)
 // TODO LEGACY API: remove when legacy API removed
 func BatchOrLegacy(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
-	if !config.Config.BatchTransfer() {
+	cfg := config.Config
+	if !cfg.BatchTransfer() {
 		objs, err := Legacy(objects, operation)
 		return objs, "", err
 	}
@@ -54,6 +55,8 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 		return nil, "", nil
 	}
 
+	cfg := config.Config
+
 	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
 	by, err := json.Marshal(o)
 	if err != nil {
@@ -85,7 +88,7 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 		}
 
 		if errutil.IsAuthError(err) {
-			httputil.SetAuthType(req, res)
+			httputil.SetAuthType(cfg, req, res)
 			return Batch(objects, operation, transferAdapters)
 		}
 
@@ -98,7 +101,7 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 		tracerx.Printf("api error: %s", err)
 		return nil, "", errutil.Error(err)
 	}
-	httputil.LogTransfer("lfs.batch", res)
+	httputil.LogTransfer(cfg, "lfs.batch", res)
 
 	if res.StatusCode != 200 {
 		return nil, "", errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
@@ -141,7 +144,9 @@ func DownloadCheck(oid string) (*ObjectResource, error) {
 	if err != nil {
 		return nil, err
 	}
-	httputil.LogTransfer("lfs.download", res)
+
+	cfg := config.Config
+	httputil.LogTransfer(cfg, "lfs.download", res)
 
 	_, err = obj.NewRequest("download", "GET")
 	if err != nil {
@@ -153,7 +158,7 @@ func DownloadCheck(oid string) (*ObjectResource, error) {
 
 // TODO LEGACY API: remove when legacy API removed
 func UploadCheck(oid string, size int64) (*ObjectResource, error) {
-
+	cfg := config.Config
 	reqObj := &ObjectResource{
 		Oid:  oid,
 		Size: size,
@@ -179,13 +184,13 @@ func UploadCheck(oid string, size int64) (*ObjectResource, error) {
 
 	if err != nil {
 		if errutil.IsAuthError(err) {
-			httputil.SetAuthType(req, res)
+			httputil.SetAuthType(cfg, req, res)
 			return UploadCheck(oid, size)
 		}
 
 		return nil, errutil.NewRetriableError(err)
 	}
-	httputil.LogTransfer("lfs.upload", res)
+	httputil.LogTransfer(cfg, "lfs.upload", res)
 
 	if res.StatusCode == 200 {
 		return nil, nil

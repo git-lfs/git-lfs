@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/github/git-lfs/api"
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
@@ -96,11 +97,11 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := httputil.DoHttpRequest(req, true)
+	res, err := httputil.DoHttpRequest(config.Config, req, true)
 	if err != nil {
 		return errutil.NewRetriableError(err)
 	}
-	httputil.LogTransfer("lfs.data.upload", res)
+	httputil.LogTransfer(config.Config, "lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.

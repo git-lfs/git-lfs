@@ -45,8 +45,8 @@ var (
 	UserAgent               string
 )
 
-func LogTransfer(key string, res *http.Response) {
-	if config.Config.IsLoggingStats {
+func LogTransfer(cfg *config.Configuration, key string, res *http.Response) {
+	if cfg.IsLoggingStats {
 		httpTransferBucketsLock.Lock()
 		httpTransferBuckets[key] = append(httpTransferBuckets[key], res)
 		httpTransferBucketsLock.Unlock()
@@ -54,13 +54,14 @@ func LogTransfer(key string, res *http.Response) {
 }
 
 type HttpClient struct {
+	Config *config.Configuration
 	*http.Client
 }
 
 func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
-	traceHttpRequest(req)
+	traceHttpRequest(c.Config, req)
 
-	crc := countingRequest(req)
+	crc := countingRequest(c.Config, req)
 	if req.Body != nil {
 		// Only set the body if we have a body, but create the countingRequest
 		// anyway to make using zeroed stats easier.
@@ -73,12 +74,12 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
 		return res, err
 	}
 
-	traceHttpResponse(res)
+	traceHttpResponse(c.Config, res)
 
-	cresp := countingResponse(res)
+	cresp := countingResponse(c.Config, res)
 	res.Body = cresp
 
-	if config.Config.IsLoggingStats {
+	if c.Config.IsLoggingStats {
 		reqHeaderSize := 0
 		resHeaderSize := 0
 
@@ -131,14 +132,15 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 	}
 
 	tr.TLSClientConfig = &tls.Config{}
-	if isCertVerificationDisabledForHost(host) {
+	if isCertVerificationDisabledForHost(c, host) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
-		tr.TLSClientConfig.RootCAs = getRootCAsForHost(host)
+		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
 	}
 
 	client := &HttpClient{
-		&http.Client{Transport: tr, CheckRedirect: CheckRedirect},
+		Config: c,
+		Client: &http.Client{Transport: tr, CheckRedirect: CheckRedirect},
 	}
 	httpClients[host] = client
 
@@ -169,10 +171,10 @@ func CheckRedirect(req *http.Request, via []*http.Request) error {
 
 var tracedTypes = []string{"json", "text", "xml", "html"}
 
-func traceHttpRequest(req *http.Request) {
+func traceHttpRequest(cfg *config.Configuration, req *http.Request) {
 	tracerx.Printf("HTTP: %s", TraceHttpReq(req))
 
-	if config.Config.IsTracingHttp == false {
+	if cfg.IsTracingHttp == false {
 		return
 	}
 
@@ -181,17 +183,17 @@ func traceHttpRequest(req *http.Request) {
 		return
 	}
 
-	traceHttpDump(">", dump)
+	traceHttpDump(cfg, ">", dump)
 }
 
-func traceHttpResponse(res *http.Response) {
+func traceHttpResponse(cfg *config.Configuration, res *http.Response) {
 	if res == nil {
 		return
 	}
 
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	if config.Config.IsTracingHttp == false {
+	if cfg.IsTracingHttp == false {
 		return
 	}
 
@@ -206,15 +208,15 @@ func traceHttpResponse(res *http.Response) {
 		fmt.Fprintf(os.Stderr, "\n")
 	}
 
-	traceHttpDump("<", dump)
+	traceHttpDump(cfg, "<", dump)
 }
 
-func traceHttpDump(direction string, dump []byte) {
+func traceHttpDump(cfg *config.Configuration, direction string, dump []byte) {
 	scanner := bufio.NewScanner(bytes.NewBuffer(dump))
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !config.Config.IsDebuggingHttp && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
+		if !cfg.IsDebuggingHttp && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
 			fmt.Fprintf(os.Stderr, "%s Authorization: Basic * * * * *\n", direction)
 		} else {
 			fmt.Fprintf(os.Stderr, "%s %s\n", direction, line)
@@ -232,18 +234,20 @@ func isTraceableContent(h http.Header) bool {
 	return false
 }
 
-func countingRequest(req *http.Request) *CountingReadCloser {
+func countingRequest(cfg *config.Configuration, req *http.Request) *CountingReadCloser {
 	return &CountingReadCloser{
 		request:         req,
+		cfg:             cfg,
 		ReadCloser:      req.Body,
 		isTraceableType: isTraceableContent(req.Header),
 		useGitTrace:     false,
 	}
 }
 
-func countingResponse(res *http.Response) *CountingReadCloser {
+func countingResponse(cfg *config.Configuration, res *http.Response) *CountingReadCloser {
 	return &CountingReadCloser{
 		response:        res,
+		cfg:             cfg,
 		ReadCloser:      res.Body,
 		isTraceableType: isTraceableContent(res.Header),
 		useGitTrace:     true,
@@ -254,6 +258,7 @@ type CountingReadCloser struct {
 	Count           int
 	request         *http.Request
 	response        *http.Response
+	cfg             *config.Configuration
 	isTraceableType bool
 	useGitTrace     bool
 	io.ReadCloser
@@ -273,12 +278,12 @@ func (c *CountingReadCloser) Read(b []byte) (int, error) {
 			tracerx.Printf("HTTP: %s", chunk)
 		}
 
-		if config.Config.IsTracingHttp {
+		if c.cfg.IsTracingHttp {
 			fmt.Fprint(os.Stderr, chunk)
 		}
 	}
 
-	if err == io.EOF && config.Config.IsLoggingStats {
+	if err == io.EOF && c.cfg.IsLoggingStats {
 		// This httpTransfer is done, we're checking it this way so we can also
 		// catch httpTransfers where the caller forgets to Close() the Body.
 		if c.response != nil {
@@ -296,8 +301,8 @@ func (c *CountingReadCloser) Read(b []byte) (int, error) {
 // LogHttpStats is intended to be called after all HTTP operations for the
 // commmand have finished. It dumps k/v logs, one line per httpTransfer into
 // a log file with the current timestamp.
-func LogHttpStats() {
-	if !config.Config.IsLoggingStats {
+func LogHttpStats(cfg *config.Configuration) {
+	if !cfg.IsLoggingStats {
 		return
 	}
 
@@ -307,7 +312,7 @@ func LogHttpStats() {
 		return
 	}
 
-	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", config.Config.ConcurrentTransfers(), config.Config.BatchTransfer(), time.Now().Unix(), config.Version)
+	fmt.Fprintf(file, "concurrent=%d batch=%v time=%d version=%s\n", cfg.ConcurrentTransfers(), cfg.BatchTransfer(), time.Now().Unix(), config.Version)
 
 	for key, responses := range httpTransferBuckets {
 		for _, response := range responses {
