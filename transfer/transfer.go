@@ -209,6 +209,9 @@ func initCoreAdaptersIfRequired() {
 	// That's why this isn't in an init() block
 	initCoreOnce.Do(func() {
 		ConfigureCustomAdapters()
+
+		// tus.io upload adapter is still experimental, requires
+		// `lfs.tustransfers=true` to activate.
 		if !config.Config.TusTransfersAllowed() {
 			delete(uploadAdapterFuncs, TusAdapterName)
 		}
