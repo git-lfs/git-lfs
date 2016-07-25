@@ -231,47 +231,17 @@ func (c *Configuration) ConcurrentTransfers() int {
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
 // Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
-	value, ok := c.GitConfig("lfs.basictransfersonly")
-	if !ok || len(value) == 0 {
-		return false
-	}
-
-	basicOnly, err := parseConfigBool(value)
-	if err != nil {
-		return false
-	}
-
-	return basicOnly
+	return c.GitConfigBool("lfs.basictransfersonly", false)
 }
 
 // TusTransfersAllowed returns whether to only use "tus.io" HTTP transfers.
 // Default is false, including if the lfs.tustransfers is invalid
 func (c *Configuration) TusTransfersAllowed() bool {
-	value, ok := c.GitConfig("lfs.tustransfers")
-	if !ok || len(value) == 0 {
-		return false
-	}
-
-	tusAllowed, err := parseConfigBool(value)
-	if err != nil {
-		return false
-	}
-
-	return tusAllowed
+	return c.GitConfigBool("lfs.tustransfers", false)
 }
 
 func (c *Configuration) BatchTransfer() bool {
-	value, ok := c.GitConfig("lfs.batch")
-	if !ok || len(value) == 0 {
-		return true
-	}
-
-	useBatch, err := parseConfigBool(value)
-	if err != nil {
-		return false
-	}
-
-	return useBatch
+	return c.GitConfigBool("lfs.batch", false)
 }
 
 func (c *Configuration) NtlmAccess(operation string) bool {
