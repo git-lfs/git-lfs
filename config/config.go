@@ -241,7 +241,7 @@ func (c *Configuration) TusTransfersAllowed() bool {
 }
 
 func (c *Configuration) BatchTransfer() bool {
-	return c.GitConfigBool("lfs.batch", false)
+	return c.GitConfigBool("lfs.batch", true)
 }
 
 func (c *Configuration) NtlmAccess(operation string) bool {
