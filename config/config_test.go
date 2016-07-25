@@ -365,6 +365,35 @@ func TestBasicTransfersOnlyInvalidValue(t *testing.T) {
 	assert.Equal(t, false, b)
 }
 
+func TestTusTransfersAllowedSetValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.tustransfers": "true",
+		},
+	}
+
+	b := config.TusTransfersAllowed()
+	assert.Equal(t, true, b)
+}
+
+func TestTusTransfersAllowedDefault(t *testing.T) {
+	config := &Configuration{}
+
+	b := config.TusTransfersAllowed()
+	assert.Equal(t, false, b)
+}
+
+func TestTusTransfersAllowedInvalidValue(t *testing.T) {
+	config := &Configuration{
+		gitConfig: map[string]string{
+			"lfs.tustransfers": "wat",
+		},
+	}
+
+	b := config.TusTransfersAllowed()
+	assert.Equal(t, false, b)
+}
+
 func TestBatch(t *testing.T) {
 	tests := map[string]bool{
 		"":         true,

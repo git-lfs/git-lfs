@@ -228,7 +228,7 @@ func (c *Configuration) ConcurrentTransfers() int {
 	return uploads
 }
 
-// BasicTransfersOnly returns whether to only allow "basic" HTTP transfers
+// BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
 // Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
 	value, ok := c.GitConfig("lfs.basictransfersonly")
@@ -242,6 +242,22 @@ func (c *Configuration) BasicTransfersOnly() bool {
 	}
 
 	return basicOnly
+}
+
+// TusTransfersAllowed returns whether to only use "tus.io" HTTP transfers.
+// Default is false, including if the lfs.tustransfers is invalid
+func (c *Configuration) TusTransfersAllowed() bool {
+	value, ok := c.GitConfig("lfs.tustransfers")
+	if !ok || len(value) == 0 {
+		return false
+	}
+
+	tusAllowed, err := parseConfigBool(value)
+	if err != nil {
+		return false
+	}
+
+	return tusAllowed
 }
 
 func (c *Configuration) BatchTransfer() bool {

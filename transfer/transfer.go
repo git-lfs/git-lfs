@@ -209,5 +209,8 @@ func initCoreAdaptersIfRequired() {
 	// That's why this isn't in an init() block
 	initCoreOnce.Do(func() {
 		ConfigureCustomAdapters()
+		if !config.Config.TusTransfersAllowed() {
+			delete(uploadAdapterFuncs, TusAdapterName)
+		}
 	})
 }
