@@ -54,14 +54,20 @@ lfs option can be scoped inside the configuration for a remote.
 
 * `lfs.basictransfersonly`
 
-  If set to true, only basic HTTP upload/download transfers will be used, 
+  If set to true, only basic HTTP upload/download transfers will be used,
   ignoring any more advanced transfers that the client/server may support.
   This is primarily to work around bugs or incompatibilities.
 
-  The git-lfs client supports basic HTTP downloads, resumable HTTP downloads 
+  The git-lfs client supports basic HTTP downloads, resumable HTTP downloads
   (using `Range` headers), and resumable uploads via tus.io protocol. Custom
   transfer methods can be added via `lfs.customtransfer` (see next section).
   However setting this value to true limits the client to simple HTTP.
+
+* `lfs.tustransfers`
+
+  If set to true, this enables resumable uploads of LFS objects through the
+  tus.io API. Once this feature is finalized, this setting will be removed,
+  and tus.io uploads will be available for all clients. 
 
 * `lfs.customtransfer.<name>.path`
 
@@ -71,7 +77,7 @@ lfs option can be scoped inside the configuration for a remote.
   the process you wish to invoke. The protocol between the git-lfs client and
   the custom transfer process is documented at
   https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md
-  
+
   <name> must be a unique identifier that the LFS server understands. When
   calling the LFS API the client will include a list of supported transfer
   types. If the server also supports this named transfer type, it will select it
@@ -82,7 +88,7 @@ lfs option can be scoped inside the configuration for a remote.
 * `lfs.customtransfer.<name>.args`
 
   If the custom transfer process requires any arguments, these can be provided
-  here. 
+  here.
 
 * `lfs.customtransfer.<name>.concurrent`
 
@@ -92,7 +98,7 @@ lfs option can be scoped inside the configuration for a remote.
 
 * `lfs.customtransfer.<name>.direction`
 
-  Specifies which direction the custom transfer process supports, either 
+  Specifies which direction the custom transfer process supports, either
   "download", "upload", or "both". The default if unspecified is "both".
 
 ### Fetch settings
@@ -188,9 +194,9 @@ lfs option can be scoped inside the configuration for a remote.
   report success even in cases when LFS downloads fail, which may affect
   scripts.
 
-  You can also set the environment variable GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 to 
-  get the same effect. 
-  
+  You can also set the environment variable GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 to
+  get the same effect.
+
 ## SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5)

@@ -11,6 +11,7 @@ begin_test "tus-upload-uninterrupted"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
+  git config lfs.tustransfers true
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
@@ -34,12 +35,13 @@ begin_test "tus-upload-interrupted-resume"
 (
   set -e
 
-  # this repo name is the indicator to the server to use tus, AND to 
+  # this repo name is the indicator to the server to use tus, AND to
   # interrupt the upload part way
   reponame="test-tus-upload-interrupt"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
+  git config lfs.tustransfers true
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
@@ -66,4 +68,3 @@ begin_test "tus-upload-interrupted-resume"
 
 )
 end_test
-
