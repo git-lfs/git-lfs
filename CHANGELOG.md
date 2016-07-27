@@ -8,7 +8,7 @@
 * Enhanced upload/download of LFS content: #1265 #1279 #1297 #1303 #1367 (@sinbad)
   * Resumable downloads using HTTP range headers
   * Resumable uploads using [tus.io protocol](http://tus.io)
-  * Pluggable [custom transfer adapters](https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md) 
+  * Pluggable [custom transfer adapters](https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md)
 * In git 2.9+, run "git lfs pull" in submodules after "git lfs clone" #1373 (@sinbad)
 * cmd,doc,test: teach `git lfs track --{no-touch,verbose,dry-run}` #1344 (@ttaylorr)
 * ⏳ Retry transfers with expired actions #1350 (@ttaylorr)
@@ -36,6 +36,7 @@
 * Fix 'git lfs fetch' with a sha1 ref #1323 (@omonnier)
 * Ignore HEAD ref when fetching with --all #1310 (@ttaylorr)
 * Return a fully remote ref to reduce chances of ref clashes #1248 (@technoweenie)
+* Fix reporting of `git update-index` errors in `git lfs checkout` and `git lfs pull` #1400 (@technoweenie)
 
 ### Misc
 
