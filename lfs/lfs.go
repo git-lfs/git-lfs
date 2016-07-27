@@ -11,6 +11,7 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
+	"github.com/github/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 
@@ -89,6 +90,8 @@ func Environ() []string {
 		fmt.Sprintf("PruneRemoteName=%s", config.Config.FetchPruneConfig().PruneRemoteName),
 		fmt.Sprintf("AccessDownload=%s", config.Config.Access("download")),
 		fmt.Sprintf("AccessUpload=%s", config.Config.Access("upload")),
+		fmt.Sprintf("DownloadTransfers=%s", strings.Join(transfer.GetDownloadAdapterNames(), ",")),
+		fmt.Sprintf("UploadTransfers=%s", strings.Join(transfer.GetUploadAdapterNames(), ",")),
 	)
 	if len(config.Config.FetchExcludePaths()) > 0 {
 		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(config.Config.FetchExcludePaths(), ", ")))
