@@ -904,45 +904,5 @@ UploadTransfers=basic,tus,supertransfer
   actual=$(git lfs env)
   contains_same_elements "$expectedenabled" "$actual"
 
-  git config --unset lfs.skipdownloaderrors
-  # prove it's usually off
-  expecteddisabled=$(printf '%s
-%s
-
-LocalWorkingDir=%s
-LocalGitDir=%s
-LocalGitStorageDir=%s
-LocalMediaDir=%s
-LocalReferenceDir=
-TempDir=%s
-ConcurrentTransfers=3
-TusTransfers=false
-BasicTransfersOnly=false
-BatchTransfer=true
-SkipDownloadErrors=true
-FetchRecentAlways=false
-FetchRecentRefsDays=7
-FetchRecentCommitsDays=0
-FetchRecentRefsIncludeRemotes=true
-PruneOffsetDays=3
-PruneVerifyRemoteAlways=false
-PruneRemoteName=origin
-AccessDownload=none
-AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
-  contains_same_elements "$expecteddisabled" "$actual"
-
-  # now enable via env var
-  actual=$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs env)
-  contains_same_elements "$expectedenabled" "$actual"
-
-
-
-
 )
 end_test
