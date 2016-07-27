@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
+	"github.com/github/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 
@@ -68,6 +70,11 @@ func ObjectExistsOfSize(oid string, size int64) bool {
 func Environ() []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
+	dltransfers := transfer.GetDownloadAdapterNames()
+	sort.Strings(dltransfers)
+	ultransfers := transfer.GetUploadAdapterNames()
+	sort.Strings(ultransfers)
+
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),
 		fmt.Sprintf("LocalGitDir=%s", config.LocalGitDir),
@@ -89,6 +96,8 @@ func Environ() []string {
 		fmt.Sprintf("PruneRemoteName=%s", config.Config.FetchPruneConfig().PruneRemoteName),
 		fmt.Sprintf("AccessDownload=%s", config.Config.Access("download")),
 		fmt.Sprintf("AccessUpload=%s", config.Config.Access("upload")),
+		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
+		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
 	)
 	if len(config.Config.FetchExcludePaths()) > 0 {
 		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(config.Config.FetchExcludePaths(), ", ")))
