@@ -40,6 +40,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
@@ -74,6 +76,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
