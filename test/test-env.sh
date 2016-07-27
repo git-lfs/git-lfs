@@ -897,7 +897,7 @@ PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic,supertransfer
-UploadTransfers=basic,tus,supertransfer
+UploadTransfers=basic,supertransfer,tus
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
