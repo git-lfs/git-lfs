@@ -193,7 +193,7 @@ func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAd
 	if err != nil {
 		return nil, err
 	}
-	tracerx.Printf("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, line)
+	tracerx.Printf("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, strings.TrimSpace(line))
 	resp := &customAdapterResponseMessage{}
 	err = json.Unmarshal([]byte(line), resp)
 	return resp, err
