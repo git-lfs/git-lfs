@@ -27,6 +27,7 @@ LocalMediaDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 LocalReferenceDir=
 TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -39,6 +40,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
@@ -60,6 +63,7 @@ LocalMediaDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 LocalReferenceDir=
 TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename/lfs/tmp")
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -72,6 +76,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")

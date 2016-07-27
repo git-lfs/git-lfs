@@ -30,6 +30,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -42,6 +43,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -78,6 +81,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -90,6 +94,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -133,6 +139,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -145,6 +152,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -186,6 +195,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -198,6 +208,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -241,6 +253,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -253,6 +266,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -297,6 +312,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -309,6 +325,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -355,6 +373,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=5
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=false
 SkipDownloadErrors=false
@@ -367,6 +386,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -419,6 +440,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -431,6 +453,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -477,6 +501,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -489,6 +514,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -528,6 +555,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -540,6 +568,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -570,6 +600,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -582,6 +613,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 git config filter.lfs.smudge = \"\"
 git config filter.lfs.clean = \"\"
@@ -601,6 +634,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -613,6 +647,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -631,6 +667,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -643,6 +680,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -672,6 +711,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=false
@@ -684,6 +724,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 " "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -744,6 +786,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=true
@@ -756,6 +799,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -774,6 +819,7 @@ LocalMediaDir=%s
 LocalReferenceDir=
 TempDir=%s
 ConcurrentTransfers=3
+TusTransfers=false
 BasicTransfersOnly=false
 BatchTransfer=true
 SkipDownloadErrors=true
@@ -786,6 +832,8 @@ PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
 AccessDownload=none
 AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
@@ -798,6 +846,63 @@ AccessUpload=none
 
 
 
+
+)
+end_test
+
+begin_test "env with extra transfer methods"
+(
+  set -e
+  reponame="env-with-transfers"
+  git init $reponame
+  cd $reponame
+
+  git config lfs.tustransfers true
+  git config lfs.customtransfer.supertransfer.path /path/to/something
+
+  localgit=$(native_path "$TRASHDIR/$reponame")
+  localgitstore=$(native_path "$TRASHDIR/$reponame")
+  localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+
+  localwd=$(native_path "$TRASHDIR/$reponame")
+  localgit=$(native_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+
+  expectedenabled=$(printf '%s
+%s
+
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDir=
+TempDir=%s
+ConcurrentTransfers=3
+TusTransfers=true
+BasicTransfersOnly=false
+BatchTransfer=true
+SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic,supertransfer
+UploadTransfers=basic,supertransfer,tus
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+  actual=$(git lfs env)
+  contains_same_elements "$expectedenabled" "$actual"
 
 )
 end_test

@@ -57,6 +57,12 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 
 	cfg := config.Config
 
+	// Compatibility; omit transfers list when only basic
+	// older schemas included `additionalproperties=false`
+	if len(transferAdapters) == 1 && transferAdapters[0] == "basic" {
+		transferAdapters = nil
+	}
+
 	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
 	by, err := json.Marshal(o)
 	if err != nil {
