@@ -54,6 +54,11 @@ install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 export GOPATH=`pwd`
 export GIT_LFS_TEST_DIR=$(mktemp -d)
 
+# test/git-lfs-server-api/main.go does not compile because github.com/spf13/cobra
+# cannot be found in vendor, for some reason. It's not needed for installs, so
+# skip it.
+export SKIPAPITESTCOMPILE=1
+
 pushd src/github.com/github/%{name}
   ./script/test
   ./script/integration

@@ -292,8 +292,10 @@ setup() {
     for go in test/cmd/*.go; do
       GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)" "$go"
     done
-    # Ensure API test util is built during tests to ensure it stays in sync
-    GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
+    if [ -z "$SKIPAPITESTCOMPILE" ]; then
+      # Ensure API test util is built during tests to ensure it stays in sync
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
+    fi
   fi
 
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
