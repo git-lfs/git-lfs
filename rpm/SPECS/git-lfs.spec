@@ -24,6 +24,7 @@ Enterprise.
 
 %prep
 %setup -q -n %{name}-%{version}
+export GOPATH=`pwd`
 mkdir -p src/github.com/github
 ln -s $(pwd) src/github.com/github/%{name}
 
@@ -31,12 +32,15 @@ ln -s $(pwd) src/github.com/github/%{name}
 %if 0%{?rhel} == 5
   export CGO_ENABLED=0
 %endif
-%if %{_arch} == i386
-  GOARCH=386 GOPATH=`pwd` ./script/bootstrap
-%else
-  GOARCH=amd64 GOPATH=`pwd` ./script/bootstrap
-%endif
-GOPATH=`pwd` ./script/man
+
+pushd src/github.com/github/%{name}
+  %if %{_arch} == i386
+    GOARCH=386 ./script/bootstrap
+  %else
+    GOARCH=amd64 ./script/bootstrap
+  %endif
+popd
+./script/man
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -50,8 +54,10 @@ install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 export GOPATH=`pwd`
 export GIT_LFS_TEST_DIR=$(mktemp -d)
 
-./script/test
-./script/integration
+pushd src/github.com/github/%{name}
+  ./script/test
+  ./script/integration
+popd
 
 rmdir ${GIT_LFS_TEST_DIR}
 
