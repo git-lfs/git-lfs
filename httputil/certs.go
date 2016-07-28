@@ -51,10 +51,14 @@ func appendRootCAsForHostFromGitconfig(pool *x509.CertPool, host string) *x509.C
 	if cafile := config.Config.Getenv("GIT_SSL_CAINFO"); len(cafile) > 0 {
 		return appendCertsFromFile(pool, cafile)
 	}
-	// http.<url>.sslcainfo
+	// http.<url>/.sslcainfo or http.<url>.sslcainfo
 	// we know we have simply "host" or "host:port"
-	key := fmt.Sprintf("http.https://%v/.sslcainfo", host)
-	if cafile, ok := config.Config.GitConfig(key); ok {
+	hostKeyWithSlash := fmt.Sprintf("http.https://%v/.sslcainfo", host)
+	if cafile, ok := config.Config.GitConfig(hostKeyWithSlash); ok {
+		return appendCertsFromFile(pool, cafile)
+	}
+	hostKeyWithoutSlash := fmt.Sprintf("http.https://%v.sslcainfo", host)
+	if cafile, ok := config.Config.GitConfig(hostKeyWithoutSlash); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.sslcainfo
