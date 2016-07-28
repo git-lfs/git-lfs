@@ -49,16 +49,20 @@ The Git LFS teams mark issues and pull requests with the following labels:
 * `roadmap` - A checklist issue with tasks to fulfill something from the
 [roadmap](./ROADMAP.md)
 
+## Branching strategy
+
+In general, contributors should develop on branches based off of `master` and pull requests should be to `master`.
+
 ## Submitting a pull request
 
 0. [Fork][] and clone the repository
 0. Configure and install the dependencies: `script/bootstrap`
 0. Make sure the tests pass on your machine: `script/test`
-0. Create a new branch: `git checkout -b my-branch-name`
+0. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
 0. Make your change, add tests, and make sure the tests still pass
-0. Push to your fork and [submit a pull request][pr]
+0. Push to your fork and [submit a pull request][pr] from your branch to `master`
 0. Accept the [GitHub CLA][cla]
-0. Pat yourself on the back and wait for your pull request to be reviewed.
+0. Pat yourself on the back and wait for your pull request to be reviewed
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
