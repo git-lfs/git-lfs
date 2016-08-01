@@ -39,7 +39,8 @@ var (
 			cmd.Usage()
 		},
 	}
-	ManPages = make(map[string]string, 20)
+	ManPages          = make(map[string]string, 20)
+	MinimumGitVersion = "1.8.2"
 )
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -104,6 +105,10 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Run() {
+	gitver, _ := git.Config.Version()
+	if !git.Config.IsGitVersionAtLeast(MinimumGitVersion) {
+		Exit(fmt.Sprintf("git version >= %s is required for Git LFS, your version: %s", MinimumGitVersion, gitver))
+	}
 	RootCmd.Execute()
 }
 
