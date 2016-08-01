@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"os/exec"
@@ -166,6 +167,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 	// and which has unexpected side effects (e.g. downloading filtered-out files)
 	var cmd *exec.Cmd
 	var updateIdxStdin io.WriteCloser
+	var updateIdxOut bytes.Buffer
 
 	// From this point on, git update-index is running. Code in this loop MUST
 	// NOT Panic() or otherwise cause the process to exit. If the process exits
@@ -209,6 +211,8 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		if cmd == nil {
 			// Fire up the update-index command
 			cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
+			cmd.Stdout = &updateIdxOut
+			cmd.Stderr = &updateIdxOut
 			updateIdxStdin, err = cmd.StdinPipe()
 			if err != nil {
 				Panic(err, "Could not update the index")
@@ -227,8 +231,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 	if cmd != nil && updateIdxStdin != nil {
 		updateIdxStdin.Close()
 		if err := cmd.Wait(); err != nil {
-			outp, _ := cmd.CombinedOutput()
-			LoggedError(err, "Error updating the git index\n%v", string(outp))
+			LoggedError(err, "Error updating the git index:\n%s", updateIdxOut.String())
 		}
 	}
 }
