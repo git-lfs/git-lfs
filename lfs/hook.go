@@ -10,6 +10,7 @@ import (
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/git"
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -27,9 +28,22 @@ func (h *Hook) Exists() bool {
 }
 
 // Path returns the desired (or actual, if installed) location where this hook
-// should be installed, relative to the local Git directory.
+// should be installed. It returns an absolute path in all cases.
 func (h *Hook) Path() string {
-	return filepath.Join(config.LocalGitDir, "hooks", string(h.Type))
+	return filepath.Join(h.Dir(), h.Type)
+}
+
+// Dir returns the directory used by LFS for storing Git hooks. By default, it
+// will return the hooks/ sub-directory of the local repository's .git
+// directory. If `core.hooksPath` is configured and supported (Git verison is
+// greater than "2.9.0"), it will return that instead.
+func (h *Hook) Dir() string {
+	customHooksSupported := git.Config.IsGitVersionAtLeast("2.9.0")
+	if hp, ok := config.Config.GitConfig("core.hooksPath"); ok && customHooksSupported {
+		return hp
+	}
+
+	return filepath.Join(config.LocalGitDir, "hooks")
 }
 
 // Install installs this Git hook on disk, or upgrades it if it does exist, and
@@ -37,7 +51,7 @@ func (h *Hook) Path() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	if err := os.MkdirAll(filepath.Join(config.LocalGitDir, "hooks"), 0755); err != nil {
+	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
 		return err
 	}
 
