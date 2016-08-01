@@ -24,7 +24,7 @@ func ntlmClientSession(c *config.Configuration, creds auth.Creds) (ntlm.ClientSe
 	splits := strings.Split(creds["username"], "\\")
 
 	if len(splits) != 2 {
-		errorMessage := fmt.Sprintf("Your user name must be of the form DOMAIN\\user. It is currently %s", creds["username"], "string")
+		errorMessage := fmt.Sprintf("Your user name must be of the form DOMAIN\\user. It is currently %s", creds["username"])
 		return nil, errors.New(errorMessage)
 	}
 
@@ -39,21 +39,20 @@ func ntlmClientSession(c *config.Configuration, creds auth.Creds) (ntlm.ClientSe
 	return session, nil
 }
 
-func doNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
+func doNTLMRequest(cfg *config.Configuration, request *http.Request, retry bool) (*http.Response, error) {
 	handReq, err := cloneRequest(request)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := NewHttpClient(config.Config, handReq.Host).Do(handReq)
+	res, err := NewHttpClient(cfg, handReq.Host).Do(handReq)
 	if err != nil && res == nil {
 		return nil, err
 	}
 
 	//If the status is 401 then we need to re-authenticate, otherwise it was successful
 	if res.StatusCode == 401 {
-
-		creds, err := auth.GetCreds(request)
+		creds, err := auth.GetCreds(cfg, request)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +62,7 @@ func doNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 			return nil, err
 		}
 
-		challengeMessage, err := negotiate(negotiateReq, ntlmNegotiateMessage)
+		challengeMessage, err := negotiate(cfg, negotiateReq, ntlmNegotiateMessage)
 		if err != nil {
 			return nil, err
 		}
@@ -73,26 +72,26 @@ func doNTLMRequest(request *http.Request, retry bool) (*http.Response, error) {
 			return nil, err
 		}
 
-		res, err := challenge(challengeReq, challengeMessage, creds)
+		res, err := challenge(cfg, challengeReq, challengeMessage, creds)
 		if err != nil {
 			return nil, err
 		}
 
 		//If the status is 401 then we need to re-authenticate
 		if res.StatusCode == 401 && retry == true {
-			return doNTLMRequest(challengeReq, false)
+			return doNTLMRequest(cfg, challengeReq, false)
 		}
 
-		auth.SaveCredentials(creds, res)
+		auth.SaveCredentials(cfg, creds, res)
 
 		return res, nil
 	}
 	return res, nil
 }
 
-func negotiate(request *http.Request, message string) ([]byte, error) {
+func negotiate(cfg *config.Configuration, request *http.Request, message string) ([]byte, error) {
 	request.Header.Add("Authorization", message)
-	res, err := NewHttpClient(config.Config, request.Host).Do(request)
+	res, err := NewHttpClient(cfg, request.Host).Do(request)
 
 	if res == nil && err != nil {
 		return nil, err
@@ -109,13 +108,13 @@ func negotiate(request *http.Request, message string) ([]byte, error) {
 	return ret, nil
 }
 
-func challenge(request *http.Request, challengeBytes []byte, creds auth.Creds) (*http.Response, error) {
+func challenge(cfg *config.Configuration, request *http.Request, challengeBytes []byte, creds auth.Creds) (*http.Response, error) {
 	challenge, err := ntlm.ParseChallengeMessage(challengeBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	session, err := ntlmClientSession(config.Config, creds)
+	session, err := ntlmClientSession(cfg, creds)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +127,7 @@ func challenge(request *http.Request, challengeBytes []byte, creds auth.Creds) (
 
 	authMsg := base64.StdEncoding.EncodeToString(authenticate.Bytes())
 	request.Header.Add("Authorization", "NTLM "+authMsg)
-	return NewHttpClient(config.Config, request.Host).Do(request)
+	return NewHttpClient(cfg, request.Host).Do(request)
 }
 
 func parseChallengeResponse(response *http.Response) ([]byte, error) {

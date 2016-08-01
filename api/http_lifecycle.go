@@ -78,7 +78,7 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 		return nil, err
 	}
 
-	if _, err = auth.GetCreds(req); err != nil {
+	if _, err = auth.GetCreds(config.Config, req); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 // Otherwise, the api.Response is returned, along with no error, signaling that
 // the request completed successfully.
 func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, error) {
-	resp, err := httputil.DoHttpRequestWithRedirects(req, []*http.Request{}, true)
+	resp, err := httputil.DoHttpRequestWithRedirects(config.Config, req, []*http.Request{}, true)
 	if err != nil {
 		return nil, err
 	}

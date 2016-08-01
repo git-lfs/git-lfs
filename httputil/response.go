@@ -56,8 +56,8 @@ func GetDefaultError(code int) string {
 }
 
 // Check the response from a HTTP request for problems
-func handleResponse(res *http.Response, creds auth.Creds) error {
-	auth.SaveCredentials(creds, res)
+func handleResponse(cfg *config.Configuration, res *http.Response, creds auth.Creds) error {
+	auth.SaveCredentials(cfg, creds, res)
 
 	if res.StatusCode < 400 {
 		return nil
@@ -103,14 +103,14 @@ func defaultError(res *http.Response) error {
 	return errutil.Error(fmt.Errorf(msgFmt, res.Request.URL))
 }
 
-func SetErrorResponseContext(err error, res *http.Response) {
+func SetErrorResponseContext(cfg *config.Configuration, err error, res *http.Response) {
 	errutil.ErrorSetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
-	setErrorRequestContext(err, res.Request)
+	setErrorRequestContext(cfg, err, res.Request)
 }
 
-func setErrorRequestContext(err error, req *http.Request) {
-	errutil.ErrorSetContext(err, "Endpoint", config.Config.Endpoint(auth.GetOperationForRequest(req)).Url)
+func setErrorRequestContext(cfg *config.Configuration, err error, req *http.Request) {
+	errutil.ErrorSetContext(err, "Endpoint", cfg.Endpoint(auth.GetOperationForRequest(req)).Url)
 	errutil.ErrorSetContext(err, "URL", TraceHttpReq(req))
 	setErrorHeaderContext(err, "Response", req.Header)
 }

@@ -43,16 +43,16 @@ func (e *ClientError) Error() string {
 }
 
 // Internal http request management
-func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) {
+func doHttpRequest(cfg *config.Configuration, req *http.Request, creds auth.Creds) (*http.Response, error) {
 	var (
 		res *http.Response
 		err error
 	)
 
-	if config.Config.NtlmAccess(auth.GetOperationForRequest(req)) {
-		res, err = doNTLMRequest(req, true)
+	if cfg.NtlmAccess(auth.GetOperationForRequest(req)) {
+		res, err = doNTLMRequest(cfg, req, true)
 	} else {
-		res, err = NewHttpClient(config.Config, req.Host).Do(req)
+		res, err = NewHttpClient(cfg, req.Host).Do(req)
 	}
 
 	if res == nil {
@@ -66,20 +66,20 @@ func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) 
 
 	if err != nil {
 		if errutil.IsAuthError(err) {
-			SetAuthType(req, res)
-			doHttpRequest(req, creds)
+			SetAuthType(cfg, req, res)
+			doHttpRequest(cfg, req, creds)
 		} else {
 			err = errutil.Error(err)
 		}
 	} else {
-		err = handleResponse(res, creds)
+		err = handleResponse(cfg, res, creds)
 	}
 
 	if err != nil {
 		if res != nil {
-			SetErrorResponseContext(err, res)
+			SetErrorResponseContext(cfg, err, res)
 		} else {
-			setErrorRequestContext(err, req)
+			setErrorRequestContext(cfg, err, req)
 		}
 	}
 
@@ -87,31 +87,31 @@ func doHttpRequest(req *http.Request, creds auth.Creds) (*http.Response, error) 
 }
 
 // DoHttpRequest performs a single HTTP request
-func DoHttpRequest(req *http.Request, useCreds bool) (*http.Response, error) {
+func DoHttpRequest(cfg *config.Configuration, req *http.Request, useCreds bool) (*http.Response, error) {
 	var creds auth.Creds
 	if useCreds {
-		c, err := auth.GetCreds(req)
+		c, err := auth.GetCreds(cfg, req)
 		if err != nil {
 			return nil, err
 		}
 		creds = c
 	}
 
-	return doHttpRequest(req, creds)
+	return doHttpRequest(cfg, req, creds)
 }
 
 // DoHttpRequestWithRedirects runs a HTTP request and responds to redirects
-func DoHttpRequestWithRedirects(req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
+func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, via []*http.Request, useCreds bool) (*http.Response, error) {
 	var creds auth.Creds
 	if useCreds {
-		c, err := auth.GetCreds(req)
+		c, err := auth.GetCreds(cfg, req)
 		if err != nil {
 			return nil, err
 		}
 		creds = c
 	}
 
-	res, err := doHttpRequest(req, creds)
+	res, err := doHttpRequest(cfg, req, creds)
 	if err != nil {
 		return res, err
 	}
@@ -152,7 +152,7 @@ func DoHttpRequestWithRedirects(req *http.Request, via []*http.Request, useCreds
 			return res, errutil.Errorf(err, err.Error())
 		}
 
-		return DoHttpRequestWithRedirects(redirectedReq, via, useCreds)
+		return DoHttpRequestWithRedirects(cfg, redirectedReq, via, useCreds)
 	}
 
 	return res, nil
@@ -174,15 +174,14 @@ func NewHttpRequest(method, rawurl string, header map[string]string) (*http.Requ
 	return req, nil
 }
 
-func SetAuthType(req *http.Request, res *http.Response) {
+func SetAuthType(cfg *config.Configuration, req *http.Request, res *http.Response) {
 	authType := GetAuthType(res)
 	operation := auth.GetOperationForRequest(req)
-	config.Config.SetAccess(operation, authType)
+	cfg.SetAccess(operation, authType)
 	tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", authType)
 }
 
 func GetAuthType(res *http.Response) string {
-
 	for _, headerName := range authenticateHeaders {
 		for _, auth := range res.Header[headerName] {
 

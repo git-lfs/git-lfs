@@ -28,12 +28,12 @@ import (
 // This prefers the Git remote URL for checking credentials so that users only
 // have to enter their passwords once for Git and Git LFS. It uses the same
 // URL path that Git does, in case 'useHttpPath' is enabled in the Git config.
-func GetCreds(req *http.Request) (Creds, error) {
-	if skipCredsCheck(req) {
+func GetCreds(cfg *config.Configuration, req *http.Request) (Creds, error) {
+	if skipCredsCheck(cfg, req) {
 		return nil, nil
 	}
 
-	credsUrl, err := getCredURLForAPI(req)
+	credsUrl, err := getCredURLForAPI(cfg, req)
 	if err != nil {
 		return nil, errutil.Error(err)
 	}
@@ -42,16 +42,16 @@ func GetCreds(req *http.Request) (Creds, error) {
 		return nil, nil
 	}
 
-	if setCredURLFromNetrc(req) {
+	if setCredURLFromNetrc(cfg, req) {
 		return nil, nil
 	}
 
-	return fillCredentials(req, credsUrl)
+	return fillCredentials(cfg, req, credsUrl)
 }
 
-func getCredURLForAPI(req *http.Request) (*url.URL, error) {
+func getCredURLForAPI(cfg *config.Configuration, req *http.Request) (*url.URL, error) {
 	operation := GetOperationForRequest(req)
-	apiUrl, err := url.Parse(config.Config.Endpoint(operation).Url)
+	apiUrl, err := url.Parse(cfg.Endpoint(operation).Url)
 	if err != nil {
 		return nil, err
 	}
@@ -63,13 +63,13 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 		return req.URL, nil
 	}
 
-	if setRequestAuthFromUrl(req, apiUrl) {
+	if setRequestAuthFromUrl(cfg, req, apiUrl) {
 		return nil, nil
 	}
 
 	credsUrl := apiUrl
-	if len(config.Config.CurrentRemote) > 0 {
-		if u := config.Config.GitRemoteUrl(config.Config.CurrentRemote, operation == "upload"); u != "" {
+	if len(cfg.CurrentRemote) > 0 {
+		if u := cfg.GitRemoteUrl(cfg.CurrentRemote, operation == "upload"); u != "" {
 			gitRemoteUrl, err := url.Parse(u)
 			if err != nil {
 				return nil, err
@@ -78,7 +78,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
 				gitRemoteUrl.Host == apiUrl.Host {
 
-				if setRequestAuthFromUrl(req, gitRemoteUrl) {
+				if setRequestAuthFromUrl(cfg, req, gitRemoteUrl) {
 					return nil, nil
 				}
 
@@ -89,7 +89,7 @@ func getCredURLForAPI(req *http.Request) (*url.URL, error) {
 	return credsUrl, nil
 }
 
-func setCredURLFromNetrc(req *http.Request) bool {
+func setCredURLFromNetrc(cfg *config.Configuration, req *http.Request) bool {
 	hostname := req.URL.Host
 	var host string
 
@@ -104,7 +104,7 @@ func setCredURLFromNetrc(req *http.Request) bool {
 		host = hostname
 	}
 
-	machine, err := config.Config.FindNetrcHost(host)
+	machine, err := cfg.FindNetrcHost(host)
 	if err != nil {
 		tracerx.Printf("netrc: error finding match for %q: %s", hostname, err)
 		return false
@@ -114,12 +114,12 @@ func setCredURLFromNetrc(req *http.Request) bool {
 		return false
 	}
 
-	setRequestAuth(req, machine.Login, machine.Password)
+	setRequestAuth(cfg, req, machine.Login, machine.Password)
 	return true
 }
 
-func skipCredsCheck(req *http.Request) bool {
-	if config.Config.NtlmAccess(GetOperationForRequest(req)) {
+func skipCredsCheck(cfg *config.Configuration, req *http.Request) bool {
+	if cfg.NtlmAccess(GetOperationForRequest(req)) {
 		return false
 	}
 
@@ -131,14 +131,14 @@ func skipCredsCheck(req *http.Request) bool {
 	return len(q["token"]) > 0
 }
 
-func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
+func fillCredentials(cfg *config.Configuration, req *http.Request, u *url.URL) (Creds, error) {
 	path := strings.TrimPrefix(u.Path, "/")
 	input := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
 	}
 
-	creds, err := execCreds(input, "fill")
+	creds, err := execCreds(cfg, input, "fill")
 	if creds == nil || len(creds) < 1 {
 		errmsg := fmt.Sprintf("Git credentials for %s not found", u)
 		if err != nil {
@@ -154,22 +154,22 @@ func fillCredentials(req *http.Request, u *url.URL) (Creds, error) {
 	}
 
 	tracerx.Printf("Filled credentials for %s", u)
-	setRequestAuth(req, creds["username"], creds["password"])
+	setRequestAuth(cfg, req, creds["username"], creds["password"])
 
 	return creds, err
 }
 
-func SaveCredentials(creds Creds, res *http.Response) {
+func SaveCredentials(cfg *config.Configuration, creds Creds, res *http.Response) {
 	if creds == nil {
 		return
 	}
 
 	switch res.StatusCode {
 	case 401, 403:
-		execCreds(creds, "reject")
+		execCreds(cfg, creds, "reject")
 	default:
 		if res.StatusCode < 300 {
-			execCreds(creds, "approve")
+			execCreds(cfg, creds, "approve")
 		}
 	}
 }
@@ -190,9 +190,9 @@ func (c Creds) Buffer() *bytes.Buffer {
 }
 
 // Credentials function which will be called whenever credentials are requested
-type CredentialFunc func(Creds, string) (Creds, error)
+type CredentialFunc func(*config.Configuration, Creds, string) (Creds, error)
 
-func execCredsCommand(input Creds, subCommand string) (Creds, error) {
+func execCredsCommand(cfg *config.Configuration, input Creds, subCommand string) (Creds, error) {
 	output := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subCommand)
 	cmd.Stdin = input.Buffer()
@@ -212,7 +212,7 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	}
 
 	if _, ok := err.(*exec.ExitError); ok {
-		if !config.Config.GetenvBool("GIT_TERMINAL_PROMPT", true) {
+		if !cfg.GetenvBool("GIT_TERMINAL_PROMPT", true) {
 			return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
 				input["protocol"], input["host"])
 		}
@@ -240,11 +240,11 @@ func execCredsCommand(input Creds, subCommand string) (Creds, error) {
 	return creds, nil
 }
 
-func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
-	if !config.Config.NtlmAccess(GetOperationForRequest(req)) && u.User != nil {
+func setRequestAuthFromUrl(cfg *config.Configuration, req *http.Request, u *url.URL) bool {
+	if !cfg.NtlmAccess(GetOperationForRequest(req)) && u.User != nil {
 		if pass, ok := u.User.Password(); ok {
 			fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
-			setRequestAuth(req, u.User.Username(), pass)
+			setRequestAuth(cfg, req, u.User.Username(), pass)
 			return true
 		}
 	}
@@ -252,8 +252,8 @@ func setRequestAuthFromUrl(req *http.Request, u *url.URL) bool {
 	return false
 }
 
-func setRequestAuth(req *http.Request, user, pass string) {
-	if config.Config.NtlmAccess(GetOperationForRequest(req)) {
+func setRequestAuth(cfg *config.Configuration, req *http.Request, user, pass string) {
+	if cfg.NtlmAccess(GetOperationForRequest(req)) {
 		return
 	}
 

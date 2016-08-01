@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/localstorage"
@@ -85,7 +86,6 @@ func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
 
 // download starts or resumes and download. Always closes dlFile if non-nil
 func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
-
 	if dlFile != nil {
 		// ensure we always close dlFile. Note that this does not conflict with the
 		// early close below, as close is idempotent.
@@ -110,7 +110,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Object.Size-1))
 	}
 
-	res, err := httputil.DoHttpRequest(req, true)
+	res, err := httputil.DoHttpRequest(config.Config, req, true)
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
@@ -121,7 +121,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		}
 		return errutil.NewRetriableError(err)
 	}
-	httputil.LogTransfer("lfs.data.download", res)
+	httputil.LogTransfer(config.Config, "lfs.data.download", res)
 	defer res.Body.Close()
 
 	// Range request must return 206 & content range to confirm

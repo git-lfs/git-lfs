@@ -47,7 +47,7 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 }
 
 func TestProxyFromEnvironment(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := config.New()
 	cfg.SetAllEnv(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
 	})
@@ -64,7 +64,7 @@ func TestProxyFromEnvironment(t *testing.T) {
 }
 
 func TestProxyIsNil(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := config.New()
 
 	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
 	if err != nil {

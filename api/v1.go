@@ -19,8 +19,9 @@ const (
 
 // doLegacyApiRequest runs the request to the LFS legacy API.
 func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error) {
+	cfg := config.Config
 	via := make([]*http.Request, 0, 4)
-	res, err := httputil.DoHttpRequestWithRedirects(req, via, true)
+	res, err := httputil.DoHttpRequestWithRedirects(cfg, req, via, true)
 	if err != nil {
 		return res, nil, err
 	}
@@ -29,7 +30,7 @@ func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error)
 	err = httputil.DecodeResponse(res, obj)
 
 	if err != nil {
-		httputil.SetErrorResponseContext(err, res)
+		httputil.SetErrorResponseContext(cfg, err, res)
 		return nil, nil, err
 	}
 
@@ -51,7 +52,8 @@ type batchResponse struct {
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
 func DoBatchRequest(req *http.Request) (*http.Response, *batchResponse, error) {
-	res, err := DoRequest(req, config.Config.PrivateAccess(auth.GetOperationForRequest(req)))
+	cfg := config.Config
+	res, err := DoRequest(req, cfg.PrivateAccess(auth.GetOperationForRequest(req)))
 
 	if err != nil {
 		if res != nil && res.StatusCode == 401 {
@@ -64,7 +66,7 @@ func DoBatchRequest(req *http.Request) (*http.Response, *batchResponse, error) {
 	err = httputil.DecodeResponse(res, resp)
 
 	if err != nil {
-		httputil.SetErrorResponseContext(err, res)
+		httputil.SetErrorResponseContext(cfg, err, res)
 	}
 
 	return res, resp, err
@@ -76,7 +78,7 @@ func DoBatchRequest(req *http.Request) (*http.Response, *batchResponse, error) {
 // private access, credentials will be retrieved.
 func DoRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 	via := make([]*http.Request, 0, 4)
-	return httputil.DoHttpRequestWithRedirects(req, via, useCreds)
+	return httputil.DoHttpRequestWithRedirects(config.Config, req, via, useCreds)
 }
 
 func NewRequest(method, oid string) (*http.Request, error) {
@@ -88,9 +90,9 @@ func NewRequest(method, oid string) (*http.Request, error) {
 			operation = "upload"
 		}
 	}
-	endpoint := config.Config.Endpoint(operation)
 
-	res, err := auth.SshAuthenticate(endpoint, operation, oid)
+	cfg := config.Config
+	res, endpoint, err := auth.SshAuthenticate(cfg, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",
 			endpoint.SshUserAndHost, err.Error(),
@@ -117,9 +119,8 @@ func NewRequest(method, oid string) (*http.Request, error) {
 }
 
 func NewBatchRequest(operation string) (*http.Request, error) {
-	endpoint := config.Config.Endpoint(operation)
-
-	res, err := auth.SshAuthenticate(endpoint, operation, "")
+	cfg := config.Config
+	res, endpoint, err := auth.SshAuthenticate(cfg, operation, "")
 	if err != nil {
 		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
 			operation, endpoint.SshUserAndHost, err.Error(),

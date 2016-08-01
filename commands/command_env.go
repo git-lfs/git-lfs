@@ -16,7 +16,6 @@ var (
 
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
-	cfg := config.Config
 	endpoint := cfg.Endpoint("download")
 
 	gitV, err := git.Config.Version()

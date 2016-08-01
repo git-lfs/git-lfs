@@ -9,19 +9,22 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errutil"
 )
 
 func TestSuccessStatus(t *testing.T) {
+	cfg := config.New()
 	for _, status := range []int{200, 201, 202} {
 		res := &http.Response{StatusCode: status}
-		if err := handleResponse(res, nil); err != nil {
+		if err := handleResponse(cfg, res, nil); err != nil {
 			t.Errorf("Unexpected error for HTTP %d: %s", status, err.Error())
 		}
 	}
 }
 
 func TestErrorStatusWithCustomMessage(t *testing.T) {
+	cfg := config.New()
 	u, err := url.Parse("https://lfs-server.com/objects/oid")
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +64,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		}
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json; charset=utf-8")
 
-		err = handleResponse(res, nil)
+		err = handleResponse(cfg, res, nil)
 		if err == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue
@@ -81,6 +84,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 }
 
 func TestErrorStatusWithDefaultMessage(t *testing.T) {
+	cfg := config.New()
 	rawurl := "https://lfs-server.com/objects/oid"
 	u, err := url.Parse(rawurl)
 	if err != nil {
@@ -123,7 +127,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		// purposely wrong content type so it falls back to default
 		res.Header.Set("Content-Type", "application/vnd.git-lfs+json2")
 
-		err = handleResponse(res, nil)
+		err = handleResponse(cfg, res, nil)
 		if err == nil {
 			t.Errorf("No error from HTTP %d", status)
 			continue

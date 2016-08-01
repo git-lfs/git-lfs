@@ -3,7 +3,6 @@ package commands
 import (
 	"regexp"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -25,7 +24,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
-	for key, value := range config.Config.AllGitConfig() {
+	for key, value := range cfg.AllGitConfig() {
 		matches := lfsAccessRE.FindStringSubmatch(key)
 		if len(matches) < 2 {
 			continue

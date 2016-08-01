@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
@@ -34,14 +33,14 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if err := git.ValidateRemote(args[0]); err != nil {
 			Exit("Invalid remote name %q", args[0])
 		}
-		config.Config.CurrentRemote = args[0]
+		cfg.CurrentRemote = args[0]
 	} else {
 		// Actively find the default remote, don't just assume origin
 		defaultRemote, err := git.DefaultRemote()
 		if err != nil {
 			Exit("No default remote")
 		}
-		config.Config.CurrentRemote = defaultRemote
+		cfg.CurrentRemote = defaultRemote
 	}
 
 	if len(args) > 1 {
@@ -66,13 +65,13 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if fetchIncludeArg != "" || fetchExcludeArg != "" {
 			Exit("Cannot combine --all with --include or --exclude")
 		}
-		if len(config.Config.FetchIncludePaths()) > 0 || len(config.Config.FetchExcludePaths()) > 0 {
+		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
 			Print("Ignoring global include / exclude paths to fulfil --all")
 		}
 		success = fetchAll()
 
 	} else { // !all
-		includePaths, excludePaths := determineIncludeExcludePaths(config.Config, fetchIncludeArg, fetchExcludeArg)
+		includePaths, excludePaths := determineIncludeExcludePaths(cfg, fetchIncludeArg, fetchExcludeArg)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
@@ -81,14 +80,14 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			success = success && s
 		}
 
-		if fetchRecentArg || config.Config.FetchPruneConfig().FetchRecentAlways {
+		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
 			s := fetchRecent(refs, includePaths, excludePaths)
 			success = success && s
 		}
 	}
 
 	if fetchPruneArg {
-		verify := config.Config.FetchPruneConfig().PruneVerifyRemoteAlways
+		verify := cfg.FetchPruneConfig().PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
 		prune(verify, false, false)
 	}
@@ -148,7 +147,7 @@ func fetchPreviousVersions(ref string, since time.Time, include, exclude []strin
 
 // Fetch recent objects based on config
 func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool {
-	fetchconf := config.Config.FetchPruneConfig()
+	fetchconf := cfg.FetchPruneConfig()
 
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
@@ -164,7 +163,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 	if fetchconf.FetchRecentRefsDays > 0 {
 		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, config.Config.CurrentRemote)
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.CurrentRemote)
 		if err != nil {
 			Panic(err, "Could not scan for recent refs")
 		}

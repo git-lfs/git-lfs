@@ -12,14 +12,14 @@ import (
 
 // isCertVerificationDisabledForHost returns whether SSL certificate verification
 // has been disabled for the given host, or globally
-func isCertVerificationDisabledForHost(host string) bool {
-	hostSslVerify, _ := config.Config.GitConfig(fmt.Sprintf("http.https://%v/.sslverify", host))
+func isCertVerificationDisabledForHost(cfg *config.Configuration, host string) bool {
+	hostSslVerify, _ := cfg.GitConfig(fmt.Sprintf("http.https://%v/.sslverify", host))
 	if hostSslVerify == "false" {
 		return true
 	}
 
-	globalSslVerify, _ := config.Config.GitConfig("http.sslverify")
-	if globalSslVerify == "false" || config.Config.GetenvBool("GIT_SSL_NO_VERIFY", false) {
+	globalSslVerify, _ := cfg.GitConfig("http.sslverify")
+	if globalSslVerify == "false" || cfg.GetenvBool("GIT_SSL_NO_VERIFY", false) {
 		return true
 	}
 
@@ -32,45 +32,45 @@ func isCertVerificationDisabledForHost(host string) bool {
 // source which is not included by default in the golang certificate search)
 // May return nil if it doesn't have anything to add, in which case the default
 // RootCAs will be used if passed to TLSClientConfig.RootCAs
-func getRootCAsForHost(host string) *x509.CertPool {
+func getRootCAsForHost(cfg *config.Configuration, host string) *x509.CertPool {
 
 	// don't init pool, want to return nil not empty if none found; init only on successful add cert
 	var pool *x509.CertPool
 
 	// gitconfig first
-	pool = appendRootCAsForHostFromGitconfig(pool, host)
+	pool = appendRootCAsForHostFromGitconfig(cfg, pool, host)
 	// Platform specific
 	return appendRootCAsForHostFromPlatform(pool, host)
 
 }
 
-func appendRootCAsForHostFromGitconfig(pool *x509.CertPool, host string) *x509.CertPool {
+func appendRootCAsForHostFromGitconfig(cfg *config.Configuration, pool *x509.CertPool, host string) *x509.CertPool {
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first
-	if cafile := config.Config.Getenv("GIT_SSL_CAINFO"); len(cafile) > 0 {
+	if cafile := cfg.Getenv("GIT_SSL_CAINFO"); len(cafile) > 0 {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
 	// we know we have simply "host" or "host:port"
 	hostKeyWithSlash := fmt.Sprintf("http.https://%v/.sslcainfo", host)
-	if cafile, ok := config.Config.GitConfig(hostKeyWithSlash); ok {
+	if cafile, ok := cfg.GitConfig(hostKeyWithSlash); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	hostKeyWithoutSlash := fmt.Sprintf("http.https://%v.sslcainfo", host)
-	if cafile, ok := config.Config.GitConfig(hostKeyWithoutSlash); ok {
+	if cafile, ok := cfg.GitConfig(hostKeyWithoutSlash); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.sslcainfo
-	if cafile, ok := config.Config.GitConfig("http.sslcainfo"); ok {
+	if cafile, ok := cfg.GitConfig("http.sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
-	if cadir := config.Config.Getenv("GIT_SSL_CAPATH"); len(cadir) > 0 {
+	if cadir := cfg.Getenv("GIT_SSL_CAPATH"); len(cadir) > 0 {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 	// http.sslcapath
-	if cadir, ok := config.Config.GitConfig("http.sslcapath"); ok {
+	if cadir, ok := cfg.GitConfig("http.sslcapath"); ok {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 

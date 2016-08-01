@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +33,7 @@ type unlockFlags struct {
 }
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(config.Config)
+	setLockRemoteFor(cfg)
 
 	var id string
 	if len(args) != 0 {
@@ -98,13 +97,12 @@ func lockIdFromPath(path string) (string, error) {
 }
 
 func init() {
-	unlockCmd.Flags().StringVarP(&lockRemote, "remote", "r", config.Config.CurrentRemote, lockRemoteHelp)
+	unlockCmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 
 	unlockCmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 	unlockCmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
 
-	if isCommandEnabled(config.Config, "locks") {
+	if isCommandEnabled(cfg, "locks") {
 		RootCmd.AddCommand(unlockCmd)
 	}
-
 }

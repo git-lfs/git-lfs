@@ -8,28 +8,28 @@ import (
 )
 
 var (
-	cfg = config.NewFromValues(map[string]string{
+	testcfg = config.NewFromValues(map[string]string{
 		"lfs.fetchinclude": "/default/include",
 		"lfs.fetchexclude": "/default/exclude",
 	})
 )
 
 func TestDetermineIncludeExcludePathsReturnsCleanedPaths(t *testing.T) {
-	i, e := determineIncludeExcludePaths(cfg, "/some/include", "/some/exclude")
+	i, e := determineIncludeExcludePaths(testcfg, "/some/include", "/some/exclude")
 
 	assert.Equal(t, []string{"/some/include"}, i)
 	assert.Equal(t, []string{"/some/exclude"}, e)
 }
 
 func TestDetermineIncludeExcludePathsReturnsDefaultsWhenAbsent(t *testing.T) {
-	i, e := determineIncludeExcludePaths(cfg, "", "")
+	i, e := determineIncludeExcludePaths(testcfg, "", "")
 
 	assert.Equal(t, []string{"/default/include"}, i)
 	assert.Equal(t, []string{"/default/exclude"}, e)
 }
 
 func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := config.New()
 	err := cfg.Setenv("GITLFSLOCKSENABLED", "1")
 
 	assert.Nil(t, err)
@@ -37,7 +37,7 @@ func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
 }
 
 func TestCommandEnabledDisabledByDefault(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := config.New()
 
 	// Since config.Configuration.Setenv makes a call to os.Setenv, we have
 	// to make sure that the LFSLOCKSENABLED enviornment variable is not
