@@ -233,9 +233,18 @@ type ErrorWithStack interface {
 	Stack() []byte
 }
 
-func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg string) (include, exclude []string) {
-	return tools.CleanPathsDefault(includeArg, ",", config.FetchIncludePaths()),
-		tools.CleanPathsDefault(excludeArg, ",", config.FetchExcludePaths())
+func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
+	if includeArg == nil {
+		include = config.FetchIncludePaths()
+	} else {
+		include = tools.CleanPaths(*includeArg, ",")
+	}
+	if excludeArg == nil {
+		exclude = config.FetchExcludePaths()
+	} else {
+		exclude = tools.CleanPaths(*excludeArg, ",")
+	}
+	return
 }
 
 func printHelp(commandName string) {

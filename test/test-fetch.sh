@@ -145,6 +145,14 @@ begin_test "fetch"
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
 
+  echo Test include filter overriding exclude filter
+  rm -rf .git/lfs/objects
+  git config lfs.fetchexclude "b*"
+  refute_local_object "$b_oid"
+  git lfs fetch -I "b.dat" -X "" origin master newbranch
+  assert_local_object "$b_oid" "1"
+  git config --unset lfs.fetchexclude
+
   # test fail case error code
   rm -rf .git/lfs/objects
   delete_server_object "$reponame" "$b_oid"
