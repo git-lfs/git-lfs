@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -34,6 +35,19 @@ aW6vZwkA+ccj/pDTx8LBe2lnpatrFeIt6znAUJW3G8r6SFHKVBWHwmESZS4kxhjx
 NpW5Hh0w4/5iIetCkJ0=
 -----END CERTIFICATE-----`
 
+var sslCAInfoConfigHostNames = []string{
+	"git-lfs.local",
+	"git-lfs.local/",
+}
+var sslCAInfoMatchedHostTests = []struct {
+	hostName    string
+	shouldMatch bool
+}{
+	{"git-lfs.local", true},
+	{"git-lfs.local:8443", false},
+	{"wronghost.com", false},
+}
+
 func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	tempfile, err := ioutil.TempFile("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
@@ -43,30 +57,38 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
+	// Test http.<url>.sslcainfo
+	for _, hostName := range sslCAInfoConfigHostNames {
+		cfg := config.New()
+
+		hostKey := fmt.Sprintf("http.https://%v.sslcainfo", hostName)
+		cfg.SetConfig(hostKey, tempfile.Name())
+
+		for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+			pool := getRootCAsForHost(cfg, matchedHostTest.hostName)
+
+			var shouldOrShouldnt string
+			if matchedHostTest.shouldMatch {
+				shouldOrShouldnt = "should"
+			} else {
+				shouldOrShouldnt = "should not"
+			}
+
+			assert.Equal(t, matchedHostTest.shouldMatch, pool != nil,
+				"Cert lookup for \"%v\" %v have succeeded with \"%v\"",
+				matchedHostTest.hostName, shouldOrShouldnt, hostKey)
+		}
+	}
+
+	// Test http.sslcainfo
 	cfg := config.New()
-	cfg.SetConfig("http.https://git-lfs.local/.sslcainfo", tempfile.Name())
-
-	t.Log("Should match")
-	pool := getRootCAsForHost(cfg, "git-lfs.local")
-	assert.NotNil(t, pool)
-
-	t.Log("Should not match")
-	pool = getRootCAsForHost(cfg, "wronghost.com")
-	assert.Nil(t, pool)
-
-	t.Log("Ports have to match")
-	pool = getRootCAsForHost(cfg, "git-lfs.local:8443")
-	assert.Nil(t, pool)
-
 	cfg.SetConfig("http.sslcainfo", tempfile.Name())
 
-	t.Log("Should match anything")
-	pool = getRootCAsForHost(cfg, "git-lfs.local")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "wronghost.com")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "git-lfs.local:8443")
-	assert.NotNil(t, pool)
+	// Should match any host at all
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(cfg, matchedHostTest.hostName)
+		assert.NotNil(t, pool)
+	}
 
 }
 
@@ -83,12 +105,10 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	cfg.SetAllEnv(map[string]string{"GIT_SSL_CAINFO": tempfile.Name()})
 
 	// Should match any host at all
-	pool := getRootCAsForHost(cfg, "git-lfs.local")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "wronghost.com")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "notthisone.com:8888")
-	assert.NotNil(t, pool)
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(cfg, matchedHostTest.hostName)
+		assert.NotNil(t, pool)
+	}
 
 }
 
@@ -104,12 +124,10 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 	cfg.SetConfig("http.sslcapath", tempdir)
 
 	// Should match any host at all
-	pool := getRootCAsForHost(cfg, "git-lfs.local")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "wronghost.com")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "notthisone.com:8888")
-	assert.NotNil(t, pool)
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(cfg, matchedHostTest.hostName)
+		assert.NotNil(t, pool)
+	}
 
 }
 
@@ -125,12 +143,10 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	cfg.SetAllEnv(map[string]string{"GIT_SSL_CAPATH": tempdir})
 
 	// Should match any host at all
-	pool := getRootCAsForHost(cfg, "git-lfs.local")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "wronghost.com")
-	assert.NotNil(t, pool)
-	pool = getRootCAsForHost(cfg, "notthisone.com:8888")
-	assert.NotNil(t, pool)
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(cfg, matchedHostTest.hostName)
+		assert.NotNil(t, pool)
+	}
 
 }
 
