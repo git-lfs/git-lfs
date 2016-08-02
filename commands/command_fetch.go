@@ -16,21 +16,19 @@ var (
 		Use: "fetch",
 		Run: fetchCommand,
 	}
-	fetchIncludeArg string
-	fetchExcludeArg string
-	fetchRecentArg  bool
-	fetchAllArg     bool
-	fetchPruneArg   bool
+	fetchRecentArg bool
+	fetchAllArg    bool
+	fetchPruneArg  bool
 )
 
-func getIncludeExcludeArgs(cmd *cobra.Command, includeFlagArg, excludeFlagArg *string) (includeArg, excludeArg *string) {
+func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
 	includeFlag := cmd.Flag("include")
 	excludeFlag := cmd.Flag("exclude")
 	if includeFlag.Changed {
-		includeArg = includeFlagArg
+		include = &includeArg
 	}
 	if excludeFlag.Changed {
-		excludeArg = excludeFlagArg
+		exclude = &excludeArg
 	}
 
 	return
@@ -71,11 +69,13 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	success := true
+	include, exclude := getIncludeExcludeArgs(cmd)
+
 	if fetchAllArg {
 		if fetchRecentArg || len(args) > 1 {
 			Exit("Cannot combine --all with ref arguments or --recent")
 		}
-		if fetchIncludeArg != "" || fetchExcludeArg != "" {
+		if include != nil || exclude != nil {
 			Exit("Cannot combine --all with --include or --exclude")
 		}
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
@@ -84,8 +84,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		success = fetchAll()
 
 	} else { // !all
-		includeArg, excludeArg := getIncludeExcludeArgs(cmd, &fetchIncludeArg, &fetchExcludeArg)
-		includePaths, excludePaths := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
+		includePaths, excludePaths := determineIncludeExcludePaths(cfg, include, exclude)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
@@ -112,8 +111,8 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	fetchCmd.Flags().StringVarP(&fetchIncludeArg, "include", "I", "", "Include a list of paths")
-	fetchCmd.Flags().StringVarP(&fetchExcludeArg, "exclude", "X", "", "Exclude a list of paths")
+	fetchCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+	fetchCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 	fetchCmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 	fetchCmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")

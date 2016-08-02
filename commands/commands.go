@@ -42,6 +42,9 @@ var (
 	}
 	ManPages = make(map[string]string, 20)
 	cfg      = config.Config
+
+	includeArg string
+	excludeArg string
 )
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
