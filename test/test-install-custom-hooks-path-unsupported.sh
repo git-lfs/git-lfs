@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-# These tests rely on behavior found in Git versions less than 2.9.0 to preform
+# These tests rely on behavior found in Git versions less than 2.9.0 to perform
 # themselves, specifically:
 #   - lack of core.hooksPath support
 ensure_git_version_isnt $VERSION_HIGHER "2.9.0"
