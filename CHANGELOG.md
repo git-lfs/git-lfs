@@ -1,5 +1,20 @@
 # Git LFS Changelog
 
+## 1.3.1 (2 August 2016)
+
+### Features
+
+* lfs/hook: teach `lfs.Hook` about `core.hooksPath` #1409 (@ttaylorr)
+
+### Bugs
+
+* distinguish between empty include/exclude paths #1411 (@technoweenie)
+* Fix sslCAInfo config lookup when host in config doesn't have a trailing slash #1404 (@dakotahawkins)
+
+### Misc
+
+* Use commands.Config instead of config.Config #1390 (@technoweenie)
+
 ## 1.3.0 (21 July 2016)
 
 ### Features
