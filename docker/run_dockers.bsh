@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-# Usage: 
+# Usage:
 #  ./run_dockers.bsh - Run all the docker images
 #  ./run_dockers.bsh centos_6 centos_7 - Run only CentOS 6 & 7 image
-#  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker 
+#  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker
 #
 # Special Environmet Variables
 #  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
-#  DOCKER_AUTOPULL - Default 1. If set to 0, it will not build docker images 
+#  DOCKER_AUTOPULL - Default 1. If set to 0, it will not build docker images
 #                before running
 #  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
 #                docker instance when done. This can be useful for a post mortem
-#                analysis. Just make sure you clean up the docker instances 
+#                analysis. Just make sure you clean up the docker instances
 #                manually
 
 set -eu
@@ -64,12 +64,12 @@ for IMAGE_NAME in "${IMAGES[@]}"; do
 
   #Auto pull docker unless DOCKER_AUTOPULL=0
   if [[ ${DOCKER_AUTOPULL-1} != 0 ]]; then
-    $SUDO docker pull andyneff/git-lfs_dockers:${IMAGE_NAME}
+    $SUDO docker pull gitlfs/build-dockers:${IMAGE_NAME}
   fi
 
   #It CAN'T be empty () with set -u... So I put some defaults in here
   OTHER_OPTIONS=("-it")
-  
+
   if [ "${AUTO_REMOVE-1}" == "1" ]; then
     OTHER_OPTIONS+=("--rm")
   fi
@@ -100,7 +100,7 @@ for IMAGE_NAME in "${IMAGES[@]}"; do
                    -e FINAL_GID=${FINAL_GID} \
                    -v "${MINGW_PATCH}${REPO_DIR}:/src" \
                    -v "${MINGW_PATCH}${IMAGE_REPO_DIR}:/repo" \
-                   andyneff/git-lfs_dockers:${IMAGE_NAME} ${DOCKER_CMD-}
+                   gitlfs/build-dockers:${IMAGE_NAME} ${DOCKER_CMD-}
 
 done
 
