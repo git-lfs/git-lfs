@@ -24,5 +24,6 @@ begin_test "install with supported core.hooksPath"
   grep "Updated pre-push hook" install.log
 
   [ -e "$hooks_dir/pre-push" ]
+  [ ! -e ".git/pre-push" ]
 )
 end_test
