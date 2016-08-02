@@ -23,14 +23,14 @@ var (
 	fetchPruneArg   bool
 )
 
-func getIncludeExcludeArgs(cmd *cobra.Command) (includeArg, excludeArg *string) {
+func getIncludeExcludeArgs(cmd *cobra.Command, includeFlagArg, excludeFlagArg *string) (includeArg, excludeArg *string) {
 	includeFlag := cmd.Flag("include")
 	excludeFlag := cmd.Flag("exclude")
 	if includeFlag.Changed {
-		includeArg = &fetchIncludeArg
+		includeArg = includeFlagArg
 	}
 	if excludeFlag.Changed {
-		excludeArg = &fetchExcludeArg
+		excludeArg = excludeFlagArg
 	}
 
 	return
@@ -84,7 +84,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		success = fetchAll()
 
 	} else { // !all
-		includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+		includeArg, excludeArg := getIncludeExcludeArgs(cmd, &fetchIncludeArg, &fetchExcludeArg)
 		includePaths, excludePaths := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored

@@ -74,7 +74,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		cfg.CurrentRemote = "origin"
 	}
 
-	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+	includeArg, excludeArg := getIncludeExcludeArgs(cmd, &cloneIncludeArg, &cloneExcludeArg)
 	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
