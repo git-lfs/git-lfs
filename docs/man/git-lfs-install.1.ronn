@@ -12,7 +12,9 @@ Perform the following actions to ensure that Git LFS is setup properly:
 * Set up the clean and smudge filters under the name "lfs" in the global Git
   config.
 * Install a pre-push hook to run git-lfs-pre-push(1) for the current repository,
-  if run from inside one.
+  if run from inside one. If "core.hooksPath" is configured in any Git
+  configuration (and supported, i.e., the installed Git version is at least
+  2.9.0), then the pre-push hook will be installed to that directory instead.
 
 ## OPTIONS
 
