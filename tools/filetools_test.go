@@ -18,15 +18,3 @@ func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 
 	assert.Empty(t, cleaned)
 }
-
-func TestCleanPathsDefaultReturnsInputWhenResultsPresent(t *testing.T) {
-	cleaned := tools.CleanPathsDefault("/foo/bar/", ",", []string{"/default"})
-
-	assert.Equal(t, []string{"/foo/bar"}, cleaned)
-}
-
-func TestCleanPathsDefaultReturnsDefaultWhenResultsAbsent(t *testing.T) {
-	cleaned := tools.CleanPathsDefault("", ",", []string{"/default"})
-
-	assert.Equal(t, []string{"/default"}, cleaned)
-}

@@ -20,9 +20,7 @@ var (
 		Run: cloneCommand,
 	}
 
-	cloneFlags      git.CloneFlags
-	cloneIncludeArg string
-	cloneExcludeArg string
+	cloneFlags git.CloneFlags
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
@@ -74,7 +72,8 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		cfg.CurrentRemote = "origin"
 	}
 
-	include, exclude := determineIncludeExcludePaths(cfg, cloneIncludeArg, cloneExcludeArg)
+	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
 		fetchRef("HEAD", include, exclude)
@@ -139,8 +138,8 @@ func init() {
 	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
 	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
 
-	cloneCmd.Flags().StringVarP(&cloneIncludeArg, "include", "I", "", "Include a list of paths")
-	cloneCmd.Flags().StringVarP(&cloneExcludeArg, "exclude", "X", "", "Exclude a list of paths")
+	cloneCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+	cloneCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 
 	RootCmd.AddCommand(cloneCmd)
 }

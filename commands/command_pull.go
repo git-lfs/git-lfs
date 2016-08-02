@@ -12,8 +12,6 @@ var (
 		Use: "pull",
 		Run: pullCommand,
 	}
-	pullIncludeArg string
-	pullExcludeArg string
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
@@ -34,7 +32,8 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		cfg.CurrentRemote = defaultRemote
 	}
 
-	pull(determineIncludeExcludePaths(cfg, pullIncludeArg, pullExcludeArg))
+	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+	pull(determineIncludeExcludePaths(cfg, includeArg, excludeArg))
 
 }
 
@@ -51,7 +50,7 @@ func pull(includePaths, excludePaths []string) {
 }
 
 func init() {
-	pullCmd.Flags().StringVarP(&pullIncludeArg, "include", "I", "", "Include a list of paths")
-	pullCmd.Flags().StringVarP(&pullExcludeArg, "exclude", "X", "", "Exclude a list of paths")
+	pullCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+	pullCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 	RootCmd.AddCommand(pullCmd)
 }

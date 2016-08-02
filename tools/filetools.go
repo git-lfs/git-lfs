@@ -99,19 +99,6 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 	return cleaned
 }
 
-// CleanPathsDefault cleans the paths contained in the given `paths` argument
-// delimited by the `delim`, argument. If an empty set is returned from that
-// split, then the fallback argument is returned instead.
-// Note always cleans to '/' path separators regardless of platform (git friendly)
-func CleanPathsDefault(paths, delim string, fallback []string) []string {
-	cleaned := CleanPaths(paths, delim)
-	if len(cleaned) == 0 {
-		return fallback
-	}
-
-	return cleaned
-}
-
 // VerifyFileHash reads a file and verifies whether the SHA is correct
 // Returns an error if there is a problem
 func VerifyFileHash(oid, path string) error {
