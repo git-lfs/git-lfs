@@ -111,18 +111,17 @@ func NewFromValues(gitconfig map[string]string) *Configuration {
 	return config
 }
 
-// Getenv returns the value assosicated with the given key as stored in the
-// system's environment. If no value is stored matching the given key, an empty
-// string is returned instead.
+// Getenv is shorthand for `c.Env.Get(key)`.
 func (c *Configuration) Getenv(key string) string {
 	return c.Env.Get(key)
 }
 
-// Setenv returns
+// Setenv is shorthand for `c.Setenv(key, value)`.
 func (c *Configuration) Setenv(key, value string) error {
 	return c.Env.Set(key, value)
 }
 
+// GetAllEnv returns a copy of the underlying OS environment cache.
 func (c *Configuration) GetAllEnv() map[string]string {
 	c.Env.vmu.Lock()
 	defer c.Env.vmu.Unlock()
@@ -136,13 +135,12 @@ func (c *Configuration) GetAllEnv() map[string]string {
 	return ret
 }
 
+// SetAllEnv is shorthand for `c.Env.SetAll(env)`.
 func (c *Configuration) SetAllEnv(env map[string]string) {
 	c.Env.SetAll(env)
 }
 
-// GetenvBool parses a boolean environment variable and returns the result as a bool.
-// If the environment variable is unset, empty, or if the parsing fails,
-// the value of def (default) is returned instead.
+// GetenvBool is shorthand for `c.Env.Bool(key, def)`.
 func (c *Configuration) GetenvBool(key string, def bool) bool {
 	return c.Env.Bool(key, def)
 }

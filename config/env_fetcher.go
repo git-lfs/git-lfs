@@ -48,7 +48,7 @@ func (e *EnvFetcher) Get(key string) (val string) {
 	return v
 }
 
-// Bool	returns the boolean state assosicated with a given key, or the value
+// Bool returns the boolean state assosicated with a given key, or the value
 // "def", if no value was assosicated.
 //
 // The "boolean state assosicated with a given key" is defined as the
