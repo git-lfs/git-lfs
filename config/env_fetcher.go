@@ -59,7 +59,7 @@ func (e *EnvFetcher) Get(key string) (val string) {
 // 2) false if...
 //   "false", "0", "off", "no", "f", or otherwise.
 func (e *EnvFetcher) Bool(key string, def bool) (val bool) {
-	s := e.String(key)
+	s := e.Get(key)
 	if len(s) == 0 {
 		return def
 	}
