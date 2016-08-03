@@ -47,6 +47,11 @@ type FetchPruneConfig struct {
 }
 
 type Configuration struct {
+	// Env provides a Fetcher implementation used to access to the system's
+	// environment through os.Getenv. It is the point of entry for all
+	// system environment configuration.
+	Env *EnvFetcher
+
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
 	envVars         map[string]string
@@ -69,6 +74,8 @@ type Configuration struct {
 
 func New() *Configuration {
 	c := &Configuration{
+		Env: NewEnvFetcher(),
+
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
@@ -84,6 +91,8 @@ func New() *Configuration {
 // NOTE: this method should only be called during testing.
 func NewFromValues(gitconfig map[string]string) *Configuration {
 	config := &Configuration{
+		Env: NewEnvFetcher(),
+
 		gitConfig: make(map[string]string, 0),
 		envVars:   make(map[string]string, 0),
 	}
@@ -102,67 +111,40 @@ func NewFromValues(gitconfig map[string]string) *Configuration {
 	return config
 }
 
+// Getenv returns the value assosicated with the given key as stored in the
+// system's environment. If no value is stored matching the given key, an empty
+// string is returned instead.
 func (c *Configuration) Getenv(key string) string {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	if i, ok := c.envVars[key]; ok {
-		return i
-	}
-
-	v := os.Getenv(key)
-	c.envVars[key] = v
-	return v
+	return c.Env.Get(key)
 }
 
+// Setenv returns
 func (c *Configuration) Setenv(key, value string) error {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	// Check see if we have this in our cache, if so update it
-	if _, ok := c.envVars[key]; ok {
-		c.envVars[key] = value
-	}
-
-	// Now set in process
-	return os.Setenv(key, value)
+	return c.Env.Set(key, value)
 }
 
 func (c *Configuration) GetAllEnv() map[string]string {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
+	c.Env.vmu.Lock()
+	defer c.Env.vmu.Unlock()
 
-	ret := make(map[string]string)
-	for k, v := range c.envVars {
+	ret := make(map[string]string, len(c.Env.vals))
+
+	for k, v := range c.Env.vals {
 		ret[k] = v
 	}
+
 	return ret
 }
 
 func (c *Configuration) SetAllEnv(env map[string]string) {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	c.envVars = make(map[string]string)
-	for k, v := range env {
-		c.envVars[k] = v
-	}
+	c.Env.SetAll(env)
 }
 
 // GetenvBool parses a boolean environment variable and returns the result as a bool.
 // If the environment variable is unset, empty, or if the parsing fails,
 // the value of def (default) is returned instead.
 func (c *Configuration) GetenvBool(key string, def bool) bool {
-	s := c.Getenv(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	b, err := parseConfigBool(s)
-	if err != nil {
-		return def
-	}
-	return b
+	return c.Env.Bool(key, def)
 }
 
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
