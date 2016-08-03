@@ -50,7 +50,7 @@ type Configuration struct {
 	// Env provides a Fetcher implementation used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
 	// system environment configuration.
-	Env *EnvFetcher
+	Env Fetcher
 
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
@@ -85,20 +85,30 @@ func New() *Configuration {
 	return c
 }
 
-// NewFromValues returns a new *config.Configuration instance as if it had
-// been read from the .gitconfig specified by "gitconfig" parameter.
+// Values is a convenience type used to call the NewFromValues function. It
+// specifies `Git` and `Env` maps to use as mock values, instead of calling out
+// to real `.gitconfig`s and the `os.Getenv` function.
+type Values struct {
+	// Git and Env are the stand-in maps used to provide values for their
+	// respective environments.
+	Git, Env map[string]string
+}
+
+// NewFrom returns a new `*config.Configuration` that reads both its Git
+// and Enviornment-level values from the ones provided instead of the actual
+// `.gitconfig` file or `os.Getenv`, respectively.
 //
-// NOTE: this method should only be called during testing.
-func NewFromValues(gitconfig map[string]string) *Configuration {
+// This method should only be used during testing.
+func NewFrom(v Values) *Configuration {
 	config := &Configuration{
-		Env: NewEnvFetcher(),
+		Env: mapFetcher(v.Env),
 
 		gitConfig: make(map[string]string, 0),
 		envVars:   make(map[string]string, 0),
 	}
 
 	buf := bytes.NewBuffer([]byte{})
-	for k, v := range gitconfig {
+	for k, v := range v.Git {
 		fmt.Fprintf(buf, "%s=%s\n", k, v)
 	}
 
@@ -117,27 +127,17 @@ func (c *Configuration) Getenv(key string) string {
 }
 
 // Setenv is shorthand for `c.Setenv(key, value)`.
+//
+// TODO(taylor): remove calls to this method and avoid cast.
 func (c *Configuration) Setenv(key, value string) error {
-	return c.Env.Set(key, value)
-}
-
-// GetAllEnv returns a copy of the underlying OS environment cache.
-func (c *Configuration) GetAllEnv() map[string]string {
-	c.Env.vmu.Lock()
-	defer c.Env.vmu.Unlock()
-
-	ret := make(map[string]string, len(c.Env.vals))
-
-	for k, v := range c.Env.vals {
-		ret[k] = v
-	}
-
-	return ret
+	return c.Env.(*EnvFetcher).Set(key, value)
 }
 
 // SetAllEnv is shorthand for `c.Env.SetAll(env)`.
+//
+// TODO(taylor): remove calls to this method and avoid cast.
 func (c *Configuration) SetAllEnv(env map[string]string) {
-	c.Env.SetAll(env)
+	c.Env.(*EnvFetcher).SetAll(env)
 }
 
 // GetenvBool is shorthand for `c.Env.Bool(key, def)`.

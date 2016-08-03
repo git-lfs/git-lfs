@@ -8,9 +8,11 @@ import (
 )
 
 var (
-	testcfg = config.NewFromValues(map[string]string{
-		"lfs.fetchinclude": "/default/include",
-		"lfs.fetchexclude": "/default/exclude",
+	testcfg = config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.fetchinclude": "/default/include",
+			"lfs.fetchexclude": "/default/exclude",
+		},
 	})
 )
 
