@@ -133,13 +133,6 @@ func (c *Configuration) Setenv(key, value string) error {
 	return c.Env.(*EnvFetcher).Set(key, value)
 }
 
-// SetAllEnv is shorthand for `c.Env.SetAll(env)`.
-//
-// TODO(taylor): remove calls to this method and avoid cast.
-func (c *Configuration) SetAllEnv(env map[string]string) {
-	c.Env.(*EnvFetcher).SetAll(env)
-}
-
 // GetenvBool is shorthand for `c.Env.Bool(key, def)`.
 func (c *Configuration) GetenvBool(key string, def bool) bool {
 	return c.Env.Bool(key, def)

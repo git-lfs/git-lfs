@@ -91,18 +91,3 @@ func (e *EnvFetcher) Set(key, val string) error {
 
 	return os.Setenv(key, val)
 }
-
-// SetAll replaces all key-value pairs with the given set, but does not modify
-// the system's environment.
-//
-// Note: this method is a temporary measure while some of the old tests still
-// rely on this mutable behavior.
-func (e *EnvFetcher) SetAll(env map[string]string) {
-	e.vmu.Lock()
-	defer e.vmu.Unlock()
-
-	e.vals = make(map[string]string)
-	for k, v := range env {
-		e.vals[k] = v
-	}
-}
