@@ -47,10 +47,10 @@ type FetchPruneConfig struct {
 }
 
 type Configuration struct {
-	// Env provides a Fetcher implementation used to access to the system's
+	// Env provides a `*Environment` used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
 	// system environment configuration.
-	Env Fetcher
+	Env *Environment
 
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
@@ -74,7 +74,7 @@ type Configuration struct {
 
 func New() *Configuration {
 	c := &Configuration{
-		Env: NewEnvFetcher(),
+		Env: EnvironmentOf(NewEnvFetcher()),
 
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
@@ -101,7 +101,7 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	config := &Configuration{
-		Env: mapFetcher(v.Env),
+		Env: EnvironmentOf(mapFetcher(v.Env)),
 
 		gitConfig: make(map[string]string, 0),
 		envVars:   make(map[string]string, 0),

@@ -7,8 +7,4 @@ type Fetcher interface {
 	// Get returns the string value assosicated with a given key, or an
 	// empty string if none exists.
 	Get(key string) (val string)
-
-	// Bool returns the boolean value assosicated with a given key, or an
-	// empty string if none exists.
-	Bool(key string, def bool) (val bool)
 }

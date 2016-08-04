@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"strings"
 	"sync"
 )
 
@@ -46,30 +45,4 @@ func (e *EnvFetcher) Get(key string) (val string) {
 	e.vals[key] = v
 
 	return v
-}
-
-// Bool returns the boolean state assosicated with a given key, or the value
-// "def", if no value was assosicated.
-//
-// The "boolean state assosicated with a given key" is defined as the
-// case-insensitive string comparsion with the following:
-//
-// 1) true if...
-//   "true", "1", "on", "yes", or "t"
-// 2) false if...
-//   "false", "0", "off", "no", "f", or otherwise.
-func (e *EnvFetcher) Bool(key string, def bool) (val bool) {
-	s := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
 }
