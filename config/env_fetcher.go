@@ -73,21 +73,3 @@ func (e *EnvFetcher) Bool(key string, def bool) (val bool) {
 		return false
 	}
 }
-
-// Set replaces a given key-value pair in the cache (if previously present in
-// the cache) and in the system's environment variables. It returns an error if
-// one was encountered in setting the environment variable, or `nil` if
-// successful.
-//
-// Note: this method is a temporary measure while some of the old tests still
-// rely on this mutable behavior.
-func (e *EnvFetcher) Set(key, val string) error {
-	e.vmu.Lock()
-	defer e.vmu.Unlock()
-
-	if _, ok := e.vals[key]; ok {
-		e.vals[key] = val
-	}
-
-	return os.Setenv(key, val)
-}
