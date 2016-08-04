@@ -47,6 +47,11 @@ type FetchPruneConfig struct {
 }
 
 type Configuration struct {
+	// Env provides a Fetcher implementation used to access to the system's
+	// environment through os.Getenv. It is the point of entry for all
+	// system environment configuration.
+	Env Fetcher
+
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
 	envVars         map[string]string
@@ -69,6 +74,8 @@ type Configuration struct {
 
 func New() *Configuration {
 	c := &Configuration{
+		Env: NewEnvFetcher(),
+
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
@@ -78,18 +85,30 @@ func New() *Configuration {
 	return c
 }
 
-// NewFromValues returns a new *config.Configuration instance as if it had
-// been read from the .gitconfig specified by "gitconfig" parameter.
+// Values is a convenience type used to call the NewFromValues function. It
+// specifies `Git` and `Env` maps to use as mock values, instead of calling out
+// to real `.gitconfig`s and the `os.Getenv` function.
+type Values struct {
+	// Git and Env are the stand-in maps used to provide values for their
+	// respective environments.
+	Git, Env map[string]string
+}
+
+// NewFrom returns a new `*config.Configuration` that reads both its Git
+// and Enviornment-level values from the ones provided instead of the actual
+// `.gitconfig` file or `os.Getenv`, respectively.
 //
-// NOTE: this method should only be called during testing.
-func NewFromValues(gitconfig map[string]string) *Configuration {
+// This method should only be used during testing.
+func NewFrom(v Values) *Configuration {
 	config := &Configuration{
+		Env: mapFetcher(v.Env),
+
 		gitConfig: make(map[string]string, 0),
 		envVars:   make(map[string]string, 0),
 	}
 
 	buf := bytes.NewBuffer([]byte{})
-	for k, v := range gitconfig {
+	for k, v := range v.Git {
 		fmt.Fprintf(buf, "%s=%s\n", k, v)
 	}
 
@@ -102,67 +121,14 @@ func NewFromValues(gitconfig map[string]string) *Configuration {
 	return config
 }
 
+// Getenv is shorthand for `c.Env.Get(key)`.
 func (c *Configuration) Getenv(key string) string {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	if i, ok := c.envVars[key]; ok {
-		return i
-	}
-
-	v := os.Getenv(key)
-	c.envVars[key] = v
-	return v
+	return c.Env.Get(key)
 }
 
-func (c *Configuration) Setenv(key, value string) error {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	// Check see if we have this in our cache, if so update it
-	if _, ok := c.envVars[key]; ok {
-		c.envVars[key] = value
-	}
-
-	// Now set in process
-	return os.Setenv(key, value)
-}
-
-func (c *Configuration) GetAllEnv() map[string]string {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	ret := make(map[string]string)
-	for k, v := range c.envVars {
-		ret[k] = v
-	}
-	return ret
-}
-
-func (c *Configuration) SetAllEnv(env map[string]string) {
-	c.envVarsMutex.Lock()
-	defer c.envVarsMutex.Unlock()
-
-	c.envVars = make(map[string]string)
-	for k, v := range env {
-		c.envVars[k] = v
-	}
-}
-
-// GetenvBool parses a boolean environment variable and returns the result as a bool.
-// If the environment variable is unset, empty, or if the parsing fails,
-// the value of def (default) is returned instead.
+// GetenvBool is shorthand for `c.Env.Bool(key, def)`.
 func (c *Configuration) GetenvBool(key string, def bool) bool {
-	s := c.Getenv(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	b, err := parseConfigBool(s)
-	if err != nil {
-		return def
-	}
-	return b
+	return c.Env.Bool(key, def)
 }
 
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)

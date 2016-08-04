@@ -567,9 +567,11 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 }
 
 func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
-	config := NewFromValues(map[string]string{
-		"lfs.fetchinclude": "/path/to/clean/",
-		"lfs.fetchexclude": "/other/path/to/clean/",
+	config := NewFrom(Values{
+		Git: map[string]string{
+			"lfs.fetchinclude": "/path/to/clean/",
+			"lfs.fetchexclude": "/other/path/to/clean/",
+		},
 	})
 
 	assert.Equal(t, []string{"/path/to/clean"}, config.FetchIncludePaths())

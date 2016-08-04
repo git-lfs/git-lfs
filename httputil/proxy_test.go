@@ -9,11 +9,13 @@ import (
 )
 
 func TestProxyFromGitConfig(t *testing.T) {
-	cfg := config.NewFromValues(map[string]string{
-		"http.proxy": "https://proxy-from-git-config:8080",
-	})
-	cfg.SetAllEnv(map[string]string{
-		"HTTPS_PROXY": "https://proxy-from-env:8080",
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"http.proxy": "https://proxy-from-git-config:8080",
+		},
+		Env: map[string]string{
+			"HTTPS_PROXY": "https://proxy-from-env:8080",
+		},
 	})
 
 	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
@@ -28,11 +30,13 @@ func TestProxyFromGitConfig(t *testing.T) {
 }
 
 func TestHttpProxyFromGitConfig(t *testing.T) {
-	cfg := config.NewFromValues(map[string]string{
-		"http.proxy": "http://proxy-from-git-config:8080",
-	})
-	cfg.SetAllEnv(map[string]string{
-		"HTTPS_PROXY": "https://proxy-from-env:8080",
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"http.proxy": "http://proxy-from-git-config:8080",
+		},
+		Env: map[string]string{
+			"HTTPS_PROXY": "https://proxy-from-env:8080",
+		},
 	})
 
 	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
@@ -47,9 +51,10 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 }
 
 func TestProxyFromEnvironment(t *testing.T) {
-	cfg := config.New()
-	cfg.SetAllEnv(map[string]string{
-		"HTTPS_PROXY": "https://proxy-from-env:8080",
+	cfg := config.NewFrom(config.Values{
+		Env: map[string]string{
+			"HTTPS_PROXY": "https://proxy-from-env:8080",
+		},
 	})
 
 	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
@@ -78,11 +83,13 @@ func TestProxyIsNil(t *testing.T) {
 }
 
 func TestProxyNoProxy(t *testing.T) {
-	cfg := config.NewFromValues(map[string]string{
-		"http.proxy": "https://proxy-from-git-config:8080",
-	})
-	cfg.SetAllEnv(map[string]string{
-		"NO_PROXY": "some-host",
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"http.proxy": "https://proxy-from-git-config:8080",
+		},
+		Env: map[string]string{
+			"NO_PROXY": "some-host",
+		},
 	})
 
 	req, err := http.NewRequest("GET", "https://some-host:8080", nil)

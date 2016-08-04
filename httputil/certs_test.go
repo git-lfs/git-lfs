@@ -101,8 +101,11 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	cfg := config.New()
-	cfg.SetAllEnv(map[string]string{"GIT_SSL_CAINFO": tempfile.Name()})
+	cfg := config.NewFrom(config.Values{
+		Env: map[string]string{
+			"GIT_SSL_CAINFO": tempfile.Name(),
+		},
+	})
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
@@ -139,8 +142,11 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	cfg := config.New()
-	cfg.SetAllEnv(map[string]string{"GIT_SSL_CAPATH": tempdir})
+	cfg := config.NewFrom(config.Values{
+		Env: map[string]string{
+			"GIT_SSL_CAPATH": tempdir,
+		},
+	})
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
@@ -154,7 +160,11 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 	cfg := config.New()
 	assert.False(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 
-	cfg.SetAllEnv(map[string]string{"GIT_SSL_NO_VERIFY": "1"})
+	cfg = config.NewFrom(config.Values{
+		Env: map[string]string{
+			"GIT_SSL_NO_VERIFY": "1",
+		},
+	})
 	assert.True(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 }
 
