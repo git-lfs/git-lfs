@@ -10,7 +10,7 @@ import (
 
 func TestSSHGetExeAndArgsSsh(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "",
 			"GIT_SSH":         "",
 		},
@@ -26,7 +26,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 
 func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "",
 			"GIT_SSH":         "",
 		},
@@ -45,7 +45,7 @@ func TestSSHGetExeAndArgsPlink(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink.exe")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "",
 			"GIT_SSH":         plink,
 		},
@@ -63,7 +63,7 @@ func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "",
 			"GIT_SSH":         plink,
 		},
@@ -82,7 +82,7 @@ func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink.exe")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "",
 			"GIT_SSH":         plink,
 		},
@@ -100,7 +100,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "",
 			"GIT_SSH":         plink,
 		},
@@ -117,7 +117,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 
 func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "sshcmd",
 			"GIT_SSH":         "bad",
 		},
@@ -133,7 +133,7 @@ func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
 
 func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "sshcmd --args 1",
 		},
 	})
@@ -148,7 +148,7 @@ func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 
 func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": "sshcmd",
 		},
 	})
@@ -166,7 +166,7 @@ func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink.exe")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": plink,
 		},
 	})
@@ -183,7 +183,7 @@ func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": plink,
 		},
 	})
@@ -201,7 +201,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink.exe")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": plink,
 		},
 	})
@@ -218,7 +218,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSH_COMMAND": plink,
 		},
 	})

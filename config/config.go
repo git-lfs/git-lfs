@@ -47,10 +47,10 @@ type FetchPruneConfig struct {
 }
 
 type Configuration struct {
-	// Env provides a `*Environment` used to access to the system's
+	// Os provides a `*Environment` used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
 	// system environment configuration.
-	Env *Environment
+	Os *Environment
 
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
@@ -74,7 +74,7 @@ type Configuration struct {
 
 func New() *Configuration {
 	c := &Configuration{
-		Env: EnvironmentOf(NewEnvFetcher()),
+		Os: EnvironmentOf(NewOsFetcher()),
 
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
@@ -89,9 +89,9 @@ func New() *Configuration {
 // specifies `Git` and `Env` maps to use as mock values, instead of calling out
 // to real `.gitconfig`s and the `os.Getenv` function.
 type Values struct {
-	// Git and Env are the stand-in maps used to provide values for their
+	// Git and Os are the stand-in maps used to provide values for their
 	// respective environments.
-	Git, Env map[string]string
+	Git, Os map[string]string
 }
 
 // NewFrom returns a new `*config.Configuration` that reads both its Git
@@ -101,7 +101,7 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	config := &Configuration{
-		Env: EnvironmentOf(mapFetcher(v.Env)),
+		Os: EnvironmentOf(mapFetcher(v.Os)),
 
 		gitConfig: make(map[string]string, 0),
 		envVars:   make(map[string]string, 0),
@@ -121,14 +121,14 @@ func NewFrom(v Values) *Configuration {
 	return config
 }
 
-// Getenv is shorthand for `c.Env.Get(key)`.
+// Getenv is shorthand for `c.Os.Get(key)`.
 func (c *Configuration) Getenv(key string) string {
-	return c.Env.Get(key)
+	return c.Os.Get(key)
 }
 
-// GetenvBool is shorthand for `c.Env.Bool(key, def)`.
+// GetenvBool is shorthand for `c.Os.Bool(key, def)`.
 func (c *Configuration) GetenvBool(key string, def bool) bool {
-	return c.Env.Bool(key, def)
+	return c.Os.Bool(key, def)
 }
 
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)

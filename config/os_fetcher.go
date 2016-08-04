@@ -5,11 +5,11 @@ import (
 	"sync"
 )
 
-// EnvFetcher is an implementation of the Fetcher type for communicating with
+// OsFetcher is an implementation of the Fetcher type for communicating with
 // the system's environment.
 //
 // It is safe to use across multiple goroutines.
-type EnvFetcher struct {
+type OsFetcher struct {
 	// vmu guards read/write access to vals
 	vmu sync.Mutex
 	// vals maintains a local cache of the system's enviornment variables
@@ -17,9 +17,9 @@ type EnvFetcher struct {
 	vals map[string]string
 }
 
-// NewEnvFetcher returns a new *EnvFetcher.
-func NewEnvFetcher() *EnvFetcher {
-	return &EnvFetcher{
+// NewOsFetcher returns a new *OsFetcher.
+func NewOsFetcher() *OsFetcher {
+	return &OsFetcher{
 		vals: make(map[string]string),
 	}
 }
@@ -33,16 +33,16 @@ func NewEnvFetcher() *EnvFetcher {
 // the cache or in the system, an empty string will be returned.
 //
 // Get is safe to call across multiple goroutines.
-func (e *EnvFetcher) Get(key string) (val string) {
-	e.vmu.Lock()
-	defer e.vmu.Unlock()
+func (o *OsFetcher) Get(key string) (val string) {
+	o.vmu.Lock()
+	defer o.vmu.Unlock()
 
-	if i, ok := e.vals[key]; ok {
+	if i, ok := o.vals[key]; ok {
 		return i
 	}
 
 	v := os.Getenv(key)
-	e.vals[key] = v
+	o.vals[key] = v
 
 	return v
 }
