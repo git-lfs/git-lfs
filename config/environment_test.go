@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/github/git-lfs/config"
-	"github.com/ttaylorr/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvironmentOfReturnsCorrectlyInitializedEnvironment(t *testing.T) {
