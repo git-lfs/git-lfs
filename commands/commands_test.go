@@ -42,26 +42,15 @@ func TestDetermineIncludeExcludePathsReturnsDefaultsWhenAbsent(t *testing.T) {
 }
 
 func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
-	cfg := config.New()
-	err := cfg.Setenv("GITLFSLOCKSENABLED", "1")
+	cfg := config.NewFrom(config.Values{
+		Env: map[string]string{"GITLFSLOCKSENABLED": "1"},
+	})
 
-	assert.Nil(t, err)
 	assert.True(t, isCommandEnabled(cfg, "locks"))
 }
 
 func TestCommandEnabledDisabledByDefault(t *testing.T) {
-	cfg := config.New()
+	cfg := config.NewFrom(config.Values{})
 
-	// Since config.Configuration.Setenv makes a call to os.Setenv, we have
-	// to make sure that the LFSLOCKSENABLED enviornment variable is not
-	// present in the configuration object during the lifecycle of this
-	// test.
-	//
-	// This behavior can cause race conditions with the above test when
-	// running in parallel, so this should be investigated further in the
-	// future.
-	err := cfg.Setenv("GITLFSLOCKSENABLED", "")
-
-	assert.Nil(t, err)
 	assert.False(t, isCommandEnabled(cfg, "locks"))
 }
