@@ -3,7 +3,6 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +13,6 @@ import (
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -52,6 +50,12 @@ type Configuration struct {
 	// system environment configuration.
 	Os *Environment
 
+	// Git provides a `*Environment` used to access to the various levels of
+	// `.gitconfig`'s. It is the point of entry for all Git environment
+	// configuration.
+	Git       *Environment
+	gitConfig map[string]string
+
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
 	envVars         map[string]string
@@ -61,7 +65,6 @@ type Configuration struct {
 	IsLoggingStats  bool
 
 	loading           sync.Mutex // guards initialization of gitConfig and remotes
-	gitConfig         map[string]string
 	origConfig        map[string]string
 	remotes           []string
 	extensions        map[string]Extension
@@ -100,25 +103,12 @@ type Values struct {
 //
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
-	config := &Configuration{
-		Os: EnvironmentOf(mapFetcher(v.Os)),
+	return &Configuration{
+		Os:  EnvironmentOf(mapFetcher(v.Os)),
+		Git: EnvironmentOf(mapFetcher(v.Git)),
 
-		gitConfig: make(map[string]string, 0),
-		envVars:   make(map[string]string, 0),
+		envVars: make(map[string]string, 0),
 	}
-
-	buf := bytes.NewBuffer([]byte{})
-	for k, v := range v.Git {
-		fmt.Fprintf(buf, "%s=%s\n", k, v)
-	}
-
-	config.readGitConfig(
-		string(buf.Bytes()),
-		map[string]bool{},
-		false,
-	)
-
-	return config
 }
 
 // Getenv is shorthand for `c.Os.Get(key)`.
@@ -456,24 +446,52 @@ func (c *Configuration) loadGitConfig() bool {
 		return false
 	}
 
-	c.gitConfig = make(map[string]string)
-	c.extensions = make(map[string]Extension)
-	uniqRemotes := make(map[string]bool)
+	var sources []*GitConfig
 
-	configFiles := []string{
-		filepath.Join(LocalWorkingDir, ".lfsconfig"),
+	lfsconfig := filepath.Join(LocalWorkingDir, ".lfsconfig")
+	if _, err := os.Stat(lfsconfig); !os.IsNotExist(err) {
+		lines, err := git.Config.ListFromFile(lfsconfig)
+		if err != nil {
+			sources = append(sources, &GitConfig{
+				Lines:        strings.Split(lines, "\n"),
+				OnlySafeKeys: true,
+			})
+		} else {
+			gitconfig := filepath.Join(LocalWorkingDir, ".gitconfig")
+			if _, err := os.Stat(lfsconfig); !os.IsNotExist(err) {
+				if ShowConfigWarnings {
+					expected := ".lfsconfig"
+					fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
+						filepath.Base(gitconfig), expected, expected)
+				}
 
-		// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
-		filepath.Join(LocalWorkingDir, ".gitconfig"),
+				lines, err := git.Config.ListFromFile(lfsconfig)
+				if err != nil {
+					sources = append(sources, &GitConfig{
+						Lines:        strings.Split(lines, "\n"),
+						OnlySafeKeys: true,
+					})
+				}
+			}
+		}
 	}
-	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
 
-	listOutput, err := git.Config.List()
+	globalList, err := git.Config.List()
 	if err != nil {
-		panic(fmt.Errorf("Error listing git config: %s", err))
+		sources = append(sources, &GitConfig{
+			Lines:        strings.Split(globalList, "\n"),
+			OnlySafeKeys: false,
+		})
 	}
 
-	c.readGitConfig(listOutput, uniqRemotes, false)
+	gf, extensions, uniqRemotes, include, exclude := ReadGitConfig(sources...)
+
+	c.fetchIncludePaths = include
+	c.fetchExcludePaths = exclude
+
+	c.Git = EnvironmentOf(gf)
+	c.gitConfig = gf.vals // XXX TERRIBLE
+	c.extensions = extensions
 
 	c.remotes = make([]string, 0, len(uniqRemotes))
 	for remote, isOrigin := range uniqRemotes {
@@ -486,130 +504,7 @@ func (c *Configuration) loadGitConfig() bool {
 	return true
 }
 
-func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex int, uniqRemotes map[string]bool) {
-	filename := filenames[filenameIndex]
-	_, err := os.Stat(filename)
-	if err == nil {
-		if filenameIndex > 0 && ShowConfigWarnings {
-			expected := ".lfsconfig"
-			fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
-				filepath.Base(filename), expected, expected)
-		}
-
-		fileOutput, err := git.Config.ListFromFile(filename)
-		if err != nil {
-			panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
-		}
-		c.readGitConfig(fileOutput, uniqRemotes, true)
-		return
-	}
-
-	if os.IsNotExist(err) {
-		newIndex := filenameIndex + 1
-		if len(filenames) > newIndex {
-			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
-		}
-		return
-	}
-
-	panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
-}
-
-func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {
-	lines := strings.Split(output, "\n")
-	uniqKeys := make(map[string]string)
-
-	for _, line := range lines {
-		pieces := strings.SplitN(line, "=", 2)
-		if len(pieces) < 2 {
-			continue
-		}
-
-		allowed := !onlySafe
-		key := strings.ToLower(pieces[0])
-		value := pieces[1]
-
-		if origKey, ok := uniqKeys[key]; ok {
-			if ShowConfigWarnings && c.gitConfig[key] != value && strings.HasPrefix(key, gitConfigWarningPrefix) {
-				fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
-				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
-				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
-			}
-		} else {
-			uniqKeys[key] = pieces[0]
-		}
-
-		keyParts := strings.Split(key, ".")
-		if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
-			name := keyParts[2]
-			ext := c.extensions[name]
-			switch keyParts[3] {
-			case "clean":
-				if onlySafe {
-					continue
-				}
-				ext.Clean = value
-			case "smudge":
-				if onlySafe {
-					continue
-				}
-				ext.Smudge = value
-			case "priority":
-				allowed = true
-				p, err := strconv.Atoi(value)
-				if err == nil && p >= 0 {
-					ext.Priority = p
-				}
-			}
-
-			ext.Name = name
-			c.extensions[name] = ext
-		} else if len(keyParts) > 1 && keyParts[0] == "remote" {
-			if onlySafe && (len(keyParts) == 3 && keyParts[2] != "lfsurl") {
-				continue
-			}
-
-			allowed = true
-			remote := keyParts[1]
-			uniqRemotes[remote] = remote == "origin"
-		} else if len(keyParts) > 2 && keyParts[len(keyParts)-1] == "access" {
-			allowed = true
-		}
-
-		if !allowed && keyIsUnsafe(key) {
-			continue
-		}
-
-		c.gitConfig[key] = value
-
-		if len(keyParts) == 2 && keyParts[0] == "lfs" {
-			switch keyParts[1] {
-			case "fetchinclude":
-				c.fetchIncludePaths = tools.CleanPaths(value, ",")
-			case "fetchexclude":
-				c.fetchExcludePaths = tools.CleanPaths(value, ",")
-			}
-		}
-	}
-}
-
-func keyIsUnsafe(key string) bool {
-	for _, safe := range safeKeys {
-		if safe == key {
-			return false
-		}
-	}
-	return true
-}
-
-var safeKeys = []string{
-	"lfs.fetchexclude",
-	"lfs.fetchinclude",
-	"lfs.gitprotocol",
-	"lfs.url",
-}
-
-// only used for tests
+// XXX(taylor): remove mutability
 func (c *Configuration) SetConfig(key, value string) {
 	if c.loadGitConfig() {
 		c.loading.Lock()
@@ -623,6 +518,7 @@ func (c *Configuration) SetConfig(key, value string) {
 	c.gitConfig[key] = value
 }
 
+// XXX(taylor): remove mutability
 func (c *Configuration) ClearConfig() {
 	if c.loadGitConfig() {
 		c.loading.Lock()
@@ -636,6 +532,7 @@ func (c *Configuration) ClearConfig() {
 	c.gitConfig = make(map[string]string)
 }
 
+// XXX(taylor): remove mutability
 func (c *Configuration) ResetConfig() {
 	c.loading.Lock()
 	c.gitConfig = make(map[string]string)
