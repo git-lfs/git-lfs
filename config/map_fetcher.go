@@ -9,4 +9,7 @@ func MapFetcher(m map[string]string) Fetcher {
 }
 
 // Get implements the func `Fetcher.Get`.
-func (m mapFetcher) Get(key string) (val string) { return m[key] }
+func (m mapFetcher) Get(key string) (val string, ok bool) {
+	val, ok = m[key]
+	return
+}

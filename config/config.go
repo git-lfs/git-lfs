@@ -111,7 +111,8 @@ func NewFrom(v Values) *Configuration {
 
 // Getenv is shorthand for `c.Os.Get(key)`.
 func (c *Configuration) Getenv(key string) string {
-	return c.Os.Get(key)
+	v, _ := c.Os.Get(key)
+	return v
 }
 
 // GetenvBool is shorthand for `c.Os.Bool(key, def)`.
@@ -275,12 +276,14 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 
 func (c *Configuration) FetchIncludePaths() []string {
 	c.loadGitConfig()
-	return tools.CleanPaths(c.Git.Get("lfs.fetchinclude"), ",")
+	patterns, _ := c.Git.Get("lfs.fetchinclude")
+	return tools.CleanPaths(patterns, ",")
 }
 
 func (c *Configuration) FetchExcludePaths() []string {
 	c.loadGitConfig()
-	return tools.CleanPaths(c.Git.Get("lfs.fetchexclude"), ",")
+	patterns, _ := c.Git.Get("lfs.fetchexclude")
+	return tools.CleanPaths(patterns, ",")
 }
 
 func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {

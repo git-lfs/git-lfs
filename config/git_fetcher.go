@@ -110,11 +110,12 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 	return
 }
 
-func (g *GitFetcher) Get(key string) (val string) {
+func (g *GitFetcher) Get(key string) (val string, ok bool) {
 	g.vmu.RLock()
 	defer g.vmu.RUnlock()
 
-	return g.vals[key]
+	val, ok = g.vals[key]
+	return
 }
 
 func getGitConfigs() (sources []*GitConfig) {
