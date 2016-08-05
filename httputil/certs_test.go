@@ -102,7 +102,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	tempfile.Close()
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSL_CAINFO": tempfile.Name(),
 		},
 	})
@@ -143,7 +143,7 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	assert.Nil(t, err, "Error creating cert file")
 
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSL_CAPATH": tempdir,
 		},
 	})
@@ -161,7 +161,7 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 	assert.False(t, isCertVerificationDisabledForHost(cfg, "anyhost.com"))
 
 	cfg = config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"GIT_SSL_NO_VERIFY": "1",
 		},
 	})

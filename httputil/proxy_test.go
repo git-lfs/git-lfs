@@ -13,7 +13,7 @@ func TestProxyFromGitConfig(t *testing.T) {
 		Git: map[string]string{
 			"http.proxy": "https://proxy-from-git-config:8080",
 		},
-		Env: map[string]string{
+		Os: map[string]string{
 			"HTTPS_PROXY": "https://proxy-from-env:8080",
 		},
 	})
@@ -34,7 +34,7 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 		Git: map[string]string{
 			"http.proxy": "http://proxy-from-git-config:8080",
 		},
-		Env: map[string]string{
+		Os: map[string]string{
 			"HTTPS_PROXY": "https://proxy-from-env:8080",
 		},
 	})
@@ -52,7 +52,7 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 
 func TestProxyFromEnvironment(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{
+		Os: map[string]string{
 			"HTTPS_PROXY": "https://proxy-from-env:8080",
 		},
 	})
@@ -87,7 +87,7 @@ func TestProxyNoProxy(t *testing.T) {
 		Git: map[string]string{
 			"http.proxy": "https://proxy-from-git-config:8080",
 		},
-		Env: map[string]string{
+		Os: map[string]string{
 			"NO_PROXY": "some-host",
 		},
 	})

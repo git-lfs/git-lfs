@@ -43,7 +43,7 @@ func TestDetermineIncludeExcludePathsReturnsDefaultsWhenAbsent(t *testing.T) {
 
 func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
-		Env: map[string]string{"GITLFSLOCKSENABLED": "1"},
+		Os: map[string]string{"GITLFSLOCKSENABLED": "1"},
 	})
 
 	assert.True(t, isCommandEnabled(cfg, "locks"))
