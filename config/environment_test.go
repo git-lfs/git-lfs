@@ -8,21 +8,20 @@ import (
 )
 
 func TestEnvironmentOfReturnsCorrectlyInitializedEnvironment(t *testing.T) {
-	fetcher := new(MockFetcher)
-
+	fetcher := MapFetcher(map[string]string{})
 	env := EnvironmentOf(fetcher)
 
 	assert.Equal(t, fetcher, env.Fetcher)
 }
 
 func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
-	var fetcher MockFetcher
-	fetcher.On("Get", "foo").Return("bar").Once()
+	fetcher := MapFetcher(map[string]string{
+		"foo": "bar",
+	})
 
-	env := EnvironmentOf(&fetcher)
+	env := EnvironmentOf(fetcher)
 	val := env.Get("foo")
 
-	fetcher.AssertExpectations(t)
 	assert.Equal(t, "bar", val)
 }
 
@@ -82,14 +81,14 @@ var (
 )
 
 func (c *EnvironmentConversionTestCase) Assert(t *testing.T) {
-	var fetcher MockFetcher
-	fetcher.On("Get", c.Val).Return(c.Val).Once()
+	fetcher := MapFetcher(map[string]string{
+		c.Val: c.Val,
+	})
 
-	env := EnvironmentOf(&fetcher)
+	env := EnvironmentOf(fetcher)
 	got := c.GotFn(env, c.Val)
 
 	if c.Expected != got {
 		t.Errorf("lfs/config: expected val=%q to be %q (got: %q)", c.Val, c.Expected, got)
 	}
-	fetcher.AssertExpectations(t)
 }
