@@ -13,6 +13,7 @@ import (
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
 	"github.com/github/git-lfs/git"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -68,8 +69,6 @@ type Configuration struct {
 	origConfig        map[string]string
 	remotes           []string
 	extensions        map[string]Extension
-	fetchIncludePaths []string
-	fetchExcludePaths []string
 	fetchPruneConfig  *FetchPruneConfig
 	manualEndpoint    *Endpoint
 	parsedNetrc       netrcfinder
@@ -104,8 +103,9 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	return &Configuration{
-		Os:  EnvironmentOf(mapFetcher(v.Os)),
-		Git: EnvironmentOf(mapFetcher(v.Git)),
+		Os:        EnvironmentOf(mapFetcher(v.Os)),
+		Git:       EnvironmentOf(mapFetcher(v.Git)),
+		gitConfig: v.Git,
 
 		envVars: make(map[string]string, 0),
 	}
@@ -277,12 +277,12 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 
 func (c *Configuration) FetchIncludePaths() []string {
 	c.loadGitConfig()
-	return c.fetchIncludePaths
+	return tools.CleanPaths(c.Git.Get("lfs.fetchinclude"), ",")
 }
 
 func (c *Configuration) FetchExcludePaths() []string {
 	c.loadGitConfig()
-	return c.fetchExcludePaths
+	return tools.CleanPaths(c.Git.Get("lfs.fetchexclude"), ",")
 }
 
 func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
@@ -442,52 +442,59 @@ func (c *Configuration) loadGitConfig() bool {
 	c.loading.Lock()
 	defer c.loading.Unlock()
 
-	if c.gitConfig != nil {
+	if c.Git != nil {
 		return false
 	}
 
 	var sources []*GitConfig
 
 	lfsconfig := filepath.Join(LocalWorkingDir, ".lfsconfig")
-	if _, err := os.Stat(lfsconfig); !os.IsNotExist(err) {
+	if _, err := os.Stat(lfsconfig); err == nil {
 		lines, err := git.Config.ListFromFile(lfsconfig)
-		if err != nil {
+		if err == nil {
 			sources = append(sources, &GitConfig{
 				Lines:        strings.Split(lines, "\n"),
 				OnlySafeKeys: true,
 			})
 		} else {
-			gitconfig := filepath.Join(LocalWorkingDir, ".gitconfig")
-			if _, err := os.Stat(lfsconfig); !os.IsNotExist(err) {
-				if ShowConfigWarnings {
-					expected := ".lfsconfig"
-					fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
-						filepath.Base(gitconfig), expected, expected)
-				}
+			if !os.IsNotExist(err) {
+				fmt.Fprintf(os.Stderr, "Error reading .lfsconfig: %s\n", err)
+			}
+		}
+	} else {
+		gitconfig := filepath.Join(LocalWorkingDir, ".gitconfig")
+		if _, err := os.Stat(gitconfig); err == nil {
+			if ShowConfigWarnings {
+				expected := ".lfsconfig"
+				fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
+					filepath.Base(gitconfig), expected, expected)
+			}
 
-				lines, err := git.Config.ListFromFile(lfsconfig)
-				if err != nil {
-					sources = append(sources, &GitConfig{
-						Lines:        strings.Split(lines, "\n"),
-						OnlySafeKeys: true,
-					})
+			lines, err := git.Config.ListFromFile(gitconfig)
+			if err == nil {
+				sources = append(sources, &GitConfig{
+					Lines:        strings.Split(lines, "\n"),
+					OnlySafeKeys: true,
+				})
+			} else {
+				if !os.IsNotExist(err) {
+					fmt.Fprintf(os.Stderr, "Error reading .gitconfig: %s\n", err)
 				}
 			}
 		}
 	}
 
 	globalList, err := git.Config.List()
-	if err != nil {
+	if err == nil {
 		sources = append(sources, &GitConfig{
 			Lines:        strings.Split(globalList, "\n"),
 			OnlySafeKeys: false,
 		})
+	} else {
+		fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
 	}
 
-	gf, extensions, uniqRemotes, include, exclude := ReadGitConfig(sources...)
-
-	c.fetchIncludePaths = include
-	c.fetchExcludePaths = exclude
+	gf, extensions, uniqRemotes := ReadGitConfig(sources...)
 
 	c.Git = EnvironmentOf(gf)
 	c.gitConfig = gf.vals // XXX TERRIBLE

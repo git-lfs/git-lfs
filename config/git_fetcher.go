@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/github/git-lfs/tools"
 )
 
 type GitFetcher struct {
@@ -20,7 +18,7 @@ type GitConfig struct {
 	OnlySafeKeys bool
 }
 
-func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool, include, exclude []string) {
+func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string]string)
 
 	extensions = make(map[string]Extension)
@@ -67,7 +65,7 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 					if gc.OnlySafeKeys {
 						continue
 					}
-					ext.Clean = val
+					ext.Smudge = val
 				case "priority":
 					allowed = true
 					p, err := strconv.Atoi(val)
@@ -94,15 +92,6 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 			}
 
 			vals[key] = val
-
-			if len(parts) == 2 && parts[0] == "lfs" {
-				switch parts[1] {
-				case "fetchinclude":
-					include = tools.CleanPaths(val, ",")
-				case "fetchexclude":
-					exclude = tools.CleanPaths(val, ",")
-				}
-			}
 		}
 	}
 
