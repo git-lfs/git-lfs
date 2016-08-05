@@ -282,7 +282,7 @@ func (c *Configuration) FetchIncludePaths() []string {
 
 func (c *Configuration) FetchExcludePaths() []string {
 	c.loadGitConfig()
-	patterns, _ := c.Git.Get("lfs.fetchexclude")
+	patterns, _ := c.Git.Get("lfs.fetchclude")
 	return tools.CleanPaths(patterns, ",")
 }
 
