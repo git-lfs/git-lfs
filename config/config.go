@@ -335,32 +335,15 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 
 // GitConfigInt parses a git config value and returns it as an integer.
 func (c *Configuration) GitConfigInt(key string, def int) int {
-	s, _ := c.GitConfig(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	i, _ := strconv.Atoi(s)
-	if i < 1 {
-		return def
-	}
-
-	return i
+	c.loadGitConfig()
+	return c.Git.Int(strings.ToLower(key), def)
 }
 
 // GitConfigBool parses a git config value and returns true if defined as
 // true, 1, on, yes, or def if not defined
 func (c *Configuration) GitConfigBool(key string, def bool) bool {
-	s, _ := c.GitConfig(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	ret, err := parseConfigBool(s)
-	if err != nil {
-		return false
-	}
-	return ret
+	c.loadGitConfig()
+	return c.Git.Bool(strings.ToLower(key), def)
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
@@ -490,12 +473,18 @@ func (c *Configuration) ClearConfig() {
 	}
 
 	c.gitConfig = make(map[string]string)
+	if gf, ok := c.Git.Fetcher.(*GitFetcher); ok {
+		gf.vals = c.gitConfig
+	}
 }
 
 // XXX(taylor): remove mutability
 func (c *Configuration) ResetConfig() {
 	c.loading.Lock()
 	c.gitConfig = make(map[string]string)
+	if gf, ok := c.Git.Fetcher.(*GitFetcher); ok {
+		gf.vals = c.gitConfig
+	}
 	for k, v := range c.origConfig {
 		c.gitConfig[k] = v
 	}

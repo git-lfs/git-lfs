@@ -38,8 +38,8 @@ func (e *Environment) Get(key string) (val string, ok bool) {
 // 2) false if...
 //   "false", "0", "off", "no", "f", or otherwise.
 func (e *Environment) Bool(key string, def bool) (val bool) {
-	s, ok := e.Fetcher.Get(key)
-	if !ok {
+	s, _ := e.Fetcher.Get(key)
+	if len(s) == 0 {
 		return def
 	}
 
@@ -63,8 +63,8 @@ func (e *Environment) Bool(key string, def bool) (val bool) {
 // Otherwise, if the value was converted `string -> int` successfully, then it
 // will be returned wholesale.
 func (e *Environment) Int(key string, def int) (val int) {
-	s, ok := e.Fetcher.Get(key)
-	if !ok {
+	s, _ := e.Fetcher.Get(key)
+	if len(s) == 0 {
 		return def
 	}
 
