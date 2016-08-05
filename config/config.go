@@ -4,8 +4,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -65,13 +63,13 @@ type Configuration struct {
 	IsDebuggingHttp bool
 	IsLoggingStats  bool
 
-	loading           sync.Mutex // guards initialization of gitConfig and remotes
-	origConfig        map[string]string
-	remotes           []string
-	extensions        map[string]Extension
-	fetchPruneConfig  *FetchPruneConfig
-	manualEndpoint    *Endpoint
-	parsedNetrc       netrcfinder
+	loading          sync.Mutex // guards initialization of gitConfig and remotes
+	origConfig       map[string]string
+	remotes          []string
+	extensions       map[string]Extension
+	fetchPruneConfig *FetchPruneConfig
+	manualEndpoint   *Endpoint
+	parsedNetrc      netrcfinder
 }
 
 func New() *Configuration {
@@ -446,55 +444,7 @@ func (c *Configuration) loadGitConfig() bool {
 		return false
 	}
 
-	var sources []*GitConfig
-
-	lfsconfig := filepath.Join(LocalWorkingDir, ".lfsconfig")
-	if _, err := os.Stat(lfsconfig); err == nil {
-		lines, err := git.Config.ListFromFile(lfsconfig)
-		if err == nil {
-			sources = append(sources, &GitConfig{
-				Lines:        strings.Split(lines, "\n"),
-				OnlySafeKeys: true,
-			})
-		} else {
-			if !os.IsNotExist(err) {
-				fmt.Fprintf(os.Stderr, "Error reading .lfsconfig: %s\n", err)
-			}
-		}
-	} else {
-		gitconfig := filepath.Join(LocalWorkingDir, ".gitconfig")
-		if _, err := os.Stat(gitconfig); err == nil {
-			if ShowConfigWarnings {
-				expected := ".lfsconfig"
-				fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
-					filepath.Base(gitconfig), expected, expected)
-			}
-
-			lines, err := git.Config.ListFromFile(gitconfig)
-			if err == nil {
-				sources = append(sources, &GitConfig{
-					Lines:        strings.Split(lines, "\n"),
-					OnlySafeKeys: true,
-				})
-			} else {
-				if !os.IsNotExist(err) {
-					fmt.Fprintf(os.Stderr, "Error reading .gitconfig: %s\n", err)
-				}
-			}
-		}
-	}
-
-	globalList, err := git.Config.List()
-	if err == nil {
-		sources = append(sources, &GitConfig{
-			Lines:        strings.Split(globalList, "\n"),
-			OnlySafeKeys: false,
-		})
-	} else {
-		fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
-	}
-
-	gf, extensions, uniqRemotes := ReadGitConfig(sources...)
+	gf, extensions, uniqRemotes := ReadGitConfig(getGitConfigs()...)
 
 	c.Git = EnvironmentOf(gf)
 	c.gitConfig = gf.vals // XXX TERRIBLE
