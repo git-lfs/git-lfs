@@ -2,6 +2,7 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -556,4 +557,108 @@ func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
 
 	assert.Equal(t, []string{"/path/to/clean"}, cfg.FetchIncludePaths())
 	assert.Equal(t, []string{"/other/path/to/clean"}, cfg.FetchExcludePaths())
+}
+
+func TestUnmarshalMultipleTypes(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string]string{
+			"string": "string",
+			"int":    "1",
+			"bool":   "true",
+		},
+		Os: map[string]string{
+			"string": "string",
+			"int":    "1",
+			"bool":   "true",
+		},
+	})
+
+	v := &struct {
+		GitString string `git:"string"`
+		GitInt    int    `git:"int"`
+		GitBool   bool   `git:"bool"`
+		OsString  string `os:"string"`
+		OsInt     int    `os:"int"`
+		OsBool    bool   `os:"bool"`
+	}{}
+
+	assert.Nil(t, cfg.Unmarshal(v))
+
+	assert.Equal(t, "string", v.GitString)
+	assert.Equal(t, 1, v.GitInt)
+	assert.Equal(t, true, v.GitBool)
+	assert.Equal(t, "string", v.OsString)
+	assert.Equal(t, 1, v.OsInt)
+	assert.Equal(t, true, v.OsBool)
+}
+
+func TestUnmarshalErrsOnNonPointerType(t *testing.T) {
+	type T struct {
+		Foo string `git:"foo"`
+	}
+
+	cfg := NewFrom(Values{})
+
+	err := cfg.Unmarshal(T{})
+
+	assert.Equal(t, "lfs/config: unable to parse non-pointer type of config.T", err.Error())
+}
+
+func TestUnmarshalDoesNotOverrideNonZeroValues(t *testing.T) {
+	v := &struct {
+		String string `git:"string"`
+		Int    int    `git:"int"`
+		Bool   bool   `git:"bool"`
+	}{"foo", 1, true}
+
+	cfg := NewFrom(Values{
+		Git: map[string]string{
+			"string": "bar",
+			"int":    "2",
+			"bool":   "false",
+		},
+	})
+
+	err := cfg.Unmarshal(v)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", v.String)
+	assert.Equal(t, 1, v.Int)
+	assert.Equal(t, true, v.Bool)
+}
+
+func TestUnmarshalDoesNotAllowBothOsAndGitTags(t *testing.T) {
+	v := &struct {
+		String string `git:"string" os:"STRING"`
+	}{}
+
+	cfg := NewFrom(Values{})
+
+	err := cfg.Unmarshal(v)
+
+	assert.Equal(t, "lfs/config: ambiguous tags", err.Error())
+}
+
+func TestUnmarshalIgnoresUnknownEnvironments(t *testing.T) {
+	v := &struct {
+		String string `unknown:"string"`
+	}{}
+
+	cfg := NewFrom(Values{})
+
+	assert.Nil(t, cfg.Unmarshal(v))
+}
+
+func TestUnmarshalErrsOnUnsupportedTypes(t *testing.T) {
+	v := &struct {
+		Unsupported time.Duration `git:"duration"`
+	}{}
+
+	cfg := NewFrom(Values{
+		Git: map[string]string{"duration": "foo"},
+	})
+
+	err := cfg.Unmarshal(v)
+
+	assert.Equal(t, "lfs/config: unsupported target type for field \"Unsupported\": time.Duration", err.Error())
 }
