@@ -3,7 +3,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,7 +54,7 @@ type Configuration struct {
 	// Git provides a `*Environment` used to access to the various levels of
 	// `.gitconfig`'s. It is the point of entry for all Git environment
 	// configuration.
-	Git       *Environment
+	Git *Environment
 
 	//
 	gitConfig map[string]string
@@ -108,6 +110,94 @@ func NewFrom(v Values) *Configuration {
 
 		envVars: make(map[string]string, 0),
 	}
+}
+
+// Unmarshal unmarshals the *Configuration in context into all of `v`'s fields,
+// according to the following rules:
+//
+// Values are marshaled according to the given key and environment, as follows:
+//	type T struct {
+//		Field string `git:"key"`
+//		Other string `os:"key"`
+//	}
+//
+// If an unknown environment is given, an error will be returned. If there is no
+// method supporting conversion into a field's type, an error will be returned.
+// If no value is associated with the given key and environment, the field will
+// // only be modified if there is a config value present matching the given
+// key. If the field is already set to a non-zero value of that field's type,
+// then it will be left alone.
+//
+// Otherwise, the field will be set to the value of calling the
+// appropriately-typed method on the specified environment.
+func (c *Configuration) Unmarshal(v interface{}) error {
+	into := reflect.ValueOf(v)
+	if into.Kind() != reflect.Ptr {
+		return fmt.Errorf("lfs/config: unable to parse non-pointer type of %T", v)
+	}
+	into = into.Elem()
+
+	for i := 0; i < into.Type().NumField(); i++ {
+		field := into.Field(i)
+		sfield := into.Type().Field(i)
+
+		key, env, err := c.parseTag(sfield.Tag)
+		if err != nil {
+			return err
+		}
+
+		if env == nil {
+			continue
+		}
+
+		var val interface{}
+		switch sfield.Type.Kind() {
+		case reflect.String:
+			var ok bool
+
+			val, ok = env.Get(key)
+			if !ok {
+				val = field.String()
+			}
+		case reflect.Int:
+			val = env.Int(key, int(field.Int()))
+		case reflect.Bool:
+			val = env.Bool(key, field.Bool())
+		default:
+			return fmt.Errorf(
+				"lfs/config: unsupported target type for field %q: %v",
+				sfield.Name, sfield.Type.String())
+		}
+
+		if val != nil {
+			into.Field(i).Set(reflect.ValueOf(val))
+		}
+	}
+
+	return nil
+}
+
+// parseTag returns the key, environment, and optional error assosciated with a
+// given tag. It will return the XOR of either the `git` or `os` tag. That is to
+// say, a field tagged with EITHER `git` OR `os` is valid, but pone tagged with
+// both is not.
+//
+// If neither field was found, then a nil environment will be returned.
+func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env *Environment, err error) {
+	git, os := tag.Get("git"), tag.Get("os")
+
+	if len(git) != 0 && len(os) != 0 {
+		return "", nil, errors.New("lfs/config: ambiguous tags")
+	}
+
+	if len(git) != 0 {
+		return git, c.Git, nil
+	}
+	if len(os) != 0 {
+		return os, c.Os, nil
+	}
+
+	return
 }
 
 // Getenv is shorthand for `c.Os.Get(key)`.
