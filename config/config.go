@@ -28,21 +28,21 @@ var (
 type FetchPruneConfig struct {
 	// The number of days prior to current date for which (local) refs other than HEAD
 	// will be fetched with --recent (default 7, 0 = only fetch HEAD)
-	FetchRecentRefsDays int
+	FetchRecentRefsDays int `git:"lfs.fetchrecentrefsdays"`
 	// Makes the FetchRecentRefsDays option apply to remote refs from fetch source as well (default true)
-	FetchRecentRefsIncludeRemotes bool
+	FetchRecentRefsIncludeRemotes bool `git:"lfs.fetchrecentremoterefs"`
 	// number of days prior to latest commit on a ref that we'll fetch previous
 	// LFS changes too (default 0 = only fetch at ref)
-	FetchRecentCommitsDays int
+	FetchRecentCommitsDays int `git:"lfs.fetchrecentcommitsdays"`
 	// Whether to always fetch recent even without --recent
-	FetchRecentAlways bool
+	FetchRecentAlways bool `git:"lfs.fetchrecentalways"`
 	// Number of days added to FetchRecent*; data outside combined window will be
 	// deleted when prune is run. (default 3)
-	PruneOffsetDays int
+	PruneOffsetDays int `git:"lfs.pruneoffsetdays"`
 	// Always verify with remote before pruning
-	PruneVerifyRemoteAlways bool
+	PruneVerifyRemoteAlways bool `git:"lfs.pruneverifyremotealways"`
 	// Name of remote to check for unpushed and verify checks
-	PruneRemoteName string
+	PruneRemoteName string `git:"lfs.pruneremotetocheck"`
 }
 
 type Configuration struct {
@@ -450,21 +450,18 @@ func (c *Configuration) AllGitConfig() map[string]string {
 	return c.gitConfig
 }
 
-func (c *Configuration) FetchPruneConfig() (fetchconf FetchPruneConfig) {
-	fetchconf.FetchRecentRefsDays = c.GitConfigInt("lfs.fetchrecentrefsdays", 7)
-	fetchconf.FetchRecentRefsIncludeRemotes = c.GitConfigBool("lfs.fetchrecentremoterefs", true)
-	fetchconf.FetchRecentCommitsDays = c.GitConfigInt("lfs.fetchrecentcommitsdays", 0)
-	fetchconf.FetchRecentAlways = c.GitConfigBool("lfs.fetchrecentalways", false)
-	fetchconf.PruneOffsetDays = c.GitConfigInt("lfs.pruneoffsetdays", 3)
-	fetchconf.PruneVerifyRemoteAlways = c.GitConfigBool("lfs.pruneverifyremotealways", false)
-
-	if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
-		fetchconf.PruneRemoteName = v
-	} else {
-		fetchconf.PruneRemoteName = "origin"
+func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
+	f := &FetchPruneConfig{
+		FetchRecentRefsDays:           7,
+		FetchRecentRefsIncludeRemotes: true,
+		PruneOffsetDays:               3,
+		PruneRemoteName:               "origin",
 	}
 
-	return fetchconf
+	if err := c.Unmarshal(f); err != nil {
+		panic(err.Error())
+	}
+	return *f
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
