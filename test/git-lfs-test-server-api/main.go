@@ -250,7 +250,7 @@ func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
 	for _, o := range objs {
 		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
-	o, _, err := api.Batch(apiobjs, op, []string{"basic"})
+	o, _, err := api.Batch(config.Config, apiobjs, op, []string{"basic"})
 	if err != nil {
 		return nil, err
 	}

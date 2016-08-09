@@ -81,7 +81,7 @@ func DoRequest(req *http.Request, useCreds bool) (*http.Response, error) {
 	return httputil.DoHttpRequestWithRedirects(config.Config, req, via, useCreds)
 }
 
-func NewRequest(method, oid string) (*http.Request, error) {
+func NewRequest(cfg *config.Configuration, method, oid string) (*http.Request, error) {
 	objectOid := oid
 	operation := "download"
 	if method == "POST" {
@@ -91,7 +91,6 @@ func NewRequest(method, oid string) (*http.Request, error) {
 		}
 	}
 
-	cfg := config.Config
 	res, endpoint, err := auth.SshAuthenticate(cfg, operation, oid)
 	if err != nil {
 		tracerx.Printf("ssh: attempted with %s.  Error: %s",

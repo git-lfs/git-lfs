@@ -46,7 +46,7 @@ func (u *Uploadable) Path() string {
 
 // TODO LEGACY API: remove when legacy API removed
 func (u *Uploadable) LegacyCheck() (*api.ObjectResource, error) {
-	return api.UploadCheck(u.Oid(), u.Size())
+	return api.UploadCheck(config.Config, u.Oid(), u.Size())
 }
 
 // NewUploadable builds the Uploadable from the given information.
