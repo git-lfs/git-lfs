@@ -53,6 +53,7 @@ type TransferQueue struct {
 	retrywait         sync.WaitGroup
 	wait              sync.WaitGroup // Incremented on Add(), decremented on transfer complete or skip
 	oldApiWorkers     int            // Number of non-batch API workers to spawn (deprecated)
+	manifest          *transfer.Manifest
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
@@ -67,6 +68,7 @@ func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction
 		oldApiWorkers: config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
+		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
 	}
 
 	q.errorwait.Add(1)
@@ -107,7 +109,7 @@ func (q *TransferQueue) useAdapter(name string) {
 		// changing adapter support in between batches
 		q.finishAdapter()
 	}
-	q.adapter = transfer.NewAdapterOrDefault(name, q.direction)
+	q.adapter = q.manifest.NewAdapterOrDefault(name, q.direction)
 }
 
 func (q *TransferQueue) finishAdapter() {
@@ -330,7 +332,7 @@ func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
 func (q *TransferQueue) batchApiRoutine() {
 	var startProgress sync.Once
 
-	transferAdapterNames := transfer.GetAdapterNames(q.direction)
+	transferAdapterNames := q.manifest.GetAdapterNames(q.direction)
 
 	for {
 		batch := q.batcher.Next()

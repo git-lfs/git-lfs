@@ -21,8 +21,7 @@ func NewManifest() *Manifest {
 	}
 }
 
-func ConfiguredManifest(cfg *config.Configuration) *Manifest {
-	m := NewManifest()
+func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
 	m.basicTransfersOnly = cfg.BasicTransfersOnly()
 
 	configureBasicDownloadAdapter(m)

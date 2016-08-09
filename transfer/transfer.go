@@ -11,10 +11,6 @@ const (
 	Download = Direction(iota)
 )
 
-var (
-	transferconfig *Manifest
-)
-
 // NewTransferAdapterFunc creates new instances of TransferAdapter. Code that wishes
 // to provide new TransferAdapter instances should pass an implementation of this
 // function to RegisterNewTransferAdapterFunc
@@ -82,46 +78,4 @@ type TransferResult struct {
 	Transfer *Transfer
 	// This will be non-nil if there was an error transferring this item
 	Error error
-}
-
-// GetAdapterNames returns a list of the names of adapters available to be created
-func GetAdapterNames(dir Direction) []string {
-	return transferconfig.GetAdapterNames(dir)
-}
-
-// GetDownloadAdapterNames returns a list of the names of download adapters available to be created
-func GetDownloadAdapterNames() []string {
-	return transferconfig.GetDownloadAdapterNames()
-}
-
-// GetUploadAdapterNames returns a list of the names of upload adapters available to be created
-func GetUploadAdapterNames() []string {
-	return transferconfig.GetUploadAdapterNames()
-}
-
-// RegisterNewTransferAdapterFunc registers a new function for creating upload
-// or download adapters. If a function with that name & direction is already
-// registered, it is overridden
-func RegisterNewTransferAdapterFunc(name string, dir Direction, f NewTransferAdapterFunc) {
-	transferconfig.RegisterNewTransferAdapterFunc(name, dir, f)
-}
-
-// Create a new adapter by name and direction; default to BasicAdapterName if doesn't exist
-func NewAdapterOrDefault(name string, dir Direction) TransferAdapter {
-	return transferconfig.NewAdapterOrDefault(name, dir)
-}
-
-// Create a new adapter by name and direction, or nil if doesn't exist
-func NewAdapter(name string, dir Direction) TransferAdapter {
-	return transferconfig.NewAdapter(name, dir)
-}
-
-// Create a new download adapter by name, or BasicAdapterName if doesn't exist
-func NewDownloadAdapter(name string) TransferAdapter {
-	return transferconfig.NewAdapterOrDefault(name, Download)
-}
-
-// Create a new upload adapter by name, or BasicAdapterName if doesn't exist
-func NewUploadAdapter(name string) TransferAdapter {
-	return transferconfig.NewAdapterOrDefault(name, Upload)
 }
