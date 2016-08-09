@@ -14,13 +14,13 @@ type OsFetcher struct {
 	vmu sync.Mutex
 	// vals maintains a local cache of the system's enviornment variables
 	// for fast repeat lookups of a given key.
-	vals map[string]string
+	vals map[string]*string
 }
 
 // NewOsFetcher returns a new *OsFetcher.
 func NewOsFetcher() *OsFetcher {
 	return &OsFetcher{
-		vals: make(map[string]string),
+		vals: make(map[string]*string),
 	}
 }
 
@@ -33,16 +33,23 @@ func NewOsFetcher() *OsFetcher {
 // the cache or in the system, an empty string will be returned.
 //
 // Get is safe to call across multiple goroutines.
-func (o *OsFetcher) Get(key string) (val string) {
+func (o *OsFetcher) Get(key string) (val string, ok bool) {
 	o.vmu.Lock()
 	defer o.vmu.Unlock()
 
 	if i, ok := o.vals[key]; ok {
-		return i
+		if i == nil {
+			return "", false
+		}
+		return *i, true
 	}
 
-	v := os.Getenv(key)
-	o.vals[key] = v
+	v, ok := os.LookupEnv(key)
+	if ok {
+		o.vals[key] = &v
+	} else {
+		o.vals[key] = nil
+	}
 
-	return v
+	return v, ok
 }

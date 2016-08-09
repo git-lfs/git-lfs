@@ -3,10 +3,7 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,6 +49,14 @@ type Configuration struct {
 	// system environment configuration.
 	Os *Environment
 
+	// Git provides a `*Environment` used to access to the various levels of
+	// `.gitconfig`'s. It is the point of entry for all Git environment
+	// configuration.
+	Git       *Environment
+
+	//
+	gitConfig map[string]string
+
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
 	envVars         map[string]string
@@ -60,16 +65,12 @@ type Configuration struct {
 	IsDebuggingHttp bool
 	IsLoggingStats  bool
 
-	loading           sync.Mutex // guards initialization of gitConfig and remotes
-	gitConfig         map[string]string
-	origConfig        map[string]string
-	remotes           []string
-	extensions        map[string]Extension
-	fetchIncludePaths []string
-	fetchExcludePaths []string
-	fetchPruneConfig  *FetchPruneConfig
-	manualEndpoint    *Endpoint
-	parsedNetrc       netrcfinder
+	loading        sync.Mutex // guards initialization of gitConfig and remotes
+	origConfig     map[string]string
+	remotes        []string
+	extensions     map[string]Extension
+	manualEndpoint *Endpoint
+	parsedNetrc    netrcfinder
 }
 
 func New() *Configuration {
@@ -100,30 +101,19 @@ type Values struct {
 //
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
-	config := &Configuration{
-		Os: EnvironmentOf(mapFetcher(v.Os)),
+	return &Configuration{
+		Os:        EnvironmentOf(mapFetcher(v.Os)),
+		Git:       EnvironmentOf(mapFetcher(v.Git)),
+		gitConfig: v.Git,
 
-		gitConfig: make(map[string]string, 0),
-		envVars:   make(map[string]string, 0),
+		envVars: make(map[string]string, 0),
 	}
-
-	buf := bytes.NewBuffer([]byte{})
-	for k, v := range v.Git {
-		fmt.Fprintf(buf, "%s=%s\n", k, v)
-	}
-
-	config.readGitConfig(
-		string(buf.Bytes()),
-		map[string]bool{},
-		false,
-	)
-
-	return config
 }
 
 // Getenv is shorthand for `c.Os.Get(key)`.
 func (c *Configuration) Getenv(key string) string {
-	return c.Os.Get(key)
+	v, _ := c.Os.Get(key)
+	return v
 }
 
 // GetenvBool is shorthand for `c.Os.Bool(key, def)`.
@@ -287,12 +277,14 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 
 func (c *Configuration) FetchIncludePaths() []string {
 	c.loadGitConfig()
-	return c.fetchIncludePaths
+	patterns, _ := c.Git.Get("lfs.fetchinclude")
+	return tools.CleanPaths(patterns, ",")
 }
 
 func (c *Configuration) FetchExcludePaths() []string {
 	c.loadGitConfig()
-	return c.fetchExcludePaths
+	patterns, _ := c.Git.Get("lfs.fetchexclude")
+	return tools.CleanPaths(patterns, ",")
 }
 
 func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
@@ -344,32 +336,15 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 
 // GitConfigInt parses a git config value and returns it as an integer.
 func (c *Configuration) GitConfigInt(key string, def int) int {
-	s, _ := c.GitConfig(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	i, _ := strconv.Atoi(s)
-	if i < 1 {
-		return def
-	}
-
-	return i
+	c.loadGitConfig()
+	return c.Git.Int(strings.ToLower(key), def)
 }
 
 // GitConfigBool parses a git config value and returns true if defined as
 // true, 1, on, yes, or def if not defined
 func (c *Configuration) GitConfigBool(key string, def bool) bool {
-	s, _ := c.GitConfig(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	ret, err := parseConfigBool(s)
-	if err != nil {
-		return false
-	}
-	return ret
+	c.loadGitConfig()
+	return c.Git.Bool(strings.ToLower(key), def)
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
@@ -383,97 +358,40 @@ func (c *Configuration) AllGitConfig() map[string]string {
 	return c.gitConfig
 }
 
-func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
-	if c.fetchPruneConfig == nil {
-		c.fetchPruneConfig = &FetchPruneConfig{
-			FetchRecentRefsDays:           7,
-			FetchRecentRefsIncludeRemotes: true,
-			FetchRecentCommitsDays:        0,
-			PruneOffsetDays:               3,
-			PruneVerifyRemoteAlways:       false,
-			PruneRemoteName:               "origin",
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {
-			n, err := strconv.Atoi(v)
-			if err == nil && n >= 0 {
-				c.fetchPruneConfig.FetchRecentRefsDays = n
-			}
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentremoterefs"); ok {
-			if b, err := parseConfigBool(v); err == nil {
-				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = b
-			}
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentcommitsdays"); ok {
-			n, err := strconv.Atoi(v)
-			if err == nil && n >= 0 {
-				c.fetchPruneConfig.FetchRecentCommitsDays = n
-			}
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentalways"); ok {
-			if b, err := parseConfigBool(v); err == nil {
-				c.fetchPruneConfig.FetchRecentAlways = b
-			}
-		}
-		if v, ok := c.GitConfig("lfs.pruneoffsetdays"); ok {
-			n, err := strconv.Atoi(v)
-			if err == nil && n >= 0 {
-				c.fetchPruneConfig.PruneOffsetDays = n
-			}
-		}
-		if v, ok := c.GitConfig("lfs.pruneverifyremotealways"); ok {
-			if b, err := parseConfigBool(v); err == nil {
-				c.fetchPruneConfig.PruneVerifyRemoteAlways = b
-			}
-		}
-		if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
-			c.fetchPruneConfig.PruneRemoteName = v
-		}
+func (c *Configuration) FetchPruneConfig() (fetchconf FetchPruneConfig) {
+	fetchconf.FetchRecentRefsDays = c.GitConfigInt("lfs.fetchrecentrefsdays", 7)
+	fetchconf.FetchRecentRefsIncludeRemotes = c.GitConfigBool("lfs.fetchrecentremoterefs", true)
+	fetchconf.FetchRecentCommitsDays = c.GitConfigInt("lfs.fetchrecentcommitsdays", 0)
+	fetchconf.FetchRecentAlways = c.GitConfigBool("lfs.fetchrecentalways", false)
+	fetchconf.PruneOffsetDays = c.GitConfigInt("lfs.pruneoffsetdays", 3)
+	fetchconf.PruneVerifyRemoteAlways = c.GitConfigBool("lfs.pruneverifyremotealways", false)
 
+	if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
+		fetchconf.PruneRemoteName = v
+	} else {
+		fetchconf.PruneRemoteName = "origin"
 	}
-	return c.fetchPruneConfig
+
+	return fetchconf
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
 	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
 }
 
-func parseConfigBool(str string) (bool, error) {
-	switch strings.ToLower(str) {
-	case "true", "1", "on", "yes", "t":
-		return true, nil
-	case "false", "0", "off", "no", "f":
-		return false, nil
-	}
-	return false, fmt.Errorf("Unable to parse %q as a boolean", str)
-}
-
 func (c *Configuration) loadGitConfig() bool {
 	c.loading.Lock()
 	defer c.loading.Unlock()
 
-	if c.gitConfig != nil {
+	if c.Git != nil {
 		return false
 	}
 
-	c.gitConfig = make(map[string]string)
-	c.extensions = make(map[string]Extension)
-	uniqRemotes := make(map[string]bool)
+	gf, extensions, uniqRemotes := ReadGitConfig(getGitConfigs()...)
 
-	configFiles := []string{
-		filepath.Join(LocalWorkingDir, ".lfsconfig"),
-
-		// TODO: remove .gitconfig support for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
-		filepath.Join(LocalWorkingDir, ".gitconfig"),
-	}
-	c.readGitConfigFromFiles(configFiles, 0, uniqRemotes)
-
-	listOutput, err := git.Config.List()
-	if err != nil {
-		panic(fmt.Errorf("Error listing git config: %s", err))
-	}
-
-	c.readGitConfig(listOutput, uniqRemotes, false)
+	c.Git = EnvironmentOf(gf)
+	c.gitConfig = gf.vals // XXX TERRIBLE
+	c.extensions = extensions
 
 	c.remotes = make([]string, 0, len(uniqRemotes))
 	for remote, isOrigin := range uniqRemotes {
@@ -486,130 +404,7 @@ func (c *Configuration) loadGitConfig() bool {
 	return true
 }
 
-func (c *Configuration) readGitConfigFromFiles(filenames []string, filenameIndex int, uniqRemotes map[string]bool) {
-	filename := filenames[filenameIndex]
-	_, err := os.Stat(filename)
-	if err == nil {
-		if filenameIndex > 0 && ShowConfigWarnings {
-			expected := ".lfsconfig"
-			fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from %q, not %q. Rename to %q before Git LFS v2.0 to remove this warning.\n",
-				filepath.Base(filename), expected, expected)
-		}
-
-		fileOutput, err := git.Config.ListFromFile(filename)
-		if err != nil {
-			panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
-		}
-		c.readGitConfig(fileOutput, uniqRemotes, true)
-		return
-	}
-
-	if os.IsNotExist(err) {
-		newIndex := filenameIndex + 1
-		if len(filenames) > newIndex {
-			c.readGitConfigFromFiles(filenames, newIndex, uniqRemotes)
-		}
-		return
-	}
-
-	panic(fmt.Errorf("Error listing git config from %s: %s", filename, err))
-}
-
-func (c *Configuration) readGitConfig(output string, uniqRemotes map[string]bool, onlySafe bool) {
-	lines := strings.Split(output, "\n")
-	uniqKeys := make(map[string]string)
-
-	for _, line := range lines {
-		pieces := strings.SplitN(line, "=", 2)
-		if len(pieces) < 2 {
-			continue
-		}
-
-		allowed := !onlySafe
-		key := strings.ToLower(pieces[0])
-		value := pieces[1]
-
-		if origKey, ok := uniqKeys[key]; ok {
-			if ShowConfigWarnings && c.gitConfig[key] != value && strings.HasPrefix(key, gitConfigWarningPrefix) {
-				fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
-				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, c.gitConfig[key])
-				fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], value)
-			}
-		} else {
-			uniqKeys[key] = pieces[0]
-		}
-
-		keyParts := strings.Split(key, ".")
-		if len(keyParts) == 4 && keyParts[0] == "lfs" && keyParts[1] == "extension" {
-			name := keyParts[2]
-			ext := c.extensions[name]
-			switch keyParts[3] {
-			case "clean":
-				if onlySafe {
-					continue
-				}
-				ext.Clean = value
-			case "smudge":
-				if onlySafe {
-					continue
-				}
-				ext.Smudge = value
-			case "priority":
-				allowed = true
-				p, err := strconv.Atoi(value)
-				if err == nil && p >= 0 {
-					ext.Priority = p
-				}
-			}
-
-			ext.Name = name
-			c.extensions[name] = ext
-		} else if len(keyParts) > 1 && keyParts[0] == "remote" {
-			if onlySafe && (len(keyParts) == 3 && keyParts[2] != "lfsurl") {
-				continue
-			}
-
-			allowed = true
-			remote := keyParts[1]
-			uniqRemotes[remote] = remote == "origin"
-		} else if len(keyParts) > 2 && keyParts[len(keyParts)-1] == "access" {
-			allowed = true
-		}
-
-		if !allowed && keyIsUnsafe(key) {
-			continue
-		}
-
-		c.gitConfig[key] = value
-
-		if len(keyParts) == 2 && keyParts[0] == "lfs" {
-			switch keyParts[1] {
-			case "fetchinclude":
-				c.fetchIncludePaths = tools.CleanPaths(value, ",")
-			case "fetchexclude":
-				c.fetchExcludePaths = tools.CleanPaths(value, ",")
-			}
-		}
-	}
-}
-
-func keyIsUnsafe(key string) bool {
-	for _, safe := range safeKeys {
-		if safe == key {
-			return false
-		}
-	}
-	return true
-}
-
-var safeKeys = []string{
-	"lfs.fetchexclude",
-	"lfs.fetchinclude",
-	"lfs.gitprotocol",
-	"lfs.url",
-}
-
-// only used for tests
+// XXX(taylor): remove mutability
 func (c *Configuration) SetConfig(key, value string) {
 	if c.loadGitConfig() {
 		c.loading.Lock()
@@ -623,6 +418,7 @@ func (c *Configuration) SetConfig(key, value string) {
 	c.gitConfig[key] = value
 }
 
+// XXX(taylor): remove mutability
 func (c *Configuration) ClearConfig() {
 	if c.loadGitConfig() {
 		c.loading.Lock()
@@ -634,11 +430,18 @@ func (c *Configuration) ClearConfig() {
 	}
 
 	c.gitConfig = make(map[string]string)
+	if gf, ok := c.Git.Fetcher.(*GitFetcher); ok {
+		gf.vals = c.gitConfig
+	}
 }
 
+// XXX(taylor): remove mutability
 func (c *Configuration) ResetConfig() {
 	c.loading.Lock()
 	c.gitConfig = make(map[string]string)
+	if gf, ok := c.Git.Fetcher.(*GitFetcher); ok {
+		gf.vals = c.gitConfig
+	}
 	for k, v := range c.origConfig {
 		c.gitConfig[k] = v
 	}

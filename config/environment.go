@@ -23,7 +23,7 @@ func EnvironmentOf(f Fetcher) *Environment {
 }
 
 // Get is shorthand for calling `e.Fetcher.Get(key)`.
-func (e *Environment) Get(key string) (val string) {
+func (e *Environment) Get(key string) (val string, ok bool) {
 	return e.Fetcher.Get(key)
 }
 
@@ -38,7 +38,7 @@ func (e *Environment) Get(key string) (val string) {
 // 2) false if...
 //   "false", "0", "off", "no", "f", or otherwise.
 func (e *Environment) Bool(key string, def bool) (val bool) {
-	s := e.Fetcher.Get(key)
+	s, _ := e.Fetcher.Get(key)
 	if len(s) == 0 {
 		return def
 	}
@@ -63,7 +63,7 @@ func (e *Environment) Bool(key string, def bool) (val bool) {
 // Otherwise, if the value was converted `string -> int` successfully, then it
 // will be returned wholesale.
 func (e *Environment) Int(key string, def int) (val int) {
-	s := e.Fetcher.Get(key)
+	s, _ := e.Fetcher.Get(key)
 	if len(s) == 0 {
 		return def
 	}

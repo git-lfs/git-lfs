@@ -20,14 +20,19 @@ func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
 	})
 
 	env := EnvironmentOf(fetcher)
-	val := env.Get("foo")
+	val, ok := env.Get("foo")
 
+	assert.True(t, ok)
 	assert.Equal(t, "bar", val)
+}
+
+func TestEnvironmentUnsetBoolDefault(t *testing.T) {
+	env := EnvironmentOf(MapFetcher(nil))
+	assert.True(t, env.Bool("unset", true))
 }
 
 func TestEnvironmentBoolTruthyConversion(t *testing.T) {
 	for _, c := range []EnvironmentConversionTestCase{
-		{"", true, GetBoolDefault(true)},
 		{"", false, GetBoolDefault(false)},
 
 		{"true", true, GetBoolDefault(false)},

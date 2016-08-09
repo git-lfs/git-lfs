@@ -4,7 +4,7 @@ package config
 // "source". These sources could be the OS enviornment, a .gitconfig, or even
 // just a `map`.
 type Fetcher interface {
-	// Get returns the string value assosicated with a given key, or an
-	// empty string if none exists.
-	Get(key string) (val string)
+	// Get returns the string value associated with a given key and a bool
+	// determining if the key exists.
+	Get(key string) (val string, ok bool)
 }
