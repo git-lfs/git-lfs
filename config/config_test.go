@@ -604,7 +604,24 @@ func TestUnmarshalErrsOnNonPointerType(t *testing.T) {
 	assert.Equal(t, "lfs/config: unable to parse non-pointer type of config.T", err.Error())
 }
 
-func TestUnmarshalDoesNotOverrideNonZeroValues(t *testing.T) {
+func TestUnmarshalLeavesNonZeroValuesWhenKeysEmpty(t *testing.T) {
+	v := &struct {
+		String string `git:"string"`
+		Int    int    `git:"int"`
+		Bool   bool   `git:"bool"`
+	}{"foo", 1, true}
+
+	cfg := NewFrom(Values{})
+
+	err := cfg.Unmarshal(v)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", v.String)
+	assert.Equal(t, 1, v.Int)
+	assert.Equal(t, true, v.Bool)
+}
+
+func TestUnmarshalOverridesNonZeroValuesWhenValuesPresent(t *testing.T) {
 	v := &struct {
 		String string `git:"string"`
 		Int    int    `git:"int"`
@@ -622,9 +639,9 @@ func TestUnmarshalDoesNotOverrideNonZeroValues(t *testing.T) {
 	err := cfg.Unmarshal(v)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "foo", v.String)
-	assert.Equal(t, 1, v.Int)
-	assert.Equal(t, true, v.Bool)
+	assert.Equal(t, "bar", v.String)
+	assert.Equal(t, 2, v.Int)
+	assert.Equal(t, false, v.Bool)
 }
 
 func TestUnmarshalDoesNotAllowBothOsAndGitTags(t *testing.T) {

@@ -124,8 +124,9 @@ func NewFrom(v Values) *Configuration {
 // If an unknown environment is given, an error will be returned. If there is no
 // method supporting conversion into a field's type, an error will be returned.
 // If no value is associated with the given key and environment, the field will
-// be left alone. If the field is already set to a non-zero value of that
-// field's type, then it will be left alone.
+// // only be modified if there is a config value present matching the given
+// key. If the field is already set to a non-zero value of that field's type,
+// then it will be left alone.
 //
 // Otherwise, the field will be set to the value of calling the
 // appropriately-typed method on the specified environment.
@@ -140,11 +141,6 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 		field := into.Field(i)
 		sfield := into.Type().Field(i)
 
-		zero := reflect.Zero(field.Type())
-		if field.Interface() != zero.Interface() {
-			continue
-		}
-
 		key, env, err := c.parseTag(sfield.Tag)
 		if err != nil {
 			return err
@@ -157,11 +153,16 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 		var val interface{}
 		switch sfield.Type.Kind() {
 		case reflect.String:
-			val, _ = env.Get(key)
+			var ok bool
+
+			val, ok = env.Get(key)
+			if !ok {
+				val = field.String()
+			}
 		case reflect.Int:
-			val = env.Int(key, 0)
+			val = env.Int(key, int(field.Int()))
 		case reflect.Bool:
-			val = env.Bool(key, false)
+			val = env.Bool(key, field.Bool())
 		default:
 			return fmt.Errorf(
 				"lfs/config: unsupported target type for field %q: %v",
