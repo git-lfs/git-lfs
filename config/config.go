@@ -53,6 +53,8 @@ type Configuration struct {
 	// `.gitconfig`'s. It is the point of entry for all Git environment
 	// configuration.
 	Git       *Environment
+
+	//
 	gitConfig map[string]string
 
 	CurrentRemote   string
@@ -63,13 +65,12 @@ type Configuration struct {
 	IsDebuggingHttp bool
 	IsLoggingStats  bool
 
-	loading          sync.Mutex // guards initialization of gitConfig and remotes
-	origConfig       map[string]string
-	remotes          []string
-	extensions       map[string]Extension
-	fetchPruneConfig *FetchPruneConfig
-	manualEndpoint   *Endpoint
-	parsedNetrc      netrcfinder
+	loading        sync.Mutex // guards initialization of gitConfig and remotes
+	origConfig     map[string]string
+	remotes        []string
+	extensions     map[string]Extension
+	manualEndpoint *Endpoint
+	parsedNetrc    netrcfinder
 }
 
 func New() *Configuration {
@@ -357,69 +358,25 @@ func (c *Configuration) AllGitConfig() map[string]string {
 	return c.gitConfig
 }
 
-func (c *Configuration) FetchPruneConfig() *FetchPruneConfig {
-	if c.fetchPruneConfig == nil {
-		c.fetchPruneConfig = &FetchPruneConfig{
-			FetchRecentRefsDays:           7,
-			FetchRecentRefsIncludeRemotes: true,
-			FetchRecentCommitsDays:        0,
-			PruneOffsetDays:               3,
-			PruneVerifyRemoteAlways:       false,
-			PruneRemoteName:               "origin",
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentrefsdays"); ok {
-			n, err := strconv.Atoi(v)
-			if err == nil && n >= 0 {
-				c.fetchPruneConfig.FetchRecentRefsDays = n
-			}
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentremoterefs"); ok {
-			if b, err := parseConfigBool(v); err == nil {
-				c.fetchPruneConfig.FetchRecentRefsIncludeRemotes = b
-			}
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentcommitsdays"); ok {
-			n, err := strconv.Atoi(v)
-			if err == nil && n >= 0 {
-				c.fetchPruneConfig.FetchRecentCommitsDays = n
-			}
-		}
-		if v, ok := c.GitConfig("lfs.fetchrecentalways"); ok {
-			if b, err := parseConfigBool(v); err == nil {
-				c.fetchPruneConfig.FetchRecentAlways = b
-			}
-		}
-		if v, ok := c.GitConfig("lfs.pruneoffsetdays"); ok {
-			n, err := strconv.Atoi(v)
-			if err == nil && n >= 0 {
-				c.fetchPruneConfig.PruneOffsetDays = n
-			}
-		}
-		if v, ok := c.GitConfig("lfs.pruneverifyremotealways"); ok {
-			if b, err := parseConfigBool(v); err == nil {
-				c.fetchPruneConfig.PruneVerifyRemoteAlways = b
-			}
-		}
-		if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
-			c.fetchPruneConfig.PruneRemoteName = v
-		}
+func (c *Configuration) FetchPruneConfig() (fetchconf FetchPruneConfig) {
+	fetchconf.FetchRecentRefsDays = c.GitConfigInt("lfs.fetchrecentrefsdays", 7)
+	fetchconf.FetchRecentRefsIncludeRemotes = c.GitConfigBool("lfs.fetchrecentremoterefs", true)
+	fetchconf.FetchRecentCommitsDays = c.GitConfigInt("lfs.fetchrecentcommitsdays", 0)
+	fetchconf.FetchRecentAlways = c.GitConfigBool("lfs.fetchrecentalways", false)
+	fetchconf.PruneOffsetDays = c.GitConfigInt("lfs.pruneoffsetdays", 3)
+	fetchconf.PruneVerifyRemoteAlways = c.GitConfigBool("lfs.pruneverifyremotealways", false)
 
+	if v, ok := c.GitConfig("lfs.pruneremotetocheck"); ok {
+		fetchconf.PruneRemoteName = v
+	} else {
+		fetchconf.PruneRemoteName = "origin"
 	}
-	return c.fetchPruneConfig
+
+	return fetchconf
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
 	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
-}
-
-func parseConfigBool(str string) (bool, error) {
-	switch strings.ToLower(str) {
-	case "true", "1", "on", "yes", "t":
-		return true, nil
-	case "false", "0", "off", "no", "f":
-		return false, nil
-	}
-	return false, fmt.Errorf("Unable to parse %q as a boolean", str)
 }
 
 func (c *Configuration) loadGitConfig() bool {

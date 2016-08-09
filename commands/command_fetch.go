@@ -100,9 +100,10 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if fetchPruneArg {
-		verify := cfg.FetchPruneConfig().PruneVerifyRemoteAlways
+		fetchconf := cfg.FetchPruneConfig()
+		verify := fetchconf.PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
-		prune(verify, false, false)
+		prune(fetchconf, verify, false, false)
 	}
 
 	if !success {
