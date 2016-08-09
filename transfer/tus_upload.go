@@ -156,8 +156,8 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferP
 	return api.VerifyUpload(t.Object)
 }
 
-func init() {
-	newfunc := func(name string, dir Direction) TransferAdapter {
+func configureTusAdapter(m *Manifest) {
+	m.RegisterNewTransferAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) TransferAdapter {
 		switch dir {
 		case Upload:
 			bu := &tusUploadAdapter{newAdapterBase(name, dir, nil)}
@@ -168,6 +168,5 @@ func init() {
 			panic("Should never ask tus.io to download")
 		}
 		return nil
-	}
-	RegisterNewTransferAdapterFunc(TusAdapterName, Upload, newfunc)
+	})
 }

@@ -2,14 +2,7 @@
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package transfer
 
-import (
-	"sync"
-
-	"github.com/github/git-lfs/config"
-
-	"github.com/github/git-lfs/api"
-	"github.com/rubyist/tracerx"
-)
+import "github.com/github/git-lfs/api"
 
 type Direction int
 
@@ -18,17 +11,15 @@ const (
 	Download = Direction(iota)
 )
 
+var (
+	transferconfig *Manifest
+)
+
 // NewTransferAdapterFunc creates new instances of TransferAdapter. Code that wishes
 // to provide new TransferAdapter instances should pass an implementation of this
 // function to RegisterNewTransferAdapterFunc
 // name and dir are to provide context if one func implements many instances
 type NewTransferAdapterFunc func(name string, dir Direction) TransferAdapter
-
-var (
-	funcMutex            sync.Mutex
-	downloadAdapterFuncs = make(map[string]NewTransferAdapterFunc)
-	uploadAdapterFuncs   = make(map[string]NewTransferAdapterFunc)
-)
 
 type TransferProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
@@ -95,125 +86,42 @@ type TransferResult struct {
 
 // GetAdapterNames returns a list of the names of adapters available to be created
 func GetAdapterNames(dir Direction) []string {
-	switch dir {
-	case Upload:
-		return GetUploadAdapterNames()
-	case Download:
-		return GetDownloadAdapterNames()
-	}
-	return nil
+	return transferconfig.GetAdapterNames(dir)
 }
 
 // GetDownloadAdapterNames returns a list of the names of download adapters available to be created
 func GetDownloadAdapterNames() []string {
-
-	if config.Config.BasicTransfersOnly() {
-		return []string{BasicAdapterName}
-	}
-
-	initCoreAdaptersIfRequired()
-
-	funcMutex.Lock()
-	defer funcMutex.Unlock()
-
-	ret := make([]string, 0, len(downloadAdapterFuncs))
-	for n, _ := range downloadAdapterFuncs {
-		ret = append(ret, n)
-	}
-	return ret
+	return transferconfig.GetDownloadAdapterNames()
 }
 
 // GetUploadAdapterNames returns a list of the names of upload adapters available to be created
 func GetUploadAdapterNames() []string {
-
-	if config.Config.BasicTransfersOnly() {
-		return []string{BasicAdapterName}
-	}
-
-	initCoreAdaptersIfRequired()
-
-	funcMutex.Lock()
-	defer funcMutex.Unlock()
-
-	ret := make([]string, 0, len(uploadAdapterFuncs))
-	for n, _ := range uploadAdapterFuncs {
-		ret = append(ret, n)
-	}
-	return ret
+	return transferconfig.GetUploadAdapterNames()
 }
 
 // RegisterNewTransferAdapterFunc registers a new function for creating upload
 // or download adapters. If a function with that name & direction is already
 // registered, it is overridden
 func RegisterNewTransferAdapterFunc(name string, dir Direction, f NewTransferAdapterFunc) {
-	funcMutex.Lock()
-	defer funcMutex.Unlock()
-
-	switch dir {
-	case Upload:
-		uploadAdapterFuncs[name] = f
-	case Download:
-		downloadAdapterFuncs[name] = f
-	}
+	transferconfig.RegisterNewTransferAdapterFunc(name, dir, f)
 }
 
 // Create a new adapter by name and direction; default to BasicAdapterName if doesn't exist
 func NewAdapterOrDefault(name string, dir Direction) TransferAdapter {
-	if len(name) == 0 {
-		name = BasicAdapterName
-	}
-
-	a := NewAdapter(name, dir)
-	if a == nil {
-		tracerx.Printf("Defaulting to basic transfer adapter since %q did not exist", name)
-		a = NewAdapter(BasicAdapterName, dir)
-	}
-	return a
+	return transferconfig.NewAdapterOrDefault(name, dir)
 }
 
 // Create a new adapter by name and direction, or nil if doesn't exist
 func NewAdapter(name string, dir Direction) TransferAdapter {
-	initCoreAdaptersIfRequired()
-
-	funcMutex.Lock()
-	defer funcMutex.Unlock()
-
-	switch dir {
-	case Upload:
-		if u, ok := uploadAdapterFuncs[name]; ok {
-			return u(name, dir)
-		}
-	case Download:
-		if d, ok := downloadAdapterFuncs[name]; ok {
-			return d(name, dir)
-		}
-	}
-	return nil
+	return transferconfig.NewAdapter(name, dir)
 }
 
 // Create a new download adapter by name, or BasicAdapterName if doesn't exist
 func NewDownloadAdapter(name string) TransferAdapter {
-	return NewAdapterOrDefault(name, Download)
+	return transferconfig.NewAdapterOrDefault(name, Download)
 }
 
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func NewUploadAdapter(name string) TransferAdapter {
-	return NewAdapterOrDefault(name, Upload)
-}
-
-var initCoreOnce sync.Once
-
-func initCoreAdaptersIfRequired() {
-	// It's important to late-init custom adapters because they rely on Config
-	// And if we cause Config to load too early it causes issues
-	// That's why this isn't in an init() block
-	initCoreOnce.Do(func() {
-		ConfigureCustomAdapters()
-
-		// tus.io upload adapter is still experimental, requires
-		// `lfs.tustransfers=true` to activate.
-		if !config.Config.TusTransfersAllowed() {
-			delete(uploadAdapterFuncs, TusAdapterName)
-		}
-	})
+	return transferconfig.NewAdapterOrDefault(name, Upload)
 }
