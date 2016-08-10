@@ -116,7 +116,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(t.Object)
+	return api.VerifyUpload(config.Config, t.Object)
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the

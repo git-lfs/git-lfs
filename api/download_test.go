@@ -73,11 +73,14 @@ func TestSuccessfulDownload(t *testing.T) {
 		w.Write(by)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.batch", "false")
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.batch": "false",
+			"lfs.url":   server.URL + "/media",
+		},
+	})
 
-	obj, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	obj, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -179,12 +182,15 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 		w.Write(by)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.batch", "false")
-	config.Config.SetConfig("lfs.url", server.URL+"/redirect")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.batch": "false",
+			"lfs.url":   server.URL + "/redirect",
+		},
+	})
 
 	for _, redirect := range redirectCodes {
-		obj, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+		obj, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 		if err != nil {
 			if isDockerConnectionError(err) {
 				return
@@ -257,10 +263,14 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 		w.Write(by)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.batch", "false")
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	obj, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.batch": "false",
+			"lfs.url":   server.URL + "/media",
+		},
+	})
+
+	obj, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -291,10 +301,14 @@ func TestDownloadAPIError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.batch", "false")
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
-	_, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.batch": "false",
+			"lfs.url":   server.URL + "/media",
+		},
+	})
+
+	_, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err == nil {
 		t.Fatal("no error?")
 	}
