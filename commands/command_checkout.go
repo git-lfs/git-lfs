@@ -120,7 +120,9 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
 	}
-	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, cfg.Getenv("GIT_LFS_PROGRESS"))
+
+	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
+	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, logPath)
 	progress.Start()
 	totalBytes = 0
 	for _, pointer := range pointers {

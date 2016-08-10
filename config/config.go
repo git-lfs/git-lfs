@@ -202,12 +202,6 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env *Enviro
 	return
 }
 
-// Getenv is shorthand for `c.Os.Get(key)`.
-func (c *Configuration) Getenv(key string) string {
-	v, _ := c.Os.Get(key)
-	return v
-}
-
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
 // the forpush argument is to cater for separate remote.name.pushurl settings
 func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {

@@ -20,24 +20,24 @@ func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Req
 	}
 
 	if len(https_proxy) == 0 {
-		https_proxy = c.Getenv("HTTPS_PROXY")
+		https_proxy, _ = c.Os.Get("HTTPS_PROXY")
 	}
 
 	if len(https_proxy) == 0 {
-		https_proxy = c.Getenv("https_proxy")
+		https_proxy, _ = c.Os.Get("https_proxy")
 	}
 
 	if len(http_proxy) == 0 {
-		http_proxy = c.Getenv("HTTP_PROXY")
+		http_proxy, _ = c.Os.Get("HTTP_PROXY")
 	}
 
 	if len(http_proxy) == 0 {
-		http_proxy = c.Getenv("http_proxy")
+		http_proxy, _ = c.Os.Get("http_proxy")
 	}
 
-	no_proxy := c.Getenv("NO_PROXY")
+	no_proxy, _ := c.Os.Get("NO_PROXY")
 	if len(no_proxy) == 0 {
-		no_proxy = c.Getenv("no_proxy")
+		no_proxy, _ = c.Os.Get("no_proxy")
 	}
 
 	return func(req *http.Request) (*url.URL, error) {
