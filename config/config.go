@@ -492,30 +492,3 @@ func (c *Configuration) loadGitConfig() bool {
 
 	return true
 }
-
-// XXX(taylor): remove mutability
-func (c *Configuration) SetConfig(key, value string) {
-	if c.loadGitConfig() {
-		c.loading.Lock()
-		c.origConfig = make(map[string]string)
-		for k, v := range c.gitConfig {
-			c.origConfig[k] = v
-		}
-		c.loading.Unlock()
-	}
-
-	c.gitConfig[key] = value
-}
-
-// XXX(taylor): remove mutability
-func (c *Configuration) ResetConfig() {
-	c.loading.Lock()
-	c.gitConfig = make(map[string]string)
-	if gf, ok := c.Git.Fetcher.(*GitFetcher); ok {
-		gf.vals = c.gitConfig
-	}
-	for k, v := range c.origConfig {
-		c.gitConfig[k] = v
-	}
-	c.loading.Unlock()
-}
