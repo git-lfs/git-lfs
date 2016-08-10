@@ -395,7 +395,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	api.VerifyUpload(o)
+	api.VerifyUpload(cfg, o)
 
 	if !postCalled {
 		t.Errorf("POST not called")
@@ -571,7 +571,7 @@ func TestUploadVerifyError(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	err = api.VerifyUpload(o)
+	err = api.VerifyUpload(cfg, o)
 	if err == nil {
 		t.Fatal("verify should fail")
 	}

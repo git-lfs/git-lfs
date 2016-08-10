@@ -66,7 +66,7 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 		return nil, "", errutil.Error(err)
 	}
 
-	req, err := NewBatchRequest(operation)
+	req, err := NewBatchRequest(cfg, operation)
 	if err != nil {
 		return nil, "", errutil.Error(err)
 	}
@@ -78,7 +78,7 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 
 	tracerx.Printf("api: batch %d files", len(objects))
 
-	res, bresp, err := DoBatchRequest(req)
+	res, bresp, err := DoBatchRequest(cfg, req)
 
 	if err != nil {
 
@@ -143,7 +143,7 @@ func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, erro
 		return nil, errutil.Error(err)
 	}
 
-	res, obj, err := DoLegacyRequest(req)
+	res, obj, err := DoLegacyRequest(cfg, req)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectReso
 	req.Body = tools.NewReadSeekCloserWrapper(bytes.NewReader(by))
 
 	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, err := DoLegacyRequest(req)
+	res, obj, err := DoLegacyRequest(cfg, req)
 
 	if err != nil {
 		if errutil.IsAuthError(err) {

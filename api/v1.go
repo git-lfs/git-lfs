@@ -18,8 +18,7 @@ const (
 )
 
 // doLegacyApiRequest runs the request to the LFS legacy API.
-func DoLegacyRequest(req *http.Request) (*http.Response, *ObjectResource, error) {
-	cfg := config.Config
+func DoLegacyRequest(cfg *config.Configuration, req *http.Request) (*http.Response, *ObjectResource, error) {
 	via := make([]*http.Request, 0, 4)
 	res, err := httputil.DoHttpRequestWithRedirects(cfg, req, via, true)
 	if err != nil {
@@ -51,8 +50,7 @@ type batchResponse struct {
 // 401, the repo will be marked as having private access and the request will be
 // re-run. When the repo is marked as having private access, credentials will
 // be retrieved.
-func DoBatchRequest(req *http.Request) (*http.Response, *batchResponse, error) {
-	cfg := config.Config
+func DoBatchRequest(cfg *config.Configuration, req *http.Request) (*http.Response, *batchResponse, error) {
 	res, err := DoRequest(req, cfg.PrivateAccess(auth.GetOperationForRequest(req)))
 
 	if err != nil {
@@ -117,8 +115,7 @@ func NewRequest(cfg *config.Configuration, method, oid string) (*http.Request, e
 	return req, nil
 }
 
-func NewBatchRequest(operation string) (*http.Request, error) {
-	cfg := config.Config
+func NewBatchRequest(cfg *config.Configuration, operation string) (*http.Request, error) {
 	res, endpoint, err := auth.SshAuthenticate(cfg, operation, "")
 	if err != nil {
 		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",

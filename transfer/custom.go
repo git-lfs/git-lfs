@@ -319,7 +319,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				if err = api.VerifyUpload(t.Object); err != nil {
+				if err = api.VerifyUpload(config.Config, t.Object); err != nil {
 					return err
 				}
 			}
