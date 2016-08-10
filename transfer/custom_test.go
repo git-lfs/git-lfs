@@ -32,7 +32,7 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 	assert.Equal(t, cd.concurrent, true, "concurrent should be defaulted")
 }
 
-func xTestCustomTransferDownloadConfig(t *testing.T) {
+func TestCustomTransferDownloadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
 	cfg := config.NewFrom(config.Values{
@@ -60,7 +60,7 @@ func xTestCustomTransferDownloadConfig(t *testing.T) {
 	assert.Equal(t, cd.concurrent, false, "concurrent should be set")
 }
 
-func xTestCustomTransferUploadConfig(t *testing.T) {
+func TestCustomTransferUploadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
 	cfg := config.NewFrom(config.Values{
