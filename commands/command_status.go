@@ -9,10 +9,6 @@ import (
 )
 
 var (
-	statusCmd = &cobra.Command{
-		Use: "status",
-		Run: statusCommand,
-	}
 	porcelain = false
 )
 
@@ -101,6 +97,13 @@ func humanizeBytes(bytes int64) string {
 }
 
 func init() {
-	statusCmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
-	RootCmd.AddCommand(statusCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "status",
+			Run: statusCommand,
+		}
+
+		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
+		return cmd
+	})
 }

@@ -16,10 +16,6 @@ var (
 	errLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
 
 	unlockCmdFlags unlockFlags
-	unlockCmd      = &cobra.Command{
-		Use: "unlock",
-		Run: unlockCommand,
-	}
 )
 
 // unlockFlags holds the flags given to the `git lfs unlock` command
@@ -97,12 +93,19 @@ func lockIdFromPath(path string) (string, error) {
 }
 
 func init() {
-	unlockCmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+	RegisterSubcommand(func() *cobra.Command {
+		if !isCommandEnabled(cfg, "locks") {
+			return nil
+		}
 
-	unlockCmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
-	unlockCmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
+		cmd := &cobra.Command{
+			Use: "unlock",
+			Run: unlockCommand,
+		}
 
-	if isCommandEnabled(cfg, "locks") {
-		RootCmd.AddCommand(unlockCmd)
-	}
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
+		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
+		return cmd
+	})
 }

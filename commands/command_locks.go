@@ -7,10 +7,6 @@ import (
 
 var (
 	locksCmdFlags = new(locksFlags)
-	locksCmd      = &cobra.Command{
-		Use: "locks",
-		Run: locksCommand,
-	}
 )
 
 func locksCommand(cmd *cobra.Command, args []string) {
@@ -55,18 +51,6 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func init() {
-	locksCmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
-
-	locksCmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
-	locksCmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
-	locksCmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
-
-	if isCommandEnabled(cfg, "locks") {
-		RootCmd.AddCommand(locksCmd)
-	}
-}
-
 // locksFlags wraps up and holds all of the flags that can be given to the
 // `git lfs locks` command.
 type locksFlags struct {
@@ -100,4 +84,22 @@ func (l *locksFlags) Filters() ([]api.Filter, error) {
 	}
 
 	return filters, nil
+}
+
+func init() {
+	RegisterSubcommand(func() *cobra.Command {
+		if !isCommandEnabled(cfg, "locks") {
+			return nil
+		}
+		cmd := &cobra.Command{
+			Use: "locks",
+			Run: locksCommand,
+		}
+
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
+		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
+		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
+		return cmd
+	})
 }

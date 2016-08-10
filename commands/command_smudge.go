@@ -15,10 +15,6 @@ import (
 var (
 	smudgeInfo = false
 	smudgeSkip = false
-	smudgeCmd  = &cobra.Command{
-		Use: "smudge",
-		Run: smudgeCommand,
-	}
 )
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
@@ -99,8 +95,14 @@ func smudgeFilename(args []string, err error) string {
 }
 
 func init() {
-	// update man page
-	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
-	smudgeCmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
-	RootCmd.AddCommand(smudgeCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "smudge",
+			Run: smudgeCommand,
+		}
+
+		cmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
+		cmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
+		return cmd
+	})
 }

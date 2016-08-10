@@ -18,11 +18,6 @@ import (
 )
 
 var (
-	pruneCmd = &cobra.Command{
-		Use:   "prune",
-		Short: "Deletes old LFS files from the local store",
-		Run:   pruneCommand,
-	}
 	pruneDryRunArg      bool
 	pruneVerboseArg     bool
 	pruneVerifyArg      bool
@@ -479,9 +474,17 @@ func pruneTaskGetReachableObjects(outObjectSet *tools.StringSet, errorChan chan 
 }
 
 func init() {
-	pruneCmd.Flags().BoolVarP(&pruneDryRunArg, "dry-run", "d", false, "Don't delete anything, just report")
-	pruneCmd.Flags().BoolVarP(&pruneVerboseArg, "verbose", "v", false, "Print full details of what is/would be deleted")
-	pruneCmd.Flags().BoolVarP(&pruneVerifyArg, "verify-remote", "c", false, "Verify that remote has LFS files before deleting")
-	pruneCmd.Flags().BoolVar(&pruneDoNotVerifyArg, "no-verify-remote", false, "Override lfs.pruneverifyremotealways and don't verify")
-	RootCmd.AddCommand(pruneCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use:   "prune",
+			Short: "Deletes old LFS files from the local store",
+			Run:   pruneCommand,
+		}
+
+		cmd.Flags().BoolVarP(&pruneDryRunArg, "dry-run", "d", false, "Don't delete anything, just report")
+		cmd.Flags().BoolVarP(&pruneVerboseArg, "verbose", "v", false, "Print full details of what is/would be deleted")
+		cmd.Flags().BoolVarP(&pruneVerifyArg, "verify-remote", "c", false, "Verify that remote has LFS files before deleting")
+		cmd.Flags().BoolVar(&pruneDoNotVerifyArg, "no-verify-remote", false, "Override lfs.pruneverifyremotealways and don't verify")
+		return cmd
+	})
 }

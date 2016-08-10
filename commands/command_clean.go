@@ -9,13 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	cleanCmd = &cobra.Command{
-		Use: "clean",
-		Run: cleanCommand,
-	}
-)
-
 func cleanCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'clean' filter")
 	lfs.InstallHooks(false)
@@ -82,5 +75,10 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RootCmd.AddCommand(cleanCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		return &cobra.Command{
+			Use: "clean",
+			Run: cleanCommand,
+		}
+	})
 }
