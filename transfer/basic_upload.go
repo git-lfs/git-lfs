@@ -138,8 +138,8 @@ func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCa
 	return &startCallbackReader{r, cb, false}
 }
 
-func init() {
-	newfunc := func(name string, dir Direction) TransferAdapter {
+func configureBasicUploadAdapter(m *Manifest) {
+	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) TransferAdapter {
 		switch dir {
 		case Upload:
 			bu := &basicUploadAdapter{newAdapterBase(name, dir, nil)}
@@ -150,6 +150,5 @@ func init() {
 			panic("Should never ask this func for basic download")
 		}
 		return nil
-	}
-	RegisterNewTransferAdapterFunc(BasicAdapterName, Upload, newfunc)
+	})
 }

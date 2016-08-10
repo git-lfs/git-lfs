@@ -17,14 +17,14 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb progress.CopyCallback) error {
+func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
 	}
 	defer file.Close()
-	if err := PointerSmudge(file, ptr, filename, download, cb); err != nil {
+	if err := PointerSmudge(file, ptr, filename, download, manifest, cb); err != nil {
 		if errutil.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, os.SEEK_SET)
@@ -37,7 +37,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, cb progre
 	return nil
 }
 
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, cb progress.CopyCallback) error {
+func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 	if statErr != nil || stat == nil {
 		if download {
-			err = downloadFile(writer, ptr, workingfile, mediafile, cb)
+			err = downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
 		} else {
 			return errutil.NewDownloadDeclinedError(nil)
 		}
@@ -73,10 +73,10 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	return nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, cb progress.CopyCallback) error {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *transfer.Manifest, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
-	xfers := transfer.GetDownloadAdapterNames()
+	xfers := manifest.GetDownloadAdapterNames()
 	obj, adapterName, err := api.BatchOrLegacySingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
 		return errutil.Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
@@ -86,7 +86,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		ptr.Size = obj.Size
 	}
 
-	adapter := transfer.NewDownloadAdapter(adapterName)
+	adapter := manifest.NewDownloadAdapter(adapterName)
 	var tcb transfer.TransferProgressCallback
 	if cb != nil {
 		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {

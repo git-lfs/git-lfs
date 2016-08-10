@@ -68,11 +68,12 @@ func ObjectExistsOfSize(oid string, size int64) bool {
 }
 
 func Environ() []string {
+	manifest := transfer.ConfigureManifest(transfer.NewManifest(), config.Config)
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
-	dltransfers := transfer.GetDownloadAdapterNames()
+	dltransfers := manifest.GetDownloadAdapterNames()
 	sort.Strings(dltransfers)
-	ultransfers := transfer.GetUploadAdapterNames()
+	ultransfers := manifest.GetUploadAdapterNames()
 	sort.Strings(ultransfers)
 
 	env = append(env,

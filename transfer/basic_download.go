@@ -214,11 +214,10 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 	}
 
 	return tools.RenameFileCopyPermissions(dlfilename, t.Path)
-
 }
 
-func init() {
-	newfunc := func(name string, dir Direction) TransferAdapter {
+func configureBasicDownloadAdapter(m *Manifest) {
+	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) TransferAdapter {
 		switch dir {
 		case Download:
 			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}
@@ -229,6 +228,5 @@ func init() {
 			panic("Should never ask this func to upload")
 		}
 		return nil
-	}
-	RegisterNewTransferAdapterFunc(BasicAdapterName, Download, newfunc)
+	})
 }
