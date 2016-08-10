@@ -20,17 +20,16 @@ import (
 // BatchOrLegacy calls the Batch API and falls back on the Legacy API
 // This is for simplicity, legacy route is not most optimal (serial)
 // TODO LEGACY API: remove when legacy API removed
-func BatchOrLegacy(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
-	cfg := config.Config
+func BatchOrLegacy(cfg *config.Configuration, objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
 	if !cfg.BatchTransfer() {
-		objs, err := Legacy(objects, operation)
+		objs, err := Legacy(cfg, objects, operation)
 		return objs, "", err
 	}
-	objs, adapterName, err := Batch(objects, operation, transferAdapters)
+	objs, adapterName, err := Batch(cfg, objects, operation, transferAdapters)
 	if err != nil {
 		if errutil.IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
-			objs, err := Legacy(objects, operation)
+			objs, err := Legacy(cfg, objects, operation)
 			return objs, "", err
 		}
 		return nil, "", err
@@ -38,8 +37,8 @@ func BatchOrLegacy(objects []*ObjectResource, operation string, transferAdapters
 	return objs, adapterName, nil
 }
 
-func BatchOrLegacySingle(inobj *ObjectResource, operation string, transferAdapters []string) (obj *ObjectResource, transferAdapter string, e error) {
-	objs, adapterName, err := BatchOrLegacy([]*ObjectResource{inobj}, operation, transferAdapters)
+func BatchOrLegacySingle(cfg *config.Configuration, inobj *ObjectResource, operation string, transferAdapters []string) (obj *ObjectResource, transferAdapter string, e error) {
+	objs, adapterName, err := BatchOrLegacy(cfg, []*ObjectResource{inobj}, operation, transferAdapters)
 	if err != nil {
 		return nil, "", err
 	}
@@ -50,12 +49,10 @@ func BatchOrLegacySingle(inobj *ObjectResource, operation string, transferAdapte
 }
 
 // Batch calls the batch API and returns object results
-func Batch(objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
+func Batch(cfg *config.Configuration, objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
 	if len(objects) == 0 {
 		return nil, "", nil
 	}
-
-	cfg := config.Config
 
 	// Compatibility; omit transfers list when only basic
 	// older schemas included `additionalproperties=false`
@@ -69,7 +66,7 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 		return nil, "", errutil.Error(err)
 	}
 
-	req, err := NewBatchRequest(operation)
+	req, err := NewBatchRequest(cfg, operation)
 	if err != nil {
 		return nil, "", errutil.Error(err)
 	}
@@ -81,7 +78,7 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 
 	tracerx.Printf("api: batch %d files", len(objects))
 
-	res, bresp, err := DoBatchRequest(req)
+	res, bresp, err := DoBatchRequest(cfg, req)
 
 	if err != nil {
 
@@ -95,7 +92,7 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 
 		if errutil.IsAuthError(err) {
 			httputil.SetAuthType(cfg, req, res)
-			return Batch(objects, operation, transferAdapters)
+			return Batch(cfg, objects, operation, transferAdapters)
 		}
 
 		switch res.StatusCode {
@@ -118,7 +115,7 @@ func Batch(objects []*ObjectResource, operation string, transferAdapters []strin
 
 // Legacy calls the legacy API serially and returns ObjectResources
 // TODO LEGACY API: remove when legacy API removed
-func Legacy(objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+func Legacy(cfg *config.Configuration, objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
 	retobjs := make([]*ObjectResource, 0, len(objects))
 	dl := operation == "download"
 	var globalErr error
@@ -126,9 +123,9 @@ func Legacy(objects []*ObjectResource, operation string) ([]*ObjectResource, err
 		var ret *ObjectResource
 		var err error
 		if dl {
-			ret, err = DownloadCheck(o.Oid)
+			ret, err = DownloadCheck(cfg, o.Oid)
 		} else {
-			ret, err = UploadCheck(o.Oid, o.Size)
+			ret, err = UploadCheck(cfg, o.Oid, o.Size)
 		}
 		if err != nil {
 			// Store for the end, likely only one
@@ -140,18 +137,17 @@ func Legacy(objects []*ObjectResource, operation string) ([]*ObjectResource, err
 }
 
 // TODO LEGACY API: remove when legacy API removed
-func DownloadCheck(oid string) (*ObjectResource, error) {
-	req, err := NewRequest("GET", oid)
+func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, error) {
+	req, err := NewRequest(cfg, "GET", oid)
 	if err != nil {
 		return nil, errutil.Error(err)
 	}
 
-	res, obj, err := DoLegacyRequest(req)
+	res, obj, err := DoLegacyRequest(cfg, req)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := config.Config
 	httputil.LogTransfer(cfg, "lfs.download", res)
 
 	_, err = obj.NewRequest("download", "GET")
@@ -163,8 +159,7 @@ func DownloadCheck(oid string) (*ObjectResource, error) {
 }
 
 // TODO LEGACY API: remove when legacy API removed
-func UploadCheck(oid string, size int64) (*ObjectResource, error) {
-	cfg := config.Config
+func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectResource, error) {
 	reqObj := &ObjectResource{
 		Oid:  oid,
 		Size: size,
@@ -175,7 +170,7 @@ func UploadCheck(oid string, size int64) (*ObjectResource, error) {
 		return nil, errutil.Error(err)
 	}
 
-	req, err := NewRequest("POST", oid)
+	req, err := NewRequest(cfg, "POST", oid)
 	if err != nil {
 		return nil, errutil.Error(err)
 	}
@@ -186,12 +181,12 @@ func UploadCheck(oid string, size int64) (*ObjectResource, error) {
 	req.Body = tools.NewReadSeekCloserWrapper(bytes.NewReader(by))
 
 	tracerx.Printf("api: uploading (%s)", oid)
-	res, obj, err := DoLegacyRequest(req)
+	res, obj, err := DoLegacyRequest(cfg, req)
 
 	if err != nil {
 		if errutil.IsAuthError(err) {
 			httputil.SetAuthType(cfg, req, res)
-			return UploadCheck(oid, size)
+			return UploadCheck(cfg, oid, size)
 		}
 
 		return nil, errutil.NewRetriableError(err)

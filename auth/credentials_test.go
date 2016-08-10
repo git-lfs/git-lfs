@@ -206,12 +206,10 @@ func TestNetrcWithBadHost(t *testing.T) {
 func checkGetCredentials(t *testing.T, getCredsFunc func(*config.Configuration, *http.Request) (Creds, error), checks []*getCredentialCheck) {
 	for _, check := range checks {
 		t.Logf("Checking %q", check.Desc)
-		cfg := config.New()
+		cfg := config.NewFrom(config.Values{
+			Git: check.Config,
+		})
 		cfg.CurrentRemote = check.CurrentRemote
-
-		for key, value := range check.Config {
-			cfg.SetConfig(key, value)
-		}
 
 		req, err := http.NewRequest(check.Method, check.Href, nil)
 		if err != nil {

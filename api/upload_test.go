@@ -101,8 +101,11 @@ func TestExistingUpload(t *testing.T) {
 		w.Write(by)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.url": server.URL + "/media",
+		},
+	})
 
 	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
@@ -111,7 +114,7 @@ func TestExistingUpload(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -227,8 +230,11 @@ func TestUploadWithRedirect(t *testing.T) {
 		w.Write(by)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.url", server.URL+"/redirect")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.url": server.URL + "/redirect",
+		},
+	})
 
 	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
@@ -237,7 +243,7 @@ func TestUploadWithRedirect(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -369,8 +375,11 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.url": server.URL + "/media",
+		},
+	})
 
 	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
@@ -379,14 +388,14 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	api.VerifyUpload(o)
+	api.VerifyUpload(cfg, o)
 
 	if !postCalled {
 		t.Errorf("POST not called")
@@ -421,8 +430,11 @@ func TestUploadApiError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.url": server.URL + "/media",
+		},
+	})
 
 	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
@@ -431,7 +443,7 @@ func TestUploadApiError(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	_, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	_, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -539,8 +551,11 @@ func TestUploadVerifyError(t *testing.T) {
 		w.WriteHeader(404)
 	})
 
-	defer config.Config.ResetConfig()
-	config.Config.SetConfig("lfs.url", server.URL+"/media")
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.url": server.URL + "/media",
+		},
+	})
 
 	oidPath, _ := lfs.LocalMediaPath("988881adc9fc3655077dc2d4d757d480b5ea0e11")
 	if err := ioutil.WriteFile(oidPath, []byte("test"), 0744); err != nil {
@@ -549,14 +564,14 @@ func TestUploadVerifyError(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(&api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	err = api.VerifyUpload(o)
+	err = api.VerifyUpload(cfg, o)
 	if err == nil {
 		t.Fatal("verify should fail")
 	}

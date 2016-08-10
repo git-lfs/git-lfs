@@ -13,7 +13,7 @@ import (
 )
 
 // VerifyUpload calls the "verify" API link relation on obj if it exists
-func VerifyUpload(obj *ObjectResource) error {
+func VerifyUpload(cfg *config.Configuration, obj *ObjectResource) error {
 	// Do we need to do verify?
 	if _, ok := obj.Rel("verify"); !ok {
 		return nil
@@ -38,7 +38,6 @@ func VerifyUpload(obj *ObjectResource) error {
 		return err
 	}
 
-	cfg := config.Config
 	httputil.LogTransfer(cfg, "lfs.data.verify", res)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
