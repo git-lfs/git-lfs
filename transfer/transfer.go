@@ -13,7 +13,7 @@ const (
 
 // NewTransferAdapterFunc creates new instances of TransferAdapter. Code that wishes
 // to provide new TransferAdapter instances should pass an implementation of this
-// function to RegisterNewTransferAdapterFunc
+// function to RegisterNewTransferAdapterFunc() on a *Manifest.
 // name and dir are to provide context if one func implements many instances
 type NewTransferAdapterFunc func(name string, dir Direction) TransferAdapter
 

@@ -54,7 +54,7 @@ func (m *Manifest) GetUploadAdapterNames() []string {
 	return m.getAdapterNames(m.uploadAdapterFuncs)
 }
 
-// GetUploadAdapterNames returns a list of the names of upload adapters available to be created
+// getAdapterNames returns a list of the names of adapters available to be created
 func (m *Manifest) getAdapterNames(adapters map[string]NewTransferAdapterFunc) []string {
 	if m.basicTransfersOnly {
 		return []string{BasicAdapterName}
