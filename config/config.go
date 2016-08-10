@@ -68,7 +68,6 @@ type Configuration struct {
 	IsLoggingStats  bool
 
 	loading        sync.Mutex // guards initialization of gitConfig and remotes
-	origConfig     map[string]string
 	remotes        []string
 	extensions     map[string]Extension
 	manualEndpoint *Endpoint
