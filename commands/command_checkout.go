@@ -11,7 +11,6 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -166,8 +165,6 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 	// As files come in, write them to the wd and update the index
 
-	manifest := transfer.ConfigureManifest(transfer.NewManifest(), cfg)
-
 	for pointer := range in {
 
 		// Check the content - either missing or still this pointer (not exist is ok)
@@ -190,7 +187,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		repopathchan <- pointer.Name
 		cwdfilepath := <-cwdpathchan
 
-		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
+		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, transfermanifest, nil)
 		if err != nil {
 			if errutil.IsDownloadDeclinedError(err) {
 				// acceptable error, data not local (fetch not run or include/exclude)

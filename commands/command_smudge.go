@@ -8,7 +8,6 @@ import (
 
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/transfer"
 	"github.com/spf13/cobra"
 )
 
@@ -64,8 +63,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		download = false
 	}
 
-	manifest := transfer.ConfigureManifest(transfer.NewManifest(), cfg)
-	err = ptr.Smudge(os.Stdout, filename, download, manifest, cb)
+	err = ptr.Smudge(os.Stdout, filename, download, transfermanifest, cb)
 	if file != nil {
 		file.Close()
 	}
