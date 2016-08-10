@@ -212,7 +212,7 @@ func execCredsCommand(cfg *config.Configuration, input Creds, subCommand string)
 	}
 
 	if _, ok := err.(*exec.ExitError); ok {
-		if !cfg.GetenvBool("GIT_TERMINAL_PROMPT", true) {
+		if !cfg.Os.Bool("GIT_TERMINAL_PROMPT", true) {
 			return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
 				input["protocol"], input["host"])
 		}

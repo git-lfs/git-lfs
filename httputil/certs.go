@@ -19,7 +19,7 @@ func isCertVerificationDisabledForHost(cfg *config.Configuration, host string) b
 	}
 
 	globalSslVerify, _ := cfg.GitConfig("http.sslverify")
-	if globalSslVerify == "false" || cfg.GetenvBool("GIT_SSL_NO_VERIFY", false) {
+	if globalSslVerify == "false" || cfg.Os.Bool("GIT_SSL_NO_VERIFY", false) {
 		return true
 	}
 

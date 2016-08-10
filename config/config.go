@@ -82,9 +82,9 @@ func New() *Configuration {
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
-	c.IsTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
-	c.IsDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
-	c.IsLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
+	c.IsTracingHttp = c.Os.Bool("GIT_CURL_VERBOSE", false)
+	c.IsDebuggingHttp = c.Os.Bool("LFS_DEBUG_HTTP", false)
+	c.IsLoggingStats = c.Os.Bool("GIT_LOG_STATS", false)
 	return c
 }
 
@@ -206,11 +206,6 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env *Enviro
 func (c *Configuration) Getenv(key string) string {
 	v, _ := c.Os.Get(key)
 	return v
-}
-
-// GetenvBool is shorthand for `c.Os.Bool(key, def)`.
-func (c *Configuration) GetenvBool(key string, def bool) bool {
-	return c.Os.Bool(key, def)
 }
 
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
@@ -465,7 +460,7 @@ func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
-	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
+	return c.Os.Bool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
 }
 
 func (c *Configuration) loadGitConfig() bool {
