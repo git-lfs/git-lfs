@@ -347,9 +347,9 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 }
 
 // Initialise custom adapters based on current config
-func ConfigureCustomAdapters() {
+func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
-	for k, v := range config.Config.AllGitConfig() {
+	for k, v := range cfg.AllGitConfig() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue
@@ -358,9 +358,9 @@ func ConfigureCustomAdapters() {
 		name := match[1]
 		path := v
 		// retrieve other values
-		args, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-		concurrent := config.Config.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-		direction, _ := config.Config.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+		args, _ := cfg.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
+		concurrent := cfg.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
+		direction, _ := cfg.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
 		if len(direction) == 0 {
 			direction = "both"
 		} else {
@@ -373,10 +373,10 @@ func ConfigureCustomAdapters() {
 		}
 
 		if direction == "download" || direction == "both" {
-			RegisterNewTransferAdapterFunc(name, Download, newfunc)
+			m.RegisterNewTransferAdapterFunc(name, Download, newfunc)
 		}
 		if direction == "upload" || direction == "both" {
-			RegisterNewTransferAdapterFunc(name, Upload, newfunc)
+			m.RegisterNewTransferAdapterFunc(name, Upload, newfunc)
 		}
 	}
 }

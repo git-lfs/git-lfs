@@ -14,6 +14,7 @@ import (
 
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/transfer"
 )
 
 var (
@@ -60,8 +61,8 @@ func NewPointerExtension(name string, priority int, oid string) *PointerExtensio
 	return &PointerExtension{name, priority, oid, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, cb progress.CopyCallback) error {
-	return PointerSmudge(writer, p, workingfile, download, cb)
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
+	return PointerSmudge(writer, p, workingfile, download, manifest, cb)
 }
 
 func (p *Pointer) Encode(writer io.Writer) (int, error) {

@@ -16,47 +16,55 @@ type testAdapter struct {
 func (a *testAdapter) Name() string {
 	return a.name
 }
+
 func (a *testAdapter) Direction() Direction {
 	return a.dir
 }
+
 func (a *testAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
 	return nil
 }
+
 func (a *testAdapter) Add(t *Transfer) {
 }
+
 func (a *testAdapter) End() {
 }
+
 func (a *testAdapter) ClearTempStorage() error {
 	return nil
 }
+
 func newTestAdapter(name string, dir Direction) TransferAdapter {
 	return &testAdapter{name, dir}
 }
+
 func newRenamedTestAdapter(name string, dir Direction) TransferAdapter {
 	return &testAdapter{"RENAMED", dir}
 }
-func resetAdapters() {
-	uploadAdapterFuncs = make(map[string]NewTransferAdapterFunc)
-	downloadAdapterFuncs = make(map[string]NewTransferAdapterFunc)
-}
 
 func testBasicAdapterExists(t *testing.T) {
+	cfg := config.New()
+	m := ConfigureManifest(NewManifest(), cfg)
+
 	assert := assert.New(t)
 
-	dls := GetDownloadAdapterNames()
+	dls := m.GetDownloadAdapterNames()
 	if assert.NotNil(dls) {
 		assert.Equal([]string{"basic"}, dls)
 	}
-	uls := GetUploadAdapterNames()
+	uls := m.GetUploadAdapterNames()
 	if assert.NotNil(uls) {
 		assert.Equal([]string{"basic"}, uls)
 	}
-	da := NewDownloadAdapter("basic")
+
+	da := m.NewDownloadAdapter("basic")
 	if assert.NotNil(da) {
 		assert.Equal("basic", da.Name())
 		assert.Equal(Download, da.Direction())
 	}
-	ua := NewUploadAdapter("basic")
+
+	ua := m.NewUploadAdapter("basic")
 	if assert.NotNil(ua) {
 		assert.Equal("basic", ua.Name())
 		assert.Equal(Upload, ua.Direction())
@@ -64,61 +72,69 @@ func testBasicAdapterExists(t *testing.T) {
 }
 
 func testAdapterRegAndOverride(t *testing.T) {
+	cfg := config.New()
+	m := ConfigureManifest(NewManifest(), cfg)
 	assert := assert.New(t)
 
-	assert.Nil(NewDownloadAdapter("test"))
-	assert.Nil(NewUploadAdapter("test"))
+	assert.Nil(m.NewDownloadAdapter("test"))
+	assert.Nil(m.NewUploadAdapter("test"))
 
-	RegisterNewTransferAdapterFunc("test", Upload, newTestAdapter)
-	assert.Nil(NewDownloadAdapter("test"))
-	assert.NotNil(NewUploadAdapter("test"))
+	m.RegisterNewTransferAdapterFunc("test", Upload, newTestAdapter)
+	assert.Nil(m.NewDownloadAdapter("test"))
+	assert.NotNil(m.NewUploadAdapter("test"))
 
-	RegisterNewTransferAdapterFunc("test", Download, newTestAdapter)
-	da := NewDownloadAdapter("test")
+	m.RegisterNewTransferAdapterFunc("test", Download, newTestAdapter)
+	da := m.NewDownloadAdapter("test")
 	if assert.NotNil(da) {
 		assert.Equal("test", da.Name())
 		assert.Equal(Download, da.Direction())
 	}
-	ua := NewUploadAdapter("test")
+
+	ua := m.NewUploadAdapter("test")
 	if assert.NotNil(ua) {
 		assert.Equal("test", ua.Name())
 		assert.Equal(Upload, ua.Direction())
 	}
 
 	// Test override
-	RegisterNewTransferAdapterFunc("test", Upload, newRenamedTestAdapter)
-	ua = NewUploadAdapter("test")
+	m.RegisterNewTransferAdapterFunc("test", Upload, newRenamedTestAdapter)
+	ua = m.NewUploadAdapter("test")
 	if assert.NotNil(ua) {
 		assert.Equal("RENAMED", ua.Name())
 		assert.Equal(Upload, ua.Direction())
 	}
-	da = NewDownloadAdapter("test")
+
+	da = m.NewDownloadAdapter("test")
 	if assert.NotNil(da) {
 		assert.Equal("test", da.Name())
 		assert.Equal(Download, da.Direction())
 	}
-	RegisterNewTransferAdapterFunc("test", Download, newRenamedTestAdapter)
-	da = NewDownloadAdapter("test")
+
+	m.RegisterNewTransferAdapterFunc("test", Download, newRenamedTestAdapter)
+	da = m.NewDownloadAdapter("test")
 	if assert.NotNil(da) {
 		assert.Equal("RENAMED", da.Name())
 		assert.Equal(Download, da.Direction())
 	}
-
 }
 
 func testAdapterRegButBasicOnly(t *testing.T) {
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{"lfs.basictransfersonly": "yes"},
+	})
+	m := ConfigureManifest(NewManifest(), cfg)
+
 	assert := assert.New(t)
 
-	config.Config.SetConfig("lfs.basictransfersonly", "yes")
-	RegisterNewTransferAdapterFunc("test", Upload, newTestAdapter)
-	RegisterNewTransferAdapterFunc("test", Download, newTestAdapter)
+	m.RegisterNewTransferAdapterFunc("test", Upload, newTestAdapter)
+	m.RegisterNewTransferAdapterFunc("test", Download, newTestAdapter)
 	// Will still be created if we ask for them
-	assert.NotNil(NewUploadAdapter("test"))
-	assert.NotNil(NewDownloadAdapter("test"))
+	assert.NotNil(m.NewUploadAdapter("test"))
+	assert.NotNil(m.NewDownloadAdapter("test"))
 
 	// But list will exclude
-	ld := GetDownloadAdapterNames()
+	ld := m.GetDownloadAdapterNames()
 	assert.Equal([]string{BasicAdapterName}, ld)
-	lu := GetUploadAdapterNames()
+	lu := m.GetUploadAdapterNames()
 	assert.Equal([]string{BasicAdapterName}, lu)
 }
