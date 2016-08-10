@@ -252,7 +252,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ() {
+	for _, env := range lfs.Environ(cfg, transfermanifest) {
 		fmt.Fprintln(w, env)
 	}
 }
