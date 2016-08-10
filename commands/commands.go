@@ -31,15 +31,14 @@ var (
 	// various command implementations.
 	API = api.NewClient(nil)
 
-	Debugging        = false
-	ErrorBuffer      = &bytes.Buffer{}
-	ErrorWriter      = io.MultiWriter(os.Stderr, ErrorBuffer)
-	OutputWriter     = io.MultiWriter(os.Stdout, ErrorBuffer)
-	ManPages         = make(map[string]string, 20)
-	cfg              *config.Configuration
-	transfermanifest *transfer.Manifest
-	subcommandFuncs  []func() *cobra.Command
-	subcommandMu     sync.Mutex
+	Debugging       = false
+	ErrorBuffer     = &bytes.Buffer{}
+	ErrorWriter     = io.MultiWriter(os.Stderr, ErrorBuffer)
+	OutputWriter    = io.MultiWriter(os.Stdout, ErrorBuffer)
+	ManPages        = make(map[string]string, 20)
+	cfg             *config.Configuration
+	subcommandFuncs []func() *cobra.Command
+	subcommandMu    sync.Mutex
 
 	includeArg string
 	excludeArg string
@@ -47,8 +46,6 @@ var (
 
 func Run() {
 	cfg = config.Config
-	transfermanifest = transfer.NewManifest()
-	transfer.ConfigureManifest(transfermanifest, cfg)
 
 	root := &cobra.Command{
 		Use: "git-lfs",
@@ -77,6 +74,12 @@ func RegisterSubcommand(fn func() *cobra.Command) {
 	subcommandMu.Lock()
 	subcommandFuncs = append(subcommandFuncs, fn)
 	subcommandMu.Unlock()
+}
+
+// TransferManifest builds a transfer.Manifest from the commands package global
+// cfg var.
+func TransferManifest() *transfer.Manifest {
+	return transfer.ConfigureManifest(transfer.NewManifest(), cfg)
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -252,7 +255,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, transfermanifest) {
+	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
 }

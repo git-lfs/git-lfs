@@ -165,6 +165,8 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 	// As files come in, write them to the wd and update the index
 
+	manifest := TransferManifest()
+
 	for pointer := range in {
 
 		// Check the content - either missing or still this pointer (not exist is ok)
@@ -187,7 +189,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		repopathchan <- pointer.Name
 		cwdfilepath := <-cwdpathchan
 
-		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, transfermanifest, nil)
+		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
 		if err != nil {
 			if errutil.IsDownloadDeclinedError(err) {
 				// acceptable error, data not local (fetch not run or include/exclude)

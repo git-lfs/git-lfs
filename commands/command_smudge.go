@@ -63,7 +63,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		download = false
 	}
 
-	err = ptr.Smudge(os.Stdout, filename, download, transfermanifest, cb)
+	err = ptr.Smudge(os.Stdout, filename, download, TransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
