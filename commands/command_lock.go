@@ -22,11 +22,6 @@ var (
 	setLockRemoteFor = func(c *config.Configuration) {
 		c.CurrentRemote = lockRemote
 	}
-
-	lockCmd = &cobra.Command{
-		Use: "lock",
-		Run: lockCommand,
-	}
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
@@ -107,9 +102,17 @@ func lockPath(file string) (string, error) {
 }
 
 func init() {
-	lockCmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+	RegisterSubcommand(func() *cobra.Command {
+		if !isCommandEnabled(cfg, "locks") {
+			return nil
+		}
 
-	if isCommandEnabled(cfg, "locks") {
-		RootCmd.AddCommand(lockCmd)
-	}
+		cmd := &cobra.Command{
+			Use: "lock",
+			Run: lockCommand,
+		}
+
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		return cmd
+	})
 }

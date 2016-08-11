@@ -9,11 +9,6 @@ import (
 )
 
 var (
-	updateCmd = &cobra.Command{
-		Use: "update",
-		Run: updateCommand,
-	}
-
 	updateForce  = false
 	updateManual = false
 )
@@ -59,7 +54,13 @@ func updateCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	updateCmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
-	updateCmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
-	RootCmd.AddCommand(updateCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "update",
+			Run: updateCommand,
+		}
+		cmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
+		cmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
+		return cmd
+	})
 }

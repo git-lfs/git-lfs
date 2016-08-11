@@ -11,16 +11,8 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
-)
-
-var (
-	checkoutCmd = &cobra.Command{
-		Use: "checkout",
-		Run: checkoutCommand,
-	}
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
@@ -41,10 +33,6 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 	close(inchan)
 	checkoutWithIncludeExclude(rootedpaths, nil)
-}
-
-func init() {
-	RootCmd.AddCommand(checkoutCmd)
 }
 
 // Checkout from items reported from the fetch process (in parallel)
@@ -177,7 +165,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 	// As files come in, write them to the wd and update the index
 
-	manifest := transfer.ConfigureManifest(transfer.NewManifest(), cfg)
+	manifest := TransferManifest()
 
 	for pointer := range in {
 
@@ -238,4 +226,13 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			LoggedError(err, "Error updating the git index:\n%s", updateIdxOut.String())
 		}
 	}
+}
+
+func init() {
+	RegisterSubcommand(func() *cobra.Command {
+		return &cobra.Command{
+			Use: "checkout",
+			Run: checkoutCommand,
+		}
+	})
 }

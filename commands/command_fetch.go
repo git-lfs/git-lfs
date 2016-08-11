@@ -12,10 +12,6 @@ import (
 )
 
 var (
-	fetchCmd = &cobra.Command{
-		Use: "fetch",
-		Run: fetchCommand,
-	}
 	fetchRecentArg bool
 	fetchAllArg    bool
 	fetchPruneArg  bool
@@ -109,15 +105,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	if !success {
 		Exit("Warning: errors occurred")
 	}
-}
-
-func init() {
-	fetchCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
-	fetchCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
-	fetchCmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
-	fetchCmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
-	RootCmd.AddCommand(fetchCmd)
 }
 
 func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
@@ -329,4 +316,20 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		ExitWithError(err)
 	}
 	return ok
+}
+
+func init() {
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "fetch",
+			Run: fetchCommand,
+		}
+
+		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
+		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
+		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
+		return cmd
+	})
 }

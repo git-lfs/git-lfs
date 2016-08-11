@@ -7,13 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	envCmd = &cobra.Command{
-		Use: "env",
-		Run: envCommand,
-	}
-)
-
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
 	endpoint := cfg.Endpoint("download")
@@ -42,7 +35,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	for _, env := range lfs.Environ() {
+	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		Print(env)
 	}
 
@@ -53,5 +46,10 @@ func envCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RootCmd.AddCommand(envCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		return &cobra.Command{
+			Use: "env",
+			Run: envCommand,
+		}
+	})
 }

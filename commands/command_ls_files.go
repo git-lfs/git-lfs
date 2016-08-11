@@ -9,11 +9,7 @@ import (
 )
 
 var (
-	longOIDs   = false
-	lsFilesCmd = &cobra.Command{
-		Use: "ls-files",
-		Run: lsFilesCommand,
-	}
+	longOIDs = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
@@ -57,6 +53,13 @@ func lsFilesMarker(p *lfs.WrappedPointer) string {
 }
 
 func init() {
-	lsFilesCmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
-	RootCmd.AddCommand(lsFilesCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "ls-files",
+			Run: lsFilesCommand,
+		}
+
+		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
+		return cmd
+	})
 }

@@ -11,13 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	untrackCmd = &cobra.Command{
-		Use: "untrack",
-		Run: untrackCommand,
-	}
-)
-
 // untrackCommand takes a list of paths as an argument, and removes each path from the
 // default attributes file (.gitattributes), if it exists.
 func untrackCommand(cmd *cobra.Command, args []string) {
@@ -82,5 +75,10 @@ func removePath(path string, args []string) bool {
 }
 
 func init() {
-	RootCmd.AddCommand(untrackCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		return &cobra.Command{
+			Use: "untrack",
+			Run: untrackCommand,
+		}
+	})
 }

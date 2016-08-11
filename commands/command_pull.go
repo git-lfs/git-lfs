@@ -7,13 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	pullCmd = &cobra.Command{
-		Use: "pull",
-		Run: pullCommand,
-	}
-)
-
 func pullCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
@@ -50,7 +43,14 @@ func pull(includePaths, excludePaths []string) {
 }
 
 func init() {
-	pullCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
-	pullCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-	RootCmd.AddCommand(pullCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "pull",
+			Run: pullCommand,
+		}
+
+		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+		return cmd
+	})
 }

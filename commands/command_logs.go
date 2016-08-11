@@ -11,33 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	logsCmd = &cobra.Command{
-		Use: "logs",
-		Run: logsCommand,
-	}
-
-	logsLastCmd = &cobra.Command{
-		Use: "last",
-		Run: logsLastCommand,
-	}
-
-	logsShowCmd = &cobra.Command{
-		Use: "show",
-		Run: logsShowCommand,
-	}
-
-	logsClearCmd = &cobra.Command{
-		Use: "clear",
-		Run: logsClearCommand,
-	}
-
-	logsBoomtownCmd = &cobra.Command{
-		Use: "boomtown",
-		Run: logsBoomtownCommand,
-	}
-)
-
 func logsCommand(cmd *cobra.Command, args []string) {
 	for _, path := range sortedLogs() {
 		Print(path)
@@ -104,6 +77,30 @@ func sortedLogs() []string {
 }
 
 func init() {
-	logsCmd.AddCommand(logsLastCmd, logsShowCmd, logsClearCmd, logsBoomtownCmd)
-	RootCmd.AddCommand(logsCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "logs",
+			Run: logsCommand,
+		}
+
+		cmd.AddCommand(
+			&cobra.Command{
+				Use: "last",
+				Run: logsLastCommand,
+			},
+			&cobra.Command{
+				Use: "show",
+				Run: logsShowCommand,
+			},
+			&cobra.Command{
+				Use: "clear",
+				Run: logsClearCommand,
+			},
+			&cobra.Command{
+				Use: "boomtown",
+				Run: logsBoomtownCommand,
+			},
+		)
+		return cmd
+	})
 }

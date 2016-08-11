@@ -8,17 +8,12 @@ import (
 
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/transfer"
 	"github.com/spf13/cobra"
 )
 
 var (
 	smudgeInfo = false
 	smudgeSkip = false
-	smudgeCmd  = &cobra.Command{
-		Use: "smudge",
-		Run: smudgeCommand,
-	}
 )
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
@@ -68,8 +63,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		download = false
 	}
 
-	manifest := transfer.ConfigureManifest(transfer.NewManifest(), cfg)
-	err = ptr.Smudge(os.Stdout, filename, download, manifest, cb)
+	err = ptr.Smudge(os.Stdout, filename, download, TransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
@@ -99,8 +93,14 @@ func smudgeFilename(args []string, err error) string {
 }
 
 func init() {
-	// update man page
-	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
-	smudgeCmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
-	RootCmd.AddCommand(smudgeCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "smudge",
+			Run: smudgeCommand,
+		}
+
+		cmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
+		cmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
+		return cmd
+	})
 }

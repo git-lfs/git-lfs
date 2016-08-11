@@ -11,10 +11,6 @@ import (
 )
 
 var (
-	prePushCmd = &cobra.Command{
-		Use: "pre-push",
-		Run: prePushCommand,
-	}
 	prePushDryRun       = false
 	prePushDeleteBranch = strings.Repeat("0", 40)
 )
@@ -100,6 +96,13 @@ func decodeRefs(input string) (string, string) {
 }
 
 func init() {
-	prePushCmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
-	RootCmd.AddCommand(prePushCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "pre-push",
+			Run: prePushCommand,
+		}
+
+		cmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
+		return cmd
+	})
 }
