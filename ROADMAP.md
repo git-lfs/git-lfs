@@ -28,6 +28,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Investigate hanging pushes/pulls when git credential helper is not set | [#197](https://github.com/github/git-lfs/issues/197) |
 | | Support git ssh shorthands | [#278](https://github.com/github/git-lfs/issues/278) |
 | | Support `GIT_CONFIG` | [#318](https://github.com/github/git-lfs/issues/318) |
+| | LFS Migration tool | [#326](https://github.com/github/git-lfs/issues/326) |
 
 ## Upcoming Features
 
