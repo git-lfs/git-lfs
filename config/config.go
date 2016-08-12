@@ -72,6 +72,8 @@ type Configuration struct {
 	extensions     map[string]Extension
 	manualEndpoint *Endpoint
 	parsedNetrc    netrcfinder
+	urlAliases     map[string]string
+	urlAliasMu     sync.Mutex
 }
 
 func New() *Configuration {
@@ -447,6 +449,24 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 func (c *Configuration) AllGitConfig() map[string]string {
 	c.loadGitConfig()
 	return c.gitConfig
+}
+
+func (c *Configuration) UrlAliases() map[string]string {
+	c.urlAliasMu.Lock()
+	defer c.urlAliasMu.Unlock()
+
+	if c.urlAliases == nil {
+		c.urlAliases = make(map[string]string)
+		prefix := "url."
+		suffix := ".insteadof"
+		for gitkey, gitval := range c.AllGitConfig() {
+			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
+				c.urlAliases[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+			}
+		}
+	}
+
+	return c.urlAliases
 }
 
 func (c *Configuration) FetchPruneConfig() FetchPruneConfig {

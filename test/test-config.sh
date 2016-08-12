@@ -149,3 +149,22 @@ begin_test "extension config (with gitconfig)"
   [ "$expected2" = "$(git lfs ext)" ]
 )
 end_test
+
+begin_test "url alias config"
+(
+  set -e
+
+  mkdir url-alias
+  cd url-alias
+
+  git init
+  git config url."http://actual-url/".insteadOf alias:
+  git config lfs.url alias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=http://actual-url/rest (auth=none)" env.log
+
+  git config lfs.url badalias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=badalias:rest (auth=none)" env.log
+)
+end_test
