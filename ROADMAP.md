@@ -27,6 +27,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | :soon: | Teach `git lfs track` and others to warn when `git lfs install` hasn't been run (or auto-install) | [#1167](https://github.com/github/git-lfs/issues/1167) |
 | | Investigate hanging pushes/pulls when git credential helper is not set | [#197](https://github.com/github/git-lfs/issues/197) |
 | | Support git ssh shorthands | [#278](https://github.com/github/git-lfs/issues/278) |
+| | Support `GIT_CONFIG` | [#318](https://github.com/github/git-lfs/issues/318) |
 
 ## Upcoming Features
 
