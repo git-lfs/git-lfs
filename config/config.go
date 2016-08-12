@@ -73,7 +73,7 @@ type Configuration struct {
 	extensions     map[string]Extension
 	manualEndpoint *Endpoint
 	parsedNetrc    netrcfinder
-	urlAliases     map[string]string
+	urlAliasesMap  map[string]string
 	urlAliasMu     sync.Mutex
 }
 
@@ -452,22 +452,22 @@ func (c *Configuration) AllGitConfig() map[string]string {
 	return c.gitConfig
 }
 
-func (c *Configuration) UrlAliases() map[string]string {
+func (c *Configuration) urlAliases() map[string]string {
 	c.urlAliasMu.Lock()
 	defer c.urlAliasMu.Unlock()
 
-	if c.urlAliases == nil {
-		c.urlAliases = make(map[string]string)
+	if c.urlAliasesMap == nil {
+		c.urlAliasesMap = make(map[string]string)
 		prefix := "url."
 		suffix := ".insteadof"
 		for gitkey, gitval := range c.AllGitConfig() {
 			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
-				c.urlAliases[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+				c.urlAliasesMap[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
 			}
 		}
 	}
 
-	return c.urlAliases
+	return c.urlAliasesMap
 }
 
 // ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
@@ -475,7 +475,8 @@ func (c *Configuration) UrlAliases() map[string]string {
 // See https://git-scm.com/docs/git-config for Git's docs.
 func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
 	var longestalias string
-	for alias, _ := range c.UrlAliases() {
+	aliases := c.urlAliases()
+	for alias, _ := range aliases {
 		if !strings.HasPrefix(rawurl, alias) {
 			continue
 		}
@@ -488,7 +489,7 @@ func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
 	}
 
 	if len(longestalias) > 0 {
-		return c.UrlAliases()[longestalias] + rawurl[len(longestalias):]
+		return aliases[longestalias] + rawurl[len(longestalias):]
 	}
 
 	return rawurl
