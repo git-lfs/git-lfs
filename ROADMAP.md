@@ -29,7 +29,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Support git ssh shorthands | [#278](https://github.com/github/git-lfs/issues/278) |
 | | Support `GIT_CONFIG` | [#318](https://github.com/github/git-lfs/issues/318) |
 | | LFS Migration tool | [#326](https://github.com/github/git-lfs/issues/326) |
-| | Warn when Git version is unsupported | [#410] |
+| | Warn when Git version is unsupported | [#410](https://github.com/github/git-lfs/issues/410) |
 
 ## Upcoming Features
 
