@@ -462,6 +462,9 @@ func (c *Configuration) urlAliases() map[string]string {
 		suffix := ".insteadof"
 		for gitkey, gitval := range c.AllGitConfig() {
 			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
+				if _, ok := c.urlAliasesMap[gitval]; ok {
+					fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
+				}
 				c.urlAliasesMap[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
 			}
 		}
@@ -483,8 +486,6 @@ func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
 
 		if longestalias < alias {
 			longestalias = alias
-		} else if longestalias == alias {
-			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q", alias)
 		}
 	}
 
