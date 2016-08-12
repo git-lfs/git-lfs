@@ -150,6 +150,7 @@ begin_test "extension config (with gitconfig)"
 )
 end_test
 
+# https://git-scm.com/docs/git-config
 begin_test "url alias config"
 (
   set -e
@@ -158,11 +159,15 @@ begin_test "url alias config"
   cd url-alias
 
   git init
+
+  # When more than one insteadOf strings match a given URL, the longest match is used.
+  git config url."http://wrong-url/".insteadOf alias
   git config url."http://actual-url/".insteadOf alias:
   git config lfs.url alias:rest
   git lfs env | tee env.log
   grep "Endpoint=http://actual-url/rest (auth=none)" env.log
 
+  # Any URL that starts with this value will be rewritten to start, instead, with <base>
   git config lfs.url badalias:rest
   git lfs env | tee env.log
   grep "Endpoint=badalias:rest (auth=none)" env.log
