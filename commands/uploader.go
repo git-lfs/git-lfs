@@ -146,10 +146,15 @@ func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 		if Debugging || errutil.IsFatalError(err) {
 			LoggedError(err, err.Error())
 		} else {
+			var innermsg string = ""
 			if inner := errutil.GetInnerError(err); inner != nil {
-				Error(inner.Error())
+				innermsg = inner.Error()
+				Error(innermsg)
 			}
-			Error(err.Error())
+			var msg string = err.Error()
+			if msg != innermsg {
+				Error(msg)
+			}
 		}
 	}
 
