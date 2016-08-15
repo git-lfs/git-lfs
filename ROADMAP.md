@@ -11,7 +11,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | :soon: | `authenticated` property on urls | [#960](https://github.com/github/git-lfs/issues/960) |
 | :soon: | Add ref information to upload request | [#969](https://github.com/github/git-lfs/issues/969) |
 | :soon: | Accept raw remote URLs as valid | [#1085](https://github.com/github/git-lfs/issues/1085) |
-| :construction: | `config` refactoring | |
+| :construction: | `config` refactoring | [#1425](https://github.com/github/git-lfs/issues/1425) |
 | :soon: | Socks proxy support | [#1424](https://github.com/github/git-lfs/issues/1424) |
 | :no_entry_sign: | Not following 301 redirect | [#1129](https://github.com/github/git-lfs/issues/1129) |
 | | add all lfs.\* git config keys to git lfs env output | |

@@ -149,3 +149,56 @@ begin_test "extension config (with gitconfig)"
   [ "$expected2" = "$(git lfs ext)" ]
 )
 end_test
+
+begin_test "url alias config"
+(
+  set -e
+
+  mkdir url-alias
+  cd url-alias
+
+  git init
+
+  # When more than one insteadOf strings match a given URL, the longest match is used.
+  git config url."http://wrong-url/".insteadOf alias
+  git config url."http://actual-url/".insteadOf alias:
+  git config lfs.url alias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=http://actual-url/rest (auth=none)" env.log
+)
+end_test
+
+begin_test "ambiguous url alias"
+(
+  set -e
+
+  mkdir url-alias-ambiguous
+  cd url-alias-ambiguous
+
+  git init
+
+  git config url."http://actual-url/".insteadOf alias:
+  git config url."http://dupe-url".insteadOf alias:
+  git config lfs.url alias:rest
+  git config -l | grep url
+
+  git lfs env 2>&1 | tee env2.log
+  grep "WARNING: Multiple 'url.*.insteadof'" env2.log
+)
+end_test
+
+begin_test "url alias must be prefix"
+(
+  set -e
+
+  mkdir url-alias-bad
+  cd url-alias-bad
+
+  git init
+
+  git config url."http://actual-url/".insteadOf alias:
+  git config lfs.url badalias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=badalias:rest (auth=none)" env.log
+)
+end_test
