@@ -78,11 +78,11 @@ type Configuration struct {
 
 func New() *Configuration {
 	c := &Configuration{
-		Os: EnvironmentOf(NewOsFetcher()),
-
+		Os:            EnvironmentOf(NewOsFetcher()),
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
+	c.Git = &gitEnvironment{config: c}
 	c.IsTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
 	c.IsDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
 	c.IsLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
@@ -132,8 +132,6 @@ func NewFrom(v Values) *Configuration {
 // Otherwise, the field will be set to the value of calling the
 // appropriately-typed method on the specified environment.
 func (c *Configuration) Unmarshal(v interface{}) error {
-	c.loadGitConfig()
-
 	into := reflect.ValueOf(v)
 	if into.Kind() != reflect.Ptr {
 		return fmt.Errorf("lfs/config: unable to parse non-pointer type of %T", v)
@@ -347,6 +345,8 @@ func (c *Configuration) EndpointAccess(e Endpoint) string {
 }
 
 func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
+	c.loadGitConfig()
+
 	tracerx.Printf("setting repository access to %s", authType)
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
 
@@ -369,13 +369,11 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 }
 
 func (c *Configuration) FetchIncludePaths() []string {
-	c.loadGitConfig()
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
 }
 
 func (c *Configuration) FetchExcludePaths() []string {
-	c.loadGitConfig()
 	patterns, _ := c.Git.Get("lfs.fetchexclude")
 	return tools.CleanPaths(patterns, ",")
 }
@@ -405,6 +403,7 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
+
 	return c.remotes
 }
 
@@ -419,6 +418,7 @@ func (c *Configuration) GitProtocol() string {
 
 func (c *Configuration) Extensions() map[string]Extension {
 	c.loadGitConfig()
+
 	return c.extensions
 }
 
@@ -429,25 +429,22 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 
 // GitConfigInt parses a git config value and returns it as an integer.
 func (c *Configuration) GitConfigInt(key string, def int) int {
-	c.loadGitConfig()
 	return c.Git.Int(strings.ToLower(key), def)
 }
 
 // GitConfigBool parses a git config value and returns true if defined as
 // true, 1, on, yes, or def if not defined
 func (c *Configuration) GitConfigBool(key string, def bool) bool {
-	c.loadGitConfig()
 	return c.Git.Bool(strings.ToLower(key), def)
 }
 
 func (c *Configuration) GitConfig(key string) (string, bool) {
-	c.loadGitConfig()
-	value, ok := c.gitConfig[strings.ToLower(key)]
-	return value, ok
+	return c.Git.Get(strings.ToLower(key))
 }
 
 func (c *Configuration) AllGitConfig() map[string]string {
 	c.loadGitConfig()
+
 	return c.gitConfig
 }
 
@@ -513,27 +510,21 @@ func (c *Configuration) SkipDownloadErrors() bool {
 	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
 }
 
+// loadGitConfig is a temporary measure to support legacy behavior dependent on
+// accessing properties set by ReadGitConfig, namely:
+//  - `c.extensions`
+//  - `c.uniqRemotes`
+//  - `c.gitConfig`
+//
+// Since the *gitEnvironment is responsible for setting these values on the
+// (*config.Configuration) instance, we must call that method, if it exists.
+//
+// loadGitConfig returns a bool returning whether or not `loadGitConfig` was
+// called AND the method did not return early.
 func (c *Configuration) loadGitConfig() bool {
-	c.loading.Lock()
-	defer c.loading.Unlock()
-
-	if c.Git != nil {
-		return false
+	if g, ok := c.Git.(*gitEnvironment); ok {
+		return g.loadGitConfig()
 	}
 
-	gf, extensions, uniqRemotes := ReadGitConfig(getGitConfigs()...)
-
-	c.Git = EnvironmentOf(gf)
-	c.gitConfig = gf.vals // XXX TERRIBLE
-	c.extensions = extensions
-
-	c.remotes = make([]string, 0, len(uniqRemotes))
-	for remote, isOrigin := range uniqRemotes {
-		if isOrigin {
-			continue
-		}
-		c.remotes = append(c.remotes, remote)
-	}
-
-	return true
+	return false
 }
