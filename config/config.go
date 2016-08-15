@@ -50,14 +50,13 @@ type Configuration struct {
 	// Os provides a `*Environment` used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
 	// system environment configuration.
-	Os *Environment
+	Os Environment
 
 	// Git provides a `*Environment` used to access to the various levels of
 	// `.gitconfig`'s. It is the point of entry for all Git environment
 	// configuration.
-	Git *Environment
+	Git Environment
 
-	//
 	gitConfig map[string]string
 
 	CurrentRemote   string
@@ -187,7 +186,7 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 // both is not.
 //
 // If neither field was found, then a nil environment will be returned.
-func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env *Environment, err error) {
+func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environment, err error) {
 	git, os := tag.Get("git"), tag.Get("os")
 
 	if len(git) != 0 && len(os) != 0 {
