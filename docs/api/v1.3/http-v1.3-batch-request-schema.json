@@ -22,7 +22,10 @@
           },
           "size": {
             "type": "number"
-          }
+          },
+          "authenticated": {
+            "type": "boolean"
+          },
         },
         "required": ["oid", "size"],
         "additionalProperties": false
