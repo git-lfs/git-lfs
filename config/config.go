@@ -5,6 +5,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -72,6 +73,8 @@ type Configuration struct {
 	extensions     map[string]Extension
 	manualEndpoint *Endpoint
 	parsedNetrc    netrcfinder
+	urlAliasesMap  map[string]string
+	urlAliasMu     sync.Mutex
 }
 
 func New() *Configuration {
@@ -447,6 +450,50 @@ func (c *Configuration) GitConfig(key string) (string, bool) {
 func (c *Configuration) AllGitConfig() map[string]string {
 	c.loadGitConfig()
 	return c.gitConfig
+}
+
+func (c *Configuration) urlAliases() map[string]string {
+	c.urlAliasMu.Lock()
+	defer c.urlAliasMu.Unlock()
+
+	if c.urlAliasesMap == nil {
+		c.urlAliasesMap = make(map[string]string)
+		prefix := "url."
+		suffix := ".insteadof"
+		for gitkey, gitval := range c.AllGitConfig() {
+			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
+				if _, ok := c.urlAliasesMap[gitval]; ok {
+					fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
+				}
+				c.urlAliasesMap[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+			}
+		}
+	}
+
+	return c.urlAliasesMap
+}
+
+// ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
+// config setting. If multiple aliases match, use the longest one.
+// See https://git-scm.com/docs/git-config for Git's docs.
+func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
+	var longestalias string
+	aliases := c.urlAliases()
+	for alias, _ := range aliases {
+		if !strings.HasPrefix(rawurl, alias) {
+			continue
+		}
+
+		if longestalias < alias {
+			longestalias = alias
+		}
+	}
+
+	if len(longestalias) > 0 {
+		return aliases[longestalias] + rawurl[len(longestalias):]
+	}
+
+	return rawurl
 }
 
 func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
