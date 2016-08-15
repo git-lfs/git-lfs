@@ -14,7 +14,7 @@ import (
 // Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.
 func ProxyFromGitConfigOrEnvironment(c *config.Configuration) func(req *http.Request) (*url.URL, error) {
 	var https_proxy string
-	http_proxy, _ := c.GitConfig("http.proxy")
+	http_proxy, _ := c.Git.Get("http.proxy")
 	if strings.HasPrefix(http_proxy, "https://") {
 		https_proxy = http_proxy
 	}

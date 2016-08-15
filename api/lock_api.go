@@ -149,8 +149,8 @@ type Committer struct {
 // "user.name" and "user.email" configuration values are used from the
 // config.Config singleton.
 func CurrentCommitter() Committer {
-	name, _ := config.Config.GitConfig("user.name")
-	email, _ := config.Config.GitConfig("user.email")
+	name, _ := config.Config.Git.Get("user.name")
+	email, _ := config.Config.Git.Get("user.email")
 
 	return Committer{name, email}
 }

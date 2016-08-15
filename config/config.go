@@ -216,12 +216,12 @@ func (c *Configuration) GetenvBool(key string, def bool) bool {
 // the forpush argument is to cater for separate remote.name.pushurl settings
 func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 	if forpush {
-		if u, ok := c.GitConfig("remote." + remote + ".pushurl"); ok {
+		if u, ok := c.Git.Get("remote." + remote + ".pushurl"); ok {
 			return u
 		}
 	}
 
-	if u, ok := c.GitConfig("remote." + remote + ".url"); ok {
+	if u, ok := c.Git.Get("remote." + remote + ".url"); ok {
 		return u
 	}
 
@@ -240,12 +240,12 @@ func (c *Configuration) Endpoint(operation string) Endpoint {
 	}
 
 	if operation == "upload" {
-		if url, ok := c.GitConfig("lfs.pushurl"); ok {
+		if url, ok := c.Git.Get("lfs.pushurl"); ok {
 			return NewEndpointWithConfig(url, c)
 		}
 	}
 
-	if url, ok := c.GitConfig("lfs.url"); ok {
+	if url, ok := c.Git.Get("lfs.url"); ok {
 		return NewEndpointWithConfig(url, c)
 	}
 
@@ -265,7 +265,7 @@ func (c *Configuration) ConcurrentTransfers() int {
 
 	uploads := 3
 
-	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
+	if v, ok := c.Git.Get("lfs.concurrenttransfers"); ok {
 		n, err := strconv.Atoi(v)
 		if err == nil && n > 0 {
 			uploads = n
@@ -278,17 +278,17 @@ func (c *Configuration) ConcurrentTransfers() int {
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
 // Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
-	return c.GitConfigBool("lfs.basictransfersonly", false)
+	return c.Git.Bool("lfs.basictransfersonly", false)
 }
 
 // TusTransfersAllowed returns whether to only use "tus.io" HTTP transfers.
 // Default is false, including if the lfs.tustransfers is invalid
 func (c *Configuration) TusTransfersAllowed() bool {
-	return c.GitConfigBool("lfs.tustransfers", false)
+	return c.Git.Bool("lfs.tustransfers", false)
 }
 
 func (c *Configuration) BatchTransfer() bool {
-	return c.GitConfigBool("lfs.batch", true)
+	return c.Git.Bool("lfs.batch", true)
 }
 
 func (c *Configuration) NtlmAccess(operation string) bool {
@@ -334,7 +334,7 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 
 func (c *Configuration) EndpointAccess(e Endpoint) string {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
-	if v, ok := c.GitConfig(key); ok && len(v) > 0 {
+	if v, ok := c.Git.Get(key); ok && len(v) > 0 {
 		lower := strings.ToLower(v)
 		if lower == "private" {
 			return "basic"
@@ -385,11 +385,11 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
-		if url, ok := c.GitConfig("remote." + remote + ".lfspushurl"); ok {
+		if url, ok := c.Git.Get("remote." + remote + ".lfspushurl"); ok {
 			return NewEndpointWithConfig(url, c)
 		}
 	}
-	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
+	if url, ok := c.Git.Get("remote." + remote + ".lfsurl"); ok {
 		return NewEndpointWithConfig(url, c)
 	}
 
@@ -410,7 +410,7 @@ func (c *Configuration) Remotes() []string {
 // GitProtocol returns the protocol for the LFS API when converting from a
 // git:// remote url.
 func (c *Configuration) GitProtocol() string {
-	if value, ok := c.GitConfig("lfs.gitprotocol"); ok {
+	if value, ok := c.Git.Get("lfs.gitprotocol"); ok {
 		return value
 	}
 	return "https"
@@ -425,21 +425,6 @@ func (c *Configuration) Extensions() map[string]Extension {
 // SortedExtensions gets the list of extensions ordered by Priority
 func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
-}
-
-// GitConfigInt parses a git config value and returns it as an integer.
-func (c *Configuration) GitConfigInt(key string, def int) int {
-	return c.Git.Int(strings.ToLower(key), def)
-}
-
-// GitConfigBool parses a git config value and returns true if defined as
-// true, 1, on, yes, or def if not defined
-func (c *Configuration) GitConfigBool(key string, def bool) bool {
-	return c.Git.Bool(strings.ToLower(key), def)
-}
-
-func (c *Configuration) GitConfig(key string) (string, bool) {
-	return c.Git.Get(strings.ToLower(key))
 }
 
 func (c *Configuration) AllGitConfig() map[string]string {
@@ -507,7 +492,7 @@ func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
-	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
+	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.Git.Bool("lfs.skipdownloaderrors", false)
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
