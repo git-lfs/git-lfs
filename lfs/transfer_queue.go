@@ -58,10 +58,12 @@ type TransferQueue struct {
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
+	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
+
 	q := &TransferQueue{
 		direction:     dir,
 		dryRun:        dryRun,
-		meter:         progress.NewProgressMeter(files, size, dryRun, config.Config.Getenv("GIT_LFS_PROGRESS")),
+		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
 		apic:          make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),

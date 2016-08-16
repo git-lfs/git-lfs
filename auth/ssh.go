@@ -69,8 +69,9 @@ func sshGetExeAndArgs(cfg *config.Configuration, endpoint config.Endpoint) (exe 
 	isPlink := false
 	isTortoise := false
 
-	ssh := cfg.Getenv("GIT_SSH")
-	cmdArgs := strings.Fields(cfg.Getenv("GIT_SSH_COMMAND"))
+	ssh, _ := cfg.Os.Get("GIT_SSH")
+	sshCmd, _ := cfg.Os.Get("GIT_SSH_COMMAND")
+	cmdArgs := strings.Fields(sshCmd)
 	if len(cmdArgs) > 0 {
 		ssh = cmdArgs[0]
 		cmdArgs = cmdArgs[1:]
