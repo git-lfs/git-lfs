@@ -27,7 +27,7 @@ const (
 var currentPlatform = PlatformUndetermined
 
 func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
-	logPath := config.Config.Getenv("GIT_LFS_PROGRESS")
+	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}

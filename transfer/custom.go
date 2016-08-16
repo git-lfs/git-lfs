@@ -63,7 +63,7 @@ type customAdapterWorkerContext struct {
 }
 
 type customAdapterInitRequest struct {
-	Event               string `json:"Event"`
+	Event               string `json:"event"`
 	Operation           string `json:"operation"`
 	Concurrent          bool   `json:"concurrent"`
 	ConcurrentTransfers int    `json:"concurrenttransfers"`
@@ -358,9 +358,9 @@ func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 		name := match[1]
 		path := v
 		// retrieve other values
-		args, _ := cfg.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-		concurrent := cfg.GitConfigBool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-		direction, _ := cfg.GitConfig(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+		args, _ := cfg.Git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
+		concurrent := cfg.Git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
+		direction, _ := cfg.Git.Get(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
 		if len(direction) == 0 {
 			direction = "both"
 		} else {
