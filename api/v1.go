@@ -36,11 +36,17 @@ func DoLegacyRequest(cfg *config.Configuration, req *http.Request) (*http.Respon
 	return res, obj, nil
 }
 
+type BatchMetadata struct {
+	Ref string `json:"ref,omitempty"`
+}
+
 type batchRequest struct {
 	TransferAdapterNames []string          `json:"transfers,omitempty"`
 	Operation            string            `json:"operation"`
 	Objects              []*ObjectResource `json:"objects"`
+	Meta                 *BatchMetadata    `json:"meta,omitempty"`
 }
+
 type batchResponse struct {
 	TransferAdapterName string            `json:"transfer"`
 	Objects             []*ObjectResource `json:"objects"`

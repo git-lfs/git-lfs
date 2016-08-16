@@ -19,7 +19,7 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
-func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
+func uploadsBetweenRefs(ctx *uploadContext, left, right, destRef string) {
 	tracerx.Printf("Upload between %v and %v", left, right)
 
 	scanOpt := lfs.NewScanRefsOptions()
@@ -31,7 +31,7 @@ func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 		Panic(err, "Error scanning for Git LFS files")
 	}
 
-	upload(ctx, pointers)
+	upload(ctx, destRef, pointers)
 }
 
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
@@ -57,7 +57,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
 
-		upload(ctx, pointers)
+		upload(ctx, ref.Name, pointers)
 	}
 }
 
@@ -68,7 +68,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
 
-	upload(ctx, pointers)
+	upload(ctx, "", pointers)
 }
 
 func refsByNames(refnames []string) ([]*git.Ref, error) {
@@ -137,12 +137,12 @@ func pushCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		left, right := decodeRefs(string(refsData))
+		left, right, destRef := decodeRefs(string(refsData))
 		if left == prePushDeleteBranch {
 			return
 		}
 
-		uploadsBetweenRefs(ctx, left, right)
+		uploadsBetweenRefs(ctx, left, right, destRef)
 	} else if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
