@@ -127,7 +127,7 @@ begin_test "pull with raw remote url"
 
   # LFS object not downloaded, pointer in working directory
   refute_local_object "$contents_oid"
-  ack "$contents_oid" a.dat
+  grep "$contents_oid" a.dat
 
   git lfs pull "$GITSERVER/test-pull"
   echo "pulled!"

@@ -516,7 +516,7 @@ begin_test "fetch raw remote url"
 
   # LFS object not downloaded, pointer in working directory
   refute_local_object "$contents_oid"
-  ack "$content_oid" a.dat
+  grep "$content_oid" a.dat
 
   git lfs fetch "$GITSERVER/test-fetch"
 
