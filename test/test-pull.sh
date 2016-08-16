@@ -111,6 +111,34 @@ begin_test "pull"
 )
 end_test
 
+begin_test "pull with raw remote url"
+(
+  set -e
+  mkdir raw
+  cd raw
+  git init
+  git lfs install --local --skip-smudge
+
+  git remote add origin $GITSERVER/test-pull
+  git pull origin master
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  # LFS object not downloaded, pointer in working directory
+  refute_local_object "$contents_oid"
+  grep "$contents_oid" a.dat
+
+  git lfs pull "$GITSERVER/test-pull"
+  echo "pulled!"
+
+  # LFS object downloaded and in working directory
+  assert_local_object "$contents_oid" 1
+  [ "0" = "$(grep -c "$contents_oid" a.dat)" ]
+  [ "a" = "$(cat a.dat)" ]
+)
+end_test
+
 begin_test "pull: outside git repository"
 (
   set +e

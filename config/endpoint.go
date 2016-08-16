@@ -37,12 +37,17 @@ func NewEndpointFromCloneURLWithConfig(url string, c *Configuration) Endpoint {
 		return e
 	}
 
+	if strings.HasSuffix(url, "/") {
+		e.Url = url[0 : len(url)-1]
+	}
+
 	// When using main remote URL for HTTP, append info/lfs
-	if path.Ext(url) == ".git" {
+	if path.Ext(e.Url) == ".git" {
 		e.Url += "/info/lfs"
 	} else {
 		e.Url += ".git/info/lfs"
 	}
+
 	return e
 }
 
