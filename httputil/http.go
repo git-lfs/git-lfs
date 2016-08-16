@@ -117,9 +117,9 @@ func NewHttpClient(c *config.Configuration, host string) *HttpClient {
 		return client
 	}
 
-	dialtime := c.GitConfigInt("lfs.dialtimeout", 30)
-	keepalivetime := c.GitConfigInt("lfs.keepalive", 1800) // 30 minutes
-	tlstime := c.GitConfigInt("lfs.tlstimeout", 30)
+	dialtime := c.Git.Int("lfs.dialtimeout", 30)
+	keepalivetime := c.Git.Int("lfs.keepalive", 1800) // 30 minutes
+	tlstime := c.Git.Int("lfs.tlstimeout", 30)
 
 	tr := &http.Transport{
 		Proxy: ProxyFromGitConfigOrEnvironment(c),

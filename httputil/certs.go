@@ -13,12 +13,12 @@ import (
 // isCertVerificationDisabledForHost returns whether SSL certificate verification
 // has been disabled for the given host, or globally
 func isCertVerificationDisabledForHost(cfg *config.Configuration, host string) bool {
-	hostSslVerify, _ := cfg.GitConfig(fmt.Sprintf("http.https://%v/.sslverify", host))
+	hostSslVerify, _ := cfg.Git.Get(fmt.Sprintf("http.https://%v/.sslverify", host))
 	if hostSslVerify == "false" {
 		return true
 	}
 
-	globalSslVerify, _ := cfg.GitConfig("http.sslverify")
+	globalSslVerify, _ := cfg.Git.Get("http.sslverify")
 	if globalSslVerify == "false" || cfg.Os.Bool("GIT_SSL_NO_VERIFY", false) {
 		return true
 	}
@@ -54,15 +54,15 @@ func appendRootCAsForHostFromGitconfig(cfg *config.Configuration, pool *x509.Cer
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
 	// we know we have simply "host" or "host:port"
 	hostKeyWithSlash := fmt.Sprintf("http.https://%v/.sslcainfo", host)
-	if cafile, ok := cfg.GitConfig(hostKeyWithSlash); ok {
+	if cafile, ok := cfg.Git.Get(hostKeyWithSlash); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	hostKeyWithoutSlash := fmt.Sprintf("http.https://%v.sslcainfo", host)
-	if cafile, ok := cfg.GitConfig(hostKeyWithoutSlash); ok {
+	if cafile, ok := cfg.Git.Get(hostKeyWithoutSlash); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.sslcainfo
-	if cafile, ok := cfg.GitConfig("http.sslcainfo"); ok {
+	if cafile, ok := cfg.Git.Get("http.sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
@@ -70,7 +70,7 @@ func appendRootCAsForHostFromGitconfig(cfg *config.Configuration, pool *x509.Cer
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 	// http.sslcapath
-	if cadir, ok := cfg.GitConfig("http.sslcapath"); ok {
+	if cadir, ok := cfg.Git.Get("http.sslcapath"); ok {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 
