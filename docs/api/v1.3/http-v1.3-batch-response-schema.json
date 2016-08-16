@@ -39,6 +39,9 @@
             "type": "number",
             "minimum": 0
           },
+          "authenticated": {
+            "type": "boolean"
+          },
           "actions": {
             "type": "object",
             "properties": {
