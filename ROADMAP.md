@@ -28,7 +28,6 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Investigate hanging pushes/pulls when git credential helper is not set | [#197](https://github.com/github/git-lfs/issues/197) |
 | | Support git ssh shorthands | [#278](https://github.com/github/git-lfs/issues/278) |
 | | Support `GIT_CONFIG` | [#318](https://github.com/github/git-lfs/issues/318) |
-| | LFS Migration tool | [#326](https://github.com/github/git-lfs/issues/326) |
 | | Warn when Git version is unsupported | [#410](https://github.com/github/git-lfs/issues/410) |
 
 ## Upcoming Features
@@ -49,6 +48,7 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Client side metrics reporting, so the Git LFS server can optionally track how clients are performing. | |
 | | Pure SSH: full API & transfer support for SSH without redirect to HTTP | |
 | | Compression of files in `.git/lfs/objects` | [#260](https://github.com/github/git-lfs/issues/260) |
+| | LFS Migration tool | [#326](https://github.com/github/git-lfs/issues/326) |
 
 ## Project Related
 
