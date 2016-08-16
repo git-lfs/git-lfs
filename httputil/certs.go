@@ -19,7 +19,7 @@ func isCertVerificationDisabledForHost(cfg *config.Configuration, host string) b
 	}
 
 	globalSslVerify, _ := cfg.Git.Get("http.sslverify")
-	if globalSslVerify == "false" || cfg.GetenvBool("GIT_SSL_NO_VERIFY", false) {
+	if globalSslVerify == "false" || cfg.Os.Bool("GIT_SSL_NO_VERIFY", false) {
 		return true
 	}
 
@@ -48,7 +48,7 @@ func appendRootCAsForHostFromGitconfig(cfg *config.Configuration, pool *x509.Cer
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first
-	if cafile := cfg.Getenv("GIT_SSL_CAINFO"); len(cafile) > 0 {
+	if cafile, _ := cfg.Os.Get("GIT_SSL_CAINFO"); len(cafile) > 0 {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
@@ -66,7 +66,7 @@ func appendRootCAsForHostFromGitconfig(cfg *config.Configuration, pool *x509.Cer
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
-	if cadir := cfg.Getenv("GIT_SSL_CAPATH"); len(cadir) > 0 {
+	if cadir, _ := cfg.Os.Get("GIT_SSL_CAPATH"); len(cadir) > 0 {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 	// http.sslcapath

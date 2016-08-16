@@ -63,7 +63,7 @@ type customAdapterWorkerContext struct {
 }
 
 type customAdapterInitRequest struct {
-	Event               string `json:"Event"`
+	Event               string `json:"event"`
 	Operation           string `json:"operation"`
 	Concurrent          bool   `json:"concurrent"`
 	ConcurrentTransfers int    `json:"concurrenttransfers"`
