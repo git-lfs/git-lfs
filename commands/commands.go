@@ -105,16 +105,35 @@ func Exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
+// ExitWithError either panics with a full stack trace for fatal errors, or
+// simply prints the error message and exits immediately.
 func ExitWithError(err error) {
-	if Debugging || errutil.IsFatalError(err) {
-		Panic(err, err.Error())
-	} else {
-		if inner := errutil.GetInnerError(err); inner != nil {
-			Error(inner.Error())
-		}
-		Exit(err.Error())
-	}
+	errorWith(err, Panic, Exit)
 }
+
+// FullError prints either a full stack trace for fatal errors, or just the
+// error message.
+func FullError(err error) {
+	errorWith(err, LoggedError, Error)
+}
+
+func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
+		var innermsg string
+		if inner := errutil.GetInnerError(err); inner != nil {
+			innermsg = inner.Error()
+		}
+
+		errmsg := err.Error()
+		if errmsg != innermsg {
+			Error(innermsg)
+		}
+
+		if Debugging || errutil.IsFatalError(err) {
+			fatalErrFn(err, errmsg)
+		} else {
+			errFn(errmsg)
+		}
+	}
 
 // Debug prints a formatted message if debugging is enabled.  The formatted
 // message also shows up in the panic log, if created.

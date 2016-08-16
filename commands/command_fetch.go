@@ -313,7 +313,7 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	ok := true
 	for _, err := range q.Errors() {
 		ok = false
-		ExitWithError(err)
+		FullError(err)
 	}
 	return ok
 }
