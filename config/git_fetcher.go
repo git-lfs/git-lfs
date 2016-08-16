@@ -110,11 +110,19 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 	return
 }
 
+// Get implements the Fetcher interface, and returns the value associated with
+// a given key and true, signaling that the value was present. Otherwise, an
+// empty string and false will be returned, signaling that the value was
+// absent.
+//
+// Map lookup by key is case-insensitive, as per the .gitconfig specification.
+//
+// Get is safe to call across multiple goroutines.
 func (g *GitFetcher) Get(key string) (val string, ok bool) {
 	g.vmu.RLock()
 	defer g.vmu.RUnlock()
 
-	val, ok = g.vals[key]
+	val, ok = g.vals[strings.ToLower(key)]
 	return
 }
 

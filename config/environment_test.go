@@ -7,13 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEnvironmentOfReturnsCorrectlyInitializedEnvironment(t *testing.T) {
-	fetcher := MapFetcher(map[string]string{})
-	env := EnvironmentOf(fetcher)
-
-	assert.Equal(t, fetcher, env.Fetcher)
-}
-
 func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
 	fetcher := MapFetcher(map[string]string{
 		"foo": "bar",
@@ -68,18 +61,18 @@ type EnvironmentConversionTestCase struct {
 	Val      string
 	Expected interface{}
 
-	GotFn func(env *Environment, key string) interface{}
+	GotFn func(env Environment, key string) interface{}
 }
 
 var (
-	GetBoolDefault = func(def bool) func(e *Environment, key string) interface{} {
-		return func(e *Environment, key string) interface{} {
+	GetBoolDefault = func(def bool) func(e Environment, key string) interface{} {
+		return func(e Environment, key string) interface{} {
 			return e.Bool(key, def)
 		}
 	}
 
-	GetIntDefault = func(def int) func(e *Environment, key string) interface{} {
-		return func(e *Environment, key string) interface{} {
+	GetIntDefault = func(def int) func(e Environment, key string) interface{} {
+		return func(e Environment, key string) interface{} {
 			return e.Int(key, def)
 		}
 	}

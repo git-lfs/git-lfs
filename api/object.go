@@ -19,11 +19,12 @@ func (e *ObjectError) Error() string {
 }
 
 type ObjectResource struct {
-	Oid     string                   `json:"oid,omitempty"`
-	Size    int64                    `json:"size"`
-	Actions map[string]*LinkRelation `json:"actions,omitempty"`
-	Links   map[string]*LinkRelation `json:"_links,omitempty"`
-	Error   *ObjectError             `json:"error,omitempty"`
+	Oid           string                   `json:"oid,omitempty"`
+	Size          int64                    `json:"size"`
+	Authenticated bool                     `json:"authenticated,omitempty"`
+	Actions       map[string]*LinkRelation `json:"actions,omitempty"`
+	Links         map[string]*LinkRelation `json:"_links,omitempty"`
+	Error         *ObjectError             `json:"error,omitempty"`
 }
 
 // TODO LEGACY API: remove when legacy API removed
@@ -71,6 +72,10 @@ func (o *ObjectResource) IsExpired(now time.Time) bool {
 	}
 
 	return false
+}
+
+func (o *ObjectResource) NeedsAuth() bool {
+	return !o.Authenticated
 }
 
 type LinkRelation struct {

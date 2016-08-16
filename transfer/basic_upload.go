@@ -97,7 +97,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := httputil.DoHttpRequest(config.Config, req, true)
+	res, err := httputil.DoHttpRequest(config.Config, req, t.Object.NeedsAuth())
 	if err != nil {
 		return errutil.NewRetriableError(err)
 	}

@@ -39,7 +39,7 @@ func (h *Hook) Path() string {
 // greater than "2.9.0"), it will return that instead.
 func (h *Hook) Dir() string {
 	customHooksSupported := git.Config.IsGitVersionAtLeast("2.9.0")
-	if hp, ok := config.Config.GitConfig("core.hooksPath"); ok && customHooksSupported {
+	if hp, ok := config.Config.Git.Get("core.hooksPath"); ok && customHooksSupported {
 		return hp
 	}
 

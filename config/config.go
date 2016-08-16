@@ -50,14 +50,13 @@ type Configuration struct {
 	// Os provides a `*Environment` used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
 	// system environment configuration.
-	Os *Environment
+	Os Environment
 
 	// Git provides a `*Environment` used to access to the various levels of
 	// `.gitconfig`'s. It is the point of entry for all Git environment
 	// configuration.
-	Git *Environment
+	Git Environment
 
-	//
 	gitConfig map[string]string
 
 	CurrentRemote   string
@@ -79,14 +78,15 @@ type Configuration struct {
 
 func New() *Configuration {
 	c := &Configuration{
-		Os: EnvironmentOf(NewOsFetcher()),
-
+		Os:            EnvironmentOf(NewOsFetcher()),
 		CurrentRemote: defaultRemote,
 		envVars:       make(map[string]string),
 	}
-	c.IsTracingHttp = c.GetenvBool("GIT_CURL_VERBOSE", false)
-	c.IsDebuggingHttp = c.GetenvBool("LFS_DEBUG_HTTP", false)
-	c.IsLoggingStats = c.GetenvBool("GIT_LOG_STATS", false)
+
+	c.Git = &gitEnvironment{config: c}
+	c.IsTracingHttp = c.Os.Bool("GIT_CURL_VERBOSE", false)
+	c.IsDebuggingHttp = c.Os.Bool("LFS_DEBUG_HTTP", false)
+	c.IsLoggingStats = c.Os.Bool("GIT_LOG_STATS", false)
 	return c
 }
 
@@ -133,8 +133,6 @@ func NewFrom(v Values) *Configuration {
 // Otherwise, the field will be set to the value of calling the
 // appropriately-typed method on the specified environment.
 func (c *Configuration) Unmarshal(v interface{}) error {
-	c.loadGitConfig()
-
 	into := reflect.ValueOf(v)
 	if into.Kind() != reflect.Ptr {
 		return fmt.Errorf("lfs/config: unable to parse non-pointer type of %T", v)
@@ -187,7 +185,7 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 // both is not.
 //
 // If neither field was found, then a nil environment will be returned.
-func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env *Environment, err error) {
+func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environment, err error) {
 	git, os := tag.Get("git"), tag.Get("os")
 
 	if len(git) != 0 && len(os) != 0 {
@@ -204,27 +202,16 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env *Enviro
 	return
 }
 
-// Getenv is shorthand for `c.Os.Get(key)`.
-func (c *Configuration) Getenv(key string) string {
-	v, _ := c.Os.Get(key)
-	return v
-}
-
-// GetenvBool is shorthand for `c.Os.Bool(key, def)`.
-func (c *Configuration) GetenvBool(key string, def bool) bool {
-	return c.Os.Bool(key, def)
-}
-
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
 // the forpush argument is to cater for separate remote.name.pushurl settings
 func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 	if forpush {
-		if u, ok := c.GitConfig("remote." + remote + ".pushurl"); ok {
+		if u, ok := c.Git.Get("remote." + remote + ".pushurl"); ok {
 			return u
 		}
 	}
 
-	if u, ok := c.GitConfig("remote." + remote + ".url"); ok {
+	if u, ok := c.Git.Get("remote." + remote + ".url"); ok {
 		return u
 	}
 
@@ -247,12 +234,12 @@ func (c *Configuration) Endpoint(operation string) Endpoint {
 	}
 
 	if operation == "upload" {
-		if url, ok := c.GitConfig("lfs.pushurl"); ok {
+		if url, ok := c.Git.Get("lfs.pushurl"); ok {
 			return NewEndpointWithConfig(url, c)
 		}
 	}
 
-	if url, ok := c.GitConfig("lfs.url"); ok {
+	if url, ok := c.Git.Get("lfs.url"); ok {
 		return NewEndpointWithConfig(url, c)
 	}
 
@@ -272,7 +259,7 @@ func (c *Configuration) ConcurrentTransfers() int {
 
 	uploads := 3
 
-	if v, ok := c.GitConfig("lfs.concurrenttransfers"); ok {
+	if v, ok := c.Git.Get("lfs.concurrenttransfers"); ok {
 		n, err := strconv.Atoi(v)
 		if err == nil && n > 0 {
 			uploads = n
@@ -285,17 +272,17 @@ func (c *Configuration) ConcurrentTransfers() int {
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
 // Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
-	return c.GitConfigBool("lfs.basictransfersonly", false)
+	return c.Git.Bool("lfs.basictransfersonly", false)
 }
 
 // TusTransfersAllowed returns whether to only use "tus.io" HTTP transfers.
 // Default is false, including if the lfs.tustransfers is invalid
 func (c *Configuration) TusTransfersAllowed() bool {
-	return c.GitConfigBool("lfs.tustransfers", false)
+	return c.Git.Bool("lfs.tustransfers", false)
 }
 
 func (c *Configuration) BatchTransfer() bool {
-	return c.GitConfigBool("lfs.batch", true)
+	return c.Git.Bool("lfs.batch", true)
 }
 
 func (c *Configuration) NtlmAccess(operation string) bool {
@@ -341,7 +328,7 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 
 func (c *Configuration) EndpointAccess(e Endpoint) string {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
-	if v, ok := c.GitConfig(key); ok && len(v) > 0 {
+	if v, ok := c.Git.Get(key); ok && len(v) > 0 {
 		lower := strings.ToLower(v)
 		if lower == "private" {
 			return "basic"
@@ -352,6 +339,8 @@ func (c *Configuration) EndpointAccess(e Endpoint) string {
 }
 
 func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
+	c.loadGitConfig()
+
 	tracerx.Printf("setting repository access to %s", authType)
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
 
@@ -374,13 +363,11 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 }
 
 func (c *Configuration) FetchIncludePaths() []string {
-	c.loadGitConfig()
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
 }
 
 func (c *Configuration) FetchExcludePaths() []string {
-	c.loadGitConfig()
 	patterns, _ := c.Git.Get("lfs.fetchexclude")
 	return tools.CleanPaths(patterns, ",")
 }
@@ -392,11 +379,11 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
-		if url, ok := c.GitConfig("remote." + remote + ".lfspushurl"); ok {
+		if url, ok := c.Git.Get("remote." + remote + ".lfspushurl"); ok {
 			return NewEndpointWithConfig(url, c)
 		}
 	}
-	if url, ok := c.GitConfig("remote." + remote + ".lfsurl"); ok {
+	if url, ok := c.Git.Get("remote." + remote + ".lfsurl"); ok {
 		return NewEndpointWithConfig(url, c)
 	}
 
@@ -410,13 +397,14 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
+
 	return c.remotes
 }
 
 // GitProtocol returns the protocol for the LFS API when converting from a
 // git:// remote url.
 func (c *Configuration) GitProtocol() string {
-	if value, ok := c.GitConfig("lfs.gitprotocol"); ok {
+	if value, ok := c.Git.Get("lfs.gitprotocol"); ok {
 		return value
 	}
 	return "https"
@@ -424,6 +412,7 @@ func (c *Configuration) GitProtocol() string {
 
 func (c *Configuration) Extensions() map[string]Extension {
 	c.loadGitConfig()
+
 	return c.extensions
 }
 
@@ -432,27 +421,9 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
 }
 
-// GitConfigInt parses a git config value and returns it as an integer.
-func (c *Configuration) GitConfigInt(key string, def int) int {
-	c.loadGitConfig()
-	return c.Git.Int(strings.ToLower(key), def)
-}
-
-// GitConfigBool parses a git config value and returns true if defined as
-// true, 1, on, yes, or def if not defined
-func (c *Configuration) GitConfigBool(key string, def bool) bool {
-	c.loadGitConfig()
-	return c.Git.Bool(strings.ToLower(key), def)
-}
-
-func (c *Configuration) GitConfig(key string) (string, bool) {
-	c.loadGitConfig()
-	value, ok := c.gitConfig[strings.ToLower(key)]
-	return value, ok
-}
-
 func (c *Configuration) AllGitConfig() map[string]string {
 	c.loadGitConfig()
+
 	return c.gitConfig
 }
 
@@ -515,30 +486,24 @@ func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
-	return c.GetenvBool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.GitConfigBool("lfs.skipdownloaderrors", false)
+	return c.Os.Bool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.Git.Bool("lfs.skipdownloaderrors", false)
 }
 
+// loadGitConfig is a temporary measure to support legacy behavior dependent on
+// accessing properties set by ReadGitConfig, namely:
+//  - `c.extensions`
+//  - `c.uniqRemotes`
+//  - `c.gitConfig`
+//
+// Since the *gitEnvironment is responsible for setting these values on the
+// (*config.Configuration) instance, we must call that method, if it exists.
+//
+// loadGitConfig returns a bool returning whether or not `loadGitConfig` was
+// called AND the method did not return early.
 func (c *Configuration) loadGitConfig() bool {
-	c.loading.Lock()
-	defer c.loading.Unlock()
-
-	if c.Git != nil {
-		return false
+	if g, ok := c.Git.(*gitEnvironment); ok {
+		return g.loadGitConfig()
 	}
 
-	gf, extensions, uniqRemotes := ReadGitConfig(getGitConfigs()...)
-
-	c.Git = EnvironmentOf(gf)
-	c.gitConfig = gf.vals // XXX TERRIBLE
-	c.extensions = extensions
-
-	c.remotes = make([]string, 0, len(uniqRemotes))
-	for remote, isOrigin := range uniqRemotes {
-		if isOrigin {
-			continue
-		}
-		c.remotes = append(c.remotes, remote)
-	}
-
-	return true
+	return false
 }

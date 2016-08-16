@@ -110,7 +110,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Object.Size-1))
 	}
 
-	res, err := httputil.DoHttpRequest(config.Config, req, true)
+	res, err := httputil.DoHttpRequest(config.Config, req, t.Object.NeedsAuth())
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
