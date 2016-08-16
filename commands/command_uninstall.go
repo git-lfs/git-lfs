@@ -5,20 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// uninstallCmd removes any configuration and hooks set by Git LFS.
-	uninstallCmd = &cobra.Command{
-		Use: "uninstall",
-		Run: uninstallCommand,
-	}
-
-	// uninstallHooksCmd removes any hooks created by Git LFS.
-	uninstallHooksCmd = &cobra.Command{
-		Use: "hooks",
-		Run: uninstallHooksCommand,
-	}
-)
-
+// uninstallCmd removes any configuration and hooks set by Git LFS.
 func uninstallCommand(cmd *cobra.Command, args []string) {
 	if err := lfs.UninstallFilters(); err != nil {
 		Error(err.Error())
@@ -31,6 +18,7 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
+// uninstallHooksCmd removes any hooks created by Git LFS.
 func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 	if err := lfs.UninstallHooks(); err != nil {
 		Error(err.Error())
@@ -40,6 +28,16 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	uninstallCmd.AddCommand(uninstallHooksCmd)
-	RootCmd.AddCommand(uninstallCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "uninstall",
+			Run: uninstallCommand,
+		}
+
+		cmd.AddCommand(&cobra.Command{
+			Use: "hooks",
+			Run: uninstallHooksCommand,
+		})
+		return cmd
+	})
 }

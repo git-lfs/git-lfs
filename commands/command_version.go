@@ -7,11 +7,6 @@ import (
 
 var (
 	lovesComics bool
-
-	versionCmd = &cobra.Command{
-		Use: "version",
-		Run: versionCommand,
-	}
 )
 
 func versionCommand(cmd *cobra.Command, args []string) {
@@ -23,6 +18,13 @@ func versionCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	versionCmd.Flags().BoolVarP(&lovesComics, "comics", "c", false, "easter egg")
-	RootCmd.AddCommand(versionCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "version",
+			Run: versionCommand,
+		}
+
+		cmd.Flags().BoolVarP(&lovesComics, "comics", "c", false, "easter egg")
+		return cmd
+	})
 }

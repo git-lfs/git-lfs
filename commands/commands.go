@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/github/git-lfs/api"
@@ -18,6 +19,7 @@ import (
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/tools"
+	"github.com/github/git-lfs/transfer"
 	"github.com/spf13/cobra"
 )
 
@@ -29,23 +31,56 @@ var (
 	// various command implementations.
 	API = api.NewClient(nil)
 
-	Debugging    = false
-	ErrorBuffer  = &bytes.Buffer{}
-	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
-	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
-	RootCmd      = &cobra.Command{
+	Debugging       = false
+	ErrorBuffer     = &bytes.Buffer{}
+	ErrorWriter     = io.MultiWriter(os.Stderr, ErrorBuffer)
+	OutputWriter    = io.MultiWriter(os.Stdout, ErrorBuffer)
+	ManPages        = make(map[string]string, 20)
+	cfg             *config.Configuration
+	subcommandFuncs []func() *cobra.Command
+	subcommandMu    sync.Mutex
+
+	includeArg string
+	excludeArg string
+)
+
+func Run() {
+	cfg = config.Config
+
+	root := &cobra.Command{
 		Use: "git-lfs",
 		Run: func(cmd *cobra.Command, args []string) {
 			versionCommand(cmd, args)
 			cmd.Usage()
 		},
 	}
-	ManPages = make(map[string]string, 20)
-	cfg      = config.Config
 
-	includeArg string
-	excludeArg string
-)
+	// Set up help/usage funcs based on manpage text
+	root.SetHelpFunc(help)
+	root.SetHelpTemplate("{{.UsageString}}")
+	root.SetUsageFunc(usage)
+
+	for _, f := range subcommandFuncs {
+		if cmd := f(); cmd != nil {
+			root.AddCommand(cmd)
+		}
+	}
+
+	root.Execute()
+	httputil.LogHttpStats(cfg)
+}
+
+func RegisterSubcommand(fn func() *cobra.Command) {
+	subcommandMu.Lock()
+	subcommandFuncs = append(subcommandFuncs, fn)
+	subcommandMu.Unlock()
+}
+
+// TransferManifest builds a transfer.Manifest from the commands package global
+// cfg var.
+func TransferManifest() *transfer.Manifest {
+	return transfer.ConfigureManifest(transfer.NewManifest(), cfg)
+}
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
@@ -106,11 +141,6 @@ func LoggedError(err error, format string, args ...interface{}) {
 func Panic(err error, format string, args ...interface{}) {
 	LoggedError(err, format, args...)
 	os.Exit(2)
-}
-
-func Run() {
-	RootCmd.Execute()
-	httputil.LogHttpStats(cfg)
 }
 
 func Cleanup() {
@@ -225,7 +255,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ() {
+	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
 }
@@ -287,8 +317,4 @@ func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
 
 func init() {
 	log.SetOutput(ErrorWriter)
-	// Set up help/usage funcs based on manpage text
-	RootCmd.SetHelpFunc(help)
-	RootCmd.SetHelpTemplate("{{.UsageString}}")
-	RootCmd.SetUsageFunc(usage)
 }

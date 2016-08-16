@@ -5,6 +5,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -68,11 +69,12 @@ type Configuration struct {
 	IsLoggingStats  bool
 
 	loading        sync.Mutex // guards initialization of gitConfig and remotes
-	origConfig     map[string]string
 	remotes        []string
 	extensions     map[string]Extension
 	manualEndpoint *Endpoint
 	parsedNetrc    netrcfinder
+	urlAliasesMap  map[string]string
+	urlAliasMu     sync.Mutex
 }
 
 func New() *Configuration {
@@ -439,6 +441,50 @@ func (c *Configuration) AllGitConfig() map[string]string {
 	return c.gitConfig
 }
 
+func (c *Configuration) urlAliases() map[string]string {
+	c.urlAliasMu.Lock()
+	defer c.urlAliasMu.Unlock()
+
+	if c.urlAliasesMap == nil {
+		c.urlAliasesMap = make(map[string]string)
+		prefix := "url."
+		suffix := ".insteadof"
+		for gitkey, gitval := range c.AllGitConfig() {
+			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
+				if _, ok := c.urlAliasesMap[gitval]; ok {
+					fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
+				}
+				c.urlAliasesMap[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+			}
+		}
+	}
+
+	return c.urlAliasesMap
+}
+
+// ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
+// config setting. If multiple aliases match, use the longest one.
+// See https://git-scm.com/docs/git-config for Git's docs.
+func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
+	var longestalias string
+	aliases := c.urlAliases()
+	for alias, _ := range aliases {
+		if !strings.HasPrefix(rawurl, alias) {
+			continue
+		}
+
+		if longestalias < alias {
+			longestalias = alias
+		}
+	}
+
+	if len(longestalias) > 0 {
+		return aliases[longestalias] + rawurl[len(longestalias):]
+	}
+
+	return rawurl
+}
+
 func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
 	f := &FetchPruneConfig{
 		FetchRecentRefsDays:           7,
@@ -480,31 +526,4 @@ func (c *Configuration) loadGitConfig() bool {
 	}
 
 	return true
-}
-
-// XXX(taylor): remove mutability
-func (c *Configuration) SetConfig(key, value string) {
-	if c.loadGitConfig() {
-		c.loading.Lock()
-		c.origConfig = make(map[string]string)
-		for k, v := range c.gitConfig {
-			c.origConfig[k] = v
-		}
-		c.loading.Unlock()
-	}
-
-	c.gitConfig[key] = value
-}
-
-// XXX(taylor): remove mutability
-func (c *Configuration) ResetConfig() {
-	c.loading.Lock()
-	c.gitConfig = make(map[string]string)
-	if gf, ok := c.Git.Fetcher.(*GitFetcher); ok {
-		gf.vals = c.gitConfig
-	}
-	for k, v := range c.origConfig {
-		c.gitConfig[k] = v
-	}
-	c.loading.Unlock()
 }

@@ -21,11 +21,6 @@ var (
 		".git", ".lfs",
 	}
 
-	trackCmd = &cobra.Command{
-		Use: "track",
-		Run: trackCommand,
-	}
-
 	trackVerboseLoggingFlag bool
 	trackDryRunFlag         bool
 )
@@ -234,8 +229,14 @@ func blocklistItem(name string) string {
 }
 
 func init() {
-	trackCmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
-	trackCmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "track",
+			Run: trackCommand,
+		}
 
-	RootCmd.AddCommand(trackCmd)
+		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
+		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
+		return cmd
+	})
 }

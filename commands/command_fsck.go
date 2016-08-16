@@ -15,11 +15,6 @@ import (
 
 var (
 	fsckDryRun bool
-
-	fsckCmd = &cobra.Command{
-		Use: "fsck",
-		Run: fsckCommand,
-	}
 )
 
 func doFsck() (bool, error) {
@@ -120,6 +115,13 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	fsckCmd.Flags().BoolVarP(&fsckDryRun, "dry-run", "d", false, "List corrupt objects without deleting them.")
-	RootCmd.AddCommand(fsckCmd)
+	RegisterSubcommand(func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use: "fsck",
+			Run: fsckCommand,
+		}
+
+		cmd.Flags().BoolVarP(&fsckDryRun, "dry-run", "d", false, "List corrupt objects without deleting them.")
+		return cmd
+	})
 }
