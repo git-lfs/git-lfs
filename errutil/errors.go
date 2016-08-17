@@ -51,7 +51,6 @@ package errutil
 
 import (
 	"fmt"
-	"reflect"
 	"runtime"
 
 	"github.com/pkg/errors"
@@ -73,7 +72,6 @@ func parentOf(err error) error {
 // IsFatalError indicates that the error is fatal and the process should exit
 // immediately after handling the error.
 func IsFatalError(err error) bool {
-	fmt.Println(err, reflect.TypeOf(err))
 	if e, ok := err.(interface {
 		Fatal() bool
 	}); ok {
