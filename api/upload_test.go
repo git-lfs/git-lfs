@@ -456,8 +456,9 @@ func TestUploadApiError(t *testing.T) {
 		return
 	}
 
-	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects") {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	expected := "LFS: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects")
+	if err.Error() != expected {
+		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}
 
 	if !postCalled {
@@ -580,8 +581,9 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal("should not panic")
 	}
 
-	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify") {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	expected := "LFS: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify")
+	if err.Error() != expected {
+		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}
 
 	if !postCalled {

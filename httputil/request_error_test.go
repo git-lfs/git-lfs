@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/github/git-lfs/config"
@@ -71,7 +72,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		}
 
 		expected := fmt.Sprintf("custom error for %d", status)
-		if actual := err.Error(); actual != expected {
+		if actual := err.Error(); !strings.HasSuffix(actual, expected) {
 			t.Errorf("Expected for HTTP %d:\n%s\nACTUAL:\n%s", status, expected, actual)
 			continue
 		}
@@ -134,8 +135,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		}
 
 		expected := fmt.Sprintf(results[0], rawurl)
-
-		if actual := err.Error(); actual != expected {
+		if actual := err.Error(); !strings.HasSuffix(actual, expected) {
 			t.Errorf("Expected for HTTP %d:\n%s\nACTUAL:\n%s", status, expected, actual)
 			continue
 		}
