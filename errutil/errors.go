@@ -57,16 +57,29 @@ import (
 	"github.com/pkg/errors"
 )
 
+func parentOf(err error) error {
+	type causer interface {
+		Cause() error
+	}
+
+	if c, ok := err.(causer); ok {
+		return c.Cause()
+	}
+
+	return nil
+}
+
 // IsFatalError indicates that the error is fatal and the process should exit
 // immediately after handling the error.
 func IsFatalError(err error) bool {
+	fmt.Println(err, reflect.TypeOf(err))
 	if e, ok := err.(interface {
 		Fatal() bool
 	}); ok {
 		return e.Fatal()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsFatalError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsFatalError(parent)
 	}
 	return false
 }
@@ -79,8 +92,8 @@ func IsNotImplementedError(err error) bool {
 	}); ok {
 		return e.NotImplemented()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsNotImplementedError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsNotImplementedError(parent)
 	}
 	return false
 }
@@ -93,8 +106,8 @@ func IsAuthError(err error) bool {
 	}); ok {
 		return e.AuthError()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsAuthError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsAuthError(parent)
 	}
 	return false
 }
@@ -107,8 +120,8 @@ func IsInvalidPointerError(err error) bool {
 	}); ok {
 		return e.InvalidPointer()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsInvalidPointerError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsInvalidPointerError(parent)
 	}
 	return false
 }
@@ -121,8 +134,8 @@ func IsInvalidRepoError(err error) bool {
 	}); ok {
 		return e.InvalidRepo()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsInvalidRepoError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsInvalidRepoError(parent)
 	}
 	return false
 }
@@ -134,8 +147,8 @@ func IsSmudgeError(err error) bool {
 	}); ok {
 		return e.SmudgeError()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsSmudgeError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsSmudgeError(parent)
 	}
 	return false
 }
@@ -147,8 +160,8 @@ func IsCleanPointerError(err error) bool {
 	}); ok {
 		return e.CleanPointerError()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsCleanPointerError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsCleanPointerError(parent)
 	}
 	return false
 }
@@ -160,8 +173,8 @@ func IsNotAPointerError(err error) bool {
 	}); ok {
 		return e.NotAPointerError()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsNotAPointerError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsNotAPointerError(parent)
 	}
 	return false
 }
@@ -174,11 +187,8 @@ func IsBadPointerKeyError(err error) bool {
 		return e.BadPointerKeyError()
 	}
 
-	fmt.Println("cause:", reflect.TypeOf(errors.Cause(err)))
-	fmt.Println("err:", reflect.TypeOf(err))
-
-	if cause := errors.Cause(err); cause != err {
-		return IsBadPointerKeyError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsBadPointerKeyError(parent)
 	}
 	return false
 }
@@ -202,8 +212,8 @@ func IsDownloadDeclinedError(err error) bool {
 	}); ok {
 		return e.DownloadDeclinedError()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsDownloadDeclinedError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsDownloadDeclinedError(parent)
 	}
 	return false
 }
@@ -216,15 +226,15 @@ func IsRetriableError(err error) bool {
 	}); ok {
 		return e.RetriableError()
 	}
-	if cause := errors.Cause(err); cause != err {
-		return IsRetriableError(cause)
+	if parent := parentOf(err); parent != nil {
+		return IsRetriableError(parent)
 	}
 	return false
 }
 
 func GetInnerError(err error) error {
-	if cause := errors.Cause(err); cause != err {
-		return cause
+	if parent := parentOf(err); parent != nil {
+		return parent
 	}
 
 	return nil
@@ -283,8 +293,8 @@ func ErrorStack(err error) errors.StackTrace {
 		return st.StackTrace()
 	}
 
-	if cause := errors.Cause(err); cause != err {
-		return ErrorStack(cause)
+	if parent := parentOf(err); parent != nil {
+		return ErrorStack(parent)
 	}
 
 	return nil
@@ -322,11 +332,11 @@ func newWrappedError(err error, message string) errorWrapper {
 		err = errors.New("LFS Error")
 	}
 
-	if message == "" {
+	if len(message) > 0 {
 		err = errors.Wrap(err, message)
 	}
 
-	return wrappedError{
+	return &wrappedError{
 		context: make(map[string]interface{}),
 		error:   err,
 	}
