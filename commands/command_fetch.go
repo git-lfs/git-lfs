@@ -245,20 +245,17 @@ func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bo
 
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
-	totalSize := int64(0)
-	uniqPointers := make(map[string]bool)
-	for _, p := range pointers {
-		if uniqPointers[p.Oid] {
-			continue
-		}
-
-		uniqPointers[p.Oid] = true
-		totalSize += p.Size
-	}
-	q := lfs.NewDownloadQueue(len(uniqPointers), totalSize, false)
+func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
+	skipped, pointers, totalSize := skippedAndUniqPointers(allpointers, include, exclude)
+	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
 
 	if out != nil {
+		// If we already have it, or it won't be fetched
+		// report it to chan immediately to support pull/checkout
+		for _, p := range skipped {
+			out <- p
+		}
+
 		dlwatch := q.Watch()
 
 		go func() {
@@ -283,39 +280,9 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		}()
 	}
 
-	uniqPointers = make(map[string]bool)
 	for _, p := range pointers {
-		if uniqPointers[p.Oid] {
-			continue
-		}
-
-		// Only add to download queue if local file is not the right size already
-		// This avoids previous case of over-reporting a requirement for files we already have
-		// which would only be skipped by PointerSmudgeObject later
-		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude)
-
-		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
-
-		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
-			uniqPointers[p.Oid] = true
-			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
-			q.Add(lfs.NewDownloadable(p))
-		} else {
-			// Ensure progress matches
-			q.Skip(p.Size)
-			if !passFilter {
-				tracerx.Printf("Skipping %v [%v], include/exclude filters applied", p.Name, p.Oid)
-			} else {
-				tracerx.Printf("Skipping %v [%v], already exists", p.Name, p.Oid)
-			}
-
-			// If we already have it, or it won't be fetched
-			// report it to chan immediately to support pull/checkout
-			if out != nil {
-				out <- p
-			}
-
-		}
+		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
+		q.Add(lfs.NewDownloadable(p))
 	}
 
 	processQueue := time.Now()
@@ -328,6 +295,41 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		ExitWithError(err)
 	}
 	return ok
+}
+
+func skippedAndUniqPointers(allpointers []*lfs.WrappedPointer, include, exclude []string) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
+	size := int64(0)
+	seen := make(map[string]bool, len(allpointers))
+	pointers := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	skipped := make([]*lfs.WrappedPointer, 0, len(allpointers))
+
+	for _, p := range allpointers {
+		// Filtered out by --include or --exclude
+		if !lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude) {
+			skipped = append(skipped, p)
+			continue
+		}
+
+		// no need to download the same object multiple times
+		if seen[p.Oid] {
+			skipped = append(skipped, p)
+			continue
+		}
+
+		seen[p.Oid] = true
+
+		// no need to download objects that exist locally already
+		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
+		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+			skipped = append(skipped, p)
+			continue
+		}
+
+		pointers = append(pointers, p)
+		size += p.Size
+	}
+
+	return skipped, pointers, size
 }
 
 func init() {
