@@ -321,8 +321,9 @@ func TestDownloadAPIError(t *testing.T) {
 		return
 	}
 
-	if err.Error() != fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects/oid") {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	expected := "LFS: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects/oid")
+	if err.Error() != expected {
+		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}
 
 }
