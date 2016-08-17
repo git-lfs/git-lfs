@@ -336,9 +336,13 @@ func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
 
 func requireGitVersion() {
 	minimumGit := "1.8.2"
-	gitver, _ := git.Config.Version()
+	gitver, err := git.Config.Version()
+	if err != nil {
+		Exit("Error getting git version: %s", err)
+	}
+
 	if !git.Config.IsGitVersionAtLeast(minimumGit) {
-		Exit(fmt.Sprintf("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver))
+		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
 }
 
