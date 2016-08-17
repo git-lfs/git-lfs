@@ -29,6 +29,11 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Support git ssh shorthands | [#278](https://github.com/github/git-lfs/issues/278) |
 | | Support `GIT_CONFIG` | [#318](https://github.com/github/git-lfs/issues/318) |
 | | Warn when Git version is unsupported | [#410](https://github.com/github/git-lfs/issues/410) |
+| | Detect when credential cacher is not setup | [#523](https://github.com/github/git-lfs/issues/523) |
+| | Fix error logging from `git clone` errors | [#513](https://github.com/github/git-lfs/issues/513) |
+| | Investigate cherry picking issues | [#438](https://github.com/github/git-lfs/issues/438) |
+| | dynamic blob size cutoff for pointers | [#524](https://github.com/github/git-lfs/issues/524) |
+| | windows `--help` support | [#394](https://github.com/github/git-lfs/issues/394) |
 
 ## Upcoming Features
 
@@ -49,6 +54,8 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Pure SSH: full API & transfer support for SSH without redirect to HTTP | |
 | | Compression of files in `.git/lfs/objects` | [#260](https://github.com/github/git-lfs/issues/260) |
 | | LFS Migration tool | [#326](https://github.com/github/git-lfs/issues/326) |
+| | Automatic upgrades | [#531](https://github.com/gihtub/git-lfs/issues/531) |
+| | Investigate `git add` hash caching | [#574](https://github.com/github/git-lfs/issues/574) |
 
 ## Project Related
 
