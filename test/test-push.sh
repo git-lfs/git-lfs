@@ -512,6 +512,36 @@ begin_test "push (retry with expired actions)"
 )
 end_test
 
+begin_test "push to raw remote url"
+(
+  set -e
+
+  setup_remote_repo "push-raw"
+  mkdir push-raw
+  cd push-raw
+  git init
+
+  git lfs track "*.dat"
+
+  contents="raw"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "$contents" > raw.dat
+  git add raw.dat .gitattributes
+  git commit -m "add" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 raw.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  refute_server_object push-raw "$contents_oid"
+
+  git lfs push $GITSERVER/push-raw master
+
+  assert_server_object push-raw "$contents_oid"
+)
+end_test
+
 begin_test "push (with invalid object size)"
 (
   set -e

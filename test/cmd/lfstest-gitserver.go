@@ -50,6 +50,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-invalid-size",
+		"object-authenticated",
 	}
 )
 
@@ -126,10 +127,11 @@ func writeTestStateFile(contents []byte, envVar, defaultFilename string) string 
 }
 
 type lfsObject struct {
-	Oid     string             `json:"oid,omitempty"`
-	Size    int64              `json:"size,omitempty"`
-	Actions map[string]lfsLink `json:"actions,omitempty"`
-	Err     *lfsError          `json:"error,omitempty"`
+	Oid           string             `json:"oid,omitempty"`
+	Size          int64              `json:"size,omitempty"`
+	Authenticated bool               `json:"authenticated,omitempty"`
+	Actions       map[string]lfsLink `json:"actions,omitempty"`
+	Err           *lfsError          `json:"error,omitempty"`
 }
 
 type lfsLink struct {
@@ -366,6 +368,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 
 		handler := oidHandlers[obj.Oid]
 
+		if handler == "object-authenticated" {
+			o.Authenticated = true
+		}
+
 		switch handler {
 		case "status-batch-403":
 			o.Err = &lfsError{Code: 403, Message: "welp"}
@@ -483,6 +489,12 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		case "status-storage-500":
 			w.WriteHeader(500)
+			return
+		case "object-authenticated":
+			if len(r.Header.Get("Authorization")) > 0 {
+				w.WriteHeader(400)
+				w.Write([]byte("Should not send authentication"))
+			}
 			return
 		}
 
