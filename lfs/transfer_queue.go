@@ -83,14 +83,10 @@ func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction
 
 // Add adds a Transferable to the transfer queue.
 func (q *TransferQueue) Add(t Transferable) {
+	q.wait.Add(1)
 	q.trMutex.Lock()
-	if _, ok := q.transferables[t.Oid()]; ok {
-		q.trMutex.Unlock()
-		return
-	}
 	q.transferables[t.Oid()] = t
 	q.trMutex.Unlock()
-	q.wait.Add(1)
 
 	if q.batcher != nil {
 		q.batcher.Add(t)
