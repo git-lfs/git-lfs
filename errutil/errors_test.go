@@ -73,15 +73,3 @@ func TestContextOnWrappedErrors(t *testing.T) {
 		t.Errorf("expected to delete from error context")
 	}
 }
-
-func TestStack(t *testing.T) {
-	s := ErrorStack(errors.New("Go error"))
-	if len(s) > 0 {
-		t.Error("expected to get no stack from a Go error")
-	}
-
-	s = ErrorStack(NewFatalError(errors.New("Go error")))
-	if len(s) == 0 {
-		t.Error("expected to get a stack from a wrapped error")
-	}
-}
