@@ -57,12 +57,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-func parentOf(err error) error {
-	type causer interface {
-		Cause() error
-	}
+type errorWithCause interface {
+	Error() string
+	Cause() error
+}
 
-	if c, ok := err.(causer); ok {
+func parentOf(err error) error {
+	if c, ok := err.(errorWithCause); ok {
 		return c.Cause()
 	}
 
@@ -284,22 +285,6 @@ func ErrorDelContext(err error, key string) {
 	}
 }
 
-// ErrorStack returns the stack for an error if it is a wrappedError. If it is
-// not a wrappedError it will return an empty byte slice.
-func ErrorStack(err error) errors.StackTrace {
-	if st, ok := err.(interface {
-		StackTrace() errors.StackTrace
-	}); ok {
-		return st.StackTrace()
-	}
-
-	if parent := parentOf(err); parent != nil {
-		return ErrorStack(parent)
-	}
-
-	return nil
-}
-
 // ErrorContext returns the context map for an error if it is a wrappedError.
 // If it is not a wrappedError it will return an empty map.
 func ErrorContext(err error) map[string]interface{} {
@@ -310,7 +295,7 @@ func ErrorContext(err error) map[string]interface{} {
 }
 
 type errorWrapper interface {
-	error
+	errorWithCause
 
 	Set(string, interface{})
 	Get(string) interface{}
@@ -321,24 +306,29 @@ type errorWrapper interface {
 // wrappedError is the base error wrapper. It provides a Message string, a
 // stack, and a context map around a regular Go error.
 type wrappedError struct {
-	error
-
+	errorWithCause
 	context map[string]interface{}
 }
 
 // newWrappedError creates a wrappedError.
 func newWrappedError(err error, message string) errorWrapper {
 	if err == nil {
-		err = errors.New("LFS Error")
+		err = errors.New("Error")
 	}
 
+	var errWithCause errorWithCause
+
 	if len(message) > 0 {
-		err = errors.Wrap(err, message)
+		errWithCause = errors.Wrap(err, message).(errorWithCause)
+	} else if ewc, ok := err.(errorWithCause); ok {
+		errWithCause = ewc
+	} else {
+		errWithCause = errors.Wrap(err, "LFS").(errorWithCause)
 	}
 
 	return &wrappedError{
-		context: make(map[string]interface{}),
-		error:   err,
+		context:        make(map[string]interface{}),
+		errorWithCause: errWithCause,
 	}
 }
 
