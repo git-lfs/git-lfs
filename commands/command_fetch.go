@@ -247,10 +247,16 @@ func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bo
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
 	totalSize := int64(0)
+	uniqPointers := make(map[string]bool)
 	for _, p := range pointers {
+		if uniqPointers[p.Oid] {
+			continue
+		}
+
+		uniqPointers[p.Oid] = true
 		totalSize += p.Size
 	}
-	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+	q := lfs.NewDownloadQueue(len(uniqPointers), totalSize, false)
 
 	if out != nil {
 		dlwatch := q.Watch()
@@ -277,7 +283,12 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		}()
 	}
 
+	uniqPointers = make(map[string]bool)
 	for _, p := range pointers {
+		if uniqPointers[p.Oid] {
+			continue
+		}
+
 		// Only add to download queue if local file is not the right size already
 		// This avoids previous case of over-reporting a requirement for files we already have
 		// which would only be skipped by PointerSmudgeObject later
@@ -286,6 +297,7 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
 
 		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
+			uniqPointers[p.Oid] = true
 			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 			q.Add(lfs.NewDownloadable(p))
 		} else {
