@@ -19,6 +19,7 @@ var (
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
 
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)

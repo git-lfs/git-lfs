@@ -1,9 +1,10 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/github/git-lfs/lfs"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (
@@ -14,6 +15,8 @@ var (
 )
 
 func installCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
+
 	if localInstall {
 		requireInRepo()
 	}
