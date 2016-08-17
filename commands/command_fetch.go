@@ -112,7 +112,7 @@ func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
 	opts := lfs.NewScanRefsOptions()
 	opts.ScanMode = lfs.ScanRefsMode
 	opts.SkipDeletedBlobs = true
-	return lfs.ScanRefs(ref, "", opts)
+	return lfs.ScanTree(ref)
 }
 
 func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPointer {
