@@ -118,22 +118,22 @@ func FullError(err error) {
 }
 
 func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
-		var innermsg string
-		if inner := errutil.GetInnerError(err); inner != nil {
-			innermsg = inner.Error()
-		}
-
-		errmsg := err.Error()
-		if errmsg != innermsg {
-			Error(innermsg)
-		}
-
-		if Debugging || errutil.IsFatalError(err) {
-			fatalErrFn(err, errmsg)
-		} else {
-			errFn(errmsg)
-		}
+	var innermsg string
+	if inner := errutil.GetInnerError(err); inner != nil {
+		innermsg = inner.Error()
 	}
+
+	errmsg := err.Error()
+	if errmsg != innermsg {
+		Error(innermsg)
+	}
+
+	if Debugging || errutil.IsFatalError(err) {
+		fatalErrFn(err, errmsg)
+	} else {
+		errFn(errmsg)
+	}
+}
 
 // Debug prints a formatted message if debugging is enabled.  The formatted
 // message also shows up in the panic log, if created.
