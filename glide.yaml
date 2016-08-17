@@ -26,7 +26,6 @@ import:
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
 - package: github.com/ThomsonReutersEikon/go-ntlm
   version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
-  # go-ntlm includes a util/ directory, which was removed
   subpackages:
   - ntlm
 - package: github.com/technoweenie/go-contentaddressable
@@ -37,3 +36,5 @@ import:
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - package: github.com/xeipuuv/gojsonschema
   version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
+- package: github.com/pkg/errors
+  version: ^0.7.0
