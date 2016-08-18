@@ -34,6 +34,9 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | Investigate cherry picking issues | [#438](https://github.com/github/git-lfs/issues/438) |
 | | dynamic blob size cutoff for pointers | [#524](https://github.com/github/git-lfs/issues/524) |
 | | windows `--help` support | [#394](https://github.com/github/git-lfs/issues/394) |
+| | Investigate git hook installs within git worktree | [#1385](https://github.com/github/git-lfs/issues/1385) |
+| | Support ssh username in ssh config | [#754](https://github.com/github/git-lfs/issues/754) |
+| | Investigate `autocrlf` for lfs objects | [#723](https://github.com/github/git-lfs/issues/723) |
 
 ## Upcoming Features
 
@@ -56,6 +59,9 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | | LFS Migration tool | [#326](https://github.com/github/git-lfs/issues/326) |
 | | Automatic upgrades | [#531](https://github.com/gihtub/git-lfs/issues/531) |
 | | Investigate `git add` hash caching | [#574](https://github.com/github/git-lfs/issues/574) |
+| | `git lfs archive` command | [#1322](https://github.com/github/git-lfs/issues/1322) |
+| | Support 507 http responses | [#1327](https://github.com/github/git-lfs/issues/1327) |
+| | Investigate shared object directory | [#766](https://github.com/github/git-lfs/issues/766) |
 
 ## Project Related
 
