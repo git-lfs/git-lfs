@@ -123,7 +123,6 @@ func (q *TransferQueue) finishAdapter() {
 }
 
 func (q *TransferQueue) addToAdapter(t Transferable) {
-
 	tr := transfer.NewTransfer(t.Name(), t.Object(), t.Path())
 
 	if q.dryRun {
