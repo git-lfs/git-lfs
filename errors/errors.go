@@ -64,19 +64,16 @@ func New(message string) error {
 
 // Error wraps an error with an empty message.
 func Error(err error) error {
-	return Errorf(err, "")
+	return Wrapf(err, "")
 }
 
-// Errorf wraps an error with an additional formatted message.
-func Errorf(err error, format string, args ...interface{}) error {
+// Wrapf wraps an error with an additional formatted message.
+func Wrapf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		err = errors.New("")
 	}
 
-	message := ""
-	if len(format) > 0 {
-		message = fmt.Sprintf(format, args...)
-	}
+	message := fmt.Sprintf(format, args...)
 
 	return newWrappedError(err, message)
 }

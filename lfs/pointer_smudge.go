@@ -79,7 +79,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	xfers := manifest.GetDownloadAdapterNames()
 	obj, adapterName, err := api.BatchOrLegacySingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
-		return errors.Errorf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
+		return errors.Wrapf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}
 
 	if ptr.Size == 0 {
@@ -104,7 +104,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	res := <-adapterResultChan
 
 	if res.Error != nil {
-		return errors.Errorf(err, "Error buffering media file: %s", res.Error)
+		return errors.Wrapf(err, "Error buffering media file: %s", res.Error)
 	}
 
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
@@ -113,7 +113,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) error {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return errors.Errorf(err, "Error opening media file.")
+		return errors.Wrapf(err, "Error opening media file.")
 	}
 	defer reader.Close()
 
@@ -181,14 +181,14 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		// setup reader
 		reader, err = os.Open(response.file.Name())
 		if err != nil {
-			return errors.Errorf(err, "Error opening smudged file: %s", err)
+			return errors.Wrapf(err, "Error opening smudged file: %s", err)
 		}
 		defer reader.Close()
 	}
 
 	_, err = tools.CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
-		return errors.Errorf(err, "Error reading from media file: %s", err)
+		return errors.Wrapf(err, "Error reading from media file: %s", err)
 	}
 
 	return nil

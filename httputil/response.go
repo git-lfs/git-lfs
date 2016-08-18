@@ -41,7 +41,7 @@ func DecodeResponse(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return errors.Errorf(err, "Unable to parse HTTP response for %s", TraceHttpReq(res.Request))
+		return errors.Wrapf(err, "Unable to parse HTTP response for %s", TraceHttpReq(res.Request))
 	}
 
 	return nil

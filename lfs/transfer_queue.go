@@ -379,7 +379,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		for _, o := range objs {
 			if o.Error != nil {
-				q.errorc <- errors.Errorf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
+				q.errorc <- errors.Wrapf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 				q.Skip(o.Size)
 				q.wait.Done()
 				continue

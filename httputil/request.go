@@ -126,7 +126,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 
 		redirectedReq, err := NewHttpRequest(req.Method, redirectTo, nil)
 		if err != nil {
-			return res, errors.Errorf(err, err.Error())
+			return res, errors.Wrapf(err, err.Error())
 		}
 
 		via = append(via, req)
@@ -139,7 +139,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 
 		seeker, ok := realBody.(io.Seeker)
 		if !ok {
-			return res, errors.Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+			return res, errors.Wrapf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
 		if _, err := seeker.Seek(0, 0); err != nil {
@@ -149,7 +149,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = CheckRedirect(redirectedReq, via); err != nil {
-			return res, errors.Errorf(err, err.Error())
+			return res, errors.Wrapf(err, err.Error())
 		}
 
 		return DoHttpRequestWithRedirects(cfg, redirectedReq, via, useCreds)

@@ -54,7 +54,7 @@ func (u *Uploadable) LegacyCheck() (*api.ObjectResource, error) {
 func NewUploadable(oid, filename string) (*Uploadable, error) {
 	localMediaPath, err := LocalMediaPath(oid)
 	if err != nil {
-		return nil, errors.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	if len(filename) > 0 {
@@ -65,7 +65,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 
 	fi, err := os.Stat(localMediaPath)
 	if err != nil {
-		return nil, errors.Errorf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil

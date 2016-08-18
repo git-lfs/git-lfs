@@ -53,7 +53,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := errors.Errorf(errors.New("Inner error message!"), "Error")
+	err := errors.Wrapf(errors.New("Inner error message!"), "Error")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }
