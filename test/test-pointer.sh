@@ -120,9 +120,9 @@ begin_test "pointer --stdin with bad pointer"
 
   expected="Pointer from STDIN
 
-Not a valid Git LFS pointer file."
+Pointer file error: invalid header"
 
-  [ "$expected" = "$output" ]
+  diff -u <(printf "$expected") <(printf "$output")
 
   [ "1" = "$status" ]
 )
@@ -239,7 +239,9 @@ begin_test "pointer invalid --pointer"
 
   expected="Pointer from some-pointer
 
-Not a valid Git LFS pointer file."
+Pointer file error: invalid header
+
+  diff -u <(printf "$expected") <(printf "$output")
 
   [ "$expected" = "$output" ]
 )
