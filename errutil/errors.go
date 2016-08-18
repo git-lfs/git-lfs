@@ -465,7 +465,7 @@ func (e notAPointerError) NotAPointerError() bool {
 }
 
 func NewNotAPointerError(err error) error {
-	return notAPointerError{newWrappedError(err, "Not a valid Git LFS pointer file.")}
+	return notAPointerError{newWrappedError(err, "Pointer file error")}
 }
 
 type badPointerKeyError struct {
