@@ -140,34 +140,6 @@ func IsAuthError(err error) bool {
 	return false
 }
 
-// IsInvalidPointerError indicates an attempt to parse data that was not a
-// valid pointer.
-func IsInvalidPointerError(err error) bool {
-	if e, ok := err.(interface {
-		InvalidPointer() bool
-	}); ok {
-		return e.InvalidPointer()
-	}
-	if parent := parentOf(err); parent != nil {
-		return IsInvalidPointerError(parent)
-	}
-	return false
-}
-
-// IsInvalidRepoError indicates an operation was attempted from outside a git
-// repository.
-func IsInvalidRepoError(err error) bool {
-	if e, ok := err.(interface {
-		InvalidRepo() bool
-	}); ok {
-		return e.InvalidRepo()
-	}
-	if parent := parentOf(err); parent != nil {
-		return IsInvalidRepoError(parent)
-	}
-	return false
-}
-
 // IsSmudgeError indicates an error while smudging a files.
 func IsSmudgeError(err error) bool {
 	if e, ok := err.(interface {
@@ -398,34 +370,6 @@ func NewAuthError(err error) error {
 	return authError{newWrappedError(err, "Authentication required")}
 }
 
-// Definitions for IsInvalidPointerError()
-
-type invalidPointerError struct {
-	errorWrapper
-}
-
-func (e invalidPointerError) InvalidPointer() bool {
-	return true
-}
-
-func NewInvalidPointerError(err error) error {
-	return invalidPointerError{newWrappedError(err, "Invalid pointer")}
-}
-
-// Definitions for IsInvalidRepoError()
-
-type invalidRepoError struct {
-	errorWrapper
-}
-
-func (e invalidRepoError) InvalidRepo() bool {
-	return true
-}
-
-func NewInvalidRepoError(err error) error {
-	return invalidRepoError{newWrappedError(err, "Not in a git repository")}
-}
-
 // Definitions for IsSmudgeError()
 
 type smudgeError struct {
@@ -453,8 +397,9 @@ func (e cleanPointerError) CleanPointerError() bool {
 	return true
 }
 
-func NewCleanPointerError(err error, pointer interface{}, bytes []byte) error {
-	e := cleanPointerError{newWrappedError(err, "Clean pointer error")}
+func NewCleanPointerError(pointer interface{}, bytes []byte) error {
+	err := New("pointer error")
+	e := cleanPointerError{newWrappedError(err, "clean")}
 	ErrorSetContext(e, "pointer", pointer)
 	ErrorSetContext(e, "bytes", bytes)
 	return e
@@ -486,8 +431,8 @@ func (e badPointerKeyError) BadPointerKeyError() bool {
 }
 
 func NewBadPointerKeyError(expected, actual string) error {
-	err := fmt.Errorf("Error parsing LFS Pointer. Expected key %s, got %s", expected, actual)
-	return badPointerKeyError{expected, actual, newWrappedError(err, "")}
+	err := Errorf("Expected key %s, got %s", expected, actual)
+	return badPointerKeyError{expected, actual, newWrappedError(err, "pointer parsing")}
 }
 
 // Definitions for IsDownloadDeclinedError()
@@ -500,8 +445,8 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 	return true
 }
 
-func NewDownloadDeclinedError(err error) error {
-	return downloadDeclinedError{newWrappedError(err, "File missing and download is not allowed")}
+func NewDownloadDeclinedError(err error, msg string) error {
+	return downloadDeclinedError{newWrappedError(err, msg)}
 }
 
 // Definitions for IsRetriableError()

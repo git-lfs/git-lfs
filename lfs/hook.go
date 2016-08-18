@@ -90,7 +90,7 @@ func (h *Hook) Upgrade() error {
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
 	if !InRepo() {
-		return errors.NewInvalidRepoError(nil)
+		return errors.New("Not in a git repository")
 	}
 
 	match, err := h.matchesCurrent()

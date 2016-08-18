@@ -79,10 +79,16 @@ func handleResponse(cfg *config.Configuration, res *http.Response, creds auth.Cr
 	}
 
 	if res.StatusCode == 401 {
+		if err == nil {
+			err = errors.New("api: received status 401")
+		}
 		return errors.NewAuthError(err)
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
+		if err == nil {
+			err = errors.Errorf("api: received status %d", res.StatusCode)
+		}
 		return errors.NewFatalError(err)
 	}
 

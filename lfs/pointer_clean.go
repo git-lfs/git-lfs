@@ -78,7 +78,7 @@ func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid
 
 	by, ptr, err := DecodeFrom(reader)
 	if err == nil && len(by) < 512 {
-		err = errors.NewCleanPointerError(err, ptr, by)
+		err = errors.NewCleanPointerError(ptr, by)
 		return
 	}
 

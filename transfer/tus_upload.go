@@ -143,6 +143,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferP
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
 	if res.StatusCode == 403 {
+		err = errors.New("http: received status 403")
 		return errors.NewRetriableError(err)
 	}
 
