@@ -86,8 +86,10 @@ func Wrapf(err error, format string, args ...interface{}) error {
 }
 
 type errorWithCause interface {
-	Error() string
 	Cause() error
+	StackTrace() errors.StackTrace
+	error
+	fmt.Formatter
 }
 
 func parentOf(err error) error {
