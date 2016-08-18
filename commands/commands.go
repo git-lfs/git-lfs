@@ -334,6 +334,18 @@ func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
 	return cfg.Os.Bool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
 }
 
+func requireGitVersion() {
+	minimumGit := "1.8.2"
+
+	if !git.Config.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := git.Config.Version()
+		if err != nil {
+			Exit("Error getting git version: %s", err)
+		}
+		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
+	}
+}
+
 func init() {
 	log.SetOutput(ErrorWriter)
 }

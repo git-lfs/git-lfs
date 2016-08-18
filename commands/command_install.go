@@ -15,6 +15,8 @@ var (
 )
 
 func installCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
+
 	if localInstall {
 		requireInRepo()
 	}
