@@ -156,8 +156,10 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	}
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
+	// create metadata
+	meta := &api.BatchMetadata{Ref: "refs/heads/master"}
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(len(oidsExist), totalSize, false)
+	uploadQueue := lfs.NewUploadQueue(len(oidsExist), totalSize, meta, false)
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
@@ -250,7 +252,9 @@ func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
 	for _, o := range objs {
 		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
 	}
-	o, _, err := api.Batch(config.Config, apiobjs, op, []string{"basic"})
+
+	meta := &api.BatchMetadata{Ref: "refs/heads/master"}
+	o, _, err := api.Batch(config.Config, apiobjs, op, []string{"basic"}, meta)
 	if err != nil {
 		return nil, err
 	}

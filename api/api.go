@@ -25,7 +25,7 @@ func BatchOrLegacy(cfg *config.Configuration, objects []*ObjectResource, operati
 		objs, err := Legacy(cfg, objects, operation)
 		return objs, "", err
 	}
-	objs, adapterName, err := Batch(cfg, objects, operation, transferAdapters)
+	objs, adapterName, err := Batch(cfg, objects, operation, transferAdapters, nil)
 	if err != nil {
 		if errutil.IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
@@ -49,7 +49,7 @@ func BatchOrLegacySingle(cfg *config.Configuration, inobj *ObjectResource, opera
 }
 
 // Batch calls the batch API and returns object results
-func Batch(cfg *config.Configuration, objects []*ObjectResource, operation string, transferAdapters []string) (objs []*ObjectResource, transferAdapter string, e error) {
+func Batch(cfg *config.Configuration, objects []*ObjectResource, operation string, transferAdapters []string, meta *BatchMetadata) (objs []*ObjectResource, transferAdapter string, e error) {
 	if len(objects) == 0 {
 		return nil, "", nil
 	}
@@ -60,7 +60,13 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 		transferAdapters = nil
 	}
 
-	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
+	o := &batchRequest{
+		Operation:            operation,
+		Objects:              objects,
+		TransferAdapterNames: transferAdapters,
+		Meta:                 meta,
+	}
+
 	by, err := json.Marshal(o)
 	if err != nil {
 		return nil, "", errutil.Error(err)
@@ -92,7 +98,7 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 
 		if errutil.IsAuthError(err) {
 			httputil.SetAuthType(cfg, req, res)
-			return Batch(cfg, objects, operation, transferAdapters)
+			return Batch(cfg, objects, operation, transferAdapters, meta)
 		}
 
 		switch res.StatusCode {

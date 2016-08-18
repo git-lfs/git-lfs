@@ -31,15 +31,13 @@ func pullCommand(cmd *cobra.Command, args []string) {
 }
 
 func pull(includePaths, excludePaths []string) {
-
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(ref.Sha, includePaths, excludePaths)
+	c := fetchRefToChan(ref, includePaths, excludePaths)
 	checkoutFromFetchChan(includePaths, excludePaths, c)
-
 }
 
 func init() {

@@ -72,8 +72,8 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	return newTransferQueue(files, size, dryRun, transfer.Upload)
+func NewUploadQueue(files int, size int64, metadata *api.BatchMetadata, dryRun bool) *TransferQueue {
+	return newTransferQueue(transfer.Upload, files, size, metadata, dryRun)
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it

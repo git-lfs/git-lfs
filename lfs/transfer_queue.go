@@ -34,6 +34,7 @@ type Transferable interface {
 type TransferQueue struct {
 	direction         transfer.Direction
 	adapter           transfer.TransferAdapter
+	meta              *api.BatchMetadata
 	adapterInProgress bool
 	adapterResultChan chan transfer.TransferResult
 	adapterInitMutex  sync.Mutex
@@ -57,11 +58,11 @@ type TransferQueue struct {
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
+func newTransferQueue(dir transfer.Direction, files int, size int64, meta *api.BatchMetadata, dryRun bool) *TransferQueue {
 	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
-
 	q := &TransferQueue{
 		direction:     dir,
+		meta:          meta,
 		dryRun:        dryRun,
 		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
 		apic:          make(chan Transferable, batchSize),
@@ -354,7 +355,7 @@ func (q *TransferQueue) batchApiRoutine() {
 			continue
 		}
 
-		objs, adapterName, err := api.Batch(config.Config, transfers, q.transferKind(), transferAdapterNames)
+		objs, adapterName, err := api.Batch(config.Config, transfers, q.transferKind(), transferAdapterNames, q.meta)
 		if err != nil {
 			if errutil.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
