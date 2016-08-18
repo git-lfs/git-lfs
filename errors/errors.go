@@ -46,12 +46,11 @@ package errors
 //	errors.ErrorDelContext(err, "foo")
 //
 // Wrapped errors also contain the stack from the point at which they are
-// called. The stack is accessed via ErrorStack(). Calling ErrorStack() on a
-// regular Go error will return an empty byte slice.
+// called. Use the '%+v' printf verb to display. See the github.com/pkg/errors
+// docs for more info: https://godoc.org/github.com/pkg/errors
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/pkg/errors"
 )
@@ -459,11 +458,4 @@ func (e retriableError) RetriableError() bool {
 
 func NewRetriableError(err error) error {
 	return retriableError{newWrappedError(err, "")}
-}
-
-// Stack returns a byte slice containing the runtime.Stack()
-func Stack() []byte {
-	stackBuf := make([]byte, 1024*1024)
-	written := runtime.Stack(stackBuf, false)
-	return stackBuf[:written]
 }
