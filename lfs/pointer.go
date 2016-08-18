@@ -3,7 +3,6 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/github/git-lfs/errutil"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/transfer"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -95,7 +95,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	if stat.Size() > blobSizeCutoff {
-		return nil, errutil.NewNotAPointerError(nil)
+		return nil, errutil.NewNotAPointerError(errors.New("file size exceeds lfs pointer size cutoff"))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
@@ -234,7 +234,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 	kvps = make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		err = errutil.NewNotAPointerError(err)
+		err = errutil.NewNotAPointerError(errors.New("invalid header"))
 		return
 	}
 

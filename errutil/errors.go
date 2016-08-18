@@ -50,10 +50,24 @@ package errutil
 // regular Go error will return an empty byte slice.
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
+
+	"github.com/pkg/errors"
 )
+
+type errorWithCause interface {
+	Error() string
+	Cause() error
+}
+
+func parentOf(err error) error {
+	if c, ok := err.(errorWithCause); ok {
+		return c.Cause()
+	}
+
+	return nil
+}
 
 // IsFatalError indicates that the error is fatal and the process should exit
 // immediately after handling the error.
@@ -63,8 +77,8 @@ func IsFatalError(err error) bool {
 	}); ok {
 		return e.Fatal()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsFatalError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsFatalError(parent)
 	}
 	return false
 }
@@ -77,8 +91,8 @@ func IsNotImplementedError(err error) bool {
 	}); ok {
 		return e.NotImplemented()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsNotImplementedError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsNotImplementedError(parent)
 	}
 	return false
 }
@@ -91,8 +105,8 @@ func IsAuthError(err error) bool {
 	}); ok {
 		return e.AuthError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsAuthError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsAuthError(parent)
 	}
 	return false
 }
@@ -105,8 +119,8 @@ func IsInvalidPointerError(err error) bool {
 	}); ok {
 		return e.InvalidPointer()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsInvalidPointerError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsInvalidPointerError(parent)
 	}
 	return false
 }
@@ -119,8 +133,8 @@ func IsInvalidRepoError(err error) bool {
 	}); ok {
 		return e.InvalidRepo()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsInvalidRepoError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsInvalidRepoError(parent)
 	}
 	return false
 }
@@ -132,8 +146,8 @@ func IsSmudgeError(err error) bool {
 	}); ok {
 		return e.SmudgeError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsSmudgeError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsSmudgeError(parent)
 	}
 	return false
 }
@@ -145,8 +159,8 @@ func IsCleanPointerError(err error) bool {
 	}); ok {
 		return e.CleanPointerError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsCleanPointerError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsCleanPointerError(parent)
 	}
 	return false
 }
@@ -158,8 +172,8 @@ func IsNotAPointerError(err error) bool {
 	}); ok {
 		return e.NotAPointerError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsNotAPointerError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsNotAPointerError(parent)
 	}
 	return false
 }
@@ -171,8 +185,9 @@ func IsBadPointerKeyError(err error) bool {
 	}); ok {
 		return e.BadPointerKeyError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsBadPointerKeyError(e.InnerError())
+
+	if parent := parentOf(err); parent != nil {
+		return IsBadPointerKeyError(parent)
 	}
 	return false
 }
@@ -196,8 +211,8 @@ func IsDownloadDeclinedError(err error) bool {
 	}); ok {
 		return e.DownloadDeclinedError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsDownloadDeclinedError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsDownloadDeclinedError(parent)
 	}
 	return false
 }
@@ -210,18 +225,17 @@ func IsRetriableError(err error) bool {
 	}); ok {
 		return e.RetriableError()
 	}
-	if e, ok := err.(errorWrapper); ok {
-		return IsRetriableError(e.InnerError())
+	if parent := parentOf(err); parent != nil {
+		return IsRetriableError(parent)
 	}
 	return false
 }
 
 func GetInnerError(err error) error {
-	if e, ok := err.(interface {
-		InnerError() error
-	}); ok {
-		return e.InnerError()
+	if parent := parentOf(err); parent != nil {
+		return parent
 	}
+
 	return nil
 }
 
@@ -269,15 +283,6 @@ func ErrorDelContext(err error, key string) {
 	}
 }
 
-// ErrorStack returns the stack for an error if it is a wrappedError. If it is
-// not a wrappedError it will return an empty byte slice.
-func ErrorStack(err error) []byte {
-	if e, ok := err.(errorWrapper); ok {
-		return e.Stack()
-	}
-	return nil
-}
-
 // ErrorContext returns the context map for an error if it is a wrappedError.
 // If it is not a wrappedError it will return an empty map.
 func ErrorContext(err error) map[string]interface{} {
@@ -288,59 +293,41 @@ func ErrorContext(err error) map[string]interface{} {
 }
 
 type errorWrapper interface {
-	InnerError() error
-	Error() string
+	errorWithCause
+
 	Set(string, interface{})
 	Get(string) interface{}
 	Del(string)
 	Context() map[string]interface{}
-	Stack() []byte
 }
 
 // wrappedError is the base error wrapper. It provides a Message string, a
 // stack, and a context map around a regular Go error.
 type wrappedError struct {
-	Message string
-	stack   []byte
+	errorWithCause
 	context map[string]interface{}
-	error
 }
 
-// newWrappedError creates a wrappedError. If the error has already been
-// wrapped it is simply returned as is.
+// newWrappedError creates a wrappedError.
 func newWrappedError(err error, message string) errorWrapper {
-	if e, ok := err.(errorWrapper); ok {
-		return e
-	}
-
 	if err == nil {
-		err = errors.New("LFS Error")
+		err = errors.New("Error")
 	}
 
-	if message == "" {
-		message = err.Error()
+	var errWithCause errorWithCause
+
+	if len(message) > 0 {
+		errWithCause = errors.Wrap(err, message).(errorWithCause)
+	} else if ewc, ok := err.(errorWithCause); ok {
+		errWithCause = ewc
+	} else {
+		errWithCause = errors.Wrap(err, "LFS").(errorWithCause)
 	}
 
-	return wrappedError{
-		Message: message,
-		stack:   Stack(),
-		context: make(map[string]interface{}),
-		error:   err,
+	return &wrappedError{
+		context:        make(map[string]interface{}),
+		errorWithCause: errWithCause,
 	}
-}
-
-// Error will return the wrapped error's Message if it has one, otherwise it
-// will call the underlying error's Error() function.
-func (e wrappedError) Error() string {
-	if e.Message == "" {
-		return e.error.Error()
-	}
-	return e.Message
-}
-
-// InnerError returns the underlying error. This could be a Go error or another wrappedError.
-func (e wrappedError) InnerError() error {
-	return e.error
 }
 
 // Set sets the value for the key in the context.
@@ -363,19 +350,10 @@ func (e wrappedError) Context() map[string]interface{} {
 	return e.context
 }
 
-// Stack returns the stack.
-func (e wrappedError) Stack() []byte {
-	return e.stack
-}
-
 // Definitions for IsFatalError()
 
 type fatalError struct {
 	errorWrapper
-}
-
-func (e fatalError) InnerError() error {
-	return e.errorWrapper
 }
 
 func (e fatalError) Fatal() bool {
@@ -392,10 +370,6 @@ type notImplementedError struct {
 	errorWrapper
 }
 
-func (e notImplementedError) InnerError() error {
-	return e.errorWrapper
-}
-
 func (e notImplementedError) NotImplemented() bool {
 	return true
 }
@@ -408,10 +382,6 @@ func NewNotImplementedError(err error) error {
 
 type authError struct {
 	errorWrapper
-}
-
-func (e authError) InnerError() error {
-	return e.errorWrapper
 }
 
 func (e authError) AuthError() bool {
@@ -428,10 +398,6 @@ type invalidPointerError struct {
 	errorWrapper
 }
 
-func (e invalidPointerError) InnerError() error {
-	return e.errorWrapper
-}
-
 func (e invalidPointerError) InvalidPointer() bool {
 	return true
 }
@@ -446,10 +412,6 @@ type invalidRepoError struct {
 	errorWrapper
 }
 
-func (e invalidRepoError) InnerError() error {
-	return e.errorWrapper
-}
-
 func (e invalidRepoError) InvalidRepo() bool {
 	return true
 }
@@ -462,10 +424,6 @@ func NewInvalidRepoError(err error) error {
 
 type smudgeError struct {
 	errorWrapper
-}
-
-func (e smudgeError) InnerError() error {
-	return e.errorWrapper
 }
 
 func (e smudgeError) SmudgeError() bool {
@@ -485,10 +443,6 @@ type cleanPointerError struct {
 	errorWrapper
 }
 
-func (e cleanPointerError) InnerError() error {
-	return e.errorWrapper
-}
-
 func (e cleanPointerError) CleanPointerError() bool {
 	return true
 }
@@ -506,26 +460,19 @@ type notAPointerError struct {
 	errorWrapper
 }
 
-func (e notAPointerError) InnerError() error {
-	return e.errorWrapper
-}
-
 func (e notAPointerError) NotAPointerError() bool {
 	return true
 }
 
 func NewNotAPointerError(err error) error {
-	return notAPointerError{newWrappedError(err, "Not a valid Git LFS pointer file.")}
+	return notAPointerError{newWrappedError(err, "Pointer file error")}
 }
 
 type badPointerKeyError struct {
 	Expected string
 	Actual   string
-	errorWrapper
-}
 
-func (e badPointerKeyError) InnerError() error {
-	return e.errorWrapper
+	errorWrapper
 }
 
 func (e badPointerKeyError) BadPointerKeyError() bool {
@@ -543,10 +490,6 @@ type downloadDeclinedError struct {
 	errorWrapper
 }
 
-func (e downloadDeclinedError) InnerError() error {
-	return e.errorWrapper
-}
-
 func (e downloadDeclinedError) DownloadDeclinedError() bool {
 	return true
 }
@@ -559,10 +502,6 @@ func NewDownloadDeclinedError(err error) error {
 
 type retriableError struct {
 	errorWrapper
-}
-
-func (e retriableError) InnerError() error {
-	return e.errorWrapper
 }
 
 func (e retriableError) RetriableError() bool {
