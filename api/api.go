@@ -63,12 +63,12 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
 	by, err := json.Marshal(o)
 	if err != nil {
-		return nil, "", errors.Error(err)
+		return nil, "", errors.Wrap(err, "batch request")
 	}
 
 	req, err := NewBatchRequest(cfg, operation)
 	if err != nil {
-		return nil, "", errors.Error(err)
+		return nil, "", errors.Wrap(err, "batch request")
 	}
 
 	req.Header.Set("Content-Type", MediaType)
@@ -81,7 +81,6 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 	res, bresp, err := DoBatchRequest(cfg, req)
 
 	if err != nil {
-
 		if res == nil {
 			return nil, "", errors.NewRetriableError(err)
 		}
@@ -97,17 +96,16 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 
 		switch res.StatusCode {
 		case 404, 410:
-			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, "", errors.NewNotImplementedError(nil)
+			return nil, "", errors.NewNotImplementedError(errors.Errorf("api: batch not implemented: %d", res.StatusCode))
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, "", errors.Error(err)
+		return nil, "", errors.Wrap(err, "batch response")
 	}
 	httputil.LogTransfer(cfg, "lfs.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, "", errors.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
+		return nil, "", errors.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
 	}
 
 	return bresp.Objects, bresp.TransferAdapterName, nil
@@ -140,7 +138,7 @@ func Legacy(cfg *config.Configuration, objects []*ObjectResource, operation stri
 func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, error) {
 	req, err := NewRequest(cfg, "GET", oid)
 	if err != nil {
-		return nil, errors.Error(err)
+		return nil, errors.Wrap(err, "download check")
 	}
 
 	res, obj, err := DoLegacyRequest(cfg, req)
@@ -152,7 +150,7 @@ func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, erro
 
 	_, err = obj.NewRequest("download", "GET")
 	if err != nil {
-		return nil, errors.Error(err)
+		return nil, errors.Wrap(err, "download check")
 	}
 
 	return obj, nil
@@ -167,12 +165,12 @@ func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectReso
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		return nil, errors.Error(err)
+		return nil, errors.Wrap(err, "upload check")
 	}
 
 	req, err := NewRequest(cfg, "POST", oid)
 	if err != nil {
-		return nil, errors.Error(err)
+		return nil, errors.Wrap(err, "upload check")
 	}
 
 	req.Header.Set("Content-Type", MediaType)

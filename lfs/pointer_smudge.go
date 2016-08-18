@@ -130,14 +130,14 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
 				err := fmt.Errorf("Extension '%s' is not configured.", ptrExt.Name)
-				return errors.Error(err)
+				return errors.Wrap(err, "smudge")
 			}
 			ext.Priority = ptrExt.Priority
 			extensions[ext.Name] = ext
 		}
 		exts, err := config.SortExtensions(extensions)
 		if err != nil {
-			return errors.Error(err)
+			return errors.Wrap(err, "smudge")
 		}
 
 		// pipe extensions in reverse order
@@ -151,7 +151,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 
 		response, err := pipeExtensions(request)
 		if err != nil {
-			return errors.Error(err)
+			return errors.Wrap(err, "smudge")
 		}
 
 		actualExts := make(map[string]*pipeExtResult)
@@ -163,18 +163,18 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
 			err = fmt.Errorf("Actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
-			return errors.Error(err)
+			return errors.Wrap(err, "smudge")
 		}
 
 		for _, expected := range ptr.Extensions {
 			actual := actualExts[expected.Name]
 			if actual.name != expected.Name {
 				err = fmt.Errorf("Actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
-				return errors.Error(err)
+				return errors.Wrap(err, "smudge")
 			}
 			if actual.oidOut != expected.Oid {
 				err = fmt.Errorf("Actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
-				return errors.Error(err)
+				return errors.Wrap(err, "smudge")
 			}
 		}
 

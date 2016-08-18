@@ -69,7 +69,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Error(err)
+		return errors.Wrap(err, "basic upload")
 	}
 	defer f.Close()
 

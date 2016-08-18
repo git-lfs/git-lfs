@@ -21,12 +21,12 @@ func VerifyUpload(cfg *config.Configuration, obj *ObjectResource) error {
 
 	req, err := obj.NewRequest("verify", "POST")
 	if err != nil {
-		return errors.Error(err)
+		return errors.Wrap(err, "verify")
 	}
 
 	by, err := json.Marshal(obj)
 	if err != nil {
-		return errors.Error(err)
+		return errors.Wrap(err, "verify")
 	}
 
 	req.Header.Set("Content-Type", MediaType)

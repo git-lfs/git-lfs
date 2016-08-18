@@ -78,7 +78,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferP
 	// Open file for uploading
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Error(err)
+		return errors.Wrap(err, "tus upload")
 	}
 	defer f.Close()
 
@@ -90,7 +90,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferP
 		advanceCallbackProgress(cb, t, offset)
 		_, err := f.Seek(offset, os.SEEK_CUR)
 		if err != nil {
-			return errors.Error(err)
+			return errors.Wrap(err, "tus upload")
 		}
 	}
 

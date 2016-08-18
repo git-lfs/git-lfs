@@ -34,7 +34,7 @@ func GetCreds(cfg *config.Configuration, req *http.Request) (Creds, error) {
 
 	credsUrl, err := getCredURLForAPI(cfg, req)
 	if err != nil {
-		return nil, errors.Error(err)
+		return nil, errors.Wrap(err, "creds")
 	}
 
 	if credsUrl == nil {

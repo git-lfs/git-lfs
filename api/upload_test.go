@@ -581,7 +581,7 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal("should not panic")
 	}
 
-	expected := "LFS: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify")
+	expected := fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify")
 	if err.Error() != expected {
 		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}

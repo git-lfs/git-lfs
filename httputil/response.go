@@ -74,7 +74,7 @@ func handleResponse(cfg *config.Configuration, res *http.Response, creds auth.Cr
 		if len(cliErr.Message) == 0 {
 			err = defaultError(res)
 		} else {
-			err = errors.Error(cliErr)
+			err = errors.Wrap(cliErr, "http")
 		}
 	}
 
@@ -100,7 +100,7 @@ func defaultError(res *http.Response) error {
 		msgFmt = defaultErrors[500] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
 	}
 
-	return errors.Error(fmt.Errorf(msgFmt, res.Request.URL))
+	return errors.Errorf(msgFmt, res.Request.URL)
 }
 
 func SetErrorResponseContext(cfg *config.Configuration, err error, res *http.Response) {

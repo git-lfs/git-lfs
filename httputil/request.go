@@ -45,13 +45,16 @@ func (e *ClientError) Error() string {
 // Internal http request management
 func doHttpRequest(cfg *config.Configuration, req *http.Request, creds auth.Creds) (*http.Response, error) {
 	var (
-		res *http.Response
-		err error
+		res   *http.Response
+		cause string
+		err   error
 	)
 
 	if cfg.NtlmAccess(auth.GetOperationForRequest(req)) {
+		cause = "ntlm"
 		res, err = doNTLMRequest(cfg, req, true)
 	} else {
+		cause = "http"
 		res, err = NewHttpClient(cfg, req.Host).Do(req)
 	}
 
@@ -69,7 +72,7 @@ func doHttpRequest(cfg *config.Configuration, req *http.Request, creds auth.Cred
 			SetAuthType(cfg, req, res)
 			doHttpRequest(cfg, req, creds)
 		} else {
-			err = errors.Error(err)
+			err = errors.Wrap(err, cause)
 		}
 	} else {
 		err = handleResponse(cfg, res, creds)
@@ -143,7 +146,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 		}
 
 		if _, err := seeker.Seek(0, 0); err != nil {
-			return res, errors.Error(err)
+			return res, errors.Wrap(err, "request retry")
 		}
 		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
