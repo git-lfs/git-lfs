@@ -143,14 +143,7 @@ func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 	q.Wait()
 
 	for _, err := range q.Errors() {
-		if Debugging || errutil.IsFatalError(err) {
-			LoggedError(err, err.Error())
-		} else {
-			if inner := errutil.GetInnerError(err); inner != nil {
-				Error(inner.Error())
-			}
-			Error(err.Error())
-		}
+		FullError(err)
 	}
 
 	if len(q.Errors()) > 0 {

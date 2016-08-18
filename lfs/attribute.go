@@ -31,8 +31,9 @@ type Attribute struct {
 
 // InstallOptions serves as an argument to Install().
 type InstallOptions struct {
-	Force bool
-	Local bool
+	Force  bool
+	Local  bool
+	System bool
 }
 
 // Install instructs Git to set all keys and values relative to the root
@@ -66,20 +67,28 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 	var currentValue string
 	if opt.Local {
 		currentValue = git.Config.FindLocal(key)
+	} else if opt.System {
+		currentValue = git.Config.FindSystem(key)
 	} else {
 		currentValue = git.Config.FindGlobal(key)
 	}
 
 	if opt.Force || shouldReset(currentValue) {
+		var err error
 		if opt.Local {
+			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetLocalKey("", key)
-			git.Config.SetLocal("", key, value)
+			_, err = git.Config.SetLocal("", key, value)
+		} else if opt.System {
+			// ignore error for unset, git returns non-zero if missing
+			git.Config.UnsetSystem(key)
+			_, err = git.Config.SetSystem(key, value)
 		} else {
+			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetGlobal(key)
-			git.Config.SetGlobal(key, value)
+			_, err = git.Config.SetGlobal(key, value)
 		}
-
-		return nil
+		return err
 	} else if currentValue != value {
 		return fmt.Errorf("The %s attribute should be \"%s\" but is \"%s\"",
 			key, value, currentValue)
@@ -90,6 +99,8 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 
 // Uninstall removes all properties in the path of this property.
 func (a *Attribute) Uninstall() {
+	// uninstall from both system and global
+	git.Config.UnsetSystemSection(a.Section)
 	git.Config.UnsetGlobalSection(a.Section)
 }
 

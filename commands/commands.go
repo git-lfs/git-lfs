@@ -105,14 +105,33 @@ func Exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
+// ExitWithError either panics with a full stack trace for fatal errors, or
+// simply prints the error message and exits immediately.
 func ExitWithError(err error) {
+	errorWith(err, Panic, Exit)
+}
+
+// FullError prints either a full stack trace for fatal errors, or just the
+// error message.
+func FullError(err error) {
+	errorWith(err, LoggedError, Error)
+}
+
+func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
+	var innermsg string
+	if inner := errutil.GetInnerError(err); inner != nil {
+		innermsg = inner.Error()
+	}
+
+	errmsg := err.Error()
+	if errmsg != innermsg {
+		Error(innermsg)
+	}
+
 	if Debugging || errutil.IsFatalError(err) {
-		Panic(err, err.Error())
+		fatalErrFn(err, errmsg)
 	} else {
-		if inner := errutil.GetInnerError(err); inner != nil {
-			Error(inner.Error())
-		}
-		Exit(err.Error())
+		errFn(errmsg)
 	}
 }
 
@@ -313,6 +332,18 @@ func usage(cmd *cobra.Command) error {
 // APIs or solid server implementations.
 func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
 	return cfg.Os.Bool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
+}
+
+func requireGitVersion() {
+	minimumGit := "1.8.2"
+
+	if !git.Config.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := git.Config.Version()
+		if err != nil {
+			Exit("Error getting git version: %s", err)
+		}
+		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
+	}
 }
 
 func init() {

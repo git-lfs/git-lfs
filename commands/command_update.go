@@ -16,6 +16,7 @@ var (
 // updateCommand is used for updating parts of Git LFS that reside under
 // .git/lfs.
 func updateCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
 	requireInRepo()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)

@@ -26,6 +26,8 @@ var (
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
+
 	if config.LocalGitDir == "" {
 		Print("Not a git repository.")
 		os.Exit(128)

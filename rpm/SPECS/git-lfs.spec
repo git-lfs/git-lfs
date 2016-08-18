@@ -50,6 +50,12 @@ mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man5
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
+%post
+git lfs install --system
+
+%preun
+git lfs uninstall
+
 %check
 export GOPATH=`pwd`
 export GIT_LFS_TEST_DIR=$(mktemp -d)

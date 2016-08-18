@@ -292,7 +292,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []
 	ok := true
 	for _, err := range q.Errors() {
 		ok = false
-		ExitWithError(err)
+		FullError(err)
 	}
 	return ok
 }
