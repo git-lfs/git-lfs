@@ -232,10 +232,6 @@ func IsRetriableError(err error) bool {
 	return false
 }
 
-func GetInnerError(err error) error {
-	return parentOf(err)
-}
-
 // ErrorSetContext sets a value in the error's context. If the error has not
 // been wrapped, it does nothing.
 func ErrorSetContext(err error, key string, value interface{}) {

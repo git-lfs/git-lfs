@@ -85,18 +85,21 @@ func TransferManifest() *transfer.Manifest {
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {
-	line := format
-	if len(args) > 0 {
-		line = fmt.Sprintf(format, args...)
+	if len(args) == 0 {
+		fmt.Fprintln(ErrorWriter, format)
+		return
 	}
-	fmt.Fprintln(ErrorWriter, line)
+	fmt.Fprintf(ErrorWriter, format+"\n", args...)
 }
 
 // Print prints a formatted message to Stdout.  It also gets printed to the
 // panic log if one is created for this command.
 func Print(format string, args ...interface{}) {
-	line := fmt.Sprintf(format, args...)
-	fmt.Fprintln(OutputWriter, line)
+	if len(args) == 0 {
+		fmt.Fprintln(OutputWriter, format)
+		return
+	}
+	fmt.Fprintf(OutputWriter, format+"\n", args...)
 }
 
 // Exit prints a formatted message and exits.
@@ -118,21 +121,12 @@ func FullError(err error) {
 }
 
 func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
-	var innermsg string
-	if inner := errors.GetInnerError(err); inner != nil {
-		innermsg = inner.Error()
-	}
-
-	errmsg := err.Error()
-	if errmsg != innermsg {
-		Error(innermsg)
-	}
-
 	if Debugging || errors.IsFatalError(err) {
-		fatalErrFn(err, errmsg)
-	} else {
-		errFn(errmsg)
+		fatalErrFn(err, "")
+		return
 	}
+
+	errFn("%s", err)
 }
 
 // Debug prints a formatted message if debugging is enabled.  The formatted
@@ -147,7 +141,9 @@ func Debug(format string, args ...interface{}) {
 // LoggedError prints a formatted message to Stderr and writes a stack trace for
 // the error to a log file without exiting.
 func LoggedError(err error, format string, args ...interface{}) {
-	Error(format, args...)
+	if len(format) > 0 {
+		Error(format, args...)
+	}
 	file := handlePanic(err)
 
 	if len(file) > 0 {
@@ -260,29 +256,17 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprintln(w)
 
-	fmt.Fprintln(w, loggedError.Error())
-
-	if err, ok := loggedError.(ErrorWithStack); ok {
-		fmt.Fprintln(w, err.InnerError())
-		for key, value := range err.Context() {
-			fmt.Fprintf(w, "%s=%s\n", key, value)
-		}
-		w.Write(err.Stack())
-	} else {
-		w.Write(errors.Stack())
+	fmt.Fprintf(w, "%+v\n", loggedError)
+	for key, val := range errors.ErrorContext(err) {
+		fmt.Fprintf(w, "%s=%v\n", key, val)
 	}
+
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
 	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
-}
-
-type ErrorWithStack interface {
-	Context() map[string]string
-	InnerError() string
-	Stack() []byte
 }
 
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
