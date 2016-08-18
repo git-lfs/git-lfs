@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/github/git-lfs/subprocess"
@@ -306,6 +307,8 @@ func UpdateIndex(file string) error {
 }
 
 type gitConfig struct {
+	gitVersion string
+	mu         sync.Mutex
 }
 
 var Config = &gitConfig{}
@@ -398,7 +401,18 @@ func (c *gitConfig) ListFromFile(f string) (string, error) {
 
 // Version returns the git version
 func (c *gitConfig) Version() (string, error) {
-	return subprocess.SimpleExec("git", "version")
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if len(c.gitVersion) == 0 {
+		v, err := subprocess.SimpleExec("git", "version")
+		if err != nil {
+			return v, err
+		}
+		c.gitVersion = v
+	}
+
+	return c.gitVersion, nil
 }
 
 // IsVersionAtLeast returns whether the git version is the one specified or higher

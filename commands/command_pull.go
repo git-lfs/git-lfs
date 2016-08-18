@@ -8,6 +8,7 @@ import (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
 	requireInRepo()
 
 	if len(args) > 0 {
