@@ -16,7 +16,7 @@ import (
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/httputil"
 )
 
@@ -313,7 +313,7 @@ func TestDownloadAPIError(t *testing.T) {
 		t.Fatal("no error?")
 	}
 
-	if errutil.IsFatalError(err) {
+	if errors.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 

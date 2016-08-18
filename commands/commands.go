@@ -14,7 +14,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
@@ -119,7 +119,7 @@ func FullError(err error) {
 
 func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
 	var innermsg string
-	if inner := errutil.GetInnerError(err); inner != nil {
+	if inner := errors.GetInnerError(err); inner != nil {
 		innermsg = inner.Error()
 	}
 
@@ -128,7 +128,7 @@ func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn 
 		Error(innermsg)
 	}
 
-	if Debugging || errutil.IsFatalError(err) {
+	if Debugging || errors.IsFatalError(err) {
 		fatalErrFn(err, errmsg)
 	} else {
 		errFn(errmsg)
@@ -269,7 +269,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 		}
 		w.Write(err.Stack())
 	} else {
-		w.Write(errutil.Stack())
+		w.Write(errors.Stack())
 	}
 	fmt.Fprintln(w, "\nENV:")
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 )
 
@@ -90,7 +90,7 @@ func (h *Hook) Upgrade() error {
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
 	if !InRepo() {
-		return errutil.NewInvalidRepoError(nil)
+		return errors.NewInvalidRepoError(nil)
 	}
 
 	match, err := h.matchesCurrent()

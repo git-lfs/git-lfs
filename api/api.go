@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/tools"
@@ -27,7 +27,7 @@ func BatchOrLegacy(cfg *config.Configuration, objects []*ObjectResource, operati
 	}
 	objs, adapterName, err := Batch(cfg, objects, operation, transferAdapters)
 	if err != nil {
-		if errutil.IsNotImplementedError(err) {
+		if errors.IsNotImplementedError(err) {
 			git.Config.SetLocal("", "lfs.batch", "false")
 			objs, err := Legacy(cfg, objects, operation)
 			return objs, "", err
@@ -63,12 +63,12 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 	o := &batchRequest{Operation: operation, Objects: objects, TransferAdapterNames: transferAdapters}
 	by, err := json.Marshal(o)
 	if err != nil {
-		return nil, "", errutil.Error(err)
+		return nil, "", errors.Error(err)
 	}
 
 	req, err := NewBatchRequest(cfg, operation)
 	if err != nil {
-		return nil, "", errutil.Error(err)
+		return nil, "", errors.Error(err)
 	}
 
 	req.Header.Set("Content-Type", MediaType)
@@ -83,14 +83,14 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 	if err != nil {
 
 		if res == nil {
-			return nil, "", errutil.NewRetriableError(err)
+			return nil, "", errors.NewRetriableError(err)
 		}
 
 		if res.StatusCode == 0 {
-			return nil, "", errutil.NewRetriableError(err)
+			return nil, "", errors.NewRetriableError(err)
 		}
 
-		if errutil.IsAuthError(err) {
+		if errors.IsAuthError(err) {
 			httputil.SetAuthType(cfg, req, res)
 			return Batch(cfg, objects, operation, transferAdapters)
 		}
@@ -98,16 +98,16 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 		switch res.StatusCode {
 		case 404, 410:
 			tracerx.Printf("api: batch not implemented: %d", res.StatusCode)
-			return nil, "", errutil.NewNotImplementedError(nil)
+			return nil, "", errors.NewNotImplementedError(nil)
 		}
 
 		tracerx.Printf("api error: %s", err)
-		return nil, "", errutil.Error(err)
+		return nil, "", errors.Error(err)
 	}
 	httputil.LogTransfer(cfg, "lfs.batch", res)
 
 	if res.StatusCode != 200 {
-		return nil, "", errutil.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
+		return nil, "", errors.Error(fmt.Errorf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode))
 	}
 
 	return bresp.Objects, bresp.TransferAdapterName, nil
@@ -140,7 +140,7 @@ func Legacy(cfg *config.Configuration, objects []*ObjectResource, operation stri
 func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, error) {
 	req, err := NewRequest(cfg, "GET", oid)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, errors.Error(err)
 	}
 
 	res, obj, err := DoLegacyRequest(cfg, req)
@@ -152,7 +152,7 @@ func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, erro
 
 	_, err = obj.NewRequest("download", "GET")
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, errors.Error(err)
 	}
 
 	return obj, nil
@@ -167,12 +167,12 @@ func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectReso
 
 	by, err := json.Marshal(reqObj)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, errors.Error(err)
 	}
 
 	req, err := NewRequest(cfg, "POST", oid)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, errors.Error(err)
 	}
 
 	req.Header.Set("Content-Type", MediaType)
@@ -184,12 +184,12 @@ func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectReso
 	res, obj, err := DoLegacyRequest(cfg, req)
 
 	if err != nil {
-		if errutil.IsAuthError(err) {
+		if errors.IsAuthError(err) {
 			httputil.SetAuthType(cfg, req, res)
 			return UploadCheck(cfg, oid, size)
 		}
 
-		return nil, errutil.NewRetriableError(err)
+		return nil, errors.NewRetriableError(err)
 	}
 	httputil.LogTransfer(cfg, "lfs.upload", res)
 

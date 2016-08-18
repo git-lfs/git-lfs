@@ -10,7 +10,7 @@ import (
 
 	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 
 	"github.com/rubyist/tracerx"
 )
@@ -65,11 +65,11 @@ func doHttpRequest(cfg *config.Configuration, req *http.Request, creds auth.Cred
 	}
 
 	if err != nil {
-		if errutil.IsAuthError(err) {
+		if errors.IsAuthError(err) {
 			SetAuthType(cfg, req, res)
 			doHttpRequest(cfg, req, creds)
 		} else {
-			err = errutil.Error(err)
+			err = errors.Error(err)
 		}
 	} else {
 		err = handleResponse(cfg, res, creds)
@@ -126,7 +126,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 
 		redirectedReq, err := NewHttpRequest(req.Method, redirectTo, nil)
 		if err != nil {
-			return res, errutil.Errorf(err, err.Error())
+			return res, errors.Errorf(err, err.Error())
 		}
 
 		via = append(via, req)
@@ -139,17 +139,17 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 
 		seeker, ok := realBody.(io.Seeker)
 		if !ok {
-			return res, errutil.Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
+			return res, errors.Errorf(nil, "Request body needs to be an io.Seeker to handle redirects.")
 		}
 
 		if _, err := seeker.Seek(0, 0); err != nil {
-			return res, errutil.Error(err)
+			return res, errors.Error(err)
 		}
 		redirectedReq.Body = realBody
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = CheckRedirect(redirectedReq, via); err != nil {
-			return res, errutil.Errorf(err, err.Error())
+			return res, errors.Errorf(err, err.Error())
 		}
 
 		return DoHttpRequestWithRedirects(cfg, redirectedReq, via, useCreds)

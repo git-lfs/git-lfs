@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/httputil"
 )
 
@@ -21,12 +21,12 @@ func VerifyUpload(cfg *config.Configuration, obj *ObjectResource) error {
 
 	req, err := obj.NewRequest("verify", "POST")
 	if err != nil {
-		return errutil.Error(err)
+		return errors.Error(err)
 	}
 
 	by, err := json.Marshal(obj)
 	if err != nil {
-		return errutil.Error(err)
+		return errors.Error(err)
 	}
 
 	req.Header.Set("Content-Type", MediaType)

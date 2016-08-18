@@ -1,6 +1,6 @@
-// Package errutil provides common error handling tools
+// Package errors provides common error handling tools
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
-package errutil
+package errors
 
 // The LFS error system provides a simple wrapper around Go errors and the
 // ability to inspect errors. It is strongly influenced by Dave Cheney's post
@@ -41,9 +41,9 @@ package errutil
 // Example:
 //
 //	err := lfs.SomeFunction()
-//	errutil.ErrorSetContext(err, "foo", "bar")
-//	errutil.ErrorGetContext(err, "foo") // => "bar"
-//	errutil.ErrorDelContext(err, "foo")
+//	errors.ErrorSetContext(err, "foo", "bar")
+//	errors.ErrorGetContext(err, "foo") // => "bar"
+//	errors.ErrorDelContext(err, "foo")
 //
 // Wrapped errors also contain the stack from the point at which they are
 // called. The stack is accessed via ErrorStack(). Calling ErrorStack() on a
@@ -55,6 +55,31 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+// New returns an error with the supplied message. New also records the stack
+// trace at thepoint it was called.
+func New(message string) error {
+	return errors.New(message)
+}
+
+// Error wraps an error with an empty message.
+func Error(err error) error {
+	return Errorf(err, "")
+}
+
+// Errorf wraps an error with an additional formatted message.
+func Errorf(err error, format string, args ...interface{}) error {
+	if err == nil {
+		err = errors.New("")
+	}
+
+	message := ""
+	if len(format) > 0 {
+		message = fmt.Sprintf(format, args...)
+	}
+
+	return newWrappedError(err, message)
+}
 
 type errorWithCause interface {
 	Error() string
@@ -232,30 +257,7 @@ func IsRetriableError(err error) bool {
 }
 
 func GetInnerError(err error) error {
-	if parent := parentOf(err); parent != nil {
-		return parent
-	}
-
-	return nil
-}
-
-// Error wraps an error with an empty message.
-func Error(err error) error {
-	return Errorf(err, "")
-}
-
-// Errorf wraps an error with an additional formatted message.
-func Errorf(err error, format string, args ...interface{}) error {
-	if err == nil {
-		err = errors.New("")
-	}
-
-	message := ""
-	if len(format) > 0 {
-		message = fmt.Sprintf(format, args...)
-	}
-
-	return newWrappedError(err, message)
+	return parentOf(err)
 }
 
 // ErrorSetContext sets a value in the error's context. If the error has not

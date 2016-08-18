@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 )
 
 func TestSuccessStatus(t *testing.T) {
@@ -77,7 +77,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 			continue
 		}
 
-		if errutil.IsFatalError(err) == (panicMsg != "panic") {
+		if errors.IsFatalError(err) == (panicMsg != "panic") {
 			t.Errorf("Error for HTTP %d should %s", status, panicMsg)
 			continue
 		}
@@ -140,7 +140,7 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 			continue
 		}
 
-		if errutil.IsFatalError(err) == (results[1] != "panic") {
+		if errors.IsFatalError(err) == (results[1] != "panic") {
 			t.Errorf("Error for HTTP %d should %s", status, results[1])
 			continue
 		}

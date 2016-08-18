@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
@@ -174,7 +174,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		// Check the content - either missing or still this pointer (not exist is ok)
 		filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
 		if err != nil && !os.IsNotExist(err) {
-			if errutil.IsNotAPointerError(err) {
+			if errors.IsNotAPointerError(err) {
 				// File has non-pointer content, leave it alone
 				continue
 			}
@@ -193,7 +193,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
 		if err != nil {
-			if errutil.IsDownloadDeclinedError(err) {
+			if errors.IsDownloadDeclinedError(err) {
 				// acceptable error, data not local (fetch not run or include/exclude)
 				LoggedError(err, "Skipped checkout for %v, content not local. Use fetch to download.", pointer.Name)
 			} else {

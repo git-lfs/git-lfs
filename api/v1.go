@@ -7,7 +7,7 @@ import (
 
 	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/httputil"
 
 	"github.com/rubyist/tracerx"
@@ -55,7 +55,7 @@ func DoBatchRequest(cfg *config.Configuration, req *http.Request) (*http.Respons
 
 	if err != nil {
 		if res != nil && res.StatusCode == 401 {
-			return res, nil, errutil.NewAuthError(err)
+			return res, nil, errors.NewAuthError(err)
 		}
 		return res, nil, err
 	}

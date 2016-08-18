@@ -10,7 +10,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/progress"
 )
@@ -69,7 +69,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errutil.Error(err)
+		return errors.Error(err)
 	}
 	defer f.Close()
 
@@ -99,18 +99,18 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	res, err := httputil.DoHttpRequest(config.Config, req, t.Object.NeedsAuth())
 	if err != nil {
-		return errutil.NewRetriableError(err)
+		return errors.NewRetriableError(err)
 	}
 	httputil.LogTransfer(config.Config, "lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
 	if res.StatusCode == 403 {
-		return errutil.NewRetriableError(err)
+		return errors.NewRetriableError(err)
 	}
 
 	if res.StatusCode > 299 {
-		return errutil.Errorf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
+		return errors.Errorf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)

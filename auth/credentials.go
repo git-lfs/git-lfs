@@ -3,7 +3,6 @@ package auth
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -13,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 
@@ -35,7 +34,7 @@ func GetCreds(cfg *config.Configuration, req *http.Request) (Creds, error) {
 
 	credsUrl, err := getCredURLForAPI(cfg, req)
 	if err != nil {
-		return nil, errutil.Error(err)
+		return nil, errors.Error(err)
 	}
 
 	if credsUrl == nil {
