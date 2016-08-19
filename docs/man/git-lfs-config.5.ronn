@@ -199,8 +199,8 @@ lfs option can be scoped inside the configuration for a remote.
 
 * `GIT_LFS_PROGRESS`
 
-  This environemnt variable causes Git LFS to emit progress updates to an
-  absolute filepath on disk when cleaning, smudging, or fetching.
+  This environment variable causes Git LFS to emit progress updates to an
+  absolute file-path on disk when cleaning, smudging, or fetching.
 
   Progress is reported periodically in the form of a new line being appended to
   the end of the file. Each new line will take the following format:
