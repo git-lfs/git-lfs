@@ -40,9 +40,8 @@ specify any rate limits, implementors are encouraged to set some for
 availability reasons.
 * 501 - The server has not implemented the current method.  Reserved for future
 use.
-* 509 - Returned if the bandwidth limit for the user or repository has been
-exceeded.  The API does not specify any bandwidth limit, but implementors may
-track usage.
+* 509 - The bandwidth limit for the user or repository has been exceeded.  The
+API does not specify any bandwidth limit, but implementors may track usage.
 
 Some server errors may trigger the client to retry requests, such as 500, 502,
 503, and 504.
