@@ -1,73 +1,10 @@
-// Package errutil provides common error handling tools
-// NOTE: Subject to change, do not rely on this package from outside git-lfs source
-package errutil
-
-// The LFS error system provides a simple wrapper around Go errors and the
-// ability to inspect errors. It is strongly influenced by Dave Cheney's post
-// at http://dave.cheney.net/2014/12/24/inspecting-errors.
-//
-// When passing errors out of lfs package functions, the return type should
-// always be `error`. The wrappedError details are not exported. If an error is
-// the kind of error a caller should need to investigate, an IsXError()
-// function is provided that tells the caller if the error is of that type.
-// There should only be a handfull of cases where a simple `error` is
-// insufficient.
-//
-// The error behaviors can be nested when created. For example, the not
-// implemented error can also be marked as a fatal error:
-//
-//	func LfsFunction() error {
-//		err := functionCall()
-//		if err != nil {
-//			return newFatalError(newNotImplementedError(err))
-//		}
-//		return nil
-//	}
-//
-// Then in the caller:
-//
-//	err := lfs.LfsFunction()
-//	if lfs.IsNotImplementedError(err) {
-//		log.Print("feature not implemented")
-//	}
-//	if lfs.IsFatalError(err) {
-//		os.Exit(1)
-//	}
-//
-// Wrapped errors contain a context, which is a map[string]string. These
-// contexts can be accessed through the Error*Context functions. Calling these
-// functions on a regular Go error will have no effect.
-//
-// Example:
-//
-//	err := lfs.SomeFunction()
-//	errutil.ErrorSetContext(err, "foo", "bar")
-//	errutil.ErrorGetContext(err, "foo") // => "bar"
-//	errutil.ErrorDelContext(err, "foo")
-//
-// Wrapped errors also contain the stack from the point at which they are
-// called. The stack is accessed via ErrorStack(). Calling ErrorStack() on a
-// regular Go error will return an empty byte slice.
+package errors
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/pkg/errors"
 )
-
-type errorWithCause interface {
-	Error() string
-	Cause() error
-}
-
-func parentOf(err error) error {
-	if c, ok := err.(errorWithCause); ok {
-		return c.Cause()
-	}
-
-	return nil
-}
 
 // IsFatalError indicates that the error is fatal and the process should exit
 // immediately after handling the error.
@@ -107,34 +44,6 @@ func IsAuthError(err error) bool {
 	}
 	if parent := parentOf(err); parent != nil {
 		return IsAuthError(parent)
-	}
-	return false
-}
-
-// IsInvalidPointerError indicates an attempt to parse data that was not a
-// valid pointer.
-func IsInvalidPointerError(err error) bool {
-	if e, ok := err.(interface {
-		InvalidPointer() bool
-	}); ok {
-		return e.InvalidPointer()
-	}
-	if parent := parentOf(err); parent != nil {
-		return IsInvalidPointerError(parent)
-	}
-	return false
-}
-
-// IsInvalidRepoError indicates an operation was attempted from outside a git
-// repository.
-func IsInvalidRepoError(err error) bool {
-	if e, ok := err.(interface {
-		InvalidRepo() bool
-	}); ok {
-		return e.InvalidRepo()
-	}
-	if parent := parentOf(err); parent != nil {
-		return IsInvalidRepoError(parent)
 	}
 	return false
 }
@@ -231,74 +140,11 @@ func IsRetriableError(err error) bool {
 	return false
 }
 
-func GetInnerError(err error) error {
-	if parent := parentOf(err); parent != nil {
-		return parent
-	}
-
-	return nil
-}
-
-// Error wraps an error with an empty message.
-func Error(err error) error {
-	return Errorf(err, "")
-}
-
-// Errorf wraps an error with an additional formatted message.
-func Errorf(err error, format string, args ...interface{}) error {
-	if err == nil {
-		err = errors.New("")
-	}
-
-	message := ""
-	if len(format) > 0 {
-		message = fmt.Sprintf(format, args...)
-	}
-
-	return newWrappedError(err, message)
-}
-
-// ErrorSetContext sets a value in the error's context. If the error has not
-// been wrapped, it does nothing.
-func ErrorSetContext(err error, key string, value interface{}) {
-	if e, ok := err.(errorWrapper); ok {
-		e.Set(key, value)
-	}
-}
-
-// ErrorGetContext gets a value from the error's context. If the error has not
-// been wrapped, it returns an empty string.
-func ErrorGetContext(err error, key string) interface{} {
-	if e, ok := err.(errorWrapper); ok {
-		return e.Get(key)
-	}
-	return ""
-}
-
-// ErrorDelContext removes a value from the error's context. If the error has
-// not been wrapped, it does nothing.
-func ErrorDelContext(err error, key string) {
-	if e, ok := err.(errorWrapper); ok {
-		e.Del(key)
-	}
-}
-
-// ErrorContext returns the context map for an error if it is a wrappedError.
-// If it is not a wrappedError it will return an empty map.
-func ErrorContext(err error) map[string]interface{} {
-	if e, ok := err.(errorWrapper); ok {
-		return e.Context()
-	}
-	return nil
-}
-
-type errorWrapper interface {
-	errorWithCause
-
-	Set(string, interface{})
-	Get(string) interface{}
-	Del(string)
-	Context() map[string]interface{}
+type errorWithCause interface {
+	Cause() error
+	StackTrace() errors.StackTrace
+	error
+	fmt.Formatter
 }
 
 // wrappedError is the base error wrapper. It provides a Message string, a
@@ -309,7 +155,7 @@ type wrappedError struct {
 }
 
 // newWrappedError creates a wrappedError.
-func newWrappedError(err error, message string) errorWrapper {
+func newWrappedError(err error, message string) *wrappedError {
 	if err == nil {
 		err = errors.New("Error")
 	}
@@ -353,7 +199,7 @@ func (e wrappedError) Context() map[string]interface{} {
 // Definitions for IsFatalError()
 
 type fatalError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e fatalError) Fatal() bool {
@@ -367,7 +213,7 @@ func NewFatalError(err error) error {
 // Definitions for IsNotImplementedError()
 
 type notImplementedError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e notImplementedError) NotImplemented() bool {
@@ -381,7 +227,7 @@ func NewNotImplementedError(err error) error {
 // Definitions for IsAuthError()
 
 type authError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e authError) AuthError() bool {
@@ -392,38 +238,10 @@ func NewAuthError(err error) error {
 	return authError{newWrappedError(err, "Authentication required")}
 }
 
-// Definitions for IsInvalidPointerError()
-
-type invalidPointerError struct {
-	errorWrapper
-}
-
-func (e invalidPointerError) InvalidPointer() bool {
-	return true
-}
-
-func NewInvalidPointerError(err error) error {
-	return invalidPointerError{newWrappedError(err, "Invalid pointer")}
-}
-
-// Definitions for IsInvalidRepoError()
-
-type invalidRepoError struct {
-	errorWrapper
-}
-
-func (e invalidRepoError) InvalidRepo() bool {
-	return true
-}
-
-func NewInvalidRepoError(err error) error {
-	return invalidRepoError{newWrappedError(err, "Not in a git repository")}
-}
-
 // Definitions for IsSmudgeError()
 
 type smudgeError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e smudgeError) SmudgeError() bool {
@@ -432,32 +250,33 @@ func (e smudgeError) SmudgeError() bool {
 
 func NewSmudgeError(err error, oid, filename string) error {
 	e := smudgeError{newWrappedError(err, "Smudge error")}
-	ErrorSetContext(e, "OID", oid)
-	ErrorSetContext(e, "FileName", filename)
+	SetContext(e, "OID", oid)
+	SetContext(e, "FileName", filename)
 	return e
 }
 
 // Definitions for IsCleanPointerError()
 
 type cleanPointerError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e cleanPointerError) CleanPointerError() bool {
 	return true
 }
 
-func NewCleanPointerError(err error, pointer interface{}, bytes []byte) error {
-	e := cleanPointerError{newWrappedError(err, "Clean pointer error")}
-	ErrorSetContext(e, "pointer", pointer)
-	ErrorSetContext(e, "bytes", bytes)
+func NewCleanPointerError(pointer interface{}, bytes []byte) error {
+	err := New("pointer error")
+	e := cleanPointerError{newWrappedError(err, "clean")}
+	SetContext(e, "pointer", pointer)
+	SetContext(e, "bytes", bytes)
 	return e
 }
 
 // Definitions for IsNotAPointerError()
 
 type notAPointerError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e notAPointerError) NotAPointerError() bool {
@@ -472,7 +291,7 @@ type badPointerKeyError struct {
 	Expected string
 	Actual   string
 
-	errorWrapper
+	*wrappedError
 }
 
 func (e badPointerKeyError) BadPointerKeyError() bool {
@@ -480,28 +299,28 @@ func (e badPointerKeyError) BadPointerKeyError() bool {
 }
 
 func NewBadPointerKeyError(expected, actual string) error {
-	err := fmt.Errorf("Error parsing LFS Pointer. Expected key %s, got %s", expected, actual)
-	return badPointerKeyError{expected, actual, newWrappedError(err, "")}
+	err := Errorf("Expected key %s, got %s", expected, actual)
+	return badPointerKeyError{expected, actual, newWrappedError(err, "pointer parsing")}
 }
 
 // Definitions for IsDownloadDeclinedError()
 
 type downloadDeclinedError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e downloadDeclinedError) DownloadDeclinedError() bool {
 	return true
 }
 
-func NewDownloadDeclinedError(err error) error {
-	return downloadDeclinedError{newWrappedError(err, "File missing and download is not allowed")}
+func NewDownloadDeclinedError(err error, msg string) error {
+	return downloadDeclinedError{newWrappedError(err, msg)}
 }
 
 // Definitions for IsRetriableError()
 
 type retriableError struct {
-	errorWrapper
+	*wrappedError
 }
 
 func (e retriableError) RetriableError() bool {
@@ -512,9 +331,10 @@ func NewRetriableError(err error) error {
 	return retriableError{newWrappedError(err, "")}
 }
 
-// Stack returns a byte slice containing the runtime.Stack()
-func Stack() []byte {
-	stackBuf := make([]byte, 1024*1024)
-	written := runtime.Stack(stackBuf, false)
-	return stackBuf[:written]
+func parentOf(err error) error {
+	if c, ok := err.(errorWithCause); ok {
+		return c.Cause()
+	}
+
+	return nil
 }

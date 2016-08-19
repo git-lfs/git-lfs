@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 
@@ -128,7 +128,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		var err error
 		if t.Object.IsExpired(time.Now().Add(objectExpirationGracePeriod)) {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
-			err = errutil.NewRetriableError(fmt.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
+			err = errors.NewRetriableError(errors.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
 		} else if t.Object.Size < 0 {
 			tracerx.Printf("xfer: adapter %q worker %d found invalid size for %q (got: %d), retrying...", a.Name(), workerNum, t.Object.Oid, t.Object.Size)
 			err = fmt.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Object.Oid, t.Object.Size)

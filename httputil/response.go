@@ -10,7 +10,7 @@ import (
 
 	"github.com/github/git-lfs/auth"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 )
 
 var (
@@ -41,7 +41,7 @@ func DecodeResponse(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return errutil.Errorf(err, "Unable to parse HTTP response for %s", TraceHttpReq(res.Request))
+		return errors.Wrapf(err, "Unable to parse HTTP response for %s", TraceHttpReq(res.Request))
 	}
 
 	return nil
@@ -74,16 +74,22 @@ func handleResponse(cfg *config.Configuration, res *http.Response, creds auth.Cr
 		if len(cliErr.Message) == 0 {
 			err = defaultError(res)
 		} else {
-			err = errutil.Error(cliErr)
+			err = errors.Wrap(cliErr, "http")
 		}
 	}
 
 	if res.StatusCode == 401 {
-		return errutil.NewAuthError(err)
+		if err == nil {
+			err = errors.New("api: received status 401")
+		}
+		return errors.NewAuthError(err)
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
-		return errutil.NewFatalError(err)
+		if err == nil {
+			err = errors.Errorf("api: received status %d", res.StatusCode)
+		}
+		return errors.NewFatalError(err)
 	}
 
 	return err
@@ -100,18 +106,18 @@ func defaultError(res *http.Response) error {
 		msgFmt = defaultErrors[500] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
 	}
 
-	return errutil.Error(fmt.Errorf(msgFmt, res.Request.URL))
+	return errors.Errorf(msgFmt, res.Request.URL)
 }
 
 func SetErrorResponseContext(cfg *config.Configuration, err error, res *http.Response) {
-	errutil.ErrorSetContext(err, "Status", res.Status)
+	errors.SetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(cfg, err, res.Request)
 }
 
 func setErrorRequestContext(cfg *config.Configuration, err error, req *http.Request) {
-	errutil.ErrorSetContext(err, "Endpoint", cfg.Endpoint(auth.GetOperationForRequest(req)).Url)
-	errutil.ErrorSetContext(err, "URL", TraceHttpReq(req))
+	errors.SetContext(err, "Endpoint", cfg.Endpoint(auth.GetOperationForRequest(req)).Url)
+	errors.SetContext(err, "URL", TraceHttpReq(req))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
@@ -119,9 +125,9 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
-			errutil.ErrorSetContext(err, contextKey, "--")
+			errors.SetContext(err, contextKey, "--")
 		} else {
-			errutil.ErrorSetContext(err, contextKey, head.Get(key))
+			errors.SetContext(err, contextKey, head.Get(key))
 		}
 	}
 }

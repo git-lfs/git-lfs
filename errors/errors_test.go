@@ -1,4 +1,4 @@
-package errutil
+package errors
 
 import (
 	"errors"
@@ -45,9 +45,9 @@ func TestBehaviorWraps(t *testing.T) {
 func TestContextOnGoErrors(t *testing.T) {
 	err := errors.New("Go error")
 
-	ErrorSetContext(err, "foo", "bar")
+	SetContext(err, "foo", "bar")
 
-	v := ErrorGetContext(err, "foo")
+	v := GetContext(err, "foo")
 	if v == "bar" {
 		t.Error("expected empty context on go error")
 	}
@@ -56,20 +56,20 @@ func TestContextOnGoErrors(t *testing.T) {
 func TestContextOnWrappedErrors(t *testing.T) {
 	err := NewFatalError(errors.New("Go error"))
 
-	ErrorSetContext(err, "foo", "bar")
+	SetContext(err, "foo", "bar")
 
-	if v := ErrorGetContext(err, "foo"); v != "bar" {
+	if v := GetContext(err, "foo"); v != "bar" {
 		t.Error("expected to be able to use context on wrapped errors")
 	}
 
-	ctxt := ErrorContext(err)
+	ctxt := Context(err)
 	if ctxt["foo"] != "bar" {
 		t.Error("expected to get the context of an error")
 	}
 
-	ErrorDelContext(err, "foo")
+	DelContext(err, "foo")
 
-	if v := ErrorGetContext(err, "foo"); v == "bar" {
+	if v := GetContext(err, "foo"); v == "bar" {
 		t.Errorf("expected to delete from error context")
 	}
 }

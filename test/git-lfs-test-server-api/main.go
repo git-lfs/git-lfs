@@ -12,7 +12,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
 	"github.com/spf13/cobra"
@@ -170,7 +170,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	uploadQueue.Wait()
 
 	for _, err := range uploadQueue.Errors() {
-		if errutil.IsFatalError(err) {
+		if errors.IsFatalError(err) {
 			exit("Fatal error setting up test data: %s", err)
 		}
 	}

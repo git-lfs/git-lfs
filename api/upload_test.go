@@ -15,7 +15,7 @@ import (
 
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/test"
@@ -448,7 +448,7 @@ func TestUploadApiError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if errutil.IsFatalError(err) {
+	if errors.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
@@ -577,11 +577,11 @@ func TestUploadVerifyError(t *testing.T) {
 		t.Fatal("verify should fail")
 	}
 
-	if errutil.IsFatalError(err) {
+	if errors.IsFatalError(err) {
 		t.Fatal("should not panic")
 	}
 
-	expected := "LFS: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify")
+	expected := fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/verify")
 	if err.Error() != expected {
 		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}

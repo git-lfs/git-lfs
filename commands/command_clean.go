@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
 	"github.com/spf13/cobra"
@@ -43,8 +43,8 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		defer cleaned.Teardown()
 	}
 
-	if errutil.IsCleanPointerError(err) {
-		os.Stdout.Write(errutil.ErrorGetContext(err, "bytes").([]byte))
+	if errors.IsCleanPointerError(err) {
+		os.Stdout.Write(errors.GetContext(err, "bytes").([]byte))
 		return
 	}
 

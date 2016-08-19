@@ -90,7 +90,7 @@ func (a *Attribute) set(key, value string, opt InstallOptions) error {
 		}
 		return err
 	} else if currentValue != value {
-		return fmt.Errorf("The %s attribute should be \"%s\" but is \"%s\"",
+		return fmt.Errorf("The %s attribute should be %q but is %q",
 			key, value, currentValue)
 	}
 

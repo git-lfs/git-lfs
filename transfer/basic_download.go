@@ -1,7 +1,6 @@
 package transfer
 
 import (
-	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -11,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
@@ -119,7 +118,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
 		}
-		return errutil.NewRetriableError(err)
+		return errors.NewRetriableError(err)
 	}
 	httputil.LogTransfer(config.Config, "lfs.data.download", res)
 	defer res.Body.Close()

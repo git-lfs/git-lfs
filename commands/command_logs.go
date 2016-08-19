@@ -1,13 +1,12 @@
 package commands
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +53,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := errutil.Errorf(errors.New("Inner error message!"), "Error!")
+	err := errors.Wrapf(errors.New("Inner error message!"), "Error")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }
