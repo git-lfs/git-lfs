@@ -86,7 +86,7 @@ func smudgeFilename(args []string, err error) string {
 	}
 
 	if errors.IsSmudgeError(err) {
-		return filepath.Base(errors.ErrorGetContext(err, "FileName").(string))
+		return filepath.Base(errors.GetContext(err, "FileName").(string))
 	}
 
 	return "<unknown file>"

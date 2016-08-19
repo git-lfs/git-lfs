@@ -110,14 +110,14 @@ func defaultError(res *http.Response) error {
 }
 
 func SetErrorResponseContext(cfg *config.Configuration, err error, res *http.Response) {
-	errors.ErrorSetContext(err, "Status", res.Status)
+	errors.SetContext(err, "Status", res.Status)
 	setErrorHeaderContext(err, "Request", res.Header)
 	setErrorRequestContext(cfg, err, res.Request)
 }
 
 func setErrorRequestContext(cfg *config.Configuration, err error, req *http.Request) {
-	errors.ErrorSetContext(err, "Endpoint", cfg.Endpoint(auth.GetOperationForRequest(req)).Url)
-	errors.ErrorSetContext(err, "URL", TraceHttpReq(req))
+	errors.SetContext(err, "Endpoint", cfg.Endpoint(auth.GetOperationForRequest(req)).Url)
+	errors.SetContext(err, "URL", TraceHttpReq(req))
 	setErrorHeaderContext(err, "Response", req.Header)
 }
 
@@ -125,9 +125,9 @@ func setErrorHeaderContext(err error, prefix string, head http.Header) {
 	for key, _ := range head {
 		contextKey := fmt.Sprintf("%s:%s", prefix, key)
 		if _, skip := hiddenHeaders[key]; skip {
-			errors.ErrorSetContext(err, contextKey, "--")
+			errors.SetContext(err, contextKey, "--")
 		} else {
-			errors.ErrorSetContext(err, contextKey, head.Get(key))
+			errors.SetContext(err, contextKey, head.Get(key))
 		}
 	}
 }

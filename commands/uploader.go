@@ -130,7 +130,7 @@ func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 		u, err := lfs.NewUploadable(p.Oid, p.Name)
 		if err != nil {
 			if errors.IsCleanPointerError(err) {
-				Exit(uploadMissingErr, p.Oid, p.Name, errors.ErrorGetContext(err, "pointer").(*lfs.Pointer).Oid)
+				Exit(uploadMissingErr, p.Oid, p.Name, errors.GetContext(err, "pointer").(*lfs.Pointer).Oid)
 			} else {
 				ExitWithError(err)
 			}

@@ -250,8 +250,8 @@ func (e smudgeError) SmudgeError() bool {
 
 func NewSmudgeError(err error, oid, filename string) error {
 	e := smudgeError{newWrappedError(err, "Smudge error")}
-	ErrorSetContext(e, "OID", oid)
-	ErrorSetContext(e, "FileName", filename)
+	SetContext(e, "OID", oid)
+	SetContext(e, "FileName", filename)
 	return e
 }
 
@@ -268,8 +268,8 @@ func (e cleanPointerError) CleanPointerError() bool {
 func NewCleanPointerError(pointer interface{}, bytes []byte) error {
 	err := New("pointer error")
 	e := cleanPointerError{newWrappedError(err, "clean")}
-	ErrorSetContext(e, "pointer", pointer)
-	ErrorSetContext(e, "bytes", bytes)
+	SetContext(e, "pointer", pointer)
+	SetContext(e, "bytes", bytes)
 	return e
 }
 

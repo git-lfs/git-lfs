@@ -44,7 +44,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if errors.IsCleanPointerError(err) {
-		os.Stdout.Write(errors.ErrorGetContext(err, "bytes").([]byte))
+		os.Stdout.Write(errors.GetContext(err, "bytes").([]byte))
 		return
 	}
 
