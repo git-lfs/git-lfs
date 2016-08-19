@@ -7,12 +7,11 @@
 * Install LFS at the system level when packaged #1460 (@javabrett)
 * Fetch remote urls #1451 (@technoweenie)
 * add object Authenticated property #1452 (@technoweenie)
-* add support for `url.*.insteadof` in git config #1443 (@technoweenie)
+* add support for `url.*.insteadof` in git config #1117 #1443 (@artagnon @technoweenie)
 
 ### Bugs
 
-* fix --include bug when multiple files have same lfs content #1458
-  (@technoweenie)
+* fix --include bug when multiple files have same lfs content #1458 (@technoweenie)
 * check the git version is ok in some key commands #1461 (@technoweenie)
 * fix duplicate error reporting #1445, #1453 (@dpursehouse, @technoweenie)
 * transfer/custom: encode "event" as lowercase #1441 (@ttaylorr)
