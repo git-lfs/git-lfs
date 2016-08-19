@@ -8,7 +8,7 @@ import (
 
 var (
 	GitCommit   string
-	Version     = "1.3.1"
+	Version     = "1.4.0"
 	VersionDesc string
 )
 
