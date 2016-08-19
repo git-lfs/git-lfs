@@ -246,13 +246,13 @@ func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bo
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
-	skipped, pointers, totalSize := skippedAndUniqPointers(allpointers, include, exclude)
+	ready, pointers, totalSize := readyAndMissingPointers(allpointers, include, exclude)
 	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
 
 	if out != nil {
 		// If we already have it, or it won't be fetched
 		// report it to chan immediately to support pull/checkout
-		for _, p := range skipped {
+		for _, p := range ready {
 			out <- p
 		}
 
@@ -297,22 +297,20 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []
 	return ok
 }
 
-func skippedAndUniqPointers(allpointers []*lfs.WrappedPointer, include, exclude []string) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude []string) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
 	size := int64(0)
 	seen := make(map[string]bool, len(allpointers))
-	pointers := make([]*lfs.WrappedPointer, 0, len(allpointers))
-	skipped := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
 
 	for _, p := range allpointers {
 		// Filtered out by --include or --exclude
 		if !lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude) {
-			skipped = append(skipped, p)
 			continue
 		}
 
 		// no need to download the same object multiple times
 		if seen[p.Oid] {
-			skipped = append(skipped, p)
 			continue
 		}
 
@@ -321,15 +319,15 @@ func skippedAndUniqPointers(allpointers []*lfs.WrappedPointer, include, exclude 
 		// no need to download objects that exist locally already
 		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
 		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
-			skipped = append(skipped, p)
+			ready = append(ready, p)
 			continue
 		}
 
-		pointers = append(pointers, p)
+		missing = append(missing, p)
 		size += p.Size
 	}
 
-	return skipped, pointers, size
+	return ready, missing, size
 }
 
 func init() {
