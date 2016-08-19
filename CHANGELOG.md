@@ -1,5 +1,45 @@
 # Git LFS Changelog
 
+## 1.4.0 (19 August, 2016)
+
+### Features
+
+* Errors Next #1463 (@ttaylorr)
+* Javabrett config system #1460 (@technoweenie)
+* Fetch remote urls #1451 (@technoweenie)
+* add object Authenticated property #1452 (@technoweenie)
+* add support for url.\*.insteadof in git config #1443 (@technoweenie)
+
+### Bugs
+
+* don't report "seen" objects as ready to checkout #1470 (@technoweenie)
+* fix --include bug when multiple files have same lfs content #1458
+  (@technoweenie)
+* check the git version is ok in some key commands #1461 (@technoweenie)
+* fix duplicate error reporting #1453 (@technoweenie)
+* transfer/custom: encode "event" as lowercase #1441 (@ttaylorr)
+
+### Misc
+
+* docs/man: note GIT_LFS_PROGRESS #1469 (@ttaylorr)
+* Reword the description of HTTP 509 status #1467 (@dpursehouse)
+* Update fetch include/exclude docs for pattern matching #1455 (@ralfthewise)
+* config-next: API changes to the `config` package #1425 (@ttaylorr)
+  * Wrapped `gitEnvironment` #1450 (@ttaylorr)
+  * remove legacy methods #1436 (@ttaylorr)
+  * remove `SetConfig` and `ResetConfig` #1435 (@ttaylorr)
+  * remove `SetConfig` from package `api`, `lfs`, `httputil` #1427 (@ttaylorr)
+  * use `Unmarshal` to fill out `FetchPruneConfig` #1429 (@ttaylorr)
+  * ensure .gitconfig is loaded before Unmarshal call #1428 (@ttaylorr)
+  * Unmarshalling #1426 (@ttaylorr)
+  * .gitconfig parsing #1420 (@technoweenie)
+  * cleanup FetchPruneConfig() #1423 (@ttaylorr)
+  * demote `Fetcher`, introduce `Environment` #1419 (@ttaylorr)
+  * introduce Fetcher, EnvFetcher, config integration #1415 (@ttaylorr)
+  * Remove config.{Setenv,SetAllEnv} #1416 (@ttaylorr)
+* Command var scope #1434 (@technoweenie)
+* Transfer manifest #1430 (@technoweenie)
+
 ## 1.3.1 (2 August 2016)
 
 ### Features
