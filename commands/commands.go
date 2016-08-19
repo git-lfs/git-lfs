@@ -256,7 +256,11 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprintln(w)
 
-	fmt.Fprintf(w, "%+v\n", loggedError)
+	fmt.Fprintf(w, "%s\n", loggedError)
+	for _, stackline := range errors.StackTrace(loggedError) {
+		fmt.Fprintln(w, stackline)
+	}
+
 	for key, val := range errors.ErrorContext(err) {
 		fmt.Fprintf(w, "%s=%v\n", key, val)
 	}
