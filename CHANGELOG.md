@@ -7,7 +7,7 @@
 * Install LFS at the system level when packaged #1460 (@javabrett)
 * Fetch remote urls #1451 (@technoweenie)
 * add object Authenticated property #1452 (@technoweenie)
-* add support for `url.*.insteadof` in git config #1117 #1443 (@artagnon @technoweenie)
+* add support for `url.*.insteadof` in git config #1117, #1443 (@artagnon, @technoweenie)
 
 ### Bugs
 
