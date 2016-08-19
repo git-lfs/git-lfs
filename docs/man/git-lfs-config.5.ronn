@@ -197,6 +197,25 @@ lfs option can be scoped inside the configuration for a remote.
   You can also set the environment variable GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 to
   get the same effect.
 
+* `GIT_LFS_PROGRESS`
+
+  This environemnt variable causes Git LFS to emit progress updates to an
+  absolute filepath on disk when cleaning, smudging, or fetching.
+
+  Progress is reported periodically in the form of a new line being appended to
+  the end of the file. Each new line will take the following format:
+
+  `<direction> <current>/<total files> <downloaded>/<total> <name>`
+
+  Each field is described below:
+  * `direction`: The direction of transfer, either "checkout", "download", or
+    "upload".
+  * `current` The index of the currently transferring file.
+  * `total files` The estimated count of all files to be transferred.
+  * `downloaded` The number of bytes already downloaded.
+  * `total` The entire size of the file, in bytes.
+  * `name` The name of the file.
+
 ## SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5)
