@@ -165,8 +165,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "push",
-			Run: pushCommand,
+			Use:    "push",
+			PreRun: resolveLocalStorage,
+			Run:    pushCommand,
 		}
 
 		cmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")

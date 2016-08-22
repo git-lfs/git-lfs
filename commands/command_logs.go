@@ -78,26 +78,31 @@ func sortedLogs() []string {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "logs",
-			Run: logsCommand,
+			Use:    "logs",
+			PreRun: resolveLocalStorage,
+			Run:    logsCommand,
 		}
 
 		cmd.AddCommand(
 			&cobra.Command{
-				Use: "last",
-				Run: logsLastCommand,
+				Use:    "last",
+				PreRun: resolveLocalStorage,
+				Run:    logsLastCommand,
 			},
 			&cobra.Command{
-				Use: "show",
-				Run: logsShowCommand,
+				Use:    "show",
+				PreRun: resolveLocalStorage,
+				Run:    logsShowCommand,
 			},
 			&cobra.Command{
-				Use: "clear",
-				Run: logsClearCommand,
+				Use:    "clear",
+				PreRun: resolveLocalStorage,
+				Run:    logsClearCommand,
 			},
 			&cobra.Command{
-				Use: "boomtown",
-				Run: logsBoomtownCommand,
+				Use:    "boomtown",
+				PreRun: resolveLocalStorage,
+				Run:    logsBoomtownCommand,
 			},
 		)
 		return cmd

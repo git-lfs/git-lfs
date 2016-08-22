@@ -95,8 +95,9 @@ func smudgeFilename(args []string, err error) string {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "smudge",
-			Run: smudgeCommand,
+			Use:    "smudge",
+			PreRun: resolveLocalStorage,
+			Run:    smudgeCommand,
 		}
 
 		cmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")

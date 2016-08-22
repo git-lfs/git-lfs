@@ -131,8 +131,9 @@ func gitHashObject(by []byte) string {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "pointer",
-			Run: pointerCommand,
+			Use:    "pointer",
+			PreRun: resolveLocalStorage,
+			Run:    pointerCommand,
 		}
 
 		cmd.Flags().StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")

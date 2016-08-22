@@ -333,8 +333,9 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "fetch",
-			Run: fetchCommand,
+			Use:    "fetch",
+			PreRun: resolveLocalStorage,
+			Run:    fetchCommand,
 		}
 
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")

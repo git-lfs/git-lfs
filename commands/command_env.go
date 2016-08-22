@@ -48,8 +48,9 @@ func envCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		return &cobra.Command{
-			Use: "env",
-			Run: envCommand,
+			Use:    "env",
+			PreRun: resolveLocalStorage,
+			Run:    envCommand,
 		}
 	})
 }

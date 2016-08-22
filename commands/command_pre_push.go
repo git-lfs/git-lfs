@@ -100,8 +100,9 @@ func decodeRefs(input string) (string, string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "pre-push",
-			Run: prePushCommand,
+			Use:    "pre-push",
+			PreRun: resolveLocalStorage,
+			Run:    prePushCommand,
 		}
 
 		cmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")

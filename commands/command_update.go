@@ -57,8 +57,9 @@ func updateCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "update",
-			Run: updateCommand,
+			Use:    "update",
+			PreRun: resolveLocalStorage,
+			Run:    updateCommand,
 		}
 		cmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
 		cmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
