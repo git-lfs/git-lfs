@@ -285,6 +285,7 @@ specify any rate limits, implementors are encouraged to set some for
 availability reasons.
 * 501 - The server has not implemented the current method.  Reserved for future
 use.
+* 507 - The server has insufficient storage capacity to complete the request.
 * 509 - The bandwidth limit for the user or repository has been exceeded.  The
 API does not specify any bandwidth limit, but implementors may track usage.
 
