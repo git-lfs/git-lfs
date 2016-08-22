@@ -58,6 +58,7 @@ begin_test "clone"
   [ $(wc -c < "file1.dat") -eq 110 ] 
   [ $(wc -c < "file2.dat") -eq 75 ] 
   [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ ! -e "lfs" ]
   popd
   # Now check clone with implied dir
   rm -rf "$reponame"
@@ -73,6 +74,7 @@ begin_test "clone"
   [ $(wc -c < "file1.dat") -eq 110 ] 
   [ $(wc -c < "file2.dat") -eq 75 ] 
   [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ ! -e "lfs" ]
   popd
 
 )
@@ -477,6 +479,7 @@ begin_test "clone in current directory"
     git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Git LFS"
 
     assert_local_object "$contents_oid" 8
+    [ ! -f ./lfs ]
   popd
 )
 end_test
