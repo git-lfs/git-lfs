@@ -30,13 +30,15 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "uninstall",
-			Run: uninstallCommand,
+			Use:    "uninstall",
+			PreRun: resolveLocalStorage,
+			Run:    uninstallCommand,
 		}
 
 		cmd.AddCommand(&cobra.Command{
-			Use: "hooks",
-			Run: uninstallHooksCommand,
+			Use:    "hooks",
+			PreRun: resolveLocalStorage,
+			Run:    uninstallHooksCommand,
 		})
 		return cmd
 	})

@@ -117,8 +117,9 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "fsck",
-			Run: fsckCommand,
+			Use:    "fsck",
+			PreRun: resolveLocalStorage,
+			Run:    fsckCommand,
 		}
 
 		cmd.Flags().BoolVarP(&fsckDryRun, "dry-run", "d", false, "List corrupt objects without deleting them.")

@@ -92,8 +92,9 @@ func init() {
 			return nil
 		}
 		cmd := &cobra.Command{
-			Use: "locks",
-			Run: locksCommand,
+			Use:    "locks",
+			PreRun: resolveLocalStorage,
+			Run:    locksCommand,
 		}
 
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)

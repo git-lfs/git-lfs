@@ -18,6 +18,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/transfer"
 	"github.com/spf13/cobra"
@@ -332,6 +333,13 @@ func requireGitVersion() {
 		}
 		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
+}
+
+// resolveLocalStorage implements the `func(*cobra.Command, []string)` signature
+// necessary to wire it up via `cobra.Command.PreRun`. When run, this function
+// will resolve the localstorage directories.
+func resolveLocalStorage(cmd *cobra.Command, args []string) {
+	localstorage.ResolveDirs()
 }
 
 func init() {

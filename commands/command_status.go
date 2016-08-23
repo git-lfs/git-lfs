@@ -99,8 +99,9 @@ func humanizeBytes(bytes int64) string {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "status",
-			Run: statusCommand,
+			Use:    "status",
+			PreRun: resolveLocalStorage,
+			Run:    statusCommand,
 		}
 
 		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")

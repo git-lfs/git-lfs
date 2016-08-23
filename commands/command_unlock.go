@@ -99,8 +99,9 @@ func init() {
 		}
 
 		cmd := &cobra.Command{
-			Use: "unlock",
-			Run: unlockCommand,
+			Use:    "unlock",
+			PreRun: resolveLocalStorage,
+			Run:    unlockCommand,
 		}
 
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)

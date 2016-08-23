@@ -20,8 +20,9 @@ func versionCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "version",
-			Run: versionCommand,
+			Use:    "version",
+			PreRun: resolveLocalStorage,
+			Run:    versionCommand,
 		}
 
 		cmd.Flags().BoolVarP(&lovesComics, "comics", "c", false, "easter egg")

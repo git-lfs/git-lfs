@@ -476,9 +476,10 @@ func pruneTaskGetReachableObjects(outObjectSet *tools.StringSet, errorChan chan 
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use:   "prune",
-			Short: "Deletes old LFS files from the local store",
-			Run:   pruneCommand,
+			Use:    "prune",
+			Short:  "Deletes old LFS files from the local store",
+			PreRun: resolveLocalStorage,
+			Run:    pruneCommand,
 		}
 
 		cmd.Flags().BoolVarP(&pruneDryRunArg, "dry-run", "d", false, "Don't delete anything, just report")

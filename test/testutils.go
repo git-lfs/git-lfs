@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/github/git-lfs/git"
@@ -243,6 +244,8 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 }
 
 func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
+	var storageOnce sync.Once
+
 	if repo.Settings.RepoType == RepoTypeBare {
 		repo.callback.Fatalf("Cannot use AddCommits on a bare repo; clone it & push changes instead")
 	}
@@ -298,6 +301,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			}
 			// this only created the temp file, move to final location
 			tmpfile := cleaned.Filename
+			storageOnce.Do(localstorage.ResolveDirs)
 			mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
 			if err != nil {
 				repo.callback.Errorf("Unable to get local media path: %v", err)

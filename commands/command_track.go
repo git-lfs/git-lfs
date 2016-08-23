@@ -233,8 +233,9 @@ func blocklistItem(name string) string {
 func init() {
 	RegisterSubcommand(func() *cobra.Command {
 		cmd := &cobra.Command{
-			Use: "track",
-			Run: trackCommand,
+			Use:    "track",
+			PreRun: resolveLocalStorage,
+			Run:    trackCommand,
 		}
 
 		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
