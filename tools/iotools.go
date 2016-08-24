@@ -6,7 +6,7 @@ import (
 	"hash"
 	"io"
 
-	"github.com/github/git-lfs/errutil"
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/progress"
 )
 
@@ -103,5 +103,5 @@ func (r *RetriableReader) Read(b []byte) (int, error) {
 	if err == nil || err == io.EOF {
 		return n, err
 	}
-	return n, errutil.NewRetriableError(err)
+	return n, errors.NewRetriableError(err)
 }
