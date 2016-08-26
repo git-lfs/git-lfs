@@ -179,5 +179,6 @@ var safeKeys = []string{
 	"lfs.fetchexclude",
 	"lfs.fetchinclude",
 	"lfs.gitprotocol",
+	"lfs.pushurl",
 	"lfs.url",
 }
