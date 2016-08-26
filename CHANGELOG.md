@@ -1,5 +1,16 @@
 # Git LFS Changelog
 
+## 1.4.1 (26 August, 2016)
+
+### Features
+
+* retry if file download failed #1454 (@larsxschneider)
+* Support wrapped clone in current directory #1478 (@ttaylorr)
+
+### Misc
+
+* Test `RetriableReader` #1482 (@ttaylorr)
+
 ## 1.4.0 (19 August, 2016)
 
 ### Features
