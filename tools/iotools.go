@@ -98,10 +98,16 @@ func NewRetriableReader(r io.Reader) io.Reader {
 
 func (r *RetriableReader) Read(b []byte) (int, error) {
 	n, err := r.reader.Read(b)
-	// EOF is a successful response as it is used to signal a graceful end of input
-	// c.f. https://git.io/v6riQ
-	if err == nil || err == io.EOF {
+
+	// EOF is a successful response as it is used to signal a graceful end
+	// of input c.f. https://git.io/v6riQ
+	//
+	// Otherwise, if the error is non-nil and already retriable (in the
+	// case that the underlying reader `r.reader` is itself a
+	// `*RetriableReader`, return the error wholesale:
+	if err == nil || err == io.EOF || errors.IsRetriableError(err) {
 		return n, err
 	}
+
 	return n, errors.NewRetriableError(err)
 }
