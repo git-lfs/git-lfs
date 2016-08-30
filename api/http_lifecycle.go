@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 
 	"github.com/git-lfs/git-lfs/auth"
 	"github.com/git-lfs/git-lfs/config"
@@ -127,7 +128,7 @@ func (l *HttpLifecycle) Cleanup(resp Response) error {
 //
 // If there was an error in parsing the relative path, then that error will be
 // returned.
-func (l *HttpLifecycle) absolutePath(operation Operation, path string) (*url.URL, error) {
+func (l *HttpLifecycle) absolutePath(operation Operation, relpath string) (*url.URL, error) {
 	if len(operation) == 0 {
 		return nil, ErrNoOperationGiven
 	}
@@ -137,13 +138,8 @@ func (l *HttpLifecycle) absolutePath(operation Operation, path string) (*url.URL
 		return nil, err
 	}
 
-	rel, err := url.Parse(path)
-	if err != nil {
-		return nil, err
-
-	}
-
-	return root.ResolveReference(rel), nil
+	root.Path = path.Join(root.Path, relpath)
+	return root, nil
 }
 
 // body returns an io.Reader which reads out a JSON-encoded copy of the payload
