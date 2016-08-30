@@ -75,6 +75,11 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 		return nil, err
 	}
 
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+	}
+
 	if _, err = auth.GetCreds(l.cfg, req); err != nil {
 		return nil, err
 	}
