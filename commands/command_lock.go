@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,6 +41,13 @@ func lockCommand(cmd *cobra.Command, args []string) {
 	lock, err := lockClient.LockFile(path)
 	if err != nil {
 		Exit("Lock failed: %v", err)
+	}
+
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(lock); err != nil {
+			Error(err.Error())
+		}
+		return
 	}
 
 	Print("\n'%s' was locked (%s)", args[0], lock.Id)
@@ -91,5 +99,6 @@ func init() {
 
 	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

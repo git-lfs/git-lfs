@@ -1,8 +1,10 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/locking"
+	"encoding/json"
+	"os"
 
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +23,6 @@ type unlockFlags struct {
 }
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-
 	if len(lockRemote) > 0 {
 		cfg.CurrentRemote = lockRemote
 	}
@@ -50,6 +51,14 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		Error("Usage: git lfs unlock (--id my-lock-id | <path>)")
 	}
 
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(struct {
+			Unlocked bool `json:"unlocked"`
+		}{true}); err != nil {
+			Error(err.Error())
+		}
+		return
+	}
 	Print("'%s' was unlocked", args[0])
 }
 
@@ -62,5 +71,6 @@ func init() {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }
