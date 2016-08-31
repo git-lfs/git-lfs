@@ -71,6 +71,24 @@ func Run() {
 	httputil.LogHttpStats(cfg)
 }
 
+func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command) bool) {
+	subcommandMu.Lock()
+	subcommandFuncs = append(subcommandFuncs, func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use:    name,
+			PreRun: resolveLocalStorage,
+			Run:    runFn,
+		}
+
+		if fn != nil && !fn(cmd) {
+			return nil
+		}
+
+		return cmd
+	})
+	subcommandMu.Unlock()
+}
+
 func RegisterSubcommand(fn func() *cobra.Command) {
 	subcommandMu.Lock()
 	subcommandFuncs = append(subcommandFuncs, fn)
