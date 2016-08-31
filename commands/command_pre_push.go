@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -64,6 +65,19 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
+
+	lc, err := locking.NewClient(cfg)
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+	defer lc.Close()
+
+	locks, err := lc.SearchLocks(map[string]string{}, 0, false)
+	if err != nil {
+		Exit("error finding locks: %s", err)
+	}
+	lockConflicts := make([]string, 0, len(locks))
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
@@ -83,6 +97,23 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			Print("Error scanning for Git LFS files in %q", left)
 			ExitWithError(err)
 		}
+
+		for _, p := range pointers {
+			for _, lock := range locks {
+				if lock.Path == p.Name {
+					lockConflicts = append(lockConflicts, p.Name)
+				}
+			}
+		}
+
+		if len(lockConflicts) > 0 {
+			Error("Some files are locked in %s...%s", left, cfg.CurrentRemote)
+			for _, file := range lockConflicts {
+				Error("* %s", file)
+			}
+			os.Exit(1)
+		}
+
 		uploadPointers(ctx, pointers)
 	}
 }
