@@ -108,11 +108,8 @@ func postCloneSubmodules(args []string) error {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "clone",
-			Run: cloneCommand,
-		}
+	RegisterCommand("clone", cloneCommand, func(cmd *cobra.Command) bool {
+		cmd.PreRun = nil
 
 		// Mirror all git clone flags
 		cmd.Flags().StringVarP(&cloneFlags.TemplateDirectory, "template", "", "", "See 'git clone --help'")
@@ -142,6 +139,6 @@ func init() {
 
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-		return cmd
+		return true
 	})
 }
