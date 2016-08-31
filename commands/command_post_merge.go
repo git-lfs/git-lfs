@@ -3,6 +3,7 @@ package commands
 import (
 	"strings"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/pkg/errors"
@@ -16,6 +17,16 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	defer gitscanner.Close()
+
+	ref, err := git.ResolveRef("HEAD")
+	if err != nil {
+		Exit("Unable to resolve HEAD ref: %v", err)
+	}
+
+	// only unlock files when merging to master
+	if ref.Name != "master" {
+		return
+	}
 
 	pointers, err := scanLeftOrAll(gitscanner, "master")
 	if err != nil {
