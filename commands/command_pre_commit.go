@@ -20,7 +20,8 @@ func preCommitCommand(cmd *cobra.Command, args []string) {
 
 	lockSet, err := findLocks(lc, nil, 0, false)
 	if err != nil {
-		Exit("error finding locks: %s", err)
+		Print("could not find locks, proceeding anyway: %s", err)
+		os.Exit(0)
 	}
 
 	files, err := git.StagedFiles()
