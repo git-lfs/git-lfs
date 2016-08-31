@@ -66,6 +66,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
 
+	name, email := cfg.CurrentCommitter()
 	lc, err := locking.NewClient(cfg)
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
@@ -76,7 +77,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Exit("error finding locks: %s", err)
 	}
+	lockSet := make(map[string]locking.Lock, len(locks))
+	for _, l := range locks {
+		lockSet[l.Name] = l
+	}
 	lockConflicts := make([]string, 0, len(locks))
+	myLocks := make([]string, 0, len(locks))
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -99,8 +105,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		for _, p := range pointers {
-			for _, lock := range locks {
-				if lock.Path == p.Name {
+			if l, ok := lockSet[p.Name]; ok {
+				if l.Name == name && l.Email == email {
+					myLocks = append(myLocks, l.Path)
+				} else {
 					lockConflicts = append(lockConflicts, p.Name)
 				}
 			}
@@ -115,6 +123,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		}
 
 		uploadPointers(ctx, pointers)
+	}
+
+	if len(myLocks) > 0 {
+		Print("Pushing your locked files:")
+		for _, file := range myLocks {
+			Print("* %s", file)
+		}
 	}
 }
 
