@@ -46,7 +46,5 @@ func envCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("env", envCommand, func(cmd *cobra.Command) bool {
-		return true
-	})
+	RegisterCommand("env", envCommand, nil)
 }
