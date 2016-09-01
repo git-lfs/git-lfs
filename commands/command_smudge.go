@@ -93,15 +93,9 @@ func smudgeFilename(args []string, err error) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "smudge",
-			PreRun: resolveLocalStorage,
-			Run:    smudgeCommand,
-		}
-
+	RegisterCommand("smudge", smudgeCommand, func(cmd *cobra.Command) bool {
 		cmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
 		cmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
-		return cmd
+		return true
 	})
 }

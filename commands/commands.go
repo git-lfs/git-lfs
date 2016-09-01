@@ -32,14 +32,14 @@ var (
 	// various command implementations.
 	API = api.NewClient(nil)
 
-	Debugging       = false
-	ErrorBuffer     = &bytes.Buffer{}
-	ErrorWriter     = io.MultiWriter(os.Stderr, ErrorBuffer)
-	OutputWriter    = io.MultiWriter(os.Stdout, ErrorBuffer)
-	ManPages        = make(map[string]string, 20)
-	cfg             *config.Configuration
-	subcommandFuncs []func() *cobra.Command
-	subcommandMu    sync.Mutex
+	Debugging    = false
+	ErrorBuffer  = &bytes.Buffer{}
+	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
+	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
+	ManPages     = make(map[string]string, 20)
+	cfg          *config.Configuration
+	commandFuncs []func() *cobra.Command
+	commandMu    sync.Mutex
 
 	includeArg string
 	excludeArg string
@@ -61,7 +61,7 @@ func Run() {
 	root.SetHelpTemplate("{{.UsageString}}")
 	root.SetUsageFunc(usage)
 
-	for _, f := range subcommandFuncs {
+	for _, f := range commandFuncs {
 		if cmd := f(); cmd != nil {
 			root.AddCommand(cmd)
 		}
@@ -71,28 +71,20 @@ func Run() {
 	httputil.LogHttpStats(cfg)
 }
 
-func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command) bool) {
-	subcommandMu.Lock()
-	subcommandFuncs = append(subcommandFuncs, func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    name,
-			PreRun: resolveLocalStorage,
-			Run:    runFn,
-		}
+func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
+	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
+}
 
+func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command) bool) {
+	commandMu.Lock()
+	commandFuncs = append(commandFuncs, func() *cobra.Command {
+		cmd := NewCommand(name, runFn)
 		if fn != nil && !fn(cmd) {
 			return nil
 		}
-
 		return cmd
 	})
-	subcommandMu.Unlock()
-}
-
-func RegisterSubcommand(fn func() *cobra.Command) {
-	subcommandMu.Lock()
-	subcommandFuncs = append(subcommandFuncs, fn)
-	subcommandMu.Unlock()
+	commandMu.Unlock()
 }
 
 // TransferManifest builds a transfer.Manifest from the commands package global

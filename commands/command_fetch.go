@@ -331,18 +331,12 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "fetch",
-			PreRun: resolveLocalStorage,
-			Run:    fetchCommand,
-		}
-
+	RegisterCommand("fetch", fetchCommand, func(cmd *cobra.Command) bool {
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
-		return cmd
+		return true
 	})
 }

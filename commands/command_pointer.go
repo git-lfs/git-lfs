@@ -129,16 +129,10 @@ func gitHashObject(by []byte) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "pointer",
-			PreRun: resolveLocalStorage,
-			Run:    pointerCommand,
-		}
-
+	RegisterCommand("pointer", pointerCommand, func(cmd *cobra.Command) bool {
 		cmd.Flags().StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
 		cmd.Flags().StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
 		cmd.Flags().BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
-		return cmd
+		return true
 	})
 }

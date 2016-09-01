@@ -93,20 +93,14 @@ func lockIdFromPath(path string) (string, error) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
+	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) bool {
 		if !isCommandEnabled(cfg, "locks") {
-			return nil
-		}
-
-		cmd := &cobra.Command{
-			Use:    "unlock",
-			PreRun: resolveLocalStorage,
-			Run:    unlockCommand,
+			return false
 		}
 
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
-		return cmd
+		return true
 	})
 }

@@ -22,18 +22,8 @@ func uninitHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "uninit",
-			PreRun: resolveLocalStorage,
-			Run:    uninitCommand,
-		}
-
-		cmd.AddCommand(&cobra.Command{
-			Use:    "hooks",
-			PreRun: resolveLocalStorage,
-			Run:    uninitHooksCommand,
-		})
-		return cmd
+	RegisterCommand("uninit", uninitCommand, func(cmd *cobra.Command) bool {
+		cmd.AddCommand(NewCommand("hooks", uninitHooksCommand))
+		return true
 	})
 }
