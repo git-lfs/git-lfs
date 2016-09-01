@@ -22,7 +22,7 @@ var (
 // Each command will initialize the local storage ('.git/lfs') directory when
 // run, unless the PreRun hook is set to nil.
 func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
-	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
+	return &cobra.Command{Use: name, Run: runFn, PreRun: commandPreRun}
 }
 
 // RegisterCommand creates a direct 'git-lfs' subcommand, given a command name,
@@ -74,7 +74,7 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 // resolveLocalStorage implements the `func(*cobra.Command, []string)` signature
 // necessary to wire it up via `cobra.Command.PreRun`. When run, this function
 // will resolve the localstorage directories.
-func resolveLocalStorage(cmd *cobra.Command, args []string) {
+func commandPreRun(cmd *cobra.Command, args []string) {
 	if err := localstorage.ResolveDirs(); err != nil {
 		Exit("Init error: %v", err)
 	}
