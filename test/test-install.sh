@@ -19,12 +19,12 @@ begin_test "install again"
 )
 end_test
 
-begin_test "install with old settings"
+begin_test "install with old (non-upgradeable) settings"
 (
   set -e
 
-  git config --global filter.lfs.smudge "git lfs smudge %f"
-  git config --global filter.lfs.clean "git lfs clean %f"
+  git config --global filter.lfs.smudge "git-lfs smudge --something %f"
+  git config --global filter.lfs.clean "git-lfs clean --something %f"
 
   set +e
   git lfs install 2> install.log
@@ -37,10 +37,24 @@ begin_test "install with old settings"
   grep -E "(clean|smudge) attribute should be" install.log
   [ `grep -c "(MISSING)" install.log` = "0" ]
 
-  [ "git lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
-  [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge --something %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs clean --something %f" = "$(git config --global filter.lfs.clean)" ]
 
   git lfs install --force
+  [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
+)
+end_test
+
+begin_test "install with upgradeable settings"
+(
+  set -e
+
+  git config --global filter.lfs.smudge "git-lfs smudge %f"
+  git config --global filter.lfs.clean "git-lfs clean %f"
+
+  # should not need force, should upgrade this old style
+  git lfs install
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
 )
