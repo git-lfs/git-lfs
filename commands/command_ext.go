@@ -43,19 +43,7 @@ func printExt(ext config.Extension) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "ext",
-			PreRun: resolveLocalStorage,
-			Run:    extCommand,
-		}
-
-		cmd.AddCommand(&cobra.Command{
-			Use:    "list",
-			Short:  "View details for specified extensions",
-			PreRun: resolveLocalStorage,
-			Run:    extListCommand,
-		})
-		return cmd
+	RegisterCommand("ext", extCommand, func(cmd *cobra.Command) {
+		cmd.AddCommand(NewCommand("list", extListCommand))
 	})
 }

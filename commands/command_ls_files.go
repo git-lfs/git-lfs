@@ -53,14 +53,7 @@ func lsFilesMarker(p *lfs.WrappedPointer) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "ls-files",
-			PreRun: resolveLocalStorage,
-			Run:    lsFilesCommand,
-		}
-
+	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
-		return cmd
 	})
 }

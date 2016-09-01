@@ -75,11 +75,5 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		return &cobra.Command{
-			Use:    "clean",
-			Run:    cleanCommand,
-			PreRun: resolveLocalStorage,
-		}
-	})
+	RegisterCommand("clean", cleanCommand, nil)
 }

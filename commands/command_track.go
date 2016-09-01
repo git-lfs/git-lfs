@@ -231,15 +231,8 @@ func blocklistItem(name string) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use:    "track",
-			PreRun: resolveLocalStorage,
-			Run:    trackCommand,
-		}
-
+	RegisterCommand("track", trackCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
 		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
-		return cmd
 	})
 }

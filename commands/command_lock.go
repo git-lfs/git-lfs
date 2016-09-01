@@ -102,18 +102,11 @@ func lockPath(file string) (string, error) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		if !isCommandEnabled(cfg, "locks") {
-			return nil
-		}
+	if !isCommandEnabled(cfg, "locks") {
+		return
+	}
 
-		cmd := &cobra.Command{
-			Use:    "lock",
-			PreRun: resolveLocalStorage,
-			Run:    lockCommand,
-		}
-
+	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
-		return cmd
 	})
 }

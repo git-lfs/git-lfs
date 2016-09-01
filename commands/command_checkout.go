@@ -231,11 +231,5 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		return &cobra.Command{
-			Use:    "checkout",
-			Run:    checkoutCommand,
-			PreRun: resolveLocalStorage,
-		}
-	})
+	RegisterCommand("checkout", checkoutCommand, nil)
 }

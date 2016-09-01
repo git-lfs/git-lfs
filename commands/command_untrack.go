@@ -75,11 +75,5 @@ func removePath(path string, args []string) bool {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		return &cobra.Command{
-			Use:    "untrack",
-			PreRun: resolveLocalStorage,
-			Run:    untrackCommand,
-		}
-	})
+	RegisterCommand("untrack", untrackCommand, nil)
 }
