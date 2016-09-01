@@ -30,6 +30,10 @@ var (
 			"smudge":   "git-lfs smudge -- %f",
 			"required": "true",
 		},
+		Upgradeables: map[string][]string{
+			"clean":  []string{"git-lfs clean %f"},
+			"smudge": []string{"git-lfs smudge %f"},
+		},
 	}
 
 	passFilters = &Attribute{
@@ -38,6 +42,10 @@ var (
 			"clean":    "git-lfs clean -- %f",
 			"smudge":   "git-lfs smudge --skip -- %f",
 			"required": "true",
+		},
+		Upgradeables: map[string][]string{
+			"clean":  []string{"git-lfs clean %f"},
+			"smudge": []string{"git-lfs smudge --skip %f"},
 		},
 	}
 )
