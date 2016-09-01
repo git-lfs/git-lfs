@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/github/git-lfs/api"
@@ -17,10 +16,8 @@ import (
 	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/transfer"
-	"github.com/spf13/cobra"
 )
 
 // Populate man pages
@@ -38,42 +35,9 @@ var (
 	ManPages     = make(map[string]string, 20)
 	cfg          = config.Config
 
-	// Run uses this to initialize the git-lfs command
-	commandFuncs []func() *cobra.Command
-	commandMu    sync.Mutex
-
 	includeArg string
 	excludeArg string
 )
-
-// NewCommand creates a new 'git-lfs' sub command, given a command name and
-// command run function.
-//
-// Each command will initialize the local storage ('.git/lfs') directory when
-// run, unless the PreRun hook is set to nil.
-func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
-	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
-}
-
-// RegisterCommand creates a direct 'git-lfs' subcommand, given a command name,
-// a command run function, and an optional callback during the command
-// initialization process.
-//
-// The 'git-lfs' command initialization is deferred until the `commands.Run()`
-// function is called. The fn callback is passed the output from NewCommand,
-// and gives the caller the flexibility to customize the command by adding
-// flags, tweaking command hooks, etc.
-func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command)) {
-	commandMu.Lock()
-	commandFuncs = append(commandFuncs, func() *cobra.Command {
-		cmd := NewCommand(name, runFn)
-		if fn != nil {
-			fn(cmd)
-		}
-		return cmd
-	})
-	commandMu.Unlock()
-}
 
 // TransferManifest builds a transfer.Manifest from the commands package global
 // cfg var.
@@ -307,13 +271,6 @@ func requireGitVersion() {
 		}
 		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
-}
-
-// resolveLocalStorage implements the `func(*cobra.Command, []string)` signature
-// necessary to wire it up via `cobra.Command.PreRun`. When run, this function
-// will resolve the localstorage directories.
-func resolveLocalStorage(cmd *cobra.Command, args []string) {
-	localstorage.ResolveDirs()
 }
 
 func init() {
