@@ -46,10 +46,25 @@ var (
 	excludeArg string
 )
 
+// NewCommand creates a new 'git-lfs' sub command, given a command name and
+// command run function.
+//
+// Each command will initialize the local storage ('.git/lfs') directory when
+// run, unless the PreRun hook is set to nil.
 func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
 	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
 }
 
+// RegisterCommand creates a direct 'git-lfs' subcommand, given a command name,
+// a command run function, and an optional callback during the command
+// initialization process.
+//
+// The 'git-lfs' command initialization is deferred until the `commands.Run()`
+// function is called. The fn callback is passed the output from NewCommand,
+// and gives the caller the flexibility to customize the command (add flags,
+// tweak command hooks) and optionally disable the command by returning false.
+// A nil fn callback initializes the command with no flags, subcommands, or
+// custom command hooks.
 func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command) bool) {
 	commandMu.Lock()
 	commandFuncs = append(commandFuncs, func() *cobra.Command {
