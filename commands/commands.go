@@ -16,7 +16,6 @@ import (
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/httputil"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/tools"
@@ -38,38 +37,14 @@ var (
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	ManPages     = make(map[string]string, 20)
 	cfg          *config.Configuration
+
+	// Run uses this to initialize the git-lfs command
 	commandFuncs []func() *cobra.Command
 	commandMu    sync.Mutex
 
 	includeArg string
 	excludeArg string
 )
-
-func Run() {
-	cfg = config.Config
-
-	root := &cobra.Command{
-		Use: "git-lfs",
-		Run: func(cmd *cobra.Command, args []string) {
-			versionCommand(cmd, args)
-			cmd.Usage()
-		},
-	}
-
-	// Set up help/usage funcs based on manpage text
-	root.SetHelpFunc(help)
-	root.SetHelpTemplate("{{.UsageString}}")
-	root.SetUsageFunc(usage)
-
-	for _, f := range commandFuncs {
-		if cmd := f(); cmd != nil {
-			root.AddCommand(cmd)
-		}
-	}
-
-	root.Execute()
-	httputil.LogHttpStats(cfg)
-}
 
 func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
 	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
@@ -296,30 +271,6 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 		exclude = tools.CleanPaths(*excludeArg, ",")
 	}
 	return
-}
-
-func printHelp(commandName string) {
-	if txt, ok := ManPages[commandName]; ok {
-		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(txt))
-	} else {
-		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
-	}
-}
-
-// help is used for 'git-lfs help <command>'
-func help(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		printHelp("git-lfs")
-	} else {
-		printHelp(args[0])
-	}
-
-}
-
-// usage is used for 'git-lfs <command> --help' or when invoked manually
-func usage(cmd *cobra.Command) error {
-	printHelp(cmd.Name())
-	return nil
 }
 
 // isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
