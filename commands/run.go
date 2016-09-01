@@ -5,13 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/httputil"
 	"github.com/spf13/cobra"
 )
 
 func Run() {
-	cfg = config.Config
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
 
@@ -41,7 +39,6 @@ func helpCommand(cmd *cobra.Command, args []string) {
 	} else {
 		printHelp(args[0])
 	}
-
 }
 
 func usageCommand(cmd *cobra.Command) error {

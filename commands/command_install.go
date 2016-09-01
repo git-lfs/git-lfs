@@ -53,12 +53,11 @@ func installHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("install", installCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("install", installCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&forceInstall, "force", "f", false, "Set the Git LFS global config, overwriting previous values.")
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
 		cmd.Flags().BoolVarP(&skipSmudgeInstall, "skip-smudge", "s", false, "Skip automatic downloading of objects on clone or pull.")
 		cmd.AddCommand(NewCommand("hooks", installHooksCommand))
-		return true
 	})
 }

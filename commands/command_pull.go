@@ -44,9 +44,8 @@ func pull(includePaths, excludePaths []string) {
 }
 
 func init() {
-	RegisterCommand("pull", pullCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("pull", pullCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-		return true
 	})
 }

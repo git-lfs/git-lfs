@@ -43,8 +43,7 @@ func printExt(ext config.Extension) {
 }
 
 func init() {
-	RegisterCommand("ext", extCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("ext", extCommand, func(cmd *cobra.Command) {
 		cmd.AddCommand(NewCommand("list", extListCommand))
-		return true
 	})
 }

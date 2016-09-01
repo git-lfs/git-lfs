@@ -93,14 +93,13 @@ func lockIdFromPath(path string) (string, error) {
 }
 
 func init() {
-	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) bool {
-		if !isCommandEnabled(cfg, "locks") {
-			return false
-		}
+	if !isCommandEnabled(cfg, "locks") {
+		return
+	}
 
+	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
-		return true
 	})
 }

@@ -76,13 +76,12 @@ func sortedLogs() []string {
 }
 
 func init() {
-	RegisterCommand("logs", logsCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("logs", logsCommand, func(cmd *cobra.Command) {
 		cmd.AddCommand(
 			NewCommand("last", logsLastCommand),
 			NewCommand("show", logsShowCommand),
 			NewCommand("clear", logsClearCommand),
 			NewCommand("boomtown", logsBoomtownCommand),
 		)
-		return true
 	})
 }

@@ -28,8 +28,7 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) {
 		cmd.AddCommand(NewCommand("hooks", uninstallHooksCommand))
-		return true
 	})
 }

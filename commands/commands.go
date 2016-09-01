@@ -36,7 +36,7 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	ManPages     = make(map[string]string, 20)
-	cfg          *config.Configuration
+	cfg          = config.Config
 
 	// Run uses this to initialize the git-lfs command
 	commandFuncs []func() *cobra.Command
@@ -61,16 +61,14 @@ func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Comman
 //
 // The 'git-lfs' command initialization is deferred until the `commands.Run()`
 // function is called. The fn callback is passed the output from NewCommand,
-// and gives the caller the flexibility to customize the command (add flags,
-// tweak command hooks) and optionally disable the command by returning false.
-// A nil fn callback initializes the command with no flags, subcommands, or
-// custom command hooks.
-func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command) bool) {
+// and gives the caller the flexibility to customize the command by adding
+// flags, tweaking command hooks, etc.
+func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string), fn func(cmd *cobra.Command)) {
 	commandMu.Lock()
 	commandFuncs = append(commandFuncs, func() *cobra.Command {
 		cmd := NewCommand(name, runFn)
-		if fn != nil && !fn(cmd) {
-			return nil
+		if fn != nil {
+			fn(cmd)
 		}
 		return cmd
 	})

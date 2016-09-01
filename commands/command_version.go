@@ -18,9 +18,8 @@ func versionCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("version", versionCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("version", versionCommand, func(cmd *cobra.Command) {
 		cmd.PreRun = nil
 		cmd.Flags().BoolVarP(&lovesComics, "comics", "c", false, "easter egg")
-		return true
 	})
 }

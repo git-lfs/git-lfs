@@ -93,9 +93,8 @@ func smudgeFilename(args []string, err error) string {
 }
 
 func init() {
-	RegisterCommand("smudge", smudgeCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("smudge", smudgeCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
 		cmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
-		return true
 	})
 }

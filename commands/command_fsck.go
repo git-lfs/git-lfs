@@ -115,8 +115,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("fsck", fsckCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("fsck", fsckCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&fsckDryRun, "dry-run", "d", false, "List corrupt objects without deleting them.")
-		return true
 	})
 }

@@ -22,8 +22,7 @@ func uninitHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("uninit", uninitCommand, func(cmd *cobra.Command) bool {
+	RegisterCommand("uninit", uninitCommand, func(cmd *cobra.Command) {
 		cmd.AddCommand(NewCommand("hooks", uninitHooksCommand))
-		return true
 	})
 }
