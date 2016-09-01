@@ -75,7 +75,9 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 // necessary to wire it up via `cobra.Command.PreRun`. When run, this function
 // will resolve the localstorage directories.
 func resolveLocalStorage(cmd *cobra.Command, args []string) {
-	localstorage.ResolveDirs()
+	if err := localstorage.ResolveDirs(); err != nil {
+		Exit("Init error: %v", err)
+	}
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {

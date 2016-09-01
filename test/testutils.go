@@ -76,7 +76,9 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	localstorage.ResolveDirs()
+	if err := localstorage.ResolveDirs(); err != nil {
+		r.callback.Fatalf("init error: %v", err)
+	}
 }
 
 func (r *Repo) Popd() {
