@@ -10,6 +10,7 @@ else
     # debian/rules variable DH_GOLANG_EXCLUDES, so update those when adding here.
     GO15VENDOREXPERIMENT=1 go test \
       $(GO15VENDOREXPERIMENT=1 go list ./... \
+          | grep -v "github.com/boltdb/bolt" \
           | grep -v "github.com/kr/pty" \
           | grep -v "github.com/kr/text" \
           | grep -v "github.com/olekukonko/ts" \
