@@ -15,6 +15,7 @@ import (
 	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/locking"
 	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/transfer"
 )
@@ -123,6 +124,10 @@ func Panic(err error, format string, args ...interface{}) {
 func Cleanup() {
 	if err := lfs.ClearTempObjects(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
+	}
+
+	if err := locking.Cleanup(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error cleaning up lock cache: %s\n", err)
 	}
 }
 

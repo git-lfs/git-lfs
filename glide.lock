@@ -1,10 +1,12 @@
-hash: 8200892207101d0f4b474cd994ebb3da744f5e27037e11eaee1db6d8c2b0e559
-updated: 2016-08-17T11:25:21.691448231-06:00
+hash: 3639eb26481f3a3aafb733fb1696e3c4c357af5d3f3c59f696726abaefb6817a
+updated: 2016-09-05T16:12:24.306652086+01:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
   subpackages:
   - netrc
+- name: github.com/boltdb/bolt
+  version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
 - name: github.com/cheggaaa/pb
   version: bd14546a551971ae7f460e6d6e527c5b56cd38d7
 - name: github.com/inconshreveable/mousetrap
@@ -42,6 +44,10 @@ imports:
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
   version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
+- name: golang.org/x/sys
+  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  subpackages:
+  - unix
 testImports:
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
