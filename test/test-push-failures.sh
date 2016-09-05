@@ -81,6 +81,14 @@ begin_test "push: upload file with storage 500"
 )
 end_test
 
+begin_test "push: upload file with storage 503"
+(
+  set -e
+
+  push_fail_test "status-storage-503" "LFS is temporarily unavailable"
+)
+end_test
+
 begin_test "push: upload file with api 403"
 (
   set -e
