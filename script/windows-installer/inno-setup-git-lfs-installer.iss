@@ -30,6 +30,8 @@ DirExistsWarning=no
 DisableReadyPage=True
 ArchitecturesInstallIn64BitMode=x64
 ChangesEnvironment=yes
+SetupIconFile=git-lfs-logo.ico
+WizardSmallImageFile=git-lfs-logo.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
