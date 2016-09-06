@@ -85,7 +85,7 @@ func FullError(err error) {
 
 func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
 	if Debugging || errors.IsFatalError(err) {
-		fatalErrFn(err, "")
+		fatalErrFn(err, "%s", err)
 		return
 	}
 
@@ -101,8 +101,12 @@ func Debug(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-// LoggedError prints a formatted message to Stderr and writes a stack trace for
-// the error to a log file without exiting.
+// LoggedError prints the given message formatted with its arguments (if any) to
+// Stderr. If an empty string is passed as the "format" arguemnt, only the
+// standard error logging message will be printed, and the error's body will be
+// omitted.
+//
+// It also writes a stack trace for the error to a log file without exiting.
 func LoggedError(err error, format string, args ...interface{}) {
 	if len(format) > 0 {
 		Error(format, args...)

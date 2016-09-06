@@ -47,7 +47,7 @@ var (
 	//
 	contentHandlers = []string{
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
-		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500",
+		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-invalid-size",
 		"object-authenticated",
@@ -489,6 +489,15 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		case "status-storage-500":
 			w.WriteHeader(500)
+			return
+		case "status-storage-503":
+			w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
+			w.WriteHeader(503)
+
+			json.NewEncoder(w).Encode(&struct {
+				Message string `json:"message"`
+			}{"LFS is temporarily unavailable"})
+
 			return
 		case "object-authenticated":
 			if len(r.Header.Get("Authorization")) > 0 {
