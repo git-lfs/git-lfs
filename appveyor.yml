@@ -7,7 +7,7 @@ environment:
 install:
   - set PATH=%GOPATH%\bin;%PATH%;
   - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
-  - 7z x go%GOVERSION%.windows.amd64.zip -y -oC:\ > NUL
+  - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
   - go verison
   - go env
   - cinst InnoSetup -y
