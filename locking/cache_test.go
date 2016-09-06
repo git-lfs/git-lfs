@@ -15,6 +15,7 @@ func testLockCache(t *testing.T) {
 	oldStore := config.LocalGitStorageDir
 	config.LocalGitStorageDir, err = ioutil.TempDir("", "testCacheLock")
 	defer func() {
+		Cleanup()
 		os.RemoveAll(config.LocalGitStorageDir)
 		config.LocalGitStorageDir = oldStore
 	}()
