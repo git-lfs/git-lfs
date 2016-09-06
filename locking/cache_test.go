@@ -59,7 +59,6 @@ func testLockCache(t *testing.T) {
 }
 
 type TestLifecycle struct {
-	base *api.HttpLifecycle
 }
 
 func (l *TestLifecycle) Build(schema *api.RequestSchema) (*http.Request, error) {
@@ -94,9 +93,6 @@ func (l *TestLifecycle) Cleanup(resp api.Response) error {
 	return resp.Body().Close()
 }
 
-func NewTestLifecycle() *TestLifecycle {
-	return &TestLifecycle{api.NewHttpLifecycle(nil)}
-}
 func testRefreshCache(t *testing.T) {
 	var err error
 	oldStore := config.LocalGitStorageDir
@@ -115,9 +111,8 @@ func testRefreshCache(t *testing.T) {
 	defer func() {
 		config.Config = oldConfig
 	}()
-	lifecycle := NewTestLifecycle()
 	oldClient := API
-	API = api.NewClient(lifecycle)
+	API = api.NewClient(&TestLifecycle{})
 	defer func() {
 		API = oldClient
 	}()
