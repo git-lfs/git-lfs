@@ -8,7 +8,7 @@ install:
   - set PATH=%GOPATH%\bin;%PATH%;
   - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
   - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
-  - go verison
+  - go version
   - go env
   - cinst InnoSetup -y
   - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%;
