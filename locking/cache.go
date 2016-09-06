@@ -1,6 +1,7 @@
 package locking
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -24,7 +25,9 @@ func initDb(cfg *config.Configuration) error {
 	// TODO: could have option to open read-only to take shared lock
 	var initerr error
 	dbInit.Do(func() {
-		lockFile := filepath.Join(config.LocalGitStorageDir, "lfs", "db.lock")
+		lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
+		os.MkdirAll(lockDir, 0755)
+		lockFile := filepath.Join(lockDir, "db.lock")
 		lockDb, initerr = bolt.Open(lockFile, 0644, &bolt.Options{Timeout: 5 * time.Second})
 	})
 	if initerr != nil {
