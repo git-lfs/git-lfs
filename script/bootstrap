@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-# Only set GOPATH on non-Windows platforms as Windows can't do the symlinking
-# that we need.
-if [ -z "$GOPATH" ] && uname -s | grep -vq "_NT-"; then
+if uname -s | grep -q "_NT-"; then
+  # Tell Cygwin / MSYS to really create symbolic links.
+  export CYGWIN="$CYGWIN winsymlinks:nativestrict"
+  export MSYS="$MSYS winsymlinks:nativestrict"
+fi
+
+if [ -z "$GOPATH" ]; then
   export GOPATH="$(pwd)"
   mkdir -p src/github.com/github
   [ -h src/github.com/github/git-lfs ] ||
