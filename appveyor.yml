@@ -2,6 +2,9 @@ install:
   - cinst InnoSetup -y
   - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
 
+test_script:
+  - bash -c 'script/cibuild'
+
 build_script:
   - bash -c 'GOARCH=386 script/bootstrap'
   - mv bin\git-lfs git-lfs-x86.exe
