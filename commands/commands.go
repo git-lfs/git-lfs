@@ -102,8 +102,11 @@ func Debug(format string, args ...interface{}) {
 }
 
 // LoggedError prints the given message formatted with its arguments (if any) to
-// Stderr. It also writes a stack trace for the error to a log file without
-// exiting.
+// Stderr. If an empty string is passed as the "format" arguemnt, only the
+// standard error logging message will be printed, and the error's body will be
+// omitted.
+//
+// It also writes a stack trace for the error to a log file without exiting.
 func LoggedError(err error, format string, args ...interface{}) {
 	if len(format) > 0 {
 		Error(format, args...)
