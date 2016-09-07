@@ -88,3 +88,48 @@ begin_test "list locks with pagination"
   grep "4 lock(s) matched query" locks.log
 )
 end_test
+
+begin_test "cached locks"
+(
+  set -e
+
+  reponame="cached_locks"
+  setup_remote_repo "remote_$reponame"
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat"
+  echo "foo" > "cached1.dat"
+  echo "bar" > "cached2.dat"
+
+  git add "cached1.dat" "cached2.dat" ".gitattributes"
+  git commit -m "add files" | tee commit.log
+  grep "3 files changed" commit.log
+  grep "create mode 100644 cached1.dat" commit.log
+  grep "create mode 100644 cached2.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  git push origin master 2>&1 | tee push.log
+  grep "master -> master" push.log
+
+  GITLFSLOCKSENABLED=1 git lfs lock "cached1.dat" | tee lock.log
+  assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+
+  GITLFSLOCKSENABLED=1 git lfs lock "cached2.dat" | tee lock.log
+  assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+
+  GITLFSLOCKSENABLED=1 git lfs locks --local | tee locks.log
+  grep "2 lock(s) matched query" locks.log
+
+  # delete the remote to prove we're using the local records
+  git remote remove origin
+
+  GITLFSLOCKSENABLED=1 git lfs locks --local --path "cached1.dat" | tee locks.log
+  grep "1 lock(s) matched query" locks.log
+  grep "cached1.dat" locks.log
+
+  GITLFSLOCKSENABLED=1 git lfs locks --local --limit 1 | tee locks.log
+  grep "1 lock(s) matched query" locks.log
+)
+end_test
+
+

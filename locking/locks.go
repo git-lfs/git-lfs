@@ -111,13 +111,59 @@ func NewLockChannelWrapper(lockChan <-chan api.Lock, errChan <-chan error) *Lock
 
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
-func SearchLocks(remote string, filter map[string]string, limit int) *LockChannelWrapper {
+// If localOnly = true, don't query the server & report only own local locks
+func SearchLocks(remote string, filter map[string]string, limit int, localOnly bool) *LockChannelWrapper {
+
+	if localOnly {
+		return searchCachedLocks(filter, limit)
+	} else {
+		return searchRemoteLocks(remote, filter, limit)
+	}
+}
+
+func searchCachedLocks(filter map[string]string, limit int) *LockChannelWrapper {
+
+	errChan := make(chan error, 1)
+	lockChan := make(chan api.Lock, 10)
+	go func() {
+		defer func() {
+			close(lockChan)
+			close(errChan)
+		}()
+		locks := cachedLocks()
+		committer := api.CurrentCommitter()
+		path, filterByPath := filter["path"]
+		id, filterById := filter["id"]
+		lockCount := 0
+		for _, l := range locks {
+			// Manually filter by Path/Id
+			if (filterByPath && path != l.Path) ||
+				(filterById && id != l.Id) {
+				continue
+			}
+
+			lockChan <- api.Lock{
+				Id:        l.Id,
+				Path:      l.Path,
+				Committer: committer,
+			}
+			lockCount++
+			if limit > 0 && lockCount >= limit {
+				break
+			}
+		}
+
+	}()
+	return NewLockChannelWrapper(lockChan, errChan)
+}
+
+func searchRemoteLocks(remote string, filter map[string]string, limit int) *LockChannelWrapper {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
 	errChan := make(chan error, 5) // can be multiple errors below
 	lockChan := make(chan api.Lock, 10)
-	c := NewLockChannelWrapper(lockChan, errChan)
+
 	go func() {
 		defer func() {
 			close(lockChan)
@@ -163,7 +209,7 @@ func SearchLocks(remote string, filter map[string]string, limit int) *LockChanne
 
 	}()
 
-	return c
+	return NewLockChannelWrapper(lockChan, errChan)
 
 }
 
