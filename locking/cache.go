@@ -161,7 +161,7 @@ func fetchLocksToCache(remoteName string) error {
 
 	// TODO: filters don't seem to currently define how to search for a
 	// committer's email. Is it "committer.email"? For now, just iterate
-	lockWrapper := SearchLocks(remoteName, nil, 0)
+	lockWrapper := SearchLocks(remoteName, nil, 0, false)
 	var locks []CachedLock
 	email := api.CurrentCommitter().Email
 	for l := range lockWrapper.Results {

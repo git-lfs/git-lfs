@@ -17,7 +17,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	}
 
 	var lockCount int
-	locks := locking.SearchLocks(lockRemote, filters, locksCmdFlags.Limit)
+	locks := locking.SearchLocks(lockRemote, filters, locksCmdFlags.Limit, locksCmdFlags.Local)
 
 	for lock := range locks.Results {
 		Print("%s\t%s <%s>", lock.Path, lock.Committer.Name, lock.Committer.Email)
@@ -44,6 +44,9 @@ type locksFlags struct {
 	// limit is an optional request parameter sent to the server used to
 	// limit the
 	Limit int
+	// local limits the scope of lock reporting to the locally cached record
+	// of locks for the current user & doesn't query the server
+	Local bool
 }
 
 // Filters produces a filter based on locksFlags instance.
@@ -75,5 +78,6 @@ func init() {
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
+		cmd.Flags().BoolVarP(&locksCmdFlags.Local, "local", "", false, "only list cached local record of own locks")
 	})
 }
