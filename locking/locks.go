@@ -51,7 +51,7 @@ func Lock(path, remote string) (id string, e error) {
 		return "", fmt.Errorf("Server unable to create lock: %v", resp.Err)
 	}
 
-	if err := cacheLock(config.Config, resp.Lock.Path, resp.Lock.Id); err != nil {
+	if err := cacheLock(resp.Lock.Path, resp.Lock.Id); err != nil {
 		return "", fmt.Errorf("Error caching lock information: %v", err)
 	}
 
@@ -89,7 +89,7 @@ func UnlockById(id, remote string, force bool) error {
 		return fmt.Errorf("Server unable to unlock lock: %v", resp.Err)
 	}
 
-	if err := cacheUnlockById(config.Config, id); err != nil {
+	if err := cacheUnlockById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
 	}
 

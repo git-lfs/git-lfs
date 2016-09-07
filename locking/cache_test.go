@@ -25,34 +25,33 @@ func testLockCache(t *testing.T) {
 	}()
 	assert.Nil(t, err)
 
-	cfg := &config.Configuration{}
-	err = cacheLock(cfg, "folder/test1.dat", "101")
+	err = cacheLock("folder/test1.dat", "101")
 	assert.Nil(t, err)
-	err = cacheLock(cfg, "folder/test2.dat", "102")
+	err = cacheLock("folder/test2.dat", "102")
 	assert.Nil(t, err)
-	err = cacheLock(cfg, "root.dat", "103")
+	err = cacheLock("root.dat", "103")
 	assert.Nil(t, err)
 
-	locks := cachedLocks(cfg)
+	locks := cachedLocks()
 	assert.Equal(t, []CachedLock{
 		CachedLock{"folder/test1.dat", "101"},
 		CachedLock{"folder/test2.dat", "102"},
 		CachedLock{"root.dat", "103"},
 	}, locks)
 
-	err = cacheUnlock(cfg, "folder/test2.dat")
+	err = cacheUnlock("folder/test2.dat")
 	assert.Nil(t, err)
 
-	locks = cachedLocks(cfg)
+	locks = cachedLocks()
 	assert.Equal(t, []CachedLock{
 		CachedLock{"folder/test1.dat", "101"},
 		CachedLock{"root.dat", "103"},
 	}, locks)
 
-	err = cacheUnlockById(cfg, "101")
+	err = cacheUnlockById("101")
 	assert.Nil(t, err)
 
-	locks = cachedLocks(cfg)
+	locks = cachedLocks()
 	assert.Equal(t, []CachedLock{
 		CachedLock{"root.dat", "103"},
 	}, locks)
@@ -118,15 +117,14 @@ func testRefreshCache(t *testing.T) {
 	}()
 
 	// Should start with no cached items
-	cfg := &config.Configuration{}
-	locks := cachedLocks(cfg)
+	locks := cachedLocks()
 	assert.Empty(t, locks)
 
 	// Should load from test data, just Fred's
-	err = fetchLocksToCache(cfg, "origin")
+	err = fetchLocksToCache("origin")
 	assert.Nil(t, err)
 
-	locks = cachedLocks(cfg)
+	locks = cachedLocks()
 	assert.Equal(t, []CachedLock{
 		CachedLock{"folder/test1.dat", "101"},
 		CachedLock{"folder/test2.dat", "102"},

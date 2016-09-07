@@ -19,7 +19,7 @@ var (
 	idToPathBucketName = []byte("idToPath")
 )
 
-func initDb(cfg *config.Configuration) error {
+func initDb() error {
 	// Open on demand - bolt will lock this file & other processes trying to access it
 	// we'll wait a max 5 seconds
 	// TODO: could have option to open read-only to take shared lock
@@ -50,9 +50,9 @@ func Cleanup() error {
 // Run a read-only lock database function
 // Deals with initialisation and function is a transaction
 // Can run in a goroutine if needed
-func runLockDbReadOnlyFunc(cfg *config.Configuration, f func(tx *bolt.Tx) error) error {
+func runLockDbReadOnlyFunc(f func(tx *bolt.Tx) error) error {
 
-	if err := initDb(cfg); err != nil {
+	if err := initDb(); err != nil {
 		return err
 	}
 
@@ -62,9 +62,9 @@ func runLockDbReadOnlyFunc(cfg *config.Configuration, f func(tx *bolt.Tx) error)
 // Run a read-write lock database function
 // Deals with initialisation and function is a transaction
 // Can run in a goroutine if needed
-func runLockDbFunc(cfg *config.Configuration, f func(tx *bolt.Tx) error) error {
+func runLockDbFunc(f func(tx *bolt.Tx) error) error {
 
-	if err := initDb(cfg); err != nil {
+	if err := initDb(); err != nil {
 		return err
 	}
 
@@ -77,8 +77,8 @@ func runLockDbFunc(cfg *config.Configuration, f func(tx *bolt.Tx) error) error {
 // This only includes locks which the local committer has taken, not all locks
 
 // Cache a successful lock for faster local lookup later
-func cacheLock(cfg *config.Configuration, filePath, id string) error {
-	return runLockDbFunc(cfg, func(tx *bolt.Tx) error {
+func cacheLock(filePath, id string) error {
+	return runLockDbFunc(func(tx *bolt.Tx) error {
 		path2id, err := tx.CreateBucketIfNotExists(pathToIdBucketName)
 		if err != nil {
 			return err
@@ -96,8 +96,8 @@ func cacheLock(cfg *config.Configuration, filePath, id string) error {
 }
 
 // Remove a cached lock by path becuase it's been relinquished
-func cacheUnlock(cfg *config.Configuration, filePath string) error {
-	return runLockDbFunc(cfg, func(tx *bolt.Tx) error {
+func cacheUnlock(filePath string) error {
+	return runLockDbFunc(func(tx *bolt.Tx) error {
 		path2id := tx.Bucket(pathToIdBucketName)
 		id2path := tx.Bucket(idToPathBucketName)
 		if path2id == nil || id2path == nil {
@@ -115,8 +115,8 @@ func cacheUnlock(cfg *config.Configuration, filePath string) error {
 }
 
 // Remove a cached lock by id becuase it's been relinquished
-func cacheUnlockById(cfg *config.Configuration, id string) error {
-	return runLockDbFunc(cfg, func(tx *bolt.Tx) error {
+func cacheUnlockById(id string) error {
+	return runLockDbFunc(func(tx *bolt.Tx) error {
 		path2id := tx.Bucket(pathToIdBucketName)
 		id2path := tx.Bucket(idToPathBucketName)
 		if path2id == nil || id2path == nil {
@@ -139,9 +139,9 @@ type CachedLock struct {
 }
 
 // Get the list of cached locked files
-func cachedLocks(cfg *config.Configuration) []CachedLock {
+func cachedLocks() []CachedLock {
 	var ret []CachedLock
-	runLockDbReadOnlyFunc(cfg, func(tx *bolt.Tx) error {
+	runLockDbReadOnlyFunc(func(tx *bolt.Tx) error {
 		path2id := tx.Bucket(pathToIdBucketName)
 		if path2id == nil {
 			return nil
@@ -157,7 +157,7 @@ func cachedLocks(cfg *config.Configuration) []CachedLock {
 
 // Fetch locked files for the current committer and cache them locally
 // This can be used to sync up locked files when moving machines
-func fetchLocksToCache(cfg *config.Configuration, remoteName string) error {
+func fetchLocksToCache(remoteName string) error {
 
 	// TODO: filters don't seem to currently define how to search for a
 	// committer's email. Is it "committer.email"? For now, just iterate
@@ -176,7 +176,7 @@ func fetchLocksToCache(cfg *config.Configuration, remoteName string) error {
 	}
 
 	// replace cached locks (only do this if search was OK)
-	return runLockDbFunc(cfg, func(tx *bolt.Tx) error {
+	return runLockDbFunc(func(tx *bolt.Tx) error {
 		// Ignore errors deleting buckets
 		tx.DeleteBucket(pathToIdBucketName)
 		tx.DeleteBucket(idToPathBucketName)
