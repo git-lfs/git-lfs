@@ -330,7 +330,7 @@ setup() {
   echo "  LFSTEST_CERT=$LFS_CERT_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
-  git config --global --get-regexp "lfs|credential|user"
+  git config --get-regexp "lfs|credential|user"
 
   if [ "$OSXKEYFILE" ]; then
     # Only OS X will encounter this
