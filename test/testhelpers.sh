@@ -304,6 +304,9 @@ setup() {
   HOME="$TESTHOME"
   mkdir "$HOME"
   git lfs install
+
+  # Ensure e.g. no credential helpers are taken into account from the system config.
+  export GIT_CONFIG_NOSYSTEM=1
   git config --global credential.usehttppath true
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
