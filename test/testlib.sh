@@ -91,10 +91,6 @@ begin_test () {
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
 
-    if [ "$OSXKEYFILE" ]; then
-      ln -s "$TESTHOME/Library" "$HOME"
-    fi
-
     # allow the subshell to exit non-zero without exiting this process
     set -x +e
 }

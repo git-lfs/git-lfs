@@ -106,11 +106,6 @@ GIT_TERMINAL_PROMPT=0
 
 export CREDSDIR
 
-if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
-then
-  OSXKEYFILE="$TMPDIR/temp.keychain"
-fi
-
 mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
