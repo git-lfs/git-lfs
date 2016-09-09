@@ -221,7 +221,6 @@ clone_repo() {
   out=$(git clone "$GITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
 
-  git config credential.helper lfstest
   echo "$out" > clone.log
   echo "$out"
 }
@@ -238,8 +237,6 @@ clone_repo_ssl() {
   echo "clone local git repository $reponame to $dir"
   out=$(git clone "$SSLGITSERVER/$reponame" "$dir" 2>&1)
   cd "$dir"
-
-  git config credential.helper lfstest
 
   echo "$out" > clone_ssl.log
   echo "$out"
