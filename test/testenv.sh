@@ -105,6 +105,7 @@ GIT_CONFIG_NOSYSTEM=1
 GIT_TERMINAL_PROMPT=0
 
 export CREDSDIR
+export GIT_CONFIG_NOSYSTEM
 
 if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
 then
