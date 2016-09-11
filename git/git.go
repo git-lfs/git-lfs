@@ -596,11 +596,7 @@ func GitAndRootDirs() (string, string, error) {
 		return absGitDir, "", nil
 	}
 
-	absRootDir, err := filepath.Abs(paths[1])
-	if err != nil {
-		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[1], err)
-	}
-
+	absRootDir := paths[1]
 	return absGitDir, absRootDir, nil
 }
 
