@@ -27,6 +27,14 @@ the currently-tracked paths.
 
   Disabled by default.
 
+* `--lockable` `-l`
+  Make the paths 'lockable', meaning they should be locked to edit them, and
+  will be made read-only in the working copy when not locked.
+
+* `--not-lockable`
+  Remove the lockable flag from the paths so they are no longer read-only unless
+  locked.
+
 ## EXAMPLES
 
 * List the paths that Git LFS is currently tracking:
@@ -36,6 +44,10 @@ the currently-tracked paths.
 * Configure Git LFS to track GIF files:
 
     `git lfs track '*.gif'`
+
+* Configure Git LFS to track PSD files and make them read-only unless locked:
+
+    `git lfs track --lockable '*.psd'`
 
 ## SEE ALSO
 
