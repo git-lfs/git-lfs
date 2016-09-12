@@ -100,8 +100,9 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOpt
 	return nil
 }
 
-// Uninstall removes all properties in the path of this property, and leaves
-// other properties in the same section name-space alone.
+// Uninstall removes all properties in the path of this property whose value
+// matches any of the "upgradable" values for that path, and leaves other
+// properties in the same section name-space alone.
 func (a *Attribute) Uninstall() {
 	paths := make(map[string]*regexp.Regexp)
 	for path, value := range a.Properties {
