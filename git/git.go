@@ -352,9 +352,21 @@ func (c *gitConfig) UnsetGlobal(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--global", "--unset", key)
 }
 
+// UnsetSystemMatchingValues removes the git config value for the key from the
+// global config whose values match the given regular expression.
+func (c *gitConfig) UnsetGlobalMatchingValue(key string, re *regexp.Regexp) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", "--unset", key, re.String())
+}
+
 // UnsetSystem removes the git config value for the key from the system config
 func (c *gitConfig) UnsetSystem(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--system", "--unset", key)
+}
+
+// UnsetSystemMatchingValues removes the git config value for the key from the
+// system config whose values match the given regular expression.
+func (c *gitConfig) UnsetSystemMatchingValue(key string, re *regexp.Regexp) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", "--unset", key, re.String())
 }
 
 // UnsetGlobalSection removes the entire named section from the global config
