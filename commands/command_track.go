@@ -23,6 +23,12 @@ var (
 
 	trackVerboseLoggingFlag bool
 	trackDryRunFlag         bool
+	trackLockableFlag       bool
+	trackNotLockableFlag    bool
+)
+
+const (
+	lockableAttrib = "lockable"
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -235,5 +241,7 @@ func init() {
 	RegisterCommand("track", trackCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
 		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
+		cmd.Flags().BoolVarP(&trackLockableFlag, "lockable", "l", false, "make pattern lockable, i.e. read-only unless locked")
+		cmd.Flags().BoolVarP(&trackNotLockableFlag, "not-lockable", "", false, "remove lockable attribute from pattern")
 	})
 }
