@@ -291,7 +291,17 @@ func TestGitAndRootDirs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, git, filepath.Join(root, ".git"))
+	expected, err := os.Stat(git)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := os.Stat(filepath.Join(root, ".git"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.True(t, os.SameFile(expected, actual))
 }
 
 func TestGetTrackedFiles(t *testing.T) {
