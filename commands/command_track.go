@@ -73,7 +73,11 @@ ArgsLoop:
 	for _, unsanitizedPattern := range args {
 		pattern := cleanRootPath(unsanitizedPattern)
 		for _, known := range knownPaths {
-			if known.Path == filepath.Join(relpath, pattern) && trackLockableFlag == known.Lockable {
+
+			if known.Path == filepath.Join(relpath, pattern) &&
+				((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
+					(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
+					(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
 				Print("%s already supported", pattern)
 				continue ArgsLoop
 			}
@@ -82,7 +86,7 @@ ArgsLoop:
 		// Generate the new / changed attrib line for merging
 		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
 		lockableArg := ""
-		if trackLockableFlag {
+		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + lockableAttrib
 		}
 
