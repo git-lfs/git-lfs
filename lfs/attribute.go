@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/github/git-lfs/git"
@@ -99,11 +100,30 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOpt
 	return nil
 }
 
-// Uninstall removes all properties in the path of this property.
+// Uninstall removes all properties in the path of this property whose value
+// matches any of the "upgradable" values for that path, and leaves other
+// properties in the same section name-space alone.
 func (a *Attribute) Uninstall() {
-	// uninstall from both system and global
-	git.Config.UnsetSystemSection(a.Section)
-	git.Config.UnsetGlobalSection(a.Section)
+	paths := make(map[string]*regexp.Regexp)
+	for path, value := range a.Properties {
+		acceptedValues := append([]string{value}, a.Upgradeables[path]...)
+		for i, v := range acceptedValues {
+			acceptedValues[i] = fmt.Sprintf("(%s)", regexp.QuoteMeta(v))
+		}
+
+		re, err := regexp.CompilePOSIX(strings.Join(acceptedValues, "|"))
+		if err != nil {
+			continue
+		}
+
+		paths[fmt.Sprintf("%s.%s", a.Section, path)] = re
+	}
+
+	// uninstall (by path) from both system and global
+	for path, re := range paths {
+		git.Config.UnsetSystemMatchingValue(path, re)
+		git.Config.UnsetGlobalMatchingValue(path, re)
+	}
 }
 
 // shouldReset determines whether or not a value is resettable given its current
