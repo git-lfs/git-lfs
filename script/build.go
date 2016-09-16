@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	BuildOS    = flag.String("os", "", "OS to target: darwin, freebsd, linux, windows")
+	BuildOS    = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
 	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
 	BuildAll   = flag.Bool("all", false, "Builds all architectures")
 	ShowHelp   = flag.Bool("help", false, "Shows help")
