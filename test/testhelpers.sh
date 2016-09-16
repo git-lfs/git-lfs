@@ -289,12 +289,13 @@ setup() {
   git version
 
   if [ -z "$SKIPCOMPILE" ]; then
+    [ $IS_WINDOWS == "1" ] && EXT=".exe"
     for go in test/cmd/*.go; do
-      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)" "$go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)$EXT" "$go"
     done
     if [ -z "$SKIPAPITESTCOMPILE" ]; then
       # Ensure API test util is built during tests to ensure it stays in sync
-      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api$EXT" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
     fi
   fi
 
