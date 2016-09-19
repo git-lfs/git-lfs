@@ -131,11 +131,18 @@ func SetFileWriteFlag(path string, writeEnabled bool) error {
 	if err != nil {
 		return err
 	}
-	newmode := uint32(stat.Mode())
-	if writeEnabled {
-		newmode = newmode | 0200 // set owner write only
-	} else {
-		newmode = newmode &^ 0222 // disable all write
+	mode := uint32(stat.Mode())
+
+	if (writeEnabled && (mode&0200) > 0) ||
+		(!writeEnabled && (mode&0222) == 0) {
+		// no change needed
+		return nil
 	}
-	return os.Chmod(path, os.FileMode(newmode))
+
+	if writeEnabled {
+		mode = mode | 0200 // set owner write only
+	} else {
+		mode = mode &^ 0222 // disable all write
+	}
+	return os.Chmod(path, os.FileMode(mode))
 }
