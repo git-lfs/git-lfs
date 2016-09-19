@@ -24,13 +24,13 @@ func TestBatcherReturnsIncompleteBatchesWhenExiting(t *testing.T) {
 	}, t)
 }
 
-func TestBatcherTruncatesPartialBatches(t *testing.T) {
+func TestBatcherFlushesPartialBatches(t *testing.T) {
 	first, second := "first", "second"
 
 	b := NewBatcher(3)
 	b.Add(first)
 	b.Add(second)
-	b.Truncate()
+	b.Flush()
 
 	batch := b.Next()
 
