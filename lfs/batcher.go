@@ -67,7 +67,7 @@ func (b *Batcher) Exit() {
 // ready. If a batch is truncated while still filling itself, it will be
 // returned immediately, opening up a new batch for all subsequent items.
 func (b *Batcher) acceptInput() {
-	exit := false
+	var exit bool
 
 	for {
 		batch := make([]interface{}, 0, b.batchSize)
