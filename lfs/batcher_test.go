@@ -27,8 +27,7 @@ func TestBatcherTruncatesPartialBatches(t *testing.T) {
 	first, second := "first", "second"
 
 	b := NewBatcher(3)
-	b.Add(first)
-	b.Add(second)
+	b.Add(first, second)
 	b.Truncate()
 
 	batch := b.Next()

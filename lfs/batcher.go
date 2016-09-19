@@ -31,16 +31,18 @@ func NewBatcher(batchSize int) *Batcher {
 	return b
 }
 
-// Add adds an item to the batcher. Add is safe to call from multiple
-// goroutines.
-func (b *Batcher) Add(t interface{}) {
+// Add adds an item (or many items) to the batcher. Add is safe to call from
+// multiple goroutines.
+func (b *Batcher) Add(ts ...interface{}) {
 	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
 		b.input = make(chan interface{})
 		b.truncate = make(chan interface{})
 		go b.acceptInput()
 	}
 
-	b.input <- t
+	for _, t := range ts {
+		b.input <- t
+	}
 }
 
 // Next will wait for the one of the above batch triggers to occur and return
