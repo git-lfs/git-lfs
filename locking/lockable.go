@@ -1,9 +1,14 @@
 package locking
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/github/git-lfs/tools"
 
 	"github.com/github/git-lfs/config"
 )
@@ -62,4 +67,75 @@ func IsFileLockable(path string) bool {
 		}
 	}
 	return false
+}
+
+// FixAllLockableFileWriteFlags recursively scans the repo looking for files which
+// are lockable, and makes sure their write flags are set correctly based on
+// whether they are currently locked or unlocked.
+// Files which are unlocked are made read-only, files which are locked are made
+// writeable.
+// This function can be used after a clone or checkout to ensure that file
+// state correctly reflects the locking state
+func FixAllLockableFileWriteFlags() error {
+	return FixLockableFileWriteFlagsInDir("", true)
+}
+
+// FixLockableFileWriteFlagsInDir scans dir (which can either be a relative dir
+// from the root of the repo, or an absolute dir within the repo) looking for
+// files which are lockable, and makes sure their write flags are set correctly
+// based on whether they are currently locked or unlocked. Files which are
+// unlocked are made read-only, files which are locked are made writeable.
+func FixLockableFileWriteFlagsInDir(dir string, recursive bool) error {
+	absPath := dir
+	if !filepath.IsAbs(dir) {
+		absPath = filepath.Join(config.LocalWorkingDir, dir)
+	}
+	stat, err := os.Stat(absPath)
+	if err != nil {
+		return err
+	}
+	if !stat.IsDir() {
+		return fmt.Errorf("%q is not a valid directory", dir)
+	}
+
+	// For simplicity, don't use goroutines to parallelise recursive scan
+	// This routine is almost certainly disk-limited anyway
+	// We don't need sorting so don't use ioutil.Readdir or filepath.Walk
+	d, err := os.Open(absPath)
+	if err != nil {
+		return err
+	}
+
+	contents, err := d.Readdir(-1)
+	if err != nil {
+		return err
+	}
+	for _, fi := range contents {
+		abschild := filepath.Join(absPath, fi.Name())
+		if fi.IsDir() {
+			if recursive {
+				err = FixLockableFileWriteFlagsInDir(abschild, recursive)
+			}
+			continue
+		}
+
+		// This is a file, get relative to repo root
+		relpath, err := filepath.Rel(config.LocalWorkingDir, abschild)
+		if err != nil {
+			return err
+		}
+		// Convert to git-style forward slash separators if necessary
+		// Necessary to match attributes
+		if filepath.Separator == '\\' {
+			relpath = strings.Replace(relpath, "\\", "/", -1)
+		}
+		if IsFileLockable(relpath) {
+			err = tools.SetFileWriteFlag(relpath, IsFileLockedByCurrentCommitter(relpath))
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
 }
