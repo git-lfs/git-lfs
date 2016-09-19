@@ -6,8 +6,10 @@ import "sync/atomic"
 // be added to the batcher from multiple goroutines and pulled off in groups
 // when one of the following conditions occurs:
 //   * The batch size is reached
+//   * Truncate() is called, forcing the batch to be returned immediately, as-is
 //   * Exit() is called
-// When an Exit() occurs, the group may be smaller than the batch size.
+// When an Exit() or Truncate() occurs, the group may be smaller than the batch
+// size.
 type Batcher struct {
 	exited     uint32
 	batchSize  int
