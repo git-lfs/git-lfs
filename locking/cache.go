@@ -195,3 +195,19 @@ func fetchLocksToCache(remoteName string) error {
 		return nil
 	})
 }
+
+// IsFileLockedByCurrentCommitter returns whether a file is locked by the
+// current committer, as cached locally
+func IsFileLockedByCurrentCommitter(path string) bool {
+	locked := false
+	runLockDbReadOnlyFunc(func(tx *bolt.Tx) error {
+		path2id := tx.Bucket(pathToIdBucketName)
+		if path2id == nil {
+			return nil
+		}
+		locked = path2id.Get([]byte(path)) != nil
+		return nil
+	})
+
+	return locked
+}
