@@ -31,8 +31,8 @@ func NewBatcher(batchSize int) *Batcher {
 	return b
 }
 
-// Add adds an item (or many items) to the batcher. Add is safe to call from
-// multiple goroutines.
+// Add adds one or more items to the batcher. Add is safe to call from multiple
+// goroutines.
 func (b *Batcher) Add(ts ...interface{}) {
 	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
 		b.input = make(chan interface{})
