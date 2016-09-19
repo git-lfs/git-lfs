@@ -55,7 +55,8 @@ func Lock(path, remote string) (id string, e error) {
 		return "", fmt.Errorf("Error caching lock information: %v", err)
 	}
 
-	return resp.Lock.Id, nil
+	// Ensure writeable on return
+	return resp.Lock.Id, tools.SetFileWriteFlag(path, true)
 }
 
 // Unlock attempts to unlock a file on the given remote name
@@ -72,8 +73,17 @@ func Unlock(path, remote string, force bool) error {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return UnlockById(id, remote, force)
+	err = UnlockById(id, remote, force)
 
+	if err != nil {
+		return err
+	}
+
+	// Make non-writeable if required
+	if IsFileLockable(path) {
+		return tools.SetFileWriteFlag(path, false)
+	}
+	return nil
 }
 
 // Unlock attempts to unlock a lock with a given id on the remote

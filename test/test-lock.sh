@@ -59,3 +59,27 @@ begin_test "locking a directory"
   grep "cannot lock directory" lock.log
 )
 end_test
+
+begin_test "lock make writeable"
+(
+  set -e
+
+  setup_remote_repo_with_file "lock_make_writeable" "writeable.dat"
+
+  # make sure tracked lockable
+  git lfs track --lockable writeable.dat
+  # make it read-only to begin with
+  chmod -w writeable.dat
+  [ ! -w writeable.dat ]
+
+  GITLFSLOCKSENABLED=1 git lfs lock "writeable.dat" | tee lock.log
+  grep "'writeable.dat' was locked" lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  # should now be writeable
+  [ -w writeable.dat ]
+)
+end_test
+
