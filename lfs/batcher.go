@@ -19,7 +19,7 @@ type Batcher struct {
 func NewBatcher(batchSize int) *Batcher {
 	b := &Batcher{
 		batchSize:  batchSize,
-		input:      make(chan interface{}, batchSize),
+		input:      make(chan interface{}),
 		batchReady: make(chan []interface{}),
 	}
 
@@ -31,7 +31,7 @@ func NewBatcher(batchSize int) *Batcher {
 // goroutines.
 func (b *Batcher) Add(t interface{}) {
 	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
-		b.input = make(chan interface{}, b.batchSize)
+		b.input = make(chan interface{})
 		go b.acceptInput()
 	}
 
