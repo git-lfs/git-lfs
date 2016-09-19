@@ -13,6 +13,7 @@ type Batcher struct {
 	batchSize  int
 	input      chan interface{}
 	batchReady chan []interface{}
+	truncate   chan interface{}
 }
 
 // NewBatcher creates a Batcher with the batchSize.
@@ -21,6 +22,7 @@ func NewBatcher(batchSize int) *Batcher {
 		batchSize:  batchSize,
 		input:      make(chan interface{}),
 		batchReady: make(chan []interface{}),
+		truncate:   make(chan interface{}),
 	}
 
 	go b.acceptInput()
@@ -32,6 +34,7 @@ func NewBatcher(batchSize int) *Batcher {
 func (b *Batcher) Add(t interface{}) {
 	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
 		b.input = make(chan interface{})
+		b.truncate = make(chan interface{})
 		go b.acceptInput()
 	}
 
@@ -44,16 +47,25 @@ func (b *Batcher) Next() []interface{} {
 	return <-b.batchReady
 }
 
+// Truncate causes the current batch to halt accumulation and return
+// immediately, even if it is smaller than the given batch size.
+func (b *Batcher) Truncate() {
+	b.truncate <- struct{}{}
+}
+
 // Exit stops all batching and allows Next() to return. Calling Add() after
 // calling Exit() will reset the batcher.
 func (b *Batcher) Exit() {
 	atomic.StoreUint32(&b.exited, 1)
 	close(b.input)
+	close(b.truncate)
 }
 
 // acceptInput runs in its own goroutine and accepts input from external
-// clients. It fills and dispenses batches in a sequential order: for a batch
-// size N, N items will be processed before a new batch is ready.
+// clients. Without truncation, it fills and dispenses batches in a sequential
+// order: for a batch size N, N items will be processed before a new batch is
+// ready. If a batch is truncated while still filling itself, it will be
+// returned immediately, opening up a new batch for all subsequent items.
 func (b *Batcher) acceptInput() {
 	exit := false
 
@@ -61,12 +73,16 @@ func (b *Batcher) acceptInput() {
 		batch := make([]interface{}, 0, b.batchSize)
 	Loop:
 		for len(batch) < b.batchSize {
-			t, ok := <-b.input
-			if !ok {
-				exit = true // input channel was closed by Exit()
+			select {
+			case t, ok := <-b.input:
+				if !ok {
+					exit = true // input channel was closed by Exit()
+					break Loop
+				}
+				batch = append(batch, t)
+			case <-b.truncate:
 				break Loop
 			}
-			batch = append(batch, t)
 		}
 
 		b.batchReady <- batch

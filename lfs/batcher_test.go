@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBatcherSizeMet(t *testing.T) {
@@ -20,6 +21,21 @@ func TestBatcherExit(t *testing.T) {
 		{3, 5, true},
 		{0, 0, true},
 	}, t)
+}
+
+func TestBatcherTruncatesPartialBatches(t *testing.T) {
+	first, second := "first", "second"
+
+	b := NewBatcher(3)
+	b.Add(first)
+	b.Add(second)
+	b.Truncate()
+
+	batch := b.Next()
+
+	require.Len(t, batch, 2)
+	assert.Equal(t, first, batch[0])
+	assert.Equal(t, second, batch[1])
 }
 
 // batcherTestCase specifies information about how to run a particular test
