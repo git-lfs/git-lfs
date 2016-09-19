@@ -71,17 +71,17 @@ func (b *Batcher) acceptInput() {
 
 	for {
 		batch := make([]interface{}, 0, b.batchSize)
-	Loop:
+	Acc:
 		for len(batch) < b.batchSize {
 			select {
 			case t, ok := <-b.input:
 				if !ok {
 					exit = true // input channel was closed by Exit()
-					break Loop
+					break Acc
 				}
 				batch = append(batch, t)
 			case <-b.truncate:
-				break Loop
+				break Acc
 			}
 		}
 
