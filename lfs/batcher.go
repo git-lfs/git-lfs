@@ -1,9 +1,6 @@
 package lfs
 
-import (
-	"sync"
-	"sync/atomic"
-)
+import "sync/atomic"
 
 // Batcher provides a way to process a set of items in groups of n. Items can
 // be added to the batcher from multiple goroutines and pulled off in groups
@@ -16,7 +13,6 @@ import (
 type Batcher struct {
 	exited     uint32
 	batchSize  int
-	wg         sync.WaitGroup
 	input      chan interface{}
 	batchReady chan []interface{}
 	flush      chan interface{}
@@ -26,7 +22,7 @@ type Batcher struct {
 func NewBatcher(batchSize int) *Batcher {
 	b := &Batcher{
 		batchSize:  batchSize,
-		input:      make(chan interface{}, batchSize),
+		input:      make(chan interface{}),
 		batchReady: make(chan []interface{}),
 		flush:      make(chan interface{}),
 	}
@@ -39,16 +35,14 @@ func NewBatcher(batchSize int) *Batcher {
 // multiple goroutines.
 func (b *Batcher) Add(ts ...interface{}) {
 	if atomic.CompareAndSwapUint32(&b.exited, 1, 0) {
-		b.input = make(chan interface{}, b.batchSize)
+		b.input = make(chan interface{})
 		b.flush = make(chan interface{})
 		go b.acceptInput()
 	}
 
-	b.wg.Add(len(ts))
 	for _, t := range ts {
 		b.input <- t
 	}
-	b.wg.Wait()
 }
 
 // Next will wait for the one of the above batch triggers to occur and return
@@ -91,7 +85,6 @@ func (b *Batcher) acceptInput() {
 				}
 
 				batch = append(batch, t)
-				b.wg.Done()
 			case <-b.flush:
 				break Acc
 			}
