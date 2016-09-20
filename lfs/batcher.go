@@ -66,10 +66,10 @@ func (b *Batcher) Exit() {
 }
 
 // acceptInput runs in its own goroutine and accepts input from external
-// clients. Without truncation, it fills and dispenses batches in a sequential
-// order: for a batch size N, N items will be processed before a new batch is
-// ready. If a batch is truncated while still filling itself, it will be
-// returned immediately, opening up a new batch for all subsequent items.
+// clients. Without flushing, the batch is filled completely in a sequential
+// order, and then dispensed. If, while filling a batch, it is flushed part-way
+// through, the batch will be dispensed with its current contents, and all
+// subsequent Add()s will be placed in the next batch.
 func (b *Batcher) acceptInput() {
 	var exit bool
 
