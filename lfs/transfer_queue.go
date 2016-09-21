@@ -361,7 +361,6 @@ func (q *TransferQueue) batchApiRoutine() {
 		}
 
 		objs, adapterName, err := api.Batch(config.Config, transfers, q.transferKind(), transferAdapterNames)
-		tracerx.Printf("_> resp %v %v %v", objs, adapterName, err)
 		if err != nil {
 			if errors.IsNotImplementedError(err) {
 				git.Config.SetLocal("", "lfs.batch", "false")
