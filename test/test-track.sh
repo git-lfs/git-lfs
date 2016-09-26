@@ -31,7 +31,8 @@ begin_test "track with case insensitive files"
   rm *
   git checkout .
   git status | tee ../status.log
-  grep "working tree clean" ../status.log
+  grep "working tree clean" ../status.log ||
+    grep "working directory clean" ../status.log
 )
 end_test
 
