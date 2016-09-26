@@ -64,15 +64,19 @@ func IsFileLockable(path string) bool {
 // This function can be used after a clone or checkout to ensure that file
 // state correctly reflects the locking state
 func FixAllLockableFileWriteFlags() error {
-	return FixLockableFileWriteFlagsInDir("", true)
+	return FixFileWriteFlagsInDir("", GetLockablePatterns(), nil, true)
 }
 
-// FixLockableFileWriteFlagsInDir scans dir (which can either be a relative dir
+// FixFileWriteFlagsInDir scans dir (which can either be a relative dir
 // from the root of the repo, or an absolute dir within the repo) looking for
-// files which are lockable, and makes sure their write flags are set correctly
-// based on whether they are currently locked or unlocked. Files which are
-// unlocked are made read-only, files which are locked are made writeable.
-func FixLockableFileWriteFlagsInDir(dir string, recursive bool) error {
+// files to change permissions for.
+// If lockablePatterns is non-nil, then any file matching those patterns will be
+// checked to see if it is currently locked by the current committer, and if so
+// it will be writeable, and if not locked it will be read-only.
+// If unlockablePatterns is non-nil, then any file matching those patterns will
+// be made writeable if it is not already. This can be used to reset files to
+// writeable when their 'lockable' attribute is turned off.
+func FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []string, recursive bool) error {
 	absPath := dir
 	if !filepath.IsAbs(dir) {
 		absPath = filepath.Join(config.LocalWorkingDir, dir)
@@ -101,7 +105,7 @@ func FixLockableFileWriteFlagsInDir(dir string, recursive bool) error {
 		abschild := filepath.Join(absPath, fi.Name())
 		if fi.IsDir() {
 			if recursive {
-				err = FixLockableFileWriteFlagsInDir(abschild, recursive)
+				err = FixFileWriteFlagsInDir(abschild, lockablePatterns, unlockablePatterns, recursive)
 			}
 			continue
 		}
@@ -116,8 +120,18 @@ func FixLockableFileWriteFlagsInDir(dir string, recursive bool) error {
 		if filepath.Separator == '\\' {
 			relpath = strings.Replace(relpath, "\\", "/", -1)
 		}
-		if IsFileLockable(relpath) {
+		if tools.PathMatchesWildcardPatterns(relpath, lockablePatterns) {
+			// Lockable files are writeable only if they're currently locked
 			err = tools.SetFileWriteFlag(relpath, IsFileLockedByCurrentCommitter(relpath))
+			if err != nil {
+				return err
+			}
+		} else if tools.PathMatchesWildcardPatterns(relpath, unlockablePatterns) {
+			// Unlockable files are always writeable
+			// We only check files which match the incoming patterns to avoid
+			// checking every file in the system all the time, and only do it
+			// when a file has had its lockable attribute removed
+			err = tools.SetFileWriteFlag(relpath, true)
 			if err != nil {
 				return err
 			}
