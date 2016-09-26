@@ -18,7 +18,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	// tolerate errors getting ref so this works before first commit
 	ref, _ := git.CurrentRef()
 
-	stagedPointers, err := lfs.ScanIndex()
+	stagedPointers, err := lfs.ScanIndex(ref == nil)
 	if err != nil {
 		Panic(err, "Could not scan staging for Git LFS objects")
 	}
