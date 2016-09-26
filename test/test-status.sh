@@ -83,3 +83,29 @@ begin_test "status: outside git repository"
   grep "Not in a git repository" status.log
 )
 end_test
+
+begin_test "status - before initial commit"
+(
+  set -e
+
+  git init repo-initial
+  cd repo-initial
+  git lfs track "*.dat"
+
+  # should not fail when nothing to display (ignore output, will be blank)
+  git lfs status
+
+  echo "some data" > file1.dat
+  git add file1.dat
+
+  expected="
+Git LFS objects to be committed:
+
+	file1.dat (10 B)
+
+Git LFS objects not staged for commit:"
+
+  [ "$expected" = "$(git lfs status)" ]
+)
+end_test
+
