@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -145,4 +146,25 @@ func SetFileWriteFlag(path string, writeEnabled bool) error {
 		mode = mode &^ 0222 // disable all write
 	}
 	return os.Chmod(path, os.FileMode(mode))
+}
+
+// PathMatchesWildcardPatterns returns whether path matches any of the wildcard
+// patterns provided. The wildcard patterns are of the form found in .gitattributes
+func PathMatchesWildcardPatterns(path string, patterns []string) bool {
+	if patterns == nil {
+		return false
+	}
+
+	for _, wildcard := range patterns {
+		// Convert wildcards to regex
+		regStr := "^" + regexp.QuoteMeta(wildcard)
+		regStr = strings.Replace(regStr, "\\*", ".*", -1)
+		regStr = strings.Replace(regStr, "\\?", ".", -1)
+		reg := regexp.MustCompile(regStr)
+
+		if reg.MatchString(path) {
+			return true
+		}
+	}
+	return false
 }

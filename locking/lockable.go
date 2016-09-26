@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -54,19 +53,7 @@ func RefreshLockablePatterns() {
 // Lockable patterns are cached once for performance, unless you call RefreshLockablePatterns
 // path should be relative to repository root
 func IsFileLockable(path string) bool {
-	patterns := GetLockablePatterns()
-	for _, wildcard := range patterns {
-		// Convert wildcards to regex
-		regStr := "^" + regexp.QuoteMeta(wildcard)
-		regStr = strings.Replace(regStr, "\\*", ".*", -1)
-		regStr = strings.Replace(regStr, "\\?", ".", -1)
-		reg := regexp.MustCompile(regStr)
-
-		if reg.MatchString(path) {
-			return true
-		}
-	}
-	return false
+	return tools.PathMatchesWildcardPatterns(path, GetLockablePatterns())
 }
 
 // FixAllLockableFileWriteFlags recursively scans the repo looking for files which
