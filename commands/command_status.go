@@ -15,12 +15,15 @@ var (
 func statusCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
-	ref, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not get the current ref")
+	// tolerate errors getting ref so this works before first commit
+	ref, _ := git.CurrentRef()
+
+	scanIndexAt := "HEAD"
+	if ref == nil {
+		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
-	stagedPointers, err := lfs.ScanIndex()
+	stagedPointers, err := lfs.ScanIndex(scanIndexAt)
 	if err != nil {
 		Panic(err, "Could not scan staging for Git LFS objects")
 	}
@@ -39,19 +42,22 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	Print("On branch %s", ref.Name)
+	if ref != nil {
 
-	remoteRef, err := git.CurrentRemoteRef()
-	if err == nil {
+		Print("On branch %s", ref.Name)
 
-		pointers, err := lfs.ScanRefs(ref.Sha, "^"+remoteRef.Sha, nil)
-		if err != nil {
-			Panic(err, "Could not scan for Git LFS objects")
-		}
+		remoteRef, err := git.CurrentRemoteRef()
+		if err == nil {
 
-		Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-		for _, p := range pointers {
-			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+			pointers, err := lfs.ScanRefs(ref.Sha, "^"+remoteRef.Sha, nil)
+			if err != nil {
+				Panic(err, "Could not scan for Git LFS objects")
+			}
+
+			Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
+			for _, p := range pointers {
+				Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+			}
 		}
 	}
 

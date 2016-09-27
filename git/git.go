@@ -30,6 +30,10 @@ const (
 	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
+
+	// A ref which can be used as a placeholder for before the first commit
+	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
+	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
 // A git reference (branch, tag etc)

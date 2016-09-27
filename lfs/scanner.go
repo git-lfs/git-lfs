@@ -192,7 +192,8 @@ func (m *indexFileMap) Set(sha string, index *indexFile) {
 // ScanIndex returns a slice of WrappedPointer objects for all
 // Git LFS pointers it finds in the index.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func ScanIndex() ([]*WrappedPointer, error) {
+// Ref is the ref at which to scan, which may be "HEAD" if there is at least one commit
+func ScanIndex(ref string) ([]*WrappedPointer, error) {
 	indexMap := &indexFileMap{
 		nameMap: make(map[string]*indexFile, 0),
 		mutex:   &sync.Mutex{},
@@ -203,12 +204,12 @@ func ScanIndex() ([]*WrappedPointer, error) {
 		tracerx.PerformanceSince("scan-staging", start)
 	}()
 
-	revs, err := revListIndex(false, indexMap)
+	revs, err := revListIndex(ref, false, indexMap)
 	if err != nil {
 		return nil, err
 	}
 
-	cachedRevs, err := revListIndex(true, indexMap)
+	cachedRevs, err := revListIndex(ref, true, indexMap)
 	if err != nil {
 		return nil, err
 	}
@@ -402,12 +403,12 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 // revListIndex uses git diff-index to return the list of object sha1s
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
-func revListIndex(cache bool, indexMap *indexFileMap) (*StringChannelWrapper, error) {
+func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChannelWrapper, error) {
 	cmdArgs := []string{"diff-index", "-M"}
 	if cache {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
-	cmdArgs = append(cmdArgs, "HEAD")
+	cmdArgs = append(cmdArgs, atRef)
 
 	cmd, err := startCommand("git", cmdArgs...)
 	if err != nil {
