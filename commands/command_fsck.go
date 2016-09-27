@@ -39,7 +39,7 @@ func doFsck() (bool, error) {
 	}
 
 	// TODO(zeroshirts): do we want to look for LFS stuff in past commits?
-	p2, err := lfs.ScanIndex(false)
+	p2, err := lfs.ScanIndex("HEAD")
 	if err != nil {
 		return false, err
 	}
