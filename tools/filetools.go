@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -120,4 +121,50 @@ func VerifyFileHash(oid, path string) error {
 	}
 
 	return nil
+}
+
+// SetFileWriteFlag changes write permissions on a file
+// Used to make a file read-only or not. When writeEnabled = false, the write
+// bit is removed for all roles. When writeEnabled = true, the write bit is
+// set only on the owner as per default umask. All other bits are unaffected.
+func SetFileWriteFlag(path string, writeEnabled bool) error {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	mode := uint32(stat.Mode())
+
+	if (writeEnabled && (mode&0200) > 0) ||
+		(!writeEnabled && (mode&0222) == 0) {
+		// no change needed
+		return nil
+	}
+
+	if writeEnabled {
+		mode = mode | 0200 // set owner write only
+	} else {
+		mode = mode &^ 0222 // disable all write
+	}
+	return os.Chmod(path, os.FileMode(mode))
+}
+
+// PathMatchesWildcardPatterns returns whether path matches any of the wildcard
+// patterns provided. The wildcard patterns are of the form found in .gitattributes
+func PathMatchesWildcardPatterns(path string, patterns []string) bool {
+	if patterns == nil {
+		return false
+	}
+
+	for _, wildcard := range patterns {
+		// Convert wildcards to regex
+		regStr := "^" + regexp.QuoteMeta(wildcard)
+		regStr = strings.Replace(regStr, "\\*", ".*", -1)
+		regStr = strings.Replace(regStr, "\\?", ".", -1)
+		reg := regexp.MustCompile(regStr)
+
+		if reg.MatchString(path) {
+			return true
+		}
+	}
+	return false
 }
