@@ -109,3 +109,26 @@ Git LFS objects not staged for commit:"
 )
 end_test
 
+begin_test "status shows multiple files with identical contents"
+(
+  set -e
+
+  reponame="uniq-status"
+  mkdir "$reponame"
+  cd "$reponame"
+
+  git init
+  git lfs track "*.dat"
+
+  contents="contents"
+  printf "$contents" > a.dat
+  printf "$contents" > b.dat
+
+  git add --all .
+
+  git lfs status | tee status.log
+
+  [ "1" -eq "$(grep -c "a.dat" status.log)" ]
+  [ "1" -eq "$(grep -c "b.dat" status.log)" ]
+)
+end_test
