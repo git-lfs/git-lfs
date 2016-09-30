@@ -221,8 +221,10 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 		seenRevs := make(map[string]bool, 0)
 
 		for rev := range revs.Results {
-			seenRevs[rev] = true
-			allRevsChan <- rev
+			if !seenRevs[rev] {
+				allRevsChan <- rev
+				seenRevs[rev] = true
+			}
 		}
 		err := revs.Wait()
 		if err != nil {
@@ -230,8 +232,9 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 		}
 
 		for rev := range cachedRevs.Results {
-			if _, ok := seenRevs[rev]; !ok {
+			if !seenRevs[rev] {
 				allRevsChan <- rev
+				seenRevs[rev] = true
 			}
 		}
 		err = cachedRevs.Wait()
