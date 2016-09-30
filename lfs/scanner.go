@@ -172,31 +172,48 @@ func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (*PointerCha
 }
 
 type indexFileMap struct {
-	nameMap map[string]*indexFile
-	mutex   *sync.Mutex
+	// mutex guards nameMap and nameShaPairs
+	mutex *sync.Mutex
+	// nameMap maps SHA1s to a slice of `*indexFile`s
+	nameMap map[string][]*indexFile
+	// nameShaPairs maps "sha1:name" -> bool
+	nameShaPairs map[string]bool
 }
 
-func (m *indexFileMap) Get(sha string) (*indexFile, bool) {
+// FilesFor returns all `*indexFile`s that match the given `sha`.
+func (m *indexFileMap) FilesFor(sha string) []*indexFile {
 	m.mutex.Lock()
-	index, ok := m.nameMap[sha]
-	m.mutex.Unlock()
-	return index, ok
+	defer m.mutex.Unlock()
+
+	return m.nameMap[sha]
 }
 
-func (m *indexFileMap) Set(sha string, index *indexFile) {
+// Add appends unique index files to the given SHA, "sha". A file is considered
+// unique if its combination of SHA and current filename have not yet been seen
+// by this instance "m" of *indexFileMap.
+func (m *indexFileMap) Add(sha string, index *indexFile) {
 	m.mutex.Lock()
-	m.nameMap[sha] = index
-	m.mutex.Unlock()
+	defer m.mutex.Unlock()
+
+	pairKey := strings.Join([]string{sha, index.Name}, ":")
+	if m.nameShaPairs[pairKey] {
+		return
+	}
+
+	m.nameMap[sha] = append(m.nameMap[sha], index)
+	m.nameShaPairs[pairKey] = true
 }
 
-// ScanIndex returns a slice of WrappedPointer objects for all
-// Git LFS pointers it finds in the index.
-// Reports unique oids once only, not multiple times if >1 file uses the same content
-// Ref is the ref at which to scan, which may be "HEAD" if there is at least one commit
+// ScanIndex returns a slice of WrappedPointer objects for all Git LFS pointers
+// it finds in the index.
+//
+// Ref is the ref at which to scan, which may be "HEAD" if there is at least one
+// commit.
 func ScanIndex(ref string) ([]*WrappedPointer, error) {
 	indexMap := &indexFileMap{
-		nameMap: make(map[string]*indexFile, 0),
-		mutex:   &sync.Mutex{},
+		nameMap:      make(map[string][]*indexFile),
+		nameShaPairs: make(map[string]bool),
+		mutex:        &sync.Mutex{},
 	}
 
 	start := time.Now()
@@ -257,12 +274,18 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 
 	pointers := make([]*WrappedPointer, 0)
 	for p := range pointerc.Results {
-		if e, ok := indexMap.Get(p.Sha1); ok {
-			p.Name = e.Name
-			p.Status = e.Status
-			p.SrcName = e.SrcName
+		for _, file := range indexMap.FilesFor(p.Sha1) {
+			// Append a new *WrappedPointer that combines the data
+			// from the index file, and the pointer "p".
+			pointers = append(pointers, &WrappedPointer{
+				Sha1:    p.Sha1,
+				Name:    file.Name,
+				SrcName: file.SrcName,
+				Status:  file.Status,
+				Size:    p.Size,
+				Pointer: p.Pointer,
+			})
 		}
-		pointers = append(pointers, p)
 	}
 	err = pointerc.Wait()
 
@@ -444,7 +467,12 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 				if status == "M" {
 					sha1 = description[2] // This one is modified but not added
 				}
-				indexMap.Set(sha1, &indexFile{files[len(files)-1], files[0], status})
+
+				indexMap.Add(sha1, &indexFile{
+					Name:    files[len(files)-1],
+					SrcName: files[0],
+					Status:  status,
+				})
 				revs <- sha1
 			}
 		}
