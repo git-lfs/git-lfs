@@ -12,8 +12,8 @@ import (
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
-
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +65,8 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	changedAttribLines := make(map[string]string)
+	var readOnlyPatterns []string
+	var writeablePatterns []string
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
 		pattern := cleanRootPath(unsanitizedPattern)
@@ -87,6 +89,12 @@ ArgsLoop:
 		}
 
 		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v\n", encodedArg, lockableArg)
+
+		if trackLockableFlag {
+			readOnlyPatterns = append(readOnlyPatterns, pattern)
+		} else {
+			writeablePatterns = append(writeablePatterns, pattern)
+		}
 
 		Print("Tracking %s", pattern)
 
@@ -131,6 +139,7 @@ ArgsLoop:
 	}
 
 	// Any items left in the map, write new lines at the end of the file
+	// Note this is only new patterns, not ones which changed locking flags
 	for pattern, newline := range changedAttribLines {
 		// Newline already embedded
 		attributesFile.WriteString(newline)
@@ -183,6 +192,12 @@ ArgsLoop:
 				}
 			}
 		}
+	}
+
+	// now flip read-only mode based on lockable / not lockable changes
+	err = locking.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns, true)
+	if err != nil {
+		LoggedError(err, "Error changing lockable file permissions")
 	}
 }
 
