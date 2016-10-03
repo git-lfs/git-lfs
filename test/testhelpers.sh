@@ -304,6 +304,9 @@ setup() {
   HOME="$TESTHOME"
   mkdir "$HOME"
   git lfs install
+
+  # Ensure e.g. no credential helpers are taken into account from the system config.
+  export GIT_CONFIG_NOSYSTEM=1
   git config --global credential.usehttppath true
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
@@ -330,22 +333,7 @@ setup() {
   echo "  LFSTEST_CERT=$LFS_CERT_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
-  git config --global --get-regexp "lfs|credential|user"
-
-  if [ "$OSXKEYFILE" ]; then
-    # Only OS X will encounter this
-    # We can't disable osxkeychain and it gets called on store as well as ours,
-    # reporting "A keychain cannot be found to store.." errors because the test
-    # user env has no keychain; so create one
-    mkdir -p $HOME/Library/Preferences # required to store keychain lists
-    security create-keychain -p pass "$OSXKEYFILE"
-    security list-keychains -s "$OSXKEYFILE"
-    security unlock-keychain -p pass "$OSXKEYFILE"
-    security set-keychain-settings -lut 7200 "$OSXKEYFILE"
-    security default-keychain -s "$OSXKEYFILE"
-
-    echo "OSX Keychain: $OSXKEYFILE"
-  fi
+  git config --get-regexp "lfs|credential|user"
 
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"
@@ -364,12 +352,6 @@ shutdown() {
     # test/test-*.sh file is run manually.
     if [ -s "$LFS_URL_FILE" ]; then
       curl "$(cat "$LFS_URL_FILE")/shutdown"
-    fi
-
-    if [ "$OSXKEYFILE" ]; then
-      # explicitly clean up keychain to make sure search list doesn't look for it
-      # shouldn't matter because $HOME is separate & keychain prefs are there but still
-      security delete-keychain "$OSXKEYFILE"
     fi
 
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
