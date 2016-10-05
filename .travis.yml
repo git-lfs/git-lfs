@@ -42,7 +42,7 @@ matrix:
       before_script:
         - >
           brew update;
-          brew install git;
+          brew ls --versions git && brew upgrade git || brew install git;
     - env: git-latest-go-1.5
       os: linux
       go: 1.5
@@ -58,7 +58,7 @@ matrix:
       before_script:
         - >
           brew update;
-          brew install git;
+          brew ls --versions git && brew upgrade git || brew install git;
 
 before_install:
   - >
