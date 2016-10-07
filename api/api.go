@@ -6,7 +6,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
+	"sync"
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errors"
@@ -114,6 +116,8 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 // Legacy calls the legacy API serially and returns ObjectResources
 // TODO LEGACY API: remove when legacy API removed
 func Legacy(cfg *config.Configuration, objects []*ObjectResource, operation string) ([]*ObjectResource, error) {
+	legacyWarning()
+
 	retobjs := make([]*ObjectResource, 0, len(objects))
 	dl := operation == "download"
 	var globalErr error
@@ -136,6 +140,8 @@ func Legacy(cfg *config.Configuration, objects []*ObjectResource, operation stri
 
 // TODO LEGACY API: remove when legacy API removed
 func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, error) {
+	legacyWarning()
+
 	req, err := NewRequest(cfg, "GET", oid)
 	if err != nil {
 		return nil, errors.Wrap(err, "download check")
@@ -158,6 +164,8 @@ func DownloadCheck(cfg *config.Configuration, oid string) (*ObjectResource, erro
 
 // TODO LEGACY API: remove when legacy API removed
 func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectResource, error) {
+	legacyWarning()
+
 	reqObj := &ObjectResource{
 		Oid:  oid,
 		Size: size,
@@ -203,4 +211,13 @@ func UploadCheck(cfg *config.Configuration, oid string, size int64) (*ObjectReso
 	}
 
 	return obj, nil
+}
+
+var warningOnce sync.Once
+
+func legacyWarning() {
+	warningOnce.Do(func() {
+		fmt.Println(os.Stderr, "WARNING: Git LFS is using a deprecated API, which will be removed in v1.5.0.")
+		fmt.Println(os.Stderr, "         Consider enabling the latest API by running: `git config lfs.batch true`.")
+	})
 }

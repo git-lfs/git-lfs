@@ -51,10 +51,11 @@ begin_test "push (legacy): upload to bad dns"
   git config lfs.url "http://git-lfs-bad-dns:$port"
 
   set +e
-  GIT_TERMINAL_PROMPT=0 git push origin master
-  res="$?"
+  GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
+  res="${PIPESTATUS[0]}"
   set -e
 
+  grep "WARNING: Git LFS is using a deprecated API" push.log
   refute_server_object "$reponame" "$(calc_oid "hi")"
   if [ "$res" = "0" ]; then
     echo "push successful?"

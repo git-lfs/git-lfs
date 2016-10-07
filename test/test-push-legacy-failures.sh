@@ -19,10 +19,11 @@ push_legacy_fail_test() {
   git commit -m "welp"
 
   set +e
-  git push origin master
-  res="$?"
+  git push origin master 2>&1 | tee push.log
+  res="${PIPESTATUS[0]}"
   set -e
 
+  grep "WARNING: Git LFS is using a deprecated API" push.log
   refute_server_object "$reponame" "$(calc_oid "$contents")"
   if [ "$res" = "0" ]; then
     echo "push successful?"
