@@ -76,6 +76,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	} else { // !all
 		includePaths, excludePaths := determineIncludeExcludePaths(cfg, include, exclude)
+		fmt.Println("FETCH INCLUDE", includePaths)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
