@@ -21,6 +21,7 @@ begin_test "track files using wildcard pattern with leading slash"
 
   # Track only in the root
   git lfs track "/*.dat"
+  grep "/*.dat" .gitattributes
 
   git add .gitattributes a.dat dir/b.dat
   sleep 1
@@ -67,11 +68,18 @@ begin_test "track files using filename pattern with leading slash"
   git commit -m "initial commit"
 
   # These are added by git.GetTrackedFiles
-  git lfs track "/a.dat"
-  git lfs track "/dir/b.dat"
+  git lfs track "/a.dat" | tee track.log
+  grep "Tracking /a.dat" track.log
+  git lfs track "/dir/b.dat" | tee track.log
+  grep "Tracking /dir/b.dat" track.log
+
   # These are added by Git's `clean` filter
-  git lfs track "/c.dat"
-  git lfs track "/dir/d.dat"
+  git lfs track "/c.dat" | tee track.log
+  grep "Tracking /c.dat" track.log
+  git lfs track "/dir/d.dat" | tee track.log
+  grep "Tracking /dir/d.dat" track.log
+
+  cat .gitattributes
 
   git add .gitattributes a.dat dir/b.dat
   sleep 1
@@ -97,4 +105,3 @@ begin_test "track files using filename pattern with leading slash"
   grep "dir/d.dat" new_files.log
 )
 end_test
-

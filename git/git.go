@@ -1009,7 +1009,6 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 		ret = append(ret, strings.TrimSpace(line))
 	}
 	return ret, cmd.Wait()
-
 }
 
 func sanitizePattern(pattern string) string {

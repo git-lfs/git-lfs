@@ -70,7 +70,8 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 ArgsLoop:
-	for _, pattern := range args {
+	for _, unsanitizedPattern := range args {
+		pattern := cleanRootPath(unsanitizedPattern)
 		for _, known := range knownPaths {
 			if known.Path == filepath.Join(relpath, pattern) {
 				Print("%s already supported", pattern)
@@ -92,13 +93,12 @@ ArgsLoop:
 		}
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
-			LoggedError(err, "Error getting git tracked files")
-			continue
+			Exit("Error getting tracked files for %q: %s", pattern, err)
 		}
+
 		if trackVerboseLoggingFlag {
 			Print("Found %d files previously added to Git matching pattern: %s", len(gittracked), pattern)
 		}
-		now := time.Now()
 
 		var matchedBlocklist bool
 		for _, f := range gittracked {
@@ -128,6 +128,7 @@ ArgsLoop:
 			}
 
 			if !trackDryRunFlag {
+				now := time.Now()
 				err := os.Chtimes(f, now, now)
 				if err != nil {
 					LoggedError(err, "Error marking %q modified", f)
