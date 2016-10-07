@@ -978,7 +978,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // the root of the repository
 func GetTrackedFiles(pattern string) ([]string, error) {
 	safePattern := sanitizePattern(pattern)
-	sanitized := len(safePattern) < len(pattern)
+	rootWildcard := len(safePattern) < len(pattern) && strings.ContainsRune(safePattern, '*')
 
 	var ret []string
 	cmd := subprocess.ExecCommand("git",
@@ -997,9 +997,12 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// If the given pattern was sanitized, then skip all files which
-		// are not direct cendantsof the repository's root.
-		if sanitized && filepath.Dir(line) != "." {
+		// If the given pattern is a root wildcard, skip all files which
+		// are not direct descendants of the repository's root.
+		//
+		// This matches the behavior of how .gitattributes performs
+		// filename matches.
+		if rootWildcard && filepath.Dir(line) != "." {
 			continue
 		}
 
