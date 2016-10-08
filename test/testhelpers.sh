@@ -289,7 +289,7 @@ setup() {
   git version
 
   if [ -z "$SKIPCOMPILE" ]; then
-    [ $IS_WINDOWS == "1" ] && EXT=".exe"
+    [ $IS_WINDOWS -eq 1 ] && EXT=".exe"
     for go in test/cmd/*.go; do
       GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)$EXT" "$go"
     done
@@ -473,7 +473,7 @@ get_date() {
 # Needed to match generic built paths in test scripts to native paths generated from Go
 native_path() {
   local arg=$1
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     # Use params form to avoid interpreting any '\' characters
     printf '%s' "$(cygpath -w $arg)"
   else
@@ -484,7 +484,7 @@ native_path() {
 # escape any instance of '\' with '\\' on Windows
 escape_path() {
   local unescaped="$1"
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     printf '%s' "${unescaped//\\/\\\\}"
   else
     printf '%s' "$unescaped"

@@ -16,9 +16,9 @@ fi
 
 resolve_symlink() {
   local arg=$1
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     printf '%s' "$arg"
-  elif [ $IS_MAC == "1" ]; then
+  elif [ $IS_MAC -eq 1 ]; then
     # no readlink -f on Mac
     local oldwd=$(pwd)
     local target=$arg
@@ -111,7 +111,7 @@ mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
 
-if [ $IS_WINDOWS == "1" ]; then
+if [ $IS_WINDOWS -eq 1 ]; then
   # prevent Windows OpenSSH from opening GUI prompts
   SSH_ASKPASS=""
 fi
