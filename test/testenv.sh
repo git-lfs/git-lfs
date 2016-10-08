@@ -6,7 +6,7 @@ set -e
 UNAME=$(uname -s)
 IS_WINDOWS=0
 IS_MAC=0
-if [[ $UNAME == MINGW* || $UNAME == CYGWIN* ]]
+if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]
 then
   IS_WINDOWS=1
 elif [[ $UNAME == *Darwin* ]]
