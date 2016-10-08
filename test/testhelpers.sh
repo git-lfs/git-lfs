@@ -427,8 +427,14 @@ comparison_to_operator() {
   fi
 }
 
+# Calculate the object ID from the string passed as the argument
 calc_oid() {
   printf "$1" | shasum -a 256 | cut -f 1 -d " "
+}
+
+# Calculate the object ID from the file passed as the argument
+calc_oid_file() {
+  shasum -a 256 "$1" | cut -f 1 -d " "
 }
 
 # Get a date string with an offset
