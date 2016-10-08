@@ -1,6 +1,16 @@
+clone_folder: c:\go\src\github.com\github\git-lfs
+
+environment:
+  GOPATH: c:\go
+
 install:
+  - set PATH=%GOPATH%\bin;%PATH%;
+  - go version
   - cinst InnoSetup -y
-  - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
+  - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%;
+
+test_script:
+  - bash -c 'script/cibuild'
 
 build_script:
   - bash -c 'GOARCH=386 script/bootstrap'
