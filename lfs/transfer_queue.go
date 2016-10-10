@@ -434,8 +434,8 @@ func (q *TransferQueue) batchApiRoutine() {
 				if q.canRetryObject(t.Oid(), err) {
 					q.retry(t)
 				} else {
-					q.wait.Done()
 					errOnce.Do(func() { q.errorc <- err })
+					q.wait.Done()
 				}
 			}
 
