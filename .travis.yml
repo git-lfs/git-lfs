@@ -1,7 +1,7 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
 
-go: 1.6
+go: 1.7.1
 
 os:
   - linux
@@ -39,22 +39,6 @@ matrix:
       # The 'before_install' phase cannot be used here as we would override the
       # default 'before_install' phase. The 'before_script' phase is sufficient
       # for the Git install since the Git binary is only used in the tests.
-      before_script:
-        - >
-          brew update;
-          brew ls --versions git && brew upgrade git || brew install git;
-    - env: git-latest-go-1.5
-      os: linux
-      go: 1.5
-      addons:
-        apt:
-          sources:
-          - git-core
-          packages:
-          - git
-    - env: git-latest-go-1.5
-      os: osx
-      go: 1.5
       before_script:
         - >
           brew update;
