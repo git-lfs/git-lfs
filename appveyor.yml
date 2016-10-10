@@ -1,15 +1,24 @@
+environment:
+  GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
+  MSYSTEM: MINGW64
+
+clone_folder: $(GOPATH)\src\github.com\github\git-lfs
+
 install:
   - cinst InnoSetup -y
   - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
 
 build_script:
-  - bash -c 'GOARCH=386 script/bootstrap'
+  - bash --login -c 'GOARCH=386 script/bootstrap'
   - mv bin\git-lfs.exe git-lfs-x86.exe
-  - bash -c 'GOARCH=amd64 script/bootstrap'
+  - bash --login -c 'GOARCH=amd64 script/bootstrap'
   - mv bin\git-lfs.exe git-lfs-x64.exe
 
 after_build:
   - iscc script\windows-installer\inno-setup-git-lfs-installer.iss
+
+test_script:
+  - bash --login script/cibuild
 
 artifacts:
   - path: git-lfs-x86.exe

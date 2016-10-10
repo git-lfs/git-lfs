@@ -67,7 +67,7 @@ These are items that don't affect Git LFS end users.
 
 | | Name | Ref |
 | ------ | ---- | --- |
-| | CI builds for Windows. | |
+| :ship: | CI builds for Windows. | [#1567](https://github.com/github/git-lfs/pull/1567) |
 | | Automated build servers that build Git LFS on native platforms. | |
 | | Automated QA test suite for running release candidates through a gauntlet of open source and proprietary Git LFS environments. | |
 | | Automatic updates of the Git LFS client. | [#531](https://github.com/github/git-lfs/issues/531) |
