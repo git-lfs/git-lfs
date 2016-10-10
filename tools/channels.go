@@ -35,3 +35,17 @@ func (w *BaseChannelWrapper) Wait() error {
 func NewBaseChannelWrapper(errChan <-chan error) *BaseChannelWrapper {
 	return &BaseChannelWrapper{errChan}
 }
+
+// ChannelWrapper for string channel functions to more easily return async error data via Wait()
+// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
+// See NewStringChannelWrapper for construction / use
+type StringChannelWrapper struct {
+	*BaseChannelWrapper
+	Results <-chan string
+}
+
+// Construct a new channel wrapper for string
+// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
+func NewStringChannelWrapper(stringChan <-chan string, errorChan <-chan error) *StringChannelWrapper {
+	return &StringChannelWrapper{NewBaseChannelWrapper(errorChan), stringChan}
+}

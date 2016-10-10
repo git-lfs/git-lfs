@@ -233,7 +233,7 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 
 	allRevsErr := make(chan error, 5) // can be multiple errors below
 	allRevsChan := make(chan string, 1)
-	allRevs := NewStringChannelWrapper(allRevsChan, allRevsErr)
+	allRevs := tools.NewStringChannelWrapper(allRevsChan, allRevsErr)
 	go func() {
 		seenRevs := make(map[string]bool, 0)
 
@@ -345,7 +345,7 @@ func revListArgsRefVsRemote(refTo, remoteName string) ([]string, []string) {
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
-func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannelWrapper, error) {
+func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*tools.StringChannelWrapper, error) {
 	refArgs := []string{"rev-list", "--objects"}
 	var stdin []string
 	switch opt.ScanMode {
@@ -423,13 +423,13 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 		close(errchan)
 	}()
 
-	return NewStringChannelWrapper(revs, errchan), nil
+	return tools.NewStringChannelWrapper(revs, errchan), nil
 }
 
 // revListIndex uses git diff-index to return the list of object sha1s
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
-func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChannelWrapper, error) {
+func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*tools.StringChannelWrapper, error) {
 	cmdArgs := []string{"diff-index", "-M"}
 	if cache {
 		cmdArgs = append(cmdArgs, "--cached")
@@ -490,7 +490,7 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 		close(errchan)
 	}()
 
-	return NewStringChannelWrapper(revs, errchan), nil
+	return tools.NewStringChannelWrapper(revs, errchan), nil
 }
 
 // catFileBatchCheck uses git cat-file --batch-check to get the type
@@ -498,7 +498,7 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 // under the blobSizeCutoff will be ignored. revs is a channel over
 // which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
-func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error) {
+func catFileBatchCheck(revs *tools.StringChannelWrapper) (*tools.StringChannelWrapper, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch-check")
 	if err != nil {
 		return nil, err
@@ -558,14 +558,14 @@ func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error
 		cmd.Stdin.Close()
 	}()
 
-	return NewStringChannelWrapper(smallRevs, errchan), nil
+	return tools.NewStringChannelWrapper(smallRevs, errchan), nil
 }
 
 // catFileBatch uses git cat-file --batch to get the object contents
 // of a git object, given its sha1. The contents will be decoded into
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
-func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
+func catFileBatch(revs *tools.StringChannelWrapper) (*PointerChannelWrapper, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
 		return nil, err
@@ -1104,20 +1104,6 @@ type PointerChannelWrapper struct {
 // Scan function is required to create error channel large enough not to block (usually 1 is ok)
 func NewPointerChannelWrapper(pointerChan <-chan *WrappedPointer, errorChan <-chan error) *PointerChannelWrapper {
 	return &PointerChannelWrapper{tools.NewBaseChannelWrapper(errorChan), pointerChan}
-}
-
-// ChannelWrapper for string channel functions to more easily return async error data via Wait()
-// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
-// See NewStringChannelWrapper for construction / use
-type StringChannelWrapper struct {
-	*tools.BaseChannelWrapper
-	Results <-chan string
-}
-
-// Construct a new channel wrapper for string
-// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
-func NewStringChannelWrapper(stringChan <-chan string, errorChan <-chan error) *StringChannelWrapper {
-	return &StringChannelWrapper{tools.NewBaseChannelWrapper(errorChan), stringChan}
 }
 
 // ChannelWrapper for TreeBlob channel functions to more easily return async error data via Wait()
