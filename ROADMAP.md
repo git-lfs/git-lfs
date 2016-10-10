@@ -12,7 +12,6 @@ Git LFS. If you have an idea for a new feature, open an issue for discussion.
 | :soon: | Socks proxy support | [#1424](https://github.com/github/git-lfs/issues/1424) |
 | :no_entry_sign: | Not following 301 redirect | [#1129](https://github.com/github/git-lfs/issues/1129) |
 | | add all lfs.\* git config keys to git lfs env output | |
-| :ship: | Teach `git lfs update` how to update the clean/smudge filter values | [#1083](https://github.com/github/git-lfs/pull/1083) |
 | | credential output hidden while transferring files | [#387](https://github.com/github/git-lfs/pull/387) |
 | | Support multiple git alternates | |
 | | Investigate `git lfs checkout` hardlinking instead of copying files. | |
