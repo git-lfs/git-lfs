@@ -101,6 +101,13 @@ lfs option can be scoped inside the configuration for a remote.
   Specifies which direction the custom transfer process supports, either
   "download", "upload", or "both". The default if unspecified is "both".
 
+* `lfs.transfer.maxretries`
+
+  Specifies how many retries LFS will attempt per OID before marking the
+  transfer as failed. Must be an integer which is at least one. If the value is
+  not an integer, is less than one, or is not given, a value of one will be used
+  instead.
+
 ### Fetch settings
 
 * `lfs.fetchinclude`
