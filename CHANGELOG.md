@@ -1,5 +1,45 @@
 # Git LFS Changelog
 
+## 1.4.2 (10 October, 2016)
+
+v1.4.2 brings a number of bug fixes and usability improvements to LFS. This
+release also adds support for multiple retries within the transfer queue, making
+transfers much more reliable. To enable this feature, see the documentation for
+`lfs.transfer.maxretries` in `git-lfs-config(5)`.
+
+We'd also like to extend a special thank-you to @sschuberth who undertook the
+process of making LFS's test run on Windows through AppVeyor. Now all pull
+requests run tests on macOS, Linux, and Windows.
+
+### Features
+
+* lfs: warn on usage of the legacy API #1564 (@ttaylorr)
+* use filepath.Clean() when comparing filenames to include/exclude patterns #1565 (@technoweenie)
+* lfs/transfer_queue: support multiple retries per object #1505, #1528, #1535, #1545 (@ttaylorr)
+* Automatically upgrade old filters instead of requiring —force #1497 (@sinbad)
+* Allow lfs.pushurl in .lfsconfig #1489 (@technoweenie)
+
+### Bugs
+
+* Use "sha256sum" on Windows  #1566 (@sschuberth)
+* git: ignore non-root wildcards #1563 (@ttaylorr)
+* Teach status to recognize multiple files with identical contents #1550 (@ttaylorr)
+* Status initial commit #1540 (@sinbad)
+* Make path comparison robust against Windows short / long path issues #1523 (@sschuberth)
+* Allow fetch to run without a remote configured #1507 (@sschuberth)
+
+### Misc
+
+* travis: run tests on Go 1.7.1 #1568 (@ttaylorr)
+* Enable running tests on AppVeyor CI #1567 (@sschuberth)
+* Travis: Only install git if not installed yet #1557 (@sschuberth)
+* Windows test framework fixes #1522 (@sschuberth)
+* Simplify getting the absolute Git root directory #1518 (@sschuberth)
+* Add icons to the Windows installer #1504 (@sschuberth)
+* docs/man: reference git-lfs-pointer(1) in clean documentation #1503 (@ttaylorr)
+* Make AppVeyor CI for Windows work again #1506 (@sschuberth)
+* commands: try out RegisterCommand() #1495 (@technoweenie)
+
 ## 1.4.1 (26 August, 2016)
 
 ### Features
