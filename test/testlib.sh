@@ -80,7 +80,7 @@ begin_test () {
 
     # enabling GIT_TRACE can cause Windows git to stall, esp with fd 5
     # other fd numbers like 8/9 don't stall but still don't work, so disable
-    if [ $IS_WINDOWS == "0" ]; then
+    if [ $IS_WINDOWS -eq 0 ]; then
       exec 5>"$trace"
       export GIT_TRACE=5
     fi
@@ -114,7 +114,7 @@ end_test () {
             echo "-- stderr --"
             grep -v -e '^\+ end_test' -e '^+ set +x' <"$TRASHDIR/err" |
                 sed 's/^/    /'
-            if [ "$IS_WINDOWS" == "0" ]; then
+            if [ $IS_WINDOWS -eq 0 ]; then
                 echo "-- git trace --"
                 sed 's/^/   /' <"$TRASHDIR/trace"
             fi

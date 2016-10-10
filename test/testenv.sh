@@ -6,9 +6,16 @@ set -e
 UNAME=$(uname -s)
 IS_WINDOWS=0
 IS_MAC=0
-if [[ $UNAME == MINGW* || $UNAME == CYGWIN* ]]
+SHASUM="shasum -a 256"
+
+if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]
 then
   IS_WINDOWS=1
+
+  # Windows might be MSYS2 which does not have the shasum Perl wrapper
+  # script by default, so use sha256sum directly. MacOS on the other hand
+  # does not have sha256sum, so still use shasum as the default.
+  SHASUM="sha256sum"
 elif [[ $UNAME == *Darwin* ]]
 then
   IS_MAC=1
@@ -16,9 +23,9 @@ fi
 
 resolve_symlink() {
   local arg=$1
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     printf '%s' "$arg"
-  elif [ $IS_MAC == "1" ]; then
+  elif [ $IS_MAC -eq 1 ]; then
     # no readlink -f on Mac
     local oldwd=$(pwd)
     local target=$arg
@@ -111,7 +118,7 @@ mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
 
-if [ $IS_WINDOWS == "1" ]; then
+if [ $IS_WINDOWS -eq 1 ]; then
   # prevent Windows OpenSSH from opening GUI prompts
   SSH_ASKPASS=""
 fi
