@@ -31,6 +31,7 @@ DisableReadyPage=True
 ArchitecturesInstallIn64BitMode=x64
 ChangesEnvironment=yes
 SetupIconFile=git-lfs-logo.ico
+WizardImageFile=git-lfs-wizard-image.bmp
 WizardSmallImageFile=git-lfs-logo.bmp
 
 [Languages]
