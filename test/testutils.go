@@ -76,7 +76,9 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	localstorage.ResolveDirs()
+	if err := localstorage.ResolveDirs(); err != nil {
+		r.callback.Fatalf("init error: %v", err)
+	}
 }
 
 func (r *Repo) Popd() {
@@ -301,7 +303,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			}
 			// this only created the temp file, move to final location
 			tmpfile := cleaned.Filename
-			storageOnce.Do(localstorage.ResolveDirs)
+			storageOnce.Do(func() { localstorage.ResolveDirs() })
 			mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
 			if err != nil {
 				repo.callback.Errorf("Unable to get local media path: %v", err)
