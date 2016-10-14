@@ -498,7 +498,7 @@ func (q *TransferQueue) retryCollector() {
 
 		q.Add(t)
 		if q.batcher != nil {
-			tracerx.Printf("tq: flushing batch in response to retry #%d for %q", count, t.Oid(), t.Size())
+			tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
 			q.batcher.Flush()
 		}
 	}
