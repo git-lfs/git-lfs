@@ -217,7 +217,7 @@ var warningOnce sync.Once
 
 func legacyWarning() {
 	warningOnce.Do(func() {
-		fmt.Println(os.Stderr, "WARNING: Git LFS is using a deprecated API, which will be removed in v1.5.0.")
-		fmt.Println(os.Stderr, "         Consider enabling the latest API by running: `git config lfs.batch true`.")
+		fmt.Fprintln(os.Stderr, "WARNING: Git LFS is using a deprecated API, which will be removed in v1.5.0.")
+		fmt.Fprintln(os.Stderr, "         Consider enabling the latest API by running: `git config lfs.batch true`.")
 	})
 }
