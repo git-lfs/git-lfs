@@ -70,7 +70,8 @@ refute_server_object() {
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
     -u "user:pass" \
     -o http.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    -H "Accept: application/vnd.git-lfs+json" \
+    -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
 
   grep "404 Not Found" http.log
@@ -100,7 +101,8 @@ assert_server_object() {
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
     -u "user:pass" \
     -o http.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    -H "Accept: application/vnd.git-lfs+json" \
+    -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
   grep "200 OK" http.log
 
