@@ -56,9 +56,9 @@ command.  It passes the SSH path and the Git LFS operation (upload or download),
 as arguments. A successful result outputs a JSON link object to STDOUT.  This is
 applied to any Git LFS API request before git credentials are accessed.
 
-NOTE: Git LFS v0.5.x clients using the [original v1 HTTP API][v1] also send the
+NOTE: Git LFS v0.5.x clients using the [legacy v1 API][legacy] also send the
 OID as the 3rd argument to `git-lfs-authenticate`. SSH servers that want to
-support both the original and the [batch][batch] APIs should ignore the OID
+support both the [legacy][legacy] and the [batch][batch] APIs should ignore the OID
 argument.
 
 ```
