@@ -47,7 +47,7 @@ begin_test "legacy download check causes retries"
 
   pushd ..
     git \
-      -c "filter.lfs.smudge=" \
+      -c "filter.lfs.smudge=cat" \
       -c "filter.lfs.required=false" \
       clone "$GITSERVER/$reponame" "$reponame-assert"
 
