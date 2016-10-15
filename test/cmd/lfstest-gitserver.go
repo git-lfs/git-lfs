@@ -50,7 +50,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-invalid-size",
-		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry",
+		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry", "storage-download-retry", "storage-upload-retry",
 	}
 )
 
@@ -549,6 +549,13 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("Should not send authentication"))
 			}
 			return
+		case "storage-upload-retry":
+			if retries, ok := incrementRetriesFor("storage", "upload", repo, oid, false); ok && retries < 3 {
+				w.WriteHeader(500)
+				w.Write([]byte("malformed content"))
+
+				return
+			}
 		}
 
 		if testingChunkedTransferEncoding(r) {
@@ -584,7 +591,12 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		resumeAt := int64(0)
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+			if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
+				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
+					statusCode = 500
+					by = []byte("malformed content")
+				}
+			} else if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
 				// Resume if header includes range, otherwise deliberately interrupt
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
