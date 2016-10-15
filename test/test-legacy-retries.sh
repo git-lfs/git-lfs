@@ -61,3 +61,28 @@ begin_test "legacy download check causes retries"
   popd
 )
 end_test
+
+begin_test "legacy storage upload causes retries"
+(
+  set -e
+
+  reponame="legacy-storage-upload-retry"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" legacy-storage-repo-upload
+
+  git config --local lfs.batch false
+
+  contents="storage-upload-retry"
+  oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git config --local lfs.transfer.maxretries 3
+  git push origin master
+
+  assert_server_object "$reponame" "$oid"
+)
+end_test
