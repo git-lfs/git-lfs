@@ -338,7 +338,7 @@ func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
 	for t := range q.apic {
 		obj, err := t.LegacyCheck()
 		if err != nil {
-			if q.canRetryObject(obj.Oid, err) {
+			if q.canRetryObject(t.Oid(), err) {
 				q.retry(t)
 			} else {
 				q.errorc <- err

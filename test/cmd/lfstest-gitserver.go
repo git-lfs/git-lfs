@@ -50,7 +50,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-invalid-size",
-		"object-authenticated",
+		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry",
 	}
 )
 
@@ -182,6 +182,12 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
+	if retries, ok := incrementRetriesFor("upload", repo, obj.Oid, true); ok && retries < 3 {
+		w.WriteHeader(502)
+		w.Write([]byte("malformed contents"))
+		return
+	}
+
 	debug(id, "REQUEST")
 	debug(id, buf.String())
 	debug(id, "OID: %s", obj.Oid)
@@ -236,9 +242,45 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	w.Write(by)
 }
 
+var (
+	legacyRetries   = make(map[string]uint32)
+	legacyRetriesMu sync.Mutex
+)
+
+func incrementRetriesFor(direction, repo, oid string, check bool) (after uint32, ok bool) {
+	var fmtStr string
+	if check {
+		fmtStr = "legacy-%s-check-retry"
+	} else {
+		fmtStr = "legacy-%s-retry"
+	}
+
+	if oidHandlers[oid] != fmt.Sprintf(fmtStr, direction) {
+		return 0, false
+	}
+
+	legacyRetriesMu.Lock()
+	defer legacyRetriesMu.Unlock()
+
+	retryKey := strings.Join([]string{direction, repo, oid}, ":")
+
+	legacyRetries[retryKey]++
+	retries := legacyRetries[retryKey]
+
+	return retries, true
+}
+
 func lfsGetHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
+
+	if r.Header.Get("X-Ignore-Retries") != "true" {
+		if retries, ok := incrementRetriesFor("download", repo, oid, true); ok && retries < 3 {
+			w.WriteHeader(502)
+			w.Write([]byte("malformed contents"))
+			return
+		}
+	}
 
 	// Support delete for testing
 	if len(parts) > 1 && parts[len(parts)-2] == "delete" {
