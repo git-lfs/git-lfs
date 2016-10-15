@@ -182,7 +182,7 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
-	if retries, ok := incrementRetriesFor("upload", repo, obj.Oid, true); ok && retries < 3 {
+	if retries, ok := incrementRetriesFor("legacy", "upload", repo, obj.Oid, true); ok && retries < 3 {
 		w.WriteHeader(502)
 		w.Write([]byte("malformed contents"))
 		return
@@ -243,29 +243,31 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 }
 
 var (
-	legacyRetries   = make(map[string]uint32)
-	legacyRetriesMu sync.Mutex
+	retries   = make(map[string]uint32)
+	retriesMu sync.Mutex
 )
 
-func incrementRetriesFor(direction, repo, oid string, check bool) (after uint32, ok bool) {
+func incrementRetriesFor(api, direction, repo, oid string, check bool) (after uint32, ok bool) {
+	// fmtStr formats a string like "<api>-<direction>-[check]-<retry>",
+	// i.e., "legacy-upload-check-retry", or "storage-download-retry".
 	var fmtStr string
 	if check {
-		fmtStr = "legacy-%s-check-retry"
+		fmtStr = "%s-%s-check-retry"
 	} else {
-		fmtStr = "legacy-%s-retry"
+		fmtStr = "%s-%s-retry"
 	}
 
-	if oidHandlers[oid] != fmt.Sprintf(fmtStr, direction) {
+	if oidHandlers[oid] != fmt.Sprintf(fmtStr, api, direction) {
 		return 0, false
 	}
 
-	legacyRetriesMu.Lock()
-	defer legacyRetriesMu.Unlock()
+	retriesMu.Lock()
+	defer retriesMu.Unlock()
 
 	retryKey := strings.Join([]string{direction, repo, oid}, ":")
 
-	legacyRetries[retryKey]++
-	retries := legacyRetries[retryKey]
+	retries[retryKey]++
+	retries := retries[retryKey]
 
 	return retries, true
 }
@@ -275,7 +277,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	oid := parts[len(parts)-1]
 
 	if r.Header.Get("X-Ignore-Retries") != "true" {
-		if retries, ok := incrementRetriesFor("download", repo, oid, true); ok && retries < 3 {
+		if retries, ok := incrementRetriesFor("legacy", "download", repo, oid, true); ok && retries < 3 {
 			w.WriteHeader(502)
 			w.Write([]byte("malformed contents"))
 			return
