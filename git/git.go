@@ -1018,16 +1018,28 @@ func sanitizePattern(pattern string) string {
 	return pattern
 }
 
-// GetFilesChanged returns a list of all files which were changed between 2 commits
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
 func GetFilesChanged(from, to string) ([]string, error) {
 	var files []string
-	cmd := subprocess.ExecCommand("git",
+	args := []string{
 		"-c", "core.quotepath=false", // handle special chars in filenames
-		"diff",
+		"diff-tree",
+		"--no-commit-id",
 		"--name-only",
-		from, to,
-		"--") // no ambiguous patterns
+		"-r",
+	}
 
+	if len(from) > 0 {
+		args = append(args, from)
+	}
+	if len(to) > 0 {
+		args = append(args, to)
+	}
+	args = append(args, "--") // no ambiguous patterns
+
+	cmd := subprocess.ExecCommand("git", args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to call git diff: %v", err)

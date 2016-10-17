@@ -522,5 +522,12 @@ func TestGetFilesChanges(t *testing.T) {
 	assert.NotNil(t, err)
 	_, err = GetFilesChanged("nonexisting", "tag1")
 	assert.NotNil(t, err)
+	// Test Single arg version
+	changes, err = GetFilesChanged(commits[1].Sha, "")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	changes, err = GetFilesChanged("abranch", "")
+	assert.Nil(t, err)
+	assert.Equal(t, expected1to2, changes)
 
 }
