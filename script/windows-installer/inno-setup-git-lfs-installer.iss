@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Git LFS"
-#define MyAppVersion "1.4.2"
+#define MyAppVersion "1.4.3"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
 #define MyAppFilePrefix "git-lfs-windows"
