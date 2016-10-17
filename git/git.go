@@ -1021,7 +1021,9 @@ func sanitizePattern(pattern string) string {
 	return pattern
 }
 
-// GetFilesChanged returns a list of files which were changed between 2 commits
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
 func GetFilesChanged(from, to string) ([]string, error) {
 	s, err := GetFilesChangedChan(from, to)
 	if err != nil {
@@ -1036,7 +1038,9 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	return files, err
 }
 
-// GetFilesChangedChan returns a channels of files changed between 2 commits
+// GetFilesChangedBetweenChan returns a channels of files changed, either
+// between 2 commits, or at a single commit if you only supply one argument and
+// a blank string for the other
 func GetFilesChangedChan(from, to string) (*tools.StringChannelWrapper, error) {
 	retchan := make(chan string, 10)
 	errchan := make(chan error, 1)
@@ -1046,13 +1050,23 @@ func GetFilesChangedChan(from, to string) (*tools.StringChannelWrapper, error) {
 			close(errchan)
 		}()
 
-		cmd := subprocess.ExecCommand("git",
+		args := []string{
 			"-c", "core.quotepath=false", // handle special chars in filenames
-			"diff",
+			"diff-tree",
+			"--no-commit-id",
 			"--name-only",
-			from, to,
-			"--") // no ambiguous patterns
+			"-r",
+		}
 
+		if len(from) > 0 {
+			args = append(args, from)
+		}
+		if len(to) > 0 {
+			args = append(args, to)
+		}
+		args = append(args, "--") // no ambiguous patterns
+
+		cmd := subprocess.ExecCommand("git", args...)
 		outp, err := cmd.StdoutPipe()
 		if err != nil {
 			errchan <- fmt.Errorf("Failed to call git diff: %v", err)
