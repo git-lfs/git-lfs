@@ -50,7 +50,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-invalid-size",
-		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry",
+		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry", "storage-download-retry", "storage-upload-retry",
 	}
 )
 
@@ -182,7 +182,7 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
-	if retries, ok := incrementRetriesFor("upload", repo, obj.Oid, true); ok && retries < 3 {
+	if retries, ok := incrementRetriesFor("legacy", "upload", repo, obj.Oid, true); ok && retries < 3 {
 		w.WriteHeader(502)
 		w.Write([]byte("malformed contents"))
 		return
@@ -243,29 +243,31 @@ func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 }
 
 var (
-	legacyRetries   = make(map[string]uint32)
-	legacyRetriesMu sync.Mutex
+	retries   = make(map[string]uint32)
+	retriesMu sync.Mutex
 )
 
-func incrementRetriesFor(direction, repo, oid string, check bool) (after uint32, ok bool) {
+func incrementRetriesFor(api, direction, repo, oid string, check bool) (after uint32, ok bool) {
+	// fmtStr formats a string like "<api>-<direction>-[check]-<retry>",
+	// i.e., "legacy-upload-check-retry", or "storage-download-retry".
 	var fmtStr string
 	if check {
-		fmtStr = "legacy-%s-check-retry"
+		fmtStr = "%s-%s-check-retry"
 	} else {
-		fmtStr = "legacy-%s-retry"
+		fmtStr = "%s-%s-retry"
 	}
 
-	if oidHandlers[oid] != fmt.Sprintf(fmtStr, direction) {
+	if oidHandlers[oid] != fmt.Sprintf(fmtStr, api, direction) {
 		return 0, false
 	}
 
-	legacyRetriesMu.Lock()
-	defer legacyRetriesMu.Unlock()
+	retriesMu.Lock()
+	defer retriesMu.Unlock()
 
 	retryKey := strings.Join([]string{direction, repo, oid}, ":")
 
-	legacyRetries[retryKey]++
-	retries := legacyRetries[retryKey]
+	retries[retryKey]++
+	retries := retries[retryKey]
 
 	return retries, true
 }
@@ -275,7 +277,7 @@ func lfsGetHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	oid := parts[len(parts)-1]
 
 	if r.Header.Get("X-Ignore-Retries") != "true" {
-		if retries, ok := incrementRetriesFor("download", repo, oid, true); ok && retries < 3 {
+		if retries, ok := incrementRetriesFor("legacy", "download", repo, oid, true); ok && retries < 3 {
 			w.WriteHeader(502)
 			w.Write([]byte("malformed contents"))
 			return
@@ -547,6 +549,13 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("Should not send authentication"))
 			}
 			return
+		case "storage-upload-retry":
+			if retries, ok := incrementRetriesFor("storage", "upload", repo, oid, false); ok && retries < 3 {
+				w.WriteHeader(500)
+				w.Write([]byte("malformed content"))
+
+				return
+			}
 		}
 
 		if testingChunkedTransferEncoding(r) {
@@ -582,7 +591,12 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		resumeAt := int64(0)
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+			if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
+				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
+					statusCode = 500
+					by = []byte("malformed content")
+				}
+			} else if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
 				// Resume if header includes range, otherwise deliberately interrupt
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
