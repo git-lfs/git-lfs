@@ -176,7 +176,8 @@ func fixSingleFileWriteFlags(file string, lockablePatterns, unlockablePatterns [
 	if tools.PathMatchesWildcardPatterns(file, lockablePatterns) {
 		// Lockable files are writeable only if they're currently locked
 		err := tools.SetFileWriteFlag(file, IsFileLockedByCurrentCommitter(file))
-		if err != nil {
+		// Ignore not exist errors
+		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	} else if tools.PathMatchesWildcardPatterns(file, unlockablePatterns) {
