@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/tools"
 
 	"github.com/github/git-lfs/config"
@@ -101,6 +102,7 @@ func FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []s
 	if err != nil {
 		return err
 	}
+	var errs []error
 	for _, fi := range contents {
 		abschild := filepath.Join(absPath, fi.Name())
 		if fi.IsDir() {
@@ -115,28 +117,65 @@ func FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []s
 		if err != nil {
 			return err
 		}
-		// Convert to git-style forward slash separators if necessary
-		// Necessary to match attributes
-		if filepath.Separator == '\\' {
-			relpath = strings.Replace(relpath, "\\", "/", -1)
-		}
-		if tools.PathMatchesWildcardPatterns(relpath, lockablePatterns) {
-			// Lockable files are writeable only if they're currently locked
-			err = tools.SetFileWriteFlag(relpath, IsFileLockedByCurrentCommitter(relpath))
-			if err != nil {
-				return err
-			}
-		} else if tools.PathMatchesWildcardPatterns(relpath, unlockablePatterns) {
-			// Unlockable files are always writeable
-			// We only check files which match the incoming patterns to avoid
-			// checking every file in the system all the time, and only do it
-			// when a file has had its lockable attribute removed
-			err = tools.SetFileWriteFlag(relpath, true)
-			if err != nil {
-				return err
-			}
+
+		err = fixSingleFileWriteFlags(relpath, lockablePatterns, unlockablePatterns)
+		if err != nil {
+			errs = append(errs, err)
 		}
 
+	}
+	return errors.Combine(errs)
+}
+
+// FixLockableFileWriteFlags checks each file in the provided list, and for
+// those which are lockable, makes sure their write flags are set correctly
+// based on whether they are currently locked or unlocked. Files which are
+// unlocked are made read-only, files which are locked are made writeable.
+// Files which are not lockable are ignored.
+// This function can be used after a clone or checkout to ensure that file
+// state correctly reflects the locking state, and is more efficient than
+// FixAllLockableFileWriteFlags when you know which files changed
+func FixLockableFileWriteFlags(files []string) error {
+	lockablePatterns := GetLockablePatterns()
+	var errs []error
+	for _, f := range files {
+		err := fixSingleFileWriteFlags(f, lockablePatterns, nil)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Combine(errs)
+}
+
+// fixSingleFileWriteFlags fixes write flags on a single file
+// If lockablePatterns is non-nil, then any file matching those patterns will be
+// checked to see if it is currently locked by the current committer, and if so
+// it will be writeable, and if not locked it will be read-only.
+// If unlockablePatterns is non-nil, then any file matching those patterns will
+// be made writeable if it is not already. This can be used to reset files to
+// writeable when their 'lockable' attribute is turned off.
+func fixSingleFileWriteFlags(file string, lockablePatterns, unlockablePatterns []string) error {
+	// Convert to git-style forward slash separators if necessary
+	// Necessary to match attributes
+	if filepath.Separator == '\\' {
+		file = strings.Replace(file, "\\", "/", -1)
+	}
+	if tools.PathMatchesWildcardPatterns(file, lockablePatterns) {
+		// Lockable files are writeable only if they're currently locked
+		err := tools.SetFileWriteFlag(file, IsFileLockedByCurrentCommitter(file))
+		if err != nil {
+			return err
+		}
+	} else if tools.PathMatchesWildcardPatterns(file, unlockablePatterns) {
+		// Unlockable files are always writeable
+		// We only check files which match the incoming patterns to avoid
+		// checking every file in the system all the time, and only do it
+		// when a file has had its lockable attribute removed
+		err := tools.SetFileWriteFlag(file, true)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
