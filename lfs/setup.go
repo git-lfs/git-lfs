@@ -14,9 +14,12 @@ var (
 		"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
 		"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
 	})
+	// postCheckoutHook invokes `git lfs post-checkout`
+	postCheckoutHook = NewStandardHook("post-checkout", []string{})
 
 	hooks = []*Hook{
 		prePushHook,
+		postCheckoutHook,
 	}
 
 	filters = &Attribute{

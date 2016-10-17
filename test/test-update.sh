@@ -10,57 +10,66 @@ begin_test "update"
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }
 git lfs pre-push \"\$@\""
 
+  post_checkout_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-checkout.\\n\"; exit 2; }
+git lfs post-checkout \"\$@\""
+
   mkdir without-pre-push
   cd without-pre-push
   git init
 
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
 
   # run it again
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
 
   # replace old hook 1
   echo "#!/bin/sh
 git lfs push --stdin \$*" > .git/hooks/pre-push
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 2
   echo "#!/bin/sh
 git lfs push --stdin \"\$@\"" > .git/hooks/pre-push
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 3
   echo "#!/bin/sh
 git lfs pre-push \"\$@\"" > .git/hooks/pre-push
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace blank hook
   rm .git/hooks/pre-push
   touch .git/hooks/pre-push
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  touch .git/hooks/post-checkout
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
 
   # replace old hook 4
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }
 git lfs pre-push \"$@\""
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 5
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }
 git lfs pre-push \"$@\""
-  [ "Updated pre-push hook." = "$(git lfs update)" ]
+  [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # don't replace unexpected hook
   echo "test" > .git/hooks/pre-push
+  echo "test" > .git/hooks/post-checkout
   expected="Hook already exists: pre-push
 
 test
@@ -71,6 +80,7 @@ To resolve this, either:
 
   [ "$expected" = "$(git lfs update 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
+  [ "test" = "$(cat .git/hooks/post-checkout)" ]
 
   # Make sure returns non-zero
   set +e
@@ -86,14 +96,21 @@ To resolve this, either:
 
 #!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\n\"; exit 2; }
-git lfs pre-push \"\$@\""
+git lfs pre-push \"\$@\"
+Add the following to .git/hooks/post-checkout :
+
+#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-checkout.\n\"; exit 2; }
+git lfs post-checkout \"\$@\""
 
   [ "$expected" = "$(git lfs update --manual 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
+  [ "test" = "$(cat .git/hooks/post-checkout)" ]
 
   # force replace unexpected hook
-  [ "Updated pre-push hook." = "$(git lfs update --force)" ]
+  [ "Updated git hooks." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
 
   has_test_dir || exit 0
 
@@ -125,7 +142,7 @@ begin_test "update lfs.{url}.access"
   [ "basic" = "$(git config lfs.https://example2.com.access)" ]
   [ "other" = "$(git config lfs.https://example3.com.access)" ]
 
-  expected="Updated pre-push hook.
+  expected="Updated git hooks.
 Updated http://example.com access from private to basic.
 Updated https://example.com access from private to basic.
 Removed invalid https://example3.com access of other."
