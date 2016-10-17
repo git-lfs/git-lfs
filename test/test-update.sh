@@ -14,6 +14,10 @@ git lfs pre-push \"\$@\""
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-checkout.\\n\"; exit 2; }
 git lfs post-checkout \"\$@\""
 
+  post_commit_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-commit.\\n\"; exit 2; }
+git lfs post-commit \"\$@\""
+
   mkdir without-pre-push
   cd without-pre-push
   git init
@@ -21,11 +25,13 @@ git lfs post-checkout \"\$@\""
   [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
 
   # run it again
   [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
 
   # replace old hook 1
   echo "#!/bin/sh
@@ -52,6 +58,7 @@ git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   [ "Updated git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
 
   # replace old hook 4
   echo "#!/bin/sh
@@ -70,6 +77,7 @@ git lfs pre-push \"$@\""
   # don't replace unexpected hook
   echo "test" > .git/hooks/pre-push
   echo "test" > .git/hooks/post-checkout
+  echo "test" > .git/hooks/post-commit
   expected="Hook already exists: pre-push
 
 test
@@ -81,6 +89,7 @@ To resolve this, either:
   [ "$expected" = "$(git lfs update 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
   [ "test" = "$(cat .git/hooks/post-checkout)" ]
+  [ "test" = "$(cat .git/hooks/post-commit)" ]
 
   # Make sure returns non-zero
   set +e
@@ -101,16 +110,23 @@ Add the following to .git/hooks/post-checkout :
 
 #!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-checkout.\n\"; exit 2; }
-git lfs post-checkout \"\$@\""
+git lfs post-checkout \"\$@\"
+Add the following to .git/hooks/post-commit :
+
+#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-commit.\n\"; exit 2; }
+git lfs post-commit \"\$@\""
 
   [ "$expected" = "$(git lfs update --manual 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
   [ "test" = "$(cat .git/hooks/post-checkout)" ]
+  [ "test" = "$(cat .git/hooks/post-commit)" ]
 
   # force replace unexpected hook
   [ "Updated git hooks." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
 
   has_test_dir || exit 0
 

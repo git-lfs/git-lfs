@@ -104,8 +104,6 @@ begin_test "post-checkout"
   [ -w file2.dat ]
   [ ! -w file5.dat ]
 
-
-
 )
 end_test
 
