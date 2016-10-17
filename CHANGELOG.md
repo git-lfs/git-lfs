@@ -1,5 +1,21 @@
 # Git LFS Changelog
 
+## 1.4.3 (17 October, 2016)
+
+### Bugs
+
+* lfs/tq: use extra arguments given to tracerx.Printf #1583 (@ttaylorr)
+* api: correctly print legacy API warning to Stderr #1582 (@ttaylorr)
+
+### Misc
+
+* Test storage retries #1585 (@ttaylorr)
+* Test legacy check retries behavior #1584 (@ttaylorr)
+* docs: Fix a link to the legacy API #1579 (@sschuberth)
+* Add a .mailmap file #1577 (@sschuberth)
+* Add a large wizard image to the Windows installer #1575 (@sschuberth)
+* Appveyor badge #1574 (@ttaylorr)
+
 ## 1.4.2 (10 October, 2016)
 
 v1.4.2 brings a number of bug fixes and usability improvements to LFS. This
