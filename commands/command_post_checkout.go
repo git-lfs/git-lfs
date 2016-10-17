@@ -4,9 +4,8 @@ import (
 	"os"
 
 	"github.com/github/git-lfs/git"
-
 	"github.com/github/git-lfs/locking"
-
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -42,6 +41,7 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 }
 
 func postCheckoutRevChange(pre, post string) {
+	tracerx.Printf("post-checkout: changes between %v and %v", pre, post)
 	// We can speed things up by looking at the difference between previous HEAD
 	// and current HEAD, and only checking lockable files that are different
 	files, err := git.GetFilesChanged(pre, post)
@@ -50,6 +50,7 @@ func postCheckoutRevChange(pre, post string) {
 		LoggedError(err, "Warning: post-checkout rev diff %v:%v failed: %v\nFalling back on full scan.", pre, post, err)
 		postCheckoutFileChange()
 	}
+	tracerx.Printf("post-checkout: checking write flags on %v", files)
 	err = locking.FixLockableFileWriteFlags(files)
 	if err != nil {
 		LoggedError(err, "Warning: post-checkout locked file check failed: %v", err)
@@ -57,6 +58,7 @@ func postCheckoutRevChange(pre, post string) {
 }
 
 func postCheckoutFileChange() {
+	tracerx.Printf("post-checkout: checking write flags for all lockable files")
 	// Sadly we don't get any information about what files were checked out,
 	// so we have to check the entire repo
 	err := locking.FixAllLockableFileWriteFlags()
