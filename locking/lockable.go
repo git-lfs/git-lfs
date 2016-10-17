@@ -78,6 +78,12 @@ func FixAllLockableFileWriteFlags() error {
 // be made writeable if it is not already. This can be used to reset files to
 // writeable when their 'lockable' attribute is turned off.
 func FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []string, recursive bool) error {
+
+	// early-out if no patterns
+	if len(lockablePatterns) == 0 && len(unlockablePatterns) == 0 {
+		return nil
+	}
+
 	absPath := dir
 	if !filepath.IsAbs(dir) {
 		absPath = filepath.Join(config.LocalWorkingDir, dir)
@@ -137,6 +143,12 @@ func FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []s
 // FixAllLockableFileWriteFlags when you know which files changed
 func FixLockableFileWriteFlags(files []string) error {
 	lockablePatterns := GetLockablePatterns()
+
+	// early-out if no lockable patterns
+	if len(lockablePatterns) == 0 {
+		return nil
+	}
+
 	var errs []error
 	for _, f := range files {
 		err := fixSingleFileWriteFlags(f, lockablePatterns, nil)

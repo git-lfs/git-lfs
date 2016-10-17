@@ -28,6 +28,11 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 
 	requireGitVersion()
 
+	// Skip this hook if no lockable patterns have been configured
+	if len(locking.GetLockablePatterns()) == 0 {
+		os.Exit(0)
+	}
+
 	if args[2] == "1" {
 		postCheckoutRevChange(args[0], args[1])
 	} else {
@@ -49,7 +54,6 @@ func postCheckoutRevChange(pre, post string) {
 	if err != nil {
 		LoggedError(err, "Warning: post-checkout locked file check failed: %v", err)
 	}
-
 }
 
 func postCheckoutFileChange() {
