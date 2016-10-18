@@ -28,8 +28,10 @@ var z40 = regexp.MustCompile(`\^?0{40}`)
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
 func RevListShas(refLeft, refRight string, opt *ScanRefsOptions) (<-chan string, <-chan error, error) {
-	refArgs := []string{"rev-list", "--objects"}
 	var stdin []string
+
+	refArgs := []string{"rev-list", "--objects"}
+
 	switch opt.ScanMode {
 	case ScanRefsMode:
 		if opt.SkipDeletedBlobs {
@@ -67,30 +69,29 @@ func RevListShas(refLeft, refRight string, opt *ScanRefsOptions) (<-chan string,
 	if len(stdin) > 0 {
 		cmd.Stdin.Write([]byte(strings.Join(stdin, "\n")))
 	}
-
 	cmd.Stdin.Close()
 
 	revs := make(chan string, chanBufSize)
 	errchan := make(chan error, 5) // may be multiple errors
 
 	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
-		for scanner.Scan() {
+		for scanner := bufio.NewScanner(cmd.Stdout); scanner.Scan(); {
 			line := strings.TrimSpace(scanner.Text())
 			if len(line) < 40 {
 				continue
 			}
 
-			sha1 := line[0:40]
+			sha1 := line[:40]
 			if len(line) > 40 {
 				opt.SetName(sha1, line[41:len(line)])
 			}
+
 			revs <- sha1
 		}
 
+		// TODO(taylor): move this logic into an `*exec.Command` wrapper
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
+		if err := cmd.Wait(); err != nil {
 			errchan <- fmt.Errorf("Error in git rev-list --objects: %v %v", err, string(stderr))
 		} else {
 			// Special case detection of ambiguous refs; lower level commands like
@@ -101,6 +102,7 @@ func RevListShas(refLeft, refRight string, opt *ScanRefsOptions) (<-chan string,
 				errchan <- fmt.Errorf("Error: ref %s is ambiguous", match[1])
 			}
 		}
+
 		close(revs)
 		close(errchan)
 	}()
