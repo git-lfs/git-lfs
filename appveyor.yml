@@ -1,3 +1,5 @@
+skip_branch_with_pr: true
+
 environment:
   GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
   MSYSTEM: MINGW64
