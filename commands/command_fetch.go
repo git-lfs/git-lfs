@@ -7,6 +7,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -104,8 +105,8 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
 	// Use SkipDeletedBlobs to avoid fetching ALL previous versions of modified files
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanRefsMode
+	opts := scanner.NewScanRefsOptions()
+	opts.ScanMode = scanner.ScanRefsMode
 	opts.SkipDeletedBlobs = true
 	return lfs.ScanTree(ref)
 }
@@ -205,8 +206,8 @@ func fetchAll() bool {
 func scanAll() []*lfs.WrappedPointer {
 	// converts to `git rev-list --all`
 	// We only pick up objects in real commits and not the reflog
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanAllMode
+	opts := scanner.NewScanRefsOptions()
+	opts.ScanMode = scanner.ScanAllMode
 	opts.SkipDeletedBlobs = false
 
 	// This could be a long process so use the chan version & report progress

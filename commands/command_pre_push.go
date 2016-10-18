@@ -7,6 +7,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/scanner"
 	"github.com/spf13/cobra"
 )
 
@@ -53,8 +54,8 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
+	scanOpt := scanner.NewScanRefsOptions()
+	scanOpt.ScanMode = scanner.ScanLeftToRemoteMode
 	scanOpt.RemoteName = cfg.CurrentRemote
 
 	// We can be passed multiple lines of refs

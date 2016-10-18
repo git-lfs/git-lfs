@@ -12,6 +12,7 @@ import (
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/localstorage"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/scanner"
 	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -303,8 +304,8 @@ func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan cha
 	defer waitg.Done()
 
 	// Only files AT ref, recent is checked in pruneTaskGetRetainedRecentRefs
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanRefsMode
+	opts := scanner.NewScanRefsOptions()
+	opts.ScanMode = scanner.ScanRefsMode
 	opts.SkipDeletedBlobs = true
 	refchan, err := lfs.ScanRefsToChan(ref, "", opts)
 	if err != nil {
@@ -453,8 +454,8 @@ func pruneTaskGetReachableObjects(outObjectSet *tools.StringSet, errorChan chan 
 
 	// converts to `git rev-list --all`
 	// We only pick up objects in real commits and not the reflog
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanAllMode
+	opts := scanner.NewScanRefsOptions()
+	opts.ScanMode = scanner.ScanAllMode
 	opts.SkipDeletedBlobs = false
 
 	pointerchan, err := lfs.ScanRefsToChan("", "", opts)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/scanner"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -22,8 +23,8 @@ var (
 func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 	tracerx.Printf("Upload between %v and %v", left, right)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanRefsMode
+	scanOpt := scanner.NewScanRefsOptions()
+	scanOpt.ScanMode = scanner.ScanRefsMode
 	scanOpt.RemoteName = cfg.CurrentRemote
 
 	pointers, err := lfs.ScanRefs(left, right, scanOpt)
@@ -37,12 +38,12 @@ func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
+	scanOpt := scanner.NewScanRefsOptions()
+	scanOpt.ScanMode = scanner.ScanLeftToRemoteMode
 	scanOpt.RemoteName = cfg.CurrentRemote
 
 	if pushAll {
-		scanOpt.ScanMode = lfs.ScanRefsMode
+		scanOpt.ScanMode = scanner.ScanRefsMode
 	}
 
 	refs, err := refsByNames(refnames)
