@@ -22,22 +22,37 @@ const (
 )
 
 var (
-	z40            = regexp.MustCompile(`\^?0{40}`)
+	// z40 is a regular expression used to capture blobs that begin with 40
+	// zeros.
+	z40 = regexp.MustCompile(`\^?0{40}`)
+
+	// ambiguousRegex is a regular expression used to determine whether or
+	// not a call to `git rev-list ...` encountered ambiguous refs.
 	ambiguousRegex = regexp.MustCompile(`warning: refname (.*) is ambiguous`)
 )
 
+// RevListShas list all revisions between `refLeft` and `refRight` according to
+// the rules provided by *ScanRefsOptions.
 func RevListShas(refLeft, refRight string, opt *ScanRefsOptions) (<-chan string, <-chan error, error) {
 	return NewRevListScanner(opt).Scan(refLeft, refRight)
 }
 
+// RevListScanner implements the behavior of scanning over a list of revisions.
 type RevListScanner struct {
-	ScanMode         ScanningMode
-	RemoteName       string
+	// ScanMode is an optional parameter which determines how the
+	// RevListScanner should process the revisions given.
+	ScanMode ScanningMode
+	// RemoteName is the name of the remote to compare to.
+	RemoteName string
+	// SkipDeletedBlobs provides an option specifying whether or not we
+	// should report revs whos blobs no longer exist at the remote, or at
+	// the range's end.
 	SkipDeletedBlobs bool
 
 	revCache *RevCache
 }
 
+// NewRevListScanner constructs a *RevListScanner using the given opts.
 func NewRevListScanner(opts *ScanRefsOptions) *RevListScanner {
 	return &RevListScanner{
 		ScanMode:         opts.ScanMode,
@@ -49,8 +64,12 @@ func NewRevListScanner(opts *ScanRefsOptions) *RevListScanner {
 	}
 }
 
+// Scan reports a channel of revisions, and a channel of errors encountered
+// while scanning those revisions, over the given range from "left" to "right".
+//
+// If there was an error encountered before beginning to scan, it will be
+// returned by itself, with two nil channels.
 func (r *RevListScanner) Scan(left, right string) (<-chan string, <-chan error, error) {
-	// ~
 	subArgs, stdin, err := r.refArgs(left, right)
 	if err != nil {
 		return nil, nil, err
@@ -78,6 +97,20 @@ func (r *RevListScanner) Scan(left, right string) (<-chan string, <-chan error, 
 	return revs, errchan, nil
 }
 
+// scanAndReport inspects the output of the given "cmd", and reports results to
+// `revs` and `errs` respectively. Once the command has finished executing, the
+// contents of its stderr are buffered into memory.
+//
+// If the exit-code of the `git rev-list` command is non-zero, a well-formatted
+// error message (containing that command's stdout will be reported to `errs`.
+// If the exit-code was zero, but the command reported ambiguous refs, then that
+// too will be converted into an error.
+//
+// Once the command has finished processing and scanAndReport is no longer
+// inspecting the output of that command, it closes both the `revs` and `errs`
+// channels.
+//
+// scanAndReport runs in its own goroutine.
 func (r *RevListScanner) scanAndReport(cmd *wrappedCmd, revs chan<- string, errs chan<- error) {
 	for scanner := bufio.NewScanner(cmd.Stdout); scanner.Scan(); {
 		line := strings.TrimSpace(scanner.Text())
@@ -168,10 +201,14 @@ func (r *RevListScanner) refArgs(fromSha, toSha string) ([]string, []string, err
 	return args, stdin, nil
 }
 
+// UnknownScanModeError is an error given when an unrecognized scanning mode is
+// given.
 type UnknownScanModeError struct {
+	// Mode is the mode that was unrecognized.
 	Mode ScanningMode
 }
 
+// Error implements the `error` interface on `*UnknownScanModeError`.
 func (e UnknownScanModeError) Error() string {
 	return fmt.Sprintf("scanner: unknown scan type: %d", int(e.Mode))
 }
