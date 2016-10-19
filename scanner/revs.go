@@ -51,7 +51,7 @@ func NewRevListScanner(opts *ScanRefsOptions) *RevListScanner {
 
 func (r *RevListScanner) Scan(left, right string) (<-chan string, <-chan error, error) {
 	// ~
-	subArgs, stdin, err := r.refArgs(left)
+	subArgs, stdin, err := r.refArgs(left, right)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +108,7 @@ func (r *RevListScanner) scanAndReport(cmd *wrappedCmd, revs chan<- string, errs
 	close(errs)
 }
 
-func (r *RevListScanner) refArgs(fromSha string) ([]string, []string, error) {
+func (r *RevListScanner) refArgs(fromSha, toSha string) ([]string, []string, error) {
 	var args, stdin []string
 
 	switch r.ScanMode {
@@ -117,6 +117,11 @@ func (r *RevListScanner) refArgs(fromSha string) ([]string, []string, error) {
 			args = append(args, "--no-walk")
 		} else {
 			args = append(args, "--do-walk")
+		}
+
+		args = append(args, fromSha)
+		if len(toSha) > 0 && !z40.MatchString(toSha) {
+			args = append(args, toSha)
 		}
 	case ScanAllMode:
 		args = append(args, "--all")
