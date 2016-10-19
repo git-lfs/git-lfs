@@ -15,6 +15,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/scanner"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -109,11 +110,7 @@ func ScanRefsToChan(refLeft, refRight string, opt *scanner.ScanRefsOptions) (*Po
 		return nil, err
 	}
 
-	// TODO(taylor): remove me after catFileBatch is updated to accept two
-	// channels.
-	smallShas := NewStringChannelWrapper(shas, shaErrs)
-
-	pointers, err := catFileBatch(smallShas)
+	pointers, err := catFileBatch(shas, shaErrs)
 	if err != nil {
 		return nil, err
 	}
@@ -233,11 +230,7 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 		return nil, err
 	}
 
-	// TODO(taylor): remove me after catFileBatch is updated to accept two
-	// channels.
-	smallShas := NewStringChannelWrapper(shas, shaErrs)
-
-	pointerc, err := catFileBatch(smallShas)
+	pointerc, err := catFileBatch(shas, shaErrs)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +327,7 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 // of a git object, given its sha1. The contents will be decoded into
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
-func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
+func catFileBatch(revs <-chan string, errs <-chan error) (*PointerChannelWrapper, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
 		return nil, err
@@ -386,11 +379,10 @@ func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
 	}()
 
 	go func() {
-		for r := range revs.Results {
+		for r := range revs {
 			cmd.Stdin.Write([]byte(r + "\n"))
 		}
-		err := revs.Wait()
-		if err != nil {
+		if err := tools.CollectErrsFromChan(errs); err != nil {
 			// We can share errchan with other goroutine since that won't close it
 			// until we close the stdin below
 			errchan <- err
