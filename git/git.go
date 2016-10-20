@@ -43,18 +43,6 @@ type Ref struct {
 	Sha  string
 }
 
-// MatchesNameAndType returns whether or not the receiving *Ref "r" has the same
-// name and type as the "other" *Ref. Nil *Refs are invalid values and thus do
-// not possess equality.
-func (r *Ref) MatchesNameAndType(other *Ref) bool {
-	if r == nil || other == nil {
-		return false
-	}
-
-	return r.Name == other.Name &&
-		r.Type == other.Type
-}
-
 // Some top level information about a commit (only first line of message)
 type CommitSummary struct {
 	Sha            string

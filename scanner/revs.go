@@ -166,7 +166,7 @@ func (r *RevListScanner) refArgs(fromSha, toSha string) ([]string, []string, err
 		for _, cachedRef := range cachedRemoteRefs {
 			var found bool
 			for _, realRemoteRef := range actualRemoteRefs {
-				if cachedRef.MatchesNameAndType(realRemoteRef) {
+				if cachedRef == realRemoteRef {
 					found = true
 					break
 				}
