@@ -42,14 +42,23 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 	totalSize := int64(0)
 	missingSize := int64(0)
 
+	// XXX(taylor): temporary measure to fix duplicate (broken) results from
+	// scanner
+	uniqOids := tools.NewStringSet()
+
 	// separate out objects that _should_ be uploaded, but don't exist in
 	// .git/lfs/objects. Those will skipped if the server already has them.
 	for _, p := range unfiltered {
-		// object already uploaded in this process, skip!
-		if c.HasUploaded(p.Oid) {
+		// object already uploaded in this process, or we've already
+		// seen this OID (see above), skip!
+		if uniqOids.Contains(p.Oid) || c.HasUploaded(p.Oid) {
 			continue
 		}
+		uniqOids.Add(p.Oid)
 
+		// increment numObjects and totalSize early (even if it's not
+		// going into uploadables), since we will call Skip() based on
+		// the results of the download check queue
 		numObjects += 1
 		totalSize += p.Size
 
@@ -71,6 +80,9 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 	uploadQueue := lfs.NewUploadQueue(numObjects, totalSize, c.DryRun)
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
+			// if the server already has this object, call Skip() on
+			// the progressmeter to decrement the number of files by
+			// 1 and the number of bytes by `p.Size`.
 			uploadQueue.Skip(p.Size)
 		} else {
 			uploadables = append(uploadables, p)
