@@ -51,7 +51,7 @@ func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthR
 
 	// Processing result
 	if err != nil {
-		res.Message = errbuf.String()
+		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
 	}
