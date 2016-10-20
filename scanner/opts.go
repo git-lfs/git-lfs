@@ -13,7 +13,7 @@ type ScanRefsOptions struct {
 	RemoteName       string
 	SkipDeletedBlobs bool
 
-	nameCache *NameCache
+	nameCache *nameCache
 }
 
 func (o *ScanRefsOptions) GetName(sha string) (string, bool) {
@@ -26,6 +26,6 @@ func (o *ScanRefsOptions) SetName(sha, name string) {
 
 func NewScanRefsOptions() *ScanRefsOptions {
 	return &ScanRefsOptions{
-		nameCache: NewNameCache(),
+		nameCache: newNameCache(),
 	}
 }

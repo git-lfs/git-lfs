@@ -49,7 +49,7 @@ type RevListScanner struct {
 	// the range's end.
 	SkipDeletedBlobs bool
 
-	nc *NameCache
+	nc *nameCache
 }
 
 // NewRevListScanner constructs a *RevListScanner using the given opts.
