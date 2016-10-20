@@ -2,19 +2,19 @@ package scanner
 
 import "sync"
 
-type RevCache struct {
+type NameCache struct {
 	m  map[string]string
 	mu *sync.Mutex
 }
 
-func NewRevCache(m map[string]string) *RevCache {
-	return &RevCache{
+func NewNameCache(m map[string]string) *NameCache {
+	return &NameCache{
 		m:  m,
 		mu: &sync.Mutex{},
 	}
 }
 
-func (c *RevCache) GetName(sha string) (string, bool) {
+func (c *NameCache) GetName(sha string) (string, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -22,7 +22,7 @@ func (c *RevCache) GetName(sha string) (string, bool) {
 	return rev, ok
 }
 
-func (c *RevCache) Cache(sha, name string) {
+func (c *NameCache) Cache(sha, name string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

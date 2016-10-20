@@ -49,7 +49,7 @@ type RevListScanner struct {
 	// the range's end.
 	SkipDeletedBlobs bool
 
-	revCache *RevCache
+	nc *NameCache
 }
 
 // NewRevListScanner constructs a *RevListScanner using the given opts.
@@ -60,7 +60,7 @@ func NewRevListScanner(opts *ScanRefsOptions) *RevListScanner {
 		SkipDeletedBlobs: opts.SkipDeletedBlobs,
 
 		// TODO(taylor): fix dependency on having mutable data in "opts"
-		revCache: NewRevCache(opts.nameMap),
+		nc: NewNameCache(opts.nameMap),
 	}
 }
 
@@ -122,7 +122,7 @@ func (r *RevListScanner) scanAndReport(cmd *wrappedCmd, revs chan<- string, errs
 		if len(line) > 40 {
 			name := line[41:]
 
-			r.revCache.Cache(sha1, name)
+			r.nc.Cache(sha1, name)
 		}
 
 		revs <- sha1
