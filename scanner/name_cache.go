@@ -15,9 +15,9 @@ type NameCache struct {
 //
 // NOTE: passing `m` in from the call-site is only a temporary measure, and
 // exists so old references into ScanOpts can still remain valid.
-func NewNameCache(m map[string]string) *NameCache {
+func NewNameCache() *NameCache {
 	return &NameCache{
-		m:  m,
+		m:  make(map[string]string),
 		mu: &sync.Mutex{},
 	}
 }

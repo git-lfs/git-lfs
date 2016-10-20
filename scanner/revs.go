@@ -59,8 +59,7 @@ func NewRevListScanner(opts *ScanRefsOptions) *RevListScanner {
 		RemoteName:       opts.RemoteName,
 		SkipDeletedBlobs: opts.SkipDeletedBlobs,
 
-		// TODO(taylor): fix dependency on having mutable data in "opts"
-		nc: NewNameCache(opts.nameMap),
+		nc: opts.nameCache,
 	}
 }
 
