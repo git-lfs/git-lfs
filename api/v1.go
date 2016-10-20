@@ -91,10 +91,10 @@ func NewRequest(cfg *config.Configuration, method, oid string) (*http.Request, e
 
 	res, endpoint, err := auth.SshAuthenticate(cfg, operation, oid)
 	if err != nil {
-		tracerx.Printf("ssh: attempted with %s.  Error: %s",
-			endpoint.SshUserAndHost, err.Error(),
+		tracerx.Printf("ssh: %s with %s failed, error: %s, message: %s",
+			operation, endpoint.SshUserAndHost, err.Error(), res.Message,
 		)
-		return nil, err
+		return nil, errors.Wrap(errors.New(res.Message), err.Error())
 	}
 
 	if len(res.Href) > 0 {
@@ -118,10 +118,10 @@ func NewRequest(cfg *config.Configuration, method, oid string) (*http.Request, e
 func NewBatchRequest(cfg *config.Configuration, operation string) (*http.Request, error) {
 	res, endpoint, err := auth.SshAuthenticate(cfg, operation, "")
 	if err != nil {
-		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
-			operation, endpoint.SshUserAndHost, err.Error(),
+		tracerx.Printf("ssh: %s with %s failed, error: %s, message: %s",
+			operation, endpoint.SshUserAndHost, err.Error(), res.Message,
 		)
-		return nil, err
+		return nil, errors.Wrap(errors.New(res.Message), err.Error())
 	}
 
 	if len(res.Href) > 0 {
