@@ -1,7 +1,5 @@
 package scanner
 
-import "sync"
-
 type ScanningMode int
 
 const (
@@ -15,28 +13,19 @@ type ScanRefsOptions struct {
 	RemoteName       string
 	SkipDeletedBlobs bool
 
-	nameMap map[string]string
-	mutex   *sync.Mutex
+	nameCache *nameCache
 }
 
 func (o *ScanRefsOptions) GetName(sha string) (string, bool) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
-
-	name, ok := o.nameMap[sha]
-	return name, ok
+	return o.nameCache.GetName(sha)
 }
 
 func (o *ScanRefsOptions) SetName(sha, name string) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
-
-	o.nameMap[sha] = name
+	o.nameCache.Cache(sha, name)
 }
 
 func NewScanRefsOptions() *ScanRefsOptions {
 	return &ScanRefsOptions{
-		nameMap: make(map[string]string),
-		mutex:   &sync.Mutex{},
+		nameCache: newNameCache(),
 	}
 }
