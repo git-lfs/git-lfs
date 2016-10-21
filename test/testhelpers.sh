@@ -145,15 +145,16 @@ refute_server_lock() {
 
 # pointer returns a string Git LFS pointer file.
 #
-#   $ pointer abc-some-oid 123
+#   $ pointer abc-some-oid 123 <version>
 #   > version ...
 pointer() {
   local oid=$1
   local size=$2
-  printf "version https://git-lfs.github.com/spec/v1
+  local version=${3:-https://git-lfs.github.com/spec/v1}
+  printf "version %s
 oid sha256:%s
 size %s
-" "$oid" "$size"
+" "$version" "$oid" "$size"
 }
 
 # wait_for_file simply sleeps until a file exists.
