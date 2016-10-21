@@ -124,11 +124,18 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		}
 		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
 
+		// tt is the time that we are to compare the transfer's
+		// `expired_at` property against.
+		tt := time.Now().Add(-objectExpirationGracePeriod)
+
 		// Actual transfer happens here
 		var err error
-		if t.Object.IsExpired(time.Now().Add(objectExpirationGracePeriod)) {
+		if expAt, expired := t.Object.IsExpired(tt); expired {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
-			err = errors.NewRetriableError(errors.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
+			err = errors.NewRetriableError(errors.Errorf(
+				"lfs/transfer: object %q has expired at %s, %s ago",
+				t.Object.Oid, expAt, tt.Sub(expAt),
+			))
 		} else if t.Object.Size < 0 {
 			tracerx.Printf("xfer: adapter %q worker %d found invalid size for %q (got: %d), retrying...", a.Name(), workerNum, t.Object.Oid, t.Object.Size)
 			err = fmt.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Object.Oid, t.Object.Size)
