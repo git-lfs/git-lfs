@@ -512,6 +512,44 @@ begin_test "push (retry with expired actions)"
 )
 end_test
 
+begin_test "push with continually expired actions"
+(
+  set -e
+
+  reponame="push_no_retry_expired_action"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="return-expired-action-forever"
+  contents_oid="$(calc_oid $contents)"
+  printf "$contents" > a.dat
+  git add .gitattributes a.dat
+
+  git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  set +e
+  git push origin master 2>&1 | tee push.log
+  res=${PIPESTATUS[0]}
+  set -e
+
+  if [ "$res" = "0" ]; then
+    echo "push was successful, shouldn't have been"
+    exit 1
+  fi
+
+  grep    "object \"$contents_oid\" has expired" push.log
+  grep -e "4m.* ago" push.log
+
+  refute_server_object "$reponame" "$contents_oid"
+)
+end_test
+
 begin_test "push to raw remote url"
 (
   set -e
