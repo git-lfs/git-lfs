@@ -155,8 +155,12 @@ func (q *TransferQueue) Add(t Transferable) {
 	if _, ok := q.transferables[t.Oid()]; !ok {
 		q.wait.Add(1)
 		q.transferables[t.Oid()] = t
+		q.trMutex.Unlock()
+	} else {
+		tracerx.Printf("already transferring %q, skipping duplicate", t)
+		q.trMutex.Unlock()
+		return
 	}
-	q.trMutex.Unlock()
 
 	if q.batcher != nil {
 		q.batcher.Add(t)
@@ -496,10 +500,16 @@ func (q *TransferQueue) retryCollector() {
 
 		tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
 
-		q.Add(t)
+		// XXX(taylor): reuse some of the logic in
+		// `*TransferQueue.Add(t)` here to circumvent banned duplicate
+		// OIDs
 		if q.batcher != nil {
 			tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
+
+			q.batcher.Add(t)
 			q.batcher.Flush()
+		} else {
+			q.apic <- t
 		}
 	}
 	q.retrywait.Done()
