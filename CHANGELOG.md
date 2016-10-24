@@ -1,5 +1,18 @@
 # Git LFS Changelog
 
+## 1.4.4 (24 October, 2016)
+
+### Bugs
+
+* transfer: more descriptive "expired at" errors #1603 (@ttaylorr)
+* commands,lfs/tq: Only send unique OIDs to the Transfer Queue #1600 (@ttaylorr)
+* Expose the result message in case of an SSH authentication error #1599 (@sschuberth)
+
+### Misc
+
+* AppVeyor: Do not build branches with open pull requests #1594 (@sschuberth)
+* Update .mailmap #1593 (@dpursehouse)
+
 ## 1.4.3 (17 October, 2016)
 
 ### Bugs
