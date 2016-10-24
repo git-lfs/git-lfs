@@ -125,13 +125,17 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		}
 		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
 
-		// tt is the time that we are to compare the transfer's
+		// transferTime is the time that we are to compare the transfer's
 		// `expired_at` property against.
-		tt := time.Now().Add(-objectExpirationGracePeriod)
+		//
+		// We add the `objectExpirationToTransfer` since there will be
+		// some time lost from this comparison to the time we actually
+		// transfer the object
+		transferTime := time.Now().Add(objectExpirationToTransfer)
 
 		// Actual transfer happens here
 		var err error
-		if expAt, expired := t.Object.IsExpired(tt); expired {
+		if expAt, expired := t.Object.IsExpired(transferTime); expired {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
 			err = errors.NewRetriableError(errors.Errorf(
 				"lfs/transfer: object %q has expired at %s, %s ago",
