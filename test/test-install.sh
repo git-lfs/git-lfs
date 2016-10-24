@@ -6,6 +6,7 @@ begin_test "install again"
 (
   set -e
 
+  # TODO: add process filter here
   smudge="$(git config filter.lfs.smudge)"
   clean="$(git config filter.lfs.clean)"
 
