@@ -49,7 +49,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
-		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-invalid-size",
+		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry", "storage-download-retry", "storage-upload-retry",
 	}
 )
@@ -438,7 +438,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 					Header: map[string]string{},
 				}
 
-				if handler == "return-expired-action" && canServeExpired(repo) {
+				if handler == "return-expired-action-forever" || (handler == "return-expired-action" && canServeExpired(repo)) {
 					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
 					serveExpired(repo)
 				}
