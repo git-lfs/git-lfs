@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	// objectExpirationGracePeriod is the grace period applied to objects
-	// when checking whether or not they have expired.
-	objectExpirationGracePeriod = 5 * time.Second
+	// objectExpirationToTransfer is the duration we expect to have passed
+	// from the time that the object's expires_at property is checked to
+	// when the transfer is executed.
+	objectExpirationToTransfer = 5 * time.Second
 )
 
 // adapterBase implements the common functionality for core adapters which
