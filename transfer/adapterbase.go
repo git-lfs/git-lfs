@@ -138,8 +138,8 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		if expAt, expired := t.Object.IsExpired(transferTime); expired {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
 			err = errors.NewRetriableError(errors.Errorf(
-				"lfs/transfer: object %q has expired at %s, %s ago",
-				t.Object.Oid, expAt, tt.Sub(expAt),
+				"lfs/transfer: object %q expires at %s",
+				t.Object.Oid, expAt.In(time.Local).Format(time.RFC822),
 			))
 		} else if t.Object.Size < 0 {
 			tracerx.Printf("xfer: adapter %q worker %d found invalid size for %q (got: %d), retrying...", a.Name(), workerNum, t.Object.Oid, t.Object.Size)
