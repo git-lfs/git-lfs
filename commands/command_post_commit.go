@@ -39,6 +39,5 @@ func postCommitCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterCommand("post-commit", postCommitCommand, func(cmd *cobra.Command) {
-	})
+	RegisterCommand("post-commit", postCommitCommand, nil)
 }

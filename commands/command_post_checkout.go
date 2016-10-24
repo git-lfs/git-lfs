@@ -68,6 +68,5 @@ func postCheckoutFileChange() {
 }
 
 func init() {
-	RegisterCommand("post-checkout", postCheckoutCommand, func(cmd *cobra.Command) {
-	})
+	RegisterCommand("post-checkout", postCheckoutCommand, nil)
 }
