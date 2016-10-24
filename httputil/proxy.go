@@ -97,19 +97,6 @@ func useProxy(no_proxy, addr string) bool {
 		return false
 	}
 
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return false
-	}
-	if host == "localhost" {
-		return false
-	}
-	if ip := net.ParseIP(host); ip != nil {
-		if ip.IsLoopback() {
-			return false
-		}
-	}
-
 	addr = strings.ToLower(strings.TrimSpace(addr))
 	if hasPort(addr) {
 		addr = addr[:strings.LastIndex(addr, ":")]
