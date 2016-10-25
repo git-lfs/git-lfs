@@ -1,7 +1,6 @@
 package httputil
 
 import (
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -87,7 +86,8 @@ func canonicalAddr(url *url.URL) string {
 // useProxy reports whether requests to addr should use a proxy,
 // according to the NO_PROXY or no_proxy environment variable.
 // addr is always a canonicalAddr with a host and port.
-// Copied from "net/http".ProxyFromEnvironment in the go std lib.
+// Copied from "net/http".ProxyFromEnvironment in the go std lib
+// and adapted to allow proxy usage even for localhost.
 func useProxy(no_proxy, addr string) bool {
 	if len(addr) == 0 {
 		return true
@@ -95,19 +95,6 @@ func useProxy(no_proxy, addr string) bool {
 
 	if no_proxy == "*" {
 		return false
-	}
-
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return false
-	}
-	if host == "localhost" {
-		return false
-	}
-	if ip := net.ParseIP(host); ip != nil {
-		if ip.IsLoopback() {
-			return false
-		}
 	}
 
 	addr = strings.ToLower(strings.TrimSpace(addr))
