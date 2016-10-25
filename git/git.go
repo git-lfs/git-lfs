@@ -17,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/github/git-lfs/tools"
+
 	"github.com/github/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
@@ -1017,4 +1019,70 @@ func sanitizePattern(pattern string) string {
 	}
 
 	return pattern
+}
+
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
+func GetFilesChanged(from, to string) ([]string, error) {
+	s, err := GetFilesChangedChan(from, to)
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for p := range s.Results {
+		files = append(files, p)
+	}
+	err = s.Wait()
+
+	return files, err
+}
+
+// GetFilesChangedBetweenChan returns a channels of files changed, either
+// between 2 commits, or at a single commit if you only supply one argument and
+// a blank string for the other
+func GetFilesChangedChan(from, to string) (*tools.StringChannelWrapper, error) {
+	retchan := make(chan string, 10)
+	errchan := make(chan error, 1)
+	go func() {
+		defer func() {
+			close(retchan)
+			close(errchan)
+		}()
+
+		args := []string{
+			"-c", "core.quotepath=false", // handle special chars in filenames
+			"diff-tree",
+			"--no-commit-id",
+			"--name-only",
+			"-r",
+		}
+
+		if len(from) > 0 {
+			args = append(args, from)
+		}
+		if len(to) > 0 {
+			args = append(args, to)
+		}
+		args = append(args, "--") // no ambiguous patterns
+
+		cmd := subprocess.ExecCommand("git", args...)
+		outp, err := cmd.StdoutPipe()
+		if err != nil {
+			errchan <- fmt.Errorf("Failed to call git diff: %v", err)
+			return
+		}
+		cmd.Start()
+		scanner := bufio.NewScanner(outp)
+		for scanner.Scan() {
+			retchan <- strings.TrimSpace(scanner.Text())
+		}
+		err = cmd.Wait()
+		if err != nil {
+			errchan <- err
+			return
+		}
+	}()
+
+	return tools.NewStringChannelWrapper(retchan, errchan), nil
 }

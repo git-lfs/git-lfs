@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/locking"
 	"github.com/github/git-lfs/tools"
 	"github.com/github/git-lfs/transfer"
 )
@@ -24,10 +24,6 @@ import (
 //go:generate go run ../docs/man/mangen.go
 
 var (
-	// API is a package-local instance of the API client for use within
-	// various command implementations.
-	API = api.NewClient(nil)
-
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
@@ -128,6 +124,10 @@ func Panic(err error, format string, args ...interface{}) {
 func Cleanup() {
 	if err := lfs.ClearTempObjects(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
+	}
+
+	if err := locking.Cleanup(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error cleaning up lock cache: %s\n", err)
 	}
 }
 
