@@ -105,12 +105,12 @@ func ScanRefsToChan(refLeft, refRight string, opt *scanner.ScanRefsOptions) (*Po
 		return nil, err
 	}
 
-	smallShas, err := catFileBatchCheck(revs, errs)
+	shas, shaErrs, err := scanner.CatFileBatchCheck(revs, errs)
 	if err != nil {
 		return nil, err
 	}
 
-	pointers, err := catFileBatch(smallShas)
+	pointers, err := catFileBatch(shas, shaErrs)
 	if err != nil {
 		return nil, err
 	}
@@ -225,12 +225,12 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 		close(allRevsErr)
 	}()
 
-	smallShas, err := catFileBatchCheck(allRevsChan, allRevsErr)
+	shas, shaErrs, err := scanner.CatFileBatchCheck(allRevsChan, allRevsErr)
 	if err != nil {
 		return nil, err
 	}
 
-	pointerc, err := catFileBatch(smallShas)
+	pointerc, err := catFileBatch(shas, shaErrs)
 	if err != nil {
 		return nil, err
 	}
@@ -323,79 +323,11 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 	return NewStringChannelWrapper(revs, errchan), nil
 }
 
-// catFileBatchCheck uses git cat-file --batch-check to get the type
-// and size of a git object. Any object that isn't of type blob and
-// under the blobSizeCutoff will be ignored. revs is a channel over
-// which strings containing git sha1s will be sent. It returns a channel
-// from which sha1 strings can be read.
-func catFileBatchCheck(revs <-chan string, errs <-chan error) (*StringChannelWrapper, error) {
-	cmd, err := startCommand("git", "cat-file", "--batch-check")
-	if err != nil {
-		return nil, err
-	}
-
-	smallRevs := make(chan string, chanBufSize)
-	errchan := make(chan error, 2) // up to 2 errors, one from each goroutine
-
-	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
-		for scanner.Scan() {
-			line := scanner.Text()
-			lineLen := len(line)
-
-			// Format is:
-			// <sha1> <type> <size>
-			// type is at a fixed spot, if we see that it's "blob", we can avoid
-			// splitting the line just to get the size.
-			if lineLen < 46 {
-				continue
-			}
-
-			if line[41:45] != "blob" {
-				continue
-			}
-
-			size, err := strconv.Atoi(line[46:lineLen])
-			if err != nil {
-				continue
-			}
-
-			if size < blobSizeCutoff {
-				smallRevs <- line[0:40]
-			}
-		}
-
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git cat-file --batch-check: %v %v", err, string(stderr))
-		}
-		close(smallRevs)
-		close(errchan)
-	}()
-
-	go func() {
-		for r := range revs {
-			cmd.Stdin.Write([]byte(r + "\n"))
-		}
-
-		if err := tools.CollectErrsFromChan(errs); err != nil {
-			// We can share errchan with other goroutine since that won't close it
-			// until we close the stdin below
-			errchan <- err
-		}
-
-		cmd.Stdin.Close()
-	}()
-
-	return NewStringChannelWrapper(smallRevs, errchan), nil
-}
-
 // catFileBatch uses git cat-file --batch to get the object contents
 // of a git object, given its sha1. The contents will be decoded into
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
-func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
+func catFileBatch(revs <-chan string, errs <-chan error) (*PointerChannelWrapper, error) {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
 		return nil, err
@@ -447,11 +379,10 @@ func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
 	}()
 
 	go func() {
-		for r := range revs.Results {
+		for r := range revs {
 			cmd.Stdin.Write([]byte(r + "\n"))
 		}
-		err := revs.Wait()
-		if err != nil {
+		if err := tools.CollectErrsFromChan(errs); err != nil {
 			// We can share errchan with other goroutine since that won't close it
 			// until we close the stdin below
 			errchan <- err
