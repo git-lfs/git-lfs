@@ -136,8 +136,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	if err := s.Init(); err != nil {
 		ExitWithError(err)
 	}
-
-	s.NegotiateCapabilities()
+	if err := s.NegotiateCapabilities(); err != nil {
+		ExitWithError(err)
+	}
 
 	for {
 		request, data, err := s.ReadRequest()

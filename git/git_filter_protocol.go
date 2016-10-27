@@ -5,7 +5,6 @@ package git
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/rubyist/tracerx"
@@ -63,32 +62,25 @@ func (o *ObjectScanner) Init() error {
 	return nil
 }
 
-func (o *ObjectScanner) NegotiateCapabilities() bool {
+func (o *ObjectScanner) NegotiateCapabilities() error {
 	reqCaps := []string{"capability=clean", "capability=smudge"}
 
 	supCaps, err := o.p.readPacketList()
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: reading filter capabilities failed with %s\n", err)
-		return false
+		return fmt.Errorf("Error: reading filter capabilities failed with %s", err)
 	}
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
-			fmt.Fprintf(os.Stderr,
-				"Error: filter '%s' not supported (your Git supports: %s)\n",
-				reqCap, supCaps)
-			return false
+			return fmt.Errorf("Error: filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
 		}
 	}
 
 	err = o.p.writePacketList(reqCaps)
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: writing filter capabilities failed with %s\n", err)
-		return false
+		return fmt.Errorf("Error: writing filter capabilities failed with %s", err)
 	}
 
-	return true
+	return nil
 }
 
 func (o *ObjectScanner) ReadRequest() (map[string]string, []byte, error) {

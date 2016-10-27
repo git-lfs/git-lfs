@@ -64,9 +64,9 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.NegotiateCapabilities()
+	err := os.NegotiateCapabilities()
 
-	assert.True(t, ok)
+	assert.Nil(t, err)
 
 	out, err := newProtocolRW(&to, nil).readPacketList()
 	assert.Nil(t, err)
@@ -83,9 +83,10 @@ func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 	}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.NegotiateCapabilities()
+	err := os.NegotiateCapabilities()
 
-	assert.False(t, ok)
+	require.NotNil(t, err)
+	assert.Equal(t, "Error: filter 'capability=clean' not supported (your Git supports: [capability=unsupported])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
