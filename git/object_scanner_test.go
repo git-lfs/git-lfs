@@ -104,12 +104,12 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	_, err := from.Write([]byte{0x30, 0x30, 0x30, 0x30}) // flush packet
 	assert.Nil(t, err)
 
-	headers, payload, err := NewObjectScanner(&from, &to).ReadRequest()
+	req, err := NewObjectScanner(&from, &to).ReadRequest()
 
 	assert.Nil(t, err)
-	assert.Equal(t, headers["foo"], "bar")
-	assert.Equal(t, headers["other"], "woot")
-	assert.Equal(t, []byte("first\nsecond\n"), payload)
+	assert.Equal(t, req.Header["foo"], "bar")
+	assert.Equal(t, req.Header["other"], "woot")
+	assert.Equal(t, []byte("first\nsecond\n"), req.Payload)
 
 	resp, err := newProtocolRW(&to, nil).readPacketList()
 	assert.Nil(t, err)
@@ -123,13 +123,12 @@ func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	// (Invalid) headers
 	require.Nil(t, proto.writePacket([]byte{}))
 
-	headers, payload, err := NewObjectScanner(&from, nil).ReadRequest()
+	req, err := NewObjectScanner(&from, nil).ReadRequest()
 
 	require.NotNil(t, err)
 	assert.Equal(t, "Invalid packet length.", err.Error())
 
-	assert.Nil(t, headers)
-	assert.Empty(t, payload)
+	assert.Nil(t, req)
 }
 
 func TestObjectScannerRejectsInvalidPayloadPackets(t *testing.T) {
@@ -145,12 +144,11 @@ func TestObjectScannerRejectsInvalidPayloadPackets(t *testing.T) {
 	require.Nil(t, proto.writePacketText("second"))
 	require.Nil(t, proto.writePacket([]byte{})) // <-
 
-	headers, payload, err := NewObjectScanner(&from, &to).ReadRequest()
+	req, err := NewObjectScanner(&from, &to).ReadRequest()
 
 	require.NotNil(t, err)
 	assert.Equal(t, "Invalid packet length.", err.Error())
-	assert.Nil(t, headers)
-	assert.Empty(t, payload)
+	assert.Nil(t, req)
 
 	resp, err := newProtocolRW(&to, nil).readPacketList()
 	assert.Nil(t, err)

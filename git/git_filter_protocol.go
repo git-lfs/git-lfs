@@ -83,35 +83,43 @@ func (o *ObjectScanner) NegotiateCapabilities() error {
 	return nil
 }
 
-func (o *ObjectScanner) ReadRequest() (map[string]string, []byte, error) {
+type Request struct {
+	Header  map[string]string
+	Payload []byte
+}
+
+func (o *ObjectScanner) ReadRequest() (*Request, error) {
 	tracerx.Printf("Process filter command.")
 
 	requestList, err := o.p.readPacketList()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	requestMap := make(map[string]string)
+	req := &Request{
+		Header: make(map[string]string),
+	}
+
 	for _, pair := range requestList {
 		v := strings.Split(pair, "=")
-		requestMap[v[0]] = v[1]
+		req.Header[v[0]] = v[1]
 	}
 
-	var data []byte
 	for {
 		chunk, err := o.p.readPacket()
 		if err != nil {
 			// TODO: should we check the err of this call, to?!
 			o.writeStatus("error")
-			return nil, nil, err
+			return nil, err
 		}
 		if len(chunk) == 0 {
 			break
 		}
-		data = append(data, chunk...) // probably more efficient way?!
+		req.Payload = append(req.Payload, chunk...) // probably more efficient way?!
 	}
 	o.writeStatus("success")
-	return requestMap, data, nil
+
+	return req, nil
 }
 
 func (o *ObjectScanner) WriteResponse(outputData []byte) error {

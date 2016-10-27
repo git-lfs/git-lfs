@@ -141,7 +141,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for {
-		request, data, err := s.ReadRequest()
+		req, err := s.ReadRequest()
 		if err != nil {
 			break
 		}
@@ -150,11 +150,11 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		// ReadRequest should return data as Reader instead of []byte ?!
 		// clean/smudge should also take a Writer instead of returning []byte
 		var outputData []byte
-		switch request["command"] {
+		switch req.Header["command"] {
 		case "clean":
-			outputData, _ = clean(bytes.NewReader(data), request["pathname"])
+			outputData, _ = clean(bytes.NewReader(req.Payload), req.Header["pathname"])
 		case "smudge":
-			outputData, _ = smudge(bytes.NewReader(data), request["pathname"])
+			outputData, _ = smudge(bytes.NewReader(req.Payload), req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)
 			break
