@@ -86,7 +86,7 @@ func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 	err := os.NegotiateCapabilities()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Error: filter 'capability=clean' not supported (your Git supports: [capability=unsupported])", err.Error())
+	assert.Equal(t, "filter 'capability=clean' not supported (your Git supports: [capability=unsupported])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 

@@ -67,17 +67,17 @@ func (o *ObjectScanner) NegotiateCapabilities() error {
 
 	supCaps, err := o.p.readPacketList()
 	if err != nil {
-		return fmt.Errorf("Error: reading filter capabilities failed with %s", err)
+		return fmt.Errorf("reading filter capabilities failed with %s", err)
 	}
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
-			return fmt.Errorf("Error: filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
+			return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
 		}
 	}
 
 	err = o.p.writePacketList(reqCaps)
 	if err != nil {
-		return fmt.Errorf("Error: writing filter capabilities failed with %s", err)
+		return fmt.Errorf("writing filter capabilities failed with %s", err)
 	}
 
 	return nil
