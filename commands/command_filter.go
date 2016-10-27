@@ -140,11 +140,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	for {
-		req, err := s.ReadRequest()
-		if err != nil {
-			break
-		}
+	for s.Scan() {
+		req := s.Request()
 
 		// TODO:
 		// ReadRequest should return data as Reader instead of []byte ?!
@@ -161,6 +158,10 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		}
 
 		s.WriteResponse(outputData)
+	}
+
+	if err := s.Err(); err != nil {
+		ExitWithError(err)
 	}
 }
 

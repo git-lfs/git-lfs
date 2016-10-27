@@ -27,6 +27,9 @@ func isStringInSlice(s []string, what string) bool {
 
 type ObjectScanner struct {
 	p *protocol
+
+	req *Request
+	err error
 }
 
 func NewObjectScanner(r io.Reader, w io.Writer) *ObjectScanner {
@@ -88,7 +91,44 @@ type Request struct {
 	Payload []byte
 }
 
-func (o *ObjectScanner) ReadRequest() (*Request, error) {
+func (o *ObjectScanner) Scan() bool {
+	o.req, o.err = nil, nil
+
+	req, err := o.readRequest()
+	if err != nil {
+		o.err = err
+		return false
+	}
+
+	o.req = req
+	return true
+}
+
+func (o *ObjectScanner) Request() *Request { return o.req }
+func (o *ObjectScanner) Err() error        { return o.err }
+
+func (o *ObjectScanner) WriteResponse(outputData []byte) error {
+	for {
+		chunkSize := len(outputData)
+		if chunkSize == 0 {
+			o.p.writeFlush()
+			break
+		} else if chunkSize > MaxPacketLength {
+			chunkSize = MaxPacketLength // TODO check packets with the exact size
+		}
+		err := o.p.writePacket(outputData[:chunkSize])
+		if err != nil {
+			// TODO: should we check the err of this call, to?!
+			o.writeStatus("error")
+			return err
+		}
+		outputData = outputData[chunkSize:]
+	}
+	o.writeStatus("success")
+	return nil
+}
+
+func (o *ObjectScanner) readRequest() (*Request, error) {
 	tracerx.Printf("Process filter command.")
 
 	requestList, err := o.p.readPacketList()
@@ -120,27 +160,6 @@ func (o *ObjectScanner) ReadRequest() (*Request, error) {
 	o.writeStatus("success")
 
 	return req, nil
-}
-
-func (o *ObjectScanner) WriteResponse(outputData []byte) error {
-	for {
-		chunkSize := len(outputData)
-		if chunkSize == 0 {
-			o.p.writeFlush()
-			break
-		} else if chunkSize > MaxPacketLength {
-			chunkSize = MaxPacketLength // TODO check packets with the exact size
-		}
-		err := o.p.writePacket(outputData[:chunkSize])
-		if err != nil {
-			// TODO: should we check the err of this call, to?!
-			o.writeStatus("error")
-			return err
-		}
-		outputData = outputData[chunkSize:]
-	}
-	o.writeStatus("success")
-	return nil
 }
 
 func (o *ObjectScanner) writeStatus(status string) error {
