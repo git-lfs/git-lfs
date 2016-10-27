@@ -42,23 +42,23 @@ func (o *ObjectScanner) Init() error {
 
 	initMsg, err := o.p.readPacketText()
 	if err != nil {
-		return fmt.Errorf("Error: reading filter initialization failed with %s", err)
+		return fmt.Errorf("reading filter initialization failed with %s", err)
 	}
 	if initMsg != "git-filter-client" {
-		return fmt.Errorf("Error: invalid filter protocol welcome message: %s", initMsg)
+		return fmt.Errorf("invalid filter protocol welcome message: %s", initMsg)
 	}
 
 	supVers, err := o.p.readPacketList()
 	if err != nil {
-		return fmt.Errorf("Error: reading filter versions failed with %s", err)
+		return fmt.Errorf("reading filter versions failed with %s", err)
 	}
 	if !isStringInSlice(supVers, reqVer) {
-		return fmt.Errorf("Error: filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
+		return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
 	}
 
 	err = o.p.writePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
-		return fmt.Errorf("Error: writing filter initialization failed with %s", err)
+		return fmt.Errorf("writing filter initialization failed with %s", err)
 	}
 	return nil
 }

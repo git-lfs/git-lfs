@@ -35,7 +35,7 @@ func TestObjectScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
 	err := os.Init()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Error: invalid filter protocol welcome message: git-filter-client-unknown", err.Error())
+	assert.Equal(t, "invalid filter protocol welcome message: git-filter-client-unknown", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
@@ -51,7 +51,7 @@ func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
 	err := os.Init()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Error: filter 'version=2' not supported (your Git supports: [version=0])", err.Error())
+	assert.Equal(t, "filter 'version=2' not supported (your Git supports: [version=0])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
