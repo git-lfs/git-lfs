@@ -16,9 +16,9 @@ func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	require.Nil(t, proto.writePacketList([]string{"version=2"}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.Init()
+	err := os.Init()
 
-	assert.True(t, ok)
+	assert.Nil(t, err)
 
 	out, err := newProtocolRW(&to, nil).readPacketList()
 	assert.Nil(t, err)
@@ -32,9 +32,10 @@ func TestObjectScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
 	require.Nil(t, proto.writePacketText("git-filter-client-unknown"))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.Init()
+	err := os.Init()
 
-	assert.False(t, ok)
+	require.NotNil(t, err)
+	assert.Equal(t, "Error: invalid filter protocol welcome message: git-filter-client-unknown", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
@@ -47,9 +48,10 @@ func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
 	require.Nil(t, proto.writePacketList([]string{"version=0"}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.Init()
+	err := os.Init()
 
-	assert.False(t, ok)
+	require.NotNil(t, err)
+	assert.Equal(t, "Error: filter 'version=2' not supported (your Git supports: [version=0])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 

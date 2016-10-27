@@ -36,42 +36,31 @@ func NewObjectScanner(r io.Reader, w io.Writer) *ObjectScanner {
 	}
 }
 
-func (o *ObjectScanner) Init() bool {
+func (o *ObjectScanner) Init() error {
 	tracerx.Printf("Initialize filter")
 	reqVer := "version=2"
 
 	initMsg, err := o.p.readPacketText()
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: reading filter initialization failed with %s\n", err)
-		return false
+		return fmt.Errorf("Error: reading filter initialization failed with %s", err)
 	}
 	if initMsg != "git-filter-client" {
-		fmt.Fprintf(os.Stderr,
-			"Error: invalid filter protocol welcome message: %s\n", initMsg)
-		return false
+		return fmt.Errorf("Error: invalid filter protocol welcome message: %s", initMsg)
 	}
 
 	supVers, err := o.p.readPacketList()
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: reading filter versions failed with %s\n", err)
-		return false
+		return fmt.Errorf("Error: reading filter versions failed with %s", err)
 	}
 	if !isStringInSlice(supVers, reqVer) {
-		fmt.Fprintf(os.Stderr,
-			"Error: filter '%s' not supported (your Git supports: %s)\n",
-			reqVer, supVers)
-		return false
+		return fmt.Errorf("Error: filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
 	}
 
 	err = o.p.writePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: writing filter initialization failed with %s\n", err)
-		return false
+		return fmt.Errorf("Error: writing filter initialization failed with %s", err)
 	}
-	return true
+	return nil
 }
 
 func (o *ObjectScanner) NegotiateCapabilities() bool {

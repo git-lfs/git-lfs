@@ -132,8 +132,13 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
 	s := git.NewObjectScanner(os.Stdin, os.Stdout)
-	s.Init()
+
+	if err := s.Init(); err != nil {
+		ExitWithError(err)
+	}
+
 	s.NegotiateCapabilities()
+
 	for {
 		request, data, err := s.ReadRequest()
 		if err != nil {
