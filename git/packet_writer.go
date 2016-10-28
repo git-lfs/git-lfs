@@ -15,6 +15,18 @@ type PacketWriter struct {
 
 var _ io.Writer = new(PacketWriter)
 
+// NewPacketWriter returns a new *PacketWriter, which will write to teh
+// underlying data stream "w".
+//
+// If "w" is already a `*PacketWriter`, it will be returned as-is.
+func NewPacketWriter(w io.Writer) *PacketWriter {
+	if pw, ok := w.(*PacketWriter); ok {
+		return pw
+	}
+
+	return &PacketWriter{proto: newProtocolRW(nil, w)}
+}
+
 // Write implements the io.Writer interface's `Write` method by providing a
 // packet-based backend to the given buffer "p".
 //
