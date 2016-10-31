@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 var localDirSet = NewStringSetFromSlice([]string{".", "./", ".\\"})
@@ -217,13 +218,7 @@ func FastWalkWithExcludeFiles(dir, excludeFilename string,
 	fiChan := make(chan FastWalkInfo, 256)
 	errChan := make(chan error, 10)
 
-	dirFi, err := os.Stat(dir)
-	if err != nil {
-		errChan <- err
-		return fiChan, errChan
-	}
-
-	go fastWalkItem("", dirFi, excludeFilename, includePaths, excludePaths, fiChan, errChan)
+	go fastWalkFromRoot(dir, excludeFilename, includePaths, excludePaths, fiChan, errChan)
 
 	return fiChan, errChan
 }
@@ -235,11 +230,34 @@ func FastWalkGitRepo(dir string) (<-chan FastWalkInfo, <-chan error) {
 	return FastWalkWithExcludeFiles(dir, ".gitignore", nil, excludePaths)
 }
 
-// Main recursive implementation of fast walk
-func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
+func fastWalkFromRoot(dir string, excludeFilename string,
 	includePaths, excludePaths []string, fiChan chan<- FastWalkInfo, errChan chan<- error) {
 
+	dirFi, err := os.Stat(dir)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
+	// This waitgroup will be incremented for each nested goroutine
+	var waitg sync.WaitGroup
+
+	fastWalkItem("", dirFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, &waitg)
+
+	waitg.Wait()
+	close(fiChan)
+	close(errChan)
+
+}
+
+// Main recursive implementation of fast walk
+// Increment waitg.Add(1) for each new goroutine launched internally
+func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
+	includePaths, excludePaths []string, fiChan chan<- FastWalkInfo, errChan chan<- error,
+	waitg *sync.WaitGroup) {
+
 	fullPath := filepath.Join(parentDir, itemFi.Name())
+
 	if !FilenamePassesIncludeExcludeFilter(fullPath, includePaths, excludePaths) {
 		return
 	}
@@ -268,19 +286,22 @@ func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
 		return
 	}
 	defer df.Close()
-	jobSize := 256
+	jobSize := 100
 	for children, err := df.Readdir(jobSize); err == nil; children, err = df.Readdir(jobSize) {
-		// Parallelise all dirs, and chop large dirs into batches of 256
-		go func() {
-			for _, childFi := range children {
-				fastWalkItem(fullPath, childFi, excludeFilename, includePaths, excludePaths, fiChan, errChan)
+		// Parallelise all dirs, and chop large dirs into batches
+		waitg.Add(1)
+		go func(subitems []os.FileInfo) {
+			for _, childFi := range subitems {
+				fastWalkItem(fullPath, childFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, waitg)
 			}
-		}()
+			waitg.Done()
+		}(children)
 
 	}
-	if err != io.EOF {
+	if err != nil && err != io.EOF {
 		errChan <- err
 	}
+
 }
 
 // loadExcludeFilename reads the given file in gitignore format and returns a

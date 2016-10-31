@@ -1,8 +1,14 @@
 package tools_test
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/github/git-lfs/tools"
@@ -78,4 +84,72 @@ func TestFilterIncludeExclude(t *testing.T) {
 			assert.Equal(t, c.expectedResult, tools.FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes), c)
 		}
 	}
+}
+
+func TestFastWalkBasic(t *testing.T) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkBasic")
+	if err != nil {
+		assert.FailNow(t, "Unable to get temp dir: %v", err)
+	}
+
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	dirs := []string{
+		"testroot",
+		"testroot/folder1",
+		"testroot/folder2",
+		"testroot/folder2/subfolder1",
+		"testroot/folder2/subfolder2",
+		"testroot/folder2/subfolder3",
+		"testroot/folder2/subfolder4",
+		"testroot/folder2/subfolder4/subsub",
+	}
+	expectedEntries := make([]string, 0, 250)
+
+	for i, dir := range dirs {
+		os.MkdirAll(dir, 0755)
+		numFiles := 10
+		expectedEntries = append(expectedEntries, dir)
+		if i >= 3 && i <= 5 {
+			// Bulk test to ensure works with > 1 batch
+			numFiles = 160
+		}
+		for f := 0; f < numFiles; f++ {
+			filename := filepath.Join(dir, fmt.Sprintf("file%d.txt", f))
+			ioutil.WriteFile(filename, []byte("TEST"), 644)
+			expectedEntries = append(expectedEntries, filename)
+		}
+	}
+
+	fchan, errchan := tools.FastWalk(dirs[0], nil, nil)
+	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+
+	assert.Equal(t, 0, len(gotErrors))
+
+	sort.Strings(expectedEntries)
+	sort.Strings(gotEntries)
+	assert.Equal(t, expectedEntries, gotEntries)
+
+}
+
+func collectFastWalkResults(fchan <-chan tools.FastWalkInfo, errchan <-chan error) ([]string, []error) {
+	gotEntries := make([]string, 0, 1000)
+	gotErrors := make([]error, 0, 5)
+	var waitg sync.WaitGroup
+	waitg.Add(2)
+	go func() {
+		for o := range fchan {
+			gotEntries = append(gotEntries, filepath.Join(o.ParentDir, o.Info.Name()))
+		}
+		waitg.Done()
+	}()
+	go func() {
+		for err := range errchan {
+			gotErrors = append(gotErrors, err)
+		}
+		waitg.Done()
+	}()
+	waitg.Wait()
+
+	return gotEntries, gotErrors
 }
