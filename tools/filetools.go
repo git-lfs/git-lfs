@@ -242,7 +242,7 @@ func fastWalkFromRoot(dir string, excludeFilename string,
 	// This waitgroup will be incremented for each nested goroutine
 	var waitg sync.WaitGroup
 
-	fastWalkItem("", dirFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, &waitg)
+	fastWalkItem(filepath.Dir(dir), dirFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, &waitg)
 
 	waitg.Wait()
 	close(fiChan)
