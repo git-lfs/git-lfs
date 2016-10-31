@@ -7,6 +7,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -310,7 +311,7 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude
 
 	for _, p := range allpointers {
 		// Filtered out by --include or --exclude
-		if !lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude) {
+		if !tools.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude) {
 			continue
 		}
 
