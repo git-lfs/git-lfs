@@ -266,6 +266,7 @@ func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
 		errChan <- err
 		return
 	}
+	defer df.Close()
 	jobSize := 256
 	for children, err := df.Readdir(jobSize); err == nil; children, err = df.Readdir(jobSize) {
 		// Parallelise all dirs, and chop large dirs into batches of 256
