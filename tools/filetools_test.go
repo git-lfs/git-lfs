@@ -221,7 +221,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 		for f := 0; f < numFiles; f++ {
 			filename := filepath.Join(dir, fmt.Sprintf("file%d.txt", f))
 			ioutil.WriteFile(filename, []byte("TEST"), 0644)
-			expectedEntries = append(expectedEntries, filename)
+			expectedEntries = append(expectedEntries, filepath.Clean(filename))
 		}
 	}
 
