@@ -116,7 +116,7 @@ func TestFastWalkBasic(t *testing.T) {
 		}
 		for f := 0; f < numFiles; f++ {
 			filename := filepath.Join(dir, fmt.Sprintf("file%d.txt", f))
-			ioutil.WriteFile(filename, []byte("TEST"), 644)
+			ioutil.WriteFile(filename, []byte("TEST"), 0644)
 			expectedEntries = append(expectedEntries, filename)
 		}
 	}
