@@ -273,7 +273,11 @@ func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
 	if len(excludeFilename) > 0 {
 		possibleExcludeFile := filepath.Join(fullPath, excludeFilename)
 		if FileExists(possibleExcludeFile) {
-			excludePaths = loadExcludeFilename(possibleExcludeFile, excludePaths)
+			var err error
+			excludePaths, err = loadExcludeFilename(possibleExcludeFile, fullPath, excludePaths)
+			if err != nil {
+				errChan <- err
+			}
 		}
 	}
 
@@ -309,17 +313,16 @@ func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
 // revised array of exclude paths if there are any changes.
 // If any changes are made a copy of the array is taken so the original is not
 // modified
-func loadExcludeFilename(filename string, excludePaths []string) []string {
+func loadExcludeFilename(filename, parentDir string, excludePaths []string) ([]string, error) {
 
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
-		return excludePaths
+		return excludePaths, err
 	}
 	defer f.Close()
 
 	retPaths := excludePaths
 	modified := false
-	parentDir := filepath.Dir(filename)
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -341,6 +344,6 @@ func loadExcludeFilename(filename string, excludePaths []string) []string {
 		retPaths = append(retPaths, path)
 	}
 
-	return retPaths
+	return retPaths, nil
 
 }
