@@ -189,6 +189,15 @@ func FileMatch(pattern, name string) bool {
 			return true
 		}
 	}
+	// Also support ** with path separators
+	if strings.Contains(pattern, string(filepath.Separator)) && strings.Contains(pattern, "**") {
+		pattern = regexp.QuoteMeta(pattern)
+		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
+		if regexp.MustCompile(regpattern).MatchString(name) {
+			return true
+		}
+
+	}
 	// Also support matching a parent directory without a wildcard
 	if strings.HasPrefix(name, pattern+string(filepath.Separator)) {
 		return true
@@ -237,7 +246,7 @@ func FastWalkWithExcludeFiles(dir, excludeFilename string,
 // the git repo itself (.git) and to load exclude patterns from .gitignore
 func FastWalkGitRepo(dir string) (<-chan FastWalkInfo, <-chan error) {
 	// Ignore all git metadata including subrepos
-	excludePaths := []string{filepath.Join("*", ".git")}
+	excludePaths := []string{".git", filepath.Join("**", ".git")}
 	return FastWalkWithExcludeFiles(dir, ".gitignore", nil, excludePaths)
 }
 
