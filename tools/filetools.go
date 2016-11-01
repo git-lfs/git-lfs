@@ -184,8 +184,10 @@ func FileMatch(pattern, name string) bool {
 	if !strings.Contains(pattern, string(filepath.Separator)) &&
 		strings.Contains(pattern, "*") {
 		pattern = regexp.QuoteMeta(pattern)
-		regpattern := fmt.Sprintf("%s$", strings.Replace(pattern, "\\*", ".*", -1))
-		if regexp.MustCompile(regpattern).MatchString(name) {
+		// Match the whole of the base name but allow matching in folders if no path
+		basename := filepath.Base(name)
+		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
+		if regexp.MustCompile(regpattern).MatchString(basename) {
 			return true
 		}
 	}

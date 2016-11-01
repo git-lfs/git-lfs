@@ -29,6 +29,43 @@ func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 	assert.Empty(t, cleaned)
 }
 
+func TestFileMatch(t *testing.T) {
+	assert.True(t, tools.FileMatch("filename.txt", "filename.txt"))
+	assert.True(t, tools.FileMatch("*.txt", "filename.txt"))
+	assert.False(t, tools.FileMatch("*.tx", "filename.txt"))
+	assert.True(t, tools.FileMatch("f*.txt", "filename.txt"))
+	assert.False(t, tools.FileMatch("g*.txt", "filename.txt"))
+	assert.True(t, tools.FileMatch("file*", "filename.txt"))
+	assert.False(t, tools.FileMatch("file", "filename.txt"))
+
+	// With no path separators, should match in subfolders
+	assert.True(t, tools.FileMatch("*.txt", "sub/filename.txt"))
+	assert.False(t, tools.FileMatch("*.tx", "sub/filename.txt"))
+	assert.True(t, tools.FileMatch("f*.txt", "sub/filename.txt"))
+	assert.False(t, tools.FileMatch("g*.txt", "sub/filename.txt"))
+	assert.True(t, tools.FileMatch("file*", "sub/filename.txt"))
+	assert.False(t, tools.FileMatch("file", "sub/filename.txt"))
+	// Needs wildcard for exact filename
+	assert.True(t, tools.FileMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
+
+	// Should not match dots to subparts
+	assert.False(t, tools.FileMatch("*.ign", "sub/shouldignoreme.txt"))
+
+	// Path specific
+	assert.True(t, tools.FileMatch("sub", "sub/filename.txt"))
+	assert.False(t, tools.FileMatch("sub", "subfilename.txt"))
+
+	// Absolute
+	assert.True(t, tools.FileMatch("*.dat", "/path/to/sub/.git/test.dat"))
+	assert.True(t, tools.FileMatch("**/.git", "/path/to/sub/.git"))
+
+	// Match anything
+	assert.True(t, tools.FileMatch(".", "path.txt"))
+	assert.True(t, tools.FileMatch("./", "path.txt"))
+	assert.True(t, tools.FileMatch(".\\", "path.txt"))
+
+}
+
 type TestIncludeExcludeCase struct {
 	expectedResult bool
 	includes       []string
