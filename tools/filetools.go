@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -135,30 +136,13 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 		return true
 	}
 
-	filename = filepath.Clean(filename)
 	if len(includePaths) > 0 {
 		matched := false
 		for _, inc := range includePaths {
-			inc = filepath.Clean(inc)
-
-			// Special case local dir, matches all (inc subpaths)
-			if _, local := localDirSet[inc]; local {
-				matched = true
-				break
-			}
-
-			matched, _ = filepath.Match(inc, filename)
-			if !matched {
-				// Also support matching a parent directory without a wildcard
-				if strings.HasPrefix(filename, inc+string(filepath.Separator)) {
-					matched = true
-				}
-			}
-
+			matched = FileMatch(inc, filename)
 			if matched {
 				break
 			}
-
 		}
 		if !matched {
 			return false
@@ -167,25 +151,50 @@ func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePa
 
 	if len(excludePaths) > 0 {
 		for _, ex := range excludePaths {
-			ex = filepath.Clean(ex)
-
-			// Special case local dir, matches all (inc subpaths)
-			if _, local := localDirSet[ex]; local {
-				return false
-			}
-
-			if matched, _ := filepath.Match(ex, filename); matched {
-				return false
-			}
-
-			// Also support matching a parent directory without a wildcard
-			if strings.HasPrefix(filename, ex+string(filepath.Separator)) {
+			if FileMatch(ex, filename) {
 				return false
 			}
 		}
 	}
 
 	return true
+}
+
+// FileMatch is a revised version of filepath.Match which makes it behave more
+// like gitignore
+func FileMatch(pattern, name string) bool {
+	pattern = filepath.Clean(pattern)
+	name = filepath.Clean(name)
+
+	// Special case local dir, matches all (inc subpaths)
+	if _, local := localDirSet[pattern]; local {
+		return true
+	}
+
+	if matched, _ := filepath.Match(pattern, name); matched {
+		return true
+	}
+
+	// special case * when there are no path separators
+	// filepath.Match never allows * to match a path separator, which is correct
+	// for gitignore IF the pattern includes a path separator, but not otherwise
+	// So *.txt should match in any subdir, as should test*, but sub/*.txt would
+	// only match directly in the sub dir
+	// Don't need to test cross-platform separators as both cleaned above
+	if !strings.Contains(pattern, string(filepath.Separator)) &&
+		strings.Contains(pattern, "*") {
+		regpattern := strings.Replace(pattern, "*", ".*", -1)
+		if regexp.MustCompile(regpattern).MatchString(name) {
+			return true
+		}
+	}
+	// Also support matching a parent directory without a wildcard
+	if strings.HasPrefix(name, pattern+string(filepath.Separator)) {
+		return true
+	}
+
+	return false
+
 }
 
 // Returned from FastWalk with parent directory context
@@ -339,8 +348,13 @@ func loadExcludeFilename(filename, parentDir string, excludePaths []string) ([]s
 			modified = true
 		}
 
-		// Add pattern in context
-		path := filepath.Join(parentDir, line)
+		path := line
+		// Add pattern in context if exclude has separator, or no wildcard
+		// Allow for both styles of separator at this point
+		if strings.ContainsAny(path, "/\\") ||
+			!strings.Contains(path, "*") {
+			path = filepath.Join(parentDir, line)
+		}
 		retPaths = append(retPaths, path)
 	}
 
