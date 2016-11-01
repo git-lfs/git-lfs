@@ -226,7 +226,8 @@ func FastWalkWithExcludeFiles(dir, excludeFilename string,
 // FastWalkGitRepo behaves like FastWalkWithExcludeFiles, preconfigured to ignore
 // the git repo itself (.git) and to load exclude patterns from .gitignore
 func FastWalkGitRepo(dir string) (<-chan FastWalkInfo, <-chan error) {
-	excludePaths := []string{".git"}
+	// Ignore all git metadata including subrepos
+	excludePaths := []string{filepath.Join("*", ".git")}
 	return FastWalkWithExcludeFiles(dir, ".gitignore", nil, excludePaths)
 }
 
