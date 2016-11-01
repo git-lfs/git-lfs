@@ -7,12 +7,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/rubyist/tracerx"
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/git"
-
 	"github.com/github/git-lfs/lfs"
+	"github.com/github/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -181,16 +184,24 @@ func findAttributeFiles() []string {
 		paths = append(paths, repoAttributes)
 	}
 
-	filepath.Walk(config.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	fchan, errchan := tools.FastWalkGitRepo(config.LocalWorkingDir)
+	var waitg sync.WaitGroup
+	waitg.Add(2)
+	go func() {
+		for o := range fchan {
+			if !o.Info.IsDir() && (o.Info.Name() == ".gitattributes") {
+				paths = append(paths, filepath.Join(o.ParentDir, o.Info.Name()))
+			}
 		}
-
-		if !info.IsDir() && (filepath.Base(path) == ".gitattributes") {
-			paths = append(paths, path)
+		waitg.Done()
+	}()
+	go func() {
+		for err := range errchan {
+			tracerx.Printf("Error finding .gitattributes: %v", err)
 		}
-		return nil
-	})
+		waitg.Done()
+	}()
+	waitg.Wait()
 
 	return paths
 }
