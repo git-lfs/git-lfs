@@ -183,7 +183,8 @@ func FileMatch(pattern, name string) bool {
 	// Don't need to test cross-platform separators as both cleaned above
 	if !strings.Contains(pattern, string(filepath.Separator)) &&
 		strings.Contains(pattern, "*") {
-		regpattern := strings.Replace(pattern, "*", ".*", -1)
+		pattern = regexp.QuoteMeta(pattern)
+		regpattern := fmt.Sprintf("%s$", strings.Replace(pattern, "\\*", ".*", -1))
 		if regexp.MustCompile(regpattern).MatchString(name) {
 			return true
 		}
