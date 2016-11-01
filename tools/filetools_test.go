@@ -213,7 +213,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	for i, dir := range dirs {
 		os.MkdirAll(dir, 0755)
 		numFiles := smallFolder
-		expectedEntries = append(expectedEntries, dir)
+		expectedEntries = append(expectedEntries, filepath.Clean(dir))
 		if i >= 3 && i <= 5 {
 			// Bulk test to ensure works with > 1 batch
 			numFiles = largeFolder
