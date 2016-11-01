@@ -86,7 +86,7 @@ func TestFilterIncludeExclude(t *testing.T) {
 
 	for _, c := range cases {
 		result := tools.FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes)
-		assert.Equal(t, c.expectedResult, result, "%v", c)
+		assert.Equal(t, c.expectedResult, result, "includes: %v excludes: %v", c.includes, c.excludes)
 		if runtime.GOOS == "windows" {
 			// also test with \ path separators, tolerate mixed separators
 			for i, inc := range c.includes {
