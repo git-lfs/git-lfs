@@ -45,6 +45,7 @@ func TestFilterIncludeExclude(t *testing.T) {
 		TestIncludeExcludeCase{true, []string{"*name.dat"}, nil},
 		TestIncludeExcludeCase{false, []string{"/*.dat"}, nil},
 		TestIncludeExcludeCase{false, []string{"otherfolder/*.dat"}, nil},
+		TestIncludeExcludeCase{false, []string{"*.nam"}, nil},
 		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, nil},
 		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, nil},
 		TestIncludeExcludeCase{false, []string{"blank", "something", "foo"}, nil},
