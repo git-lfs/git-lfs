@@ -75,3 +75,32 @@ begin_test "filter process: checking out a branch"
   popd
 )
 end_test
+
+begin_test "filter process: adding a file"
+(
+  set -e
+
+  reponame="filter_process_add"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config --local "filter.lfs.process" "git-lfs filter"
+  git config --local --unset "filter.lfs.clean"
+  git config --local --unset "filter.lfs.smudge"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+
+  git add a.dat
+
+  expected="$(pointer "$contents_oid" "${#contents}")"
+  got="$(git cat-file -p :a.dat)"
+
+  diff -u <(echo "$expected") <(echo "$got")
+)
+end_test
