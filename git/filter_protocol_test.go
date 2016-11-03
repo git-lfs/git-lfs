@@ -168,6 +168,16 @@ func TestFilterProtocolWritesPackets(t *testing.T) {
 	}, buf.Bytes())
 }
 
+func TestFilterProtocolWritesPacketsEqualToMaxLength(t *testing.T) {
+	var buf bytes.Buffer
+
+	rw := newProtocolRW(nil, &buf)
+	err := rw.writePacket(make([]byte, MaxPacketLength))
+
+	assert.Nil(t, err)
+	assert.Equal(t, 4+MaxPacketLength, len(buf.Bytes()))
+}
+
 func TestFilterProtocolDoesNotWritePacketsExceedingMaxLength(t *testing.T) {
 	var buf bytes.Buffer
 
