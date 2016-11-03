@@ -119,14 +119,16 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 		}
 		err := o.p.writePacket(outputData[:chunkSize])
 		if err != nil {
-			// TODO: should we check the err of this call, to?!
-			o.writeStatus("error")
+			if werr := o.writeStatus("error"); werr != nil {
+				return werr
+			}
+
 			return err
 		}
 		outputData = outputData[chunkSize:]
 	}
-	o.writeStatus("success")
-	return nil
+
+	return o.writeStatus("success")
 }
 
 func (o *ObjectScanner) readRequest() (*Request, error) {
@@ -149,8 +151,10 @@ func (o *ObjectScanner) readRequest() (*Request, error) {
 	for {
 		chunk, err := o.p.readPacket()
 		if err != nil {
-			// TODO: should we check the err of this call, to?!
-			o.writeStatus("error")
+			if werr := o.writeStatus("error"); werr != nil {
+				return nil, werr
+			}
+
 			return nil, err
 		}
 		if len(chunk) == 0 {
@@ -158,7 +162,10 @@ func (o *ObjectScanner) readRequest() (*Request, error) {
 		}
 		req.Payload = append(req.Payload, chunk...) // probably more efficient way?!
 	}
-	o.writeStatus("success")
+
+	if err := o.writeStatus("success"); err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
