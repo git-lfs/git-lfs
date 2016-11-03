@@ -2,7 +2,8 @@ package git
 
 import (
 	"io"
-	"math"
+
+	"github.com/github/git-lfs/tools"
 )
 
 type packetReader struct {
@@ -19,7 +20,7 @@ func (r *packetReader) Read(p []byte) (int, error) {
 	if len(r.buf) > 0 {
 		// If there is data in the buffer, shift as much out of it and
 		// into the given "p" as we can.
-		n = int(math.Min(float64(len(p)), float64(len(r.buf))))
+		n = tools.MinInt(len(p), len(r.buf))
 
 		copy(p, r.buf[:n])
 		r.buf = r.buf[n:]
@@ -43,7 +44,7 @@ func (r *packetReader) Read(p []byte) (int, error) {
 		}
 
 		// Figure out how much of the packet we can read into "p".
-		nn := int(math.Min(float64(len(chunk)), float64(len(p))))
+		nn := tools.MinInt(len(chunk), len(p))
 
 		// Move that amount into "p", from where we left off.
 		copy(p[n:], chunk[:nn])
