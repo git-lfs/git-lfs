@@ -2,7 +2,8 @@ package git
 
 import (
 	"io"
-	"math"
+
+	"github.com/github/git-lfs/tools"
 )
 
 type PacketWriter struct {
@@ -69,7 +70,7 @@ func (w *PacketWriter) Write(p []byte) (int, error) {
 		// While there is still data left to process in "p", grab as
 		// much of it as we can while not allowing the internal buffer
 		// to exceed the MaxPacketLength const.
-		m := int(math.Min(float64(len(p)), float64(MaxPacketLength-len(w.buf))))
+		m := tools.MinInt(len(p), MaxPacketLength-len(w.buf))
 
 		// Append on all of the data that we could into the internal
 		// buffer.
@@ -108,7 +109,7 @@ func (w *PacketWriter) flush() (int, error) {
 			return 0, err
 		}
 
-		m := int(math.Min(float64(len(w.buf)), float64(MaxPacketLength)))
+		m := tools.MinInt(len(w.buf), MaxPacketLength)
 
 		w.buf = w.buf[m:]
 
