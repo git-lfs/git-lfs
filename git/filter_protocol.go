@@ -22,13 +22,30 @@ func newProtocolRW(r io.Reader, w io.Writer) *protocol {
 	}
 }
 
+// readPacket reads a single packet entirely and returns the data encoded within
+// it. Errors can occur in several cases, as described below.
+//
+// 1) If no data was present in the reader, and no more data could be read (the
+//    pipe was closed, etc) than an io.EOF will be returned.
+// 2) If there was some data to be read, but the pipe or reader was closed
+//    before an entire packet (or header) could be ingested, an
+//    io.ErrShortBuffer error will be returned.
+// 3) If there was a valid header, but no body associated with the packet, an
+//    "Invalid packet length." error will be returned.
+// 4) If the data in the header could not be parsed as a hexadecimal length in
+//    the Git pktline format, the parse error will be returned.
+//
+// If none of the above cases fit the state of the data on the wire, the packet
+// is returned along with a nil error.
 func (p *protocol) readPacket() ([]byte, error) {
-	pktLenHex, err := ioutil.ReadAll(io.LimitReader(p.r, 4))
-	if err != nil || len(pktLenHex) != 4 { // TODO check pktLenHex length
+	var pktLenHex [4]byte
+	if n, err := io.ReadFull(p.r, pktLenHex[:]); err != nil {
 		return nil, err
+	} else if n != 4 {
+		return nil, io.ErrShortBuffer
 	}
 
-	pktLen, err := strconv.ParseInt(string(pktLenHex), 16, 0)
+	pktLen, err := strconv.ParseInt(string(pktLenHex[:]), 16, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +57,8 @@ func (p *protocol) readPacket() ([]byte, error) {
 		return nil, errors.New("Invalid packet length.")
 	}
 
-	return ioutil.ReadAll(io.LimitReader(p.r, pktLen-4))
+	payload, err := ioutil.ReadAll(io.LimitReader(p.r, pktLen-4))
+	return payload, err
 }
 
 func (p *protocol) readPacketText() (string, error) {

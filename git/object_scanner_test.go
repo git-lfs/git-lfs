@@ -98,6 +98,8 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	// Multi-line packet
 	require.Nil(t, proto.writePacketText("first"))
 	require.Nil(t, proto.writePacketText("second"))
+	_, err := from.Write([]byte{0x30, 0x30, 0x30, 0x30}) // flush packet
+	assert.Nil(t, err)
 
 	headers, payload, err := NewObjectScanner(&from, &to).ReadRequest()
 

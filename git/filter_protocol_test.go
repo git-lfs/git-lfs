@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,13 +48,35 @@ func TestFilterProtocolReadsWholePackets(t *testing.T) {
 	tc.Assert(t)
 }
 
-func TestFilterProtocolDiscardsPacketsWithIncorrectLength(t *testing.T) {
+func TestFilterProtocolNoPacket(t *testing.T) {
+	tc := &PacketReadTestCase{
+		In:  []byte{},
+		Err: io.EOF.Error(),
+	}
+
+	tc.Assert(t)
+}
+
+func TestFilterProtocolEmptyPacket(t *testing.T) {
 	tc := &PacketReadTestCase{
 		In: []byte{
-			0x30, 0x30, 0x30, 0x34, // 0004 (hex. length)
-			// No body
+			0x30, 0x30, 0x30, 0x34,
+			// No body (invalid)
 		},
+
 		Err: "Invalid packet length.",
+	}
+
+	tc.Assert(t)
+
+}
+
+func TestFilterProtocolFlushPacket(t *testing.T) {
+	tc := &PacketReadTestCase{
+		In: []byte{0x30, 0x30, 0x30, 0x30}, // Flush packet
+
+		Payload: []byte{},
+		Err:     "",
 	}
 
 	tc.Assert(t)
@@ -66,17 +89,6 @@ func TestFilterProtocolDiscardsPacketsWithUnparseableLength(t *testing.T) {
 			// No body
 		},
 		Err: "strconv.ParseInt: parsing \"\\xff\\xff\\xff\\xff\": invalid syntax",
-	}
-
-	tc.Assert(t)
-}
-
-func TestFilterProtocolDiscardsPacketsWithLengthZero(t *testing.T) {
-	tc := &PacketReadTestCase{
-		In: []byte{
-			0x30, 0x30, 0x30, 0x30, // 0000 (hex. length)
-			// Empty body
-		},
 	}
 
 	tc.Assert(t)
