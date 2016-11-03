@@ -84,10 +84,6 @@ begin_test "filter process: adding a file"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  git config --local "filter.lfs.process" "git-lfs filter"
-  git config --local --unset "filter.lfs.clean"
-  git config --local --unset "filter.lfs.smudge"
-
   git lfs track "*.dat"
   git add .gitattributes
   git commit -m "initial commit"
