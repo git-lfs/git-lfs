@@ -161,7 +161,6 @@ Scan:
 
 		if err != nil {
 			s.WriteStatus("error")
-
 		} else {
 			s.WriteStatus("success")
 			s.WriteResponse(outputData)
