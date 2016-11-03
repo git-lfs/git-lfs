@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/github/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 
@@ -44,7 +45,7 @@ func (o *ObjectScanner) Init() error {
 
 	initMsg, err := o.p.readPacketText()
 	if err != nil {
-		return fmt.Errorf("reading filter initialization failed with %s", err)
+		return errors.Wrap(err, "reading filter initialization")
 	}
 	if initMsg != "git-filter-client" {
 		return fmt.Errorf("invalid filter protocol welcome message: %s", initMsg)
@@ -52,7 +53,7 @@ func (o *ObjectScanner) Init() error {
 
 	supVers, err := o.p.readPacketList()
 	if err != nil {
-		return fmt.Errorf("reading filter versions failed with %s", err)
+		return errors.Wrap(err, "reading filter versions")
 	}
 	if !isStringInSlice(supVers, reqVer) {
 		return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
@@ -60,7 +61,7 @@ func (o *ObjectScanner) Init() error {
 
 	err = o.p.writePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
-		return fmt.Errorf("writing filter initialization failed with %s", err)
+		return errors.Wrap(err, "writing filter initialization failed")
 	}
 	return nil
 }
