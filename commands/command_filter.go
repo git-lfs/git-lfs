@@ -14,6 +14,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// cleanFilterBufferCapacity is the desired capacity of the
+	// `*git.PacketWriter`'s internal buffer when the filter protocol
+	// dictates the "clean" command
+	cleanFilterBufferCapacity = 512
+
+	// smudgeFilterBufferCapacity is the desired capacity of the
+	// `*git.PacketWriter`'s internal buffer when the filter protocol
+	// dictates the "smudge" command
+	smudgeFilterBufferCapacity = git.MaxPacketLength
+)
+
 var (
 	filterSmudgeSkip = false
 )
@@ -149,7 +161,6 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
 	s := git.NewObjectScanner(os.Stdin, os.Stdout)
-	w := git.NewPacketWriter(os.Stdout)
 
 	if err := s.Init(); err != nil {
 		ExitWithError(err)
@@ -161,11 +172,14 @@ func filterCommand(cmd *cobra.Command, args []string) {
 Scan:
 	for s.Scan() {
 		var err error
+		var w io.Writer
 
 		switch req := s.Request(); req.Header["command"] {
 		case "clean":
+			w = git.NewPacketWriter(os.Stdout, cleanFilterBufferCapacity)
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
+			w = git.NewPacketWriter(os.Stdout, smudgeFilterBufferCapacity)
 			err = smudge(w, req.Payload, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)

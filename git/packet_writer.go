@@ -16,16 +16,20 @@ type PacketWriter struct {
 
 var _ io.Writer = new(PacketWriter)
 
-// NewPacketWriter returns a new *PacketWriter, which will write to teh
-// underlying data stream "w".
+// NewPacketWriter returns a new *PacketWriter, which will write to the
+// underlying data stream "w". The internal buffer is initialized with the given
+// capacity, "c".
 //
 // If "w" is already a `*PacketWriter`, it will be returned as-is.
-func NewPacketWriter(w io.Writer) *PacketWriter {
+func NewPacketWriter(w io.Writer, c int) *PacketWriter {
 	if pw, ok := w.(*PacketWriter); ok {
 		return pw
 	}
 
-	return &PacketWriter{proto: newProtocolRW(nil, w)}
+	return &PacketWriter{
+		buf:   make([]byte, 0, c),
+		proto: newProtocolRW(nil, w),
+	}
 }
 
 // Write implements the io.Writer interface's `Write` method by providing a
