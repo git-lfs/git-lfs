@@ -79,16 +79,12 @@ func clean(reader io.Reader, fileName string) ([]byte, error) {
 }
 
 func smudge(reader io.Reader, filename string) ([]byte, error) {
+	var pbuf bytes.Buffer
+	reader = io.TeeReader(reader, &pbuf)
+
 	ptr, err := lfs.DecodePointer(reader)
 	if err != nil {
-		// mr := io.MultiReader(b, reader)
-		// _, err := io.Copy(os.Stdout, mr)
-		// if err != nil {
-		// 	Panic(err, "Error writing data to stdout:")
-		// }
-		var content []byte
-		reader.Read(content)
-		return content, nil
+		return pbuf.Bytes(), err
 	}
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
