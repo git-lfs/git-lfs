@@ -37,9 +37,9 @@ func NewPacketWriter(w io.Writer) *PacketWriter {
 // underlying stream of data, and the process repeats.
 //
 // When the caller has no more data to write in the given chunk of packets, a
-// subsequent call to `Write(p []byte)` MUST be made with an empty slice, to
-// flush the remaining data in the buffer, and write the terminating bytes to
-// the underlying packet stream.
+// subsequent call to `Write(p []byte)` MUST be made with a nil slice, to flush
+// the remaining data in the buffer, and write the terminating bytes to the
+// underlying packet stream.
 //
 // Write returns the number of bytes in "p" actually written to the underlying
 // protocol stream, not including the number of bytes written in those packets
@@ -49,7 +49,7 @@ func NewPacketWriter(w io.Writer) *PacketWriter {
 func (w *PacketWriter) Write(p []byte) (int, error) {
 	var n int
 
-	if len(p) == 0 {
+	if p == nil {
 		// If we got an empty sequence of bytes, let's flush the data
 		// stored in the buffer, and then write the a packet termination
 		// sequence.
