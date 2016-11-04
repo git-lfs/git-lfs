@@ -163,7 +163,7 @@ Scan:
 		}
 	}
 
-	if err := s.Err(); err != nil {
+	if err := s.Err(); err != nil && err != io.EOF {
 		ExitWithError(err)
 	}
 }
