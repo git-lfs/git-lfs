@@ -14,11 +14,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// cleanFilterBufferCapacity is the desired capacity of the
+	// `*git.PacketWriter`'s internal buffer when the filter protocol
+	// dictates the "clean" command. 512 bytes is (in most cases) enough to
+	// hold an entire LFS pointer in memory.
+	cleanFilterBufferCapacity = 512
+
+	// smudgeFilterBufferCapacity is the desired capacity of the
+	// `*git.PacketWriter`'s internal buffer when the filter protocol
+	// dictates the "smudge" command.
+	smudgeFilterBufferCapacity = git.MaxPacketLength
+)
+
 var (
 	filterSmudgeSkip = false
 )
 
-func clean(reader io.Reader, fileName string) ([]byte, error) {
+func clean(to io.Writer, reader io.Reader, fileName string) error {
 	var cb progress.CopyCallback
 	var file *os.File
 	var fileSize int64
@@ -47,9 +60,11 @@ func clean(reader io.Reader, fileName string) ([]byte, error) {
 	}
 
 	if errors.IsCleanPointerError(err) {
-		// TODO: report errors differently!
-		// os.Stdout.Write(errors.GetContext(err, "bytes").([]byte))
-		return errors.GetContext(err, "bytes").([]byte), nil
+		// If the contents read from the working directory was _already_
+		// a pointer, we'll get a `CleanPointerError`, with the context
+		// containing the bytes that we should write back out to Git.
+		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
+		return err
 	}
 
 	if err != nil {
@@ -75,10 +90,11 @@ func clean(reader io.Reader, fileName string) ([]byte, error) {
 		Debug("Writing %s", mediafile)
 	}
 
-	return []byte(cleaned.Pointer.Encoded()), nil
+	_, err = cleaned.Pointer.Encode(to)
+	return err
 }
 
-func smudge(reader io.Reader, filename string) ([]byte, error) {
+func smudge(to io.Writer, reader io.Reader, filename string) error {
 	var pbuf bytes.Buffer
 	reader = io.TeeReader(reader, &pbuf)
 
@@ -93,10 +109,13 @@ func smudge(reader io.Reader, filename string) ([]byte, error) {
 		// TODO(taylor): figure out if there is more data on the reader,
 		// and buffer that as well.
 		if len(pbuf.Bytes()) == 0 {
-			return pbuf.Bytes(), nil
+			if _, cerr := io.Copy(to, &pbuf); cerr != nil {
+				Panic(cerr, "Error writing data to stdout:")
+			}
+			return nil
 		}
 
-		return pbuf.Bytes(), err
+		return err
 	}
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
@@ -113,8 +132,7 @@ func smudge(reader io.Reader, filename string) ([]byte, error) {
 		download = false
 	}
 
-	buf := new(bytes.Buffer)
-	err = ptr.Smudge(buf, filename, download, TransferManifest(), cb)
+	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
@@ -129,10 +147,11 @@ func smudge(reader io.Reader, filename string) ([]byte, error) {
 			}
 		}
 
-		return []byte(ptr.Encoded()), nil
+		_, err = ptr.Encode(to)
+		return err
 	}
 
-	return buf.Bytes(), nil
+	return nil
 }
 
 func filterCommand(cmd *cobra.Command, args []string) {
@@ -150,29 +169,38 @@ func filterCommand(cmd *cobra.Command, args []string) {
 
 Scan:
 	for s.Scan() {
-		req := s.Request()
-
-		// TODO:
-		// clean/smudge should also take a Writer instead of returning []byte
-		var outputData []byte
 		var err error
+		var w io.Writer
+
+		req := s.Request()
+		if req == nil {
+			break
+		}
+		s.WriteStatus("success")
 
 		switch req.Header["command"] {
 		case "clean":
-			outputData, err = clean(req.Payload, req.Header["pathname"])
+			w = git.NewPacketWriter(os.Stdout, cleanFilterBufferCapacity)
+			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
-			outputData, err = smudge(req.Payload, req.Header["pathname"])
+			w = git.NewPacketWriter(os.Stdout, smudgeFilterBufferCapacity)
+			err = smudge(w, req.Payload, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)
 			break Scan
 		}
 
-		if err != nil && err != io.EOF {
-			s.WriteStatus("error")
+		var status string
+		if _, ferr := w.Write(nil); ferr != nil {
+			status = "error"
 		} else {
-			s.WriteStatus("success")
-			s.WriteResponse(outputData)
+			if err != nil && err != io.EOF {
+				status = "error"
+			} else {
+				status = "success"
+			}
 		}
+		s.WriteStatus(status)
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {
