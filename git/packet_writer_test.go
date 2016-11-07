@@ -12,8 +12,8 @@ func TestPacketWriterWritesPacketsShorterThanMaxPacketSize(t *testing.T) {
 	var buf bytes.Buffer
 
 	w := NewPacketWriter(&buf, 0)
-	assertWriterWrite(t, w, []byte("Hello, world!"), 0)
-	assertWriterWrite(t, w, nil, len("Hello, world!"))
+	assertWriterWrite(t, w, []byte("Hello, world!"), 13)
+	assertWriterWrite(t, w, nil, 0)
 
 	proto := newProtocolRW(&buf, nil)
 	assertPacketRead(t, proto, []byte("Hello, world!"))
@@ -45,9 +45,9 @@ func TestPacketWriterWritesMultiplePacketsLessThanMaxPacketLength(t *testing.T) 
 	var buf bytes.Buffer
 
 	w := NewPacketWriter(&buf, 0)
-	assertWriterWrite(t, w, []byte("first\n"), 0)
-	assertWriterWrite(t, w, []byte("second"), 0)
-	assertWriterWrite(t, w, nil, len("first\nsecond"))
+	assertWriterWrite(t, w, []byte("first\n"), len("first\n"))
+	assertWriterWrite(t, w, []byte("second"), len("second"))
+	assertWriterWrite(t, w, nil, 0)
 
 	proto := newProtocolRW(&buf, nil)
 	assertPacketRead(t, proto, []byte("first\nsecond"))
@@ -72,9 +72,9 @@ func TestPacketWriterWritesMultiplePacketsGreaterThanMaxPacketLength(t *testing.
 	copy(p2, b1)
 
 	w := NewPacketWriter(&buf, 0)
-	assertWriterWrite(t, w, p1, 0)
-	assertWriterWrite(t, w, p2, MaxPacketLength)
-	assertWriterWrite(t, w, nil, (len(b1)+len(b2))-MaxPacketLength)
+	assertWriterWrite(t, w, p1, len(p1))
+	assertWriterWrite(t, w, p2, len(p2))
+	assertWriterWrite(t, w, nil, 0)
 
 	// offs is how far into b2 we needed to buffer before writing an entire
 	// packet

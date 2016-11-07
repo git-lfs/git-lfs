@@ -45,9 +45,11 @@ func NewPacketWriter(w io.Writer, c int) *PacketWriter {
 // the remaining data in the buffer, and write the terminating bytes to the
 // underlying packet stream.
 //
-// Write returns the number of bytes in "p" actually written to the underlying
-// protocol stream, not including the number of bytes written in those packets
-// headers. If any error was encountered while either buffering or writing, that
+// Write returns the number of bytes in "p" accepted into the writer, which
+// _MAY_ be written to the underlying protocol stream, or may be written into
+// the internal buffer.
+//
+// If any error was encountered while either buffering or writing, that
 // error is returned, along with the number of bytes written to the underlying
 // protocol stream, as described above.
 func (w *PacketWriter) Write(p []byte) (int, error) {
@@ -58,15 +60,12 @@ func (w *PacketWriter) Write(p []byte) (int, error) {
 		// stored in the buffer, and then write the a packet termination
 		// sequence.
 
-		flushed, err := w.flush()
-		if err != nil {
+		if _, err := w.flush(); err != nil {
 			return 0, err
 		}
 
-		n = n + flushed
-
-		if err = w.proto.writeFlush(); err != nil {
-			return n, err
+		if err := w.proto.writeFlush(); err != nil {
+			return 0, err
 		}
 	}
 
@@ -83,16 +82,16 @@ func (w *PacketWriter) Write(p []byte) (int, error) {
 		// have in the internal buffer.
 		p = p[m:]
 
+		n = n + m
+
 		if len(w.buf) == MaxPacketLength {
 			// If we were able to grab an entire packet's worth of
 			// data, flush the buffer.
 
-			flushed, err := w.flush()
-			if err != nil {
+			if _, err := w.flush(); err != nil {
 				return n, err
 			}
 
-			n = n + flushed
 		}
 	}
 
