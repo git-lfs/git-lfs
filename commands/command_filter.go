@@ -59,12 +59,11 @@ func clean(to io.Writer, reader io.Reader, fileName string) error {
 	}
 
 	if errors.IsCleanPointerError(err) {
-		// TODO: report errors differently!
-		// os.Stdout.Write(errors.GetContext(err, "bytes").([]byte))
-		// return errors.GetContext(err, "bytes").([]byte), nil
-
-		// TODO(taylor): what does this mean?
-		return nil
+		// If the contents read from the working directory was _already_
+		// a pointer, we'll get a `CleanPointerError`, with the context
+		// containing the bytes that we should write back out to Git.
+		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
+		return err
 	}
 
 	if err != nil {
