@@ -84,6 +84,18 @@ func smudge(reader io.Reader, filename string) ([]byte, error) {
 
 	ptr, err := lfs.DecodePointer(reader)
 	if err != nil {
+		// If we tried to decode a pointer out of the data given to us,
+		// and the file was _empty_, write out an empty file in
+		// response. This occurs because when the clean filter
+		// encounters an empty file, and writes out an empty file,
+		// instead of a pointer.
+		//
+		// TODO(taylor): figure out if there is more data on the reader,
+		// and buffer that as well.
+		if len(pbuf.Bytes()) == 0 {
+			return pbuf.Bytes(), nil
+		}
+
 		return pbuf.Bytes(), err
 	}
 
@@ -155,7 +167,7 @@ Scan:
 			break Scan
 		}
 
-		if err != nil {
+		if err != nil && err != io.EOF {
 			s.WriteStatus("error")
 		} else {
 			s.WriteStatus("success")
