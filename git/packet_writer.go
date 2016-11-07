@@ -7,8 +7,9 @@ import (
 )
 
 type PacketWriter struct {
-	// buf is the internal buffer of bytes used to store data given in calls
-	// to Write that don't warrant a protocol write.
+	// buf is an internal buffer used to store data until enough has been
+	// collected to write a full packet, or the buffer was instructed to
+	// flush.
 	buf []byte
 	// proto is the place where packets get written.
 	proto *protocol
