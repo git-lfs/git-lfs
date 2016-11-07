@@ -171,7 +171,13 @@ Scan:
 	for s.Scan() {
 		var err error
 
-		switch req := s.Request(); req.Header["command"] {
+		req := s.Request()
+		if req == nil {
+			break
+		}
+		s.WriteStatus("success")
+
+		switch req.Header["command"] {
 		case "clean":
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
