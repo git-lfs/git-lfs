@@ -131,8 +131,7 @@ func smudge(to io.Writer, reader io.Reader, filename string) error {
 		download = false
 	}
 
-	sbuf := new(bytes.Buffer)
-	err = ptr.Smudge(sbuf, filename, download, TransferManifest(), cb)
+	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
@@ -151,8 +150,7 @@ func smudge(to io.Writer, reader io.Reader, filename string) error {
 		return err
 	}
 
-	_, err = ptr.Encode(to)
-	return err
+	return nil
 }
 
 func filterCommand(cmd *cobra.Command, args []string) {
