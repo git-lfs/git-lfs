@@ -158,6 +158,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
 
 	s := git.NewObjectScanner(os.Stdin, os.Stdout)
+	w := git.NewPacketWriter(os.Stdout, 0)
 
 	if err := s.Init(); err != nil {
 		ExitWithError(err)
@@ -169,14 +170,11 @@ func filterCommand(cmd *cobra.Command, args []string) {
 Scan:
 	for s.Scan() {
 		var err error
-		var w io.Writer
 
 		switch req := s.Request(); req.Header["command"] {
 		case "clean":
-			w = git.NewPacketWriter(os.Stdout, cleanFilterBufferCapacity)
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
-			w = git.NewPacketWriter(os.Stdout, smudgeFilterBufferCapacity)
 			err = smudge(w, req.Payload, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)
