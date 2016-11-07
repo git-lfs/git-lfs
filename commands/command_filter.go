@@ -187,15 +187,15 @@ Scan:
 			break Scan
 		}
 
-		if err == nil {
-			_, err = w.Write(nil)
-		}
-
 		var status string
-		if err != nil && err != io.EOF {
+		if _, ferr := w.Write(nil); ferr != nil {
 			status = "error"
 		} else {
-			status = "success"
+			if err != nil && err != io.EOF {
+				status = "error"
+			} else {
+				status = "success"
+			}
 		}
 		s.WriteStatus(status)
 	}
