@@ -5,9 +5,9 @@ package git
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
+	"github.com/github/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 
@@ -28,6 +28,9 @@ func isStringInSlice(s []string, what string) bool {
 
 type ObjectScanner struct {
 	p *protocol
+
+	req *Request
+	err error
 }
 
 func NewObjectScanner(r io.Reader, w io.Writer) *ObjectScanner {
@@ -36,102 +39,74 @@ func NewObjectScanner(r io.Reader, w io.Writer) *ObjectScanner {
 	}
 }
 
-func (o *ObjectScanner) Init() bool {
+func (o *ObjectScanner) Init() error {
 	tracerx.Printf("Initialize filter")
 	reqVer := "version=2"
 
 	initMsg, err := o.p.readPacketText()
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: reading filter initialization failed with %s\n", err)
-		return false
+		return errors.Wrap(err, "reading filter initialization")
 	}
 	if initMsg != "git-filter-client" {
-		fmt.Fprintf(os.Stderr,
-			"Error: invalid filter protocol welcome message: %s\n", initMsg)
-		return false
+		return fmt.Errorf("invalid filter protocol welcome message: %s", initMsg)
 	}
 
 	supVers, err := o.p.readPacketList()
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: reading filter versions failed with %s\n", err)
-		return false
+		return errors.Wrap(err, "reading filter versions")
 	}
 	if !isStringInSlice(supVers, reqVer) {
-		fmt.Fprintf(os.Stderr,
-			"Error: filter '%s' not supported (your Git supports: %s)\n",
-			reqVer, supVers)
-		return false
+		return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
 	}
 
 	err = o.p.writePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: writing filter initialization failed with %s\n", err)
-		return false
+		return errors.Wrap(err, "writing filter initialization failed")
 	}
-	return true
+	return nil
 }
 
-func (o *ObjectScanner) NegotiateCapabilities() bool {
+func (o *ObjectScanner) NegotiateCapabilities() error {
 	reqCaps := []string{"capability=clean", "capability=smudge"}
 
 	supCaps, err := o.p.readPacketList()
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: reading filter capabilities failed with %s\n", err)
-		return false
+		return fmt.Errorf("reading filter capabilities failed with %s", err)
 	}
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
-			fmt.Fprintf(os.Stderr,
-				"Error: filter '%s' not supported (your Git supports: %s)\n",
-				reqCap, supCaps)
-			return false
+			return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
 		}
 	}
 
 	err = o.p.writePacketList(reqCaps)
 	if err != nil {
-		fmt.Fprintf(os.Stderr,
-			"Error: writing filter capabilities failed with %s\n", err)
+		return fmt.Errorf("writing filter capabilities failed with %s", err)
+	}
+
+	return nil
+}
+
+type Request struct {
+	Header  map[string]string
+	Payload io.Reader
+}
+
+func (o *ObjectScanner) Scan() bool {
+	o.req, o.err = nil, nil
+
+	req, err := o.readRequest()
+	if err != nil {
+		o.err = err
 		return false
 	}
 
+	o.req = req
 	return true
 }
 
-func (o *ObjectScanner) ReadRequest() (map[string]string, []byte, error) {
-	tracerx.Printf("Process filter command.")
-
-	requestList, err := o.p.readPacketList()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	requestMap := make(map[string]string)
-	for _, pair := range requestList {
-		v := strings.Split(pair, "=")
-		requestMap[v[0]] = v[1]
-	}
-
-	var data []byte
-	for {
-		chunk, err := o.p.readPacket()
-		if err != nil {
-			// TODO: should we check the err of this call, to?!
-			o.writeStatus("error")
-			return nil, nil, err
-		}
-		if len(chunk) == 0 {
-			break
-		}
-		data = append(data, chunk...) // probably more efficient way?!
-	}
-	o.writeStatus("success")
-	return requestMap, data, nil
-}
+func (o *ObjectScanner) Request() *Request { return o.req }
+func (o *ObjectScanner) Err() error        { return o.err }
 
 func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 	for {
@@ -144,16 +119,39 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 		}
 		err := o.p.writePacket(outputData[:chunkSize])
 		if err != nil {
-			// TODO: should we check the err of this call, to?!
-			o.writeStatus("error")
+			if werr := o.WriteStatus("error"); werr != nil {
+				return werr
+			}
+
 			return err
 		}
 		outputData = outputData[chunkSize:]
 	}
-	o.writeStatus("success")
-	return nil
+
+	return o.WriteStatus("success")
 }
 
-func (o *ObjectScanner) writeStatus(status string) error {
+func (o *ObjectScanner) readRequest() (*Request, error) {
+	tracerx.Printf("Process filter command.")
+
+	requestList, err := o.p.readPacketList()
+	if err != nil {
+		return nil, err
+	}
+
+	req := &Request{
+		Header:  make(map[string]string),
+		Payload: &packetReader{proto: o.p},
+	}
+
+	for _, pair := range requestList {
+		v := strings.Split(pair, "=")
+		req.Header[v[0]] = v[1]
+	}
+
+	return req, nil
+}
+
+func (o *ObjectScanner) WriteStatus(status string) error {
 	return o.p.writePacketList([]string{"status=" + status})
 }

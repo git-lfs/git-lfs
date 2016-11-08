@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,13 +13,17 @@ func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	var from, to bytes.Buffer
 
 	proto := newProtocolRW(nil, &from)
+	if err := proto.writePacketText("git-filter-client"); err != nil {
+		t.Fatalf("expected... %v", err.Error())
+	}
+
 	require.Nil(t, proto.writePacketText("git-filter-client"))
 	require.Nil(t, proto.writePacketList([]string{"version=2"}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.Init()
+	err := os.Init()
 
-	assert.True(t, ok)
+	assert.Nil(t, err)
 
 	out, err := newProtocolRW(&to, nil).readPacketList()
 	assert.Nil(t, err)
@@ -32,9 +37,10 @@ func TestObjectScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
 	require.Nil(t, proto.writePacketText("git-filter-client-unknown"))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.Init()
+	err := os.Init()
 
-	assert.False(t, ok)
+	require.NotNil(t, err)
+	assert.Equal(t, "invalid filter protocol welcome message: git-filter-client-unknown", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
@@ -47,9 +53,10 @@ func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
 	require.Nil(t, proto.writePacketList([]string{"version=0"}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.Init()
+	err := os.Init()
 
-	assert.False(t, ok)
+	require.NotNil(t, err)
+	assert.Equal(t, "filter 'version=2' not supported (your Git supports: [version=0])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
@@ -62,9 +69,9 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.NegotiateCapabilities()
+	err := os.NegotiateCapabilities()
 
-	assert.True(t, ok)
+	assert.Nil(t, err)
 
 	out, err := newProtocolRW(&to, nil).readPacketList()
 	assert.Nil(t, err)
@@ -81,9 +88,10 @@ func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 	}))
 
 	os := NewObjectScanner(&from, &to)
-	ok := os.NegotiateCapabilities()
+	err := os.NegotiateCapabilities()
 
-	assert.False(t, ok)
+	require.NotNil(t, err)
+	assert.Equal(t, "filter 'capability=clean' not supported (your Git supports: [capability=unsupported])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
@@ -101,16 +109,15 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	_, err := from.Write([]byte{0x30, 0x30, 0x30, 0x30}) // flush packet
 	assert.Nil(t, err)
 
-	headers, payload, err := NewObjectScanner(&from, &to).ReadRequest()
+	req, err := readRequest(NewObjectScanner(&from, &to))
 
 	assert.Nil(t, err)
-	assert.Equal(t, headers["foo"], "bar")
-	assert.Equal(t, headers["other"], "woot")
+	assert.Equal(t, req.Header["foo"], "bar")
+	assert.Equal(t, req.Header["other"], "woot")
+
+	payload, err := ioutil.ReadAll(req.Payload)
+	assert.Nil(t, err)
 	assert.Equal(t, []byte("first\nsecond\n"), payload)
-
-	resp, err := newProtocolRW(&to, nil).readPacketList()
-	assert.Nil(t, err)
-	assert.Equal(t, []string{"status=success"}, resp)
 }
 
 func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
@@ -120,38 +127,12 @@ func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	// (Invalid) headers
 	require.Nil(t, proto.writePacket([]byte{}))
 
-	headers, payload, err := NewObjectScanner(&from, nil).ReadRequest()
+	req, err := readRequest(NewObjectScanner(&from, nil))
 
 	require.NotNil(t, err)
 	assert.Equal(t, "Invalid packet length.", err.Error())
 
-	assert.Nil(t, headers)
-	assert.Empty(t, payload)
-}
-
-func TestObjectScannerRejectsInvalidPayloadPackets(t *testing.T) {
-	var from, to bytes.Buffer
-
-	proto := newProtocolRW(nil, &from)
-	// Headers
-	require.Nil(t, proto.writePacketList([]string{
-		"foo=bar", "other=woot",
-	}))
-	// Multi-line (invalid) packet
-	require.Nil(t, proto.writePacketText("first"))
-	require.Nil(t, proto.writePacketText("second"))
-	require.Nil(t, proto.writePacket([]byte{})) // <-
-
-	headers, payload, err := NewObjectScanner(&from, &to).ReadRequest()
-
-	require.NotNil(t, err)
-	assert.Equal(t, "Invalid packet length.", err.Error())
-	assert.Nil(t, headers)
-	assert.Empty(t, payload)
-
-	resp, err := newProtocolRW(&to, nil).readPacketList()
-	assert.Nil(t, err)
-	assert.Equal(t, []string{"status=error"}, resp)
+	assert.Nil(t, req)
 }
 
 func TestObjectScannerWritesResponsesInOneChunk(t *testing.T) {
@@ -229,4 +210,17 @@ func TestObjectScannerWritesResponsesInMultipleChunks(t *testing.T) {
 	status, err := proto.readPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"status=success"}, status)
+}
+
+// readRequest preforms a single scan operation on the given `*ObjectScanner`,
+// "s", and returns: an error if there was one, or a request if there was one.
+// If neither, it returns (nil, nil).
+func readRequest(s *ObjectScanner) (*Request, error) {
+	s.Scan()
+
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
+
+	return s.Request(), nil
 }
