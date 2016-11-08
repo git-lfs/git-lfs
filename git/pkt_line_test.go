@@ -18,7 +18,7 @@ type PacketReadTestCase struct {
 
 func (c *PacketReadTestCase) Assert(t *testing.T) {
 	buf := bytes.NewReader(c.In)
-	rw := newProtocolRW(buf, nil)
+	rw := newPktline(buf, nil)
 
 	pkt, err := rw.readPacket()
 
@@ -36,7 +36,7 @@ func (c *PacketReadTestCase) Assert(t *testing.T) {
 	}
 }
 
-func TestFilterProtocolReadsWholePackets(t *testing.T) {
+func TestPktLineReadsWholePackets(t *testing.T) {
 	tc := &PacketReadTestCase{
 		In: []byte{
 			0x30, 0x30, 0x30, 0x38, // 0008 (hex. length)
@@ -48,7 +48,7 @@ func TestFilterProtocolReadsWholePackets(t *testing.T) {
 	tc.Assert(t)
 }
 
-func TestFilterProtocolNoPacket(t *testing.T) {
+func TestPktLineNoPacket(t *testing.T) {
 	tc := &PacketReadTestCase{
 		In:  []byte{},
 		Err: io.EOF.Error(),
@@ -57,7 +57,7 @@ func TestFilterProtocolNoPacket(t *testing.T) {
 	tc.Assert(t)
 }
 
-func TestFilterProtocolEmptyPacket(t *testing.T) {
+func TestPktLineEmptyPacket(t *testing.T) {
 	tc := &PacketReadTestCase{
 		In: []byte{
 			0x30, 0x30, 0x30, 0x34,
@@ -71,7 +71,7 @@ func TestFilterProtocolEmptyPacket(t *testing.T) {
 
 }
 
-func TestFilterProtocolFlushPacket(t *testing.T) {
+func TestPktLineFlushPacket(t *testing.T) {
 	tc := &PacketReadTestCase{
 		In: []byte{0x30, 0x30, 0x30, 0x30}, // Flush packet
 
@@ -82,7 +82,7 @@ func TestFilterProtocolFlushPacket(t *testing.T) {
 	tc.Assert(t)
 }
 
-func TestFilterProtocolDiscardsPacketsWithUnparseableLength(t *testing.T) {
+func TestPktLineDiscardsPacketsWithUnparseableLength(t *testing.T) {
 	tc := &PacketReadTestCase{
 		In: []byte{
 			0xff, 0xff, 0xff, 0xff, // ÿÿÿÿ (invalid hex. length)
@@ -94,8 +94,8 @@ func TestFilterProtocolDiscardsPacketsWithUnparseableLength(t *testing.T) {
 	tc.Assert(t)
 }
 
-func TestFilterProtocolReadsTextWithNewline(t *testing.T) {
-	rw := newProtocolRW(bytes.NewReader([]byte{
+func TestPktLineReadsTextWithNewline(t *testing.T) {
+	rw := newPktline(bytes.NewReader([]byte{
 		0x30, 0x30, 0x30, 0x39, // 0009 (hex. length)
 		0x61, 0x62, 0x63, 0x64, 0xa,
 		// Empty body
@@ -107,8 +107,8 @@ func TestFilterProtocolReadsTextWithNewline(t *testing.T) {
 	assert.Equal(t, "abcd", str)
 }
 
-func TestFilterProtocolReadsTextWithoutNewline(t *testing.T) {
-	rw := newProtocolRW(bytes.NewReader([]byte{
+func TestPktLineReadsTextWithoutNewline(t *testing.T) {
+	rw := newPktline(bytes.NewReader([]byte{
 		0x30, 0x30, 0x30, 0x38, // 0009 (hex. length)
 		0x61, 0x62, 0x63, 0x64,
 	}), nil)
@@ -119,8 +119,8 @@ func TestFilterProtocolReadsTextWithoutNewline(t *testing.T) {
 	assert.Equal(t, "abcd", str)
 }
 
-func TestFilterProtocolReadsTextWithErr(t *testing.T) {
-	rw := newProtocolRW(bytes.NewReader([]byte{
+func TestPktLineReadsTextWithErr(t *testing.T) {
+	rw := newPktline(bytes.NewReader([]byte{
 		0x30, 0x30, 0x30, 0x34, // 0004 (hex. length)
 		// No body
 	}), nil)
@@ -132,8 +132,8 @@ func TestFilterProtocolReadsTextWithErr(t *testing.T) {
 	assert.Equal(t, "", str)
 }
 
-func TestFilterProtocolAppendsPacketLists(t *testing.T) {
-	rw := newProtocolRW(bytes.NewReader([]byte{
+func TestPktLineAppendsPacketLists(t *testing.T) {
+	rw := newPktline(bytes.NewReader([]byte{
 		0x30, 0x30, 0x30, 0x38, // 0009 (hex. length)
 		0x61, 0x62, 0x63, 0x64, // "abcd"
 
@@ -149,8 +149,8 @@ func TestFilterProtocolAppendsPacketLists(t *testing.T) {
 	assert.Equal(t, []string{"abcd", "efgh"}, str)
 }
 
-func TestFilterProtocolAppendsPacketListsAndReturnsErrs(t *testing.T) {
-	rw := newProtocolRW(bytes.NewReader([]byte{
+func TestPktLineAppendsPacketListsAndReturnsErrs(t *testing.T) {
+	rw := newPktline(bytes.NewReader([]byte{
 		0x30, 0x30, 0x30, 0x38, // 0009 (hex. length)
 		0x61, 0x62, 0x63, 0x64, // "abcd"
 
@@ -165,10 +165,10 @@ func TestFilterProtocolAppendsPacketListsAndReturnsErrs(t *testing.T) {
 	assert.Empty(t, str)
 }
 
-func TestFilterProtocolWritesPackets(t *testing.T) {
+func TestPktLineWritesPackets(t *testing.T) {
 	var buf bytes.Buffer
 
-	rw := newProtocolRW(nil, &buf)
+	rw := newPktline(nil, &buf)
 	err := rw.writePacket([]byte{
 		0x1, 0x2, 0x3, 0x4,
 	})
@@ -180,20 +180,20 @@ func TestFilterProtocolWritesPackets(t *testing.T) {
 	}, buf.Bytes())
 }
 
-func TestFilterProtocolWritesPacketsEqualToMaxLength(t *testing.T) {
+func TestPktLineWritesPacketsEqualToMaxLength(t *testing.T) {
 	var buf bytes.Buffer
 
-	rw := newProtocolRW(nil, &buf)
+	rw := newPktline(nil, &buf)
 	err := rw.writePacket(make([]byte, MaxPacketLength))
 
 	assert.Nil(t, err)
 	assert.Equal(t, 4+MaxPacketLength, len(buf.Bytes()))
 }
 
-func TestFilterProtocolDoesNotWritePacketsExceedingMaxLength(t *testing.T) {
+func TestPktLineDoesNotWritePacketsExceedingMaxLength(t *testing.T) {
 	var buf bytes.Buffer
 
-	rw := newProtocolRW(nil, &buf)
+	rw := newPktline(nil, &buf)
 	err := rw.writePacket(make([]byte, MaxPacketLength+1))
 
 	require.NotNil(t, err)
@@ -201,10 +201,10 @@ func TestFilterProtocolDoesNotWritePacketsExceedingMaxLength(t *testing.T) {
 	assert.Empty(t, buf.Bytes())
 }
 
-func TestFilterProtocolWritesPacketText(t *testing.T) {
+func TestPktLineWritesPacketText(t *testing.T) {
 	var buf bytes.Buffer
 
-	rw := newProtocolRW(nil, &buf)
+	rw := newPktline(nil, &buf)
 	err := rw.writePacketText("abcd")
 
 	assert.Nil(t, err)
@@ -214,10 +214,10 @@ func TestFilterProtocolWritesPacketText(t *testing.T) {
 	}, buf.Bytes())
 }
 
-func TestFilterProtocolWritesPacketLists(t *testing.T) {
+func TestPktLineWritesPacketLists(t *testing.T) {
 	var buf bytes.Buffer
 
-	rw := newProtocolRW(nil, &buf)
+	rw := newPktline(nil, &buf)
 	err := rw.writePacketList([]string{"foo", "bar"})
 
 	assert.Nil(t, err)

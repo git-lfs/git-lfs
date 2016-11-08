@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-type protocol struct {
+type pktline struct {
 	r *bufio.Reader
 	w *bufio.Writer
 }
 
-func newProtocolRW(r io.Reader, w io.Writer) *protocol {
-	return &protocol{
+func newPktline(r io.Reader, w io.Writer) *pktline {
+	return &pktline{
 		r: bufio.NewReader(r),
 		w: bufio.NewWriter(w),
 	}
@@ -37,7 +37,7 @@ func newProtocolRW(r io.Reader, w io.Writer) *protocol {
 //
 // If none of the above cases fit the state of the data on the wire, the packet
 // is returned along with a nil error.
-func (p *protocol) readPacket() ([]byte, error) {
+func (p *pktline) readPacket() ([]byte, error) {
 	var pktLenHex [4]byte
 	if n, err := io.ReadFull(p.r, pktLenHex[:]); err != nil {
 		return nil, err
@@ -61,12 +61,12 @@ func (p *protocol) readPacket() ([]byte, error) {
 	return payload, err
 }
 
-func (p *protocol) readPacketText() (string, error) {
+func (p *pktline) readPacketText() (string, error) {
 	data, err := p.readPacket()
 	return strings.TrimSuffix(string(data), "\n"), err
 }
 
-func (p *protocol) readPacketList() ([]string, error) {
+func (p *pktline) readPacketList() ([]string, error) {
 	var list []string
 	for {
 		data, err := p.readPacketText()
@@ -84,7 +84,7 @@ func (p *protocol) readPacketList() ([]string, error) {
 	return list, nil
 }
 
-func (p *protocol) writePacket(data []byte) error {
+func (p *pktline) writePacket(data []byte) error {
 	if len(data) > MaxPacketLength {
 		return errors.New("Packet length exceeds maximal length")
 	}
@@ -104,7 +104,7 @@ func (p *protocol) writePacket(data []byte) error {
 	return nil
 }
 
-func (p *protocol) writeFlush() error {
+func (p *pktline) writeFlush() error {
 	if _, err := p.w.WriteString(fmt.Sprintf("%04x", 0)); err != nil {
 		return err
 	}
@@ -116,11 +116,11 @@ func (p *protocol) writeFlush() error {
 	return nil
 }
 
-func (p *protocol) writePacketText(data string) error {
+func (p *pktline) writePacketText(data string) error {
 	return p.writePacket([]byte(data + "\n"))
 }
 
-func (p *protocol) writePacketList(list []string) error {
+func (p *pktline) writePacketList(list []string) error {
 	for _, i := range list {
 		if err := p.writePacketText(i); err != nil {
 			return err

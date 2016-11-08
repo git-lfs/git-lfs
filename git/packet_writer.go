@@ -11,8 +11,8 @@ type PacketWriter struct {
 	// collected to write a full packet, or the buffer was instructed to
 	// flush.
 	buf []byte
-	// proto is the place where packets get written.
-	proto *protocol
+	// pl is the place where packets get written.
+	pl *pktline
 }
 
 var _ io.Writer = new(PacketWriter)
@@ -28,8 +28,8 @@ func NewPacketWriter(w io.Writer, c int) *PacketWriter {
 	}
 
 	return &PacketWriter{
-		buf:   make([]byte, 0, c),
-		proto: newProtocolRW(nil, w),
+		buf: make([]byte, 0, c),
+		pl:  newPktline(nil, w),
 	}
 }
 
@@ -100,7 +100,7 @@ func (w *PacketWriter) Flush() error {
 		return err
 	}
 
-	if err := w.proto.writeFlush(); err != nil {
+	if err := w.pl.writeFlush(); err != nil {
 		return err
 	}
 
@@ -117,7 +117,7 @@ func (w *PacketWriter) flush() (int, error) {
 	var n int
 
 	for len(w.buf) > 0 {
-		if err := w.proto.writePacket(w.buf); err != nil {
+		if err := w.pl.writePacket(w.buf); err != nil {
 			return 0, err
 		}
 

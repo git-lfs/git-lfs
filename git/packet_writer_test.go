@@ -14,9 +14,9 @@ func TestPacketWriterWritesPacketsShorterThanMaxPacketSize(t *testing.T) {
 	assertWriterWrite(t, w, []byte("Hello, world!"), 13)
 	assertWriterWrite(t, w, nil, 0)
 
-	proto := newProtocolRW(&buf, nil)
-	assertPacketRead(t, proto, []byte("Hello, world!"))
-	assertPacketRead(t, proto, nil)
+	pl := newPktline(&buf, nil)
+	assertPacketRead(t, pl, []byte("Hello, world!"))
+	assertPacketRead(t, pl, nil)
 }
 
 func TestPacketWriterWritesPacketsEqualToMaxPacketLength(t *testing.T) {
@@ -35,9 +35,9 @@ func TestPacketWriterWritesPacketsEqualToMaxPacketLength(t *testing.T) {
 	assertWriterWrite(t, w, p, len(big))
 	assertWriterWrite(t, w, nil, 0)
 
-	proto := newProtocolRW(&buf, nil)
-	assertPacketRead(t, proto, big)
-	assertPacketRead(t, proto, nil)
+	pl := newPktline(&buf, nil)
+	assertPacketRead(t, pl, big)
+	assertPacketRead(t, pl, nil)
 }
 
 func TestPacketWriterWritesMultiplePacketsLessThanMaxPacketLength(t *testing.T) {
@@ -48,9 +48,9 @@ func TestPacketWriterWritesMultiplePacketsLessThanMaxPacketLength(t *testing.T) 
 	assertWriterWrite(t, w, []byte("second"), len("second"))
 	assertWriterWrite(t, w, nil, 0)
 
-	proto := newProtocolRW(&buf, nil)
-	assertPacketRead(t, proto, []byte("first\nsecond"))
-	assertPacketRead(t, proto, nil)
+	pl := newPktline(&buf, nil)
+	assertPacketRead(t, pl, []byte("first\nsecond"))
+	assertPacketRead(t, pl, nil)
 }
 
 func TestPacketWriterWritesMultiplePacketsGreaterThanMaxPacketLength(t *testing.T) {
@@ -79,10 +79,10 @@ func TestPacketWriterWritesMultiplePacketsGreaterThanMaxPacketLength(t *testing.
 	// packet
 	offs := MaxPacketLength - len(b1)
 
-	proto := newProtocolRW(&buf, nil)
-	assertPacketRead(t, proto, append(b1, b2[:offs]...))
-	assertPacketRead(t, proto, b2[offs:])
-	assertPacketRead(t, proto, nil)
+	pl := newPktline(&buf, nil)
+	assertPacketRead(t, pl, append(b1, b2[:offs]...))
+	assertPacketRead(t, pl, b2[offs:])
+	assertPacketRead(t, pl, nil)
 }
 
 func TestPacketWriterDoesntWrapItself(t *testing.T) {
@@ -106,8 +106,8 @@ func assertWriterWrite(t *testing.T, w *PacketWriter, p []byte, plen int) {
 	assert.Equal(t, plen, n)
 }
 
-func assertPacketRead(t *testing.T, proto *protocol, expected []byte) {
-	got, err := proto.readPacket()
+func assertPacketRead(t *testing.T, pl *pktline, expected []byte) {
+	got, err := pl.readPacket()
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, got)

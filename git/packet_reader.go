@@ -7,7 +7,7 @@ import (
 )
 
 type packetReader struct {
-	proto *protocol
+	pl *pktline
 
 	buf []byte
 }
@@ -30,7 +30,7 @@ func (r *packetReader) Read(p []byte) (int, error) {
 	// have either, a) overfilled the given buffer "p", or we have started
 	// to internally buffer in "r.buf".
 	for len(r.buf) == 0 {
-		chunk, err := r.proto.readPacket()
+		chunk, err := r.pl.readPacket()
 		if err != nil {
 			return n, err
 		}

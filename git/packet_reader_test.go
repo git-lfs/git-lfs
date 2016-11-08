@@ -25,7 +25,7 @@ func TestPacketReaderReadsSinglePacketsInOneCall(t *testing.T) {
 
 	writePacket(&buf, []byte("asdf"))
 
-	pr := &packetReader{proto: newProtocolRW(&buf, nil)}
+	pr := &packetReader{pl: newPktline(&buf, nil)}
 
 	data, err := ioutil.ReadAll(pr)
 
@@ -38,7 +38,7 @@ func TestPacketReaderReadsManyPacketsInOneCall(t *testing.T) {
 
 	writePacket(&buf, []byte("first\n"), []byte("second"))
 
-	pr := &packetReader{proto: newProtocolRW(&buf, nil)}
+	pr := &packetReader{pl: newPktline(&buf, nil)}
 
 	data, err := ioutil.ReadAll(pr)
 
@@ -51,7 +51,7 @@ func TestPacketReaderReadsSinglePacketsInMultipleCallsWithUnevenBuffering(t *tes
 
 	writePacket(&buf, []byte("asdf"))
 
-	pr := &packetReader{proto: newProtocolRW(&buf, nil)}
+	pr := &packetReader{pl: newPktline(&buf, nil)}
 
 	var p1 [3]byte
 	var p2 [1]byte
@@ -72,7 +72,7 @@ func TestPacketReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *testi
 
 	writePacket(&buf, []byte("first"), []byte("second"))
 
-	pr := &packetReader{proto: newProtocolRW(&buf, nil)}
+	pr := &packetReader{pl: newPktline(&buf, nil)}
 
 	var p1 [4]byte
 	var p2 [7]byte
@@ -99,7 +99,7 @@ func TestPacketReaderReadsSinglePacketsInMultipleCallsWithEvenBuffering(t *testi
 
 	writePacket(&buf, []byte("firstother"))
 
-	pr := &packetReader{proto: newProtocolRW(&buf, nil)}
+	pr := &packetReader{pl: newPktline(&buf, nil)}
 
 	var p1 [5]byte
 	var p2 [5]byte
@@ -120,7 +120,7 @@ func TestPacketReaderReadsManyPacketsInMultipleCallsWithEvenBuffering(t *testing
 
 	writePacket(&buf, []byte("first"), []byte("other"))
 
-	pr := &packetReader{proto: newProtocolRW(&buf, nil)}
+	pr := &packetReader{pl: newPktline(&buf, nil)}
 
 	var p1 [5]byte
 	var p2 [5]byte

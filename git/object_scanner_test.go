@@ -12,20 +12,20 @@ import (
 func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	var from, to bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
-	if err := proto.writePacketText("git-filter-client"); err != nil {
+	pl := newPktline(nil, &from)
+	if err := pl.writePacketText("git-filter-client"); err != nil {
 		t.Fatalf("expected... %v", err.Error())
 	}
 
-	require.Nil(t, proto.writePacketText("git-filter-client"))
-	require.Nil(t, proto.writePacketList([]string{"version=2"}))
+	require.Nil(t, pl.writePacketText("git-filter-client"))
+	require.Nil(t, pl.writePacketList([]string{"version=2"}))
 
 	os := NewObjectScanner(&from, &to)
 	err := os.Init()
 
 	assert.Nil(t, err)
 
-	out, err := newProtocolRW(&to, nil).readPacketList()
+	out, err := newPktline(&to, nil).readPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"git-filter-server", "version=2"}, out)
 }
@@ -33,24 +33,24 @@ func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 func TestObjectScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
 	var from, to bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
-	require.Nil(t, proto.writePacketText("git-filter-client-unknown"))
+	pl := newPktline(nil, &from)
+	require.Nil(t, pl.writePacketText("git-filter-client-unknown"))
 
 	os := NewObjectScanner(&from, &to)
 	err := os.Init()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "invalid filter protocol welcome message: git-filter-client-unknown", err.Error())
+	assert.Equal(t, "invalid filter pkt-line welcome message: git-filter-client-unknown", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
 func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
 	var from, to bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
-	require.Nil(t, proto.writePacketText("git-filter-client"))
+	pl := newPktline(nil, &from)
+	require.Nil(t, pl.writePacketText("git-filter-client"))
 	// Write an unsupported version
-	require.Nil(t, proto.writePacketList([]string{"version=0"}))
+	require.Nil(t, pl.writePacketList([]string{"version=0"}))
 
 	os := NewObjectScanner(&from, &to)
 	err := os.Init()
@@ -63,8 +63,8 @@ func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
 func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	var from, to bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
-	require.Nil(t, proto.writePacketList([]string{
+	pl := newPktline(nil, &from)
+	require.Nil(t, pl.writePacketList([]string{
 		"capability=clean", "capability=smudge", "capability=not-invented-yet",
 	}))
 
@@ -73,7 +73,7 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	out, err := newProtocolRW(&to, nil).readPacketList()
+	out, err := newPktline(&to, nil).readPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"capability=clean", "capability=smudge"}, out)
 }
@@ -81,9 +81,9 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 	var from, to bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
+	pl := newPktline(nil, &from)
 	// Write an unsupported capability
-	require.Nil(t, proto.writePacketList([]string{
+	require.Nil(t, pl.writePacketList([]string{
 		"capability=unsupported",
 	}))
 
@@ -98,14 +98,14 @@ func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	var from, to bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
+	pl := newPktline(nil, &from)
 	// Headers
-	require.Nil(t, proto.writePacketList([]string{
+	require.Nil(t, pl.writePacketList([]string{
 		"foo=bar", "other=woot",
 	}))
 	// Multi-line packet
-	require.Nil(t, proto.writePacketText("first"))
-	require.Nil(t, proto.writePacketText("second"))
+	require.Nil(t, pl.writePacketText("first"))
+	require.Nil(t, pl.writePacketText("second"))
 	_, err := from.Write([]byte{0x30, 0x30, 0x30, 0x30}) // flush packet
 	assert.Nil(t, err)
 
@@ -123,9 +123,9 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	var from bytes.Buffer
 
-	proto := newProtocolRW(nil, &from)
+	pl := newPktline(nil, &from)
 	// (Invalid) headers
-	require.Nil(t, proto.writePacket([]byte{}))
+	require.Nil(t, pl.writePacket([]byte{}))
 
 	req, err := readRequest(NewObjectScanner(&from, nil))
 
@@ -144,17 +144,17 @@ func TestObjectScannerWritesResponsesInOneChunk(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	proto := newProtocolRW(&buf, nil)
+	pl := newPktline(&buf, nil)
 
-	payload, err := proto.readPacket()
+	payload, err := pl.readPacket()
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("hello world"), payload)
 
 	// read terminating packet
-	_, err = proto.readPacket()
+	_, err = pl.readPacket()
 	assert.Nil(t, err)
 
-	status, err := proto.readPacketList()
+	status, err := pl.readPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"status=success"}, status)
 }
@@ -166,13 +166,13 @@ func TestObjectScannerWritesEmptyResponses(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	proto := newProtocolRW(&buf, nil)
+	pl := newPktline(&buf, nil)
 
-	payload, err := proto.readPacket()
+	payload, err := pl.readPacket()
 	assert.Nil(t, err)
 	assert.Empty(t, payload)
 
-	status, err := proto.readPacketList()
+	status, err := pl.readPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"status=success"}, status)
 }
@@ -190,10 +190,10 @@ func TestObjectScannerWritesResponsesInMultipleChunks(t *testing.T) {
 	err := NewObjectScanner(nil, &buf).WriteResponse(payload)
 	assert.Nil(t, err)
 
-	proto := newProtocolRW(&buf, nil)
+	pl := newPktline(&buf, nil)
 
 	for i := 0; i < 2; i++ {
-		pkt, err := proto.readPacket()
+		pkt, err := pl.readPacket()
 		assert.Nil(t, err)
 
 		part := make([]byte, MaxPacketLength)
@@ -205,9 +205,9 @@ func TestObjectScannerWritesResponsesInMultipleChunks(t *testing.T) {
 	}
 
 	// read empty packet after flushing
-	_, err = proto.readPacket()
+	_, err = pl.readPacket()
 
-	status, err := proto.readPacketList()
+	status, err := pl.readPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"status=success"}, status)
 }
