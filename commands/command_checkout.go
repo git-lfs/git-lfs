@@ -11,6 +11,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +56,7 @@ func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.Wrap
 	// Map oid to multiple pointers
 	mapping := make(map[string][]*lfs.WrappedPointer)
 	for _, pointer := range pointers {
-		if lfs.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+		if tools.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
 			mapping[pointer.Oid] = append(mapping[pointer.Oid], pointer)
 		}
 	}
@@ -115,7 +116,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	totalBytes = 0
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-		if lfs.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+		if tools.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
 			progress.Add(pointer.Name)
 			c <- pointer
 			// not strictly correct (parallel) but we don't have a callback & it's just local

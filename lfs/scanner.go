@@ -1066,12 +1066,12 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 			} else {
 				currentFilename = match[1]
 			}
-			currentFileIncluded = FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
+			currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
 		} else if match := fileMergeHeaderRegex.FindStringSubmatch(line); match != nil {
 			// Git merge file header is a little different, only one file
 			finishLastPointer()
 			currentFilename = match[1]
-			currentFileIncluded = FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
+			currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
 		} else if currentFileIncluded {
 			if match := pointerDataRegex.FindStringSubmatch(line); match != nil {
 				// An LFS pointer data line
