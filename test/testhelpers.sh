@@ -314,12 +314,7 @@ setup() {
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
 
-  if [ "$GIT_LFS_USE_LEGACY_FILTER" == "1" ]; then
-    FILTER="clean"
-  else
-    FILTER="filter"
-  fi
-  grep "git-lfs $FILTER" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
+  ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
     exit 1

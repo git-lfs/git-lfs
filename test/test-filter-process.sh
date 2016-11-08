@@ -2,11 +2,6 @@
 
 . "test/testlib.sh"
 
-if [ "$GIT_LFS_USE_LEGACY_FILTER" == "1" ]; then
-  echo "skip: $0 (filter process disabled)"
-  exit
-fi
-
 # HACK(taylor): git uses ".g<hash>" in the version name to signal that it is
 # from the "next" branch, which is the only (current) version of Git that has
 # support for the filter protocol.

@@ -117,7 +117,6 @@ func (p *protocol) writeFlush() error {
 }
 
 func (p *protocol) writePacketText(data string) error {
-	//TODO: there is probably a more efficient way to do this. worth it?
 	return p.writePacket([]byte(data + "\n"))
 }
 

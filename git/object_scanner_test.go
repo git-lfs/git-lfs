@@ -65,7 +65,7 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 
 	proto := newProtocolRW(nil, &from)
 	require.Nil(t, proto.writePacketList([]string{
-		"capability=clean", "capability=smudge",
+		"capability=clean", "capability=smudge", "capability=not-invented-yet",
 	}))
 
 	os := NewObjectScanner(&from, &to)
