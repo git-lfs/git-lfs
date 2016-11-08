@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -125,6 +126,8 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	if useStdin {
 		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
+		fmt.Fprintln(os.Stderr, "WARNING: 'git lfs push --stdin' is deprecated, and will be removed in v2.0.")
+		fmt.Fprintln(os.Stderr, "Run 'git lfs update' or ensure .git/hooks/pre-push uses 'git lfs pre-push'.")
 
 		// called from a pre-push hook!  Update the existing pre-push hook if it's
 		// one that git-lfs set.
