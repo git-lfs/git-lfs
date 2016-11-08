@@ -32,9 +32,9 @@ var (
 			"required": "true",
 		},
 		Upgradeables: map[string][]string{
-			"clean":  []string{"git-lfs clean %f"},
-			"smudge": []string{"git-lfs smudge %f"},
-			// TODO: process here, too?
+			"clean":   []string{"git-lfs clean %f"},
+			"smudge":  []string{"git-lfs smudge %f"},
+			"process": []string{"git-lfs filter"},
 		},
 	}
 
@@ -47,8 +47,9 @@ var (
 			"required": "true",
 		},
 		Upgradeables: map[string][]string{
-			"clean":  []string{"git-lfs clean %f"},
-			"smudge": []string{"git-lfs smudge --skip %f"},
+			"clean":   []string{"git-lfs clean %f"},
+			"smudge":  []string{"git-lfs smudge --skip %f"},
+			"process": []string{"git-lfs filter --skip"},
 		},
 	}
 )
