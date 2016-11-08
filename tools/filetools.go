@@ -264,7 +264,7 @@ func fastWalkFromRoot(dir string, excludeFilename string,
 	// This waitgroup will be incremented for each nested goroutine
 	var waitg sync.WaitGroup
 
-	fastWalkItem(filepath.Dir(dir), dirFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, &waitg)
+	fastWalkFileOrDir(filepath.Dir(dir), dirFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, &waitg)
 
 	waitg.Wait()
 	close(fiChan)
@@ -272,9 +272,13 @@ func fastWalkFromRoot(dir string, excludeFilename string,
 
 }
 
-// Main recursive implementation of fast walk
-// Increment waitg.Add(1) for each new goroutine launched internally
-func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
+// fastWalkFileOrDir is the main recursive implementation of fast walk
+// Sends the file/dir and any contents to the channel so long as it passes the
+// include/exclude filter. If a dir, parses any excludeFilename found and updates
+// the excludePaths with its content before (parallel) recursing into contents
+// Also splits large directories into multiple goroutines.
+// Increments waitg.Add(1) for each new goroutine launched internally
+func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename string,
 	includePaths, excludePaths []string, fiChan chan<- FastWalkInfo, errChan chan<- error,
 	waitg *sync.WaitGroup) {
 
@@ -318,7 +322,7 @@ func fastWalkItem(parentDir string, itemFi os.FileInfo, excludeFilename string,
 		waitg.Add(1)
 		go func(subitems []os.FileInfo) {
 			for _, childFi := range subitems {
-				fastWalkItem(fullPath, childFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, waitg)
+				fastWalkFileOrDir(fullPath, childFi, excludeFilename, includePaths, excludePaths, fiChan, errChan, waitg)
 			}
 			waitg.Done()
 		}(children)
