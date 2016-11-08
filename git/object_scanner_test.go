@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -113,11 +114,10 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, req.Header["foo"], "bar")
 	assert.Equal(t, req.Header["other"], "woot")
-	assert.Equal(t, []byte("first\nsecond\n"), req.Payload)
 
-	resp, err := newProtocolRW(&to, nil).readPacketList()
+	payload, err := ioutil.ReadAll(req.Payload)
 	assert.Nil(t, err)
-	assert.Equal(t, []string{"status=success"}, resp)
+	assert.Equal(t, []byte("first\nsecond\n"), payload)
 }
 
 func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
@@ -133,30 +133,6 @@ func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	assert.Equal(t, "Invalid packet length.", err.Error())
 
 	assert.Nil(t, req)
-}
-
-func TestObjectScannerRejectsInvalidPayloadPackets(t *testing.T) {
-	var from, to bytes.Buffer
-
-	proto := newProtocolRW(nil, &from)
-	// Headers
-	require.Nil(t, proto.writePacketList([]string{
-		"foo=bar", "other=woot",
-	}))
-	// Multi-line (invalid) packet
-	require.Nil(t, proto.writePacketText("first"))
-	require.Nil(t, proto.writePacketText("second"))
-	require.Nil(t, proto.writePacket([]byte{})) // <-
-
-	req, err := readRequest(NewObjectScanner(&from, &to))
-
-	require.NotNil(t, err)
-	assert.Equal(t, "Invalid packet length.", err.Error())
-	assert.Nil(t, req)
-
-	resp, err := newProtocolRW(&to, nil).readPacketList()
-	assert.Nil(t, err)
-	assert.Equal(t, []string{"status=error"}, resp)
 }
 
 func TestObjectScannerWritesResponsesInOneChunk(t *testing.T) {

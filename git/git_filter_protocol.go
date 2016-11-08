@@ -89,7 +89,7 @@ func (o *ObjectScanner) NegotiateCapabilities() error {
 
 type Request struct {
 	Header  map[string]string
-	Payload []byte
+	Payload io.Reader
 }
 
 func (o *ObjectScanner) Scan() bool {
@@ -119,7 +119,7 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 		}
 		err := o.p.writePacket(outputData[:chunkSize])
 		if err != nil {
-			if werr := o.writeStatus("error"); werr != nil {
+			if werr := o.WriteStatus("error"); werr != nil {
 				return werr
 			}
 
@@ -128,7 +128,7 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 		outputData = outputData[chunkSize:]
 	}
 
-	return o.writeStatus("success")
+	return o.WriteStatus("success")
 }
 
 func (o *ObjectScanner) readRequest() (*Request, error) {
@@ -140,7 +140,8 @@ func (o *ObjectScanner) readRequest() (*Request, error) {
 	}
 
 	req := &Request{
-		Header: make(map[string]string),
+		Header:  make(map[string]string),
+		Payload: &packetReader{proto: o.p},
 	}
 
 	for _, pair := range requestList {
@@ -148,28 +149,9 @@ func (o *ObjectScanner) readRequest() (*Request, error) {
 		req.Header[v[0]] = v[1]
 	}
 
-	for {
-		chunk, err := o.p.readPacket()
-		if err != nil {
-			if werr := o.writeStatus("error"); werr != nil {
-				return nil, werr
-			}
-
-			return nil, err
-		}
-		if len(chunk) == 0 {
-			break
-		}
-		req.Payload = append(req.Payload, chunk...) // probably more efficient way?!
-	}
-
-	if err := o.writeStatus("success"); err != nil {
-		return nil, err
-	}
-
 	return req, nil
 }
 
-func (o *ObjectScanner) writeStatus(status string) error {
+func (o *ObjectScanner) WriteStatus(status string) error {
 	return o.p.writePacketList([]string{"status=" + status})
 }
