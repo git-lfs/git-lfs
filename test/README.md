@@ -76,7 +76,6 @@ and the remote repository data in `test/remote`.
 * `SKIPCOMPILE=1` - This skips the Git LFS compilation step.  Speeds up the
 tests when you're running the same test script multiple times without changing
 any Go code.
-* `GIT_LFS_USE_LEGACY_FILTER=1` - TODO
 
 Also ensure that your `noproxy` environment variable contains `127.0.0.1` host,
 to allow git commands to reach the local Git server `lfstest-gitserver`.
