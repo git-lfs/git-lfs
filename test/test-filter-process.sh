@@ -48,7 +48,7 @@ begin_test "filter process: checking out a branch"
 
   pushd ..
     git \
-      -c "filter.lfs.process=git-lfs filter" \
+      -c "filter.lfs.process=git-lfs filter-process" \
       -c "filter.lfs.clean="\
       -c "filter.lfs.smudge=" \
       -c "filter.lfs.required=true" \

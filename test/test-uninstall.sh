@@ -12,7 +12,7 @@ begin_test "uninstall outside repository"
 
   printf "$smudge" | grep "git-lfs smudge"
   printf "$clean" | grep "git-lfs clean"
-  printf "$filter" | grep "git-lfs filter"
+  printf "$filter" | grep "git-lfs filter-process"
 
   # uninstall multiple times to trigger https://github.com/github/git-lfs/issues/529
   git lfs uninstall
@@ -44,7 +44,7 @@ begin_test "uninstall inside repository with default pre-push hook"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs filter" = "$(git config filter.lfs.process)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 
   git lfs uninstall
 
@@ -75,7 +75,7 @@ begin_test "uninstall inside repository without git lfs pre-push hook"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs filter" = "$(git config filter.lfs.process)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 
   git lfs uninstall
 
@@ -101,7 +101,7 @@ begin_test "uninstall hooks inside repository"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs filter" = "$(git config filter.lfs.process)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 
   git lfs uninstall hooks
 
@@ -112,6 +112,6 @@ begin_test "uninstall hooks inside repository"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
-  [ "git-lfs filter" = "$(git config filter.lfs.process)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 )
 end_test

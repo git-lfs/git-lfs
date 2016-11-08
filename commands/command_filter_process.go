@@ -206,7 +206,7 @@ Scan:
 }
 
 func init() {
-	RegisterCommand("filter", filterCommand, func(cmd *cobra.Command) {
+	RegisterCommand("filter-process", filterCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&filterSmudgeSkip, "skip", "s", false, "")
 	})
 }

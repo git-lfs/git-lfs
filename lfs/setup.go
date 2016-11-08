@@ -28,7 +28,7 @@ var (
 		Properties: map[string]string{
 			"clean":    "git-lfs clean -- %f",
 			"smudge":   "git-lfs smudge -- %f",
-			"process":  "git-lfs filter",
+			"process":  "git-lfs filter-process",
 			"required": "true",
 		},
 		Upgradeables: map[string][]string{
@@ -43,7 +43,7 @@ var (
 		Properties: map[string]string{
 			"clean":    "git-lfs clean -- %f",
 			"smudge":   "git-lfs smudge --skip -- %f",
-			"process":  "git-lfs filter --skip",
+			"process":  "git-lfs filter-process --skip",
 			"required": "true",
 		},
 		Upgradeables: map[string][]string{
