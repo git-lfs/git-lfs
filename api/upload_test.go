@@ -39,7 +39,7 @@ func TestExistingUpload(t *testing.T) {
 
 	postCalled := false
 
-	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 
 		if r.Method != "POST" {
@@ -57,38 +57,38 @@ func TestExistingUpload(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &api.ObjectResource{}
-		err := json.NewDecoder(tee).Decode(reqObj)
+		reqObj := batchResponse{}
+		err := json.NewDecoder(tee).Decode(&reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
-			t.Errorf("invalid oid from request: %s", reqObj.Oid)
+		var obj *api.ObjectResource
+		if len(reqObj.Objects) != 1 {
+			t.Errorf("Invalid number of objects")
+			w.WriteHeader(400)
+			return
+		} else {
+			obj = reqObj.Objects[0]
+			if obj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
+				t.Errorf("invalid oid from request: %s", obj.Oid)
+			}
+
+			if obj.Size != 4 {
+				t.Errorf("invalid size from request: %d", obj.Size)
+			}
 		}
 
-		if reqObj.Size != 4 {
-			t.Errorf("invalid size from request: %d", reqObj.Size)
-		}
-
-		obj := &api.ObjectResource{
-			Oid:  reqObj.Oid,
-			Size: reqObj.Size,
-			Actions: map[string]*api.LinkRelation{
-				"upload": &api.LinkRelation{
-					Href:   server.URL + "/upload",
-					Header: map[string]string{"A": "1"},
-				},
-				"verify": &api.LinkRelation{
-					Href:   server.URL + "/verify",
-					Header: map[string]string{"B": "2"},
-				},
+		obj.Actions = map[string]*api.LinkRelation{
+			"download": &api.LinkRelation{
+				Href:   server.URL + "/download",
+				Header: map[string]string{"A": "1"},
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -114,15 +114,24 @@ func TestExistingUpload(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
 		}
 		t.Fatal(err)
 	}
-	if o != nil {
-		t.Errorf("Got an object back")
+
+	if o == nil {
+		t.Fatal("Got no objects back")
+	}
+
+	if _, ok := o.Rel("upload"); ok {
+		t.Errorf("has upload relation")
+	}
+
+	if _, ok := o.Rel("download"); !ok {
+		t.Errorf("has no download relation")
 	}
 
 	if !postCalled {
@@ -147,7 +156,7 @@ func TestUploadWithRedirect(t *testing.T) {
 	defer server.Close()
 	defer os.RemoveAll(tmp)
 
-	mux.HandleFunc("/redirect/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/redirect/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 
 		if r.Method != "POST" {
@@ -155,11 +164,11 @@ func TestUploadWithRedirect(t *testing.T) {
 			return
 		}
 
-		w.Header().Set("Location", server.URL+"/redirect2/objects")
+		w.Header().Set("Location", server.URL+"/redirect2/objects/batch")
 		w.WriteHeader(307)
 	})
 
-	mux.HandleFunc("/redirect2/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/redirect2/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 
 		if r.Method != "POST" {
@@ -167,11 +176,11 @@ func TestUploadWithRedirect(t *testing.T) {
 			return
 		}
 
-		w.Header().Set("Location", server.URL+"/media/objects")
+		w.Header().Set("Location", server.URL+"/media/objects/batch")
 		w.WriteHeader(307)
 	})
 
-	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 
 		if r.Method != "POST" {
@@ -189,36 +198,42 @@ func TestUploadWithRedirect(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &api.ObjectResource{}
-		err := json.NewDecoder(tee).Decode(reqObj)
+		reqObj := batchResponse{}
+		err := json.NewDecoder(tee).Decode(&reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
-			t.Errorf("invalid oid from request: %s", reqObj.Oid)
+		var obj *api.ObjectResource
+		if len(reqObj.Objects) != 1 {
+			t.Errorf("Invalid number of objects")
+			w.WriteHeader(400)
+			return
+		} else {
+			obj = reqObj.Objects[0]
+			if obj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
+				t.Errorf("invalid oid from request: %s", obj.Oid)
+			}
+
+			if obj.Size != 4 {
+				t.Errorf("invalid size from request: %d", obj.Size)
+			}
 		}
 
-		if reqObj.Size != 4 {
-			t.Errorf("invalid size from request: %d", reqObj.Size)
-		}
-
-		obj := &api.ObjectResource{
-			Actions: map[string]*api.LinkRelation{
-				"upload": &api.LinkRelation{
-					Href:   server.URL + "/upload",
-					Header: map[string]string{"A": "1"},
-				},
-				"verify": &api.LinkRelation{
-					Href:   server.URL + "/verify",
-					Header: map[string]string{"B": "2"},
-				},
+		obj.Actions = map[string]*api.LinkRelation{
+			"upload": &api.LinkRelation{
+				Href:   server.URL + "/upload",
+				Header: map[string]string{"A": "1"},
+			},
+			"verify": &api.LinkRelation{
+				Href:   server.URL + "/verify",
+				Header: map[string]string{"B": "2"},
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -243,7 +258,7 @@ func TestUploadWithRedirect(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -251,8 +266,16 @@ func TestUploadWithRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if o != nil {
-		t.Fatal("Received an object")
+	if o == nil {
+		t.Fatal("Got no objects back")
+	}
+
+	if _, ok := o.Rel("download"); ok {
+		t.Errorf("has download relation")
+	}
+
+	if _, ok := o.Rel("upload"); !ok {
+		t.Errorf("has no upload relation")
 	}
 }
 
@@ -275,7 +298,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	postCalled := false
 	verifyCalled := false
 
-	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 
 		if r.Method != "POST" {
@@ -293,38 +316,42 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &api.ObjectResource{}
-		err := json.NewDecoder(tee).Decode(reqObj)
+		reqObj := batchResponse{}
+		err := json.NewDecoder(tee).Decode(&reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
-			t.Errorf("invalid oid from request: %s", reqObj.Oid)
+		var obj *api.ObjectResource
+		if len(reqObj.Objects) != 1 {
+			t.Errorf("Invalid number of objects")
+			w.WriteHeader(400)
+			return
+		} else {
+			obj = reqObj.Objects[0]
+			if obj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
+				t.Errorf("invalid oid from request: %s", obj.Oid)
+			}
+
+			if obj.Size != 4 {
+				t.Errorf("invalid size from request: %d", obj.Size)
+			}
 		}
 
-		if reqObj.Size != 4 {
-			t.Errorf("invalid size from request: %d", reqObj.Size)
-		}
-
-		obj := &api.ObjectResource{
-			Oid:  reqObj.Oid,
-			Size: reqObj.Size,
-			Actions: map[string]*api.LinkRelation{
-				"upload": &api.LinkRelation{
-					Href:   server.URL + "/upload",
-					Header: map[string]string{"A": "1"},
-				},
-				"verify": &api.LinkRelation{
-					Href:   server.URL + "/verify",
-					Header: map[string]string{"B": "2"},
-				},
+		obj.Actions = map[string]*api.LinkRelation{
+			"upload": &api.LinkRelation{
+				Href:   server.URL + "/upload",
+				Header: map[string]string{"A": "1"},
+			},
+			"verify": &api.LinkRelation{
+				Href:   server.URL + "/verify",
+				Header: map[string]string{"B": "2"},
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -333,7 +360,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(202)
+		w.WriteHeader(200)
 		w.Write(by)
 	})
 
@@ -388,7 +415,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -404,7 +431,6 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	if !verifyCalled {
 		t.Errorf("verify not called")
 	}
-
 }
 
 func TestUploadApiError(t *testing.T) {
@@ -425,7 +451,7 @@ func TestUploadApiError(t *testing.T) {
 
 	postCalled := false
 
-	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		postCalled = true
 		w.WriteHeader(404)
 	})
@@ -443,7 +469,7 @@ func TestUploadApiError(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	_, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	_, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -456,7 +482,7 @@ func TestUploadApiError(t *testing.T) {
 		return
 	}
 
-	expected := "LFS: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects")
+	expected := "batch response: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects/batch")
 	if err.Error() != expected {
 		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}
@@ -485,7 +511,7 @@ func TestUploadVerifyError(t *testing.T) {
 	postCalled := false
 	verifyCalled := false
 
-	mux.HandleFunc("/media/objects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 
 		if r.Method != "POST" {
@@ -503,38 +529,42 @@ func TestUploadVerifyError(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(r.Body, buf)
-		reqObj := &api.ObjectResource{}
-		err := json.NewDecoder(tee).Decode(reqObj)
+		reqObj := batchResponse{}
+		err := json.NewDecoder(tee).Decode(&reqObj)
 		t.Logf("request header: %v", r.Header)
 		t.Logf("request body: %s", buf.String())
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if reqObj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
-			t.Errorf("invalid oid from request: %s", reqObj.Oid)
+		var obj *api.ObjectResource
+		if len(reqObj.Objects) != 1 {
+			t.Errorf("Invalid number of objects")
+			w.WriteHeader(400)
+			return
+		} else {
+			obj = reqObj.Objects[0]
+			if obj.Oid != "988881adc9fc3655077dc2d4d757d480b5ea0e11" {
+				t.Errorf("invalid oid from request: %s", obj.Oid)
+			}
+
+			if obj.Size != 4 {
+				t.Errorf("invalid size from request: %d", obj.Size)
+			}
 		}
 
-		if reqObj.Size != 4 {
-			t.Errorf("invalid size from request: %d", reqObj.Size)
-		}
-
-		obj := &api.ObjectResource{
-			Oid:  reqObj.Oid,
-			Size: reqObj.Size,
-			Actions: map[string]*api.LinkRelation{
-				"upload": &api.LinkRelation{
-					Href:   server.URL + "/upload",
-					Header: map[string]string{"A": "1"},
-				},
-				"verify": &api.LinkRelation{
-					Href:   server.URL + "/verify",
-					Header: map[string]string{"B": "2"},
-				},
+		obj.Actions = map[string]*api.LinkRelation{
+			"upload": &api.LinkRelation{
+				Href:   server.URL + "/upload",
+				Header: map[string]string{"A": "1"},
+			},
+			"verify": &api.LinkRelation{
+				Href:   server.URL + "/verify",
+				Header: map[string]string{"B": "2"},
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -543,7 +573,7 @@ func TestUploadVerifyError(t *testing.T) {
 		head := w.Header()
 		head.Set("Content-Type", api.MediaType)
 		head.Set("Content-Length", strconv.Itoa(len(by)))
-		w.WriteHeader(202)
+		w.WriteHeader(200)
 		w.Write(by)
 	})
 
@@ -565,7 +595,7 @@ func TestUploadVerifyError(t *testing.T) {
 
 	oid := filepath.Base(oidPath)
 	stat, _ := os.Stat(oidPath)
-	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
+	o, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return

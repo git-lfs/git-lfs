@@ -74,3 +74,15 @@ func TestClientReturnsCleanupErrors(t *testing.T) {
 	assert.Nil(t, r1)
 	assert.Equal(t, "uh-oh!", err.Error())
 }
+
+func newBatchResponse(operation string, objects ...*api.ObjectResource) batchResponse {
+	return batchResponse{
+		Operation: operation,
+		Objects:   objects,
+	}
+}
+
+type batchResponse struct {
+	Operation string                `json:"operation,omitempty"`
+	Objects   []*api.ObjectResource `json:"objects"`
+}

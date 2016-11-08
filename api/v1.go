@@ -17,25 +17,6 @@ const (
 	MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
 
-// doLegacyApiRequest runs the request to the LFS legacy API.
-func DoLegacyRequest(cfg *config.Configuration, req *http.Request) (*http.Response, *ObjectResource, error) {
-	via := make([]*http.Request, 0, 4)
-	res, err := httputil.DoHttpRequestWithRedirects(cfg, req, via, true)
-	if err != nil {
-		return res, nil, err
-	}
-
-	obj := &ObjectResource{}
-	err = httputil.DecodeResponse(res, obj)
-
-	if err != nil {
-		httputil.SetErrorResponseContext(cfg, err, res)
-		return nil, nil, err
-	}
-
-	return res, obj, nil
-}
-
 type batchRequest struct {
 	TransferAdapterNames []string          `json:"transfers,omitempty"`
 	Operation            string            `json:"operation"`

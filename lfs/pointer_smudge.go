@@ -76,7 +76,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
 	xfers := manifest.GetDownloadAdapterNames()
-	obj, adapterName, err := api.BatchOrLegacySingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
+	obj, adapterName, err := api.BatchSingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
 		return errors.Wrapf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}

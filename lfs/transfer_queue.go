@@ -6,7 +6,6 @@ import (
 	"github.com/github/git-lfs/api"
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/progress"
 	"github.com/github/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
@@ -24,8 +23,6 @@ type Transferable interface {
 	Path() string
 	Object() *api.ObjectResource
 	SetObject(*api.ObjectResource)
-	// Legacy API check - TODO remove this and only support batch
-	LegacyCheck() (*api.ObjectResource, error)
 }
 
 type retryCounter struct {
@@ -333,70 +330,6 @@ func (q *TransferQueue) Watch() chan string {
 	return c
 }
 
-// individualApiRoutine processes the queue of transfers one at a time by making
-// a POST call for each object, feeding the results to the transfer workers.
-// If configured, the object transfers can still happen concurrently, the
-// sequential nature here is only for the meta POST calls.
-// TODO LEGACY API: remove when legacy API removed
-func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
-	for t := range q.apic {
-		obj, err := t.LegacyCheck()
-		if err != nil {
-			if q.canRetryObject(t.Oid(), err) {
-				q.retry(t)
-			} else {
-				q.errorc <- err
-				q.wait.Done()
-			}
-			continue
-		}
-
-		if apiWaiter != nil { // Signal to launch more individual api workers
-			q.meter.Start()
-			select {
-			case apiWaiter <- 1:
-			default:
-			}
-		}
-
-		// Legacy API has no support for anything but basic transfer adapter
-		q.useAdapter(transfer.BasicAdapterName)
-		if obj != nil {
-			t.SetObject(obj)
-			q.meter.Add(t.Name())
-			q.addToAdapter(t)
-		} else {
-			q.Skip(t.Size())
-			q.wait.Done()
-		}
-	}
-}
-
-// legacyFallback is used when a batch request is made to a server that does
-// not support the batch endpoint. When this happens, the Transferables are
-// fed from the batcher into apic to be processed individually.
-// TODO LEGACY API: remove when legacy API removed
-func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
-	tracerx.Printf("tq: batch api not implemented, falling back to individual")
-
-	q.launchIndividualApiRoutines()
-
-	for _, t := range failedBatch {
-		q.apic <- t.(Transferable)
-	}
-
-	for {
-		batch := q.batcher.Next()
-		if batch == nil {
-			break
-		}
-
-		for _, t := range batch {
-			q.apic <- t.(Transferable)
-		}
-	}
-}
-
 // batchApiRoutine processes the queue of transfers using the batch endpoint,
 // making only one POST call for all objects. The results are then handed
 // off to the transfer workers.
@@ -425,12 +358,6 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		objs, adapterName, err := api.Batch(config.Config, transfers, q.transferKind(), transferAdapterNames)
 		if err != nil {
-			if errors.IsNotImplementedError(err) {
-				git.Config.SetLocal("", "lfs.batch", "false")
-				go q.legacyFallback(batch)
-				return
-			}
-
 			var errOnce sync.Once
 			for _, o := range batch {
 				t := o.(Transferable)
@@ -515,23 +442,6 @@ func (q *TransferQueue) retryCollector() {
 	q.retrywait.Done()
 }
 
-// launchIndividualApiRoutines first launches a single api worker. When it
-// receives the first successful api request it launches workers - 1 more
-// workers. This prevents being prompted for credentials multiple times at once
-// when they're needed.
-func (q *TransferQueue) launchIndividualApiRoutines() {
-	go func() {
-		apiWaiter := make(chan interface{})
-		go q.individualApiRoutine(apiWaiter)
-
-		<-apiWaiter
-
-		for i := 0; i < q.oldApiWorkers-1; i++ {
-			go q.individualApiRoutine(nil)
-		}
-	}()
-}
-
 // run starts the transfer queue, doing individual or batch transfers depending
 // on the Config.BatchTransfer() value. run will transfer files sequentially or
 // concurrently depending on the Config.ConcurrentTransfers() value.
@@ -539,14 +449,9 @@ func (q *TransferQueue) run() {
 	go q.errorCollector()
 	go q.retryCollector()
 
-	if config.Config.BatchTransfer() {
-		tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
-		q.batcher = NewBatcher(batchSize)
-		go q.batchApiRoutine()
-	} else {
-		tracerx.Printf("tq: running as individual queue")
-		q.launchIndividualApiRoutines()
-	}
+	tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
+	q.batcher = NewBatcher(batchSize)
+	go q.batchApiRoutine()
 }
 
 func (q *TransferQueue) retry(t Transferable) {
