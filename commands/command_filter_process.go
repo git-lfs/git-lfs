@@ -11,6 +11,7 @@ import (
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
+	"github.com/github/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -126,7 +127,7 @@ func smudge(to io.Writer, reader io.Reader, filename string) error {
 	}
 
 	cfg := config.Config
-	download := lfs.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	download := tools.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	if filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		download = false
