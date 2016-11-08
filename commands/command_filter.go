@@ -173,9 +173,6 @@ Scan:
 		var w io.Writer
 
 		req := s.Request()
-		if req == nil {
-			break
-		}
 		s.WriteStatus("success")
 
 		switch req.Header["command"] {
