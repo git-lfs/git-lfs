@@ -159,7 +159,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git filter process")
 	lfs.InstallHooks(false)
 
-	s := git.NewObjectScanner(os.Stdin, os.Stdout)
+	s := git.NewFilterProcessScanner(os.Stdin, os.Stdout)
 
 	if err := s.Init(); err != nil {
 		ExitWithError(err)

@@ -25,20 +25,20 @@ func isStringInSlice(s []string, what string) bool {
 	return false
 }
 
-type ObjectScanner struct {
+type FilterProcessScanner struct {
 	pl *pktline
 
 	req *Request
 	err error
 }
 
-func NewObjectScanner(r io.Reader, w io.Writer) *ObjectScanner {
-	return &ObjectScanner{
+func NewFilterProcessScanner(r io.Reader, w io.Writer) *FilterProcessScanner {
+	return &FilterProcessScanner{
 		pl: newPktline(r, w),
 	}
 }
 
-func (o *ObjectScanner) Init() error {
+func (o *FilterProcessScanner) Init() error {
 	tracerx.Printf("Initialize filter")
 	reqVer := "version=2"
 
@@ -65,7 +65,7 @@ func (o *ObjectScanner) Init() error {
 	return nil
 }
 
-func (o *ObjectScanner) NegotiateCapabilities() error {
+func (o *FilterProcessScanner) NegotiateCapabilities() error {
 	reqCaps := []string{"capability=clean", "capability=smudge"}
 
 	supCaps, err := o.pl.readPacketList()
@@ -91,7 +91,7 @@ type Request struct {
 	Payload io.Reader
 }
 
-func (o *ObjectScanner) Scan() bool {
+func (o *FilterProcessScanner) Scan() bool {
 	o.req, o.err = nil, nil
 
 	req, err := o.readRequest()
@@ -104,10 +104,10 @@ func (o *ObjectScanner) Scan() bool {
 	return true
 }
 
-func (o *ObjectScanner) Request() *Request { return o.req }
-func (o *ObjectScanner) Err() error        { return o.err }
+func (o *FilterProcessScanner) Request() *Request { return o.req }
+func (o *FilterProcessScanner) Err() error        { return o.err }
 
-func (o *ObjectScanner) WriteResponse(outputData []byte) error {
+func (o *FilterProcessScanner) WriteResponse(outputData []byte) error {
 	for {
 		chunkSize := len(outputData)
 		if chunkSize == 0 {
@@ -130,7 +130,7 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 	return o.WriteStatus("success")
 }
 
-func (o *ObjectScanner) readRequest() (*Request, error) {
+func (o *FilterProcessScanner) readRequest() (*Request, error) {
 	tracerx.Printf("Read filter protocol request.")
 
 	requestList, err := o.pl.readPacketList()
@@ -151,6 +151,6 @@ func (o *ObjectScanner) readRequest() (*Request, error) {
 	return req, nil
 }
 
-func (o *ObjectScanner) WriteStatus(status string) error {
+func (o *FilterProcessScanner) WriteStatus(status string) error {
 	return o.pl.writePacketList([]string{"status=" + status})
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
+func TestFilterProcessScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	var from, to bytes.Buffer
 
 	pl := newPktline(nil, &from)
@@ -20,8 +20,8 @@ func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	require.Nil(t, pl.writePacketText("git-filter-client"))
 	require.Nil(t, pl.writePacketList([]string{"version=2"}))
 
-	os := NewObjectScanner(&from, &to)
-	err := os.Init()
+	fps := NewFilterProcessScanner(&from, &to)
+	err := fps.Init()
 
 	assert.Nil(t, err)
 
@@ -30,21 +30,21 @@ func TestObjectScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	assert.Equal(t, []string{"git-filter-server", "version=2"}, out)
 }
 
-func TestObjectScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
+func TestFilterProcessScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
 	var from, to bytes.Buffer
 
 	pl := newPktline(nil, &from)
 	require.Nil(t, pl.writePacketText("git-filter-client-unknown"))
 
-	os := NewObjectScanner(&from, &to)
-	err := os.Init()
+	fps := NewFilterProcessScanner(&from, &to)
+	err := fps.Init()
 
 	require.NotNil(t, err)
 	assert.Equal(t, "invalid filter pkt-line welcome message: git-filter-client-unknown", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
-func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
+func TestFilterProcessScannerRejectsUnsupportedFilters(t *testing.T) {
 	var from, to bytes.Buffer
 
 	pl := newPktline(nil, &from)
@@ -52,15 +52,15 @@ func TestObjectScannerRejectsUnsupportedFilters(t *testing.T) {
 	// Write an unsupported version
 	require.Nil(t, pl.writePacketList([]string{"version=0"}))
 
-	os := NewObjectScanner(&from, &to)
-	err := os.Init()
+	fps := NewFilterProcessScanner(&from, &to)
+	err := fps.Init()
 
 	require.NotNil(t, err)
 	assert.Equal(t, "filter 'version=2' not supported (your Git supports: [version=0])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
-func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
+func TestFilterProcessScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	var from, to bytes.Buffer
 
 	pl := newPktline(nil, &from)
@@ -68,8 +68,8 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 		"capability=clean", "capability=smudge", "capability=not-invented-yet",
 	}))
 
-	os := NewObjectScanner(&from, &to)
-	err := os.NegotiateCapabilities()
+	fps := NewFilterProcessScanner(&from, &to)
+	err := fps.NegotiateCapabilities()
 
 	assert.Nil(t, err)
 
@@ -78,7 +78,7 @@ func TestObjectScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	assert.Equal(t, []string{"capability=clean", "capability=smudge"}, out)
 }
 
-func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
+func TestFilterProcessScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 	var from, to bytes.Buffer
 
 	pl := newPktline(nil, &from)
@@ -87,15 +87,15 @@ func TestObjectScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 		"capability=unsupported",
 	}))
 
-	os := NewObjectScanner(&from, &to)
-	err := os.NegotiateCapabilities()
+	fps := NewFilterProcessScanner(&from, &to)
+	err := fps.NegotiateCapabilities()
 
 	require.NotNil(t, err)
 	assert.Equal(t, "filter 'capability=clean' not supported (your Git supports: [capability=unsupported])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 
-func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
+func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	var from, to bytes.Buffer
 
 	pl := newPktline(nil, &from)
@@ -109,7 +109,7 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	_, err := from.Write([]byte{0x30, 0x30, 0x30, 0x30}) // flush packet
 	assert.Nil(t, err)
 
-	req, err := readRequest(NewObjectScanner(&from, &to))
+	req, err := readRequest(NewFilterProcessScanner(&from, &to))
 
 	assert.Nil(t, err)
 	assert.Equal(t, req.Header["foo"], "bar")
@@ -120,14 +120,14 @@ func TestObjectScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	assert.Equal(t, []byte("first\nsecond\n"), payload)
 }
 
-func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
+func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	var from bytes.Buffer
 
 	pl := newPktline(nil, &from)
 	// (Invalid) headers
 	require.Nil(t, pl.writePacket([]byte{}))
 
-	req, err := readRequest(NewObjectScanner(&from, nil))
+	req, err := readRequest(NewFilterProcessScanner(&from, nil))
 
 	require.NotNil(t, err)
 	assert.Equal(t, "Invalid packet length.", err.Error())
@@ -135,10 +135,10 @@ func TestObjectScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	assert.Nil(t, req)
 }
 
-func TestObjectScannerWritesResponsesInOneChunk(t *testing.T) {
+func TestFilterProcessScannerWritesResponsesInOneChunk(t *testing.T) {
 	var buf bytes.Buffer
 
-	err := NewObjectScanner(nil, &buf).WriteResponse([]byte(
+	err := NewFilterProcessScanner(nil, &buf).WriteResponse([]byte(
 		"hello world",
 	))
 
@@ -159,10 +159,10 @@ func TestObjectScannerWritesResponsesInOneChunk(t *testing.T) {
 	assert.Equal(t, []string{"status=success"}, status)
 }
 
-func TestObjectScannerWritesEmptyResponses(t *testing.T) {
+func TestFilterProcessScannerWritesEmptyResponses(t *testing.T) {
 	var buf bytes.Buffer
 
-	err := NewObjectScanner(nil, &buf).WriteResponse([]byte{})
+	err := NewFilterProcessScanner(nil, &buf).WriteResponse([]byte{})
 
 	assert.Nil(t, err)
 
@@ -177,7 +177,7 @@ func TestObjectScannerWritesEmptyResponses(t *testing.T) {
 	assert.Equal(t, []string{"status=success"}, status)
 }
 
-func TestObjectScannerWritesResponsesInMultipleChunks(t *testing.T) {
+func TestFilterProcessScannerWritesResponsesInMultipleChunks(t *testing.T) {
 	payload := make([]byte, MaxPacketLength*2)
 	for i := 0; i < 2; i++ {
 		for j := 0; j < MaxPacketLength; j++ {
@@ -187,7 +187,7 @@ func TestObjectScannerWritesResponsesInMultipleChunks(t *testing.T) {
 
 	var buf bytes.Buffer
 
-	err := NewObjectScanner(nil, &buf).WriteResponse(payload)
+	err := NewFilterProcessScanner(nil, &buf).WriteResponse(payload)
 	assert.Nil(t, err)
 
 	pl := newPktline(&buf, nil)
@@ -212,10 +212,10 @@ func TestObjectScannerWritesResponsesInMultipleChunks(t *testing.T) {
 	assert.Equal(t, []string{"status=success"}, status)
 }
 
-// readRequest preforms a single scan operation on the given `*ObjectScanner`,
-// "s", and returns: an error if there was one, or a request if there was one.
-// If neither, it returns (nil, nil).
-func readRequest(s *ObjectScanner) (*Request, error) {
+// readRequest preforms a single scan operation on the given
+// `*FilterProcessScanner`, "s", and returns: an error if there was one, or a
+// request if there was one.  If neither, it returns (nil, nil).
+func readRequest(s *FilterProcessScanner) (*Request, error) {
 	s.Scan()
 
 	if err := s.Err(); err != nil {
