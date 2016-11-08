@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/progress"
@@ -71,68 +70,6 @@ func wrapProgressError(err error, event, filename string) error {
 }
 
 var localDirSet = tools.NewStringSetFromSlice([]string{".", "./", ".\\"})
-
-// Return whether a given filename passes the include / exclude path filters
-// Only paths that are in includePaths and outside excludePaths are passed
-// If includePaths is empty that filter always passes and the same with excludePaths
-// Both path lists support wildcard matches
-func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePaths []string) bool {
-	if len(includePaths) == 0 && len(excludePaths) == 0 {
-		return true
-	}
-
-	filename = filepath.Clean(filename)
-	if len(includePaths) > 0 {
-		matched := false
-		for _, inc := range includePaths {
-			inc = filepath.Clean(inc)
-
-			// Special case local dir, matches all (inc subpaths)
-			if _, local := localDirSet[inc]; local {
-				matched = true
-				break
-			}
-
-			matched, _ = filepath.Match(inc, filename)
-			if !matched {
-				// Also support matching a parent directory without a wildcard
-				if strings.HasPrefix(filename, inc+string(filepath.Separator)) {
-					matched = true
-				}
-			}
-
-			if matched {
-				break
-			}
-
-		}
-		if !matched {
-			return false
-		}
-	}
-
-	if len(excludePaths) > 0 {
-		for _, ex := range excludePaths {
-			ex = filepath.Clean(ex)
-
-			// Special case local dir, matches all (inc subpaths)
-			if _, local := localDirSet[ex]; local {
-				return false
-			}
-
-			if matched, _ := filepath.Match(ex, filename); matched {
-				return false
-			}
-
-			// Also support matching a parent directory without a wildcard
-			if strings.HasPrefix(filename, ex+string(filepath.Separator)) {
-				return false
-			}
-		}
-	}
-
-	return true
-}
 
 func GetPlatform() Platform {
 	if currentPlatform == PlatformUndetermined {
