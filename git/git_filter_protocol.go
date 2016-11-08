@@ -131,7 +131,7 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 }
 
 func (o *ObjectScanner) readRequest() (*Request, error) {
-	tracerx.Printf("Process filter command.")
+	tracerx.Printf("Read filter protocol request.")
 
 	requestList, err := o.p.readPacketList()
 	if err != nil {
