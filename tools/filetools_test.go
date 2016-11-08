@@ -1,4 +1,4 @@
-package tools_test
+package tools
 
 import (
 	"fmt"
@@ -13,56 +13,55 @@ import (
 
 	"github.com/github/git-lfs/subprocess"
 
-	"github.com/github/git-lfs/tools"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCleanPathsCleansPaths(t *testing.T) {
-	cleaned := tools.CleanPaths("/foo/bar/,/foo/bar/baz", ",")
+	cleaned := CleanPaths("/foo/bar/,/foo/bar/baz", ",")
 
 	assert.Equal(t, []string{"/foo/bar", "/foo/bar/baz"}, cleaned)
 }
 
 func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
-	cleaned := tools.CleanPaths("", ",")
+	cleaned := CleanPaths("", ",")
 
 	assert.Empty(t, cleaned)
 }
 
 func TestFileMatch(t *testing.T) {
-	assert.True(t, tools.FileMatch("filename.txt", "filename.txt"))
-	assert.True(t, tools.FileMatch("*.txt", "filename.txt"))
-	assert.False(t, tools.FileMatch("*.tx", "filename.txt"))
-	assert.True(t, tools.FileMatch("f*.txt", "filename.txt"))
-	assert.False(t, tools.FileMatch("g*.txt", "filename.txt"))
-	assert.True(t, tools.FileMatch("file*", "filename.txt"))
-	assert.False(t, tools.FileMatch("file", "filename.txt"))
+	assert.True(t, FileMatch("filename.txt", "filename.txt"))
+	assert.True(t, FileMatch("*.txt", "filename.txt"))
+	assert.False(t, FileMatch("*.tx", "filename.txt"))
+	assert.True(t, FileMatch("f*.txt", "filename.txt"))
+	assert.False(t, FileMatch("g*.txt", "filename.txt"))
+	assert.True(t, FileMatch("file*", "filename.txt"))
+	assert.False(t, FileMatch("file", "filename.txt"))
 
 	// With no path separators, should match in subfolders
-	assert.True(t, tools.FileMatch("*.txt", "sub/filename.txt"))
-	assert.False(t, tools.FileMatch("*.tx", "sub/filename.txt"))
-	assert.True(t, tools.FileMatch("f*.txt", "sub/filename.txt"))
-	assert.False(t, tools.FileMatch("g*.txt", "sub/filename.txt"))
-	assert.True(t, tools.FileMatch("file*", "sub/filename.txt"))
-	assert.False(t, tools.FileMatch("file", "sub/filename.txt"))
+	assert.True(t, FileMatch("*.txt", "sub/filename.txt"))
+	assert.False(t, FileMatch("*.tx", "sub/filename.txt"))
+	assert.True(t, FileMatch("f*.txt", "sub/filename.txt"))
+	assert.False(t, FileMatch("g*.txt", "sub/filename.txt"))
+	assert.True(t, FileMatch("file*", "sub/filename.txt"))
+	assert.False(t, FileMatch("file", "sub/filename.txt"))
 	// Needs wildcard for exact filename
-	assert.True(t, tools.FileMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
+	assert.True(t, FileMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
 
 	// Should not match dots to subparts
-	assert.False(t, tools.FileMatch("*.ign", "sub/shouldignoreme.txt"))
+	assert.False(t, FileMatch("*.ign", "sub/shouldignoreme.txt"))
 
 	// Path specific
-	assert.True(t, tools.FileMatch("sub", "sub/filename.txt"))
-	assert.False(t, tools.FileMatch("sub", "subfilename.txt"))
+	assert.True(t, FileMatch("sub", "sub/filename.txt"))
+	assert.False(t, FileMatch("sub", "subfilename.txt"))
 
 	// Absolute
-	assert.True(t, tools.FileMatch("*.dat", "/path/to/sub/.git/test.dat"))
-	assert.True(t, tools.FileMatch("**/.git", "/path/to/sub/.git"))
+	assert.True(t, FileMatch("*.dat", "/path/to/sub/.git/test.dat"))
+	assert.True(t, FileMatch("**/.git", "/path/to/sub/.git"))
 
 	// Match anything
-	assert.True(t, tools.FileMatch(".", "path.txt"))
-	assert.True(t, tools.FileMatch("./", "path.txt"))
-	assert.True(t, tools.FileMatch(".\\", "path.txt"))
+	assert.True(t, FileMatch(".", "path.txt"))
+	assert.True(t, FileMatch("./", "path.txt"))
+	assert.True(t, FileMatch(".\\", "path.txt"))
 
 }
 
@@ -124,7 +123,7 @@ func TestFilterIncludeExclude(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		result := tools.FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes)
+		result := FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes)
 		assert.Equal(t, c.expectedResult, result, "includes: %v excludes: %v", c.includes, c.excludes)
 		if runtime.GOOS == "windows" {
 			// also test with \ path separators, tolerate mixed separators
@@ -134,7 +133,7 @@ func TestFilterIncludeExclude(t *testing.T) {
 			for i, ex := range c.excludes {
 				c.excludes[i] = strings.Replace(ex, "/", "\\", -1)
 			}
-			assert.Equal(t, c.expectedResult, tools.FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes), c)
+			assert.Equal(t, c.expectedResult, FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes), c)
 		}
 	}
 }
@@ -149,7 +148,7 @@ func TestFastWalkBasic(t *testing.T) {
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	fchan, errchan := tools.FastWalk(expectedEntries[0], nil, nil)
+	fchan, errchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil, nil)
 	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
 
 	assert.Empty(t, gotErrors)
@@ -220,7 +219,7 @@ thisisnot.txt
 	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", ".gitignore"))
 	// nothing else should be there
 
-	fchan, errchan := tools.FastWalkGitRepo(mainDir)
+	fchan, errchan := FastWalkGitRepo(mainDir)
 	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
 
 	assert.Empty(t, gotErrors)
@@ -265,7 +264,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	return expectedEntries
 }
 
-func collectFastWalkResults(fchan <-chan tools.FastWalkInfo, errchan <-chan error) ([]string, []error) {
+func collectFastWalkResults(fchan <-chan FastWalkInfo, errchan <-chan error) ([]string, []error) {
 	gotEntries := make([]string, 0, 1000)
 	gotErrors := make([]error, 0, 5)
 	var waitg sync.WaitGroup
