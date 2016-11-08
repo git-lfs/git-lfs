@@ -16,7 +16,6 @@ const (
 )
 
 // Private function copied from "github.com/xeipuuv/gojsonschema/utils.go"
-// TODO: Is there a way to reuse this?
 func isStringInSlice(s []string, what string) bool {
 	for i := range s {
 		if s[i] == what {
@@ -115,7 +114,7 @@ func (o *ObjectScanner) WriteResponse(outputData []byte) error {
 			o.p.writeFlush()
 			break
 		} else if chunkSize > MaxPacketLength {
-			chunkSize = MaxPacketLength // TODO check packets with the exact size
+			chunkSize = MaxPacketLength
 		}
 		err := o.p.writePacket(outputData[:chunkSize])
 		if err != nil {
