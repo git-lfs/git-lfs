@@ -170,7 +170,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 Scan:
 	for s.Scan() {
 		var err error
-		var w io.Writer
+		var w *git.PacketWriter
 
 		req := s.Request()
 		s.WriteStatus("success")
@@ -188,7 +188,7 @@ Scan:
 		}
 
 		var status string
-		if _, ferr := w.Write(nil); ferr != nil {
+		if ferr := w.Flush(); ferr != nil {
 			status = "error"
 		} else {
 			if err != nil && err != io.EOF {

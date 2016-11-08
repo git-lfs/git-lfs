@@ -44,7 +44,8 @@ func NewPacketWriter(w io.Writer, c int) *PacketWriter {
 // When the caller has no more data to write in the given chunk of packets, a
 // subsequent call to `Write(p []byte)` MUST be made with a nil slice, to flush
 // the remaining data in the buffer, and write the terminating bytes to the
-// underlying packet stream.
+// underlying packet stream. Alternatively, the caller can use the public
+// `Flush() error` func to preform the same operation.
 //
 // Write returns the number of bytes in "p" accepted into the writer, which
 // _MAY_ be written to the underlying protocol stream, or may be written into
@@ -57,15 +58,7 @@ func (w *PacketWriter) Write(p []byte) (int, error) {
 	var n int
 
 	if p == nil {
-		// If we got an empty sequence of bytes, let's flush the data
-		// stored in the buffer, and then write the a packet termination
-		// sequence.
-
-		if _, err := w.flush(); err != nil {
-			return 0, err
-		}
-
-		if err := w.proto.writeFlush(); err != nil {
+		if err := w.Flush(); err != nil {
 			return 0, err
 		}
 	}
@@ -97,6 +90,21 @@ func (w *PacketWriter) Write(p []byte) (int, error) {
 	}
 
 	return n, nil
+}
+
+// Flush empties the internal buffer used to store data temporarily and then
+// writes the pkt-line's FLUSH packet, to signal that it is done writing this
+// chunk of data.
+func (w *PacketWriter) Flush() error {
+	if _, err := w.flush(); err != nil {
+		return err
+	}
+
+	if err := w.proto.writeFlush(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // flush writes any data in the internal buffer out to the underlying protocol

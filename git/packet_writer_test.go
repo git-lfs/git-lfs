@@ -2,7 +2,6 @@ package git
 
 import (
 	"bytes"
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -93,8 +92,15 @@ func TestPacketWriterDoesntWrapItself(t *testing.T) {
 	assert.Equal(t, itself, nw)
 }
 
-func assertWriterWrite(t *testing.T, w io.Writer, p []byte, plen int) {
-	n, err := w.Write(p)
+func assertWriterWrite(t *testing.T, w *PacketWriter, p []byte, plen int) {
+	var n int
+	var err error
+
+	if p == nil {
+		err = w.Flush()
+	} else {
+		n, err = w.Write(p)
+	}
 
 	assert.Nil(t, err)
 	assert.Equal(t, plen, n)
