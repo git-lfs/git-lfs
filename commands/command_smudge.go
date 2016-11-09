@@ -14,10 +14,27 @@ import (
 )
 
 var (
+	// smudgeInfo is a command-line flag belonging to the "git-lfs smudge"
+	// command specifying whether to skip the smudge process and simply
+	// print out the info of the files being smudged.
+	//
+	// As of v1.5.0, it is deprecated.
 	smudgeInfo = false
+	// smudgeInfo is a command-line flag belonging to the "git-lfs smudge"
+	// command specifying whether to skip the smudge process.
 	smudgeSkip = false
 )
 
+// smudge smudges the given `*lfs.Pointer`, "ptr", and writes its objects
+// contents to the `io.Writer`, "to".
+//
+// If the smudged object did not "pass" the include and exclude filterset, it
+// will not be downloaded, and the object will remain a pointer on disk, as if
+// the smudge filter had not been applied at all.
+//
+// Any errors encountered along the way will be returned immediately if they
+// were non-fatal, otherwise execution will halt and the process will be
+// terminated by using the `commands.Panic()` func.
 func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool) error {
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
