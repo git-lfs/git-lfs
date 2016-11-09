@@ -24,10 +24,16 @@ const (
 	smudgeFilterBufferCapacity = git.MaxPacketLength
 )
 
-var (
-	filterSmudgeSkip = false
-)
+// filterSmudgeSkip is a command-line flag owned by the `filter-process` command
+// dictating whether or not to skip the smudging process, leaving pointers as-is
+// in the working tree.
+var filterSmudgeSkip bool
 
+// filterSmudge is a gateway to the `smudge()` function and serves to bail out
+// immediately if the pointer decoded from "from" has no data (i.e., is empty).
+// This function, unlike the implementation found in the legacy smudge command,
+// only combines the `io.Reader`s when necessary, since the implementation
+// found in `*git.PacketReader` blocks while waiting for the following packet.
 func filterSmudge(from io.Reader, to io.Writer, filename string) error {
 	var pbuf bytes.Buffer
 	from = io.TeeReader(from, &pbuf)
@@ -106,6 +112,8 @@ Scan:
 	}
 }
 
+// statusFromErr returns the status code that should be sent over the filter
+// protocol based on a given error, "err".
 func statusFromErr(err error) string {
 	if err != nil && err != io.EOF {
 		return "error"
