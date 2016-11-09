@@ -6,12 +6,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/github/git-lfs/config"
 	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -95,7 +93,7 @@ func clean(to io.Writer, reader io.Reader, fileName string) error {
 	return err
 }
 
-func smudge(to io.Writer, reader io.Reader, filename string) error {
+func filterSmudge(to io.Writer, reader io.Reader, filename string) error {
 	var pbuf bytes.Buffer
 	reader = io.TeeReader(reader, &pbuf)
 
@@ -121,38 +119,7 @@ func smudge(to io.Writer, reader io.Reader, filename string) error {
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 
-	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
-	if err != nil {
-		Error(err.Error())
-	}
-
-	cfg := config.Config
-	download := tools.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
-
-	if filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
-		download = false
-	}
-
-	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
-	if file != nil {
-		file.Close()
-	}
-
-	if err != nil {
-		// Download declined error is ok to skip if we weren't requesting download
-		if !(errors.IsDownloadDeclinedError(err) && !download) {
-			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
-			if !cfg.SkipDownloadErrors() {
-				// TODO: What to do best here?
-				os.Exit(2)
-			}
-		}
-
-		_, err = ptr.Encode(to)
-		return err
-	}
-
-	return nil
+	return smudge(to, ptr, filename, filterSmudgeSkip)
 }
 
 func filterCommand(cmd *cobra.Command, args []string) {
@@ -182,7 +149,7 @@ Scan:
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
 			w = git.NewPacketWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = smudge(w, req.Payload, req.Header["pathname"])
+			err = filterSmudge(w, req.Payload, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)
 			break Scan

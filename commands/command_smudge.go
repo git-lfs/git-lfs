@@ -18,6 +18,37 @@ var (
 	smudgeSkip = false
 )
 
+func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool) error {
+	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
+	if err != nil {
+		return err
+	}
+
+	download := tools.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+
+	if skip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
+		download = false
+	}
+
+	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
+	if file != nil {
+		file.Close()
+	}
+
+	if err != nil {
+		ptr.Encode(to)
+		// Download declined error is ok to skip if we weren't requesting download
+		if !(errors.IsDownloadDeclinedError(err) && !download) {
+			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
+			if !cfg.SkipDownloadErrors() {
+				os.Exit(2)
+			}
+		}
+	}
+
+	return nil
+}
+
 func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
@@ -49,41 +80,17 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			Exit(err.Error())
 		}
 
-		stat, err := os.Stat(localPath)
-		if err != nil {
+		if stat, err := os.Stat(localPath); err != nil {
 			Print("%d --", ptr.Size)
 		} else {
 			Print("%d %s", stat.Size(), localPath)
 		}
+
 		return
 	}
 
-	filename := smudgeFilename(args, perr)
-	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
-	if err != nil {
+	if err := smudge(os.Stdout, ptr, smudgeFilename(args, perr), smudgeSkip); err != nil {
 		Error(err.Error())
-	}
-
-	download := tools.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
-
-	if smudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
-		download = false
-	}
-
-	err = ptr.Smudge(os.Stdout, filename, download, TransferManifest(), cb)
-	if file != nil {
-		file.Close()
-	}
-
-	if err != nil {
-		ptr.Encode(os.Stdout)
-		// Download declined error is ok to skip if we weren't requesting download
-		if !(errors.IsDownloadDeclinedError(err) && !download) {
-			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
-			if !cfg.SkipDownloadErrors() {
-				os.Exit(2)
-			}
-		}
 	}
 }
 
