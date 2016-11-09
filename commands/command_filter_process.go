@@ -83,7 +83,7 @@ Scan:
 
 		req := s.Request()
 
-		s.WriteStatus("success")
+		s.WriteStatus(statusFromErr(nil))
 
 		switch req.Header["command"] {
 		case "clean":
@@ -99,7 +99,7 @@ Scan:
 
 		var status string
 		if ferr := w.Flush(); ferr != nil {
-			status = "error"
+			status = statusFromErr(ferr)
 		} else {
 			status = statusFromErr(err)
 		}
