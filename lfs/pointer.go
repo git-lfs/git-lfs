@@ -113,7 +113,7 @@ func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
 	written, err := reader.Read(buf)
 	output := buf[0:written]
 
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return output, nil, err
 	}
 
