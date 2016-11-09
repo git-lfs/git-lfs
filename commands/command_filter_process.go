@@ -6,10 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/progress"
 	"github.com/spf13/cobra"
 )
 
@@ -30,74 +28,11 @@ var (
 	filterSmudgeSkip = false
 )
 
-func clean(to io.Writer, reader io.Reader, fileName string) error {
-	var cb progress.CopyCallback
-	var file *os.File
-	var fileSize int64
-	if len(fileName) > 0 {
-		stat, err := os.Stat(fileName)
-		if err == nil && stat != nil {
-			fileSize = stat.Size()
-
-			localCb, localFile, err := lfs.CopyCallbackFile("clean", fileName, 1, 1)
-			if err != nil {
-				Error(err.Error())
-			} else {
-				cb = localCb
-				file = localFile
-			}
-		}
-	}
-
-	cleaned, err := lfs.PointerClean(reader, fileName, fileSize, cb)
-	if file != nil {
-		file.Close()
-	}
-
-	if cleaned != nil {
-		defer cleaned.Teardown()
-	}
-
-	if errors.IsCleanPointerError(err) {
-		// If the contents read from the working directory was _already_
-		// a pointer, we'll get a `CleanPointerError`, with the context
-		// containing the bytes that we should write back out to Git.
-		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
-		return err
-	}
-
-	if err != nil {
-		Panic(err, "Error cleaning asset.")
-	}
-
-	tmpfile := cleaned.Filename
-	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
-	if err != nil {
-		Panic(err, "Unable to get local media path.")
-	}
-
-	if stat, _ := os.Stat(mediafile); stat != nil {
-		if stat.Size() != cleaned.Size && len(cleaned.Pointer.Extensions) == 0 {
-			Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
-		}
-		Debug("%s exists", mediafile)
-	} else {
-		if err := os.Rename(tmpfile, mediafile); err != nil {
-			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
-		}
-
-		Debug("Writing %s", mediafile)
-	}
-
-	_, err = cleaned.Pointer.Encode(to)
-	return err
-}
-
-func filterSmudge(to io.Writer, reader io.Reader, filename string) error {
+func filterSmudge(from io.Reader, to io.Writer, filename string) error {
 	var pbuf bytes.Buffer
-	reader = io.TeeReader(reader, &pbuf)
+	from = io.TeeReader(from, &pbuf)
 
-	ptr, err := lfs.DecodePointer(reader)
+	ptr, err := lfs.DecodePointer(from)
 	if err != nil {
 		// If we tried to decode a pointer out of the data given to us,
 		// and the file was _empty_, write out an empty file in
@@ -141,15 +76,16 @@ Scan:
 		var w *git.PacketWriter
 
 		req := s.Request()
+
 		s.WriteStatus("success")
 
 		switch req.Header["command"] {
 		case "clean":
 			w = git.NewPacketWriter(os.Stdout, cleanFilterBufferCapacity)
-			err = clean(w, req.Payload, req.Header["pathname"])
+			err = clean(req.Payload, w, req.Header["pathname"])
 		case "smudge":
 			w = git.NewPacketWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = filterSmudge(w, req.Payload, req.Header["pathname"])
+			err = filterSmudge(req.Payload, w, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)
 			break Scan
