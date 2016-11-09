@@ -314,7 +314,7 @@ setup() {
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
 
-  grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
+  ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
     exit 1
