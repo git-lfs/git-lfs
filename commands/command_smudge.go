@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -25,11 +26,10 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	b := &bytes.Buffer{}
 	r := io.TeeReader(os.Stdin, b)
 
-	ptr, err := lfs.DecodePointer(r)
-	if err != nil {
+	ptr, perr := lfs.DecodePointer(r)
+	if perr != nil {
 		mr := io.MultiReader(b, os.Stdin)
-		_, err := io.Copy(os.Stdout, mr)
-		if err != nil {
+		if _, err := io.Copy(os.Stdout, mr); err != nil {
 			Panic(err, "Error writing data to stdout:")
 		}
 		return
@@ -38,6 +38,12 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 
 	if smudgeInfo {
+		fmt.Fprintln(os.Stderr, "WARNING: 'smudge --info' is deprecated and will be removed in v2.0")
+		fmt.Fprintln(os.Stderr, "USE INSTEAD:")
+		fmt.Fprintln(os.Stderr, "  $ git lfs pointer --file=path/to/file")
+		fmt.Fprintln(os.Stderr, "  $ git lfs ls-files")
+		fmt.Fprintln(os.Stderr, "")
+
 		localPath, err := lfs.LocalMediaPath(ptr.Oid)
 		if err != nil {
 			Exit(err.Error())
@@ -52,7 +58,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	filename := smudgeFilename(args, err)
+	filename := smudgeFilename(args, perr)
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
 		Error(err.Error())
