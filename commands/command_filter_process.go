@@ -79,7 +79,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 Scan:
 	for s.Scan() {
 		var err error
-		var w *git.PacketWriter
+		var w *git.PktlineWriter
 
 		req := s.Request()
 
@@ -87,10 +87,10 @@ Scan:
 
 		switch req.Header["command"] {
 		case "clean":
-			w = git.NewPacketWriter(os.Stdout, cleanFilterBufferCapacity)
+			w = git.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
 			err = clean(req.Payload, w, req.Header["pathname"])
 		case "smudge":
-			w = git.NewPacketWriter(os.Stdout, smudgeFilterBufferCapacity)
+			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
 			err = filterSmudge(req.Payload, w, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)

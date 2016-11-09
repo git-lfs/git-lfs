@@ -6,7 +6,9 @@ import (
 	"github.com/github/git-lfs/tools"
 )
 
-type PacketWriter struct {
+// PktlineWriter is an implementation of `io.Writer` which writes data buffers
+// "p" to an underlying pkt-line stream for use with the Git pkt-line format.
+type PktlineWriter struct {
 	// buf is an internal buffer used to store data until enough has been
 	// collected to write a full packet, or the buffer was instructed to
 	// flush.
@@ -15,19 +17,19 @@ type PacketWriter struct {
 	pl *pktline
 }
 
-var _ io.Writer = new(PacketWriter)
+var _ io.Writer = new(PktlineWriter)
 
-// NewPacketWriter returns a new *PacketWriter, which will write to the
+// NewPktlineWriter returns a new *PktlineWriter, which will write to the
 // underlying data stream "w". The internal buffer is initialized with the given
 // capacity, "c".
 //
-// If "w" is already a `*PacketWriter`, it will be returned as-is.
-func NewPacketWriter(w io.Writer, c int) *PacketWriter {
-	if pw, ok := w.(*PacketWriter); ok {
+// If "w" is already a `*PktlineWriter`, it will be returned as-is.
+func NewPktlineWriter(w io.Writer, c int) *PktlineWriter {
+	if pw, ok := w.(*PktlineWriter); ok {
 		return pw
 	}
 
-	return &PacketWriter{
+	return &PktlineWriter{
 		buf: make([]byte, 0, c),
 		pl:  newPktline(nil, w),
 	}
@@ -54,7 +56,7 @@ func NewPacketWriter(w io.Writer, c int) *PacketWriter {
 // If any error was encountered while either buffering or writing, that
 // error is returned, along with the number of bytes written to the underlying
 // protocol stream, as described above.
-func (w *PacketWriter) Write(p []byte) (int, error) {
+func (w *PktlineWriter) Write(p []byte) (int, error) {
 	var n int
 
 	if p == nil {
@@ -95,7 +97,7 @@ func (w *PacketWriter) Write(p []byte) (int, error) {
 // Flush empties the internal buffer used to store data temporarily and then
 // writes the pkt-line's FLUSH packet, to signal that it is done writing this
 // chunk of data.
-func (w *PacketWriter) Flush() error {
+func (w *PktlineWriter) Flush() error {
 	if _, err := w.flush(); err != nil {
 		return err
 	}
@@ -113,7 +115,7 @@ func (w *PacketWriter) Flush() error {
 //
 // flush returns the number of bytes written to the underlying packet stream,
 // and any error that it encountered along the way.
-func (w *PacketWriter) flush() (int, error) {
+func (w *PktlineWriter) flush() (int, error) {
 	var n int
 
 	for len(w.buf) > 0 {
