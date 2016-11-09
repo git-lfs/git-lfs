@@ -175,7 +175,7 @@ wait_for_file() {
   return 1
 }
 
-# setup_remote_repo intializes a bare Git repository that is accessible through
+# setup_remote_repo initializes a bare Git repository that is accessible through
 # the test Git server. The `pwd` is set to the repository's directory, in case
 # further commands need to be run. This server is running for every test in a
 # script/integration run, so every test file should setup its own remote
