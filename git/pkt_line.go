@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+const (
+	// MaxPacketLength is the maximum total (header+payload) length
+	// encode-able within one packet using Git's pkt-line protocol.
+	MaxPacketLength = 65516
+)
+
 type pktline struct {
 	r *bufio.Reader
 	w *bufio.Writer
