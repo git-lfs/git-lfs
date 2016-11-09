@@ -20,12 +20,12 @@ func writePacket(w io.Writer, datas ...[]byte) {
 	io.WriteString(w, fmt.Sprintf("%04x", 0))
 }
 
-func TestPacketReaderReadsSinglePacketsInOneCall(t *testing.T) {
+func TestPktlineReaderReadsSinglePacketsInOneCall(t *testing.T) {
 	var buf bytes.Buffer
 
 	writePacket(&buf, []byte("asdf"))
 
-	pr := &packetReader{pl: newPktline(&buf, nil)}
+	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
 	data, err := ioutil.ReadAll(pr)
 
@@ -33,12 +33,12 @@ func TestPacketReaderReadsSinglePacketsInOneCall(t *testing.T) {
 	assert.Equal(t, []byte("asdf"), data)
 }
 
-func TestPacketReaderReadsManyPacketsInOneCall(t *testing.T) {
+func TestPktlineReaderReadsManyPacketsInOneCall(t *testing.T) {
 	var buf bytes.Buffer
 
 	writePacket(&buf, []byte("first\n"), []byte("second"))
 
-	pr := &packetReader{pl: newPktline(&buf, nil)}
+	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
 	data, err := ioutil.ReadAll(pr)
 
@@ -46,12 +46,12 @@ func TestPacketReaderReadsManyPacketsInOneCall(t *testing.T) {
 	assert.Equal(t, []byte("first\nsecond"), data)
 }
 
-func TestPacketReaderReadsSinglePacketsInMultipleCallsWithUnevenBuffering(t *testing.T) {
+func TestPktlineReaderReadsSinglePacketsInMultipleCallsWithUnevenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
 	writePacket(&buf, []byte("asdf"))
 
-	pr := &packetReader{pl: newPktline(&buf, nil)}
+	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
 	var p1 [3]byte
 	var p2 [1]byte
@@ -67,12 +67,12 @@ func TestPacketReaderReadsSinglePacketsInMultipleCallsWithUnevenBuffering(t *tes
 	assert.Equal(t, io.EOF, e2)
 }
 
-func TestPacketReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *testing.T) {
+func TestPktlineReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
 	writePacket(&buf, []byte("first"), []byte("second"))
 
-	pr := &packetReader{pl: newPktline(&buf, nil)}
+	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
 	var p1 [4]byte
 	var p2 [7]byte
@@ -94,12 +94,12 @@ func TestPacketReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *testi
 	assert.Equal(t, io.EOF, e3)
 }
 
-func TestPacketReaderReadsSinglePacketsInMultipleCallsWithEvenBuffering(t *testing.T) {
+func TestPktlineReaderReadsSinglePacketsInMultipleCallsWithEvenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
 	writePacket(&buf, []byte("firstother"))
 
-	pr := &packetReader{pl: newPktline(&buf, nil)}
+	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
 	var p1 [5]byte
 	var p2 [5]byte
@@ -115,12 +115,12 @@ func TestPacketReaderReadsSinglePacketsInMultipleCallsWithEvenBuffering(t *testi
 	assert.Equal(t, io.EOF, e2)
 }
 
-func TestPacketReaderReadsManyPacketsInMultipleCallsWithEvenBuffering(t *testing.T) {
+func TestPktlineReaderReadsManyPacketsInMultipleCallsWithEvenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
 	writePacket(&buf, []byte("first"), []byte("other"))
 
-	pr := &packetReader{pl: newPktline(&buf, nil)}
+	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
 	var p1 [5]byte
 	var p2 [5]byte

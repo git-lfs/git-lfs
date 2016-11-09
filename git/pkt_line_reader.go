@@ -6,15 +6,15 @@ import (
 	"github.com/github/git-lfs/tools"
 )
 
-type packetReader struct {
+type pktlineReader struct {
 	pl *pktline
 
 	buf []byte
 }
 
-var _ io.Reader = new(packetReader)
+var _ io.Reader = new(pktlineReader)
 
-func (r *packetReader) Read(p []byte) (int, error) {
+func (r *pktlineReader) Read(p []byte) (int, error) {
 	var n int
 
 	if len(r.buf) > 0 {

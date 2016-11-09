@@ -170,7 +170,7 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 
 	req := &Request{
 		Header:  make(map[string]string),
-		Payload: &packetReader{pl: o.pl},
+		Payload: &pktlineReader{pl: o.pl},
 	}
 
 	for _, pair := range requestList {
