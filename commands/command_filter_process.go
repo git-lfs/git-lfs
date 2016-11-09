@@ -95,18 +95,22 @@ Scan:
 		if ferr := w.Flush(); ferr != nil {
 			status = "error"
 		} else {
-			if err != nil && err != io.EOF {
-				status = "error"
-			} else {
-				status = "success"
-			}
+			status = statusFromErr(err)
 		}
+
 		s.WriteStatus(status)
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {
 		ExitWithError(err)
 	}
+}
+
+func statusFromErr(err error) string {
+	if err != nil && err != io.EOF {
+		return "error"
+	}
+	return "success"
 }
 
 func init() {
