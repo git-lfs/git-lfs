@@ -20,7 +20,7 @@ var (
 	//
 	// As of v1.5.0, it is deprecated.
 	smudgeInfo = false
-	// smudgeInfo is a command-line flag belonging to the "git-lfs smudge"
+	// smudgeSkip is a command-line flag belonging to the "git-lfs smudge"
 	// command specifying whether to skip the smudge process.
 	smudgeSkip = false
 )
