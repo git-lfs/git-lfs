@@ -26,13 +26,13 @@ Git LFS endpoint: https://git-server.com/user/repo.git/info/lfs
 The [specification](/docs/spec.md) describes how clients can configure the Git LFS
 API endpoint manually.
 
-The [legacy v1 API][legacy] was used for Git LFS v0.5.x. From 0.6.x the 
-[batch API][batch] should always be used where available. 
+The [legacy v1 API][legacy] was used for Git LFS v0.5.x. From 0.6.x the
+[batch API][batch] should always be used where available.
 
 [legacy]: ./v1/http-v1-legacy.md
 [batch]: ./v1/http-v1-batch.md
 
-From v1.3 there are [optional extensions to the batch API][batch v1.3] for more 
+From v1.3 there are [optional extensions to the batch API][batch v1.3] for more
 flexible transfers.
 
 [batch v1.3]: ./v1.3/http-v1.3-batch.md
@@ -93,7 +93,10 @@ The transfer API is a generic API for directly uploading and downloading objects
 Git LFS servers can offload object storage to cloud services like S3, or
 implemented natively in the Git LFS server. The only requirement is that
 hypermedia objects from the Git LFS API return the correct headers so clients
-can access the transfer API properly.
+can access the transfer API properly. LFS servers are encouraged to include a
+`Authorization` header, with an expiring token if possible, so that the Git
+LFS client can make the request immediately. Otherwise, the Git LFS client
+will follow the same rules as the "Authentication" section above for every file.
 
 As of v1.3 there can be multiple ways files can be uploaded or downloaded, see
 the [v1.3 API doc](v1.3/http-v1.3-batch.md) for details. The following section
