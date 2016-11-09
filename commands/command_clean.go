@@ -10,6 +10,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// clean cleans an object read from the given `io.Reader`, "from", and writes
+// out a corresponding pointer to the `io.Writer`, "to". If there were any
+// errors encountered along the way, they will be returned immediately if the
+// error is non-fatal, otherwise they will halt using the built in
+// `commands.Panic`.
+//
+// If the object read from "from" is _already_ a clean pointer, then it will be
+// written out verbatim to "to", without trying to make it a pointer again.
 func clean(from io.Reader, to io.Writer, fileName string) error {
 	var cb progress.CopyCallback
 	var file *os.File
