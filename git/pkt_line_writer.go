@@ -72,7 +72,7 @@ func (w *PktlineWriter) Write(p []byte) (int, error) {
 		// have in the internal buffer.
 		p = p[m:]
 
-		n = n + m
+		n += m
 
 		if len(w.buf) == MaxPacketLength {
 			// If we were able to grab an entire packet's worth of
