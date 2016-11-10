@@ -59,18 +59,15 @@ func NewPktlineWriter(w io.Writer, c int) *PktlineWriter {
 func (w *PktlineWriter) Write(p []byte) (int, error) {
 	var n int
 
-	for len(p) > 0 {
+	for len(p[n:]) > 0 {
 		// While there is still data left to process in "p", grab as
 		// much of it as we can while not allowing the internal buffer
 		// to exceed the MaxPacketLength const.
-		m := tools.MinInt(len(p), MaxPacketLength-len(w.buf))
+		m := tools.MinInt(len(p[n:]), MaxPacketLength-len(w.buf))
 
 		// Append on all of the data that we could into the internal
 		// buffer.
-		w.buf = append(w.buf, p[:m]...)
-		// Truncate "p" such that it no longer includes the data that we
-		// have in the internal buffer.
-		p = p[m:]
+		w.buf = append(w.buf, p[n:n+m]...)
 
 		n += m
 
