@@ -44,7 +44,7 @@ func (r *pktlineReader) Read(p []byte) (int, error) {
 		}
 
 		// Figure out how much of the packet we can read into "p".
-		nn := tools.MinInt(len(chunk), len(p))
+		nn := tools.MinInt(len(chunk), len(p[n:]))
 
 		// Move that amount into "p", from where we left off.
 		copy(p[n:], chunk[:nn])
