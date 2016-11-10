@@ -23,7 +23,7 @@ preferences.
 
 [rel]: https://github.com/github/git-lfs/releases
 
-Note: Git LFS requires Git v1.8.2 or higher.
+Note: Git LFS requires Git v1.8.5 or higher.
 
 Once installed, you need to setup the global Git hooks for Git LFS. This only
 needs to be done once per machine.
