@@ -6,9 +6,12 @@ goes through looks like this:
 
 1. [Discover the LFS Server to use](./server-discovery.md).
 2. [Apply Authentication](./authentication.md).
-3. Request the Batch API to upload or download 1-100 objects.
+3. [Request the Batch API](./batch.md) to upload or download objects.
 4. The Batch API's response dictates how the client will transfer the objects.
+
 Current transfer adapters include:
-  * Basic
+  * [Basic](./basic-transfers.md)
+
+Experimental transfer adapters include:
   * Tus.io (upload only)
-  * Custom
+  * [Custom](../custom-transfers.md)

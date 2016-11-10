@@ -75,7 +75,9 @@ omitted.
   specific object is authenticated. If omitted or false, Git LFS will attempt
   to [find credentials for this URL](./authentication.md).
   * `actions` - Object containing the next actions for this object. Applicable
-  actions depend on which `operation` is specified in the request.
+  actions depend on which `operation` is specified in the request. How these
+  properties are interpreted depends on which transfer adapter the client will
+  be using.
     * `href` - String URL to download the object.
     * `header` - Optional hash of String HTTP header key/value pairs to apply
     to the request.
