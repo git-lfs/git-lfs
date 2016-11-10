@@ -134,6 +134,9 @@ type Request struct {
 // failed, there was either an error reading the next request (and the results
 // of calling `Err()` should be inspected), or the pipe was closed and no more
 // requests are present.
+//
+// Closing the pipe is Git's way to communicate that no more files will be
+// filtered. Git expects that the LFS process exits after this event.
 func (o *FilterProcessScanner) Scan() bool {
 	o.req, o.err = nil, nil
 
