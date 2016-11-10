@@ -56,6 +56,7 @@ func (p *pktline) readPacket() ([]byte, error) {
 		return nil, err
 	}
 
+	// pktLen==0: flush packet
 	if pktLen == 0 {
 		return nil, nil
 	}
