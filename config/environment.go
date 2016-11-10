@@ -39,6 +39,7 @@ type Environment interface {
 	Int(key string, def int) (val int)
 
 	All() map[string]string
+	Del(key string)
 }
 
 type environment struct {
@@ -88,4 +89,8 @@ func (e *environment) Int(key string, def int) (val int) {
 
 func (e *environment) All() map[string]string {
 	return e.Fetcher.All()
+}
+
+func (e *environment) Del(key string) {
+	e.Fetcher.Del(key)
 }

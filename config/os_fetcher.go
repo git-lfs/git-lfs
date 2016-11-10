@@ -57,3 +57,5 @@ func (o *OsFetcher) Get(key string) (val string, ok bool) {
 func (o *OsFetcher) All() map[string]string {
 	return nil
 }
+
+func (o *OsFetcher) Del(key string) {}

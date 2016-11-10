@@ -9,4 +9,6 @@ type Fetcher interface {
 	Get(key string) (val string, ok bool)
 
 	All() map[string]string
+
+	Del(key string)
 }
