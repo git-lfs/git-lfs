@@ -47,10 +47,12 @@ begin_test "filter process: checking out a branch"
   git push origin --all
 
   pushd ..
+    # Git will choose filter.lfs.process over `filter.lfs.clean` and
+    # `filter.lfs.smudge`
     git \
       -c "filter.lfs.process=git-lfs filter-process" \
-      -c "filter.lfs.clean="\
-      -c "filter.lfs.smudge=" \
+      -c "filter.lfs.clean=false"\
+      -c "filter.lfs.smudge=false" \
       -c "filter.lfs.required=true" \
       clone "$GITSERVER/$reponame" "$reponame-assert"
 
