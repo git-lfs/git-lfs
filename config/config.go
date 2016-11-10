@@ -346,10 +346,10 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 	switch authType {
 	case "", "none":
 		git.Config.UnsetLocalKey("", key)
-		c.Git.Del(key)
+		c.Git.del(key)
 	default:
 		git.Config.SetLocal("", key, authType)
-		c.Git.Set(key, authType)
+		c.Git.set(key, authType)
 	}
 }
 

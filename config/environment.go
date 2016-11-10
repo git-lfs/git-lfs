@@ -39,8 +39,8 @@ type Environment interface {
 	Int(key string, def int) (val int)
 
 	All() map[string]string
-	Set(key, value string)
-	Del(key string)
+	set(key, value string)
+	del(key string)
 }
 
 type environment struct {
@@ -92,10 +92,10 @@ func (e *environment) All() map[string]string {
 	return e.Fetcher.All()
 }
 
-func (e *environment) Set(key, value string) {
-	e.Fetcher.Set(key, value)
+func (e *environment) set(key, value string) {
+	e.Fetcher.set(key, value)
 }
 
-func (e *environment) Del(key string) {
-	e.Fetcher.Del(key)
+func (e *environment) del(key string) {
+	e.Fetcher.del(key)
 }

@@ -43,16 +43,16 @@ func (g *gitEnvironment) All() map[string]string {
 	return g.git.All()
 }
 
-func (g *gitEnvironment) Set(key, value string) {
+func (g *gitEnvironment) set(key, value string) {
 	g.loadGitConfig()
 
-	g.git.Set(key, value)
+	g.git.set(key, value)
 }
 
-func (g *gitEnvironment) Del(key string) {
+func (g *gitEnvironment) del(key string) {
 	g.loadGitConfig()
 
-	g.git.Del(key)
+	g.git.del(key)
 }
 
 // loadGitConfig reads and parses the .gitconfig by calling ReadGitConfig. It
