@@ -34,7 +34,7 @@ var filterSmudgeSkip bool
 // This function, unlike the implementation found in the legacy smudge command,
 // only combines the `io.Reader`s when necessary, since the implementation
 // found in `*git.PacketReader` blocks while waiting for the following packet.
-func filterSmudge(from io.Reader, to io.Writer, filename string) error {
+func filterSmudge(to io.Writer, from io.Reader, filename string) error {
 	var pbuf bytes.Buffer
 	from = io.TeeReader(from, &pbuf)
 
@@ -85,10 +85,10 @@ Scan:
 		switch req.Header["command"] {
 		case "clean":
 			w = git.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
-			err = clean(req.Payload, w, req.Header["pathname"])
+			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = filterSmudge(req.Payload, w, req.Header["pathname"])
+			err = filterSmudge(w, req.Payload, req.Header["pathname"])
 		default:
 			fmt.Errorf("Unknown command %s", cmd)
 			break Scan

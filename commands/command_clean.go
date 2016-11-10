@@ -18,7 +18,7 @@ import (
 //
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
-func clean(from io.Reader, to io.Writer, fileName string) error {
+func clean(to io.Writer, from io.Reader, fileName string) error {
 	var cb progress.CopyCallback
 	var file *os.File
 	var fileSize int64
@@ -92,7 +92,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		fileName = args[0]
 	}
 
-	if err := clean(os.Stdin, os.Stdout, fileName); err != nil {
+	if err := clean(os.Stdout, os.Stdin, fileName); err != nil {
 		Error(err.Error())
 	}
 }
