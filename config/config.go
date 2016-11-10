@@ -421,12 +421,6 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
 }
 
-func (c *Configuration) AllGitConfig() map[string]string {
-	c.loadGitConfig()
-
-	return c.gitConfig
-}
-
 func (c *Configuration) urlAliases() map[string]string {
 	c.urlAliasMu.Lock()
 	defer c.urlAliasMu.Unlock()
@@ -435,7 +429,7 @@ func (c *Configuration) urlAliases() map[string]string {
 		c.urlAliasesMap = make(map[string]string)
 		prefix := "url."
 		suffix := ".insteadof"
-		for gitkey, gitval := range c.AllGitConfig() {
+		for gitkey, gitval := range c.Git.All() {
 			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
 				if _, ok := c.urlAliasesMap[gitval]; ok {
 					fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)

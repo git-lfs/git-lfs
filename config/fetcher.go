@@ -7,4 +7,6 @@ type Fetcher interface {
 	// Get returns the string value associated with a given key and a bool
 	// determining if the key exists.
 	Get(key string) (val string, ok bool)
+
+	All() map[string]string
 }

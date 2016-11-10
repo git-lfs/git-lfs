@@ -13,3 +13,11 @@ func (m mapFetcher) Get(key string) (val string, ok bool) {
 	val, ok = m[key]
 	return
 }
+
+func (m mapFetcher) All() map[string]string {
+	newmap := make(map[string]string)
+	for key, value := range m {
+		newmap[key] = value
+	}
+	return newmap
+}

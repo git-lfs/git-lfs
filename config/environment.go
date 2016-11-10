@@ -37,6 +37,8 @@ type Environment interface {
 	// Otherwise, if the value was converted `string -> int` successfully,
 	// then it will be returned wholesale.
 	Int(key string, def int) (val int)
+
+	All() map[string]string
 }
 
 type environment struct {
@@ -82,4 +84,8 @@ func (e *environment) Int(key string, def int) (val int) {
 	}
 
 	return i
+}
+
+func (e *environment) All() map[string]string {
+	return e.Fetcher.All()
 }

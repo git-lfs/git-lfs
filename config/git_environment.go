@@ -37,6 +37,12 @@ func (g *gitEnvironment) Int(key string, def int) (val int) {
 	return g.git.Int(key, def)
 }
 
+func (g *gitEnvironment) All() map[string]string {
+	g.loadGitConfig()
+
+	return g.git.All()
+}
+
 // loadGitConfig reads and parses the .gitconfig by calling ReadGitConfig. It
 // also sets values on the configuration instance `g.config`.
 //
