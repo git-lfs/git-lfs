@@ -47,7 +47,7 @@ func NewPktlineWriter(w io.Writer, c int) *PktlineWriter {
 // subsequent call to `Flush()` MUST be made in order to flush the remaining
 // data in the buffer, and write the terminating bytes to the underlying packet
 // stream. Alternatively, the caller can use the public `Flush() error` func to
-// preform the same operation.
+// perform the same operation.
 //
 // Write returns the number of bytes in "p" accepted into the writer, which
 // _MAY_ be written to the underlying protocol stream, or may be written into

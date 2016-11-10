@@ -135,7 +135,7 @@ func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	assert.Nil(t, req)
 }
 
-// readRequest preforms a single scan operation on the given
+// readRequest performs a single scan operation on the given
 // `*FilterProcessScanner`, "s", and returns: an error if there was one, or a
 // request if there was one.  If neither, it returns (nil, nil).
 func readRequest(s *FilterProcessScanner) (*Request, error) {
