@@ -45,10 +45,7 @@ func filterSmudge(from io.Reader, to io.Writer, filename string) error {
 		// response. This occurs because when the clean filter
 		// encounters an empty file, and writes out an empty file,
 		// instead of a pointer.
-		//
-		// TODO(taylor): figure out if there is more data on the reader,
-		// and buffer that as well.
-		if len(pbuf.Bytes()) == 0 {
+		if pbuf.Len() == 0 {
 			if _, cerr := io.Copy(to, &pbuf); cerr != nil {
 				Panic(cerr, "Error writing data to stdout:")
 			}
