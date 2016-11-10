@@ -3,13 +3,17 @@ git-lfs-track(1) - View or add Git LFS paths to Git attributes
 
 ## SYNOPSIS
 
-`git lfs track` [options] [<path>...]
+`git lfs track` [options] [<pattern>...]
 
 ## DESCRIPTION
 
-Start tracking the given path(s) through Git LFS.  The <path> argument
-can be a pattern or a file path.  If no paths are provided, simply list
-the currently-tracked paths.
+Start tracking the given patterns(s) through Git LFS.  The <pattern> argument
+is written to .gitattributes. If no paths are provided, simply list the
+currently-tracked paths.
+
+The [gitattributes documentation](https://git-scm.com/docs/gitattributes) states
+that patterns use the [gitignore pattern rules](https://git-scm.com/docs/gitignore)
+to match paths.
 
 ## OPTIONS
 
@@ -29,7 +33,7 @@ the currently-tracked paths.
 
 ## EXAMPLES
 
-* List the paths that Git LFS is currently tracking:
+* List the patterns that Git LFS is currently tracking:
 
     `git lfs track`
 
