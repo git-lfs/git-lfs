@@ -12,7 +12,7 @@ begin_test "install again"
 
   printf "$smudge" | grep "git-lfs smudge"
   printf "$clean" | grep "git-lfs clean"
-  printf "$filter" | grep "git-lfs filter"
+  printf "$filter" | grep "git-lfs filter-process"
 
   git lfs install
 
