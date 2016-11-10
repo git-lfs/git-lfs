@@ -38,7 +38,10 @@ type Environment interface {
 	// then it will be returned wholesale.
 	Int(key string, def int) (val int)
 
+	// All returns a copy of all the key/value pairs for the current environment.
 	All() map[string]string
+
+	// deprecated, don't use
 	set(key, value string)
 	del(key string)
 }

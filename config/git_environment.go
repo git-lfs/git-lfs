@@ -37,6 +37,7 @@ func (g *gitEnvironment) Int(key string, def int) (val int) {
 	return g.git.Int(key, def)
 }
 
+// All returns a copy of all the key/value pairs for the current git config.
 func (g *gitEnvironment) All() map[string]string {
 	g.loadGitConfig()
 

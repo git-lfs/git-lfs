@@ -8,9 +8,10 @@ type Fetcher interface {
 	// determining if the key exists.
 	Get(key string) (val string, ok bool)
 
+	// All returns a copy of all the key/value pairs for the current environment.
 	All() map[string]string
 
+	// deprecated, don't use
 	set(key, value string)
-
 	del(key string)
 }
