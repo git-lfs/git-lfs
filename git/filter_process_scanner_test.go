@@ -40,7 +40,7 @@ func TestFilterProcessScannerRejectsUnrecognizedInitializationMessages(t *testin
 	err := fps.Init()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "invalid filter pkt-line welcome message: git-filter-client-unknown", err.Error())
+	assert.Equal(t, "invalid filter-process pkt-line welcome message: git-filter-client-unknown", err.Error())
 	assert.Empty(t, to.Bytes())
 }
 

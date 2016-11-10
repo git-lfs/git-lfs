@@ -60,27 +60,27 @@ func NewFilterProcessScanner(r io.Reader, w io.Writer) *FilterProcessScanner {
 // client respectively.
 //
 // If either side wrote an invalid sequence of data, or did not meet
-// expectations, an error will be returned. If The filter type is not supported,
+// expectations, an error will be returned. If the filter type is not supported,
 // an error will be returned. If the pkt-line welcome message was invalid, an
 // error will be returned.
 //
 // If there was an error reading or writing any of the packets below, an error
 // will be returned.
 func (o *FilterProcessScanner) Init() error {
-	tracerx.Printf("Initialize filter")
+	tracerx.Printf("Initialize filter-process")
 	reqVer := "version=2"
 
 	initMsg, err := o.pl.readPacketText()
 	if err != nil {
-		return errors.Wrap(err, "reading filter initialization")
+		return errors.Wrap(err, "reading filter-process initialization")
 	}
 	if initMsg != "git-filter-client" {
-		return fmt.Errorf("invalid filter pkt-line welcome message: %s", initMsg)
+		return fmt.Errorf("invalid filter-process pkt-line welcome message: %s", initMsg)
 	}
 
 	supVers, err := o.pl.readPacketList()
 	if err != nil {
-		return errors.Wrap(err, "reading filter versions")
+		return errors.Wrap(err, "reading filter-process versions")
 	}
 	if !isStringInSlice(supVers, reqVer) {
 		return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
@@ -88,7 +88,7 @@ func (o *FilterProcessScanner) Init() error {
 
 	err = o.pl.writePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
-		return errors.Wrap(err, "writing filter initialization failed")
+		return errors.Wrap(err, "writing filter-process initialization failed")
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func (o *FilterProcessScanner) NegotiateCapabilities() error {
 
 	supCaps, err := o.pl.readPacketList()
 	if err != nil {
-		return fmt.Errorf("reading filter capabilities failed with %s", err)
+		return fmt.Errorf("reading filter-process capabilities failed with %s", err)
 	}
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
@@ -113,7 +113,7 @@ func (o *FilterProcessScanner) NegotiateCapabilities() error {
 
 	err = o.pl.writePacketList(reqCaps)
 	if err != nil {
-		return fmt.Errorf("writing filter capabilities failed with %s", err)
+		return fmt.Errorf("writing filter-process capabilities failed with %s", err)
 	}
 
 	return nil
@@ -161,7 +161,7 @@ func (o *FilterProcessScanner) Err() error { return o.err }
 // will read the body of the request. Since the body is _not_ offset, one
 // request should be read in its entirety before consuming the next request.
 func (o *FilterProcessScanner) readRequest() (*Request, error) {
-	tracerx.Printf("Read filter protocol request.")
+	tracerx.Printf("Read filter-process request.")
 
 	requestList, err := o.pl.readPacketList()
 	if err != nil {
