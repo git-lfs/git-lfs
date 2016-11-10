@@ -8,6 +8,8 @@ type Fetcher interface {
 	// determining if the key exists.
 	Get(key string) (val string, ok bool)
 
+	Set(key, value string)
+
 	All() map[string]string
 
 	Del(key string)

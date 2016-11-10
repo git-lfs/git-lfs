@@ -39,6 +39,7 @@ type Environment interface {
 	Int(key string, def int) (val int)
 
 	All() map[string]string
+	Set(key, value string)
 	Del(key string)
 }
 
@@ -89,6 +90,10 @@ func (e *environment) Int(key string, def int) (val int) {
 
 func (e *environment) All() map[string]string {
 	return e.Fetcher.All()
+}
+
+func (e *environment) Set(key, value string) {
+	e.Fetcher.Set(key, value)
 }
 
 func (e *environment) Del(key string) {

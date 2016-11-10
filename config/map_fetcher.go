@@ -22,6 +22,10 @@ func (m mapFetcher) All() map[string]string {
 	return newmap
 }
 
+func (m mapFetcher) Set(key, value string) {
+	m[key] = value
+}
+
 func (m mapFetcher) Del(key string) {
 	delete(m, key)
 }

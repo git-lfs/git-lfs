@@ -43,6 +43,12 @@ func (g *gitEnvironment) All() map[string]string {
 	return g.git.All()
 }
 
+func (g *gitEnvironment) Set(key, value string) {
+	g.loadGitConfig()
+
+	g.git.Set(key, value)
+}
+
 func (g *gitEnvironment) Del(key string) {
 	g.loadGitConfig()
 
@@ -68,7 +74,6 @@ func (g *gitEnvironment) loadGitConfig() bool {
 
 	g.git = EnvironmentOf(gf)
 
-	g.config.gitConfig = gf.vals // XXX TERRIBLE
 	g.config.extensions = extensions
 
 	g.config.remotes = make([]string, 0, len(uniqRemotes))

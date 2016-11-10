@@ -57,8 +57,6 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
-	gitConfig map[string]string
-
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
 	envVars         map[string]string
@@ -106,9 +104,8 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	return &Configuration{
-		Os:        EnvironmentOf(mapFetcher(v.Os)),
-		Git:       EnvironmentOf(mapFetcher(v.Git)),
-		gitConfig: v.Git,
+		Os:  EnvironmentOf(mapFetcher(v.Os)),
+		Git: EnvironmentOf(mapFetcher(v.Git)),
 
 		envVars: make(map[string]string, 0),
 	}
@@ -349,16 +346,10 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 	switch authType {
 	case "", "none":
 		git.Config.UnsetLocalKey("", key)
-
-		c.loading.Lock()
 		c.Git.Del(key)
-		c.loading.Unlock()
 	default:
 		git.Config.SetLocal("", key, authType)
-
-		c.loading.Lock()
-		c.gitConfig[strings.ToLower(key)] = authType
-		c.loading.Unlock()
+		c.Git.Set(key, authType)
 	}
 }
 

@@ -139,6 +139,12 @@ func (g *GitFetcher) All() map[string]string {
 	return newmap
 }
 
+func (g *GitFetcher) Set(key, value string) {
+	g.vmu.RLock()
+	defer g.vmu.RUnlock()
+	g.vals[strings.ToLower(key)] = value
+}
+
 func (g *GitFetcher) Del(key string) {
 	g.vmu.RLock()
 	defer g.vmu.RUnlock()

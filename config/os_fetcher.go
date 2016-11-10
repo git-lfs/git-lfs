@@ -58,4 +58,6 @@ func (o *OsFetcher) All() map[string]string {
 	return nil
 }
 
+func (o *OsFetcher) Set(key, value string) {}
+
 func (o *OsFetcher) Del(key string) {}
