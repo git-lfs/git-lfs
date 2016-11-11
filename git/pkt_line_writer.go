@@ -44,10 +44,8 @@ func NewPktlineWriter(w io.Writer, c int) *PktlineWriter {
 // underlying stream of data, and the process repeats.
 //
 // When the caller has no more data to write in the given chunk of packets, a
-// subsequent call to `Flush()` MUST be made in order to flush the remaining
-// data in the buffer, and write the terminating bytes to the underlying packet
-// stream. Alternatively, the caller can use the public `Flush() error` func to
-// perform the same operation.
+// subsequent call to `Flush()` SHOULD be made in order to signify that the
+// current pkt sequence has terminated, and a new one can begin.
 //
 // Write returns the number of bytes in "p" accepted into the writer, which
 // _MAY_ be written to the underlying protocol stream, or may be written into
