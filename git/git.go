@@ -809,6 +809,7 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	// with --skip-smudge is costly across many files in a checkout
 	cmdargs := []string{
 		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
+		"-c", "filter.lfs.process=",
 		"-c", "filter.lfs.required=false",
 		"clone"}
 
