@@ -40,6 +40,9 @@ func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh c
 		// Line is formatted:
 		// <sha1> <type> <size>
 		fields := bytes.Fields(l)
+		if len(fields) < 3 {
+			panic("Bad fields??? " + string(l))
+		}
 		s, _ := strconv.Atoi(string(fields[2]))
 
 		nbuf := make([]byte, s)
