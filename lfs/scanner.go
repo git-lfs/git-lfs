@@ -566,68 +566,11 @@ func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
 func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
-	cmd, err := startCommand("git", "cat-file", "--batch")
-	if err != nil {
-		return nil, err
-	}
-
 	pointers := make(chan *WrappedPointer, chanBufSize)
 	errchan := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
-
-	go func() {
-		for {
-			l, err := cmd.Stdout.ReadBytes('\n')
-			if err != nil {
-				break
-			}
-
-			// Line is formatted:
-			// <sha1> <type> <size>
-			fields := bytes.Fields(l)
-			s, _ := strconv.Atoi(string(fields[2]))
-
-			nbuf := make([]byte, s)
-			_, err = io.ReadFull(cmd.Stdout, nbuf)
-			if err != nil {
-				break // Legit errors
-			}
-
-			p, err := DecodePointer(bytes.NewBuffer(nbuf))
-			if err == nil {
-				pointers <- &WrappedPointer{
-					Sha1:    string(fields[0]),
-					Size:    p.Size,
-					Pointer: p,
-				}
-			}
-
-			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
-			if err != nil {
-				break
-			}
-		}
-
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err = cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
-		}
-		close(pointers)
-		close(errchan)
-	}()
-
-	go func() {
-		for r := range revs.Results {
-			cmd.Stdin.Write([]byte(r + "\n"))
-		}
-		err := revs.Wait()
-		if err != nil {
-			// We can share errchan with other goroutine since that won't close it
-			// until we close the stdin below
-			errchan <- err
-		}
-		cmd.Stdin.Close()
-	}()
+	if err := runCatFileBatch(pointers, revs.Results, errchan); err != nil {
+		return nil, err
+	}
 
 	return NewPointerChannelWrapper(pointers, errchan), nil
 }
@@ -1107,7 +1050,6 @@ type BaseChannelWrapper struct {
 }
 
 func (w *BaseChannelWrapper) Wait() error {
-
 	var err error
 	for e := range w.errorChan {
 		if err != nil {
