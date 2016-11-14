@@ -3,6 +3,9 @@ skip_branch_with_pr: true
 environment:
   GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
   MSYSTEM: MINGW64
+  matrix:
+    - CINST_VERSION_ARG_GIT: --version 1.8.5.2 # The minimum version supported (and available on Chocolatey).
+    - CINST_VERSION_ARG_GIT: # Left empty to use the latest version.
 
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
@@ -12,6 +15,8 @@ install:
   - appveyor DownloadFile https://storage.googleapis.com/golang/go1.7.4.windows-amd64.zip
   - 7z x go1.7.4.windows-amd64.zip -oC:\ >nul
   - C:\go\bin\go version
+  - cinst git -y %CINST_VERSION_ARG_GIT%
+  - git --version
   - cinst InnoSetup -y
   - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
 
