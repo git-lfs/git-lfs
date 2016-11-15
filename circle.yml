@@ -26,6 +26,9 @@ dependencies:
   override:
     - script/bootstrap
 
+    # needed for git-lfs-test-server-api
+    - go get github.com/spf13/cobra
+
 test:
   override:
     - script/cibuild
