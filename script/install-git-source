@@ -1,0 +1,6 @@
+cd git-source
+echo "checking out: $1"
+git checkout "$1"
+make --jobs=2
+make install
+cd ..

@@ -34,3 +34,7 @@ dependencies:
 test:
   override:
     - script/cibuild
+    - script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
+    - script/cibuild
+    - script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
+    - script/cibuild
