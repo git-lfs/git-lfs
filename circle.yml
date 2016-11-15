@@ -14,8 +14,8 @@ general:
 
 checkout:
   post:
-    - mkdir -p .go/src/github.com/git-lfs
-    - ln -s ~/git-lfs .go/src/github.com/git-lfs
+    - mkdir -p ~/git-lfs/.go/src/github.com/git-lfs
+    - ln -s ~/git-lfs ~/git-lfs/.go/src/github.com/git-lfs
 
 dependencies:
   pre:
