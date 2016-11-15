@@ -175,7 +175,7 @@ wait_for_file() {
   return 1
 }
 
-# setup_remote_repo intializes a bare Git repository that is accessible through
+# setup_remote_repo initializes a bare Git repository that is accessible through
 # the test Git server. The `pwd` is set to the repository's directory, in case
 # further commands need to be run. This server is running for every test in a
 # script/integration run, so every test file should setup its own remote
@@ -314,7 +314,7 @@ setup() {
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
 
-  grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
+  ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
     exit 1

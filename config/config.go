@@ -57,8 +57,6 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
-	gitConfig map[string]string
-
 	CurrentRemote   string
 	NtlmSession     ntlm.ClientSession
 	envVars         map[string]string
@@ -106,9 +104,8 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	return &Configuration{
-		Os:        EnvironmentOf(mapFetcher(v.Os)),
-		Git:       EnvironmentOf(mapFetcher(v.Git)),
-		gitConfig: v.Git,
+		Os:  EnvironmentOf(mapFetcher(v.Os)),
+		Git: EnvironmentOf(mapFetcher(v.Git)),
 
 		envVars: make(map[string]string, 0),
 	}
@@ -349,16 +346,10 @@ func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
 	switch authType {
 	case "", "none":
 		git.Config.UnsetLocalKey("", key)
-
-		c.loading.Lock()
-		delete(c.gitConfig, strings.ToLower(key))
-		c.loading.Unlock()
+		c.Git.del(key)
 	default:
 		git.Config.SetLocal("", key, authType)
-
-		c.loading.Lock()
-		c.gitConfig[strings.ToLower(key)] = authType
-		c.loading.Unlock()
+		c.Git.set(key, authType)
 	}
 }
 
@@ -421,12 +412,6 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
 }
 
-func (c *Configuration) AllGitConfig() map[string]string {
-	c.loadGitConfig()
-
-	return c.gitConfig
-}
-
 func (c *Configuration) urlAliases() map[string]string {
 	c.urlAliasMu.Lock()
 	defer c.urlAliasMu.Unlock()
@@ -435,7 +420,7 @@ func (c *Configuration) urlAliases() map[string]string {
 		c.urlAliasesMap = make(map[string]string)
 		prefix := "url."
 		suffix := ".insteadof"
-		for gitkey, gitval := range c.AllGitConfig() {
+		for gitkey, gitval := range c.Git.All() {
 			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
 				if _, ok := c.urlAliasesMap[gitval]; ok {
 					fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)

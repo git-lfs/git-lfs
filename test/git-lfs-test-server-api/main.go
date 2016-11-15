@@ -61,7 +61,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	}
 
 	// Force loading of config before we alter it
-	config.Config.AllGitConfig()
+	config.Config.Git.All()
 
 	// Configure the endpoint manually
 	var endp config.Endpoint
