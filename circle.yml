@@ -7,7 +7,7 @@ machine:
     XCODE_SCHEME: test
     XCODE_WORKSPACE: test
     XCODE_PROJECT: test
-    GOPATH: $HOME/go
+    GOPATH: $HOME/git-lfs/.go
 
 general:
   build_dir: .go/src/github.com/git-lfs/git-lfs
