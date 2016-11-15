@@ -40,15 +40,13 @@ func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh c
 		// Line is formatted:
 		// <sha1> <type> <size>
 		fields := bytes.Fields(l)
-		s, _ := strconv.Atoi(string(fields[2]))
-
-		nbuf := make([]byte, s)
-		_, err = io.ReadFull(cmd.Stdout, nbuf)
-		if err != nil {
-			break // Legit errors
+		if len(fields) < 3 {
+			errCh <- errors.Wrap(fmt.Errorf("Invalid: %s", string(l)), "git cat-file --batch:")
+			break
 		}
 
-		p, err := DecodePointer(bytes.NewBuffer(nbuf))
+		s, _ := strconv.Atoi(string(fields[2]))
+		p, err := DecodePointer(io.LimitReader(cmd.Stdout, int64(s)))
 		if err == nil {
 			pointerCh <- &WrappedPointer{
 				Sha1:    string(fields[0]),
@@ -58,11 +56,8 @@ func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh c
 		}
 
 		_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
-		if err != nil {
-			if err != io.EOF {
-				errCh <- errors.Wrap(err, "git cat-file --batch:")
-			}
-			break
+		if err != nil && err != io.EOF {
+			errCh <- errors.Wrap(err, "git cat-file --batch:")
 		}
 	}
 
