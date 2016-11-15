@@ -912,7 +912,6 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 // CachedRemoteRefs returns the list of branches & tags for a remote which are
 // currently cached locally. No remote request is made to verify them.
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
-
 	var ret []*Ref
 	cmd := subprocess.ExecCommand("git", "show-ref")
 
@@ -936,13 +935,12 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 		}
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 }
 
 // RemoteRefs returns a list of branches & tags for a remote by actually
 // accessing the remote vir git ls-remote
 func RemoteRefs(remoteName string) ([]*Ref, error) {
-
 	var ret []*Ref
 	cmd := subprocess.ExecCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
 
@@ -970,7 +968,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 			}
 		}
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 }
 
 // GetTrackedFiles returns a list of files which are tracked in Git which match
