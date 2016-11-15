@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 // LockService is an API service which encapsulates the Git LFS Locking API.

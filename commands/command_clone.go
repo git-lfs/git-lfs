@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/subprocess"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 

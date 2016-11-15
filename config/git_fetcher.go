@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 type GitFetcher struct {

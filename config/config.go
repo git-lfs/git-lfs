@@ -13,8 +13,8 @@ import (
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 

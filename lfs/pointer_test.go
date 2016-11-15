@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/stretchr/testify/assert"
 )
 

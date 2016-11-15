@@ -6,7 +6,7 @@ commit_summary() {
   local hash=$1
 
   pr=$(git show $hash | grep -o "#\([0-9]*\)" | cut -c 2-)
-  prjson="$(curl -n https://api.github.com/repos/github/git-lfs/pulls/$pr 2>/dev/null)"
+  prjson="$(curl -n https://api.github.com/repos/git-lfs/git-lfs/pulls/$pr 2>/dev/null)"
   title="$(echo $prjson | jq -r -e ".title")"
   id="$(echo $prjson | jq -r -e ".number")"
   author="$(echo $prjson | jq -r -e ".user.login")"

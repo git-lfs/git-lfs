@@ -4,9 +4,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/spf13/cobra"
 )
 
