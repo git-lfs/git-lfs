@@ -4,7 +4,7 @@ environment:
   GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
   MSYSTEM: MINGW64
 
-clone_folder: $(GOPATH)\src\github.com\github\git-lfs
+clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
   - cinst InnoSetup -y
