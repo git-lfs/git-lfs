@@ -87,11 +87,11 @@ before_install:
   - >
     repo=`basename $PWD`;
     localDir=`dirname $PWD`;
-    cfDir="`dirname $localDir`/github";
+    cfDir="`dirname $localDir`/git-lfs";
     if [[ "$localDir" != "$cfDir" ]];
     then
       mv "$localDir" "$cfDir";
-      cd ../../github/$repo;
+      cd ../../git-lfs/$repo;
       export TRAVIS_BUILD_DIR=`dirname $TRAVIS_BUILD_DIR`/$repo;
     fi;
 
