@@ -10,7 +10,6 @@ machine:
     GOPATH: $HOME/git-lfs/.go
     NO_OPENSSL: YesPlease
     APPLE_COMMON_CRYPTO: YesPlease
-    PATH: $HOME/bin:$PATH
 
 general:
   build_dir: .go/src/github.com/git-lfs/git-lfs
@@ -39,6 +38,6 @@ test:
   override:
     - script/cibuild
     - script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
-    - SKIPCOMPILE=1 script/integration
+    - PATH="$HOME/bin:$PATH" SKIPCOMPILE=1 script/integration
     - script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
-    - SKIPCOMPILE=1 script/integration
+    - PATH="$HOME/bin:$PATH" SKIPCOMPILE=1 script/integration
