@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
@@ -30,6 +31,12 @@ type FilterProcessScanner struct {
 	// pl is the *pktline instance used to read and write packets back and
 	// forth between Git.
 	pl *pktline
+
+	// lmu guards lastStatus
+	lmu sync.Mutex
+	// lastStatus is the last status that was sent using the WriteStatus()
+	// method
+	lastStatus string
 
 	// req is a temporary variable used to hold the value accessible by the
 	// `Request()` function. It is cleared at the beginning of each `Scan()`
@@ -184,7 +191,17 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 	return req, nil
 }
 
+// WriteStatus writes the status of a filter process, writing an empty list if
+// the status is unchanged.
 func (o *FilterProcessScanner) WriteStatus(status string) error {
+	o.lmu.Lock()
+	defer o.lmu.Unlock()
+
+	if status == o.lastStatus {
+		return o.pl.writeFlush()
+	}
+
+	o.lastStatus = status
 	return o.pl.writePacketList([]string{"status=" + status})
 }
 

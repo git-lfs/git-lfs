@@ -135,6 +135,44 @@ func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	assert.Nil(t, req)
 }
 
+func TestFilterProcessScannerWritesStatusPackets(t *testing.T) {
+	var buf bytes.Buffer
+
+	require.Nil(t, NewFilterProcessScanner(nil, &buf).WriteStatus("success"))
+
+	list, err := newPktline(&buf, nil).readPacketList()
+
+	assert.Nil(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "status=success", list[0])
+}
+
+func TestFilterProcessScannerAbbreviatesUnchangedStatuses(t *testing.T) {
+	var buf bytes.Buffer
+
+	s := NewFilterProcessScanner(nil, &buf)
+
+	for _, status := range []string{
+		"success", "success", "error",
+	} {
+		require.Nil(t, s.WriteStatus(status))
+	}
+
+	pl := newPktline(&buf, nil)
+
+	// Read the first status=success entirely
+	assertPacketRead(t, pl, []byte("status=success\n"))
+	assertPacketRead(t, pl, nil)
+
+	// Second status is the same, so expect only a flush packet
+	assertPacketRead(t, pl, nil)
+
+	// Third status is different than the previous, so expect the full
+	// packet
+	assertPacketRead(t, pl, []byte("status=error\n"))
+	assertPacketRead(t, pl, nil)
+}
+
 // readRequest performs a single scan operation on the given
 // `*FilterProcessScanner`, "s", and returns: an error if there was one, or a
 // request if there was one.  If neither, it returns (nil, nil).
