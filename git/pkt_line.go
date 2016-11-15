@@ -104,10 +104,6 @@ func (p *pktline) writePacket(data []byte) error {
 		return err
 	}
 
-	if err := p.w.Flush(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
