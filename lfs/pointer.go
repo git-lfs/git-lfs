@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/transfer"
 )
 
 var (

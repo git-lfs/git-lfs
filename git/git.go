@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
 

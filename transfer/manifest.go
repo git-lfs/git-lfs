@@ -3,7 +3,7 @@ package transfer
 import (
 	"sync"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
 )
 

@@ -9,9 +9,9 @@ fi
 
 if [ -z "$GOPATH" ]; then
   export GOPATH="$(pwd)"
-  mkdir -p src/github.com/github
-  [ -h src/github.com/github/git-lfs ] ||
-    ln -s "$GOPATH" src/github.com/github/git-lfs
+  mkdir -p src/github.com/git-lfs
+  [ -h src/github.com/git-lfs/git-lfs ] ||
+    ln -s "$GOPATH" src/github.com/git-lfs/git-lfs
 fi
 
 script/fmt

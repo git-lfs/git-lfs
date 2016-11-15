@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/stretchr/testify/assert"
 )
 

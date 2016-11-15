@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 

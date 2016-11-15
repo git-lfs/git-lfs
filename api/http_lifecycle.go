@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/auth"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/httputil"
 )
 
 var (

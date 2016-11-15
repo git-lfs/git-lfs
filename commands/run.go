@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/github/git-lfs/httputil"
-	"github.com/github/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
