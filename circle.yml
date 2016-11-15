@@ -10,12 +10,12 @@ machine:
     GOPATH: $HOME/go
 
 general:
-  build_dir: .go/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+  build_dir: .go/src/github.com/git-lfs/git-lfs
 
 checkout:
   post:
-    - mkdir -p .go/src/github.com/$CIRCLE_PROJECT_USERNAME
-    - ln -s ~/$CIRCLE_PROJECT_REPONAME .go/src/github.com/$CIRCLE_PROJECT_USERNAME
+    - mkdir -p .go/src/github.com/git-lfs
+    - ln -s ~/git-lfs .go/src/github.com/git-lfs
 
 dependencies:
   pre:
