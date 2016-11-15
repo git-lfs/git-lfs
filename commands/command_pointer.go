@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 

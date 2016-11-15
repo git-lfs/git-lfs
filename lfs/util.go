@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type Platform int

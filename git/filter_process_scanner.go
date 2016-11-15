@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 

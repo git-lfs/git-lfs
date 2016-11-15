@@ -3,7 +3,7 @@ package git
 import (
 	"io"
 
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 // PktlineWriter is an implementation of `io.Writer` which writes data buffers

@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 

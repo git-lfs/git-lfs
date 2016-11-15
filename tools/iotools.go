@@ -6,8 +6,8 @@ import (
 	"hash"
 	"io"
 
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
 )
 
 type readSeekCloserWrapper struct {

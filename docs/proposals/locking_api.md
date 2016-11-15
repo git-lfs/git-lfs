@@ -122,7 +122,7 @@
 < Content-Type: application/vnd.git-lfs+json
 <
 < {
-<   error: "github/git-lfs: internal server error"
+<   error: "git-lfs/git-lfs: internal server error"
 < }
 ```
 
@@ -175,6 +175,6 @@ Note: no matching locks yields a payload of `locks: []`, and a status of 200.
 <
 < {
 <   locks: [],
-<   error: "github/git-lfs: internal server error"
+<   error: "git-lfs/git-lfs: internal server error"
 < }
 ```

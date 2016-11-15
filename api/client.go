@@ -1,7 +1,7 @@
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package api
 
-import "github.com/github/git-lfs/config"
+import "github.com/git-lfs/git-lfs/config"
 
 type Operation string
 

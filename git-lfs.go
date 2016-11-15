@@ -7,7 +7,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/github/git-lfs/commands"
+	"github.com/git-lfs/git-lfs/commands"
 )
 
 func main() {

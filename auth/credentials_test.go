@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/bgentry/go-netrc/netrc"
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 func TestGetCredentialsForApi(t *testing.T) {

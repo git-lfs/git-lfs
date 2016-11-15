@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )

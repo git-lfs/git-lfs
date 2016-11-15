@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )

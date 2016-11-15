@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 
 	"github.com/cheggaaa/pb"
-	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/transfer"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
 
