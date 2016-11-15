@@ -29,12 +29,12 @@ dependencies:
     - script/bootstrap
 
     # needed for git-lfs-test-server-api
-    - go get github.com/spf13/cobra
+    - go get -d -v github.com/spf13/cobra
 
 test:
   override:
     - script/cibuild
     - script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
-    - script/cibuild
+    - SKIPCOMPILE=1 script/cibuild
     - script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
-    - script/cibuild
+    - SKIPCOMPILE=1 script/cibuild
