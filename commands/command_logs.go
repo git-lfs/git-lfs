@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/spf13/cobra"
 )
 

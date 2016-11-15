@@ -9,7 +9,7 @@ type RequestSchema struct {
 	// Path is the relative path that this API call should be made against.
 	Path string
 	// Operation is the operation used to determine which endpoint to make
-	// the request against (see github.com/github/git-lfs/config).
+	// the request against (see github.com/git-lfs/git-lfs/config).
 	Operation Operation
 	// Query is the query parameters used in the request URI.
 	Query map[string]string

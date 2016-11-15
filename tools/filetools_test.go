@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/subprocess"
 
 	"github.com/stretchr/testify/assert"
 )

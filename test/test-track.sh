@@ -37,7 +37,7 @@ begin_test "track"
   echo "*.png filter=lfs -text" > a/b/.gitattributes
 
   out=$(git lfs track)
-  echo "$out" | grep "Listing tracked paths"
+  echo "$out" | grep "Listing tracked patterns"
   echo "$out" | grep "*.mov ($(native_path_escaped ".git/info/attributes"))"
   echo "$out" | grep "*.jpg (.gitattributes)"
   echo "$out" | grep "*.gif ($(native_path_escaped "a/.gitattributes"))"
@@ -292,4 +292,3 @@ begin_test "track blocklisted files with glob"
   grep "Pattern .git\* matches forbidden file" track.log
 )
 end_test
-

@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
 )
 
@@ -272,7 +272,7 @@ func (c *CountingReadCloser) Read(b []byte) (int, error) {
 
 	c.Count += n
 
-	if c.isTraceableType {
+	if n > 0 && c.isTraceableType {
 		chunk := string(b[0:n])
 		if c.useGitTrace {
 			tracerx.Printf("HTTP: %s", chunk)

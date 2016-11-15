@@ -3,12 +3,12 @@ package lfs
 import (
 	"sync"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 

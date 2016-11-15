@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 // Adapter for custom transfer via external process
@@ -349,7 +349,7 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 // Initialise custom adapters based on current config
 func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
-	for k, v := range cfg.AllGitConfig() {
+	for k, v := range cfg.Git.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue

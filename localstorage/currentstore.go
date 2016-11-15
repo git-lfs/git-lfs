@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 const (

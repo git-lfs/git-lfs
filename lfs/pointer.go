@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/transfer"
 )
 
 var (
@@ -113,7 +113,7 @@ func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
 	written, err := reader.Read(buf)
 	output := buf[0:written]
 
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return output, nil, err
 	}
 

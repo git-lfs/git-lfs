@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/httputil"
 )
 
 type ObjectError struct {

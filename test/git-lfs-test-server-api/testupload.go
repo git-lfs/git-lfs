@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 // "upload" - all missing

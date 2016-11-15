@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/spf13/cobra"
 )
 
