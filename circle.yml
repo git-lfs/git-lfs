@@ -12,10 +12,13 @@ machine:
 general:
   build_dir: .go/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 
+checkout:
+  post:
+    - mkdir -p .go/src/github.com/$CIRCLE_PROJECT_USERNAME
+    - ln -s ~/$CIRCLE_PROJECT_REPONAME .go/src/github.com/$CIRCLE_PROJECT_USERNAME
+
 dependencies:
   pre:
-    - mkdir -p ./go/src/github.com/$CIRCLE_PROJECT_USERNAME
-    - ln -s ~/$CIRCLE_PROJECT_REPONAME ./go/src/github.com/$CIRCLE_PROJECT_USERNAME
     - brew update
     - brew prune
     - brew upgrade go || brew install go
