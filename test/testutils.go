@@ -186,28 +186,30 @@ func RunGitCommand(callback RepoCallback, failureCheck bool, args ...string) str
 	return string(outp)
 }
 
+type BlobInput interface {
+	AddToIndex(output *CommitOutput, repo *Repo) *lfs.Pointer
+}
+
 // Input data for a single file in a commit
 type LFSInput struct {
 	// Name of file (required)
-	Filename string
+	filename string
 	// Size of file (required)
-	Size int64
+	size int64
 	// Input data (optional, if provided will be source of data)
-	DataReader io.Reader
-	// Input data (optional, if provided will be source of data)
-	Data string
+	data string
+}
+
+type fatalLogger interface {
+	Fatal(v ...interface{})
+}
+
+func NewLFSInput(filename, data string) *LFSInput {
+	return &LFSInput{filename: filename, size: int64(len(data)), data: data}
 }
 
 func (infile *LFSInput) AddToIndex(output *CommitOutput, repo *Repo) *lfs.Pointer {
-	inputData := infile.DataReader
-	if inputData == nil && infile.Data != "" {
-		inputData = strings.NewReader(infile.Data)
-	}
-	if inputData == nil {
-		// Different data for each file but deterministic
-		inputData = NewPlaceholderDataReader(gitInputSeed.Int63(), infile.Size)
-	}
-	cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
+	cleaned, err := lfs.PointerClean(strings.NewReader(infile.data), infile.filename, infile.size, nil)
 	if err != nil {
 		repo.callback.Errorf("Error creating pointer file: %v", err)
 		return nil
@@ -231,8 +233,8 @@ func (infile *LFSInput) AddToIndex(output *CommitOutput, repo *Repo) *lfs.Pointe
 	output.Files = append(output.Files, cleaned.Pointer)
 
 	// Write pointer to local filename for adding (not using clean filter)
-	os.MkdirAll(filepath.Dir(infile.Filename), 0755)
-	f, err := os.Create(infile.Filename)
+	os.MkdirAll(filepath.Dir(infile.filename), 0755)
+	f, err := os.Create(infile.filename)
 	if err != nil {
 		repo.callback.Errorf("Error creating pointer file: %v", err)
 		return nil
@@ -244,7 +246,7 @@ func (infile *LFSInput) AddToIndex(output *CommitOutput, repo *Repo) *lfs.Pointe
 		return nil
 	}
 	f.Close() // early close in a loop, don't defer
-	RunGitCommand(repo.callback, true, "add", infile.Filename)
+	RunGitCommand(repo.callback, true, "add", infile.filename)
 	return cleaned.Pointer
 }
 
@@ -253,7 +255,7 @@ type CommitInput struct {
 	// Date that we should commit on (optional, leave blank for 'now')
 	CommitDate time.Time
 	// List of files to include in this commit
-	Files []*LFSInput
+	Files []BlobInput
 	// List of parent branches (all branches must have been created in a previous NewBranch or be master)
 	// Can be omitted to just use the parent of the previous commit
 	ParentBranches []string
@@ -384,37 +386,14 @@ func (r *Repo) AddRemote(name string) *Repo {
 
 // Just a psuedo-random stream of bytes (not cryptographic)
 // Calls RNG a bit less often than using rand.Source directly
-type PlaceholderDataReader struct {
-	source    rand.Source
-	bytesLeft int64
-}
-
-func NewPlaceholderDataReader(seed, size int64) *PlaceholderDataReader {
-	return &PlaceholderDataReader{rand.NewSource(seed), size}
-}
-
-func (r *PlaceholderDataReader) Read(p []byte) (int, error) {
-	c := len(p)
-	i := 0
-	for i < c && r.bytesLeft > 0 {
-		// Use all 8 bytes of the 64-bit random number
-		val64 := r.source.Int63()
-		for j := 0; j < 8 && i < c && r.bytesLeft > 0; j++ {
-			// Duplicate this byte 16 times (faster)
-			for k := 0; k < 16 && r.bytesLeft > 0; k++ {
-				p[i] = byte(val64)
-				i++
-				r.bytesLeft--
-			}
-			// Next byte from the 8-byte number
-			val64 = val64 >> 8
-		}
+func RandInput(f fatalLogger, size int64) string {
+	rng := rand.New(rand.NewSource(gitInputSeed.Int63()))
+	buf := make([]byte, size)
+	if _, err := io.ReadFull(rng, buf); err != nil {
+		f.Fatal(err)
 	}
-	var err error
-	if r.bytesLeft == 0 {
-		err = io.EOF
-	}
-	return i, err
+
+	return string(buf)
 }
 
 // RefsByName implements sort.Interface for []*git.Ref based on name

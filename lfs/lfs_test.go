@@ -38,10 +38,11 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 	// We're not testing commits here, just storage, so just create a single
 	// commit input with lots of files to generate many oids
 	numFiles := 20
-	files := make([]*test.LFSInput, 0, numFiles)
+	files := make([]test.BlobInput, 0, numFiles)
 	for i := 0; i < numFiles; i++ {
 		// Must be >=16 bytes for each file to be unique
-		files = append(files, &test.LFSInput{Filename: fmt.Sprintf("file%d.txt", i), Size: 30})
+		filename := fmt.Sprintf("file%d.txt", i)
+		files = append(files, test.NewLFSInput(filename, test.RandInput(t, 30)))
 	}
 
 	inputs := []*test.CommitInput{
