@@ -7,15 +7,19 @@ machine:
     XCODE_SCHEME: test
     XCODE_WORKSPACE: test
     XCODE_PROJECT: test
+    GOPATH: $HOME/go
+  build_dir: ~/go/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 
 dependencies:
   pre:
+    - mkdir -p ~/go/src/github.com/$CIRCLE_PROJECT_USERNAME
     - brew update
     - brew prune
     - brew upgrade go || brew install go
     - brew upgrade git || brew install git
   override:
     - script/bootstrap
+    - ln -s ~/$CIRCLE_PROJECT_USERNAME/ ~/go/src/github.com/$CIRCLE_PROJECT_USERNAME
 
 test:
   override:
