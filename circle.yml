@@ -8,6 +8,8 @@ machine:
     XCODE_WORKSPACE: test
     XCODE_PROJECT: test
     GOPATH: $HOME/git-lfs/.go
+    NO_OPENSSL: YesPlease
+    APPLE_COMMON_CRYPTO: YesPlease
 
 general:
   build_dir: .go/src/github.com/git-lfs/git-lfs

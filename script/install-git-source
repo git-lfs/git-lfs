@@ -2,8 +2,7 @@
 # Builds git from a given git ref. Used for CircleCI OSX builds
 
 cd git-source
-echo "checking out: $1"
 git checkout "$1"
-NO_OPENSSL=YesPlease APPLE_COMMON_CRYPTO=YesPlease make --jobs=2
+make --jobs=2
 make install
 cd ..
