@@ -1092,40 +1092,10 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 	finishLastPointer()
 }
 
-// Interface for all types of wrapper around a channel of results and an error channel
-// Implementors will expose a type-specific channel for results
-// Call the Wait() function after processing the results channel to catch any errors
-// that occurred during the async processing
-type ChannelWrapper interface {
-	// Call this after processing results channel to check for async errors
-	Wait() error
-}
-
-// Base implementation of channel wrapper to just deal with errors
-type BaseChannelWrapper struct {
-	errorChan <-chan error
-}
-
-func (w *BaseChannelWrapper) Wait() error {
-
-	var err error
-	for e := range w.errorChan {
-		if err != nil {
-			// Combine in case multiple errors
-			err = fmt.Errorf("%v\n%v", err, e)
-
-		} else {
-			err = e
-		}
-	}
-
-	return err
-}
-
 // ChannelWrapper for pointer Scan* functions to more easily return async error data via Wait()
 // See NewPointerChannelWrapper for construction / use
 type PointerChannelWrapper struct {
-	*BaseChannelWrapper
+	*tools.BaseChannelWrapper
 	Results <-chan *WrappedPointer
 }
 
@@ -1133,32 +1103,32 @@ type PointerChannelWrapper struct {
 // Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 // Scan function is required to create error channel large enough not to block (usually 1 is ok)
 func NewPointerChannelWrapper(pointerChan <-chan *WrappedPointer, errorChan <-chan error) *PointerChannelWrapper {
-	return &PointerChannelWrapper{&BaseChannelWrapper{errorChan}, pointerChan}
+	return &PointerChannelWrapper{tools.NewBaseChannelWrapper(errorChan), pointerChan}
 }
 
 // ChannelWrapper for string channel functions to more easily return async error data via Wait()
 // Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 // See NewStringChannelWrapper for construction / use
 type StringChannelWrapper struct {
-	*BaseChannelWrapper
+	*tools.BaseChannelWrapper
 	Results <-chan string
 }
 
 // Construct a new channel wrapper for string
 // Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 func NewStringChannelWrapper(stringChan <-chan string, errorChan <-chan error) *StringChannelWrapper {
-	return &StringChannelWrapper{&BaseChannelWrapper{errorChan}, stringChan}
+	return &StringChannelWrapper{tools.NewBaseChannelWrapper(errorChan), stringChan}
 }
 
 // ChannelWrapper for TreeBlob channel functions to more easily return async error data via Wait()
 // See NewTreeBlobChannelWrapper for construction / use
 type TreeBlobChannelWrapper struct {
-	*BaseChannelWrapper
+	*tools.BaseChannelWrapper
 	Results <-chan TreeBlob
 }
 
 // Construct a new channel wrapper for TreeBlob
 // Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
 func NewTreeBlobChannelWrapper(treeBlobChan <-chan TreeBlob, errorChan <-chan error) *TreeBlobChannelWrapper {
-	return &TreeBlobChannelWrapper{&BaseChannelWrapper{errorChan}, treeBlobChan}
+	return &TreeBlobChannelWrapper{tools.NewBaseChannelWrapper(errorChan), treeBlobChan}
 }
