@@ -25,25 +25,25 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	// only interested in branches
 	inputs := []*test.CommitInput{
 		{ // 0
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 20},
 			},
 		},
 		{ // 1
 			NewBranch: "branch2",
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 25},
 			},
 		},
 		{ // 2
 			ParentBranches: []string{"master"}, // back on master
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 30},
 			},
 		},
 		{ // 3
 			NewBranch: "branch3",
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 32},
 			},
 		},
@@ -91,7 +91,7 @@ func TestRecentBranches(t *testing.T) {
 	inputs := []*test.CommitInput{
 		{ // 0
 			CommitDate: now.AddDate(0, 0, -20),
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 20},
 			},
 		},
@@ -99,35 +99,35 @@ func TestRecentBranches(t *testing.T) {
 			CommitDate: now.AddDate(0, 0, -15),
 			NewBranch:  "excluded_branch", // new branch & tag but too old
 			Tags:       []string{"excluded_tag"},
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 25},
 			},
 		},
 		{ // 2
 			CommitDate:     now.AddDate(0, 0, -12),
 			ParentBranches: []string{"master"}, // back on master
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 30},
 			},
 		},
 		{ // 3
 			CommitDate: now.AddDate(0, 0, -6),
 			NewBranch:  "included_branch", // new branch within 7 day limit
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 32},
 			},
 		},
 		{ // 4
 			CommitDate: now.AddDate(0, 0, -3),
 			NewBranch:  "included_branch_2", // new branch within 7 day limit
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 36},
 			},
 		},
 		{ // 5
 			// Final commit, current date/time
 			ParentBranches: []string{"master"}, // back on master
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 21},
 			},
 		},
@@ -217,27 +217,27 @@ func TestWorkTrees(t *testing.T) {
 	// only interested in branches & dates
 	inputs := []*test.CommitInput{
 		{ // 0
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 20},
 			},
 		},
 		{ // 1
 			NewBranch: "branch2",
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 25},
 			},
 		},
 		{ // 2
 			NewBranch:      "branch3",
 			ParentBranches: []string{"master"}, // back on master
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 30},
 			},
 		},
 		{ // 3
 			NewBranch:      "branch4",
 			ParentBranches: []string{"master"}, // back on master
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 40},
 			},
 		},
@@ -316,7 +316,7 @@ func TestGetTrackedFiles(t *testing.T) {
 	// only interested in branches
 	inputs := []*test.CommitInput{
 		{ // 0
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 20},
 				{Filename: "file2.txt", Size: 20},
 				{Filename: "folder1/file10.txt", Size: 20},
@@ -324,7 +324,7 @@ func TestGetTrackedFiles(t *testing.T) {
 			},
 		},
 		{ // 1
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file3.txt", Size: 20},
 				{Filename: "file4.txt", Size: 20},
 				{Filename: "folder2/something.txt", Size: 20},
@@ -416,14 +416,14 @@ func TestLocalRefs(t *testing.T) {
 
 	repo.AddCommits([]*test.CommitInput{
 		{
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 20},
 			},
 		},
 		{
 			NewBranch:      "branch",
 			ParentBranches: []string{"master"},
-			Files: []*test.FileInput{
+			Files: []*test.LFSInput{
 				{Filename: "file1.txt", Size: 20},
 			},
 		},
