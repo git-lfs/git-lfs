@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: Remove for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
+// TODO: Remove for Git LFS v2.0 https://github.com/git-lfs/git-lfs/issues/839
 func initCommand(cmd *cobra.Command, args []string) {
 	fmt.Fprintf(os.Stderr, "WARNING: 'git lfs init' is deprecated. Use 'git lfs install' now.\n")
 	installCommand(cmd, args)

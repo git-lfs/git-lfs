@@ -14,7 +14,7 @@ begin_test "uninstall outside repository"
   printf "$clean" | grep "git-lfs clean"
   printf "$filter" | grep "git-lfs filter-process"
 
-  # uninstall multiple times to trigger https://github.com/github/git-lfs/issues/529
+  # uninstall multiple times to trigger https://github.com/git-lfs/git-lfs/issues/529
   git lfs uninstall
   git lfs install
   git lfs uninstall | tee uninstall.log

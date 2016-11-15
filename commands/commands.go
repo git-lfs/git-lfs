@@ -256,7 +256,7 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 
 // isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
 // is "truthy" according to config.Os.Bool (see
-// github.com/github/git-lfs/config#Configuration.Env.Os), returning false
+// github.com/git-lfs/git-lfs/config#Configuration.Env.Os), returning false
 // by default if the enviornment variable is not specified.
 //
 // This function call should only guard commands that do not yet have stable

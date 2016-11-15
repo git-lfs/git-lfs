@@ -1,4 +1,4 @@
-package: github.com/github/git-lfs
+package: github.com/git-lfs/git-lfs
 import:
 - package: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480

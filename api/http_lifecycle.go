@@ -58,7 +58,7 @@ func NewHttpLifecycle(endpoints EndpointSource) *HttpLifecycle {
 // *http.Request will not be generated.
 //
 // In all cases, credentials are attached to the HTTP request as described in
-// the `auth` package (see github.com/github/git-lfs/auth#GetCreds).
+// the `auth` package (see github.com/git-lfs/git-lfs/auth#GetCreds).
 //
 // Finally, all of these components are combined together and the resulting
 // request is returned.

@@ -31,12 +31,12 @@ github.com/kr/text
 github.com/cheggaaa/pb
 github.com/rubyist/tracerx
 github.com/kr/pretty
-github.com/github/git-lfs/git
+github.com/git-lfs/git-lfs/git
 github.com/technoweenie/assert
 === RUN TestSuccessStatus
 --- PASS: TestSuccessStatus (0.00 seconds)
 PASS
-ok  	_/Users/rick/github/git-lfs/lfs	0.011s
+ok  	_/Users/rick/git-lfs/git-lfs/lfs	0.011s
 ```
 
 [t]: http://golang.org/pkg/testing/
@@ -51,7 +51,7 @@ they run in separate OS processes.
 ```
 $ test/test-happy-path.sh
 compile git-lfs for test/test-happy-path.sh
-LFSTEST_URL=/Users/rick/github/git-lfs/test/remote/url LFSTEST_DIR=/Users/rick/github/git-lfs/test/remote lfstest-gitserver
+LFSTEST_URL=/Users/rick/git-lfs/git-lfs/test/remote/url LFSTEST_DIR=/Users/rick/git-lfs/git-lfs/test/remote lfstest-gitserver
 test: happy path ...                                               OK
 ```
 
