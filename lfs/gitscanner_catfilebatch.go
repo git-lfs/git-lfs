@@ -1,13 +1,14 @@
 package lfs
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strconv"
 
-	"github.com/pkg/errors"
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 // runCatFileBatch uses 'git cat-file --batch' to get the object contents of a
@@ -27,38 +28,75 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, sha1Ch <-chan string, errCh
 	return nil
 }
 
-func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh chan error) {
-	for {
-		l, err := cmd.Stdout.ReadBytes('\n')
-		if err != nil {
-			if err != io.EOF {
-				errCh <- errors.Wrap(err, "git cat-file --batch:")
-			}
-			break
+type catFileBatchScanner struct {
+	r       *bufio.Reader
+	pointer *WrappedPointer
+	err     error
+}
+
+func (s *catFileBatchScanner) Pointer() *WrappedPointer {
+	return s.pointer
+}
+
+func (s *catFileBatchScanner) Err() error {
+	return s.err
+}
+
+func (s *catFileBatchScanner) Scan() bool {
+	s.pointer, s.err = nil, nil
+	p, err := scanPointer(s.r)
+	if err != nil && err != io.EOF {
+		s.err = err
+		return false
+	}
+
+	s.pointer = p
+	return true
+}
+
+func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
+	var pointer *WrappedPointer
+
+	for pointer == nil {
+		l, err := r.ReadBytes('\n')
+		if err != nil && err != io.EOF {
+			return nil, err
 		}
 
 		// Line is formatted:
 		// <sha1> <type> <size>
 		fields := bytes.Fields(l)
 		if len(fields) < 3 {
-			errCh <- errors.Wrap(fmt.Errorf("Invalid: %s", string(l)), "git cat-file --batch:")
-			break
+			return nil, errors.Wrap(fmt.Errorf("Invalid: %s", string(l)), "git cat-file --batch:")
 		}
 
-		s, _ := strconv.Atoi(string(fields[2]))
-		p, err := DecodePointer(io.LimitReader(cmd.Stdout, int64(s)))
+		size, _ := strconv.Atoi(string(fields[2]))
+		p, err := DecodePointer(io.LimitReader(r, int64(size)))
 		if err == nil {
-			pointerCh <- &WrappedPointer{
+			pointer = &WrappedPointer{
 				Sha1:    string(fields[0]),
 				Size:    p.Size,
 				Pointer: p,
 			}
 		}
 
-		_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
+		_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
 		if err != nil && err != io.EOF {
-			errCh <- errors.Wrap(err, "git cat-file --batch:")
+			return nil, err
 		}
+	}
+
+	return pointer, nil
+}
+
+func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh chan error) {
+	scanner := &catFileBatchScanner{r: cmd.Stdout}
+	for scanner.Scan() {
+		pointerCh <- scanner.Pointer()
+	}
+
+	if err := scanner.Err(); err != nil {
+		errCh <- err
 	}
 
 	stderr, _ := ioutil.ReadAll(cmd.Stderr)
