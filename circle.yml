@@ -5,6 +5,8 @@ machine:
     GIT_EARLIEST_SUPPORTED_VERSION: v1.8.5
     GIT_LATEST_SOURCE_BRANCH: master
     XCODE_SCHEME: test
+    XCODE_WORKSPACE: test
+    XCODE_PROJECT: test
 
 dependencies:
   pre:
