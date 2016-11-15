@@ -5,7 +5,6 @@ go: 1.7.1
 
 os:
   - linux
-  - osx
 
 env:
   global:
@@ -27,38 +26,10 @@ matrix:
           make --jobs=2;
           make install;
           cd ..;
-    - env: git-latest-master-from-source
-      os: osx
-      before_script:
-        - >
-          export NO_OPENSSL=YesPlease;
-          export APPLE_COMMON_CRYPTO=YesPlease;
-          brew install gettext;
-          brew link --force gettext;
-          git clone $GIT_SOURCE_REPO git-source;
-          cd git-source;
-          git checkout $GIT_LATEST_SOURCE_BRANCH;
-          make --jobs=2;
-          make install;
-          cd ..;
     - env: git-earliest-supported-version-from-source
       os: linux
       before_script:
         - >
-          git clone $GIT_SOURCE_REPO git-source;
-          cd git-source;
-          git checkout $GIT_EARLIEST_SUPPORTED_VERSION;
-          make --jobs=2;
-          make install;
-          cd ..;
-    - env: git-earliest-supported-version-from-source
-      os: osx
-      before_script:
-        - >
-          export NO_OPENSSL=YesPlease;
-          export APPLE_COMMON_CRYPTO=YesPlease;
-          brew install gettext;
-          brew link --force gettext;
           git clone $GIT_SOURCE_REPO git-source;
           cd git-source;
           git checkout $GIT_EARLIEST_SUPPORTED_VERSION;
@@ -73,15 +44,6 @@ matrix:
           - git-core
           packages:
           - git
-    - env: git-latest
-      os: osx
-      # The 'before_install' phase cannot be used here as we would override the
-      # default 'before_install' phase. The 'before_script' phase is sufficient
-      # for the Git install since the Git binary is only used in the tests.
-      before_script:
-        - >
-          brew update;
-          brew ls --versions git && brew upgrade git || brew install git;
 
 before_install:
   - >
