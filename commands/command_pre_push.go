@@ -7,6 +7,7 @@ import (
 
 	"github.com/github/git-lfs/git"
 	"github.com/github/git-lfs/lfs"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +66,8 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		if len(line) == 0 {
 			continue
 		}
+
+		tracerx.Printf("pre-push: %s", line)
 
 		left, right := decodeRefs(line)
 		if left == prePushDeleteBranch {
