@@ -12,8 +12,8 @@ dependencies:
   pre:
     - brew update
     - brew prune
-    - brew upgrade go
-    - brew ls --versions git && brew upgrade git || brew install git;
+    - brew upgrade go || brew install go
+    - brew upgrade git || brew install git
   override:
     - script/build
 
