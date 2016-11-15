@@ -8,6 +8,8 @@ machine:
     XCODE_WORKSPACE: test
     XCODE_PROJECT: test
     GOPATH: $HOME/$CIRCLE_PROJECT_REPONAME
+
+general:
   build_dir: src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 
 dependencies:
