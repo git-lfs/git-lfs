@@ -23,6 +23,8 @@ dependencies:
     - brew prune
     - brew upgrade go || brew install go
     - brew upgrade git || brew install git
+    - brew upgrade gettext || brew install gettext
+    - git clone $GIT_SOURCE_REPO git-source
   override:
     - script/bootstrap
 
