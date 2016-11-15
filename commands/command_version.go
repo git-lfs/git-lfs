@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/spf13/cobra"
 )
 

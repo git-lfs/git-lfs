@@ -2,7 +2,8 @@
 
 . "test/testlib.sh"
 
-envInitConfig='git config filter.lfs.smudge = "git-lfs smudge -- %f"
+envInitConfig='git config filter.lfs.process = "git-lfs filter-process"
+git config filter.lfs.smudge = "git-lfs smudge -- %f"
 git config filter.lfs.clean = "git-lfs clean -- %f"'
 
 begin_test "env with no remote"
@@ -616,8 +617,6 @@ AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
-git config filter.lfs.smudge = \"\"
-git config filter.lfs.clean = \"\"
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
   contains_same_elements "$expected5" "$actual5"

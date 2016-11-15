@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 func TestSuccessStatus(t *testing.T) {

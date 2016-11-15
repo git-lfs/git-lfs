@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/httputil"
 )
 
 // VerifyUpload calls the "verify" API link relation on obj if it exists

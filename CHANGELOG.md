@@ -129,7 +129,7 @@ requests run tests on macOS, Linux, and Windows.
 * Enhanced upload/download of LFS content: #1265 #1279 #1297 #1303 #1367 (@sinbad)
   * Resumable downloads using HTTP range headers
   * Resumable uploads using [tus.io protocol](http://tus.io)
-  * Pluggable [custom transfer adapters](https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md)
+  * Pluggable [custom transfer adapters](https://github.com/git-lfs/git-lfs/blob/master/docs/custom-transfers.md)
 * In git 2.9+, run "git lfs pull" in submodules after "git lfs clone" #1373 (@sinbad)
 * cmd,doc,test: teach `git lfs track --{no-touch,verbose,dry-run}` #1344 (@ttaylorr)
 * ⏳ Retry transfers with expired actions #1350 (@ttaylorr)
@@ -329,9 +329,9 @@ are updated.
   * Add `--all` option for download all objects from the server. #633 (@sinbad)
 * Fix error handling while `git update-index` is running. #570 (@rubyist)
 
-See [git-lfs-fetch(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-fetch.1.ronn),
-[git-lfs-checkout(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-checkout.1.ronn),
-and [git-lfs-pull(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-pull.1.ronn)
+See [git-lfs-fetch(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-fetch.1.ronn),
+[git-lfs-checkout(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-checkout.1.ronn),
+and [git-lfs-pull(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-pull.1.ronn)
  for details.
 
 ### Push
@@ -343,7 +343,7 @@ and [git-lfs-pull(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git
 * Support pushing all objects to the server, regardless of the remote ref. #646 (@technoweenie)
 * Fix case where pre-push git hook exits with 0. #582 (@sinbad)
 
-See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-push.1.ronn) for details.
+See [git-lfs-push(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-push.1.ronn) for details.
 
 ### API Clients
 
@@ -368,7 +368,7 @@ See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git
 
 ### Misc
 
-* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn). #610 (@sinbad)
+* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn). #610 (@sinbad)
 * Experimental support for Git worktrees (in Git 2.5+) #546 (@sinbad)
 * Experimental extension support. #486 (@ryansimmen)
 

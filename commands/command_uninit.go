@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: Remove for Git LFS v2.0 https://github.com/github/git-lfs/issues/839
+// TODO: Remove for Git LFS v2.0 https://github.com/git-lfs/git-lfs/issues/839
 
 // uninitCmd removes any configuration and hooks set by Git LFS.
 func uninitCommand(cmd *cobra.Command, args []string) {

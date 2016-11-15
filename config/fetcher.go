@@ -7,4 +7,11 @@ type Fetcher interface {
 	// Get returns the string value associated with a given key and a bool
 	// determining if the key exists.
 	Get(key string) (val string, ok bool)
+
+	// All returns a copy of all the key/value pairs for the current environment.
+	All() map[string]string
+
+	// deprecated, don't use
+	set(key, value string)
+	del(key string)
 }

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 

@@ -142,11 +142,11 @@ configuration options:
 [core]
   repositoryformatversion = 0
 [lfs]
-  url = "https://github.com/github/git-lfs.git/info/lfs"
+  url = "https://github.com/git-lfs/git-lfs.git/info/lfs"
 [remote "origin"]
-  url = https://github.com/github/git-lfs
+  url = https://github.com/git-lfs/git-lfs
   fetch = +refs/heads/*:refs/remotes/origin/*
-  lfsurl = "https://github.com/github/git-lfs.git/info/lfs"
+  lfsurl = "https://github.com/git-lfs/git-lfs.git/info/lfs"
 ```
 
 Git LFS uses `git credential` to fetch credentials for HTTPS requests.  Setup

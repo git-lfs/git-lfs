@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-deps=$(GO15VENDOREXPERIMENT=1 go list -f '{{join .Deps "\n"}}' . | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | grep -v "github.com/github/git-lfs")
+deps=$(GO15VENDOREXPERIMENT=1 go list -f '{{join .Deps "\n"}}' . | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | grep -v "github.com/git-lfs/git-lfs")
 
 # exit 0 means non-vendored deps were found
 if [ $? -eq 0 ];
