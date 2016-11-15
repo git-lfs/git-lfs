@@ -126,6 +126,31 @@ func (g *GitFetcher) Get(key string) (val string, ok bool) {
 	return
 }
 
+func (g *GitFetcher) All() map[string]string {
+	newmap := make(map[string]string)
+
+	g.vmu.RLock()
+	defer g.vmu.RUnlock()
+
+	for key, value := range g.vals {
+		newmap[key] = value
+	}
+
+	return newmap
+}
+
+func (g *GitFetcher) set(key, value string) {
+	g.vmu.Lock()
+	defer g.vmu.Unlock()
+	g.vals[strings.ToLower(key)] = value
+}
+
+func (g *GitFetcher) del(key string) {
+	g.vmu.Lock()
+	defer g.vmu.Unlock()
+	delete(g.vals, strings.ToLower(key))
+}
+
 func getGitConfigs() (sources []*GitConfig) {
 	if lfsconfig := getFileGitConfig(".lfsconfig"); lfsconfig != nil {
 		sources = append(sources, lfsconfig)
