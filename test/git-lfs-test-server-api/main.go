@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -148,10 +149,12 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	// just one commit
 	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
 	var totalSize int64
+
+	logger := log.New(os.Stderr, "", log.LstdFlags)
 	for i := 0; i < oidCount; i++ {
 		filename := fmt.Sprintf("file%d.dat", i)
 		sz := int64(rand.Intn(200)) + 50
-		commit.Files = append(commit.Files, &test.FileInput{Filename: filename, Size: sz})
+		commit.Files = append(commit.Files, test.NewLFSInput(filename, test.RandInput(logger, sz)))
 		totalSize += sz
 	}
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})

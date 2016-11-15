@@ -36,6 +36,12 @@ const (
 	RepoTypeSeparateDir = RepoType(iota)
 )
 
+var (
+	// Deterministic sequence of seeds for file data
+	gitInputSeed        = rand.NewSource(0)
+	gitInputStorageOnce sync.Once
+)
+
 type RepoCreateSettings struct {
 	RepoType RepoType
 }
@@ -90,7 +96,6 @@ func (r *Repo) Popd() {
 }
 
 func (r *Repo) Cleanup() {
-
 	// pop out if necessary
 	r.Popd()
 
@@ -179,19 +184,70 @@ func RunGitCommand(callback RepoCallback, failureCheck bool, args ...string) str
 		callback.Fatalf("Error running git command 'git %v': %v %v", strings.Join(args, " "), err, string(outp))
 	}
 	return string(outp)
+}
 
+type BlobInput interface {
+	AddToIndex(output *CommitOutput, repo *Repo) *lfs.Pointer
 }
 
 // Input data for a single file in a commit
-type FileInput struct {
+type LFSInput struct {
 	// Name of file (required)
-	Filename string
+	filename string
 	// Size of file (required)
-	Size int64
+	size int64
 	// Input data (optional, if provided will be source of data)
-	DataReader io.Reader
-	// Input data (optional, if provided will be source of data)
-	Data string
+	data string
+}
+
+type fatalLogger interface {
+	Fatal(v ...interface{})
+}
+
+func NewLFSInput(filename, data string) *LFSInput {
+	return &LFSInput{filename: filename, size: int64(len(data)), data: data}
+}
+
+func (infile *LFSInput) AddToIndex(output *CommitOutput, repo *Repo) *lfs.Pointer {
+	cleaned, err := lfs.PointerClean(strings.NewReader(infile.data), infile.filename, infile.size, nil)
+	if err != nil {
+		repo.callback.Errorf("Error creating pointer file: %v", err)
+		return nil
+	}
+	// this only created the temp file, move to final location
+	tmpfile := cleaned.Filename
+	gitInputStorageOnce.Do(localstorage.ResolveDirs)
+	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+	if err != nil {
+		repo.callback.Errorf("Unable to get local media path: %v", err)
+		return nil
+	}
+
+	if _, err := os.Stat(mediafile); err != nil {
+		if err := os.Rename(tmpfile, mediafile); err != nil {
+			repo.callback.Errorf("Unable to move %s to %s: %v", tmpfile, mediafile, err)
+			return nil
+		}
+	}
+
+	output.Files = append(output.Files, cleaned.Pointer)
+
+	// Write pointer to local filename for adding (not using clean filter)
+	os.MkdirAll(filepath.Dir(infile.filename), 0755)
+	f, err := os.Create(infile.filename)
+	if err != nil {
+		repo.callback.Errorf("Error creating pointer file: %v", err)
+		return nil
+	}
+	_, err = cleaned.Pointer.Encode(f)
+	if err != nil {
+		f.Close()
+		repo.callback.Errorf("Error encoding pointer file: %v", err)
+		return nil
+	}
+	f.Close() // early close in a loop, don't defer
+	RunGitCommand(repo.callback, true, "add", infile.filename)
+	return cleaned.Pointer
 }
 
 // Input for defining commits for test repo
@@ -199,7 +255,7 @@ type CommitInput struct {
 	// Date that we should commit on (optional, leave blank for 'now')
 	CommitDate time.Time
 	// List of files to include in this commit
-	Files []*FileInput
+	Files []BlobInput
 	// List of parent branches (all branches must have been created in a previous NewBranch or be master)
 	// Can be omitted to just use the parent of the previous commit
 	ParentBranches []string
@@ -244,8 +300,6 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 }
 
 func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
-	var storageOnce sync.Once
-
 	if repo.Settings.RepoType == RepoTypeBare {
 		repo.callback.Fatalf("Cannot use AddCommits on a bare repo; clone it & push changes instead")
 	}
@@ -262,8 +316,6 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
 	outputs := make([]*CommitOutput, 0, len(inputs))
-	// Deterministic sequence of seeds for file data
-	seedSequence := rand.NewSource(0)
 	for i, input := range inputs {
 		output := &CommitOutput{}
 		// first, are we on the correct branch
@@ -286,52 +338,9 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 		}
 		// Any files to write?
 		for _, infile := range input.Files {
-			inputData := infile.DataReader
-			if inputData == nil && infile.Data != "" {
-				inputData = strings.NewReader(infile.Data)
-			}
-			if inputData == nil {
-				// Different data for each file but deterministic
-				inputData = NewPlaceholderDataReader(seedSequence.Int63(), infile.Size)
-			}
-			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
-			if err != nil {
-				repo.callback.Errorf("Error creating pointer file: %v", err)
-				continue
-			}
-			// this only created the temp file, move to final location
-			tmpfile := cleaned.Filename
-			storageOnce.Do(localstorage.ResolveDirs)
-			mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
-			if err != nil {
-				repo.callback.Errorf("Unable to get local media path: %v", err)
-				continue
-			}
-			if _, err := os.Stat(mediafile); err != nil {
-				if err := os.Rename(tmpfile, mediafile); err != nil {
-					repo.callback.Errorf("Unable to move %s to %s: %v", tmpfile, mediafile, err)
-					continue
-				}
-			}
-
-			output.Files = append(output.Files, cleaned.Pointer)
-			// Write pointer to local filename for adding (not using clean filter)
-			os.MkdirAll(filepath.Dir(infile.Filename), 0755)
-			f, err := os.Create(infile.Filename)
-			if err != nil {
-				repo.callback.Errorf("Error creating pointer file: %v", err)
-				continue
-			}
-			_, err = cleaned.Pointer.Encode(f)
-			if err != nil {
-				f.Close()
-				repo.callback.Errorf("Error encoding pointer file: %v", err)
-				continue
-			}
-			f.Close() // early close in a loop, don't defer
-			RunGitCommand(repo.callback, true, "add", infile.Filename)
-
+			infile.AddToIndex(output, repo)
 		}
+
 		// Now commit
 		err = commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
 			fmt.Sprintf("Test commit %d", i))
@@ -377,37 +386,14 @@ func (r *Repo) AddRemote(name string) *Repo {
 
 // Just a psuedo-random stream of bytes (not cryptographic)
 // Calls RNG a bit less often than using rand.Source directly
-type PlaceholderDataReader struct {
-	source    rand.Source
-	bytesLeft int64
-}
-
-func NewPlaceholderDataReader(seed, size int64) *PlaceholderDataReader {
-	return &PlaceholderDataReader{rand.NewSource(seed), size}
-}
-
-func (r *PlaceholderDataReader) Read(p []byte) (int, error) {
-	c := len(p)
-	i := 0
-	for i < c && r.bytesLeft > 0 {
-		// Use all 8 bytes of the 64-bit random number
-		val64 := r.source.Int63()
-		for j := 0; j < 8 && i < c && r.bytesLeft > 0; j++ {
-			// Duplicate this byte 16 times (faster)
-			for k := 0; k < 16 && r.bytesLeft > 0; k++ {
-				p[i] = byte(val64)
-				i++
-				r.bytesLeft--
-			}
-			// Next byte from the 8-byte number
-			val64 = val64 >> 8
-		}
+func RandInput(f fatalLogger, size int64) string {
+	rng := rand.New(rand.NewSource(gitInputSeed.Int63()))
+	buf := make([]byte, size)
+	if _, err := io.ReadFull(rng, buf); err != nil {
+		f.Fatal(err)
 	}
-	var err error
-	if r.bytesLeft == 0 {
-		err = io.EOF
-	}
-	return i, err
+
+	return string(buf)
 }
 
 // RefsByName implements sort.Interface for []*git.Ref based on name

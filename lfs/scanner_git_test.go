@@ -24,26 +24,26 @@ func TestScanUnpushed(t *testing.T) {
 
 	inputs := []*test.CommitInput{
 		{ // 0
-			Files: []*test.FileInput{
-				{Filename: "file1.txt", Size: 20},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file1.txt", test.RandInput(t, 20)),
 			},
 		},
 		{ // 1
 			NewBranch: "branch2",
-			Files: []*test.FileInput{
-				{Filename: "file1.txt", Size: 25},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file1.txt", test.RandInput(t, 25)),
 			},
 		},
 		{ // 2
 			ParentBranches: []string{"master"}, // back on master
-			Files: []*test.FileInput{
-				{Filename: "file1.txt", Size: 30},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file1.txt", test.RandInput(t, 30)),
 			},
 		},
 		{ // 3
 			NewBranch: "branch3",
-			Files: []*test.FileInput{
-				{Filename: "file1.txt", Size: 32},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file1.txt", test.RandInput(t, 32)),
 			},
 		},
 	}
@@ -99,38 +99,38 @@ func TestScanPreviousVersions(t *testing.T) {
 	inputs := []*test.CommitInput{
 		{ // 0
 			CommitDate: now.AddDate(0, 0, -20),
-			Files: []*test.FileInput{
-				{Filename: "file1.txt", Size: 20},
-				{Filename: "file2.txt", Size: 30},
-				{Filename: "folder/nested.txt", Size: 40},
-				{Filename: "folder/nested2.txt", Size: 31},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file1.txt", test.RandInput(t, 20)),
+				test.NewLFSInput("file2.txt", test.RandInput(t, 30)),
+				test.NewLFSInput("folder/nested.txt", test.RandInput(t, 40)),
+				test.NewLFSInput("folder/nested2.txt", test.RandInput(t, 31)),
 			},
 		},
 		{ // 1
 			CommitDate: now.AddDate(0, 0, -10),
-			Files: []*test.FileInput{
-				{Filename: "file2.txt", Size: 22},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file2.txt", test.RandInput(t, 22)),
 			},
 		},
 		{ // 2
 			NewBranch:  "excluded",
 			CommitDate: now.AddDate(0, 0, -6),
-			Files: []*test.FileInput{
-				{Filename: "file2.txt", Size: 12},
-				{Filename: "folder/nested2.txt", Size: 16},
+			Files: []test.BlobInput{
+				test.NewLFSInput("file2.txt", test.RandInput(t, 12)),
+				test.NewLFSInput("folder/nested2.txt", test.RandInput(t, 16)),
 			},
 		},
 		{ // 3
 			ParentBranches: []string{"master"},
 			CommitDate:     now.AddDate(0, 0, -4),
-			Files: []*test.FileInput{
-				{Filename: "folder/nested.txt", Size: 42},
-				{Filename: "folder/nested2.txt", Size: 6},
+			Files: []test.BlobInput{
+				test.NewLFSInput("folder/nested.txt", test.RandInput(t, 42)),
+				test.NewLFSInput("folder/nested2.txt", test.RandInput(t, 6)),
 			},
 		},
 		{ // 4
-			Files: []*test.FileInput{
-				{Filename: "folder/nested.txt", Size: 22},
+			Files: []test.BlobInput{
+				test.NewLFSInput("folder/nested.txt", test.RandInput(t, 22)),
 			},
 		},
 	}
