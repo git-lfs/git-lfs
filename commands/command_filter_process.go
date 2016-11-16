@@ -61,6 +61,8 @@ func filterSmudge(to io.Writer, from io.Reader, filename string) error {
 }
 
 func filterCommand(cmd *cobra.Command, args []string) {
+	var err error
+
 	requireStdin("This command should be run by the Git filter process")
 	lfs.InstallHooks(false)
 
@@ -74,8 +76,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 Scan:
-	for s.Scan() {
-		var err error
+	for s.Scan() && err == nil {
 		var w *git.PktlineWriter
 
 		req := s.Request()
@@ -94,17 +95,16 @@ Scan:
 			break Scan
 		}
 
-		var status string
-		if ferr := w.Flush(); ferr != nil {
-			status = statusFromErr(ferr)
-		} else {
-			status = statusFromErr(err)
+		if err != nil {
+			s.WriteStatus(statusFromErr(w.Flush()))
 		}
-
-		s.WriteStatus(status)
 	}
 
-	if err := s.Err(); err != nil && err != io.EOF {
+	if err == nil {
+		err = s.Err()
+	}
+
+	if err != nil {
 		ExitWithError(err)
 	}
 }
