@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
@@ -34,6 +35,12 @@ const (
 	RepoTypeBare = RepoType(iota)
 	// Repo with working copy but git dir is separate
 	RepoTypeSeparateDir = RepoType(iota)
+)
+
+var (
+	// Deterministic sequence of seeds for file data
+	fileInputSeed = rand.NewSource(0)
+	storageOnce   sync.Once
 )
 
 type RepoCreateSettings struct {
@@ -194,6 +201,65 @@ type FileInput struct {
 	Data string
 }
 
+func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
+	inputData := infile.getFileInputReader()
+	pointer, err := infile.writeLFSPointer(inputData)
+	if err != nil {
+		repo.callback.Errorf("%+v", err)
+		return
+	}
+	output.Files = append(output.Files, pointer)
+	RunGitCommand(repo.callback, true, "add", infile.Filename)
+}
+
+func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, error) {
+	cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating pointer file")
+	}
+
+	// this only created the temp file, move to final location
+	tmpfile := cleaned.Filename
+	storageOnce.Do(localstorage.ResolveDirs)
+	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+	if err != nil {
+		return nil, errors.Wrap(err, "local media path")
+	}
+
+	if _, err := os.Stat(mediafile); err != nil {
+		if err := os.Rename(tmpfile, mediafile); err != nil {
+			return nil, err
+		}
+	}
+
+	// Write pointer to local filename for adding (not using clean filter)
+	os.MkdirAll(filepath.Dir(infile.Filename), 0755)
+	f, err := os.Create(infile.Filename)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating pointer file")
+	}
+	_, err = cleaned.Pointer.Encode(f)
+	f.Close()
+	if err != nil {
+		return nil, errors.Wrap(err, "encoding pointer file")
+	}
+
+	return cleaned.Pointer, nil
+}
+
+func (infile *FileInput) getFileInputReader() io.Reader {
+	if infile.DataReader != nil {
+		return infile.DataReader
+	}
+
+	if len(infile.Data) > 0 {
+		return strings.NewReader(infile.Data)
+	}
+
+	// Different data for each file but deterministic
+	return NewPlaceholderDataReader(fileInputSeed.Int63(), infile.Size)
+}
+
 // Input for defining commits for test repo
 type CommitInput struct {
 	// Date that we should commit on (optional, leave blank for 'now')
@@ -244,8 +310,6 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 }
 
 func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
-	var storageOnce sync.Once
-
 	if repo.Settings.RepoType == RepoTypeBare {
 		repo.callback.Fatalf("Cannot use AddCommits on a bare repo; clone it & push changes instead")
 	}
@@ -262,8 +326,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
 	outputs := make([]*CommitOutput, 0, len(inputs))
-	// Deterministic sequence of seeds for file data
-	seedSequence := rand.NewSource(0)
+
 	for i, input := range inputs {
 		output := &CommitOutput{}
 		// first, are we on the correct branch
@@ -286,51 +349,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 		}
 		// Any files to write?
 		for _, infile := range input.Files {
-			inputData := infile.DataReader
-			if inputData == nil && infile.Data != "" {
-				inputData = strings.NewReader(infile.Data)
-			}
-			if inputData == nil {
-				// Different data for each file but deterministic
-				inputData = NewPlaceholderDataReader(seedSequence.Int63(), infile.Size)
-			}
-			cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
-			if err != nil {
-				repo.callback.Errorf("Error creating pointer file: %v", err)
-				continue
-			}
-			// this only created the temp file, move to final location
-			tmpfile := cleaned.Filename
-			storageOnce.Do(localstorage.ResolveDirs)
-			mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
-			if err != nil {
-				repo.callback.Errorf("Unable to get local media path: %v", err)
-				continue
-			}
-			if _, err := os.Stat(mediafile); err != nil {
-				if err := os.Rename(tmpfile, mediafile); err != nil {
-					repo.callback.Errorf("Unable to move %s to %s: %v", tmpfile, mediafile, err)
-					continue
-				}
-			}
-
-			output.Files = append(output.Files, cleaned.Pointer)
-			// Write pointer to local filename for adding (not using clean filter)
-			os.MkdirAll(filepath.Dir(infile.Filename), 0755)
-			f, err := os.Create(infile.Filename)
-			if err != nil {
-				repo.callback.Errorf("Error creating pointer file: %v", err)
-				continue
-			}
-			_, err = cleaned.Pointer.Encode(f)
-			if err != nil {
-				f.Close()
-				repo.callback.Errorf("Error encoding pointer file: %v", err)
-				continue
-			}
-			f.Close() // early close in a loop, don't defer
-			RunGitCommand(repo.callback, true, "add", infile.Filename)
-
+			infile.AddToIndex(output, repo)
 		}
 		// Now commit
 		err = commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,
