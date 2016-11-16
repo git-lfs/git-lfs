@@ -1,7 +1,8 @@
 package lfs
 
 type GitScanner struct {
-	remote string
+	remote      string
+	skippedRefs []string
 }
 
 func NewGitScanner() *GitScanner {
@@ -10,6 +11,7 @@ func NewGitScanner() *GitScanner {
 
 func (s *GitScanner) Remote(r string) {
 	s.remote = r
+	s.skippedRefs = calcSkippedRefs(r)
 }
 
 func (s *GitScanner) ScanLeftToRemote(left string) (*PointerChannelWrapper, error) {
@@ -41,8 +43,7 @@ func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
 	opts := newScanRefsOptions()
 	opts.ScanMode = mode
-	if len(s.remote) > 0 {
-		opts.RemoteName = s.remote
-	}
+	opts.RemoteName = s.remote
+	opts.skippedRefs = s.skippedRefs
 	return opts
 }

@@ -78,6 +78,7 @@ type ScanRefsOptions struct {
 	ScanMode         ScanningMode
 	RemoteName       string
 	SkipDeletedBlobs bool
+	skippedRefs      []string
 	nameMap          map[string]string
 	mutex            *sync.Mutex
 }
@@ -273,52 +274,20 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 }
 
 // Get additional arguments needed to limit 'git rev-list' to just the changes
-// in revTo that are also not on remoteName.
+// in refTo that are also not on remoteName.
 //
 // Returns a slice of string command arguments, and a slice of string git
 // commits to pass to `git rev-list` via STDIN.
-func revListArgsRefVsRemote(refTo, remoteName string) ([]string, []string) {
-	// We need to check that the locally cached versions of remote refs are still
-	// present on the remote before we use them as a 'from' point. If the
-	// server implements garbage collection and a remote branch had been deleted
-	// since we last did 'git fetch --prune', then the objects in that branch may
-	// have also been deleted on the server if unreferenced.
-	// If some refs are missing on the remote, use a more explicit diff
-
-	cachedRemoteRefs, _ := git.CachedRemoteRefs(remoteName)
-	actualRemoteRefs, _ := git.RemoteRefs(remoteName)
-
-	// Only check for missing refs on remote; if the ref is different it has moved
-	// forward probably, and if not and the ref has changed to a non-descendant
-	// (force push) then that will cause a re-evaluation in a subsequent command anyway
-	missingRefs := tools.NewStringSet()
-	for _, cachedRef := range cachedRemoteRefs {
-		found := false
-		for _, realRemoteRef := range actualRemoteRefs {
-			if cachedRef.Type == realRemoteRef.Type && cachedRef.Name == realRemoteRef.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			missingRefs.Add(cachedRef.Name)
-		}
-	}
-
-	if len(missingRefs) > 0 {
-		// Use only the non-missing refs as 'from' points
-		commits := make([]string, 1, len(cachedRemoteRefs)+1)
-		commits[0] = refTo
-		for _, cachedRef := range cachedRemoteRefs {
-			if !missingRefs.Contains(cachedRef.Name) {
-				commits = append(commits, "^"+cachedRef.Sha)
-			}
-		}
-		return []string{"--stdin"}, commits
-	} else {
+func revListArgsRefVsRemote(refTo, remoteName string, skippedRefs []string) ([]string, []string) {
+	if len(skippedRefs) < 1 {
 		// Safe to use cached
 		return []string{refTo, "--not", "--remotes=" + remoteName}, nil
 	}
+
+	// Use only the non-missing refs as 'from' points
+	commits := make([]string, 1, len(skippedRefs)+1)
+	commits[0] = refTo
+	return []string{"--stdin"}, append(commits, skippedRefs...)
 }
 
 // revListShas uses git rev-list to return the list of object sha1s
@@ -342,7 +311,7 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 	case ScanAllMode:
 		refArgs = append(refArgs, "--all")
 	case ScanLeftToRemoteMode:
-		args, commits := revListArgsRefVsRemote(refLeft, opt.RemoteName)
+		args, commits := revListArgsRefVsRemote(refLeft, opt.RemoteName, opt.skippedRefs)
 		refArgs = append(refArgs, args...)
 		if len(commits) > 0 {
 			stdin = commits
