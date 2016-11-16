@@ -2,28 +2,29 @@ package git
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // writePackets
-func writePacket(w io.Writer, datas ...[]byte) {
-	for _, data := range datas {
-		io.WriteString(w, fmt.Sprintf("%04x", len(data)+4))
-		w.Write(data)
+func writePacket(t *testing.T, w io.Writer, datas ...[]byte) {
+	pl := newPktline(nil, w)
 
+	for _, data := range datas {
+		require.Nil(t, pl.writePacket(data))
 	}
-	io.WriteString(w, fmt.Sprintf("%04x", 0))
+
+	require.Nil(t, pl.writeFlush())
 }
 
 func TestPktlineReaderReadsSinglePacketsInOneCall(t *testing.T) {
 	var buf bytes.Buffer
 
-	writePacket(&buf, []byte("asdf"))
+	writePacket(t, &buf, []byte("asdf"))
 
 	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
@@ -36,7 +37,7 @@ func TestPktlineReaderReadsSinglePacketsInOneCall(t *testing.T) {
 func TestPktlineReaderReadsManyPacketsInOneCall(t *testing.T) {
 	var buf bytes.Buffer
 
-	writePacket(&buf, []byte("first\n"), []byte("second"))
+	writePacket(t, &buf, []byte("first\n"), []byte("second"))
 
 	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
@@ -49,7 +50,7 @@ func TestPktlineReaderReadsManyPacketsInOneCall(t *testing.T) {
 func TestPktlineReaderReadsSinglePacketsInMultipleCallsWithUnevenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
-	writePacket(&buf, []byte("asdf"))
+	writePacket(t, &buf, []byte("asdf"))
 
 	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
@@ -70,7 +71,7 @@ func TestPktlineReaderReadsSinglePacketsInMultipleCallsWithUnevenBuffering(t *te
 func TestPktlineReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
-	writePacket(&buf, []byte("first"), []byte("second"))
+	writePacket(t, &buf, []byte("first"), []byte("second"))
 
 	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
@@ -97,7 +98,7 @@ func TestPktlineReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *test
 func TestPktlineReaderReadsSinglePacketsInMultipleCallsWithEvenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
-	writePacket(&buf, []byte("firstother"))
+	writePacket(t, &buf, []byte("firstother"))
 
 	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
@@ -118,7 +119,7 @@ func TestPktlineReaderReadsSinglePacketsInMultipleCallsWithEvenBuffering(t *test
 func TestPktlineReaderReadsManyPacketsInMultipleCallsWithEvenBuffering(t *testing.T) {
 	var buf bytes.Buffer
 
-	writePacket(&buf, []byte("first"), []byte("other"))
+	writePacket(t, &buf, []byte("first"), []byte("other"))
 
 	pr := &pktlineReader{pl: newPktline(&buf, nil)}
 
