@@ -1,15 +1,23 @@
 package lfs
 
 type GitScanner struct {
+	remote string
 }
 
 func NewGitScanner() *GitScanner {
 	return &GitScanner{}
 }
 
+func (s *GitScanner) Remote(r string) {
+	s.remote = r
+}
+
+func (s *GitScanner) ScanLeftToRemote(left string) (*PointerChannelWrapper, error) {
+	return ScanRefsToChan(left, "", s.opts(ScanLeftToRemoteMode))
+}
+
 func (s *GitScanner) ScanRefRange(left, right string) (*PointerChannelWrapper, error) {
-	opts := NewScanRefsOptions()
-	opts.ScanMode = ScanRefsMode
+	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
 	return ScanRefsToChan(left, right, opts)
 }
@@ -19,15 +27,22 @@ func (s *GitScanner) ScanRefWithDeleted(ref string) (*PointerChannelWrapper, err
 }
 
 func (s *GitScanner) ScanRef(ref string) (*PointerChannelWrapper, error) {
-	opts := NewScanRefsOptions()
-	opts.ScanMode = ScanRefsMode
+	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
 	return ScanRefsToChan(ref, "", opts)
 }
 
 func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
-	opts := NewScanRefsOptions()
-	opts.ScanMode = ScanAllMode
+	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
 	return ScanRefsToChan("", "", opts)
+}
+
+func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
+	opts := NewScanRefsOptions()
+	opts.ScanMode = mode
+	if len(s.remote) > 0 {
+		opts.RemoteName = s.remote
+	}
+	return opts
 }
