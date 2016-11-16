@@ -127,9 +127,6 @@ func ScanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (*PointerCha
 	if opt == nil {
 		opt = NewScanRefsOptions()
 	}
-	if refLeft == "" {
-		opt.ScanMode = ScanAllMode
-	}
 
 	start := time.Now()
 	defer func() {
