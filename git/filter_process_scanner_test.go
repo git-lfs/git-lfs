@@ -35,6 +35,7 @@ func TestFilterProcessScannerRejectsUnrecognizedInitializationMessages(t *testin
 
 	pl := newPktline(nil, &from)
 	require.Nil(t, pl.writePacketText("git-filter-client-unknown"))
+	require.Nil(t, pl.writeFlush())
 
 	fps := NewFilterProcessScanner(&from, &to)
 	err := fps.Init()
@@ -106,8 +107,7 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	// Multi-line packet
 	require.Nil(t, pl.writePacketText("first"))
 	require.Nil(t, pl.writePacketText("second"))
-	_, err := from.Write([]byte{0x30, 0x30, 0x30, 0x30}) // flush packet
-	assert.Nil(t, err)
+	require.Nil(t, pl.writeFlush())
 
 	req, err := readRequest(NewFilterProcessScanner(&from, &to))
 
@@ -121,13 +121,11 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 }
 
 func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
-	var from bytes.Buffer
+	from := bytes.NewBuffer([]byte{
+		0x30, 0x30, 0x30, 0x34, // 0004 (invalid packet length)
+	})
 
-	pl := newPktline(nil, &from)
-	// (Invalid) headers
-	require.Nil(t, pl.writePacket([]byte{}))
-
-	req, err := readRequest(NewFilterProcessScanner(&from, nil))
+	req, err := readRequest(NewFilterProcessScanner(from, nil))
 
 	require.NotNil(t, err)
 	assert.Equal(t, "Invalid packet length.", err.Error())
