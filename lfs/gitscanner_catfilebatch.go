@@ -72,8 +72,11 @@ func (s *catFileBatchScanner) Err() error {
 func (s *catFileBatchScanner) Scan() bool {
 	s.pointer, s.err = nil, nil
 	p, err := scanPointer(s.r)
-	if err != nil && err != io.EOF {
-		s.err = err
+	if err != nil {
+		// EOF halts scanning, but isn't a reportable error
+		if err != io.EOF {
+			s.err = err
+		}
 		return false
 	}
 
@@ -86,7 +89,7 @@ func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
 
 	for pointer == nil {
 		l, err := r.ReadBytes('\n')
-		if err != nil && err != io.EOF {
+		if err != nil {
 			return nil, err
 		}
 
@@ -94,7 +97,7 @@ func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
 		// <sha1> <type> <size>
 		fields := bytes.Fields(l)
 		if len(fields) < 3 {
-			return nil, errors.Wrap(fmt.Errorf("Invalid: %s", string(l)), "git cat-file --batch:")
+			return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch:")
 		}
 
 		size, _ := strconv.Atoi(string(fields[2]))
@@ -108,7 +111,7 @@ func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
 		}
 
 		_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
-		if err != nil && err != io.EOF {
+		if err != nil {
 			return nil, err
 		}
 	}
