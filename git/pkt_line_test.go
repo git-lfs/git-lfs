@@ -169,14 +169,15 @@ func TestPktLineWritesPackets(t *testing.T) {
 	var buf bytes.Buffer
 
 	rw := newPktline(nil, &buf)
-	err := rw.writePacket([]byte{
+	require.Nil(t, rw.writePacket([]byte{
 		0x1, 0x2, 0x3, 0x4,
-	})
+	}))
+	require.Nil(t, rw.writeFlush())
 
-	assert.Nil(t, err)
 	assert.Equal(t, []byte{
 		0x30, 0x30, 0x30, 0x38, // 0008 (hex. length)
 		0x1, 0x2, 0x3, 0x4, // payload
+		0x30, 0x30, 0x30, 0x30, // 0000 (flush packet)
 	}, buf.Bytes())
 }
 
@@ -205,12 +206,14 @@ func TestPktLineWritesPacketText(t *testing.T) {
 	var buf bytes.Buffer
 
 	rw := newPktline(nil, &buf)
-	err := rw.writePacketText("abcd")
 
-	assert.Nil(t, err)
+	require.Nil(t, rw.writePacketText("abcd"))
+	require.Nil(t, rw.writeFlush())
+
 	assert.Equal(t, []byte{
 		0x30, 0x30, 0x30, 0x39, // 0009 (hex. length)
 		0x61, 0x62, 0x63, 0x64, 0xa, // "abcd\n" (payload)
+		0x30, 0x30, 0x30, 0x30, // 0000 (flush packet)
 	}, buf.Bytes())
 }
 
