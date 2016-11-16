@@ -39,7 +39,7 @@ func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
-	opts := NewScanRefsOptions()
+	opts := newScanRefsOptions()
 	opts.ScanMode = mode
 	if len(s.remote) > 0 {
 		opts.RemoteName = s.remote

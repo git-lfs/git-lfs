@@ -95,7 +95,7 @@ func (o *ScanRefsOptions) SetName(sha, name string) {
 	o.mutex.Unlock()
 }
 
-func NewScanRefsOptions() *ScanRefsOptions {
+func newScanRefsOptions() *ScanRefsOptions {
 	return &ScanRefsOptions{
 		nameMap: make(map[string]string, 0),
 		mutex:   &sync.Mutex{},
@@ -107,7 +107,7 @@ func NewScanRefsOptions() *ScanRefsOptions {
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func scanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (*PointerChannelWrapper, error) {
 	if opt == nil {
-		opt = NewScanRefsOptions()
+		panic("no scan ref options")
 	}
 
 	start := time.Now()
