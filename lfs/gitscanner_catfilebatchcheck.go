@@ -3,6 +3,7 @@ package lfs
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strconv"
 )
@@ -24,31 +25,13 @@ func runCatFileBatchCheck(smallRevCh chan string, revs *StringChannelWrapper, er
 }
 
 func catFileBatchCheckOutput(smallRevCh chan string, cmd *wrappedCmd, errCh chan error) {
-	scanner := bufio.NewScanner(cmd.Stdout)
+	scanner := &catFileBatchCheckScanner{s: bufio.NewScanner(cmd.Stdout)}
 	for scanner.Scan() {
-		line := scanner.Text()
-		lineLen := len(line)
+		smallRevCh <- scanner.BlobOID()
+	}
 
-		// Format is:
-		// <sha1> <type> <size>
-		// type is at a fixed spot, if we see that it's "blob", we can avoid
-		// splitting the line just to get the size.
-		if lineLen < 46 {
-			continue
-		}
-
-		if line[41:45] != "blob" {
-			continue
-		}
-
-		size, err := strconv.Atoi(line[46:lineLen])
-		if err != nil {
-			continue
-		}
-
-		if size < blobSizeCutoff {
-			smallRevCh <- line[0:40]
-		}
+	if err := scanner.Err(); err != nil {
+		errCh <- err
 	}
 
 	stderr, _ := ioutil.ReadAll(cmd.Stderr)
@@ -71,4 +54,64 @@ func catFileBatchCheckInput(cmd *wrappedCmd, revs *StringChannelWrapper, errCh c
 		errCh <- err
 	}
 	cmd.Stdin.Close()
+}
+
+type catFileBatchCheckScanner struct {
+	s       *bufio.Scanner
+	blobOID string
+	err     error
+}
+
+func (s *catFileBatchCheckScanner) BlobOID() string {
+	return s.blobOID
+}
+
+func (s *catFileBatchCheckScanner) Err() error {
+	return s.err
+}
+
+func (s *catFileBatchCheckScanner) Scan() bool {
+	s.blobOID, s.err = "", nil
+	b, err := scanBlobOID(s.s)
+	if err != nil {
+		// EOF halts scanning, but isn't a reportable error
+		if err != io.EOF {
+			s.err = err
+		}
+		return false
+	}
+
+	s.blobOID = b
+	return true
+}
+
+func scanBlobOID(s *bufio.Scanner) (string, error) {
+	objType := "blob"
+	for s.Scan() {
+		line := s.Text()
+		lineLen := len(line)
+
+		// Format is:
+		// <sha1> <type> <size>
+		// type is at a fixed spot, if we see that it's "blob", we can avoid
+		// splitting the line just to get the size.
+		if lineLen < 46 {
+			continue
+		}
+
+		if line[41:45] != objType {
+			continue
+		}
+
+		size, err := strconv.Atoi(line[46:lineLen])
+		if err != nil {
+			continue
+		}
+
+		if size < blobSizeCutoff {
+			return line[0:40], nil
+		}
+	}
+
+	return "", io.EOF
 }
