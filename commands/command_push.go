@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -19,21 +17,6 @@ var (
 
 	// shares some global vars and functions with command_pre_push.go
 )
-
-func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
-	tracerx.Printf("Upload between %v and %v", left, right)
-
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanRefsMode
-	scanOpt.RemoteName = cfg.CurrentRemote
-
-	pointers, err := lfs.ScanRefs(left, right, scanOpt)
-	if err != nil {
-		Panic(err, "Error scanning for Git LFS files")
-	}
-
-	upload(ctx, pointers)
-}
 
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
@@ -124,31 +107,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(pushDryRun)
 
-	if useStdin {
-		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
-		fmt.Fprintln(os.Stderr, "WARNING: 'git lfs push --stdin' is deprecated, and will be removed in v2.0.")
-		fmt.Fprintln(os.Stderr, "Run 'git lfs update' or ensure .git/hooks/pre-push uses 'git lfs pre-push'.")
-
-		// called from a pre-push hook!  Update the existing pre-push hook if it's
-		// one that git-lfs set.
-		lfs.InstallHooks(false)
-
-		refsData, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			Panic(err, "Error reading refs on stdin")
-		}
-
-		if len(refsData) == 0 {
-			return
-		}
-
-		left, right := decodeRefs(string(refsData))
-		if left == prePushDeleteBranch {
-			return
-		}
-
-		uploadsBetweenRefs(ctx, left, right)
-	} else if pushObjectIDs {
+	if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
 			return
