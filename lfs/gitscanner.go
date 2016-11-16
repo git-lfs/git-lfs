@@ -7,6 +7,17 @@ func NewGitScanner() *GitScanner {
 	return &GitScanner{}
 }
 
+func (s *GitScanner) ScanRefRange(left, right string) (*PointerChannelWrapper, error) {
+	opts := NewScanRefsOptions()
+	opts.ScanMode = ScanRefsMode
+	opts.SkipDeletedBlobs = false
+	return ScanRefsToChan(left, right, opts)
+}
+
+func (s *GitScanner) ScanRefWithDeleted(ref string) (*PointerChannelWrapper, error) {
+	return s.ScanRefRange(ref, "")
+}
+
 func (s *GitScanner) ScanRef(ref string) (*PointerChannelWrapper, error) {
 	opts := NewScanRefsOptions()
 	opts.ScanMode = ScanRefsMode

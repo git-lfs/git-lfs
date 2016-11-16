@@ -18,6 +18,8 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	// tolerate errors getting ref so this works before first commit
 	ref, _ := git.CurrentRef()
 
+	gitscanner := lfs.NewGitScanner()
+
 	scanIndexAt := "HEAD"
 	if ref == nil {
 		scanIndexAt = git.RefBeforeFirstCommit
@@ -47,8 +49,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 		remoteRef, err := git.CurrentRemoteRef()
 		if err == nil {
-
-			pointerCh, err := lfs.ScanRefsToChan(ref.Sha, "^"+remoteRef.Sha, nil)
+			pointerCh, err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha)
 			if err != nil {
 				Panic(err, "Could not scan for Git LFS objects")
 			}
