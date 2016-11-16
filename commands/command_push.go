@@ -36,7 +36,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		pointers, err := lfs.ScanRefs(ref.Name, "", scanOpt)
+		pointers, err := lfs.ScanRefsToChan(ref.Name, "", scanOpt)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
@@ -47,12 +47,10 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	pointers := make([]*lfs.WrappedPointer, len(oids))
-
 	for idx, oid := range oids {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
-
-	upload(ctx, pointers)
+	uploadPointers(ctx, pointers)
 }
 
 func refsByNames(refnames []string) ([]*git.Ref, error) {

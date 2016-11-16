@@ -123,7 +123,20 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	<-done
 }
 
-func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
+func upload(c *uploadContext, pointerCh *lfs.PointerChannelWrapper) {
+	var pointers []*lfs.WrappedPointer
+	for p := range pointerCh.Results {
+		pointers = append(pointers, p)
+	}
+
+	if err := pointerCh.Wait(); err != nil {
+		ExitWithError(err)
+	}
+
+	uploadPointers(c, pointers)
+}
+
+func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 	if c.DryRun {
 		for _, p := range unfiltered {
 			if c.HasUploaded(p.Oid) {

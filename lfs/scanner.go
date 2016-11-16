@@ -102,24 +102,6 @@ func NewScanRefsOptions() *ScanRefsOptions {
 	}
 }
 
-// ScanRefs takes a ref and returns a slice of WrappedPointer objects
-// for all Git LFS pointers it finds for that ref.
-// Reports unique oids once only, not multiple times if >1 file uses the same content
-func ScanRefs(refLeft, refRight string, opt *ScanRefsOptions) ([]*WrappedPointer, error) {
-	s, err := ScanRefsToChan(refLeft, refRight, opt)
-	if err != nil {
-		return nil, err
-	}
-	pointers := make([]*WrappedPointer, 0)
-	for p := range s.Results {
-		pointers = append(pointers, p)
-	}
-	err = s.Wait()
-
-	return pointers, err
-
-}
-
 // ScanRefsToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content

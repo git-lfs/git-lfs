@@ -43,20 +43,23 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if ref != nil {
-
 		Print("On branch %s", ref.Name)
 
 		remoteRef, err := git.CurrentRemoteRef()
 		if err == nil {
 
-			pointers, err := lfs.ScanRefs(ref.Sha, "^"+remoteRef.Sha, nil)
+			pointerCh, err := lfs.ScanRefsToChan(ref.Sha, "^"+remoteRef.Sha, nil)
 			if err != nil {
 				Panic(err, "Could not scan for Git LFS objects")
 			}
 
 			Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-			for _, p := range pointers {
+			for p := range pointerCh.Results {
 				Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+			}
+
+			if err := pointerCh.Wait(); err != nil {
+				Panic(err, "Could not scan for Git LFS objects")
 			}
 		}
 	}

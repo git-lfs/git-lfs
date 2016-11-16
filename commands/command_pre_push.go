@@ -74,7 +74,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		pointers, err := lfs.ScanRefs(left, right, scanOpt)
+		pointers, err := lfs.ScanRefsToChan(left, right, scanOpt)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files")
 		}
