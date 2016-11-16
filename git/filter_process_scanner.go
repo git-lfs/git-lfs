@@ -191,12 +191,13 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 	return req, nil
 }
 
+func (o *FilterProcessScanner) ForgetStatus() {
+	o.lastStatus = ""
+}
+
 // WriteStatus writes the status of a filter process, writing an empty list if
 // the status is unchanged.
 func (o *FilterProcessScanner) WriteStatus(status string) error {
-	o.lmu.Lock()
-	defer o.lmu.Unlock()
-
 	if status == o.lastStatus {
 		return o.pl.writeFlush()
 	}
