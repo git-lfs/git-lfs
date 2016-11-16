@@ -20,10 +20,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
-	"github.com/pkg/errors"
 )
 
 type RepoType int
