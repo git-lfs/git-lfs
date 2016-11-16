@@ -21,13 +21,8 @@ var (
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = cfg.CurrentRemote
-
-	if pushAll {
-		scanOpt.ScanMode = lfs.ScanRefsMode
-	}
+	gitscanner := lfs.NewGitScanner()
+	gitscanner.Remote(cfg.CurrentRemote)
 
 	refs, err := refsByNames(refnames)
 	if err != nil {
@@ -36,13 +31,19 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		pointers, err := lfs.ScanRefsToChan(ref.Name, "", scanOpt)
+		pointerCh, err := scanLeftOrAll(gitscanner, ref.Name)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
-
-		upload(ctx, pointers)
+		upload(ctx, pointerCh)
 	}
+}
+
+func scanLeftOrAll(g *lfs.GitScanner, ref string) (*lfs.PointerChannelWrapper, error) {
+	if pushAll {
+		return g.ScanRefWithDeleted(ref)
+	}
+	return g.ScanLeftToRemote(ref)
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
