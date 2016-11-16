@@ -302,11 +302,8 @@ func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan P
 func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	// Only files AT ref, recent is checked in pruneTaskGetRetainedRecentRefs
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanRefsMode
-	opts.SkipDeletedBlobs = true
-	refchan, err := lfs.ScanRefsToChan(ref, "", opts)
+	gitscanner := lfs.NewGitScanner()
+	refchan, err := gitscanner.ScanRef(ref)
 	if err != nil {
 		errorChan <- err
 		return

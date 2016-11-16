@@ -104,10 +104,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 }
 
 func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
-	// Use SkipDeletedBlobs to avoid fetching ALL previous versions of modified files
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanRefsMode
-	opts.SkipDeletedBlobs = true
 	return lfs.ScanTree(ref)
 }
 
