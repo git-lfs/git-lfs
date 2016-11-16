@@ -568,7 +568,7 @@ func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error
 func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
 	pointers := make(chan *WrappedPointer, chanBufSize)
 	errchan := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
-	if err := runCatFileBatch(pointers, revs.Results, errchan); err != nil {
+	if err := runCatFileBatch(pointers, revs, errchan); err != nil {
 		return nil, err
 	}
 

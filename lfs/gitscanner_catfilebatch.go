@@ -17,14 +17,14 @@ import (
 // Results are parsed from STDOUT, and any elegible LFS pointers are sent to
 // pointerCh. Any errors are sent to errCh. An error is returned if the 'git
 // cat-file' command fails to start.
-func runCatFileBatch(pointerCh chan *WrappedPointer, sha1Ch <-chan string, errCh chan error) error {
+func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper, errCh chan error) error {
 	cmd, err := startCommand("git", "cat-file", "--batch")
 	if err != nil {
 		return err
 	}
 
 	go catFileBatchOutput(pointerCh, cmd, errCh)
-	go catFileBatchInput(cmd, sha1Ch, errCh)
+	go catFileBatchInput(cmd, revs, errCh)
 	return nil
 }
 
@@ -48,9 +48,15 @@ func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh c
 	close(errCh)
 }
 
-func catFileBatchInput(cmd *wrappedCmd, sha1Ch <-chan string, errCh chan error) {
-	for r := range sha1Ch {
+func catFileBatchInput(cmd *wrappedCmd, revs *StringChannelWrapper, errCh chan error) {
+	for r := range revs.Results {
 		cmd.Stdin.Write([]byte(r + "\n"))
+	}
+	err := revs.Wait()
+	if err != nil {
+		// We can share errchan with other goroutine since that won't close it
+		// until we close the stdin below
+		errCh <- err
 	}
 	cmd.Stdin.Close()
 }
