@@ -55,7 +55,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	ctx := newUploadContext(prePushDryRun)
 
 	gitscanner := lfs.NewGitScanner()
-	gitscanner.Remote(cfg.CurrentRemote)
+	gitscanner.RemoteForPush(cfg.CurrentRemote)
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
