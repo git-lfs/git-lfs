@@ -6,6 +6,7 @@ import (
 	"github.com/github/git-lfs/errors"
 	"github.com/github/git-lfs/lfs"
 	"github.com/github/git-lfs/tools"
+	"github.com/rubyist/tracerx"
 )
 
 var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
@@ -109,21 +110,30 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		// this channel is filled with oids for which Check() succeeded
 		// and Transfer() was called
 		for oid := range transferCh {
+			tracerx.Printf("uploader: marking %q as uploaded", oid)
 			c.SetUploaded(oid)
+			tracerx.Printf("uploader: marked %q as uploaded", oid)
 		}
+		tracerx.Printf("uploader: sending done from within goroutine")
 		done <- 1
+		tracerx.Printf("uploader: sent done from within goroutine")
 	}()
 
 	for _, p := range missing {
+		tracerx.Printf("uploader: adding new item to queue: %q", p.Oid)
 		checkQueue.Add(lfs.NewDownloadable(p))
+		tracerx.Printf("uploader: added new item to queue: %q", p.Oid)
 	}
 
 	// Currently this is needed to flush the batch but is not enough to sync
 	// transferc completely. By the time that checkQueue.Wait() returns, the
 	// transferCh will have been closed, allowing the goroutine above to
 	// send "1" into the `done` channel.
+	tracerx.Printf("uploader: waiting on checkQueue.Wait()")
 	checkQueue.Wait()
+	tracerx.Printf("uploader: latched, waiting on <-done")
 	<-done
+	tracerx.Printf("uploader: done.")
 }
 
 func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
