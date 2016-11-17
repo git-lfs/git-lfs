@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/rubyist/tracerx"
 )
 
@@ -715,7 +714,8 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := ScanPreviousVersionsToChan(ref, since)
+	gitscanner := NewGitScanner()
+	pointerchan, err := gitscanner.ScanPreviousVersions(ref, since)
 	if err != nil {
 		return nil, err
 	}
@@ -725,52 +725,6 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 	}
 	err = pointerchan.Wait()
 	return pointers, err
-
-}
-
-// ScanPreviousVersionsToChan scans changes reachable from ref (commit) back to since.
-// Returns channel of pointers for *previous* versions that overlap that time. Does not
-// include pointers which were still in use at ref (use ScanRefsToChan for that)
-func ScanPreviousVersionsToChan(ref string, since time.Time) (*PointerChannelWrapper, error) {
-	return logPreviousSHAs(ref, since)
-}
-
-// logPreviousVersions scans history for all previous versions of LFS pointers
-// from 'since' up to (but not including) the final state at ref
-func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error) {
-	logArgs := []string{"log",
-		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
-	}
-	// Add standard search args to find lfs references
-	logArgs = append(logArgs, logLfsSearchArgs...)
-	// ending at ref
-	logArgs = append(logArgs, ref)
-
-	cmd, err := startCommand("git", logArgs...)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd.Stdin.Close()
-
-	pchan := make(chan *WrappedPointer, chanBufSize)
-	errchan := make(chan error, 1)
-
-	// we pull out deletions, since we want the previous SHAs at commits in the range
-	// this means we pick up all previous versions that could have been checked
-	// out in the date range, not just if the commit which *introduced* them is in the range
-	go func() {
-		parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
-		}
-		close(pchan)
-		close(errchan)
-	}()
-
-	return NewPointerChannelWrapper(pchan, errchan), nil
 
 }
 

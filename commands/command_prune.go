@@ -322,7 +322,8 @@ func pruneTaskGetRetainedAtRef(ref string, retainChan chan string, errorChan cha
 func pruneTaskGetPreviousVersionsOfRef(ref string, since time.Time, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	refchan, err := lfs.ScanPreviousVersionsToChan(ref, since)
+	gitscanner := lfs.NewGitScanner()
+	refchan, err := gitscanner.ScanPreviousVersions(ref, since)
 	if err != nil {
 		errorChan <- err
 		return

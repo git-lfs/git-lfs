@@ -1,6 +1,9 @@
 package lfs
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
@@ -63,6 +66,14 @@ func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
 // pushed to the named remote. remote can be left blank to mean 'any remote'.
 func (s *GitScanner) ScanUnpushed(remote string) (*PointerChannelWrapper, error) {
 	return scanUnpushed(remote)
+}
+
+// ScanPreviousVersions scans changes reachable from ref (commit) back to since.
+// Returns channel of pointers for *previous* versions that overlap that time.
+// Does not include pointers which were still in use at ref (use ScanRefsToChan
+// for that)
+func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*PointerChannelWrapper, error) {
+	return logPreviousSHAs(ref, since)
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {

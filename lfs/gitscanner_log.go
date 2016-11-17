@@ -7,7 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"regexp"
+	"time"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -58,6 +60,44 @@ func scanUnpushed(remote string) (*PointerChannelWrapper, error) {
 
 	go func() {
 		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		err := cmd.Wait()
+		if err != nil {
+			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
+		}
+		close(pchan)
+		close(errchan)
+	}()
+
+	return NewPointerChannelWrapper(pchan, errchan), nil
+}
+
+// logPreviousVersions scans history for all previous versions of LFS pointers
+// from 'since' up to (but not including) the final state at ref
+func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error) {
+	logArgs := []string{"log",
+		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
+	}
+	// Add standard search args to find lfs references
+	logArgs = append(logArgs, logLfsSearchArgs...)
+	// ending at ref
+	logArgs = append(logArgs, ref)
+
+	cmd, err := startCommand("git", logArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin.Close()
+
+	pchan := make(chan *WrappedPointer, chanBufSize)
+	errchan := make(chan error, 1)
+
+	// we pull out deletions, since we want the previous SHAs at commits in the range
+	// this means we pick up all previous versions that could have been checked
+	// out in the date range, not just if the commit which *introduced* them is in the range
+	go func() {
+		parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
