@@ -122,6 +122,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(pushDryRun)
+	ctx.DryRun = pushDryRun
 
 	if useStdin {
 		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")

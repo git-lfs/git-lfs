@@ -52,6 +52,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
+	ctx.DryRun = prePushDryRun
 
 	scanOpt := lfs.NewScanRefsOptions()
 	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
