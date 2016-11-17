@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	// objectExpirationGracePeriod is the grace period applied to objects
-	// when checking whether or not they have expired.
-	objectExpirationGracePeriod = 5 * time.Second
+	// objectExpirationToTransfer is the duration we expect to have passed
+	// from the time that the object's expires_at property is checked to
+	// when the transfer is executed.
+	objectExpirationToTransfer = 5 * time.Second
 )
 
 // adapterBase implements the common functionality for core adapters which
@@ -124,11 +125,22 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		}
 		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
 
+		// transferTime is the time that we are to compare the transfer's
+		// `expired_at` property against.
+		//
+		// We add the `objectExpirationToTransfer` since there will be
+		// some time lost from this comparison to the time we actually
+		// transfer the object
+		transferTime := time.Now().Add(objectExpirationToTransfer)
+
 		// Actual transfer happens here
 		var err error
-		if t.Object.IsExpired(time.Now().Add(objectExpirationGracePeriod)) {
+		if expAt, expired := t.Object.IsExpired(transferTime); expired {
 			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
-			err = errors.NewRetriableError(errors.Errorf("lfs/transfer: object %q has expired", t.Object.Oid))
+			err = errors.NewRetriableError(errors.Errorf(
+				"lfs/transfer: object %q expires at %s",
+				t.Object.Oid, expAt.In(time.Local).Format(time.RFC822),
+			))
 		} else if t.Object.Size < 0 {
 			tracerx.Printf("xfer: adapter %q worker %d found invalid size for %q (got: %d), retrying...", a.Name(), workerNum, t.Object.Oid, t.Object.Size)
 			err = fmt.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Object.Oid, t.Object.Size)
