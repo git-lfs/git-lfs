@@ -395,9 +395,8 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(fetchconf config.FetchPruneConfig,
 func pruneTaskGetRetainedUnpushed(fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	remoteName := fetchconf.PruneRemoteName
-
-	refchan, err := lfs.ScanUnpushedToChan(remoteName)
+	gitscanner := lfs.NewGitScanner()
+	refchan, err := gitscanner.ScanUnpushed(fetchconf.PruneRemoteName)
 	if err != nil {
 		errorChan <- err
 		return

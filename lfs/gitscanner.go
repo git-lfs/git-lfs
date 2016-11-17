@@ -1,6 +1,9 @@
 package lfs
 
-import "fmt"
+import (
+	"fmt"
+	"io/ioutil"
+)
 
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
@@ -57,6 +60,45 @@ func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
 	return scanRefsToChan("", "", opts)
+}
+
+// ScanUnpushed scans history for all LFS pointers which have been added but not
+// pushed to the named remote. remote can be left blank to mean 'any remote'.
+func (s *GitScanner) ScanUnpushed(remote string) (*PointerChannelWrapper, error) {
+	logArgs := []string{"log",
+		"--branches", "--tags", // include all locally referenced commits
+		"--not"} // but exclude everything that comes after
+
+	if len(remote) == 0 {
+		logArgs = append(logArgs, "--remotes")
+	} else {
+		logArgs = append(logArgs, fmt.Sprintf("--remotes=%v", remote))
+	}
+	// Add standard search args to find lfs references
+	logArgs = append(logArgs, logLfsSearchArgs...)
+
+	cmd, err := startCommand("git", logArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin.Close()
+
+	pchan := make(chan *WrappedPointer, chanBufSize)
+	errchan := make(chan error, 1)
+
+	go func() {
+		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		err := cmd.Wait()
+		if err != nil {
+			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
+		}
+		close(pchan)
+		close(errchan)
+	}()
+
+	return NewPointerChannelWrapper(pchan, errchan), nil
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {

@@ -700,13 +700,13 @@ func scanNullLines(data []byte, atEOF bool) (advance int, token []byte, err erro
 // ScanUnpushed scans history for all LFS pointers which have been added but not
 // pushed to the named remote. remoteName can be left blank to mean 'any remote'
 func ScanUnpushed(remoteName string) ([]*WrappedPointer, error) {
-
 	start := time.Now()
 	defer func() {
 		tracerx.PerformanceSince("scan", start)
 	}()
 
-	pointerchan, err := ScanUnpushedToChan(remoteName)
+	gitscanner := NewGitScanner()
+	pointerchan, err := gitscanner.ScanUnpushed(remoteName)
 	if err != nil {
 		return nil, err
 	}
@@ -745,47 +745,6 @@ func ScanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error
 // include pointers which were still in use at ref (use ScanRefsToChan for that)
 func ScanPreviousVersionsToChan(ref string, since time.Time) (*PointerChannelWrapper, error) {
 	return logPreviousSHAs(ref, since)
-}
-
-// ScanUnpushedToChan scans history for all LFS pointers which have been added but
-// not pushed to the named remote. remoteName can be left blank to mean 'any remote'
-// return progressively in a channel
-func ScanUnpushedToChan(remoteName string) (*PointerChannelWrapper, error) {
-	logArgs := []string{"log",
-		"--branches", "--tags", // include all locally referenced commits
-		"--not"} // but exclude everything that comes after
-
-	if len(remoteName) == 0 {
-		logArgs = append(logArgs, "--remotes")
-	} else {
-		logArgs = append(logArgs, fmt.Sprintf("--remotes=%v", remoteName))
-	}
-	// Add standard search args to find lfs references
-	logArgs = append(logArgs, logLfsSearchArgs...)
-
-	cmd, err := startCommand("git", logArgs...)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd.Stdin.Close()
-
-	pchan := make(chan *WrappedPointer, chanBufSize)
-	errchan := make(chan error, 1)
-
-	go func() {
-		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
-		}
-		close(pchan)
-		close(errchan)
-	}()
-
-	return NewPointerChannelWrapper(pchan, errchan), nil
-
 }
 
 // logPreviousVersions scans history for all previous versions of LFS pointers
