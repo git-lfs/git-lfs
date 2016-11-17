@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/api/schema"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/api/schema"
 )
 
 var LockService api.LockService

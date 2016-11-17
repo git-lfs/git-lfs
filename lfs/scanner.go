@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -499,66 +499,12 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 // which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
 func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error) {
-	cmd, err := startCommand("git", "cat-file", "--batch-check")
-	if err != nil {
+	smallRevCh := make(chan string, chanBufSize)
+	errCh := make(chan error, 2) // up to 2 errors, one from each goroutine
+	if err := runCatFileBatchCheck(smallRevCh, revs, errCh); err != nil {
 		return nil, err
 	}
-
-	smallRevs := make(chan string, chanBufSize)
-	errchan := make(chan error, 2) // up to 2 errors, one from each goroutine
-
-	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
-		for scanner.Scan() {
-			line := scanner.Text()
-			lineLen := len(line)
-
-			// Format is:
-			// <sha1> <type> <size>
-			// type is at a fixed spot, if we see that it's "blob", we can avoid
-			// splitting the line just to get the size.
-			if lineLen < 46 {
-				continue
-			}
-
-			if line[41:45] != "blob" {
-				continue
-			}
-
-			size, err := strconv.Atoi(line[46:lineLen])
-			if err != nil {
-				continue
-			}
-
-			if size < blobSizeCutoff {
-				smallRevs <- line[0:40]
-			}
-		}
-
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git cat-file --batch-check: %v %v", err, string(stderr))
-		}
-		close(smallRevs)
-		close(errchan)
-	}()
-
-	go func() {
-		for r := range revs.Results {
-			cmd.Stdin.Write([]byte(r + "\n"))
-		}
-		err := revs.Wait()
-		if err != nil {
-			// We can share errchan with other goroutine since that won't close it
-			// until we close the stdin below
-			errchan <- err
-		}
-
-		cmd.Stdin.Close()
-	}()
-
-	return NewStringChannelWrapper(smallRevs, errchan), nil
+	return NewStringChannelWrapper(smallRevCh, errCh), nil
 }
 
 // catFileBatch uses git cat-file --batch to get the object contents
@@ -566,70 +512,12 @@ func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
 func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
-	cmd, err := startCommand("git", "cat-file", "--batch")
-	if err != nil {
+	pointerCh := make(chan *WrappedPointer, chanBufSize)
+	errCh := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
+	if err := runCatFileBatch(pointerCh, revs, errCh); err != nil {
 		return nil, err
 	}
-
-	pointers := make(chan *WrappedPointer, chanBufSize)
-	errchan := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
-
-	go func() {
-		for {
-			l, err := cmd.Stdout.ReadBytes('\n')
-			if err != nil {
-				break
-			}
-
-			// Line is formatted:
-			// <sha1> <type> <size>
-			fields := bytes.Fields(l)
-			s, _ := strconv.Atoi(string(fields[2]))
-
-			nbuf := make([]byte, s)
-			_, err = io.ReadFull(cmd.Stdout, nbuf)
-			if err != nil {
-				break // Legit errors
-			}
-
-			p, err := DecodePointer(bytes.NewBuffer(nbuf))
-			if err == nil {
-				pointers <- &WrappedPointer{
-					Sha1:    string(fields[0]),
-					Size:    p.Size,
-					Pointer: p,
-				}
-			}
-
-			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
-			if err != nil {
-				break
-			}
-		}
-
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err = cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
-		}
-		close(pointers)
-		close(errchan)
-	}()
-
-	go func() {
-		for r := range revs.Results {
-			cmd.Stdin.Write([]byte(r + "\n"))
-		}
-		err := revs.Wait()
-		if err != nil {
-			// We can share errchan with other goroutine since that won't close it
-			// until we close the stdin below
-			errchan <- err
-		}
-		cmd.Stdin.Close()
-	}()
-
-	return NewPointerChannelWrapper(pointers, errchan), nil
+	return NewPointerChannelWrapper(pointerCh, errCh), nil
 }
 
 type wrappedCmd struct {
@@ -1107,7 +995,6 @@ type BaseChannelWrapper struct {
 }
 
 func (w *BaseChannelWrapper) Wait() error {
-
 	var err error
 	for e := range w.errorChan {
 		if err != nil {

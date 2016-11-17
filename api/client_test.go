@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/github/git-lfs/api"
+	"github.com/git-lfs/git-lfs/api"
 	"github.com/stretchr/testify/assert"
 )
 

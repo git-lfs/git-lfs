@@ -7,7 +7,7 @@ import (
 
 	"fmt"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 // Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.

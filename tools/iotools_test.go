@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/stretchr/testify/assert"
 )
 

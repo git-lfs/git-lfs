@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/stretchr/testify/assert"
 )
 

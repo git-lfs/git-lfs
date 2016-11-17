@@ -3,12 +3,11 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"io"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,17 +169,10 @@ size 12345`
 
 func TestDecodeFromEmptyReader(t *testing.T) {
 	by, p, err := DecodeFrom(strings.NewReader(""))
-	if err != io.EOF {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
-	if p != nil {
-		t.Fatalf("Unexpected pointer: %v", p)
-	}
-
-	if string(by) != "" {
-		t.Fatalf("unexpected result: '%s'", string(by))
-	}
+	assert.EqualError(t, err, "Pointer file error: invalid header")
+	assert.Nil(t, p)
+	assert.Empty(t, string(by))
 }
 
 func TestDecodeInvalid(t *testing.T) {

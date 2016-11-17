@@ -12,10 +12,10 @@ import (
 
 	"github.com/rubyist/tracerx"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -42,12 +42,12 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	lfs.InstallHooks(false)
-	knownPaths := findPaths()
+	knownPatterns := findPatterns()
 
 	if len(args) == 0 {
-		Print("Listing tracked paths")
-		for _, t := range knownPaths {
-			Print("    %s (%s)", t.Path, t.Source)
+		Print("Listing tracked patterns")
+		for _, t := range knownPatterns {
+			Print("    %s (%s)", t.Pattern, t.Source)
 		}
 		return
 	}
@@ -61,7 +61,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	defer attributesFile.Close()
 
 	if addTrailingLinebreak {
-		if _, err := attributesFile.WriteString("\n"); err != nil {
+		if _, werr := attributesFile.WriteString("\n"); werr != nil {
 			Print("Error writing to .gitattributes")
 		}
 	}
@@ -75,8 +75,8 @@ func trackCommand(cmd *cobra.Command, args []string) {
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
 		pattern := cleanRootPath(unsanitizedPattern)
-		for _, known := range knownPaths {
-			if known.Path == filepath.Join(relpath, pattern) {
+		for _, known := range knownPatterns {
+			if known.Pattern == filepath.Join(relpath, pattern) {
 				Print("%s already supported", pattern)
 				continue ArgsLoop
 			}
@@ -119,7 +119,7 @@ ArgsLoop:
 			encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
 			_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
 			if err != nil {
-				Print("Error adding path %s", pattern)
+				Print("Error adding pattern %s", pattern)
 				continue
 			}
 		}
@@ -142,13 +142,13 @@ ArgsLoop:
 	}
 }
 
-type mediaPath struct {
-	Path   string
-	Source string
+type mediaPattern struct {
+	Pattern string
+	Source  string
 }
 
-func findPaths() []mediaPath {
-	paths := make([]mediaPath, 0)
+func findPatterns() []mediaPattern {
+	var patterns []mediaPattern
 
 	for _, path := range findAttributeFiles() {
 		attributes, err := os.Open(path)
@@ -168,16 +168,16 @@ func findPaths() []mediaPath {
 					pattern = filepath.Join(reldir, pattern)
 				}
 
-				paths = append(paths, mediaPath{Path: pattern, Source: relfile})
+				patterns = append(patterns, mediaPattern{Pattern: pattern, Source: relfile})
 			}
 		}
 	}
 
-	return paths
+	return patterns
 }
 
 func findAttributeFiles() []string {
-	paths := make([]string, 0)
+	var paths []string
 
 	repoAttributes := filepath.Join(config.LocalGitDir, "info", "attributes")
 	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {

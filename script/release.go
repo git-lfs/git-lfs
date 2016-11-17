@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	ReleaseId    = flag.Int("id", 0, "github/git-lfs Release ID")
-	uploadUrlFmt = "https://uploads.github.com/repos/github/git-lfs/releases/%d/assets?%s"
+	ReleaseId    = flag.Int("id", 0, "git-lfs/git-lfs Release ID")
+	uploadUrlFmt = "https://uploads.github.com/repos/git-lfs/git-lfs/releases/%d/assets?%s"
 )
 
 func mainRelease() {
 	if *ReleaseId < 1 {
-		log.Println("Need a valid github/git-lfs release id.")
+		log.Println("Need a valid git-lfs/git-lfs release id.")
 		log.Fatalln("usage: script/release -id")
 	}
 

@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -114,6 +114,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	var totalSize int64
 	var verboseOutput bytes.Buffer
 	var verifyc chan string
+	var verifywait sync.WaitGroup
 
 	if verifyRemote {
 		cfg.CurrentRemote = fetchPruneConfig.PruneRemoteName
@@ -123,6 +124,15 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 
 		// this channel is filled with oids for which Check() succeeded & Transfer() was called
 		verifyc = verifyQueue.Watch()
+		verifywait.Add(1)
+		go func() {
+			for oid := range verifyc {
+				verifiedObjects.Add(oid)
+				tracerx.Printf("VERIFIED: %v", oid)
+				progressChan <- PruneProgress{PruneProgressTypeVerify, 1}
+			}
+			verifywait.Done()
+		}()
 	}
 
 	for _, file := range localObjects {
@@ -143,16 +153,6 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	}
 
 	if verifyRemote {
-		var verifywait sync.WaitGroup
-		verifywait.Add(1)
-		go func() {
-			for oid := range verifyc {
-				verifiedObjects.Add(oid)
-				tracerx.Printf("VERIFIED: %v", oid)
-				progressChan <- PruneProgress{PruneProgressTypeVerify, 1}
-			}
-			verifywait.Done()
-		}()
 		verifyQueue.Wait()
 		verifywait.Wait()
 		close(progressChan) // after verify (uses spinner) but before check

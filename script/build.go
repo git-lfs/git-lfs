@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 var (
@@ -47,7 +47,7 @@ func mainBuild() {
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
 	if len(cmd) > 0 {
-		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/config.GitCommit=" + string(cmd))
+		LdFlag = strings.TrimSpace("-X github.com/git-lfs/git-lfs/config.GitCommit=" + string(cmd))
 	}
 
 	buildMatrix := make(map[string]Release)

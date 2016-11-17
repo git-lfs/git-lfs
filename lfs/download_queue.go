@@ -1,8 +1,8 @@
 package lfs
 
 import (
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/transfer"
 )
 
 type Downloadable struct {

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/auth"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/httputil"
 )
 
 func TestSuccessfulDownload(t *testing.T) {

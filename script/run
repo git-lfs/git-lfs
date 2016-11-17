@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 script/fmt
 commit=`git rev-parse --short HEAD`
-GO15VENDOREXPERIMENT=1 go run -ldflags="-X github.com/github/git-lfs/config.GitCommit=$commit" ./git-lfs.go "$@"
+GO15VENDOREXPERIMENT=1 go run -ldflags="-X github.com/git-lfs/git-lfs/config.GitCommit=$commit" ./git-lfs.go "$@"
