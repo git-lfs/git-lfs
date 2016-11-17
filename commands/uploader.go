@@ -102,21 +102,19 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	}
 
 	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize)
-
-	// this channel is filled with oids for which Check() succeeded & Transfer() was called
-	transferc := checkQueue.Watch()
-
-	for _, p := range missing {
-		checkQueue.Add(lfs.NewDownloadable(p))
-	}
-
 	done := make(chan int)
 	go func() {
-		for oid := range transferc {
+		// this channel is filled with oids for which Check() succeeded & Transfer() was called
+		transferCh := checkQueue.Watch()
+		for oid := range transferCh {
 			c.SetUploaded(oid)
 		}
 		done <- 1
 	}()
+
+	for _, p := range missing {
+		checkQueue.Add(lfs.NewDownloadable(p))
+	}
 
 	// Currently this is needed to flush the batch but is not enough to sync transferc completely
 	checkQueue.Wait()
