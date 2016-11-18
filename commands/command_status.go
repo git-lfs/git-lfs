@@ -19,6 +19,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	ref, _ := git.CurrentRef()
 
 	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
 
 	scanIndexAt := "HEAD"
 	if ref == nil {

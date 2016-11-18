@@ -22,7 +22,10 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
 
 	gitscanner := lfs.NewGitScanner()
-	gitscanner.RemoteForPush(cfg.CurrentRemote)
+	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+		ExitWithError(err)
+	}
+	defer gitscanner.Close()
 
 	refs, err := refsByNames(refnames)
 	if err != nil {

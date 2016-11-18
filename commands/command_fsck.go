@@ -30,6 +30,7 @@ func doFsck() (bool, error) {
 	pointerIndex := make(map[string]string)
 
 	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
 	pointerCh, err := gitscanner.ScanRefWithDeleted(ref.Sha)
 	if err != nil {
 		return false, err

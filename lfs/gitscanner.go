@@ -2,34 +2,67 @@ package lfs
 
 import (
 	"fmt"
+	"sync"
 	"time"
+
+	"github.com/rubyist/tracerx"
 )
 
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
 	remote      string
 	skippedRefs []string
+
+	closed  bool
+	started time.Time
+	mu      sync.Mutex
 }
 
 // NewGitScanner initializes a *GitScanner for a Git repository in the current
 // working directory.
 func NewGitScanner() *GitScanner {
-	return &GitScanner{}
+	return &GitScanner{started: time.Now()}
+}
+
+// Close stops exits once all processing has stopped, and all resources are
+// tracked and cleaned up.
+func (s *GitScanner) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return
+	}
+
+	s.closed = true
+	tracerx.PerformanceSince("scan", s.started)
 }
 
 // RemoteForPush sets up this *GitScanner to scan for objects to push to the
 // given remote. Needed for ScanLeftToRemote().
-func (s *GitScanner) RemoteForPush(r string) {
+func (s *GitScanner) RemoteForPush(r string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.remote) > 0 && s.remote != r {
+		return fmt.Errorf("Trying to set remote to %q, already set to %q", r, s.remote)
+	}
+
 	s.remote = r
 	s.skippedRefs = calcSkippedRefs(r)
+	return nil
 }
 
 // ScanLeftToRemote scans through all commits starting at the given ref that the
 // given remote does not have. See RemoteForPush().
 func (s *GitScanner) ScanLeftToRemote(left string) (*PointerChannelWrapper, error) {
+	s.mu.Lock()
 	if len(s.remote) == 0 {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("Unable to scan starting at %q: no remote set.", left)
 	}
+	s.mu.Unlock()
+
 	return scanRefsToChan(left, "", s.opts(ScanLeftToRemoteMode))
 }
 
@@ -84,6 +117,9 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*Pointer
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	opts := newScanRefsOptions()
 	opts.ScanMode = mode
 	opts.RemoteName = s.remote
