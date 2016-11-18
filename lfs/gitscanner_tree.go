@@ -47,7 +47,9 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 
 			p, err := scanner.Next()
 			if err != nil {
-				errchan <- err
+				if err != io.EOF {
+					errchan <- err
+				}
 				break
 			} else if p != nil {
 				p.Name = t.Filename

@@ -30,12 +30,16 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper,
 
 func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh chan error) {
 	scanner := &catFileBatchScanner{r: cmd.Stdout}
-	for scanner.Scan() {
-		pointerCh <- scanner.Pointer()
-	}
-
-	if err := scanner.Err(); err != nil {
-		errCh <- err
+	for {
+		p, err := scanner.Next()
+		if err != nil {
+			if err != io.EOF {
+				errCh <- err
+			}
+			break
+		} else if p != nil {
+			pointerCh <- p
+		}
 	}
 
 	stderr, _ := ioutil.ReadAll(cmd.Stderr)
