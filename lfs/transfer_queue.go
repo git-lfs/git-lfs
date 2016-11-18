@@ -409,9 +409,8 @@ func (q *TransferQueue) errorCollector() {
 }
 
 // retryCollector collects objects to retry, increments the number of times that
-// they have been retried, and then enqueues them in the next batch, or legacy
-// API channel. If the transfer queue is using a batcher, the batch will be
-// flushed immediately.
+// they have been retried, and then enqueues them in the next batch.  If the
+// transfer queue is using a batcher, the batch will be flushed immediately.
 //
 // retryCollector runs in its own goroutine.
 func (q *TransferQueue) retryCollector() {
