@@ -101,7 +101,6 @@ type TransferQueue struct {
 	errors            []error
 	transferables     map[string]Transferable
 	batcher           *Batcher
-	apic              chan Transferable // Channel for processing individual API requests
 	retriesc          chan Transferable // Channel for processing retries
 	errorc            chan error        // Channel for processing errors
 	watchers          []chan string
@@ -111,10 +110,9 @@ type TransferQueue struct {
 	// wait is used to keep track of pending transfers. It is incremented
 	// once per unique OID on Add(), and is decremented when that transfer
 	// is marked as completed or failed, but not retried.
-	wait          sync.WaitGroup
-	oldApiWorkers int // Number of non-batch API workers to spawn (deprecated)
-	manifest      *transfer.Manifest
-	rc            *retryCounter
+	wait     sync.WaitGroup
+	manifest *transfer.Manifest
+	rc       *retryCounter
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
@@ -127,10 +125,8 @@ func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction
 		direction:     dir,
 		dryRun:        dryRun,
 		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
-		apic:          make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
-		oldApiWorkers: config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
@@ -159,12 +155,7 @@ func (q *TransferQueue) Add(t Transferable) {
 		return
 	}
 
-	if q.batcher != nil {
-		q.batcher.Add(t)
-		return
-	}
-
-	q.apic <- t
+	q.batcher.Add(t)
 }
 
 func (q *TransferQueue) useAdapter(name string) {
@@ -300,17 +291,13 @@ func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
 // called, Add will no longer add transferables to the queue. Any failed
 // transfers will be automatically retried once.
 func (q *TransferQueue) Wait() {
-	if q.batcher != nil {
-		q.batcher.Exit()
-	}
-
+	q.batcher.Exit()
 	q.wait.Wait()
 
 	// Handle any retries
 	close(q.retriesc)
 	q.retrywait.Wait()
 
-	close(q.apic)
 	q.finishAdapter()
 	close(q.errorc)
 
@@ -415,9 +402,8 @@ func (q *TransferQueue) errorCollector() {
 }
 
 // retryCollector collects objects to retry, increments the number of times that
-// they have been retried, and then enqueues them in the next batch, or legacy
-// API channel. If the transfer queue is using a batcher, the batch will be
-// flushed immediately.
+// they have been retried, and then enqueues them in the next batch.  If the
+// transfer queue is using a batcher, the batch will be flushed immediately.
 //
 // retryCollector runs in its own goroutine.
 func (q *TransferQueue) retryCollector() {
@@ -430,14 +416,10 @@ func (q *TransferQueue) retryCollector() {
 		// XXX(taylor): reuse some of the logic in
 		// `*TransferQueue.Add(t)` here to circumvent banned duplicate
 		// OIDs
-		if q.batcher != nil {
-			tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
+		tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
 
-			q.batcher.Add(t)
-			q.batcher.Flush()
-		} else {
-			q.apic <- t
-		}
+		q.batcher.Add(t)
+		q.batcher.Flush()
 	}
 	q.retrywait.Done()
 }

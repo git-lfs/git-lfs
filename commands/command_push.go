@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -20,31 +18,14 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
-func uploadsBetweenRefs(ctx *uploadContext, left string, right string) {
-	tracerx.Printf("Upload between %v and %v", left, right)
-
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanRefsMode
-	scanOpt.RemoteName = cfg.CurrentRemote
-
-	pointers, err := lfs.ScanRefs(left, right, scanOpt)
-	if err != nil {
-		Panic(err, "Error scanning for Git LFS files")
-	}
-
-	upload(ctx, pointers)
-}
-
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = cfg.CurrentRemote
-
-	if pushAll {
-		scanOpt.ScanMode = lfs.ScanRefsMode
+	gitscanner := lfs.NewGitScanner()
+	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+		ExitWithError(err)
 	}
+	defer gitscanner.Close()
 
 	refs, err := refsByNames(refnames)
 	if err != nil {
@@ -53,23 +34,27 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		pointers, err := lfs.ScanRefs(ref.Name, "", scanOpt)
+		pointerCh, err := scanLeftOrAll(gitscanner, ref.Name)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
 		}
-
-		upload(ctx, pointers)
+		upload(ctx, pointerCh)
 	}
+}
+
+func scanLeftOrAll(g *lfs.GitScanner, ref string) (*lfs.PointerChannelWrapper, error) {
+	if pushAll {
+		return g.ScanRefWithDeleted(ref)
+	}
+	return g.ScanLeftToRemote(ref)
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	pointers := make([]*lfs.WrappedPointer, len(oids))
-
 	for idx, oid := range oids {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
-
-	upload(ctx, pointers)
+	uploadPointers(ctx, pointers)
 }
 
 func refsByNames(refnames []string) ([]*git.Ref, error) {
@@ -124,31 +109,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(pushDryRun)
 
-	if useStdin {
-		requireStdin("Run this command from the Git pre-push hook, or leave the --stdin flag off.")
-		fmt.Fprintln(os.Stderr, "WARNING: 'git lfs push --stdin' is deprecated, and will be removed in v2.0.")
-		fmt.Fprintln(os.Stderr, "Run 'git lfs update' or ensure .git/hooks/pre-push uses 'git lfs pre-push'.")
-
-		// called from a pre-push hook!  Update the existing pre-push hook if it's
-		// one that git-lfs set.
-		lfs.InstallHooks(false)
-
-		refsData, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			Panic(err, "Error reading refs on stdin")
-		}
-
-		if len(refsData) == 0 {
-			return
-		}
-
-		left, right := decodeRefs(string(refsData))
-		if left == prePushDeleteBranch {
-			return
-		}
-
-		uploadsBetweenRefs(ctx, left, right)
-	} else if pushObjectIDs {
+	if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
 			return
@@ -168,7 +129,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterCommand("push", pushCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
-		cmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
 		cmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
 		cmd.Flags().BoolVarP(&pushAll, "all", "a", false, "Push all objects for the current ref to the remote.")
 	})

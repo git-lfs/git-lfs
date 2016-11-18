@@ -29,23 +29,32 @@ func doFsck() (bool, error) {
 	// All we care about is the pointer OID and file name
 	pointerIndex := make(map[string]string)
 
-	pointers, err := lfs.ScanRefs(ref.Sha, "", nil)
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
+	pointerCh, err := gitscanner.ScanRefWithDeleted(ref.Sha)
 	if err != nil {
 		return false, err
 	}
 
-	for _, p := range pointers {
+	for p := range pointerCh.Results {
 		pointerIndex[p.Oid] = p.Name
 	}
 
-	// TODO(zeroshirts): do we want to look for LFS stuff in past commits?
-	p2, err := lfs.ScanIndex("HEAD")
+	if err := pointerCh.Wait(); err != nil {
+		return false, err
+	}
+
+	p2, err := gitscanner.ScanIndex("HEAD")
 	if err != nil {
 		return false, err
 	}
 
-	for _, p := range p2 {
+	for p := range p2.Results {
 		pointerIndex[p.Oid] = p.Name
+	}
+
+	if err := p2.Wait(); err != nil {
+		return false, err
 	}
 
 	ok := true

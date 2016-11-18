@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -27,20 +28,20 @@ func pullCommand(cmd *cobra.Command, args []string) {
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	pull(determineIncludeExcludePaths(cfg, includeArg, excludeArg))
-
+	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
+	pull(gitscanner, include, exclude)
 }
 
-func pull(includePaths, excludePaths []string) {
-
+func pull(gitscanner *lfs.GitScanner, includePaths, excludePaths []string) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(ref.Sha, includePaths, excludePaths)
-	checkoutFromFetchChan(includePaths, excludePaths, c)
-
+	c := fetchRefToChan(gitscanner, ref.Sha, includePaths, excludePaths)
+	checkoutFromFetchChan(gitscanner, includePaths, excludePaths, c)
 }
 
 func init() {

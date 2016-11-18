@@ -12,7 +12,6 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -33,22 +32,23 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		rootedpaths = append(rootedpaths, <-outchan)
 	}
 	close(inchan)
-	checkoutWithIncludeExclude(rootedpaths, nil)
+
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
+	checkoutWithIncludeExclude(gitscanner, rootedpaths, nil)
 }
 
-// Checkout from items reported from the fetch process (in parallel)
-func checkoutAllFromFetchChan(c chan *lfs.WrappedPointer) {
-	tracerx.Printf("starting fetch/parallel checkout")
-	checkoutFromFetchChan(nil, nil, c)
-}
-
-func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.WrappedPointer) {
+func checkoutFromFetchChan(gitscanner *lfs.GitScanner, include []string, exclude []string, in chan *lfs.WrappedPointer) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
 	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
-	pointers, err := lfs.ScanTree(ref.Sha)
+	pointerCh, err := gitscanner.ScanTree(ref.Sha)
+	if err != nil {
+		ExitWithError(err)
+	}
+	pointers, err := collectPointers(pointerCh)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
@@ -83,13 +83,18 @@ func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.Wrap
 	wait.Wait()
 }
 
-func checkoutWithIncludeExclude(include []string, exclude []string) {
+func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, include []string, exclude []string) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
 
-	pointers, err := lfs.ScanTree(ref.Sha)
+	pointerCh, err := gitscanner.ScanTree(ref.Sha)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	pointers, err := collectPointers(pointerCh)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
@@ -131,10 +136,6 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	wait.Wait()
 	progress.Finish()
 
-}
-
-func checkoutAll() {
-	checkoutWithIncludeExclude(nil, nil)
 }
 
 // Populate the working copy with the real content of objects where the file is
