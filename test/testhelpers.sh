@@ -67,14 +67,19 @@ delete_local_object() {
 refute_server_object() {
   local reponame="$1"
   local oid="$2"
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
+    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}]}" \
     -H "Accept: application/vnd.git-lfs+json" \
+    -H "X-Check-Object: 1" \
     -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
 
-  grep "404 Not Found" http.log
+  [ "0" = "$(grep -c "download" http.json)" ] || {
+    cat http.json
+    exit 1
+  }
 }
 
 # Delete an object on the lfs server. HTTP log is
@@ -84,7 +89,8 @@ refute_server_object() {
 delete_server_object() {
   local reponame="$1"
   local oid="$2"
-  curl -v "$GITSERVER/$reponame.git/info/lfs/delete/$oid" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+    -X DELETE \
     -u "user:pass" \
     -o http.json \
     -H "Accept: application/vnd.git-lfs+json" 2>&1 |
@@ -98,10 +104,12 @@ delete_server_object() {
 assert_server_object() {
   local reponame="$1"
   local oid="$2"
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
+    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}]}" \
     -H "Accept: application/vnd.git-lfs+json" \
+    -H "X-Check-Object: 1" \
     -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
   grep "200 OK" http.log

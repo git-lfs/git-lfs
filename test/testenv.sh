@@ -117,7 +117,6 @@ export GIT_CONFIG_NOSYSTEM
 mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
-
 if [ $IS_WINDOWS -eq 1 ]; then
   # prevent Windows OpenSSH from opening GUI prompts
   SSH_ASKPASS=""
