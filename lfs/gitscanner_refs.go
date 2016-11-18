@@ -8,9 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/rubyist/tracerx"
 )
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
@@ -22,11 +19,6 @@ func scanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (*PointerCha
 	if opt == nil {
 		panic("no scan ref options")
 	}
-
-	start := time.Now()
-	defer func() {
-		tracerx.PerformanceSince("scan", start)
-	}()
 
 	revs, err := revListShas(refLeft, refRight, opt)
 	if err != nil {

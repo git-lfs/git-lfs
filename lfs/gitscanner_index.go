@@ -4,9 +4,6 @@ import (
 	"bufio"
 	"strings"
 	"sync"
-	"time"
-
-	"github.com/rubyist/tracerx"
 )
 
 // ScanIndex returns a slice of WrappedPointer objects for all Git LFS pointers
@@ -20,11 +17,6 @@ func scanIndex(ref string) (*PointerChannelWrapper, error) {
 		nameShaPairs: make(map[string]bool),
 		mutex:        &sync.Mutex{},
 	}
-
-	start := time.Now()
-	defer func() {
-		tracerx.PerformanceSince("scan-staging", start)
-	}()
 
 	revs, err := revListIndex(ref, false, indexMap)
 	if err != nil {
