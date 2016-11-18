@@ -26,13 +26,13 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
-	stagedPointers, err := lfs.ScanIndex(scanIndexAt)
+	stagedPointers, err := gitscanner.ScanIndex(scanIndexAt)
 	if err != nil {
 		Panic(err, "Could not scan staging for Git LFS objects")
 	}
 
 	if porcelain {
-		for _, p := range stagedPointers {
+		for p := range stagedPointers.Results {
 			switch p.Status {
 			case "R", "C":
 				Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
@@ -41,6 +41,10 @@ func statusCommand(cmd *cobra.Command, args []string) {
 			default:
 				Print("%s  %s %d", p.Status, p.Name, p.Size)
 			}
+		}
+
+		if err := stagedPointers.Wait(); err != nil {
+			ExitWithError(err)
 		}
 		return
 	}
@@ -67,24 +71,30 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 
 	Print("\nGit LFS objects to be committed:\n")
-	for _, p := range stagedPointers {
+	var unstagedPointers []*lfs.WrappedPointer
+	for p := range stagedPointers.Results {
 		switch p.Status {
 		case "R", "C":
 			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
 		case "M":
+			unstagedPointers = append(unstagedPointers, p)
 		default:
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
 	}
 
 	Print("\nGit LFS objects not staged for commit:\n")
-	for _, p := range stagedPointers {
+	for _, p := range unstagedPointers {
 		if p.Status == "M" {
 			Print("\t%s", p.Name)
 		}
 	}
 
-	Print("")
+	if err := stagedPointers.Wait(); err != nil {
+		ExitWithError(err)
+	} else {
+		Print("")
+	}
 }
 
 var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}

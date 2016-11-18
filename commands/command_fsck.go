@@ -44,14 +44,17 @@ func doFsck() (bool, error) {
 		return false, err
 	}
 
-	// TODO(zeroshirts): do we want to look for LFS stuff in past commits?
-	p2, err := lfs.ScanIndex("HEAD")
+	p2, err := gitscanner.ScanIndex("HEAD")
 	if err != nil {
 		return false, err
 	}
 
-	for _, p := range p2 {
+	for p := range p2.Results {
 		pointerIndex[p.Oid] = p.Name
+	}
+
+	if err := p2.Wait(); err != nil {
+		return false, err
 	}
 
 	ok := true

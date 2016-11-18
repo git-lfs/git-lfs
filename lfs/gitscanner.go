@@ -116,6 +116,11 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*Pointer
 	return logPreviousSHAs(ref, since)
 }
 
+// ScanIndex scans the git index for modified LFS objects.
+func (s *GitScanner) ScanIndex(ref string) (*PointerChannelWrapper, error) {
+	return scanIndex(ref)
+}
+
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
 	s.mu.Lock()
 	defer s.mu.Unlock()
