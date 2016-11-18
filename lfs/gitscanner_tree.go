@@ -63,7 +63,6 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 			if err == nil {
 				pointers <- &WrappedPointer{
 					Sha1:    string(fields[0]),
-					Size:    p.Size,
 					Pointer: p,
 					Name:    t.Filename,
 				}

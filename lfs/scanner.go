@@ -31,7 +31,6 @@ type WrappedPointer struct {
 	Sha1    string
 	Name    string
 	SrcName string
-	Size    int64
 	Status  string
 	*Pointer
 }
@@ -195,7 +194,6 @@ func ScanIndex(ref string) ([]*WrappedPointer, error) {
 				Name:    file.Name,
 				SrcName: file.SrcName,
 				Status:  file.Status,
-				Size:    p.Size,
 				Pointer: p.Pointer,
 			})
 		}

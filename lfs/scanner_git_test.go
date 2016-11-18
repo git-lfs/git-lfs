@@ -168,9 +168,9 @@ func TestScanPreviousVersions(t *testing.T) {
 	// folder/nested2.txt [-diff at 3 ie 0]
 	// others are either on diff branches, before this window, or unchanged
 	expected := []*WrappedPointer{
-		{Name: "folder/nested.txt", Size: outputs[3].Files[0].Size, Pointer: outputs[3].Files[0]},
-		{Name: "folder/nested.txt", Size: outputs[0].Files[2].Size, Pointer: outputs[0].Files[2]},
-		{Name: "folder/nested2.txt", Size: outputs[0].Files[3].Size, Pointer: outputs[0].Files[3]},
+		{Name: "folder/nested.txt", Pointer: outputs[3].Files[0]},
+		{Name: "folder/nested.txt", Pointer: outputs[0].Files[2]},
+		{Name: "folder/nested2.txt", Pointer: outputs[0].Files[3]},
 	}
 	// Need to sort to compare equality
 	sort.Sort(test.WrappedPointersByOid(expected))
