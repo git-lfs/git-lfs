@@ -154,13 +154,6 @@ func (g *GitFetcher) del(key string) {
 func getGitConfigs() (sources []*GitConfig) {
 	if lfsconfig := getFileGitConfig(".lfsconfig"); lfsconfig != nil {
 		sources = append(sources, lfsconfig)
-	} else {
-		if gitconfig := getFileGitConfig(".gitconfig"); gitconfig != nil {
-			if ShowConfigWarnings {
-				fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from .gitconfig, not .lfsconfig. Rename to .lfsconfig before Git LFS v2.0 to remove this warning.\n")
-			}
-			sources = append(sources, gitconfig)
-		}
 	}
 
 	globalList, err := git.Config.List()
