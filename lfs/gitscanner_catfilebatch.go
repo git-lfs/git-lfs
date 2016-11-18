@@ -23,49 +23,42 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper,
 		return err
 	}
 
-	go catFileBatchOutput(pointerCh, cmd, errCh)
-	go catFileBatchInput(cmd, revs, errCh)
-	return nil
-}
+	go func() {
+		scanner := &catFileBatchScanner{r: cmd.Stdout}
+		for r := range revs.Results {
+			cmd.Stdin.Write([]byte(r + "\n"))
 
-func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh chan error) {
-	scanner := &catFileBatchScanner{r: cmd.Stdout}
-	for {
-		p, hasNext, err := scanner.Next()
-		if p != nil {
-			pointerCh <- p
+			p, hasNext, err := scanner.Next()
+			if p != nil {
+				pointerCh <- p
+			}
+
+			if err != nil {
+				errCh <- err
+			}
+
+			if !hasNext {
+				break
+			}
 		}
 
-		if err != nil {
+		if err := revs.Wait(); err != nil {
 			errCh <- err
 		}
 
-		if !hasNext {
-			break
+		cmd.Stdin.Close()
+
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		err := cmd.Wait()
+		if err != nil {
+			errCh <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
 		}
-	}
 
-	stderr, _ := ioutil.ReadAll(cmd.Stderr)
-	err := cmd.Wait()
-	if err != nil {
-		errCh <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
-	}
+		close(pointerCh)
+		close(errCh)
+	}()
 
-	close(pointerCh)
-	close(errCh)
-}
-
-func catFileBatchInput(cmd *wrappedCmd, revs *StringChannelWrapper, errCh chan error) {
-	for r := range revs.Results {
-		cmd.Stdin.Write([]byte(r + "\n"))
-	}
-	err := revs.Wait()
-	if err != nil {
-		// We can share errchan with other goroutine since that won't close it
-		// until we close the stdin below
-		errCh <- err
-	}
-	cmd.Stdin.Close()
+	return nil
 }
 
 type catFileBatchScanner struct {
