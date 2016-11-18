@@ -53,37 +53,50 @@ func TestScanUnpushed(t *testing.T) {
 	repo.AddRemote("origin")
 	repo.AddRemote("upstream")
 
-	pointers, err := ScanUnpushed("")
+	pointers, err := scanUnpushed("")
 	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
 	assert.Len(t, pointers, 4, "Should be 4 pointers because none pushed")
 
 	test.RunGitCommand(t, true, "push", "origin", "branch2")
 	// Branch2 will have pushed 2 commits
-	pointers, err = ScanUnpushed("")
+	pointers, err = scanUnpushed("")
 	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
 	assert.Len(t, pointers, 2, "Should be 2 pointers")
 
 	test.RunGitCommand(t, true, "push", "upstream", "master")
 	// Master pushes 1 more commit
-	pointers, err = ScanUnpushed("")
+	pointers, err = scanUnpushed("")
 	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
 	assert.Len(t, pointers, 1, "Should be 1 pointer")
 
 	test.RunGitCommand(t, true, "push", "origin", "branch3")
 	// All pushed (somewhere)
-	pointers, err = ScanUnpushed("")
+	pointers, err = scanUnpushed("")
 	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
 	assert.Empty(t, pointers, "Should be 0 pointers unpushed")
 
 	// Check origin
-	pointers, err = ScanUnpushed("origin")
+	pointers, err = scanUnpushed("origin")
 	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
 	assert.Empty(t, pointers, "Should be 0 pointers unpushed to origin")
 
 	// Check upstream
-	pointers, err = ScanUnpushed("upstream")
+	pointers, err = scanUnpushed("upstream")
 	assert.Nil(t, err, "Should be no error calling ScanUnpushed")
 	assert.Len(t, pointers, 2, "Should be 2 pointers unpushed to upstream")
+}
+
+func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
+	gitscanner := NewGitScanner()
+	pointerchan, err := gitscanner.ScanUnpushed(remoteName)
+	if err != nil {
+		return nil, err
+	}
+	pointers := make([]*WrappedPointer, 0, 10)
+	for p := range pointerchan.Results {
+		pointers = append(pointers, p)
+	}
+	return pointers, pointerchan.Wait()
 }
 
 func TestScanPreviousVersions(t *testing.T) {
@@ -147,7 +160,7 @@ func TestScanPreviousVersions(t *testing.T) {
 
 	// 7 day limit excludes [0] commit, but includes state from that if there
 	// was a subsequent change
-	pointers, err := ScanPreviousVersions("master", now.AddDate(0, 0, -7))
+	pointers, err := scanPreviousVersions("master", now.AddDate(0, 0, -7))
 	assert.Equal(t, nil, err)
 
 	// Includes the following 'before' state at commits:
@@ -163,5 +176,17 @@ func TestScanPreviousVersions(t *testing.T) {
 	sort.Sort(test.WrappedPointersByOid(expected))
 	sort.Sort(test.WrappedPointersByOid(pointers))
 	assert.Equal(t, expected, pointers)
+}
 
+func scanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error) {
+	gitscanner := NewGitScanner()
+	pointerchan, err := gitscanner.ScanPreviousVersions(ref, since)
+	if err != nil {
+		return nil, err
+	}
+	pointers := make([]*WrappedPointer, 0, 10)
+	for p := range pointerchan.Results {
+		pointers = append(pointers, p)
+	}
+	return pointers, pointerchan.Wait()
 }

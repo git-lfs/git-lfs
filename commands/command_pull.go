@@ -41,7 +41,7 @@ func pull(gitscanner *lfs.GitScanner, includePaths, excludePaths []string) {
 	}
 
 	c := fetchRefToChan(gitscanner, ref.Sha, includePaths, excludePaths)
-	checkoutFromFetchChan(includePaths, excludePaths, c)
+	checkoutFromFetchChan(gitscanner, includePaths, excludePaths, c)
 }
 
 func init() {
