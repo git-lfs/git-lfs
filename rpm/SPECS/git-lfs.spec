@@ -25,15 +25,15 @@ Enterprise.
 %prep
 %setup -q -n %{name}-%{version}
 export GOPATH=`pwd`
-mkdir -p src/github.com/github
-ln -s $(pwd) src/github.com/github/%{name}
+mkdir -p src/github.com/git-lfs
+ln -s $(pwd) src/github.com/git-lfs/%{name}
 
 %build
 %if 0%{?rhel} == 5
   export CGO_ENABLED=0
 %endif
 
-pushd src/github.com/github/%{name}
+pushd src/github.com/git-lfs/%{name}
   %if %{_arch} == i386
     GOARCH=386 ./script/bootstrap
   %else
@@ -65,7 +65,7 @@ export GIT_LFS_TEST_DIR=$(mktemp -d)
 # skip it.
 export SKIPAPITESTCOMPILE=1
 
-pushd src/github.com/github/%{name}
+pushd src/github.com/git-lfs/%{name}
   ./script/test
   ./script/integration
 popd
