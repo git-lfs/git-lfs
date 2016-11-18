@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,12 +13,6 @@ import (
 )
 
 var (
-	// smudgeInfo is a command-line flag belonging to the "git-lfs smudge"
-	// command specifying whether to skip the smudge process and simply
-	// print out the info of the files being smudged.
-	//
-	// As of v1.5.0, it is deprecated.
-	smudgeInfo = false
 	// smudgeSkip is a command-line flag belonging to the "git-lfs smudge"
 	// command specifying whether to skip the smudge process.
 	smudgeSkip = false
@@ -85,27 +78,6 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 
-	if smudgeInfo {
-		fmt.Fprintln(os.Stderr, "WARNING: 'smudge --info' is deprecated and will be removed in v2.0")
-		fmt.Fprintln(os.Stderr, "USE INSTEAD:")
-		fmt.Fprintln(os.Stderr, "  $ git lfs pointer --file=path/to/file")
-		fmt.Fprintln(os.Stderr, "  $ git lfs ls-files")
-		fmt.Fprintln(os.Stderr, "")
-
-		localPath, err := lfs.LocalMediaPath(ptr.Oid)
-		if err != nil {
-			Exit(err.Error())
-		}
-
-		if stat, err := os.Stat(localPath); err != nil {
-			Print("%d --", ptr.Size)
-		} else {
-			Print("%d %s", stat.Size(), localPath)
-		}
-
-		return
-	}
-
 	if err := smudge(os.Stdout, ptr, smudgeFilename(args, perr), smudgeSkip); err != nil {
 		Error(err.Error())
 	}
@@ -125,7 +97,6 @@ func smudgeFilename(args []string, err error) string {
 
 func init() {
 	RegisterCommand("smudge", smudgeCommand, func(cmd *cobra.Command) {
-		cmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "")
 		cmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
 	})
 }
