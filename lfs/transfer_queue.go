@@ -110,10 +110,9 @@ type TransferQueue struct {
 	// wait is used to keep track of pending transfers. It is incremented
 	// once per unique OID on Add(), and is decremented when that transfer
 	// is marked as completed or failed, but not retried.
-	wait          sync.WaitGroup
-	oldApiWorkers int // Number of non-batch API workers to spawn (deprecated)
-	manifest      *transfer.Manifest
-	rc            *retryCounter
+	wait     sync.WaitGroup
+	manifest *transfer.Manifest
+	rc       *retryCounter
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
@@ -128,7 +127,6 @@ func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction
 		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
-		oldApiWorkers: config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
