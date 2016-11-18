@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCatFileBatchCheckScanner(t *testing.T) {
+func TestCatFileBatchCheckScannerWithValidOutput(t *testing.T) {
 	lines := []string{
 		"short line",
 		"0000000000000000000000000000000000000000 BLOB capitalized",

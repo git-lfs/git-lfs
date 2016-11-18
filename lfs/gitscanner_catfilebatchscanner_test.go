@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCatFileBatchScanner(t *testing.T) {
+func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 	blobs := []*Pointer{
 		&Pointer{
 			Version: "https://git-lfs.github.com/spec/v1",
