@@ -101,7 +101,6 @@ type TransferQueue struct {
 	errors            []error
 	transferables     map[string]Transferable
 	batcher           *Batcher
-	apic              chan Transferable // Channel for processing individual API requests
 	retriesc          chan Transferable // Channel for processing retries
 	errorc            chan error        // Channel for processing errors
 	watchers          []chan string
@@ -127,7 +126,6 @@ func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction
 		direction:     dir,
 		dryRun:        dryRun,
 		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
-		apic:          make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
 		oldApiWorkers: config.Config.ConcurrentTransfers(),
@@ -164,7 +162,6 @@ func (q *TransferQueue) Add(t Transferable) {
 		return
 	}
 
-	q.apic <- t
 }
 
 func (q *TransferQueue) useAdapter(name string) {
@@ -310,7 +307,6 @@ func (q *TransferQueue) Wait() {
 	close(q.retriesc)
 	q.retrywait.Wait()
 
-	close(q.apic)
 	q.finishAdapter()
 	close(q.errorc)
 
@@ -435,8 +431,6 @@ func (q *TransferQueue) retryCollector() {
 
 			q.batcher.Add(t)
 			q.batcher.Flush()
-		} else {
-			q.apic <- t
 		}
 	}
 	q.retrywait.Done()
