@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
+func TestCatFileBatchScannerScanWithValidOutput(t *testing.T) {
 	blobs := []*Pointer{
 		&Pointer{
 			Version: "https://git-lfs.github.com/spec/v1",
@@ -51,6 +51,58 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 	assert.Nil(t, scanner.Err())
 	if len(expected) > 0 {
 		t.Errorf("objects never received: %+v", expected)
+	}
+}
+
+func TestCatFileBatchScannerNextWithValidOutput(t *testing.T) {
+	blobs := []*Pointer{
+		&Pointer{
+			Version: "https://git-lfs.github.com/spec/v1",
+			Oid:     "e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350",
+			Size:    123,
+			OidType: "sha256",
+		},
+		&Pointer{
+			Version: "https://git-lfs.github.com/spec/v1",
+			Oid:     "0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1",
+			Size:    132,
+			OidType: "sha256",
+		},
+	}
+
+	reader := fakeReaderWithRandoData(t, blobs)
+	if reader == nil {
+		return
+	}
+
+	scanner := &catFileBatchScanner{r: bufio.NewReader(reader)}
+
+	for i := 0; i < 5; i++ {
+		p, err := scanner.Next()
+		assert.Nil(t, err)
+		assert.Nil(t, p)
+	}
+
+	p, err := scanner.Next()
+	assert.Nil(t, err)
+	assert.NotNil(t, p)
+	assert.Equal(t, "e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350", p.Oid)
+
+	for i := 0; i < 5; i++ {
+		p, err = scanner.Next()
+		assert.Nil(t, err)
+		assert.Nil(t, p)
+	}
+
+	p, err = scanner.Next()
+	assert.Nil(t, err)
+	assert.NotNil(t, p)
+	assert.Equal(t, "0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1", p.Oid)
+
+	for i := 0; i < 5; i++ {
+		p, err = scanner.Next()
+		assert.Nil(t, err)
+		assert.Nil(t, p)
 	}
 }
 
