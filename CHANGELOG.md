@@ -1,5 +1,29 @@
 # Git LFS Changelog
 
+## 1.5.0 (17 November, 2016)
+
+### Features
+
+* Filter Protocol Support #1617 (@ttaylorr, @larsxschneider)
+* Fast directory walk #1616 (@sinbad)
+* Allow usage of proxies even when contacting localhost #1605 (@chalstrick)
+
+### Bugs
+
+* start reading off the Watch() channel before sending any input #1671 (@technoweenie)
+* wait for remote ref commands to exit before returning #1656 (@jjgod, @technoweenie)
+
+### Misc
+
+* rewrite new catfilebatch implementation for upcoming gitscanner pkg #1650 (@technoweenie)
+* refactor testutils.FileInput so it's a little more clear #1666 (@technoweenie)
+* Update the lfs track docs #1642 (@technoweenie)
+* Pre push tracing #1638 (@technoweenie)
+* Remove `AllGitConfig()` #1634 (@technoweenie)
+* README: set minimal required Git version to 1.8.5 #1636 (@larsxschneider)
+* 'smudge --info' is deprecated in favor of 'ls-files' #1631 (@technoweenie)
+* travis-ci: test GitLFS with ancient Git version #1626 (@larsxschneider)
+
 ## 1.4.4 (24 October, 2016)
 
 ### Bugs
