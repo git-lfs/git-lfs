@@ -155,11 +155,7 @@ func (q *TransferQueue) Add(t Transferable) {
 		return
 	}
 
-	if q.batcher != nil {
-		q.batcher.Add(t)
-		return
-	}
-
+	q.batcher.Add(t)
 }
 
 func (q *TransferQueue) useAdapter(name string) {
@@ -295,10 +291,7 @@ func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
 // called, Add will no longer add transferables to the queue. Any failed
 // transfers will be automatically retried once.
 func (q *TransferQueue) Wait() {
-	if q.batcher != nil {
-		q.batcher.Exit()
-	}
-
+	q.batcher.Exit()
 	q.wait.Wait()
 
 	// Handle any retries
@@ -423,12 +416,10 @@ func (q *TransferQueue) retryCollector() {
 		// XXX(taylor): reuse some of the logic in
 		// `*TransferQueue.Add(t)` here to circumvent banned duplicate
 		// OIDs
-		if q.batcher != nil {
-			tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
+		tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
 
-			q.batcher.Add(t)
-			q.batcher.Flush()
-		}
+		q.batcher.Add(t)
+		q.batcher.Flush()
 	}
 	q.retrywait.Done()
 }
