@@ -48,9 +48,8 @@ var (
 	contentHandlers = []string{
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
-		"status-legacy-404", "status-legacy-410", "status-legacy-422", "status-legacy-403", "status-legacy-500",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "legacy-download-check-retry", "legacy-upload-check-retry", "storage-download-retry", "storage-upload-retry",
+		"object-authenticated", "storage-download-retry", "storage-upload-retry",
 	}
 )
 
@@ -141,8 +140,8 @@ type lfsLink struct {
 }
 
 type lfsError struct {
-	Code    int
-	Message string
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -161,10 +160,12 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if strings.HasSuffix(r.URL.String(), "batch") {
 			lfsBatchHandler(w, r, id, repo)
 		} else {
-			lfsPostHandler(w, r, id, repo)
+			w.WriteHeader(404)
 		}
+	case "DELETE":
+		lfsDeleteHandler(w, r, id, repo)
 	case "GET":
-		lfsGetHandler(w, r, id, repo)
+		w.WriteHeader(404)
 	default:
 		w.WriteHeader(405)
 	}
@@ -172,74 +173,6 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 func lfsUrl(repo, oid string) string {
 	return server.URL + "/storage/" + oid + "?r=" + repo
-}
-
-func lfsPostHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
-	buf := &bytes.Buffer{}
-	tee := io.TeeReader(r.Body, buf)
-	obj := &lfsObject{}
-	err := json.NewDecoder(tee).Decode(obj)
-	io.Copy(ioutil.Discard, r.Body)
-	r.Body.Close()
-
-	if retries, ok := incrementRetriesFor("legacy", "upload", repo, obj.Oid, true); ok && retries < 3 {
-		w.WriteHeader(502)
-		w.Write([]byte("malformed contents"))
-		return
-	}
-
-	debug(id, "REQUEST")
-	debug(id, buf.String())
-	debug(id, "OID: %s", obj.Oid)
-	debug(id, "Size: %d", obj.Size)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	switch oidHandlers[obj.Oid] {
-	case "status-legacy-403":
-		w.WriteHeader(403)
-		return
-	case "status-legacy-404":
-		w.WriteHeader(404)
-		return
-	case "status-legacy-410":
-		w.WriteHeader(410)
-		return
-	case "status-legacy-422":
-		w.WriteHeader(422)
-		return
-	case "status-legacy-500":
-		w.WriteHeader(500)
-		return
-	}
-
-	res := &lfsObject{
-		Oid:  obj.Oid,
-		Size: obj.Size,
-		Actions: map[string]lfsLink{
-			"upload": lfsLink{
-				Href:   lfsUrl(repo, obj.Oid),
-				Header: map[string]string{},
-			},
-		},
-	}
-
-	if testingChunkedTransferEncoding(r) {
-		res.Actions["upload"].Header["Transfer-Encoding"] = "chunked"
-	}
-
-	by, err := json.Marshal(res)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	debug(id, "RESPONSE: 202")
-	debug(id, string(by))
-
-	w.WriteHeader(202)
-	w.Write(by)
 }
 
 var (
@@ -272,61 +205,23 @@ func incrementRetriesFor(api, direction, repo, oid string, check bool) (after ui
 	return retries, true
 }
 
-func lfsGetHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
+func lfsDeleteHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 
-	if r.Header.Get("X-Ignore-Retries") != "true" {
-		if retries, ok := incrementRetriesFor("legacy", "download", repo, oid, true); ok && retries < 3 {
-			w.WriteHeader(502)
-			w.Write([]byte("malformed contents"))
-			return
-		}
-	}
-
-	// Support delete for testing
-	if len(parts) > 1 && parts[len(parts)-2] == "delete" {
-		largeObjects.Delete(repo, oid)
-		debug(id, "DELETE:", oid)
-		w.WriteHeader(200)
-		return
-	}
-
-	by, ok := largeObjects.Get(repo, oid)
-	if !ok {
-		w.WriteHeader(404)
-		return
-	}
-
-	obj := &lfsObject{
-		Oid:  oid,
-		Size: int64(len(by)),
-		Actions: map[string]lfsLink{
-			"download": lfsLink{
-				Href: lfsUrl(repo, oid),
-			},
-		},
-	}
-
-	by, err := json.Marshal(obj)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	debug(id, "RESPONSE: 200")
-	debug(id, string(by))
-
+	largeObjects.Delete(repo, oid)
+	debug(id, "DELETE:", oid)
 	w.WriteHeader(200)
-	w.Write(by)
 }
 
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
-	if repo == "batchunsupported" {
+	checkingObject := r.Header.Get("X-Check-Object") == "1"
+	if !checkingObject && repo == "batchunsupported" {
 		w.WriteHeader(404)
 		return
 	}
 
-	if repo == "badbatch" {
+	if !checkingObject && repo == "badbatch" {
 		w.WriteHeader(203)
 		return
 	}
@@ -392,8 +287,9 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		action := objs.Operation
 
 		o := lfsObject{
-			Oid:  obj.Oid,
-			Size: obj.Size,
+			Oid:     obj.Oid,
+			Size:    obj.Size,
+			Actions: make(map[string]lfsLink),
 		}
 
 		exists := largeObjects.Has(repo, obj.Oid)
@@ -442,15 +338,14 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
 					serveExpired(repo)
 				}
-
-				o.Actions = map[string]lfsLink{action: a}
+				o.Actions[action] = a
 			}
 		}
 
-		if testingChunked {
+		if testingChunked && addAction {
 			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
 		}
-		if testingTusInterrupt {
+		if testingTusInterrupt && addAction {
 			o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
 		}
 

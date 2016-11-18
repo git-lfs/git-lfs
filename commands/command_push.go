@@ -129,7 +129,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterCommand("push", pushCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
-		cmd.Flags().BoolVarP(&useStdin, "stdin", "s", false, "Take refs on stdin (for pre-push hook)")
 		cmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
 		cmd.Flags().BoolVarP(&pushAll, "all", "a", false, "Push all objects for the current ref to the remote.")
 	})

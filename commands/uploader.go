@@ -102,23 +102,26 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	}
 
 	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize)
-
-	// this channel is filled with oids for which Check() succeeded & Transfer() was called
-	transferc := checkQueue.Watch()
-
-	for _, p := range missing {
-		checkQueue.Add(lfs.NewDownloadable(p))
-	}
+	transferCh := checkQueue.Watch()
 
 	done := make(chan int)
 	go func() {
-		for oid := range transferc {
+		// this channel is filled with oids for which Check() succeeded
+		// and Transfer() was called
+		for oid := range transferCh {
 			c.SetUploaded(oid)
 		}
 		done <- 1
 	}()
 
-	// Currently this is needed to flush the batch but is not enough to sync transferc completely
+	for _, p := range missing {
+		checkQueue.Add(lfs.NewDownloadable(p))
+	}
+
+	// Currently this is needed to flush the batch but is not enough to sync
+	// transferc completely. By the time that checkQueue.Wait() returns, the
+	// transferCh will have been closed, allowing the goroutine above to
+	// send "1" into the `done` channel.
 	checkQueue.Wait()
 	<-done
 }

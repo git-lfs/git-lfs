@@ -27,15 +27,8 @@ of the remote.
     This pushes only the object OIDs listed at the end of the command, separated
     by spaces.
 
-* `--stdin`:
-    Read the remote and branch on stdin. This is used in conjunction with the
-    pre-push hook and must be in the format used by the pre-push hook:
-    <local-ref> <local-sha1> <remote-ref> <remote-sha1>. If --stdin is used
-    the command line arguments are ignored.  NOTE: This is deprecated in favor
-    of the `pre-push` command.
-
 ## SEE ALSO
 
-git-lfs-clean(1), git-lfs-pre-push(1).
+git-lfs-pre-push(1).
 
 Part of the git-lfs(1) suite.

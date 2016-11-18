@@ -33,21 +33,30 @@ func TestSuccessfulDownload(t *testing.T) {
 	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
-	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 		t.Logf("request header: %v", r.Header)
 
-		if r.Method != "GET" {
+		if r.Method != "POST" {
+			t.Error("bad http verb")
 			w.WriteHeader(405)
 			return
 		}
 
 		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
+			w.WriteHeader(405)
+			return
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
-			t.Error("Invalid Authorization")
+		auth := r.Header.Get("Authorization")
+		if len(auth) == 0 {
+			w.WriteHeader(401)
+			return
+		}
+
+		if auth != expectedAuth(t, server) {
+			t.Errorf("Invalid Authorization: %q", auth)
 		}
 
 		obj := &api.ObjectResource{
@@ -61,7 +70,7 @@ func TestSuccessfulDownload(t *testing.T) {
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -75,12 +84,11 @@ func TestSuccessfulDownload(t *testing.T) {
 
 	cfg := config.NewFrom(config.Values{
 		Git: map[string]string{
-			"lfs.batch": "false",
-			"lfs.url":   server.URL + "/media",
+			"lfs.url": server.URL + "/media",
 		},
 	})
 
-	obj, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	obj, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -109,54 +117,57 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
-	// all of these should work for GET requests
-	redirectCodes := []int{301, 302, 303, 307}
-	redirectIndex := 0
-
-	mux.HandleFunc("/redirect/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/redirect/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 		t.Logf("request header: %v", r.Header)
 
-		if r.Method != "GET" {
+		if r.Method != "POST" {
 			w.WriteHeader(405)
 			return
 		}
 
-		w.Header().Set("Location", server.URL+"/redirect2/objects/oid")
-		w.WriteHeader(redirectCodes[redirectIndex])
-		t.Logf("redirect with %d", redirectCodes[redirectIndex])
+		w.Header().Set("Location", server.URL+"/redirect2/objects/batch")
+		w.WriteHeader(307)
+		t.Log("redirect with 307")
 	})
 
-	mux.HandleFunc("/redirect2/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/redirect2/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 		t.Logf("request header: %v", r.Header)
 
-		if r.Method != "GET" {
+		if r.Method != "POST" {
 			w.WriteHeader(405)
 			return
 		}
 
-		w.Header().Set("Location", server.URL+"/media/objects/oid")
-		w.WriteHeader(redirectCodes[redirectIndex])
-		t.Logf("redirect again with %d", redirectCodes[redirectIndex])
-		redirectIndex += 1
+		w.Header().Set("Location", server.URL+"/media/objects/batch")
+		w.WriteHeader(307)
+		t.Log("redirect with 307")
 	})
 
-	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 		t.Logf("request header: %v", r.Header)
 
-		if r.Method != "GET" {
+		if r.Method != "POST" {
 			w.WriteHeader(405)
 			return
 		}
 
 		if r.Header.Get("Accept") != api.MediaType {
 			t.Error("Invalid Accept")
+			w.WriteHeader(406)
+			return
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
-			t.Error("Invalid Authorization")
+		auth := r.Header.Get("Authorization")
+		if len(auth) == 0 {
+			w.WriteHeader(401)
+			return
+		}
+
+		if auth != expectedAuth(t, server) {
+			t.Errorf("Invalid Authorization: %q", auth)
 		}
 
 		obj := &api.ObjectResource{
@@ -170,7 +181,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -184,24 +195,20 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 
 	cfg := config.NewFrom(config.Values{
 		Git: map[string]string{
-			"lfs.batch": "false",
-			"lfs.url":   server.URL + "/redirect",
+			"lfs.url": server.URL + "/redirect",
 		},
 	})
 
-	for _, redirect := range redirectCodes {
-		obj, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
-		if err != nil {
-			if isDockerConnectionError(err) {
-				return
-			}
-			t.Fatalf("unexpected error for %d status: %s", redirect, err)
+	obj, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	if err != nil {
+		if isDockerConnectionError(err) {
+			return
 		}
+		t.Fatalf("unexpected error for 307 status: %s", err)
+	}
 
-		if obj.Size != 4 {
-			t.Errorf("unexpected size for %d status: %d", redirect, obj.Size)
-		}
-
+	if obj.Size != 4 {
+		t.Errorf("unexpected size for 307 status: %d", obj.Size)
 	}
 }
 
@@ -220,11 +227,11 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	tmp := tempdir(t)
 	defer os.RemoveAll(tmp)
 
-	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/media/objects/batch", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
 		t.Logf("request header: %v", r.Header)
 
-		if r.Method != "GET" {
+		if r.Method != "POST" {
 			w.WriteHeader(405)
 			return
 		}
@@ -233,8 +240,14 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			t.Error("Invalid Accept")
 		}
 
-		if r.Header.Get("Authorization") != expectedAuth(t, server) {
-			t.Error("Invalid Authorization")
+		auth := r.Header.Get("Authorization")
+		if len(auth) == 0 {
+			w.WriteHeader(401)
+			return
+		}
+
+		if auth != expectedAuth(t, server) {
+			t.Errorf("Invalid Authorization: %q", auth)
 		}
 
 		obj := &api.ObjectResource{
@@ -251,7 +264,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 			},
 		}
 
-		by, err := json.Marshal(obj)
+		by, err := json.Marshal(newBatchResponse("", obj))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -265,12 +278,11 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 
 	cfg := config.NewFrom(config.Values{
 		Git: map[string]string{
-			"lfs.batch": "false",
-			"lfs.url":   server.URL + "/media",
+			"lfs.url": server.URL + "/media",
 		},
 	})
 
-	obj, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	obj, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
 			return
@@ -308,7 +320,7 @@ func TestDownloadAPIError(t *testing.T) {
 		},
 	})
 
-	_, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
+	_, _, err := api.BatchSingle(cfg, &api.ObjectResource{Oid: "oid"}, "download", []string{"basic"})
 	if err == nil {
 		t.Fatal("no error?")
 	}
@@ -321,11 +333,10 @@ func TestDownloadAPIError(t *testing.T) {
 		return
 	}
 
-	expected := fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects/oid")
+	expected := "batch response: " + fmt.Sprintf(httputil.GetDefaultError(404), server.URL+"/media/objects/batch")
 	if err.Error() != expected {
 		t.Fatalf("Expected: %s\nGot: %s", expected, err.Error())
 	}
-
 }
 
 // guards against connection errors that only seem to happen on debian docker

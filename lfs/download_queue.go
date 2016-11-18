@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/transfer"
 )
 
@@ -34,11 +33,6 @@ func (d *Downloadable) Path() string {
 
 func (d *Downloadable) SetObject(o *api.ObjectResource) {
 	d.object = o
-}
-
-// TODO remove this legacy method & only support batch
-func (d *Downloadable) LegacyCheck() (*api.ObjectResource, error) {
-	return api.DownloadCheck(config.Config, d.pointer.Oid)
 }
 
 func NewDownloadable(p *WrappedPointer) *Downloadable {
