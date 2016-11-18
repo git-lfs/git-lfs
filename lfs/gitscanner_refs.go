@@ -13,6 +13,8 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var z40 = regexp.MustCompile(`\^?0{40}`)
+
 // scanRefsToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content

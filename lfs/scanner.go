@@ -1,10 +1,6 @@
 package lfs
 
-import (
-	"fmt"
-	"regexp"
-	"sync"
-)
+import "fmt"
 
 const (
 	// blobSizeCutoff is used to determine which files to scan for Git LFS
@@ -28,54 +24,6 @@ type WrappedPointer struct {
 	SrcName string
 	Status  string
 	*Pointer
-}
-
-// indexFile is used when scanning the index. It stores the name of
-// the file, the status of the file in the index, and, in the case of
-// a moved or copied file, the original name of the file.
-type indexFile struct {
-	Name    string
-	SrcName string
-	Status  string
-}
-
-var z40 = regexp.MustCompile(`\^?0{40}`)
-
-type ScanningMode int
-
-const (
-	ScanRefsMode         = ScanningMode(iota) // 0 - or default scan mode
-	ScanAllMode          = ScanningMode(iota)
-	ScanLeftToRemoteMode = ScanningMode(iota)
-)
-
-type ScanRefsOptions struct {
-	ScanMode         ScanningMode
-	RemoteName       string
-	SkipDeletedBlobs bool
-	skippedRefs      []string
-	nameMap          map[string]string
-	mutex            *sync.Mutex
-}
-
-func (o *ScanRefsOptions) GetName(sha string) (string, bool) {
-	o.mutex.Lock()
-	name, ok := o.nameMap[sha]
-	o.mutex.Unlock()
-	return name, ok
-}
-
-func (o *ScanRefsOptions) SetName(sha, name string) {
-	o.mutex.Lock()
-	o.nameMap[sha] = name
-	o.mutex.Unlock()
-}
-
-func newScanRefsOptions() *ScanRefsOptions {
-	return &ScanRefsOptions{
-		nameMap: make(map[string]string, 0),
-		mutex:   &sync.Mutex{},
-	}
 }
 
 // catFileBatchCheck uses git cat-file --batch-check to get the type

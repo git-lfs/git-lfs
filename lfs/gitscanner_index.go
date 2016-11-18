@@ -174,6 +174,15 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 	return NewStringChannelWrapper(revs, errchan), nil
 }
 
+// indexFile is used when scanning the index. It stores the name of
+// the file, the status of the file in the index, and, in the case of
+// a moved or copied file, the original name of the file.
+type indexFile struct {
+	Name    string
+	SrcName string
+	Status  string
+}
+
 type indexFileMap struct {
 	// mutex guards nameMap and nameShaPairs
 	mutex *sync.Mutex
