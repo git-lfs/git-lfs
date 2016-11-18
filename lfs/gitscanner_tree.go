@@ -41,38 +41,20 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 	errchan := make(chan error, 10) // Multiple errors possible
 
 	go func() {
+		scanner := &catFileBatchScanner{r: cmd.Stdout}
 		for t := range treeblobs.Results {
 			cmd.Stdin.Write([]byte(t.Sha1 + "\n"))
-			l, err := cmd.Stdout.ReadBytes('\n')
+
+			p, err := scanner.Next()
 			if err != nil {
+				errchan <- err
 				break
-			}
-
-			// Line is formatted:
-			// <sha1> <type> <size>
-			fields := bytes.Fields(l)
-			s, _ := strconv.Atoi(string(fields[2]))
-
-			nbuf := make([]byte, s)
-			_, err = io.ReadFull(cmd.Stdout, nbuf)
-			if err != nil {
-				break // Legit errors
-			}
-
-			p, err := DecodePointer(bytes.NewBuffer(nbuf))
-			if err == nil {
-				pointers <- &WrappedPointer{
-					Sha1:    string(fields[0]),
-					Pointer: p,
-					Name:    t.Filename,
-				}
-			}
-
-			_, err = cmd.Stdout.ReadBytes('\n') // Extra \n inserted by cat-file
-			if err != nil {
-				break
+			} else if p != nil {
+				p.Name = t.Filename
+				pointers <- p
 			}
 		}
+
 		// Deal with nested error from incoming treeblobs
 		err := treeblobs.Wait()
 		if err != nil {

@@ -75,6 +75,10 @@ func (s *catFileBatchScanner) Err() error {
 	return s.err
 }
 
+func (s *catFileBatchScanner) Next() (*WrappedPointer, error) {
+	return scanChunk(s.r)
+}
+
 func (s *catFileBatchScanner) Scan() bool {
 	s.pointer, s.err = nil, nil
 	p, err := scanPointer(s.r)
@@ -90,45 +94,52 @@ func (s *catFileBatchScanner) Scan() bool {
 	return true
 }
 
+func scanChunk(r *bufio.Reader) (*WrappedPointer, error) {
+	l, err := r.ReadBytes('\n')
+	if err != nil {
+		return nil, err
+	}
+
+	// Line is formatted:
+	// <sha1> <type> <size>
+	fields := bytes.Fields(l)
+	if len(fields) < 3 {
+		return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch")
+	}
+
+	size, _ := strconv.Atoi(string(fields[2]))
+	buf := make([]byte, size)
+	read, err := io.ReadFull(r, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if size != read {
+		return nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
+	}
+
+	p, err := DecodePointer(bytes.NewBuffer(buf[0:read]))
+	var pointer *WrappedPointer
+	if err == nil {
+		pointer = &WrappedPointer{
+			Sha1:    string(fields[0]),
+			Pointer: p,
+		}
+	}
+
+	_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
+	return pointer, err
+}
+
 func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
 	var pointer *WrappedPointer
 
 	for pointer == nil {
-		l, err := r.ReadBytes('\n')
+		p, err := scanChunk(r)
 		if err != nil {
 			return nil, err
 		}
-
-		// Line is formatted:
-		// <sha1> <type> <size>
-		fields := bytes.Fields(l)
-		if len(fields) < 3 {
-			return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch")
-		}
-
-		size, _ := strconv.Atoi(string(fields[2]))
-		buf := make([]byte, size)
-		read, err := io.ReadFull(r, buf)
-		if err != nil {
-			return nil, err
-		}
-
-		if size != read {
-			return nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
-		}
-
-		p, err := DecodePointer(bytes.NewBuffer(buf[0:read]))
-		if err == nil {
-			pointer = &WrappedPointer{
-				Sha1:    string(fields[0]),
-				Pointer: p,
-			}
-		}
-
-		_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
-		if err != nil {
-			return nil, err
-		}
+		pointer = p
 	}
 
 	return pointer, nil

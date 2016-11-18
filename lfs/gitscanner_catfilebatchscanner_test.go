@@ -45,6 +45,7 @@ func TestCatFileBatchScanner(t *testing.T) {
 		} else {
 			delete(expected, p.Oid)
 		}
+		assert.Equal(t, "0000000000000000000000000000000000000000", p.Sha1)
 	}
 
 	assert.Nil(t, scanner.Err())
