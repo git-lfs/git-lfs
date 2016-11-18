@@ -31,14 +31,17 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper,
 func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh chan error) {
 	scanner := &catFileBatchScanner{r: cmd.Stdout}
 	for {
-		p, err := scanner.Next()
-		if err != nil {
-			if err != io.EOF {
-				errCh <- err
-			}
-			break
-		} else if p != nil {
+		p, hasNext, err := scanner.Next()
+		if p != nil {
 			pointerCh <- p
+		}
+
+		if err != nil {
+			errCh <- err
+		}
+
+		if !hasNext {
+			break
 		}
 	}
 
@@ -71,35 +74,20 @@ type catFileBatchScanner struct {
 	err     error
 }
 
-func (s *catFileBatchScanner) Pointer() *WrappedPointer {
-	return s.pointer
-}
-
-func (s *catFileBatchScanner) Err() error {
-	return s.err
-}
-
-func (s *catFileBatchScanner) Next() (*WrappedPointer, error) {
-	return scanChunk(s.r)
-}
-
-func (s *catFileBatchScanner) Scan() bool {
-	s.pointer, s.err = nil, nil
-	p, err := scanPointer(s.r)
-	if err != nil {
-		// EOF halts scanning, but isn't a reportable error
-		if err != io.EOF {
-			s.err = err
-		}
-		return false
+func (s *catFileBatchScanner) Next() (*WrappedPointer, bool, error) {
+	p, err := s.scanChunk()
+	switch err {
+	case nil:
+		return p, true, nil
+	case io.EOF:
+		return p, false, nil
+	default:
+		return p, false, err
 	}
-
-	s.pointer = p
-	return true
 }
 
-func scanChunk(r *bufio.Reader) (*WrappedPointer, error) {
-	l, err := r.ReadBytes('\n')
+func (s *catFileBatchScanner) scanChunk() (*WrappedPointer, error) {
+	l, err := s.r.ReadBytes('\n')
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +101,7 @@ func scanChunk(r *bufio.Reader) (*WrappedPointer, error) {
 
 	size, _ := strconv.Atoi(string(fields[2]))
 	buf := make([]byte, size)
-	read, err := io.ReadFull(r, buf)
+	read, err := io.ReadFull(s.r, buf)
 	if err != nil {
 		return nil, err
 	}
@@ -131,20 +119,6 @@ func scanChunk(r *bufio.Reader) (*WrappedPointer, error) {
 		}
 	}
 
-	_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
+	_, err = s.r.ReadBytes('\n') // Extra \n inserted by cat-file
 	return pointer, err
-}
-
-func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
-	var pointer *WrappedPointer
-
-	for pointer == nil {
-		p, err := scanChunk(r)
-		if err != nil {
-			return nil, err
-		}
-		pointer = p
-	}
-
-	return pointer, nil
 }

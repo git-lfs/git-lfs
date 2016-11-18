@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCatFileBatchScannerScanWithValidOutput(t *testing.T) {
+func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 	blobs := []*Pointer{
 		&Pointer{
 			Version: "https://git-lfs.github.com/spec/v1",
@@ -34,76 +34,49 @@ func TestCatFileBatchScannerScanWithValidOutput(t *testing.T) {
 
 	scanner := &catFileBatchScanner{r: bufio.NewReader(reader)}
 
-	expected := map[string]bool{
-		"e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350": true,
-		"0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1": true,
-	}
-	for scanner.Scan() {
-		p := scanner.Pointer()
-		if !expected[p.Oid] {
-			t.Errorf("Received unexpected OID: %q", p.Oid)
-		} else {
-			delete(expected, p.Oid)
-		}
-		assert.Equal(t, "0000000000000000000000000000000000000000", p.Sha1)
+	for i := 0; i < 5; i++ {
+		assertNextEmpty(t, scanner)
 	}
 
-	assert.Nil(t, scanner.Err())
-	if len(expected) > 0 {
-		t.Errorf("objects never received: %+v", expected)
+	assertNextPointer(t, scanner, "e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350")
+
+	for i := 0; i < 5; i++ {
+		assertNextEmpty(t, scanner)
 	}
+
+	assertNextPointer(t, scanner, "0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1")
+
+	for i := 0; i < 5; i++ {
+		assertNextEmpty(t, scanner)
+	}
+
+	assertScannerDone(t, scanner)
 }
 
-func TestCatFileBatchScannerNextWithValidOutput(t *testing.T) {
-	blobs := []*Pointer{
-		&Pointer{
-			Version: "https://git-lfs.github.com/spec/v1",
-			Oid:     "e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350",
-			Size:    123,
-			OidType: "sha256",
-		},
-		&Pointer{
-			Version: "https://git-lfs.github.com/spec/v1",
-			Oid:     "0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1",
-			Size:    132,
-			OidType: "sha256",
-		},
-	}
+type pointerScanner interface {
+	Next() (*WrappedPointer, bool, error)
+}
 
-	reader := fakeReaderWithRandoData(t, blobs)
-	if reader == nil {
-		return
-	}
-
-	scanner := &catFileBatchScanner{r: bufio.NewReader(reader)}
-
-	for i := 0; i < 5; i++ {
-		p, err := scanner.Next()
-		assert.Nil(t, err)
-		assert.Nil(t, p)
-	}
-
-	p, err := scanner.Next()
+func assertNextPointer(t *testing.T, scanner pointerScanner, oid string) {
+	p, hasNext, err := scanner.Next()
 	assert.Nil(t, err)
 	assert.NotNil(t, p)
-	assert.Equal(t, "e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350", p.Oid)
+	assert.Equal(t, oid, p.Oid)
+	assert.True(t, hasNext)
+}
 
-	for i := 0; i < 5; i++ {
-		p, err = scanner.Next()
-		assert.Nil(t, err)
-		assert.Nil(t, p)
-	}
-
-	p, err = scanner.Next()
+func assertNextEmpty(t *testing.T, scanner pointerScanner) {
+	p, hasNext, err := scanner.Next()
 	assert.Nil(t, err)
-	assert.NotNil(t, p)
-	assert.Equal(t, "0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1", p.Oid)
+	assert.Nil(t, p)
+	assert.True(t, hasNext)
+}
 
-	for i := 0; i < 5; i++ {
-		p, err = scanner.Next()
-		assert.Nil(t, err)
-		assert.Nil(t, p)
-	}
+func assertScannerDone(t *testing.T, scanner pointerScanner) {
+	p, hasNext, err := scanner.Next()
+	assert.Nil(t, err)
+	assert.Nil(t, p)
+	assert.False(t, hasNext)
 }
 
 func fakeReaderWithRandoData(t *testing.T, blobs []*Pointer) io.Reader {
