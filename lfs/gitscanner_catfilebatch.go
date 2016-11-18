@@ -121,7 +121,6 @@ func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
 		if err == nil {
 			pointer = &WrappedPointer{
 				Sha1:    string(fields[0]),
-				Size:    p.Size,
 				Pointer: p,
 			}
 		}

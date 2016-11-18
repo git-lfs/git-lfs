@@ -54,9 +54,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = cfg.CurrentRemote
+	gitscanner := lfs.NewGitScanner()
+	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+		ExitWithError(err)
+	}
+
+	defer gitscanner.Close()
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
@@ -69,17 +72,16 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 		tracerx.Printf("pre-push: %s", line)
 
-		left, right := decodeRefs(line)
+		left, _ := decodeRefs(line)
 		if left == prePushDeleteBranch {
 			continue
 		}
 
-		pointers, err := lfs.ScanRefs(left, right, scanOpt)
+		pointerCh, err := gitscanner.ScanLeftToRemote(left)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files")
 		}
-
-		upload(ctx, pointers)
+		upload(ctx, pointerCh)
 	}
 }
 
