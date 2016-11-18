@@ -27,7 +27,6 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper,
 		scanner := &catFileBatchScanner{r: cmd.Stdout}
 		for r := range revs.Results {
 			cmd.Stdin.Write([]byte(r + "\n"))
-
 			p, hasNext, err := scanner.Next()
 			if p != nil {
 				pointerCh <- p
@@ -68,7 +67,7 @@ type catFileBatchScanner struct {
 }
 
 func (s *catFileBatchScanner) Next() (*WrappedPointer, bool, error) {
-	p, err := s.scanChunk()
+	p, err := s.next()
 	switch err {
 	case nil:
 		return p, true, nil
@@ -79,7 +78,7 @@ func (s *catFileBatchScanner) Next() (*WrappedPointer, bool, error) {
 	}
 }
 
-func (s *catFileBatchScanner) scanChunk() (*WrappedPointer, error) {
+func (s *catFileBatchScanner) next() (*WrappedPointer, error) {
 	l, err := s.r.ReadBytes('\n')
 	if err != nil {
 		return nil, err

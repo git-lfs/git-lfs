@@ -23,12 +23,36 @@ func TestCatFileBatchCheckScannerWithValidOutput(t *testing.T) {
 		limit: 1024,
 	}
 
-	var found []string
-	for s.Scan() {
-		found = append(found, s.BlobOID())
-	}
+	assertNextEmptyString(t, s)
+	assertNextEmptyString(t, s)
+	assertNextEmptyString(t, s)
+	assertNextOID(t, s, "0000000000000000000000000000000000000002")
+	assertNextEmptyString(t, s)
+	assertNextEmptyString(t, s)
+	assertStringScannerDone(t, s)
+}
 
-	assert.Nil(t, s.Err())
-	assert.Equal(t, 1, len(found))
-	assert.Equal(t, "0000000000000000000000000000000000000002", found[0])
+type stringScanner interface {
+	Next() (string, bool, error)
+}
+
+func assertNextOID(t *testing.T, scanner stringScanner, oid string) {
+	actual, hasNext, err := scanner.Next()
+	assert.Equal(t, oid, actual)
+	assert.Nil(t, err)
+	assert.True(t, hasNext)
+}
+
+func assertNextEmptyString(t *testing.T, scanner stringScanner) {
+	actual, hasNext, err := scanner.Next()
+	assert.Equal(t, "", actual)
+	assert.Nil(t, err)
+	assert.True(t, hasNext)
+}
+
+func assertStringScannerDone(t *testing.T, scanner stringScanner) {
+	actual, hasNext, err := scanner.Next()
+	assert.Equal(t, "", actual)
+	assert.Nil(t, err)
+	assert.False(t, hasNext)
 }

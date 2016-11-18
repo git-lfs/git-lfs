@@ -35,22 +35,22 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 	scanner := &catFileBatchScanner{r: bufio.NewReader(reader)}
 
 	for i := 0; i < 5; i++ {
-		assertNextEmpty(t, scanner)
+		assertNextEmptyPointer(t, scanner)
 	}
 
 	assertNextPointer(t, scanner, "e71eefd918ea175b8f362611f981f648dbf9888ff74865077cb4c9077728f350")
 
 	for i := 0; i < 5; i++ {
-		assertNextEmpty(t, scanner)
+		assertNextEmptyPointer(t, scanner)
 	}
 
 	assertNextPointer(t, scanner, "0eb69b651be65d5a61d6bebf2c53c811a5bf8031951111000e2077f4d7fe43b1")
 
 	for i := 0; i < 5; i++ {
-		assertNextEmpty(t, scanner)
+		assertNextEmptyPointer(t, scanner)
 	}
 
-	assertScannerDone(t, scanner)
+	assertPointerScannerDone(t, scanner)
 }
 
 type pointerScanner interface {
@@ -65,14 +65,14 @@ func assertNextPointer(t *testing.T, scanner pointerScanner, oid string) {
 	assert.True(t, hasNext)
 }
 
-func assertNextEmpty(t *testing.T, scanner pointerScanner) {
+func assertNextEmptyPointer(t *testing.T, scanner pointerScanner) {
 	p, hasNext, err := scanner.Next()
 	assert.Nil(t, err)
 	assert.Nil(t, p)
 	assert.True(t, hasNext)
 }
 
-func assertScannerDone(t *testing.T, scanner pointerScanner) {
+func assertPointerScannerDone(t *testing.T, scanner pointerScanner) {
 	p, hasNext, err := scanner.Next()
 	assert.Nil(t, err)
 	assert.Nil(t, p)
