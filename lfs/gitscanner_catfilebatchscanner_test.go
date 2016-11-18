@@ -62,8 +62,7 @@ func fakeReaderWithRandoData(t *testing.T, blobs []*Pointer) io.Reader {
 	for i := 0; i < 5; i++ {
 		n, err := io.ReadFull(rng, rngbuf)
 		if err != nil {
-			t.Errorf("error reading from rng: %+v", err)
-			return nil
+			t.Fatalf("error reading from rng: %+v", err)
 		}
 		writeFakeBuffer(t, buf, rngbuf, n)
 	}
@@ -74,8 +73,7 @@ func fakeReaderWithRandoData(t *testing.T, blobs []*Pointer) io.Reader {
 		for i := 0; i < 5; i++ {
 			n, err := io.ReadFull(rng, rngbuf)
 			if err != nil {
-				t.Errorf("error reading from rng: %+v", err)
-				return nil
+				t.Fatalf("error reading from rng: %+v", err)
 			}
 			writeFakeBuffer(t, buf, rngbuf, n)
 		}
