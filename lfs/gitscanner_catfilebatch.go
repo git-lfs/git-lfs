@@ -103,7 +103,7 @@ func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
 		// <sha1> <type> <size>
 		fields := bytes.Fields(l)
 		if len(fields) < 3 {
-			return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch:")
+			return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch")
 		}
 
 		size, _ := strconv.Atoi(string(fields[2]))
