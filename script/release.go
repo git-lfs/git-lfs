@@ -39,6 +39,12 @@ func mainRelease() {
 		release(rel)
 		fmt.Println()
 	}
+
+	fmt.Println("SHA-256 hashes:")
+	for _, rel := range buildMatrix {
+		fmt.Println(rel.SHA256, rel.Filename)
+	}
+
 }
 
 func release(rel Release) {
