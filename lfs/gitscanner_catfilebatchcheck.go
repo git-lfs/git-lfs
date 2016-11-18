@@ -25,7 +25,7 @@ func runCatFileBatchCheck(smallRevCh chan string, revs *StringChannelWrapper, er
 }
 
 func catFileBatchCheckOutput(smallRevCh chan string, cmd *wrappedCmd, errCh chan error) {
-	scanner := &catFileBatchCheckScanner{s: bufio.NewScanner(cmd.Stdout)}
+	scanner := &catFileBatchCheckScanner{s: bufio.NewScanner(cmd.Stdout), limit: blobSizeCutoff}
 	for scanner.Scan() {
 		smallRevCh <- scanner.BlobOID()
 	}
@@ -58,6 +58,7 @@ func catFileBatchCheckInput(cmd *wrappedCmd, revs *StringChannelWrapper, errCh c
 
 type catFileBatchCheckScanner struct {
 	s       *bufio.Scanner
+	limit   int
 	blobOID string
 	err     error
 }
@@ -72,7 +73,7 @@ func (s *catFileBatchCheckScanner) Err() error {
 
 func (s *catFileBatchCheckScanner) Scan() bool {
 	s.blobOID, s.err = "", nil
-	b, err := scanBlobOID(s.s)
+	b, err := scanBlobOID(s.s, s.limit)
 	if err != nil {
 		// EOF halts scanning, but isn't a reportable error
 		if err != io.EOF {
@@ -85,7 +86,7 @@ func (s *catFileBatchCheckScanner) Scan() bool {
 	return true
 }
 
-func scanBlobOID(s *bufio.Scanner) (string, error) {
+func scanBlobOID(s *bufio.Scanner, limit int) (string, error) {
 	objType := "blob"
 	for s.Scan() {
 		line := s.Text()
@@ -108,7 +109,7 @@ func scanBlobOID(s *bufio.Scanner) (string, error) {
 			continue
 		}
 
-		if size < blobSizeCutoff {
+		if size < limit {
 			return line[0:40], nil
 		}
 	}
