@@ -103,7 +103,13 @@ func lsTreeBlobs(ref string) (*TreeBlobChannelWrapper, error) {
 	errchan := make(chan error, 1)
 
 	go func() {
-		parseLsTree(cmd.Stdout, blobs)
+		scanner := newLsTreeScanner(cmd.Stdout)
+		for scanner.Scan() {
+			if t := scanner.TreeBlob(); t != nil {
+				blobs <- *t
+			}
+		}
+
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
@@ -116,36 +122,59 @@ func lsTreeBlobs(ref string) (*TreeBlobChannelWrapper, error) {
 	return NewTreeBlobChannelWrapper(blobs, errchan), nil
 }
 
-func parseLsTree(reader io.Reader, output chan TreeBlob) {
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(scanNullLines)
-	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.SplitN(line, "\t", 2)
-		if len(parts) < 2 {
-			continue
-		}
+type lsTreeScanner struct {
+	s    *bufio.Scanner
+	tree *TreeBlob
+}
 
-		attrs := strings.SplitN(parts[0], " ", 4)
-		if len(attrs) < 4 {
-			continue
-		}
+func newLsTreeScanner(r io.Reader) *lsTreeScanner {
+	s := bufio.NewScanner(r)
+	s.Split(scanNullLines)
+	return &lsTreeScanner{s: s}
+}
 
-		if attrs[1] != "blob" {
-			continue
-		}
+func (s *lsTreeScanner) TreeBlob() *TreeBlob {
+	return s.tree
+}
 
-		sz, err := strconv.ParseInt(strings.TrimSpace(attrs[3]), 10, 64)
-		if err != nil {
-			continue
-		}
+func (s *lsTreeScanner) Err() error {
+	return nil
+}
 
-		if sz < blobSizeCutoff {
-			sha1 := attrs[2]
-			filename := parts[1]
-			output <- TreeBlob{sha1, filename}
-		}
+func (s *lsTreeScanner) Scan() bool {
+	t, hasNext := s.next()
+	s.tree = t
+	return hasNext
+}
+
+func (s *lsTreeScanner) next() (*TreeBlob, bool) {
+	hasNext := s.s.Scan()
+	line := s.s.Text()
+	parts := strings.SplitN(line, "\t", 2)
+	if len(parts) < 2 {
+		return nil, hasNext
 	}
+
+	attrs := strings.SplitN(parts[0], " ", 4)
+	if len(attrs) < 4 {
+		return nil, hasNext
+	}
+
+	if attrs[1] != "blob" {
+		return nil, hasNext
+	}
+
+	sz, err := strconv.ParseInt(strings.TrimSpace(attrs[3]), 10, 64)
+	if err != nil {
+		return nil, hasNext
+	}
+
+	if sz < blobSizeCutoff {
+		sha1 := attrs[2]
+		filename := parts[1]
+		return &TreeBlob{Sha1: sha1, Filename: filename}, hasNext
+	}
+	return nil, hasNext
 }
 
 func scanNullLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
