@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/github/git-lfs/api"
+	"github.com/git-lfs/git-lfs/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +14,8 @@ func TestObjectsWithNoActionsAreNotExpired(t *testing.T) {
 		Actions: map[string]*api.LinkRelation{},
 	}
 
-	assert.False(t, o.IsExpired(time.Now()))
+	_, expired := o.IsExpired(time.Now())
+	assert.False(t, expired)
 }
 
 func TestObjectsWithZeroValueTimesAreNotExpired(t *testing.T) {
@@ -28,7 +29,8 @@ func TestObjectsWithZeroValueTimesAreNotExpired(t *testing.T) {
 		},
 	}
 
-	assert.False(t, o.IsExpired(time.Now()))
+	_, expired := o.IsExpired(time.Now())
+	assert.False(t, expired)
 }
 
 func TestObjectsWithExpirationDatesAreExpired(t *testing.T) {
@@ -45,5 +47,7 @@ func TestObjectsWithExpirationDatesAreExpired(t *testing.T) {
 		},
 	}
 
-	assert.True(t, o.IsExpired(now))
+	expiredAt, expired := o.IsExpired(now)
+	assert.Equal(t, expires, expiredAt)
+	assert.True(t, expired)
 }

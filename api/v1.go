@@ -5,10 +5,10 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/auth"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/httputil"
 
 	"github.com/rubyist/tracerx"
 )
@@ -16,25 +16,6 @@ import (
 const (
 	MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 )
-
-// doLegacyApiRequest runs the request to the LFS legacy API.
-func DoLegacyRequest(cfg *config.Configuration, req *http.Request) (*http.Response, *ObjectResource, error) {
-	via := make([]*http.Request, 0, 4)
-	res, err := httputil.DoHttpRequestWithRedirects(cfg, req, via, true)
-	if err != nil {
-		return res, nil, err
-	}
-
-	obj := &ObjectResource{}
-	err = httputil.DecodeResponse(res, obj)
-
-	if err != nil {
-		httputil.SetErrorResponseContext(cfg, err, res)
-		return nil, nil, err
-	}
-
-	return res, obj, nil
-}
 
 type batchRequest struct {
 	TransferAdapterNames []string          `json:"transfers,omitempty"`
@@ -91,10 +72,10 @@ func NewRequest(cfg *config.Configuration, method, oid string) (*http.Request, e
 
 	res, endpoint, err := auth.SshAuthenticate(cfg, operation, oid)
 	if err != nil {
-		tracerx.Printf("ssh: attempted with %s.  Error: %s",
-			endpoint.SshUserAndHost, err.Error(),
+		tracerx.Printf("ssh: %s with %s failed, error: %s, message: %s",
+			operation, endpoint.SshUserAndHost, err.Error(), res.Message,
 		)
-		return nil, err
+		return nil, errors.Wrap(errors.New(res.Message), err.Error())
 	}
 
 	if len(res.Href) > 0 {
@@ -118,10 +99,10 @@ func NewRequest(cfg *config.Configuration, method, oid string) (*http.Request, e
 func NewBatchRequest(cfg *config.Configuration, operation string) (*http.Request, error) {
 	res, endpoint, err := auth.SshAuthenticate(cfg, operation, "")
 	if err != nil {
-		tracerx.Printf("ssh: %s attempted with %s.  Error: %s",
-			operation, endpoint.SshUserAndHost, err.Error(),
+		tracerx.Printf("ssh: %s with %s failed, error: %s, message: %s",
+			operation, endpoint.SshUserAndHost, err.Error(), res.Message,
 		)
-		return nil, err
+		return nil, errors.Wrap(errors.New(res.Message), err.Error())
 	}
 
 	if len(res.Href) > 0 {

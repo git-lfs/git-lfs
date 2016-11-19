@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/auth"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 var (
@@ -25,7 +25,10 @@ var (
 		401: "Authorization error: %s\nCheck that you have proper access to the repository",
 		403: "Authorization error: %s\nCheck that you have proper access to the repository",
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
+		429: "Rate limit exceeded: %s",
 		500: "Server error: %s",
+		507: "Insufficient server storage: %s",
+		509: "Bandwidth limit exceeded: %s",
 	}
 )
 
@@ -85,7 +88,7 @@ func handleResponse(cfg *config.Configuration, res *http.Response, creds auth.Cr
 		return errors.NewAuthError(err)
 	}
 
-	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 509 {
+	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 507 && res.StatusCode != 509 {
 		if err == nil {
 			err = errors.Errorf("api: received status %d", res.StatusCode)
 		}

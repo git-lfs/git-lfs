@@ -58,6 +58,7 @@ begin_test "clone"
   [ $(wc -c < "file1.dat") -eq 110 ] 
   [ $(wc -c < "file2.dat") -eq 75 ] 
   [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ ! -e "lfs" ]
   popd
   # Now check clone with implied dir
   rm -rf "$reponame"
@@ -73,6 +74,7 @@ begin_test "clone"
   [ $(wc -c < "file1.dat") -eq 110 ] 
   [ $(wc -c < "file2.dat") -eq 75 ] 
   [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ ! -e "lfs" ]
   popd
 
 )
@@ -441,5 +443,43 @@ begin_test "clone with submodules"
   popd
 
 
+)
+end_test
+
+begin_test "clone in current directory"
+(
+  set -e
+
+  reponame="clone_in_current_dir"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" $reponame
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+
+  printf "$contents" > a.dat
+
+  git add .gitattributes a.dat
+
+  git commit -m "initial commit" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  git push origin master 2>&1 | tee push.log
+
+  pushd $TRASHDIR
+    mkdir "$reponame-clone"
+    cd "$reponame-clone"
+
+    git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Git LFS"
+
+    assert_local_object "$contents_oid" 8
+    [ ! -f ./lfs ]
+  popd
 )
 end_test

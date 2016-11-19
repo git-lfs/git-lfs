@@ -8,23 +8,26 @@ begin_test "install again"
 
   smudge="$(git config filter.lfs.smudge)"
   clean="$(git config filter.lfs.clean)"
+  filter="$(git config filter.lfs.process)"
 
   printf "$smudge" | grep "git-lfs smudge"
   printf "$clean" | grep "git-lfs clean"
+  printf "$filter" | grep "git-lfs filter-process"
 
   git lfs install
 
   [ "$smudge" = "$(git config filter.lfs.smudge)" ]
   [ "$clean" = "$(git config filter.lfs.clean)" ]
+  [ "$filter" = "$(git config filter.lfs.process)" ]
 )
 end_test
 
-begin_test "install with old settings"
+begin_test "install with old (non-upgradeable) settings"
 (
   set -e
 
-  git config --global filter.lfs.smudge "git lfs smudge %f"
-  git config --global filter.lfs.clean "git lfs clean %f"
+  git config --global filter.lfs.smudge "git-lfs smudge --something %f"
+  git config --global filter.lfs.clean "git-lfs clean --something %f"
 
   set +e
   git lfs install 2> install.log
@@ -37,12 +40,27 @@ begin_test "install with old settings"
   grep -E "(clean|smudge) attribute should be" install.log
   [ `grep -c "(MISSING)" install.log` = "0" ]
 
-  [ "git lfs smudge %f" = "$(git config --global filter.lfs.smudge)" ]
-  [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs smudge --something %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs clean --something %f" = "$(git config --global filter.lfs.clean)" ]
 
   git lfs install --force
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
+)
+end_test
+
+begin_test "install with upgradeable settings"
+(
+  set -e
+
+  git config --global filter.lfs.smudge "git-lfs smudge %f"
+  git config --global filter.lfs.clean "git-lfs clean %f"
+
+  # should not need force, should upgrade this old style
+  git lfs install
+  [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
 )
 end_test
 
@@ -142,14 +160,17 @@ begin_test "install --skip-smudge"
   git lfs install
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
 
   git lfs install --skip-smudge
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge --skip -- %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs filter-process --skip" = "$(git config --global filter.lfs.process)" ]
 
   git lfs install --force
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
+  [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
 )
 end_test
 
@@ -169,6 +190,8 @@ begin_test "install --local"
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
   [ "git-lfs clean -- %f" = "$(git config --local filter.lfs.clean)" ]
   [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
+  [ "git-lfs filter-process" = "$(git config --local filter.lfs.process)" ]
 )
 end_test
 

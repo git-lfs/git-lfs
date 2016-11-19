@@ -2,19 +2,18 @@ package lfs
 
 import (
 	"sync"
-	"sync/atomic"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	batchSize = 100
+	batchSize         = 100
+	defaultMaxRetries = 1
 )
 
 type Transferable interface {
@@ -24,13 +23,73 @@ type Transferable interface {
 	Path() string
 	Object() *api.ObjectResource
 	SetObject(*api.ObjectResource)
-	// Legacy API check - TODO remove this and only support batch
-	LegacyCheck() (*api.ObjectResource, error)
+}
+
+type retryCounter struct {
+	// MaxRetries is the maximum number of retries a single object can
+	// attempt to make before it will be dropped.
+	MaxRetries int `git:"lfs.transfer.maxretries"`
+
+	// cmu guards count
+	cmu sync.Mutex
+	// count maps OIDs to number of retry attempts
+	count map[string]int
+}
+
+// newRetryCounter instantiates a new *retryCounter. It parses the gitconfig
+// value: `lfs.transfer.maxretries`, and falls back to defaultMaxRetries if none
+// was provided.
+//
+// If it encountered an error in Unmarshaling the *config.Configuration, it will
+// be returned, otherwise nil.
+func newRetryCounter(cfg *config.Configuration) *retryCounter {
+	rc := &retryCounter{
+		MaxRetries: defaultMaxRetries,
+
+		count: make(map[string]int),
+	}
+
+	if err := cfg.Unmarshal(rc); err != nil {
+		tracerx.Printf("rc: error parsing config, falling back to default values...: %v", err)
+		rc.MaxRetries = 1
+	}
+
+	if rc.MaxRetries < 1 {
+		tracerx.Printf("rc: invalid retry count: %d, defaulting to %d", rc.MaxRetries, 1)
+		rc.MaxRetries = 1
+	}
+
+	return rc
+}
+
+// Increment increments the number of retries for a given OID. It is safe to
+// call across multiple goroutines.
+func (r *retryCounter) Increment(oid string) {
+	r.cmu.Lock()
+	defer r.cmu.Unlock()
+
+	r.count[oid]++
+}
+
+// CountFor returns the current number of retries for a given OID. It is safe to
+// call across multiple goroutines.
+func (r *retryCounter) CountFor(oid string) int {
+	r.cmu.Lock()
+	defer r.cmu.Unlock()
+
+	return r.count[oid]
+}
+
+// CanRetry returns the current number of retries, and whether or not it exceeds
+// the maximum number of retries (see: retryCounter.MaxRetries).
+func (r *retryCounter) CanRetry(oid string) (int, bool) {
+	count := r.CountFor(oid)
+	return count, count < r.MaxRetries
 }
 
 // TransferQueue organises the wider process of uploading and downloading,
 // including calling the API, passing the actual transfer request to transfer
-// adapters, and dealing with progress, errors and retries
+// adapters, and dealing with progress, errors and retries.
 type TransferQueue struct {
 	direction         transfer.Direction
 	adapter           transfer.TransferAdapter
@@ -38,39 +97,40 @@ type TransferQueue struct {
 	adapterResultChan chan transfer.TransferResult
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
-	retrying          uint32
 	meter             *progress.ProgressMeter
 	errors            []error
 	transferables     map[string]Transferable
-	retries           []Transferable
 	batcher           *Batcher
-	apic              chan Transferable // Channel for processing individual API requests
 	retriesc          chan Transferable // Channel for processing retries
 	errorc            chan error        // Channel for processing errors
 	watchers          []chan string
 	trMutex           *sync.Mutex
 	errorwait         sync.WaitGroup
 	retrywait         sync.WaitGroup
-	wait              sync.WaitGroup // Incremented on Add(), decremented on transfer complete or skip
-	oldApiWorkers     int            // Number of non-batch API workers to spawn (deprecated)
-	manifest          *transfer.Manifest
+	// wait is used to keep track of pending transfers. It is incremented
+	// once per unique OID on Add(), and is decremented when that transfer
+	// is marked as completed or failed, but not retried.
+	wait     sync.WaitGroup
+	manifest *transfer.Manifest
+	rc       *retryCounter
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
-	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
+	cfg := config.Config
+
+	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
 
 	q := &TransferQueue{
 		direction:     dir,
 		dryRun:        dryRun,
 		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
-		apic:          make(chan Transferable, batchSize),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
-		oldApiWorkers: config.Config.ConcurrentTransfers(),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
+		rc:            newRetryCounter(cfg),
 	}
 
 	q.errorwait.Add(1)
@@ -81,19 +141,21 @@ func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction
 	return q
 }
 
-// Add adds a Transferable to the transfer queue.
+// Add adds a Transferable to the transfer queue. It only increments the amount
+// of waiting the TransferQueue has to do if the Transferable "t" is new.
 func (q *TransferQueue) Add(t Transferable) {
-	q.wait.Add(1)
 	q.trMutex.Lock()
-	q.transferables[t.Oid()] = t
-	q.trMutex.Unlock()
-
-	if q.batcher != nil {
-		q.batcher.Add(t)
+	if _, ok := q.transferables[t.Oid()]; !ok {
+		q.wait.Add(1)
+		q.transferables[t.Oid()] = t
+		q.trMutex.Unlock()
+	} else {
+		tracerx.Printf("already transferring %q, skipping duplicate", t)
+		q.trMutex.Unlock()
 		return
 	}
 
-	q.apic <- t
+	q.batcher.Add(t)
 }
 
 func (q *TransferQueue) useAdapter(name string) {
@@ -187,12 +249,24 @@ func (q *TransferQueue) ensureAdapterBegun() error {
 	return nil
 }
 
+// handleTransferResult is responsible for dealing with the result of a
+// successful or failed transfer.
+//
+// If there was an error assosicated with the given transfer, "res.Error", and
+// it is retriable (see: `q.canRetryObject`), it will be placed in the next
+// batch and be retried. If that error is not retriable for any reason, the
+// transfer will be marked as having failed, and the error will be reported.
+//
+// If the transfer was successful, the watchers of this transfer queue will be
+// notified, and the transfer will be marked as having been completed.
 func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
+	oid := res.Transfer.Object.Oid
+
 	if res.Error != nil {
-		if q.canRetry(res.Error) {
-			tracerx.Printf("tq: retrying object %s", res.Transfer.Object.Oid)
+		if q.canRetryObject(oid, res.Error) {
+			tracerx.Printf("tq: retrying object %s", oid)
 			q.trMutex.Lock()
-			t, ok := q.transferables[res.Transfer.Object.Oid]
+			t, ok := q.transferables[oid]
 			q.trMutex.Unlock()
 			if ok {
 				q.retry(t)
@@ -201,49 +275,29 @@ func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
 			}
 		} else {
 			q.errorc <- res.Error
+			q.wait.Done()
 		}
 	} else {
-		oid := res.Transfer.Object.Oid
 		for _, c := range q.watchers {
 			c <- oid
 		}
 
 		q.meter.FinishTransfer(res.Transfer.Name)
+		q.wait.Done()
 	}
-
-	q.wait.Done()
-
 }
 
 // Wait waits for the queue to finish processing all transfers. Once Wait is
 // called, Add will no longer add transferables to the queue. Any failed
 // transfers will be automatically retried once.
 func (q *TransferQueue) Wait() {
-	if q.batcher != nil {
-		q.batcher.Exit()
-	}
-
+	q.batcher.Exit()
 	q.wait.Wait()
 
 	// Handle any retries
 	close(q.retriesc)
 	q.retrywait.Wait()
-	atomic.StoreUint32(&q.retrying, 1)
 
-	if len(q.retries) > 0 {
-		tracerx.Printf("tq: retrying %d failed transfers", len(q.retries))
-		for _, t := range q.retries {
-			q.Add(t)
-		}
-		if q.batcher != nil {
-			q.batcher.Exit()
-		}
-		q.wait.Wait()
-	}
-
-	atomic.StoreUint32(&q.retrying, 0)
-
-	close(q.apic)
 	q.finishAdapter()
 	close(q.errorc)
 
@@ -261,70 +315,6 @@ func (q *TransferQueue) Watch() chan string {
 	c := make(chan string, batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
-}
-
-// individualApiRoutine processes the queue of transfers one at a time by making
-// a POST call for each object, feeding the results to the transfer workers.
-// If configured, the object transfers can still happen concurrently, the
-// sequential nature here is only for the meta POST calls.
-// TODO LEGACY API: remove when legacy API removed
-func (q *TransferQueue) individualApiRoutine(apiWaiter chan interface{}) {
-	for t := range q.apic {
-		obj, err := t.LegacyCheck()
-		if err != nil {
-			if q.canRetry(err) {
-				q.retry(t)
-			} else {
-				q.errorc <- err
-			}
-			q.wait.Done()
-			continue
-		}
-
-		if apiWaiter != nil { // Signal to launch more individual api workers
-			q.meter.Start()
-			select {
-			case apiWaiter <- 1:
-			default:
-			}
-		}
-
-		// Legacy API has no support for anything but basic transfer adapter
-		q.useAdapter(transfer.BasicAdapterName)
-		if obj != nil {
-			t.SetObject(obj)
-			q.meter.Add(t.Name())
-			q.addToAdapter(t)
-		} else {
-			q.Skip(t.Size())
-			q.wait.Done()
-		}
-	}
-}
-
-// legacyFallback is used when a batch request is made to a server that does
-// not support the batch endpoint. When this happens, the Transferables are
-// fed from the batcher into apic to be processed individually.
-// TODO LEGACY API: remove when legacy API removed
-func (q *TransferQueue) legacyFallback(failedBatch []interface{}) {
-	tracerx.Printf("tq: batch api not implemented, falling back to individual")
-
-	q.launchIndividualApiRoutines()
-
-	for _, t := range failedBatch {
-		q.apic <- t.(Transferable)
-	}
-
-	for {
-		batch := q.batcher.Next()
-		if batch == nil {
-			break
-		}
-
-		for _, t := range batch {
-			q.apic <- t.(Transferable)
-		}
-	}
 }
 
 // batchApiRoutine processes the queue of transfers using the batch endpoint,
@@ -355,22 +345,18 @@ func (q *TransferQueue) batchApiRoutine() {
 
 		objs, adapterName, err := api.Batch(config.Config, transfers, q.transferKind(), transferAdapterNames)
 		if err != nil {
-			if errors.IsNotImplementedError(err) {
-				git.Config.SetLocal("", "lfs.batch", "false")
+			var errOnce sync.Once
+			for _, o := range batch {
+				t := o.(Transferable)
 
-				go q.legacyFallback(batch)
-				return
-			}
-
-			if q.canRetry(err) {
-				for _, t := range batch {
-					q.retry(t.(Transferable))
+				if q.canRetryObject(t.Oid(), err) {
+					q.retry(t)
+				} else {
+					errOnce.Do(func() { q.errorc <- err })
+					q.wait.Done()
 				}
-			} else {
-				q.errorc <- err
 			}
 
-			q.wait.Add(-len(transfers))
 			continue
 		}
 
@@ -415,28 +401,27 @@ func (q *TransferQueue) errorCollector() {
 	q.errorwait.Done()
 }
 
+// retryCollector collects objects to retry, increments the number of times that
+// they have been retried, and then enqueues them in the next batch.  If the
+// transfer queue is using a batcher, the batch will be flushed immediately.
+//
+// retryCollector runs in its own goroutine.
 func (q *TransferQueue) retryCollector() {
 	for t := range q.retriesc {
-		q.retries = append(q.retries, t)
+		q.rc.Increment(t.Oid())
+		count := q.rc.CountFor(t.Oid())
+
+		tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
+
+		// XXX(taylor): reuse some of the logic in
+		// `*TransferQueue.Add(t)` here to circumvent banned duplicate
+		// OIDs
+		tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
+
+		q.batcher.Add(t)
+		q.batcher.Flush()
 	}
 	q.retrywait.Done()
-}
-
-// launchIndividualApiRoutines first launches a single api worker. When it
-// receives the first successful api request it launches workers - 1 more
-// workers. This prevents being prompted for credentials multiple times at once
-// when they're needed.
-func (q *TransferQueue) launchIndividualApiRoutines() {
-	go func() {
-		apiWaiter := make(chan interface{})
-		go q.individualApiRoutine(apiWaiter)
-
-		<-apiWaiter
-
-		for i := 0; i < q.oldApiWorkers-1; i++ {
-			go q.individualApiRoutine(nil)
-		}
-	}()
 }
 
 // run starts the transfer queue, doing individual or batch transfers depending
@@ -446,26 +431,31 @@ func (q *TransferQueue) run() {
 	go q.errorCollector()
 	go q.retryCollector()
 
-	if config.Config.BatchTransfer() {
-		tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
-		q.batcher = NewBatcher(batchSize)
-		go q.batchApiRoutine()
-	} else {
-		tracerx.Printf("tq: running as individual queue")
-		q.launchIndividualApiRoutines()
-	}
+	tracerx.Printf("tq: running as batched queue, batch size of %d", batchSize)
+	q.batcher = NewBatcher(batchSize)
+	go q.batchApiRoutine()
 }
 
 func (q *TransferQueue) retry(t Transferable) {
 	q.retriesc <- t
 }
 
+// canRetry returns whether or not the given error "err" is retriable.
 func (q *TransferQueue) canRetry(err error) bool {
-	if !errors.IsRetriableError(err) || atomic.LoadUint32(&q.retrying) == 1 {
+	return errors.IsRetriableError(err)
+}
+
+// canRetryObject returns whether the given error is retriable for the object
+// given by "oid". If the an OID has met its retry limit, then it will not be
+// able to be retried again. If so, canRetryObject returns whether or not that
+// given error "err" is retriable.
+func (q *TransferQueue) canRetryObject(oid string, err error) bool {
+	if count, ok := q.rc.CanRetry(oid); !ok {
+		tracerx.Printf("tq: refusing to retry %q, too many retries (%d)", oid, count)
 		return false
 	}
 
-	return true
+	return q.canRetry(err)
 }
 
 // Errors returns any errors encountered during transfer.

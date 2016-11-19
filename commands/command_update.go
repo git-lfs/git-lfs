@@ -3,8 +3,8 @@ package commands
 import (
 	"regexp"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
-	for key, value := range cfg.AllGitConfig() {
+	for key, value := range cfg.Git.All() {
 		matches := lfsAccessRE.FindStringSubmatch(key)
 		if len(matches) < 2 {
 			continue
@@ -55,13 +55,8 @@ func updateCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "update",
-			Run: updateCommand,
-		}
+	RegisterCommand("update", updateCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
 		cmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
-		return cmd
 	})
 }

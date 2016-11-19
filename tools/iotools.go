@@ -6,7 +6,8 @@ import (
 	"hash"
 	"io"
 
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
 )
 
 type readSeekCloserWrapper struct {
@@ -84,4 +85,29 @@ func (r *HashingReader) Read(b []byte) (int, error) {
 	}
 
 	return w, err
+}
+
+// RetriableReader wraps a error response of reader as RetriableError()
+type RetriableReader struct {
+	reader io.Reader
+}
+
+func NewRetriableReader(r io.Reader) io.Reader {
+	return &RetriableReader{r}
+}
+
+func (r *RetriableReader) Read(b []byte) (int, error) {
+	n, err := r.reader.Read(b)
+
+	// EOF is a successful response as it is used to signal a graceful end
+	// of input c.f. https://git.io/v6riQ
+	//
+	// Otherwise, if the error is non-nil and already retriable (in the
+	// case that the underlying reader `r.reader` is itself a
+	// `*RetriableReader`, return the error wholesale:
+	if err == nil || err == io.EOF || errors.IsRetriableError(err) {
+		return n, err
+	}
+
+	return n, errors.NewRetriableError(err)
 }

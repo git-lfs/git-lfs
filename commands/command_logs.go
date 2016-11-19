@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -76,30 +76,12 @@ func sortedLogs() []string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "logs",
-			Run: logsCommand,
-		}
-
+	RegisterCommand("logs", logsCommand, func(cmd *cobra.Command) {
 		cmd.AddCommand(
-			&cobra.Command{
-				Use: "last",
-				Run: logsLastCommand,
-			},
-			&cobra.Command{
-				Use: "show",
-				Run: logsShowCommand,
-			},
-			&cobra.Command{
-				Use: "clear",
-				Run: logsClearCommand,
-			},
-			&cobra.Command{
-				Use: "boomtown",
-				Run: logsBoomtownCommand,
-			},
+			NewCommand("last", logsLastCommand),
+			NewCommand("show", logsShowCommand),
+			NewCommand("clear", logsClearCommand),
+			NewCommand("boomtown", logsBoomtownCommand),
 		)
-		return cmd
 	})
 }

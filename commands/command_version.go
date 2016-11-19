@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/spf13/cobra"
 )
 
@@ -18,13 +18,8 @@ func versionCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "version",
-			Run: versionCommand,
-		}
-
+	RegisterCommand("version", versionCommand, func(cmd *cobra.Command) {
+		cmd.PreRun = nil
 		cmd.Flags().BoolVarP(&lovesComics, "comics", "c", false, "easter egg")
-		return cmd
 	})
 }

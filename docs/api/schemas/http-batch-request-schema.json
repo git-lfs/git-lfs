@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema",
-  "title": "Git LFS HTTPS Batch API v1.3 Request",
+  "title": "Git LFS HTTPS Batch API Request",
   "type": "object",
   "properties": {
     "transfers": {

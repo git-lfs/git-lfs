@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/auth"
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/auth"
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/stretchr/testify/assert"
 )
 

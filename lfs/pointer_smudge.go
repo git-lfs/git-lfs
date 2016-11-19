@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 
 	"github.com/cheggaaa/pb"
-	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/transfer"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
 
@@ -76,7 +76,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
 	xfers := manifest.GetDownloadAdapterNames()
-	obj, adapterName, err := api.BatchOrLegacySingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
+	obj, adapterName, err := api.BatchSingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
 	if err != nil {
 		return errors.Wrapf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
 	}

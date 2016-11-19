@@ -3,8 +3,8 @@ package commands
 import (
 	"os"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -33,13 +33,20 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		showOidLen = 64
 	}
 
-	files, err := lfs.ScanTree(ref)
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
+
+	pointerCh, err := gitscanner.ScanTree(ref)
 	if err != nil {
-		Panic(err, "Could not scan for Git LFS tree: %s", err)
+		Exit("Could not scan for Git LFS tree: %s", err)
 	}
 
-	for _, p := range files {
+	for p := range pointerCh.Results {
 		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+	}
+
+	if err := pointerCh.Wait(); err != nil {
+		Exit("Could not scan for Git LFS tree: %s", err)
 	}
 }
 
@@ -53,13 +60,7 @@ func lsFilesMarker(p *lfs.WrappedPointer) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "ls-files",
-			Run: lsFilesCommand,
-		}
-
+	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
-		return cmd
 	})
 }

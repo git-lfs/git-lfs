@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -29,23 +29,32 @@ func doFsck() (bool, error) {
 	// All we care about is the pointer OID and file name
 	pointerIndex := make(map[string]string)
 
-	pointers, err := lfs.ScanRefs(ref.Sha, "", nil)
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
+	pointerCh, err := gitscanner.ScanRefWithDeleted(ref.Sha)
 	if err != nil {
 		return false, err
 	}
 
-	for _, p := range pointers {
+	for p := range pointerCh.Results {
 		pointerIndex[p.Oid] = p.Name
 	}
 
-	// TODO(zeroshirts): do we want to look for LFS stuff in past commits?
-	p2, err := lfs.ScanIndex()
+	if err := pointerCh.Wait(); err != nil {
+		return false, err
+	}
+
+	p2, err := gitscanner.ScanIndex("HEAD")
 	if err != nil {
 		return false, err
 	}
 
-	for _, p := range p2 {
+	for p := range p2.Results {
 		pointerIndex[p.Oid] = p.Name
+	}
+
+	if err := p2.Wait(); err != nil {
+		return false, err
 	}
 
 	ok := true
@@ -115,13 +124,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "fsck",
-			Run: fsckCommand,
-		}
-
+	RegisterCommand("fsck", fsckCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&fsckDryRun, "dry-run", "d", false, "List corrupt objects without deleting them.")
-		return cmd
 	})
 }

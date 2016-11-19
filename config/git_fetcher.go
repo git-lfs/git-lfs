@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 type GitFetcher struct {
@@ -126,16 +126,34 @@ func (g *GitFetcher) Get(key string) (val string, ok bool) {
 	return
 }
 
+func (g *GitFetcher) All() map[string]string {
+	newmap := make(map[string]string)
+
+	g.vmu.RLock()
+	defer g.vmu.RUnlock()
+
+	for key, value := range g.vals {
+		newmap[key] = value
+	}
+
+	return newmap
+}
+
+func (g *GitFetcher) set(key, value string) {
+	g.vmu.Lock()
+	defer g.vmu.Unlock()
+	g.vals[strings.ToLower(key)] = value
+}
+
+func (g *GitFetcher) del(key string) {
+	g.vmu.Lock()
+	defer g.vmu.Unlock()
+	delete(g.vals, strings.ToLower(key))
+}
+
 func getGitConfigs() (sources []*GitConfig) {
 	if lfsconfig := getFileGitConfig(".lfsconfig"); lfsconfig != nil {
 		sources = append(sources, lfsconfig)
-	} else {
-		if gitconfig := getFileGitConfig(".gitconfig"); gitconfig != nil {
-			if ShowConfigWarnings {
-				fmt.Fprintf(os.Stderr, "WARNING: Reading LFS config from .gitconfig, not .lfsconfig. Rename to .lfsconfig before Git LFS v2.0 to remove this warning.\n")
-			}
-			sources = append(sources, gitconfig)
-		}
 	}
 
 	globalList, err := git.Config.List()
@@ -179,5 +197,6 @@ var safeKeys = []string{
 	"lfs.fetchexclude",
 	"lfs.fetchinclude",
 	"lfs.gitprotocol",
+	"lfs.pushurl",
 	"lfs.url",
 }

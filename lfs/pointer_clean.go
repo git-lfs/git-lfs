@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type cleanedAsset struct {
@@ -82,8 +82,14 @@ func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid
 		return
 	}
 
-	multi := io.MultiReader(bytes.NewReader(by), reader)
-	size, err = tools.CopyWithCallback(writer, multi, fileSize, cb)
+	var from io.Reader = bytes.NewReader(by)
+	if int64(len(by)) < fileSize {
+		// If there is still more data to be read from the file, tack on
+		// the original reader and continue the read from there.
+		from = io.MultiReader(from, reader)
+	}
+
+	size, err = tools.CopyWithCallback(writer, from, fileSize, cb)
 
 	if err != nil {
 		return

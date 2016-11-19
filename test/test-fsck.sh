@@ -22,7 +22,7 @@ begin_test "fsck default"
   aOid=$(git log --patch a.dat | grep "^+oid" | cut -d ":" -f 2)
   aOid12=$(echo $aOid | cut -b 1-2)
   aOid34=$(echo $aOid | cut -b 3-4)
-  if [ "$aOid" != "$(shasum -a 256 .git/lfs/objects/$aOid12/$aOid34/$aOid | cut -d " " -f 1)" ]; then
+  if [ "$aOid" != "$(calc_oid_file .git/lfs/objects/$aOid12/$aOid34/$aOid)" ]; then
     echo "oid for a.dat does not match"
     exit 1
   fi
@@ -30,7 +30,7 @@ begin_test "fsck default"
   bOid=$(git log --patch b.dat | grep "^+oid" | cut -d ":" -f 2)
   bOid12=$(echo $bOid | cut -b 1-2)
   bOid34=$(echo $bOid | cut -b 3-4)
-  if [ "$bOid" != "$(shasum -a 256 .git/lfs/objects/$bOid12/$bOid34/$bOid | cut -d " " -f 1)" ]; then
+  if [ "$bOid" != "$(calc_oid_file .git/lfs/objects/$bOid12/$bOid34/$bOid)" ]; then
     echo "oid for b.dat does not match"
     exit 1
   fi
@@ -48,7 +48,7 @@ begin_test "fsck default"
     exit 1
   fi
 
-  if [ "$bOid" != "$(shasum -a 256 .git/lfs/objects/$bOid12/$bOid34/$bOid | cut -d " " -f 1)" ]; then
+  if [ "$bOid" != "$(calc_oid_file .git/lfs/objects/$bOid12/$bOid34/$bOid)" ]; then
     echo "oid for b.dat does not match"
     exit 1
   fi
@@ -75,7 +75,7 @@ begin_test "fsck dry run"
   aOid=$(git log --patch a.dat | grep "^+oid" | cut -d ":" -f 2)
   aOid12=$(echo $aOid | cut -b 1-2)
   aOid34=$(echo $aOid | cut -b 3-4)
-  if [ "$aOid" != "$(shasum -a 256 .git/lfs/objects/$aOid12/$aOid34/$aOid | cut -d " " -f 1)" ]; then
+  if [ "$aOid" != "$(calc_oid_file .git/lfs/objects/$aOid12/$aOid34/$aOid)" ]; then
     echo "oid for a.dat does not match"
     exit 1
   fi
@@ -83,7 +83,7 @@ begin_test "fsck dry run"
   bOid=$(git log --patch b.dat | grep "^+oid" | cut -d ":" -f 2)
   bOid12=$(echo $bOid | cut -b 1-2)
   bOid34=$(echo $bOid | cut -b 3-4)
-  if [ "$bOid" != "$(shasum -a 256 .git/lfs/objects/$bOid12/$bOid34/$bOid | cut -d " " -f 1)" ]; then
+  if [ "$bOid" != "$(calc_oid_file .git/lfs/objects/$bOid12/$bOid34/$bOid)" ]; then
     echo "oid for b.dat does not match"
     exit 1
   fi
@@ -92,12 +92,12 @@ begin_test "fsck dry run"
 
   [ "Object a.dat ($aOid) is corrupt" = "$(git lfs fsck --dry-run)" ]
 
-  if [ "$aOid" = "$(shasum -a 256 .git/lfs/objects/$aOid12/$aOid34/$aOid | cut -d " " -f 1)" ]; then
+  if [ "$aOid" = "$(calc_oid_file .git/lfs/objects/$aOid12/$aOid34/$aOid)" ]; then
     echo "oid for a.dat still matches match"
     exit 1
   fi
 
-  if [ "$bOid" != "$(shasum -a 256 .git/lfs/objects/$bOid12/$bOid34/$bOid | cut -d " " -f 1)" ]; then
+  if [ "$bOid" != "$(calc_oid_file .git/lfs/objects/$bOid12/$bOid34/$bOid)" ]; then
     echo "oid for b.dat does not match"
     exit 1
   fi

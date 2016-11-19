@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-lfs/api"
+	"github.com/git-lfs/git-lfs/api"
 	"github.com/spf13/cobra"
 )
 
@@ -87,19 +87,14 @@ func (l *locksFlags) Filters() ([]api.Filter, error) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		if !isCommandEnabled(cfg, "locks") {
-			return nil
-		}
-		cmd := &cobra.Command{
-			Use: "locks",
-			Run: locksCommand,
-		}
+	if !isCommandEnabled(cfg, "locks") {
+		return
+	}
 
+	RegisterCommand("locks", locksCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
-		return cmd
 	})
 }

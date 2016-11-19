@@ -37,6 +37,13 @@ type Environment interface {
 	// Otherwise, if the value was converted `string -> int` successfully,
 	// then it will be returned wholesale.
 	Int(key string, def int) (val int)
+
+	// All returns a copy of all the key/value pairs for the current environment.
+	All() map[string]string
+
+	// deprecated, don't use
+	set(key, value string)
+	del(key string)
 }
 
 type environment struct {
@@ -82,4 +89,16 @@ func (e *environment) Int(key string, def int) (val int) {
 	}
 
 	return i
+}
+
+func (e *environment) All() map[string]string {
+	return e.Fetcher.All()
+}
+
+func (e *environment) set(key, value string) {
+	e.Fetcher.set(key, value)
+}
+
+func (e *environment) del(key string) {
+	e.Fetcher.del(key)
 }

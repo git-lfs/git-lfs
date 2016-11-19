@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/spf13/cobra"
 )
 
@@ -102,17 +102,11 @@ func lockPath(file string) (string, error) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		if !isCommandEnabled(cfg, "locks") {
-			return nil
-		}
+	if !isCommandEnabled(cfg, "locks") {
+		return
+	}
 
-		cmd := &cobra.Command{
-			Use: "lock",
-			Run: lockCommand,
-		}
-
+	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
-		return cmd
 	})
 }

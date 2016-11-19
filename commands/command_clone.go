@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/subprocess"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -70,18 +71,18 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		fetchRef("HEAD", include, exclude)
+		fetchRef(gitscanner, "HEAD", include, exclude)
 	} else {
-		pull(include, exclude)
-
+		pull(gitscanner, include, exclude)
 		err := postCloneSubmodules(args)
 		if err != nil {
 			Exit("Error performing 'git lfs pull' for submodules: %v", err)
 		}
 	}
-
 }
 
 func postCloneSubmodules(args []string) error {
@@ -108,11 +109,8 @@ func postCloneSubmodules(args []string) error {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "clone",
-			Run: cloneCommand,
-		}
+	RegisterCommand("clone", cloneCommand, func(cmd *cobra.Command) {
+		cmd.PreRun = nil
 
 		// Mirror all git clone flags
 		cmd.Flags().StringVarP(&cloneFlags.TemplateDirectory, "template", "", "", "See 'git clone --help'")
@@ -142,6 +140,5 @@ func init() {
 
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-		return cmd
 	})
 }

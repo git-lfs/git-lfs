@@ -9,11 +9,11 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/httputil"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -177,11 +177,13 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 	}
 
 	var hasher *tools.HashingReader
+	httpReader := tools.NewRetriableReader(res.Body)
+
 	if fromByte > 0 && hash != nil {
 		// pre-load hashing reader with previous content
-		hasher = tools.NewHashingReaderPreloadHash(res.Body, hash)
+		hasher = tools.NewHashingReaderPreloadHash(httpReader, hash)
 	} else {
-		hasher = tools.NewHashingReader(res.Body)
+		hasher = tools.NewHashingReader(httpReader)
 	}
 
 	if dlFile == nil {
@@ -202,7 +204,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 	}
 	written, err := tools.CopyWithCallback(dlFile, hasher, res.ContentLength, ccb)
 	if err != nil {
-		return fmt.Errorf("cannot write data to tempfile %q: %v", dlfilename, err)
+		return errors.Wrapf(err, "cannot write data to tempfile %q", dlfilename)
 	}
 	if err := dlFile.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", dlfilename, err)

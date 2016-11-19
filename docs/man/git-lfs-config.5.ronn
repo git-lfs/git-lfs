@@ -76,7 +76,7 @@ lfs option can be scoped inside the configuration for a remote.
   using any mechanism you like (rather than just HTTP). `path` should point to
   the process you wish to invoke. The protocol between the git-lfs client and
   the custom transfer process is documented at
-  https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md
+  https://github.com/git-lfs/git-lfs/blob/master/docs/custom-transfers.md
 
   <name> must be a unique identifier that the LFS server understands. When
   calling the LFS API the client will include a list of supported transfer
@@ -100,6 +100,13 @@ lfs option can be scoped inside the configuration for a remote.
 
   Specifies which direction the custom transfer process supports, either
   "download", "upload", or "both". The default if unspecified is "both".
+
+* `lfs.transfer.maxretries`
+
+  Specifies how many retries LFS will attempt per OID before marking the
+  transfer as failed. Must be an integer which is at least one. If the value is
+  not an integer, is less than one, or is not given, a value of one will be used
+  instead.
 
 ### Fetch settings
 

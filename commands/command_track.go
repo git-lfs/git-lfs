@@ -7,12 +7,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
+	"github.com/rubyist/tracerx"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -39,12 +42,12 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	lfs.InstallHooks(false)
-	knownPaths := findPaths()
+	knownPatterns := findPatterns()
 
 	if len(args) == 0 {
-		Print("Listing tracked paths")
-		for _, t := range knownPaths {
-			Print("    %s (%s)", t.Path, t.Source)
+		Print("Listing tracked patterns")
+		for _, t := range knownPatterns {
+			Print("    %s (%s)", t.Pattern, t.Source)
 		}
 		return
 	}
@@ -58,7 +61,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	defer attributesFile.Close()
 
 	if addTrailingLinebreak {
-		if _, err := attributesFile.WriteString("\n"); err != nil {
+		if _, werr := attributesFile.WriteString("\n"); werr != nil {
 			Print("Error writing to .gitattributes")
 		}
 	}
@@ -70,9 +73,10 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 ArgsLoop:
-	for _, pattern := range args {
-		for _, known := range knownPaths {
-			if known.Path == filepath.Join(relpath, pattern) {
+	for _, unsanitizedPattern := range args {
+		pattern := cleanRootPath(unsanitizedPattern)
+		for _, known := range knownPatterns {
+			if known.Pattern == filepath.Join(relpath, pattern) {
 				Print("%s already supported", pattern)
 				continue ArgsLoop
 			}
@@ -92,13 +96,12 @@ ArgsLoop:
 		}
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
-			LoggedError(err, "Error getting git tracked files")
-			continue
+			Exit("Error getting tracked files for %q: %s", pattern, err)
 		}
+
 		if trackVerboseLoggingFlag {
 			Print("Found %d files previously added to Git matching pattern: %s", len(gittracked), pattern)
 		}
-		now := time.Now()
 
 		var matchedBlocklist bool
 		for _, f := range gittracked {
@@ -116,7 +119,7 @@ ArgsLoop:
 			encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
 			_, err := attributesFile.WriteString(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text\n", encodedArg))
 			if err != nil {
-				Print("Error adding path %s", pattern)
+				Print("Error adding pattern %s", pattern)
 				continue
 			}
 		}
@@ -128,6 +131,7 @@ ArgsLoop:
 			}
 
 			if !trackDryRunFlag {
+				now := time.Now()
 				err := os.Chtimes(f, now, now)
 				if err != nil {
 					LoggedError(err, "Error marking %q modified", f)
@@ -138,13 +142,13 @@ ArgsLoop:
 	}
 }
 
-type mediaPath struct {
-	Path   string
-	Source string
+type mediaPattern struct {
+	Pattern string
+	Source  string
 }
 
-func findPaths() []mediaPath {
-	paths := make([]mediaPath, 0)
+func findPatterns() []mediaPattern {
+	var patterns []mediaPattern
 
 	for _, path := range findAttributeFiles() {
 		attributes, err := os.Open(path)
@@ -164,32 +168,40 @@ func findPaths() []mediaPath {
 					pattern = filepath.Join(reldir, pattern)
 				}
 
-				paths = append(paths, mediaPath{Path: pattern, Source: relfile})
+				patterns = append(patterns, mediaPattern{Pattern: pattern, Source: relfile})
 			}
 		}
 	}
 
-	return paths
+	return patterns
 }
 
 func findAttributeFiles() []string {
-	paths := make([]string, 0)
+	var paths []string
 
 	repoAttributes := filepath.Join(config.LocalGitDir, "info", "attributes")
 	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
 		paths = append(paths, repoAttributes)
 	}
 
-	filepath.Walk(config.LocalWorkingDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	fchan, errchan := tools.FastWalkGitRepo(config.LocalWorkingDir)
+	var waitg sync.WaitGroup
+	waitg.Add(2)
+	go func() {
+		for o := range fchan {
+			if !o.Info.IsDir() && (o.Info.Name() == ".gitattributes") {
+				paths = append(paths, filepath.Join(o.ParentDir, o.Info.Name()))
+			}
 		}
-
-		if !info.IsDir() && (filepath.Base(path) == ".gitattributes") {
-			paths = append(paths, path)
+		waitg.Done()
+	}()
+	go func() {
+		for err := range errchan {
+			tracerx.Printf("Error finding .gitattributes: %v", err)
 		}
-		return nil
-	})
+		waitg.Done()
+	}()
+	waitg.Wait()
 
 	return paths
 }
@@ -231,14 +243,8 @@ func blocklistItem(name string) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "track",
-			Run: trackCommand,
-		}
-
+	RegisterCommand("track", trackCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
 		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
-		return cmd
 	})
 }

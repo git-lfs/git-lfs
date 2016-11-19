@@ -9,15 +9,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	Version = "1.4.0"
+	Version = "1.5.0"
 )
 
 var (
@@ -140,8 +140,6 @@ func ScanObjectsChan() <-chan localstorage.Object {
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
-
-	localstorage.ResolveDirs()
 }
 
 const (

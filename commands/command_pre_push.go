@@ -5,8 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -53,9 +54,12 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = cfg.CurrentRemote
+	gitscanner := lfs.NewGitScanner()
+	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+		ExitWithError(err)
+	}
+
+	defer gitscanner.Close()
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
@@ -66,17 +70,18 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		left, right := decodeRefs(line)
+		tracerx.Printf("pre-push: %s", line)
+
+		left, _ := decodeRefs(line)
 		if left == prePushDeleteBranch {
 			continue
 		}
 
-		pointers, err := lfs.ScanRefs(left, right, scanOpt)
+		pointerCh, err := gitscanner.ScanLeftToRemote(left)
 		if err != nil {
 			Panic(err, "Error scanning for Git LFS files")
 		}
-
-		upload(ctx, pointers)
+		upload(ctx, pointerCh)
 	}
 }
 
@@ -98,13 +103,7 @@ func decodeRefs(input string) (string, string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "pre-push",
-			Run: prePushCommand,
-		}
-
+	RegisterCommand("pre-push", prePushCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
-		return cmd
 	})
 }

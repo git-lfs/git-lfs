@@ -67,13 +67,19 @@ delete_local_object() {
 refute_server_object() {
   local reponame="$1"
   local oid="$2"
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}]}" \
+    -H "Accept: application/vnd.git-lfs+json" \
+    -H "X-Check-Object: 1" \
+    -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
 
-  grep "404 Not Found" http.log
+  [ "0" = "$(grep -c "download" http.json)" ] || {
+    cat http.json
+    exit 1
+  }
 }
 
 # Delete an object on the lfs server. HTTP log is
@@ -83,7 +89,8 @@ refute_server_object() {
 delete_server_object() {
   local reponame="$1"
   local oid="$2"
-  curl -v "$GITSERVER/$reponame.git/info/lfs/delete/$oid" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+    -X DELETE \
     -u "user:pass" \
     -o http.json \
     -H "Accept: application/vnd.git-lfs+json" 2>&1 |
@@ -97,10 +104,13 @@ delete_server_object() {
 assert_server_object() {
   local reponame="$1"
   local oid="$2"
-  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
-    -H "Accept: application/vnd.git-lfs+json" 2>&1 |
+    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}]}" \
+    -H "Accept: application/vnd.git-lfs+json" \
+    -H "X-Check-Object: 1" \
+    -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
   grep "200 OK" http.log
 
@@ -143,15 +153,16 @@ refute_server_lock() {
 
 # pointer returns a string Git LFS pointer file.
 #
-#   $ pointer abc-some-oid 123
+#   $ pointer abc-some-oid 123 <version>
 #   > version ...
 pointer() {
   local oid=$1
   local size=$2
-  printf "version https://git-lfs.github.com/spec/v1
+  local version=${3:-https://git-lfs.github.com/spec/v1}
+  printf "version %s
 oid sha256:%s
 size %s
-" "$oid" "$size"
+" "$version" "$oid" "$size"
 }
 
 # wait_for_file simply sleeps until a file exists.
@@ -172,7 +183,7 @@ wait_for_file() {
   return 1
 }
 
-# setup_remote_repo intializes a bare Git repository that is accessible through
+# setup_remote_repo initializes a bare Git repository that is accessible through
 # the test Git server. The `pwd` is set to the repository's directory, in case
 # further commands need to be run. This server is running for every test in a
 # script/integration run, so every test file should setup its own remote
@@ -289,12 +300,13 @@ setup() {
   git version
 
   if [ -z "$SKIPCOMPILE" ]; then
+    [ $IS_WINDOWS -eq 1 ] && EXT=".exe"
     for go in test/cmd/*.go; do
-      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)" "$go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)$EXT" "$go"
     done
     if [ -z "$SKIPAPITESTCOMPILE" ]; then
       # Ensure API test util is built during tests to ensure it stays in sync
-      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
+      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api$EXT" "test/git-lfs-test-server-api/main.go" "test/git-lfs-test-server-api/testdownload.go" "test/git-lfs-test-server-api/testupload.go"
     fi
   fi
 
@@ -310,7 +322,7 @@ setup() {
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
 
-  grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null || {
+  ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
     exit 1
@@ -332,21 +344,6 @@ setup() {
   echo "GIT:"
   git config --global --get-regexp "lfs|credential|user"
 
-  if [ "$OSXKEYFILE" ]; then
-    # Only OS X will encounter this
-    # We can't disable osxkeychain and it gets called on store as well as ours,
-    # reporting "A keychain cannot be found to store.." errors because the test
-    # user env has no keychain; so create one
-    mkdir -p $HOME/Library/Preferences # required to store keychain lists
-    security create-keychain -p pass "$OSXKEYFILE"
-    security list-keychains -s "$OSXKEYFILE"
-    security unlock-keychain -p pass "$OSXKEYFILE"
-    security set-keychain-settings -lut 7200 "$OSXKEYFILE"
-    security default-keychain -s "$OSXKEYFILE"
-
-    echo "OSX Keychain: $OSXKEYFILE"
-  fi
-
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"
   wait_for_file "$LFS_CERT_FILE"
@@ -364,12 +361,6 @@ shutdown() {
     # test/test-*.sh file is run manually.
     if [ -s "$LFS_URL_FILE" ]; then
       curl "$(cat "$LFS_URL_FILE")/shutdown"
-    fi
-
-    if [ "$OSXKEYFILE" ]; then
-      # explicitly clean up keychain to make sure search list doesn't look for it
-      # shouldn't matter because $HOME is separate & keychain prefs are there but still
-      security delete-keychain "$OSXKEYFILE"
     fi
 
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
@@ -447,8 +438,14 @@ comparison_to_operator() {
   fi
 }
 
+# Calculate the object ID from the string passed as the argument
 calc_oid() {
-  printf "$1" | shasum -a 256 | cut -f 1 -d " "
+  printf "$1" | $SHASUM | cut -f 1 -d " "
+}
+
+# Calculate the object ID from the file passed as the argument
+calc_oid_file() {
+  $SHASUM "$1" | cut -f 1 -d " "
 }
 
 # Get a date string with an offset
@@ -493,7 +490,7 @@ get_date() {
 # Needed to match generic built paths in test scripts to native paths generated from Go
 native_path() {
   local arg=$1
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     # Use params form to avoid interpreting any '\' characters
     printf '%s' "$(cygpath -w $arg)"
   else
@@ -504,7 +501,7 @@ native_path() {
 # escape any instance of '\' with '\\' on Windows
 escape_path() {
   local unescaped="$1"
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     printf '%s' "${unescaped//\\/\\\\}"
   else
     printf '%s' "$unescaped"

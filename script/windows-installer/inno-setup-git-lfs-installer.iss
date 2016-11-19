@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Git LFS"
-#define MyAppVersion "1.4.0"
+#define MyAppVersion "1.5.0"
 #define MyAppPublisher "GitHub, Inc"
 #define MyAppURL "https://git-lfs.github.com/"
 #define MyAppFilePrefix "git-lfs-windows"
@@ -30,6 +30,9 @@ DirExistsWarning=no
 DisableReadyPage=True
 ArchitecturesInstallIn64BitMode=x64
 ChangesEnvironment=yes
+SetupIconFile=git-lfs-logo.ico
+WizardImageFile=git-lfs-wizard-image.bmp
+WizardSmallImageFile=git-lfs-logo.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

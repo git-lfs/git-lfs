@@ -3,7 +3,7 @@ AR ?= ar
 
 SRCDIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-LIBDIR := out/github.com/github/git-lfs
+LIBDIR := out/github.com/git-lfs/git-lfs
 GOFLAGS := -Iout
 
 ifeq ($(MAKEFILE_GEN),)
@@ -15,7 +15,7 @@ all: $(MAKEFILE_GEN)
 
 $(MAKEFILE_GEN) : out/genmakefile $(SRCDIR)commands/mancontent_gen.go
 	@mkdir -p $(dir $@)
-	$< "$(SRCDIR)" github.com/github/git-lfs/ > $@
+	$< "$(SRCDIR)" github.com/git-lfs/git-lfs/ > $@
 
 else
 

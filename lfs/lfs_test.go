@@ -5,8 +5,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/test"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/test"
 	"github.com/stretchr/testify/assert"
 )
 

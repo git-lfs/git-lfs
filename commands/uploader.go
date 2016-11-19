@@ -3,9 +3,9 @@ package commands
 import (
 	"os"
 
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
@@ -42,14 +42,23 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 	totalSize := int64(0)
 	missingSize := int64(0)
 
+	// XXX(taylor): temporary measure to fix duplicate (broken) results from
+	// scanner
+	uniqOids := tools.NewStringSet()
+
 	// separate out objects that _should_ be uploaded, but don't exist in
 	// .git/lfs/objects. Those will skipped if the server already has them.
 	for _, p := range unfiltered {
-		// object already uploaded in this process, skip!
-		if c.HasUploaded(p.Oid) {
+		// object already uploaded in this process, or we've already
+		// seen this OID (see above), skip!
+		if uniqOids.Contains(p.Oid) || c.HasUploaded(p.Oid) {
 			continue
 		}
+		uniqOids.Add(p.Oid)
 
+		// increment numObjects and totalSize early (even if it's not
+		// going into uploadables), since we will call Skip() based on
+		// the results of the download check queue
 		numObjects += 1
 		totalSize += p.Size
 
@@ -71,6 +80,9 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 	uploadQueue := lfs.NewUploadQueue(numObjects, totalSize, c.DryRun)
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
+			// if the server already has this object, call Skip() on
+			// the progressmeter to decrement the number of files by
+			// 1 and the number of bytes by `p.Size`.
 			uploadQueue.Skip(p.Size)
 		} else {
 			uploadables = append(uploadables, p)
@@ -90,28 +102,44 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	}
 
 	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize)
-
-	// this channel is filled with oids for which Check() succeeded & Transfer() was called
-	transferc := checkQueue.Watch()
-
-	for _, p := range missing {
-		checkQueue.Add(lfs.NewDownloadable(p))
-	}
+	transferCh := checkQueue.Watch()
 
 	done := make(chan int)
 	go func() {
-		for oid := range transferc {
+		// this channel is filled with oids for which Check() succeeded
+		// and Transfer() was called
+		for oid := range transferCh {
 			c.SetUploaded(oid)
 		}
 		done <- 1
 	}()
 
-	// Currently this is needed to flush the batch but is not enough to sync transferc completely
+	for _, p := range missing {
+		checkQueue.Add(lfs.NewDownloadable(p))
+	}
+
+	// Currently this is needed to flush the batch but is not enough to sync
+	// transferc completely. By the time that checkQueue.Wait() returns, the
+	// transferCh will have been closed, allowing the goroutine above to
+	// send "1" into the `done` channel.
 	checkQueue.Wait()
 	<-done
 }
 
-func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
+func upload(c *uploadContext, pointerCh *lfs.PointerChannelWrapper) {
+	var pointers []*lfs.WrappedPointer
+	for p := range pointerCh.Results {
+		pointers = append(pointers, p)
+	}
+
+	if err := pointerCh.Wait(); err != nil {
+		ExitWithError(err)
+	}
+
+	uploadPointers(c, pointers)
+}
+
+func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 	if c.DryRun {
 		for _, p := range unfiltered {
 			if c.HasUploaded(p.Oid) {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -75,10 +75,5 @@ func removePath(path string, args []string) bool {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		return &cobra.Command{
-			Use: "untrack",
-			Run: untrackCommand,
-		}
-	})
+	RegisterCommand("untrack", untrackCommand, nil)
 }

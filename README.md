@@ -1,4 +1,7 @@
-# Git Large File Storage [![Build Status](https://travis-ci.org/github/git-lfs.svg?branch=master)](https://travis-ci.org/github/git-lfs)
+# Git Large File Storage
+
+[![Build Status](https://travis-ci.org/github/git-lfs.svg?branch=master)](https://travis-ci.org/github/git-lfs)
+[![Build status](https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true)](https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master)
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
@@ -18,9 +21,9 @@ preferences.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
 * You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
-[rel]: https://github.com/github/git-lfs/releases
+[rel]: https://github.com/git-lfs/git-lfs/releases
 
-Note: Git LFS requires Git v1.8.2 or higher.
+Note: Git LFS requires Git v1.8.5 or higher.
 
 Once installed, you need to setup the global Git hooks for Git LFS. This only
 needs to be done once per machine.
@@ -68,7 +71,7 @@ Delta compression using up to 8 threads.
 Compressing objects: 100% (5/5), done.
 Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
 Total 5 (delta 1), reused 0 (delta 0)
-To https://github.com/github/git-lfs-test
+To https://github.com/git-lfs/git-lfs-test
    67fcf6a..47b2002  master -> master
 ```
 
@@ -91,8 +94,8 @@ is setup.
 3. If the output includes a message like `Errors logged to /path/to/.git/lfs/objects/logs/*.log`,
 throw the contents in the issue, or as a link to a Gist or paste site.
 
-[chat]: https://gitter.im/github/git-lfs
-[ish]: https://github.com/github/git-lfs/issues
+[chat]: https://gitter.im/git-lfs/git-lfs
+[ish]: https://github.com/git-lfs/git-lfs/issues
 
 ## Contributing
 
@@ -100,7 +103,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
 sending patches. Related projects are listed on the [Implementations wiki
 page][impl]. You can also join [the project's chat room][chat].
 
-[impl]: https://github.com/github/git-lfs/wiki/Implementations
+[impl]: https://github.com/git-lfs/git-lfs/wiki/Implementations
 
 ### Using LFS from other Go code
 

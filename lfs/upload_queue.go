@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/transfer"
 )
 
 // Uploadable describes a file that can be uploaded.
@@ -42,11 +42,6 @@ func (u *Uploadable) SetObject(o *api.ObjectResource) {
 
 func (u *Uploadable) Path() string {
 	return u.OidPath
-}
-
-// TODO LEGACY API: remove when legacy API removed
-func (u *Uploadable) LegacyCheck() (*api.ObjectResource, error) {
-	return api.UploadCheck(config.Config, u.Oid(), u.Size())
 }
 
 // NewUploadable builds the Uploadable from the given information.

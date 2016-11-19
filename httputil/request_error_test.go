@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 func TestSuccessStatus(t *testing.T) {
@@ -43,6 +43,7 @@ func TestErrorStatusWithCustomMessage(t *testing.T) {
 		501: "not panic",
 		503: "panic",
 		504: "panic",
+		507: "not panic",
 		509: "not panic",
 	}
 
@@ -99,12 +100,13 @@ func TestErrorStatusWithDefaultMessage(t *testing.T) {
 		404: {defaultErrors[404], "not panic"},
 		405: {defaultErrors[400] + " from HTTP 405", "not panic"},
 		406: {defaultErrors[400] + " from HTTP 406", "not panic"},
-		429: {defaultErrors[400] + " from HTTP 429", "not panic"},
+		429: {defaultErrors[429], "not panic"},
 		500: {defaultErrors[500], "panic"},
 		501: {defaultErrors[500] + " from HTTP 501", "not panic"},
 		503: {defaultErrors[500] + " from HTTP 503", "panic"},
 		504: {defaultErrors[500] + " from HTTP 504", "panic"},
-		509: {defaultErrors[500] + " from HTTP 509", "not panic"},
+		507: {defaultErrors[507], "not panic"},
+		509: {defaultErrors[509], "not panic"},
 	}
 
 	for status, results := range statuses {

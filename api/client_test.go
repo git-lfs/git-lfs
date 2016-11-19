@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/github/git-lfs/api"
+	"github.com/git-lfs/git-lfs/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,4 +73,16 @@ func TestClientReturnsCleanupErrors(t *testing.T) {
 	lifecycle.AssertExpectations(t)
 	assert.Nil(t, r1)
 	assert.Equal(t, "uh-oh!", err.Error())
+}
+
+func newBatchResponse(operation string, objects ...*api.ObjectResource) batchResponse {
+	return batchResponse{
+		Operation: operation,
+		Objects:   objects,
+	}
+}
+
+type batchResponse struct {
+	Operation string                `json:"operation,omitempty"`
+	Objects   []*api.ObjectResource `json:"objects"`
 }

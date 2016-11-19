@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -15,18 +15,24 @@ var (
 func statusCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
-	ref, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not get the current ref")
+	// tolerate errors getting ref so this works before first commit
+	ref, _ := git.CurrentRef()
+
+	gitscanner := lfs.NewGitScanner()
+	defer gitscanner.Close()
+
+	scanIndexAt := "HEAD"
+	if ref == nil {
+		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
-	stagedPointers, err := lfs.ScanIndex()
+	stagedPointers, err := gitscanner.ScanIndex(scanIndexAt)
 	if err != nil {
 		Panic(err, "Could not scan staging for Git LFS objects")
 	}
 
 	if porcelain {
-		for _, p := range stagedPointers {
+		for p := range stagedPointers.Results {
 			switch p.Status {
 			case "R", "C":
 				Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
@@ -36,44 +42,59 @@ func statusCommand(cmd *cobra.Command, args []string) {
 				Print("%s  %s %d", p.Status, p.Name, p.Size)
 			}
 		}
+
+		if err := stagedPointers.Wait(); err != nil {
+			ExitWithError(err)
+		}
 		return
 	}
 
-	Print("On branch %s", ref.Name)
+	if ref != nil {
+		Print("On branch %s", ref.Name)
 
-	remoteRef, err := git.CurrentRemoteRef()
-	if err == nil {
+		remoteRef, err := git.CurrentRemoteRef()
+		if err == nil {
+			pointerCh, err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha)
+			if err != nil {
+				Panic(err, "Could not scan for Git LFS objects")
+			}
 
-		pointers, err := lfs.ScanRefs(ref.Sha, "^"+remoteRef.Sha, nil)
-		if err != nil {
-			Panic(err, "Could not scan for Git LFS objects")
-		}
+			Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
+			for p := range pointerCh.Results {
+				Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+			}
 
-		Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-		for _, p := range pointers {
-			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+			if err := pointerCh.Wait(); err != nil {
+				Panic(err, "Could not scan for Git LFS objects")
+			}
 		}
 	}
 
 	Print("\nGit LFS objects to be committed:\n")
-	for _, p := range stagedPointers {
+	var unstagedPointers []*lfs.WrappedPointer
+	for p := range stagedPointers.Results {
 		switch p.Status {
 		case "R", "C":
 			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
 		case "M":
+			unstagedPointers = append(unstagedPointers, p)
 		default:
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
 	}
 
 	Print("\nGit LFS objects not staged for commit:\n")
-	for _, p := range stagedPointers {
+	for _, p := range unstagedPointers {
 		if p.Status == "M" {
 			Print("\t%s", p.Name)
 		}
 	}
 
-	Print("")
+	if err := stagedPointers.Wait(); err != nil {
+		ExitWithError(err)
+	} else {
+		Print("")
+	}
 }
 
 var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}
@@ -97,13 +118,7 @@ func humanizeBytes(bytes int64) string {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "status",
-			Run: statusCommand,
-		}
-
+	RegisterCommand("status", statusCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
-		return cmd
 	})
 }

@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
 
@@ -30,6 +30,10 @@ const (
 	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
+
+	// A ref which can be used as a placeholder for before the first commit
+	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
+	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
 // A git reference (branch, tag etc)
@@ -596,11 +600,7 @@ func GitAndRootDirs() (string, string, error) {
 		return absGitDir, "", nil
 	}
 
-	absRootDir, err := filepath.Abs(paths[1])
-	if err != nil {
-		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[1], err)
-	}
-
+	absRootDir := paths[1]
 	return absGitDir, absRootDir, nil
 }
 
@@ -809,6 +809,7 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	// with --skip-smudge is costly across many files in a checkout
 	cmdargs := []string{
 		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
+		"-c", "filter.lfs.process=",
 		"-c", "filter.lfs.required=false",
 		"clone"}
 
@@ -911,7 +912,6 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 // CachedRemoteRefs returns the list of branches & tags for a remote which are
 // currently cached locally. No remote request is made to verify them.
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
-
 	var ret []*Ref
 	cmd := subprocess.ExecCommand("git", "show-ref")
 
@@ -935,13 +935,12 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 		}
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 }
 
 // RemoteRefs returns a list of branches & tags for a remote by actually
 // accessing the remote vir git ls-remote
 func RemoteRefs(remoteName string) ([]*Ref, error) {
-
 	var ret []*Ref
 	cmd := subprocess.ExecCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
 
@@ -969,7 +968,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 			}
 		}
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 }
 
 // GetTrackedFiles returns a list of files which are tracked in Git which match
@@ -978,7 +977,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // the root of the repository
 func GetTrackedFiles(pattern string) ([]string, error) {
 	safePattern := sanitizePattern(pattern)
-	sanitized := len(safePattern) < len(pattern)
+	rootWildcard := len(safePattern) < len(pattern) && strings.ContainsRune(safePattern, '*')
 
 	var ret []string
 	cmd := subprocess.ExecCommand("git",
@@ -997,16 +996,18 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// If the given pattern was sanitized, then skip all files which
-		// are not direct cendantsof the repository's root.
-		if sanitized && filepath.Dir(line) != "." {
+		// If the given pattern is a root wildcard, skip all files which
+		// are not direct descendants of the repository's root.
+		//
+		// This matches the behavior of how .gitattributes performs
+		// filename matches.
+		if rootWildcard && filepath.Dir(line) != "." {
 			continue
 		}
 
 		ret = append(ret, strings.TrimSpace(line))
 	}
 	return ret, cmd.Wait()
-
 }
 
 func sanitizePattern(pattern string) string {

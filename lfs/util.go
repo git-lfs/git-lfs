@@ -7,11 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/progress"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type Platform int
@@ -71,71 +70,6 @@ func wrapProgressError(err error, event, filename string) error {
 }
 
 var localDirSet = tools.NewStringSetFromSlice([]string{".", "./", ".\\"})
-
-// Return whether a given filename passes the include / exclude path filters
-// Only paths that are in includePaths and outside excludePaths are passed
-// If includePaths is empty that filter always passes and the same with excludePaths
-// Both path lists support wildcard matches
-func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePaths []string) bool {
-	if len(includePaths) == 0 && len(excludePaths) == 0 {
-		return true
-	}
-
-	// For Win32, because git reports files with / separators
-	cleanfilename := filepath.Clean(filename)
-	if len(includePaths) > 0 {
-		matched := false
-		for _, inc := range includePaths {
-			// Special case local dir, matches all (inc subpaths)
-			if _, local := localDirSet[inc]; local {
-				matched = true
-				break
-			}
-			matched, _ = filepath.Match(inc, filename)
-			if !matched && IsWindows() {
-				// Also Win32 match
-				matched, _ = filepath.Match(inc, cleanfilename)
-			}
-			if !matched {
-				// Also support matching a parent directory without a wildcard
-				if strings.HasPrefix(cleanfilename, inc+string(filepath.Separator)) {
-					matched = true
-				}
-			}
-			if matched {
-				break
-			}
-
-		}
-		if !matched {
-			return false
-		}
-	}
-
-	if len(excludePaths) > 0 {
-		for _, ex := range excludePaths {
-			// Special case local dir, matches all (inc subpaths)
-			if _, local := localDirSet[ex]; local {
-				return false
-			}
-			matched, _ := filepath.Match(ex, filename)
-			if !matched && IsWindows() {
-				// Also Win32 match
-				matched, _ = filepath.Match(ex, cleanfilename)
-			}
-			if matched {
-				return false
-			}
-			// Also support matching a parent directory without a wildcard
-			if strings.HasPrefix(cleanfilename, ex+string(filepath.Separator)) {
-				return false
-			}
-
-		}
-	}
-
-	return true
-}
 
 func GetPlatform() Platform {
 	if currentPlatform == PlatformUndetermined {

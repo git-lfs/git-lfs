@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -28,16 +28,7 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		cmd := &cobra.Command{
-			Use: "uninstall",
-			Run: uninstallCommand,
-		}
-
-		cmd.AddCommand(&cobra.Command{
-			Use: "hooks",
-			Run: uninstallHooksCommand,
-		})
-		return cmd
+	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) {
+		cmd.AddCommand(NewCommand("hooks", uninstallHooksCommand))
 	})
 }

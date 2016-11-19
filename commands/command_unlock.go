@@ -3,7 +3,7 @@ package commands
 import (
 	"errors"
 
-	"github.com/github/git-lfs/api"
+	"github.com/git-lfs/git-lfs/api"
 	"github.com/spf13/cobra"
 )
 
@@ -93,19 +93,13 @@ func lockIdFromPath(path string) (string, error) {
 }
 
 func init() {
-	RegisterSubcommand(func() *cobra.Command {
-		if !isCommandEnabled(cfg, "locks") {
-			return nil
-		}
+	if !isCommandEnabled(cfg, "locks") {
+		return
+	}
 
-		cmd := &cobra.Command{
-			Use: "unlock",
-			Run: unlockCommand,
-		}
-
+	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
-		return cmd
 	})
 }

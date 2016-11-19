@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 
@@ -202,7 +202,7 @@ func execCredsCommand(cfg *config.Configuration, input Creds, subCommand string)
 		process is the process that fires up the daemon, it will wait forever
 		(until the daemon exits, really) trying to read from stderr.
 
-		See https://github.com/github/git-lfs/issues/117 for more details.
+		See https://github.com/git-lfs/git-lfs/issues/117 for more details.
 	*/
 
 	err := cmd.Start()
