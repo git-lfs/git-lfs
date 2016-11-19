@@ -871,16 +871,16 @@ begin_test "env in windows junction"
     exit 0
   fi
 
-  mkdir -p projects/foo
-  cd projects/foo
+  mkdir -p windows-projects/foo
+  cd windows-projects/foo
   git init
   cd ../..
 
-  target="$TRASHDIR/projects"
-  link="symlink-projects"
+  target="$TRASHDIR/windows-projects"
+  link="windows-symlink-projects"
   cmd <<< "mklink /D \"${link%/}\" \"${target%/}\"" > /dev/null
 
-  cd symlink-projects/foo
+  cd windows-symlink-projects/foo
   git lfs env
 )
 end_test
