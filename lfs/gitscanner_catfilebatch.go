@@ -27,12 +27,12 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper,
 		scanner := &catFileBatchScanner{r: cmd.Stdout}
 		for r := range revs.Results {
 			cmd.Stdin.Write([]byte(r + "\n"))
-			p, hasNext, err := scanner.Next()
-			if p != nil {
+			hasNext := scanner.Scan()
+			if p := scanner.Pointer(); p != nil {
 				pointerCh <- p
 			}
 
-			if err != nil {
+			if err := scanner.Err(); err != nil {
 				errCh <- err
 			}
 
@@ -66,16 +66,27 @@ type catFileBatchScanner struct {
 	err     error
 }
 
-func (s *catFileBatchScanner) Next() (*WrappedPointer, bool, error) {
+func (s *catFileBatchScanner) Pointer() *WrappedPointer {
+	return s.pointer
+}
+
+func (s *catFileBatchScanner) Err() error {
+	return s.err
+}
+
+func (s *catFileBatchScanner) Scan() bool {
+	s.pointer, s.err = nil, nil
 	p, err := s.next()
-	switch err {
-	case nil:
-		return p, true, nil
-	case io.EOF:
-		return p, false, nil
-	default:
-		return p, false, err
+	s.pointer = p
+
+	if err != nil {
+		if err != io.EOF {
+			s.err = err
+		}
+		return false
 	}
+
+	return true
 }
 
 func (s *catFileBatchScanner) next() (*WrappedPointer, error) {

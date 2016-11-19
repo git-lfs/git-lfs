@@ -45,13 +45,13 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 		for t := range treeblobs.Results {
 			cmd.Stdin.Write([]byte(t.Sha1 + "\n"))
 
-			p, hasNext, err := scanner.Next()
-			if p != nil {
+			hasNext := scanner.Scan()
+			if p := scanner.Pointer(); p != nil {
 				p.Name = t.Filename
 				pointers <- p
 			}
 
-			if err != nil {
+			if err := scanner.Err(); err != nil {
 				errchan <- err
 			}
 

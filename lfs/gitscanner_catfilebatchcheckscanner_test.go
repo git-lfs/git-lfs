@@ -23,36 +23,38 @@ func TestCatFileBatchCheckScannerWithValidOutput(t *testing.T) {
 		limit: 1024,
 	}
 
-	assertNextEmptyString(t, s)
-	assertNextEmptyString(t, s)
-	assertNextEmptyString(t, s)
+	assertNextOID(t, s, "")
+	assertNextOID(t, s, "")
+	assertNextOID(t, s, "")
 	assertNextOID(t, s, "0000000000000000000000000000000000000002")
-	assertNextEmptyString(t, s)
-	assertNextEmptyString(t, s)
-	assertStringScannerDone(t, s)
+	assertNextOID(t, s, "")
+	assertNextOID(t, s, "")
+	assertScannerDone(t, s)
+	assert.Equal(t, "", s.BlobOID())
 }
 
 type stringScanner interface {
 	Next() (string, bool, error)
+	Err() error
+	Scan() bool
 }
 
-func assertNextOID(t *testing.T, scanner stringScanner, oid string) {
-	actual, hasNext, err := scanner.Next()
-	assert.Equal(t, oid, actual)
-	assert.Nil(t, err)
-	assert.True(t, hasNext)
+type genericScanner interface {
+	Err() error
+	Scan() bool
 }
 
-func assertNextEmptyString(t *testing.T, scanner stringScanner) {
-	actual, hasNext, err := scanner.Next()
-	assert.Equal(t, "", actual)
-	assert.Nil(t, err)
-	assert.True(t, hasNext)
+func assertNextScan(t *testing.T, scanner genericScanner) {
+	assert.True(t, scanner.Scan())
+	assert.Nil(t, scanner.Err())
 }
 
-func assertStringScannerDone(t *testing.T, scanner stringScanner) {
-	actual, hasNext, err := scanner.Next()
-	assert.Equal(t, "", actual)
-	assert.Nil(t, err)
-	assert.False(t, hasNext)
+func assertNextOID(t *testing.T, scanner *catFileBatchCheckScanner, oid string) {
+	assertNextScan(t, scanner)
+	assert.Equal(t, oid, scanner.BlobOID())
+}
+
+func assertScannerDone(t *testing.T, scanner genericScanner) {
+	assert.False(t, scanner.Scan())
+	assert.Nil(t, scanner.Err())
 }

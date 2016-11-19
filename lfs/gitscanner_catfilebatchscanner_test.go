@@ -50,33 +50,20 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		assertNextEmptyPointer(t, scanner)
 	}
 
-	assertPointerScannerDone(t, scanner)
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
 }
 
-type pointerScanner interface {
-	Next() (*WrappedPointer, bool, error)
-}
-
-func assertNextPointer(t *testing.T, scanner pointerScanner, oid string) {
-	p, hasNext, err := scanner.Next()
-	assert.Nil(t, err)
+func assertNextPointer(t *testing.T, scanner *catFileBatchScanner, oid string) {
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
 	assert.NotNil(t, p)
 	assert.Equal(t, oid, p.Oid)
-	assert.True(t, hasNext)
 }
 
-func assertNextEmptyPointer(t *testing.T, scanner pointerScanner) {
-	p, hasNext, err := scanner.Next()
-	assert.Nil(t, err)
-	assert.Nil(t, p)
-	assert.True(t, hasNext)
-}
-
-func assertPointerScannerDone(t *testing.T, scanner pointerScanner) {
-	p, hasNext, err := scanner.Next()
-	assert.Nil(t, err)
-	assert.Nil(t, p)
-	assert.False(t, hasNext)
+func assertNextEmptyPointer(t *testing.T, scanner *catFileBatchScanner) {
+	assertNextScan(t, scanner)
+	assert.Nil(t, scanner.Pointer())
 }
 
 func fakeReaderWithRandoData(t *testing.T, blobs []*Pointer) io.Reader {

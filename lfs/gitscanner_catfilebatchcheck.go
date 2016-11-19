@@ -22,12 +22,12 @@ func runCatFileBatchCheck(smallRevCh chan string, revs *StringChannelWrapper, er
 		scanner := &catFileBatchCheckScanner{s: bufio.NewScanner(cmd.Stdout), limit: blobSizeCutoff}
 		for r := range revs.Results {
 			cmd.Stdin.Write([]byte(r + "\n"))
-			blobOid, hasNext, err := scanner.Next()
-			if len(blobOid) > 0 {
-				smallRevCh <- blobOid
+			hasNext := scanner.Scan()
+			if b := scanner.BlobOID(); len(b) > 0 {
+				smallRevCh <- b
 			}
 
-			if err != nil {
+			if err := scanner.Err(); err != nil {
 				errCh <- err
 			}
 
@@ -60,7 +60,23 @@ type catFileBatchCheckScanner struct {
 	err     error
 }
 
-func (s *catFileBatchCheckScanner) Next() (string, bool, error) {
+func (s *catFileBatchCheckScanner) BlobOID() string {
+	return s.blobOID
+}
+
+func (s *catFileBatchCheckScanner) Err() error {
+	return s.err
+}
+
+func (s *catFileBatchCheckScanner) Scan() bool {
+	s.blobOID, s.err = "", nil
+	b, hasNext, err := s.next()
+	s.blobOID = b
+	s.err = err
+	return hasNext
+}
+
+func (s *catFileBatchCheckScanner) next() (string, bool, error) {
 	hasNext := s.s.Scan()
 	line := s.s.Text()
 	lineLen := len(line)
