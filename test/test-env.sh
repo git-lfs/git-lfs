@@ -853,7 +853,33 @@ begin_test "env in symlink"
   git init
   cd ../..
 
-  ln -s "$TRASHDIR/projects" symlink-projects
+  target="$TRASHDIR/projects"
+  link="symlink-projects"
+  ln -s "$target" "$link"
+
+  cd symlink-projects/foo
+  git lfs env
+)
+end_test
+
+begin_test "env in windows junction"
+(
+  set -e
+
+  if [[ ! -n "$WINDIR" ]]; then
+    echo "skip: not windows"
+    exit 0
+  fi
+
+  mkdir -p projects/foo
+  cd projects/foo
+  git init
+  cd ../..
+
+  target="$TRASHDIR/projects"
+  link="symlink-projects"
+  cmd <<< "mklink /D \"${link%/}\" \"${target%/}\"" > /dev/null
+
   cd symlink-projects/foo
   git lfs env
 )
