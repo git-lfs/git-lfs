@@ -57,7 +57,6 @@ type catFileBatchCheckScanner struct {
 	s       *bufio.Scanner
 	limit   int
 	blobOID string
-	err     error
 }
 
 func (s *catFileBatchCheckScanner) BlobOID() string {
@@ -65,18 +64,17 @@ func (s *catFileBatchCheckScanner) BlobOID() string {
 }
 
 func (s *catFileBatchCheckScanner) Err() error {
-	return s.err
+	return s.s.Err()
 }
 
 func (s *catFileBatchCheckScanner) Scan() bool {
-	s.blobOID, s.err = "", nil
-	b, hasNext, err := s.next()
+	s.blobOID = ""
+	b, hasNext := s.next()
 	s.blobOID = b
-	s.err = err
 	return hasNext
 }
 
-func (s *catFileBatchCheckScanner) next() (string, bool, error) {
+func (s *catFileBatchCheckScanner) next() (string, bool) {
 	hasNext := s.s.Scan()
 	line := s.s.Text()
 	lineLen := len(line)
@@ -86,21 +84,21 @@ func (s *catFileBatchCheckScanner) next() (string, bool, error) {
 	// type is at a fixed spot, if we see that it's "blob", we can avoid
 	// splitting the line just to get the size.
 	if lineLen < 46 {
-		return "", hasNext, nil
+		return "", hasNext
 	}
 
 	if line[41:45] != "blob" {
-		return "", hasNext, nil
+		return "", hasNext
 	}
 
 	size, err := strconv.Atoi(line[46:lineLen])
 	if err != nil {
-		return "", hasNext, nil
+		return "", hasNext
 	}
 
 	if size >= s.limit {
-		return "", hasNext, nil
+		return "", hasNext
 	}
 
-	return line[0:40], hasNext, nil
+	return line[0:40], hasNext
 }
