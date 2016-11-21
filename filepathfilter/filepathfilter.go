@@ -7,20 +7,21 @@ import (
 	"strings"
 )
 
-type pattern interface {
+type Pattern interface {
 	Match(filename string) bool
 }
 
 type Filter struct {
-	include []pattern
-	exclude []pattern
+	include []Pattern
+	exclude []Pattern
+}
+
+func NewFromPatterns(include, exclude []Pattern) *Filter {
+	return &Filter{include: include, exclude: exclude}
 }
 
 func New(include, exclude []string) *Filter {
-	return &Filter{
-		include: convertToPatterns(include),
-		exclude: convertToPatterns(exclude),
-	}
+	return NewFromPatterns(convertToPatterns(include), convertToPatterns(exclude))
 }
 
 func (f *Filter) Allows(filename string) bool {
@@ -58,7 +59,7 @@ func (f *Filter) Allows(filename string) bool {
 	return true
 }
 
-func newPattern(rawpattern string) pattern {
+func NewPattern(rawpattern string) Pattern {
 	cleanpattern := filepath.Clean(rawpattern)
 
 	// Special case local dir, matches all (inc subpaths)
@@ -94,10 +95,10 @@ func newPattern(rawpattern string) pattern {
 	}
 }
 
-func convertToPatterns(rawpatterns []string) []pattern {
-	patterns := make([]pattern, len(rawpatterns))
+func convertToPatterns(rawpatterns []string) []Pattern {
+	patterns := make([]Pattern, len(rawpatterns))
 	for i, raw := range rawpatterns {
-		patterns[i] = newPattern(raw)
+		patterns[i] = NewPattern(raw)
 	}
 	return patterns
 }
