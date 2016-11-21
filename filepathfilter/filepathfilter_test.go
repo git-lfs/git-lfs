@@ -49,7 +49,7 @@ func TestPatternMatch(t *testing.T) {
 }
 
 func patternMatch(pattern, filename string) bool {
-	return newPattern(pattern).Match(filename)
+	return newPattern(pattern).Match(filepath.Clean(filename))
 }
 
 type filterTest struct {
