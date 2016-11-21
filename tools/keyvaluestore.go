@@ -3,6 +3,7 @@ package tools
 import (
 	"encoding/gob"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 )
@@ -18,8 +19,12 @@ import (
 type KeyValueStore struct {
 	mu       sync.RWMutex
 	filename string
-	data     *keyValueStoreData
 	log      []keyValueChange
+
+	// This is the persistent data
+	// version for optimistic locking, this field is incremented with every Save()
+	version int64
+	db      map[string]interface{}
 }
 
 type keyValueOperation int
@@ -37,38 +42,12 @@ type keyValueChange struct {
 	value     interface{}
 }
 
-// Actual data that we persist
-type keyValueStoreData struct {
-	// version for optimistic locking, this field is incremented with every Save()
-	// MUST BE FIRST in the struct, gob serializes in order and we need to peek
-	Version int64
-	Db      map[string]interface{}
-}
-
 // NewKeyValueStore creates a new store and initialises it with contents from
 // the named file, if it exists
 func NewKeyValueStore(filepath string) (*KeyValueStore, error) {
-
-	var kvdata *keyValueStoreData
-	stat, _ := os.Stat(filepath)
-	f, err := os.OpenFile(filepath, os.O_RDONLY, 0664)
-	// Only try to load if file has some bytes in it
-	if err == nil && stat.Size() > 0 {
-		defer f.Close()
-		dec := gob.NewDecoder(f)
-		err := dec.Decode(&kvdata)
-		if err != nil {
-			return nil, fmt.Errorf("Problem loading key/value data from %v: %v", filepath, err)
-		}
-	} else if err != nil && !os.IsNotExist(err) {
-		return nil, err
-	}
-	if kvdata == nil {
-		kvdata = &keyValueStoreData{1, make(map[string]interface{}, 100)}
-	}
-
-	return &KeyValueStore{filename: filepath, data: kvdata}, nil
-
+	kv := &KeyValueStore{filename: filepath, db: make(map[string]interface{})}
+	err := kv.loadAndMergeIfNeeded()
+	return kv, err
 }
 
 // Set updates the key/value store in memory
@@ -77,7 +56,7 @@ func (k *KeyValueStore) Set(key string, value interface{}) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	k.data.Db[key] = value
+	k.db[key] = value
 	k.log = append(k.log, keyValueChange{keyValueSetOperation, key, value})
 }
 
@@ -87,7 +66,7 @@ func (k *KeyValueStore) Remove(key string) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	delete(k.data.Db, key)
+	delete(k.db, key)
 	k.log = append(k.log, keyValueChange{keyValueRemoveOperation, key, nil})
 }
 
@@ -98,10 +77,11 @@ func (k *KeyValueStore) Get(key string) interface{} {
 	defer k.mu.RUnlock()
 
 	// zero value of interface{} is nil so this does what we want
-	return k.data.Db[key]
+	return k.db[key]
 }
 
 // Save persists the changes made to disk
+// If any changes have been written by other code they will be merged
 func (k *KeyValueStore) Save() error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -120,39 +100,77 @@ func (k *KeyValueStore) Save() error {
 
 	defer f.Close()
 
-	// Only try to peek if > 0 bytes, ignore empty files (decoder will fail)
+	// Only try to merge if > 0 bytes, ignore empty files (decoder will fail)
 	if stat.Size() > 0 {
-		var versionOnDisk int64
-		// Decode *only* the version field to check whether anyone else has
-		// modified the db; gob serializes structs in order so it will always be 1st
-		dec := gob.NewDecoder(f)
-		err = dec.Decode(&versionOnDisk)
-		if err != nil {
-			return fmt.Errorf("Problem checking version of key/value data from %v: %v", k.filename, err)
-		}
-		if versionOnDisk != k.data.Version {
-			// Reload data & merge
-			var dbOnDisk map[string]interface{}
-			err = dec.Decode(&dbOnDisk)
-			if err != nil {
-				return fmt.Errorf("Problem reading updated key/value data from %v: %v", k.filename, err)
-			}
-			k.reapplyChanges(dbOnDisk)
-		}
-		// Now we overwrite
+		k.loadAndMergeReaderIfNeeded(f)
+		// Now we overwrite the file
 		f.Seek(0, os.SEEK_SET)
 	}
 
-	k.data.Version++
+	k.version++
 
 	enc := gob.NewEncoder(f)
-	err = enc.Encode(k.data)
+	err = enc.Encode(k.version)
+	if err != nil {
+		return fmt.Errorf("Error while writing version data to %v: %v", k.filename, err)
+	}
+	err = enc.Encode(k.db)
 	if err != nil {
 		return fmt.Errorf("Error while writing new key/value data to %v: %v", k.filename, err)
 	}
 	// Clear log now that it's saved
 	k.log = nil
 
+	return nil
+}
+
+// Reads as little as possible from the passed in file to determine if the
+// contents are different from the version already held. If so, reads the
+// contents and merges with any outstanding changes. If not, stops early without
+// reading the rest of the file
+func (k *KeyValueStore) loadAndMergeIfNeeded() error {
+	stat, err := os.Stat(k.filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // missing is OK
+		}
+		return err
+	}
+	// Do nothing if empty file
+	if stat.Size() == 0 {
+		return nil
+	}
+
+	f, err := os.OpenFile(k.filename, os.O_RDONLY, 0664)
+	if err == nil {
+		defer f.Close()
+		return k.loadAndMergeReaderIfNeeded(f)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// As loadAndMergeIfNeeded but lets caller decide how to manage file handles
+func (k *KeyValueStore) loadAndMergeReaderIfNeeded(f io.Reader) error {
+	var versionOnDisk int64
+	// Decode *only* the version field to check whether anyone else has
+	// modified the db; gob serializes structs in order so it will always be 1st
+	dec := gob.NewDecoder(f)
+	err := dec.Decode(&versionOnDisk)
+	if err != nil {
+		return fmt.Errorf("Problem checking version of key/value data from %v: %v", k.filename, err)
+	}
+	// Totally uninitialised Version == 0, saved versions are always >=1
+	if versionOnDisk != k.version {
+		// Reload data & merge
+		var dbOnDisk map[string]interface{}
+		err = dec.Decode(&dbOnDisk)
+		if err != nil {
+			return fmt.Errorf("Problem reading updated key/value data from %v: %v", k.filename, err)
+		}
+		k.reapplyChanges(dbOnDisk)
+	}
 	return nil
 }
 
@@ -167,7 +185,9 @@ func (k *KeyValueStore) reapplyChanges(baseDb map[string]interface{}) {
 			delete(baseDb, change.key)
 		}
 	}
-	k.data.Db = baseDb
+	// Note, log is not cleared here, that only happens on Save since it's a
+	// list of unsaved changes
+	k.db = baseDb
 
 }
 
