@@ -8,8 +8,11 @@ import (
 
 var (
 	GitCommit   string
-	Version     = "1.5.0"
 	VersionDesc string
+)
+
+const (
+	Version = "1.5.0"
 )
 
 func init() {
