@@ -105,6 +105,7 @@ func (k *KeyValueStore) Save() error {
 		k.loadAndMergeReaderIfNeeded(f)
 		// Now we overwrite the file
 		f.Seek(0, os.SEEK_SET)
+		f.Truncate(0)
 	}
 
 	k.version++

@@ -69,7 +69,7 @@ func TestKeyValueStoreSimple(t *testing.T) {
 }
 
 func TestKeyValueStoreOptimisticConflict(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest1")
+	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest2")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)
@@ -114,5 +114,51 @@ func TestKeyValueStoreOptimisticConflict(t *testing.T) {
 	assert.Equal(t, "value4", v) // we overwrote this so would not be merged
 	v = kvs1.Get("key5")
 	assert.Equal(t, "value5_fromkvs2", v)
+
+}
+
+func TestKeyValueStoreReduceSize(t *testing.T) {
+	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest3")
+	assert.Nil(t, err)
+	filename := tmpf.Name()
+	defer os.Remove(filename)
+	tmpf.Close()
+
+	kvs, err := NewKeyValueStore(filename)
+	assert.Nil(t, err)
+
+	kvs.Set("key1", "I woke up in a Soho doorway")
+	kvs.Set("key2", "A policeman knew my name")
+	kvs.Set("key3", "He said 'You can go sleep at home tonight")
+	kvs.Set("key4", "If you can get up and walk away'")
+
+	assert.NotNil(t, kvs.Get("key1"))
+	assert.NotNil(t, kvs.Get("key2"))
+	assert.NotNil(t, kvs.Get("key3"))
+	assert.NotNil(t, kvs.Get("key4"))
+
+	assert.Nil(t, kvs.Save())
+
+	stat1, _ := os.Stat(filename)
+
+	// Remove all but 1 key & save smaller version
+	kvs.Remove("key2")
+	kvs.Remove("key3")
+	kvs.Remove("key4")
+	assert.Nil(t, kvs.Save())
+
+	// Now reload fresh & prove works
+	kvs = nil
+
+	kvs, err = NewKeyValueStore(filename)
+	assert.Nil(t, err)
+	assert.NotNil(t, kvs.Get("key1"))
+	assert.Nil(t, kvs.Get("key2"))
+	assert.Nil(t, kvs.Get("key3"))
+	assert.Nil(t, kvs.Get("key4"))
+
+	stat2, _ := os.Stat(filename)
+
+	assert.True(t, stat2.Size() < stat1.Size(), "Size should have reduced, was %d now %d", stat1.Size(), stat2.Size())
 
 }
