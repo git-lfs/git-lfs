@@ -41,8 +41,8 @@ type keyValueChange struct {
 type keyValueStoreData struct {
 	// version for optimistic locking, this field is incremented with every Save()
 	// MUST BE FIRST in the struct, gob serializes in order and we need to peek
-	version int64
-	db      map[string]interface{}
+	Version int64
+	Db      map[string]interface{}
 }
 
 // NewKeyValueStore creates a new store and initialises it with contents from
@@ -77,7 +77,7 @@ func (k *KeyValueStore) Set(key string, value interface{}) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	k.data.db[key] = value
+	k.data.Db[key] = value
 	k.log = append(k.log, keyValueChange{keyValueSetOperation, key, value})
 }
 
@@ -87,7 +87,7 @@ func (k *KeyValueStore) Remove(key string) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	delete(k.data.db, key)
+	delete(k.data.Db, key)
 	k.log = append(k.log, keyValueChange{keyValueRemoveOperation, key, nil})
 }
 
@@ -98,7 +98,7 @@ func (k *KeyValueStore) Get(key string) interface{} {
 	defer k.mu.RUnlock()
 
 	// zero value of interface{} is nil so this does what we want
-	return k.data.db[key]
+	return k.data.Db[key]
 }
 
 // Save persists the changes made to disk
@@ -130,7 +130,7 @@ func (k *KeyValueStore) Save() error {
 		if err != nil {
 			return fmt.Errorf("Problem checking version of key/value data from %v: %v", k.filename, err)
 		}
-		if versionOnDisk != k.data.version {
+		if versionOnDisk != k.data.Version {
 			// Reload data & merge
 			var dbOnDisk map[string]interface{}
 			err = dec.Decode(&dbOnDisk)
@@ -143,7 +143,7 @@ func (k *KeyValueStore) Save() error {
 		f.Seek(0, os.SEEK_SET)
 	}
 
-	k.data.version++
+	k.data.Version++
 
 	enc := gob.NewEncoder(f)
 	err = enc.Encode(k.data)
@@ -167,6 +167,6 @@ func (k *KeyValueStore) reapplyChanges(baseDb map[string]interface{}) {
 			delete(baseDb, change.key)
 		}
 	}
-	k.data.db = baseDb
+	k.data.Db = baseDb
 
 }
