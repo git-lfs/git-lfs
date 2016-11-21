@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,7 +98,7 @@ index 0000000..92a88f8
 
 func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	scanner := newLogScanner(r, LogDiffAdditions, nil, nil)
+	scanner := newLogScanner(LogDiffAdditions, r)
 
 	// modification, + side
 	assertNextScan(t, scanner)
@@ -150,7 +151,8 @@ func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 
 func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	scanner := newLogScanner(r, LogDiffAdditions, []string{"wave*"}, nil)
+	scanner := newLogScanner(LogDiffAdditions, r)
+	scanner.Filter = filepathfilter.New([]string{"wave*"}, nil)
 
 	// addition, + side
 	assertNextScan(t, scanner)
@@ -166,7 +168,8 @@ func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 
 func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	scanner := newLogScanner(r, LogDiffAdditions, nil, []string{"wave*"})
+	scanner := newLogScanner(LogDiffAdditions, r)
+	scanner.Filter = filepathfilter.New(nil, []string{"wave*"})
 
 	// modification, + side
 	assertNextScan(t, scanner)
@@ -210,7 +213,7 @@ func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 
 func TestLogScannerDeletionsNoFiltering(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	scanner := newLogScanner(r, LogDiffDeletions, nil, nil)
+	scanner := newLogScanner(LogDiffDeletions, r)
 
 	// deletion, - side
 	assertNextScan(t, scanner)
@@ -253,7 +256,8 @@ func TestLogScannerDeletionsNoFiltering(t *testing.T) {
 
 func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	scanner := newLogScanner(r, LogDiffDeletions, []string{"flare*"}, nil)
+	scanner := newLogScanner(LogDiffDeletions, r)
+	scanner.Filter = filepathfilter.New([]string{"flare*"}, nil)
 
 	// deletion, - side with extensions
 	assertNextScan(t, scanner)
@@ -269,7 +273,8 @@ func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 
 func TestLogScannerDeletionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	scanner := newLogScanner(r, LogDiffDeletions, nil, []string{"flare*"})
+	scanner := newLogScanner(LogDiffDeletions, r)
+	scanner.Filter = filepathfilter.New(nil, []string{"flare*"})
 
 	// deletion, - side
 	assertNextScan(t, scanner)
