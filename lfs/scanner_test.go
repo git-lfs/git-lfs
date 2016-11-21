@@ -136,13 +136,16 @@ func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 	}
 
 	// addition, + side with extensions
-	assertScannerDone(t, scanner)
+	assertNextScan(t, scanner)
 	p = scanner.Pointer()
 	if assert.NotNil(t, p) {
 		assert.Equal(t, "hobbit_5armies_2.mov", p.Name)
 		assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", p.Oid)
 		assert.Equal(t, int64(127142413), p.Size)
 	}
+
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
 }
 
 func TestLogScannerAdditionsFilterInclude(t *testing.T) {
@@ -193,13 +196,16 @@ func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 	}
 
 	// addition, + side with extensions
-	assertScannerDone(t, scanner)
+	assertNextScan(t, scanner)
 	p = scanner.Pointer()
 	if assert.NotNil(t, p) {
 		assert.Equal(t, "hobbit_5armies_2.mov", p.Name)
 		assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", p.Oid)
 		assert.Equal(t, int64(127142413), p.Size)
 	}
+
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
 }
 
 func TestParseLogOutputToPointersAdditions(t *testing.T) {

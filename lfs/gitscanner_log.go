@@ -316,5 +316,9 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 		}
 	}
 
-	return s.finishLastPointer(), false
+	if p := s.finishLastPointer(); p != nil {
+		return p, true
+	}
+
+	return nil, false
 }
