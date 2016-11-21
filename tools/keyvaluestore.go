@@ -170,3 +170,10 @@ func (k *KeyValueStore) reapplyChanges(baseDb map[string]interface{}) {
 	k.data.Db = baseDb
 
 }
+
+// RegisterTypeForKeyValueStorage registers a custom type (e.g. a struct) for
+// use in the key value store. This is necessary if you intend to pass custom
+// structs to KeyValueStore.Set() rather than primitive types.
+func RegisterTypeForKeyValueStorage(val interface{}) {
+	gob.Register(val)
+}
