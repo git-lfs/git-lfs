@@ -23,42 +23,41 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, revs *StringChannelWrapper,
 		return err
 	}
 
-	go catFileBatchOutput(pointerCh, cmd, errCh)
-	go catFileBatchInput(cmd, revs, errCh)
+	go func() {
+		scanner := &catFileBatchScanner{r: cmd.Stdout}
+		for r := range revs.Results {
+			cmd.Stdin.Write([]byte(r + "\n"))
+			canScan := scanner.Scan()
+			if p := scanner.Pointer(); p != nil {
+				pointerCh <- p
+			}
+
+			if err := scanner.Err(); err != nil {
+				errCh <- err
+			}
+
+			if !canScan {
+				break
+			}
+		}
+
+		if err := revs.Wait(); err != nil {
+			errCh <- err
+		}
+
+		cmd.Stdin.Close()
+
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		err := cmd.Wait()
+		if err != nil {
+			errCh <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
+		}
+
+		close(pointerCh)
+		close(errCh)
+	}()
+
 	return nil
-}
-
-func catFileBatchOutput(pointerCh chan *WrappedPointer, cmd *wrappedCmd, errCh chan error) {
-	scanner := &catFileBatchScanner{r: cmd.Stdout}
-	for scanner.Scan() {
-		pointerCh <- scanner.Pointer()
-	}
-
-	if err := scanner.Err(); err != nil {
-		errCh <- err
-	}
-
-	stderr, _ := ioutil.ReadAll(cmd.Stderr)
-	err := cmd.Wait()
-	if err != nil {
-		errCh <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
-	}
-
-	close(pointerCh)
-	close(errCh)
-}
-
-func catFileBatchInput(cmd *wrappedCmd, revs *StringChannelWrapper, errCh chan error) {
-	for r := range revs.Results {
-		cmd.Stdin.Write([]byte(r + "\n"))
-	}
-	err := revs.Wait()
-	if err != nil {
-		// We can share errchan with other goroutine since that won't close it
-		// until we close the stdin below
-		errCh <- err
-	}
-	cmd.Stdin.Close()
 }
 
 type catFileBatchScanner struct {
@@ -77,59 +76,52 @@ func (s *catFileBatchScanner) Err() error {
 
 func (s *catFileBatchScanner) Scan() bool {
 	s.pointer, s.err = nil, nil
-	p, err := scanPointer(s.r)
+	p, err := s.next()
+	s.pointer = p
+
 	if err != nil {
-		// EOF halts scanning, but isn't a reportable error
 		if err != io.EOF {
 			s.err = err
 		}
 		return false
 	}
 
-	s.pointer = p
 	return true
 }
 
-func scanPointer(r *bufio.Reader) (*WrappedPointer, error) {
+func (s *catFileBatchScanner) next() (*WrappedPointer, error) {
+	l, err := s.r.ReadBytes('\n')
+	if err != nil {
+		return nil, err
+	}
+
+	// Line is formatted:
+	// <sha1> <type> <size>
+	fields := bytes.Fields(l)
+	if len(fields) < 3 {
+		return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch")
+	}
+
+	size, _ := strconv.Atoi(string(fields[2]))
+	buf := make([]byte, size)
+	read, err := io.ReadFull(s.r, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if size != read {
+		return nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
+	}
+
+	p, err := DecodePointer(bytes.NewBuffer(buf[:read]))
 	var pointer *WrappedPointer
-
-	for pointer == nil {
-		l, err := r.ReadBytes('\n')
-		if err != nil {
-			return nil, err
-		}
-
-		// Line is formatted:
-		// <sha1> <type> <size>
-		fields := bytes.Fields(l)
-		if len(fields) < 3 {
-			return nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch:")
-		}
-
-		size, _ := strconv.Atoi(string(fields[2]))
-		buf := make([]byte, size)
-		read, err := io.ReadFull(r, buf)
-		if err != nil {
-			return nil, err
-		}
-
-		if size != read {
-			return nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
-		}
-
-		p, err := DecodePointer(bytes.NewBuffer(buf[0:read]))
-		if err == nil {
-			pointer = &WrappedPointer{
-				Sha1:    string(fields[0]),
-				Pointer: p,
-			}
-		}
-
-		_, err = r.ReadBytes('\n') // Extra \n inserted by cat-file
-		if err != nil {
-			return nil, err
+	if err == nil {
+		pointer = &WrappedPointer{
+			Sha1:    string(fields[0]),
+			Pointer: p,
 		}
 	}
 
-	return pointer, nil
+	_, err = s.r.ReadBytes('\n') // Extra \n inserted by cat-file
+	return pointer, err
 }
