@@ -110,6 +110,18 @@ func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error
 	return NewPointerChannelWrapper(pchan, errchan), nil
 }
 
+func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
+	includePaths, excludePaths []string, results chan *WrappedPointer) {
+	scanner := newLogScanner(log, dir, includePaths, excludePaths)
+	for scanner.Scan() {
+		if p := scanner.Pointer(); p != nil {
+			results <- p
+		}
+	}
+}
+
+// logScanner parses log output formatted as per logLfsSearchArgs & returns
+// pointers.
 type logScanner struct {
 	s            *bufio.Scanner
 	dir          LogDiffDirection
@@ -127,14 +139,20 @@ type logScanner struct {
 	pointerDataRegex     *regexp.Regexp
 }
 
+// r: a stream of output from git log with at least logLfsSearchArgs specified
+// dir: whether to include results from + or - diffs
+// includePaths, excludePaths: filter the results by filename
 func newLogScanner(r io.Reader, dir LogDiffDirection, includePaths, excludePaths []string) *logScanner {
 	return &logScanner{
-		s:                    bufio.NewScanner(r),
-		dir:                  dir,
-		includePaths:         includePaths,
-		excludePaths:         excludePaths,
-		pointerData:          &bytes.Buffer{},
-		currentFileIncluded:  true,
+		s:                   bufio.NewScanner(r),
+		dir:                 dir,
+		includePaths:        includePaths,
+		excludePaths:        excludePaths,
+		pointerData:         &bytes.Buffer{},
+		currentFileIncluded: true,
+
+		// no need to compile these regexes on every `git-lfs` call, just ones that
+		// use the scanner.
 		commitHeaderRegex:    regexp.MustCompile(`^lfs-commit-sha: ([A-Fa-f0-9]{40})(?: ([A-Fa-f0-9]{40}))*`),
 		fileHeaderRegex:      regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`),
 		fileMergeHeaderRegex: regexp.MustCompile(`diff --cc (.+)`),
@@ -173,98 +191,22 @@ func (s *logScanner) finishLastPointer() *WrappedPointer {
 	return nil
 }
 
-// parseLogOutputToPointers parses log output formatted as per logLfsSearchArgs & return pointers
-// log: a stream of output from git log with at least logLfsSearchArgs specified
-// dir: whether to include results from + or - diffs
-// includePaths, excludePaths: filter the results by filename
-// results: a channel which will receive the pointers (caller must close)
-func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
-	includePaths, excludePaths []string, results chan *WrappedPointer) {
+// For each commit we'll get something like this:
+/*
+	lfs-commit-sha: 60fde3d23553e10a55e2a32ed18c20f65edd91e7 e2eaf1c10b57da7b98eb5d722ec5912ddeb53ea1
 
-	// For each commit we'll get something like this:
-	/*
-		lfs-commit-sha: 60fde3d23553e10a55e2a32ed18c20f65edd91e7 e2eaf1c10b57da7b98eb5d722ec5912ddeb53ea1
-
-		diff --git a/1D_Noise.png b/1D_Noise.png
-		new file mode 100644
-		index 0000000..2622b4a
-		--- /dev/null
-		+++ b/1D_Noise.png
-		@@ -0,0 +1,3 @@
-		+version https://git-lfs.github.com/spec/v1
-		+oid sha256:f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6
-		+size 1289
-	*/
-	// There can be multiple diffs per commit (multiple binaries)
-	// Also when a binary is changed the diff will include a '-' line for the old SHA
-
-	// Define regexes to capture commit & diff headers
-	commitHeaderRegex := regexp.MustCompile(`^lfs-commit-sha: ([A-Fa-f0-9]{40})(?: ([A-Fa-f0-9]{40}))*`)
-	fileHeaderRegex := regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`)
-	fileMergeHeaderRegex := regexp.MustCompile(`diff --cc (.+)`)
-	pointerDataRegex := regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size|ext-).*$`)
-	var pointerData bytes.Buffer
-	var currentFilename string
-	currentFileIncluded := true
-
-	// Utility func used at several points below (keep in narrow scope)
-	finishLastPointer := func() {
-		if pointerData.Len() > 0 {
-			if currentFileIncluded {
-				p, err := DecodePointer(&pointerData)
-				if err == nil {
-					results <- &WrappedPointer{Name: currentFilename, Pointer: p}
-				} else {
-					tracerx.Printf("Unable to parse pointer from log: %v", err)
-				}
-			}
-			pointerData.Reset()
-		}
-	}
-
-	scanner := bufio.NewScanner(log)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if match := commitHeaderRegex.FindStringSubmatch(line); match != nil {
-			// Currently we're not pulling out commit groupings, but could if we wanted
-			// This just acts as a delimiter for finishing a multiline pointer
-			finishLastPointer()
-
-		} else if match := fileHeaderRegex.FindStringSubmatch(line); match != nil {
-			// Finding a regular file header
-			finishLastPointer()
-			// Pertinent file name depends on whether we're listening to additions or removals
-			if dir == LogDiffAdditions {
-				currentFilename = match[2]
-			} else {
-				currentFilename = match[1]
-			}
-			currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
-		} else if match := fileMergeHeaderRegex.FindStringSubmatch(line); match != nil {
-			// Git merge file header is a little different, only one file
-			finishLastPointer()
-			currentFilename = match[1]
-			currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
-		} else if currentFileIncluded {
-			if match := pointerDataRegex.FindStringSubmatch(line); match != nil {
-				// An LFS pointer data line
-				// Include only the entirety of one side of the diff
-				// -U3 will ensure we always get all of it, even if only
-				// the SHA changed (version & size the same)
-				changeType := match[1][0]
-				// Always include unchanged context lines (normally just the version line)
-				if LogDiffDirection(changeType) == dir || changeType == ' ' {
-					// Must skip diff +/- marker
-					pointerData.WriteString(line[1:])
-					pointerData.WriteString("\n") // newline was stripped off by scanner
-				}
-			}
-		}
-	}
-	// Final pointer if in progress
-	finishLastPointer()
-}
-
+	diff --git a/1D_Noise.png b/1D_Noise.png
+	new file mode 100644
+	index 0000000..2622b4a
+	--- /dev/null
+	+++ b/1D_Noise.png
+	@@ -0,0 +1,3 @@
+	+version https://git-lfs.github.com/spec/v1
+	+oid sha256:f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6
+	+size 1289
+*/
+// There can be multiple diffs per commit (multiple binaries)
+// Also when a binary is changed the diff will include a '-' line for the old SHA
 func (s *logScanner) scan() (*WrappedPointer, bool) {
 	for s.s.Scan() {
 		line := s.s.Text()
