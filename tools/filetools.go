@@ -262,7 +262,6 @@ func fastWalkFromRoot(dir string, excludeFilename string,
 	waitg.Wait()
 	close(fiChan)
 	close(errChan)
-
 }
 
 // fastWalkFileOrDir is the main recursive implementation of fast walk

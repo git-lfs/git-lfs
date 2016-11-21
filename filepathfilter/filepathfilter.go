@@ -1,20 +1,149 @@
 package filepathfilter
 
-import "github.com/git-lfs/git-lfs/tools"
+import (
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/git-lfs/git-lfs/tools"
+)
+
+type pattern interface {
+	Match(filename string) bool
+}
 
 type Filter struct {
-	include []string
-	exclude []string
+	include []pattern
+	exclude []pattern
 }
 
 func New(include, exclude []string) *Filter {
-	return &Filter{include: include, exclude: exclude}
+	return &Filter{
+		include: convertToPatterns(include),
+		exclude: convertToPatterns(exclude),
+	}
 }
 
-func (f *Filter) Allows(path string) bool {
+func (f *Filter) Allows(filename string) bool {
 	if f == nil {
 		return true
 	}
 
-	return tools.FilenamePassesIncludeExcludeFilter(path, f.include, f.exclude)
+	if len(f.include)+len(f.exclude) == 0 {
+		return true
+	}
+
+	cleanedName := filepath.Clean(filename)
+
+	if len(f.include) > 0 {
+		matched := false
+		for _, inc := range f.include {
+			matched = inc.Match(cleanedName)
+			if matched {
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+
+	if len(f.exclude) > 0 {
+		for _, ex := range f.exclude {
+			if ex.Match(cleanedName) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
+
+func convertToPatterns(rawpatterns []string) []pattern {
+	patterns := make([]pattern, len(rawpatterns))
+	noop := noOpMatcher{}
+	for i, raw := range rawpatterns {
+		cleaned := filepath.Clean(raw)
+		// Special case local dir, matches all (inc subpaths)
+		if _, local := localDirSet[cleaned]; local {
+			patterns[i] = noop
+			continue
+		}
+
+		hasPathSep := strings.Contains(cleaned, string(filepath.Separator))
+
+		// special case * when there are no path separators
+		// filepath.Match never allows * to match a path separator, which is correct
+		// for gitignore IF the pattern includes a path separator, but not otherwise
+		// So *.txt should match in any subdir, as should test*, but sub/*.txt would
+		// only match directly in the sub dir
+		// Don't need to test cross-platform separators as both cleaned above
+		if !hasPathSep && strings.Contains(cleaned, "*") {
+			pattern := regexp.QuoteMeta(cleaned)
+			regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
+			patterns[i] = &pathlessWildcardPattern{
+				rawPattern: cleaned,
+				wildcardRE: regexp.MustCompile(regpattern),
+			}
+			// Also support ** with path separators
+		} else if hasPathSep && strings.Contains(cleaned, "**") {
+			pattern := regexp.QuoteMeta(cleaned)
+			regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
+			patterns[i] = &doubleWildcardPattern{
+				rawPattern: cleaned,
+				wildcardRE: regexp.MustCompile(regpattern),
+			}
+		} else {
+			patterns[i] = &basicPattern{rawPattern: cleaned}
+		}
+	}
+	return patterns
+}
+
+type basicPattern struct {
+	rawPattern string
+}
+
+// Match is a revised version of filepath.Match which makes it behave more
+// like gitignore
+func (p *basicPattern) Match(name string) bool {
+	matched, _ := filepath.Match(p.rawPattern, name)
+	// Also support matching a parent directory without a wildcard
+	return matched || strings.HasPrefix(name, p.rawPattern+string(filepath.Separator))
+}
+
+type pathlessWildcardPattern struct {
+	rawPattern string
+	wildcardRE *regexp.Regexp
+}
+
+// Match is a revised version of filepath.Match which makes it behave more
+// like gitignore
+func (p *pathlessWildcardPattern) Match(name string) bool {
+	matched, _ := filepath.Match(p.rawPattern, name)
+	// Match the whole of the base name but allow matching in folders if no path
+	return matched || p.wildcardRE.MatchString(filepath.Base(name))
+}
+
+type doubleWildcardPattern struct {
+	rawPattern string
+	wildcardRE *regexp.Regexp
+}
+
+// Match is a revised version of filepath.Match which makes it behave more
+// like gitignore
+func (p *doubleWildcardPattern) Match(name string) bool {
+	matched, _ := filepath.Match(p.rawPattern, name)
+	// Match the whole of the base name but allow matching in folders if no path
+	return matched || p.wildcardRE.MatchString(name)
+}
+
+type noOpMatcher struct {
+}
+
+func (n noOpMatcher) Match(name string) bool {
+	return true
+}
+
+var localDirSet = tools.NewStringSetFromSlice([]string{".", "./", ".\\"})
