@@ -67,3 +67,52 @@ func TestKeyValueStoreSimple(t *testing.T) {
 	assert.Nil(t, n)
 
 }
+
+func TestKeyValueStoreOptimisticConflict(t *testing.T) {
+	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest1")
+	assert.Nil(t, err)
+	filename := tmpf.Name()
+	defer os.Remove(filename)
+	tmpf.Close()
+
+	kvs1, err := NewKeyValueStore(filename)
+	assert.Nil(t, err)
+
+	kvs1.Set("key1", "value1")
+	kvs1.Set("key2", "value2")
+	kvs1.Set("key3", "value3")
+	err = kvs1.Save()
+	assert.Nil(t, err)
+
+	// Load second copy & modify
+	kvs2, err := NewKeyValueStore(filename)
+	assert.Nil(t, err)
+	// New keys
+	kvs2.Set("key4", "value4_fromkvs2")
+	kvs2.Set("key5", "value5_fromkvs2")
+	// Modify a key too
+	kvs2.Set("key1", "value1_fromkvs2")
+	err = kvs2.Save()
+	assert.Nil(t, err)
+
+	// Now modify first copy & save; it should detect optimistic lock issue
+	// New item
+	kvs1.Set("key10", "value10")
+	// Overlapping item; since we save second this will overwrite one from kvs2
+	kvs1.Set("key4", "value4")
+	err = kvs1.Save()
+	assert.Nil(t, err)
+
+	// This should have merged changes from kvs2 in the process
+	v := kvs1.Get("key1")
+	assert.Equal(t, "value1_fromkvs2", v) // this one was modified by kvs2
+	v = kvs1.Get("key2")
+	assert.Equal(t, "value2", v)
+	v = kvs1.Get("key3")
+	assert.Equal(t, "value3", v)
+	v = kvs1.Get("key4")
+	assert.Equal(t, "value4", v) // we overwrote this so would not be merged
+	v = kvs1.Get("key5")
+	assert.Equal(t, "value5_fromkvs2", v)
+
+}
