@@ -177,18 +177,23 @@ func (s *logScanner) Scan() bool {
 
 // Utility func used at several points below (keep in narrow scope)
 func (s *logScanner) finishLastPointer() *WrappedPointer {
-	if s.pointerData.Len() > 0 {
-		if s.currentFileIncluded {
-			p, err := DecodePointer(s.pointerData)
-			if err == nil {
-				return &WrappedPointer{Name: s.currentFilename, Pointer: p}
-			} else {
-				tracerx.Printf("Unable to parse pointer from log: %v", err)
-			}
-		}
-		s.pointerData.Reset()
+	if s.pointerData.Len() == 0 {
+		return nil
 	}
-	return nil
+
+	if !s.currentFileIncluded {
+		return nil
+	}
+
+	p, err := DecodePointer(s.pointerData)
+	s.pointerData.Reset()
+
+	if err == nil {
+		return &WrappedPointer{Name: s.currentFilename, Pointer: p}
+	} else {
+		tracerx.Printf("Unable to parse pointer from log: %v", err)
+		return nil
+	}
 }
 
 // For each commit we'll get something like this:
