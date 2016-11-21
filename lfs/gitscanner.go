@@ -5,11 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/rubyist/tracerx"
 )
 
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
+	Filter      *filepathfilter.Filter
 	remote      string
 	skippedRefs []string
 

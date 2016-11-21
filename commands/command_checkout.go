@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
@@ -38,7 +39,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	checkoutWithIncludeExclude(gitscanner, rootedpaths, nil)
 }
 
-func checkoutFromFetchChan(gitscanner *lfs.GitScanner, include []string, exclude []string, in chan *lfs.WrappedPointer) {
+func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter, in chan *lfs.WrappedPointer) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -56,7 +57,7 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, include []string, exclude
 	// Map oid to multiple pointers
 	mapping := make(map[string][]*lfs.WrappedPointer)
 	for _, pointer := range pointers {
-		if tools.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+		if filter.Allows(pointer.Name) {
 			mapping[pointer.Oid] = append(mapping[pointer.Oid], pointer)
 		}
 	}
