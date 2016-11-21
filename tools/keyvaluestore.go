@@ -17,6 +17,7 @@ import (
 // the Lost Update db concurrency issue is possible; so don't use this if you
 // need more DB integrity than Read Committed isolation levels.
 type KeyValueStore struct {
+	// Locks the entire store
 	mu       sync.RWMutex
 	filename string
 	log      []keyValueChange
@@ -46,8 +47,7 @@ type keyValueChange struct {
 // the named file, if it exists
 func NewKeyValueStore(filepath string) (*KeyValueStore, error) {
 	kv := &KeyValueStore{filename: filepath, db: make(map[string]interface{})}
-	err := kv.loadAndMergeIfNeeded()
-	return kv, err
+	return kv, kv.loadAndMergeIfNeeded()
 }
 
 // Set updates the key/value store in memory
@@ -57,7 +57,7 @@ func (k *KeyValueStore) Set(key string, value interface{}) {
 	defer k.mu.Unlock()
 
 	k.db[key] = value
-	k.log = append(k.log, keyValueChange{keyValueSetOperation, key, value})
+	k.logChange(keyValueSetOperation, key, value)
 }
 
 // Remove removes the key and its value from the store in memory
@@ -67,7 +67,12 @@ func (k *KeyValueStore) Remove(key string) {
 	defer k.mu.Unlock()
 
 	delete(k.db, key)
-	k.log = append(k.log, keyValueChange{keyValueRemoveOperation, key, nil})
+	k.logChange(keyValueRemoveOperation, key, nil)
+}
+
+// Append a change to the log; mutex must already be locked
+func (k *KeyValueStore) logChange(op keyValueOperation, key string, value interface{}) {
+	k.log = append(k.log, keyValueChange{op, key, value})
 }
 
 // Get retrieves a value from the store, or nil if it is not present
@@ -111,12 +116,10 @@ func (k *KeyValueStore) Save() error {
 	k.version++
 
 	enc := gob.NewEncoder(f)
-	err = enc.Encode(k.version)
-	if err != nil {
+	if err := enc.Encode(k.version); err != nil {
 		return fmt.Errorf("Error while writing version data to %v: %v", k.filename, err)
 	}
-	err = enc.Encode(k.db)
-	if err != nil {
+	if err := enc.Encode(k.db); err != nil {
 		return fmt.Errorf("Error while writing new key/value data to %v: %v", k.filename, err)
 	}
 	// Clear log now that it's saved
@@ -146,10 +149,9 @@ func (k *KeyValueStore) loadAndMergeIfNeeded() error {
 	if err == nil {
 		defer f.Close()
 		return k.loadAndMergeReaderIfNeeded(f)
-	} else if !os.IsNotExist(err) {
+	} else {
 		return err
 	}
-	return nil
 }
 
 // As loadAndMergeIfNeeded but lets caller decide how to manage file handles
