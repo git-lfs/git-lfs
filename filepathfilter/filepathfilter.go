@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/git-lfs/git-lfs/tools"
 )
 
 type pattern interface {
@@ -149,4 +147,8 @@ func (n noOpMatcher) Match(name string) bool {
 	return true
 }
 
-var localDirSet = tools.NewStringSetFromSlice([]string{".", "./", ".\\"})
+var localDirSet = map[string]struct{}{
+	".":   struct{}{},
+	"./":  struct{}{},
+	".\\": struct{}{},
+}

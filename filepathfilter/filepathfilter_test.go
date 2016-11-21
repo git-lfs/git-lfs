@@ -1,14 +1,11 @@
 package filepathfilter
 
 import (
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -122,83 +119,4 @@ func TestFilterAllows(t *testing.T) {
 			assert.Equal(t, c.expectedResult, New(c.includes, c.excludes).Allows("test/filename.dat"), c)
 		}
 	}
-}
-
-func BenchmarkToolsIncludeWildcardOnly(b *testing.B) {
-	files := benchmarkTree(b)
-	inc := []string{"*.go"}
-	for i := 0; i < b.N; i++ {
-		for _, f := range files {
-			tools.FilenamePassesIncludeExcludeFilter(f, inc, nil)
-		}
-	}
-}
-
-func BenchmarkFilterIncludeWildcardOnly(b *testing.B) {
-	files := benchmarkTree(b)
-	filter := New([]string{"*.go"}, nil)
-	for i := 0; i < b.N; i++ {
-		for _, f := range files {
-			filter.Allows(f)
-		}
-	}
-}
-
-func BenchmarkToolsIncludeDoubleAsterisk(b *testing.B) {
-	files := benchmarkTree(b)
-	inc := []string{"**/README.md"}
-	for i := 0; i < b.N; i++ {
-		for _, f := range files {
-			tools.FilenamePassesIncludeExcludeFilter(f, inc, nil)
-		}
-	}
-}
-
-func BenchmarkFilterIncludeDoubleAsterisk(b *testing.B) {
-	files := benchmarkTree(b)
-	filter := New([]string{"**/README.md"}, nil)
-	for i := 0; i < b.N; i++ {
-		for _, f := range files {
-			filter.Allows(f)
-		}
-	}
-}
-
-var (
-	benchmarkFiles []string
-	benchmarkMu    sync.Mutex
-)
-
-func benchmarkTree(b *testing.B) []string {
-	benchmarkMu.Lock()
-	defer benchmarkMu.Unlock()
-
-	if benchmarkFiles != nil {
-		return benchmarkFiles
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	infoCh, errCh := tools.FastWalkGitRepo(filepath.Dir(wd))
-
-	go func() {
-		for i := range infoCh {
-			benchmarkFiles = append(benchmarkFiles, filepath.Join(i.ParentDir, i.Info.Name()))
-		}
-	}()
-
-	hasErrors := false
-	for err := range errCh {
-		hasErrors = true
-		b.Error(err)
-	}
-
-	if hasErrors {
-		b.Fatal("has errors :(")
-	}
-
-	return benchmarkFiles
 }
