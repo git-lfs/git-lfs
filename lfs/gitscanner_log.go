@@ -268,7 +268,6 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 func (s *logScanner) scan() (*WrappedPointer, bool) {
 	for s.s.Scan() {
 		line := s.s.Text()
-		fmt.Println("SCAN:", line)
 
 		if match := s.commitHeaderRegex.FindStringSubmatch(line); match != nil {
 			// Currently we're not pulling out commit groupings, but could if we wanted
