@@ -50,15 +50,17 @@ type keyValueStoreData struct {
 func NewKeyValueStore(filepath string) (*KeyValueStore, error) {
 
 	var kvdata *keyValueStoreData
+	stat, _ := os.Stat(filepath)
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0664)
-	if err == nil {
+	// Only try to load if file has some bytes in it
+	if err == nil && stat.Size() > 0 {
 		defer f.Close()
 		dec := gob.NewDecoder(f)
 		err := dec.Decode(&kvdata)
 		if err != nil {
 			return nil, fmt.Errorf("Problem loading key/value data from %v: %v", filepath, err)
 		}
-	} else if !os.IsNotExist(err) {
+	} else if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 	if kvdata == nil {
@@ -114,27 +116,33 @@ func (k *KeyValueStore) Save() error {
 	if err != nil {
 		return err
 	}
+	stat, _ := os.Stat(k.filename)
 
 	defer f.Close()
-	// Decode *only* the version field to check whether anyone else has
-	// modified the db; gob serializes structs in order so it will always be 1st
-	dec := gob.NewDecoder(f)
-	var versionOnDisk int64
-	err = dec.Decode(&versionOnDisk)
-	if err != nil {
-		return fmt.Errorf("Problem checking version of key/value data from %v: %v", k.filename, err)
-	}
-	if versionOnDisk != k.data.version {
-		// Reload data & merge
-		var dbOnDisk map[string]interface{}
-		err = dec.Decode(&dbOnDisk)
+
+	// Only try to peek if > 0 bytes, ignore empty files (decoder will fail)
+	if stat.Size() > 0 {
+		var versionOnDisk int64
+		// Decode *only* the version field to check whether anyone else has
+		// modified the db; gob serializes structs in order so it will always be 1st
+		dec := gob.NewDecoder(f)
+		err = dec.Decode(&versionOnDisk)
 		if err != nil {
-			return fmt.Errorf("Problem reading updated key/value data from %v: %v", k.filename, err)
+			return fmt.Errorf("Problem checking version of key/value data from %v: %v", k.filename, err)
 		}
-		k.reapplyChanges(dbOnDisk)
+		if versionOnDisk != k.data.version {
+			// Reload data & merge
+			var dbOnDisk map[string]interface{}
+			err = dec.Decode(&dbOnDisk)
+			if err != nil {
+				return fmt.Errorf("Problem reading updated key/value data from %v: %v", k.filename, err)
+			}
+			k.reapplyChanges(dbOnDisk)
+		}
+		// Now we overwrite
+		f.Seek(0, os.SEEK_SET)
 	}
-	// Now we overwrite
-	f.Seek(0, os.SEEK_SET)
+
 	k.data.version++
 
 	enc := gob.NewEncoder(f)
