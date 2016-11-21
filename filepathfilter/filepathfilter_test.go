@@ -12,6 +12,46 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPatternMatch(t *testing.T) {
+	assert.True(t, patternMatch("filename.txt", "filename.txt"))
+	assert.True(t, patternMatch("*.txt", "filename.txt"))
+	assert.False(t, patternMatch("*.tx", "filename.txt"))
+	assert.True(t, patternMatch("f*.txt", "filename.txt"))
+	assert.False(t, patternMatch("g*.txt", "filename.txt"))
+	assert.True(t, patternMatch("file*", "filename.txt"))
+	assert.False(t, patternMatch("file", "filename.txt"))
+
+	// With no path separators, should match in subfolders
+	assert.True(t, patternMatch("*.txt", "sub/filename.txt"))
+	assert.False(t, patternMatch("*.tx", "sub/filename.txt"))
+	assert.True(t, patternMatch("f*.txt", "sub/filename.txt"))
+	assert.False(t, patternMatch("g*.txt", "sub/filename.txt"))
+	assert.True(t, patternMatch("file*", "sub/filename.txt"))
+	assert.False(t, patternMatch("file", "sub/filename.txt"))
+	// Needs wildcard for exact filename
+	assert.True(t, patternMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
+
+	// Should not match dots to subparts
+	assert.False(t, patternMatch("*.ign", "sub/shouldignoreme.txt"))
+
+	// Path specific
+	assert.True(t, patternMatch("sub", "sub/filename.txt"))
+	assert.False(t, patternMatch("sub", "subfilename.txt"))
+
+	// Absolute
+	assert.True(t, patternMatch("*.dat", "/path/to/sub/.git/test.dat"))
+	assert.True(t, patternMatch("**/.git", "/path/to/sub/.git"))
+
+	// Match anything
+	assert.True(t, patternMatch(".", "path.txt"))
+	assert.True(t, patternMatch("./", "path.txt"))
+	assert.True(t, patternMatch(".\\", "path.txt"))
+}
+
+func patternMatch(pattern, filename string) bool {
+	return newPattern(pattern).Match(filename)
+}
+
 type filterTest struct {
 	expectedResult bool
 	includes       []string

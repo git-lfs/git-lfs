@@ -60,43 +60,46 @@ func (f *Filter) Allows(filename string) bool {
 	return true
 }
 
+func newPattern(rawpattern string) pattern {
+	cleanpattern := filepath.Clean(rawpattern)
+
+	// Special case local dir, matches all (inc subpaths)
+	if _, local := localDirSet[cleanpattern]; local {
+		return noOpMatcher{}
+	}
+
+	hasPathSep := strings.Contains(cleanpattern, string(filepath.Separator))
+
+	// special case * when there are no path separators
+	// filepath.Match never allows * to match a path separator, which is correct
+	// for gitignore IF the pattern includes a path separator, but not otherwise
+	// So *.txt should match in any subdir, as should test*, but sub/*.txt would
+	// only match directly in the sub dir
+	// Don't need to test cross-platform separators as both cleaned above
+	if !hasPathSep && strings.Contains(cleanpattern, "*") {
+		pattern := regexp.QuoteMeta(cleanpattern)
+		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
+		return &pathlessWildcardPattern{
+			rawPattern: cleanpattern,
+			wildcardRE: regexp.MustCompile(regpattern),
+		}
+		// Also support ** with path separators
+	} else if hasPathSep && strings.Contains(cleanpattern, "**") {
+		pattern := regexp.QuoteMeta(cleanpattern)
+		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
+		return &doubleWildcardPattern{
+			rawPattern: cleanpattern,
+			wildcardRE: regexp.MustCompile(regpattern),
+		}
+	} else {
+		return &basicPattern{rawPattern: cleanpattern}
+	}
+}
+
 func convertToPatterns(rawpatterns []string) []pattern {
 	patterns := make([]pattern, len(rawpatterns))
-	noop := noOpMatcher{}
 	for i, raw := range rawpatterns {
-		cleaned := filepath.Clean(raw)
-		// Special case local dir, matches all (inc subpaths)
-		if _, local := localDirSet[cleaned]; local {
-			patterns[i] = noop
-			continue
-		}
-
-		hasPathSep := strings.Contains(cleaned, string(filepath.Separator))
-
-		// special case * when there are no path separators
-		// filepath.Match never allows * to match a path separator, which is correct
-		// for gitignore IF the pattern includes a path separator, but not otherwise
-		// So *.txt should match in any subdir, as should test*, but sub/*.txt would
-		// only match directly in the sub dir
-		// Don't need to test cross-platform separators as both cleaned above
-		if !hasPathSep && strings.Contains(cleaned, "*") {
-			pattern := regexp.QuoteMeta(cleaned)
-			regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
-			patterns[i] = &pathlessWildcardPattern{
-				rawPattern: cleaned,
-				wildcardRE: regexp.MustCompile(regpattern),
-			}
-			// Also support ** with path separators
-		} else if hasPathSep && strings.Contains(cleaned, "**") {
-			pattern := regexp.QuoteMeta(cleaned)
-			regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
-			patterns[i] = &doubleWildcardPattern{
-				rawPattern: cleaned,
-				wildcardRE: regexp.MustCompile(regpattern),
-			}
-		} else {
-			patterns[i] = &basicPattern{rawPattern: cleaned}
-		}
+		patterns[i] = newPattern(raw)
 	}
 	return patterns
 }
