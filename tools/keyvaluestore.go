@@ -170,6 +170,7 @@ func (k *KeyValueStore) loadAndMergeReaderIfNeeded(f io.Reader) error {
 			return fmt.Errorf("Problem reading updated key/value data from %v: %v", k.filename, err)
 		}
 		k.reapplyChanges(dbOnDisk)
+		k.version = versionOnDisk
 	}
 	return nil
 }
