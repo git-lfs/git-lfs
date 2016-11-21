@@ -110,6 +110,69 @@ func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error
 	return NewPointerChannelWrapper(pchan, errchan), nil
 }
 
+type logScanner struct {
+	s            *bufio.Scanner
+	dir          LogDiffDirection
+	includePaths []string
+	excludePaths []string
+	pointer      *WrappedPointer
+
+	pointerData         *bytes.Buffer
+	currentFilename     string
+	currentFileIncluded bool
+
+	commitHeaderRegex    *regexp.Regexp
+	fileHeaderRegex      *regexp.Regexp
+	fileMergeHeaderRegex *regexp.Regexp
+	pointerDataRegex     *regexp.Regexp
+}
+
+func newLogScanner(r io.Reader, dir LogDiffDirection, includePaths, excludePaths []string) *logScanner {
+	return &logScanner{
+		s:                    bufio.NewScanner(r),
+		dir:                  dir,
+		includePaths:         includePaths,
+		excludePaths:         excludePaths,
+		pointerData:          &bytes.Buffer{},
+		currentFileIncluded:  true,
+		commitHeaderRegex:    regexp.MustCompile(`^lfs-commit-sha: ([A-Fa-f0-9]{40})(?: ([A-Fa-f0-9]{40}))*`),
+		fileHeaderRegex:      regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`),
+		fileMergeHeaderRegex: regexp.MustCompile(`diff --cc (.+)`),
+		pointerDataRegex:     regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size|ext-).*$`),
+	}
+}
+
+func (s *logScanner) Pointer() *WrappedPointer {
+	return s.pointer
+}
+
+func (s *logScanner) Err() error {
+	return s.s.Err()
+}
+
+func (s *logScanner) Scan() bool {
+	s.pointer = nil
+	p, canScan := s.scan()
+	s.pointer = p
+	return canScan
+}
+
+// Utility func used at several points below (keep in narrow scope)
+func (s *logScanner) finishLastPointer() *WrappedPointer {
+	if s.pointerData.Len() > 0 {
+		if s.currentFileIncluded {
+			p, err := DecodePointer(s.pointerData)
+			if err == nil {
+				return &WrappedPointer{Name: s.currentFilename, Pointer: p}
+			} else {
+				tracerx.Printf("Unable to parse pointer from log: %v", err)
+			}
+		}
+		s.pointerData.Reset()
+	}
+	return nil
+}
+
 // parseLogOutputToPointers parses log output formatted as per logLfsSearchArgs & return pointers
 // log: a stream of output from git log with at least logLfsSearchArgs specified
 // dir: whether to include results from + or - diffs
@@ -200,4 +263,59 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 	}
 	// Final pointer if in progress
 	finishLastPointer()
+}
+
+func (s *logScanner) scan() (*WrappedPointer, bool) {
+	for s.s.Scan() {
+		line := s.s.Text()
+		fmt.Println("SCAN:", line)
+
+		if match := s.commitHeaderRegex.FindStringSubmatch(line); match != nil {
+			// Currently we're not pulling out commit groupings, but could if we wanted
+			// This just acts as a delimiter for finishing a multiline pointer
+			if p := s.finishLastPointer(); p != nil {
+				return p, true
+			}
+		} else if match := s.fileHeaderRegex.FindStringSubmatch(line); match != nil {
+			// Finding a regular file header
+			p := s.finishLastPointer()
+			// Pertinent file name depends on whether we're listening to additions or removals
+			if s.dir == LogDiffAdditions {
+				s.currentFilename = match[2]
+			} else {
+				s.currentFilename = match[1]
+			}
+			s.currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(s.currentFilename, s.includePaths, s.excludePaths)
+
+			if p != nil {
+				return p, true
+			}
+		} else if match := s.fileMergeHeaderRegex.FindStringSubmatch(line); match != nil {
+			// Git merge file header is a little different, only one file
+			p := s.finishLastPointer()
+			s.currentFilename = match[1]
+			s.currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(s.currentFilename, s.includePaths, s.excludePaths)
+
+			if p != nil {
+				return p, true
+			}
+		} else if s.currentFileIncluded {
+			if match := s.pointerDataRegex.FindStringSubmatch(line); match != nil {
+				// An LFS pointer data line
+				// Include only the entirety of one side of the diff
+				// -U3 will ensure we always get all of it, even if only
+				// the SHA changed (version & size the same)
+				changeType := match[1][0]
+
+				// Always include unchanged context lines (normally just the version line)
+				if LogDiffDirection(changeType) == s.dir || changeType == ' ' {
+					// Must skip diff +/- marker
+					s.pointerData.WriteString(line[1:])
+					s.pointerData.WriteString("\n") // newline was stripped off by scanner
+				}
+			}
+		}
+	}
+
+	return s.finishLastPointer(), false
 }

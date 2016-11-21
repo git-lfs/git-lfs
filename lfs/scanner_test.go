@@ -95,6 +95,113 @@ index 0000000..92a88f8
 `
 )
 
+func TestLogScannerAdditionsNoFiltering(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(r, LogDiffAdditions, nil, nil)
+
+	// modification, + side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
+	// modification, + side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
+	// addition, + side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "1D_Noise.png", p.Name)
+		assert.Equal(t, "f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6", p.Oid)
+		assert.Equal(t, int64(1289), p.Size)
+	}
+
+	// addition, + side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "waveNM.png", p.Name)
+		assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", p.Oid)
+		assert.Equal(t, int64(125873), p.Size)
+	}
+
+	// addition, + side with extensions
+	assertScannerDone(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "hobbit_5armies_2.mov", p.Name)
+		assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", p.Oid)
+		assert.Equal(t, int64(127142413), p.Size)
+	}
+}
+
+func TestLogScannerAdditionsFilterInclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(r, LogDiffAdditions, []string{"wave*"}, nil)
+
+	// addition, + side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "waveNM.png", p.Name)
+		assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", p.Oid)
+		assert.Equal(t, int64(125873), p.Size)
+	}
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
+}
+
+func TestLogScannerAdditionsFilterExclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(r, LogDiffAdditions, nil, []string{"wave*"})
+
+	// modification, + side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
+	// modification, + side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
+	// addition, + side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "1D_Noise.png", p.Name)
+		assert.Equal(t, "f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6", p.Oid)
+		assert.Equal(t, int64(1289), p.Size)
+	}
+
+	// addition, + side with extensions
+	assertScannerDone(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "hobbit_5armies_2.mov", p.Name)
+		assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", p.Oid)
+		assert.Equal(t, int64(127142413), p.Size)
+	}
+}
+
 func TestParseLogOutputToPointersAdditions(t *testing.T) {
 
 	// test + diff, no filtering
@@ -172,6 +279,99 @@ func TestParseLogOutputToPointersAdditions(t *testing.T) {
 	assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", pointers[3].Oid)
 	assert.Equal(t, int64(127142413), pointers[3].Size)
 
+}
+
+func TestLogScannerDeletionsNoFiltering(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(r, LogDiffDeletions, nil, nil)
+
+	// deletion, - side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "smoke_1.png", p.Name)
+		assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", p.Oid)
+		assert.Equal(t, int64(35022), p.Size)
+	}
+
+	// deletion, - side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "flare_1.png", p.Name)
+		assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", p.Oid)
+		assert.Equal(t, int64(72982), p.Size)
+	}
+
+	// modification, - side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
+	// modification, - side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
+	assertScannerDone(t, scanner)
+}
+
+func TestLogScannerDeletionsFilterInclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(r, LogDiffDeletions, []string{"flare*"}, nil)
+
+	// deletion, - side with extensions
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "flare_1.png", p.Name)
+		assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", p.Oid)
+		assert.Equal(t, int64(72982), p.Size)
+	}
+
+	assertScannerDone(t, scanner)
+}
+
+func TestLogScannerDeletionsFilterExclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(r, LogDiffDeletions, nil, []string{"flare*"})
+
+	// deletion, - side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "smoke_1.png", p.Name)
+		assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", p.Oid)
+		assert.Equal(t, int64(35022), p.Size)
+	}
+
+	// modification, - side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
+	// modification, - side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
+	assertScannerDone(t, scanner)
 }
 
 func TestParseLogOutputToPointersDeletion(t *testing.T) {
