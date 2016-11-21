@@ -12,7 +12,6 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -34,9 +33,10 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 	close(inchan)
 
+	filter := filepathfilter.New(rootedpaths, nil)
 	gitscanner := lfs.NewGitScanner()
 	defer gitscanner.Close()
-	checkoutWithIncludeExclude(gitscanner, rootedpaths, nil)
+	checkoutWithIncludeExclude(gitscanner, filter)
 }
 
 func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter, in chan *lfs.WrappedPointer) {
@@ -84,7 +84,7 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 	wait.Wait()
 }
 
-func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, include []string, exclude []string) {
+func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -122,7 +122,7 @@ func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, include []string, ex
 	totalBytes = 0
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-		if tools.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+		if filter.Allows(pointer.Name) {
 			progress.Add(pointer.Name)
 			c <- pointer
 			// not strictly correct (parallel) but we don't have a callback & it's just local
