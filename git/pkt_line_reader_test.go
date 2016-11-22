@@ -87,7 +87,7 @@ func TestPktlineReaderReadsManyPacketsInMultipleCallsWithUnevenBuffering(t *test
 	n2, e2 := pr.Read(p2[:])
 	assert.Equal(t, 7, n2)
 	assert.Equal(t, []byte("tsecond"), p2[:])
-	assert.Equal(t, nil, e2)
+	assert.Equal(t, io.EOF, e2)
 
 	n3, e3 := pr.Read(p3[:])
 	assert.Equal(t, 0, n3)
@@ -135,7 +135,7 @@ func TestPktlineReaderReadsManyPacketsInMultipleCallsWithEvenBuffering(t *testin
 	n2, e2 := pr.Read(p2[:])
 	assert.Equal(t, 5, n2)
 	assert.Equal(t, []byte("other"), p2[:])
-	assert.Equal(t, nil, e2)
+	assert.Equal(t, io.EOF, e2)
 
 	n3, e3 := pr.Read(p3)
 	assert.Equal(t, 0, n3)

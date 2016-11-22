@@ -54,7 +54,7 @@ func (r *pktlineReader) Read(p []byte) (int, error) {
 		// Mark that we have read "nn" bytes into "p"
 		n += nn
 
-		if n >= len(p) {
+		if n > len(p) {
 			break
 		}
 	}
