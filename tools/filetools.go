@@ -134,6 +134,43 @@ type FastWalkInfo struct {
 	Info      os.FileInfo
 }
 
+type FastWalkCallback func(string, os.FileInfo, error)
+
+// FastWalkGitRepo is a more optimal implementation of filepath.Walk for a Git repo
+// It differs in the following ways:
+//  * Provides a channel of information instead of using a callback func
+//  * Uses goroutines to parallelise large dirs and descent into subdirs
+//  * Does not provide sorted output; parents will always be before children but
+//    there are no other guarantees. Use parentDir in the FastWalkInfo struct to
+//    determine absolute path rather than tracking it yourself like filepath.Walk
+//  * Automatically ignores any .git directories
+//  * Respects .gitignore contents and skips ignored files/dirs
+func FastWalkGitRepo(dir string, cb FastWalkCallback) {
+	fchan, errchan := FastWalkGitRepoChannels(dir)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		for o := range fchan {
+			cb(o.ParentDir, o.Info, nil)
+		}
+		wg.Done()
+	}()
+
+	for err := range errchan {
+		cb("", nil, err)
+	}
+	wg.Wait()
+}
+
+func FastWalkGitRepoChannels(dir string) (<-chan FastWalkInfo, <-chan error) {
+	// Ignore all git metadata including subrepos
+	excludePaths := []filepathfilter.Pattern{
+		filepathfilter.NewPattern(".git"),
+		filepathfilter.NewPattern(filepath.Join("**", ".git")),
+	}
+	return fastWalkWithExcludeFiles(dir, ".gitignore", excludePaths)
+}
+
 // fastWalkWithExcludeFiles walks the contents of a dir, respecting
 // include/exclude patterns and also loading new exlude patterns from files
 // named excludeFilename in directories walked
@@ -145,24 +182,6 @@ func fastWalkWithExcludeFiles(dir, excludeFilename string,
 	go fastWalkFromRoot(dir, excludeFilename, excludePaths, fiChan, errChan)
 
 	return fiChan, errChan
-}
-
-// FastWalkGitRepo is a more optimal implementation of filepath.Walk for a Git repo
-// It differs in the following ways:
-//  * Provides a channel of information instead of using a callback func
-//  * Uses goroutines to parallelise large dirs and descent into subdirs
-//  * Does not provide sorted output; parents will always be before children but
-//    there are no other guarantees. Use parentDir in the FastWalkInfo struct to
-//    determine absolute path rather than tracking it yourself like filepath.Walk
-//  * Automatically ignores any .git directories
-//  * Respects .gitignore contents and skips ignored files/dirs
-func FastWalkGitRepo(dir string) (<-chan FastWalkInfo, <-chan error) {
-	// Ignore all git metadata including subrepos
-	excludePaths := []filepathfilter.Pattern{
-		filepathfilter.NewPattern(".git"),
-		filepathfilter.NewPattern(filepath.Join("**", ".git")),
-	}
-	return fastWalkWithExcludeFiles(dir, ".gitignore", excludePaths)
 }
 
 func fastWalkFromRoot(dir string, excludeFilename string,

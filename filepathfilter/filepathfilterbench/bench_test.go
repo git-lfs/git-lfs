@@ -48,7 +48,7 @@ func benchmarkTree(b *testing.B) []string {
 		b.Fatal(err)
 	}
 
-	infoCh, errCh := tools.FastWalkGitRepo(filepath.Dir(wd))
+	infoCh, errCh := tools.FastWalkGitRepoChannels(filepath.Dir(wd))
 
 	go func() {
 		for i := range infoCh {

@@ -47,6 +47,62 @@ func TestFastWalkBasic(t *testing.T) {
 
 }
 
+func BenchmarkFastWalkGitRepoChannels(b *testing.B) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoChannels")
+	if err != nil {
+		assert.FailNow(b, "Unable to get temp dir: %v", err)
+	}
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	entries := createFastWalkInputData(1000, 5000)
+
+	for i := 0; i < b.N; i++ {
+		var files, errors int
+		fchan, errchan := FastWalkGitRepoChannels(entries[0])
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			for _ = range fchan {
+				files++
+			}
+			wg.Done()
+		}()
+
+		go func() {
+			for _ = range errchan {
+				errors++
+			}
+			wg.Done()
+		}()
+		wg.Wait()
+
+		b.Logf("files: %d, errors: %d", files, errors)
+	}
+}
+
+func BenchmarkFastWalkGitRepoCallback(b *testing.B) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoCallback")
+	if err != nil {
+		assert.FailNow(b, "Unable to get temp dir: %v", err)
+	}
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	entries := createFastWalkInputData(1000, 5000)
+
+	for i := 0; i < b.N; i++ {
+		var files, errors int
+		FastWalkGitRepo(entries[0], func(parentDir string, info os.FileInfo, err error) {
+			if err != nil {
+				errors++
+			} else {
+				files++
+			}
+		})
+
+		b.Logf("files: %d, errors: %d", files, errors)
+	}
+}
+
 func TestFastWalkGitRepo(t *testing.T) {
 	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkGitRepo")
 	if err != nil {
@@ -107,7 +163,7 @@ thisisnot.txt
 	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", ".gitignore"))
 	// nothing else should be there
 
-	fchan, errchan := FastWalkGitRepo(mainDir)
+	fchan, errchan := FastWalkGitRepoChannels(mainDir)
 	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
 
 	assert.Empty(t, gotErrors)
