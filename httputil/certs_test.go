@@ -3,7 +3,6 @@ package httputil
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -120,7 +119,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 func TestCertFromSSLCAPathConfig(t *testing.T) {
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Nil(t, err, "Error creating temp cert dir")
-	defer os.RemoveAll(tempdir)
+	defer longpathos.RemoveAll(tempdir)
 
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
@@ -140,7 +139,7 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 func TestCertFromSSLCAPathEnv(t *testing.T) {
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Nil(t, err, "Error creating temp cert dir")
-	defer os.RemoveAll(tempdir)
+	defer longpathos.RemoveAll(tempdir)
 
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")

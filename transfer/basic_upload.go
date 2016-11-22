@@ -27,7 +27,7 @@ type basicUploadAdapter struct {
 
 func (a *basicUploadAdapter) ClearTempStorage() error {
 	// Should be empty already but also remove dir
-	return os.RemoveAll(a.tempDir())
+	return longpathos.RemoveAll(a.tempDir())
 }
 
 func (a *basicUploadAdapter) tempDir() string {

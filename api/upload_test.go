@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -36,7 +35,7 @@ func TestExistingUpload(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 
@@ -146,7 +145,7 @@ func TestUploadWithRedirect(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	mux.HandleFunc("/redirect/objects", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
@@ -271,7 +270,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 	verifyCalled := false
@@ -422,7 +421,7 @@ func TestUploadApiError(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 
@@ -481,7 +480,7 @@ func TestUploadVerifyError(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 	verifyCalled := false

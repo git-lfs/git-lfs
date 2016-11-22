@@ -24,7 +24,7 @@ type basicDownloadAdapter struct {
 }
 
 func (a *basicDownloadAdapter) ClearTempStorage() error {
-	return os.RemoveAll(a.tempDir())
+	return longpathos.RemoveAll(a.tempDir())
 }
 
 func (a *basicDownloadAdapter) tempDir() string {

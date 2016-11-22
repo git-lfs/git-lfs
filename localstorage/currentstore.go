@@ -60,5 +60,5 @@ func TempFile(prefix string) (*os.File, error) {
 
 func ResetTempDir() error {
 	checkedTempDir = ""
-	return os.RemoveAll(TempDir)
+	return longpathos.RemoveAll(TempDir)
 }

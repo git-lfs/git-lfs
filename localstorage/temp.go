@@ -1,7 +1,6 @@
 package localstorage
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,7 +23,7 @@ func (s *LocalStorage) ClearTempObjects() error {
 	for _, filename := range filenames {
 		path := filepath.Join(s.TempDir, filename)
 		if shouldDeleteTempObject(s, path) {
-			os.RemoveAll(path)
+			longpathos.RemoveAll(path)
 		}
 	}
 

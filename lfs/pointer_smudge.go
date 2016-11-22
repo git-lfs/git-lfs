@@ -51,7 +51,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		fileSize := stat.Size()
 		if fileSize == 0 || fileSize != ptr.Size {
 			tracerx.Printf("Removing %s, size %d is invalid", mediafile, fileSize)
-			os.RemoveAll(mediafile)
+			longpathos.RemoveAll(mediafile)
 			stat = nil
 		}
 	}

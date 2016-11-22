@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -103,7 +102,7 @@ func (h *Hook) Uninstall() error {
 		return nil
 	}
 
-	return os.RemoveAll(h.Path())
+	return longpathos.RemoveAll(h.Path())
 }
 
 // matchesCurrent returns whether or not an existing git hook is able to be

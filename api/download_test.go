@@ -18,6 +18,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 func TestSuccessfulDownload(t *testing.T) {
@@ -31,7 +32,7 @@ func TestSuccessfulDownload(t *testing.T) {
 	defer server.Close()
 
 	tmp := tempdir(t)
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
@@ -107,7 +108,7 @@ func TestSuccessfulDownloadWithRedirects(t *testing.T) {
 	defer server.Close()
 
 	tmp := tempdir(t)
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	// all of these should work for GET requests
 	redirectCodes := []int{301, 302, 303, 307}
@@ -218,7 +219,7 @@ func TestSuccessfulDownloadWithAuthorization(t *testing.T) {
 	defer server.Close()
 
 	tmp := tempdir(t)
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
@@ -295,7 +296,7 @@ func TestDownloadAPIError(t *testing.T) {
 	defer server.Close()
 
 	tmp := tempdir(t)
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	mux.HandleFunc("/media/objects/oid", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)

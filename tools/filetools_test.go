@@ -144,7 +144,7 @@ func TestFastWalkBasic(t *testing.T) {
 	if err != nil {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
-	defer os.RemoveAll(rootDir)
+	defer longpathos.RemoveAll(rootDir)
 	longpathos.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(10, 160)
@@ -165,7 +165,7 @@ func TestFastWalkGitRepo(t *testing.T) {
 	if err != nil {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
-	defer os.RemoveAll(rootDir)
+	defer longpathos.RemoveAll(rootDir)
 	longpathos.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(3, 3)

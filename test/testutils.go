@@ -112,11 +112,11 @@ func (r *Repo) Cleanup() {
 	}
 
 	if r.GitDir != "" {
-		os.RemoveAll(r.GitDir)
+		longpathos.RemoveAll(r.GitDir)
 		r.GitDir = ""
 	}
 	if r.Path != "" {
-		os.RemoveAll(r.Path)
+		longpathos.RemoveAll(r.Path)
 		r.Path = ""
 	}
 	for _, remote := range r.Remotes {

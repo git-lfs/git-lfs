@@ -27,6 +27,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 var (
@@ -90,17 +92,17 @@ func main() {
 	})
 
 	urlname := writeTestStateFile([]byte(server.URL), "LFSTEST_URL", "lfstest-gitserver")
-	defer os.RemoveAll(urlname)
+	defer longpathos.RemoveAll(urlname)
 
 	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
-	defer os.RemoveAll(sslurlname)
+	defer longpathos.RemoveAll(sslurlname)
 
 	block := &pem.Block{}
 	block.Type = "CERTIFICATE"
 	block.Bytes = serverTLS.TLS.Certificates[0].Certificate[0]
 	pembytes := pem.EncodeToMemory(block)
 	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
-	defer os.RemoveAll(certname)
+	defer longpathos.RemoveAll(certname)
 
 	debug("init", "server url: %s", server.URL)
 	debug("init", "server tls url: %s", serverTLS.URL)

@@ -234,13 +234,13 @@ func newCloneableBody(r io.Reader, limit int64) (*cloneableBody, error) {
 		_, err = io.Copy(tmp, r)
 		tmp.Close()
 		if err != nil {
-			os.RemoveAll(tmp.Name())
+			longpathos.RemoveAll(tmp.Name())
 			return nil, err
 		}
 
 		f, err := longpathos.Open(tmp.Name())
 		if err != nil {
-			os.RemoveAll(tmp.Name())
+			longpathos.RemoveAll(tmp.Name())
 			return nil, err
 		}
 
@@ -311,7 +311,7 @@ func (t *dupTracker) Add() {
 func (t *dupTracker) Rm() {
 	newval := atomic.AddInt32(t.dups, -1)
 	if newval < 0 {
-		os.RemoveAll(t.name)
+		longpathos.RemoveAll(t.name)
 	}
 }
 
