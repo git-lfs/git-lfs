@@ -133,7 +133,7 @@ ArgsLoop:
 
 			if !trackDryRunFlag {
 				now := time.Now()
-				err := os.Chtimes(f, now, now)
+				err := longpathos.Chtimes(f, now, now)
 				if err != nil {
 					LoggedError(err, "Error marking %q modified", f)
 					continue

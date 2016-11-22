@@ -1,6 +1,9 @@
 package longpathos
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 func Stat(name string) (os.FileInfo, error) {
 	return os.Stat(fixLongPath(name))
@@ -20,4 +23,8 @@ func Link(oldname, newname string) error {
 
 func Chdir(dir string) error {
 	return os.Chdir(fixLongPath(dir))
+}
+
+func Chtimes(name string, atime, mtime time.Time) error {
+	return os.Chtimes(fixLongPath(name), atime, mtime)
 }
