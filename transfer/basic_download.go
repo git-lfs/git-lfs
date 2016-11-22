@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/rubyist/tracerx"
 )
 
@@ -56,11 +57,11 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Trans
 func (a *basicDownloadAdapter) checkResumeDownload(t *Transfer) (outFile *os.File, fromByte int64, hashSoFar hash.Hash, e error) {
 	// lock the file by opening it for read/write, rather than checking Stat() etc
 	// which could be subject to race conditions by other processes
-	f, err := os.OpenFile(a.downloadFilename(t), os.O_RDWR, 0644)
+	f, err := longpathos.OpenFile(a.downloadFilename(t), os.O_RDWR, 0644)
 
 	if err != nil {
 		// Create a new file instead, must not already exist or error (permissions / race condition)
-		newfile, err := os.OpenFile(a.downloadFilename(t), os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
+		newfile, err := longpathos.OpenFile(a.downloadFilename(t), os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
 		return newfile, 0, nil, err
 	}
 
@@ -188,7 +189,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 
 	if dlFile == nil {
 		// New file start
-		dlFile, err = os.OpenFile(a.downloadFilename(t), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		dlFile, err = longpathos.OpenFile(a.downloadFilename(t), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}

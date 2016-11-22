@@ -41,7 +41,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.C
 		return nil, nil, wrapProgressError(err, event, logPath)
 	}
 
-	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := longpathos.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, file, wrapProgressError(err, event, logPath)
 	}

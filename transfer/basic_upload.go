@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 const (
@@ -67,7 +68,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	req.ContentLength = t.Object.Size
 
-	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
+	f, err := longpathos.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
 		return errors.Wrap(err, "basic upload")
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 var cfg = config.New()
@@ -166,7 +167,7 @@ func performUpload(oid string, size int64, a *action, fromPath string, writer, e
 
 	req.ContentLength = size
 
-	f, err := os.OpenFile(fromPath, os.O_RDONLY, 0644)
+	f, err := longpathos.OpenFile(fromPath, os.O_RDONLY, 0644)
 	if err != nil {
 		sendTransferError(oid, 3, fmt.Sprintf("Cannot read data from %q: %v", fromPath, err), writer, errWriter)
 		return

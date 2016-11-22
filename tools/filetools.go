@@ -335,7 +335,7 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 // If any changes are made a copy of the array is taken so the original is not
 // modified
 func loadExcludeFilename(filename, parentDir string, excludePaths []string) ([]string, error) {
-	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
+	f, err := longpathos.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
 		return excludePaths, err
 	}

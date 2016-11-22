@@ -54,7 +54,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	addTrailingLinebreak := needsTrailingLinebreak(".gitattributes")
-	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	attributesFile, err := longpathos.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		Print("Error opening .gitattributes file")
 		return
