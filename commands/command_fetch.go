@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -79,17 +79,17 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		success = fetchAll(gitscanner)
 
 	} else { // !all
-		includePaths, excludePaths := determineIncludeExcludePaths(cfg, include, exclude)
+		filter := buildFilepathFilter(cfg, include, exclude)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
 			Print("Fetching %v", ref.Name)
-			s := fetchRef(gitscanner, ref.Sha, includePaths, excludePaths)
+			s := fetchRef(gitscanner, ref.Sha, filter)
 			success = success && s
 		}
 
 		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(gitscanner, refs, includePaths, excludePaths)
+			s := fetchRecent(gitscanner, refs, filter)
 			success = success && s
 		}
 	}
@@ -114,30 +114,30 @@ func pointersToFetchForRef(gitscanner *lfs.GitScanner, ref string) ([]*lfs.Wrapp
 	return collectPointers(pointerCh)
 }
 
-func fetchRefToChan(gitscanner *lfs.GitScanner, ref string, include, exclude []string) chan *lfs.WrappedPointer {
+func fetchRefToChan(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
 	c := make(chan *lfs.WrappedPointer)
 	pointers, err := pointersToFetchForRef(gitscanner, ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
-	go fetchAndReportToChan(pointers, include, exclude, c)
+	go fetchAndReportToChan(pointers, filter, c)
 
 	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(gitscanner *lfs.GitScanner, ref string, include, exclude []string) bool {
+func fetchRef(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Filter) bool {
 	pointers, err := pointersToFetchForRef(gitscanner, ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
-	return fetchPointers(pointers, include, exclude)
+	return fetchAndReportToChan(pointers, filter, nil)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
-func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Time, include, exclude []string) bool {
+func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Time, filter *filepathfilter.Filter) bool {
 	pointerCh, err := gitscanner.ScanPreviousVersions(ref, since)
 	if err != nil {
 		ExitWithError(err)
@@ -146,11 +146,11 @@ func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Ti
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS previous versions")
 	}
-	return fetchPointers(pointers, include, exclude)
+	return fetchAndReportToChan(pointers, filter, nil)
 }
 
 // Fetch recent objects based on config
-func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, include, exclude []string) bool {
+func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	fetchconf := cfg.FetchPruneConfig()
 
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
@@ -180,7 +180,7 @@ func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, incl
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
 				Print("Fetching %v", ref.Name)
-				k := fetchRef(gitscanner, ref.Sha, include, exclude)
+				k := fetchRef(gitscanner, ref.Sha, filter)
 				ok = ok && k
 			}
 		}
@@ -196,7 +196,7 @@ func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, incl
 			}
 			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
-			k := fetchPreviousVersions(gitscanner, commit, commitsSince, include, exclude)
+			k := fetchPreviousVersions(gitscanner, commit, commitsSince, filter)
 			ok = ok && k
 		}
 
@@ -207,7 +207,7 @@ func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, incl
 func fetchAll(gitscanner *lfs.GitScanner) bool {
 	pointers := scanAll(gitscanner)
 	Print("Fetching objects...")
-	return fetchPointers(pointers, nil, nil)
+	return fetchAndReportToChan(pointers, nil, nil)
 }
 
 func scanAll(gitscanner *lfs.GitScanner) []*lfs.WrappedPointer {
@@ -237,13 +237,9 @@ func scanAll(gitscanner *lfs.GitScanner) []*lfs.WrappedPointer {
 	return pointers
 }
 
-func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bool {
-	return fetchAndReportToChan(pointers, include, exclude, nil)
-}
-
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
+func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
 	// Lazily initialize the current remote.
 	if len(cfg.CurrentRemote) == 0 {
 		// Actively find the default remote, don't just assume origin
@@ -254,7 +250,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []
 		cfg.CurrentRemote = defaultRemote
 	}
 
-	ready, pointers, totalSize := readyAndMissingPointers(allpointers, include, exclude)
+	ready, pointers, totalSize := readyAndMissingPointers(allpointers, filter)
 	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
 
 	if out != nil {
@@ -305,7 +301,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude []string) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
 	size := int64(0)
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -313,7 +309,7 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude
 
 	for _, p := range allpointers {
 		// Filtered out by --include or --exclude
-		if !tools.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude) {
+		if !filter.Allows(p.Name) {
 			continue
 		}
 

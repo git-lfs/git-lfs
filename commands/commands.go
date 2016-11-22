@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
@@ -238,6 +239,11 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
+}
+
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+	return filepathfilter.New(inc, exc)
 }
 
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
