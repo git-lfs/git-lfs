@@ -73,7 +73,6 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-Scan:
 	for s.Scan() {
 		var err error
 		var w *git.PktlineWriter
@@ -90,8 +89,7 @@ Scan:
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
 			err = filterSmudge(w, req.Payload, req.Header["pathname"])
 		default:
-			fmt.Errorf("Unknown command %s", cmd)
-			break Scan
+			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
 
 		var status string

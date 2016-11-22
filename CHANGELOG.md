@@ -1,5 +1,11 @@
 # Git LFS Changelog
 
+## 1.5.1 (18 November, 2016)
+
+### Bugs
+
+* cat-file --batch parser errors on non-lfs git blobs #1680 (@technoweenie)
+
 ## 1.5.0 (17 November, 2016)
 
 ### Features
