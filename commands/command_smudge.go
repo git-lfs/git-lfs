@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -28,16 +28,16 @@ var (
 // Any errors encountered along the way will be returned immediately if they
 // were non-fatal, otherwise execution will halt and the process will be
 // terminated by using the `commands.Panic()` func.
-func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool) error {
+func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool, filter *filepathfilter.Filter) error {
+	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
 		return err
 	}
 
-	download := tools.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
-
-	if skip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
-		download = false
+	download := !skip
+	if download {
+		download = filter.Allows(filename)
 	}
 
 	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
@@ -76,9 +76,11 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
-
-	if err := smudge(os.Stdout, ptr, smudgeFilename(args, perr), smudgeSkip); err != nil {
+	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
+		smudgeSkip = true
+	}
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	if err := smudge(os.Stdout, ptr, smudgeFilename(args, perr), smudgeSkip, filter); err != nil {
 		Error(err.Error())
 	}
 }

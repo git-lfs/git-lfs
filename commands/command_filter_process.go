@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -34,7 +35,7 @@ var filterSmudgeSkip bool
 // This function, unlike the implementation found in the legacy smudge command,
 // only combines the `io.Reader`s when necessary, since the implementation
 // found in `*git.PacketReader` blocks while waiting for the following packet.
-func filterSmudge(to io.Writer, from io.Reader, filename string) error {
+func filterSmudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
 	var pbuf bytes.Buffer
 	from = io.TeeReader(from, &pbuf)
 
@@ -55,9 +56,7 @@ func filterSmudge(to io.Writer, from io.Reader, filename string) error {
 		return err
 	}
 
-	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
-
-	return smudge(to, ptr, filename, filterSmudgeSkip)
+	return smudge(to, ptr, filename, skip, filter)
 }
 
 func filterCommand(cmd *cobra.Command, args []string) {
@@ -73,7 +72,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-Scan:
+	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+
 	for s.Scan() {
 		var err error
 		var w *git.PktlineWriter
@@ -88,10 +89,9 @@ Scan:
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = filterSmudge(w, req.Payload, req.Header["pathname"])
+			err = filterSmudge(w, req.Payload, req.Header["pathname"], skip, filter)
 		default:
-			fmt.Errorf("Unknown command %s", cmd)
-			break Scan
+			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
 
 		var status string

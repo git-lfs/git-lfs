@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -112,7 +112,10 @@ func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error
 
 func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 	includePaths, excludePaths []string, results chan *WrappedPointer) {
-	scanner := newLogScanner(log, dir, includePaths, excludePaths)
+	scanner := newLogScanner(dir, log)
+	if len(includePaths)+len(excludePaths) > 0 {
+		scanner.Filter = filepathfilter.New(includePaths, excludePaths)
+	}
 	for scanner.Scan() {
 		if p := scanner.Pointer(); p != nil {
 			results <- p
@@ -123,11 +126,13 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 // logScanner parses log output formatted as per logLfsSearchArgs & returns
 // pointers.
 type logScanner struct {
-	s            *bufio.Scanner
-	dir          LogDiffDirection
-	includePaths []string
-	excludePaths []string
-	pointer      *WrappedPointer
+	// Filter will ensure file paths matching the include patterns, or not matchin
+	// the exclude patterns are skipped.
+	Filter *filepathfilter.Filter
+
+	s       *bufio.Scanner
+	dir     LogDiffDirection
+	pointer *WrappedPointer
 
 	pointerData         *bytes.Buffer
 	currentFilename     string
@@ -139,15 +144,12 @@ type logScanner struct {
 	pointerDataRegex     *regexp.Regexp
 }
 
-// r: a stream of output from git log with at least logLfsSearchArgs specified
 // dir: whether to include results from + or - diffs
-// includePaths, excludePaths: filter the results by filename
-func newLogScanner(r io.Reader, dir LogDiffDirection, includePaths, excludePaths []string) *logScanner {
+// r: a stream of output from git log with at least logLfsSearchArgs specified
+func newLogScanner(dir LogDiffDirection, r io.Reader) *logScanner {
 	return &logScanner{
 		s:                   bufio.NewScanner(r),
 		dir:                 dir,
-		includePaths:        includePaths,
-		excludePaths:        excludePaths,
 		pointerData:         &bytes.Buffer{},
 		currentFileIncluded: true,
 
@@ -177,11 +179,7 @@ func (s *logScanner) Scan() bool {
 
 // Utility func used at several points below (keep in narrow scope)
 func (s *logScanner) finishLastPointer() *WrappedPointer {
-	if s.pointerData.Len() == 0 {
-		return nil
-	}
-
-	if !s.currentFileIncluded {
+	if s.pointerData.Len() == 0 || !s.currentFileIncluded {
 		return nil
 	}
 
@@ -225,13 +223,13 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 		} else if match := s.fileHeaderRegex.FindStringSubmatch(line); match != nil {
 			// Finding a regular file header
 			p := s.finishLastPointer()
+
 			// Pertinent file name depends on whether we're listening to additions or removals
 			if s.dir == LogDiffAdditions {
-				s.currentFilename = match[2]
+				s.setFilename(match[2])
 			} else {
-				s.currentFilename = match[1]
+				s.setFilename(match[1])
 			}
-			s.currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(s.currentFilename, s.includePaths, s.excludePaths)
 
 			if p != nil {
 				return p, true
@@ -239,8 +237,8 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 		} else if match := s.fileMergeHeaderRegex.FindStringSubmatch(line); match != nil {
 			// Git merge file header is a little different, only one file
 			p := s.finishLastPointer()
-			s.currentFilename = match[1]
-			s.currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(s.currentFilename, s.includePaths, s.excludePaths)
+
+			s.setFilename(match[1])
 
 			if p != nil {
 				return p, true
@@ -268,4 +266,9 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 	}
 
 	return nil, false
+}
+
+func (s *logScanner) setFilename(name string) {
+	s.currentFilename = name
+	s.currentFileIncluded = s.Filter.Allows(name)
 }

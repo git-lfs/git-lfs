@@ -15,7 +15,6 @@ else
           | grep -v "github.com/olekukonko/ts" \
           | grep -v "github.com/pkg/errors" \
           | grep -v "github.com/stretchr/testify" \
-          | grep -v "github.com/technoweenie/go-contentaddressable" \
           | grep -v "github.com/xeipuuv/gojsonreference" \
           | grep -v "github.com/xeipuuv/gojsonschema" \
       )

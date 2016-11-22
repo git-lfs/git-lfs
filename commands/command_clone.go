@@ -70,14 +70,14 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
+	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
 	gitscanner := lfs.NewGitScanner()
 	defer gitscanner.Close()
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		fetchRef(gitscanner, "HEAD", include, exclude)
+		fetchRef(gitscanner, "HEAD", filter)
 	} else {
-		pull(gitscanner, include, exclude)
+		pull(gitscanner, filter)
 		err := postCloneSubmodules(args)
 		if err != nil {
 			Exit("Error performing 'git lfs pull' for submodules: %v", err)
