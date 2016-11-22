@@ -97,3 +97,21 @@ begin_test "filter process: adding a file"
   diff -u <(echo "$expected") <(echo "$got")
 )
 end_test
+
+# https://github.com/git-lfs/git-lfs/issues/1697
+begin_test "filter process: add a file with 1024 bytes"
+(
+  set -e
+
+  mkdir repo
+  cd repo
+  git init
+  git lfs track "*.dat"
+  dd if=/dev/zero of=first.dat bs=1024 count=1
+  printf "any contents" > second.dat
+  git add .
+)
+end_test
+
+
+
