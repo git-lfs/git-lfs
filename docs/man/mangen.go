@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 func readManDir() (string, []os.FileInfo) {
