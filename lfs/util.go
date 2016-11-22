@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type Platform int
@@ -187,7 +188,7 @@ func CopyFileContents(src string, dst string) error {
 		tmp.Close()
 		os.Remove(tmp.Name())
 	}()
-	in, err := os.Open(src)
+	in, err := longpathos.Open(src)
 	if err != nil {
 		return err
 	}

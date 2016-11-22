@@ -62,7 +62,7 @@ func main() {
 				cmd = "git-lfs"
 			}
 			out.WriteString("ManPages[\"" + cmd + "\"] = `")
-			contentf, err := os.Open(filepath.Join(manDir, f.Name()))
+			contentf, err := longpathos.Open(filepath.Join(manDir, f.Name()))
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
 				os.Exit(2)

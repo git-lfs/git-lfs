@@ -15,7 +15,7 @@ func (s *LocalStorage) ClearTempObjects() error {
 		return nil
 	}
 
-	d, err := os.Open(s.TempDir)
+	d, err := longpathos.Open(s.TempDir)
 	if err != nil {
 		return err
 	}

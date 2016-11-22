@@ -152,7 +152,7 @@ func findPatterns() []mediaPattern {
 	var patterns []mediaPattern
 
 	for _, path := range findAttributeFiles() {
-		attributes, err := os.Open(path)
+		attributes, err := longpathos.Open(path)
 		if err != nil {
 			continue
 		}
@@ -208,7 +208,7 @@ func findAttributeFiles() []string {
 }
 
 func needsTrailingLinebreak(filename string) bool {
-	file, err := os.Open(filename)
+	file, err := longpathos.Open(filename)
 	if err != nil {
 		return false
 	}

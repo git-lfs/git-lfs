@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 var (
@@ -261,7 +262,7 @@ func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string
 
 func hashRelease(name string) string {
 	full := filepath.Join("bin/releases", name)
-	file, err := os.Open(full)
+	file, err := longpathos.Open(full)
 	if err != nil {
 		fmt.Printf("unable to open release %q: %+v\n", full, err)
 		os.Exit(1)

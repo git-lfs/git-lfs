@@ -15,6 +15,7 @@ import (
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/auth"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 func ntlmClientSession(c *config.Configuration, creds auth.Creds) (ntlm.ClientSession, error) {
@@ -237,7 +238,7 @@ func newCloneableBody(r io.Reader, limit int64) (*cloneableBody, error) {
 			return nil, err
 		}
 
-		f, err := os.Open(tmp.Name())
+		f, err := longpathos.Open(tmp.Name())
 		if err != nil {
 			os.RemoveAll(tmp.Name())
 			return nil, err
@@ -285,7 +286,7 @@ func (b *cloneableBody) CloneBody() (*cloneableBody, error) {
 	if b.file == nil {
 		b2.reader = bytes.NewBuffer(b.bytes)
 	} else {
-		f, err := os.Open(b.file.Name())
+		f, err := longpathos.Open(b.file.Name())
 		if err != nil {
 			return nil, err
 		}

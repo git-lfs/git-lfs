@@ -109,7 +109,7 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 // VerifyFileHash reads a file and verifies whether the SHA is correct
 // Returns an error if there is a problem
 func VerifyFileHash(oid, path string) error {
-	f, err := os.Open(path)
+	f, err := longpathos.Open(path)
 	if err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 	// still need the Stat() to know whether something is a dir, so use
 	// File.Readdir instead. Means we can provide os.FileInfo to callers like
 	// filepath.Walk as a bonus.
-	df, err := os.Open(fullPath)
+	df, err := longpathos.Open(fullPath)
 	if err != nil {
 		errChan <- err
 		return

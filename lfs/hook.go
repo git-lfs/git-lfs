@@ -111,7 +111,7 @@ func (h *Hook) Uninstall() error {
 // its contents match the current contents, or any past "upgrade-able" contents
 // of this hook.
 func (h *Hook) matchesCurrent() (bool, error) {
-	file, err := os.Open(h.Path())
+	file, err := longpathos.Open(h.Path())
 	if err != nil {
 		return false, err
 	}

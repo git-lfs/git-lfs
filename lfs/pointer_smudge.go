@@ -111,7 +111,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 }
 
 func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) error {
-	reader, err := os.Open(mediafile)
+	reader, err := longpathos.Open(mediafile)
 	if err != nil {
 		return errors.Wrapf(err, "Error opening media file.")
 	}
@@ -179,7 +179,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		}
 
 		// setup reader
-		reader, err = os.Open(response.file.Name())
+		reader, err = longpathos.Open(response.file.Name())
 		if err != nil {
 			return errors.Wrapf(err, "Error opening smudged file: %s", err)
 		}

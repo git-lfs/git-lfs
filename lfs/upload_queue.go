@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/api"
@@ -86,7 +85,7 @@ func ensureFile(smudgePath, cleanPath string) error {
 
 	expectedOid := filepath.Base(cleanPath)
 	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
-	file, err := os.Open(localPath)
+	file, err := longpathos.Open(localPath)
 	if err != nil {
 		return err
 	}
