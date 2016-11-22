@@ -8,6 +8,9 @@ begin_test "(long path) fetch"
 (
   set -e
 
+  # ensure core.longpaths is enabled
+  git config --global --get-regexp "lfs|credential|user|longpaths"
+
   reponame="long-paths"
   setup_remote_repo "$reponame"
 
