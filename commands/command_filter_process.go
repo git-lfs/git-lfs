@@ -75,7 +75,6 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
-Scan:
 	for s.Scan() {
 		var err error
 		var w *git.PktlineWriter
@@ -92,8 +91,7 @@ Scan:
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
 			err = filterSmudge(w, req.Payload, req.Header["pathname"], skip, filter)
 		default:
-			fmt.Errorf("Unknown command %s", cmd)
-			break Scan
+			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
 
 		var status string

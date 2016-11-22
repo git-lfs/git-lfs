@@ -28,8 +28,6 @@ import:
   version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
   subpackages:
   - ntlm
-- package: github.com/technoweenie/go-contentaddressable
-  version: 38171def3cd15e3b76eb156219b3d48704643899
 - package: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - package: github.com/xeipuuv/gojsonreference
@@ -37,4 +35,4 @@ import:
 - package: github.com/xeipuuv/gojsonschema
   version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
 - package: github.com/pkg/errors
-  version: ^0.7.0
+  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
