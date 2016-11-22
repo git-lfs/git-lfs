@@ -52,7 +52,7 @@ func (h *Hook) Dir() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
+	if err := longpathos.MkdirAll(h.Dir(), 0755); err != nil {
 		return err
 	}
 

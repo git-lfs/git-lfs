@@ -192,7 +192,7 @@ func TestFastWalkGitRepo(t *testing.T) {
 		if len(filepath.Ext(f)) > 0 {
 			ioutil.WriteFile(fullPath, []byte("TEST"), 0644)
 		} else {
-			os.MkdirAll(fullPath, 0755)
+			longpathos.MkdirAll(fullPath, 0755)
 		}
 	}
 	// write root .gitignore
@@ -248,7 +248,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	expectedEntries := make([]string, 0, 250)
 
 	for i, dir := range dirs {
-		os.MkdirAll(dir, 0755)
+		longpathos.MkdirAll(dir, 0755)
 		numFiles := smallFolder
 		expectedEntries = append(expectedEntries, filepath.Clean(dir))
 		if i >= 3 && i <= 5 {

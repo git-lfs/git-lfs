@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/rubyist/tracerx"
 )
 
@@ -334,7 +335,7 @@ func LogHttpStats(cfg *config.Configuration) {
 
 func statsLogFile() (*os.File, error) {
 	logBase := filepath.Join(config.LocalLogDir, "http")
-	if err := os.MkdirAll(logBase, 0755); err != nil {
+	if err := longpathos.MkdirAll(logBase, 0755); err != nil {
 		return nil, err
 	}
 

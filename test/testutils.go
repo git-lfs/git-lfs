@@ -234,7 +234,7 @@ func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, err
 	}
 
 	// Write pointer to local filename for adding (not using clean filter)
-	os.MkdirAll(filepath.Dir(infile.Filename), 0755)
+	longpathos.MkdirAll(filepath.Dir(infile.Filename), 0755)
 	f, err := os.Create(infile.Filename)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating pointer file")

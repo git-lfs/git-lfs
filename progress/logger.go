@@ -53,7 +53,7 @@ func newProgressLogger(logPath string) (*progressLogger, error) {
 	}
 
 	cbDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(cbDir, 0755); err != nil {
+	if err := longpathos.MkdirAll(cbDir, 0755); err != nil {
 		return &progressLogger{}, err
 	}
 

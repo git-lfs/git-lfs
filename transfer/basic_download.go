@@ -32,7 +32,7 @@ func (a *basicDownloadAdapter) tempDir() string {
 	// Also make local to this repo not global, and separate to localstorage temp,
 	// which gets cleared at the end of every invocation
 	d := filepath.Join(localstorage.Objects().RootDir, "incomplete")
-	if err := os.MkdirAll(d, 0755); err != nil {
+	if err := longpathos.MkdirAll(d, 0755); err != nil {
 		return os.TempDir()
 	}
 	return d

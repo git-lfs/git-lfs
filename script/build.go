@@ -113,7 +113,7 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	}
 
 	if addenv {
-		err := os.MkdirAll(dir, 0755)
+		err := longpathos.MkdirAll(dir, 0755)
 		if err != nil {
 			log.Println("Error setting up installer:\n", err.Error())
 			return err

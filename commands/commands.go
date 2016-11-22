@@ -17,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/git-lfs/git-lfs/transfer"
 )
 
@@ -181,7 +182,7 @@ func logPanic(loggedError error) string {
 	name := now.Format("20060102T150405.999999999")
 	full := filepath.Join(config.LocalLogDir, name+".log")
 
-	if err := os.MkdirAll(config.LocalLogDir, 0755); err != nil {
+	if err := longpathos.MkdirAll(config.LocalLogDir, 0755); err != nil {
 		full = ""
 		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
 	} else if file, err := os.Create(full); err != nil {

@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 const (
@@ -31,11 +33,11 @@ type Object struct {
 }
 
 func NewStorage(storageDir, tempDir string) (*LocalStorage, error) {
-	if err := os.MkdirAll(storageDir, dirPerms); err != nil {
+	if err := longpathos.MkdirAll(storageDir, dirPerms); err != nil {
 		return nil, err
 	}
 
-	if err := os.MkdirAll(tempDir, dirPerms); err != nil {
+	if err := longpathos.MkdirAll(tempDir, dirPerms); err != nil {
 		return nil, err
 	}
 
@@ -48,7 +50,7 @@ func (s *LocalStorage) ObjectPath(oid string) string {
 
 func (s *LocalStorage) BuildObjectPath(oid string) (string, error) {
 	dir := localObjectDir(s, oid)
-	if err := os.MkdirAll(dir, dirPerms); err != nil {
+	if err := longpathos.MkdirAll(dir, dirPerms); err != nil {
 		return "", fmt.Errorf("Error trying to create local storage directory in %q: %s", dir, err)
 	}
 
