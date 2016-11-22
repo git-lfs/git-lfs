@@ -1,5 +1,21 @@
 # Git LFS Changelog
 
+## 1.5.2 (22 November, 2016)
+
+### Features
+
+* Release LFS on Fedora 24 #1685 (@technoweenie)
+
+### Bugs
+
+* filter-process: fix reading 1024 byte files #1708 (@ttaylorr)
+* Support long paths on Windows #1705 (@technoweenie)
+
+### Misc
+
+* filter-process: exit with error if we detect an unknown command from Git #1707 (@ttaylorr)
+* vendor: remove contentaddressable lib #1706 (@technoweenie)
+
 ## 1.5.1 (18 November, 2016)
 
 ### Bugs
