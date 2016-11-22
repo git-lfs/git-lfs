@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +38,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 	attributes := strings.NewReader(string(data))
 
-	attributesFile, err := os.Create(".gitattributes")
+	attributesFile, err := longpathos.Create(".gitattributes")
 	if err != nil {
 		Print("Error opening .gitattributes for writing")
 		return

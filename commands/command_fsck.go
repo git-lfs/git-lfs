@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +56,7 @@ func doFsck() (bool, error) {
 
 		Debug("Examining %v (%v)", name, path)
 
-		f, err := os.Open(path)
+		f, err := longpathos.Open(path)
 		if pErr, pOk := err.(*os.PathError); pOk {
 			Print("Object %s (%s) could not be checked: %s", name, oid, pErr.Err)
 			ok = false
@@ -81,12 +82,12 @@ func doFsck() (bool, error) {
 			}
 
 			badDir := filepath.Join(config.LocalGitStorageDir, "lfs", "bad")
-			if err := os.MkdirAll(badDir, 0755); err != nil {
+			if err := longpathos.MkdirAll(badDir, 0755); err != nil {
 				return false, err
 			}
 
 			badFile := filepath.Join(badDir, oid)
-			if err := os.Rename(path, badFile); err != nil {
+			if err := longpathos.Rename(path, badFile); err != nil {
 				return false, err
 			}
 			Print("  moved to %s", badFile)

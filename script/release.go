@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 var (
@@ -22,7 +23,7 @@ func mainRelease() {
 		log.Fatalln("usage: script/release -id")
 	}
 
-	file, err := os.Open("bin/releases/build_matrix.json")
+	file, err := longpathos.Open("bin/releases/build_matrix.json")
 	if err != nil {
 		log.Println("Error opening build_matrix.json:", err)
 		log.Fatalln("Ensure `script/bootstrap -all` has completed successfully")

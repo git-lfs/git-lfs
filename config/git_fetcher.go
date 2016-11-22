@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type GitFetcher struct {
@@ -175,7 +176,7 @@ func getGitConfigs() (sources []*GitConfig) {
 
 func getFileGitConfig(basename string) *GitConfig {
 	fullname := filepath.Join(LocalWorkingDir, basename)
-	if _, err := os.Stat(fullname); err != nil {
+	if _, err := longpathos.Stat(fullname); err != nil {
 		if !os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %s\n", basename, err)
 		}

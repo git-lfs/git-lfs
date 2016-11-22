@@ -1,10 +1,9 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +43,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 }
 
 func lsFilesMarker(p *lfs.WrappedPointer) string {
-	info, err := os.Stat(p.Name)
+	info, err := longpathos.Stat(p.Name)
 	if err == nil && info.Size() == p.Size {
 		return "*"
 	}

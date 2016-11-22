@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/rubyist/tracerx"
 )
 
@@ -638,7 +639,7 @@ func GitDir() (string, error) {
 // Pass in the git storage dir (parent of 'objects') to work from
 func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
 	worktreesdir := filepath.Join(storageDir, "worktrees")
-	dirf, err := os.Open(worktreesdir)
+	dirf, err := longpathos.Open(worktreesdir)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}

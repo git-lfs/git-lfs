@@ -24,6 +24,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type RepoType int
@@ -78,7 +79,7 @@ func (r *Repo) Pushd() {
 	if err != nil {
 		r.callback.Fatalf("Can't get cwd %v", err)
 	}
-	err = os.Chdir(r.Path)
+	err = longpathos.Chdir(r.Path)
 	if err != nil {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
@@ -88,7 +89,7 @@ func (r *Repo) Pushd() {
 
 func (r *Repo) Popd() {
 	if r.popDir != "" {
-		err := os.Chdir(r.popDir)
+		err := longpathos.Chdir(r.popDir)
 		if err != nil {
 			r.callback.Fatalf("Can't chdir %v", err)
 		}
@@ -106,16 +107,16 @@ func (r *Repo) Cleanup() {
 	if err == nil {
 		if strings.HasPrefix(oldwd, r.Path) ||
 			strings.HasPrefix(oldwd, r.GitDir) {
-			os.Chdir(os.TempDir())
+			longpathos.Chdir(os.TempDir())
 		}
 	}
 
 	if r.GitDir != "" {
-		os.RemoveAll(r.GitDir)
+		longpathos.RemoveAll(r.GitDir)
 		r.GitDir = ""
 	}
 	if r.Path != "" {
-		os.RemoveAll(r.Path)
+		longpathos.RemoveAll(r.Path)
 		r.Path = ""
 	}
 	for _, remote := range r.Remotes {
@@ -226,15 +227,15 @@ func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, err
 		return nil, errors.Wrap(err, "local media path")
 	}
 
-	if _, err := os.Stat(mediafile); err != nil {
-		if err := os.Rename(tmpfile, mediafile); err != nil {
+	if _, err := longpathos.Stat(mediafile); err != nil {
+		if err := longpathos.Rename(tmpfile, mediafile); err != nil {
 			return nil, err
 		}
 	}
 
 	// Write pointer to local filename for adding (not using clean filter)
-	os.MkdirAll(filepath.Dir(infile.Filename), 0755)
-	f, err := os.Create(infile.Filename)
+	longpathos.MkdirAll(filepath.Dir(infile.Filename), 0755)
+	f, err := longpathos.Create(infile.Filename)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating pointer file")
 	}
@@ -319,7 +320,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	if err != nil {
 		repo.callback.Fatalf("Can't get cwd %v", err)
 	}
-	err = os.Chdir(repo.Path)
+	err = longpathos.Chdir(repo.Path)
 	if err != nil {
 		repo.callback.Fatalf("Can't chdir to repo %v", err)
 	}
@@ -375,7 +376,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	}
 
 	// Restore cwd
-	err = os.Chdir(oldwd)
+	err = longpathos.Chdir(oldwd)
 	if err != nil {
 		repo.callback.Fatalf("Can't restore old cwd %v", err)
 	}

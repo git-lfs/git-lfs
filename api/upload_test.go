@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/test"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 func TestExistingUpload(t *testing.T) {
@@ -35,7 +35,7 @@ func TestExistingUpload(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 
@@ -113,7 +113,7 @@ func TestExistingUpload(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
@@ -145,7 +145,7 @@ func TestUploadWithRedirect(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	mux.HandleFunc("/redirect/objects", func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Server: %s %s", r.Method, r.URL)
@@ -242,7 +242,7 @@ func TestUploadWithRedirect(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
@@ -270,7 +270,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 	verifyCalled := false
@@ -387,7 +387,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
@@ -421,7 +421,7 @@ func TestUploadApiError(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 
@@ -442,7 +442,7 @@ func TestUploadApiError(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	_, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err == nil {
 		t.Fatal(err)
@@ -480,7 +480,7 @@ func TestUploadVerifyError(t *testing.T) {
 	server := httptest.NewServer(mux)
 	tmp := tempdir(t)
 	defer server.Close()
-	defer os.RemoveAll(tmp)
+	defer longpathos.RemoveAll(tmp)
 
 	postCalled := false
 	verifyCalled := false
@@ -564,7 +564,7 @@ func TestUploadVerifyError(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {

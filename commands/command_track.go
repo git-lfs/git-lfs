@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +54,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	addTrailingLinebreak := needsTrailingLinebreak(".gitattributes")
-	attributesFile, err := os.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	attributesFile, err := longpathos.OpenFile(".gitattributes", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		Print("Error opening .gitattributes file")
 		return
@@ -132,7 +133,7 @@ ArgsLoop:
 
 			if !trackDryRunFlag {
 				now := time.Now()
-				err := os.Chtimes(f, now, now)
+				err := longpathos.Chtimes(f, now, now)
 				if err != nil {
 					LoggedError(err, "Error marking %q modified", f)
 					continue
@@ -151,7 +152,7 @@ func findPatterns() []mediaPattern {
 	var patterns []mediaPattern
 
 	for _, path := range findAttributeFiles() {
-		attributes, err := os.Open(path)
+		attributes, err := longpathos.Open(path)
 		if err != nil {
 			continue
 		}
@@ -180,7 +181,7 @@ func findAttributeFiles() []string {
 	var paths []string
 
 	repoAttributes := filepath.Join(config.LocalGitDir, "info", "attributes")
-	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
+	if info, err := longpathos.Stat(repoAttributes); err == nil && !info.IsDir() {
 		paths = append(paths, repoAttributes)
 	}
 
@@ -207,7 +208,7 @@ func findAttributeFiles() []string {
 }
 
 func needsTrailingLinebreak(filename string) bool {
-	file, err := os.Open(filename)
+	file, err := longpathos.Open(filename)
 	if err != nil {
 		return false
 	}

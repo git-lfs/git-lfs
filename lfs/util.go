@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type Platform int
@@ -36,11 +37,11 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.C
 	}
 
 	cbDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(cbDir, 0755); err != nil {
+	if err := longpathos.MkdirAll(cbDir, 0755); err != nil {
 		return nil, nil, wrapProgressError(err, event, logPath)
 	}
 
-	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := longpathos.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, file, wrapProgressError(err, event, logPath)
 	}
@@ -185,9 +186,9 @@ func CopyFileContents(src string, dst string) error {
 	}
 	defer func() {
 		tmp.Close()
-		os.Remove(tmp.Name())
+		longpathos.Remove(tmp.Name())
 	}()
-	in, err := os.Open(src)
+	in, err := longpathos.Open(src)
 	if err != nil {
 		return err
 	}
@@ -200,14 +201,14 @@ func CopyFileContents(src string, dst string) error {
 	if err != nil {
 		return err
 	}
-	return os.Rename(tmp.Name(), dst)
+	return longpathos.Rename(tmp.Name(), dst)
 }
 
 func LinkOrCopy(src string, dst string) error {
 	if src == dst {
 		return nil
 	}
-	err := os.Link(src, dst)
+	err := longpathos.Link(src, dst)
 	if err == nil {
 		return err
 	}

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -23,7 +23,7 @@ type Hook struct {
 }
 
 func (h *Hook) Exists() bool {
-	_, err := os.Stat(h.Path())
+	_, err := longpathos.Stat(h.Path())
 	return err == nil
 }
 
@@ -51,7 +51,7 @@ func (h *Hook) Dir() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
+	if err := longpathos.MkdirAll(h.Dir(), 0755); err != nil {
 		return err
 	}
 
@@ -102,7 +102,7 @@ func (h *Hook) Uninstall() error {
 		return nil
 	}
 
-	return os.RemoveAll(h.Path())
+	return longpathos.RemoveAll(h.Path())
 }
 
 // matchesCurrent returns whether or not an existing git hook is able to be
@@ -110,7 +110,7 @@ func (h *Hook) Uninstall() error {
 // its contents match the current contents, or any past "upgrade-able" contents
 // of this hook.
 func (h *Hook) matchesCurrent() (bool, error) {
-	file, err := os.Open(h.Path())
+	file, err := longpathos.Open(h.Path())
 	if err != nil {
 		return false, err
 	}

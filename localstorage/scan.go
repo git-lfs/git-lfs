@@ -1,9 +1,9 @@
 package localstorage
 
 import (
-	"os"
 	"path/filepath"
 
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/rubyist/tracerx"
 )
 
@@ -34,7 +34,7 @@ func (s *LocalStorage) ScanObjectsChan() <-chan Object {
 }
 
 func scanObjects(dir string, ch chan<- Object) {
-	dirf, err := os.Open(dir)
+	dirf, err := longpathos.Open(dir)
 	if err != nil {
 		return
 	}

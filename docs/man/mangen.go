@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 func readManDir() (string, []os.FileInfo) {
@@ -38,7 +40,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Converting man pages into code...\n")
 	rootDir, fs := readManDir()
 	manDir := filepath.Join(rootDir, "docs", "man")
-	out, err := os.Create(filepath.Join(rootDir, "commands", "mancontent_gen.go"))
+	out, err := longpathos.Create(filepath.Join(rootDir, "commands", "mancontent_gen.go"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create go file: %v\n", err)
 		os.Exit(2)
@@ -62,7 +64,7 @@ func main() {
 				cmd = "git-lfs"
 			}
 			out.WriteString("ManPages[\"" + cmd + "\"] = `")
-			contentf, err := os.Open(filepath.Join(manDir, f.Name()))
+			contentf, err := longpathos.Open(filepath.Join(manDir, f.Name()))
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
 				os.Exit(2)

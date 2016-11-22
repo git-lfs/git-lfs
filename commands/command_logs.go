@@ -7,6 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +44,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 }
 
 func logsClearCommand(cmd *cobra.Command, args []string) {
-	err := os.RemoveAll(config.LocalLogDir)
+	err := longpathos.RemoveAll(config.LocalLogDir)
 	if err != nil {
 		Panic(err, "Error clearing %s", config.LocalLogDir)
 	}

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +33,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 	if len(pointerFile) > 0 {
 		something = true
-		buildFile, err := os.Open(pointerFile)
+		buildFile, err := longpathos.Open(pointerFile)
 		if err != nil {
 			Error(err.Error())
 			os.Exit(1)
@@ -108,7 +109,7 @@ func pointerReader() (io.ReadCloser, error) {
 			return nil, errors.New("Cannot read from STDIN and --pointer.")
 		}
 
-		return os.Open(pointerCompare)
+		return longpathos.Open(pointerCompare)
 	}
 
 	requireStdin("The --stdin flag expects a pointer file from STDIN.")

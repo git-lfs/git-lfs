@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/test"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type TestUtilRepoCallback struct{}
@@ -46,7 +47,7 @@ func main() {
 	}
 	// Make sure we're directly inside directory which contains .git
 	// don't want to accidentally end up committing to some other parent git
-	_, err = os.Stat(filepath.Join(wd, ".git"))
+	_, err = longpathos.Stat(filepath.Join(wd, ".git"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "You're in the wrong directory, should be in root of a test repo: %v\n", err)
 		os.Exit(2)

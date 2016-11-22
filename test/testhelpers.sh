@@ -313,6 +313,7 @@ setup() {
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
+  git config --global core.longpaths true
 
   ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
@@ -334,7 +335,7 @@ setup() {
   echo "  LFSTEST_CERT=$LFS_CERT_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
-  git config --global --get-regexp "lfs|credential|user"
+  git config --global --get-regexp "lfs|credential|user|longpaths"
 
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"

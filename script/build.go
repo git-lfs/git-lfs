@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 var (
@@ -80,7 +81,7 @@ func mainBuild() {
 		log.Fatalln("Error encoding build matrix to json:", err)
 	}
 
-	file, err := os.Create("bin/releases/build_matrix.json")
+	file, err := longpathos.Create("bin/releases/build_matrix.json")
 	if err != nil {
 		log.Fatalln("Error creating build_matrix.json:", err)
 	}
@@ -112,7 +113,7 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	}
 
 	if addenv {
-		err := os.MkdirAll(dir, 0755)
+		err := longpathos.MkdirAll(dir, 0755)
 		if err != nil {
 			log.Println("Error setting up installer:\n", err.Error())
 			return err
@@ -261,7 +262,7 @@ func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string
 
 func hashRelease(name string) string {
 	full := filepath.Join("bin/releases", name)
-	file, err := os.Open(full)
+	file, err := longpathos.Open(full)
 	if err != nil {
 		fmt.Printf("unable to open release %q: %+v\n", full, err)
 		os.Exit(1)

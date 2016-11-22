@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 // progressLogger provides a wrapper around an os.File that can either
@@ -51,11 +53,11 @@ func newProgressLogger(logPath string) (*progressLogger, error) {
 	}
 
 	cbDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(cbDir, 0755); err != nil {
+	if err := longpathos.MkdirAll(cbDir, 0755); err != nil {
 		return &progressLogger{}, err
 	}
 
-	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := longpathos.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return &progressLogger{}, err
 	}
