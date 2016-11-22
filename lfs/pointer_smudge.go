@@ -20,7 +20,7 @@ import (
 
 func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
 	longpathos.MkdirAll(filepath.Dir(filename), 0755)
-	file, err := os.Create(filename)
+	file, err := longpathos.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
 	}

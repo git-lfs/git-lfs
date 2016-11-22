@@ -40,7 +40,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Converting man pages into code...\n")
 	rootDir, fs := readManDir()
 	manDir := filepath.Join(rootDir, "docs", "man")
-	out, err := os.Create(filepath.Join(rootDir, "commands", "mancontent_gen.go"))
+	out, err := longpathos.Create(filepath.Join(rootDir, "commands", "mancontent_gen.go"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create go file: %v\n", err)
 		os.Exit(2)

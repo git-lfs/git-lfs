@@ -185,7 +185,7 @@ func logPanic(loggedError error) string {
 	if err := longpathos.MkdirAll(config.LocalLogDir, 0755); err != nil {
 		full = ""
 		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
-	} else if file, err := os.Create(full); err != nil {
+	} else if file, err := longpathos.Create(full); err != nil {
 		filename := full
 		full = ""
 		defer func() {

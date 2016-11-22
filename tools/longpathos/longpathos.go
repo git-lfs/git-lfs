@@ -13,6 +13,10 @@ func Chtimes(name string, atime, mtime time.Time) error {
 	return os.Chtimes(fixLongPath(name), atime, mtime)
 }
 
+func Create(name string) (*os.File, error) {
+	return os.Create(fixLongPath(name))
+}
+
 func Link(oldname, newname string) error {
 	return os.Link(fixLongPath(oldname), fixLongPath(newname))
 }

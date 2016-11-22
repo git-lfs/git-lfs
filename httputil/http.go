@@ -340,7 +340,7 @@ func statsLogFile() (*os.File, error) {
 	}
 
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
-	return os.Create(filepath.Join(logBase, logFile))
+	return longpathos.Create(filepath.Join(logBase, logFile))
 }
 
 func TraceHttpReq(req *http.Request) string {

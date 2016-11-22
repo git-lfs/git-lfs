@@ -81,7 +81,7 @@ func mainBuild() {
 		log.Fatalln("Error encoding build matrix to json:", err)
 	}
 
-	file, err := os.Create("bin/releases/build_matrix.json")
+	file, err := longpathos.Create("bin/releases/build_matrix.json")
 	if err != nil {
 		log.Fatalln("Error creating build_matrix.json:", err)
 	}

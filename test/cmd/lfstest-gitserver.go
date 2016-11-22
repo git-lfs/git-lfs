@@ -119,7 +119,7 @@ func writeTestStateFile(contents []byte, envVar, defaultFilename string) string 
 	if len(f) == 0 {
 		f = defaultFilename
 	}
-	file, err := os.Create(f)
+	file, err := longpathos.Create(f)
 	if err != nil {
 		log.Fatalln(err)
 	}
