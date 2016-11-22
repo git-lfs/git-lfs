@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,7 @@ var sslCAInfoMatchedHostTests = []struct {
 func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	tempfile, err := ioutil.TempFile("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
-	defer os.Remove(tempfile.Name())
+	defer longpathos.Remove(tempfile.Name())
 
 	_, err = tempfile.WriteString(testCert)
 	assert.Nil(t, err, "Error writing temp cert file")
@@ -96,7 +97,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	tempfile, err := ioutil.TempFile("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
-	defer os.Remove(tempfile.Name())
+	defer longpathos.Remove(tempfile.Name())
 
 	_, err = tempfile.WriteString(testCert)
 	assert.Nil(t, err, "Error writing temp cert file")

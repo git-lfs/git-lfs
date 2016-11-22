@@ -101,5 +101,5 @@ func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid
 }
 
 func (a *cleanedAsset) Teardown() error {
-	return os.Remove(a.Filename)
+	return longpathos.Remove(a.Filename)
 }

@@ -29,6 +29,10 @@ func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 	return os.OpenFile(fixLongPath(name), flag, perm)
 }
 
+func Remove(name string) error {
+	return os.Remove(fixLongPath(name))
+}
+
 func Stat(name string) (os.FileInfo, error) {
 	return os.Stat(fixLongPath(name))
 }

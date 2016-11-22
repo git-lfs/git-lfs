@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -273,7 +273,7 @@ func pruneDeleteFiles(prunableObjects []string) {
 			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
 			continue
 		}
-		err = os.Remove(mediaFile)
+		err = longpathos.Remove(mediaFile)
 		if err != nil {
 			problems.WriteString(fmt.Sprintf("Failed to remove file %v: %v\n", mediaFile, err))
 			continue

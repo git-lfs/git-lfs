@@ -116,7 +116,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
 			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
 			dlFile.Close()
-			os.Remove(dlFile.Name())
+			longpathos.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
 		}
 		return errors.NewRetriableError(err)
@@ -157,7 +157,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 			// Abort resume, perform regular download
 			tracerx.Printf("xfer: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Object.Oid, fromByte, failReason)
 			dlFile.Close()
-			os.Remove(dlFile.Name())
+			longpathos.Remove(dlFile.Name())
 			if res.StatusCode == 200 {
 				// If status code was 200 then server just ignored Range header and
 				// sent everything. Don't re-request, use this one from byte 0

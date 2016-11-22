@@ -129,12 +129,12 @@ func performDownload(oid string, size int64, a *action, writer, errWriter *bufio
 	_, err = tools.CopyWithCallback(dlFile, res.Body, res.ContentLength, cb)
 	if err != nil {
 		sendTransferError(oid, 4, fmt.Sprintf("cannot write data to tempfile %q: %v", dlfilename, err), writer, errWriter)
-		os.Remove(dlfilename)
+		longpathos.Remove(dlfilename)
 		return
 	}
 	if err := dlFile.Close(); err != nil {
 		sendTransferError(oid, 5, fmt.Sprintf("can't close tempfile %q: %v", dlfilename, err), writer, errWriter)
-		os.Remove(dlfilename)
+		longpathos.Remove(dlfilename)
 		return
 	}
 

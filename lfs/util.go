@@ -186,7 +186,7 @@ func CopyFileContents(src string, dst string) error {
 	}
 	defer func() {
 		tmp.Close()
-		os.Remove(tmp.Name())
+		longpathos.Remove(tmp.Name())
 	}()
 	in, err := longpathos.Open(src)
 	if err != nil {
