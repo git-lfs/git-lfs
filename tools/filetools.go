@@ -146,20 +146,90 @@ type FastWalkCallback func(string, os.FileInfo, error)
 //  * Automatically ignores any .git directories
 //  * Respects .gitignore contents and skips ignored files/dirs
 func FastWalkGitRepo(dir string, cb FastWalkCallback) {
-	fchan, errchan := FastWalkGitRepoChannels(dir)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		for o := range fchan {
-			cb(o.ParentDir, o.Info, nil)
-		}
-		wg.Done()
-	}()
+	// Ignore all git metadata including subrepos
+	excludePaths := []filepathfilter.Pattern{
+		filepathfilter.NewPattern(".git"),
+		filepathfilter.NewPattern(filepath.Join("**", ".git")),
+	}
+	fastWalkFromRootCallback(dir, ".gitignore", excludePaths, cb)
+}
 
-	for err := range errchan {
+func fastWalkFromRootCallback(dir string, excludeFilename string,
+	excludePaths []filepathfilter.Pattern, cb FastWalkCallback) {
+
+	dirFi, err := os.Stat(dir)
+	if err != nil {
+		cb("", nil, err)
+		return
+	}
+
+	// This waitgroup will be incremented for each nested goroutine
+	var waitg sync.WaitGroup
+	fastWalkFileOrDirCallback(filepath.Dir(dir), dirFi, excludeFilename, excludePaths, cb, &waitg)
+	waitg.Wait()
+}
+
+// fastWalkFileOrDir is the main recursive implementation of fast walk
+// Sends the file/dir and any contents to the channel so long as it passes the
+// include/exclude filter. If a dir, parses any excludeFilename found and updates
+// the excludePaths with its content before (parallel) recursing into contents
+// Also splits large directories into multiple goroutines.
+// Increments waitg.Add(1) for each new goroutine launched internally
+func fastWalkFileOrDirCallback(parentDir string, itemFi os.FileInfo, excludeFilename string,
+	excludePaths []filepathfilter.Pattern, cb FastWalkCallback,
+	waitg *sync.WaitGroup) {
+
+	fullPath := filepath.Join(parentDir, itemFi.Name())
+
+	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(fullPath) {
+		return
+	}
+
+	cb(parentDir, itemFi, nil)
+
+	if !itemFi.IsDir() {
+		// Nothing more to do if this is not a dir
+		return
+	}
+
+	if len(excludeFilename) > 0 {
+		possibleExcludeFile := filepath.Join(fullPath, excludeFilename)
+		if FileExists(possibleExcludeFile) {
+			var err error
+			excludePaths, err = loadExcludeFilename(possibleExcludeFile, fullPath, excludePaths)
+			if err != nil {
+				cb("", nil, err)
+			}
+		}
+	}
+
+	// The absolute optimal way to scan would be File.Readdirnames but we
+	// still need the Stat() to know whether something is a dir, so use
+	// File.Readdir instead. Means we can provide os.FileInfo to callers like
+	// filepath.Walk as a bonus.
+	df, err := os.Open(fullPath)
+	if err != nil {
+		cb("", nil, err)
+		return
+	}
+	defer df.Close()
+
+	// The number of items in a dir we process in each goroutine
+	jobSize := 100
+	for children, err := df.Readdir(jobSize); err == nil; children, err = df.Readdir(jobSize) {
+		// Parallelise all dirs, and chop large dirs into batches
+		waitg.Add(1)
+		go func(subitems []os.FileInfo) {
+			for _, childFi := range subitems {
+				fastWalkFileOrDirCallback(fullPath, childFi, excludeFilename, excludePaths, cb, waitg)
+			}
+			waitg.Done()
+		}(children)
+
+	}
+	if err != nil && err != io.EOF {
 		cb("", nil, err)
 	}
-	wg.Wait()
 }
 
 func FastWalkGitRepoChannels(dir string) (<-chan FastWalkInfo, <-chan error) {
