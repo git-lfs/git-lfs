@@ -34,7 +34,7 @@ begin_test "(long path) fetch"
   cd ..
   root=`pwd`
   rootsize=${#root}
-  clonedirsize=$((200-$rootsize))
+  clonedirsize=$((150-$rootsize))
   clonedir=$(printf '%*s' "$clonedirsize" | tr ' ' "0")
   clone_repo "$reponame" "$clonedir"
   assert_local_object "7da4fb02e8b23ed26d05e4a955565a7b1ff77846d0bf0d9ce5651bf20ed2e5d3" "14"
