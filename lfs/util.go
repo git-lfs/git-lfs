@@ -208,7 +208,7 @@ func LinkOrCopy(src string, dst string) error {
 	if src == dst {
 		return nil
 	}
-	err := os.Link(src, dst)
+	err := longpathos.Link(src, dst)
 	if err == nil {
 		return err
 	}
