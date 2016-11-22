@@ -79,7 +79,7 @@ func RenameFileCopyPermissions(srcfile, destfile string) error {
 		}
 	}
 
-	if err := os.Rename(srcfile, destfile); err != nil {
+	if err := longpathos.Rename(srcfile, destfile); err != nil {
 		return fmt.Errorf("cannot replace %q with %q: %v", destfile, srcfile, err)
 	}
 	return nil

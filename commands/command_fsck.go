@@ -87,7 +87,7 @@ func doFsck() (bool, error) {
 			}
 
 			badFile := filepath.Join(badDir, oid)
-			if err := os.Rename(path, badFile); err != nil {
+			if err := longpathos.Rename(path, badFile); err != nil {
 				return false, err
 			}
 			Print("  moved to %s", badFile)

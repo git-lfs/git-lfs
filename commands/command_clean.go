@@ -73,7 +73,7 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 		}
 		Debug("%s exists", mediafile)
 	} else {
-		if err := os.Rename(tmpfile, mediafile); err != nil {
+		if err := longpathos.Rename(tmpfile, mediafile); err != nil {
 			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
 		}
 

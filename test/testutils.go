@@ -228,7 +228,7 @@ func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, err
 	}
 
 	if _, err := longpathos.Stat(mediafile); err != nil {
-		if err := os.Rename(tmpfile, mediafile); err != nil {
+		if err := longpathos.Rename(tmpfile, mediafile); err != nil {
 			return nil, err
 		}
 	}

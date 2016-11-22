@@ -201,7 +201,7 @@ func CopyFileContents(src string, dst string) error {
 	if err != nil {
 		return err
 	}
-	return os.Rename(tmp.Name(), dst)
+	return longpathos.Rename(tmp.Name(), dst)
 }
 
 func LinkOrCopy(src string, dst string) error {

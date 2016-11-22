@@ -37,6 +37,10 @@ func RemoveAll(path string) error {
 	return os.RemoveAll(fixLongPath(path))
 }
 
+func Rename(oldpath, newpath string) error {
+	return os.Rename(fixLongPath(oldpath), fixLongPath(newpath))
+}
+
 func Stat(name string) (os.FileInfo, error) {
 	return os.Stat(fixLongPath(name))
 }
