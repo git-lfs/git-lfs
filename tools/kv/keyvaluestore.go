@@ -1,4 +1,4 @@
-package tools
+package kv
 
 import (
 	"encoding/gob"
@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// KeyValueStore provides an in-memory key/value store which is persisted to
+// Store provides an in-memory key/value store which is persisted to
 // a file. The file handle itself is not kept locked for the duration; it is
 // only locked during load and save, to make it concurrency friendly. When
 // saving, the store uses optimistic locking to determine whether the db on disk
@@ -16,11 +16,11 @@ import (
 // version and re-applies modifications made during this session. This means
 // the Lost Update db concurrency issue is possible; so don't use this if you
 // need more DB integrity than Read Committed isolation levels.
-type KeyValueStore struct {
+type Store struct {
 	// Locks the entire store
 	mu       sync.RWMutex
 	filename string
-	log      []keyValueChange
+	log      []change
 
 	// This is the persistent data
 	// version for optimistic locking, this field is incremented with every Save()
@@ -28,55 +28,56 @@ type KeyValueStore struct {
 	db      map[string]interface{}
 }
 
-type keyValueOperation int
+// Type of operation; set or remove
+type operation int
 
 const (
 	// Set a value for a key
-	keyValueSetOperation = keyValueOperation(iota)
+	setOperation = operation(iota)
 	// Removed a value for a key
-	keyValueRemoveOperation = keyValueOperation(iota)
+	removeOperation = operation(iota)
 )
 
-type keyValueChange struct {
-	operation keyValueOperation
-	key       string
-	value     interface{}
+type change struct {
+	op    operation
+	key   string
+	value interface{}
 }
 
-// NewKeyValueStore creates a new store and initialises it with contents from
+// NewStore creates a new key/value store and initialises it with contents from
 // the named file, if it exists
-func NewKeyValueStore(filepath string) (*KeyValueStore, error) {
-	kv := &KeyValueStore{filename: filepath, db: make(map[string]interface{})}
+func NewStore(filepath string) (*Store, error) {
+	kv := &Store{filename: filepath, db: make(map[string]interface{})}
 	return kv, kv.loadAndMergeIfNeeded()
 }
 
 // Set updates the key/value store in memory
 // Changes are not persisted until you call Save()
-func (k *KeyValueStore) Set(key string, value interface{}) {
+func (k *Store) Set(key string, value interface{}) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
 	k.db[key] = value
-	k.logChange(keyValueSetOperation, key, value)
+	k.logChange(setOperation, key, value)
 }
 
 // Remove removes the key and its value from the store in memory
 // Changes are not persisted until you call Save()
-func (k *KeyValueStore) Remove(key string) {
+func (k *Store) Remove(key string) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
 	delete(k.db, key)
-	k.logChange(keyValueRemoveOperation, key, nil)
+	k.logChange(removeOperation, key, nil)
 }
 
 // Append a change to the log; mutex must already be locked
-func (k *KeyValueStore) logChange(op keyValueOperation, key string, value interface{}) {
-	k.log = append(k.log, keyValueChange{op, key, value})
+func (k *Store) logChange(op operation, key string, value interface{}) {
+	k.log = append(k.log, change{op, key, value})
 }
 
 // Get retrieves a value from the store, or nil if it is not present
-func (k *KeyValueStore) Get(key string) interface{} {
+func (k *Store) Get(key string) interface{} {
 	// Read-only lock
 	k.mu.RLock()
 	defer k.mu.RUnlock()
@@ -87,7 +88,7 @@ func (k *KeyValueStore) Get(key string) interface{} {
 
 // Save persists the changes made to disk
 // If any changes have been written by other code they will be merged
-func (k *KeyValueStore) Save() error {
+func (k *Store) Save() error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
@@ -132,7 +133,7 @@ func (k *KeyValueStore) Save() error {
 // contents are different from the version already held. If so, reads the
 // contents and merges with any outstanding changes. If not, stops early without
 // reading the rest of the file
-func (k *KeyValueStore) loadAndMergeIfNeeded() error {
+func (k *Store) loadAndMergeIfNeeded() error {
 	stat, err := os.Stat(k.filename)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -155,7 +156,7 @@ func (k *KeyValueStore) loadAndMergeIfNeeded() error {
 }
 
 // As loadAndMergeIfNeeded but lets caller decide how to manage file handles
-func (k *KeyValueStore) loadAndMergeReaderIfNeeded(f io.Reader) error {
+func (k *Store) loadAndMergeReaderIfNeeded(f io.Reader) error {
 	var versionOnDisk int64
 	// Decode *only* the version field to check whether anyone else has
 	// modified the db; gob serializes structs in order so it will always be 1st
@@ -180,12 +181,12 @@ func (k *KeyValueStore) loadAndMergeReaderIfNeeded(f io.Reader) error {
 
 // reapplyChanges replays the changes made since the last load onto baseDb
 // and stores the result as our own DB
-func (k *KeyValueStore) reapplyChanges(baseDb map[string]interface{}) {
+func (k *Store) reapplyChanges(baseDb map[string]interface{}) {
 	for _, change := range k.log {
-		switch change.operation {
-		case keyValueSetOperation:
+		switch change.op {
+		case setOperation:
 			baseDb[change.key] = change.value
-		case keyValueRemoveOperation:
+		case removeOperation:
 			delete(baseDb, change.key)
 		}
 	}
@@ -195,9 +196,9 @@ func (k *KeyValueStore) reapplyChanges(baseDb map[string]interface{}) {
 
 }
 
-// RegisterTypeForKeyValueStorage registers a custom type (e.g. a struct) for
+// RegisterTypeForStorage registers a custom type (e.g. a struct) for
 // use in the key value store. This is necessary if you intend to pass custom
-// structs to KeyValueStore.Set() rather than primitive types.
-func RegisterTypeForKeyValueStorage(val interface{}) {
+// structs to Store.Set() rather than primitive types.
+func RegisterTypeForStorage(val interface{}) {
 	gob.Register(val)
 }

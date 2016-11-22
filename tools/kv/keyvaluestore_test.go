@@ -1,4 +1,4 @@
-package tools
+package kv
 
 import (
 	"io/ioutil"
@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestKeyValueStoreSimple(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest1")
+func TestStoreSimple(t *testing.T) {
+	tmpf, err := ioutil.TempFile("", "lfstest1")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)
 	tmpf.Close()
 
-	kvs, err := NewKeyValueStore(filename)
+	kvs, err := NewStore(filename)
 	assert.Nil(t, err)
 
 	// We'll include storing custom structs
@@ -24,7 +24,7 @@ func TestKeyValueStoreSimple(t *testing.T) {
 		Val2 int
 	}
 	// Needed to store custom struct
-	RegisterTypeForKeyValueStorage(&customData{})
+	RegisterTypeForStorage(&customData{})
 
 	kvs.Set("stringVal", "This is a string value")
 	kvs.Set("intVal", 3)
@@ -53,7 +53,7 @@ func TestKeyValueStoreSimple(t *testing.T) {
 	kvs = nil
 
 	// Now confirm that we can read it all back
-	kvs2, err := NewKeyValueStore(filename)
+	kvs2, err := NewStore(filename)
 	assert.Nil(t, err)
 	s = kvs2.Get("stringVal")
 	assert.Equal(t, "This is a string value", s)
@@ -68,14 +68,14 @@ func TestKeyValueStoreSimple(t *testing.T) {
 
 }
 
-func TestKeyValueStoreOptimisticConflict(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest2")
+func TestStoreOptimisticConflict(t *testing.T) {
+	tmpf, err := ioutil.TempFile("", "lfstest2")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)
 	tmpf.Close()
 
-	kvs1, err := NewKeyValueStore(filename)
+	kvs1, err := NewStore(filename)
 	assert.Nil(t, err)
 
 	kvs1.Set("key1", "value1")
@@ -85,7 +85,7 @@ func TestKeyValueStoreOptimisticConflict(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Load second copy & modify
-	kvs2, err := NewKeyValueStore(filename)
+	kvs2, err := NewStore(filename)
 	assert.Nil(t, err)
 	// New keys
 	kvs2.Set("key4", "value4_fromkvs2")
@@ -117,14 +117,14 @@ func TestKeyValueStoreOptimisticConflict(t *testing.T) {
 
 }
 
-func TestKeyValueStoreReduceSize(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfskeyvaluetest3")
+func TestStoreReduceSize(t *testing.T) {
+	tmpf, err := ioutil.TempFile("", "lfstest3")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)
 	tmpf.Close()
 
-	kvs, err := NewKeyValueStore(filename)
+	kvs, err := NewStore(filename)
 	assert.Nil(t, err)
 
 	kvs.Set("key1", "I woke up in a Soho doorway")
@@ -150,7 +150,7 @@ func TestKeyValueStoreReduceSize(t *testing.T) {
 	// Now reload fresh & prove works
 	kvs = nil
 
-	kvs, err = NewKeyValueStore(filename)
+	kvs, err = NewStore(filename)
 	assert.Nil(t, err)
 	assert.NotNil(t, kvs.Get("key1"))
 	assert.Nil(t, kvs.Get("key2"))
