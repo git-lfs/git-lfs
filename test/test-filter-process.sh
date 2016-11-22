@@ -95,8 +95,8 @@ begin_test "filter process: add a file with 1024 bytes"
 (
   set -e
 
-  mkdir repo
-  cd repo
+  mkdir repo-issue-1697
+  cd repo-issue-1697
   git init
   git lfs track "*.dat"
   dd if=/dev/zero of=first.dat bs=1024 count=1
