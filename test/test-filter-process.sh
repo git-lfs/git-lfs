@@ -6,15 +6,7 @@
 # from the "next" branch, which is the only (current) version of Git that has
 # support for the filter protocol.
 #
-# Once 2.11 is released, replace this with:
-#
-# ```
-# ensure_git_version_isnt $VERSION_LOWER "2.11.0"
-# ```
-if [ "1" -ne "$(git version | cut -d ' ' -f 3 | grep -c "g")" ]; then
-  echo "skip: $0 git version does not include support for filter protocol"
-  exit
-fi
+ensure_git_version_isnt $VERSION_LOWER "2.11.0"
 
 begin_test "filter process: checking out a branch"
 (
@@ -97,3 +89,21 @@ begin_test "filter process: adding a file"
   diff -u <(echo "$expected") <(echo "$got")
 )
 end_test
+
+# https://github.com/git-lfs/git-lfs/issues/1697
+begin_test "filter process: add a file with 1024 bytes"
+(
+  set -e
+
+  mkdir repo-issue-1697
+  cd repo-issue-1697
+  git init
+  git lfs track "*.dat"
+  dd if=/dev/zero of=first.dat bs=1024 count=1
+  printf "any contents" > second.dat
+  git add .
+)
+end_test
+
+
+
