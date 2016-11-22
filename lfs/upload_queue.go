@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/git-lfs/git-lfs/transfer"
 )
 
@@ -63,7 +64,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 		}
 	}
 
-	fi, err := os.Stat(localMediaPath)
+	fi, err := longpathos.Stat(localMediaPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
@@ -79,7 +80,7 @@ func NewUploadQueue(files int, size int64, dryRun bool) *TransferQueue {
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
 // does not exist, it attempts to clean it by reading the file at smudgePath.
 func ensureFile(smudgePath, cleanPath string) error {
-	if _, err := os.Stat(cleanPath); err == nil {
+	if _, err := longpathos.Stat(cleanPath); err == nil {
 		return nil
 	}
 

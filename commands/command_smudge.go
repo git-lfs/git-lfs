@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -97,7 +98,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			Exit(err.Error())
 		}
 
-		if stat, err := os.Stat(localPath); err != nil {
+		if stat, err := longpathos.Stat(localPath); err != nil {
 			Print("%d --", ptr.Size)
 		} else {
 			Print("%d %s", stat.Size(), localPath)

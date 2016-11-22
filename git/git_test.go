@@ -10,6 +10,7 @@ import (
 
 	. "github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/test"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -291,12 +292,12 @@ func TestGitAndRootDirs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected, err := os.Stat(git)
+	expected, err := longpathos.Stat(git)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	actual, err := os.Stat(filepath.Join(root, ".git"))
+	actual, err := longpathos.Stat(filepath.Join(root, ".git"))
 	if err != nil {
 		t.Fatal(err)
 	}

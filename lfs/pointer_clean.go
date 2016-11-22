@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type cleanedAsset struct {
@@ -39,7 +40,7 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress
 		oid = response.results[len(response.results)-1].oidOut
 		tmp = response.file
 		var stat os.FileInfo
-		if stat, err = os.Stat(tmp.Name()); err != nil {
+		if stat, err = longpathos.Stat(tmp.Name()); err != nil {
 			return nil, err
 		}
 		size = stat.Size()

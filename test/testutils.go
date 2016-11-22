@@ -24,6 +24,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type RepoType int
@@ -226,7 +227,7 @@ func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, err
 		return nil, errors.Wrap(err, "local media path")
 	}
 
-	if _, err := os.Stat(mediafile); err != nil {
+	if _, err := longpathos.Stat(mediafile); err != nil {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
 			return nil, err
 		}

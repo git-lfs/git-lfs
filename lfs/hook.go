@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -23,7 +24,7 @@ type Hook struct {
 }
 
 func (h *Hook) Exists() bool {
-	_, err := os.Stat(h.Path())
+	_, err := longpathos.Stat(h.Path())
 	return err == nil
 }
 

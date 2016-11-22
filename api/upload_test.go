@@ -19,6 +19,7 @@ import (
 	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/test"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 func TestExistingUpload(t *testing.T) {
@@ -113,7 +114,7 @@ func TestExistingUpload(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
@@ -242,7 +243,7 @@ func TestUploadWithRedirect(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
@@ -387,7 +388,7 @@ func TestSuccessfulUploadWithVerify(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {
@@ -442,7 +443,7 @@ func TestUploadApiError(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	_, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err == nil {
 		t.Fatal(err)
@@ -564,7 +565,7 @@ func TestUploadVerifyError(t *testing.T) {
 	}
 
 	oid := filepath.Base(oidPath)
-	stat, _ := os.Stat(oidPath)
+	stat, _ := longpathos.Stat(oidPath)
 	o, _, err := api.BatchOrLegacySingle(cfg, &api.ObjectResource{Oid: oid, Size: stat.Size()}, "upload", []string{"basic"})
 	if err != nil {
 		if isDockerConnectionError(err) {

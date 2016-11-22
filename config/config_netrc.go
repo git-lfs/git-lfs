@@ -1,10 +1,10 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/bgentry/go-netrc/netrc"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 type netrcfinder interface {
@@ -24,7 +24,7 @@ func (c *Configuration) parseNetrc() (netrcfinder, error) {
 	}
 
 	nrcfilename := filepath.Join(home, netrcBasename)
-	if _, err := os.Stat(nrcfilename); err != nil {
+	if _, err := longpathos.Stat(nrcfilename); err != nil {
 		return &noNetrc{}, nil
 	}
 

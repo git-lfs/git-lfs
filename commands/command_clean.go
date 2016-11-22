@@ -7,6 +7,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,7 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 	var fileSize int64
 
 	if len(fileName) > 0 {
-		stat, err := os.Stat(fileName)
+		stat, err := longpathos.Stat(fileName)
 		if err == nil && stat != nil {
 			fileSize = stat.Size()
 
@@ -66,7 +67,7 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 		Panic(err, "Unable to get local media path.")
 	}
 
-	if stat, _ := os.Stat(mediafile); stat != nil {
+	if stat, _ := longpathos.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size && len(cleaned.Pointer.Extensions) == 0 {
 			Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
 		}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/git-lfs/git-lfs/transfer"
 
 	"github.com/git-lfs/git-lfs/api"
@@ -45,7 +46,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 	LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 
-	stat, statErr := os.Stat(mediafile)
+	stat, statErr := longpathos.Stat(mediafile)
 	if statErr == nil && stat != nil {
 		fileSize := stat.Size()
 		if fileSize == 0 || fileSize != ptr.Size {
@@ -117,7 +118,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 	defer reader.Close()
 
 	if ptr.Size == 0 {
-		if stat, _ := os.Stat(mediafile); stat != nil {
+		if stat, _ := longpathos.Stat(mediafile); stat != nil {
 			ptr.Size = stat.Size()
 		}
 	}

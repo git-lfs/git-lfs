@@ -13,13 +13,15 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 )
 
 var localDirSet = NewStringSetFromSlice([]string{".", "./", ".\\"})
 
 // FileOrDirExists determines if a file/dir exists, returns IsDir() results too.
 func FileOrDirExists(path string) (exists bool, isDir bool) {
-	fi, err := os.Stat(path)
+	fi, err := longpathos.Stat(path)
 	if err != nil {
 		return false, false
 	} else {
@@ -41,7 +43,7 @@ func DirExists(path string) bool {
 
 // FileExistsOfSize determines if a file exists and is of a specific size.
 func FileExistsOfSize(path string, sz int64) bool {
-	fi, err := os.Stat(path)
+	fi, err := longpathos.Stat(path)
 
 	if err != nil {
 		return false
@@ -66,7 +68,7 @@ func ResolveSymlinks(path string) string {
 // RenameFileCopyPermissions moves srcfile to destfile, replacing destfile if
 // necessary and also copying the permissions of destfile if it already exists
 func RenameFileCopyPermissions(srcfile, destfile string) error {
-	info, err := os.Stat(destfile)
+	info, err := longpathos.Stat(destfile)
 	if os.IsNotExist(err) {
 		// no original file
 	} else if err != nil {
@@ -248,7 +250,7 @@ func FastWalkGitRepo(dir string) (<-chan FastWalkInfo, <-chan error) {
 func fastWalkFromRoot(dir string, excludeFilename string,
 	includePaths, excludePaths []string, fiChan chan<- FastWalkInfo, errChan chan<- error) {
 
-	dirFi, err := os.Stat(dir)
+	dirFi, err := longpathos.Stat(dir)
 	if err != nil {
 		errChan <- err
 		return

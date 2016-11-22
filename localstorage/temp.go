@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/rubyist/tracerx"
 )
 
@@ -31,7 +32,7 @@ func (s *LocalStorage) ClearTempObjects() error {
 }
 
 func shouldDeleteTempObject(s *LocalStorage, path string) bool {
-	info, err := os.Stat(path)
+	info, err := longpathos.Stat(path)
 	if err != nil {
 		return false
 	}
@@ -48,7 +49,7 @@ func shouldDeleteTempObject(s *LocalStorage, path string) bool {
 		return true
 	}
 
-	fi, err := os.Stat(s.ObjectPath(oid))
+	fi, err := longpathos.Stat(s.ObjectPath(oid))
 	if err == nil && !fi.IsDir() {
 		tracerx.Printf("Removing existing tmp object file: %s", path)
 		return true

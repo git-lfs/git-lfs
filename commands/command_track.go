@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
@@ -180,7 +181,7 @@ func findAttributeFiles() []string {
 	var paths []string
 
 	repoAttributes := filepath.Join(config.LocalGitDir, "info", "attributes")
-	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
+	if info, err := longpathos.Stat(repoAttributes); err == nil && !info.IsDir() {
 		paths = append(paths, repoAttributes)
 	}
 
