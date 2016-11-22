@@ -78,3 +78,53 @@ func fixLongPath(path string) string {
 	}
 	return string(pathbuf[:w])
 }
+
+func isAbs(path string) (b bool) {
+	v := volumeName(path)
+	if v == "" {
+		return false
+	}
+	path = path[len(v):]
+	if path == "" {
+		return false
+	}
+	return os.IsPathSeparator(path[0])
+}
+
+func volumeName(path string) (v string) {
+	if len(path) < 2 {
+		return ""
+	}
+	// with drive letter
+	c := path[0]
+	if path[1] == ':' &&
+		('0' <= c && c <= '9' || 'a' <= c && c <= 'z' ||
+			'A' <= c && c <= 'Z') {
+		return path[:2]
+	}
+	// is it UNC
+	if l := len(path); l >= 5 && os.IsPathSeparator(path[0]) && os.IsPathSeparator(path[1]) &&
+		!os.IsPathSeparator(path[2]) && path[2] != '.' {
+		// first, leading `\\` and next shouldn't be `\`. its server name.
+		for n := 3; n < l-1; n++ {
+			// second, next '\' shouldn't be repeated.
+			if os.IsPathSeparator(path[n]) {
+				n++
+				// third, following something characters. its share name.
+				if !os.IsPathSeparator(path[n]) {
+					if path[n] == '.' {
+						break
+					}
+					for ; n < l; n++ {
+						if os.IsPathSeparator(path[n]) {
+							break
+						}
+					}
+					return path[:n]
+				}
+				break
+			}
+		}
+	}
+	return ""
+}
