@@ -79,7 +79,7 @@ func (r *Repo) Pushd() {
 	if err != nil {
 		r.callback.Fatalf("Can't get cwd %v", err)
 	}
-	err = os.Chdir(r.Path)
+	err = longpathos.Chdir(r.Path)
 	if err != nil {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
@@ -89,7 +89,7 @@ func (r *Repo) Pushd() {
 
 func (r *Repo) Popd() {
 	if r.popDir != "" {
-		err := os.Chdir(r.popDir)
+		err := longpathos.Chdir(r.popDir)
 		if err != nil {
 			r.callback.Fatalf("Can't chdir %v", err)
 		}
@@ -107,7 +107,7 @@ func (r *Repo) Cleanup() {
 	if err == nil {
 		if strings.HasPrefix(oldwd, r.Path) ||
 			strings.HasPrefix(oldwd, r.GitDir) {
-			os.Chdir(os.TempDir())
+			longpathos.Chdir(os.TempDir())
 		}
 	}
 
@@ -320,7 +320,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	if err != nil {
 		repo.callback.Fatalf("Can't get cwd %v", err)
 	}
-	err = os.Chdir(repo.Path)
+	err = longpathos.Chdir(repo.Path)
 	if err != nil {
 		repo.callback.Fatalf("Can't chdir to repo %v", err)
 	}
@@ -376,7 +376,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	}
 
 	// Restore cwd
-	err = os.Chdir(oldwd)
+	err = longpathos.Chdir(oldwd)
 	if err != nil {
 		repo.callback.Fatalf("Can't restore old cwd %v", err)
 	}

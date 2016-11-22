@@ -360,13 +360,13 @@ func TestGetTrackedFiles(t *testing.T) {
 	assert.Equal(t, sublist, tracked)
 
 	// relative dir
-	os.Chdir("folder1")
+	longpathos.Chdir("folder1")
 	tracked, err = GetTrackedFiles("*.txt")
 	assert.Nil(t, err)
 	sort.Strings(tracked)
 	sublist = []string{"anotherfile.txt", "file10.txt"}
 	assert.Equal(t, sublist, tracked)
-	os.Chdir("..")
+	longpathos.Chdir("..")
 
 	// absolute paths only includes matches in repo root
 	tracked, err = GetTrackedFiles("/*.txt")

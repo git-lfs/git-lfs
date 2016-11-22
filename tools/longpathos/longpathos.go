@@ -17,3 +17,7 @@ func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 func Link(oldname, newname string) error {
 	return os.Link(fixLongPath(oldname), fixLongPath(newname))
 }
+
+func Chdir(dir string) error {
+	return os.Chdir(fixLongPath(dir))
+}

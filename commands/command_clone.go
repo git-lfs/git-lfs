@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
@@ -48,13 +49,13 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	err = os.Chdir(clonedir)
+	err = longpathos.Chdir(clonedir)
 	if err != nil {
 		Exit("Unable to change directory to clone dir %q: %v", clonedir, err)
 	}
 
 	// Make sure we pop back to dir we started in at the end
-	defer os.Chdir(cwd)
+	defer longpathos.Chdir(cwd)
 
 	// Also need to derive dirs now
 	localstorage.ResolveDirs()

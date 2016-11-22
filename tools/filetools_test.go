@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -144,7 +145,7 @@ func TestFastWalkBasic(t *testing.T) {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
 	defer os.RemoveAll(rootDir)
-	os.Chdir(rootDir)
+	longpathos.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
@@ -165,7 +166,7 @@ func TestFastWalkGitRepo(t *testing.T) {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
 	defer os.RemoveAll(rootDir)
-	os.Chdir(rootDir)
+	longpathos.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(3, 3)
 
