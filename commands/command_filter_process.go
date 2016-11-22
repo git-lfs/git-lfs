@@ -72,10 +72,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	skip := filterSmudgeSkip
-	if !skip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
-		skip = true
-	}
+	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 Scan:
