@@ -6,15 +6,7 @@
 # from the "next" branch, which is the only (current) version of Git that has
 # support for the filter protocol.
 #
-# Once 2.11 is released, replace this with:
-#
-# ```
-# ensure_git_version_isnt $VERSION_LOWER "2.11.0"
-# ```
-if [ "1" -ne "$(git version | cut -d ' ' -f 3 | grep -c "g")" ]; then
-  echo "skip: $0 git version does not include support for filter protocol"
-  exit
-fi
+ensure_git_version_isnt $VERSION_LOWER "2.11.0"
 
 begin_test "filter process: checking out a branch"
 (
