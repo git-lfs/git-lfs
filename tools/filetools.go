@@ -126,23 +126,17 @@ func VerifyFileHash(oid, path string) error {
 	return nil
 }
 
-// Returned from FastWalk with parent directory context
-// This is needed because FastWalk can provide paths out of order so the
-// parent dir cannot be implied
-type fastWalkInfo struct {
-	ParentDir string
-	Info      os.FileInfo
-}
-
+// FastWalkCallback is the signature for the callback given to FastWalkGitRepo()
 type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 
-// FastWalkGitRepo is a more optimal implementation of filepath.Walk for a Git repo
+// FastWalkGitRepo is a more optimal implementation of filepath.Walk for a Git
+// repo. The callback guaranteed to be called sequentially. The function returns
+// once all files and errors have triggered callbacks.
 // It differs in the following ways:
-//  * Provides a channel of information instead of using a callback func
 //  * Uses goroutines to parallelise large dirs and descent into subdirs
 //  * Does not provide sorted output; parents will always be before children but
-//    there are no other guarantees. Use parentDir in the fastWalkInfo struct to
-//    determine absolute path rather than tracking it yourself like filepath.Walk
+//    there are no other guarantees. Use parentDir argument in the callback to
+//    determine absolute path rather than tracking it yourself
 //  * Automatically ignores any .git directories
 //  * Respects .gitignore contents and skips ignored files/dirs
 func FastWalkGitRepo(dir string, cb FastWalkCallback) {
@@ -167,6 +161,14 @@ func FastWalkGitRepo(dir string, cb FastWalkCallback) {
 	}
 
 	wg.Wait()
+}
+
+// Returned from FastWalk with parent directory context
+// This is needed because FastWalk can provide paths out of order so the
+// parent dir cannot be implied
+type fastWalkInfo struct {
+	ParentDir string
+	Info      os.FileInfo
 }
 
 // fastWalkWithExcludeFiles walks the contents of a dir, respecting
