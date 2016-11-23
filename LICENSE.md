@@ -1,4 +1,4 @@
-This project is licensed under the [MIT license](https://en.wikipedia.org/wiki/MIT_License). 
+MIT License
 
 Copyright (c) GitHub, Inc. and Git LFS contributors
 
