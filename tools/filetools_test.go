@@ -58,24 +58,13 @@ func BenchmarkFastWalkGitRepoChannels(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		var files, errors int
-		fchan, errchan := FastWalkGitRepoChannels(entries[0])
-		var wg sync.WaitGroup
-		wg.Add(2)
-		go func() {
-			for _ = range fchan {
+		FastWalkGitRepo(entries[0], func(parent string, info os.FileInfo, err error) {
+			if err != nil {
+				errors++
+			} else {
 				files++
 			}
-			wg.Done()
-		}()
-
-		go func() {
-			for _ = range errchan {
-				errors++
-			}
-			wg.Done()
-		}()
-		wg.Wait()
-
+		})
 		b.Logf("files: %d, errors: %d", files, errors)
 	}
 }
@@ -163,8 +152,15 @@ thisisnot.txt
 	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", ".gitignore"))
 	// nothing else should be there
 
-	fchan, errchan := FastWalkGitRepoChannels(mainDir)
-	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+	gotEntries := make([]string, 0, 1000)
+	gotErrors := make([]error, 0, 5)
+	FastWalkGitRepo(mainDir, func(parent string, info os.FileInfo, err error) {
+		if err != nil {
+			gotErrors = append(gotErrors, err)
+		} else {
+			gotEntries = append(gotEntries, filepath.Join(parent, info.Name()))
+		}
+	})
 
 	assert.Empty(t, gotErrors)
 
@@ -208,7 +204,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	return expectedEntries
 }
 
-func collectFastWalkResults(fchan <-chan FastWalkInfo, errchan <-chan error) ([]string, []error) {
+func collectFastWalkResults(fchan <-chan fastWalkInfo, errchan <-chan error) ([]string, []error) {
 	gotEntries := make([]string, 0, 1000)
 	gotErrors := make([]error, 0, 5)
 	var waitg sync.WaitGroup
