@@ -102,12 +102,11 @@ func (k *Store) Save() error {
 	if err != nil {
 		return err
 	}
-	stat, _ := os.Stat(k.filename)
 
 	defer f.Close()
 
 	// Only try to merge if > 0 bytes, ignore empty files (decoder will fail)
-	if stat.Size() > 0 {
+	if stat, _ := f.Stat(); stat.Size() > 0 {
 		k.loadAndMergeReaderIfNeeded(f)
 		// Now we overwrite the file
 		f.Seek(0, os.SEEK_SET)
