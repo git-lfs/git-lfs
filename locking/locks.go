@@ -13,7 +13,7 @@ import (
 var (
 	// API is a package-local instance of the API client for use within
 	// various command implementations.
-	API = api.NewClient(nil)
+	apiClient = api.NewClient(nil)
 	// errNoMatchingLocks is an error returned when no matching locks were
 	// able to be resolved
 	errNoMatchingLocks = errors.New("lfs: no matching locks found")
@@ -37,13 +37,13 @@ func Lock(path, remote string) (id string, e error) {
 		return "", err
 	}
 
-	s, resp := API.Locks.Lock(&api.LockRequest{
+	s, resp := apiClient.Locks.Lock(&api.LockRequest{
 		Path:               path,
 		Committer:          api.CurrentCommitter(),
 		LatestRemoteCommit: latest.Sha,
 	})
 
-	if _, err := API.Do(s); err != nil {
+	if _, err := apiClient.Do(s); err != nil {
 		return "", fmt.Errorf("Error communicating with LFS API: %v", err)
 	}
 
@@ -79,9 +79,9 @@ func Unlock(path, remote string, force bool) error {
 // Unlock attempts to unlock a lock with a given id on the remote
 // Force causes the file to be unlocked from other users as well
 func UnlockById(id, remote string, force bool) error {
-	s, resp := API.Locks.Unlock(id, force)
+	s, resp := apiClient.Locks.Unlock(id, force)
 
-	if _, err := API.Do(s); err != nil {
+	if _, err := apiClient.Do(s); err != nil {
 		return fmt.Errorf("Error communicating with LFS API: %v", err)
 	}
 
@@ -134,8 +134,8 @@ func SearchLocks(remote string, filter map[string]string, limit int) *LockChanne
 		query := &api.LockSearchRequest{Filters: apifilters}
 	QueryLoop:
 		for {
-			s, resp := API.Locks.Search(query)
-			if _, err := API.Do(s); err != nil {
+			s, resp := apiClient.Locks.Search(query)
+			if _, err := apiClient.Do(s); err != nil {
 				errChan <- fmt.Errorf("Error communicating with LFS API: %v", err)
 				break
 			}
@@ -177,13 +177,13 @@ func SearchLocks(remote string, filter map[string]string, limit int) *LockChanne
 // If the API call is successful, and only one lock matches the given filepath,
 // then its ID will be returned, along with a value of "nil" for the error.
 func lockIdFromPath(path string) (string, error) {
-	s, resp := API.Locks.Search(&api.LockSearchRequest{
+	s, resp := apiClient.Locks.Search(&api.LockSearchRequest{
 		Filters: []api.Filter{
 			{"path", path},
 		},
 	})
 
-	if _, err := API.Do(s); err != nil {
+	if _, err := apiClient.Do(s); err != nil {
 		return "", err
 	}
 
