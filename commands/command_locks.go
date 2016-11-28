@@ -17,13 +17,12 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	}
 
 	var lockCount int
-	locks := locking.SearchLocks(lockRemote, filters, locksCmdFlags.Limit)
-
-	for lock := range locks.Results {
-		Print("%s\t%s <%s>", lock.Path, lock.Committer.Name, lock.Committer.Email)
+	locks, err := locking.SearchLocks(lockRemote, filters, locksCmdFlags.Limit)
+	// Print any we got before exiting
+	for _, lock := range locks {
+		Print("%s\t%s <%s>", lock.Path, lock.Name, lock.Email)
 		lockCount++
 	}
-	err = locks.Wait()
 
 	if err != nil {
 		Exit("Error while retrieving locks: %v", err)

@@ -3,11 +3,11 @@ package locking
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/tools"
 )
 
 var (
@@ -22,10 +22,10 @@ var (
 	errLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
 )
 
-// Lock attempts to lock a file on the given remote name
+// LockFile attempts to lock a file on the given remote name
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
-func Lock(path, remote string) (id string, e error) {
+func LockFile(path, remote string) (id string, e error) {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
@@ -58,10 +58,10 @@ func Lock(path, remote string) (id string, e error) {
 	return resp.Lock.Id, nil
 }
 
-// Unlock attempts to unlock a file on the given remote name
+// UnlockFile attempts to unlock a file on the given remote name
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
-func Unlock(path, remote string, force bool) error {
+func UnlockFile(path, remote string, force bool) error {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
@@ -72,13 +72,13 @@ func Unlock(path, remote string, force bool) error {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return UnlockById(id, remote, force)
+	return UnlockFileById(id, remote, force)
 
 }
 
-// Unlock attempts to unlock a lock with a given id on the remote
+// UnlockFileById attempts to unlock a lock with a given id on the remote
 // Force causes the file to be unlocked from other users as well
-func UnlockById(id, remote string, force bool) error {
+func UnlockFileById(id, remote string, force bool) error {
 	s, resp := apiClient.Locks.Unlock(id, force)
 
 	if _, err := apiClient.Do(s); err != nil {
@@ -96,74 +96,92 @@ func UnlockById(id, remote string, force bool) error {
 	return nil
 }
 
-// ChannelWrapper for lock search to more easily return async error data via Wait()
-// See NewPointerChannelWrapper for construction / use
-type LockChannelWrapper struct {
-	*tools.BaseChannelWrapper
-	Results <-chan api.Lock
+// Lock is a record of a locked file
+// TODO SJS: review this struct and api equivalent
+//           deliberately duplicated to make this API self-contained, could be simpler
+type Lock struct {
+	// Id is the unique identifier corresponding to this particular Lock. It
+	// must be consistent with the local copy, and the server's copy.
+	Id string
+	// Path is an absolute path to the file that is locked as a part of this
+	// lock.
+	Path string
+	// Name is the name of the person holding this lock
+	Name string
+	// Email address of the person holding this lock
+	Email string
+	// CommitSHA is the commit that this Lock was created against. It is
+	// strictly equal to the SHA of the minimum commit negotiated in order
+	// to create this lock.
+	CommitSHA string
+	// LockedAt is a required parameter that represents the instant in time
+	// that this lock was created. For most server implementations, this
+	// should be set to the instant at which the lock was initially
+	// received.
+	LockedAt time.Time
+	// ExpiresAt is an optional parameter that represents the instant in
+	// time that the lock stopped being active. If the lock is still active,
+	// the server can either a) not send this field, or b) send the
+	// zero-value of time.Time.
+	UnlockedAt time.Time
 }
 
-// Construct a new channel wrapper for api.Lock
-// Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
-func NewLockChannelWrapper(lockChan <-chan api.Lock, errChan <-chan error) *LockChannelWrapper {
-	return &LockChannelWrapper{tools.NewBaseChannelWrapper(errChan), lockChan}
+func newLockFromApi(a api.Lock) Lock {
+	return Lock{
+		Id:         a.Id,
+		Path:       a.Path,
+		Name:       a.Committer.Name,
+		Email:      a.Committer.Email,
+		CommitSHA:  a.CommitSHA,
+		LockedAt:   a.LockedAt,
+		UnlockedAt: a.UnlockedAt,
+	}
 }
 
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
-func SearchLocks(remote string, filter map[string]string, limit int) *LockChannelWrapper {
+func SearchLocks(remote string, filter map[string]string, limit int) (locks []Lock, err error) {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
-	errChan := make(chan error, 5) // can be multiple errors below
-	lockChan := make(chan api.Lock, 10)
-	c := NewLockChannelWrapper(lockChan, errChan)
-	go func() {
-		defer func() {
-			close(lockChan)
-			close(errChan)
-			// Only reinstate the remote after we're done
-			config.Config.CurrentRemote = savedRemote
-		}()
-
-		apifilters := make([]api.Filter, 0, len(filter))
-		for k, v := range filter {
-			apifilters = append(apifilters, api.Filter{k, v})
-		}
-		lockCount := 0
-		query := &api.LockSearchRequest{Filters: apifilters}
-	QueryLoop:
-		for {
-			s, resp := apiClient.Locks.Search(query)
-			if _, err := apiClient.Do(s); err != nil {
-				errChan <- fmt.Errorf("Error communicating with LFS API: %v", err)
-				break
-			}
-
-			if resp.Err != "" {
-				errChan <- fmt.Errorf("Error response from LFS API: %v", resp.Err)
-				break
-			}
-
-			for _, l := range resp.Locks {
-				lockChan <- l
-				lockCount++
-				if limit > 0 && lockCount >= limit {
-					// Exit outer loop too
-					break QueryLoop
-				}
-			}
-
-			if resp.NextCursor != "" {
-				query.Cursor = resp.NextCursor
-			} else {
-				break
-			}
-		}
-
+	defer func() {
+		// Only reinstate the remote after we're done
+		config.Config.CurrentRemote = savedRemote
 	}()
 
-	return c
+	locks = make([]Lock, 0, limit)
+
+	apifilters := make([]api.Filter, 0, len(filter))
+	for k, v := range filter {
+		apifilters = append(apifilters, api.Filter{k, v})
+	}
+	query := &api.LockSearchRequest{Filters: apifilters}
+	for {
+		s, resp := apiClient.Locks.Search(query)
+		if _, err := apiClient.Do(s); err != nil {
+			return locks, fmt.Errorf("Error communicating with LFS API: %v", err)
+		}
+
+		if resp.Err != "" {
+			return locks, fmt.Errorf("Error response from LFS API: %v", resp.Err)
+		}
+
+		for _, l := range resp.Locks {
+			locks = append(locks, newLockFromApi(l))
+			if limit > 0 && len(locks) >= limit {
+				// Exit outer loop too
+				return locks, nil
+			}
+		}
+
+		if resp.NextCursor != "" {
+			query.Cursor = resp.NextCursor
+		} else {
+			break
+		}
+	}
+
+	return locks, nil
 
 }
 

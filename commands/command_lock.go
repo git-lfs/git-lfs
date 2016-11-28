@@ -28,7 +28,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	id, err := locking.Lock(path, lockRemote)
+	id, err := locking.LockFile(path, lockRemote)
 	if err != nil {
 		Exit("Lock failed: %v", err)
 	}
