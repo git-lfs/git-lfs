@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -10,45 +10,26 @@ var (
 )
 
 func locksCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(cfg)
 
 	filters, err := locksCmdFlags.Filters()
 	if err != nil {
-		Error(err.Error())
+		Exit("Error building filters: %v", err)
 	}
 
-	var locks []api.Lock
+	var lockCount int
+	locks := locking.SearchLocks(lockRemote, filters, locksCmdFlags.Limit)
 
-	query := &api.LockSearchRequest{Filters: filters}
-	for {
-		s, resp := API.Locks.Search(query)
-		if _, err := API.Do(s); err != nil {
-			Error(err.Error())
-			Exit("Error communicating with LFS API.")
-		}
-
-		if resp.Err != "" {
-			Error(resp.Err)
-		}
-
-		locks = append(locks, resp.Locks...)
-
-		if locksCmdFlags.Limit > 0 && len(locks) > locksCmdFlags.Limit {
-			locks = locks[:locksCmdFlags.Limit]
-			break
-		}
-
-		if resp.NextCursor != "" {
-			query.Cursor = resp.NextCursor
-		} else {
-			break
-		}
-	}
-
-	Print("\n%d lock(s) matched query:", len(locks))
-	for _, lock := range locks {
+	for lock := range locks.Results {
 		Print("%s\t%s <%s>", lock.Path, lock.Committer.Name, lock.Committer.Email)
+		lockCount++
 	}
+	err = locks.Wait()
+
+	if err != nil {
+		Exit("Error while retrieving locks: %v", err)
+	}
+
+	Print("\n%d lock(s) matched query.", lockCount)
 }
 
 // locksFlags wraps up and holds all of the flags that can be given to the
@@ -65,11 +46,9 @@ type locksFlags struct {
 	Limit int
 }
 
-// Filters produces a slice of api.Filter instances based on the internal state
-// of this locksFlags instance. The return value of this method is capable (and
-// recommend to be used with) the api.LockSearchRequest type.
-func (l *locksFlags) Filters() ([]api.Filter, error) {
-	filters := make([]api.Filter, 0)
+// Filters produces a filter based on locksFlags instance.
+func (l *locksFlags) Filters() (map[string]string, error) {
+	filters := make(map[string]string)
 
 	if l.Path != "" {
 		path, err := lockPath(l.Path)
@@ -77,10 +56,10 @@ func (l *locksFlags) Filters() ([]api.Filter, error) {
 			return nil, err
 		}
 
-		filters = append(filters, api.Filter{"path", path})
+		filters["path"] = path
 	}
 	if l.Id != "" {
-		filters = append(filters, api.Filter{"id", l.Id})
+		filters["id"] = l.Id
 	}
 
 	return filters, nil
