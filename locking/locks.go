@@ -14,12 +14,12 @@ var (
 	// API is a package-local instance of the API client for use within
 	// various command implementations.
 	apiClient = api.NewClient(nil)
-	// errNoMatchingLocks is an error returned when no matching locks were
+	// ErrNoMatchingLocks is an error returned when no matching locks were
 	// able to be resolved
-	errNoMatchingLocks = errors.New("lfs: no matching locks found")
-	// errLockAmbiguous is an error returned when multiple matching locks
+	ErrNoMatchingLocks = errors.New("lfs: no matching locks found")
+	// ErrLockAmbiguous is an error returned when multiple matching locks
 	// were found
-	errLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
+	ErrLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
 )
 
 // LockFile attempts to lock a file on the given remote name
@@ -207,10 +207,10 @@ func lockIdFromPath(path string) (string, error) {
 
 	switch len(resp.Locks) {
 	case 0:
-		return "", errNoMatchingLocks
+		return "", ErrNoMatchingLocks
 	case 1:
 		return resp.Locks[0].Id, nil
 	default:
-		return "", errLockAmbiguous
+		return "", ErrLockAmbiguous
 	}
 }
