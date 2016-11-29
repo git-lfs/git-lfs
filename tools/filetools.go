@@ -211,12 +211,10 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 
 	if len(excludeFilename) > 0 {
 		possibleExcludeFile := filepath.Join(fullPath, excludeFilename)
-		if FileExists(possibleExcludeFile) {
-			var err error
-			excludePaths, err = loadExcludeFilename(possibleExcludeFile, fullPath, excludePaths)
-			if err != nil {
-				fiChan <- fastWalkInfo{Err: err}
-			}
+		var err error
+		excludePaths, err = loadExcludeFilename(possibleExcludeFile, fullPath, excludePaths)
+		if err != nil {
+			fiChan <- fastWalkInfo{Err: err}
 		}
 	}
 
@@ -256,6 +254,9 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 func loadExcludeFilename(filename, parentDir string, excludePaths []filepathfilter.Pattern) ([]filepathfilter.Pattern, error) {
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return excludePaths, nil
+		}
 		return excludePaths, err
 	}
 	defer f.Close()
