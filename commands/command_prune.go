@@ -323,18 +323,19 @@ func pruneTaskGetRetainedAtRef(gitscanner *lfs.GitScanner, ref string, retainCha
 func pruneTaskGetPreviousVersionsOfRef(gitscanner *lfs.GitScanner, ref string, since time.Time, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	refchan, err := gitscanner.ScanPreviousVersions(ref, since)
+	err := gitscanner.ScanPreviousVersions(ref, since, func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			errorChan <- err
+			return
+		} else {
+			retainChan <- p.Oid
+			tracerx.Printf("RETAIN: %v via ref %v >= %v", p.Oid, ref, since)
+		}
+	})
+
 	if err != nil {
 		errorChan <- err
 		return
-	}
-	for wp := range refchan.Results {
-		retainChan <- wp.Pointer.Oid
-		tracerx.Printf("RETAIN: %v via ref %v >= %v", wp.Pointer.Oid, ref, since)
-	}
-	err = refchan.Wait()
-	if err != nil {
-		errorChan <- err
 	}
 }
 

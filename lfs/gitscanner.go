@@ -122,8 +122,12 @@ func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerCallback) error {
 // Returns channel of pointers for *previous* versions that overlap that time.
 // Does not include pointers which were still in use at ref (use ScanRefsToChan
 // for that)
-func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*PointerChannelWrapper, error) {
-	return logPreviousSHAs(ref, since)
+func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return logPreviousSHAs(callback, ref, since)
 }
 
 // ScanIndex scans the git index for modified LFS objects.

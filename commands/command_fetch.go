@@ -138,14 +138,23 @@ func fetchRef(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Fil
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
 func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Time, filter *filepathfilter.Filter) bool {
-	pointerCh, err := gitscanner.ScanPreviousVersions(ref, since)
+	var pointers []*lfs.WrappedPointer
+
+	tempgitscanner := lfs.NewGitScanner(nil)
+	err := tempgitscanner.ScanPreviousVersions(ref, since, func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS previous versions")
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
 	if err != nil {
 		ExitWithError(err)
 	}
-	pointers, err := collectPointers(pointerCh)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS previous versions")
-	}
+
+	tempgitscanner.Close()
 	return fetchAndReportToChan(pointers, filter, nil)
 }
 

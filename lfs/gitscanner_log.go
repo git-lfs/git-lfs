@@ -58,12 +58,15 @@ func scanUnpushed(cb GitScannerCallback, remote string) error {
 		return err
 	}
 
-	cmd.Stdin.Close()
+	parseScannerLogOutput(cb, LogDiffAdditions, cmd)
+	return nil
+}
 
+func parseScannerLogOutput(cb GitScannerCallback, direction LogDiffDirection, cmd *wrappedCmd) {
 	ch := make(chan gitscannerResult, chanBufSize)
 
 	go func() {
-		scanner := newLogScanner(LogDiffAdditions, cmd.Stdout)
+		scanner := newLogScanner(direction, cmd.Stdout)
 		for scanner.Scan() {
 			if p := scanner.Pointer(); p != nil {
 				ch <- gitscannerResult{Pointer: p}
@@ -77,16 +80,15 @@ func scanUnpushed(cb GitScannerCallback, remote string) error {
 		close(ch)
 	}()
 
+	cmd.Stdin.Close()
 	for result := range ch {
 		cb(result.Pointer, result.Err)
 	}
-
-	return nil
 }
 
 // logPreviousVersions scans history for all previous versions of LFS pointers
 // from 'since' up to (but not including) the final state at ref
-func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error) {
+func logPreviousSHAs(cb GitScannerCallback, ref string, since time.Time) error {
 	logArgs := []string{"log",
 		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
 	}
@@ -97,29 +99,11 @@ func logPreviousSHAs(ref string, since time.Time) (*PointerChannelWrapper, error
 
 	cmd, err := startCommand("git", logArgs...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cmd.Stdin.Close()
-
-	pchan := make(chan *WrappedPointer, chanBufSize)
-	errchan := make(chan error, 1)
-
-	// we pull out deletions, since we want the previous SHAs at commits in the range
-	// this means we pick up all previous versions that could have been checked
-	// out in the date range, not just if the commit which *introduced* them is in the range
-	go func() {
-		parseLogOutputToPointers(cmd.Stdout, LogDiffDeletions, nil, nil, pchan)
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
-		}
-		close(pchan)
-		close(errchan)
-	}()
-
-	return NewPointerChannelWrapper(pchan, errchan), nil
+	parseScannerLogOutput(cb, LogDiffDeletions, cmd)
+	return nil
 }
 
 func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
