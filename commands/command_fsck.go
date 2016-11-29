@@ -3,6 +3,7 @@ package commands
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -27,33 +28,8 @@ func doFsck() (bool, error) {
 
 	// The LFS scanner methods return unexported *lfs.wrappedPointer objects.
 	// All we care about is the pointer OID and file name
-	pointerIndex := make(map[string]string)
-
-	gitscanner := lfs.NewGitScanner(nil)
-	defer gitscanner.Close()
-	pointerCh, err := gitscanner.ScanRefWithDeleted(ref.Sha)
+	pointerIndex, err := getPointersFromRef(ref.Sha)
 	if err != nil {
-		return false, err
-	}
-
-	for p := range pointerCh.Results {
-		pointerIndex[p.Oid] = p.Name
-	}
-
-	if err := pointerCh.Wait(); err != nil {
-		return false, err
-	}
-
-	p2, err := gitscanner.ScanIndex("HEAD")
-	if err != nil {
-		return false, err
-	}
-
-	for p := range p2.Results {
-		pointerIndex[p.Oid] = p.Name
-	}
-
-	if err := p2.Wait(); err != nil {
 		return false, err
 	}
 
@@ -102,6 +78,45 @@ func doFsck() (bool, error) {
 		}
 	}
 	return ok, nil
+}
+
+func getPointersFromRef(ref string) (map[string]string, error) {
+	// The LFS scanner methods return unexported *lfs.wrappedPointer objects.
+	// All we care about is the pointer OID and file name
+	pointerIndex := make(map[string]string)
+
+	var multiErr error
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+		pointerIndex[p.Oid] = p.Name
+	})
+
+	defer gitscanner.Close()
+	pointerCh, err := gitscanner.ScanRefWithDeleted(ref)
+	if err != nil {
+		return pointerIndex, err
+	}
+
+	for p := range pointerCh.Results {
+		pointerIndex[p.Oid] = p.Name
+	}
+
+	if err := pointerCh.Wait(); err != nil {
+		return pointerIndex, err
+	}
+
+	if err := gitscanner.ScanIndex("HEAD"); err != nil {
+		return pointerIndex, err
+	}
+
+	return pointerIndex, multiErr
 }
 
 // TODO(zeroshirts): 'git fsck' reports status (percentage, current#/total) as

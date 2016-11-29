@@ -122,8 +122,8 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*Pointer
 }
 
 // ScanIndex scans the git index for modified LFS objects.
-func (s *GitScanner) ScanIndex(ref string) (*PointerChannelWrapper, error) {
-	return scanIndex(ref)
+func (s *GitScanner) ScanIndex(ref string) error {
+	return scanIndex(s.callback, ref)
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
