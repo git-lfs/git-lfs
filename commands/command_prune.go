@@ -304,16 +304,16 @@ func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan P
 func pruneTaskGetRetainedAtRef(gitscanner *lfs.GitScanner, ref string, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	refchan, err := gitscanner.ScanRef(ref)
-	if err != nil {
-		errorChan <- err
-		return
-	}
-	for wp := range refchan.Results {
-		retainChan <- wp.Pointer.Oid
-		tracerx.Printf("RETAIN: %v via ref %v", wp.Pointer.Oid, ref)
-	}
-	err = refchan.Wait()
+	err := gitscanner.ScanRef(ref, func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			errorChan <- err
+			return
+		}
+
+		retainChan <- p.Oid
+		tracerx.Printf("RETAIN: %v via ref %v", p.Oid, ref)
+	})
+
 	if err != nil {
 		errorChan <- err
 	}
@@ -447,16 +447,14 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, retainChan chan st
 func pruneTaskGetReachableObjects(gitscanner *lfs.GitScanner, outObjectSet *tools.StringSet, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	pointerchan, err := gitscanner.ScanAll()
-	if err != nil {
-		errorChan <- fmt.Errorf("Error scanning for reachable objects: %v", err)
-		return
-	}
-
-	for p := range pointerchan.Results {
+	err := gitscanner.ScanAll(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			errorChan <- err
+			return
+		}
 		outObjectSet.Add(p.Oid)
-	}
-	err = pointerchan.Wait()
+	})
+
 	if err != nil {
 		errorChan <- err
 	}

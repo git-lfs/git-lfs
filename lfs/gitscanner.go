@@ -61,44 +61,64 @@ func (s *GitScanner) RemoteForPush(r string) error {
 
 // ScanLeftToRemote scans through all commits starting at the given ref that the
 // given remote does not have. See RemoteForPush().
-func (s *GitScanner) ScanLeftToRemote(left string) (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanLeftToRemote(left string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return nil, fmt.Errorf("Unable to scan starting at %q: no remote set.", left)
+		return fmt.Errorf("Unable to scan starting at %q: no remote set.", left)
 	}
 	s.mu.Unlock()
 
-	return scanRefsToChan(left, "", s.opts(ScanLeftToRemoteMode))
+	return scanRefsToChan(callback, left, "", s.opts(ScanLeftToRemoteMode))
 }
 
 // ScanRefRange scans through all commits from the given left and right refs,
 // including git objects that have been modified or deleted.
-func (s *GitScanner) ScanRefRange(left, right string) (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan(left, right, opts)
+	return scanRefsToChan(callback, left, right, opts)
 }
 
 // ScanRefWithDeleted scans through all objects in the given ref, including
 // git objects that have been modified or deleted.
-func (s *GitScanner) ScanRefWithDeleted(ref string) (*PointerChannelWrapper, error) {
-	return s.ScanRefRange(ref, "")
+func (s *GitScanner) ScanRefWithDeleted(ref string, cb GitScannerCallback) error {
+	return s.ScanRefRange(ref, "", cb)
 }
 
 // ScanRef scans through all objects in the current ref, excluding git objects
 // that have been modified or deleted before the ref.
-func (s *GitScanner) ScanRef(ref string) (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanRef(ref string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
-	return scanRefsToChan(ref, "", opts)
+	return scanRefsToChan(callback, ref, "", opts)
 }
 
 // ScanAll scans through all objects in the git repository.
-func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanAll(cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan("", "", opts)
+	return scanRefsToChan(callback, "", "", opts)
 }
 
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that

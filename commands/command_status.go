@@ -12,36 +12,11 @@ var (
 	porcelain = false
 )
 
-func porcelainStagedPointers(ref string) {
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			ExitWithError(err)
-		}
-
-		switch p.Status {
-		case "R", "C":
-			Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
-		case "M":
-			Print(" %s %s %d", p.Status, p.Name, p.Size)
-		default:
-			Print("%s  %s %d", p.Status, p.Name, p.Size)
-		}
-	})
-	defer gitscanner.Close()
-
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
-		ExitWithError(err)
-	}
-}
-
 func statusCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	// tolerate errors getting ref so this works before first commit
 	ref, _ := git.CurrentRef()
-
-	gitscanner := lfs.NewGitScanner(nil)
-	defer gitscanner.Close()
 
 	scanIndexAt := "HEAD"
 	if ref == nil {
@@ -53,26 +28,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if ref != nil {
-		Print("On branch %s", ref.Name)
-
-		remoteRef, err := git.CurrentRemoteRef()
-		if err == nil {
-			pointerCh, err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha)
-			if err != nil {
-				Panic(err, "Could not scan for Git LFS objects")
-			}
-
-			Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-			for p := range pointerCh.Results {
-				Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
-			}
-
-			if err := pointerCh.Wait(); err != nil {
-				Panic(err, "Could not scan for Git LFS objects")
-			}
-		}
-	}
+	statusScanRefRange(ref)
 
 	Print("\nGit LFS objects to be committed:\n")
 
@@ -107,6 +63,57 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 
 	Print("")
+}
+
+func statusScanRefRange(ref *git.Ref) {
+	if ref == nil {
+		return
+	}
+
+	Print("On branch %s", ref.Name)
+
+	remoteRef, err := git.CurrentRemoteRef()
+	if err != nil {
+		return
+	}
+
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS objects")
+			return
+		}
+
+		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+	})
+	defer gitscanner.Close()
+
+	Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
+	if err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha, nil); err != nil {
+		Panic(err, "Could not scan for Git LFS objects")
+	}
+
+}
+
+func porcelainStagedPointers(ref string) {
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			ExitWithError(err)
+		}
+
+		switch p.Status {
+		case "R", "C":
+			Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
+		case "M":
+			Print(" %s %s %d", p.Status, p.Name, p.Size)
+		default:
+			Print("%s  %s %d", p.Status, p.Name, p.Size)
+		}
+	})
+	defer gitscanner.Close()
+
+	if err := gitscanner.ScanIndex(ref, nil); err != nil {
+		ExitWithError(err)
+	}
 }
 
 var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}

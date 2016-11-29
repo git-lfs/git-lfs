@@ -241,21 +241,32 @@ func scanAll(gitscanner *lfs.GitScanner) []*lfs.WrappedPointer {
 	spinner := progress.NewSpinner()
 	var numObjs int64
 
-	pointerCh, err := gitscanner.ScanAll()
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
+	// use temp gitscanner to collect pointers
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
 
-	pointers := make([]*lfs.WrappedPointer, 0)
-
-	for p := range pointerCh.Results {
 		numObjs++
 		spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
 		pointers = append(pointers, p)
-	}
-	err = pointerCh.Wait()
-	if err != nil {
+	})
+
+	if err := tempgitscanner.ScanAll(nil); err != nil {
 		Panic(err, "Could not scan for Git LFS files")
+	}
+
+	tempgitscanner.Close()
+
+	if multiErr != nil {
+		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
 	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))

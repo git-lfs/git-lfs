@@ -99,16 +99,7 @@ func getPointersFromRef(ref string) (map[string]string, error) {
 	})
 
 	defer gitscanner.Close()
-	pointerCh, err := gitscanner.ScanRefWithDeleted(ref)
-	if err != nil {
-		return pointerIndex, err
-	}
-
-	for p := range pointerCh.Results {
-		pointerIndex[p.Oid] = p.Name
-	}
-
-	if err := pointerCh.Wait(); err != nil {
+	if err := gitscanner.ScanRefWithDeleted(ref, nil); err != nil {
 		return pointerIndex, err
 	}
 
