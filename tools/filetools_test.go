@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"sync"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -36,8 +35,8 @@ func TestFastWalkBasic(t *testing.T) {
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	fchan, errchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil)
-	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+	fchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil)
+	gotEntries, gotErrors := collectFastWalkResults(fchan)
 
 	assert.Empty(t, gotErrors)
 
@@ -204,24 +203,16 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	return expectedEntries
 }
 
-func collectFastWalkResults(fchan <-chan fastWalkInfo, errchan <-chan error) ([]string, []error) {
+func collectFastWalkResults(fchan <-chan fastWalkInfo) ([]string, []error) {
 	gotEntries := make([]string, 0, 1000)
 	gotErrors := make([]error, 0, 5)
-	var waitg sync.WaitGroup
-	waitg.Add(2)
-	go func() {
-		for o := range fchan {
+	for o := range fchan {
+		if o.Err != nil {
+			gotErrors = append(gotErrors, o.Err)
+		} else {
 			gotEntries = append(gotEntries, filepath.Join(o.ParentDir, o.Info.Name()))
 		}
-		waitg.Done()
-	}()
-	go func() {
-		for err := range errchan {
-			gotErrors = append(gotErrors, err)
-		}
-		waitg.Done()
-	}()
-	waitg.Wait()
+	}
 
 	return gotEntries, gotErrors
 }
