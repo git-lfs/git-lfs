@@ -104,8 +104,12 @@ func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that
 // ref. Differs from ScanRefs in that multiple files in the tree with the same
 // content are all reported.
-func (s *GitScanner) ScanTree(ref string) (*PointerChannelWrapper, error) {
-	return runScanTree(ref)
+func (s *GitScanner) ScanTree(ref string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return runScanTree(callback, ref)
 }
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not

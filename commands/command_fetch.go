@@ -107,11 +107,27 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 }
 
 func pointersToFetchForRef(gitscanner *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
-	pointerCh, err := gitscanner.ScanTree(ref)
-	if err != nil {
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
+	if err := tempgitscanner.ScanTree(ref, nil); err != nil {
 		return nil, err
 	}
-	return collectPointers(pointerCh)
+
+	tempgitscanner.Close()
+	return pointers, multiErr
 }
 
 func fetchRefToChan(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
