@@ -33,7 +33,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		showOidLen = 64
 	}
 
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 
 	pointerCh, err := gitscanner.ScanTree(ref)

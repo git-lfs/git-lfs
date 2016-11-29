@@ -34,7 +34,12 @@ var (
 	}
 )
 
-func scanUnpushed(remote string) (*PointerChannelWrapper, error) {
+type gitscannerResult struct {
+	Pointer *WrappedPointer
+	Err     error
+}
+
+func scanUnpushed(cb GitScannerCallback, remote string) error {
 	logArgs := []string{"log",
 		"--branches", "--tags", // include all locally referenced commits
 		"--not"} // but exclude everything that comes after
@@ -50,26 +55,33 @@ func scanUnpushed(remote string) (*PointerChannelWrapper, error) {
 
 	cmd, err := startCommand("git", logArgs...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cmd.Stdin.Close()
 
-	pchan := make(chan *WrappedPointer, chanBufSize)
-	errchan := make(chan error, 1)
+	ch := make(chan gitscannerResult, chanBufSize)
 
 	go func() {
-		parseLogOutputToPointers(cmd.Stdout, LogDiffAdditions, nil, nil, pchan)
+		scanner := newLogScanner(LogDiffAdditions, cmd.Stdout)
+		for scanner.Scan() {
+			if p := scanner.Pointer(); p != nil {
+				ch <- gitscannerResult{Pointer: p}
+			}
+		}
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- fmt.Errorf("Error in git log: %v %v", err, string(stderr))
+			ch <- gitscannerResult{Err: fmt.Errorf("Error in git log: %v %v", err, string(stderr))}
 		}
-		close(pchan)
-		close(errchan)
+		close(ch)
 	}()
 
-	return NewPointerChannelWrapper(pchan, errchan), nil
+	for result := range ch {
+		cb(result.Pointer, result.Err)
+	}
+
+	return nil
 }
 
 // logPreviousVersions scans history for all previous versions of LFS pointers

@@ -12,6 +12,7 @@ import (
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
 	Filter      *filepathfilter.Filter
+	callback    GitScannerCallback
 	remote      string
 	skippedRefs []string
 
@@ -20,10 +21,12 @@ type GitScanner struct {
 	mu      sync.Mutex
 }
 
+type GitScannerCallback func(*WrappedPointer, error)
+
 // NewGitScanner initializes a *GitScanner for a Git repository in the current
 // working directory.
-func NewGitScanner() *GitScanner {
-	return &GitScanner{started: time.Now()}
+func NewGitScanner(cb GitScannerCallback) *GitScanner {
+	return &GitScanner{started: time.Now(), callback: cb}
 }
 
 // Close stops exits once all processing has stopped, and all resources are
@@ -106,8 +109,8 @@ func (s *GitScanner) ScanTree(ref string) (*PointerChannelWrapper, error) {
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not
 // pushed to the named remote. remote can be left blank to mean 'any remote'.
-func (s *GitScanner) ScanUnpushed(remote string) (*PointerChannelWrapper, error) {
-	return scanUnpushed(remote)
+func (s *GitScanner) ScanUnpushed(remote string) error {
+	return scanUnpushed(s.callback, remote)
 }
 
 // ScanPreviousVersions scans changes reachable from ref (commit) back to since.

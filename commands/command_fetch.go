@@ -61,7 +61,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	success := true
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 
 	include, exclude := getIncludeExcludeArgs(cmd)

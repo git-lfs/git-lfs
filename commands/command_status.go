@@ -18,7 +18,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	// tolerate errors getting ref so this works before first commit
 	ref, _ := git.CurrentRef()
 
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 
 	scanIndexAt := "HEAD"

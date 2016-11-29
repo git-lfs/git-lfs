@@ -34,7 +34,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	close(inchan)
 
 	filter := filepathfilter.New(rootedpaths, nil)
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 	checkoutWithIncludeExclude(gitscanner, filter)
 }

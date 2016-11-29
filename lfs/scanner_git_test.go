@@ -5,6 +5,7 @@ package lfs_test // to avoid import cycles
 // which avoids import cycles with testutils
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -87,16 +88,28 @@ func TestScanUnpushed(t *testing.T) {
 }
 
 func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
-	gitscanner := NewGitScanner()
-	pointerchan, err := gitscanner.ScanUnpushed(remoteName)
-	if err != nil {
+	pointers := make([]*WrappedPointer, 0, 10)
+	var multiErr error
+
+	gitscanner := NewGitScanner(func(p *WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
+	if err := gitscanner.ScanUnpushed(remoteName); err != nil {
 		return nil, err
 	}
-	pointers := make([]*WrappedPointer, 0, 10)
-	for p := range pointerchan.Results {
-		pointers = append(pointers, p)
-	}
-	return pointers, pointerchan.Wait()
+
+	gitscanner.Close()
+	return pointers, multiErr
 }
 
 func TestScanPreviousVersions(t *testing.T) {
@@ -179,7 +192,7 @@ func TestScanPreviousVersions(t *testing.T) {
 }
 
 func scanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error) {
-	gitscanner := NewGitScanner()
+	gitscanner := NewGitScanner(nil)
 	pointerchan, err := gitscanner.ScanPreviousVersions(ref, since)
 	if err != nil {
 		return nil, err

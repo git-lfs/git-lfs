@@ -80,10 +80,10 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	// Now find files to be retained from many sources
 	retainChan := make(chan string, 100)
 
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 	go pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
-	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
+	go pruneTaskGetRetainedUnpushed(fetchPruneConfig, retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedWorktree(gitscanner, retainChan, errorChan, &taskwait)
 	if verifyRemote {
 		reachableObjects = tools.NewStringSetWithCapacity(100)
@@ -393,21 +393,24 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedUnpushed(gitscanner *lfs.GitScanner, fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
-	defer waitg.Done()
+func pruneTaskGetRetainedUnpushed(fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			errorChan <- err
+		} else {
+			retainChan <- p.Pointer.Oid
+			tracerx.Printf("RETAIN: %v unpushed", p.Pointer.Oid)
+		}
+	})
 
-	refchan, err := gitscanner.ScanUnpushed(fetchconf.PruneRemoteName)
-	if err != nil {
+	defer func() {
+		gitscanner.Close()
+		waitg.Done()
+	}()
+
+	if err := gitscanner.ScanUnpushed(fetchconf.PruneRemoteName); err != nil {
 		errorChan <- err
 		return
-	}
-	for wp := range refchan.Results {
-		retainChan <- wp.Pointer.Oid
-		tracerx.Printf("RETAIN: %v unpushed", wp.Pointer.Oid)
-	}
-	err = refchan.Wait()
-	if err != nil {
-		errorChan <- err
 	}
 }
 
@@ -440,7 +443,6 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, retainChan chan st
 			go pruneTaskGetRetainedAtRef(gitscanner, ref.Sha, retainChan, errorChan, waitg)
 		}
 	}
-
 }
 
 // Background task, must call waitg.Done() once at end

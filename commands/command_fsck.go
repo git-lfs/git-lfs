@@ -29,7 +29,7 @@ func doFsck() (bool, error) {
 	// All we care about is the pointer OID and file name
 	pointerIndex := make(map[string]string)
 
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 	pointerCh, err := gitscanner.ScanRefWithDeleted(ref.Sha)
 	if err != nil {
