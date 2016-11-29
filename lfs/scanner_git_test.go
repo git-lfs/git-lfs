@@ -104,7 +104,7 @@ func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 		pointers = append(pointers, p)
 	})
 
-	if err := gitscanner.ScanUnpushed(remoteName); err != nil {
+	if err := gitscanner.ScanUnpushed(remoteName, nil); err != nil {
 		return nil, err
 	}
 

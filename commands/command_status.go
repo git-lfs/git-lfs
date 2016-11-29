@@ -29,7 +29,7 @@ func porcelainStagedPointers(ref string) {
 	})
 	defer gitscanner.Close()
 
-	if err := gitscanner.ScanIndex(ref); err != nil {
+	if err := gitscanner.ScanIndex(ref, nil); err != nil {
 		ExitWithError(err)
 	}
 }
@@ -93,7 +93,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		}
 	})
 
-	if err := indexScanner.ScanIndex(scanIndexAt); err != nil {
+	if err := indexScanner.ScanIndex(scanIndexAt, nil); err != nil {
 		ExitWithError(err)
 	}
 

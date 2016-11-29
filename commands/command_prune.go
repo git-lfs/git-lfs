@@ -81,9 +81,8 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	retainChan := make(chan string, 100)
 
 	gitscanner := lfs.NewGitScanner(nil)
-	defer gitscanner.Close()
 	go pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
-	go pruneTaskGetRetainedUnpushed(fetchPruneConfig, retainChan, errorChan, &taskwait)
+	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedWorktree(gitscanner, retainChan, errorChan, &taskwait)
 	if verifyRemote {
 		reachableObjects = tools.NewStringSetWithCapacity(100)
@@ -100,7 +99,8 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	progresswait.Add(1)
 	go pruneTaskDisplayProgress(progressChan, &progresswait)
 
-	taskwait.Wait()   // wait for subtasks
+	taskwait.Wait() // wait for subtasks
+	gitscanner.Close()
 	close(retainChan) // triggers retain collector to end now all tasks have
 	retainwait.Wait() // make sure all retained objects added
 
@@ -393,8 +393,10 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedUnpushed(fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+func pruneTaskGetRetainedUnpushed(gitscanner *lfs.GitScanner, fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+	defer waitg.Done()
+
+	err := gitscanner.ScanUnpushed(fetchconf.PruneRemoteName, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			errorChan <- err
 		} else {
@@ -403,12 +405,7 @@ func pruneTaskGetRetainedUnpushed(fetchconf config.FetchPruneConfig, retainChan 
 		}
 	})
 
-	defer func() {
-		gitscanner.Close()
-		waitg.Done()
-	}()
-
-	if err := gitscanner.ScanUnpushed(fetchconf.PruneRemoteName); err != nil {
+	if err != nil {
 		errorChan <- err
 		return
 	}

@@ -112,7 +112,7 @@ func getPointersFromRef(ref string) (map[string]string, error) {
 		return pointerIndex, err
 	}
 
-	if err := gitscanner.ScanIndex("HEAD"); err != nil {
+	if err := gitscanner.ScanIndex("HEAD", nil); err != nil {
 		return pointerIndex, err
 	}
 

@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -109,8 +110,12 @@ func (s *GitScanner) ScanTree(ref string) (*PointerChannelWrapper, error) {
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not
 // pushed to the named remote. remote can be left blank to mean 'any remote'.
-func (s *GitScanner) ScanUnpushed(remote string) error {
-	return scanUnpushed(s.callback, remote)
+func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return scanUnpushed(callback, remote)
 }
 
 // ScanPreviousVersions scans changes reachable from ref (commit) back to since.
@@ -122,8 +127,12 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*Pointer
 }
 
 // ScanIndex scans the git index for modified LFS objects.
-func (s *GitScanner) ScanIndex(ref string) error {
-	return scanIndex(s.callback, ref)
+func (s *GitScanner) ScanIndex(ref string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return scanIndex(callback, ref)
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
@@ -135,6 +144,17 @@ func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
 	opts.RemoteName = s.remote
 	opts.skippedRefs = s.skippedRefs
 	return opts
+}
+
+func firstGitScannerCallback(callbacks ...GitScannerCallback) (GitScannerCallback, error) {
+	for _, cb := range callbacks {
+		if cb == nil {
+			continue
+		}
+		return cb, nil
+	}
+
+	return nil, errors.New("No callback given")
 }
 
 type ScanningMode int
