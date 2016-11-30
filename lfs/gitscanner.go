@@ -10,6 +10,14 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var missingCallbackErr = errors.New("No callback given")
+
+// CallbackMissing returns a boolean indicating whether the error is reporting
+// that a GitScanner is missing a required GitScannerCallback.
+func CallbackMissing(err error) bool {
+	return err == missingCallbackErr
+}
+
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
 	Filter      *filepathfilter.Filter
@@ -182,7 +190,7 @@ func firstGitScannerCallback(callbacks ...GitScannerCallback) (GitScannerCallbac
 		return cb, nil
 	}
 
-	return nil, errors.New("No callback given")
+	return nil, missingCallbackErr
 }
 
 type ScanningMode int

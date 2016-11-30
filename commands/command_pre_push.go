@@ -106,6 +106,7 @@ func scanLeft(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
 	if err := g.ScanLeftToRemote(ref, cb); err != nil {
 		return pointers, err
 	}
+
 	return pointers, multiErr
 }
 
