@@ -1,6 +1,6 @@
 # Git Large File Storage
 
-[![Build Status](https://travis-ci.org/github/git-lfs.svg?branch=master)](https://travis-ci.org/github/git-lfs)
+[![Build Status](https://travis-ci.org/git-lfs/git-lfs.svg?branch=master)](https://travis-ci.org/git-lfs/git-lfs)
 [![Build status](https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true)](https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master)
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
@@ -19,7 +19,7 @@ preferences.
 * Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.
 * Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs`.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
-* You can build it with Go 1.5+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
+* You can build it with Go 1.7.3+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
 [rel]: https://github.com/git-lfs/git-lfs/releases
 

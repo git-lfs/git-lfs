@@ -78,7 +78,7 @@ them as separate pull requests.
 
 ### Prerequisites
 
-Git LFS depends on having a working Go 1.5+ environment, with your standard
+Git LFS depends on having a working Go 1.7.3+ environment, with your standard
 `$GOROOT` and `$GOPATH` environment variables set.
 
 On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
