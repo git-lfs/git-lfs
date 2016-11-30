@@ -12,9 +12,9 @@ import (
 
 var missingCallbackErr = errors.New("No callback given")
 
-// CallbackMissing returns a boolean indicating whether the error is reporting
+// IsCallbackMissing returns a boolean indicating whether the error is reporting
 // that a GitScanner is missing a required GitScannerCallback.
-func CallbackMissing(err error) bool {
+func IsCallbackMissing(err error) bool {
 	return err == missingCallbackErr
 }
 
