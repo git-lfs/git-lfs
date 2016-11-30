@@ -844,3 +844,17 @@ UploadTransfers=basic,supertransfer,tus
 
 )
 end_test
+
+begin_test "env in symlink"
+(
+  set -e
+  mkdir -p projects/foo
+  cd projects/foo
+  git init
+  cd ../..
+
+  ln -s "$TRASHDIR/projects" symlink-projects
+  cd symlink-projects/foo
+  git lfs env
+)
+end_test
