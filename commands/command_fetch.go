@@ -156,8 +156,7 @@ func fetchRef(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Fil
 func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Time, filter *filepathfilter.Filter) bool {
 	var pointers []*lfs.WrappedPointer
 
-	tempgitscanner := lfs.NewGitScanner(nil)
-	err := tempgitscanner.ScanPreviousVersions(ref, since, func(p *lfs.WrappedPointer, err error) {
+	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			Panic(err, "Could not scan for Git LFS previous versions")
 			return
@@ -166,7 +165,7 @@ func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Ti
 		pointers = append(pointers, p)
 	})
 
-	if err != nil {
+	if err := tempgitscanner.ScanPreviousVersions(ref, since, nil); err != nil {
 		ExitWithError(err)
 	}
 

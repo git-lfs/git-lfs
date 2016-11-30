@@ -49,8 +49,7 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
 	// use new gitscanner so mapping has all the scanned pointers before continuing
 	mapping := make(map[string][]*lfs.WrappedPointer)
-	chgitscanner := lfs.NewGitScanner(nil)
-	err = chgitscanner.ScanTree(ref.Sha, func(p *lfs.WrappedPointer, err error) {
+	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			Panic(err, "Could not scan for Git LFS files")
 			return
@@ -61,7 +60,7 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 		}
 	})
 
-	if err != nil {
+	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
 
