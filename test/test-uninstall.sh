@@ -6,6 +6,9 @@ begin_test "uninstall outside repository"
 (
   set -e
 
+  mkdir uninstall-test
+  cd uninstall-test
+
   smudge="$(git config filter.lfs.smudge)"
   clean="$(git config filter.lfs.clean)"
   filter="$(git config filter.lfs.process)"
@@ -16,6 +19,9 @@ begin_test "uninstall outside repository"
 
   # uninstall multiple times to trigger https://github.com/git-lfs/git-lfs/issues/529
   git lfs uninstall
+
+  [ ! -e "lfs" ]
+
   git lfs install
   git lfs uninstall | tee uninstall.log
   grep "configuration has been removed" uninstall.log
@@ -28,6 +34,28 @@ begin_test "uninstall outside repository"
   [ "$(grep 'filter "lfs"' $HOME/.gitconfig -c)" = "0" ]
 )
 end_test
+
+begin_test "uninstall outside repository without access to .git/lfs"
+(
+  set -e
+
+  mkdir uninstall-no-lfs
+  cd uninstall-no-lfs
+
+  mkdir .git
+  touch .git/lfs
+  touch lfs
+
+  [ "" != "$(git config --global filter.lfs.smudge)" ]
+  [ "" != "$(git config --global filter.lfs.clean)" ]
+  [ "" != "$(git config --global filter.lfs.process)" ]
+
+  git lfs uninstall
+
+  [ "" = "$(git config --global filter.lfs.smudge)" ]
+  [ "" = "$(git config --global filter.lfs.clean)" ]
+  [ "" = "$(git config --global filter.lfs.process)" ]
+)
 
 begin_test "uninstall inside repository with default pre-push hook"
 (
