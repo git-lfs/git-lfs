@@ -102,7 +102,7 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	pl := newPktline(nil, &from)
 	// Headers
 	require.Nil(t, pl.writePacketList([]string{
-		"foo=bar", "other=woot",
+		"foo=bar", "other=woot", "crazy='sq',\\$x=.bin",
 	}))
 	// Multi-line packet
 	require.Nil(t, pl.writePacketText("first"))
@@ -114,6 +114,7 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, req.Header["foo"], "bar")
 	assert.Equal(t, req.Header["other"], "woot")
+	assert.Equal(t, req.Header["crazy"], "'sq',\\$x=.bin")
 
 	payload, err := ioutil.ReadAll(req.Payload)
 	assert.Nil(t, err)
