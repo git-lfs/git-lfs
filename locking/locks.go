@@ -3,17 +3,17 @@ package locking
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools/kv"
 )
 
 var (
-	// API is a package-local instance of the API client for use within
-	// various command implementations.
-	apiClient = api.NewClient(nil)
 	// ErrNoMatchingLocks is an error returned when no matching locks were
 	// able to be resolved
 	ErrNoMatchingLocks = errors.New("lfs: no matching locks found")
@@ -22,10 +22,31 @@ var (
 	ErrLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
 )
 
+// Client is the main interface object for the locking package
+type Client struct {
+	cfg       *config.Configuration
+	apiClient *api.Client
+	cache     *kv.Store
+}
+
+func NewClient(cfg *config.Configuration) (*Client, error) {
+
+	apiClient := api.NewClient(nil)
+
+	lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
+	os.MkdirAll(lockDir, 0755)
+	lockFile := filepath.Join(lockDir, "lockcache.db")
+	store, err := kv.NewStore(lockFile)
+	if err != nil {
+		return nil, err
+	}
+	return &Client{cfg, apiClient, store}, nil
+}
+
 // LockFile attempts to lock a file on the given remote name
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
-func LockFile(path, remote string) (id string, e error) {
+func (c *Client) LockFile(path, remote string) (id string, e error) {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
@@ -37,13 +58,13 @@ func LockFile(path, remote string) (id string, e error) {
 		return "", err
 	}
 
-	s, resp := apiClient.Locks.Lock(&api.LockRequest{
+	s, resp := c.apiClient.Locks.Lock(&api.LockRequest{
 		Path:               path,
 		Committer:          api.CurrentCommitter(),
 		LatestRemoteCommit: latest.Sha,
 	})
 
-	if _, err := apiClient.Do(s); err != nil {
+	if _, err := c.apiClient.Do(s); err != nil {
 		return "", fmt.Errorf("Error communicating with LFS API: %v", err)
 	}
 
@@ -51,7 +72,7 @@ func LockFile(path, remote string) (id string, e error) {
 		return "", fmt.Errorf("Server unable to create lock: %v", resp.Err)
 	}
 
-	if err := cacheLock(resp.Lock.Path, resp.Lock.Id); err != nil {
+	if err := c.cacheLock(resp.Lock.Path, resp.Lock.Id); err != nil {
 		return "", fmt.Errorf("Error caching lock information: %v", err)
 	}
 
@@ -61,27 +82,27 @@ func LockFile(path, remote string) (id string, e error) {
 // UnlockFile attempts to unlock a file on the given remote name
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
-func UnlockFile(path, remote string, force bool) error {
+func (c *Client) UnlockFile(path, remote string, force bool) error {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
 	defer func() { config.Config.CurrentRemote = savedRemote }()
 
-	id, err := lockIdFromPath(path)
+	id, err := c.lockIdFromPath(path)
 	if err != nil {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return UnlockFileById(id, remote, force)
+	return c.UnlockFileById(id, remote, force)
 
 }
 
 // UnlockFileById attempts to unlock a lock with a given id on the remote
 // Force causes the file to be unlocked from other users as well
-func UnlockFileById(id, remote string, force bool) error {
-	s, resp := apiClient.Locks.Unlock(id, force)
+func (c *Client) UnlockFileById(id, remote string, force bool) error {
+	s, resp := c.apiClient.Locks.Unlock(id, force)
 
-	if _, err := apiClient.Do(s); err != nil {
+	if _, err := c.apiClient.Do(s); err != nil {
 		return fmt.Errorf("Error communicating with LFS API: %v", err)
 	}
 
@@ -89,7 +110,7 @@ func UnlockFileById(id, remote string, force bool) error {
 		return fmt.Errorf("Server unable to unlock lock: %v", resp.Err)
 	}
 
-	if err := cacheUnlockById(id); err != nil {
+	if err := c.cacheUnlockById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
 	}
 
@@ -126,7 +147,7 @@ type Lock struct {
 	UnlockedAt time.Time
 }
 
-func newLockFromApi(a api.Lock) Lock {
+func (c *Client) newLockFromApi(a api.Lock) Lock {
 	return Lock{
 		Id:         a.Id,
 		Path:       a.Path,
@@ -140,7 +161,7 @@ func newLockFromApi(a api.Lock) Lock {
 
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
-func SearchLocks(remote string, filter map[string]string, limit int) (locks []Lock, err error) {
+func (c *Client) SearchLocks(remote string, filter map[string]string, limit int) (locks []Lock, err error) {
 	// TODO: API currently relies on config.Config but should really pass to client in future
 	savedRemote := config.Config.CurrentRemote
 	config.Config.CurrentRemote = remote
@@ -157,8 +178,8 @@ func SearchLocks(remote string, filter map[string]string, limit int) (locks []Lo
 	}
 	query := &api.LockSearchRequest{Filters: apifilters}
 	for {
-		s, resp := apiClient.Locks.Search(query)
-		if _, err := apiClient.Do(s); err != nil {
+		s, resp := c.apiClient.Locks.Search(query)
+		if _, err := c.apiClient.Do(s); err != nil {
 			return locks, fmt.Errorf("Error communicating with LFS API: %v", err)
 		}
 
@@ -167,7 +188,7 @@ func SearchLocks(remote string, filter map[string]string, limit int) (locks []Lo
 		}
 
 		for _, l := range resp.Locks {
-			locks = append(locks, newLockFromApi(l))
+			locks = append(locks, c.newLockFromApi(l))
 			if limit > 0 && len(locks) >= limit {
 				// Exit outer loop too
 				return locks, nil
@@ -194,14 +215,14 @@ func SearchLocks(remote string, filter map[string]string, limit int) (locks []Lo
 //
 // If the API call is successful, and only one lock matches the given filepath,
 // then its ID will be returned, along with a value of "nil" for the error.
-func lockIdFromPath(path string) (string, error) {
-	s, resp := apiClient.Locks.Search(&api.LockSearchRequest{
+func (c *Client) lockIdFromPath(path string) (string, error) {
+	s, resp := c.apiClient.Locks.Search(&api.LockSearchRequest{
 		Filters: []api.Filter{
 			{"path", path},
 		},
 	})
 
-	if _, err := apiClient.Do(s); err != nil {
+	if _, err := c.apiClient.Do(s); err != nil {
 		return "", err
 	}
 
@@ -213,4 +234,35 @@ func lockIdFromPath(path string) (string, error) {
 	default:
 		return "", ErrLockAmbiguous
 	}
+}
+
+// Cache a successful lock for faster local lookup later
+func (c *Client) cacheLock(filePath, id string) error {
+	// TODO
+	return nil
+}
+
+// Remove a cached lock by path becuase it's been relinquished
+func (c *Client) cacheUnlock(filePath string) error {
+	// TODO
+	return nil
+}
+
+// Remove a cached lock by id becuase it's been relinquished
+func (c *Client) cacheUnlockById(id string) error {
+	// TODO
+	return nil
+}
+
+// Get the list of cached locked files
+func (c *Client) cachedLocks() []string {
+	// TODO
+	return nil
+}
+
+// Fetch locked files for the current committer and cache them locally
+// This can be used to sync up locked files when moving machines
+func (c *Client) fetchLocksToCache(remoteName string) error {
+	// TODO
+	return nil
 }
