@@ -57,7 +57,7 @@ func (c *Client) LockFile(path string) (id string, e error) {
 
 	s, resp := c.apiClient.Locks.Lock(&api.LockRequest{
 		Path:               path,
-		Committer:          api.CurrentCommitter(),
+		Committer:          api.NewCommitter(c.cfg.CurrentCommitter()),
 		LatestRemoteCommit: latest.Sha,
 	})
 
