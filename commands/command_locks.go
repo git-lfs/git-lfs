@@ -16,12 +16,15 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		Exit("Error building filters: %v", err)
 	}
 
-	var lockCount int
+	if len(lockRemote) > 0 {
+		cfg.CurrentRemote = lockRemote
+	}
 	lockClient, err := locking.NewClient(cfg)
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
 	}
-	locks, err := lockClient.SearchLocks(lockRemote, filters, locksCmdFlags.Limit)
+	var lockCount int
+	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit)
 	// Print any we got before exiting
 	for _, lock := range locks {
 		Print("%s\t%s <%s>", lock.Path, lock.Name, lock.Email)

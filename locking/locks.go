@@ -29,6 +29,7 @@ type Client struct {
 	cache     *kv.Store
 }
 
+// NewClient creates a new locking client with the given configuration
 func NewClient(cfg *config.Configuration) (*Client, error) {
 
 	apiClient := api.NewClient(api.NewHttpLifecycle(cfg))
@@ -43,14 +44,10 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 	return &Client{cfg, apiClient, store}, nil
 }
 
-// LockFile attempts to lock a file on the given remote name
+// LockFile attempts to lock a file on the current remote
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
-func (c *Client) LockFile(path, remote string) (id string, e error) {
-	// TODO: API currently relies on config.Config but should really pass to client in future
-	savedRemote := config.Config.CurrentRemote
-	config.Config.CurrentRemote = remote
-	defer func() { config.Config.CurrentRemote = savedRemote }()
+func (c *Client) LockFile(path string) (id string, e error) {
 
 	// TODO: this is not really the constraint we need to avoid merges, improve as per proposal
 	latest, err := git.CurrentRemoteRef()
@@ -79,27 +76,23 @@ func (c *Client) LockFile(path, remote string) (id string, e error) {
 	return resp.Lock.Id, nil
 }
 
-// UnlockFile attempts to unlock a file on the given remote name
+// UnlockFile attempts to unlock a file on the current remote
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
-func (c *Client) UnlockFile(path, remote string, force bool) error {
-	// TODO: API currently relies on config.Config but should really pass to client in future
-	savedRemote := config.Config.CurrentRemote
-	config.Config.CurrentRemote = remote
-	defer func() { config.Config.CurrentRemote = savedRemote }()
+func (c *Client) UnlockFile(path string, force bool) error {
 
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return c.UnlockFileById(id, remote, force)
+	return c.UnlockFileById(id, force)
 
 }
 
-// UnlockFileById attempts to unlock a lock with a given id on the remote
+// UnlockFileById attempts to unlock a lock with a given id on the current remote
 // Force causes the file to be unlocked from other users as well
-func (c *Client) UnlockFileById(id, remote string, force bool) error {
+func (c *Client) UnlockFileById(id string, force bool) error {
 	s, resp := c.apiClient.Locks.Unlock(id, force)
 
 	if _, err := c.apiClient.Do(s); err != nil {
@@ -161,14 +154,7 @@ func (c *Client) newLockFromApi(a api.Lock) Lock {
 
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
-func (c *Client) SearchLocks(remote string, filter map[string]string, limit int) (locks []Lock, err error) {
-	// TODO: API currently relies on config.Config but should really pass to client in future
-	savedRemote := config.Config.CurrentRemote
-	config.Config.CurrentRemote = remote
-	defer func() {
-		// Only reinstate the remote after we're done
-		config.Config.CurrentRemote = savedRemote
-	}()
+func (c *Client) SearchLocks(filter map[string]string, limit int) (locks []Lock, err error) {
 
 	locks = make([]Lock, 0, limit)
 
@@ -262,7 +248,7 @@ func (c *Client) cachedLocks() []string {
 
 // Fetch locked files for the current committer and cache them locally
 // This can be used to sync up locked files when moving machines
-func (c *Client) fetchLocksToCache(remoteName string) error {
+func (c *Client) fetchLocksToCache() error {
 	// TODO
 	return nil
 }
