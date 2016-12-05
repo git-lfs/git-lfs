@@ -1,5 +1,13 @@
 # Git LFS Changelog
 
+## 1.5.3 (5 December, 2016)
+
+### Bugs
+
+* Support LFS installations at filesystem root #1732 (@technoweenie)
+* git: parse filter process header values containing '=' properly #1733 (@larsxschneider)
+* Fix SSH endpoint parsing #1738 (@technoweenie)
+
 ## 1.5.2 (22 November, 2016)
 
 ### Features
