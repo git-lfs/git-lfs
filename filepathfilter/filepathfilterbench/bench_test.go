@@ -48,19 +48,15 @@ func benchmarkTree(b *testing.B) []string {
 		b.Fatal(err)
 	}
 
-	infoCh, errCh := tools.FastWalkGitRepo(filepath.Dir(wd))
-
-	go func() {
-		for i := range infoCh {
-			benchmarkFiles = append(benchmarkFiles, filepath.Join(i.ParentDir, i.Info.Name()))
-		}
-	}()
-
 	hasErrors := false
-	for err := range errCh {
-		hasErrors = true
-		b.Error(err)
-	}
+	tools.FastWalkGitRepo(filepath.Dir(wd), func(parent string, info os.FileInfo, err error) {
+		if err != nil {
+			hasErrors = true
+			b.Error(err)
+			return
+		}
+		benchmarkFiles = append(benchmarkFiles, filepath.Join(parent, info.Name()))
+	})
 
 	if hasErrors {
 		b.Fatal("has errors :(")
