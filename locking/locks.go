@@ -31,7 +31,7 @@ type Client struct {
 
 func NewClient(cfg *config.Configuration) (*Client, error) {
 
-	apiClient := api.NewClient(nil)
+	apiClient := api.NewClient(api.NewHttpLifecycle(cfg))
 
 	lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
 	os.MkdirAll(lockDir, 0755)
