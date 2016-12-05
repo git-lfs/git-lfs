@@ -23,6 +23,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
 	}
+	defer lockClient.Close()
 	var lockCount int
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit)
 	// Print any we got before exiting

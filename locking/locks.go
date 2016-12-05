@@ -30,6 +30,8 @@ type Client struct {
 }
 
 // NewClient creates a new locking client with the given configuration
+// You must call the returned object's `Close` method when you are finished with
+// it
 func NewClient(cfg *config.Configuration) (*Client, error) {
 
 	apiClient := api.NewClient(api.NewHttpLifecycle(cfg))
@@ -45,6 +47,11 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 		return nil, err
 	}
 	return &Client{cfg, apiClient, store}, nil
+}
+
+// Close this client instance; must be called to dispose of resources
+func (c *Client) Close() error {
+	return c.cache.Save()
 }
 
 // LockFile attempts to lock a file on the current remote
