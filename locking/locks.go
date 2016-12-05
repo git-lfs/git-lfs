@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/git-lfs/git-lfs/api"
@@ -57,12 +58,12 @@ func (c *Client) Close() error {
 // LockFile attempts to lock a file on the current remote
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
-func (c *Client) LockFile(path string) (id string, e error) {
+func (c *Client) LockFile(path string) (Lock, error) {
 
 	// TODO: this is not really the constraint we need to avoid merges, improve as per proposal
 	latest, err := git.CurrentRemoteRef()
 	if err != nil {
-		return "", err
+		return Lock{}, err
 	}
 
 	s, resp := c.apiClient.Locks.Lock(&api.LockRequest{
@@ -72,18 +73,20 @@ func (c *Client) LockFile(path string) (id string, e error) {
 	})
 
 	if _, err := c.apiClient.Do(s); err != nil {
-		return "", fmt.Errorf("Error communicating with LFS API: %v", err)
+		return Lock{}, fmt.Errorf("Error communicating with LFS API: %v", err)
 	}
 
 	if len(resp.Err) > 0 {
-		return "", fmt.Errorf("Server unable to create lock: %v", resp.Err)
+		return Lock{}, fmt.Errorf("Server unable to create lock: %v", resp.Err)
 	}
 
-	if err := c.cacheLock(resp.Lock.Path, resp.Lock.Id); err != nil {
-		return "", fmt.Errorf("Error caching lock information: %v", err)
+	lock := c.newLockFromApi(*resp.Lock)
+
+	if err := c.cacheLock(lock); err != nil {
+		return Lock{}, fmt.Errorf("Error caching lock information: %v", err)
 	}
 
-	return resp.Lock.Id, nil
+	return lock, nil
 }
 
 // UnlockFile attempts to unlock a file on the current remote
@@ -164,9 +167,39 @@ func (c *Client) newLockFromApi(a api.Lock) Lock {
 
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
-func (c *Client) SearchLocks(filter map[string]string, limit int) (locks []Lock, err error) {
+// If localOnly = true, don't query the server & report only own local locks
+func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) (locks []Lock, err error) {
 
-	locks = make([]Lock, 0, limit)
+	if localOnly {
+		return c.searchCachedLocks(filter, limit)
+	} else {
+		return c.searchRemoteLocks(filter, limit)
+	}
+}
+
+func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
+	locks := c.cachedLocks()
+	path, filterByPath := filter["path"]
+	id, filterById := filter["id"]
+	lockCount := 0
+
+	for _, l := range locks {
+		// Manually filter by Path/Id
+		if (filterByPath && path != l.Path) ||
+			(filterById && id != l.Id) {
+			continue
+		}
+		locks = append(locks, l)
+		lockCount++
+		if limit > 0 && lockCount >= limit {
+			break
+		}
+	}
+	return locks, nil
+}
+
+func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock, error) {
+	locks := make([]Lock, 0, limit)
 
 	apifilters := make([]api.Filter, 0, len(filter))
 	for k, v := range filter {
@@ -232,33 +265,101 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 	}
 }
 
+// We want to use a single cache file for integrity, but to make it easy to
+// list all locks, prefix the id->path map in a way we can identify (something
+// that won't be in a path)
+const idKeyPrefix = "*id*://"
+
+func (c *Client) encodeIdKey(id string) string {
+	// Safety against accidents
+	if !c.isIdKey(id) {
+		return idKeyPrefix + id
+	}
+	return id
+}
+func (c *Client) decodeIdKey(key string) string {
+	// Safety against accidents
+	if c.isIdKey(key) {
+		return key[len(idKeyPrefix):]
+	}
+	return key
+}
+func (c *Client) isIdKey(key string) bool {
+	return strings.HasPrefix(key, idKeyPrefix)
+}
+
 // Cache a successful lock for faster local lookup later
-func (c *Client) cacheLock(filePath, id string) error {
-	// TODO
+func (c *Client) cacheLock(l Lock) error {
+	// Store reference in both directions
+	// Path -> Lock
+	c.cache.Set(l.Path, &l)
+	// EncodedId -> Lock (encoded so we can easily identify)
+	c.cache.Set(c.encodeIdKey(l.Id), &l)
 	return nil
 }
 
 // Remove a cached lock by path becuase it's been relinquished
-func (c *Client) cacheUnlock(filePath string) error {
-	// TODO
+func (c *Client) cacheUnlockByPath(filePath string) error {
+	ilock := c.cache.Get(filePath)
+	if ilock != nil {
+		lock := ilock.(*Lock)
+		c.cache.Remove(lock.Path)
+		// Id as key is encoded
+		c.cache.Remove(c.encodeIdKey(lock.Id))
+	}
 	return nil
 }
 
-// Remove a cached lock by id becuase it's been relinquished
+// Remove a cached lock by id because it's been relinquished
 func (c *Client) cacheUnlockById(id string) error {
-	// TODO
+	// Id as key is encoded
+	idkey := c.encodeIdKey(id)
+	ilock := c.cache.Get(idkey)
+	if ilock != nil {
+		lock := ilock.(*Lock)
+		c.cache.Remove(idkey)
+		c.cache.Remove(lock.Path)
+	}
 	return nil
 }
 
 // Get the list of cached locked files
-func (c *Client) cachedLocks() []string {
-	// TODO
-	return nil
+func (c *Client) cachedLocks() []Lock {
+	var locks []Lock
+	c.cache.Visit(func(key string, val interface{}) bool {
+		// Only report file->id entries not reverse
+		if !c.isIdKey(key) {
+			lock := val.(*Lock)
+			locks = append(locks, *lock)
+		}
+		return true // continue
+	})
+	return locks
 }
 
 // Fetch locked files for the current committer and cache them locally
 // This can be used to sync up locked files when moving machines
 func (c *Client) fetchLocksToCache() error {
-	// TODO
+	// TODO: filters don't seem to currently define how to search for a
+	// committer's email. Is it "committer.email"? For now, just iterate
+	locks, err := c.SearchLocks(nil, 0, false)
+	if err != nil {
+		return err
+	}
+
+	// We're going to overwrite the entire local cache
+	c.cache.RemoveAll()
+
+	_, email := c.cfg.CurrentCommitter()
+	for _, l := range locks {
+		if l.Email == email {
+			c.cacheLock(l)
+		}
+	}
+
 	return nil
+}
+
+func init() {
+	kv.RegisterTypeForStorage(&Lock{})
 }

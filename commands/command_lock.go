@@ -37,12 +37,12 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit("Unable to create lock system: %v", err.Error())
 	}
 	defer lockClient.Close()
-	id, err := lockClient.LockFile(path)
+	lock, err := lockClient.LockFile(path)
 	if err != nil {
 		Exit("Lock failed: %v", err)
 	}
 
-	Print("\n'%s' was locked (%s)", args[0], id)
+	Print("\n'%s' was locked (%s)", args[0], lock.Id)
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root
