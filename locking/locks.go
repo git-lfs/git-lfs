@@ -35,7 +35,10 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 	apiClient := api.NewClient(api.NewHttpLifecycle(cfg))
 
 	lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
-	os.MkdirAll(lockDir, 0755)
+	err := os.MkdirAll(lockDir, 0755)
+	if err != nil {
+		return nil, err
+	}
 	lockFile := filepath.Join(lockDir, "lockcache.db")
 	store, err := kv.NewStore(lockFile)
 	if err != nil {
