@@ -8,6 +8,10 @@
 * git: parse filter process header values containing '=' properly #1733 (@larsxschneider)
 * Fix SSH endpoint parsing #1738 (@technoweenie)
 
+### Misc
+
+* build: release on Go 1.7.4 #1741 (@ttaylorr)
+
 ## 1.5.2 (22 November, 2016)
 
 ### Features
