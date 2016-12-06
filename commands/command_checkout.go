@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -34,7 +35,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	close(inchan)
 
 	filter := filepathfilter.New(rootedpaths, nil)
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	defer gitscanner.Close()
 	checkoutWithIncludeExclude(gitscanner, filter)
 }
@@ -44,23 +45,26 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
+
 	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
-	pointerCh, err := gitscanner.ScanTree(ref.Sha)
-	if err != nil {
+	// use new gitscanner so mapping has all the scanned pointers before continuing
+	mapping := make(map[string][]*lfs.WrappedPointer)
+	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS files")
+			return
+		}
+
+		if filter.Allows(p.Name) {
+			mapping[p.Oid] = append(mapping[p.Oid], p)
+		}
+	})
+
+	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
-	pointers, err := collectPointers(pointerCh)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
 
-	// Map oid to multiple pointers
-	mapping := make(map[string][]*lfs.WrappedPointer)
-	for _, pointer := range pointers {
-		if filter.Allows(pointer.Name) {
-			mapping[pointer.Oid] = append(mapping[pointer.Oid], pointer)
-		}
-	}
+	chgitscanner.Close()
 
 	// Launch git update-index
 	c := make(chan *lfs.WrappedPointer)
@@ -90,14 +94,29 @@ func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilt
 		Panic(err, "Could not checkout")
 	}
 
-	pointerCh, err := gitscanner.ScanTree(ref.Sha)
-	if err != nil {
+	// this func has to load all pointers into memory
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
+	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
+	chgitscanner.Close()
 
-	pointers, err := collectPointers(pointerCh)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+	if multiErr != nil {
+		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
 	var wait sync.WaitGroup

@@ -16,15 +16,27 @@ type TreeBlob struct {
 	Filename string
 }
 
-func runScanTree(ref string) (*PointerChannelWrapper, error) {
+func runScanTree(cb GitScannerCallback, ref string) error {
 	// We don't use the nameMap approach here since that's imprecise when >1 file
 	// can be using the same content
 	treeShas, err := lsTreeBlobs(ref)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return catFileBatchTree(treeShas)
+	pcw, err := catFileBatchTree(treeShas)
+	if err != nil {
+		return err
+	}
+
+	for p := range pcw.Results {
+		cb(p, nil)
+	}
+
+	if err := pcw.Wait(); err != nil {
+		cb(nil, err)
+	}
+	return nil
 }
 
 // catFileBatchTree uses git cat-file --batch to get the object contents

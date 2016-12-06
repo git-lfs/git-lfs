@@ -11,7 +11,7 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(ref string) (*PointerChannelWrapper, error) {
+func scanIndex(cb GitScannerCallback, ref string) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),
@@ -20,12 +20,12 @@ func scanIndex(ref string) (*PointerChannelWrapper, error) {
 
 	revs, err := revListIndex(ref, false, indexMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cachedRevs, err := revListIndex(ref, true, indexMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	allRevsErr := make(chan error, 5) // can be multiple errors below
@@ -61,15 +61,14 @@ func scanIndex(ref string) (*PointerChannelWrapper, error) {
 
 	smallShas, err := catFileBatchCheck(allRevs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	pointerCh := make(chan *WrappedPointer, chanBufSize)
-	errCh := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
+	ch := make(chan gitscannerResult, chanBufSize)
 
 	barePointerCh, err := catFileBatch(smallShas)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	go func() {
@@ -77,26 +76,30 @@ func scanIndex(ref string) (*PointerChannelWrapper, error) {
 			for _, file := range indexMap.FilesFor(p.Sha1) {
 				// Append a new *WrappedPointer that combines the data
 				// from the index file, and the pointer "p".
-				pointerCh <- &WrappedPointer{
-					Sha1:    p.Sha1,
-					Name:    file.Name,
-					SrcName: file.SrcName,
-					Status:  file.Status,
-					Pointer: p.Pointer,
+				ch <- gitscannerResult{
+					Pointer: &WrappedPointer{
+						Sha1:    p.Sha1,
+						Name:    file.Name,
+						SrcName: file.SrcName,
+						Status:  file.Status,
+						Pointer: p.Pointer,
+					},
 				}
 			}
 		}
 
-		err := barePointerCh.Wait()
-		close(pointerCh)
-		close(errCh)
-
-		if err != nil {
-			errCh <- err
+		if err := barePointerCh.Wait(); err != nil {
+			ch <- gitscannerResult{Err: err}
 		}
+
+		close(ch)
 	}()
 
-	return NewPointerChannelWrapper(pointerCh, errCh), nil
+	for result := range ch {
+		cb(result.Pointer, result.Err)
+	}
+
+	return nil
 }
 
 // revListIndex uses git diff-index to return the list of object sha1s

@@ -15,44 +15,38 @@ var z40 = regexp.MustCompile(`\^?0{40}`)
 // scanRefsToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanRefsToChan(refLeft, refRight string, opt *ScanRefsOptions) (*PointerChannelWrapper, error) {
+func scanRefsToChan(cb GitScannerCallback, refLeft, refRight string, opt *ScanRefsOptions) error {
 	if opt == nil {
 		panic("no scan ref options")
 	}
 
 	revs, err := revListShas(refLeft, refRight, opt)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	smallShas, err := catFileBatchCheck(revs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	pointers, err := catFileBatch(smallShas)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	retchan := make(chan *WrappedPointer, chanBufSize)
-	errchan := make(chan error, 1)
-	go func() {
-		for p := range pointers.Results {
-			if name, ok := opt.GetName(p.Sha1); ok {
-				p.Name = name
-			}
-			retchan <- p
+	for p := range pointers.Results {
+		if name, ok := opt.GetName(p.Sha1); ok {
+			p.Name = name
 		}
-		err := pointers.Wait()
-		if err != nil {
-			errchan <- err
-		}
-		close(retchan)
-		close(errchan)
-	}()
+		cb(p, nil)
+	}
 
-	return NewPointerChannelWrapper(retchan, errchan), nil
+	if err := pointers.Wait(); err != nil {
+		cb(nil, err)
+	}
+
+	return nil
 }
 
 // revListShas uses git rev-list to return the list of object sha1s

@@ -16,7 +16,6 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	var ref string
-	var err error
 
 	if len(args) == 1 {
 		ref = args[0]
@@ -33,19 +32,17 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		showOidLen = 64
 	}
 
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Exit("Could not scan for Git LFS tree: %s", err)
+			return
+		}
+
+		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+	})
 	defer gitscanner.Close()
 
-	pointerCh, err := gitscanner.ScanTree(ref)
-	if err != nil {
-		Exit("Could not scan for Git LFS tree: %s", err)
-	}
-
-	for p := range pointerCh.Results {
-		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
-	}
-
-	if err := pointerCh.Wait(); err != nil {
+	if err := gitscanner.ScanTree(ref, nil); err != nil {
 		Exit("Could not scan for Git LFS tree: %s", err)
 	}
 }
