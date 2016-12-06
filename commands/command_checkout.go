@@ -35,12 +35,10 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	close(inchan)
 
 	filter := filepathfilter.New(rootedpaths, nil)
-	gitscanner := lfs.NewGitScanner(nil)
-	defer gitscanner.Close()
-	checkoutWithIncludeExclude(gitscanner, filter)
+	checkoutWithIncludeExclude(filter)
 }
 
-func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter, in chan *lfs.WrappedPointer) {
+func checkoutFromFetchChan(in chan *lfs.WrappedPointer) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -54,10 +52,7 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 			Panic(err, "Could not scan for Git LFS files")
 			return
 		}
-
-		if filter.Allows(p.Name) {
-			mapping[p.Oid] = append(mapping[p.Oid], p)
-		}
+		mapping[p.Oid] = append(mapping[p.Oid], p)
 	})
 
 	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
@@ -88,7 +83,7 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 	wait.Wait()
 }
 
-func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter) {
+func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -109,6 +104,8 @@ func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilt
 
 		pointers = append(pointers, p)
 	})
+
+	chgitscanner.Filter = filter
 
 	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
@@ -141,16 +138,12 @@ func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilt
 	totalBytes = 0
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-		if filter.Allows(pointer.Name) {
-			progress.Add(pointer.Name)
-			c <- pointer
-			// not strictly correct (parallel) but we don't have a callback & it's just local
-			// plus only 1 slot in channel so it'll block & be close
-			progress.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
-			progress.FinishTransfer(pointer.Name)
-		} else {
-			progress.Skip(pointer.Size)
-		}
+		progress.Add(pointer.Name)
+		c <- pointer
+		// not strictly correct (parallel) but we don't have a callback & it's just local
+		// plus only 1 slot in channel so it'll block & be close
+		progress.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
+		progress.FinishTransfer(pointer.Name)
 	}
 	close(c)
 	wait.Wait()

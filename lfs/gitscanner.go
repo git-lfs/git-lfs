@@ -137,7 +137,7 @@ func (s *GitScanner) ScanTree(ref string, cb GitScannerCallback) error {
 	if err != nil {
 		return err
 	}
-	return runScanTree(callback, ref)
+	return runScanTree(callback, ref, s.Filter)
 }
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not

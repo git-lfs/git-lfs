@@ -76,7 +76,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
 			Print("Ignoring global include / exclude paths to fulfil --all")
 		}
-		success = fetchAll(gitscanner)
+		success = fetchAll()
 
 	} else { // !all
 		filter := buildFilepathFilter(cfg, include, exclude)
@@ -84,12 +84,12 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
 			Print("Fetching %v", ref.Name)
-			s := fetchRef(gitscanner, ref.Sha, filter)
+			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
 
 		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(gitscanner, refs, filter)
+			s := fetchRecent(refs, filter)
 			success = success && s
 		}
 	}
@@ -106,7 +106,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func pointersToFetchForRef(gitscanner *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
+func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, error) {
 	var pointers []*lfs.WrappedPointer
 	var multiErr error
 	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
@@ -122,6 +122,8 @@ func pointersToFetchForRef(gitscanner *lfs.GitScanner, ref string) ([]*lfs.Wrapp
 		pointers = append(pointers, p)
 	})
 
+	tempgitscanner.Filter = filter
+
 	if err := tempgitscanner.ScanTree(ref, nil); err != nil {
 		return nil, err
 	}
@@ -130,9 +132,9 @@ func pointersToFetchForRef(gitscanner *lfs.GitScanner, ref string) ([]*lfs.Wrapp
 	return pointers, multiErr
 }
 
-func fetchRefToChan(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
+func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
 	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(gitscanner, ref)
+	pointers, err := pointersToFetchForRef(ref, filter)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
@@ -143,8 +145,8 @@ func fetchRefToChan(gitscanner *lfs.GitScanner, ref string, filter *filepathfilt
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Filter) bool {
-	pointers, err := pointersToFetchForRef(gitscanner, ref)
+func fetchRef(ref string, filter *filepathfilter.Filter) bool {
+	pointers, err := pointersToFetchForRef(ref, filter)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
@@ -153,7 +155,7 @@ func fetchRef(gitscanner *lfs.GitScanner, ref string, filter *filepathfilter.Fil
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
-func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Time, filter *filepathfilter.Filter) bool {
+func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.Filter) bool {
 	var pointers []*lfs.WrappedPointer
 
 	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
@@ -165,6 +167,8 @@ func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Ti
 		pointers = append(pointers, p)
 	})
 
+	tempgitscanner.Filter = filter
+
 	if err := tempgitscanner.ScanPreviousVersions(ref, since, nil); err != nil {
 		ExitWithError(err)
 	}
@@ -174,7 +178,7 @@ func fetchPreviousVersions(gitscanner *lfs.GitScanner, ref string, since time.Ti
 }
 
 // Fetch recent objects based on config
-func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
+func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	fetchconf := cfg.FetchPruneConfig()
 
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
@@ -204,7 +208,7 @@ func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, filt
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
 				Print("Fetching %v", ref.Name)
-				k := fetchRef(gitscanner, ref.Sha, filter)
+				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
 		}
@@ -220,7 +224,7 @@ func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, filt
 			}
 			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
-			k := fetchPreviousVersions(gitscanner, commit, commitsSince, filter)
+			k := fetchPreviousVersions(commit, commitsSince, filter)
 			ok = ok && k
 		}
 
@@ -228,13 +232,13 @@ func fetchRecent(gitscanner *lfs.GitScanner, alreadyFetchedRefs []*git.Ref, filt
 	return ok
 }
 
-func fetchAll(gitscanner *lfs.GitScanner) bool {
-	pointers := scanAll(gitscanner)
+func fetchAll() bool {
+	pointers := scanAll()
 	Print("Fetching objects...")
 	return fetchAndReportToChan(pointers, nil, nil)
 }
 
-func scanAll(gitscanner *lfs.GitScanner) []*lfs.WrappedPointer {
+func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
 	spinner := progress.NewSpinner()
@@ -343,11 +347,6 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
 
 	for _, p := range allpointers {
-		// Filtered out by --include or --exclude
-		if !filter.Allows(p.Name) {
-			continue
-		}
-
 		// no need to download the same object multiple times
 		if seen[p.Oid] {
 			continue
