@@ -32,6 +32,7 @@ var _ Lifecycle = new(HttpLifecycle)
 
 // NewHttpLifecycle initializes a new instance of the *HttpLifecycle type with a
 // new *http.Client, and the given root (see above).
+// Passing a nil Configuration will use the global config
 func NewHttpLifecycle(cfg *config.Configuration) *HttpLifecycle {
 	if cfg == nil {
 		cfg = config.Config
