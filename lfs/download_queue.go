@@ -40,11 +40,11 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 }
 
 // NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
-func NewDownloadCheckQueue(options ...TransferQueueOption) *TransferQueue {
+func NewDownloadCheckQueue(options ...transferQueueOption) *TransferQueue {
 	return newTransferQueue(transfer.Download, options...)
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func NewDownloadQueue(options ...TransferQueueOption) *TransferQueue {
+func NewDownloadQueue(options ...transferQueueOption) *TransferQueue {
 	return newTransferQueue(transfer.Download, options...)
 }

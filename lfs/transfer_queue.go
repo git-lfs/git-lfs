@@ -115,22 +115,22 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
-type TransferQueueOption func(*TransferQueue)
+type transferQueueOption func(*TransferQueue)
 
-func DryRun(dryRun bool) TransferQueueOption {
+func DryRun(dryRun bool) transferQueueOption {
 	return func(tq *TransferQueue) {
 		tq.dryRun = dryRun
 	}
 }
 
-func WithProgress(m progress.Meter) TransferQueueOption {
+func WithProgress(m progress.Meter) transferQueueOption {
 	return func(tq *TransferQueue) {
 		tq.meter = m
 	}
 }
 
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(dir transfer.Direction, options ...TransferQueueOption) *TransferQueue {
+func newTransferQueue(dir transfer.Direction, options ...transferQueueOption) *TransferQueue {
 	q := &TransferQueue{
 		direction:     dir,
 		retriesc:      make(chan Transferable, batchSize),

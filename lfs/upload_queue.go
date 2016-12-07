@@ -67,7 +67,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(options ...TransferQueueOption) *TransferQueue {
+func NewUploadQueue(options ...transferQueueOption) *TransferQueue {
 	return newTransferQueue(transfer.Upload, options...)
 }
 

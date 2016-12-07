@@ -37,9 +37,9 @@ type env interface {
 	Get(key string) (val string, ok bool)
 }
 
-type MeterOption func(*ProgressMeter)
+type meterOption func(*ProgressMeter)
 
-func WithLogFile(name string) MeterOption {
+func WithLogFile(name string) meterOption {
 	printErr := func(err string) {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
@@ -71,13 +71,13 @@ func WithLogFile(name string) MeterOption {
 	}
 }
 
-func WithOSEnv(os env) MeterOption {
+func WithOSEnv(os env) meterOption {
 	name, _ := os.Get("GIT_LFS_PROGRESS")
 	return WithLogFile(name)
 }
 
 // NewMeter creates a new ProgressMeter.
-func NewMeter(options ...MeterOption) *ProgressMeter {
+func NewMeter(options ...meterOption) *ProgressMeter {
 	m := &ProgressMeter{
 		logger:         &progressLogger{},
 		startTime:      time.Now(),
