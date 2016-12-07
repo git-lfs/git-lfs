@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/transfer"
 )
 
@@ -41,11 +40,11 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 }
 
 // NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
-func NewDownloadCheckQueue() *TransferQueue {
-	return newTransferQueue(transfer.Download, nil, true)
+func NewDownloadCheckQueue(options ...TransferQueueOption) *TransferQueue {
+	return newTransferQueue(transfer.Download, options...)
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func NewDownloadQueue(meter *progress.ProgressMeter, dryRun bool) *TransferQueue {
-	return newTransferQueue(transfer.Download, meter, dryRun)
+func NewDownloadQueue(options ...TransferQueueOption) *TransferQueue {
+	return newTransferQueue(transfer.Download, options...)
 }

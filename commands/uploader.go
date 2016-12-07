@@ -75,7 +75,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 
 	// build the TransferQueue, automatically skipping any missing objects that
 	// the server already has.
-	uploadQueue := lfs.NewUploadQueue(meter, c.DryRun)
+	uploadQueue := lfs.NewUploadQueue(lfs.WithProgress(meter), lfs.DryRun(c.DryRun))
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
 			// if the server already has this object, call Skip() on

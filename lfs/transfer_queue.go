@@ -115,22 +115,38 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
-// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(dir transfer.Direction, meter progress.Meter, dryRun bool) *TransferQueue {
-	if meter == nil {
-		meter = progress.Noop()
-	}
+type TransferQueueOption func(*TransferQueue)
 
+func DryRun(dryRun bool) TransferQueueOption {
+	return func(tq *TransferQueue) {
+		tq.dryRun = dryRun
+	}
+}
+
+func WithProgress(m progress.Meter) TransferQueueOption {
+	return func(tq *TransferQueue) {
+		tq.meter = m
+	}
+}
+
+// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
+func newTransferQueue(dir transfer.Direction, options ...TransferQueueOption) *TransferQueue {
 	q := &TransferQueue{
 		direction:     dir,
-		dryRun:        dryRun,
-		meter:         meter,
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
 		rc:            newRetryCounter(config.Config),
+	}
+
+	for _, opt := range options {
+		opt(q)
+	}
+
+	if q.meter == nil {
+		q.meter = progress.Noop()
 	}
 
 	q.errorwait.Add(1)
