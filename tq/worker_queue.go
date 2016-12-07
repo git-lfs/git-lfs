@@ -92,15 +92,15 @@ func (q *WorkerQueue) Add(batch []string) <-chan string {
 	q.wg.Add(len(batch))
 	retries := make(chan string, len(batch))
 
-	go func(wg *sync.WaitGroup, retries chan<- string) {
+	go func() {
 		defer close(retries)
 
 		for _, oid := range batch {
-			q.tasks <- &task{oid, retries, wg}
+			q.tasks <- &task{oid, retries, q.wg}
 		}
 
-		wg.Wait()
-	}(q.wg, retries)
+		q.wg.Wait()
+	}()
 
 	return retries
 }
