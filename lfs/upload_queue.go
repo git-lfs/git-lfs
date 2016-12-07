@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/transfer"
 )
 
@@ -67,8 +68,8 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 }
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	return newTransferQueue(files, size, dryRun, transfer.Upload)
+func NewUploadQueue(meter *progress.ProgressMeter, dryRun bool) *TransferQueue {
+	return newTransferQueueWithMeter(transfer.Upload, meter, dryRun)
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
