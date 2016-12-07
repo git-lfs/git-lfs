@@ -12,7 +12,7 @@ import (
 func TestQueueProcessesNewItems(t *testing.T) {
 	var seen uint32
 
-	q := tq.New(1, 1, func(oid string) bool {
+	q := tq.New(1, func(oid string) bool {
 		if oid == "some-oid" {
 			atomic.AddUint32(&seen, 1)
 		}
@@ -29,7 +29,7 @@ func TestQueueProcessesNewItems(t *testing.T) {
 func TestQueueRetriesFailedItems(t *testing.T) {
 	var seen uint32
 
-	q := tq.New(1, 1, func(oid string) bool {
+	q := tq.New(1, func(oid string) bool {
 		if oid == "some-oid" {
 			atomic.AddUint32(&seen, 1)
 		}
@@ -47,14 +47,14 @@ func TestQueueProcessesRetriedItemsBeforeNewItems(t *testing.T) {
 	var order []string
 	var retries uint32
 
-	q := tq.New(3, 1, func(oid string) bool {
+	q := tq.New(1, func(oid string) bool {
 		order = append(order, oid)
 
 		if strings.HasSuffix(oid, "retry") {
 			return atomic.AddUint32(&retries, 1) > 3
 		}
 		return true
-	})
+	}, tq.WithBatchSize(3), tq.WithBufferDepth(4))
 
 	q.Add("first-retry")
 	q.Add("second-retry")

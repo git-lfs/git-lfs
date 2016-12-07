@@ -2,6 +2,35 @@ package tq
 
 import "sync"
 
+const (
+	// DefaultBatchSize is the default batch size to be used unless the
+	// Queue is created with an alternative size (using the WithBatchSize
+	// option type).
+	DefaultBatchSize int = 100
+)
+
+type queueOptionFn func(q *Queue)
+
+var (
+	// WithBatchSize specifies the number of items to accept into the
+	// currently accumulating batch. If not given, the DefaultBatchSize is
+	// used instead.
+	WithBatchSize = func(size int) queueOptionFn {
+		return queueOptionFn(func(q *Queue) {
+			q.batchSize = size
+		})
+	}
+
+	// WithBufferDepth specifies the buffer depth to use as the channel
+	// capacity betwen the accumulating batch and the Add() function. If not
+	// given, the buffer depth is set to the maximum size of the batch.
+	WithBufferDepth = func(n int) queueOptionFn {
+		return queueOptionFn(func(q *Queue) {
+			q.incoming = make(chan string, n)
+		})
+	}
+)
+
 // Queue organizes and distributes work on OIDs against a set of available
 // workers (represented by a *workerQueue). Any failed items returned back by
 // that `*workerQueue` will be prioritized into the next batch.
@@ -14,6 +43,10 @@ type Queue struct {
 	// such that one extra batch of data can be buffered before applying
 	// back-pressure to callers.
 	incoming chan string
+	// batchSize is the number of items the `*Queue` will accept before
+	// making a batch API request, and sending the items to the workers.
+	batchSize int
+
 	// workers maintains a handle on the *workerQueue instance used to
 	// distribute batched sets of OIDs
 	workers *workerQueue
@@ -27,12 +60,20 @@ type Queue struct {
 // number of workers "workers", and a function to do that work, "fn".
 //
 // Once returned, the `*Queue` will be active and able to accept new writes.
-func New(size, workers int, fn WorkerFn) *Queue {
+func New(workers int, fn WorkerFn, opts ...queueOptionFn) *Queue {
 	q := &Queue{
-		incoming: make(chan string, size),
-		workers:  newWorkerQueue(workers, fn),
+		batchSize: DefaultBatchSize,
+		workers:   newWorkerQueue(workers, fn),
 
 		wg: new(sync.WaitGroup),
+	}
+
+	for _, opt := range opts {
+		opt(q)
+	}
+
+	if q.incoming == nil {
+		q.incoming = make(chan string, q.batchSize)
 	}
 
 	q.wg.Add(1)
@@ -62,10 +103,10 @@ func (q *Queue) run() {
 
 	var closing bool
 
-	batch := make([]string, 0, cap(q.incoming))
+	batch := make([]string, 0, q.batchSize)
 
 	for {
-		for !closing && (len(batch) < cap(q.incoming)) {
+		for !closing && (len(batch) < q.batchSize) {
 			oid, ok := <-q.incoming
 			if !ok {
 				closing = true
@@ -76,7 +117,7 @@ func (q *Queue) run() {
 		}
 
 		retries := q.workers.Add(batch)
-		batch = make([]string, 0, cap(q.incoming))
+		batch = make([]string, 0, q.batchSize)
 
 		for retry := range retries {
 			batch = append(batch, retry)
