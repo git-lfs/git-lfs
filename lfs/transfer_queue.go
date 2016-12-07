@@ -379,7 +379,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 				if ok {
 					transfer.SetObject(o)
-					q.meter.Add(transfer.Name())
+					q.meter.StartTransfer(transfer.Name())
 					q.addToAdapter(transfer)
 				} else {
 					q.Skip(transfer.Size())

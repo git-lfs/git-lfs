@@ -139,7 +139,7 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	totalBytes = 0
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-		progress.Add(pointer.Name)
+		progress.StartTransfer(pointer.Name)
 		c <- pointer
 		// not strictly correct (parallel) but we don't have a callback & it's just local
 		// plus only 1 slot in channel so it'll block & be close

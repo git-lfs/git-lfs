@@ -58,15 +58,6 @@ func (p *ProgressMeter) Start() {
 	}
 }
 
-// Add tells the progress meter that a transferring file is being added to the
-// TransferQueue.
-func (p *ProgressMeter) Add(name string) {
-	idx := atomic.AddInt64(&p.transferringFiles, 1)
-	p.fileIndexMutex.Lock()
-	p.fileIndex[name] = idx
-	p.fileIndexMutex.Unlock()
-}
-
 // Skip tells the progress meter that a file of size `size` is being skipped
 // because the transfer is unnecessary.
 func (p *ProgressMeter) Skip(size int64) {
@@ -75,7 +66,15 @@ func (p *ProgressMeter) Skip(size int64) {
 	// Reduce bytes and files so progress easier to parse
 	atomic.AddInt32(&p.estimatedFiles, -1)
 	atomic.AddInt64(&p.estimatedBytes, -size)
+}
 
+// StartTransfer tells the progress meter that a transferring file is being
+// added to the TransferQueue.
+func (p *ProgressMeter) StartTransfer(name string) {
+	idx := atomic.AddInt64(&p.transferringFiles, 1)
+	p.fileIndexMutex.Lock()
+	p.fileIndex[name] = idx
+	p.fileIndexMutex.Unlock()
 }
 
 // TransferBytes increments the number of bytes transferred
