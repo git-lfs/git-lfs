@@ -39,12 +39,15 @@ type env interface {
 
 type meterOption func(*ProgressMeter)
 
+// DryRun is an option for NewMeter() that determines whether updates should be
+// sent to stdout.
 func DryRun(dryRun bool) meterOption {
 	return func(m *ProgressMeter) {
 		m.dryRun = dryRun
 	}
 }
 
+// WithLogFile is an option for NewMeter() that sends updates to a text file.
 func WithLogFile(name string) meterOption {
 	printErr := func(err string) {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
@@ -77,6 +80,8 @@ func WithLogFile(name string) meterOption {
 	}
 }
 
+// WithOSEnv is an option for NewMeter() that sends updates to the text file
+// path specified in the OS Env.
 func WithOSEnv(os env) meterOption {
 	name, _ := os.Get("GIT_LFS_PROGRESS")
 	return WithLogFile(name)
@@ -99,6 +104,7 @@ func NewMeter(options ...meterOption) *ProgressMeter {
 	return m
 }
 
+// Start begins sending status updates to the optional log file, and stdout.
 func (p *ProgressMeter) Start() {
 	if atomic.SwapInt32(&p.started, 1) == 0 {
 		go p.writer()
