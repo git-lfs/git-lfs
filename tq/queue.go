@@ -133,13 +133,9 @@ func (q *Queue) run() {
 // the batch is already full and one more full batch's worth of items has been
 // Add()-ed already, this function will block.
 //
-// Add cannot be called after the `*Queue` has been marked as `Wait()`-ing.
+// Add cannot be called after the `*Queue` has been marked as `Wait()`-ing,
+// otherwise the function will panic.
 func (q *Queue) Add(oid string) {
-	// TODO(taylor): potentially store whether or not we're closing and
-	// check that before writing to a closed channel? Not sure what to do
-	// with that "oid" though... drop it? Return an error? Panic? All seem
-	// uniquely bad...
-
 	q.incoming <- oid
 }
 
