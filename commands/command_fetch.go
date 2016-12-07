@@ -362,7 +362,7 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 		}
 
 		missing = append(missing, p)
-		meter.AddEstimate(p.Size)
+		meter.Add(p.Size)
 	}
 
 	return ready, missing, meter

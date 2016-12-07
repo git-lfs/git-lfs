@@ -105,6 +105,14 @@ func (p *ProgressMeter) Start() {
 	}
 }
 
+// Add tells the progress meter that a single file of the given size will
+// possibly be transferred. If a file doesn't need to be transferred for some
+// reason, be sure to call Skip(int64) with the same size.
+func (p *ProgressMeter) Add(size int64) {
+	atomic.AddInt32(&p.estimatedFiles, 1)
+	atomic.AddInt64(&p.estimatedBytes, size)
+}
+
 // Skip tells the progress meter that a file of size `size` is being skipped
 // because the transfer is unnecessary.
 func (p *ProgressMeter) Skip(size int64) {
@@ -113,11 +121,6 @@ func (p *ProgressMeter) Skip(size int64) {
 	// Reduce bytes and files so progress easier to parse
 	atomic.AddInt32(&p.estimatedFiles, -1)
 	atomic.AddInt64(&p.estimatedBytes, -size)
-}
-
-func (p *ProgressMeter) AddEstimate(size int64) {
-	atomic.AddInt32(&p.estimatedFiles, 1)
-	atomic.AddInt64(&p.estimatedBytes, size)
 }
 
 // StartTransfer tells the progress meter that a transferring file is being

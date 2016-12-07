@@ -132,7 +132,7 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	var totalBytes int64
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-		meter.AddEstimate(totalBytes)
+		meter.Add(totalBytes)
 		meter.StartTransfer(pointer.Name)
 		c <- pointer
 		// not strictly correct (parallel) but we don't have a callback & it's just local

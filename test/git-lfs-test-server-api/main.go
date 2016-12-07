@@ -153,7 +153,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 		filename := fmt.Sprintf("file%d.dat", i)
 		sz := int64(rand.Intn(200)) + 50
 		commit.Files = append(commit.Files, &test.FileInput{Filename: filename, Size: sz})
-		meter.AddEstimate(sz)
+		meter.Add(sz)
 	}
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 

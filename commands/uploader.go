@@ -57,7 +57,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 
 		// estimate in meter early (even if it's not going into uploadables), since
 		// we will call Skip() based on the results of the download check queue.
-		meter.AddEstimate(p.Size)
+		meter.Add(p.Size)
 
 		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
 			uploadables = append(uploadables, p)
