@@ -55,9 +55,9 @@ begin_test "clone"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 110 ] 
-  [ $(wc -c < "file2.dat") -eq 75 ] 
-  [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ $(wc -c < "file1.dat") -eq 110 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 66 ]
   [ ! -e "lfs" ]
   popd
   # Now check clone with implied dir
@@ -71,9 +71,9 @@ begin_test "clone"
   # clone location should be implied
   [ -d "$reponame" ]
   pushd "$reponame"
-  [ $(wc -c < "file1.dat") -eq 110 ] 
-  [ $(wc -c < "file2.dat") -eq 75 ] 
-  [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ $(wc -c < "file1.dat") -eq 110 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 66 ]
   [ ! -e "lfs" ]
   popd
 
@@ -127,9 +127,9 @@ begin_test "cloneSSL"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 100 ] 
-  [ $(wc -c < "file2.dat") -eq 75 ] 
-  [ $(wc -c < "file3.dat") -eq 30 ] 
+  [ $(wc -c < "file1.dat") -eq 100 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 30 ]
   popd
 
 
@@ -162,7 +162,7 @@ begin_test "clone with flags"
   },
   {
     \"CommitDate\":\"$(get_date -7d)\",
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"fileonbranch2.dat\",\"Size\":66}]
   },
@@ -217,7 +217,7 @@ begin_test "clone with flags"
 
   # specific test for --bare
   git lfs clone --bare "$GITSERVER/$reponame" "$newclonedir"
-  [ -d "$newclonedir/objects" ]  
+  [ -d "$newclonedir/objects" ]
 
   # short flags
   git lfs clone -l -v -n -s -b branch2 "$GITSERVER/$reponame" "$newclonedir"
@@ -240,16 +240,20 @@ begin_test "clone (with include/exclude args)"
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
   printf "$contents_a" > "a.dat"
+  printf "$contents_a" > "a-dupe.dat"
+  printf "$contents_a" > "dupe-a.dat"
 
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
   printf "$contents_b" > "b.dat"
 
-  git add a.dat b.dat .gitattributes
+  git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
-  grep "3 files changed" commit.log
+  grep "5 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 a-dupe.dat" commit.log
+  grep "create mode 100644 dupe-a.dat" commit.log
   grep "create mode 100644 b.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
@@ -260,10 +264,14 @@ begin_test "clone (with include/exclude args)"
   cd "$TRASHDIR"
 
   local_reponame="clone_with_includes"
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a.dat"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a*.dat"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
+  [ "a" = "$(cat a.dat)" ]
+  [ "a" = "$(cat a-dupe.dat)" ]
+  [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
+  [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
   popd
 
   local_reponame="clone_with_excludes"
@@ -271,6 +279,8 @@ begin_test "clone (with include/exclude args)"
   pushd "$local_reponame"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
+  [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
+  [ "b" = "$(cat b.dat)" ]
   popd
 )
 end_test
@@ -387,7 +397,7 @@ begin_test "clone with submodules"
   contents_sub2="Inception. Now, before you bother telling me it's impossible..."
   contents_sub2_oid=$(calc_oid "$contents_sub2")
   printf "$contents_sub2" > "sub2.dat"
-  git add sub2.dat .gitattributes 
+  git add sub2.dat .gitattributes
   git commit -m "Nested submodule level 2"
   git push origin master
 
@@ -402,7 +412,7 @@ begin_test "clone with submodules"
   # add submodule2 as submodule of submodule1
   git submodule add "$GITSERVER/$submodname2" sub2
   git submodule update
-  git add sub2 sub1.dat .gitattributes 
+  git add sub2 sub1.dat .gitattributes
   git commit -m "Nested submodule level 1"
   git push origin master
 
@@ -417,7 +427,7 @@ begin_test "clone with submodules"
   # add submodule1 as submodule of root
   git submodule add "$GITSERVER/$submodname1" sub1
   git submodule update
-  git add sub1 root.dat .gitattributes 
+  git add sub1 root.dat .gitattributes
   git commit -m "Root repo"
   git push origin master
 
@@ -430,14 +440,14 @@ begin_test "clone with submodules"
   cd $local_reponame
   # check LFS store and working copy
   assert_local_object "$contents_root_oid" "${#contents_root}"
-  [ $(wc -c < "root.dat") -eq ${#contents_root} ] 
+  [ $(wc -c < "root.dat") -eq ${#contents_root} ]
   # and so on for nested subs
   cd sub1
   assert_local_object "$contents_sub1_oid" "${#contents_sub1}"
-  [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ] 
+  [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ]
   cd sub2
   assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
-  [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ] 
+  [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ]
 
 
   popd
