@@ -72,6 +72,11 @@ func (p *ProgressMeter) Skip(size int64) {
 	atomic.AddInt64(&p.estimatedBytes, -size)
 }
 
+func (p *ProgressMeter) AddEstimate(size int64) {
+	atomic.AddInt32(&p.estimatedFiles, 1)
+	atomic.AddInt64(&p.estimatedBytes, size)
+}
+
 // StartTransfer tells the progress meter that a transferring file is being
 // added to the TransferQueue.
 func (p *ProgressMeter) StartTransfer(name string) {

@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/transfer"
 )
 
@@ -46,6 +47,6 @@ func NewDownloadCheckQueue(files int, size int64) *TransferQueue {
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func NewDownloadQueue(files int, size int64, dryRun bool) *TransferQueue {
-	return newTransferQueue(files, size, dryRun, transfer.Download)
+func NewDownloadQueue(meter *progress.ProgressMeter, dryRun bool) *TransferQueue {
+	return newTransferQueueWithMeter(transfer.Download, meter, dryRun)
 }

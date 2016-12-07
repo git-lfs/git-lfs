@@ -17,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/transfer"
 )
@@ -258,6 +259,11 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 		exclude = tools.CleanPaths(*excludeArg, ",")
 	}
 	return
+}
+
+func buildProgressMeter() *progress.ProgressMeter {
+	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
+	return progress.NewMeter(logPath)
 }
 
 // isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
