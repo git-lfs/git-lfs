@@ -115,30 +115,32 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
-// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
-	cfg := config.Config
-
-	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
-
+func newTransferQueueWithMeter(dir transfer.Direction, meter *progress.ProgressMeter, dryRun bool) *TransferQueue {
+	meter.DryRun = dryRun
 	q := &TransferQueue{
 		direction:     dir,
 		dryRun:        dryRun,
-		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
+		meter:         meter,
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
-		rc:            newRetryCounter(cfg),
+		rc:            newRetryCounter(config.Config),
 	}
 
 	q.errorwait.Add(1)
 	q.retrywait.Add(1)
-
 	q.run()
 
 	return q
+}
+
+// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
+func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
+	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
+	meter := progress.NewProgressMeter(files, size, false, logPath)
+	return newTransferQueueWithMeter(dir, meter, dryRun)
 }
 
 // Add adds a Transferable to the transfer queue. It only increments the amount
