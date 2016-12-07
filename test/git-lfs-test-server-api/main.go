@@ -138,8 +138,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
-	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
-	meter := progress.NewMeter(logPath)
+	meter := progress.NewMeter(progress.WithOSEnv(config.Config.Os))
 
 	// Build test data for existing files & upload
 	// Use test repo for this to simplify the process of making sure data matches oid

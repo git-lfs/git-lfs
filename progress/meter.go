@@ -3,6 +3,7 @@ package progress
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,20 +33,64 @@ type ProgressMeter struct {
 	DryRun            bool
 }
 
-// NewMeter creates a new ProgressMeter.
-func NewMeter(logPath string) *ProgressMeter {
-	logger, err := newProgressLogger(logPath)
-	if err != nil {
+type env interface {
+	Get(key string) (val string, ok bool)
+}
+
+type MeterOption func(*ProgressMeter)
+
+func WithLogFile(name string) MeterOption {
+	printErr := func(err string) {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
-	return &ProgressMeter{
-		logger:         logger,
+	return func(m *ProgressMeter) {
+		if len(name) == 0 {
+			return
+		}
+
+		if !filepath.IsAbs(name) {
+			printErr("GIT_LFS_PROGRESS must be an absolute path")
+			return
+		}
+
+		cbDir := filepath.Dir(name)
+		if err := os.MkdirAll(cbDir, 0755); err != nil {
+			printErr(err.Error())
+			return
+		}
+
+		file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			printErr(err.Error())
+			return
+		}
+
+		m.logger.writeData = true
+		m.logger.log = file
+	}
+}
+
+func WithOSEnv(os env) MeterOption {
+	name, _ := os.Get("GIT_LFS_PROGRESS")
+	return WithLogFile(name)
+}
+
+// NewMeter creates a new ProgressMeter.
+func NewMeter(options ...MeterOption) *ProgressMeter {
+	m := &ProgressMeter{
+		logger:         &progressLogger{},
 		startTime:      time.Now(),
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		finished:       make(chan interface{}),
 	}
+
+	for _, opt := range options {
+		opt(m)
+	}
+
+	return m
 }
 
 func (p *ProgressMeter) Start() {

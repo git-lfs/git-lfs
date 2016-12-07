@@ -127,8 +127,7 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 		wait.Done()
 	}()
 
-	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
-	meter := progress.NewMeter(logPath)
+	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
 	meter.Start()
 	var totalBytes int64
 	for _, pointer := range pointers {
