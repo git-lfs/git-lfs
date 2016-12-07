@@ -1,4 +1,4 @@
-package tq_test
+package tq
 
 import (
 	"sync"
@@ -6,14 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/tq"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWorkerQueueProcessesBatchedItems(t *testing.T) {
 	var called uint32
 
-	wq := tq.NewWorkerQueue(1, func(oid string) bool {
+	wq := newWorkerQueue(1, func(oid string) bool {
 		if oid == "some-oid" {
 			atomic.AddUint32(&called, 1)
 		}
@@ -31,7 +30,7 @@ func TestWorkerQueueProcessesBatchedItems(t *testing.T) {
 func TestWorkerQueueReturnsRetriedItems(t *testing.T) {
 	retried := make(map[string]bool)
 
-	wq := tq.NewWorkerQueue(1, func(oid string) bool {
+	wq := newWorkerQueue(1, func(oid string) bool {
 		retried[oid] = false
 
 		return false
@@ -67,7 +66,7 @@ func TestWorkerQueueDistributesItemsAcrossManyWorkers(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 
-	wq := tq.NewWorkerQueue(2, func(oid string) bool {
+	wq := newWorkerQueue(2, func(oid string) bool {
 		wg.Done()
 		wg.Wait()
 

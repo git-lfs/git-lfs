@@ -2,14 +2,14 @@ package tq
 
 import "sync"
 
-// WorkerFn is a function type, held by a `*WorkerQueue`, which is called
+// WorkerFn is a function type, held by a `*workerQueue`, which is called
 // anytime there is work to be done. The parameter of the function "oid" is
 // given as the OID of the object to transfer. The return value dictates whether
 // or not the object was transferred successfully, true if so, false if
 // otherwise.
 type WorkerFn func(oid string) bool
 
-type WorkerQueue struct {
+type workerQueue struct {
 	// tasks holds `*task`s to be worked upon by `WorkerFn`s. It is written
 	// to from a single source (see: `Add(batch []string)` below), and
 	// consumed from many workers.
@@ -54,10 +54,10 @@ func (t *task) Done() {
 	t.wg.Done()
 }
 
-// NewWorkerQueue creates a new `*WorkerQueue` with `count` workers, each
+// newWorkerQueue creates a new `*workerQueue` with `count` workers, each
 // executing the `WorkerFn` "fn".
-func NewWorkerQueue(count int, fn WorkerFn) *WorkerQueue {
-	q := &WorkerQueue{
+func newWorkerQueue(count int, fn WorkerFn) *workerQueue {
+	q := &workerQueue{
 		tasks: make(chan *task),
 		fn:    fn,
 
@@ -88,7 +88,7 @@ func NewWorkerQueue(count int, fn WorkerFn) *WorkerQueue {
 // distributes those items across the available workers. It immediately returns
 // a channel that object IDs are written to when those IDs need to be retried.
 // That channel is closed when work has completed on the entire batch.
-func (q *WorkerQueue) Add(batch []string) <-chan string {
+func (q *workerQueue) Add(batch []string) <-chan string {
 	q.wg.Add(len(batch))
 	retries := make(chan string, len(batch))
 
@@ -109,7 +109,7 @@ func (q *WorkerQueue) Add(batch []string) <-chan string {
 // incoming items channel and therefore all living workers. After waiting for
 // the transitioning workers to completely transition from an alive to dead
 // state, this function returns.
-func (q *WorkerQueue) Wait() {
+func (q *workerQueue) Wait() {
 	q.wg.Wait()
 	close(q.tasks)
 	q.wwg.Wait()
