@@ -32,6 +32,10 @@ type ProgressMeter struct {
 	dryRun            bool
 }
 
+func NewMeter(logPath string) *ProgressMeter {
+	return NewProgressMeter(0, 0, false, logPath)
+}
+
 // NewProgressMeter creates a new ProgressMeter for the number and size of
 // files given.
 func NewProgressMeter(estFiles int, estBytes int64, dryRun bool, logPath string) *ProgressMeter {

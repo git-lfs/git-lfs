@@ -127,29 +127,22 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 		wait.Done()
 	}()
 
-	// Count bytes for progress
+	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
+	meter := progress.NewMeter(logPath)
+	meter.Start()
 	var totalBytes int64
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-	}
-
-	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
-	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, logPath)
-	progress.Start()
-	totalBytes = 0
-	for _, pointer := range pointers {
-		totalBytes += pointer.Size
-		progress.StartTransfer(pointer.Name)
+		meter.StartTransfer(pointer.Name)
 		c <- pointer
 		// not strictly correct (parallel) but we don't have a callback & it's just local
 		// plus only 1 slot in channel so it'll block & be close
-		progress.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
-		progress.FinishTransfer(pointer.Name)
+		meter.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
+		meter.FinishTransfer(pointer.Name)
 	}
 	close(c)
 	wait.Wait()
-	progress.Finish()
-
+	meter.Finish()
 }
 
 // Populate the working copy with the real content of objects where the file is
