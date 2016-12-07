@@ -38,7 +38,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	checkoutWithIncludeExclude(filter)
 }
 
-func checkoutFromFetchChan(in chan *lfs.WrappedPointer) {
+func checkoutFromFetchChan(in chan *lfs.WrappedPointer, filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -54,6 +54,7 @@ func checkoutFromFetchChan(in chan *lfs.WrappedPointer) {
 		}
 		mapping[p.Oid] = append(mapping[p.Oid], p)
 	})
+	chgitscanner.Filter = filter
 
 	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)

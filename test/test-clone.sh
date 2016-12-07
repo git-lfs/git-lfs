@@ -240,16 +240,20 @@ begin_test "clone (with include/exclude args)"
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
   printf "$contents_a" > "a.dat"
+  printf "$contents_a" > "a-dupe.dat"
+  printf "$contents_a" > "dupe-a.dat"
 
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
   printf "$contents_b" > "b.dat"
 
-  git add a.dat b.dat .gitattributes
+  git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
-  grep "3 files changed" commit.log
+  grep "5 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 a-dupe.dat" commit.log
+  grep "create mode 100644 dupe-a.dat" commit.log
   grep "create mode 100644 b.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
@@ -260,11 +264,13 @@ begin_test "clone (with include/exclude args)"
   cd "$TRASHDIR"
 
   local_reponame="clone_with_includes"
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a.dat"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a*.dat"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
   [ "a" = "$(cat a.dat)" ]
+  [ "a" = "$(cat a-dupe.dat)" ]
+  [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
   [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
   popd
 

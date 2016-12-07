@@ -39,7 +39,7 @@ func pull(filter *filepathfilter.Filter) {
 	}
 
 	c := fetchRefToChan(ref.Sha, filter)
-	checkoutFromFetchChan(c)
+	checkoutFromFetchChan(c, filter)
 }
 
 func init() {
