@@ -262,8 +262,7 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 }
 
 func buildProgressMeter() *progress.ProgressMeter {
-	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
-	return progress.NewMeter(logPath)
+	return progress.NewMeter(progress.WithOSEnv(cfg.Os))
 }
 
 // isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
