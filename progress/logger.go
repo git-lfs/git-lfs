@@ -16,12 +16,12 @@ type progressLogger struct {
 // Write will write to the file and perform a Sync() if writing succeeds.
 func (l *progressLogger) Write(b []byte) error {
 	if l.writeData {
-		if _, err := l.log.Write(b); err != nil {
-			return err
-		}
-		return l.log.Sync()
+		return nil
 	}
-	return nil
+	if _, err := l.log.Write(b); err != nil {
+		return err
+	}
+	return l.log.Sync()
 }
 
 // Close will call Close() on the underlying file
@@ -42,7 +42,6 @@ func (l *progressLogger) Shutdown() {
 // If a log file is able to be created, the logger will write to the file. If
 // there is an err creating the file, the logger will ignore all writes.
 func newProgressLogger(logPath string) (*progressLogger, error) {
-
 	if len(logPath) == 0 {
 		return &progressLogger{}, nil
 	}

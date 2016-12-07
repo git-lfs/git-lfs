@@ -32,13 +32,8 @@ type ProgressMeter struct {
 	DryRun            bool
 }
 
+// NewMeter creates a new ProgressMeter.
 func NewMeter(logPath string) *ProgressMeter {
-	return NewProgressMeter(0, 0, false, logPath)
-}
-
-// NewProgressMeter creates a new ProgressMeter for the number and size of
-// files given.
-func NewProgressMeter(estFiles int, estBytes int64, dryRun bool, logPath string) *ProgressMeter {
 	logger, err := newProgressLogger(logPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
@@ -50,9 +45,6 @@ func NewProgressMeter(estFiles int, estBytes int64, dryRun bool, logPath string)
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		finished:       make(chan interface{}),
-		estimatedFiles: int32(estFiles),
-		estimatedBytes: estBytes,
-		DryRun:         dryRun,
 	}
 }
 
