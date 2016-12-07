@@ -40,6 +40,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 	missingLocalObjects := make([]*lfs.WrappedPointer, 0, numUnfiltered)
 	missingSize := int64(0)
 	meter := buildProgressMeter()
+	meter.DryRun = c.DryRun
 
 	// XXX(taylor): temporary measure to fix duplicate (broken) results from
 	// scanner

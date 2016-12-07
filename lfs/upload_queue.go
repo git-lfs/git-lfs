@@ -69,7 +69,7 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 
 // NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
 func NewUploadQueue(meter *progress.ProgressMeter, dryRun bool) *TransferQueue {
-	return newTransferQueueWithMeter(transfer.Upload, meter, dryRun)
+	return newTransferQueue(transfer.Upload, meter, dryRun)
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it

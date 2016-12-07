@@ -97,7 +97,7 @@ type TransferQueue struct {
 	adapterResultChan chan transfer.TransferResult
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
-	meter             *progress.ProgressMeter
+	meter             progress.Meter
 	errors            []error
 	transferables     map[string]Transferable
 	batcher           *Batcher
@@ -115,8 +115,12 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
-func newTransferQueueWithMeter(dir transfer.Direction, meter *progress.ProgressMeter, dryRun bool) *TransferQueue {
-	meter.DryRun = dryRun
+// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
+func newTransferQueue(dir transfer.Direction, meter progress.Meter, dryRun bool) *TransferQueue {
+	if meter == nil {
+		meter = progress.Noop()
+	}
+
 	q := &TransferQueue{
 		direction:     dir,
 		dryRun:        dryRun,
@@ -134,13 +138,6 @@ func newTransferQueueWithMeter(dir transfer.Direction, meter *progress.ProgressM
 	q.run()
 
 	return q
-}
-
-// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
-	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
-	meter := progress.NewProgressMeter(files, size, false, logPath)
-	return newTransferQueueWithMeter(dir, meter, dryRun)
 }
 
 // Add adds a Transferable to the transfer queue. It only increments the amount
