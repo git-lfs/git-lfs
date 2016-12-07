@@ -98,7 +98,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		return
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize)
+	checkQueue := lfs.NewDownloadCheckQueue()
 	transferCh := checkQueue.Watch()
 
 	done := make(chan int)
