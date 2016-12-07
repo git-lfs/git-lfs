@@ -30,7 +30,7 @@ type ProgressMeter struct {
 	logger            *progressLogger
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
-	DryRun            bool
+	dryRun            bool
 }
 
 type env interface {
@@ -38,6 +38,12 @@ type env interface {
 }
 
 type meterOption func(*ProgressMeter)
+
+func DryRun(dryRun bool) meterOption {
+	return func(m *ProgressMeter) {
+		m.dryRun = dryRun
+	}
+}
 
 func WithLogFile(name string) meterOption {
 	printErr := func(err string) {
@@ -142,7 +148,7 @@ func (p *ProgressMeter) Finish() {
 	close(p.finished)
 	p.update()
 	p.logger.Close()
-	if !p.DryRun && p.estimatedBytes > 0 {
+	if !p.dryRun && p.estimatedBytes > 0 {
 		fmt.Fprintf(os.Stdout, "\n")
 	}
 }
@@ -170,7 +176,7 @@ func (p *ProgressMeter) writer() {
 }
 
 func (p *ProgressMeter) update() {
-	if p.DryRun || (p.estimatedFiles == 0 && p.skippedFiles == 0) {
+	if p.dryRun || (p.estimatedFiles == 0 && p.skippedFiles == 0) {
 		return
 	}
 

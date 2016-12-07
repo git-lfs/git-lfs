@@ -341,7 +341,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 }
 
 func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.ProgressMeter) {
-	meter := buildProgressMeter()
+	meter := buildProgressMeter(false)
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
 	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))

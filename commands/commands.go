@@ -261,8 +261,11 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func buildProgressMeter() *progress.ProgressMeter {
-	return progress.NewMeter(progress.WithOSEnv(cfg.Os))
+func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
+	return progress.NewMeter(
+		progress.WithOSEnv(cfg.Os),
+		progress.DryRun(dryRun),
+	)
 }
 
 // isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
