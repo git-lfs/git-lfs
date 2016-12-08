@@ -21,18 +21,27 @@ type unlockFlags struct {
 }
 
 func unlockCommand(cmd *cobra.Command, args []string) {
+
+	if len(lockRemote) > 0 {
+		cfg.CurrentRemote = lockRemote
+	}
+
+	lockClient, err := locking.NewClient(cfg)
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
 	if len(args) != 0 {
 		path, err := lockPath(args[0])
 		if err != nil {
 			Exit("Unable to determine path: %v", err.Error())
 		}
 
-		err = locking.UnlockFile(path, lockRemote, unlockCmdFlags.Force)
+		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
 		if err != nil {
 			Exit("Unable to unlock: %v", err.Error())
 		}
 	} else if unlockCmdFlags.Id != "" {
-		err := locking.UnlockFileById(unlockCmdFlags.Id, lockRemote, unlockCmdFlags.Force)
+		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
 			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, err.Error())
 		}
