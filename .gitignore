@@ -1,6 +1,7 @@
 bin/
 benchmark/
 out/
+resources.syso
 
 # only allow man/*.\d.ronn files
 man/*
