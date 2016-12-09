@@ -8,8 +8,15 @@ import (
 
 var (
 	GitCommit   string
+<<<<<<< HEAD
 	Version     = "1.5.3"
+=======
+>>>>>>> 2b606199... Merge pull request #1689 from sschuberth/version-defines
 	VersionDesc string
+)
+
+const (
+	Version = "1.5.0"
 )
 
 func init() {
