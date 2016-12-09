@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/spf13/cobra"
 )
@@ -137,6 +138,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
+	meter := progress.NewMeter(progress.WithOSEnv(config.Config.Os))
 
 	// Build test data for existing files & upload
 	// Use test repo for this to simplify the process of making sure data matches oid
@@ -147,17 +149,16 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	defer repo.Cleanup()
 	// just one commit
 	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
-	var totalSize int64
 	for i := 0; i < oidCount; i++ {
 		filename := fmt.Sprintf("file%d.dat", i)
 		sz := int64(rand.Intn(200)) + 50
 		commit.Files = append(commit.Files, &test.FileInput{Filename: filename, Size: sz})
-		totalSize += sz
+		meter.Add(sz)
 	}
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(len(oidsExist), totalSize, false)
+	uploadQueue := lfs.NewUploadQueue(lfs.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 

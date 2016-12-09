@@ -289,8 +289,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 		cfg.CurrentRemote = defaultRemote
 	}
 
-	ready, pointers, totalSize := readyAndMissingPointers(allpointers, filter)
-	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
+	q := lfs.NewDownloadQueue(lfs.WithProgress(meter))
 
 	if out != nil {
 		// If we already have it, or it won't be fetched
@@ -340,8 +340,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
-	size := int64(0)
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.ProgressMeter) {
+	meter := buildProgressMeter(false)
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
 	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -362,10 +362,10 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 		}
 
 		missing = append(missing, p)
-		size += p.Size
+		meter.Add(p.Size)
 	}
 
-	return ready, missing, size
+	return ready, missing, meter
 }
 
 func init() {

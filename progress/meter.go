@@ -3,6 +3,7 @@ package progress
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,39 +33,90 @@ type ProgressMeter struct {
 	dryRun            bool
 }
 
-// NewProgressMeter creates a new ProgressMeter for the number and size of
-// files given.
-func NewProgressMeter(estFiles int, estBytes int64, dryRun bool, logPath string) *ProgressMeter {
-	logger, err := newProgressLogger(logPath)
-	if err != nil {
+type env interface {
+	Get(key string) (val string, ok bool)
+}
+
+type meterOption func(*ProgressMeter)
+
+// DryRun is an option for NewMeter() that determines whether updates should be
+// sent to stdout.
+func DryRun(dryRun bool) meterOption {
+	return func(m *ProgressMeter) {
+		m.dryRun = dryRun
+	}
+}
+
+// WithLogFile is an option for NewMeter() that sends updates to a text file.
+func WithLogFile(name string) meterOption {
+	printErr := func(err string) {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
-	return &ProgressMeter{
-		logger:         logger,
+	return func(m *ProgressMeter) {
+		if len(name) == 0 {
+			return
+		}
+
+		if !filepath.IsAbs(name) {
+			printErr("GIT_LFS_PROGRESS must be an absolute path")
+			return
+		}
+
+		cbDir := filepath.Dir(name)
+		if err := os.MkdirAll(cbDir, 0755); err != nil {
+			printErr(err.Error())
+			return
+		}
+
+		file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			printErr(err.Error())
+			return
+		}
+
+		m.logger.writeData = true
+		m.logger.log = file
+	}
+}
+
+// WithOSEnv is an option for NewMeter() that sends updates to the text file
+// path specified in the OS Env.
+func WithOSEnv(os env) meterOption {
+	name, _ := os.Get("GIT_LFS_PROGRESS")
+	return WithLogFile(name)
+}
+
+// NewMeter creates a new ProgressMeter.
+func NewMeter(options ...meterOption) *ProgressMeter {
+	m := &ProgressMeter{
+		logger:         &progressLogger{},
 		startTime:      time.Now(),
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		finished:       make(chan interface{}),
-		estimatedFiles: int32(estFiles),
-		estimatedBytes: estBytes,
-		dryRun:         dryRun,
 	}
+
+	for _, opt := range options {
+		opt(m)
+	}
+
+	return m
 }
 
+// Start begins sending status updates to the optional log file, and stdout.
 func (p *ProgressMeter) Start() {
 	if atomic.SwapInt32(&p.started, 1) == 0 {
 		go p.writer()
 	}
 }
 
-// Add tells the progress meter that a transferring file is being added to the
-// TransferQueue.
-func (p *ProgressMeter) Add(name string) {
-	idx := atomic.AddInt64(&p.transferringFiles, 1)
-	p.fileIndexMutex.Lock()
-	p.fileIndex[name] = idx
-	p.fileIndexMutex.Unlock()
+// Add tells the progress meter that a single file of the given size will
+// possibly be transferred. If a file doesn't need to be transferred for some
+// reason, be sure to call Skip(int64) with the same size.
+func (p *ProgressMeter) Add(size int64) {
+	atomic.AddInt32(&p.estimatedFiles, 1)
+	atomic.AddInt64(&p.estimatedBytes, size)
 }
 
 // Skip tells the progress meter that a file of size `size` is being skipped
@@ -75,7 +127,15 @@ func (p *ProgressMeter) Skip(size int64) {
 	// Reduce bytes and files so progress easier to parse
 	atomic.AddInt32(&p.estimatedFiles, -1)
 	atomic.AddInt64(&p.estimatedBytes, -size)
+}
 
+// StartTransfer tells the progress meter that a transferring file is being
+// added to the TransferQueue.
+func (p *ProgressMeter) StartTransfer(name string) {
+	idx := atomic.AddInt64(&p.transferringFiles, 1)
+	p.fileIndexMutex.Lock()
+	p.fileIndex[name] = idx
+	p.fileIndexMutex.Unlock()
 }
 
 // TransferBytes increments the number of bytes transferred

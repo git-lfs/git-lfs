@@ -97,7 +97,7 @@ type TransferQueue struct {
 	adapterResultChan chan transfer.TransferResult
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
-	meter             *progress.ProgressMeter
+	meter             progress.Meter
 	errors            []error
 	transferables     map[string]Transferable
 	batcher           *Batcher
@@ -115,27 +115,42 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
+type transferQueueOption func(*TransferQueue)
+
+func DryRun(dryRun bool) transferQueueOption {
+	return func(tq *TransferQueue) {
+		tq.dryRun = dryRun
+	}
+}
+
+func WithProgress(m progress.Meter) transferQueueOption {
+	return func(tq *TransferQueue) {
+		tq.meter = m
+	}
+}
+
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(files int, size int64, dryRun bool, dir transfer.Direction) *TransferQueue {
-	cfg := config.Config
-
-	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
-
+func newTransferQueue(dir transfer.Direction, options ...transferQueueOption) *TransferQueue {
 	q := &TransferQueue{
 		direction:     dir,
-		dryRun:        dryRun,
-		meter:         progress.NewProgressMeter(files, size, dryRun, logPath),
 		retriesc:      make(chan Transferable, batchSize),
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
-		rc:            newRetryCounter(cfg),
+		rc:            newRetryCounter(config.Config),
+	}
+
+	for _, opt := range options {
+		opt(q)
+	}
+
+	if q.meter == nil {
+		q.meter = progress.Noop()
 	}
 
 	q.errorwait.Add(1)
 	q.retrywait.Add(1)
-
 	q.run()
 
 	return q
@@ -379,7 +394,7 @@ func (q *TransferQueue) batchApiRoutine() {
 
 				if ok {
 					transfer.SetObject(o)
-					q.meter.Add(transfer.Name())
+					q.meter.StartTransfer(transfer.Name())
 					q.addToAdapter(transfer)
 				} else {
 					q.Skip(transfer.Size())
