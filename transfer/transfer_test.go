@@ -25,7 +25,8 @@ func (a *testAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, com
 	return nil
 }
 
-func (a *testAdapter) Add(t *Transfer) {
+func (a *testAdapter) Add(ts ...*Transfer) (retries <-chan TransferResult) {
+	return nil
 }
 
 func (a *testAdapter) End() {

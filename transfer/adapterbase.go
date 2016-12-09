@@ -23,11 +23,13 @@ type adapterBase struct {
 	name         string
 	direction    Direction
 	transferImpl transferImplementation
-	jobChan      chan *Transfer
+	jobChan      chan *job
 	cb           TransferProgressCallback
 	outChan      chan TransferResult
 	// WaitGroup to sync the completion of all workers
 	workerWait sync.WaitGroup
+	// WaitGroup to sync the completion of all in-flight jobs
+	jobWait *sync.WaitGroup
 	// WaitGroup to serialise the first transfer response to perform login if needed
 	authWait sync.WaitGroup
 }
@@ -51,7 +53,13 @@ type transferImplementation interface {
 }
 
 func newAdapterBase(name string, dir Direction, ti transferImplementation) *adapterBase {
-	return &adapterBase{name: name, direction: dir, transferImpl: ti}
+	return &adapterBase{
+		name:         name,
+		direction:    dir,
+		transferImpl: ti,
+
+		jobWait: new(sync.WaitGroup),
+	}
 }
 
 func (a *adapterBase) Name() string {
@@ -65,7 +73,7 @@ func (a *adapterBase) Direction() Direction {
 func (a *adapterBase) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
 	a.cb = cb
 	a.outChan = completion
-	a.jobChan = make(chan *Transfer, 100)
+	a.jobChan = make(chan *job, 100)
 
 	tracerx.Printf("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
 
@@ -82,19 +90,58 @@ func (a *adapterBase) Begin(maxConcurrency int, cb TransferProgressCallback, com
 	return nil
 }
 
-func (a *adapterBase) Add(t *Transfer) {
-	tracerx.Printf("xfer: adapter %q Add() for %q", a.Name(), t.Object.Oid)
-	a.jobChan <- t
+type job struct {
+	T *Transfer
+
+	listeners []chan<- TransferResult
+	wg        *sync.WaitGroup
+}
+
+func (j *job) Done(err error) {
+	for _, l := range j.listeners {
+		l <- TransferResult{j.T, err}
+	}
+
+	j.wg.Done()
+}
+
+func (a *adapterBase) Add(transfers ...*Transfer) <-chan TransferResult {
+	results := make(chan TransferResult, len(transfers))
+
+	listeners := []chan<- TransferResult{results}
+	if a.outChan != nil {
+		listeners = append(listeners, a.outChan)
+	}
+
+	a.jobWait.Add(len(transfers))
+
+	go func() {
+		defer close(results)
+
+		for _, t := range transfers {
+			// BUG(taylor): End() is race-y here, and can close
+			// jobChan before we want it to
+			a.jobChan <- &job{t, listeners, a.jobWait}
+		}
+
+		a.jobWait.Wait()
+	}()
+
+	return results
 }
 
 func (a *adapterBase) End() {
 	tracerx.Printf("xfer: adapter %q End()", a.Name())
+
+	a.jobWait.Wait()
 	close(a.jobChan)
+
 	// wait for all transfers to complete
 	a.workerWait.Wait()
 	if a.outChan != nil {
 		close(a.outChan)
 	}
+
 	tracerx.Printf("xfer: adapter %q stopped", a.Name())
 }
 
@@ -115,7 +162,9 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		tracerx.Printf("xfer: adapter %q worker %d auth signal received", a.Name(), workerNum)
 	}
 
-	for t := range a.jobChan {
+	for job := range a.jobChan {
+		t := job.T
+
 		var authCallback func()
 		if signalAuthOnResponse {
 			authCallback = func() {
@@ -148,10 +197,8 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 			err = a.transferImpl.DoTransfer(ctx, t, a.cb, authCallback)
 		}
 
-		if a.outChan != nil {
-			res := TransferResult{t, err}
-			a.outChan <- res
-		}
+		// Mark the job as completed, and alter all listeners
+		job.Done(err)
 
 		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Object.Oid)
 	}

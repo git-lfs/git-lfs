@@ -47,7 +47,7 @@ type TransferAdapter interface {
 	Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
-	Add(t *Transfer)
+	Add(transfers ...*Transfer) (results <-chan TransferResult)
 	// Indicate that all transfers have been scheduled and resources can be released
 	// once the queued items have completed.
 	// This call blocks until all items have been processed

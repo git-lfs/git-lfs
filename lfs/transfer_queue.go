@@ -87,6 +87,26 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 	return count, count < r.MaxRetries
 }
 
+type Batch []Transferable
+
+func (b Batch) IsFull(max int) bool { return len(b) >= max }
+
+func (b Batch) ApiObjects() []*api.ObjectResource {
+	transfers := make([]*api.ObjectResource, 0, len(b))
+	for _, t := range b {
+		transfers = append(transfers, &api.ObjectResource{
+			Oid:  t.Oid(),
+			Size: t.Size(),
+		})
+	}
+
+	return transfers
+}
+
+func (b Batch) Len() int           { return len(b) }
+func (b Batch) Less(i, j int) bool { return b[i].Size() < b[j].Size() }
+func (b Batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+
 // TransferQueue organises the wider process of uploading and downloading,
 // including calling the API, passing the actual transfer request to transfer
 // adapters, and dealing with progress, errors and retries.
@@ -94,20 +114,20 @@ type TransferQueue struct {
 	direction         transfer.Direction
 	adapter           transfer.TransferAdapter
 	adapterInProgress bool
-	adapterResultChan chan transfer.TransferResult
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
 	meter             progress.Meter
 	errors            []error
 	transferables     map[string]Transferable
 	batchSize         int
-	batcher           *Batcher
-	retriesc          chan Transferable // Channel for processing retries
-	errorc            chan error        // Channel for processing errors
-	watchers          []chan string
-	trMutex           *sync.Mutex
-	errorwait         sync.WaitGroup
-	retrywait         sync.WaitGroup
+	bufferDepth       int
+	// Channel for processing (and buffering) incoming items
+	incoming      chan Transferable
+	errorc        chan error // Channel for processing errors
+	watchers      []chan string
+	trMutex       *sync.Mutex
+	startProgress sync.Once
+	errorwait     sync.WaitGroup
 	// wait is used to keep track of pending transfers. It is incremented
 	// once per unique OID on Add(), and is decremented when that transfer
 	// is marked as completed or failed, but not retried.
@@ -134,10 +154,15 @@ func WithBatchSize(size int) transferQueueOption {
 	return func(tq *TransferQueue) { tq.batchSize = size }
 }
 
+func WithBufferDepth(depth int) transferQueueOption {
+	return func(tq *TransferQueue) { tq.bufferDepth = depth }
+}
+
 // newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func newTransferQueue(dir transfer.Direction, options ...transferQueueOption) *TransferQueue {
 	q := &TransferQueue{
 		batchSize:     defaultBatchSize,
+		bufferDepth:   defaultBatchSize,
 		direction:     dir,
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
@@ -150,14 +175,13 @@ func newTransferQueue(dir transfer.Direction, options ...transferQueueOption) *T
 		opt(q)
 	}
 
-	q.retriesc = make(chan Transferable, q.batchSize)
+	q.incoming = make(chan Transferable, q.bufferDepth)
 
 	if q.meter == nil {
 		q.meter = progress.Noop()
 	}
 
 	q.errorwait.Add(1)
-	q.retrywait.Add(1)
 	q.run()
 
 	return q
@@ -172,12 +196,261 @@ func (q *TransferQueue) Add(t Transferable) {
 		q.transferables[t.Oid()] = t
 		q.trMutex.Unlock()
 	} else {
-		tracerx.Printf("already transferring %q, skipping duplicate", t)
 		q.trMutex.Unlock()
+
+		tracerx.Printf("already transferring %q, skipping duplicate", t.Oid())
 		return
 	}
 
-	q.batcher.Add(t)
+	q.incoming <- t
+}
+
+// collectBatches collects batches in a loop, prioritizing failed items from the
+// previous before adding new items. The process works as follows:
+//
+//   1. Create a new batch, of size `q.batchSize`, and containing no items
+//   2. While the batch contains less items than `q.batchSize` AND the channel
+//      is open, read one item from the `q.incoming` channel.
+//      a. If the read was a channel close, go to step 4.
+//      b. If the read was a Transferable item, go to step 3.
+//   3. Append the item to the batch.
+//   4. Sort the batch by descending object size, make a batch API call, send
+//      the items to the `*transfer.adapterBase`.
+//   5. Process the worker results, incrementing and appending retries if
+//      possible.
+//   6. If the `q.incoming` channel is open, go to step 2.
+//   7. If the next batch is empty AND the `q.incoming` channel is closed,
+//      terminate immediately.
+//
+// collectBatches runs in its own goroutine.
+func (q *TransferQueue) collectBatches() {
+	var closing bool
+	batch := q.makeBatch()
+
+	for {
+		for !closing && !batch.IsFull(q.batchSize) {
+			t, ok := <-q.incoming
+			if !ok {
+				closing = true
+				break
+			}
+
+			batch = append(batch, t)
+		}
+
+		retries, err := q.enqueueAndCollectRetriesFor(batch)
+		if err != nil {
+			q.errorc <- err
+		}
+
+		if closing && len(retries) == 0 {
+			break
+		}
+
+		batch = retries
+	}
+}
+
+// enqueueAndCollectRetriesFor makes a Batch API call and returns a "next" batch
+// containing all of the objects that failed from the previous batch and had
+// retries availale to them.
+//
+// If an error was encountered while making the API request, _all_ of the items
+// from the previous batch (that have retries available to them) will be
+// returned immediately, along with the error that was encountered.
+//
+// enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
+// processed.
+func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) {
+	cfg := config.Config
+
+	next := q.makeBatch()
+	transferAdapterNames := q.manifest.GetAdapterNames(q.direction)
+
+	tracerx.Printf("tq: sending batch of size %d", len(batch))
+
+	objs, adapterName, err := api.Batch(
+		cfg, batch.ApiObjects(), q.transferKind(), transferAdapterNames,
+	)
+	if err != nil {
+		// If there was an error making the batch API call, mark all of
+		// the objects for retry, and return them along with the error
+		// that was encountered. If any of the objects couldn't be
+		// retried, they will be marked as failed.
+		for _, t := range batch {
+			if q.canRetryObject(t.Oid(), err) {
+				q.rc.Increment(t.Oid())
+
+				next = append(next, t)
+			} else {
+				q.wait.Done()
+			}
+		}
+
+		return next, err
+	}
+
+	q.useAdapter(adapterName)
+	q.startProgress.Do(q.meter.Start)
+
+	toTransfer := make([]*transfer.Transfer, 0, len(objs))
+
+	for _, o := range objs {
+		if o.Error != nil {
+			q.errorc <- errors.Wrapf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
+			q.Skip(o.Size)
+			q.wait.Done()
+
+			continue
+		}
+
+		if _, needsTransfer := o.Rel(q.transferKind()); needsTransfer {
+			// If the object has a link relation for the kind of
+			// transfer that we want to perform, grab a Transferable
+			// that matches the object's OID.
+			q.trMutex.Lock()
+			t, ok := q.transferables[o.Oid]
+			q.trMutex.Unlock()
+
+			if ok {
+				// If we knew about an assosicated Transferable,
+				// begin the transferbout an assosicated
+				// Transferable, begin the transfer.
+				t.SetObject(o)
+				q.meter.StartTransfer(t.Name())
+
+				toTransfer = append(toTransfer, transfer.NewTransfer(
+					t.Name(), t.Object(), t.Path(),
+				))
+			} else {
+				// If we couldn't find any assosciated
+				// Transferable object, then we give up on the
+				// transfer by telling the progress meter to
+				// skip the number of bytes in "t".
+				q.Skip(t.Size())
+				q.wait.Done()
+			}
+		} else {
+			// Otherwise, if the object didn't need a transfer at
+			// all, skip and decrement it.
+			q.Skip(o.Size)
+			q.wait.Done()
+		}
+	}
+
+	retries := q.addToAdapter(toTransfer)
+	for t := range retries {
+		q.rc.Increment(t.Oid())
+		count := q.rc.CountFor(t.Oid())
+
+		tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
+
+		next = append(next, t)
+	}
+
+	return next, nil
+}
+
+// makeBatch returns a new, empty batch, with a capacity equal to the maximum
+// batch size designated by the `*TransferQueue`.
+func (q *TransferQueue) makeBatch() Batch { return make(Batch, 0, q.batchSize) }
+
+// addToAdapter adds the given "pending" transfers to the transfer adapters and
+// returns a channel of Transferables that are to be retried in the next batch.
+// After all of the items in the batch have been processed, the channel is
+// closed.
+//
+// addToAdapter returns immediately, and does not block.
+func (q *TransferQueue) addToAdapter(pending []*transfer.Transfer) <-chan Transferable {
+	retries := make(chan Transferable, len(pending))
+
+	if err := q.ensureAdapterBegun(); err != nil {
+		close(retries)
+
+		q.errorc <- err
+		for _, t := range pending {
+			q.Skip(t.Object.Size)
+			q.wait.Done()
+		}
+
+		return retries
+	}
+
+	go func() {
+		defer close(retries)
+
+		var results <-chan transfer.TransferResult
+		if q.dryRun {
+			results = q.makeDryRunResults(pending)
+		} else {
+			results = q.adapter.Add(pending...)
+		}
+
+		for res := range results {
+			q.handleTransferResult(res, retries)
+		}
+	}()
+
+	return retries
+}
+
+// makeDryRunResults returns a channel populated immediately with "successful"
+// results for all of the given transfers in "ts".
+func (q *TransferQueue) makeDryRunResults(ts []*transfer.Transfer) <-chan transfer.TransferResult {
+	results := make(chan transfer.TransferResult, len(ts))
+	for _, t := range ts {
+		results <- transfer.TransferResult{t, nil}
+	}
+
+	close(results)
+
+	return results
+}
+
+// handleTransferResult observes the transfer result, sending it on the retries
+// channel if it was able to be retried.
+func (q *TransferQueue) handleTransferResult(
+	res transfer.TransferResult, retries chan<- Transferable,
+) {
+	oid := res.Transfer.Object.Oid
+
+	if res.Error != nil {
+		// If there was an error encountered when processing the
+		// transfer (res.Transfer), handle the error as is appropriate:
+
+		if q.canRetryObject(oid, res.Error) {
+			// If the object can be retried, send it on the retries
+			// channel, where it will be read at the call-site and
+			// its retry count will be incremented.
+			tracerx.Printf("tq: retrying object %s", oid)
+
+			q.trMutex.Lock()
+			t, ok := q.transferables[oid]
+			q.trMutex.Unlock()
+
+			if ok {
+				retries <- t
+			} else {
+				q.errorc <- res.Error
+			}
+		} else {
+			// If the error wasn't retriable, OR the object has
+			// exceeded its retry budget, it will be NOT be sent to
+			// the retry channel, and the error will be reported
+			// immediately.
+			q.errorc <- res.Error
+			q.wait.Done()
+		}
+	} else {
+		// Otherwise, if the transfer was successful, notify all of the
+		// watchers, and mark it as finished.
+		for _, c := range q.watchers {
+			c <- oid
+		}
+
+		q.meter.FinishTransfer(res.Transfer.Name)
+		q.wait.Done()
+	}
 }
 
 func (q *TransferQueue) useAdapter(name string) {
@@ -206,25 +479,6 @@ func (q *TransferQueue) finishAdapter() {
 	}
 }
 
-func (q *TransferQueue) addToAdapter(t Transferable) {
-	tr := transfer.NewTransfer(t.Name(), t.Object(), t.Path())
-
-	if q.dryRun {
-		// Don't actually transfer
-		res := transfer.TransferResult{tr, nil}
-		q.handleTransferResult(res)
-		return
-	}
-	err := q.ensureAdapterBegun()
-	if err != nil {
-		q.errorc <- err
-		q.Skip(t.Size())
-		q.wait.Done()
-		return
-	}
-	q.adapter.Add(tr)
-}
-
 func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
 }
@@ -245,8 +499,6 @@ func (q *TransferQueue) ensureAdapterBegun() error {
 		return nil
 	}
 
-	adapterResultChan := make(chan transfer.TransferResult, 20)
-
 	// Progress callback - receives byte updates
 	cb := func(name string, total, read int64, current int) error {
 		q.meter.TransferBytes(q.transferKind(), name, read, total, current)
@@ -254,71 +506,22 @@ func (q *TransferQueue) ensureAdapterBegun() error {
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	err := q.adapter.Begin(config.Config.ConcurrentTransfers(), cb, adapterResultChan)
+	err := q.adapter.Begin(config.Config.ConcurrentTransfers(), cb, nil)
 	if err != nil {
 		return err
 	}
 	q.adapterInProgress = true
 
-	// Collector for completed transfers
-	// q.wait.Done() in handleTransferResult is enough to know when this is complete for all transfers
-	go func() {
-		for res := range adapterResultChan {
-			q.handleTransferResult(res)
-		}
-	}()
-
 	return nil
-}
-
-// handleTransferResult is responsible for dealing with the result of a
-// successful or failed transfer.
-//
-// If there was an error assosicated with the given transfer, "res.Error", and
-// it is retriable (see: `q.canRetryObject`), it will be placed in the next
-// batch and be retried. If that error is not retriable for any reason, the
-// transfer will be marked as having failed, and the error will be reported.
-//
-// If the transfer was successful, the watchers of this transfer queue will be
-// notified, and the transfer will be marked as having been completed.
-func (q *TransferQueue) handleTransferResult(res transfer.TransferResult) {
-	oid := res.Transfer.Object.Oid
-
-	if res.Error != nil {
-		if q.canRetryObject(oid, res.Error) {
-			tracerx.Printf("tq: retrying object %s", oid)
-			q.trMutex.Lock()
-			t, ok := q.transferables[oid]
-			q.trMutex.Unlock()
-			if ok {
-				q.retry(t)
-			} else {
-				q.errorc <- res.Error
-			}
-		} else {
-			q.errorc <- res.Error
-			q.wait.Done()
-		}
-	} else {
-		for _, c := range q.watchers {
-			c <- oid
-		}
-
-		q.meter.FinishTransfer(res.Transfer.Name)
-		q.wait.Done()
-	}
 }
 
 // Wait waits for the queue to finish processing all transfers. Once Wait is
 // called, Add will no longer add transferables to the queue. Any failed
 // transfers will be automatically retried once.
 func (q *TransferQueue) Wait() {
-	q.batcher.Exit()
-	q.wait.Wait()
+	close(q.incoming)
 
-	// Handle any retries
-	close(q.retriesc)
-	q.retrywait.Wait()
+	q.wait.Wait()
 
 	q.finishAdapter()
 	close(q.errorc)
@@ -339,82 +542,6 @@ func (q *TransferQueue) Watch() chan string {
 	return c
 }
 
-// batchApiRoutine processes the queue of transfers using the batch endpoint,
-// making only one POST call for all objects. The results are then handed
-// off to the transfer workers.
-func (q *TransferQueue) batchApiRoutine() {
-	var startProgress sync.Once
-
-	transferAdapterNames := q.manifest.GetAdapterNames(q.direction)
-
-	for {
-		batch := q.batcher.Next()
-		if batch == nil {
-			break
-		}
-
-		tracerx.Printf("tq: sending batch of size %d", len(batch))
-
-		transfers := make([]*api.ObjectResource, 0, len(batch))
-		for _, i := range batch {
-			t := i.(Transferable)
-			transfers = append(transfers, &api.ObjectResource{Oid: t.Oid(), Size: t.Size()})
-		}
-
-		if len(transfers) == 0 {
-			continue
-		}
-
-		objs, adapterName, err := api.Batch(config.Config, transfers, q.transferKind(), transferAdapterNames)
-		if err != nil {
-			var errOnce sync.Once
-			for _, o := range batch {
-				t := o.(Transferable)
-
-				if q.canRetryObject(t.Oid(), err) {
-					q.retry(t)
-				} else {
-					errOnce.Do(func() { q.errorc <- err })
-					q.wait.Done()
-				}
-			}
-
-			continue
-		}
-
-		q.useAdapter(adapterName)
-		startProgress.Do(q.meter.Start)
-
-		for _, o := range objs {
-			if o.Error != nil {
-				q.errorc <- errors.Wrapf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
-				q.Skip(o.Size)
-				q.wait.Done()
-				continue
-			}
-
-			if _, ok := o.Rel(q.transferKind()); ok {
-				// This object needs to be transferred
-				q.trMutex.Lock()
-				transfer, ok := q.transferables[o.Oid]
-				q.trMutex.Unlock()
-
-				if ok {
-					transfer.SetObject(o)
-					q.meter.StartTransfer(transfer.Name())
-					q.addToAdapter(transfer)
-				} else {
-					q.Skip(transfer.Size())
-					q.wait.Done()
-				}
-			} else {
-				q.Skip(o.Size)
-				q.wait.Done()
-			}
-		}
-	}
-}
-
 // This goroutine collects errors returned from transfers
 func (q *TransferQueue) errorCollector() {
 	for err := range q.errorc {
@@ -423,43 +550,14 @@ func (q *TransferQueue) errorCollector() {
 	q.errorwait.Done()
 }
 
-// retryCollector collects objects to retry, increments the number of times that
-// they have been retried, and then enqueues them in the next batch.  If the
-// transfer queue is using a batcher, the batch will be flushed immediately.
-//
-// retryCollector runs in its own goroutine.
-func (q *TransferQueue) retryCollector() {
-	for t := range q.retriesc {
-		q.rc.Increment(t.Oid())
-		count := q.rc.CountFor(t.Oid())
-
-		tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
-
-		// XXX(taylor): reuse some of the logic in
-		// `*TransferQueue.Add(t)` here to circumvent banned duplicate
-		// OIDs
-		tracerx.Printf("tq: flushing batch in response to retry #%d for %q (size: %d)", count, t.Oid(), t.Size())
-
-		q.batcher.Add(t)
-		q.batcher.Flush()
-	}
-	q.retrywait.Done()
-}
-
 // run starts the transfer queue, doing individual or batch transfers depending
 // on the Config.BatchTransfer() value. run will transfer files sequentially or
 // concurrently depending on the Config.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
-	go q.errorCollector()
-	go q.retryCollector()
-
 	tracerx.Printf("tq: running as batched queue, batch size of %d", q.batchSize)
-	q.batcher = NewBatcher(q.batchSize)
-	go q.batchApiRoutine()
-}
 
-func (q *TransferQueue) retry(t Transferable) {
-	q.retriesc <- t
+	go q.errorCollector()
+	go q.collectBatches()
 }
 
 // canRetry returns whether or not the given error "err" is retriable.
