@@ -360,7 +360,7 @@ shutdown() {
     # only cleanup test/remote after script/integration done OR a single
     # test/test-*.sh file is run manually.
     if [ -s "$LFS_URL_FILE" ]; then
-      curl "$(cat "$LFS_URL_FILE")/shutdown"
+      curl -s "$(cat "$LFS_URL_FILE")/shutdown"
     fi
 
     [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
