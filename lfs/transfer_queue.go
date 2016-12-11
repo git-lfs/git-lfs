@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/api"
@@ -237,6 +238,11 @@ func (q *TransferQueue) collectBatches() {
 
 			batch = append(batch, t)
 		}
+
+		// Before enqueuing the next batch, sort it's items by size
+		// (largest first) so that workers can process the largest
+		// transfers first.
+		sort.Sort(sort.Reverse(batch))
 
 		retries, err := q.enqueueAndCollectRetriesFor(batch)
 		if err != nil {

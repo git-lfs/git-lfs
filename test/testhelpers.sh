@@ -281,6 +281,24 @@ setup_remote_repo_with_file() {
   grep "master -> master" push.log
 }
 
+# substring_position returns the position of a substring in a 1-indexed search
+# space.
+#
+#     [ "$(substring_position "foo bar baz" "baz")" -eq "9" ]
+substring_position() {
+  local str="$1"
+  local substr="$2"
+
+  # 1) Print the string...
+  # 2) Remove the substring and everything after it
+  # 3) Count the number of characters (bytes) left, i.e., the offset of the
+  #    string we were looking for.
+
+  echo "$str" \
+    | sed "s/$substr.*$//" \
+    | wc -c
+}
+
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"

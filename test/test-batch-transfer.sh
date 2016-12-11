@@ -64,3 +64,40 @@ begin_test "batch transfer"
   assert_pointer "master" "a.dat" "$contents_oid" 1
 )
 end_test
+
+begin_test "batch transfers occur in reverse order by size"
+(
+  set -e
+
+  reponame="batch-order-test"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  small_contents="small"
+  small_oid="$(calc_oid "$small_contents")"
+  printf "$small_contents" > small.dat
+
+  bigger_contents="bigger"
+  bigger_oid="$(calc_oid "$bigger_contents")"
+  printf "$bigger_contents" > bigger.dat
+
+  git add *.dat
+  git commit -m "add small and large objects"
+
+  GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+
+  batch="$(grep "{\"operation\":\"upload\"" push.log | head -1)"
+
+  pos_small="$(substring_position "$batch" "$small_oid")"
+  pos_large="$(substring_position "$batch" "$bigger_oid")"
+
+  # Assert that the the larger object shows up earlier in the batch than the
+  # smaller object
+  [ "$pos_large" -lt "$pos_small" ]
+)
+end_test
+
