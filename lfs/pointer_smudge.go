@@ -93,14 +93,12 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		}
 	}
 	// Single download
-	adapterResultChan := make(chan tq.TransferResult, 1)
-	err = adapter.Begin(1, tcb, adapterResultChan)
+	err = adapter.Begin(1, tcb)
 	if err != nil {
 		return err
 	}
-	adapter.Add(tq.NewTransfer(filepath.Base(workingfile), obj, mediafile))
+	res := <-adapter.Add(tq.NewTransfer(filepath.Base(workingfile), obj, mediafile))
 	adapter.End()
-	res := <-adapterResultChan
 
 	if res.Error != nil {
 		return errors.Wrapf(err, "Error buffering media file: %s", res.Error)

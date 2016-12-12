@@ -42,9 +42,8 @@ type Adapter interface {
 	// Begin a new batch of uploads or downloads. Call this first, followed by
 	// one or more Add calls. maxConcurrency controls the number of transfers
 	// that may be done at once. The passed in callback will receive updates on
-	// progress, and the completion channel will receive completion notifications
-	// Either argument may be nil if not required by the client
-	Begin(maxConcurrency int, cb ProgressCallback, completion chan TransferResult) error
+	// progress. Either argument may be nil if not required by the client.
+	Begin(maxConcurrency int, cb ProgressCallback) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
 	Add(transfers ...*Transfer) (results <-chan TransferResult)
