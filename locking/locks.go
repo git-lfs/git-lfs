@@ -124,8 +124,6 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 }
 
 // Lock is a record of a locked file
-// TODO SJS: review this struct and api equivalent
-//           deliberately duplicated to make this API self-contained, could be simpler
 type Lock struct {
 	// Id is the unique identifier corresponding to this particular Lock. It
 	// must be consistent with the local copy, and the server's copy.
@@ -137,31 +135,17 @@ type Lock struct {
 	Name string
 	// Email address of the person holding this lock
 	Email string
-	// CommitSHA is the commit that this Lock was created against. It is
-	// strictly equal to the SHA of the minimum commit negotiated in order
-	// to create this lock.
-	CommitSHA string
-	// LockedAt is a required parameter that represents the instant in time
-	// that this lock was created. For most server implementations, this
-	// should be set to the instant at which the lock was initially
-	// received.
+	// LockedAt tells you when this lock was acquired.
 	LockedAt time.Time
-	// ExpiresAt is an optional parameter that represents the instant in
-	// time that the lock stopped being active. If the lock is still active,
-	// the server can either a) not send this field, or b) send the
-	// zero-value of time.Time.
-	UnlockedAt time.Time
 }
 
 func (c *Client) newLockFromApi(a api.Lock) Lock {
 	return Lock{
-		Id:         a.Id,
-		Path:       a.Path,
-		Name:       a.Committer.Name,
-		Email:      a.Committer.Email,
-		CommitSHA:  a.CommitSHA,
-		LockedAt:   a.LockedAt,
-		UnlockedAt: a.UnlockedAt,
+		Id:       a.Id,
+		Path:     a.Path,
+		Name:     a.Committer.Name,
+		Email:    a.Committer.Email,
+		LockedAt: a.LockedAt,
 	}
 }
 
