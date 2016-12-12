@@ -1,4 +1,4 @@
-package lfs
+package tq
 
 import (
 	"sort"
@@ -137,30 +137,30 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
-type transferQueueOption func(*TransferQueue)
+type TransferQueueOption func(*TransferQueue)
 
-func DryRun(dryRun bool) transferQueueOption {
+func DryRun(dryRun bool) TransferQueueOption {
 	return func(tq *TransferQueue) {
 		tq.dryRun = dryRun
 	}
 }
 
-func WithProgress(m progress.Meter) transferQueueOption {
+func WithProgress(m progress.Meter) TransferQueueOption {
 	return func(tq *TransferQueue) {
 		tq.meter = m
 	}
 }
 
-func WithBatchSize(size int) transferQueueOption {
+func WithBatchSize(size int) TransferQueueOption {
 	return func(tq *TransferQueue) { tq.batchSize = size }
 }
 
-func WithBufferDepth(depth int) transferQueueOption {
+func WithBufferDepth(depth int) TransferQueueOption {
 	return func(tq *TransferQueue) { tq.bufferDepth = depth }
 }
 
-// newTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func newTransferQueue(dir transfer.Direction, options ...transferQueueOption) *TransferQueue {
+// NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
+func NewTransferQueue(dir transfer.Direction, options ...TransferQueueOption) *TransferQueue {
 	q := &TransferQueue{
 		batchSize:     defaultBatchSize,
 		bufferDepth:   defaultBatchSize,
