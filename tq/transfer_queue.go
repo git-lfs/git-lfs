@@ -89,8 +89,6 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 
 type Batch []Transferable
 
-func (b Batch) IsFull(max int) bool { return len(b) >= max }
-
 func (b Batch) ApiObjects() []*api.ObjectResource {
 	transfers := make([]*api.ObjectResource, 0, len(b))
 	for _, t := range b {
@@ -228,7 +226,7 @@ func (q *TransferQueue) collectBatches() {
 	batch := q.makeBatch()
 
 	for {
-		for !closing && !batch.IsFull(q.batchSize) {
+		for !closing && (len(batch) < q.batchSize) {
 			t, ok := <-q.incoming
 			if !ok {
 				closing = true
