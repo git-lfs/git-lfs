@@ -342,9 +342,8 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 			q.trMutex.Unlock()
 
 			if ok {
-				// If we knew about an assosicated Transferable,
-				// begin the transferbout an assosicated
-				// Transferable, begin the transfer.
+				// If we knew about an associated Transferable,
+				// begin the transfer.
 				t.SetObject(o)
 				q.meter.StartTransfer(t.Name())
 
@@ -352,7 +351,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 					t.Name(), t.Object(), t.Path(),
 				))
 			} else {
-				// If we couldn't find any assosciated
+				// If we couldn't find any associated
 				// Transferable object, then we give up on the
 				// transfer by telling the progress meter to
 				// skip the number of bytes in "t".
