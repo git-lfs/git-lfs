@@ -109,8 +109,6 @@ func (a *adapterBase) Add(transfers ...*Transfer) <-chan TransferResult {
 		defer close(results)
 
 		for _, t := range transfers {
-			// BUG(taylor): End() is race-y here, and can close
-			// jobChan before we want it to
 			a.jobChan <- &job{t, results, a.jobWait}
 		}
 
