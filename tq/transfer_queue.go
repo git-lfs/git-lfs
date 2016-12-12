@@ -87,6 +87,14 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 	return count, count < r.MaxRetries
 }
 
+// Batch implements the sort.Interface interface and enables sorting on a slice
+// of `Transferable`s by object size.
+//
+// This interface is implemented here so that the largest objects can be
+// processed first. Since adding a new batch is unable to occur until the
+// current batch has finished processing, this enables us to reduce the risk of
+// a single worker getting tied up on a large item at the end of a batch while
+// all other workers are sitting idle.
 type Batch []Transferable
 
 func (b Batch) ApiObjects() []*api.ObjectResource {
@@ -236,9 +244,8 @@ func (q *TransferQueue) collectBatches() {
 			batch = append(batch, t)
 		}
 
-		// Before enqueuing the next batch, sort it's items by size
-		// (largest first) so that workers can process the largest
-		// transfers first.
+		// Before enqueuing the next batch, sort by descending object
+		// size.
 		sort.Sort(sort.Reverse(batch))
 
 		retries, err := q.enqueueAndCollectRetriesFor(batch)
