@@ -167,8 +167,6 @@ func WithBufferDepth(depth int) Option {
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 	q := &TransferQueue{
-		batchSize:     defaultBatchSize,
-		bufferDepth:   defaultBatchSize,
 		direction:     dir,
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
@@ -179,6 +177,13 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 
 	for _, opt := range options {
 		opt(q)
+	}
+
+	if q.batchSize <= 0 {
+		q.batchSize = defaultBatchSize
+	}
+	if q.bufferDepth <= 0 {
+		q.bufferDepth = q.batchSize
 	}
 
 	q.incoming = make(chan Transferable, q.bufferDepth)
