@@ -106,13 +106,12 @@ func (a *adapterBase) Add(transfers ...*Transfer) <-chan TransferResult {
 	a.jobWait.Add(len(transfers))
 
 	go func() {
-		defer close(results)
-
 		for _, t := range transfers {
 			a.jobChan <- &job{t, results, a.jobWait}
 		}
-
 		a.jobWait.Wait()
+
+		close(results)
 	}()
 
 	return results
