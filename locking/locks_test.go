@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -102,6 +103,12 @@ func (l *TestLifecycle) Cleanup(resp api.Response) error {
 	return resp.Body().Close()
 }
 
+type LocksById []Lock
+
+func (a LocksById) Len() int           { return len(a) }
+func (a LocksById) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a LocksById) Less(i, j int) bool { return a[i].Id < a[j].Id }
+
 func TestRefreshCache(t *testing.T) {
 	var err error
 	oldStore := config.LocalGitStorageDir
@@ -130,6 +137,9 @@ func TestRefreshCache(t *testing.T) {
 	locks = client.cachedLocks()
 	// Need to include zero time in structure for equal to work
 	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Sort locks for stable comparison
+	sort.Sort(LocksById(locks))
 	assert.Equal(t, []Lock{
 		Lock{Path: "folder/test1.dat", Id: "101", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
 		Lock{Path: "folder/test2.dat", Id: "102", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
