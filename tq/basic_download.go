@@ -218,7 +218,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 }
 
 func configureBasicDownloadAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:
 			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}

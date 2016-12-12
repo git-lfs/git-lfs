@@ -158,7 +158,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 }
 
 func configureTusAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
 			bu := &tusUploadAdapter{newAdapterBase(name, dir, nil)}

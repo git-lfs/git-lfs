@@ -112,7 +112,7 @@ func (b Batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 // adapters, and dealing with progress, errors and retries.
 type TransferQueue struct {
 	direction         Direction
-	adapter           TransferAdapter
+	adapter           Adapter
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
 	dryRun            bool

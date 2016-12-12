@@ -9,15 +9,15 @@ import (
 
 type Manifest struct {
 	basicTransfersOnly   bool
-	downloadAdapterFuncs map[string]NewTransferAdapterFunc
-	uploadAdapterFuncs   map[string]NewTransferAdapterFunc
+	downloadAdapterFuncs map[string]NewAdapterFunc
+	uploadAdapterFuncs   map[string]NewAdapterFunc
 	mu                   sync.Mutex
 }
 
 func NewManifest() *Manifest {
 	return &Manifest{
-		downloadAdapterFuncs: make(map[string]NewTransferAdapterFunc),
-		uploadAdapterFuncs:   make(map[string]NewTransferAdapterFunc),
+		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
+		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
 }
 
@@ -55,7 +55,7 @@ func (m *Manifest) GetUploadAdapterNames() []string {
 }
 
 // getAdapterNames returns a list of the names of adapters available to be created
-func (m *Manifest) getAdapterNames(adapters map[string]NewTransferAdapterFunc) []string {
+func (m *Manifest) getAdapterNames(adapters map[string]NewAdapterFunc) []string {
 	if m.basicTransfersOnly {
 		return []string{BasicAdapterName}
 	}
@@ -73,7 +73,7 @@ func (m *Manifest) getAdapterNames(adapters map[string]NewTransferAdapterFunc) [
 // RegisterNewTransferAdapterFunc registers a new function for creating upload
 // or download adapters. If a function with that name & direction is already
 // registered, it is overridden
-func (m *Manifest) RegisterNewTransferAdapterFunc(name string, dir Direction, f NewTransferAdapterFunc) {
+func (m *Manifest) RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -86,7 +86,7 @@ func (m *Manifest) RegisterNewTransferAdapterFunc(name string, dir Direction, f 
 }
 
 // Create a new adapter by name and direction; default to BasicAdapterName if doesn't exist
-func (m *Manifest) NewAdapterOrDefault(name string, dir Direction) TransferAdapter {
+func (m *Manifest) NewAdapterOrDefault(name string, dir Direction) Adapter {
 	if len(name) == 0 {
 		name = BasicAdapterName
 	}
@@ -100,7 +100,7 @@ func (m *Manifest) NewAdapterOrDefault(name string, dir Direction) TransferAdapt
 }
 
 // Create a new adapter by name and direction, or nil if doesn't exist
-func (m *Manifest) NewAdapter(name string, dir Direction) TransferAdapter {
+func (m *Manifest) NewAdapter(name string, dir Direction) Adapter {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -118,11 +118,11 @@ func (m *Manifest) NewAdapter(name string, dir Direction) TransferAdapter {
 }
 
 // Create a new download adapter by name, or BasicAdapterName if doesn't exist
-func (m *Manifest) NewDownloadAdapter(name string) TransferAdapter {
+func (m *Manifest) NewDownloadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Download)
 }
 
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
-func (m *Manifest) NewUploadAdapter(name string) TransferAdapter {
+func (m *Manifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
 }

@@ -368,15 +368,15 @@ func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 		}
 
 		// Separate closure for each since we need to capture vars above
-		newfunc := func(name string, dir Direction) TransferAdapter {
+		newfunc := func(name string, dir Direction) Adapter {
 			return newCustomAdapter(name, dir, path, args, concurrent)
 		}
 
 		if direction == "download" || direction == "both" {
-			m.RegisterNewTransferAdapterFunc(name, Download, newfunc)
+			m.RegisterNewAdapterFunc(name, Download, newfunc)
 		}
 		if direction == "upload" || direction == "both" {
-			m.RegisterNewTransferAdapterFunc(name, Upload, newfunc)
+			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
 }
