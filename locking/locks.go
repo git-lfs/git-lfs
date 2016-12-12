@@ -178,12 +178,12 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 }
 
 func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
-	locks := c.cachedLocks()
+	cachedlocks := c.cachedLocks()
 	path, filterByPath := filter["path"]
 	id, filterById := filter["id"]
 	lockCount := 0
-
-	for _, l := range locks {
+	locks := make([]Lock, 0, len(cachedlocks))
+	for _, l := range cachedlocks {
 		// Manually filter by Path/Id
 		if (filterByPath && path != l.Path) ||
 			(filterById && id != l.Id) {
