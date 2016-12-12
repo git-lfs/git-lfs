@@ -354,8 +354,10 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 				// If we couldn't find any associated
 				// Transferable object, then we give up on the
 				// transfer by telling the progress meter to
-				// skip the number of bytes in "t".
-				q.Skip(t.Size())
+				// skip the number of bytes in "o".
+				q.errorc <- errors.Errorf("[%v] The server returned an unknown OID.", o.Oid)
+
+				q.Skip(o.Size)
 				q.wait.Done()
 			}
 		} else {
