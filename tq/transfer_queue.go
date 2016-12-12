@@ -136,30 +136,30 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
-type TransferQueueOption func(*TransferQueue)
+type Option func(*TransferQueue)
 
-func DryRun(dryRun bool) TransferQueueOption {
+func DryRun(dryRun bool) Option {
 	return func(tq *TransferQueue) {
 		tq.dryRun = dryRun
 	}
 }
 
-func WithProgress(m progress.Meter) TransferQueueOption {
+func WithProgress(m progress.Meter) Option {
 	return func(tq *TransferQueue) {
 		tq.meter = m
 	}
 }
 
-func WithBatchSize(size int) TransferQueueOption {
+func WithBatchSize(size int) Option {
 	return func(tq *TransferQueue) { tq.batchSize = size }
 }
 
-func WithBufferDepth(depth int) TransferQueueOption {
+func WithBufferDepth(depth int) Option {
 	return func(tq *TransferQueue) { tq.bufferDepth = depth }
 }
 
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func NewTransferQueue(dir Direction, options ...TransferQueueOption) *TransferQueue {
+func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 	q := &TransferQueue{
 		batchSize:     defaultBatchSize,
 		bufferDepth:   defaultBatchSize,
