@@ -3,7 +3,6 @@ package lfs
 import (
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/tq"
-	"github.com/git-lfs/git-lfs/transfer"
 )
 
 type Downloadable struct {
@@ -42,10 +41,10 @@ func NewDownloadable(p *WrappedPointer) *Downloadable {
 
 // NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
 func NewDownloadCheckQueue(options ...tq.TransferQueueOption) *tq.TransferQueue {
-	return tq.NewTransferQueue(transfer.Download, options...)
+	return tq.NewTransferQueue(tq.Download, options...)
 }
 
 // NewDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
 func NewDownloadQueue(options ...tq.TransferQueueOption) *tq.TransferQueue {
-	return tq.NewTransferQueue(transfer.Download, options...)
+	return tq.NewTransferQueue(tq.Download, options...)
 }

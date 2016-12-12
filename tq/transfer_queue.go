@@ -8,7 +8,6 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/rubyist/tracerx"
 )
 
@@ -112,8 +111,8 @@ func (b Batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 // including calling the API, passing the actual transfer request to transfer
 // adapters, and dealing with progress, errors and retries.
 type TransferQueue struct {
-	direction         transfer.Direction
-	adapter           transfer.TransferAdapter
+	direction         Direction
+	adapter           TransferAdapter
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
@@ -133,7 +132,7 @@ type TransferQueue struct {
 	// once per unique OID on Add(), and is decremented when that transfer
 	// is marked as completed or failed, but not retried.
 	wait     sync.WaitGroup
-	manifest *transfer.Manifest
+	manifest *Manifest
 	rc       *retryCounter
 }
 
@@ -160,7 +159,7 @@ func WithBufferDepth(depth int) TransferQueueOption {
 }
 
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func NewTransferQueue(dir transfer.Direction, options ...TransferQueueOption) *TransferQueue {
+func NewTransferQueue(dir Direction, options ...TransferQueueOption) *TransferQueue {
 	q := &TransferQueue{
 		batchSize:     defaultBatchSize,
 		bufferDepth:   defaultBatchSize,
@@ -168,7 +167,7 @@ func NewTransferQueue(dir transfer.Direction, options ...TransferQueueOption) *T
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
-		manifest:      transfer.ConfigureManifest(transfer.NewManifest(), config.Config),
+		manifest:      ConfigureManifest(NewManifest(), config.Config),
 		rc:            newRetryCounter(config.Config),
 	}
 
@@ -216,7 +215,7 @@ func (q *TransferQueue) Add(t Transferable) {
 //      b. If the read was a Transferable item, go to step 3.
 //   3. Append the item to the batch.
 //   4. Sort the batch by descending object size, make a batch API call, send
-//      the items to the `*transfer.adapterBase`.
+//      the items to the `*adapterBase`.
 //   5. Process the worker results, incrementing and appending retries if
 //      possible.
 //   6. If the `q.incoming` channel is open, go to step 2.
@@ -299,7 +298,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 	q.useAdapter(adapterName)
 	q.startProgress.Do(q.meter.Start)
 
-	toTransfer := make([]*transfer.Transfer, 0, len(objs))
+	toTransfer := make([]*Transfer, 0, len(objs))
 
 	for _, o := range objs {
 		if o.Error != nil {
@@ -325,7 +324,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 				t.SetObject(o)
 				q.meter.StartTransfer(t.Name())
 
-				toTransfer = append(toTransfer, transfer.NewTransfer(
+				toTransfer = append(toTransfer, NewTransfer(
 					t.Name(), t.Object(), t.Path(),
 				))
 			} else {
@@ -367,7 +366,7 @@ func (q *TransferQueue) makeBatch() Batch { return make(Batch, 0, q.batchSize) }
 // closed.
 //
 // addToAdapter returns immediately, and does not block.
-func (q *TransferQueue) addToAdapter(pending []*transfer.Transfer) <-chan Transferable {
+func (q *TransferQueue) addToAdapter(pending []*Transfer) <-chan Transferable {
 	retries := make(chan Transferable, len(pending))
 
 	if err := q.ensureAdapterBegun(); err != nil {
@@ -385,7 +384,7 @@ func (q *TransferQueue) addToAdapter(pending []*transfer.Transfer) <-chan Transf
 	go func() {
 		defer close(retries)
 
-		var results <-chan transfer.TransferResult
+		var results <-chan TransferResult
 		if q.dryRun {
 			results = q.makeDryRunResults(pending)
 		} else {
@@ -402,10 +401,10 @@ func (q *TransferQueue) addToAdapter(pending []*transfer.Transfer) <-chan Transf
 
 // makeDryRunResults returns a channel populated immediately with "successful"
 // results for all of the given transfers in "ts".
-func (q *TransferQueue) makeDryRunResults(ts []*transfer.Transfer) <-chan transfer.TransferResult {
-	results := make(chan transfer.TransferResult, len(ts))
+func (q *TransferQueue) makeDryRunResults(ts []*Transfer) <-chan TransferResult {
+	results := make(chan TransferResult, len(ts))
 	for _, t := range ts {
-		results <- transfer.TransferResult{t, nil}
+		results <- TransferResult{t, nil}
 	}
 
 	close(results)
@@ -416,7 +415,7 @@ func (q *TransferQueue) makeDryRunResults(ts []*transfer.Transfer) <-chan transf
 // handleTransferResult observes the transfer result, sending it on the retries
 // channel if it was able to be retried.
 func (q *TransferQueue) handleTransferResult(
-	res transfer.TransferResult, retries chan<- Transferable,
+	res TransferResult, retries chan<- Transferable,
 ) {
 	oid := res.Transfer.Object.Oid
 
@@ -490,7 +489,7 @@ func (q *TransferQueue) Skip(size int64) {
 }
 
 func (q *TransferQueue) transferKind() string {
-	if q.direction == transfer.Download {
+	if q.direction == Download {
 		return "download"
 	} else {
 		return "upload"

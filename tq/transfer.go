@@ -1,6 +1,6 @@
 // Package transfer collects together adapters for uploading and downloading LFS content
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
-package transfer
+package tq
 
 import "github.com/git-lfs/git-lfs/api"
 

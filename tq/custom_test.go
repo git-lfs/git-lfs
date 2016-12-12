@@ -1,4 +1,4 @@
-package transfer
+package tq
 
 import (
 	"testing"

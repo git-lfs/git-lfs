@@ -13,7 +13,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 var (
@@ -60,7 +60,7 @@ func NewPointerExtension(name string, priority int, oid string) *PointerExtensio
 	return &PointerExtension{name, priority, oid, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	return PointerSmudge(writer, p, workingfile, download, manifest, cb)
 }
 

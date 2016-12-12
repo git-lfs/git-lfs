@@ -19,7 +19,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Populate man pages
@@ -41,10 +41,10 @@ var (
 	excludeArg string
 )
 
-// TransferManifest builds a transfer.Manifest from the commands package global
+// TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.
-func TransferManifest() *transfer.Manifest {
-	return transfer.ConfigureManifest(transfer.NewManifest(), cfg)
+func TransferManifest() *tq.Manifest {
+	return tq.ConfigureManifest(tq.NewManifest(), cfg)
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
