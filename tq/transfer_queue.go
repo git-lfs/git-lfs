@@ -133,6 +133,7 @@ type TransferQueue struct {
 	watchers      []chan string
 	trMutex       *sync.Mutex
 	startProgress sync.Once
+	collectorWait sync.WaitGroup
 	errorwait     sync.WaitGroup
 	// wait is used to keep track of pending transfers. It is incremented
 	// once per unique OID on Add(), and is decremented when that transfer
@@ -192,6 +193,7 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 		q.meter = progress.Noop()
 	}
 
+	q.collectorWait.Add(1)
 	q.errorwait.Add(1)
 	q.run()
 
@@ -235,6 +237,8 @@ func (q *TransferQueue) Add(t Transferable) {
 //
 // collectBatches runs in its own goroutine.
 func (q *TransferQueue) collectBatches() {
+	defer q.collectorWait.Done()
+
 	var closing bool
 	batch := q.makeBatch()
 
@@ -537,6 +541,7 @@ func (q *TransferQueue) Wait() {
 	close(q.incoming)
 
 	q.wait.Wait()
+	q.collectorWait.Wait()
 
 	q.finishAdapter()
 	close(q.errorc)
