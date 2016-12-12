@@ -24,7 +24,7 @@ type adapterBase struct {
 	direction    Direction
 	transferImpl transferImplementation
 	jobChan      chan *job
-	cb           TransferProgressCallback
+	cb           ProgressCallback
 	outChan      chan TransferResult
 	// WaitGroup to sync the completion of all workers
 	workerWait sync.WaitGroup
@@ -49,7 +49,7 @@ type transferImplementation interface {
 	// Implementations can clean up per-worker resources here, context is as returned from WorkerStarting
 	WorkerEnding(workerNum int, ctx interface{})
 	// DoTransfer performs a single transfer within a worker. ctx is any context returned from WorkerStarting
-	DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error
+	DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error
 }
 
 func newAdapterBase(name string, dir Direction, ti transferImplementation) *adapterBase {
@@ -70,7 +70,7 @@ func (a *adapterBase) Direction() Direction {
 	return a.direction
 }
 
-func (a *adapterBase) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
+func (a *adapterBase) Begin(maxConcurrency int, cb ProgressCallback, completion chan TransferResult) error {
 	a.cb = cb
 	a.outChan = completion
 	a.jobChan = make(chan *job, 100)
@@ -211,7 +211,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 	a.workerWait.Done()
 }
 
-func advanceCallbackProgress(cb TransferProgressCallback, t *Transfer, numBytes int64) {
+func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {
 	if cb != nil {
 		// Must split into max int sizes since read count is int
 		const maxInt = int(^uint(0) >> 1)

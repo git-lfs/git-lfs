@@ -17,7 +17,7 @@ const (
 // name and dir are to provide context if one func implements many instances
 type NewTransferAdapterFunc func(name string, dir Direction) TransferAdapter
 
-type TransferProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
+type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
 // TransferAdapter is implemented by types which can upload and/or download LFS
 // file content to a remote store. Each TransferAdapter accepts one or more requests
@@ -44,7 +44,7 @@ type TransferAdapter interface {
 	// that may be done at once. The passed in callback will receive updates on
 	// progress, and the completion channel will receive completion notifications
 	// Either argument may be nil if not required by the client
-	Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error
+	Begin(maxConcurrency int, cb ProgressCallback, completion chan TransferResult) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
 	Add(transfers ...*Transfer) (results <-chan TransferResult)

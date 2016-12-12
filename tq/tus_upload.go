@@ -36,7 +36,7 @@ func (a *tusUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
-func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("upload")
 	if !ok {
 		return fmt.Errorf("No upload action for this object.")

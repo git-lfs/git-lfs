@@ -86,7 +86,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 	}
 
 	adapter := manifest.NewDownloadAdapter(adapterName)
-	var tcb tq.TransferProgressCallback
+	var tcb tq.ProgressCallback
 	if cb != nil {
 		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {
 			return cb(totalSize, readSoFar, readSinceLast)

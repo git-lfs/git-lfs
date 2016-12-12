@@ -106,7 +106,7 @@ type customAdapterResponseMessage struct {
 	BytesSinceLast int              `json:"bytesSinceLast"`
 }
 
-func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
+func (a *customAdapter) Begin(maxConcurrency int, cb ProgressCallback, completion chan TransferResult) error {
 	// If config says not to launch multiple processes, downgrade incoming value
 	useConcurrency := maxConcurrency
 	if !a.concurrent {
@@ -257,7 +257,7 @@ func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 	}
 }
 
-func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	if ctx == nil {
 		return fmt.Errorf("Custom transfer %q was not properly initialized, see previous errors", a.name)
 	}
