@@ -203,19 +203,29 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 // Add adds a Transferable to the transfer queue. It only increments the amount
 // of waiting the TransferQueue has to do if the Transferable "t" is new.
 func (q *TransferQueue) Add(t Transferable) {
-	q.trMutex.Lock()
-	if _, ok := q.transferables[t.Oid()]; !ok {
-		q.wait.Add(1)
-		q.transferables[t.Oid()] = t
-		q.trMutex.Unlock()
-	} else {
-		q.trMutex.Unlock()
-
+	if isNew := q.remember(t); !isNew {
 		tracerx.Printf("already transferring %q, skipping duplicate", t.Oid())
 		return
 	}
 
 	q.incoming <- t
+}
+
+// remember remembers the Transferable "t" if the *TransferQueue doesn't already
+// know about a Transferable with the same OID.
+//
+// It returns if the value is new or not.
+func (q *TransferQueue) remember(t Transferable) bool {
+	q.trMutex.Lock()
+	defer q.trMutex.Unlock()
+
+	if _, ok := q.transferables[t.Oid()]; !ok {
+		q.wait.Add(1)
+		q.transferables[t.Oid()] = t
+
+		return true
+	}
+	return false
 }
 
 // collectBatches collects batches in a loop, prioritizing failed items from the
