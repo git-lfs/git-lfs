@@ -131,9 +131,9 @@ func TestRefreshCache(t *testing.T) {
 	// Need to include zero time in structure for equal to work
 	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
 	assert.Equal(t, []Lock{
-		Lock{Path: "folder/test1.dat", Id: "101", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime, UnlockedAt: zeroTime},
-		Lock{Path: "folder/test2.dat", Id: "102", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime, UnlockedAt: zeroTime},
-		Lock{Path: "root.dat", Id: "103", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime, UnlockedAt: zeroTime},
+		Lock{Path: "folder/test1.dat", Id: "101", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
+		Lock{Path: "folder/test2.dat", Id: "102", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
+		Lock{Path: "root.dat", Id: "103", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
 	}, locks)
 
 }
