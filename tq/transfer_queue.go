@@ -165,6 +165,12 @@ func WithBufferDepth(depth int) Option {
 	return func(tq *TransferQueue) { tq.bufferDepth = depth }
 }
 
+func WithGitEnv(gitEnv config.Environment) Option {
+	return func(tq *TransferQueue) {
+		ConfigureManifest(tq.manifest, gitEnv)
+	}
+}
+
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 	q := &TransferQueue{
@@ -172,7 +178,7 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
-		manifest:      ConfigureManifest(NewManifest(), config.Config.Git),
+		manifest:      NewManifest(),
 		rc:            newRetryCounter(config.Config),
 	}
 
