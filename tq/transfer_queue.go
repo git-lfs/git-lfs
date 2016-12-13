@@ -139,7 +139,7 @@ func WithBufferDepth(depth int) Option {
 	return func(tq *TransferQueue) { tq.bufferDepth = depth }
 }
 
-func WithGitEnv(gitEnv config.Environment) Option {
+func WithGitEnv(gitEnv Environment) Option {
 	return func(tq *TransferQueue) {
 		ConfigureManifest(tq.manifest, gitEnv)
 
@@ -278,15 +278,13 @@ func (q *TransferQueue) collectBatches() {
 // enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
 // processed.
 func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) {
-	cfg := config.Config
-
 	next := q.makeBatch()
 	transferAdapterNames := q.manifest.GetAdapterNames(q.direction)
 
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
 	objs, adapterName, err := api.Batch(
-		cfg, batch.ApiObjects(), q.transferKind(), transferAdapterNames,
+		config.Config, batch.ApiObjects(), q.transferKind(), transferAdapterNames,
 	)
 	if err != nil {
 		// If there was an error making the batch API call, mark all of
