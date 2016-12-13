@@ -36,6 +36,13 @@ type retryCounter struct {
 	count map[string]int
 }
 
+func newRetryCounter() *retryCounter {
+	return &retryCounter{
+		MaxRetries: defaultMaxRetries,
+		count:      make(map[string]int),
+	}
+}
+
 // Increment increments the number of retries for a given OID. It is safe to
 // call across multiple goroutines.
 func (r *retryCounter) Increment(oid string) {
