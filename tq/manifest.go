@@ -32,13 +32,14 @@ func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
 		m.MaxRetries = 1
 	}
 
-	if cfg.NtlmAccess("download") {
-		m.ConcurrentTransfers = 1
+	if m.MaxRetries < 1 {
+		m.MaxRetries = defaultMaxRetries
 	}
 
-	if m.MaxRetries < 1 {
-		tracerx.Printf("manifest: invalid retry count: %d, defaulting to %d", m.MaxRetries, 1)
-		m.MaxRetries = 1
+	if cfg.NtlmAccess("download") {
+		m.ConcurrentTransfers = 1
+	} else if m.ConcurrentTransfers < 1 {
+		m.ConcurrentTransfers = 3
 	}
 
 	m.basicTransfersOnly = cfg.BasicTransfersOnly()
