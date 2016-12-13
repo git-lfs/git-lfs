@@ -29,7 +29,7 @@ func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
 	if cfg.TusTransfersAllowed() {
 		configureTusAdapter(m)
 	}
-	configureCustomAdapters(cfg, m)
+	configureCustomAdapters(cfg.Git, m)
 	return m
 }
 
@@ -125,4 +125,11 @@ func (m *Manifest) NewDownloadAdapter(name string) Adapter {
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func (m *Manifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
+}
+
+type env interface {
+	Get(key string) (val string, ok bool)
+	Bool(key string, def bool) (val bool)
+	Int(key string, def int) (val int)
+	All() map[string]string
 }
