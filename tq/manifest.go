@@ -3,7 +3,6 @@ package tq
 import (
 	"sync"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
 )
 
@@ -21,7 +20,7 @@ func NewManifest() *Manifest {
 	}
 }
 
-func ConfigureManifest(m *Manifest, gitEnv config.Environment) *Manifest {
+func ConfigureManifest(m *Manifest, gitEnv Environment) *Manifest {
 	m.basicTransfersOnly = gitEnv.Bool("lfs.basictransfersonly", false)
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
