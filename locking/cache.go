@@ -56,8 +56,7 @@ func (c *LockCache) CacheLock(l Lock) error {
 // Remove a cached lock by path becuase it's been relinquished
 func (c *LockCache) CacheUnlockByPath(filePath string) error {
 	ilock := c.kv.Get(filePath)
-	if ilock != nil {
-		lock := ilock.(*Lock)
+	if lock, ok := ilock.(*Lock); ok && lock != nil {
 		c.kv.Remove(lock.Path)
 		// Id as key is encoded
 		c.kv.Remove(c.encodeIdKey(lock.Id))
@@ -70,8 +69,7 @@ func (c *LockCache) CacheUnlockById(id string) error {
 	// Id as key is encoded
 	idkey := c.encodeIdKey(id)
 	ilock := c.kv.Get(idkey)
-	if ilock != nil {
-		lock := ilock.(*Lock)
+	if lock, ok := ilock.(*Lock); ok && lock != nil {
 		c.kv.Remove(idkey)
 		c.kv.Remove(lock.Path)
 	}
