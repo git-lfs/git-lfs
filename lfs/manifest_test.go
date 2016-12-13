@@ -14,7 +14,19 @@ func TestManifestIsConfigurable(t *testing.T) {
 		},
 	})
 	m := TransferManifest(cfg)
-	assert.Equal(t, 3, m.MaxRetries)
+	assert.Equal(t, 3, m.MaxRetries())
+}
+
+func TestManifestChecksNTLM(t *testing.T) {
+	cfg := config.NewFrom(config.Values{
+		Git: map[string]string{
+			"lfs.url":                 "http://foo",
+			"lfs.http://foo.access":   "ntlm",
+			"lfs.concurrenttransfers": "3",
+		},
+	})
+	m := TransferManifest(cfg)
+	assert.Equal(t, 1, m.MaxRetries())
 }
 
 func TestManifestClampsValidValues(t *testing.T) {
@@ -24,7 +36,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 		},
 	})
 	m := TransferManifest(cfg)
-	assert.Equal(t, 1, m.MaxRetries)
+	assert.Equal(t, 1, m.MaxRetries())
 }
 
 func TestManifestIgnoresNonInts(t *testing.T) {
@@ -34,5 +46,5 @@ func TestManifestIgnoresNonInts(t *testing.T) {
 		},
 	})
 	m := TransferManifest(cfg)
-	assert.Equal(t, 1, m.MaxRetries)
+	assert.Equal(t, 1, m.MaxRetries())
 }

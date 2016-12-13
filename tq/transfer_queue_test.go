@@ -7,7 +7,7 @@ import (
 )
 
 func TestManifestDefaultsToFixedRetries(t *testing.T) {
-	assert.Equal(t, 1, NewManifest().MaxRetries)
+	assert.Equal(t, 1, NewManifest().MaxRetries())
 }
 
 func TestRetryCounterDefaultsToFixedRetries(t *testing.T) {

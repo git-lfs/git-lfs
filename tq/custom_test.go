@@ -13,7 +13,7 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 		Git: map[string]string{"lfs.customtransfer.testsimple.path": path},
 	})
 
-	m := NewManifestWithGitEnv(cfg.Git)
+	m := NewManifestWithGitEnv("", cfg.Git)
 	u := m.NewUploadAdapter("testsimple")
 	assert.NotNil(t, u, "Upload adapter should be present")
 	cu, _ := u.(*customAdapter)
@@ -43,7 +43,7 @@ func TestCustomTransferDownloadConfig(t *testing.T) {
 		},
 	})
 
-	m := NewManifestWithGitEnv(cfg.Git)
+	m := NewManifestWithGitEnv("", cfg.Git)
 	u := m.NewUploadAdapter("testdownload")
 	assert.NotNil(t, u, "Upload adapter should always be created")
 	cu, _ := u.(*customAdapter)
@@ -70,7 +70,7 @@ func TestCustomTransferUploadConfig(t *testing.T) {
 		},
 	})
 
-	m := NewManifestWithGitEnv(cfg.Git)
+	m := NewManifestWithGitEnv("", cfg.Git)
 	d := m.NewDownloadAdapter("testupload")
 	assert.NotNil(t, d, "Download adapter should always be created")
 	cd, _ := d.(*customAdapter)
@@ -97,7 +97,7 @@ func TestCustomTransferBothConfig(t *testing.T) {
 		},
 	})
 
-	m := NewManifestWithGitEnv(cfg.Git)
+	m := NewManifestWithGitEnv("", cfg.Git)
 	d := m.NewDownloadAdapter("testboth")
 	assert.NotNil(t, d, "Download adapter should be present")
 	cd, _ := d.(*customAdapter)

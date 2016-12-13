@@ -14,9 +14,8 @@ const (
 type Manifest struct {
 	// MaxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped.
-	MaxRetries          int
-	ConcurrentTransfers int
-
+	maxRetries           int
+	concurrentTransfers  int
 	basicTransfersOnly   bool
 	tusTransfersAllowed  bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
@@ -24,39 +23,50 @@ type Manifest struct {
 	mu                   sync.Mutex
 }
 
-func NewManifest() *Manifest {
-	return NewManifestWithGitEnv(nil)
+func (m *Manifest) MaxRetries() int {
+	return m.maxRetries
 }
 
-func NewManifestWithGitEnv(git Env) *Manifest {
+func (m *Manifest) ConcurrentTransfers() int {
+	return m.concurrentTransfers
+}
+
+func NewManifest() *Manifest {
+	return NewManifestWithGitEnv("", nil)
+}
+
+func NewManifestWithGitEnv(access string, git Env) *Manifest {
 	m := &Manifest{
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
-	initManifest(m, git)
+	initManifest(m, access, git)
 	return m
 }
 
-func initManifest(m *Manifest, git Env) {
+func initManifest(m *Manifest, access string, git Env) {
 	var tusAllowed bool
 
 	if git != nil {
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
-			m.MaxRetries = v
+			m.maxRetries = v
 		}
 		if v := git.Int("lfs.concurrenttransfers", 0); v > 0 {
-			m.ConcurrentTransfers = v
+			m.concurrentTransfers = v
 		}
 		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
 		tusAllowed = git.Bool("lfs.tustransfers", false)
 		configureCustomAdapters(git, m)
 	}
 
-	if m.MaxRetries < 1 {
-		m.MaxRetries = defaultMaxRetries
+	if m.maxRetries < 1 {
+		m.maxRetries = defaultMaxRetries
 	}
-	if m.ConcurrentTransfers < 1 {
-		m.ConcurrentTransfers = defaultConcurrentTransfers
+
+	if access == "ntlm" {
+		m.concurrentTransfers = 1
+	} else if m.concurrentTransfers < 1 {
+		m.concurrentTransfers = defaultConcurrentTransfers
 	}
 
 	configureBasicDownloadAdapter(m)

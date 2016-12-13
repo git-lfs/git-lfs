@@ -121,7 +121,7 @@ func testAdapterRegButBasicOnly(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
 		Git: map[string]string{"lfs.basictransfersonly": "yes"},
 	})
-	m := NewManifestWithGitEnv(cfg.Git)
+	m := NewManifestWithGitEnv("", cfg.Git)
 
 	assert := assert.New(t)
 

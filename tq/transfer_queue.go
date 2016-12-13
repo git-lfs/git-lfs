@@ -164,7 +164,7 @@ func NewTransferQueue(dir Direction, manifest *Manifest, options ...Option) *Tra
 		opt(q)
 	}
 
-	q.rc.MaxRetries = q.manifest.MaxRetries
+	q.rc.MaxRetries = q.manifest.maxRetries
 
 	if q.batchSize <= 0 {
 		q.batchSize = defaultBatchSize
@@ -522,7 +522,7 @@ func (q *TransferQueue) ensureAdapterBegun() error {
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	err := q.adapter.Begin(q.manifest.ConcurrentTransfers, cb)
+	err := q.adapter.Begin(q.manifest.ConcurrentTransfers(), cb)
 	if err != nil {
 		return err
 	}
