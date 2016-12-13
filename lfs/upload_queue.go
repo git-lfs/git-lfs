@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Uploadable describes a file that can be uploaded.
@@ -100,4 +101,9 @@ func ensureFile(smudgePath, cleanPath string) error {
 	}
 
 	return nil
+}
+
+// NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func NewUploadQueue(cfg *config.Configuration, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, TransferManifest(cfg), options...)
 }

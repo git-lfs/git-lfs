@@ -159,8 +159,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	manifest := tq.ConfigureManifest(tq.NewManifest(), config.Config)
-	uploadQueue := tq.NewTransferQueue(tq.Upload, manifest, tq.WithProgress(meter))
+	uploadQueue := lfs.NewUploadQueue(config.Config, tq.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 

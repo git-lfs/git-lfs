@@ -118,6 +118,11 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	return env
 }
 
+// TransferManifest builds a tq.Manifest using the given cfg.
+func TransferManifest(cfg *config.Configuration) *tq.Manifest {
+	return tq.ConfigureManifest(tq.NewManifest(), cfg)
+}
+
 func InRepo() bool {
 	return config.LocalGitDir != ""
 }
