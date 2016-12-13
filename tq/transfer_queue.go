@@ -172,7 +172,7 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
-		manifest:      ConfigureManifest(NewManifest(), config.Config),
+		manifest:      ConfigureManifest(NewManifest(), config.Config.Git),
 		rc:            newRetryCounter(config.Config),
 	}
 

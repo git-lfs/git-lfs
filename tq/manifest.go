@@ -21,15 +21,14 @@ func NewManifest() *Manifest {
 	}
 }
 
-func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
-	m.basicTransfersOnly = cfg.BasicTransfersOnly()
-
+func ConfigureManifest(m *Manifest, gitEnv config.Environment) *Manifest {
+	m.basicTransfersOnly = gitEnv.Bool("lfs.basictransfersonly", false)
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
-	if cfg.TusTransfersAllowed() {
+	if gitEnv.Bool("lfs.tustransfers", false) {
 		configureTusAdapter(m)
 	}
-	configureCustomAdapters(cfg, m)
+	configureCustomAdapters(gitEnv, m)
 	return m
 }
 

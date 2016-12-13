@@ -44,7 +44,7 @@ var (
 // TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.
 func TransferManifest() *tq.Manifest {
-	return tq.ConfigureManifest(tq.NewManifest(), cfg)
+	return tq.ConfigureManifest(tq.NewManifest(), cfg.Git)
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
