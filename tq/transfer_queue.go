@@ -151,13 +151,13 @@ func WithBufferDepth(depth int) Option {
 }
 
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
+func NewTransferQueue(dir Direction, manifest *Manifest, options ...Option) *TransferQueue {
 	q := &TransferQueue{
 		direction:     dir,
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
-		manifest:      ConfigureManifest(NewManifest(), config.Config),
+		manifest:      manifest,
 		rc:            newRetryCounter(),
 	}
 

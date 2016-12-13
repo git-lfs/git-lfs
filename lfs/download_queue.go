@@ -1,9 +1,6 @@
 package lfs
 
-import (
-	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/tq"
-)
+import "github.com/git-lfs/git-lfs/api"
 
 type Downloadable struct {
 	pointer *WrappedPointer
@@ -37,14 +34,4 @@ func (d *Downloadable) SetObject(o *api.ObjectResource) {
 
 func NewDownloadable(p *WrappedPointer) *Downloadable {
 	return &Downloadable{pointer: p}
-}
-
-// NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
-func NewDownloadCheckQueue(options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Download, options...)
-}
-
-// NewDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func NewDownloadQueue(options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Download, options...)
 }

@@ -242,6 +242,24 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	}
 }
 
+// newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
+func newDownloadCheckQueue(options ...tq.Option) *tq.TransferQueue {
+	allOptions := make([]tq.Option, len(options), len(options)+1)
+	allOptions = append(allOptions, options...)
+	allOptions = append(allOptions, tq.DryRun(true))
+	return newDownloadQueue(allOptions...)
+}
+
+// newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
+func newDownloadQueue(options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Download, TransferManifest(), options...)
+}
+
+// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func newUploadQueue(options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, TransferManifest(), options...)
+}
+
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
 	return filepathfilter.New(inc, exc)
