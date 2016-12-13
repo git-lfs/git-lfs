@@ -36,30 +36,11 @@ type retryCounter struct {
 	count map[string]int
 }
 
-// newRetryCounter instantiates a new *retryCounter. It parses the gitconfig
-// value: `lfs.transfer.maxretries`, and falls back to defaultMaxRetries if none
-// was provided.
-//
-// If it encountered an error in Unmarshaling the *config.Configuration, it will
-// be returned, otherwise nil.
-func newRetryCounter(cfg *config.Configuration) *retryCounter {
-	rc := &retryCounter{
+func newRetryCounter() *retryCounter {
+	return &retryCounter{
 		MaxRetries: defaultMaxRetries,
-
-		count: make(map[string]int),
+		count:      make(map[string]int),
 	}
-
-	if err := cfg.Unmarshal(rc); err != nil {
-		tracerx.Printf("rc: error parsing config, falling back to default values...: %v", err)
-		rc.MaxRetries = 1
-	}
-
-	if rc.MaxRetries < 1 {
-		tracerx.Printf("rc: invalid retry count: %d, defaulting to %d", rc.MaxRetries, 1)
-		rc.MaxRetries = 1
-	}
-
-	return rc
 }
 
 // Increment increments the number of retries for a given OID. It is safe to
@@ -165,6 +146,16 @@ func WithBufferDepth(depth int) Option {
 	return func(tq *TransferQueue) { tq.bufferDepth = depth }
 }
 
+func WithGitEnv(gitEnv Environment) Option {
+	return func(tq *TransferQueue) {
+		ConfigureManifest(tq.manifest, gitEnv)
+
+		if mr := gitEnv.Int("lfs.transfer.maxretries", 0); mr > 0 {
+			tq.rc.MaxRetries = mr
+		}
+	}
+}
+
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 	q := &TransferQueue{
@@ -172,8 +163,11 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 		errorc:        make(chan error),
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
-		manifest:      ConfigureManifest(NewManifest(), config.Config),
-		rc:            newRetryCounter(config.Config),
+		manifest:      NewManifest(),
+		rc: &retryCounter{
+			MaxRetries: defaultMaxRetries,
+			count:      make(map[string]int),
+		},
 	}
 
 	for _, opt := range options {
@@ -291,15 +285,13 @@ func (q *TransferQueue) collectBatches() {
 // enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
 // processed.
 func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) {
-	cfg := config.Config
-
 	next := q.makeBatch()
 	transferAdapterNames := q.manifest.GetAdapterNames(q.direction)
 
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
 	objs, adapterName, err := api.Batch(
-		cfg, batch.ApiObjects(), q.transferKind(), transferAdapterNames,
+		config.Config, batch.ApiObjects(), q.transferKind(), transferAdapterNames,
 	)
 	if err != nil {
 		// If there was an error making the batch API call, mark all of

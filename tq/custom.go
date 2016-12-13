@@ -347,9 +347,9 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 }
 
 // Initialise custom adapters based on current config
-func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
+func configureCustomAdapters(gitEnv Environment, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
-	for k, v := range cfg.Git.All() {
+	for k, v := range gitEnv.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue
@@ -358,9 +358,9 @@ func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 		name := match[1]
 		path := v
 		// retrieve other values
-		args, _ := cfg.Git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-		concurrent := cfg.Git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-		direction, _ := cfg.Git.Get(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+		args, _ := gitEnv.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
+		concurrent := gitEnv.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
+		direction, _ := gitEnv.Get(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
 		if len(direction) == 0 {
 			direction = "both"
 		} else {
