@@ -28,7 +28,7 @@ func NewManifest() *Manifest {
 	return NewManifestWithGitEnv(nil)
 }
 
-func NewManifestWithGitEnv(git env) *Manifest {
+func NewManifestWithGitEnv(git Env) *Manifest {
 	m := &Manifest{
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
@@ -37,7 +37,7 @@ func NewManifestWithGitEnv(git env) *Manifest {
 	return m
 }
 
-func initManifest(m *Manifest, git env) {
+func initManifest(m *Manifest, git Env) {
 	var tusAllowed bool
 
 	if git != nil {
@@ -160,7 +160,8 @@ func (m *Manifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
 }
 
-type env interface {
+// Env is any object with a config.Environment interface.
+type Env interface {
 	Get(key string) (val string, ok bool)
 	Bool(key string, def bool) (val bool)
 	Int(key string, def int) (val int)

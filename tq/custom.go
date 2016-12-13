@@ -347,7 +347,7 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 }
 
 // Initialise custom adapters based on current config
-func configureCustomAdapters(git env, m *Manifest) {
+func configureCustomAdapters(git Env, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
 	for k, v := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
