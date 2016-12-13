@@ -15,59 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLockCache(t *testing.T) {
-	var err error
-
-	oldStore := config.LocalGitStorageDir
-	config.LocalGitStorageDir, err = ioutil.TempDir("", "testCacheLock")
-	assert.Nil(t, err)
-	defer func() {
-		os.RemoveAll(config.LocalGitStorageDir)
-		config.LocalGitStorageDir = oldStore
-	}()
-
-	client, err := NewClient(config.NewFrom(config.Values{}))
-	assert.Nil(t, err)
-
-	testLocks := []Lock{
-		Lock{Path: "folder/test1.dat", Id: "101"},
-		Lock{Path: "folder/test2.dat", Id: "102"},
-		Lock{Path: "root.dat", Id: "103"},
-	}
-
-	for _, l := range testLocks {
-		err = client.cacheLock(l)
-		assert.Nil(t, err)
-	}
-
-	locks := client.cachedLocks()
-	for _, l := range testLocks {
-		assert.Contains(t, locks, l)
-	}
-	assert.Equal(t, len(testLocks), len(locks))
-
-	err = client.cacheUnlockByPath("folder/test2.dat")
-	assert.Nil(t, err)
-
-	locks = client.cachedLocks()
-	// delete item 1 from test locls
-	testLocks = append(testLocks[:1], testLocks[2:]...)
-	for _, l := range testLocks {
-		assert.Contains(t, locks, l)
-	}
-	assert.Equal(t, len(testLocks), len(locks))
-
-	err = client.cacheUnlockById("101")
-	assert.Nil(t, err)
-
-	locks = client.cachedLocks()
-	testLocks = testLocks[1:]
-	for _, l := range testLocks {
-		assert.Contains(t, locks, l)
-	}
-	assert.Equal(t, len(testLocks), len(locks))
-}
-
 type TestLifecycle struct {
 }
 
@@ -127,14 +74,16 @@ func TestRefreshCache(t *testing.T) {
 	client.apiClient = api.NewClient(&TestLifecycle{})
 
 	// Should start with no cached items
-	locks := client.cachedLocks()
+	locks, err := client.SearchLocks(nil, 0, true)
+	assert.Nil(t, err)
 	assert.Empty(t, locks)
 
 	// Should load from test data, just Fred's
 	err = client.fetchLocksToCache()
 	assert.Nil(t, err)
 
-	locks = client.cachedLocks()
+	locks, err = client.SearchLocks(nil, 0, true)
+	assert.Nil(t, err)
 	// Need to include zero time in structure for equal to work
 	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
 

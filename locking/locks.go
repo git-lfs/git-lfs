@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/git-lfs/git-lfs/api"
@@ -27,7 +26,7 @@ var (
 type Client struct {
 	cfg       *config.Configuration
 	apiClient *api.Client
-	cache     *kv.Store
+	cache     *LockCache
 }
 
 // NewClient creates a new locking client with the given configuration
@@ -43,11 +42,11 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 		return nil, err
 	}
 	lockFile := filepath.Join(lockDir, "lockcache.db")
-	store, err := kv.NewStore(lockFile)
+	cache, err := NewLockCache(lockFile)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{cfg, apiClient, store}, nil
+	return &Client{cfg, apiClient, cache}, nil
 }
 
 // Close this client instance; must be called to dispose of resources
@@ -82,7 +81,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 
 	lock := c.newLockFromApi(*resp.Lock)
 
-	if err := c.cacheLock(lock); err != nil {
+	if err := c.cache.CacheLock(lock); err != nil {
 		return Lock{}, fmt.Errorf("Error caching lock information: %v", err)
 	}
 
@@ -116,7 +115,7 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		return fmt.Errorf("Server unable to unlock lock: %v", resp.Err)
 	}
 
-	if err := c.cacheUnlockById(id); err != nil {
+	if err := c.cache.CacheUnlockById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
 	}
 
@@ -135,7 +134,7 @@ type Lock struct {
 	Name string
 	// Email address of the person holding this lock
 	Email string
-	// LockedAt tells you when this lock was acquired.
+	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time
 }
 
@@ -162,7 +161,7 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 }
 
 func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
-	cachedlocks := c.cachedLocks()
+	cachedlocks := c.cache.CachedLocks()
 	path, filterByPath := filter["path"]
 	id, filterById := filter["id"]
 	lockCount := 0
@@ -249,78 +248,6 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 	}
 }
 
-// We want to use a single cache file for integrity, but to make it easy to
-// list all locks, prefix the id->path map in a way we can identify (something
-// that won't be in a path)
-const idKeyPrefix = "*id*://"
-
-func (c *Client) encodeIdKey(id string) string {
-	// Safety against accidents
-	if !c.isIdKey(id) {
-		return idKeyPrefix + id
-	}
-	return id
-}
-func (c *Client) decodeIdKey(key string) string {
-	// Safety against accidents
-	if c.isIdKey(key) {
-		return key[len(idKeyPrefix):]
-	}
-	return key
-}
-func (c *Client) isIdKey(key string) bool {
-	return strings.HasPrefix(key, idKeyPrefix)
-}
-
-// Cache a successful lock for faster local lookup later
-func (c *Client) cacheLock(l Lock) error {
-	// Store reference in both directions
-	// Path -> Lock
-	c.cache.Set(l.Path, &l)
-	// EncodedId -> Lock (encoded so we can easily identify)
-	c.cache.Set(c.encodeIdKey(l.Id), &l)
-	return nil
-}
-
-// Remove a cached lock by path becuase it's been relinquished
-func (c *Client) cacheUnlockByPath(filePath string) error {
-	ilock := c.cache.Get(filePath)
-	if ilock != nil {
-		lock := ilock.(*Lock)
-		c.cache.Remove(lock.Path)
-		// Id as key is encoded
-		c.cache.Remove(c.encodeIdKey(lock.Id))
-	}
-	return nil
-}
-
-// Remove a cached lock by id because it's been relinquished
-func (c *Client) cacheUnlockById(id string) error {
-	// Id as key is encoded
-	idkey := c.encodeIdKey(id)
-	ilock := c.cache.Get(idkey)
-	if ilock != nil {
-		lock := ilock.(*Lock)
-		c.cache.Remove(idkey)
-		c.cache.Remove(lock.Path)
-	}
-	return nil
-}
-
-// Get the list of cached locked files
-func (c *Client) cachedLocks() []Lock {
-	var locks []Lock
-	c.cache.Visit(func(key string, val interface{}) bool {
-		// Only report file->id entries not reverse
-		if !c.isIdKey(key) {
-			lock := val.(*Lock)
-			locks = append(locks, *lock)
-		}
-		return true // continue
-	})
-	return locks
-}
-
 // Fetch locked files for the current committer and cache them locally
 // This can be used to sync up locked files when moving machines
 func (c *Client) fetchLocksToCache() error {
@@ -332,12 +259,12 @@ func (c *Client) fetchLocksToCache() error {
 	}
 
 	// We're going to overwrite the entire local cache
-	c.cache.RemoveAll()
+	c.cache.Clear()
 
 	_, email := c.cfg.CurrentCommitter()
 	for _, l := range locks {
 		if l.Email == email {
-			c.cacheLock(l)
+			c.cache.CacheLock(l)
 		}
 	}
 
