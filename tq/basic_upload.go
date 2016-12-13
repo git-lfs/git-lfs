@@ -1,4 +1,4 @@
-package transfer
+package tq
 
 import (
 	"fmt"
@@ -44,7 +44,7 @@ func (a *basicUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) 
 func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
-func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("upload")
 	if !ok {
 		return fmt.Errorf("No upload action for this object.")
@@ -140,7 +140,7 @@ func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCa
 }
 
 func configureBasicUploadAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
 			bu := &basicUploadAdapter{newAdapterBase(name, dir, nil)}

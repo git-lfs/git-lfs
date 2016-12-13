@@ -1,4 +1,4 @@
-package transfer
+package tq
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ func (a *basicDownloadAdapter) WorkerStarting(workerNum int) (interface{}, error
 func (a *basicDownloadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
-func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 
 	f, fromByte, hashSoFar, err := a.checkResumeDownload(t)
 	if err != nil {
@@ -84,7 +84,7 @@ func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
 }
 
 // download starts or resumes and download. Always closes dlFile if non-nil
-func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
+func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
 	if dlFile != nil {
 		// ensure we always close dlFile. Note that this does not conflict with the
 		// early close below, as close is idempotent.
@@ -218,7 +218,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 }
 
 func configureBasicDownloadAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:
 			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}

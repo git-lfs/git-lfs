@@ -1,4 +1,4 @@
-package transfer
+package tq
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ func (a *tusUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
-func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	rel, ok := t.Object.Rel("upload")
 	if !ok {
 		return fmt.Errorf("No upload action for this object.")
@@ -158,7 +158,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferP
 }
 
 func configureTusAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
 			bu := &tusUploadAdapter{newAdapterBase(name, dir, nil)}

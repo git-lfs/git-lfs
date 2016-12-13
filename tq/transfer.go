@@ -1,6 +1,6 @@
 // Package transfer collects together adapters for uploading and downloading LFS content
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
-package transfer
+package tq
 
 import "github.com/git-lfs/git-lfs/api"
 
@@ -11,43 +11,42 @@ const (
 	Download = Direction(iota)
 )
 
-// NewTransferAdapterFunc creates new instances of TransferAdapter. Code that wishes
-// to provide new TransferAdapter instances should pass an implementation of this
+// NewAdapterFunc creates new instances of Adapter. Code that wishes
+// to provide new Adapter instances should pass an implementation of this
 // function to RegisterNewTransferAdapterFunc() on a *Manifest.
 // name and dir are to provide context if one func implements many instances
-type NewTransferAdapterFunc func(name string, dir Direction) TransferAdapter
+type NewAdapterFunc func(name string, dir Direction) Adapter
 
-type TransferProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
+type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
-// TransferAdapter is implemented by types which can upload and/or download LFS
-// file content to a remote store. Each TransferAdapter accepts one or more requests
+// Adapter is implemented by types which can upload and/or download LFS
+// file content to a remote store. Each Adapter accepts one or more requests
 // which it may schedule and parallelise in whatever way it chooses, clients of
 // this interface will receive notifications of progress and completion asynchronously.
 // TransferAdapters support transfers in one direction; if an implementation
 // provides support for upload and download, it should be instantiated twice,
 // advertising support for each direction separately.
-// Note that TransferAdapter only implements the actual upload/download of content
+// Note that Adapter only implements the actual upload/download of content
 // itself; organising the wider process including calling the API to get URLs,
 // handling progress reporting and retries is the job of the core TransferQueue.
-// This is so that the orchestration remains core & standard but TransferAdapter
+// This is so that the orchestration remains core & standard but Adapter
 // can be changed to physically transfer to different hosts with less code.
-type TransferAdapter interface {
+type Adapter interface {
 	// Name returns the name of this adapter, which is the same for all instances
 	// of this type of adapter
 	Name() string
 	// Direction returns whether this instance is an upload or download instance
-	// TransferAdapter instances can only be one or the other, although the same
+	// Adapter instances can only be one or the other, although the same
 	// type may be instantiated for each direction
 	Direction() Direction
 	// Begin a new batch of uploads or downloads. Call this first, followed by
 	// one or more Add calls. maxConcurrency controls the number of transfers
 	// that may be done at once. The passed in callback will receive updates on
-	// progress, and the completion channel will receive completion notifications
-	// Either argument may be nil if not required by the client
-	Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error
+	// progress. Either argument may be nil if not required by the client.
+	Begin(maxConcurrency int, cb ProgressCallback) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
-	Add(t *Transfer)
+	Add(transfers ...*Transfer) (results <-chan TransferResult)
 	// Indicate that all transfers have been scheduled and resources can be released
 	// once the queued items have completed.
 	// This call blocks until all items have been processed

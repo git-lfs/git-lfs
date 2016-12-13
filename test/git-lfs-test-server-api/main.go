@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/spf13/cobra"
 )
 
@@ -158,7 +159,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(lfs.WithProgress(meter))
+	uploadQueue := lfs.NewUploadQueue(tq.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 

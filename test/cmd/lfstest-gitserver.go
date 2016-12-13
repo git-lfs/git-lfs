@@ -49,7 +49,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "storage-download-retry", "storage-upload-retry",
+		"object-authenticated", "storage-download-retry", "storage-upload-retry", "unknown-oid",
 	}
 )
 
@@ -284,12 +284,19 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		}
 	}
 	for _, obj := range objs.Objects {
+		handler := oidHandlers[obj.Oid]
 		action := objs.Operation
 
 		o := lfsObject{
-			Oid:     obj.Oid,
 			Size:    obj.Size,
 			Actions: make(map[string]lfsLink),
+		}
+
+		// Clobber the OID if told to do so.
+		if handler == "unknown-oid" {
+			o.Oid = "unknown-oid"
+		} else {
+			o.Oid = obj.Oid
 		}
 
 		exists := largeObjects.Has(repo, obj.Oid)
@@ -305,8 +312,6 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 				addAction = false
 			}
 		}
-
-		handler := oidHandlers[obj.Oid]
 
 		if handler == "object-authenticated" {
 			o.Authenticated = true

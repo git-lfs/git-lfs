@@ -1,4 +1,4 @@
-package transfer
+package tq
 
 import (
 	"bufio"
@@ -106,7 +106,7 @@ type customAdapterResponseMessage struct {
 	BytesSinceLast int              `json:"bytesSinceLast"`
 }
 
-func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
+func (a *customAdapter) Begin(maxConcurrency int, cb ProgressCallback) error {
 	// If config says not to launch multiple processes, downgrade incoming value
 	useConcurrency := maxConcurrency
 	if !a.concurrent {
@@ -117,7 +117,7 @@ func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, c
 	tracerx.Printf("xfer: Custom transfer adapter %q using concurrency %d", a.name, useConcurrency)
 
 	// Use common workers impl, but downgrade workers to number of processes
-	return a.adapterBase.Begin(useConcurrency, cb, completion)
+	return a.adapterBase.Begin(useConcurrency, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {
@@ -257,7 +257,7 @@ func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 	}
 }
 
-func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	if ctx == nil {
 		return fmt.Errorf("Custom transfer %q was not properly initialized, see previous errors", a.name)
 	}
@@ -368,15 +368,15 @@ func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 		}
 
 		// Separate closure for each since we need to capture vars above
-		newfunc := func(name string, dir Direction) TransferAdapter {
+		newfunc := func(name string, dir Direction) Adapter {
 			return newCustomAdapter(name, dir, path, args, concurrent)
 		}
 
 		if direction == "download" || direction == "both" {
-			m.RegisterNewTransferAdapterFunc(name, Download, newfunc)
+			m.RegisterNewAdapterFunc(name, Download, newfunc)
 		}
 		if direction == "upload" || direction == "both" {
-			m.RegisterNewTransferAdapterFunc(name, Upload, newfunc)
+			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
 }

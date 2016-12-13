@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -111,7 +112,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	prunableObjects := make([]string, 0, len(localObjects)/2)
 
 	// Build list of prunables (also queue for verify at same time if applicable)
-	var verifyQueue *lfs.TransferQueue
+	var verifyQueue *tq.TransferQueue
 	var verifiedObjects tools.StringSet
 	var totalSize int64
 	var verboseOutput bytes.Buffer
