@@ -3,44 +3,11 @@ package tq
 import (
 	"testing"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestManifestDefaultsToFixedRetries(t *testing.T) {
-	cfg := config.NewFrom(config.Values{})
-	m := ConfigureManifest(NewManifest(), cfg)
-	assert.Equal(t, 1, m.MaxRetries)
-}
-
-func TestManifestIsConfigurable(t *testing.T) {
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.transfer.maxretries": "3",
-		},
-	})
-	m := ConfigureManifest(NewManifest(), cfg)
-	assert.Equal(t, 3, m.MaxRetries)
-}
-
-func TestManifestClampsValidValues(t *testing.T) {
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.transfer.maxretries": "-1",
-		},
-	})
-	m := ConfigureManifest(NewManifest(), cfg)
-	assert.Equal(t, 1, m.MaxRetries)
-}
-
-func TestManifestIgnoresNonInts(t *testing.T) {
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.transfer.maxretries": "not_an_int",
-		},
-	})
-	m := ConfigureManifest(NewManifest(), cfg)
-	assert.Equal(t, 1, m.MaxRetries)
+	assert.Equal(t, 1, NewManifest().MaxRetries)
 }
 
 func TestRetryCounterDefaultsToFixedRetries(t *testing.T) {

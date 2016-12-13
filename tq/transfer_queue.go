@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	defaultBatchSize  = 100
-	defaultMaxRetries = 1
+	defaultBatchSize = 100
 )
 
 type Transferable interface {

@@ -3,17 +3,22 @@ package tq
 import (
 	"sync"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
+)
+
+const (
+	defaultMaxRetries          = 1
+	defaultConcurrentTransfers = 3
 )
 
 type Manifest struct {
 	// MaxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped.
-	MaxRetries          int `git:"lfs.transfer.maxretries"`
-	ConcurrentTransfers int `git:"lfs.concurrenttransfers"`
+	MaxRetries          int  `git:"lfs.transfer.maxretries"`
+	ConcurrentTransfers int  `git:"lfs.concurrenttransfers"`
+	BasicTransfersOnly  bool `git:"lfs.basictransfersonly"`
+	TusTransfersAllowed bool `git:"lfs.tustransfers"`
 
-	basicTransfersOnly   bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
 	mu                   sync.Mutex
@@ -21,36 +26,31 @@ type Manifest struct {
 
 func NewManifest() *Manifest {
 	return &Manifest{
+		MaxRetries:           defaultMaxRetries,
+		ConcurrentTransfers:  defaultConcurrentTransfers,
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
 }
 
-func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
-	if err := cfg.Unmarshal(m); err != nil {
-		tracerx.Printf("manifest: error parsing config, falling back to default values...: %v", err)
-		m.MaxRetries = 1
-	}
-
+func (m *Manifest) InitAdapters() {
 	if m.MaxRetries < 1 {
 		m.MaxRetries = defaultMaxRetries
 	}
-
-	if cfg.NtlmAccess("download") {
-		m.ConcurrentTransfers = 1
-	} else if m.ConcurrentTransfers < 1 {
-		m.ConcurrentTransfers = 3
+	if m.ConcurrentTransfers < 1 {
+		m.ConcurrentTransfers = defaultConcurrentTransfers
 	}
-
-	m.basicTransfersOnly = cfg.BasicTransfersOnly()
 
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
-	if cfg.TusTransfersAllowed() {
+	if m.TusTransfersAllowed {
 		configureTusAdapter(m)
 	}
-	configureCustomAdapters(cfg.Git, m)
-	return m
+}
+
+func (m *Manifest) InitCustomAdaptersFromGit(git env) {
+	m.InitAdapters()
+	configureCustomAdapters(git, m)
 }
 
 // GetAdapterNames returns a list of the names of adapters available to be created
@@ -76,7 +76,7 @@ func (m *Manifest) GetUploadAdapterNames() []string {
 
 // getAdapterNames returns a list of the names of adapters available to be created
 func (m *Manifest) getAdapterNames(adapters map[string]NewAdapterFunc) []string {
-	if m.basicTransfersOnly {
+	if m.BasicTransfersOnly {
 		return []string{BasicAdapterName}
 	}
 

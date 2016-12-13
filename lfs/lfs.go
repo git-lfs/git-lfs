@@ -120,7 +120,18 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 
 // TransferManifest builds a tq.Manifest using the given cfg.
 func TransferManifest(cfg *config.Configuration) *tq.Manifest {
-	return tq.ConfigureManifest(tq.NewManifest(), cfg)
+	m := tq.NewManifest()
+	if err := cfg.Unmarshal(m); err != nil {
+		tracerx.Printf("manifest: error parsing config, falling back to default values...: %v", err)
+		m.MaxRetries = 1
+	}
+
+	if cfg.NtlmAccess("download") {
+		m.ConcurrentTransfers = 1
+	}
+
+	m.InitCustomAdaptersFromGit(cfg.Git)
+	return m
 }
 
 func InRepo() bool {
