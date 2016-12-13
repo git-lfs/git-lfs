@@ -8,6 +8,10 @@ import (
 )
 
 type Manifest struct {
+	// MaxRetries is the maximum number of retries a single object can
+	// attempt to make before it will be dropped.
+	MaxRetries int `git:"lfs.transfer.maxretries"`
+
 	basicTransfersOnly   bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
@@ -22,6 +26,16 @@ func NewManifest() *Manifest {
 }
 
 func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
+	if err := cfg.Unmarshal(m); err != nil {
+		tracerx.Printf("manifest: error parsing config, falling back to default values...: %v", err)
+		m.MaxRetries = 1
+	}
+
+	if m.MaxRetries < 1 {
+		tracerx.Printf("manifest: invalid retry count: %d, defaulting to %d", m.MaxRetries, 1)
+		m.MaxRetries = 1
+	}
+
 	m.basicTransfersOnly = cfg.BasicTransfersOnly()
 
 	configureBasicDownloadAdapter(m)

@@ -26,8 +26,6 @@ type Transferable interface {
 }
 
 type retryCounter struct {
-	// MaxRetries is the maximum number of retries a single object can
-	// attempt to make before it will be dropped.
 	MaxRetries int `git:"lfs.transfer.maxretries"`
 
 	// cmu guards count
@@ -42,24 +40,11 @@ type retryCounter struct {
 //
 // If it encountered an error in Unmarshaling the *config.Configuration, it will
 // be returned, otherwise nil.
-func newRetryCounter(cfg *config.Configuration) *retryCounter {
-	rc := &retryCounter{
+func newRetryCounter() *retryCounter {
+	return &retryCounter{
 		MaxRetries: defaultMaxRetries,
-
-		count: make(map[string]int),
+		count:      make(map[string]int),
 	}
-
-	if err := cfg.Unmarshal(rc); err != nil {
-		tracerx.Printf("rc: error parsing config, falling back to default values...: %v", err)
-		rc.MaxRetries = 1
-	}
-
-	if rc.MaxRetries < 1 {
-		tracerx.Printf("rc: invalid retry count: %d, defaulting to %d", rc.MaxRetries, 1)
-		rc.MaxRetries = 1
-	}
-
-	return rc
 }
 
 // Increment increments the number of retries for a given OID. It is safe to
@@ -173,12 +158,14 @@ func NewTransferQueue(dir Direction, options ...Option) *TransferQueue {
 		transferables: make(map[string]Transferable),
 		trMutex:       &sync.Mutex{},
 		manifest:      ConfigureManifest(NewManifest(), config.Config),
-		rc:            newRetryCounter(config.Config),
+		rc:            newRetryCounter(),
 	}
 
 	for _, opt := range options {
 		opt(q)
 	}
+
+	q.rc.MaxRetries = q.manifest.MaxRetries
 
 	if q.batchSize <= 0 {
 		q.batchSize = defaultBatchSize
