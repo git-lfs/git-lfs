@@ -45,9 +45,7 @@ func newRenamedTestAdapter(name string, dir Direction) Adapter {
 }
 
 func testBasicAdapterExists(t *testing.T) {
-	cfg := config.New()
 	m := NewManifest()
-	m.InitCustomAdaptersFromGit(cfg.Git)
 
 	assert := assert.New(t)
 
@@ -74,9 +72,7 @@ func testBasicAdapterExists(t *testing.T) {
 }
 
 func testAdapterRegAndOverride(t *testing.T) {
-	cfg := config.New()
 	m := NewManifest()
-	m.InitCustomAdaptersFromGit(cfg.Git)
 	assert := assert.New(t)
 
 	assert.Nil(m.NewDownloadAdapter("test"))
@@ -125,8 +121,7 @@ func testAdapterRegButBasicOnly(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
 		Git: map[string]string{"lfs.basictransfersonly": "yes"},
 	})
-	m := NewManifest()
-	m.InitCustomAdaptersFromGit(cfg.Git)
+	m := NewManifestWithGitEnv(cfg.Git)
 
 	assert := assert.New(t)
 

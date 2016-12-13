@@ -14,26 +14,44 @@ const (
 type Manifest struct {
 	// MaxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped.
-	MaxRetries          int  `git:"lfs.transfer.maxretries"`
-	ConcurrentTransfers int  `git:"lfs.concurrenttransfers"`
-	BasicTransfersOnly  bool `git:"lfs.basictransfersonly"`
-	TusTransfersAllowed bool `git:"lfs.tustransfers"`
+	MaxRetries          int
+	ConcurrentTransfers int
 
+	basicTransfersOnly   bool
+	tusTransfersAllowed  bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
 	mu                   sync.Mutex
 }
 
 func NewManifest() *Manifest {
-	return &Manifest{
-		MaxRetries:           defaultMaxRetries,
-		ConcurrentTransfers:  defaultConcurrentTransfers,
+	return NewManifestWithGitEnv(nil)
+}
+
+func NewManifestWithGitEnv(git env) *Manifest {
+	m := &Manifest{
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
+	initManifest(m, git)
+	return m
 }
 
-func (m *Manifest) InitAdapters() {
+func initManifest(m *Manifest, git env) {
+	var tusAllowed bool
+
+	if git != nil {
+		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
+			m.MaxRetries = v
+		}
+		if v := git.Int("lfs.concurrenttransfers", 0); v > 0 {
+			m.ConcurrentTransfers = v
+		}
+		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
+		tusAllowed = git.Bool("lfs.tustransfers", false)
+		configureCustomAdapters(git, m)
+	}
+
 	if m.MaxRetries < 1 {
 		m.MaxRetries = defaultMaxRetries
 	}
@@ -43,14 +61,9 @@ func (m *Manifest) InitAdapters() {
 
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
-	if m.TusTransfersAllowed {
+	if tusAllowed {
 		configureTusAdapter(m)
 	}
-}
-
-func (m *Manifest) InitCustomAdaptersFromGit(git env) {
-	m.InitAdapters()
-	configureCustomAdapters(git, m)
 }
 
 // GetAdapterNames returns a list of the names of adapters available to be created
@@ -76,7 +89,7 @@ func (m *Manifest) GetUploadAdapterNames() []string {
 
 // getAdapterNames returns a list of the names of adapters available to be created
 func (m *Manifest) getAdapterNames(adapters map[string]NewAdapterFunc) []string {
-	if m.BasicTransfersOnly {
+	if m.basicTransfersOnly {
 		return []string{BasicAdapterName}
 	}
 
