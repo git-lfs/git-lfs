@@ -44,7 +44,7 @@ func (c *LockCache) isIdKey(key string) bool {
 }
 
 // Cache a successful lock for faster local lookup later
-func (c *LockCache) CacheLock(l Lock) error {
+func (c *LockCache) Add(l Lock) error {
 	// Store reference in both directions
 	// Path -> Lock
 	c.kv.Set(l.Path, &l)
@@ -54,7 +54,7 @@ func (c *LockCache) CacheLock(l Lock) error {
 }
 
 // Remove a cached lock by path becuase it's been relinquished
-func (c *LockCache) CacheUnlockByPath(filePath string) error {
+func (c *LockCache) RemoveByPath(filePath string) error {
 	ilock := c.kv.Get(filePath)
 	if lock, ok := ilock.(*Lock); ok && lock != nil {
 		c.kv.Remove(lock.Path)
@@ -65,7 +65,7 @@ func (c *LockCache) CacheUnlockByPath(filePath string) error {
 }
 
 // Remove a cached lock by id because it's been relinquished
-func (c *LockCache) CacheUnlockById(id string) error {
+func (c *LockCache) RemoveById(id string) error {
 	// Id as key is encoded
 	idkey := c.encodeIdKey(id)
 	ilock := c.kv.Get(idkey)
@@ -77,7 +77,7 @@ func (c *LockCache) CacheUnlockById(id string) error {
 }
 
 // Get the list of cached locked files
-func (c *LockCache) CachedLocks() []Lock {
+func (c *LockCache) Locks() []Lock {
 	var locks []Lock
 	c.kv.Visit(func(key string, val interface{}) bool {
 		// Only report file->id entries not reverse

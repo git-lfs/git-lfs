@@ -28,20 +28,20 @@ func TestLockCache(t *testing.T) {
 	}
 
 	for _, l := range testLocks {
-		err = cache.CacheLock(l)
+		err = cache.Add(l)
 		assert.Nil(t, err)
 	}
 
-	locks := cache.CachedLocks()
+	locks := cache.Locks()
 	for _, l := range testLocks {
 		assert.Contains(t, locks, l)
 	}
 	assert.Equal(t, len(testLocks), len(locks))
 
-	err = cache.CacheUnlockByPath("folder/test2.dat")
+	err = cache.RemoveByPath("folder/test2.dat")
 	assert.Nil(t, err)
 
-	locks = cache.CachedLocks()
+	locks = cache.Locks()
 	// delete item 1 from test locls
 	testLocks = append(testLocks[:1], testLocks[2:]...)
 	for _, l := range testLocks {
@@ -49,10 +49,10 @@ func TestLockCache(t *testing.T) {
 	}
 	assert.Equal(t, len(testLocks), len(locks))
 
-	err = cache.CacheUnlockById("101")
+	err = cache.RemoveById("101")
 	assert.Nil(t, err)
 
-	locks = cache.CachedLocks()
+	locks = cache.Locks()
 	testLocks = testLocks[1:]
 	for _, l := range testLocks {
 		assert.Contains(t, locks, l)

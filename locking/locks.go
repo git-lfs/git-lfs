@@ -81,7 +81,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 
 	lock := c.newLockFromApi(*resp.Lock)
 
-	if err := c.cache.CacheLock(lock); err != nil {
+	if err := c.cache.Add(lock); err != nil {
 		return Lock{}, fmt.Errorf("Error caching lock information: %v", err)
 	}
 
@@ -115,7 +115,7 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		return fmt.Errorf("Server unable to unlock lock: %v", resp.Err)
 	}
 
-	if err := c.cache.CacheUnlockById(id); err != nil {
+	if err := c.cache.RemoveById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
 	}
 
@@ -161,7 +161,7 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 }
 
 func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
-	cachedlocks := c.cache.CachedLocks()
+	cachedlocks := c.cache.Locks()
 	path, filterByPath := filter["path"]
 	id, filterById := filter["id"]
 	lockCount := 0
@@ -264,7 +264,7 @@ func (c *Client) fetchLocksToCache() error {
 	_, email := c.cfg.CurrentCommitter()
 	for _, l := range locks {
 		if l.Email == email {
-			c.cache.CacheLock(l)
+			c.cache.Add(l)
 		}
 	}
 
