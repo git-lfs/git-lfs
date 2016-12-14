@@ -350,8 +350,6 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 					if !IsActionMissingError(err) {
 						q.errorc <- errors.Errorf("[%v] %v", tr.Name, err)
 					}
-					// q.errorc <- errors.Errorf("[%v] %v",
-					// tr.Oid[:7], err)
 
 					q.Skip(o.Size)
 					q.wait.Done()
