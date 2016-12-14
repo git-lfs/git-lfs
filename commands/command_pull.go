@@ -3,10 +3,13 @@ package commands
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -40,111 +43,99 @@ func pull(filter *filepathfilter.Filter) {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(ref.Sha, filter)
-	checkoutFromFetchChan(c, filter)
-}
-
-func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
-	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref, filter)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-
-	go fetchAndReportToChan(pointers, filter, c)
-
-	return c
-}
-
-func checkoutFromFetchChan(in chan *lfs.WrappedPointer, filter *filepathfilter.Filter) {
-	ref, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not checkout")
-	}
-
-	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
-	// use new gitscanner so mapping has all the scanned pointers before continuing
-	mapping := make(map[string][]*lfs.WrappedPointer)
-	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+	pointers := newPointerMap()
+	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	singleCheckout := newSingleCheckout()
+	q := lfs.NewDownloadQueue(lfs.WithProgress(meter))
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			Panic(err, "Could not scan for Git LFS files")
+			LoggedError(err, "Scanner error")
 			return
 		}
-		mapping[p.Oid] = append(mapping[p.Oid], p)
-	})
-	chgitscanner.Filter = filter
 
-	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
+		if pointers.Seen(p) {
+			return
+		}
+
+		// no need to download objects that exist locally already
+		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
+		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+			singleCheckout.Run(p)
+			return
+		}
+
+		meter.Add(p.Size)
+		meter.StartTransfer(p.Name)
+		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
+		pointers.Add(p)
+		q.Add(lfs.NewDownloadable(p))
+	})
+
+	gitscanner.Filter = filter
+
+	dlwatch := q.Watch()
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		for oid := range dlwatch {
+			for _, p := range pointers.All(oid) {
+				singleCheckout.Run(p)
+			}
+		}
+		wg.Done()
+	}()
+
+	processQueue := time.Now()
+	if err := gitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
 	}
 
-	chgitscanner.Close()
+	meter.Start()
+	gitscanner.Close()
+	q.Wait()
+	wg.Wait()
+	tracerx.PerformanceSince("process queue", processQueue)
 
-	// Launch git update-index
-	c := make(chan *lfs.WrappedPointer)
+	singleCheckout.Close()
 
-	var wait sync.WaitGroup
-	wait.Add(1)
-
-	go func() {
-		checkoutWithChan(c)
-		wait.Done()
-	}()
-
-	// Feed it from in, which comes from fetch
-	for p := range in {
-		// Add all of the files for this oid
-		for _, fp := range mapping[p.Oid] {
-			c <- fp
-		}
+	for _, err := range q.Errors() {
+		FullError(err)
 	}
-	close(c)
-	wait.Wait()
 }
 
-// Populate the working copy with the real content of objects where the file is
-// either missing, or contains a matching pointer placeholder, from a list of pointers.
-// If the file exists but has other content it is left alone
-// Callers of this function MUST NOT Panic or otherwise exit the process
-// without waiting for this function to shut down.  If the process exits while
-// update-index is in the middle of processing a file the git index can be left
-// in a locked state.
-func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
-	// Get a converter from repo-relative to cwd-relative
-	// Since writing data & calling git update-index must be relative to cwd
-	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
-	if err != nil {
-		Panic(err, "Could not convert file paths")
+type pointerMap struct {
+	pointers map[string][]*lfs.WrappedPointer
+	mu       sync.Mutex
+}
+
+func newPointerMap() *pointerMap {
+	return &pointerMap{pointers: make(map[string][]*lfs.WrappedPointer)}
+}
+
+func (m *pointerMap) Seen(p *lfs.WrappedPointer) bool {
+	m.mu.Lock()
+	existing, ok := m.pointers[p.Oid]
+	if ok {
+		m.pointers[p.Oid] = append(existing, p)
 	}
+	m.mu.Unlock()
+	return ok
+}
 
-	manifest := TransferManifest()
-	gitIndexer := &gitIndexer{}
+func (m *pointerMap) Add(p *lfs.WrappedPointer) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pointers[p.Oid] = append(m.pointers[p.Oid], p)
+}
 
-	// From this point on, git update-index is running. Code in this loop MUST
-	// NOT Panic() or otherwise cause the process to exit. If the process exits
-	// while update-index is in the middle of updating, the index can remain in a
-	// locked state.
+func (m *pointerMap) All(oid string) []*lfs.WrappedPointer {
+	m.mu.Lock()
+	pointers := m.pointers[oid]
+	delete(m.pointers, oid)
+	m.mu.Unlock()
 
-	// As files come in, write them to the wd and update the index
-	for pointer := range in {
-		cwdfilepath, err := checkout(pointer, pathConverter, manifest)
-		if err != nil {
-			LoggedError(err, "Checkout error")
-		}
-
-		if len(cwdfilepath) == 0 {
-			continue
-		}
-
-		// errors are only returned when the gitIndexer is starting a new cmd
-		if err := gitIndexer.Add(cwdfilepath); err != nil {
-			Panic(err, "Could not update the index")
-		}
-	}
-
-	if err := gitIndexer.Close(); err != nil {
-		LoggedError(err, "Error updating the git index:\n%s", gitIndexer.Output())
-	}
+	return pointers
 }
 
 func init() {

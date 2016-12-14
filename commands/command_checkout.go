@@ -1,12 +1,8 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
-	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -24,18 +20,10 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not checkout")
 	}
 
-	// Get a converter from repo-relative to cwd-relative
-	// Since writing data & calling git update-index must be relative to cwd
-	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
-	if err != nil {
-		Panic(err, "Could not convert file paths")
-	}
-
 	var totalBytes int64
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	manifest := TransferManifest()
-	gitIndexer := &gitIndexer{}
 	filter := filepathfilter.New(rootedPaths(args), nil)
+	singleCheckout := newSingleCheckout()
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error")
@@ -46,17 +34,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		meter.Add(p.Size)
 		meter.StartTransfer(p.Name)
 
-		cwdfilepath, err := checkout(p, pathConverter, manifest)
-		if err != nil {
-			LoggedError(err, "Checkout error")
-		}
-
-		if len(cwdfilepath) > 0 {
-			// errors are only returned when the gitIndexer is starting a new cmd
-			if err := gitIndexer.Add(cwdfilepath); err != nil {
-				Panic(err, "Could not update the index")
-			}
-		}
+		singleCheckout.Run(p)
 
 		// not strictly correct (parallel) but we don't have a callback & it's just local
 		// plus only 1 slot in channel so it'll block & be close
@@ -73,10 +51,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	meter.Start()
 	chgitscanner.Close()
 	meter.Finish()
-
-	if err := gitIndexer.Close(); err != nil {
-		LoggedError(err, "Error updating the git index:\n%s", gitIndexer.Output())
-	}
+	singleCheckout.Close()
 }
 
 func checkout(pointer *lfs.WrappedPointer, pathConverter lfs.PathConverter, manifest *transfer.Manifest) (string, error) {
@@ -125,61 +100,6 @@ func rootedPaths(args []string) []string {
 		rootedpaths = append(rootedpaths, pathConverter.Convert(arg))
 	}
 	return rootedpaths
-}
-
-// Don't fire up the update-index command until we have at least one file to
-// give it. Otherwise git interprets the lack of arguments to mean param-less update-index
-// which can trigger entire working copy to be re-examined, which triggers clean filters
-// and which has unexpected side effects (e.g. downloading filtered-out files)
-type gitIndexer struct {
-	cmd    *exec.Cmd
-	input  io.WriteCloser
-	output bytes.Buffer
-	mu     sync.Mutex
-}
-
-func (i *gitIndexer) Add(path string) error {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if i.cmd == nil {
-		// Fire up the update-index command
-		i.cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-		i.cmd.Stdout = &i.output
-		i.cmd.Stderr = &i.output
-		stdin, err := i.cmd.StdinPipe()
-		if err == nil {
-			err = i.cmd.Start()
-		}
-
-		if err != nil {
-			return err
-		}
-
-		i.input = stdin
-	}
-
-	i.input.Write([]byte(path + "\n"))
-	return nil
-}
-
-func (i *gitIndexer) Output() string {
-	return i.output.String()
-}
-
-func (i *gitIndexer) Close() error {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if i.input != nil {
-		i.input.Close()
-	}
-
-	if i.cmd != nil {
-		return i.cmd.Wait()
-	}
-
-	return nil
 }
 
 func init() {
