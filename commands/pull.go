@@ -2,10 +2,13 @@ package commands
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/transfer"
 )
@@ -34,16 +37,40 @@ type singleCheckout struct {
 }
 
 func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
-	cwdfilepath, err := checkout(p, c.pathConverter, c.manifest)
-	if err != nil {
+	// Check the content - either missing or still this pointer (not exist is ok)
+	filepointer, err := lfs.DecodePointerFromFile(p.Name)
+	if err != nil && !os.IsNotExist(err) {
+		if errors.IsNotAPointerError(err) {
+			// File has non-pointer content, leave it alone
+			return
+		}
+
 		LoggedError(err, "Checkout error: %s", err)
+		return
 	}
 
-	if len(cwdfilepath) > 0 {
-		// errors are only returned when the gitIndexer is starting a new cmd
-		if err := c.gitIndexer.Add(cwdfilepath); err != nil {
-			Panic(err, "Could not update the index")
+	if filepointer != nil && filepointer.Oid != p.Oid {
+		// User has probably manually reset a file to another commit
+		// while leaving it a pointer; don't mess with this
+		return
+	}
+
+	cwdfilepath := c.pathConverter.Convert(p.Name)
+
+	err = lfs.PointerSmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
+	if err != nil {
+		if errors.IsDownloadDeclinedError(err) {
+			// acceptable error, data not local (fetch not run or include/exclude)
+			LoggedError(err, "Skipped checkout for %q, content not local. Use fetch to download.", p.Name)
+		} else {
+			FullError(fmt.Errorf("Could not check out %q", p.Name))
 		}
+		return
+	}
+
+	// errors are only returned when the gitIndexer is starting a new cmd
+	if err := c.gitIndexer.Add(cwdfilepath); err != nil {
+		Panic(err, "Could not update the index")
 	}
 }
 

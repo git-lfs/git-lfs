@@ -1,15 +1,10 @@
 package commands
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/spf13/cobra"
 )
 
@@ -52,38 +47,6 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	chgitscanner.Close()
 	meter.Finish()
 	singleCheckout.Close()
-}
-
-func checkout(pointer *lfs.WrappedPointer, pathConverter lfs.PathConverter, manifest *transfer.Manifest) (string, error) {
-	// Check the content - either missing or still this pointer (not exist is ok)
-	filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
-	if err != nil && !os.IsNotExist(err) {
-		if errors.IsNotAPointerError(err) {
-			// File has non-pointer content, leave it alone
-			return "", nil
-		}
-		return "", err
-	}
-
-	if filepointer != nil && filepointer.Oid != pointer.Oid {
-		// User has probably manually reset a file to another commit
-		// while leaving it a pointer; don't mess with this
-		return "", nil
-	}
-
-	cwdfilepath := pathConverter.Convert(pointer.Name)
-
-	err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
-	if err != nil {
-		if errors.IsDownloadDeclinedError(err) {
-			// acceptable error, data not local (fetch not run or include/exclude)
-			return "", fmt.Errorf("Skipped checkout for %q, content not local. Use fetch to download.", pointer.Name)
-		} else {
-			return "", fmt.Errorf("Could not check out %q", pointer.Name)
-		}
-	}
-
-	return cwdfilepath, nil
 }
 
 // Parameters are filters

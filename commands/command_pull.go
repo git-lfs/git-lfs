@@ -104,6 +104,7 @@ func pull(filter *filepathfilter.Filter) {
 	}
 }
 
+// tracks LFS objects being downloaded, according to their unique OIDs.
 type pointerMap struct {
 	pointers map[string][]*lfs.WrappedPointer
 	mu       sync.Mutex
