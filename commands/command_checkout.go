@@ -56,7 +56,7 @@ func checkoutFromFetchChan(in chan *lfs.WrappedPointer, filter *filepathfilter.F
 	})
 	chgitscanner.Filter = filter
 
-	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
+	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
 	}
 
@@ -108,7 +108,7 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 
 	chgitscanner.Filter = filter
 
-	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
+	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
 	}
 	chgitscanner.Close()
