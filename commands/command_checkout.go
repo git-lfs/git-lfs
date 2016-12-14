@@ -93,8 +93,7 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
-	repopathchan := make(chan string, 1)
-	cwdpathchan, err := lfs.ConvertRepoFilesRelativeToCwd(repopathchan)
+	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
 	if err != nil {
 		Panic(err, "Could not convert file paths")
 	}
@@ -135,8 +134,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			continue
 		}
 
-		repopathchan <- pointer.Name
-		cwdfilepath := <-cwdpathchan
+		cwdfilepath := pathConverter.Convert(pointer.Name)
 
 		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
 		if err != nil {
@@ -167,7 +165,6 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 
 		updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
 	}
-	close(repopathchan)
 
 	if cmd != nil && updateIdxStdin != nil {
 		updateIdxStdin.Close()
@@ -181,18 +178,15 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 // firstly convert any pathspecs to the root of the repo, in case this is being
 // executed in a sub-folder
 func rootedPaths(args []string) []string {
-	inchan := make(chan string, 1)
-	outchan, err := lfs.ConvertCwdFilesRelativeToRepo(inchan)
+	pathConverter, err := lfs.NewCurrentToRepoPathConverter()
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
 
 	rootedpaths := make([]string, 0, len(args))
 	for _, arg := range args {
-		inchan <- arg
-		rootedpaths = append(rootedpaths, <-outchan)
+		rootedpaths = append(rootedpaths, pathConverter.Convert(arg))
 	}
-	close(inchan)
 	return rootedpaths
 }
 
