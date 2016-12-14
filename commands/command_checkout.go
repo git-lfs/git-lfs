@@ -19,30 +19,49 @@ import (
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
-	filter := filepathfilter.New(rootedPaths(args), nil)
-	checkoutWithIncludeExclude(filter)
-}
-
-func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
 
-	// this func has to load all pointers into memory
-	var pointers []*lfs.WrappedPointer
-	var multiErr error
+	// Get a converter from repo-relative to cwd-relative
+	// Since writing data & calling git update-index must be relative to cwd
+	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
+	if err != nil {
+		Panic(err, "Could not convert file paths")
+	}
+
+	var totalBytes int64
+	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	manifest := TransferManifest()
+	gitIndexer := &gitIndexer{}
+	filter := filepathfilter.New(rootedPaths(args), nil)
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
+			LoggedError(err, "Scanner error")
 			return
 		}
 
-		pointers = append(pointers, p)
+		totalBytes += p.Size
+		meter.Add(p.Size)
+		meter.StartTransfer(p.Name)
+
+		cwdfilepath, err := checkout(p, pathConverter, manifest)
+		if err != nil {
+			LoggedError(err, "Checkout error")
+		}
+
+		if len(cwdfilepath) > 0 {
+			// errors are only returned when the gitIndexer is starting a new cmd
+			if err := gitIndexer.Add(cwdfilepath); err != nil {
+				Panic(err, "Could not update the index")
+			}
+		}
+
+		// not strictly correct (parallel) but we don't have a callback & it's just local
+		// plus only 1 slot in channel so it'll block & be close
+		meter.TransferBytes("checkout", p.Name, p.Size, totalBytes, int(p.Size))
+		meter.FinishTransfer(p.Name)
 	})
 
 	chgitscanner.Filter = filter
@@ -50,38 +69,14 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
 	}
-	chgitscanner.Close()
 
-	if multiErr != nil {
-		Panic(multiErr, "Could not scan for Git LFS files")
-	}
-
-	var wait sync.WaitGroup
-	wait.Add(1)
-
-	c := make(chan *lfs.WrappedPointer, 1)
-
-	go func() {
-		checkoutWithChan(c)
-		wait.Done()
-	}()
-
-	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
 	meter.Start()
-	var totalBytes int64
-	for _, pointer := range pointers {
-		totalBytes += pointer.Size
-		meter.Add(totalBytes)
-		meter.StartTransfer(pointer.Name)
-		c <- pointer
-		// not strictly correct (parallel) but we don't have a callback & it's just local
-		// plus only 1 slot in channel so it'll block & be close
-		meter.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
-		meter.FinishTransfer(pointer.Name)
-	}
-	close(c)
-	wait.Wait()
+	chgitscanner.Close()
 	meter.Finish()
+
+	if err := gitIndexer.Close(); err != nil {
+		LoggedError(err, "Error updating the git index:\n%s", gitIndexer.Output())
+	}
 }
 
 func checkout(pointer *lfs.WrappedPointer, pathConverter lfs.PathConverter, manifest *transfer.Manifest) (string, error) {
@@ -130,10 +125,6 @@ func rootedPaths(args []string) []string {
 		rootedpaths = append(rootedpaths, pathConverter.Convert(arg))
 	}
 	return rootedpaths
-}
-
-func init() {
-	RegisterCommand("checkout", checkoutCommand, nil)
 }
 
 // Don't fire up the update-index command until we have at least one file to
@@ -189,4 +180,8 @@ func (i *gitIndexer) Close() error {
 	}
 
 	return nil
+}
+
+func init() {
+	RegisterCommand("checkout", checkoutCommand, nil)
 }
