@@ -17,7 +17,6 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	var totalBytes int64
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	filter := filepathfilter.New(rootedPaths(args), nil)
 	singleCheckout := newSingleCheckout()
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
@@ -37,7 +36,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		meter.FinishTransfer(p.Name)
 	})
 
-	chgitscanner.Filter = filter
+	chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil)
 
 	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
