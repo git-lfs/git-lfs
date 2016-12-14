@@ -250,7 +250,7 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 
 // Fetch locked files for the current committer and cache them locally
 // This can be used to sync up locked files when moving machines
-func (c *Client) fetchLocksToCache() error {
+func (c *Client) refreshLockCache() error {
 	// TODO: filters don't seem to currently define how to search for a
 	// committer's email. Is it "committer.email"? For now, just iterate
 	locks, err := c.SearchLocks(nil, 0, false)

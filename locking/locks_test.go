@@ -79,7 +79,7 @@ func TestRefreshCache(t *testing.T) {
 	assert.Empty(t, locks)
 
 	// Should load from test data, just Fred's
-	err = client.fetchLocksToCache()
+	err = client.refreshLockCache()
 	assert.Nil(t, err)
 
 	locks, err = client.SearchLocks(nil, 0, true)
