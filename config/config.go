@@ -251,7 +251,7 @@ func (c *Configuration) BatchTransfer() bool {
 }
 
 func (c *Configuration) NtlmAccess(operation string) bool {
-	return c.Access(operation) == "ntlm"
+	return c.Access(operation) == endpoint.NTLMAccess
 }
 
 // PrivateAccess will retrieve the access value and return true if
@@ -259,11 +259,11 @@ func (c *Configuration) NtlmAccess(operation string) bool {
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess(operation string) bool {
-	return c.Access(operation) != "none"
+	return c.Access(operation) != endpoint.NoneAccess
 }
 
 // Access returns the access auth type.
-func (c *Configuration) Access(operation string) string {
+func (c *Configuration) Access(operation string) endpoint.Access {
 	return c.EndpointAccess(c.Endpoint(operation))
 }
 
@@ -291,8 +291,8 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 	c.parsedNetrc = n
 }
 
-func (c *Configuration) EndpointAccess(e endpoint.Endpoint) string {
-	return string(c.endpointConfig().AccessFor(e))
+func (c *Configuration) EndpointAccess(e endpoint.Endpoint) endpoint.Access {
+	return c.endpointConfig().AccessFor(e)
 }
 
 func (c *Configuration) SetEndpointAccess(e endpoint.Endpoint, authType string) {
