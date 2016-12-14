@@ -393,13 +393,8 @@ func (c *Configuration) Remotes() []string {
 	return c.remotes
 }
 
-// GitProtocol returns the protocol for the LFS API when converting from a
-// git:// remote url.
 func (c *Configuration) GitProtocol() string {
-	if value, ok := c.Git.Get("lfs.gitprotocol"); ok {
-		return value
-	}
-	return "https"
+	return c.endpointConfig().GitProtocol()
 }
 
 func (c *Configuration) Extensions() map[string]Extension {
@@ -417,6 +412,10 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 // config setting. If multiple aliases match, use the longest one.
 // See https://git-scm.com/docs/git-config for Git's docs.
 func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
+	return c.endpointConfig().ReplaceUrlAlias(rawurl)
+}
+
+func (c *Configuration) endpointConfig() *endpoint.Config {
 	c.endpointMu.Lock()
 	defer c.endpointMu.Unlock()
 
@@ -424,7 +423,7 @@ func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
 		c.endpointCfg = endpoint.NewConfig(c.Git)
 	}
 
-	return c.endpointCfg.ReplaceUrlAlias(rawurl)
+	return c.endpointCfg
 }
 
 func (c *Configuration) FetchPruneConfig() FetchPruneConfig {

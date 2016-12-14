@@ -8,8 +8,13 @@ import (
 )
 
 type Config struct {
-	aliases map[string]string
-	aliasMu sync.Mutex
+	gitProtocol string
+	aliases     map[string]string
+	aliasMu     sync.Mutex
+}
+
+func (c *Config) GitProtocol() string {
+	return c.gitProtocol
 }
 
 func (c *Config) ReplaceUrlAlias(rawurl string) string {
@@ -37,10 +42,14 @@ func (c *Config) ReplaceUrlAlias(rawurl string) string {
 
 func NewConfig(git env) *Config {
 	c := &Config{
-		aliases: make(map[string]string),
+		gitProtocol: "https",
+		aliases:     make(map[string]string),
 	}
 
 	if git != nil {
+		if v, ok := git.Get("lfs.gitprotocol"); ok {
+			c.gitProtocol = v
+		}
 		initAliases(c, git)
 	}
 
@@ -62,5 +71,6 @@ func initAliases(c *Config, git env) {
 }
 
 type env interface {
+	Get(string) (string, bool)
 	All() map[string]string
 }
