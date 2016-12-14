@@ -116,12 +116,12 @@ func newPointerMap() *pointerMap {
 
 func (m *pointerMap) Seen(p *lfs.WrappedPointer) bool {
 	m.mu.Lock()
-	existing, ok := m.pointers[p.Oid]
-	if ok {
+	defer m.mu.Unlock()
+	if existing, ok := m.pointers[p.Oid]; ok {
 		m.pointers[p.Oid] = append(existing, p)
+		return true
 	}
-	m.mu.Unlock()
-	return ok
+	return false
 }
 
 func (m *pointerMap) Add(p *lfs.WrappedPointer) {
@@ -132,10 +132,9 @@ func (m *pointerMap) Add(p *lfs.WrappedPointer) {
 
 func (m *pointerMap) All(oid string) []*lfs.WrappedPointer {
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	pointers := m.pointers[oid]
 	delete(m.pointers, oid)
-	m.mu.Unlock()
-
 	return pointers
 }
 
