@@ -78,6 +78,7 @@ func TestFilterAllows(t *testing.T) {
 		filterTest{true, []string{"test/fil*"}, nil},
 		filterTest{false, []string{"test/g*"}, nil},
 		filterTest{true, []string{"tes*/*"}, nil},
+		filterTest{true, []string{"[Tt]est/[Ff]ilename.dat"}, nil},
 		// Exclusion
 		filterTest{false, nil, []string{"*.dat"}},
 		filterTest{false, nil, []string{"file*.dat"}},
@@ -96,6 +97,7 @@ func TestFilterAllows(t *testing.T) {
 		filterTest{false, nil, []string{"test/fil*"}},
 		filterTest{true, nil, []string{"test/g*"}},
 		filterTest{false, nil, []string{"tes*/*"}},
+		filterTest{false, nil, []string{"[Tt]est/[Ff]ilename.dat"}},
 
 		// Both
 		filterTest{true, []string{"test/filename.dat"}, []string{"test/notfilename.dat"}},
