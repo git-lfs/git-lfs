@@ -154,6 +154,9 @@ func (c *Config) GitProtocol() string {
 	return c.gitProtocol
 }
 
+// ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
+// config setting. If multiple aliases match, use the longest one.
+// See https://git-scm.com/docs/git-config for Git's docs.
 func (c *Config) ReplaceUrlAlias(rawurl string) string {
 	c.aliasMu.Lock()
 	defer c.aliasMu.Unlock()

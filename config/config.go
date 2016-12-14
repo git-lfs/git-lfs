@@ -346,24 +346,6 @@ func (c *Configuration) GitProtocol() string {
 	return c.endpointConfig().GitProtocol()
 }
 
-func (c *Configuration) Extensions() map[string]Extension {
-	c.loadGitConfig()
-
-	return c.extensions
-}
-
-// SortedExtensions gets the list of extensions ordered by Priority
-func (c *Configuration) SortedExtensions() ([]Extension, error) {
-	return SortExtensions(c.Extensions())
-}
-
-// ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
-// config setting. If multiple aliases match, use the longest one.
-// See https://git-scm.com/docs/git-config for Git's docs.
-func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
-	return c.endpointConfig().ReplaceUrlAlias(rawurl)
-}
-
 func (c *Configuration) endpointConfig() *endpoint.Config {
 	c.endpointMu.Lock()
 	defer c.endpointMu.Unlock()
@@ -373,6 +355,16 @@ func (c *Configuration) endpointConfig() *endpoint.Config {
 	}
 
 	return c.endpointCfg
+}
+
+func (c *Configuration) Extensions() map[string]Extension {
+	c.loadGitConfig()
+	return c.extensions
+}
+
+// SortedExtensions gets the list of extensions ordered by Priority
+func (c *Configuration) SortedExtensions() ([]Extension, error) {
+	return SortExtensions(c.Extensions())
 }
 
 func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
