@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
@@ -293,15 +292,7 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 }
 
 func (c *Configuration) EndpointAccess(e endpoint.Endpoint) string {
-	key := fmt.Sprintf("lfs.%s.access", e.Url)
-	if v, ok := c.Git.Get(key); ok && len(v) > 0 {
-		lower := strings.ToLower(v)
-		if lower == "private" {
-			return "basic"
-		}
-		return lower
-	}
-	return "none"
+	return string(c.endpointConfig().AccessFor(e))
 }
 
 func (c *Configuration) SetEndpointAccess(e endpoint.Endpoint, authType string) {
