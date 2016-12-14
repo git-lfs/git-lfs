@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/transfer"
 	"github.com/spf13/cobra"
 )
 
@@ -83,70 +84,36 @@ func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	meter.Finish()
 }
 
-// Populate the working copy with the real content of objects where the file is
-// either missing, or contains a matching pointer placeholder, from a list of pointers.
-// If the file exists but has other content it is left alone
-// Callers of this function MUST NOT Panic or otherwise exit the process
-// without waiting for this function to shut down.  If the process exits while
-// update-index is in the middle of processing a file the git index can be left
-// in a locked state.
-func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
-	// Get a converter from repo-relative to cwd-relative
-	// Since writing data & calling git update-index must be relative to cwd
-	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
+func checkout(pointer *lfs.WrappedPointer, pathConverter lfs.PathConverter, manifest *transfer.Manifest) (string, error) {
+	// Check the content - either missing or still this pointer (not exist is ok)
+	filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
+	if err != nil && !os.IsNotExist(err) {
+		if errors.IsNotAPointerError(err) {
+			// File has non-pointer content, leave it alone
+			return "", nil
+		}
+		return "", err
+	}
+
+	if filepointer != nil && filepointer.Oid != pointer.Oid {
+		// User has probably manually reset a file to another commit
+		// while leaving it a pointer; don't mess with this
+		return "", nil
+	}
+
+	cwdfilepath := pathConverter.Convert(pointer.Name)
+
+	err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
 	if err != nil {
-		Panic(err, "Could not convert file paths")
-	}
-
-	manifest := TransferManifest()
-	gitIndexer := &gitIndexer{}
-
-	// From this point on, git update-index is running. Code in this loop MUST
-	// NOT Panic() or otherwise cause the process to exit. If the process exits
-	// while update-index is in the middle of updating, the index can remain in a
-	// locked state.
-
-	// As files come in, write them to the wd and update the index
-	for pointer := range in {
-		// Check the content - either missing or still this pointer (not exist is ok)
-		filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
-		if err != nil && !os.IsNotExist(err) {
-			if errors.IsNotAPointerError(err) {
-				// File has non-pointer content, leave it alone
-				continue
-			}
-			LoggedError(err, "Problem accessing %v", pointer.Name)
-			continue
-		}
-
-		if filepointer != nil && filepointer.Oid != pointer.Oid {
-			// User has probably manually reset a file to another commit
-			// while leaving it a pointer; don't mess with this
-			continue
-		}
-
-		cwdfilepath := pathConverter.Convert(pointer.Name)
-
-		err = lfs.PointerSmudgeToFile(cwdfilepath, pointer.Pointer, false, manifest, nil)
-		if err != nil {
-			if errors.IsDownloadDeclinedError(err) {
-				// acceptable error, data not local (fetch not run or include/exclude)
-				LoggedError(err, "Skipped checkout for %v, content not local. Use fetch to download.", pointer.Name)
-			} else {
-				LoggedError(err, "Could not checkout file")
-				continue
-			}
-		}
-
-		// errors are only returned when the gitIndexer is starting a new cmd
-		if err := gitIndexer.Add(cwdfilepath); err != nil {
-			Panic(err, "Could not update the index")
+		if errors.IsDownloadDeclinedError(err) {
+			// acceptable error, data not local (fetch not run or include/exclude)
+			return "", fmt.Errorf("Skipped checkout for %q, content not local. Use fetch to download.", pointer.Name)
+		} else {
+			return "", fmt.Errorf("Could not check out %q", pointer.Name)
 		}
 	}
 
-	if err := gitIndexer.Close(); err != nil {
-		LoggedError(err, "Error updating the git index:\n%s", gitIndexer.Output())
-	}
+	return cwdfilepath, nil
 }
 
 // Parameters are filters

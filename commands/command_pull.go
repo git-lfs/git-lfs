@@ -102,6 +102,51 @@ func checkoutFromFetchChan(in chan *lfs.WrappedPointer, filter *filepathfilter.F
 	wait.Wait()
 }
 
+// Populate the working copy with the real content of objects where the file is
+// either missing, or contains a matching pointer placeholder, from a list of pointers.
+// If the file exists but has other content it is left alone
+// Callers of this function MUST NOT Panic or otherwise exit the process
+// without waiting for this function to shut down.  If the process exits while
+// update-index is in the middle of processing a file the git index can be left
+// in a locked state.
+func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
+	// Get a converter from repo-relative to cwd-relative
+	// Since writing data & calling git update-index must be relative to cwd
+	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
+	if err != nil {
+		Panic(err, "Could not convert file paths")
+	}
+
+	manifest := TransferManifest()
+	gitIndexer := &gitIndexer{}
+
+	// From this point on, git update-index is running. Code in this loop MUST
+	// NOT Panic() or otherwise cause the process to exit. If the process exits
+	// while update-index is in the middle of updating, the index can remain in a
+	// locked state.
+
+	// As files come in, write them to the wd and update the index
+	for pointer := range in {
+		cwdfilepath, err := checkout(pointer, pathConverter, manifest)
+		if err != nil {
+			LoggedError(err, "Checkout error")
+		}
+
+		if len(cwdfilepath) == 0 {
+			continue
+		}
+
+		// errors are only returned when the gitIndexer is starting a new cmd
+		if err := gitIndexer.Add(cwdfilepath); err != nil {
+			Panic(err, "Could not update the index")
+		}
+	}
+
+	if err := gitIndexer.Close(); err != nil {
+		LoggedError(err, "Error updating the git index:\n%s", gitIndexer.Output())
+	}
+}
+
 func init() {
 	RegisterCommand("pull", pullCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
