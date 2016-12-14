@@ -98,13 +98,8 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 		Panic(err, "Could not convert file paths")
 	}
 
-	// Don't fire up the update-index command until we have at least one file to
-	// give it. Otherwise git interprets the lack of arguments to mean param-less update-index
-	// which can trigger entire working copy to be re-examined, which triggers clean filters
-	// and which has unexpected side effects (e.g. downloading filtered-out files)
-	var cmd *exec.Cmd
-	var updateIdxStdin io.WriteCloser
-	var updateIdxOut bytes.Buffer
+	manifest := TransferManifest()
+	gitIndexer := &gitIndexer{}
 
 	// From this point on, git update-index is running. Code in this loop MUST
 	// NOT Panic() or otherwise cause the process to exit. If the process exits
@@ -112,11 +107,7 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 	// locked state.
 
 	// As files come in, write them to the wd and update the index
-
-	manifest := TransferManifest()
-
 	for pointer := range in {
-
 		// Check the content - either missing or still this pointer (not exist is ok)
 		filepointer, err := lfs.DecodePointerFromFile(pointer.Name)
 		if err != nil && !os.IsNotExist(err) {
@@ -147,30 +138,14 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			}
 		}
 
-		if cmd == nil {
-			// Fire up the update-index command
-			cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-			cmd.Stdout = &updateIdxOut
-			cmd.Stderr = &updateIdxOut
-			updateIdxStdin, err = cmd.StdinPipe()
-			if err != nil {
-				Panic(err, "Could not update the index")
-			}
-
-			if err := cmd.Start(); err != nil {
-				Panic(err, "Could not update the index")
-			}
-
+		// errors are only returned when the gitIndexer is starting a new cmd
+		if err := gitIndexer.Add(cwdfilepath); err != nil {
+			Panic(err, "Could not update the index")
 		}
-
-		updateIdxStdin.Write([]byte(cwdfilepath + "\n"))
 	}
 
-	if cmd != nil && updateIdxStdin != nil {
-		updateIdxStdin.Close()
-		if err := cmd.Wait(); err != nil {
-			LoggedError(err, "Error updating the git index:\n%s", updateIdxOut.String())
-		}
+	if err := gitIndexer.Close(); err != nil {
+		LoggedError(err, "Error updating the git index:\n%s", gitIndexer.Output())
 	}
 }
 
@@ -192,4 +167,59 @@ func rootedPaths(args []string) []string {
 
 func init() {
 	RegisterCommand("checkout", checkoutCommand, nil)
+}
+
+// Don't fire up the update-index command until we have at least one file to
+// give it. Otherwise git interprets the lack of arguments to mean param-less update-index
+// which can trigger entire working copy to be re-examined, which triggers clean filters
+// and which has unexpected side effects (e.g. downloading filtered-out files)
+type gitIndexer struct {
+	cmd    *exec.Cmd
+	input  io.WriteCloser
+	output bytes.Buffer
+	mu     sync.Mutex
+}
+
+func (i *gitIndexer) Add(path string) error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if i.cmd == nil {
+		// Fire up the update-index command
+		i.cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
+		i.cmd.Stdout = &i.output
+		i.cmd.Stderr = &i.output
+		stdin, err := i.cmd.StdinPipe()
+		if err == nil {
+			err = i.cmd.Start()
+		}
+
+		if err != nil {
+			return err
+		}
+
+		i.input = stdin
+	}
+
+	i.input.Write([]byte(path + "\n"))
+	return nil
+}
+
+func (i *gitIndexer) Output() string {
+	return i.output.String()
+}
+
+func (i *gitIndexer) Close() error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if i.input != nil {
+		i.input.Close()
+	}
+
+	if i.cmd != nil {
+		return i.cmd.Wait()
+	}
+
+	return nil
 }
