@@ -18,23 +18,7 @@ import (
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
-
-	// Parameters are filters
-	// firstly convert any pathspecs to the root of the repo, in case this is being executed in a sub-folder
-	var rootedpaths []string
-
-	inchan := make(chan string, 1)
-	outchan, err := lfs.ConvertCwdFilesRelativeToRepo(inchan)
-	if err != nil {
-		Panic(err, "Could not checkout")
-	}
-	for _, arg := range args {
-		inchan <- arg
-		rootedpaths = append(rootedpaths, <-outchan)
-	}
-	close(inchan)
-
-	filter := filepathfilter.New(rootedpaths, nil)
+	filter := filepathfilter.New(rootedPaths(args), nil)
 	checkoutWithIncludeExclude(filter)
 }
 
@@ -191,6 +175,25 @@ func checkoutWithChan(in <-chan *lfs.WrappedPointer) {
 			LoggedError(err, "Error updating the git index:\n%s", updateIdxOut.String())
 		}
 	}
+}
+
+// Parameters are filters
+// firstly convert any pathspecs to the root of the repo, in case this is being
+// executed in a sub-folder
+func rootedPaths(args []string) []string {
+	inchan := make(chan string, 1)
+	outchan, err := lfs.ConvertCwdFilesRelativeToRepo(inchan)
+	if err != nil {
+		Panic(err, "Could not checkout")
+	}
+
+	rootedpaths := make([]string, 0, len(args))
+	for _, arg := range args {
+		inchan <- arg
+		rootedpaths = append(rootedpaths, <-outchan)
+	}
+	close(inchan)
+	return rootedpaths
 }
 
 func init() {
