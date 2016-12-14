@@ -4,7 +4,8 @@ VERSION_STRING=$1
 VERSION_ARRAY=( ${VERSION_STRING//./ } )
 VERSION_MAJOR=${VERSION_ARRAY[0]}
 VERSION_MINOR=${VERSION_ARRAY[1]}
-VERSION_PATCH=${VERSION_ARRAY[2]}
+VERSION_PATCH=${VERSION_ARRAY[2]:-0}
+VERSION_BUILD=${VERSION_ARRAY[3]:-0}
 
 # Update the version number git-lfs is reporting.
 sed -i "s,\(Version = \"\).*\(\"\),\1$VERSION_STRING\2," config/version.go
@@ -13,5 +14,8 @@ sed -i "s,\(Version = \"\).*\(\"\),\1$VERSION_STRING\2," config/version.go
 sed -i "s,\(Version:[[:space:]]*\).*,\1$VERSION_STRING," rpm/SPECS/git-lfs.spec
 
 # Update the version numbers in the Windows installer.
-sed -i "s,\(FILEVERSION \).*,\1$VERSION_MAJOR\,$VERSION_MINOR\,$VERSION_PATCH\,0," script/windows-installer/resources.rc
-sed -i "s,\([[:space:]]*VALUE \"ProductVersion\"\, \"\).*\(\\\\0\"\),\1$VERSION_STRING\2," script/windows-installer/resources.rc
+sed -i "s,\(\"Major\": \).*\,,\1$VERSION_MAJOR\,," versioninfo.json
+sed -i "s,\(\"Minor\": \).*\,,\1$VERSION_MINOR\,," versioninfo.json
+sed -i "s,\(\"Patch\": \).*\,,\1$VERSION_PATCH\,," versioninfo.json
+sed -i "s,\(\"Build\": \).*,\1$VERSION_BUILD," versioninfo.json
+sed -i "s,\(\"ProductVersion\": \"\).*\(\"\),\1$VERSION_STRING\2," versioninfo.json
