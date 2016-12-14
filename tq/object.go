@@ -24,6 +24,11 @@ type ObjectError struct {
 }
 
 // NewTransfer creates a new Transfer instance
+//
+// XXX(taylor): note, this function will be removed from the `tq` package's API
+// before landing in master. It is currently used by the smudge operation to
+// download a single file and pass _directly_ to the Adapter, whereas it should
+// use a transferqueue.
 func NewTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
 	t := &Transfer{
 		Name:          name,
