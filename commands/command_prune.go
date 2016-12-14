@@ -150,7 +150,9 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 			if verifyRemote {
 				tracerx.Printf("VERIFYING: %v", file.Oid)
 				pointer := lfs.NewPointer(file.Oid, file.Size, nil)
-				verifyQueue.Add(lfs.NewDownloadable(&lfs.WrappedPointer{Pointer: pointer}))
+
+				d := lfs.NewDownloadable(&lfs.WrappedPointer{Pointer: pointer})
+				verifyQueue.Add(d.Name, d.Path, d.Oid, d.Size)
 			}
 		}
 	}
