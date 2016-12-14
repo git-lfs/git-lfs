@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,8 +15,8 @@ type NopEndpointSource struct {
 	Root string
 }
 
-func (e *NopEndpointSource) Endpoint(op string) config.Endpoint {
-	return config.Endpoint{Url: e.Root}
+func (e *NopEndpointSource) Endpoint(op string) endpoint.Endpoint {
+	return endpoint.Endpoint{Url: e.Root}
 }
 
 var (

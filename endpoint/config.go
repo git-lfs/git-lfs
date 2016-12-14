@@ -2,7 +2,9 @@ package endpoint
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"strings"
 	"sync"
 )
@@ -11,6 +13,64 @@ type Config struct {
 	gitProtocol string
 	aliases     map[string]string
 	aliasMu     sync.Mutex
+}
+
+func NewConfig(git env) *Config {
+	c := &Config{
+		gitProtocol: "https",
+		aliases:     make(map[string]string),
+	}
+
+	if git != nil {
+		if v, ok := git.Get("lfs.gitprotocol"); ok {
+			c.gitProtocol = v
+		}
+		initAliases(c, git)
+	}
+
+	return c
+}
+
+func (c *Config) NewEndpointFromCloneURL(rawurl string) Endpoint {
+	e := c.NewEndpoint(rawurl)
+	if e.Url == UrlUnknown {
+		return e
+	}
+
+	if strings.HasSuffix(rawurl, "/") {
+		e.Url = rawurl[0 : len(rawurl)-1]
+	}
+
+	// When using main remote URL for HTTP, append info/lfs
+	if path.Ext(e.Url) == ".git" {
+		e.Url += "/info/lfs"
+	} else {
+		e.Url += ".git/info/lfs"
+	}
+
+	return e
+}
+
+func (c *Config) NewEndpoint(rawurl string) Endpoint {
+	rawurl = c.ReplaceUrlAlias(rawurl)
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return endpointFromBareSshUrl(rawurl)
+	}
+
+	switch u.Scheme {
+	case "ssh":
+		return endpointFromSshUrl(u)
+	case "http", "https":
+		return endpointFromHttpUrl(u)
+	case "git":
+		return endpointFromGitUrl(u, c)
+	case "":
+		return endpointFromBareSshUrl(u.String())
+	default:
+		// Just passthrough to preserve
+		return Endpoint{Url: rawurl}
+	}
 }
 
 func (c *Config) GitProtocol() string {
@@ -37,23 +97,6 @@ func (c *Config) ReplaceUrlAlias(rawurl string) string {
 	}
 
 	return rawurl
-
-}
-
-func NewConfig(git env) *Config {
-	c := &Config{
-		gitProtocol: "https",
-		aliases:     make(map[string]string),
-	}
-
-	if git != nil {
-		if v, ok := git.Get("lfs.gitprotocol"); ok {
-			c.gitProtocol = v
-		}
-		initAliases(c, git)
-	}
-
-	return c
 }
 
 func initAliases(c *Config, git env) {

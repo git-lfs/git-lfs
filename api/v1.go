@@ -7,6 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/auth"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
 
@@ -129,8 +130,8 @@ func NewBatchRequest(cfg *config.Configuration, operation string) (*http.Request
 	return req, nil
 }
 
-func ObjectUrl(endpoint config.Endpoint, oid string) (*url.URL, error) {
-	u, err := url.Parse(endpoint.Url)
+func ObjectUrl(e endpoint.Endpoint, oid string) (*url.URL, error) {
+	u, err := url.Parse(e.Url)
 	if err != nil {
 		return nil, err
 	}

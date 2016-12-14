@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
@@ -66,11 +67,12 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	config.Config.Git.All()
 
 	// Configure the endpoint manually
-	var endp config.Endpoint
+	var endp endpoint.Endpoint
+	endCfg := endpoint.NewConfig(config.Config.Git)
 	if len(cloneUrl) > 0 {
-		endp = config.NewEndpointFromCloneURL(cloneUrl)
+		endp = endCfg.NewEndpointFromCloneURL(cloneUrl)
 	} else {
-		endp = config.NewEndpoint(apiUrl)
+		endp = endCfg.NewEndpoint(apiUrl)
 	}
 	config.Config.SetManualEndpoint(endp)
 

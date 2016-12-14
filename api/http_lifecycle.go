@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/auth"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/httputil"
 )
 
@@ -26,7 +27,7 @@ var (
 type EndpointSource interface {
 	// Endpoint returns the `config.Endpoint` assosciated with a given
 	// operation.
-	Endpoint(operation string) config.Endpoint
+	Endpoint(operation string) endpoint.Endpoint
 }
 
 // HttpLifecycle serves as the default implementation of the Lifecycle interface

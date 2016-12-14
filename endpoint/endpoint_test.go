@@ -1,4 +1,4 @@
-package config
+package endpoint
 
 import (
 	"testing"
@@ -13,9 +13,9 @@ func TestNewEndpointFromCloneURLWithConfig(t *testing.T) {
 		"https://foo/bar.git/",
 	}
 
-	cfg := New()
+	cfg := NewConfig(nil)
 	for _, actual := range tests {
-		e := NewEndpointFromCloneURLWithConfig(actual, cfg)
+		e := cfg.NewEndpointFromCloneURL(actual)
 		if e.Url != expected {
 			t.Errorf("%s returned bad endpoint url %s", actual, e.Url)
 		}

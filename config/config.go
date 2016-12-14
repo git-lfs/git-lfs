@@ -68,7 +68,7 @@ type Configuration struct {
 	loading        sync.Mutex // guards initialization of gitConfig and remotes
 	remotes        []string
 	extensions     map[string]Extension
-	manualEndpoint *Endpoint
+	manualEndpoint *endpoint.Endpoint
 	parsedNetrc    netrcfinder
 	endpointCfg    *endpoint.Config
 	endpointMu     sync.Mutex
@@ -222,28 +222,28 @@ func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 }
 
 // Manually set an Endpoint to use instead of deriving from Git config
-func (c *Configuration) SetManualEndpoint(e Endpoint) {
+func (c *Configuration) SetManualEndpoint(e endpoint.Endpoint) {
 	c.manualEndpoint = &e
 }
 
-func (c *Configuration) Endpoint(operation string) Endpoint {
+func (c *Configuration) Endpoint(operation string) endpoint.Endpoint {
 	if c.manualEndpoint != nil {
 		return *c.manualEndpoint
 	}
 
 	if operation == "upload" {
 		if url, ok := c.Git.Get("lfs.pushurl"); ok {
-			return NewEndpointWithConfig(url, c)
+			return c.endpointConfig().NewEndpoint(url)
 		}
 	}
 
 	if url, ok := c.Git.Get("lfs.url"); ok {
-		return NewEndpointWithConfig(url, c)
+		return c.endpointConfig().NewEndpoint(url)
 	}
 
 	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if endpoint := c.RemoteEndpoint(c.CurrentRemote, operation); len(endpoint.Url) > 0 {
-			return endpoint
+		if e := c.RemoteEndpoint(c.CurrentRemote, operation); len(e.Url) > 0 {
+			return e
 		}
 	}
 
@@ -324,7 +324,7 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 	c.parsedNetrc = n
 }
 
-func (c *Configuration) EndpointAccess(e Endpoint) string {
+func (c *Configuration) EndpointAccess(e endpoint.Endpoint) string {
 	key := fmt.Sprintf("lfs.%s.access", e.Url)
 	if v, ok := c.Git.Get(key); ok && len(v) > 0 {
 		lower := strings.ToLower(v)
@@ -336,7 +336,7 @@ func (c *Configuration) EndpointAccess(e Endpoint) string {
 	return "none"
 }
 
-func (c *Configuration) SetEndpointAccess(e Endpoint, authType string) {
+func (c *Configuration) SetEndpointAccess(e endpoint.Endpoint, authType string) {
 	c.loadGitConfig()
 
 	tracerx.Printf("setting repository access to %s", authType)
@@ -364,7 +364,7 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
-func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
+func (c *Configuration) RemoteEndpoint(remote, operation string) endpoint.Endpoint {
 	if len(remote) == 0 {
 		remote = defaultRemote
 	}
@@ -372,19 +372,19 @@ func (c *Configuration) RemoteEndpoint(remote, operation string) Endpoint {
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
 		if url, ok := c.Git.Get("remote." + remote + ".lfspushurl"); ok {
-			return NewEndpointWithConfig(url, c)
+			return c.endpointConfig().NewEndpoint(url)
 		}
 	}
 	if url, ok := c.Git.Get("remote." + remote + ".lfsurl"); ok {
-		return NewEndpointWithConfig(url, c)
+		return c.endpointConfig().NewEndpoint(url)
 	}
 
 	// finally fall back on git remote url (also supports pushurl)
 	if url := c.GitRemoteUrl(remote, operation == "upload"); url != "" {
-		return NewEndpointFromCloneURLWithConfig(url, c)
+		return c.endpointConfig().NewEndpointFromCloneURL(url)
 	}
 
-	return Endpoint{}
+	return endpoint.Endpoint{}
 }
 
 func (c *Configuration) Remotes() []string {
