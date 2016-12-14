@@ -71,6 +71,33 @@ func (k *Store) Remove(key string) {
 	k.logChange(removeOperation, key, nil)
 }
 
+// RemoveAll removes all entries from the store
+// These changes are not persisted until you call Save()
+func (k *Store) RemoveAll() {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
+	// Log all changes
+	for key, _ := range k.db {
+		k.logChange(removeOperation, key, nil)
+	}
+	k.db = make(map[string]interface{})
+}
+
+// Visit walks through the entire store via a function; return false from
+// your visitor function to halt the walk
+func (k *Store) Visit(cb func(string, interface{}) bool) {
+	// Read-only lock
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+
+	for k, v := range k.db {
+		if !cb(k, v) {
+			break
+		}
+	}
+}
+
 // Append a change to the log; mutex must already be locked
 func (k *Store) logChange(op operation, key string, value interface{}) {
 	k.log = append(k.log, change{op, key, value})

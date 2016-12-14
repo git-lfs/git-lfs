@@ -66,6 +66,29 @@ func TestStoreSimple(t *testing.T) {
 	n = kvs2.Get("noValue")
 	assert.Nil(t, n)
 
+	// Test remove all
+	kvs2.RemoveAll()
+	s = kvs2.Get("stringVal")
+	assert.Nil(t, s)
+	i = kvs2.Get("intVal")
+	assert.Nil(t, i)
+	f = kvs2.Get("floatVal")
+	assert.Nil(t, f)
+	c = kvs2.Get("structVal")
+	assert.Nil(t, c)
+
+	err = kvs2.Save()
+	assert.Nil(t, err)
+	kvs2 = nil
+
+	// Now confirm that we can read blank & get nothing
+	kvs, err = NewStore(filename)
+	kvs.Visit(func(k string, v interface{}) bool {
+		// Should not be called
+		assert.Fail(t, "Should be no entries")
+		return true
+	})
+
 }
 
 func TestStoreOptimisticConflict(t *testing.T) {

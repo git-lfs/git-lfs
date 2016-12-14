@@ -30,6 +30,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
 	}
+	defer lockClient.Close()
 	if len(args) != 0 {
 		path, err := lockPath(args[0])
 		if err != nil {
