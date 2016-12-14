@@ -7,9 +7,14 @@ import (
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/git-lfs/git-lfs/git"
 )
 
+const defaultRemote = "origin"
+
 type Config struct {
+	git         env
 	gitProtocol string
 	aliases     map[string]string
 	aliasMu     sync.Mutex
@@ -22,6 +27,7 @@ func NewConfig(git env) *Config {
 	}
 
 	if git != nil {
+		c.git = git
 		if v, ok := git.Get("lfs.gitprotocol"); ok {
 			c.gitProtocol = v
 		}
@@ -29,6 +35,77 @@ func NewConfig(git env) *Config {
 	}
 
 	return c
+}
+
+func (c *Config) Endpoint(operation, remote string) Endpoint {
+	if c.git == nil {
+		return Endpoint{}
+	}
+
+	if operation == "upload" {
+		if url, ok := c.git.Get("lfs.pushurl"); ok {
+			return c.NewEndpoint(url)
+		}
+	}
+
+	if url, ok := c.git.Get("lfs.url"); ok {
+		return c.NewEndpoint(url)
+	}
+
+	if len(remote) > 0 && remote != defaultRemote {
+		if e := c.RemoteEndpoint(operation, remote); len(e.Url) > 0 {
+			return e
+		}
+	}
+
+	return c.RemoteEndpoint(operation, defaultRemote)
+}
+
+func (c *Config) RemoteEndpoint(operation, remote string) Endpoint {
+	if c.git == nil {
+		return Endpoint{}
+	}
+
+	if len(remote) == 0 {
+		remote = defaultRemote
+	}
+
+	// Support separate push URL if specified and pushing
+	if operation == "upload" {
+		if url, ok := c.git.Get("remote." + remote + ".lfspushurl"); ok {
+			return c.NewEndpoint(url)
+		}
+	}
+	if url, ok := c.git.Get("remote." + remote + ".lfsurl"); ok {
+		return c.NewEndpoint(url)
+	}
+
+	// finally fall back on git remote url (also supports pushurl)
+	if url := c.GitRemoteURL(remote, operation == "upload"); url != "" {
+		return c.NewEndpointFromCloneURL(url)
+	}
+
+	return Endpoint{}
+}
+
+func (c *Config) GitRemoteURL(remote string, forpush bool) string {
+	if c.git != nil {
+		if forpush {
+			if u, ok := c.git.Get("remote." + remote + ".pushurl"); ok {
+				return u
+			}
+		}
+
+		if u, ok := c.git.Get("remote." + remote + ".url"); ok {
+			return u
+		}
+	}
+
+	if err := git.ValidateRemote(remote); err == nil {
+		return remote
+	}
+
+	return ""
 }
 
 func (c *Config) NewEndpointFromCloneURL(rawurl string) Endpoint {

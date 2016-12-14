@@ -203,22 +203,7 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environ
 // GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
 // the forpush argument is to cater for separate remote.name.pushurl settings
 func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
-	if forpush {
-		if u, ok := c.Git.Get("remote." + remote + ".pushurl"); ok {
-			return u
-		}
-	}
-
-	if u, ok := c.Git.Get("remote." + remote + ".url"); ok {
-		return u
-	}
-
-	if err := git.ValidateRemote(remote); err == nil {
-		return remote
-	}
-
-	return ""
-
+	return c.endpointConfig().GitRemoteURL(remote, forpush)
 }
 
 // Manually set an Endpoint to use instead of deriving from Git config
@@ -230,24 +215,7 @@ func (c *Configuration) Endpoint(operation string) endpoint.Endpoint {
 	if c.manualEndpoint != nil {
 		return *c.manualEndpoint
 	}
-
-	if operation == "upload" {
-		if url, ok := c.Git.Get("lfs.pushurl"); ok {
-			return c.endpointConfig().NewEndpoint(url)
-		}
-	}
-
-	if url, ok := c.Git.Get("lfs.url"); ok {
-		return c.endpointConfig().NewEndpoint(url)
-	}
-
-	if len(c.CurrentRemote) > 0 && c.CurrentRemote != defaultRemote {
-		if e := c.RemoteEndpoint(c.CurrentRemote, operation); len(e.Url) > 0 {
-			return e
-		}
-	}
-
-	return c.RemoteEndpoint(defaultRemote, operation)
+	return c.endpointConfig().Endpoint(operation, c.CurrentRemote)
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
@@ -365,26 +333,7 @@ func (c *Configuration) FetchExcludePaths() []string {
 }
 
 func (c *Configuration) RemoteEndpoint(remote, operation string) endpoint.Endpoint {
-	if len(remote) == 0 {
-		remote = defaultRemote
-	}
-
-	// Support separate push URL if specified and pushing
-	if operation == "upload" {
-		if url, ok := c.Git.Get("remote." + remote + ".lfspushurl"); ok {
-			return c.endpointConfig().NewEndpoint(url)
-		}
-	}
-	if url, ok := c.Git.Get("remote." + remote + ".lfsurl"); ok {
-		return c.endpointConfig().NewEndpoint(url)
-	}
-
-	// finally fall back on git remote url (also supports pushurl)
-	if url := c.GitRemoteUrl(remote, operation == "upload"); url != "" {
-		return c.endpointConfig().NewEndpointFromCloneURL(url)
-	}
-
-	return endpoint.Endpoint{}
+	return c.endpointConfig().RemoteEndpoint(operation, remote)
 }
 
 func (c *Configuration) Remotes() []string {
