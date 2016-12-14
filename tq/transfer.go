@@ -2,8 +2,6 @@
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package tq
 
-import "github.com/git-lfs/git-lfs/api"
-
 type Direction int
 
 const (
@@ -54,22 +52,6 @@ type Adapter interface {
 	// ClearTempStorage clears any temporary files, such as unfinished downloads that
 	// would otherwise be resumed
 	ClearTempStorage() error
-}
-
-// General struct for both uploads and downloads
-type Transfer struct {
-	// Name of the file that triggered this transfer
-	Name string
-	// Object from API which provides the core data for this transfer
-	Object *api.ObjectResource
-	// Path for uploads is the source of data to send, for downloads is the
-	// location to place the final result
-	Path string
-}
-
-// NewTransfer creates a new Transfer instance
-func NewTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
-	return &Transfer{name, obj, path}
 }
 
 // Result of a transfer returned through CompletionChannel()

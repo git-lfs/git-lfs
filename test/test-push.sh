@@ -507,7 +507,7 @@ begin_test "push (retry with expired actions)"
 
   GIT_TRACE=1 git push origin master 2>&1 | tee push.log
 
-  [ "1" -eq "$(grep -c "expired, retrying..." push.log)" ]
+  [ "1" -eq "$(grep -c "enqueue retry" push.log)" ]
   grep "(1 of 1 files)" push.log
 )
 end_test

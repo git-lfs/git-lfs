@@ -3,17 +3,8 @@ package tq
 import (
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
-)
-
-const (
-	// objectExpirationToTransfer is the duration we expect to have passed
-	// from the time that the object's expires_at property is checked to
-	// when the transfer is executed.
-	objectExpirationToTransfer = 5 * time.Second
 )
 
 // adapterBase implements the common functionality for core adapters which
@@ -156,27 +147,12 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 				signalAuthOnResponse = false
 			}
 		}
-		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Object.Oid)
-
-		// transferTime is the time that we are to compare the transfer's
-		// `expired_at` property against.
-		//
-		// We add the `objectExpirationToTransfer` since there will be
-		// some time lost from this comparison to the time we actually
-		// transfer the object
-		transferTime := time.Now().Add(objectExpirationToTransfer)
+		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Oid)
 
 		// Actual transfer happens here
 		var err error
-		if expAt, expired := t.Object.IsExpired(transferTime); expired {
-			tracerx.Printf("xfer: adapter %q worker %d found job for %q expired, retrying...", a.Name(), workerNum, t.Object.Oid)
-			err = errors.NewRetriableError(errors.Errorf(
-				"lfs/transfer: object %q expires at %s",
-				t.Object.Oid, expAt.In(time.Local).Format(time.RFC822),
-			))
-		} else if t.Object.Size < 0 {
-			tracerx.Printf("xfer: adapter %q worker %d found invalid size for %q (got: %d), retrying...", a.Name(), workerNum, t.Object.Oid, t.Object.Size)
-			err = fmt.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Object.Oid, t.Object.Size)
+		if t.Size < 0 {
+			err = fmt.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
 		} else {
 			err = a.transferImpl.DoTransfer(ctx, t, a.cb, authCallback)
 		}
@@ -184,7 +160,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		// Mark the job as completed, and alter all listeners
 		job.Done(err)
 
-		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Object.Oid)
+		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Oid)
 	}
 	// This will only happen if no jobs were submitted; just wake up all workers to finish
 	if signalAuthOnResponse {
@@ -203,10 +179,10 @@ func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {
 			remainder := numBytes - read
 			if remainder > int64(maxInt) {
 				read += int64(maxInt)
-				cb(t.Name, t.Object.Size, read, maxInt)
+				cb(t.Name, t.Size, read, maxInt)
 			} else {
 				read += remainder
-				cb(t.Name, t.Object.Size, read, int(remainder))
+				cb(t.Name, t.Size, read, int(remainder))
 			}
 
 		}
