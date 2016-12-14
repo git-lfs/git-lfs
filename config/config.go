@@ -5,7 +5,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
+	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -70,21 +70,14 @@ type Configuration struct {
 	extensions     map[string]Extension
 	manualEndpoint *Endpoint
 	parsedNetrc    netrcfinder
-	urlAliasesMap  map[string]string
-	urlAliasMu     sync.Mutex
+	endpointCfg    *endpoint.Config
+	endpointMu     sync.Mutex
 }
 
 func New() *Configuration {
-	c := &Configuration{
-		Os:            EnvironmentOf(NewOsFetcher()),
-		CurrentRemote: defaultRemote,
-		envVars:       make(map[string]string),
-	}
-
+	c := &Configuration{Os: EnvironmentOf(NewOsFetcher())}
 	c.Git = &gitEnvironment{config: c}
-	c.IsTracingHttp = c.Os.Bool("GIT_CURL_VERBOSE", false)
-	c.IsDebuggingHttp = c.Os.Bool("LFS_DEBUG_HTTP", false)
-	c.IsLoggingStats = c.Os.Bool("GIT_LOG_STATS", false)
+	initConfig(c)
 	return c
 }
 
@@ -103,12 +96,20 @@ type Values struct {
 //
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
-	return &Configuration{
+	c := &Configuration{
 		Os:  EnvironmentOf(mapFetcher(v.Os)),
 		Git: EnvironmentOf(mapFetcher(v.Git)),
-
-		envVars: make(map[string]string, 0),
 	}
+	initConfig(c)
+	return c
+}
+
+func initConfig(c *Configuration) {
+	c.CurrentRemote = defaultRemote
+	c.envVars = make(map[string]string)
+	c.IsTracingHttp = c.Os.Bool("GIT_CURL_VERBOSE", false)
+	c.IsDebuggingHttp = c.Os.Bool("LFS_DEBUG_HTTP", false)
+	c.IsLoggingStats = c.Os.Bool("GIT_LOG_STATS", false)
 }
 
 // Unmarshal unmarshals the *Configuration in context into all of `v`'s fields,
@@ -412,48 +413,18 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
 }
 
-func (c *Configuration) urlAliases() map[string]string {
-	c.urlAliasMu.Lock()
-	defer c.urlAliasMu.Unlock()
-
-	if c.urlAliasesMap == nil {
-		c.urlAliasesMap = make(map[string]string)
-		prefix := "url."
-		suffix := ".insteadof"
-		for gitkey, gitval := range c.Git.All() {
-			if strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix) {
-				if _, ok := c.urlAliasesMap[gitval]; ok {
-					fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
-				}
-				c.urlAliasesMap[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
-			}
-		}
-	}
-
-	return c.urlAliasesMap
-}
-
 // ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
 // config setting. If multiple aliases match, use the longest one.
 // See https://git-scm.com/docs/git-config for Git's docs.
 func (c *Configuration) ReplaceUrlAlias(rawurl string) string {
-	var longestalias string
-	aliases := c.urlAliases()
-	for alias, _ := range aliases {
-		if !strings.HasPrefix(rawurl, alias) {
-			continue
-		}
+	c.endpointMu.Lock()
+	defer c.endpointMu.Unlock()
 
-		if longestalias < alias {
-			longestalias = alias
-		}
+	if c.endpointCfg == nil {
+		c.endpointCfg = endpoint.NewConfig(c.Git)
 	}
 
-	if len(longestalias) > 0 {
-		return aliases[longestalias] + rawurl[len(longestalias):]
-	}
-
-	return rawurl
+	return c.endpointCfg.ReplaceUrlAlias(rawurl)
 }
 
 func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
