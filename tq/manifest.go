@@ -3,33 +3,72 @@ package tq
 import (
 	"sync"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
 )
 
+const (
+	defaultMaxRetries          = 1
+	defaultConcurrentTransfers = 3
+)
+
 type Manifest struct {
+	// MaxRetries is the maximum number of retries a single object can
+	// attempt to make before it will be dropped.
+	maxRetries           int
+	concurrentTransfers  int
 	basicTransfersOnly   bool
+	tusTransfersAllowed  bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
 	mu                   sync.Mutex
 }
 
+func (m *Manifest) MaxRetries() int {
+	return m.maxRetries
+}
+
+func (m *Manifest) ConcurrentTransfers() int {
+	return m.concurrentTransfers
+}
+
 func NewManifest() *Manifest {
-	return &Manifest{
+	return NewManifestWithGitEnv("", nil)
+}
+
+func NewManifestWithGitEnv(access string, git Env) *Manifest {
+	m := &Manifest{
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
-}
 
-func ConfigureManifest(m *Manifest, cfg *config.Configuration) *Manifest {
-	m.basicTransfersOnly = cfg.BasicTransfersOnly()
+	var tusAllowed bool
+	if git != nil {
+		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
+			m.maxRetries = v
+		}
+		if v := git.Int("lfs.concurrenttransfers", 0); v > 0 {
+			m.concurrentTransfers = v
+		}
+		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
+		tusAllowed = git.Bool("lfs.tustransfers", false)
+		configureCustomAdapters(git, m)
+	}
+
+	if m.maxRetries < 1 {
+		m.maxRetries = defaultMaxRetries
+	}
+
+	if access == "ntlm" {
+		m.concurrentTransfers = 1
+	} else if m.concurrentTransfers < 1 {
+		m.concurrentTransfers = defaultConcurrentTransfers
+	}
 
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
-	if cfg.TusTransfersAllowed() {
+	if tusAllowed {
 		configureTusAdapter(m)
 	}
-	configureCustomAdapters(cfg, m)
 	return m
 }
 
@@ -125,4 +164,12 @@ func (m *Manifest) NewDownloadAdapter(name string) Adapter {
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func (m *Manifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
+}
+
+// Env is any object with a config.Environment interface.
+type Env interface {
+	Get(key string) (val string, ok bool)
+	Bool(key string, def bool) (val bool)
+	Int(key string, def int) (val int)
+	All() map[string]string
 }
