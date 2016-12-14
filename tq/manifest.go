@@ -40,13 +40,8 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
-	initManifest(m, access, git)
-	return m
-}
 
-func initManifest(m *Manifest, access string, git Env) {
 	var tusAllowed bool
-
 	if git != nil {
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
@@ -74,6 +69,7 @@ func initManifest(m *Manifest, access string, git Env) {
 	if tusAllowed {
 		configureTusAdapter(m)
 	}
+	return m
 }
 
 // GetAdapterNames returns a list of the names of adapters available to be created
