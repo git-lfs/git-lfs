@@ -132,18 +132,6 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 	return pointers, multiErr
 }
 
-func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
-	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref, filter)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-
-	go fetchAndReportToChan(pointers, filter, c)
-
-	return c
-}
-
 // Fetch all binaries for a given ref (that we don't have already)
 func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 	pointers, err := pointersToFetchForRef(ref, filter)
