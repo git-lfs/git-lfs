@@ -44,7 +44,27 @@ var (
 // TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.
 func TransferManifest() *tq.Manifest {
-	return tq.ConfigureManifest(tq.NewManifest(), cfg)
+	return lfs.TransferManifest(cfg)
+}
+
+// newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
+func newDownloadCheckQueue(options ...tq.Option) *tq.TransferQueue {
+	return lfs.NewDownloadCheckQueue(cfg, options...)
+}
+
+// newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
+func newDownloadQueue(options ...tq.Option) *tq.TransferQueue {
+	return lfs.NewDownloadQueue(cfg, options...)
+}
+
+// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func newUploadQueue(options ...tq.Option) *tq.TransferQueue {
+	return lfs.NewUploadQueue(cfg, options...)
+}
+
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+	return filepathfilter.New(inc, exc)
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -240,11 +260,6 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
-}
-
-func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
-	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
-	return filepathfilter.New(inc, exc)
 }
 
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {

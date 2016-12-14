@@ -66,11 +66,6 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil
 }
 
-// NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func NewUploadQueue(options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Upload, options...)
-}
-
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
 // does not exist, it attempts to clean it by reading the file at smudgePath.
 func ensureFile(smudgePath, cleanPath string) error {
@@ -106,4 +101,9 @@ func ensureFile(smudgePath, cleanPath string) error {
 	}
 
 	return nil
+}
+
+// NewUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func NewUploadQueue(cfg *config.Configuration, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, TransferManifest(cfg), options...)
 }
