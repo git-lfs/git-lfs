@@ -37,9 +37,10 @@ func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, ok := t.Object.Rel("upload")
-	if !ok {
-		return fmt.Errorf("No upload action for this object.")
+	rel, err := t.Actions.Get("upload")
+	if err != nil {
+		return err
+		// return fmt.Errorf("No upload action for this object.")
 	}
 
 	// Note not supporting the Creation extension since the batch API generates URLs
@@ -47,7 +48,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	// 1. Send HEAD request to determine upload start point
 	//    Request must include Tus-Resumable header (version)
-	tracerx.Printf("xfer: sending tus.io HEAD request for %q", t.Object.Oid)
+	tracerx.Printf("xfer: sending tus.io HEAD request for %q", t.Oid)
 	req, err := httputil.NewHttpRequest("HEAD", rel.Href, rel.Header)
 	if err != nil {
 		return err
@@ -69,9 +70,9 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	}
 	// Upload-Offset=size means already completed (skip)
 	// Batch API will probably already detect this, but handle just in case
-	if offset >= t.Object.Size {
-		tracerx.Printf("xfer: tus.io HEAD offset %d indicates %q is already fully uploaded, skipping", offset, t.Object.Oid)
-		advanceCallbackProgress(cb, t, t.Object.Size)
+	if offset >= t.Size {
+		tracerx.Printf("xfer: tus.io HEAD offset %d indicates %q is already fully uploaded, skipping", offset, t.Oid)
+		advanceCallbackProgress(cb, t, t.Size)
 		return nil
 	}
 
@@ -84,9 +85,9 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	// Upload-Offset=0 means start from scratch, but still send PATCH
 	if offset == 0 {
-		tracerx.Printf("xfer: tus.io uploading %q from start", t.Object.Oid)
+		tracerx.Printf("xfer: tus.io uploading %q from start", t.Oid)
 	} else {
-		tracerx.Printf("xfer: tus.io resuming upload %q from %d", t.Object.Oid, offset)
+		tracerx.Printf("xfer: tus.io resuming upload %q from %d", t.Oid, offset)
 		advanceCallbackProgress(cb, t, offset)
 		_, err := f.Seek(offset, os.SEEK_CUR)
 		if err != nil {
@@ -99,7 +100,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	//    Response Upload-Offset must be request Upload-Offset plus sent bytes
 	//    Response may include Upload-Expires header in which case check not passed
 
-	tracerx.Printf("xfer: sending tus.io PATCH request for %q", t.Object.Oid)
+	tracerx.Printf("xfer: sending tus.io PATCH request for %q", t.Oid)
 	req, err = httputil.NewHttpRequest("PATCH", rel.Href, rel.Header)
 	if err != nil {
 		return err
@@ -107,8 +108,8 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	req.Header.Set("Tus-Resumable", TusVersion)
 	req.Header.Set("Upload-Offset", strconv.FormatInt(offset, 10))
 	req.Header.Set("Content-Type", "application/offset+octet-stream")
-	req.Header.Set("Content-Length", strconv.FormatInt(t.Object.Size-offset, 10))
-	req.ContentLength = t.Object.Size - offset
+	req.Header.Set("Content-Length", strconv.FormatInt(t.Size-offset, 10))
+	req.ContentLength = t.Size - offset
 
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
@@ -121,7 +122,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	var reader io.Reader
 	reader = &progress.CallbackReader{
 		C:         ccb,
-		TotalSize: t.Object.Size,
+		TotalSize: t.Size,
 		Reader:    f,
 	}
 
@@ -154,7 +155,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(config.Config, t.Object)
+	return api.VerifyUpload(config.Config, toApiObject(t))
 }
 
 func configureTusAdapter(m *Manifest) {

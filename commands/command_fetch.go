@@ -326,7 +326,9 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 
 	for _, p := range pointers {
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
-		q.Add(lfs.NewDownloadable(p))
+
+		d := lfs.NewDownloadable(p)
+		q.Add(d.Name, d.Path, d.Oid, d.Size)
 	}
 
 	processQueue := time.Now()

@@ -1,43 +1,19 @@
 package lfs
 
 import (
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/tq"
 )
 
-type Downloadable struct {
-	pointer *WrappedPointer
-	object  *api.ObjectResource
-}
+func NewDownloadable(p *WrappedPointer) *tq.Transfer {
+	path, _ := LocalMediaPath(p.Oid)
 
-func (d *Downloadable) Object() *api.ObjectResource {
-	return d.object
-}
-
-func (d *Downloadable) Oid() string {
-	return d.pointer.Oid
-}
-
-func (d *Downloadable) Size() int64 {
-	return d.pointer.Size
-}
-
-func (d *Downloadable) Name() string {
-	return d.pointer.Name
-}
-
-func (d *Downloadable) Path() string {
-	p, _ := LocalMediaPath(d.pointer.Oid)
-	return p
-}
-
-func (d *Downloadable) SetObject(o *api.ObjectResource) {
-	d.object = o
-}
-
-func NewDownloadable(p *WrappedPointer) *Downloadable {
-	return &Downloadable{pointer: p}
+	return &tq.Transfer{
+		Oid:  p.Oid,
+		Size: p.Size,
+		Name: p.Name,
+		Path: path,
+	}
 }
 
 // NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download

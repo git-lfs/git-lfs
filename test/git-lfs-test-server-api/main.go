@@ -167,7 +167,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		uploadQueue.Add(u)
+		uploadQueue.Add(u.Name, u.Path, u.Oid, u.Size)
 	}
 	uploadQueue.Wait()
 

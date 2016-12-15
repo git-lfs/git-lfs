@@ -5,48 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tq"
 )
 
-// Uploadable describes a file that can be uploaded.
-type Uploadable struct {
-	oid      string
-	OidPath  string
-	Filename string
-	size     int64
-	object   *api.ObjectResource
-}
-
-func (u *Uploadable) Object() *api.ObjectResource {
-	return u.object
-}
-
-func (u *Uploadable) Oid() string {
-	return u.oid
-}
-
-func (u *Uploadable) Size() int64 {
-	return u.size
-}
-
-func (u *Uploadable) Name() string {
-	return u.Filename
-}
-
-func (u *Uploadable) SetObject(o *api.ObjectResource) {
-	u.object = o
-}
-
-func (u *Uploadable) Path() string {
-	return u.OidPath
-}
-
 // NewUploadable builds the Uploadable from the given information.
 // "filename" can be empty if a raw object is pushed (see "object-id" flag in push command)/
-func NewUploadable(oid, filename string) (*Uploadable, error) {
+func NewUploadable(oid, filename string) (*tq.Transfer, error) {
 	localMediaPath, err := LocalMediaPath(oid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
@@ -63,7 +29,12 @@ func NewUploadable(oid, filename string) (*Uploadable, error) {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	return &Uploadable{oid: oid, OidPath: localMediaPath, Filename: filename, size: fi.Size()}, nil
+	return &tq.Transfer{
+		Name: filename,
+		Oid:  oid,
+		Size: fi.Size(),
+		Path: localMediaPath,
+	}, nil
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it

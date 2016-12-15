@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -74,17 +73,17 @@ func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers
 }
 
 type customAdapterTransferRequest struct { // common between upload/download
-	Event  string            `json:"event"`
-	Oid    string            `json:"oid"`
-	Size   int64             `json:"size"`
-	Path   string            `json:"path,omitempty"`
-	Action *api.LinkRelation `json:"action"`
+	Event  string  `json:"event"`
+	Oid    string  `json:"oid"`
+	Size   int64   `json:"size"`
+	Path   string  `json:"path,omitempty"`
+	Action *Action `json:"action"`
 }
 
-func NewCustomAdapterUploadRequest(oid string, size int64, path string, action *api.LinkRelation) *customAdapterTransferRequest {
+func NewCustomAdapterUploadRequest(oid string, size int64, path string, action *Action) *customAdapterTransferRequest {
 	return &customAdapterTransferRequest{"upload", oid, size, path, action}
 }
-func NewCustomAdapterDownloadRequest(oid string, size int64, action *api.LinkRelation) *customAdapterTransferRequest {
+func NewCustomAdapterDownloadRequest(oid string, size int64, action *Action) *customAdapterTransferRequest {
 	return &customAdapterTransferRequest{"download", oid, size, "", action}
 }
 
@@ -98,12 +97,12 @@ func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
 
 // A common struct that allows all types of response to be identified
 type customAdapterResponseMessage struct {
-	Event          string           `json:"event"`
-	Error          *api.ObjectError `json:"error"`
-	Oid            string           `json:"oid"`
-	Path           string           `json:"path,omitempty"` // always blank for upload
-	BytesSoFar     int64            `json:"bytesSoFar"`
-	BytesSinceLast int              `json:"bytesSinceLast"`
+	Event          string       `json:"event"`
+	Error          *ObjectError `json:"error"`
+	Oid            string       `json:"oid"`
+	Path           string       `json:"path,omitempty"` // always blank for upload
+	BytesSoFar     int64        `json:"bytesSoFar"`
+	BytesSinceLast int          `json:"bytesSinceLast"`
 }
 
 func (a *customAdapter) Begin(maxConcurrency int, cb ProgressCallback) error {
@@ -268,18 +267,18 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	}
 	var authCalled bool
 
-	rel, ok := t.Object.Rel(a.getOperationName())
-	if !ok {
-		return errors.New("Object not found on the server.")
+	rel, err := t.Actions.Get(a.getOperationName())
+	if err != nil {
+		return err
+		// return errors.New("Object not found on the server.")
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
-		req = NewCustomAdapterUploadRequest(t.Object.Oid, t.Object.Size, t.Path, rel)
+		req = NewCustomAdapterUploadRequest(t.Oid, t.Size, t.Path, rel)
 	} else {
-		req = NewCustomAdapterDownloadRequest(t.Object.Oid, t.Object.Size, rel)
+		req = NewCustomAdapterDownloadRequest(t.Oid, t.Size, rel)
 	}
-	err := a.sendMessage(customCtx, req)
-	if err != nil {
+	if err = a.sendMessage(customCtx, req); err != nil {
 		return err
 	}
 
@@ -294,24 +293,24 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 		switch resp.Event {
 		case "progress":
 			// Progress
-			if resp.Oid != t.Object.Oid {
-				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
+			if resp.Oid != t.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
 			}
 			if cb != nil {
-				cb(t.Name, t.Object.Size, resp.BytesSoFar, resp.BytesSinceLast)
+				cb(t.Name, t.Size, resp.BytesSoFar, resp.BytesSinceLast)
 			}
 			wasAuthOk = resp.BytesSoFar > 0
 		case "complete":
 			// Download/Upload complete
-			if resp.Oid != t.Object.Oid {
-				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
+			if resp.Oid != t.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
 			}
 			if resp.Error != nil {
-				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, resp.Error)
+				return fmt.Errorf("Error transferring %q: %v", t.Oid, resp.Error)
 			}
 			if a.direction == Download {
 				// So we don't have to blindly trust external providers, check SHA
-				if err = tools.VerifyFileHash(t.Object.Oid, resp.Path); err != nil {
+				if err = tools.VerifyFileHash(t.Oid, resp.Path); err != nil {
 					return fmt.Errorf("Downloaded file failed checks: %v", err)
 				}
 				// Move file to final location
@@ -319,7 +318,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				if err = api.VerifyUpload(config.Config, t.Object); err != nil {
+				if err = api.VerifyUpload(config.Config, toApiObject(t)); err != nil {
 					return err
 				}
 			}
