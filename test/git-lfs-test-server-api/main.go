@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -163,11 +164,11 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
-		u, err := lfs.NewUploadable(f.Oid, "Test file")
+		t, err := uploadTransfer(f.Oid, "Test file")
 		if err != nil {
 			return nil, nil, err
 		}
-		uploadQueue.Add(u.Name, u.Path, u.Oid, u.Size)
+		uploadQueue.Add(t.Name, t.Path, t.Oid, t.Size)
 	}
 	uploadQueue.Wait()
 
@@ -283,6 +284,68 @@ func interleaveTestData(slice1, slice2 []TestObject) []TestObject {
 		}
 	}
 	return ret
+}
+
+func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
+	localMediaPath, err := lfs.LocalMediaPath(oid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	if len(filename) > 0 {
+		if err = ensureFile(filename, localMediaPath); err != nil {
+			return nil, err
+		}
+	}
+
+	fi, err := os.Stat(localMediaPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	return &tq.Transfer{
+		Name: filename,
+		Path: localMediaPath,
+		Oid:  oid,
+		Size: fi.Size(),
+	}, nil
+}
+
+// ensureFile makes sure that the cleanPath exists before pushing it.  If it
+// does not exist, it attempts to clean it by reading the file at smudgePath.
+func ensureFile(smudgePath, cleanPath string) error {
+	if _, err := os.Stat(cleanPath); err == nil {
+		return nil
+	}
+
+	expectedOid := filepath.Base(cleanPath)
+	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
+	file, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
+	if cleaned != nil {
+		cleaned.Teardown()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if expectedOid != cleaned.Oid {
+		return fmt.Errorf("Trying to push %q with OID %s.\nNot found in %s.", smudgePath, expectedOid, filepath.Dir(cleanPath))
+	}
+
+	return nil
 }
 
 func init() {

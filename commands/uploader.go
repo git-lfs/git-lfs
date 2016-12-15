@@ -140,7 +140,7 @@ func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 
 	q, pointers := c.prepareUpload(unfiltered)
 	for _, p := range pointers {
-		u, err := lfs.NewUploadable(p.Oid, p.Name)
+		t, err := uploadTransfer(p.Oid, p.Name)
 		if err != nil {
 			if errors.IsCleanPointerError(err) {
 				Exit(uploadMissingErr, p.Oid, p.Name, errors.GetContext(err, "pointer").(*lfs.Pointer).Oid)
@@ -149,7 +149,7 @@ func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 			}
 		}
 
-		q.Add(u.Name, u.Path, u.Oid, u.Size)
+		q.Add(t.Name, t.Path, t.Oid, t.Size)
 		c.SetUploaded(p.Oid)
 	}
 
