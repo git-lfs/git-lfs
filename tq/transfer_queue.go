@@ -336,7 +336,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 			q.Skip(o.Size)
 			q.wait.Done()
 		} else {
-			tr := NewTransfer(t.Name, o, t.Path)
+			tr := newTransfer(t.Name, o, t.Path)
 
 			if _, err := tr.Actions.Get(q.transferKind()); err != nil {
 				// XXX(taylor): duplication
