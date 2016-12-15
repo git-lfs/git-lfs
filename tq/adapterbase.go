@@ -60,9 +60,10 @@ func (a *adapterBase) Direction() Direction {
 	return a.direction
 }
 
-func (a *adapterBase) Begin(maxConcurrency int, cb ProgressCallback) error {
+func (a *adapterBase) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	a.cb = cb
 	a.jobChan = make(chan *job, 100)
+	maxConcurrency := cfg.ConcurrentTransfers()
 
 	tracerx.Printf("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
 

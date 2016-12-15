@@ -72,6 +72,14 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	return nil
 }
 
+type tempAdapterConfig struct {
+	concurrentTransfers int
+}
+
+func (c tempAdapterConfig) ConcurrentTransfers() int {
+	return c.concurrentTransfers
+}
+
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
@@ -93,7 +101,7 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		}
 	}
 	// Single download
-	err = adapter.Begin(1, tcb)
+	err = adapter.Begin(tempAdapterConfig{concurrentTransfers: 1}, tcb)
 	if err != nil {
 		return err
 	}

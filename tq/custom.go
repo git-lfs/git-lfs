@@ -105,18 +105,16 @@ type customAdapterResponseMessage struct {
 	BytesSinceLast int          `json:"bytesSinceLast"`
 }
 
-func (a *customAdapter) Begin(maxConcurrency int, cb ProgressCallback) error {
-	// If config says not to launch multiple processes, downgrade incoming value
-	useConcurrency := maxConcurrency
-	if !a.concurrent {
-		useConcurrency = 1
+func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
+	a.originalConcurrency = cfg.ConcurrentTransfers()
+	if a.concurrent {
+		// Use common workers impl, but downgrade workers to number of processes
+		return a.adapterBase.Begin(cfg, cb)
 	}
-	a.originalConcurrency = maxConcurrency
 
-	tracerx.Printf("xfer: Custom transfer adapter %q using concurrency %d", a.name, useConcurrency)
-
-	// Use common workers impl, but downgrade workers to number of processes
-	return a.adapterBase.Begin(useConcurrency, cb)
+	// If config says not to launch multiple processes, downgrade incoming value
+	newCfg := &Manifest{concurrentTransfers: 1}
+	return a.adapterBase.Begin(newCfg, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {

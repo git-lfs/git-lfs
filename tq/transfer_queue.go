@@ -530,7 +530,7 @@ func (q *TransferQueue) ensureAdapterBegun() error {
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	err := q.adapter.Begin(q.manifest.ConcurrentTransfers(), cb)
+	err := q.adapter.Begin(q.manifest, cb)
 	if err != nil {
 		return err
 	}
