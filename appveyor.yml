@@ -7,7 +7,7 @@ environment:
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
-  - echo $(GOPATH)
+  - echo %GOPATH%
   - rd C:\Go /s /q
   - appveyor DownloadFile https://storage.googleapis.com/golang/go1.7.4.windows-amd64.zip
   - 7z x go1.7.4.windows-amd64.zip -oC:\ >nul
