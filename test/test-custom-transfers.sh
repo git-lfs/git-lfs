@@ -28,7 +28,7 @@ begin_test "custom-transfer-wrong-path"
   GIT_TRACE=1 git push origin master 2>&1 | tee pushcustom.log
   # use PIPESTATUS otherwise we get exit code from tee
   res=${PIPESTATUS[0]}
-  grep "xfer: Custom transfer adapter" pushcustom.log
+  grep "xfer: adapter \"testcustom\" Begin()" pushcustom.log
   grep "Failed to start custom transfer command" pushcustom.log
   if [ "$res" = "0" ]; then
     echo "Push should have failed because of an incorrect custom transfer path."
@@ -101,9 +101,8 @@ begin_test "custom-transfer-upload-download"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-customadapter\]:" fetchcustom.log
-  grep "11 of 11 files" fetchcustom.log  
+  grep "11 of 11 files" fetchcustom.log
   [ `find .git/lfs/objects -type f | wc -l` = 11 ]
 
 )
 end_test
-

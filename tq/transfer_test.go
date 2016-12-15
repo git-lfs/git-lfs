@@ -21,7 +21,7 @@ func (a *testAdapter) Direction() Direction {
 	return a.dir
 }
 
-func (a *testAdapter) Begin(maxConcurrency int, cb ProgressCallback) error {
+func (a *testAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	return nil
 }
 

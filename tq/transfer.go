@@ -161,6 +161,10 @@ type NewAdapterFunc func(name string, dir Direction) Adapter
 
 type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
+type AdapterConfig interface {
+	ConcurrentTransfers() int
+}
+
 // Adapter is implemented by types which can upload and/or download LFS
 // file content to a remote store. Each Adapter accepts one or more requests
 // which it may schedule and parallelise in whatever way it chooses, clients of
@@ -185,7 +189,7 @@ type Adapter interface {
 	// one or more Add calls. maxConcurrency controls the number of transfers
 	// that may be done at once. The passed in callback will receive updates on
 	// progress. Either argument may be nil if not required by the client.
-	Begin(maxConcurrency int, cb ProgressCallback) error
+	Begin(cfg AdapterConfig, cb ProgressCallback) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
 	Add(transfers ...*Transfer) (results <-chan TransferResult)
