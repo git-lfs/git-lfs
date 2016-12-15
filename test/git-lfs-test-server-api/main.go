@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -292,12 +291,6 @@ func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
-	if len(filename) > 0 {
-		if err = ensureFile(filename, localMediaPath); err != nil {
-			return nil, err
-		}
-	}
-
 	fi, err := os.Stat(localMediaPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
@@ -309,43 +302,6 @@ func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
 		Oid:  oid,
 		Size: fi.Size(),
 	}, nil
-}
-
-// ensureFile makes sure that the cleanPath exists before pushing it.  If it
-// does not exist, it attempts to clean it by reading the file at smudgePath.
-func ensureFile(smudgePath, cleanPath string) error {
-	if _, err := os.Stat(cleanPath); err == nil {
-		return nil
-	}
-
-	expectedOid := filepath.Base(cleanPath)
-	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
-	file, err := os.Open(localPath)
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
-	if cleaned != nil {
-		cleaned.Teardown()
-	}
-
-	if err != nil {
-		return err
-	}
-
-	if expectedOid != cleaned.Oid {
-		return fmt.Errorf("Trying to push %q with OID %s.\nNot found in %s.", smudgePath, expectedOid, filepath.Dir(cleanPath))
-	}
-
-	return nil
 }
 
 func init() {
