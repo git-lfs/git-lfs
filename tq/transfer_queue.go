@@ -62,7 +62,7 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 	return count, count < r.MaxRetries
 }
 
-// Batch implements the sort.Interface interface and enables sorting on a slice
+// batch implements the sort.Interface interface and enables sorting on a slice
 // of `*Transfer`s by object size.
 //
 // This interface is implemented here so that the largest objects can be
@@ -70,9 +70,9 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // current batch has finished processing, this enables us to reduce the risk of
 // a single worker getting tied up on a large item at the end of a batch while
 // all other workers are sitting idle.
-type Batch []*objectTuple
+type batch []*objectTuple
 
-func (b Batch) ApiObjects() []*api.ObjectResource {
+func (b batch) ApiObjects() []*api.ObjectResource {
 	transfers := make([]*api.ObjectResource, 0, len(b))
 	for _, t := range b {
 		transfers = append(transfers, tupleToApiObject(t))
@@ -85,9 +85,9 @@ func tupleToApiObject(t *objectTuple) *api.ObjectResource {
 	return &api.ObjectResource{Oid: t.Oid, Size: t.Size}
 }
 
-func (b Batch) Len() int           { return len(b) }
-func (b Batch) Less(i, j int) bool { return b[i].Size < b[j].Size }
-func (b Batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b batch) Len() int           { return len(b) }
+func (b batch) Less(i, j int) bool { return b[i].Size < b[j].Size }
+func (b batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // TransferQueue organises the wider process of uploading and downloading,
 // including calling the API, passing the actual transfer request to transfer
@@ -280,7 +280,7 @@ func (q *TransferQueue) collectBatches() {
 //
 // enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
 // processed.
-func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) {
+func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) {
 	cfg := config.Config
 
 	next := q.makeBatch()
@@ -336,7 +336,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 			q.Skip(o.Size)
 			q.wait.Done()
 		} else {
-			tr := NewTransfer(t.Name, o, t.Path)
+			tr := newTransfer(t.Name, o, t.Path)
 
 			if _, err := tr.Actions.Get(q.transferKind()); err != nil {
 				// XXX(taylor): duplication
@@ -377,7 +377,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch Batch) (Batch, error) 
 
 // makeBatch returns a new, empty batch, with a capacity equal to the maximum
 // batch size designated by the `*TransferQueue`.
-func (q *TransferQueue) makeBatch() Batch { return make(Batch, 0, q.batchSize) }
+func (q *TransferQueue) makeBatch() batch { return make(batch, 0, q.batchSize) }
 
 // addToAdapter adds the given "pending" transfers to the transfer adapters and
 // returns a channel of Transfers that are to be retried in the next batch.
