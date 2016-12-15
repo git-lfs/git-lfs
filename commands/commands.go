@@ -67,6 +67,12 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 	return filepathfilter.New(inc, exc)
 }
 
+func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64) {
+	path, _ = lfs.LocalMediaPath(p.Oid)
+
+	return p.Name, path, p.Oid, p.Size
+}
+
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {

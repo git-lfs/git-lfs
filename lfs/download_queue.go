@@ -5,17 +5,6 @@ import (
 	"github.com/git-lfs/git-lfs/tq"
 )
 
-func NewDownloadable(p *WrappedPointer) *tq.Transfer {
-	path, _ := LocalMediaPath(p.Oid)
-
-	return &tq.Transfer{
-		Oid:  p.Oid,
-		Size: p.Size,
-		Name: p.Name,
-		Path: path,
-	}
-}
-
 // NewDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
 func NewDownloadCheckQueue(cfg *config.Configuration, options ...tq.Option) *tq.TransferQueue {
 	allOptions := make([]tq.Option, len(options), len(options)+1)

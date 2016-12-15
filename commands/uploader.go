@@ -113,8 +113,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	}()
 
 	for _, p := range missing {
-		d := lfs.NewDownloadable(p)
-		checkQueue.Add(d.Name, d.Path, d.Oid, d.Size)
+		checkQueue.Add(downloadTransfer(p))
 	}
 
 	// Currently this is needed to flush the batch but is not enough to sync
