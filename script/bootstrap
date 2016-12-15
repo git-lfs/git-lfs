@@ -14,6 +14,14 @@ if [ -z "$GOPATH" ]; then
     ln -s "$GOPATH" src/github.com/git-lfs/git-lfs
 fi
 
+if uname -s | grep -q "_NT-"; then
+  echo "Installing goversioninfo to embed resources into Windows executables..."
+  go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+  export PATH=$PATH:$GOPATH/bin/windows_386
+  echo "Creating the resource.syso version information file..."
+  go generate
+fi
+
 script/fmt
 rm -rf bin/*
 GO15VENDOREXPERIMENT=1 go run script/*.go -cmd build "$@"
