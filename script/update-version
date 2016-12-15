@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 VERSION_STRING=$1
 VERSION_ARRAY=( ${VERSION_STRING//./ } )
