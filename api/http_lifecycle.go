@@ -12,7 +12,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/auth"
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/httputil"
 )
 
