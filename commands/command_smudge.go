@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +42,8 @@ func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool) error {
 		return err
 	}
 
-	download := tools.FilenamePassesIncludeExcludeFilter(filename, cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	download := filter.Allows(filename)
 
 	if skip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		download = false

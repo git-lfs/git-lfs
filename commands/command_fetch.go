@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -76,17 +76,17 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		success = fetchAll()
 
 	} else { // !all
-		includePaths, excludePaths := determineIncludeExcludePaths(cfg, include, exclude)
+		filter := filepathfilter.New(determineIncludeExcludePaths(cfg, include, exclude))
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
 			Print("Fetching %v", ref.Name)
-			s := fetchRef(ref.Sha, includePaths, excludePaths)
+			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
 
 		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(refs, includePaths, excludePaths)
+			s := fetchRecent(refs, filter)
 			success = success && s
 		}
 	}
@@ -111,39 +111,39 @@ func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
 	return lfs.ScanTree(ref)
 }
 
-func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPointer {
+func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
 	c := make(chan *lfs.WrappedPointer)
 	pointers, err := pointersToFetchForRef(ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 
-	go fetchAndReportToChan(pointers, include, exclude, c)
+	go fetchAndReportToChan(pointers, filter, c)
 
 	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(ref string, include, exclude []string) bool {
+func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 	pointers, err := pointersToFetchForRef(ref)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
-	return fetchPointers(pointers, include, exclude)
+	return fetchPointers(pointers, filter)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
-func fetchPreviousVersions(ref string, since time.Time, include, exclude []string) bool {
+func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.Filter) bool {
 	pointers, err := lfs.ScanPreviousVersions(ref, since)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS previous versions")
 	}
-	return fetchPointers(pointers, include, exclude)
+	return fetchPointers(pointers, filter)
 }
 
 // Fetch recent objects based on config
-func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool {
+func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	fetchconf := cfg.FetchPruneConfig()
 
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
@@ -173,7 +173,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
 				Print("Fetching %v", ref.Name)
-				k := fetchRef(ref.Sha, include, exclude)
+				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
 		}
@@ -189,7 +189,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 			}
 			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
-			k := fetchPreviousVersions(commit, commitsSince, include, exclude)
+			k := fetchPreviousVersions(commit, commitsSince, filter)
 			ok = ok && k
 		}
 
@@ -200,7 +200,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 func fetchAll() bool {
 	pointers := scanAll()
 	Print("Fetching objects...")
-	return fetchPointers(pointers, nil, nil)
+	return fetchPointers(pointers, nil)
 }
 
 func scanAll() []*lfs.WrappedPointer {
@@ -235,13 +235,13 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bool {
-	return fetchAndReportToChan(pointers, include, exclude, nil)
+func fetchPointers(pointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) bool {
+	return fetchAndReportToChan(pointers, filter, nil)
 }
 
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
+func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
 	// Lazily initialize the current remote.
 	if len(cfg.CurrentRemote) == 0 {
 		// Actively find the default remote, don't just assume origin
@@ -252,7 +252,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []
 		cfg.CurrentRemote = defaultRemote
 	}
 
-	ready, pointers, totalSize := readyAndMissingPointers(allpointers, include, exclude)
+	ready, pointers, totalSize := readyAndMissingPointers(allpointers, filter)
 	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
 
 	if out != nil {
@@ -303,7 +303,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, include, exclude []
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude []string) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
 	size := int64(0)
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -311,7 +311,7 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, include, exclude
 
 	for _, p := range allpointers {
 		// Filtered out by --include or --exclude
-		if !tools.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude) {
+		if !filter.Allows(p.Name) {
 			continue
 		}
 

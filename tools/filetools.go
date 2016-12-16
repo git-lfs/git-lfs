@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -128,88 +127,6 @@ func VerifyFileHash(oid, path string) error {
 	}
 
 	return nil
-}
-
-// FilenamePassesIncludeExcludeFilter returns whether a given filename passes the include / exclude path filters
-// Only paths that are in includePaths and outside excludePaths are passed
-// If includePaths is empty that filter always passes and the same with excludePaths
-// Both path lists support wildcard matches
-func FilenamePassesIncludeExcludeFilter(filename string, includePaths, excludePaths []string) bool {
-	if len(includePaths) == 0 && len(excludePaths) == 0 {
-		return true
-	}
-
-	if len(includePaths) > 0 {
-		matched := false
-		for _, inc := range includePaths {
-			matched = FileMatch(inc, filename)
-			if matched {
-				break
-			}
-		}
-		if !matched {
-			return false
-		}
-	}
-
-	if len(excludePaths) > 0 {
-		for _, ex := range excludePaths {
-			if FileMatch(ex, filename) {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-// FileMatch is a revised version of filepath.Match which makes it behave more
-// like gitignore
-func FileMatch(pattern, name string) bool {
-	pattern = filepath.Clean(pattern)
-	name = filepath.Clean(name)
-
-	// Special case local dir, matches all (inc subpaths)
-	if _, local := localDirSet[pattern]; local {
-		return true
-	}
-
-	if matched, _ := filepath.Match(pattern, name); matched {
-		return true
-	}
-
-	// special case * when there are no path separators
-	// filepath.Match never allows * to match a path separator, which is correct
-	// for gitignore IF the pattern includes a path separator, but not otherwise
-	// So *.txt should match in any subdir, as should test*, but sub/*.txt would
-	// only match directly in the sub dir
-	// Don't need to test cross-platform separators as both cleaned above
-	if !strings.Contains(pattern, string(filepath.Separator)) &&
-		strings.Contains(pattern, "*") {
-		pattern = regexp.QuoteMeta(pattern)
-		// Match the whole of the base name but allow matching in folders if no path
-		basename := filepath.Base(name)
-		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
-		if regexp.MustCompile(regpattern).MatchString(basename) {
-			return true
-		}
-	}
-	// Also support ** with path separators
-	if strings.Contains(pattern, string(filepath.Separator)) && strings.Contains(pattern, "**") {
-		pattern = regexp.QuoteMeta(pattern)
-		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
-		if regexp.MustCompile(regpattern).MatchString(name) {
-			return true
-		}
-
-	}
-	// Also support matching a parent directory without a wildcard
-	if strings.HasPrefix(name, pattern+string(filepath.Separator)) {
-		return true
-	}
-
-	return false
-
 }
 
 // FastWalkCallback is the signature for the callback given to FastWalkGitRepo()

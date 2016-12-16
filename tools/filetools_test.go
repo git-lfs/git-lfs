@@ -5,9 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -25,116 +23,6 @@ func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 	cleaned := CleanPaths("", ",")
 
 	assert.Empty(t, cleaned)
-}
-
-func TestFileMatch(t *testing.T) {
-	assert.True(t, FileMatch("filename.txt", "filename.txt"))
-	assert.True(t, FileMatch("*.txt", "filename.txt"))
-	assert.False(t, FileMatch("*.tx", "filename.txt"))
-	assert.True(t, FileMatch("f*.txt", "filename.txt"))
-	assert.False(t, FileMatch("g*.txt", "filename.txt"))
-	assert.True(t, FileMatch("file*", "filename.txt"))
-	assert.False(t, FileMatch("file", "filename.txt"))
-
-	// With no path separators, should match in subfolders
-	assert.True(t, FileMatch("*.txt", "sub/filename.txt"))
-	assert.False(t, FileMatch("*.tx", "sub/filename.txt"))
-	assert.True(t, FileMatch("f*.txt", "sub/filename.txt"))
-	assert.False(t, FileMatch("g*.txt", "sub/filename.txt"))
-	assert.True(t, FileMatch("file*", "sub/filename.txt"))
-	assert.False(t, FileMatch("file", "sub/filename.txt"))
-	// Needs wildcard for exact filename
-	assert.True(t, FileMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
-
-	// Should not match dots to subparts
-	assert.False(t, FileMatch("*.ign", "sub/shouldignoreme.txt"))
-
-	// Path specific
-	assert.True(t, FileMatch("sub", "sub/filename.txt"))
-	assert.False(t, FileMatch("sub", "subfilename.txt"))
-
-	// Absolute
-	assert.True(t, FileMatch("*.dat", "/path/to/sub/.git/test.dat"))
-	assert.True(t, FileMatch("**/.git", "/path/to/sub/.git"))
-
-	// Match anything
-	assert.True(t, FileMatch(".", "path.txt"))
-	assert.True(t, FileMatch("./", "path.txt"))
-	assert.True(t, FileMatch(".\\", "path.txt"))
-
-}
-
-type TestIncludeExcludeCase struct {
-	expectedResult bool
-	includes       []string
-	excludes       []string
-}
-
-func TestFilterIncludeExclude(t *testing.T) {
-
-	cases := []TestIncludeExcludeCase{
-		// Null case
-		TestIncludeExcludeCase{true, nil, nil},
-		// Inclusion
-		TestIncludeExcludeCase{true, []string{"*.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"file*.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"file*"}, nil},
-		TestIncludeExcludeCase{true, []string{"*name.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"/*.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"otherfolder/*.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"*.nam"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"blank", "something", "foo"}, nil},
-		TestIncludeExcludeCase{false, []string{"test/notfilename.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"test"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/*"}, nil},
-		TestIncludeExcludeCase{false, []string{"nottest"}, nil},
-		TestIncludeExcludeCase{false, []string{"nottest/*"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/fil*"}, nil},
-		TestIncludeExcludeCase{false, []string{"test/g*"}, nil},
-		TestIncludeExcludeCase{true, []string{"tes*/*"}, nil},
-		// Exclusion
-		TestIncludeExcludeCase{false, nil, []string{"*.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"file*.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"file*"}},
-		TestIncludeExcludeCase{false, nil, []string{"*name.dat"}},
-		TestIncludeExcludeCase{true, nil, []string{"/*.dat"}},
-		TestIncludeExcludeCase{true, nil, []string{"otherfolder/*.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"test/filename.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"blank", "something", "test/filename.dat", "foo"}},
-		TestIncludeExcludeCase{true, nil, []string{"blank", "something", "foo"}},
-		TestIncludeExcludeCase{true, nil, []string{"test/notfilename.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"test"}},
-		TestIncludeExcludeCase{false, nil, []string{"test/*"}},
-		TestIncludeExcludeCase{true, nil, []string{"nottest"}},
-		TestIncludeExcludeCase{true, nil, []string{"nottest/*"}},
-		TestIncludeExcludeCase{false, nil, []string{"test/fil*"}},
-		TestIncludeExcludeCase{true, nil, []string{"test/g*"}},
-		TestIncludeExcludeCase{false, nil, []string{"tes*/*"}},
-
-		// Both
-		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, []string{"test/notfilename.dat"}},
-		TestIncludeExcludeCase{false, []string{"test"}, []string{"test/filename.dat"}},
-		TestIncludeExcludeCase{true, []string{"test/*"}, []string{"test/notfile*"}},
-		TestIncludeExcludeCase{false, []string{"test/*"}, []string{"test/file*"}},
-		TestIncludeExcludeCase{false, []string{"another/*", "test/*"}, []string{"test/notfilename.dat", "test/filename.dat"}},
-	}
-
-	for _, c := range cases {
-		result := FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes)
-		assert.Equal(t, c.expectedResult, result, "includes: %v excludes: %v", c.includes, c.excludes)
-		if runtime.GOOS == "windows" {
-			// also test with \ path separators, tolerate mixed separators
-			for i, inc := range c.includes {
-				c.includes[i] = strings.Replace(inc, "/", "\\", -1)
-			}
-			for i, ex := range c.excludes {
-				c.excludes[i] = strings.Replace(ex, "/", "\\", -1)
-			}
-			assert.Equal(t, c.expectedResult, FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes), c)
-		}
-	}
 }
 
 func TestFastWalkBasic(t *testing.T) {

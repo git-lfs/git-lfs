@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/spf13/cobra"
 )
@@ -27,20 +28,18 @@ func pullCommand(cmd *cobra.Command, args []string) {
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	pull(determineIncludeExcludePaths(cfg, includeArg, excludeArg))
+	pull(filepathfilter.New(determineIncludeExcludePaths(cfg, includeArg, excludeArg)))
 
 }
 
-func pull(includePaths, excludePaths []string) {
-
+func pull(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(ref.Sha, includePaths, excludePaths)
-	checkoutFromFetchChan(includePaths, excludePaths, c)
-
+	c := fetchRefToChan(ref.Sha, filter)
+	checkoutFromFetchChan(filter, c)
 }
 
 func init() {
