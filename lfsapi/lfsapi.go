@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/pkg/errors"
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 var (
