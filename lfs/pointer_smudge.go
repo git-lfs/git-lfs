@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,33 @@ import (
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
+
+type DeferredDownload struct {
+	Ptr         *Pointer
+	WorkingFile string
+}
+
+var deferredDownloads []DeferredDownload
+
+func PointerWaitForDownloads(manifest *transfer.Manifest) {
+	// Here we should wait for downloads. This proof of concept demo only
+	// starts to download the files here.
+	for _, dd := range deferredDownloads {
+		fmt.Fprintf(os.Stderr, "Deferred download: %s\n", dd.WorkingFile)
+		mediafile, _ := LocalMediaPath(dd.Ptr.Oid)
+		stat, statErr := os.Stat(mediafile)
+		f, _ := os.Create(dd.WorkingFile)
+		w := bufio.NewWriter(f)
+		if statErr != nil || stat == nil {
+			downloadFile(w, dd.Ptr, dd.WorkingFile, mediafile, manifest, nil)
+		} else {
+			// This case would happen if we smudge a file multiple times
+			// or if a LFS file is multiple times in the worktree.
+			readLocalFile(w, dd.Ptr, mediafile, dd.WorkingFile, nil)
+		}
+		w.Flush()
+	}
+}
 
 func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
@@ -57,7 +85,22 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 	if statErr != nil || stat == nil {
 		if download {
-			err = downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
+			// TODO: Check if the `ptr.Oid` is already being downloaded.
+			// If no download is running then start the download right away!
+			// If a download of the `ptr.Oid` is running then check if the
+			// `workfile` is the same. If this is the case then no further
+			// action is required. If the `workfile` is not the same then
+			// ensure that the file is written on `WaitForDownloads`.
+			//
+			// Important: GitLFS should not write the files directly to the
+			// worktree when they finish. It should write the files only to the
+			// local media path. Only at the end, when Git signals GitLFS with
+			// an EOF its exit then GitLFS should write the files (in the
+			// `WaitForDownloads` step).
+			var dd DeferredDownload
+			dd.Ptr = ptr
+			dd.WorkingFile = workingfile
+			deferredDownloads = append(deferredDownloads, dd)
 		} else {
 			return errors.NewDownloadDeclinedError(statErr, "smudge")
 		}
