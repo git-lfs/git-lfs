@@ -11,23 +11,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type NopEndpointSource struct {
-	Root string
+func NewTestConfig() *config.Configuration {
+	c := config.NewFrom(config.Values{})
+	c.SetManualEndpoint(config.Endpoint{Url: "https://example.com"})
+	return c
 }
-
-func (e *NopEndpointSource) Endpoint(op string) endpoint.Endpoint {
-	return endpoint.Endpoint{Url: e.Root}
-}
-
-var (
-	source = &NopEndpointSource{"https://example.com"}
-)
 
 func TestHttpLifecycleMakesRequestsAgainstAbsolutePath(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	req, err := l.Build(&api.RequestSchema{
 		Path:      "/foo",
 		Operation: api.DownloadOperation,
@@ -41,7 +35,7 @@ func TestHttpLifecycleAttachesQueryParameters(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	req, err := l.Build(&api.RequestSchema{
 		Path:      "/foo",
 		Operation: api.DownloadOperation,
@@ -58,7 +52,7 @@ func TestHttpLifecycleAttachesBodyWhenPresent(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	req, err := l.Build(&api.RequestSchema{
 		Operation: api.DownloadOperation,
 		Body: struct {
@@ -77,7 +71,7 @@ func TestHttpLifecycleDoesNotAttachBodyWhenEmpty(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	req, err := l.Build(&api.RequestSchema{
 		Operation: api.DownloadOperation,
 	})
@@ -90,7 +84,7 @@ func TestHttpLifecycleErrsWithoutOperation(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	req, err := l.Build(&api.RequestSchema{
 		Path: "/foo",
 	})
@@ -113,7 +107,7 @@ func TestHttpLifecycleExecutesRequestWithoutBody(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", server.URL+"/path", nil)
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	_, err := l.Execute(req, nil)
 
 	assert.True(t, called)
@@ -138,7 +132,7 @@ func TestHttpLifecycleExecutesRequestWithBody(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", server.URL+"/path", nil)
 
-	l := api.NewHttpLifecycle(source)
+	l := api.NewHttpLifecycle(NewTestConfig())
 	resp := new(Response)
 	_, err := l.Execute(req, resp)
 

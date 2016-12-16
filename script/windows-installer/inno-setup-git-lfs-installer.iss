@@ -1,8 +1,10 @@
 #define MyAppName "Git LFS"
 
-; Misuse RemoveFileExt to strip the 4th patch-level version number.
 ; Arbitrarily choose the x86 executable here as both have the version embedded.
-#define MyAppVersion RemoveFileExt(GetFileVersion("..\..\git-lfs-x86.exe"))
+#define MyVersionInfoVersion GetFileVersion("..\..\git-lfs-x86.exe")
+
+; Misuse RemoveFileExt to strip the 4th patch-level version number.
+#define MyAppVersion RemoveFileExt(MyVersionInfoVersion)
 
 #define MyAppPublisher "GitHub, Inc."
 #define MyAppURL "https://git-lfs.github.com/"
@@ -15,7 +17,7 @@
 AppId={{286391DE-F778-44EA-9375-1B21AAA04FF0}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-;AppVerName={#MyAppName} {#MyAppVersion}
+AppCopyright=GitHub, Inc. and Git LFS contributors
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -32,6 +34,7 @@ DisableReadyPage=True
 ArchitecturesInstallIn64BitMode=x64
 ChangesEnvironment=yes
 SetupIconFile=git-lfs-logo.ico
+VersionInfoVersion={#MyVersionInfoVersion}
 WizardImageFile=git-lfs-wizard-image.bmp
 WizardSmallImageFile=git-lfs-logo.bmp
 

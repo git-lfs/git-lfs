@@ -1,17 +1,16 @@
 package tq
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 )
 
@@ -45,9 +44,10 @@ func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, ok := t.Object.Rel("upload")
-	if !ok {
-		return fmt.Errorf("No upload action for this object.")
+	rel, err := t.Actions.Get("upload")
+	if err != nil {
+		return err
+		// return fmt.Errorf("No upload action for this object.")
 	}
 
 	req, err := httputil.NewHttpRequest("PUT", rel.Href, rel.Header)
@@ -62,10 +62,10 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	if req.Header.Get("Transfer-Encoding") == "chunked" {
 		req.TransferEncoding = []string{"chunked"}
 	} else {
-		req.Header.Set("Content-Length", strconv.FormatInt(t.Object.Size, 10))
+		req.Header.Set("Content-Length", strconv.FormatInt(t.Size, 10))
 	}
 
-	req.ContentLength = t.Object.Size
+	req.ContentLength = t.Size
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
@@ -84,7 +84,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	var reader io.Reader
 	reader = &progress.CallbackReader{
 		C:         ccb,
-		TotalSize: t.Object.Size,
+		TotalSize: t.Size,
 		Reader:    f,
 	}
 
@@ -97,7 +97,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := httputil.DoHttpRequest(config.Config, req, t.Object.NeedsAuth())
+	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
@@ -117,7 +117,8 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(config.Config, t.Object)
+	cli := &lfsapi.Client{}
+	return verifyUpload(cli, t)
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the

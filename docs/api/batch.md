@@ -31,7 +31,7 @@ that the client has configured. If omitted, the `basic` transfer adapter MUST
 be assumed by the server.
 * `objects` - An Array of objects to download.
   * `oid` - String OID of the LFS object.
-  * `size` - Integer byte size of the LFS object.
+  * `size` - Integer byte size of the LFS object. Must be at least zero.
 
 Note: Git LFS currently only supports the `basic` transfer adapter. This
 property was added for future compatibility with some experimental transfer
@@ -70,7 +70,7 @@ client will use the `basic` transfer adapter if the `transfer` property is
 omitted.
 * `objects` - An Array of objects to download.
   * `oid` - String OID of the LFS object.
-  * `size` - Integer byte size of the LFS object.
+  * `size` - Integer byte size of the LFS object. Must be at least zero.
   * `authenticated` - Optional boolean specifying whether the request for this
   specific object is authenticated. If omitted or false, Git LFS will attempt
   to [find credentials for this URL](./authentication.md).

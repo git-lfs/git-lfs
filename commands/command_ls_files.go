@@ -42,7 +42,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	})
 	defer gitscanner.Close()
 
-	if err := gitscanner.ScanTree(ref, nil); err != nil {
+	if err := gitscanner.ScanTree(ref); err != nil {
 		Exit("Could not scan for Git LFS tree: %s", err)
 	}
 }

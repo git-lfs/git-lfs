@@ -132,8 +132,8 @@ func (s *GitScanner) ScanAll(cb GitScannerCallback) error {
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that
 // ref. Differs from ScanRefs in that multiple files in the tree with the same
 // content are all reported.
-func (s *GitScanner) ScanTree(ref string, cb GitScannerCallback) error {
-	callback, err := firstGitScannerCallback(cb, s.callback)
+func (s *GitScanner) ScanTree(ref string) error {
+	callback, err := firstGitScannerCallback(s.callback)
 	if err != nil {
 		return err
 	}
