@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +42,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if localInstall || lfs.InRepo() {
+		localstorage.InitStorageOrFail()
 		installHooksCommand(cmd, args)
 	}
 
@@ -59,5 +61,6 @@ func init() {
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
 		cmd.Flags().BoolVarP(&skipSmudgeInstall, "skip-smudge", "s", false, "Skip automatic downloading of objects on clone or pull.")
 		cmd.AddCommand(NewCommand("hooks", installHooksCommand))
+		cmd.PreRun = setupLocalStorage
 	})
 }

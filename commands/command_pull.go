@@ -5,7 +5,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -30,19 +29,17 @@ func pullCommand(cmd *cobra.Command, args []string) {
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
-	gitscanner := lfs.NewGitScanner()
-	defer gitscanner.Close()
-	pull(gitscanner, filter)
+	pull(filter)
 }
 
-func pull(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter) {
+func pull(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(gitscanner, ref.Sha, filter)
-	checkoutFromFetchChan(gitscanner, filter, c)
+	c := fetchRefToChan(ref.Sha, filter)
+	checkoutFromFetchChan(c, filter)
 }
 
 func init() {

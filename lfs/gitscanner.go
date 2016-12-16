@@ -1,6 +1,7 @@
 package lfs
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,9 +10,18 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var missingCallbackErr = errors.New("No callback given")
+
+// IsCallbackMissing returns a boolean indicating whether the error is reporting
+// that a GitScanner is missing a required GitScannerCallback.
+func IsCallbackMissing(err error) bool {
+	return err == missingCallbackErr
+}
+
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
 	Filter      *filepathfilter.Filter
+	callback    GitScannerCallback
 	remote      string
 	skippedRefs []string
 
@@ -20,10 +30,12 @@ type GitScanner struct {
 	mu      sync.Mutex
 }
 
+type GitScannerCallback func(*WrappedPointer, error)
+
 // NewGitScanner initializes a *GitScanner for a Git repository in the current
 // working directory.
-func NewGitScanner() *GitScanner {
-	return &GitScanner{started: time.Now()}
+func NewGitScanner(cb GitScannerCallback) *GitScanner {
+	return &GitScanner{started: time.Now(), callback: cb}
 }
 
 // Close stops exits once all processing has stopped, and all resources are
@@ -57,70 +69,106 @@ func (s *GitScanner) RemoteForPush(r string) error {
 
 // ScanLeftToRemote scans through all commits starting at the given ref that the
 // given remote does not have. See RemoteForPush().
-func (s *GitScanner) ScanLeftToRemote(left string) (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanLeftToRemote(left string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return nil, fmt.Errorf("Unable to scan starting at %q: no remote set.", left)
+		return fmt.Errorf("Unable to scan starting at %q: no remote set.", left)
 	}
 	s.mu.Unlock()
 
-	return scanRefsToChan(left, "", s.opts(ScanLeftToRemoteMode))
+	return scanRefsToChan(callback, left, "", s.opts(ScanLeftToRemoteMode))
 }
 
 // ScanRefRange scans through all commits from the given left and right refs,
 // including git objects that have been modified or deleted.
-func (s *GitScanner) ScanRefRange(left, right string) (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan(left, right, opts)
+	return scanRefsToChan(callback, left, right, opts)
 }
 
 // ScanRefWithDeleted scans through all objects in the given ref, including
 // git objects that have been modified or deleted.
-func (s *GitScanner) ScanRefWithDeleted(ref string) (*PointerChannelWrapper, error) {
-	return s.ScanRefRange(ref, "")
+func (s *GitScanner) ScanRefWithDeleted(ref string, cb GitScannerCallback) error {
+	return s.ScanRefRange(ref, "", cb)
 }
 
 // ScanRef scans through all objects in the current ref, excluding git objects
 // that have been modified or deleted before the ref.
-func (s *GitScanner) ScanRef(ref string) (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanRef(ref string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
-	return scanRefsToChan(ref, "", opts)
+	return scanRefsToChan(callback, ref, "", opts)
 }
 
 // ScanAll scans through all objects in the git repository.
-func (s *GitScanner) ScanAll() (*PointerChannelWrapper, error) {
+func (s *GitScanner) ScanAll(cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan("", "", opts)
+	return scanRefsToChan(callback, "", "", opts)
 }
 
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that
 // ref. Differs from ScanRefs in that multiple files in the tree with the same
 // content are all reported.
-func (s *GitScanner) ScanTree(ref string) (*PointerChannelWrapper, error) {
-	return runScanTree(ref)
+func (s *GitScanner) ScanTree(ref string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return runScanTree(callback, ref, s.Filter)
 }
 
 // ScanUnpushed scans history for all LFS pointers which have been added but not
 // pushed to the named remote. remote can be left blank to mean 'any remote'.
-func (s *GitScanner) ScanUnpushed(remote string) (*PointerChannelWrapper, error) {
-	return scanUnpushed(remote)
+func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return scanUnpushed(callback, remote)
 }
 
 // ScanPreviousVersions scans changes reachable from ref (commit) back to since.
 // Returns channel of pointers for *previous* versions that overlap that time.
 // Does not include pointers which were still in use at ref (use ScanRefsToChan
 // for that)
-func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time) (*PointerChannelWrapper, error) {
-	return logPreviousSHAs(ref, since)
+func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return logPreviousSHAs(callback, ref, since)
 }
 
 // ScanIndex scans the git index for modified LFS objects.
-func (s *GitScanner) ScanIndex(ref string) (*PointerChannelWrapper, error) {
-	return scanIndex(ref)
+func (s *GitScanner) ScanIndex(ref string, cb GitScannerCallback) error {
+	callback, err := firstGitScannerCallback(cb, s.callback)
+	if err != nil {
+		return err
+	}
+	return scanIndex(callback, ref)
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
@@ -132,6 +180,17 @@ func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
 	opts.RemoteName = s.remote
 	opts.skippedRefs = s.skippedRefs
 	return opts
+}
+
+func firstGitScannerCallback(callbacks ...GitScannerCallback) (GitScannerCallback, error) {
+	for _, cb := range callbacks {
+		if cb == nil {
+			continue
+		}
+		return cb, nil
+	}
+
+	return nil, missingCallbackErr
 }
 
 type ScanningMode int

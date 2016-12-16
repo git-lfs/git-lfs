@@ -157,6 +157,9 @@ begin_test "install --skip-smudge"
 (
   set -e
 
+  mkdir install-skip-smudge-test
+  cd install-skip-smudge-test
+
   git lfs install
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
@@ -171,6 +174,8 @@ begin_test "install --skip-smudge"
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
+
+  [ ! -e "lfs" ]
 )
 end_test
 
@@ -212,5 +217,23 @@ begin_test "install --local outside repository"
 
   [ "Not in a git repository." = "$(cat err.log)" ]
   [ "0" != "$res" ]
+)
+end_test
+
+begin_test "install in directory without access to .git/lfs"
+(
+  set -e
+  mkdir not-a-repo
+  cd not-a-repo
+  mkdir .git
+  touch .git/lfs
+  touch lfs
+
+  git config --global filter.lfs.clean whatevs
+  [ "whatevs" = "$(git config filter.lfs.clean)" ]
+
+  git lfs install --force
+
+  [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
 )
 end_test

@@ -18,61 +18,27 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	// tolerate errors getting ref so this works before first commit
 	ref, _ := git.CurrentRef()
 
-	gitscanner := lfs.NewGitScanner()
-	defer gitscanner.Close()
-
 	scanIndexAt := "HEAD"
 	if ref == nil {
 		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
-	stagedPointers, err := gitscanner.ScanIndex(scanIndexAt)
-	if err != nil {
-		Panic(err, "Could not scan staging for Git LFS objects")
-	}
-
 	if porcelain {
-		for p := range stagedPointers.Results {
-			switch p.Status {
-			case "R", "C":
-				Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
-			case "M":
-				Print(" %s %s %d", p.Status, p.Name, p.Size)
-			default:
-				Print("%s  %s %d", p.Status, p.Name, p.Size)
-			}
-		}
-
-		if err := stagedPointers.Wait(); err != nil {
-			ExitWithError(err)
-		}
+		porcelainStagedPointers(scanIndexAt)
 		return
 	}
 
-	if ref != nil {
-		Print("On branch %s", ref.Name)
-
-		remoteRef, err := git.CurrentRemoteRef()
-		if err == nil {
-			pointerCh, err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha)
-			if err != nil {
-				Panic(err, "Could not scan for Git LFS objects")
-			}
-
-			Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-			for p := range pointerCh.Results {
-				Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
-			}
-
-			if err := pointerCh.Wait(); err != nil {
-				Panic(err, "Could not scan for Git LFS objects")
-			}
-		}
-	}
+	statusScanRefRange(ref)
 
 	Print("\nGit LFS objects to be committed:\n")
+
 	var unstagedPointers []*lfs.WrappedPointer
-	for p := range stagedPointers.Results {
+	indexScanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			ExitWithError(err)
+			return
+		}
+
 		switch p.Status {
 		case "R", "C":
 			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
@@ -81,7 +47,13 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		default:
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
+	})
+
+	if err := indexScanner.ScanIndex(scanIndexAt, nil); err != nil {
+		ExitWithError(err)
 	}
+
+	indexScanner.Close()
 
 	Print("\nGit LFS objects not staged for commit:\n")
 	for _, p := range unstagedPointers {
@@ -90,10 +62,57 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := stagedPointers.Wait(); err != nil {
+	Print("")
+}
+
+func statusScanRefRange(ref *git.Ref) {
+	if ref == nil {
+		return
+	}
+
+	Print("On branch %s", ref.Name)
+
+	remoteRef, err := git.CurrentRemoteRef()
+	if err != nil {
+		return
+	}
+
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS objects")
+			return
+		}
+
+		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+	})
+	defer gitscanner.Close()
+
+	Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
+	if err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha, nil); err != nil {
+		Panic(err, "Could not scan for Git LFS objects")
+	}
+
+}
+
+func porcelainStagedPointers(ref string) {
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			ExitWithError(err)
+		}
+
+		switch p.Status {
+		case "R", "C":
+			Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
+		case "M":
+			Print(" %s %s %d", p.Status, p.Name, p.Size)
+		default:
+			Print("%s  %s %d", p.Status, p.Name, p.Size)
+		}
+	})
+	defer gitscanner.Close()
+
+	if err := gitscanner.ScanIndex(ref, nil); err != nil {
 		ExitWithError(err)
-	} else {
-		Print("")
 	}
 }
 

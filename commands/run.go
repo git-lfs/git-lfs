@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
@@ -76,6 +77,10 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 // will resolve the localstorage directories.
 func resolveLocalStorage(cmd *cobra.Command, args []string) {
 	localstorage.ResolveDirs()
+}
+
+func setupLocalStorage(cmd *cobra.Command, args []string) {
+	config.ResolveGitBasicDirs()
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {

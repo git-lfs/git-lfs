@@ -38,20 +38,14 @@ begin_test "fsck default"
 
   echo "CORRUPTION" >> .git/lfs/objects/$aOid12/$aOid34/$aOid
 
-  moved=$(native_path "$TRASHDIR/$reponame/.git/lfs/bad/$aOid")
+  moved=$(native_path "$TRASHDIR/$reponame/.git/lfs/bad")
   expected="$(printf 'Object a.dat (%s) is corrupt
-  moved to %s' "$aOid" "$moved")"
+Moving corrupt objects to %s' "$aOid" "$moved")"
   [ "$expected" = "$(git lfs fsck)" ]
 
-  if [ -e .git/lfs/objects/$aOid12/$aOid34/$aOid ]; then
-    echo "Expected a.dat to be cleared for being corrupt"
-    exit 1
-  fi
-
-  if [ "$bOid" != "$(calc_oid_file .git/lfs/objects/$bOid12/$bOid34/$bOid)" ]; then
-    echo "oid for b.dat does not match"
-    exit 1
-  fi
+  [ -e ".git/lfs/bad/$aOid" ]
+  [ ! -e ".git/lfs/objects/$aOid12/$aOid34/$aOid" ]
+  [ "$bOid" = "$(calc_oid_file .git/lfs/objects/$bOid12/$bOid34/$bOid)" ]
 )
 end_test
 

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -34,33 +35,32 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	close(inchan)
 
 	filter := filepathfilter.New(rootedpaths, nil)
-	gitscanner := lfs.NewGitScanner()
-	defer gitscanner.Close()
-	checkoutWithIncludeExclude(gitscanner, filter)
+	checkoutWithIncludeExclude(filter)
 }
 
-func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter, in chan *lfs.WrappedPointer) {
+func checkoutFromFetchChan(in chan *lfs.WrappedPointer, filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
+
 	// Need to ScanTree to identify multiple files with the same content (fetch will only report oids once)
-	pointerCh, err := gitscanner.ScanTree(ref.Sha)
-	if err != nil {
+	// use new gitscanner so mapping has all the scanned pointers before continuing
+	mapping := make(map[string][]*lfs.WrappedPointer)
+	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS files")
+			return
+		}
+		mapping[p.Oid] = append(mapping[p.Oid], p)
+	})
+	chgitscanner.Filter = filter
+
+	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
-	pointers, err := collectPointers(pointerCh)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
 
-	// Map oid to multiple pointers
-	mapping := make(map[string][]*lfs.WrappedPointer)
-	for _, pointer := range pointers {
-		if filter.Allows(pointer.Name) {
-			mapping[pointer.Oid] = append(mapping[pointer.Oid], pointer)
-		}
-	}
+	chgitscanner.Close()
 
 	// Launch git update-index
 	c := make(chan *lfs.WrappedPointer)
@@ -84,20 +84,37 @@ func checkoutFromFetchChan(gitscanner *lfs.GitScanner, filter *filepathfilter.Fi
 	wait.Wait()
 }
 
-func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilter.Filter) {
+func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}
 
-	pointerCh, err := gitscanner.ScanTree(ref.Sha)
-	if err != nil {
+	// this func has to load all pointers into memory
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
+	chgitscanner.Filter = filter
+
+	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
+	chgitscanner.Close()
 
-	pointers, err := collectPointers(pointerCh)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+	if multiErr != nil {
+		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
 	var wait sync.WaitGroup
@@ -110,33 +127,22 @@ func checkoutWithIncludeExclude(gitscanner *lfs.GitScanner, filter *filepathfilt
 		wait.Done()
 	}()
 
-	// Count bytes for progress
+	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	meter.Start()
 	var totalBytes int64
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-	}
-
-	logPath, _ := cfg.Os.Get("GIT_LFS_PROGRESS")
-	progress := progress.NewProgressMeter(len(pointers), totalBytes, false, logPath)
-	progress.Start()
-	totalBytes = 0
-	for _, pointer := range pointers {
-		totalBytes += pointer.Size
-		if filter.Allows(pointer.Name) {
-			progress.Add(pointer.Name)
-			c <- pointer
-			// not strictly correct (parallel) but we don't have a callback & it's just local
-			// plus only 1 slot in channel so it'll block & be close
-			progress.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
-			progress.FinishTransfer(pointer.Name)
-		} else {
-			progress.Skip(pointer.Size)
-		}
+		meter.Add(totalBytes)
+		meter.StartTransfer(pointer.Name)
+		c <- pointer
+		// not strictly correct (parallel) but we don't have a callback & it's just local
+		// plus only 1 slot in channel so it'll block & be close
+		meter.TransferBytes("checkout", pointer.Name, pointer.Size, totalBytes, int(pointer.Size))
+		meter.FinishTransfer(pointer.Name)
 	}
 	close(c)
 	wait.Wait()
-	progress.Finish()
-
+	meter.Finish()
 }
 
 // Populate the working copy with the real content of objects where the file is

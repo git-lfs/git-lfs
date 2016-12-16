@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +15,7 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 	Print("Global Git LFS configuration has been removed.")
 
 	if lfs.InRepo() {
+		localstorage.InitStorageOrFail()
 		uninstallHooksCommand(cmd, args)
 	}
 }
@@ -30,5 +32,6 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) {
 		cmd.AddCommand(NewCommand("hooks", uninstallHooksCommand))
+		cmd.PreRun = setupLocalStorage
 	})
 }

@@ -7,6 +7,11 @@ environment:
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
+  - echo %GOPATH%
+  - rd C:\Go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go1.7.4.windows-amd64.zip
+  - 7z x go1.7.4.windows-amd64.zip -oC:\ >nul
+  - C:\go\bin\go version
   - cinst InnoSetup -y
   - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
 

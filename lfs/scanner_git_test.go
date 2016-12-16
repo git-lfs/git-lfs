@@ -5,6 +5,7 @@ package lfs_test // to avoid import cycles
 // which avoids import cycles with testutils
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -87,16 +88,28 @@ func TestScanUnpushed(t *testing.T) {
 }
 
 func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
-	gitscanner := NewGitScanner()
-	pointerchan, err := gitscanner.ScanUnpushed(remoteName)
-	if err != nil {
+	pointers := make([]*WrappedPointer, 0, 10)
+	var multiErr error
+
+	gitscanner := NewGitScanner(func(p *WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
+	if err := gitscanner.ScanUnpushed(remoteName, nil); err != nil {
 		return nil, err
 	}
-	pointers := make([]*WrappedPointer, 0, 10)
-	for p := range pointerchan.Results {
-		pointers = append(pointers, p)
-	}
-	return pointers, pointerchan.Wait()
+
+	gitscanner.Close()
+	return pointers, multiErr
 }
 
 func TestScanPreviousVersions(t *testing.T) {
@@ -159,8 +172,8 @@ func TestScanPreviousVersions(t *testing.T) {
 	// where the '-' side of the diff is inside the date range
 
 	// 7 day limit excludes [0] commit, but includes state from that if there
-	// was a subsequent change
-	pointers, err := scanPreviousVersions("master", now.AddDate(0, 0, -7))
+	// was a subsequent chang
+	pointers, err := scanPreviousVersions(t, "master", now.AddDate(0, 0, -7))
 	assert.Equal(t, nil, err)
 
 	// Includes the following 'before' state at commits:
@@ -178,15 +191,16 @@ func TestScanPreviousVersions(t *testing.T) {
 	assert.Equal(t, expected, pointers)
 }
 
-func scanPreviousVersions(ref string, since time.Time) ([]*WrappedPointer, error) {
-	gitscanner := NewGitScanner()
-	pointerchan, err := gitscanner.ScanPreviousVersions(ref, since)
-	if err != nil {
-		return nil, err
-	}
+func scanPreviousVersions(t *testing.T, ref string, since time.Time) ([]*WrappedPointer, error) {
 	pointers := make([]*WrappedPointer, 0, 10)
-	for p := range pointerchan.Results {
+	gitscanner := NewGitScanner(func(p *WrappedPointer, err error) {
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		pointers = append(pointers, p)
-	}
-	return pointers, pointerchan.Wait()
+	})
+
+	err := gitscanner.ScanPreviousVersions(ref, since, nil)
+	return pointers, err
 }

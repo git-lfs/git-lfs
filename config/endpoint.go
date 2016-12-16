@@ -56,7 +56,7 @@ func NewEndpointWithConfig(rawurl string, c *Configuration) Endpoint {
 	rawurl = c.ReplaceUrlAlias(rawurl)
 	u, err := url.Parse(rawurl)
 	if err != nil {
-		return Endpoint{Url: EndpointUrlUnknown}
+		return endpointFromBareSshUrl(rawurl)
 	}
 
 	switch u.Scheme {
@@ -67,7 +67,7 @@ func NewEndpointWithConfig(rawurl string, c *Configuration) Endpoint {
 	case "git":
 		return endpointFromGitUrl(u, c)
 	case "":
-		return endpointFromBareSshUrl(u)
+		return endpointFromBareSshUrl(u.String())
 	default:
 		// Just passthrough to preserve
 		return Endpoint{Url: rawurl}
@@ -78,11 +78,11 @@ func NewEndpointWithConfig(rawurl string, c *Configuration) Endpoint {
 //
 //   user@host.com:path/to/repo.git
 //
-func endpointFromBareSshUrl(u *url.URL) Endpoint {
-	parts := strings.Split(u.Path, ":")
+func endpointFromBareSshUrl(rawurl string) Endpoint {
+	parts := strings.Split(rawurl, ":")
 	partsLen := len(parts)
 	if partsLen < 2 {
-		return Endpoint{Url: u.String()}
+		return Endpoint{Url: rawurl}
 	}
 
 	// Treat presence of ':' as a bare URL

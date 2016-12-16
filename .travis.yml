@@ -1,7 +1,7 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
 
-go: 1.7.1
+go: 1.7.4
 
 os:
   - linux

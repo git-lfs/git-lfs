@@ -38,9 +38,8 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 	numUnfiltered := len(unfiltered)
 	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
 	missingLocalObjects := make([]*lfs.WrappedPointer, 0, numUnfiltered)
-	numObjects := 0
-	totalSize := int64(0)
 	missingSize := int64(0)
+	meter := buildProgressMeter(c.DryRun)
 
 	// XXX(taylor): temporary measure to fix duplicate (broken) results from
 	// scanner
@@ -56,11 +55,9 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 		}
 		uniqOids.Add(p.Oid)
 
-		// increment numObjects and totalSize early (even if it's not
-		// going into uploadables), since we will call Skip() based on
-		// the results of the download check queue
-		numObjects += 1
-		totalSize += p.Size
+		// estimate in meter early (even if it's not going into uploadables), since
+		// we will call Skip() based on the results of the download check queue.
+		meter.Add(p.Size)
 
 		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
 			uploadables = append(uploadables, p)
@@ -77,7 +74,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*lfs.Tr
 
 	// build the TransferQueue, automatically skipping any missing objects that
 	// the server already has.
-	uploadQueue := lfs.NewUploadQueue(numObjects, totalSize, c.DryRun)
+	uploadQueue := lfs.NewUploadQueue(lfs.WithProgress(meter), lfs.DryRun(c.DryRun))
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
 			// if the server already has this object, call Skip() on
@@ -101,7 +98,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		return
 	}
 
-	checkQueue := lfs.NewDownloadCheckQueue(numMissing, missingSize)
+	checkQueue := lfs.NewDownloadCheckQueue()
 	transferCh := checkQueue.Watch()
 
 	done := make(chan int)
@@ -124,19 +121,6 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	// send "1" into the `done` channel.
 	checkQueue.Wait()
 	<-done
-}
-
-func upload(c *uploadContext, pointerCh *lfs.PointerChannelWrapper) {
-	var pointers []*lfs.WrappedPointer
-	for p := range pointerCh.Results {
-		pointers = append(pointers, p)
-	}
-
-	if err := pointerCh.Wait(); err != nil {
-		ExitWithError(err)
-	}
-
-	uploadPointers(c, pointers)
 }
 
 func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -21,7 +22,7 @@ var (
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
 
-	gitscanner := lfs.NewGitScanner()
+	gitscanner := lfs.NewGitScanner(nil)
 	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
 		ExitWithError(err)
 	}
@@ -34,19 +35,40 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		pointerCh, err := scanLeftOrAll(gitscanner, ref.Name)
+		pointers, err := scanLeftOrAll(gitscanner, ref.Name)
 		if err != nil {
-			Panic(err, "Error scanning for Git LFS files in the %q ref", ref.Name)
+			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
+			ExitWithError(err)
 		}
-		upload(ctx, pointerCh)
+		uploadPointers(ctx, pointers)
 	}
 }
 
-func scanLeftOrAll(g *lfs.GitScanner, ref string) (*lfs.PointerChannelWrapper, error) {
-	if pushAll {
-		return g.ScanRefWithDeleted(ref)
+func scanLeftOrAll(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	cb := func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		pointers = append(pointers, p)
 	}
-	return g.ScanLeftToRemote(ref)
+
+	if pushAll {
+		if err := g.ScanRefWithDeleted(ref, cb); err != nil {
+			return pointers, err
+		}
+	}
+	if err := g.ScanLeftToRemote(ref, cb); err != nil {
+		return pointers, err
+	}
+	return pointers, multiErr
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
@@ -77,7 +99,7 @@ func refsByNames(refnames []string) ([]*git.Ref, error) {
 		if ref, ok := reflookup[name]; ok {
 			refs[i] = ref
 		} else {
-			refs[i] = &git.Ref{name, git.RefTypeOther, name}
+			refs[i] = &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
 		}
 	}
 
