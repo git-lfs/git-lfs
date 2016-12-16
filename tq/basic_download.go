@@ -1,4 +1,4 @@
-package transfer
+package tq
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ func (a *basicDownloadAdapter) WorkerStarting(workerNum int) (interface{}, error
 func (a *basicDownloadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
-func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 
 	f, fromByte, hashSoFar, err := a.checkResumeDownload(t)
 	if err != nil {
@@ -72,7 +72,7 @@ func (a *basicDownloadAdapter) checkResumeDownload(t *Transfer) (outFile *os.Fil
 		f.Close()
 		return nil, 0, nil, err
 	}
-	tracerx.Printf("xfer: Attempting to resume download of %q from byte %d", t.Object.Oid, n)
+	tracerx.Printf("xfer: Attempting to resume download of %q from byte %d", t.Oid, n)
 	return f, n, hash, nil
 
 }
@@ -80,20 +80,21 @@ func (a *basicDownloadAdapter) checkResumeDownload(t *Transfer) (outFile *os.Fil
 // Create or open a download file for resuming
 func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
 	// Not a temp file since we will be resuming it
-	return filepath.Join(a.tempDir(), t.Object.Oid+".tmp")
+	return filepath.Join(a.tempDir(), t.Oid+".tmp")
 }
 
 // download starts or resumes and download. Always closes dlFile if non-nil
-func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
+func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
 	if dlFile != nil {
 		// ensure we always close dlFile. Note that this does not conflict with the
 		// early close below, as close is idempotent.
 		defer dlFile.Close()
 	}
 
-	rel, ok := t.Object.Rel("download")
-	if !ok {
-		return errors.New("Object not found on the server.")
+	rel, err := t.Actions.Get("download")
+	if err != nil {
+		return err
+		// return errors.New("Object not found on the server.")
 	}
 
 	req, err := httputil.NewHttpRequest("GET", rel.Href, rel.Header)
@@ -103,17 +104,17 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 
 	if fromByte > 0 {
 		if dlFile == nil || hash == nil {
-			return fmt.Errorf("Cannot restart %v from %d without a file & hash", t.Object.Oid, fromByte)
+			return fmt.Errorf("Cannot restart %v from %d without a file & hash", t.Oid, fromByte)
 		}
 		// We could just use a start byte, but since we know the length be specific
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Object.Size-1))
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
 	}
 
-	res, err := httputil.DoHttpRequest(config.Config, req, t.Object.NeedsAuth())
+	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
-			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Object.Oid, fromByte)
+			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Oid, fromByte)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
@@ -150,11 +151,11 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 			failReason = fmt.Sprintf("expected status code 206, received %d", res.StatusCode)
 		}
 		if rangeRequestOk {
-			tracerx.Printf("xfer: server accepted resume download request: %q from byte %d", t.Object.Oid, fromByte)
+			tracerx.Printf("xfer: server accepted resume download request: %q from byte %d", t.Oid, fromByte)
 			advanceCallbackProgress(cb, t, fromByte)
 		} else {
 			// Abort resume, perform regular download
-			tracerx.Printf("xfer: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Object.Oid, fromByte, failReason)
+			tracerx.Printf("xfer: failed to resume download for %q from byte %d: %s. Re-downloading from start", t.Oid, fromByte, failReason)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
 			if res.StatusCode == 200 {
@@ -210,15 +211,15 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb TransferProgressCallback
 		return fmt.Errorf("can't close tempfile %q: %v", dlfilename, err)
 	}
 
-	if actual := hasher.Hash(); actual != t.Object.Oid {
-		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", t.Object.Oid, actual, written)
+	if actual := hasher.Hash(); actual != t.Oid {
+		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", t.Oid, actual, written)
 	}
 
 	return tools.RenameFileCopyPermissions(dlfilename, t.Path)
 }
 
 func configureBasicDownloadAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:
 			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}

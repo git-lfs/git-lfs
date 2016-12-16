@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -290,7 +291,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	}
 
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
-	q := lfs.NewDownloadQueue(lfs.WithProgress(meter))
+	q := newDownloadQueue(tq.WithProgress(meter))
 
 	if out != nil {
 		// If we already have it, or it won't be fetched
@@ -325,7 +326,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 
 	for _, p := range pointers {
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
-		q.Add(lfs.NewDownloadable(p))
+
+		q.Add(downloadTransfer(p))
 	}
 
 	processQueue := time.Now()

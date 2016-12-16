@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/spf13/cobra"
 )
 
@@ -158,15 +159,15 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(lfs.WithProgress(meter))
+	uploadQueue := lfs.NewUploadQueue(config.Config, tq.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
-		u, err := lfs.NewUploadable(f.Oid, "Test file")
+		t, err := uploadTransfer(f.Oid, "Test file")
 		if err != nil {
 			return nil, nil, err
 		}
-		uploadQueue.Add(u)
+		uploadQueue.Add(t.Name, t.Path, t.Oid, t.Size)
 	}
 	uploadQueue.Wait()
 
@@ -282,6 +283,25 @@ func interleaveTestData(slice1, slice2 []TestObject) []TestObject {
 		}
 	}
 	return ret
+}
+
+func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
+	localMediaPath, err := lfs.LocalMediaPath(oid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	fi, err := os.Stat(localMediaPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	return &tq.Transfer{
+		Name: filename,
+		Path: localMediaPath,
+		Oid:  oid,
+		Size: fi.Size(),
+	}, nil
 }
 
 func init() {
