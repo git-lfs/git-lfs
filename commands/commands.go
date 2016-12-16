@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -26,10 +25,6 @@ import (
 //go:generate go run ../docs/man/mangen.go
 
 var (
-	// API is a package-local instance of the API client for use within
-	// various command implementations.
-	API = api.NewClient(nil)
-
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)

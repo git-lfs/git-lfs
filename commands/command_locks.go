@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -10,45 +10,33 @@ var (
 )
 
 func locksCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(cfg)
 
 	filters, err := locksCmdFlags.Filters()
 	if err != nil {
-		Error(err.Error())
+		Exit("Error building filters: %v", err)
 	}
 
-	var locks []api.Lock
-
-	query := &api.LockSearchRequest{Filters: filters}
-	for {
-		s, resp := API.Locks.Search(query)
-		if _, err := API.Do(s); err != nil {
-			Error(err.Error())
-			Exit("Error communicating with LFS API.")
-		}
-
-		if resp.Err != "" {
-			Error(resp.Err)
-		}
-
-		locks = append(locks, resp.Locks...)
-
-		if locksCmdFlags.Limit > 0 && len(locks) > locksCmdFlags.Limit {
-			locks = locks[:locksCmdFlags.Limit]
-			break
-		}
-
-		if resp.NextCursor != "" {
-			query.Cursor = resp.NextCursor
-		} else {
-			break
-		}
+	if len(lockRemote) > 0 {
+		cfg.CurrentRemote = lockRemote
 	}
-
-	Print("\n%d lock(s) matched query:", len(locks))
+	lockClient, err := locking.NewClient(cfg)
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+	defer lockClient.Close()
+	var lockCount int
+	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
+	// Print any we got before exiting
 	for _, lock := range locks {
-		Print("%s\t%s <%s>", lock.Path, lock.Committer.Name, lock.Committer.Email)
+		Print("%s\t%s <%s>", lock.Path, lock.Name, lock.Email)
+		lockCount++
 	}
+
+	if err != nil {
+		Exit("Error while retrieving locks: %v", err)
+	}
+
+	Print("\n%d lock(s) matched query.", lockCount)
 }
 
 // locksFlags wraps up and holds all of the flags that can be given to the
@@ -63,13 +51,14 @@ type locksFlags struct {
 	// limit is an optional request parameter sent to the server used to
 	// limit the
 	Limit int
+	// local limits the scope of lock reporting to the locally cached record
+	// of locks for the current user & doesn't query the server
+	Local bool
 }
 
-// Filters produces a slice of api.Filter instances based on the internal state
-// of this locksFlags instance. The return value of this method is capable (and
-// recommend to be used with) the api.LockSearchRequest type.
-func (l *locksFlags) Filters() ([]api.Filter, error) {
-	filters := make([]api.Filter, 0)
+// Filters produces a filter based on locksFlags instance.
+func (l *locksFlags) Filters() (map[string]string, error) {
+	filters := make(map[string]string)
 
 	if l.Path != "" {
 		path, err := lockPath(l.Path)
@@ -77,10 +66,10 @@ func (l *locksFlags) Filters() ([]api.Filter, error) {
 			return nil, err
 		}
 
-		filters = append(filters, api.Filter{"path", path})
+		filters["path"] = path
 	}
 	if l.Id != "" {
-		filters = append(filters, api.Filter{"id", l.Id})
+		filters["id"] = l.Id
 	}
 
 	return filters, nil
@@ -96,5 +85,6 @@ func init() {
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
+		cmd.Flags().BoolVarP(&locksCmdFlags.Local, "local", "", false, "only list cached local record of own locks")
 	})
 }

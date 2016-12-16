@@ -21,28 +21,24 @@ var (
 	ErrNoOperationGiven = errors.New("lfs/api: no operation provided in schema")
 )
 
-// EndpointSource is an interface which encapsulates the behavior of returning
-// `config.Endpoint`s based on a particular operation.
-type EndpointSource interface {
-	// Endpoint returns the `config.Endpoint` assosciated with a given
-	// operation.
-	Endpoint(operation string) config.Endpoint
-}
-
 // HttpLifecycle serves as the default implementation of the Lifecycle interface
 // for HTTP requests. Internally, it leverages the *http.Client type to execute
 // HTTP requests against a root *url.URL, as given in `NewHttpLifecycle`.
 type HttpLifecycle struct {
-	endpoints EndpointSource
+	cfg *config.Configuration
 }
 
 var _ Lifecycle = new(HttpLifecycle)
 
 // NewHttpLifecycle initializes a new instance of the *HttpLifecycle type with a
 // new *http.Client, and the given root (see above).
-func NewHttpLifecycle(endpoints EndpointSource) *HttpLifecycle {
+// Passing a nil Configuration will use the global config
+func NewHttpLifecycle(cfg *config.Configuration) *HttpLifecycle {
+	if cfg == nil {
+		cfg = config.Config
+	}
 	return &HttpLifecycle{
-		endpoints: endpoints,
+		cfg: cfg,
 	}
 }
 
@@ -78,7 +74,7 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 		return nil, err
 	}
 
-	if _, err = auth.GetCreds(config.Config, req); err != nil {
+	if _, err = auth.GetCreds(l.cfg, req); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +98,7 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 // Otherwise, the api.Response is returned, along with no error, signaling that
 // the request completed successfully.
 func (l *HttpLifecycle) Execute(req *http.Request, into interface{}) (Response, error) {
-	resp, err := httputil.DoHttpRequestWithRedirects(config.Config, req, []*http.Request{}, true)
+	resp, err := httputil.DoHttpRequestWithRedirects(l.cfg, req, []*http.Request{}, true)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +132,7 @@ func (l *HttpLifecycle) absolutePath(operation Operation, path string) (*url.URL
 		return nil, ErrNoOperationGiven
 	}
 
-	root, err := url.Parse(l.endpoints.Endpoint(string(operation)).Url)
+	root, err := url.Parse(l.cfg.Endpoint(string(operation)).Url)
 	if err != nil {
 		return nil, err
 	}

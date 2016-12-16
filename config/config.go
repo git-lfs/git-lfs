@@ -492,3 +492,12 @@ func (c *Configuration) loadGitConfig() bool {
 
 	return false
 }
+
+// CurrentCommitter returns the name/email that would be used to author a commit
+// with this configuration. In particular, the "user.name" and "user.email"
+// configuration values are used
+func (c *Configuration) CurrentCommitter() (name, email string) {
+	name, _ = c.Git.Get("user.name")
+	email, _ = c.Git.Get("user.email")
+	return
+}
