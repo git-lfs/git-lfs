@@ -7,7 +7,7 @@ environment:
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
-  - echo $(GOPATH)
+  - echo %GOPATH%
   - rd C:\Go /s /q
   - appveyor DownloadFile https://storage.googleapis.com/golang/go1.7.4.windows-amd64.zip
   - 7z x go1.7.4.windows-amd64.zip -oC:\ >nul
@@ -16,7 +16,6 @@ install:
   - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
 
 build_script:
-  - C:\Ruby23\DevKit\mingw\bin\windres.exe script\windows-installer\resources.rc -o resources.syso
   - bash --login -c 'GOARCH=386 script/bootstrap'
   - mv bin\git-lfs.exe git-lfs-x86.exe
   - bash --login -c 'GOARCH=amd64 script/bootstrap'

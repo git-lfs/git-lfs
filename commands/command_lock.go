@@ -6,36 +6,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
 var (
 	lockRemote     string
 	lockRemoteHelp = "specify which remote to use when interacting with locks"
-
-	// TODO(taylor): consider making this (and the above flag) a property of
-	// some parent-command, or another similarly less ugly way of handling
-	// this
-	setLockRemoteFor = func(c *config.Configuration) {
-		c.CurrentRemote = lockRemote
-	}
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(cfg)
 
 	if len(args) == 0 {
 		Print("Usage: git lfs lock <path>")
 		return
-	}
-
-	latest, err := git.CurrentRemoteRef()
-	if err != nil {
-		Error(err.Error())
-		Exit("Unable to determine lastest remote ref for branch.")
 	}
 
 	path, err := lockPath(args[0])
@@ -43,23 +28,21 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	s, resp := API.Locks.Lock(&api.LockRequest{
-		Path:               path,
-		Committer:          api.CurrentCommitter(),
-		LatestRemoteCommit: latest.Sha,
-	})
-
-	if _, err := API.Do(s); err != nil {
-		Error(err.Error())
-		Exit("Error communicating with LFS API.")
+	if len(lockRemote) > 0 {
+		cfg.CurrentRemote = lockRemote
 	}
 
-	if len(resp.Err) > 0 {
-		Error(resp.Err)
-		Exit("Server unable to create lock.")
+	lockClient, err := locking.NewClient(cfg)
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+	defer lockClient.Close()
+	lock, err := lockClient.LockFile(path)
+	if err != nil {
+		Exit("Lock failed: %v", err)
 	}
 
-	Print("\n'%s' was locked (%s)", args[0], resp.Lock.Id)
+	Print("\n'%s' was locked (%s)", args[0], lock.Id)
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root
