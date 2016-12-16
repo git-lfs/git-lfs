@@ -125,24 +125,12 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 
 	tempgitscanner.Filter = filter
 
-	if err := tempgitscanner.ScanTree(ref, nil); err != nil {
+	if err := tempgitscanner.ScanTree(ref); err != nil {
 		return nil, err
 	}
 
 	tempgitscanner.Close()
 	return pointers, multiErr
-}
-
-func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
-	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref, filter)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-
-	go fetchAndReportToChan(pointers, filter, c)
-
-	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
