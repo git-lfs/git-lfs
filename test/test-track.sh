@@ -2,6 +2,40 @@
 
 . "test/testlib.sh"
 
+begin_test "track with case insensitive files"
+(
+  set -e
+  mkdir track-case
+  cd track-case
+  git init
+
+  echo "test1" > before-upper.DAT
+  echo "test2" > before-lower.dat
+
+  git add .
+  git commit -m "add files before lfs"
+
+  git lfs track "*.dat"
+  echo "test3" > after-upper.DAT
+  echo "test4" > after-lower.dat
+  git add .
+
+  git commit -m "all files are lfs"
+
+  git lfs ls-files | tee ../files.log
+  grep "before-lower.dat" ../files.log
+  grep "before-upper.DAT" ../files.log
+  grep "after-lower.dat" ../files.log
+  grep "after-upper.DAT" ../files.log
+
+  rm *
+  git checkout .
+  git status | tee ../status.log
+  grep "working tree clean" ../status.log ||
+    grep "working directory clean" ../status.log
+)
+end_test
+
 begin_test "track"
 (
   set -e
