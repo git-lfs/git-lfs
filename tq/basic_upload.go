@@ -1,7 +1,6 @@
-package transfer
+package tq
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -44,10 +43,11 @@ func (a *basicUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) 
 func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
-func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
-	rel, ok := t.Object.Rel("upload")
-	if !ok {
-		return fmt.Errorf("No upload action for this object.")
+func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
+	rel, err := t.Actions.Get("upload")
+	if err != nil {
+		return err
+		// return fmt.Errorf("No upload action for this object.")
 	}
 
 	req, err := httputil.NewHttpRequest("PUT", rel.Href, rel.Header)
@@ -62,10 +62,10 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 	if req.Header.Get("Transfer-Encoding") == "chunked" {
 		req.TransferEncoding = []string{"chunked"}
 	} else {
-		req.Header.Set("Content-Length", strconv.FormatInt(t.Object.Size, 10))
+		req.Header.Set("Content-Length", strconv.FormatInt(t.Size, 10))
 	}
 
-	req.ContentLength = t.Object.Size
+	req.ContentLength = t.Size
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
@@ -84,7 +84,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 	var reader io.Reader
 	reader = &progress.CallbackReader{
 		C:         ccb,
-		TotalSize: t.Object.Size,
+		TotalSize: t.Size,
 		Reader:    f,
 	}
 
@@ -97,7 +97,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := httputil.DoHttpRequest(config.Config, req, t.Object.NeedsAuth())
+	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
@@ -117,7 +117,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Transfe
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(config.Config, t.Object)
+	return api.VerifyUpload(config.Config, toApiObject(t))
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the
@@ -140,7 +140,7 @@ func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCa
 }
 
 func configureBasicUploadAdapter(m *Manifest) {
-	m.RegisterNewTransferAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) TransferAdapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
 			bu := &basicUploadAdapter{newAdapterBase(name, dir, nil)}

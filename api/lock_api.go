@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/git-lfs/git-lfs/config"
 )
 
 // LockService is an API service which encapsulates the Git LFS Locking API.
@@ -144,15 +142,8 @@ type Committer struct {
 	Email string `json:"email"`
 }
 
-// CurrentCommitter returns a Committer instance populated with the same
-// credentials as would be used to author a commit. In particular, the
-// "user.name" and "user.email" configuration values are used from the
-// config.Config singleton.
-func CurrentCommitter() Committer {
-	name, _ := config.Config.Git.Get("user.name")
-	email, _ := config.Config.Git.Get("user.email")
-
-	return Committer{name, email}
+func NewCommitter(name, email string) Committer {
+	return Committer{Name: name, Email: email}
 }
 
 // LockRequest encapsulates the payload sent across the API when a client would
