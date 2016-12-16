@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +47,7 @@ func pull(filter *filepathfilter.Filter) {
 	pointers := newPointerMap()
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
 	singleCheckout := newSingleCheckout()
-	q := lfs.NewDownloadQueue(lfs.WithProgress(meter))
+	q := newDownloadQueue(tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error")
@@ -68,7 +69,7 @@ func pull(filter *filepathfilter.Filter) {
 		meter.StartTransfer(p.Name)
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 		pointers.Add(p)
-		q.Add(lfs.NewDownloadable(p))
+		q.Add(downloadTransfer(p))
 	})
 
 	gitscanner.Filter = filter

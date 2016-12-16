@@ -10,7 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Handles the process of checking out a single file, and updating the git
@@ -33,7 +33,7 @@ func newSingleCheckout() *singleCheckout {
 type singleCheckout struct {
 	gitIndexer    *gitIndexer
 	pathConverter lfs.PathConverter
-	manifest      *transfer.Manifest
+	manifest      *tq.Manifest
 }
 
 func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
