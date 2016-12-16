@@ -8,11 +8,9 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
-	"github.com/git-lfs/git-lfs/tools/longpathos"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -144,13 +142,13 @@ func TestFastWalkBasic(t *testing.T) {
 	if err != nil {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
-	defer longpathos.RemoveAll(rootDir)
-	longpathos.Chdir(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	fchan, errchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil, nil)
-	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+	fchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil)
+	gotEntries, gotErrors := collectFastWalkResults(fchan)
 
 	assert.Empty(t, gotErrors)
 
@@ -160,13 +158,58 @@ func TestFastWalkBasic(t *testing.T) {
 
 }
 
+func BenchmarkFastWalkGitRepoChannels(b *testing.B) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoChannels")
+	if err != nil {
+		assert.FailNow(b, "Unable to get temp dir: %v", err)
+	}
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	entries := createFastWalkInputData(1000, 5000)
+
+	for i := 0; i < b.N; i++ {
+		var files, errors int
+		FastWalkGitRepo(entries[0], func(parent string, info os.FileInfo, err error) {
+			if err != nil {
+				errors++
+			} else {
+				files++
+			}
+		})
+		b.Logf("files: %d, errors: %d", files, errors)
+	}
+}
+
+func BenchmarkFastWalkGitRepoCallback(b *testing.B) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoCallback")
+	if err != nil {
+		assert.FailNow(b, "Unable to get temp dir: %v", err)
+	}
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	entries := createFastWalkInputData(1000, 5000)
+
+	for i := 0; i < b.N; i++ {
+		var files, errors int
+		FastWalkGitRepo(entries[0], func(parentDir string, info os.FileInfo, err error) {
+			if err != nil {
+				errors++
+			} else {
+				files++
+			}
+		})
+
+		b.Logf("files: %d, errors: %d", files, errors)
+	}
+}
+
 func TestFastWalkGitRepo(t *testing.T) {
 	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkGitRepo")
 	if err != nil {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
-	defer longpathos.RemoveAll(rootDir)
-	longpathos.Chdir(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(3, 3)
 
@@ -192,7 +235,7 @@ func TestFastWalkGitRepo(t *testing.T) {
 		if len(filepath.Ext(f)) > 0 {
 			ioutil.WriteFile(fullPath, []byte("TEST"), 0644)
 		} else {
-			longpathos.MkdirAll(fullPath, 0755)
+			os.MkdirAll(fullPath, 0755)
 		}
 	}
 	// write root .gitignore
@@ -220,8 +263,15 @@ thisisnot.txt
 	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", ".gitignore"))
 	// nothing else should be there
 
-	fchan, errchan := FastWalkGitRepo(mainDir)
-	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+	gotEntries := make([]string, 0, 1000)
+	gotErrors := make([]error, 0, 5)
+	FastWalkGitRepo(mainDir, func(parent string, info os.FileInfo, err error) {
+		if err != nil {
+			gotErrors = append(gotErrors, err)
+		} else {
+			gotEntries = append(gotEntries, filepath.Join(parent, info.Name()))
+		}
+	})
 
 	assert.Empty(t, gotErrors)
 
@@ -248,7 +298,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	expectedEntries := make([]string, 0, 250)
 
 	for i, dir := range dirs {
-		longpathos.MkdirAll(dir, 0755)
+		os.MkdirAll(dir, 0755)
 		numFiles := smallFolder
 		expectedEntries = append(expectedEntries, filepath.Clean(dir))
 		if i >= 3 && i <= 5 {
@@ -265,24 +315,16 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	return expectedEntries
 }
 
-func collectFastWalkResults(fchan <-chan FastWalkInfo, errchan <-chan error) ([]string, []error) {
+func collectFastWalkResults(fchan <-chan fastWalkInfo) ([]string, []error) {
 	gotEntries := make([]string, 0, 1000)
 	gotErrors := make([]error, 0, 5)
-	var waitg sync.WaitGroup
-	waitg.Add(2)
-	go func() {
-		for o := range fchan {
+	for o := range fchan {
+		if o.Err != nil {
+			gotErrors = append(gotErrors, o.Err)
+		} else {
 			gotEntries = append(gotEntries, filepath.Join(o.ParentDir, o.Info.Name()))
 		}
-		waitg.Done()
-	}()
-	go func() {
-		for err := range errchan {
-			gotErrors = append(gotErrors, err)
-		}
-		waitg.Done()
-	}()
-	waitg.Wait()
+	}
 
 	return gotEntries, gotErrors
 }
