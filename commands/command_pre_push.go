@@ -54,6 +54,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
+	ctx.DryRun = prePushDryRun
 
 	gitscanner := lfs.NewGitScanner(nil)
 	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {

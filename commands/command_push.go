@@ -130,6 +130,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(pushDryRun)
+	ctx.DryRun = pushDryRun
 
 	if pushObjectIDs {
 		if len(args) < 2 {
