@@ -14,7 +14,8 @@ var (
 )
 
 type Client struct {
-	Endpoints EndpointFinder
+	Endpoints   EndpointFinder
+	Credentials CredentialHelper
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
