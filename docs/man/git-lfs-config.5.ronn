@@ -223,6 +223,13 @@ lfs option can be scoped inside the configuration for a remote.
   * `total` The entire size of the file, in bytes.
   * `name` The name of the file.
 
+* `GIT_LFS_SET_LOCKABLE_READONLY`
+
+  This environment variable controls whether files marked as 'lockable' in 
+  `git lfs track` are made read-only in the working copy when not locked by 
+  the current user. The default is `true`, you can disable this behaviour and
+  have all files writeable by setting this variable to 0, 'no' or 'false'.
+
 ## SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5)
