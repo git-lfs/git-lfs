@@ -11,10 +11,8 @@ import (
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -269,7 +267,7 @@ func (c *Configuration) Access(operation string) lfsapi.Access {
 
 // SetAccess will set the private access flag in .git/config.
 func (c *Configuration) SetAccess(operation string, authType string) {
-	c.SetEndpointAccess(c.Endpoint(operation), authType)
+	c.endpointConfig().SetAccess(c.Endpoint(operation).Url, lfsapi.Access(authType))
 }
 
 func (c *Configuration) FindNetrcHost(host string) (*netrc.Machine, error) {
@@ -293,24 +291,6 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 
 func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
 	return c.endpointConfig().AccessFor(e.Url)
-}
-
-func (c *Configuration) SetEndpointAccess(e lfsapi.Endpoint, authType string) {
-	c.loadGitConfig()
-
-	tracerx.Printf("setting repository access to %s", authType)
-	key := fmt.Sprintf("lfs.%s.access", e.Url)
-
-	// Modify the config cache because it's checked again in this process
-	// without being reloaded.
-	switch authType {
-	case "", "none":
-		git.Config.UnsetLocalKey("", key)
-		c.Git.del(key)
-	default:
-		git.Config.SetLocal("", key, authType)
-		c.Git.set(key, authType)
-	}
 }
 
 func (c *Configuration) FetchIncludePaths() []string {

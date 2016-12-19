@@ -311,6 +311,44 @@ func TestAccessAbsentConfig(t *testing.T) {
 	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("upload", "").Url))
 }
 
+func TestSetAccess(t *testing.T) {
+	finder := NewEndpointFinder(gitEnv(map[string]string{}))
+
+	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
+	finder.SetAccess("http://example.com", NTLMAccess)
+	assert.Equal(t, NTLMAccess, finder.AccessFor("http://example.com"))
+}
+
+func TestChangeAccess(t *testing.T) {
+	finder := NewEndpointFinder(gitEnv(map[string]string{
+		"lfs.http://example.com.access": "basic",
+	}))
+
+	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
+	finder.SetAccess("http://example.com", NTLMAccess)
+	assert.Equal(t, NTLMAccess, finder.AccessFor("http://example.com"))
+}
+
+func TestDeleteAccessWithNone(t *testing.T) {
+	finder := NewEndpointFinder(gitEnv(map[string]string{
+		"lfs.http://example.com.access": "basic",
+	}))
+
+	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
+	finder.SetAccess("http://example.com", NoneAccess)
+	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
+}
+
+func TestDeleteAccessWithEmptyString(t *testing.T) {
+	finder := NewEndpointFinder(gitEnv(map[string]string{
+		"lfs.http://example.com.access": "basic",
+	}))
+
+	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
+	finder.SetAccess("http://example.com", Access(""))
+	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
+}
+
 type gitEnv map[string]string
 
 func (e gitEnv) Get(key string) (string, bool) {

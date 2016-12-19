@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/rubyist/tracerx"
 )
 
 type Access string
@@ -18,6 +19,7 @@ const (
 	BasicAccess   Access = "basic"
 	PrivateAccess Access = "private"
 	NTLMAccess    Access = "ntlm"
+	emptyAccess   Access = ""
 	defaultRemote        = "origin"
 )
 
@@ -28,20 +30,26 @@ type EndpointFinder interface {
 	RemoteEndpoint(operation, remote string) Endpoint
 	GitRemoteURL(remote string, forpush bool) string
 	AccessFor(rawurl string) Access
+	SetAccess(rawurl string, access Access)
 	GitProtocol() string
 }
 
 type endpointGitFinder struct {
 	git         env
 	gitProtocol string
-	aliases     map[string]string
-	aliasMu     sync.Mutex
+
+	aliasMu sync.Mutex
+	aliases map[string]string
+
+	accessMu  sync.Mutex
+	urlAccess map[string]Access
 }
 
 func NewEndpointFinder(git env) EndpointFinder {
 	e := &endpointGitFinder{
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
+		urlAccess:   make(map[string]Access),
 	}
 
 	if git != nil {
@@ -173,13 +181,42 @@ func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 		return NoneAccess
 	}
 
+	e.accessMu.Lock()
+	defer e.accessMu.Unlock()
+
+	if cached, ok := e.urlAccess[rawurl]; ok {
+		return cached
+	}
+
 	key := fmt.Sprintf("lfs.%s.access", rawurl)
-	if v, _ := e.git.Get(key); len(v) > 0 {
-		lower := Access(strings.ToLower(v))
-		if lower == PrivateAccess {
+	e.urlAccess[rawurl] = fetchGitAccess(e.git, key)
+	return e.urlAccess[rawurl]
+}
+
+func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
+	key := fmt.Sprintf("lfs.%s.access", rawurl)
+	tracerx.Printf("setting repository access to %s", access)
+
+	e.accessMu.Lock()
+	defer e.accessMu.Unlock()
+
+	switch access {
+	case emptyAccess, NoneAccess:
+		git.Config.UnsetLocalKey("", key)
+		e.urlAccess[rawurl] = NoneAccess
+	default:
+		git.Config.SetLocal("", key, string(access))
+		e.urlAccess[rawurl] = access
+	}
+}
+
+func fetchGitAccess(git env, key string) Access {
+	if v, _ := git.Get(key); len(v) > 0 {
+		access := Access(strings.ToLower(v))
+		if access == PrivateAccess {
 			return BasicAccess
 		}
-		return lower
+		return access
 	}
 	return NoneAccess
 }
