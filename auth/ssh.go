@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -19,7 +20,7 @@ type SshAuthResponse struct {
 	ExpiresAt string            `json:"expires_at"`
 }
 
-func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthResponse, config.Endpoint, error) {
+func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthResponse, lfsapi.Endpoint, error) {
 	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
 	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
 
@@ -61,8 +62,8 @@ func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthR
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(cfg *config.Configuration, endpoint config.Endpoint) (exe string, baseargs []string) {
-	if len(endpoint.SshUserAndHost) == 0 {
+func sshGetExeAndArgs(cfg *config.Configuration, e lfsapi.Endpoint) (exe string, baseargs []string) {
+	if len(e.SshUserAndHost) == 0 {
 		return "", nil
 	}
 
@@ -99,15 +100,15 @@ func sshGetExeAndArgs(cfg *config.Configuration, endpoint config.Endpoint) (exe 
 		args = append(args, "-batch")
 	}
 
-	if len(endpoint.SshPort) > 0 {
+	if len(e.SshPort) > 0 {
 		if isPlink || isTortoise {
 			args = append(args, "-P")
 		} else {
 			args = append(args, "-p")
 		}
-		args = append(args, endpoint.SshPort)
+		args = append(args, e.SshPort)
 	}
-	args = append(args, endpoint.SshUserAndHost)
+	args = append(args, e.SshUserAndHost)
 
 	return ssh, args
 }

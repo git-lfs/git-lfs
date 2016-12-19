@@ -120,7 +120,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 
 // TransferManifest builds a tq.Manifest using the given cfg.
 func TransferManifest(cfg *config.Configuration) *tq.Manifest {
-	return tq.NewManifestWithGitEnv(cfg.Access("download"), cfg.Git)
+	return tq.NewManifestWithGitEnv(string(cfg.Access("download")), cfg.Git)
 }
 
 func InRepo() bool {
