@@ -3,6 +3,7 @@ package lfsapi
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func getCreds(credHelper CredentialHelper, ef EndpointFinder, remote string, req *http.Request) (Creds, error) {
+func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, error) {
 	if skipCreds(ef, req) {
 		return nil, nil
 	}
@@ -25,6 +26,10 @@ func getCreds(credHelper CredentialHelper, ef EndpointFinder, remote string, req
 	}
 
 	if credsUrl == nil {
+		return nil, nil
+	}
+
+	if setAuthFromNetrc(netrcFinder, req) {
 		return nil, nil
 	}
 
@@ -57,6 +62,29 @@ func fillCredentials(credHelper CredentialHelper, ef EndpointFinder, req *http.R
 	setRequestAuth(req, creds["username"], creds["password"])
 
 	return creds, err
+}
+
+func setAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) bool {
+	hostname := req.URL.Host
+	var host string
+
+	if strings.Contains(hostname, ":") {
+		var err error
+		host, _, err = net.SplitHostPort(hostname)
+		if err != nil {
+			tracerx.Printf("netrc: error parsing %q: %s", hostname, err)
+			return false
+		}
+	} else {
+		host = hostname
+	}
+
+	if machine := netrcFinder.FindMachine(host); machine != nil {
+		setRequestAuth(req, machine.Login, machine.Password)
+		return true
+	}
+
+	return false
 }
 
 func getCredURLForAPI(ef EndpointFinder, operation, remote string, e Endpoint, req *http.Request) (*url.URL, error) {

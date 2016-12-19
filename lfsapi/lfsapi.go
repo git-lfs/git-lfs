@@ -16,6 +16,7 @@ var (
 type Client struct {
 	Endpoints   EndpointFinder
 	Credentials CredentialHelper
+	Netrc       NetrcFinder
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
