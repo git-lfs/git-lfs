@@ -292,3 +292,136 @@ begin_test "track blocklisted files with glob"
   grep "Pattern .git\* matches forbidden file" track.log
 )
 end_test
+
+begin_test "track lockable"
+(
+  set -e
+
+  repo="track_lockable"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  # track *.jpg once, lockable
+  git lfs track --lockable "*.jpg" | grep "Tracking \*.jpg"
+  numjpg=$(grep -e "\*.jpg.*lockable" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$numjpg")" != "1" ]; then
+    echo "wrong number of lockable jpgs"
+    cat .gitattributes
+    exit 1
+  fi
+  # track *.jpg again, don't change anything. Should retain lockable
+  git lfs track "*.jpg" | grep "*.jpg already supported"
+  numjpg=$(grep -e "\*.jpg.*lockable" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$numjpg")" != "1" ]; then
+    echo "wrong number of lockable jpgs"
+    cat .gitattributes
+    exit 1
+  fi
+
+
+  # track *.png once, not lockable yet
+  git lfs track "*.png" | grep "Tracking \*.png"
+  numpng=$(grep -e "\*.png" .gitattributes | wc -l)
+  numpnglockable=$(grep -e "\*.png.*lockable" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$numpng")" != "1" ]; then
+    echo "wrong number of pngs"
+    cat .gitattributes
+    exit 1
+  fi
+  if [ "$(printf "%d" "$numpnglockable")" != "0" ]; then
+    echo "wrong number of lockable pngs"
+    cat .gitattributes
+    exit 1
+  fi
+
+  # track png again, enable lockable, should replace
+  git lfs track --lockable "*.png" | grep "Tracking \*.png"
+  numpng=$(grep -e "\*.png" .gitattributes | wc -l)
+  numpnglockable=$(grep -e "\*.png.*lockable" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$numpng")" != "1" ]; then
+    echo "wrong number of pngs"
+    cat .gitattributes
+    exit 1
+  fi
+  if [ "$(printf "%d" "$numpnglockable")" != "1" ]; then
+    echo "wrong number of lockable pngs"
+    cat .gitattributes
+    exit 1
+  fi
+
+  # track png again, disable lockable, should replace
+  git lfs track --not-lockable "*.png" | grep "Tracking \*.png"
+  numpng=$(grep -e "\*.png" .gitattributes | wc -l)
+  numpnglockable=$(grep -e "\*.png.*lockable" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$numpng")" != "1" ]; then
+    echo "wrong number of pngs"
+    cat .gitattributes
+    exit 1
+  fi
+  if [ "$(printf "%d" "$numpnglockable")" != "0" ]; then
+    echo "wrong number of lockable pngs"
+    cat .gitattributes
+    exit 1
+  fi
+
+  # check output reflects lockable
+  out=$(git lfs track)
+  echo "$out" | grep "Listing tracked patterns"
+  echo "$out" | grep "*.jpg \[lockable\] (.gitattributes)"
+  echo "$out" | grep "*.png (.gitattributes)"
+)
+end_test
+
+begin_test "track lockable read-only/read-write"
+(
+  set -e
+
+  repo="track_lockable_ro_rw"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  echo "blah blah" > test.bin
+  echo "foo bar" > test.dat
+  mkdir subfolder
+  echo "sub blah blah" > subfolder/test.bin
+  echo "sub foo bar" > subfolder/test.dat
+  # should start writeable
+  [ -w test.bin ]
+  [ -w test.dat ]
+  [ -w subfolder/test.bin ]
+  [ -w subfolder/test.dat ]
+
+  # track *.bin, not lockable yet
+  git lfs track "*.bin" | grep "Tracking \*.bin"
+  # track *.dat, lockable immediately
+  git lfs track --lockable "*.dat" | grep "Tracking \*.dat"
+
+  # bin should remain writeable, dat should have been made read-only
+  [ -w test.bin ]
+  [ ! -w test.dat ]
+  [ -w subfolder/test.bin ]
+  [ ! -w subfolder/test.dat ]
+
+  git add .gitattributes test.bin test.dat
+  git commit -m "First commit"
+
+  # bin should still be writeable
+  [ -w test.bin ]
+  [ -w subfolder/test.bin ]
+  # now make bin lockable
+  git lfs track --lockable "*.bin" | grep "Tracking \*.bin"
+  # bin should now be read-only
+  [ ! -w test.bin ]
+  [ ! -w subfolder/test.bin ]
+
+  # remove lockable again
+  git lfs track --not-lockable "*.bin" | grep "Tracking \*.bin"
+  # bin should now be writeable again
+  [ -w test.bin ]
+  [ -w subfolder/test.bin ]
+
+)
+end_test
+
