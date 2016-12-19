@@ -292,7 +292,7 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 }
 
 func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
-	return c.endpointConfig().AccessFor(e)
+	return c.endpointConfig().AccessFor(e.Url)
 }
 
 func (c *Configuration) SetEndpointAccess(e lfsapi.Endpoint, authType string) {

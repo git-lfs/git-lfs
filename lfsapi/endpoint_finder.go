@@ -11,7 +11,15 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 )
 
-const defaultRemote = "origin"
+type Access string
+
+const (
+	NoneAccess    Access = "none"
+	BasicAccess   Access = "basic"
+	PrivateAccess Access = "private"
+	NTLMAccess    Access = "ntlm"
+	defaultRemote        = "origin"
+)
 
 type EndpointFinder interface {
 	NewEndpointFromCloneURL(rawurl string) Endpoint
@@ -19,7 +27,7 @@ type EndpointFinder interface {
 	Endpoint(operation, remote string) Endpoint
 	RemoteEndpoint(operation, remote string) Endpoint
 	GitRemoteURL(remote string, forpush bool) string
-	AccessFor(ep Endpoint) Access
+	AccessFor(rawurl string) Access
 	GitProtocol() string
 }
 
@@ -158,6 +166,22 @@ func (e *endpointGitFinder) NewEndpoint(rawurl string) Endpoint {
 		// Just passthrough to preserve
 		return Endpoint{Url: rawurl}
 	}
+}
+
+func (e *endpointGitFinder) AccessFor(rawurl string) Access {
+	if e.git == nil {
+		return NoneAccess
+	}
+
+	key := fmt.Sprintf("lfs.%s.access", rawurl)
+	if v, _ := e.git.Get(key); len(v) > 0 {
+		lower := Access(strings.ToLower(v))
+		if lower == PrivateAccess {
+			return BasicAccess
+		}
+		return lower
+	}
+	return NoneAccess
 }
 
 func (e *endpointGitFinder) GitProtocol() string {
