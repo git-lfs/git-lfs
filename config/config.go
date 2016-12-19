@@ -11,8 +11,8 @@ import (
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/bgentry/go-netrc/netrc"
-	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -67,9 +67,9 @@ type Configuration struct {
 	loading        sync.Mutex // guards initialization of gitConfig and remotes
 	remotes        []string
 	extensions     map[string]Extension
-	manualEndpoint *endpoint.Endpoint
+	manualEndpoint *lfsapi.Endpoint
 	parsedNetrc    netrcfinder
-	endpointCfg    *endpoint.Config
+	endpointFinder lfsapi.EndpointFinder
 	endpointMu     sync.Mutex
 }
 
@@ -206,11 +206,11 @@ func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
 }
 
 // Manually set an Endpoint to use instead of deriving from Git config
-func (c *Configuration) SetManualEndpoint(e endpoint.Endpoint) {
+func (c *Configuration) SetManualEndpoint(e lfsapi.Endpoint) {
 	c.manualEndpoint = &e
 }
 
-func (c *Configuration) Endpoint(operation string) endpoint.Endpoint {
+func (c *Configuration) Endpoint(operation string) lfsapi.Endpoint {
 	if c.manualEndpoint != nil {
 		return *c.manualEndpoint
 	}
@@ -251,7 +251,7 @@ func (c *Configuration) BatchTransfer() bool {
 }
 
 func (c *Configuration) NtlmAccess(operation string) bool {
-	return c.Access(operation) == endpoint.NTLMAccess
+	return c.Access(operation) == lfsapi.NTLMAccess
 }
 
 // PrivateAccess will retrieve the access value and return true if
@@ -259,11 +259,11 @@ func (c *Configuration) NtlmAccess(operation string) bool {
 // access, the http requests for the batch api will fetch the credentials
 // before running, otherwise the request will run without credentials.
 func (c *Configuration) PrivateAccess(operation string) bool {
-	return c.Access(operation) != endpoint.NoneAccess
+	return c.Access(operation) != lfsapi.NoneAccess
 }
 
 // Access returns the access auth type.
-func (c *Configuration) Access(operation string) endpoint.Access {
+func (c *Configuration) Access(operation string) lfsapi.Access {
 	return c.EndpointAccess(c.Endpoint(operation))
 }
 
@@ -291,11 +291,11 @@ func (c *Configuration) SetNetrc(n netrcfinder) {
 	c.parsedNetrc = n
 }
 
-func (c *Configuration) EndpointAccess(e endpoint.Endpoint) endpoint.Access {
+func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
 	return c.endpointConfig().AccessFor(e)
 }
 
-func (c *Configuration) SetEndpointAccess(e endpoint.Endpoint, authType string) {
+func (c *Configuration) SetEndpointAccess(e lfsapi.Endpoint, authType string) {
 	c.loadGitConfig()
 
 	tracerx.Printf("setting repository access to %s", authType)
@@ -323,7 +323,7 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
-func (c *Configuration) RemoteEndpoint(remote, operation string) endpoint.Endpoint {
+func (c *Configuration) RemoteEndpoint(remote, operation string) lfsapi.Endpoint {
 	return c.endpointConfig().RemoteEndpoint(operation, remote)
 }
 
@@ -337,15 +337,15 @@ func (c *Configuration) GitProtocol() string {
 	return c.endpointConfig().GitProtocol()
 }
 
-func (c *Configuration) endpointConfig() *endpoint.Config {
+func (c *Configuration) endpointConfig() lfsapi.EndpointFinder {
 	c.endpointMu.Lock()
 	defer c.endpointMu.Unlock()
 
-	if c.endpointCfg == nil {
-		c.endpointCfg = endpoint.NewConfig(c.Git)
+	if c.endpointFinder == nil {
+		c.endpointFinder = lfsapi.NewEndpointFinder(c.Git)
 	}
 
-	return c.endpointCfg
+	return c.endpointFinder
 }
 
 func (c *Configuration) Extensions() map[string]Extension {

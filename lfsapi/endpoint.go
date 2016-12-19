@@ -1,4 +1,4 @@
-package endpoint
+package lfsapi
 
 import (
 	"fmt"
@@ -88,7 +88,7 @@ func endpointFromHttpUrl(u *url.URL) Endpoint {
 	return Endpoint{Url: u.String()}
 }
 
-func endpointFromGitUrl(u *url.URL, c *Config) Endpoint {
-	u.Scheme = c.gitProtocol
+func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) Endpoint {
+	u.Scheme = e.gitProtocol
 	return Endpoint{Url: u.String()}
 }

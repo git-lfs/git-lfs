@@ -1,4 +1,4 @@
-package endpoint
+package lfsapi
 
 import (
 	"testing"
@@ -22,26 +22,26 @@ func TestAccessConfig(t *testing.T) {
 	}
 
 	for value, expected := range tests {
-		cfg := NewConfig(gitEnv(map[string]string{
+		finder := NewEndpointFinder(gitEnv(map[string]string{
 			"lfs.url":                        "http://example.com",
 			"lfs.http://example.com.access":  value,
 			"lfs.https://example.com.access": "bad",
 		}))
 
-		dl := cfg.Endpoint("upload", "")
-		ul := cfg.Endpoint("download", "")
+		dl := finder.Endpoint("upload", "")
+		ul := finder.Endpoint("download", "")
 
-		if access := cfg.AccessFor(dl); access != Access(expected.Access) {
+		if access := finder.AccessFor(dl); access != Access(expected.Access) {
 			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
 		}
-		if access := cfg.AccessFor(ul); access != Access(expected.Access) {
+		if access := finder.AccessFor(ul); access != Access(expected.Access) {
 			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
 		}
 	}
 
 	// Test again but with separate push url
 	for value, expected := range tests {
-		cfg := NewConfig(gitEnv(map[string]string{
+		finder := NewEndpointFinder(gitEnv(map[string]string{
 			"lfs.url":                           "http://example.com",
 			"lfs.pushurl":                       "http://examplepush.com",
 			"lfs.http://example.com.access":     value,
@@ -49,20 +49,20 @@ func TestAccessConfig(t *testing.T) {
 			"lfs.https://example.com.access":    "bad",
 		}))
 
-		dl := cfg.Endpoint("upload", "")
-		ul := cfg.Endpoint("download", "")
+		dl := finder.Endpoint("upload", "")
+		ul := finder.Endpoint("download", "")
 
-		if access := cfg.AccessFor(dl); access != Access(expected.Access) {
+		if access := finder.AccessFor(dl); access != Access(expected.Access) {
 			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
 		}
-		if access := cfg.AccessFor(ul); access != Access(expected.Access) {
+		if access := finder.AccessFor(ul); access != Access(expected.Access) {
 			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
 		}
 	}
 }
 
 func TestAccessAbsentConfig(t *testing.T) {
-	cfg := NewConfig(nil)
-	assert.Equal(t, NoneAccess, cfg.AccessFor(cfg.Endpoint("download", "")))
-	assert.Equal(t, NoneAccess, cfg.AccessFor(cfg.Endpoint("upload", "")))
+	finder := NewEndpointFinder(nil)
+	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("download", "")))
+	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("upload", "")))
 }

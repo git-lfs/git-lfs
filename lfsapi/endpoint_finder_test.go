@@ -1,4 +1,4 @@
-package endpoint
+package lfsapi
 
 import (
 	"testing"
@@ -7,134 +7,134 @@ import (
 )
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.lfsurl": "abc",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "abc", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointOverridesOrigin(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"lfs.url":              "abc",
 		"remote.origin.lfsurl": "def",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "abc", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.lfsurl": "abc",
 		"remote.other.lfsurl":  "def",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "abc", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointUseAlternateRemote(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.lfsurl": "abc",
 		"remote.other.lfsurl":  "def",
 	}))
 
-	e := cfg.Endpoint("download", "other")
+	e := finder.Endpoint("download", "other")
 	assert.Equal(t, "def", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "https://example.com/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestBareEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "https://example.com/foo/bar.git",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointSeparateClonePushUrl(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url":     "https://example.com/foo/bar.git",
 		"remote.origin.pushurl": "https://readwrite.com/foo/bar.git",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 
-	e = cfg.Endpoint("upload", "")
+	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://readwrite.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url":        "https://example.com/foo/bar.git",
 		"remote.origin.pushurl":    "https://readwrite.com/foo/bar.git",
 		"remote.origin.lfsurl":     "https://examplelfs.com/foo/bar",
 		"remote.origin.lfspushurl": "https://readwritelfs.com/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://examplelfs.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 
-	e = cfg.Endpoint("upload", "")
+	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://readwritelfs.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"lfs.url":     "https://readonly.com/foo/bar",
 		"lfs.pushurl": "https://write.com/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://readonly.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 
-	e = cfg.Endpoint("upload", "")
+	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://write.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 }
 
 func TestSSHEndpointOverridden(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url":    "git@example.com:foo/bar",
 		"remote.origin.lfsurl": "lfs",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
@@ -142,11 +142,11 @@ func TestSSHEndpointOverridden(t *testing.T) {
 }
 
 func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "ssh://git@example.com/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SshUserAndHost)
 	assert.Equal(t, "foo/bar", e.SshPath)
@@ -154,11 +154,11 @@ func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "ssh://git@example.com:9000/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SshUserAndHost)
 	assert.Equal(t, "foo/bar", e.SshPath)
@@ -166,11 +166,11 @@ func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "git@example.com:foo/bar.git",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SshUserAndHost)
 	assert.Equal(t, "foo/bar.git", e.SshPath)
@@ -178,11 +178,11 @@ func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"lfs.url": "git@example.com:foo/bar.git",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git", e.Url)
 	assert.Equal(t, "git@example.com", e.SshUserAndHost)
 	assert.Equal(t, "foo/bar.git", e.SshPath)
@@ -190,11 +190,11 @@ func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
 }
 
 func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "http://example.com/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
@@ -202,11 +202,11 @@ func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "http://example.com/foo/bar.git",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
@@ -214,11 +214,11 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestGitEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "git://example.com/foo/bar",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
@@ -226,12 +226,12 @@ func TestGitEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "git://example.com/foo/bar",
 		"lfs.gitprotocol":   "http",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "http://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
@@ -239,11 +239,11 @@ func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
 }
 
 func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
-	cfg := NewConfig(gitEnv(map[string]string{
+	finder := NewEndpointFinder(gitEnv(map[string]string{
 		"remote.origin.url": "git://example.com/foo/bar.git",
 	}))
 
-	e := cfg.Endpoint("download", "")
+	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)

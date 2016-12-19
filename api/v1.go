@@ -7,9 +7,9 @@ import (
 
 	"github.com/git-lfs/git-lfs/auth"
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/endpoint"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 
 	"github.com/rubyist/tracerx"
 )
@@ -130,7 +130,7 @@ func NewBatchRequest(cfg *config.Configuration, operation string) (*http.Request
 	return req, nil
 }
 
-func ObjectUrl(e endpoint.Endpoint, oid string) (*url.URL, error) {
+func ObjectUrl(e lfsapi.Endpoint, oid string) (*url.URL, error) {
 	u, err := url.Parse(e.Url)
 	if err != nil {
 		return nil, err

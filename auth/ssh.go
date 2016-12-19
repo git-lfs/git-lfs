@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/endpoint"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -20,7 +20,7 @@ type SshAuthResponse struct {
 	ExpiresAt string            `json:"expires_at"`
 }
 
-func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthResponse, endpoint.Endpoint, error) {
+func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthResponse, lfsapi.Endpoint, error) {
 	// This is only used as a fallback where the Git URL is SSH but server doesn't support a full SSH binary protocol
 	// and therefore we derive a HTTPS endpoint for binaries instead; but check authentication here via SSH
 
@@ -62,7 +62,7 @@ func SshAuthenticate(cfg *config.Configuration, operation, oid string) (SshAuthR
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(cfg *config.Configuration, e endpoint.Endpoint) (exe string, baseargs []string) {
+func sshGetExeAndArgs(cfg *config.Configuration, e lfsapi.Endpoint) (exe string, baseargs []string) {
 	if len(e.SshUserAndHost) == 0 {
 		return "", nil
 	}

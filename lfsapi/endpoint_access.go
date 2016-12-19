@@ -1,4 +1,4 @@
-package endpoint
+package lfsapi
 
 import (
 	"fmt"
@@ -14,13 +14,13 @@ const (
 	NTLMAccess    Access = "ntlm"
 )
 
-func (c *Config) AccessFor(e Endpoint) Access {
-	if c.git == nil {
+func (e *endpointGitFinder) AccessFor(ep Endpoint) Access {
+	if e.git == nil {
 		return NoneAccess
 	}
 
-	key := fmt.Sprintf("lfs.%s.access", e.Url)
-	if v, ok := c.git.Get(key); ok && len(v) > 0 {
+	key := fmt.Sprintf("lfs.%s.access", ep.Url)
+	if v, ok := e.git.Get(key); ok && len(v) > 0 {
 		lower := Access(strings.ToLower(v))
 		if lower == PrivateAccess {
 			return BasicAccess
