@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
 )
 
@@ -92,7 +93,8 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, fmt.Errorf("Error caching lock information: %v", err)
 	}
 
-	return lock, nil
+	// Ensure writeable on return
+	return lock, tools.SetFileWriteFlag(path, true)
 }
 
 // UnlockFile attempts to unlock a file on the current remote
@@ -105,7 +107,17 @@ func (c *Client) UnlockFile(path string, force bool) error {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return c.UnlockFileById(id, force)
+	err = c.UnlockFileById(id, force)
+	if err != nil {
+		return err
+	}
+
+	// Make non-writeable if required
+	if c.IsFileLockable(path) &&
+		config.Config.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) {
+		return tools.SetFileWriteFlag(path, false)
+	}
+	return nil
 
 }
 
