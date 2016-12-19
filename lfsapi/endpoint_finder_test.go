@@ -1,6 +1,7 @@
 package lfsapi
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -354,6 +355,22 @@ type gitEnv map[string]string
 func (e gitEnv) Get(key string) (string, bool) {
 	v, ok := e[key]
 	return v, ok
+}
+
+func (e gitEnv) Bool(key string, def bool) (val bool) {
+	s, _ := e.Get(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	switch strings.ToLower(s) {
+	case "true", "1", "on", "yes", "t":
+		return true
+	case "false", "0", "off", "no", "f":
+		return false
+	default:
+		return false
+	}
 }
 
 func (e gitEnv) All() map[string]string {

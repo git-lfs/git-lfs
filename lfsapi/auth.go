@@ -13,6 +13,31 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var (
+	defaultCredentialHelper = &CommandCredentialHelper{}
+	defaultNetrcFinder      = &noFinder{}
+	defaultEndpointFinder   = NewEndpointFinder(nil)
+)
+
+func (c *Client) getCreds(remote string, req *http.Request) (Creds, error) {
+	credHelper := c.Credentials
+	if credHelper == nil {
+		credHelper = defaultCredentialHelper
+	}
+
+	netrcFinder := c.Netrc
+	if netrcFinder == nil {
+		netrcFinder = defaultNetrcFinder
+	}
+
+	ef := c.Endpoints
+	if ef == nil {
+		ef = defaultEndpointFinder
+	}
+
+	return getCreds(credHelper, netrcFinder, ef, remote, req)
+}
+
 func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, error) {
 	if skipCreds(ef, req) {
 		return nil, nil

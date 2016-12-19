@@ -147,7 +147,7 @@ func TestGetCredentials(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		creds, err := getCreds(credHelper, ef, check.Remote, req)
+		creds, err := getCreds(credHelper, &noFinder{}, ef, check.Remote, req)
 		if err != nil {
 			t.Errorf("[%s] %s", check.Desc, err)
 			continue

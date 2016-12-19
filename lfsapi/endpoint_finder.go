@@ -266,5 +266,6 @@ func initAliases(e *endpointGitFinder, git env) {
 
 type env interface {
 	Get(string) (string, bool)
+	Bool(key string, def bool) (val bool)
 	All() map[string]string
 }
