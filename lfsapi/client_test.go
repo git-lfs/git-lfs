@@ -21,3 +21,51 @@ func TestNewClient(t *testing.T) {
 	assert.Equal(t, 153, c.TLSTimeout)
 	assert.Equal(t, 154, c.ConcurrentTransfers)
 }
+
+func TestNewClientWithGitSSLVerify(t *testing.T) {
+	c, err := NewClient(nil, nil)
+	assert.Nil(t, err)
+	assert.False(t, c.SkipSSLVerify)
+
+	for _, value := range []string{"true", "1", "t"} {
+		c, err = NewClient(testEnv(map[string]string{}), testEnv(map[string]string{
+			"http.sslverify": value,
+		}))
+		t.Logf("http.sslverify: %q", value)
+		assert.Nil(t, err)
+		assert.False(t, c.SkipSSLVerify)
+	}
+
+	for _, value := range []string{"false", "0", "f"} {
+		c, err = NewClient(testEnv(map[string]string{}), testEnv(map[string]string{
+			"http.sslverify": value,
+		}))
+		t.Logf("http.sslverify: %q", value)
+		assert.Nil(t, err)
+		assert.True(t, c.SkipSSLVerify)
+	}
+}
+
+func TestNewClientWithOSSSLVerify(t *testing.T) {
+	c, err := NewClient(nil, nil)
+	assert.Nil(t, err)
+	assert.False(t, c.SkipSSLVerify)
+
+	for _, value := range []string{"false", "0", "f"} {
+		c, err = NewClient(testEnv(map[string]string{
+			"GIT_SSL_NO_VERIFY": value,
+		}), testEnv(map[string]string{}))
+		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
+		assert.Nil(t, err)
+		assert.False(t, c.SkipSSLVerify)
+	}
+
+	for _, value := range []string{"true", "1", "t"} {
+		c, err = NewClient(testEnv(map[string]string{
+			"GIT_SSL_NO_VERIFY": value,
+		}), testEnv(map[string]string{}))
+		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
+		assert.Nil(t, err)
+		assert.True(t, c.SkipSSLVerify)
+	}
+}

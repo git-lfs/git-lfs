@@ -1,6 +1,7 @@
 package lfsapi
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -30,9 +31,14 @@ type Client struct {
 	HTTPSProxy          string
 	HTTPProxy           string
 	NoProxy             string
+	SkipSSLVerify       bool
 
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
+
+	// only used for per-host ssl certs
+	gitEnv env
+	osEnv  env
 }
 
 func NewClient(osEnv env, gitEnv env) (*Client, error) {
@@ -61,9 +67,12 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
 		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 0),
+		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		HTTPSProxy:          httpsProxy,
 		HTTPProxy:           httpProxy,
 		NoProxy:             noProxy,
+		gitEnv:              gitEnv,
+		osEnv:               osEnv,
 	}
 
 	return c, nil
@@ -81,6 +90,14 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) httpClient(host string) *http.Client {
 	c.clientMu.Lock()
 	defer c.clientMu.Unlock()
+
+	if c.gitEnv == nil {
+		c.gitEnv = make(testEnv)
+	}
+
+	if c.osEnv == nil {
+		c.osEnv = make(testEnv)
+	}
 
 	if c.hostClients == nil {
 		c.hostClients = make(map[string]*http.Client)
@@ -118,6 +135,13 @@ func (c *Client) httpClient(host string) *http.Client {
 		}).Dial,
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
 		MaxIdleConnsPerHost: concurrentTransfers,
+	}
+
+	tr.TLSClientConfig = &tls.Config{}
+	if isCertVerificationDisabledForHost(c, host) {
+		tr.TLSClientConfig.InsecureSkipVerify = true
+	} else {
+		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
 	}
 
 	httpClient := &http.Client{
