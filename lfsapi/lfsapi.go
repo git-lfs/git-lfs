@@ -3,6 +3,7 @@ package lfsapi
 import (
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"regexp"
@@ -79,6 +80,10 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	if seeker, ok := req.Body.(io.Seeker); ok {
+		seeker.Seek(0, io.SeekStart)
+	}
+
 	res, err := c.httpClient(req.Host).Do(req)
 	if err != nil {
 		return res, err

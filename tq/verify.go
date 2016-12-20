@@ -1,8 +1,6 @@
 package tq
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
@@ -17,15 +15,15 @@ func verifyUpload(c *lfsapi.Client, t *Transfer) error {
 		return err
 	}
 
-	by, err := json.Marshal(struct {
-		Oid  string `json:"oid"`
-		Size int64  `json:"size"`
-	}{Oid: t.Oid, Size: t.Size})
+	req, err := http.NewRequest("POST", action.Href, nil)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", action.Href, bytes.NewReader(by))
+	err = lfsapi.MarshalToRequest(req, struct {
+		Oid  string `json:"oid"`
+		Size int64  `json:"size"`
+	}{Oid: t.Oid, Size: t.Size})
 	if err != nil {
 		return err
 	}
