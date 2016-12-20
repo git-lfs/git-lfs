@@ -15,12 +15,13 @@ import (
 type Access string
 
 const (
-	NoneAccess    Access = "none"
-	BasicAccess   Access = "basic"
-	PrivateAccess Access = "private"
-	NTLMAccess    Access = "ntlm"
-	emptyAccess   Access = ""
-	defaultRemote        = "origin"
+	NoneAccess      Access = "none"
+	BasicAccess     Access = "basic"
+	PrivateAccess   Access = "private"
+	NegotiateAccess Access = "negotiate"
+	NTLMAccess      Access = "ntlm"
+	emptyAccess     Access = ""
+	defaultRemote          = "origin"
 )
 
 type EndpointFinder interface {

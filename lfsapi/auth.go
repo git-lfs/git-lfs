@@ -19,7 +19,7 @@ var (
 	defaultEndpointFinder   = NewEndpointFinder(nil)
 )
 
-func (c *Client) getCreds(remote string, req *http.Request) (Creds, error) {
+func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
 	credHelper := c.Credentials
 	if credHelper == nil {
 		credHelper = defaultCredentialHelper
@@ -35,30 +35,78 @@ func (c *Client) getCreds(remote string, req *http.Request) (Creds, error) {
 		ef = defaultEndpointFinder
 	}
 
-	return getCreds(credHelper, netrcFinder, ef, remote, req)
+	creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, remote, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		if errors.IsAuthError(err) {
+			var existingAccess Access
+			access := getAuthAccess(res)
+			if credsURL != nil {
+				urlForAccess := credsURL.String()
+				existingAccess = c.Endpoints.AccessFor(urlForAccess)
+				if access != existingAccess {
+					c.Endpoints.SetAccess(urlForAccess, access)
+				}
+			}
+
+			if existingAccess == NoneAccess || creds != nil {
+				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access)
+				req.Header.Del("Authorization")
+				if creds != nil {
+					credHelper.Reject(creds)
+				}
+				return c.DoWithAuth(remote, req)
+			}
+		}
+
+		err = errors.Wrap(err, "http")
+	}
+
+	if res == nil {
+		return nil, err
+	}
+
+	switch res.StatusCode {
+	case 401, 403:
+		credHelper.Reject(creds)
+	default:
+		if res.StatusCode < 300 && res.StatusCode > 199 {
+			credHelper.Approve(creds)
+		}
+	}
+
+	return res, err
 }
 
-func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, error) {
+func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, *url.URL, error) {
 	if skipCreds(ef, req) {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 	credsUrl, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "creds")
+		return nil, nil, errors.Wrap(err, "creds")
 	}
 
 	if credsUrl == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if setAuthFromNetrc(netrcFinder, req) {
-		return nil, nil
+		return nil, credsUrl, nil
+	}
+	if ef.AccessFor(credsUrl.String()) == NoneAccess {
+		return nil, credsUrl, nil
 	}
 
-	return fillCredentials(credHelper, ef, req, credsUrl)
+	creds, err := fillCredentials(credHelper, ef, req, credsUrl)
+	return creds, credsUrl, err
 }
 
 func fillCredentials(credHelper CredentialHelper, ef EndpointFinder, req *http.Request, u *url.URL) (Creds, error) {
@@ -195,4 +243,23 @@ func getReqOperation(req *http.Request) string {
 		operation = "upload"
 	}
 	return operation
+}
+
+var (
+	authenticateHeaders = []string{"Lfs-Authenticate", "Www-Authenticate"}
+)
+
+func getAuthAccess(res *http.Response) Access {
+	for _, headerName := range authenticateHeaders {
+		for _, auth := range res.Header[headerName] {
+			switch Access(strings.ToLower(auth)) {
+			case NegotiateAccess, NTLMAccess:
+				// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTLM.
+				// Since git-lfs current does not support Kerberos, we will return NTLM in this case.
+				return NTLMAccess
+			}
+		}
+	}
+
+	return BasicAccess
 }

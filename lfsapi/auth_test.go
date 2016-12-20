@@ -4,11 +4,175 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestDoWithAuthApprove(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		w.Header().Set("Lfs-Authenticate", "Basic")
+
+		actual := req.Header.Get("Authorization")
+		if len(actual) == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		expected := "Basic " + strings.TrimSpace(
+			base64.StdEncoding.EncodeToString([]byte("user:pass")),
+		)
+		assert.Equal(t, expected, actual)
+	}))
+	defer srv.Close()
+
+	creds := newMockCredentialHelper()
+	c := &Client{
+		Credentials: creds,
+		Endpoints: NewEndpointFinder(gitEnv(map[string]string{
+			"lfs.url": srv.URL,
+		})),
+	}
+
+	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL))
+
+	req, err := http.NewRequest("GET", srv.URL, nil)
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.True(t, creds.IsApproved(Creds(map[string]string{
+		"username": "user",
+		"password": "pass",
+		"path":     "",
+		"protocol": "http",
+		"host":     srv.Listener.Addr().String(),
+	})))
+	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL))
+	assert.EqualValues(t, 2, called)
+}
+
+func TestDoWithAuthReject(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		w.Header().Set("Lfs-Authenticate", "Basic")
+
+		actual := req.Header.Get("Authorization")
+		expected := "Basic " + strings.TrimSpace(
+			base64.StdEncoding.EncodeToString([]byte("user:pass")),
+		)
+
+		if actual != expected {
+			// Write http.StatuUnauthorized to force the credential
+			// helper to reject the credentials
+			w.WriteHeader(http.StatusUnauthorized)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer srv.Close()
+
+	invalidCreds := Creds(map[string]string{
+		"username": "user",
+		"password": "wrong_pass",
+		"path":     "",
+		"protocol": "http",
+		"host":     srv.Listener.Addr().String(),
+	})
+
+	creds := newMockCredentialHelper()
+
+	creds.Approve(invalidCreds)
+	assert.True(t, creds.IsApproved(invalidCreds))
+
+	c := &Client{
+		Credentials: creds,
+		Endpoints: NewEndpointFinder(gitEnv(map[string]string{
+			"lfs.url": srv.URL,
+		})),
+	}
+
+	req, err := http.NewRequest("GET", srv.URL, nil)
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.False(t, creds.IsApproved(invalidCreds))
+	assert.True(t, creds.IsApproved(Creds(map[string]string{
+		"username": "user",
+		"password": "pass",
+		"path":     "",
+		"protocol": "http",
+		"host":     srv.Listener.Addr().String(),
+	})))
+	assert.EqualValues(t, 3, called)
+}
+
+type mockCredentialHelper struct {
+	Approved map[string]Creds
+}
+
+func newMockCredentialHelper() *mockCredentialHelper {
+	return &mockCredentialHelper{
+		Approved: make(map[string]Creds),
+	}
+}
+
+func (m *mockCredentialHelper) Fill(input Creds) (Creds, error) {
+	if found, ok := m.Approved[credsToKey(input)]; ok {
+		return found, nil
+	}
+
+	output := make(Creds)
+	for key, value := range input {
+		output[key] = value
+	}
+	if _, ok := output["username"]; !ok {
+		output["username"] = "user"
+	}
+	output["password"] = "pass"
+	return output, nil
+}
+
+func (m *mockCredentialHelper) Approve(creds Creds) error {
+	m.Approved[credsToKey(creds)] = creds
+	return nil
+}
+
+func (m *mockCredentialHelper) Reject(creds Creds) error {
+	delete(m.Approved, credsToKey(creds))
+	return nil
+}
+
+func (m *mockCredentialHelper) IsApproved(creds Creds) bool {
+	if found, ok := m.Approved[credsToKey(creds)]; ok {
+		return found["password"] == creds["password"]
+	}
+	return false
+}
+
+func credsToKey(creds Creds) string {
+	var kvs []string
+	for _, k := range []string{"protocol", "host", "path"} {
+		kvs = append(kvs, fmt.Sprintf("%s:%s", k, creds[k]))
+	}
+
+	return strings.Join(kvs, " ")
+}
 
 type getCredentialCheck struct {
 	Desc          string
@@ -34,8 +198,11 @@ func (c *getCredentialCheck) ExpectCreds() bool {
 func TestGetCredentials(t *testing.T) {
 	checks := []*getCredentialCheck{
 		{
-			Desc:     "simple",
-			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Desc: "simple",
+			Config: map[string]string{
+				"lfs.url":                           "https://git-server.com",
+				"lfs.https://git-server.com.access": "basic",
+			},
 			Method:   "GET",
 			Href:     "https://git-server.com/foo",
 			Protocol: "https",
@@ -44,8 +211,11 @@ func TestGetCredentials(t *testing.T) {
 			Password: "monkey",
 		},
 		{
-			Desc:     "username in url",
-			Config:   map[string]string{"lfs.url": "https://user@git-server.com"},
+			Desc: "username in url",
+			Config: map[string]string{
+				"lfs.url": "https://user@git-server.com",
+				"lfs.https://user@git-server.com.access": "basic",
+			},
 			Method:   "GET",
 			Href:     "https://git-server.com/foo",
 			Protocol: "https",
@@ -62,8 +232,11 @@ func TestGetCredentials(t *testing.T) {
 			Authorization: "Test monkey",
 		},
 		{
-			Desc:     "scheme mismatch",
-			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Desc: "scheme mismatch",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com",
+				"lfs.http://git-server.com/foo.access": "basic",
+			},
 			Method:   "GET",
 			Href:     "http://git-server.com/foo",
 			Protocol: "http",
@@ -73,8 +246,11 @@ func TestGetCredentials(t *testing.T) {
 			Password: "monkey",
 		},
 		{
-			Desc:     "host mismatch",
-			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Desc: "host mismatch",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com",
+				"lfs.https://git-server2.com/foo.access": "basic",
+			},
 			Method:   "GET",
 			Href:     "https://git-server2.com/foo",
 			Protocol: "https",
@@ -84,8 +260,11 @@ func TestGetCredentials(t *testing.T) {
 			Password: "monkey",
 		},
 		{
-			Desc:     "port mismatch",
-			Config:   map[string]string{"lfs.url": "https://git-server.com"},
+			Desc: "port mismatch",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com",
+				"lfs.https://git-server.com:8080/foo.access": "basic",
+			},
 			Method:   "GET",
 			Href:     "https://git-server.com:8080/foo",
 			Protocol: "https",
@@ -113,8 +292,11 @@ func TestGetCredentials(t *testing.T) {
 			Authorization: "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte("gituser:gitpass"))),
 		},
 		{
-			Desc:     "username in url",
-			Config:   map[string]string{"lfs.url": "https://user@git-server.com"},
+			Desc: "username in url",
+			Config: map[string]string{
+				"lfs.url": "https://user@git-server.com",
+				"lfs.https://user@git-server.com.access": "basic",
+			},
 			Method:   "GET",
 			Href:     "https://git-server.com/foo",
 			Protocol: "https",
@@ -147,7 +329,7 @@ func TestGetCredentials(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		creds, err := getCreds(credHelper, &noFinder{}, ef, check.Remote, req)
+		creds, _, err := getCreds(credHelper, &noFinder{}, ef, check.Remote, req)
 		if err != nil {
 			t.Errorf("[%s] %s", check.Desc, err)
 			continue
