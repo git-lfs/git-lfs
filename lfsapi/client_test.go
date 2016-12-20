@@ -1,11 +1,91 @@
 package lfsapi
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type redirectTest struct {
+	Test string
+}
+
+func TestClientRedirect(t *testing.T) {
+	var called1 uint32
+	var called2 uint32
+	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called2, 1)
+		t.Logf("srv2 req %s %s", r.Method, r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+
+		switch r.URL.Path {
+		case "/ok":
+			body := &redirectTest{}
+			err := json.NewDecoder(r.Body).Decode(body)
+			assert.Nil(t, err)
+			assert.Equal(t, "External", body.Test)
+
+			w.WriteHeader(200)
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+
+	srv1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called1, 1)
+		t.Logf("srv1 req %s %s", r.Method, r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+
+		switch r.URL.Path {
+		case "/local":
+			w.Header().Set("Location", "/ok")
+			w.WriteHeader(307)
+		case "/external":
+			w.Header().Set("Location", srv2.URL+"/ok")
+			w.WriteHeader(307)
+		case "/ok":
+			body := &redirectTest{}
+			err := json.NewDecoder(r.Body).Decode(body)
+			assert.Nil(t, err)
+			assert.Equal(t, "Local", body.Test)
+
+			w.WriteHeader(200)
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv1.Close()
+	defer srv2.Close()
+
+	c := &Client{}
+
+	// local redirect
+	req, err := http.NewRequest("POST", srv1.URL+"/local", nil)
+	require.Nil(t, err)
+	require.Nil(t, MarshalToRequest(req, &redirectTest{Test: "Local"}))
+
+	res, err := c.Do(req)
+	require.Nil(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+	assert.EqualValues(t, 2, called1)
+	assert.EqualValues(t, 0, called2)
+
+	// external redirect
+	req, err = http.NewRequest("POST", srv1.URL+"/external", nil)
+	require.Nil(t, err)
+	require.Nil(t, MarshalToRequest(req, &redirectTest{Test: "External"}))
+
+	res, err = c.Do(req)
+	require.Nil(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+	assert.EqualValues(t, 3, called1)
+	assert.EqualValues(t, 1, called2)
+}
 
 func TestNewClient(t *testing.T) {
 	c, err := NewClient(testEnv(map[string]string{}), testEnv(map[string]string{
