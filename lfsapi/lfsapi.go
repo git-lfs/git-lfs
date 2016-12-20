@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,14 +23,13 @@ type Client struct {
 	Credentials CredentialHelper
 	Netrc       NetrcFinder
 
-	DialTimeout         int `git:"lfs.dialtimeout"`
-	KeepaliveTimeout    int `git:"lfs.keepalive"`
-	TLSTimeout          int `git:"lfs.tlstimeout"`
-	ConcurrentTransfers int `git:"lfs.concurrenttransfers"`
-
-	HTTPSProxy string
-	HTTPProxy  string
-	NoProxy    string
+	DialTimeout         int
+	KeepaliveTimeout    int
+	TLSTimeout          int
+	ConcurrentTransfers int
+	HTTPSProxy          string
+	HTTPProxy           string
+	NoProxy             string
 
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
@@ -51,16 +51,22 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 
 	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
 
-	return &Client{
+	c := &Client{
 		Endpoints: NewEndpointFinder(gitEnv),
 		Credentials: &CommandCredentialHelper{
 			SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
 		},
-		Netrc:      netrc,
-		HTTPSProxy: httpsProxy,
-		HTTPProxy:  httpProxy,
-		NoProxy:    noProxy,
-	}, nil
+		Netrc:               netrc,
+		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
+		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
+		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
+		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 0),
+		HTTPSProxy:          httpsProxy,
+		HTTPProxy:           httpProxy,
+		NoProxy:             noProxy,
+	}
+
+	return c, nil
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
@@ -170,6 +176,13 @@ func decodeResponse(res *http.Response, obj interface{}) error {
 	return nil
 }
 
+type env interface {
+	Get(string) (string, bool)
+	Int(string, int) int
+	Bool(string, bool) bool
+	All() map[string]string
+}
+
 // basic config.Environment implementation. Only used in tests, or as a zero
 // value to NewClient().
 type testEnv map[string]string
@@ -177,6 +190,20 @@ type testEnv map[string]string
 func (e testEnv) Get(key string) (string, bool) {
 	v, ok := e[key]
 	return v, ok
+}
+
+func (e testEnv) Int(key string, def int) (val int) {
+	s, _ := e.Get(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+
+	return i
 }
 
 func (e testEnv) Bool(key string, def bool) (val bool) {
