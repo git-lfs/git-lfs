@@ -13,7 +13,11 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var UserAgent = "git-lfs"
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", UserAgent)
+
 	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
 	if err != nil {
 		return res, err
