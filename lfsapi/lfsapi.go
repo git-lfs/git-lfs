@@ -14,7 +14,24 @@ var (
 )
 
 type Client struct {
-	Endpoints EndpointFinder
+	Endpoints   EndpointFinder
+	Credentials CredentialHelper
+	Netrc       NetrcFinder
+}
+
+func NewClient(osEnv env, gitEnv env) (*Client, error) {
+	netrc, err := ParseNetrc(osEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{
+		Endpoints: NewEndpointFinder(gitEnv),
+		Credentials: &CommandCredentialHelper{
+			SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
+		},
+		Netrc: netrc,
+	}, nil
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {

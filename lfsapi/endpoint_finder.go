@@ -15,12 +15,13 @@ import (
 type Access string
 
 const (
-	NoneAccess    Access = "none"
-	BasicAccess   Access = "basic"
-	PrivateAccess Access = "private"
-	NTLMAccess    Access = "ntlm"
-	emptyAccess   Access = ""
-	defaultRemote        = "origin"
+	NoneAccess      Access = "none"
+	BasicAccess     Access = "basic"
+	PrivateAccess   Access = "private"
+	NegotiateAccess Access = "negotiate"
+	NTLMAccess      Access = "ntlm"
+	emptyAccess     Access = ""
+	defaultRemote          = "origin"
 )
 
 type EndpointFinder interface {
@@ -266,5 +267,6 @@ func initAliases(e *endpointGitFinder, git env) {
 
 type env interface {
 	Get(string) (string, bool)
+	Bool(key string, def bool) (val bool)
 	All() map[string]string
 }
