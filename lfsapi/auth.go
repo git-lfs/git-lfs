@@ -252,7 +252,12 @@ var (
 func getAuthAccess(res *http.Response) Access {
 	for _, headerName := range authenticateHeaders {
 		for _, auth := range res.Header[headerName] {
-			switch Access(strings.ToLower(auth)) {
+			pieces := strings.SplitN(strings.ToLower(auth), " ", 2)
+			if len(pieces) == 0 {
+				continue
+			}
+
+			switch Access(pieces[0]) {
 			case NegotiateAccess, NTLMAccess:
 				// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTLM.
 				// Since git-lfs current does not support Kerberos, we will return NTLM in this case.

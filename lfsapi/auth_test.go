@@ -14,6 +14,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestAuthenticateHeaderAccess(t *testing.T) {
+	tests := map[string]Access{
+		"":                BasicAccess,
+		"basic 123":       BasicAccess,
+		"basic":           BasicAccess,
+		"unknown":         BasicAccess,
+		"NTLM":            NTLMAccess,
+		"ntlm":            NTLMAccess,
+		"NTLM 1 2 3":      NTLMAccess,
+		"ntlm 1 2 3":      NTLMAccess,
+		"NEGOTIATE":       NTLMAccess,
+		"negotiate":       NTLMAccess,
+		"NEGOTIATE 1 2 3": NTLMAccess,
+		"negotiate 1 2 3": NTLMAccess,
+	}
+
+	for _, key := range authenticateHeaders {
+		for value, expected := range tests {
+			res := &http.Response{Header: make(http.Header)}
+			res.Header.Set(key, value)
+			t.Logf("%s: %s", key, value)
+			assert.Equal(t, expected, getAuthAccess(res))
+		}
+	}
+}
+
 func TestDoWithAuthApprove(t *testing.T) {
 	var called uint32
 
