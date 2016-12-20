@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type authRequest struct {
+	Test string
+}
 
 func TestAuthenticateHeaderAccess(t *testing.T) {
 	tests := map[string]Access{
@@ -47,6 +52,11 @@ func TestDoWithAuthApprove(t *testing.T) {
 		atomic.AddUint32(&called, 1)
 		w.Header().Set("Lfs-Authenticate", "Basic")
 
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Approve", body.Test)
+
 		actual := req.Header.Get("Authorization")
 		if len(actual) == 0 {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -70,7 +80,10 @@ func TestDoWithAuthApprove(t *testing.T) {
 
 	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL))
 
-	req, err := http.NewRequest("GET", srv.URL, nil)
+	body, err := Marshal(&authRequest{Test: "Approve"})
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", srv.URL, body)
 	require.Nil(t, err)
 
 	res, err := c.DoWithAuth("", req)
@@ -94,6 +107,11 @@ func TestDoWithAuthReject(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		atomic.AddUint32(&called, 1)
 		w.Header().Set("Lfs-Authenticate", "Basic")
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Reject", body.Test)
 
 		actual := req.Header.Get("Authorization")
 		expected := "Basic " + strings.TrimSpace(
@@ -130,7 +148,10 @@ func TestDoWithAuthReject(t *testing.T) {
 		})),
 	}
 
-	req, err := http.NewRequest("GET", srv.URL, nil)
+	body, err := Marshal(&authRequest{Test: "Reject"})
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", srv.URL, body)
 	require.Nil(t, err)
 
 	res, err := c.DoWithAuth("", req)
