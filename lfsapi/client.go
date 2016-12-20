@@ -31,10 +31,12 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		seeker.Seek(0, io.SeekStart)
 	}
 
+	c.traceRequest(req)
 	res, err := cli.Do(req)
 	if err != nil {
 		return res, err
 	}
+	c.traceResponse(res)
 
 	if res.StatusCode != 307 {
 		return res, err
