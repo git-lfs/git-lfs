@@ -15,15 +15,15 @@ func verifyUpload(c *lfsapi.Client, t *Transfer) error {
 		return err
 	}
 
-	body, err := lfsapi.Marshal(struct {
-		Oid  string `json:"oid"`
-		Size int64  `json:"size"`
-	}{Oid: t.Oid, Size: t.Size})
+	req, err := http.NewRequest("POST", action.Href, nil)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", action.Href, body)
+	err = lfsapi.MarshalToRequest(req, struct {
+		Oid  string `json:"oid"`
+		Size int64  `json:"size"`
+	}{Oid: t.Oid, Size: t.Size})
 	if err != nil {
 		return err
 	}

@@ -80,10 +80,10 @@ func TestDoWithAuthApprove(t *testing.T) {
 
 	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL))
 
-	body, err := Marshal(&authRequest{Test: "Approve"})
+	req, err := http.NewRequest("GET", srv.URL, nil)
 	require.Nil(t, err)
 
-	req, err := http.NewRequest("GET", srv.URL, body)
+	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
 	require.Nil(t, err)
 
 	res, err := c.DoWithAuth("", req)
@@ -148,10 +148,10 @@ func TestDoWithAuthReject(t *testing.T) {
 		})),
 	}
 
-	body, err := Marshal(&authRequest{Test: "Reject"})
+	req, err := http.NewRequest("GET", srv.URL, nil)
 	require.Nil(t, err)
 
-	req, err := http.NewRequest("GET", srv.URL, body)
+	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
 	require.Nil(t, err)
 
 	res, err := c.DoWithAuth("", req)
