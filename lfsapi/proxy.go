@@ -48,6 +48,37 @@ func ProxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	}
 }
 
+func getProxyServers(osEnv env, gitEnv env) (string, string, string) {
+	var httpsProxy string
+	httpProxy, _ := gitEnv.Get("http.proxy")
+	if strings.HasPrefix(httpProxy, "https://") {
+		httpsProxy = httpProxy
+	}
+
+	if len(httpsProxy) == 0 {
+		httpsProxy, _ = osEnv.Get("HTTPS_PROXY")
+	}
+
+	if len(httpsProxy) == 0 {
+		httpsProxy, _ = osEnv.Get("https_proxy")
+	}
+
+	if len(httpProxy) == 0 {
+		httpProxy, _ = osEnv.Get("HTTP_PROXY")
+	}
+
+	if len(httpProxy) == 0 {
+		httpProxy, _ = osEnv.Get("http_proxy")
+	}
+
+	noProxy, _ := osEnv.Get("NO_PROXY")
+	if len(noProxy) == 0 {
+		noProxy, _ = osEnv.Get("no_proxy")
+	}
+
+	return httpsProxy, httpProxy, noProxy
+}
+
 // canonicalAddr returns url.Host but always with a ":port" suffix
 // Copied from "net/http".ProxyFromEnvironment in the go std lib.
 func canonicalAddr(url *url.URL) string {

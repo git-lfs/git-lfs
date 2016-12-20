@@ -158,37 +158,6 @@ func (c *Client) httpClient(host string) *http.Client {
 	return httpClient
 }
 
-func getProxyServers(osEnv env, gitEnv env) (string, string, string) {
-	var httpsProxy string
-	httpProxy, _ := gitEnv.Get("http.proxy")
-	if strings.HasPrefix(httpProxy, "https://") {
-		httpsProxy = httpProxy
-	}
-
-	if len(httpsProxy) == 0 {
-		httpsProxy, _ = osEnv.Get("HTTPS_PROXY")
-	}
-
-	if len(httpsProxy) == 0 {
-		httpsProxy, _ = osEnv.Get("https_proxy")
-	}
-
-	if len(httpProxy) == 0 {
-		httpProxy, _ = osEnv.Get("HTTP_PROXY")
-	}
-
-	if len(httpProxy) == 0 {
-		httpProxy, _ = osEnv.Get("http_proxy")
-	}
-
-	noProxy, _ := osEnv.Get("NO_PROXY")
-	if len(noProxy) == 0 {
-		noProxy, _ = osEnv.Get("no_proxy")
-	}
-
-	return httpsProxy, httpProxy, noProxy
-}
-
 func decodeResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
