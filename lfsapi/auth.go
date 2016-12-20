@@ -35,26 +35,21 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 		ef = defaultEndpointFinder
 	}
 
-	creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, remote, req)
+	creds, credsURL, access, err := getCreds(credHelper, netrcFinder, ef, remote, req)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.Do(req)
+	res, err := c.doWithCreds(req, creds, credsURL, access)
 	if err != nil {
 		if errors.IsAuthError(err) {
-			var existingAccess Access
-			access := getAuthAccess(res)
-			if credsURL != nil {
-				urlForAccess := credsURL.String()
-				existingAccess = c.Endpoints.AccessFor(urlForAccess)
-				if access != existingAccess {
-					c.Endpoints.SetAccess(urlForAccess, access)
-				}
+			newAccess := getAuthAccess(res)
+			if credsURL != nil && newAccess != access {
+				c.Endpoints.SetAccess(credsURL.String(), newAccess)
 			}
 
-			if existingAccess == NoneAccess || creds != nil {
-				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access)
+			if access == NoneAccess || creds != nil {
+				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess)
 				req.Header.Del("Authorization")
 				if creds != nil {
 					credHelper.Reject(creds)
@@ -82,31 +77,39 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 	return res, err
 }
 
-func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, *url.URL, error) {
+func (c *Client) doWithCreds(req *http.Request, creds Creds, credsURL *url.URL, access Access) (*http.Response, error) {
+	if access == NTLMAccess {
+		return c.doWithNTLM(req, creds, credsURL)
+	}
+	return c.Do(req)
+}
+
+func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, *url.URL, Access, error) {
 	if skipCreds(ef, req) {
-		return nil, nil, nil
+		return nil, nil, emptyAccess, nil
 	}
 
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
-	credsUrl, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
+	access := ef.AccessFor(apiEndpoint.Url)
+	credsUrl, err := getCredURLForAPI(ef, operation, remote, access, apiEndpoint, req)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "creds")
+		return nil, nil, access, errors.Wrap(err, "creds")
 	}
 
 	if credsUrl == nil {
-		return nil, nil, nil
+		return nil, nil, access, nil
 	}
 
 	if setAuthFromNetrc(netrcFinder, req) {
-		return nil, credsUrl, nil
+		return nil, credsUrl, access, nil
 	}
 	if ef.AccessFor(credsUrl.String()) == NoneAccess {
-		return nil, credsUrl, nil
+		return nil, credsUrl, access, nil
 	}
 
 	creds, err := fillCredentials(credHelper, ef, req, credsUrl)
-	return creds, credsUrl, err
+	return creds, credsUrl, access, err
 }
 
 func fillCredentials(credHelper CredentialHelper, ef EndpointFinder, req *http.Request, u *url.URL) (Creds, error) {
@@ -160,7 +163,7 @@ func setAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) bool {
 	return false
 }
 
-func getCredURLForAPI(ef EndpointFinder, operation, remote string, e Endpoint, req *http.Request) (*url.URL, error) {
+func getCredURLForAPI(ef EndpointFinder, operation, remote string, access Access, e Endpoint, req *http.Request) (*url.URL, error) {
 	apiUrl, err := url.Parse(e.Url)
 	if err != nil {
 		return nil, err
@@ -173,7 +176,7 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, e Endpoint, r
 		return req.URL, nil
 	}
 
-	if setRequestAuthFromUrl(ef, req, e, apiUrl) {
+	if setRequestAuthFromUrl(req, access, apiUrl) {
 		return nil, nil
 	}
 
@@ -188,7 +191,7 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, e Endpoint, r
 			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
 				gitRemoteUrl.Host == apiUrl.Host {
 
-				if setRequestAuthFromUrl(ef, req, e, gitRemoteUrl) {
+				if setRequestAuthFromUrl(req, access, gitRemoteUrl) {
 					return nil, nil
 				}
 
@@ -212,8 +215,8 @@ func skipCreds(ef EndpointFinder, req *http.Request) bool {
 	return len(req.URL.Query().Get("token")) > 0
 }
 
-func setRequestAuthFromUrl(ef EndpointFinder, req *http.Request, apiEndpoint Endpoint, u *url.URL) bool {
-	if ef.AccessFor(apiEndpoint.Url) == NTLMAccess || u.User == nil {
+func setRequestAuthFromUrl(req *http.Request, access Access, u *url.URL) bool {
+	if access == NTLMAccess || u.User == nil {
 		return false
 	}
 

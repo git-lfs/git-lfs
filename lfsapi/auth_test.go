@@ -73,7 +73,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	creds := newMockCredentialHelper()
 	c := &Client{
 		Credentials: creds,
-		Endpoints: NewEndpointFinder(gitEnv(map[string]string{
+		Endpoints: NewEndpointFinder(testEnv(map[string]string{
 			"lfs.url": srv.URL,
 		})),
 	}
@@ -143,7 +143,7 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	c := &Client{
 		Credentials: creds,
-		Endpoints: NewEndpointFinder(gitEnv(map[string]string{
+		Endpoints: NewEndpointFinder(testEnv(map[string]string{
 			"lfs.url": srv.URL,
 		})),
 	}
@@ -364,7 +364,7 @@ func TestGetCredentials(t *testing.T) {
 
 	for _, check := range checks {
 		t.Logf("Checking %q", check.Desc)
-		ef := NewEndpointFinder(gitEnv(check.Config))
+		ef := NewEndpointFinder(testEnv(check.Config))
 
 		req, err := http.NewRequest(check.Method, check.Href, nil)
 		if err != nil {
@@ -376,7 +376,7 @@ func TestGetCredentials(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		creds, _, err := getCreds(credHelper, &noFinder{}, ef, check.Remote, req)
+		creds, _, _, err := getCreds(credHelper, &noFinder{}, ef, check.Remote, req)
 		if err != nil {
 			t.Errorf("[%s] %s", check.Desc, err)
 			continue
