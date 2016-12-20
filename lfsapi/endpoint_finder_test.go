@@ -1,14 +1,13 @@
 package lfsapi
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEndpointDefaultsToOrigin(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.lfsurl": "abc",
 	}))
 
@@ -19,7 +18,7 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 }
 
 func TestEndpointOverridesOrigin(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"lfs.url":              "abc",
 		"remote.origin.lfsurl": "def",
 	}))
@@ -31,7 +30,7 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 }
 
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.lfsurl": "abc",
 		"remote.other.lfsurl":  "def",
 	}))
@@ -43,7 +42,7 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 }
 
 func TestEndpointUseAlternateRemote(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.lfsurl": "abc",
 		"remote.other.lfsurl":  "def",
 	}))
@@ -55,7 +54,7 @@ func TestEndpointUseAlternateRemote(t *testing.T) {
 }
 
 func TestEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "https://example.com/foo/bar",
 	}))
 
@@ -66,7 +65,7 @@ func TestEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestBareEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "https://example.com/foo/bar.git",
 	}))
 
@@ -77,7 +76,7 @@ func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestEndpointSeparateClonePushUrl(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url":     "https://example.com/foo/bar.git",
 		"remote.origin.pushurl": "https://readwrite.com/foo/bar.git",
 	}))
@@ -94,7 +93,7 @@ func TestEndpointSeparateClonePushUrl(t *testing.T) {
 }
 
 func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url":        "https://example.com/foo/bar.git",
 		"remote.origin.pushurl":    "https://readwrite.com/foo/bar.git",
 		"remote.origin.lfsurl":     "https://examplelfs.com/foo/bar",
@@ -113,7 +112,7 @@ func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
 }
 
 func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"lfs.url":     "https://readonly.com/foo/bar",
 		"lfs.pushurl": "https://write.com/foo/bar",
 	}))
@@ -130,7 +129,7 @@ func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
 }
 
 func TestSSHEndpointOverridden(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url":    "git@example.com:foo/bar",
 		"remote.origin.lfsurl": "lfs",
 	}))
@@ -143,7 +142,7 @@ func TestSSHEndpointOverridden(t *testing.T) {
 }
 
 func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "ssh://git@example.com/foo/bar",
 	}))
 
@@ -155,7 +154,7 @@ func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "ssh://git@example.com:9000/foo/bar",
 	}))
 
@@ -167,7 +166,7 @@ func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "git@example.com:foo/bar.git",
 	}))
 
@@ -179,7 +178,7 @@ func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"lfs.url": "git@example.com:foo/bar.git",
 	}))
 
@@ -191,7 +190,7 @@ func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
 }
 
 func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "http://example.com/foo/bar",
 	}))
 
@@ -203,7 +202,7 @@ func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "http://example.com/foo/bar.git",
 	}))
 
@@ -215,7 +214,7 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestGitEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "git://example.com/foo/bar",
 	}))
 
@@ -227,7 +226,7 @@ func TestGitEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "git://example.com/foo/bar",
 		"lfs.gitprotocol":   "http",
 	}))
@@ -240,7 +239,7 @@ func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
 }
 
 func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"remote.origin.url": "git://example.com/foo/bar.git",
 	}))
 
@@ -267,7 +266,7 @@ func TestAccessConfig(t *testing.T) {
 	}
 
 	for value, expected := range tests {
-		finder := NewEndpointFinder(gitEnv(map[string]string{
+		finder := NewEndpointFinder(testEnv(map[string]string{
 			"lfs.url":                        "http://example.com",
 			"lfs.http://example.com.access":  value,
 			"lfs.https://example.com.access": "bad",
@@ -286,7 +285,7 @@ func TestAccessConfig(t *testing.T) {
 
 	// Test again but with separate push url
 	for value, expected := range tests {
-		finder := NewEndpointFinder(gitEnv(map[string]string{
+		finder := NewEndpointFinder(testEnv(map[string]string{
 			"lfs.url":                           "http://example.com",
 			"lfs.pushurl":                       "http://examplepush.com",
 			"lfs.http://example.com.access":     value,
@@ -313,7 +312,7 @@ func TestAccessAbsentConfig(t *testing.T) {
 }
 
 func TestSetAccess(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{}))
+	finder := NewEndpointFinder(testEnv(map[string]string{}))
 
 	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
 	finder.SetAccess("http://example.com", NTLMAccess)
@@ -321,7 +320,7 @@ func TestSetAccess(t *testing.T) {
 }
 
 func TestChangeAccess(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"lfs.http://example.com.access": "basic",
 	}))
 
@@ -331,7 +330,7 @@ func TestChangeAccess(t *testing.T) {
 }
 
 func TestDeleteAccessWithNone(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"lfs.http://example.com.access": "basic",
 	}))
 
@@ -341,38 +340,11 @@ func TestDeleteAccessWithNone(t *testing.T) {
 }
 
 func TestDeleteAccessWithEmptyString(t *testing.T) {
-	finder := NewEndpointFinder(gitEnv(map[string]string{
+	finder := NewEndpointFinder(testEnv(map[string]string{
 		"lfs.http://example.com.access": "basic",
 	}))
 
 	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
 	finder.SetAccess("http://example.com", Access(""))
 	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
-}
-
-type gitEnv map[string]string
-
-func (e gitEnv) Get(key string) (string, bool) {
-	v, ok := e[key]
-	return v, ok
-}
-
-func (e gitEnv) Bool(key string, def bool) (val bool) {
-	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
-}
-
-func (e gitEnv) All() map[string]string {
-	return e
 }

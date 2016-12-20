@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,22 +27,39 @@ type Client struct {
 	TLSTimeout          int `git:"lfs.tlstimeout"`
 	ConcurrentTransfers int `git:"lfs.concurrenttransfers"`
 
+	HTTPSProxy string
+	HTTPProxy  string
+	NoProxy    string
+
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
 }
 
 func NewClient(osEnv env, gitEnv env) (*Client, error) {
+	if osEnv == nil {
+		osEnv = make(testEnv)
+	}
+
+	if gitEnv == nil {
+		gitEnv = make(testEnv)
+	}
+
 	netrc, err := ParseNetrc(osEnv)
 	if err != nil {
 		return nil, err
 	}
+
+	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
 
 	return &Client{
 		Endpoints: NewEndpointFinder(gitEnv),
 		Credentials: &CommandCredentialHelper{
 			SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
 		},
-		Netrc: netrc,
+		Netrc:      netrc,
+		HTTPSProxy: httpsProxy,
+		HTTPProxy:  httpProxy,
+		NoProxy:    noProxy,
 	}, nil
 }
 
@@ -87,6 +105,7 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	tr := &http.Transport{
+		Proxy: ProxyFromClient(c),
 		Dial: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
@@ -104,6 +123,37 @@ func (c *Client) httpClient(host string) *http.Client {
 	return httpClient
 }
 
+func getProxyServers(osEnv env, gitEnv env) (string, string, string) {
+	var httpsProxy string
+	httpProxy, _ := gitEnv.Get("http.proxy")
+	if strings.HasPrefix(httpProxy, "https://") {
+		httpsProxy = httpProxy
+	}
+
+	if len(httpsProxy) == 0 {
+		httpsProxy, _ = osEnv.Get("HTTPS_PROXY")
+	}
+
+	if len(httpsProxy) == 0 {
+		httpsProxy, _ = osEnv.Get("https_proxy")
+	}
+
+	if len(httpProxy) == 0 {
+		httpProxy, _ = osEnv.Get("HTTP_PROXY")
+	}
+
+	if len(httpProxy) == 0 {
+		httpProxy, _ = osEnv.Get("http_proxy")
+	}
+
+	noProxy, _ := osEnv.Get("NO_PROXY")
+	if len(noProxy) == 0 {
+		noProxy, _ = osEnv.Get("no_proxy")
+	}
+
+	return httpsProxy, httpProxy, noProxy
+}
+
 func decodeResponse(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
@@ -118,4 +168,33 @@ func decodeResponse(res *http.Response, obj interface{}) error {
 	}
 
 	return nil
+}
+
+// basic config.Environment implementation. Only used in tests, or as a zero
+// value to NewClient().
+type testEnv map[string]string
+
+func (e testEnv) Get(key string) (string, bool) {
+	v, ok := e[key]
+	return v, ok
+}
+
+func (e testEnv) Bool(key string, def bool) (val bool) {
+	s, _ := e.Get(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	switch strings.ToLower(s) {
+	case "true", "1", "on", "yes", "t":
+		return true
+	case "false", "0", "off", "no", "f":
+		return false
+	default:
+		return false
+	}
+}
+
+func (e testEnv) All() map[string]string {
+	return e
 }
