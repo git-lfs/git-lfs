@@ -46,14 +46,14 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 	via = append(via, req)
 	redirectedReq, err := http.NewRequest(req.Method, redirectTo, nil)
 	if err != nil {
-		return res, errors.Wrapf(err, err.Error())
+		return res, err
 	}
 
 	redirectedReq.Body = req.Body
 	redirectedReq.ContentLength = req.ContentLength
 
 	if err = checkRedirect(redirectedReq, via); err != nil {
-		return res, errors.Wrapf(err, err.Error())
+		return res, err
 	}
 
 	return c.doWithRedirects(cli, redirectedReq, via)
