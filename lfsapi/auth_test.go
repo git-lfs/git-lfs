@@ -50,13 +50,14 @@ func TestDoWithAuthApprove(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		atomic.AddUint32(&called, 1)
-		w.Header().Set("Lfs-Authenticate", "Basic")
+		assert.Equal(t, "POST", req.Method)
 
 		body := &authRequest{}
 		err := json.NewDecoder(req.Body).Decode(body)
 		assert.Nil(t, err)
 		assert.Equal(t, "Approve", body.Test)
 
+		w.Header().Set("Lfs-Authenticate", "Basic")
 		actual := req.Header.Get("Authorization")
 		if len(actual) == 0 {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -80,7 +81,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 
 	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL))
 
-	req, err := http.NewRequest("GET", srv.URL, nil)
+	req, err := http.NewRequest("POST", srv.URL, nil)
 	require.Nil(t, err)
 
 	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
@@ -106,7 +107,7 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		atomic.AddUint32(&called, 1)
-		w.Header().Set("Lfs-Authenticate", "Basic")
+		assert.Equal(t, "POST", req.Method)
 
 		body := &authRequest{}
 		err := json.NewDecoder(req.Body).Decode(body)
@@ -118,6 +119,7 @@ func TestDoWithAuthReject(t *testing.T) {
 			base64.StdEncoding.EncodeToString([]byte("user:pass")),
 		)
 
+		w.Header().Set("Lfs-Authenticate", "Basic")
 		if actual != expected {
 			// Write http.StatuUnauthorized to force the credential
 			// helper to reject the credentials
@@ -148,7 +150,7 @@ func TestDoWithAuthReject(t *testing.T) {
 		})),
 	}
 
-	req, err := http.NewRequest("GET", srv.URL, nil)
+	req, err := http.NewRequest("POST", srv.URL, nil)
 	require.Nil(t, err)
 
 	err = MarshalToRequest(req, &authRequest{Test: "Reject"})

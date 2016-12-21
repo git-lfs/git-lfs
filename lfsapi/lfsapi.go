@@ -1,16 +1,12 @@
 package lfsapi
 
 import (
-	"crypto/tls"
 	"encoding/json"
-	"io"
-	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
 )
@@ -77,85 +73,6 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	}
 
 	return c, nil
-}
-
-func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	if seeker, ok := req.Body.(io.Seeker); ok {
-		seeker.Seek(0, io.SeekStart)
-	}
-
-	res, err := c.httpClient(req.Host).Do(req)
-	if err != nil {
-		return res, err
-	}
-
-	return res, c.handleResponse(res)
-}
-
-func (c *Client) httpClient(host string) *http.Client {
-	c.clientMu.Lock()
-	defer c.clientMu.Unlock()
-
-	if c.gitEnv == nil {
-		c.gitEnv = make(testEnv)
-	}
-
-	if c.osEnv == nil {
-		c.osEnv = make(testEnv)
-	}
-
-	if c.hostClients == nil {
-		c.hostClients = make(map[string]*http.Client)
-	}
-
-	if client, ok := c.hostClients[host]; ok {
-		return client
-	}
-
-	concurrentTransfers := c.ConcurrentTransfers
-	if concurrentTransfers < 1 {
-		concurrentTransfers = 3
-	}
-
-	dialtime := c.DialTimeout
-	if dialtime < 1 {
-		dialtime = 30
-	}
-
-	keepalivetime := c.KeepaliveTimeout
-	if keepalivetime < 1 {
-		keepalivetime = 1800
-	}
-
-	tlstime := c.TLSTimeout
-	if tlstime < 1 {
-		tlstime = 30
-	}
-
-	tr := &http.Transport{
-		Proxy: ProxyFromClient(c),
-		Dial: (&net.Dialer{
-			Timeout:   time.Duration(dialtime) * time.Second,
-			KeepAlive: time.Duration(keepalivetime) * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
-		MaxIdleConnsPerHost: concurrentTransfers,
-	}
-
-	tr.TLSClientConfig = &tls.Config{}
-	if isCertVerificationDisabledForHost(c, host) {
-		tr.TLSClientConfig.InsecureSkipVerify = true
-	} else {
-		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
-	}
-
-	httpClient := &http.Client{
-		Transport: tr,
-	}
-
-	c.hostClients[host] = httpClient
-
-	return httpClient
 }
 
 func decodeResponse(res *http.Response, obj interface{}) error {
