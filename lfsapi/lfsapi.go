@@ -37,6 +37,11 @@ type Client struct {
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
 
+	transferBuckets  map[string][]*http.Response
+	transferBucketMu sync.Mutex
+	transfers        map[*http.Response]*httpTransfer
+	transferMu       sync.Mutex
+
 	// only used for per-host ssl certs
 	gitEnv env
 	osEnv  env

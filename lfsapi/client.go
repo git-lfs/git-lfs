@@ -31,16 +31,20 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		seeker.Seek(0, io.SeekStart)
 	}
 
-	_, err := c.traceRequest(req)
-	if err != nil {
+	if err := c.traceRequest(req); err != nil {
 		return nil, err
 	}
 
+	start := time.Now()
 	res, err := cli.Do(req)
 	if err != nil {
 		return res, err
 	}
+
 	c.traceResponse(res)
+	if c.IsLogging {
+		c.StartResponseStats(res, start)
+	}
 
 	if res.StatusCode != 307 {
 		return res, err

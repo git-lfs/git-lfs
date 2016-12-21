@@ -13,7 +13,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
+func (c *Client) traceRequest(req *http.Request) error {
 	tracerx.Printf("HTTP: %s", traceReq(req))
 
 	traced := &tracedRequest{
@@ -22,7 +22,7 @@ func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 
 	body, ok := req.Body.(ReadSeekCloser)
 	if body != nil && !ok {
-		return nil, fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
+		return fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
 	}
 
 	if ok {
@@ -30,16 +30,16 @@ func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 	}
 
 	if !c.IsTracing {
-		return traced, nil
+		return nil
 	}
 
 	dump, err := httputil.DumpRequest(req, false)
 	if err != nil {
-		return traced, err
+		return err
 	}
 
 	c.traceHTTPDump(">", dump)
-	return traced, nil
+	return nil
 }
 
 type tracedRequest struct {
@@ -58,6 +58,7 @@ func (r *tracedRequest) Read(b []byte) (int, error) {
 func (c *Client) traceResponse(res *http.Response) *tracedResponse {
 	isTraceable := isTraceableContent(res.Header)
 	traced := &tracedResponse{
+		client:          c,
 		response:        res,
 		isLogging:       c.IsLogging,
 		isTraceableType: isTraceable,
@@ -92,6 +93,7 @@ func (c *Client) traceResponse(res *http.Response) *tracedResponse {
 
 type tracedResponse struct {
 	Count           int
+	client          *Client
 	response        *http.Response
 	isLogging       bool
 	isTraceableType bool
@@ -102,6 +104,10 @@ type tracedResponse struct {
 func (r *tracedResponse) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadCloser, b, r.isTraceableType, true, r.useStderrTrace)
 	r.Count += n
+
+	if err == io.EOF && r.isLogging && r.response != nil {
+		r.client.FinishResponseStats(r.response, int64(r.Count))
+	}
 	return n, err
 }
 
