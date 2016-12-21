@@ -27,12 +27,12 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
-	if seeker, ok := req.Body.(io.Seeker); ok {
-		seeker.Seek(0, io.SeekStart)
-	}
-
 	if err := c.traceRequest(req); err != nil {
 		return nil, err
+	}
+
+	if seeker, ok := req.Body.(io.Seeker); ok {
+		seeker.Seek(0, io.SeekStart)
 	}
 
 	start := time.Now()
