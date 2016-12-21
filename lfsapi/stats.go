@@ -19,6 +19,10 @@ type httpTransfer struct {
 }
 
 func (c *Client) LogResponse(key string, res *http.Response) {
+	if !c.LoggingStats {
+		return
+	}
+
 	c.transferBucketMu.Lock()
 	defer c.transferBucketMu.Unlock()
 
@@ -29,7 +33,11 @@ func (c *Client) LogResponse(key string, res *http.Response) {
 	c.transferBuckets[key] = append(c.transferBuckets[key], res)
 }
 
-func (c *Client) StartResponseStats(res *http.Response, start time.Time) {
+func (c *Client) startResponseStats(res *http.Response, start time.Time) {
+	if !c.LoggingStats {
+		return
+	}
+
 	reqHeaderSize := 0
 	resHeaderSize := 0
 
@@ -56,7 +64,11 @@ func (c *Client) StartResponseStats(res *http.Response, start time.Time) {
 	c.transferMu.Unlock()
 }
 
-func (c *Client) FinishResponseStats(res *http.Response, bodySize int64) {
+func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
+	if !c.LoggingStats || res == nil {
+		return
+	}
+
 	c.transferMu.Lock()
 	defer c.transferMu.Unlock()
 

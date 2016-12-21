@@ -17,7 +17,7 @@ func (c *Client) traceRequest(req *http.Request) error {
 	tracerx.Printf("HTTP: %s", traceReq(req))
 
 	traced := &tracedRequest{
-		isTraceableType: c.IsTracing && isTraceableContent(req.Header),
+		isTraceableType: c.Verbose && isTraceableContent(req.Header),
 	}
 
 	body, ok := req.Body.(ReadSeekCloser)
@@ -29,7 +29,7 @@ func (c *Client) traceRequest(req *http.Request) error {
 		traced.ReadSeekCloser = body
 	}
 
-	if !c.IsTracing {
+	if !c.Verbose {
 		return nil
 	}
 
@@ -60,9 +60,8 @@ func (c *Client) traceResponse(res *http.Response) *tracedResponse {
 	traced := &tracedResponse{
 		client:          c,
 		response:        res,
-		isLogging:       c.IsLogging,
 		isTraceableType: isTraceable,
-		useStderrTrace:  c.IsTracing,
+		useStderrTrace:  c.Verbose,
 	}
 
 	if res == nil {
@@ -72,7 +71,7 @@ func (c *Client) traceResponse(res *http.Response) *tracedResponse {
 	traced.ReadCloser = res.Body
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	if c.IsTracing == false {
+	if c.Verbose == false {
 		return traced
 	}
 
@@ -95,7 +94,6 @@ type tracedResponse struct {
 	Count           int
 	client          *Client
 	response        *http.Response
-	isLogging       bool
 	isTraceableType bool
 	useStderrTrace  bool
 	io.ReadCloser
@@ -105,8 +103,8 @@ func (r *tracedResponse) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadCloser, b, r.isTraceableType, true, r.useStderrTrace)
 	r.Count += n
 
-	if err == io.EOF && r.isLogging && r.response != nil {
-		r.client.FinishResponseStats(r.response, int64(r.Count))
+	if err == io.EOF {
+		r.client.finishResponseStats(r.response, int64(r.Count))
 	}
 	return n, err
 }
@@ -134,7 +132,7 @@ func (c *Client) traceHTTPDump(direction string, dump []byte) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !c.IsDebugging && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
+		if !c.DebuggingVerbose && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
 			fmt.Fprintf(os.Stderr, "%s Authorization: Basic * * * * *\n", direction)
 		} else {
 			fmt.Fprintf(os.Stderr, "%s %s\n", direction, line)

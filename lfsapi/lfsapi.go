@@ -30,9 +30,9 @@ type Client struct {
 	NoProxy             string
 	SkipSSLVerify       bool
 
-	IsTracing   bool
-	IsDebugging bool
-	IsLogging   bool
+	Verbose          bool
+	DebuggingVerbose bool
+	LoggingStats     bool
 
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
@@ -74,9 +74,9 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
 		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 0),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
-		IsTracing:           osEnv.Bool("GIT_CURL_VERBOSE", false),
-		IsDebugging:         osEnv.Bool("LFS_DEBUG_HTTP", false),
-		IsLogging:           osEnv.Bool("GIT_LOG_STATS", false),
+		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
+		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
+		LoggingStats:        osEnv.Bool("GIT_LOG_STATS", false),
 		HTTPSProxy:          httpsProxy,
 		HTTPProxy:           httpProxy,
 		NoProxy:             noProxy,

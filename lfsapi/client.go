@@ -42,9 +42,7 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 	}
 
 	c.traceResponse(res)
-	if c.IsLogging {
-		c.StartResponseStats(res, start)
-	}
+	c.startResponseStats(res, start)
 
 	if res.StatusCode != 307 {
 		return res, err
