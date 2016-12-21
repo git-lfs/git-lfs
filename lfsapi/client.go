@@ -44,15 +44,12 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 	}
 
 	via = append(via, req)
-	redirectedReq, err := http.NewRequest(req.Method, redirectTo, nil)
-	if err != nil {
-		return res, err
+	if len(via) >= 3 {
+		return res, errors.New("too many redirects")
 	}
 
-	redirectedReq.Body = req.Body
-	redirectedReq.ContentLength = req.ContentLength
-
-	if err = checkRedirect(redirectedReq, via); err != nil {
+	redirectedReq, err := newRequestForRetry(req, redirectTo)
+	if err != nil {
 		return res, err
 	}
 
@@ -117,8 +114,10 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	httpClient := &http.Client{
-		Transport:     tr,
-		CheckRedirect: checkRedirect,
+		Transport: tr,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	c.hostClients[host] = httpClient
@@ -126,24 +125,26 @@ func (c *Client) httpClient(host string) *http.Client {
 	return httpClient
 }
 
-func checkRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 3 {
-		return errors.New("stopped after 3 redirects")
+func newRequestForRetry(req *http.Request, location string) (*http.Request, error) {
+	newReq, err := http.NewRequest(req.Method, location, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	oldest := via[0]
-	for key := range oldest.Header {
+	for key := range req.Header {
 		if key == "Authorization" {
-			if req.URL.Scheme != oldest.URL.Scheme || req.URL.Host != oldest.URL.Host {
+			if req.URL.Scheme != newReq.URL.Scheme || req.URL.Host != newReq.URL.Host {
 				continue
 			}
 		}
-		req.Header.Set(key, oldest.Header.Get(key))
+		newReq.Header.Set(key, req.Header.Get(key))
 	}
 
-	oldestURL := strings.SplitN(oldest.URL.String(), "?", 2)[0]
-	newURL := strings.SplitN(req.URL.String(), "?", 2)[0]
-	tracerx.Printf("api: redirect %s %s to %s", oldest.Method, oldestURL, newURL)
+	oldestURL := strings.SplitN(req.URL.String(), "?", 2)[0]
+	newURL := strings.SplitN(newReq.URL.String(), "?", 2)[0]
+	tracerx.Printf("api: redirect %s %s to %s", req.Method, oldestURL, newURL)
 
-	return nil
+	newReq.Body = req.Body
+	newReq.ContentLength = req.ContentLength
+	return newReq, nil
 }

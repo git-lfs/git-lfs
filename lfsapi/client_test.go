@@ -25,6 +25,8 @@ func TestClientRedirect(t *testing.T) {
 
 		switch r.URL.Path {
 		case "/ok":
+			assert.Equal(t, "", r.Header.Get("Authorization"))
+			assert.Equal(t, "1", r.Header.Get("A"))
 			body := &redirectTest{}
 			err := json.NewDecoder(r.Body).Decode(body)
 			assert.Nil(t, err)
@@ -49,6 +51,8 @@ func TestClientRedirect(t *testing.T) {
 			w.Header().Set("Location", srv2.URL+"/ok")
 			w.WriteHeader(307)
 		case "/ok":
+			assert.Equal(t, "auth", r.Header.Get("Authorization"))
+			assert.Equal(t, "1", r.Header.Get("A"))
 			body := &redirectTest{}
 			err := json.NewDecoder(r.Body).Decode(body)
 			assert.Nil(t, err)
@@ -67,6 +71,9 @@ func TestClientRedirect(t *testing.T) {
 	// local redirect
 	req, err := http.NewRequest("POST", srv1.URL+"/local", nil)
 	require.Nil(t, err)
+	req.Header.Set("Authorization", "auth")
+	req.Header.Set("A", "1")
+
 	require.Nil(t, MarshalToRequest(req, &redirectTest{Test: "Local"}))
 
 	res, err := c.Do(req)
@@ -78,6 +85,9 @@ func TestClientRedirect(t *testing.T) {
 	// external redirect
 	req, err = http.NewRequest("POST", srv1.URL+"/external", nil)
 	require.Nil(t, err)
+	req.Header.Set("Authorization", "auth")
+	req.Header.Set("A", "1")
+
 	require.Nil(t, MarshalToRequest(req, &redirectTest{Test: "External"}))
 
 	res, err = c.Do(req)
