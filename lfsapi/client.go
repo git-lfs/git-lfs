@@ -2,10 +2,10 @@ package lfsapi
 
 import (
 	"crypto/tls"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -27,12 +27,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
-	if err := c.traceRequest(req); err != nil {
+	c.traceRequest(req)
+	if err := c.prepareRequestBody(req); err != nil {
 		return nil, err
-	}
-
-	if seeker, ok := req.Body.(io.Seeker); ok {
-		seeker.Seek(0, io.SeekStart)
 	}
 
 	start := time.Now()
@@ -133,6 +130,9 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	c.hostClients[host] = httpClient
+	if c.VerboseOut == nil {
+		c.VerboseOut = os.Stderr
+	}
 
 	return httpClient
 }

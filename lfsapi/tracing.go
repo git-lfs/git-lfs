@@ -7,100 +7,97 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strings"
 
 	"github.com/rubyist/tracerx"
 )
 
-func (c *Client) traceRequest(req *http.Request) error {
+func (c *Client) traceRequest(req *http.Request) {
 	tracerx.Printf("HTTP: %s", traceReq(req))
 
-	traced := &tracedRequest{
-		isTraceableType: c.Verbose && isTraceableContent(req.Header),
+	if !c.Verbose {
+		return
 	}
 
+	if dump, err := httputil.DumpRequest(req, false); err == nil {
+		c.traceHTTPDump(">", dump)
+	}
+}
+
+func (c *Client) prepareRequestBody(req *http.Request) error {
 	body, ok := req.Body.(ReadSeekCloser)
 	if body != nil && !ok {
 		return fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
 	}
 
-	if ok {
-		traced.ReadSeekCloser = body
+	if body != nil && ok {
+		body.Seek(0, io.SeekStart)
+		req.Body = &tracedRequest{
+			verbose:        c.Verbose && isTraceableContent(req.Header),
+			verboseOut:     c.VerboseOut,
+			ReadSeekCloser: body,
+		}
 	}
 
-	if !c.Verbose {
-		return nil
-	}
-
-	dump, err := httputil.DumpRequest(req, false)
-	if err != nil {
-		return err
-	}
-
-	c.traceHTTPDump(">", dump)
 	return nil
 }
 
 type tracedRequest struct {
-	Count           int
-	isTraceableType bool
-	useStderrTrace  bool
+	Count      int
+	verbose    bool
+	verboseOut io.Writer
 	ReadSeekCloser
 }
 
 func (r *tracedRequest) Read(b []byte) (int, error) {
-	n, err := tracedRead(r.ReadSeekCloser, b, r.isTraceableType, false, r.useStderrTrace)
+	n, err := tracedRead(r.ReadSeekCloser, b, r.verboseOut, false, r.verbose)
 	r.Count += n
 	return n, err
 }
 
-func (c *Client) traceResponse(res *http.Response) *tracedResponse {
-	isTraceable := isTraceableContent(res.Header)
-	traced := &tracedResponse{
-		client:          c,
-		response:        res,
-		isTraceableType: isTraceable,
-		useStderrTrace:  c.Verbose,
-	}
-
+func (c *Client) traceResponse(res *http.Response) {
 	if res == nil {
-		return traced
+		return
 	}
 
-	traced.ReadCloser = res.Body
 	tracerx.Printf("HTTP: %d", res.StatusCode)
 
-	if c.Verbose == false {
-		return traced
+	verboseBody := isTraceableContent(res.Header)
+	res.Body = &tracedResponse{
+		client:     c,
+		response:   res,
+		gitTrace:   verboseBody,
+		verbose:    verboseBody && c.Verbose,
+		verboseOut: c.VerboseOut,
+		ReadCloser: res.Body,
 	}
 
-	dump, err := httputil.DumpResponse(res, false)
-	if err != nil {
-		return traced
+	if !c.Verbose {
+		return
 	}
 
-	if isTraceable {
-		fmt.Fprintf(os.Stderr, "\n\n")
-	} else {
-		fmt.Fprintf(os.Stderr, "\n")
+	if dump, err := httputil.DumpResponse(res, false); err == nil {
+		if verboseBody {
+			fmt.Fprintf(c.VerboseOut, "\n\n")
+		} else {
+			fmt.Fprintf(c.VerboseOut, "\n")
+		}
+		c.traceHTTPDump("<", dump)
 	}
-
-	c.traceHTTPDump("<", dump)
-	return traced
 }
 
 type tracedResponse struct {
-	Count           int
-	client          *Client
-	response        *http.Response
-	isTraceableType bool
-	useStderrTrace  bool
+	Count      int
+	client     *Client
+	response   *http.Response
+	verbose    bool
+	gitTrace   bool
+	verboseOut io.Writer
 	io.ReadCloser
 }
 
 func (r *tracedResponse) Read(b []byte) (int, error) {
-	n, err := tracedRead(r.ReadCloser, b, r.isTraceableType, true, r.useStderrTrace)
+	n, err := tracedRead(r.ReadCloser, b, r.verboseOut, r.gitTrace, r.verbose)
 	r.Count += n
 
 	if err == io.EOF {
@@ -109,17 +106,17 @@ func (r *tracedResponse) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func tracedRead(r io.Reader, b []byte, isTraceable, useGitTrace, useStderrTrace bool) (int, error) {
+func tracedRead(r io.Reader, b []byte, verboseOut io.Writer, gitTrace, verbose bool) (int, error) {
 	n, err := r.Read(b)
 	if err == nil || err == io.EOF {
-		if n > 0 && isTraceable {
+		if n > 0 && (gitTrace || verbose) {
 			chunk := string(b[0:n])
-			if useGitTrace {
+			if gitTrace {
 				tracerx.Printf("HTTP: %s", chunk)
 			}
 
-			if useStderrTrace {
-				fmt.Fprint(os.Stderr, chunk)
+			if verbose {
+				fmt.Fprint(verboseOut, chunk)
 			}
 		}
 	}
@@ -133,9 +130,9 @@ func (c *Client) traceHTTPDump(direction string, dump []byte) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if !c.DebuggingVerbose && strings.HasPrefix(strings.ToLower(line), "authorization: basic") {
-			fmt.Fprintf(os.Stderr, "%s Authorization: Basic * * * * *\n", direction)
+			fmt.Fprintf(c.VerboseOut, "%s Authorization: Basic * * * * *\n", direction)
 		} else {
-			fmt.Fprintf(os.Stderr, "%s %s\n", direction, line)
+			fmt.Fprintf(c.VerboseOut, "%s %s\n", direction, line)
 		}
 	}
 }

@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -33,6 +34,7 @@ type Client struct {
 	Verbose          bool
 	DebuggingVerbose bool
 	LoggingStats     bool
+	VerboseOut       io.Writer
 
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
