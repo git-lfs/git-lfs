@@ -20,7 +20,7 @@ begin_test "malformed pointers"
 
   git \
     -c "filter.lfs.process=" \
-    -c "filter.lfs.clean=" \
+    -c "filter.lfs.clean=cat" \
     -c "filter.lfs.required=false" \
     add *.dat
   git commit -m "add malformed pointer"
