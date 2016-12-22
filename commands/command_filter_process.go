@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -29,35 +28,6 @@ const (
 // dictating whether or not to skip the smudging process, leaving pointers as-is
 // in the working tree.
 var filterSmudgeSkip bool
-
-// filterSmudge is a gateway to the `smudge()` function and serves to bail out
-// immediately if the pointer decoded from "from" has no data (i.e., is empty).
-// This function, unlike the implementation found in the legacy smudge command,
-// only combines the `io.Reader`s when necessary, since the implementation
-// found in `*git.PacketReader` blocks while waiting for the following packet.
-func filterSmudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
-	var pbuf bytes.Buffer
-	from = io.TeeReader(from, &pbuf)
-
-	ptr, err := lfs.DecodePointer(from)
-	if err != nil {
-		// If we tried to decode a pointer out of the data given to us,
-		// and the file was _empty_, write out an empty file in
-		// response. This occurs because when the clean filter
-		// encounters an empty file, and writes out an empty file,
-		// instead of a pointer.
-		if pbuf.Len() == 0 {
-			if _, cerr := io.Copy(to, &pbuf); cerr != nil {
-				Panic(cerr, "Error writing data to stdout:")
-			}
-			return nil
-		}
-
-		return err
-	}
-
-	return smudge(to, ptr, filename, skip, filter)
-}
 
 func filterCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git filter process")
@@ -89,7 +59,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = filterSmudge(w, req.Payload, req.Header["pathname"], skip, filter)
+			err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
 		default:
 			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}

@@ -109,16 +109,28 @@ func DecodePointer(reader io.Reader) (*Pointer, error) {
 }
 
 func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
+	output, _, p, err := DecodeFromHasMore(reader)
+	return output, p, err
+}
+
+// DecodeFromHasMore decodes an *lfs.Pointer from the given io.Reader, "reader".
+// If the pointer encoded in the reader could successfully be read and decoded,
+// it will be returned with a nil error.
+//
+// If the pointer could not be decoded, a buffer of the data read so far, along
+// with whether or not there was more data not yet consumed will be returned
+// instead.
+func DecodeFromHasMore(reader io.Reader) ([]byte, bool, *Pointer, error) {
 	buf := make([]byte, blobSizeCutoff)
-	written, err := reader.Read(buf)
+	written, rerr := reader.Read(buf)
 	output := buf[0:written]
 
-	if err != nil && err != io.EOF {
-		return output, nil, err
+	if rerr != nil && rerr != io.EOF {
+		return output, true, nil, rerr
 	}
 
 	p, err := decodeKV(bytes.TrimSpace(output))
-	return output, p, err
+	return output, rerr != io.EOF, p, err
 }
 
 func verifyVersion(version string) error {

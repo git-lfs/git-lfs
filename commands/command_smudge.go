@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -28,7 +27,21 @@ var (
 // Any errors encountered along the way will be returned immediately if they
 // were non-fatal, otherwise execution will halt and the process will be
 // terminated by using the `commands.Panic()` func.
-func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool, filter *filepathfilter.Filter) error {
+func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
+	pbuf, more, ptr, perr := lfs.DecodeFromHasMore(from)
+	if perr != nil {
+		var r io.Reader = bytes.NewReader(pbuf)
+		if more {
+			r = io.MultiReader(r, from)
+		}
+
+		if _, err := io.Copy(to, r); err != nil {
+			return errors.Wrap(err, perr.Error())
+		}
+
+		return nil
+	}
+
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
@@ -63,37 +76,20 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
-	// keeps the initial buffer from lfs.DecodePointer
-	b := &bytes.Buffer{}
-	r := io.TeeReader(os.Stdin, b)
-
-	ptr, perr := lfs.DecodePointer(r)
-	if perr != nil {
-		mr := io.MultiReader(b, os.Stdin)
-		if _, err := io.Copy(os.Stdout, mr); err != nil {
-			Panic(err, "Error writing data to stdout:")
-		}
-		return
-	}
-
 	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		smudgeSkip = true
 	}
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
-	if err := smudge(os.Stdout, ptr, smudgeFilename(args, perr), smudgeSkip, filter); err != nil {
+
+	if err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
 		Error(err.Error())
 	}
 }
 
-func smudgeFilename(args []string, err error) string {
+func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-
-	if errors.IsSmudgeError(err) {
-		return filepath.Base(errors.GetContext(err, "FileName").(string))
-	}
-
 	return "<unknown file>"
 }
 
