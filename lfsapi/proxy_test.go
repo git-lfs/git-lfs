@@ -9,9 +9,9 @@ import (
 )
 
 func TestProxyFromGitConfig(t *testing.T) {
-	c, err := NewClient(testEnv(map[string]string{
+	c, err := NewClient(Env(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
-	}), testEnv(map[string]string{
+	}), Env(map[string]string{
 		"http.proxy": "https://proxy-from-git-config:8080",
 	}))
 	require.Nil(t, err)
@@ -25,9 +25,9 @@ func TestProxyFromGitConfig(t *testing.T) {
 }
 
 func TestHttpProxyFromGitConfig(t *testing.T) {
-	c, err := NewClient(testEnv(map[string]string{
+	c, err := NewClient(Env(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
-	}), testEnv(map[string]string{
+	}), Env(map[string]string{
 		"http.proxy": "http://proxy-from-git-config:8080",
 	}))
 	require.Nil(t, err)
@@ -41,7 +41,7 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 }
 
 func TestProxyFromEnvironment(t *testing.T) {
-	c, err := NewClient(testEnv(map[string]string{
+	c, err := NewClient(Env(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
 	}), nil)
 	require.Nil(t, err)
@@ -66,9 +66,9 @@ func TestProxyIsNil(t *testing.T) {
 }
 
 func TestProxyNoProxy(t *testing.T) {
-	c, err := NewClient(testEnv(map[string]string{
+	c, err := NewClient(Env(map[string]string{
 		"NO_PROXY": "some-host",
-	}), testEnv(map[string]string{
+	}), Env(map[string]string{
 		"http.proxy": "https://proxy-from-git-config:8080",
 	}))
 	require.Nil(t, err)

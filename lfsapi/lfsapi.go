@@ -51,11 +51,11 @@ type Client struct {
 
 func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	if osEnv == nil {
-		osEnv = make(testEnv)
+		osEnv = make(Env)
 	}
 
 	if gitEnv == nil {
-		gitEnv = make(testEnv)
+		gitEnv = make(Env)
 	}
 
 	netrc, err := ParseNetrc(osEnv)
@@ -114,14 +114,14 @@ type env interface {
 
 // basic config.Environment implementation. Only used in tests, or as a zero
 // value to NewClient().
-type testEnv map[string]string
+type Env map[string]string
 
-func (e testEnv) Get(key string) (string, bool) {
+func (e Env) Get(key string) (string, bool) {
 	v, ok := e[key]
 	return v, ok
 }
 
-func (e testEnv) Int(key string, def int) (val int) {
+func (e Env) Int(key string, def int) (val int) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -135,7 +135,7 @@ func (e testEnv) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e testEnv) Bool(key string, def bool) (val bool) {
+func (e Env) Bool(key string, def bool) (val bool) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -151,6 +151,6 @@ func (e testEnv) Bool(key string, def bool) (val bool) {
 	}
 }
 
-func (e testEnv) All() map[string]string {
+func (e Env) All() map[string]string {
 	return e
 }
