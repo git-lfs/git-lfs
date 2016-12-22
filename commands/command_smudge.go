@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 
@@ -39,7 +40,9 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 			return errors.Wrap(err, perr.Error())
 		}
 
-		return nil
+		return errors.NewNotAPointerError(errors.Errorf(
+			"Unable to parse pointer at: %q", filename,
+		))
 	}
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
@@ -82,7 +85,11 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	if err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
-		Error(err.Error())
+		if errors.IsNotAPointerError(err) {
+			fmt.Fprintln(os.Stderr, err.Error())
+		} else {
+			Error(err.Error())
+		}
 	}
 }
 

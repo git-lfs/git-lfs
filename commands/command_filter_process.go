@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -45,6 +47,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
+	var malformed []string
+
 	for s.Scan() {
 		var err error
 		var w *git.PktlineWriter
@@ -64,6 +68,11 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
 
+		if errors.IsNotAPointerError(err) {
+			malformed = append(malformed, req.Header["pathname"])
+			err = nil
+		}
+
 		var status string
 		if ferr := w.Flush(); ferr != nil {
 			status = statusFromErr(ferr)
@@ -72,6 +81,11 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		}
 
 		s.WriteStatus(status)
+	}
+
+	if len(malformed) > 0 {
+		fmt.Fprintf(os.Stderr, "Encountered %d files that should have been pointers, but weren't:\n", len(malformed))
+		fmt.Fprintf(os.Stderr, "%s\n", strings.Join(malformed, ", "))
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {

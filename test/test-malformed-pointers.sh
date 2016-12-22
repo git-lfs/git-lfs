@@ -30,6 +30,10 @@ begin_test "malformed pointers"
   pushd .. >/dev/null
     clone_repo "$reponame" "$reponame-assert"
 
+    grep "malformed_small.dat" clone.log
+    grep "malformed_exact.dat" clone.log
+    grep "malformed_large.dat" clone.log
+
     expected_small="$(cat ../$reponame/malformed_small.dat)"
     expected_exact="$(cat ../$reponame/malformed_exact.dat)"
     expected_large="$(cat ../$reponame/malformed_large.dat)"
