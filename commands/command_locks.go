@@ -19,7 +19,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	if len(lockRemote) > 0 {
 		cfg.CurrentRemote = lockRemote
 	}
-	lockClient, err := locking.NewClient(cfg)
+	lockClient, err := locking.NewClient(lockRemote, APIClient(), cfg)
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
 	}

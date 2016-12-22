@@ -76,6 +76,14 @@ func main() {
 			return
 		}
 
+		if strings.Contains(r.URL.Path, "/info/lfs/locks") {
+			if !skipIfBadAuth(w, r, id) {
+				locksHandler(w, r)
+			}
+
+			return
+		}
+
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			if !skipIfBadAuth(w, r, id) {
 				lfsHandler(w, r, id)
@@ -784,7 +792,9 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		if !lockRe.MatchString(r.URL.Path) {
-			http.NotFound(w, r)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"unknown path: ` + r.URL.Path + `"}`))
 		} else {
 			if err := r.ParseForm(); err != nil {
 				http.Error(w, "could not parse form values", http.StatusInternalServerError)
@@ -793,6 +803,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 
 			ll := &LockList{}
 			locks := getLocks()
+			w.Header().Set("Content-Type", "application/json")
 
 			if cursor := r.FormValue("cursor"); cursor != "" {
 				lastSeen := -1

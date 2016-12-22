@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
@@ -35,6 +36,14 @@ var (
 	includeArg string
 	excludeArg string
 )
+
+func APIClient() *lfsapi.Client {
+	c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		ExitWithError(err)
+	}
+	return c
+}
 
 // TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.

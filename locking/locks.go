@@ -1,7 +1,6 @@
 package locking
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,7 +8,9 @@ import (
 
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools/kv"
 )
 
@@ -24,6 +25,8 @@ var (
 
 // Client is the main interface object for the locking package
 type Client struct {
+	Remote    string
+	client    *lockClient
 	cfg       *config.Configuration
 	apiClient *api.Client
 	cache     *LockCache
@@ -32,7 +35,7 @@ type Client struct {
 // NewClient creates a new locking client with the given configuration
 // You must call the returned object's `Close` method when you are finished with
 // it
-func NewClient(cfg *config.Configuration) (*Client, error) {
+func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
 
 	apiClient := api.NewClient(api.NewHttpLifecycle(cfg))
 
@@ -46,7 +49,14 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{cfg, apiClient, cache}, nil
+
+	return &Client{
+		Remote:    remote,
+		client:    &lockClient{Client: lfsClient},
+		cfg:       cfg,
+		apiClient: apiClient,
+		cache:     cache,
+	}, nil
 }
 
 // Close this client instance; must be called to dispose of resources
@@ -152,7 +162,6 @@ func (c *Client) newLockFromApi(a api.Lock) Lock {
 // If limit > 0 then search stops at that number of locks
 // If localOnly = true, don't query the server & report only own local locks
 func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) (locks []Lock, err error) {
-
 	if localOnly {
 		return c.searchCachedLocks(filter, limit)
 	} else {
@@ -184,38 +193,37 @@ func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock,
 func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock, error) {
 	locks := make([]Lock, 0, limit)
 
-	apifilters := make([]api.Filter, 0, len(filter))
+	apifilters := make([]lockFilter, 0, len(filter))
 	for k, v := range filter {
-		apifilters = append(apifilters, api.Filter{k, v})
+		apifilters = append(apifilters, lockFilter{Property: k, Value: v})
 	}
-	query := &api.LockSearchRequest{Filters: apifilters}
+	query := &lockSearchRequest{Filters: apifilters}
 	for {
-		s, resp := c.apiClient.Locks.Search(query)
-		if _, err := c.apiClient.Do(s); err != nil {
-			return locks, fmt.Errorf("Error communicating with LFS API: %v", err)
+		list, _, err := c.client.Search(c.Remote, query)
+		if err != nil {
+			return locks, errors.Wrap(err, "locking")
 		}
 
-		if resp.Err != "" {
-			return locks, fmt.Errorf("Error response from LFS API: %v", resp.Err)
+		if list.Err != "" {
+			return locks, errors.Wrap(err, "locking")
 		}
 
-		for _, l := range resp.Locks {
-			locks = append(locks, c.newLockFromApi(l))
+		for _, l := range list.Locks {
+			locks = append(locks, l)
 			if limit > 0 && len(locks) >= limit {
 				// Exit outer loop too
 				return locks, nil
 			}
 		}
 
-		if resp.NextCursor != "" {
-			query.Cursor = resp.NextCursor
+		if list.NextCursor != "" {
+			query.Cursor = list.NextCursor
 		} else {
 			break
 		}
 	}
 
 	return locks, nil
-
 }
 
 // lockIdFromPath makes a call to the LFS API and resolves the ID for the locked
@@ -228,21 +236,21 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 // If the API call is successful, and only one lock matches the given filepath,
 // then its ID will be returned, along with a value of "nil" for the error.
 func (c *Client) lockIdFromPath(path string) (string, error) {
-	s, resp := c.apiClient.Locks.Search(&api.LockSearchRequest{
-		Filters: []api.Filter{
-			{"path", path},
+	list, _, err := c.client.Search(c.Remote, &lockSearchRequest{
+		Filters: []lockFilter{
+			{Property: "path", Value: path},
 		},
 	})
 
-	if _, err := c.apiClient.Do(s); err != nil {
+	if err != nil {
 		return "", err
 	}
 
-	switch len(resp.Locks) {
+	switch len(list.Locks) {
 	case 0:
 		return "", ErrNoMatchingLocks
 	case 1:
-		return resp.Locks[0].Id, nil
+		return list.Locks[0].Id, nil
 	default:
 		return "", ErrLockAmbiguous
 	}
