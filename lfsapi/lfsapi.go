@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -89,10 +90,25 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	return c, nil
 }
 
-func decodeResponse(res *http.Response, obj interface{}) error {
+func IsDecodeTypeError(err error) bool {
+	_, ok := err.(*decodeTypeError)
+	return ok
+}
+
+type decodeTypeError struct {
+	Type string
+}
+
+func (e *decodeTypeError) TypeError() {}
+
+func (e *decodeTypeError) Error() string {
+	return fmt.Sprintf("Expected json type, got: %q", e.Type)
+}
+
+func DecodeJSON(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
-		return nil
+		return &decodeTypeError{Type: ctype}
 	}
 
 	err := json.NewDecoder(res.Body).Decode(obj)
