@@ -43,7 +43,6 @@ func (c *Client) prepareRequestBody(req *http.Request) error {
 }
 
 type tracedRequest struct {
-	Count      int
 	verbose    bool
 	verboseOut io.Writer
 	ReadSeekCloser
@@ -51,7 +50,6 @@ type tracedRequest struct {
 
 func (r *tracedRequest) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadSeekCloser, b, r.verboseOut, false, r.verbose)
-	r.Count += n
 	return n, err
 }
 
