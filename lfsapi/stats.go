@@ -1,6 +1,8 @@
 package lfsapi
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -16,6 +18,32 @@ type httpTransferStats struct {
 type httpTransfer struct {
 	requestStats  *httpTransferStats
 	responseStats *httpTransferStats
+}
+
+// LogStats is intended to be called after all HTTP operations for the
+// commmand have finished. It dumps k/v logs, one line per httpTransfer into
+// a log file with the current timestamp.
+func (c *Client) LogStats(out io.Writer) {
+	if !c.LoggingStats {
+		return
+	}
+
+	fmt.Fprintf(out, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
+
+	for key, responses := range c.transferBuckets {
+		for _, response := range responses {
+			stats := c.transfers[response]
+			fmt.Fprintf(out, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
+				key,
+				stats.requestStats.HeaderSize,
+				stats.requestStats.BodySize,
+				stats.responseStats.HeaderSize,
+				stats.responseStats.BodySize,
+				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
+				response.StatusCode,
+				response.Request.URL)
+		}
+	}
 }
 
 func (c *Client) LogResponse(key string, res *http.Response) {
