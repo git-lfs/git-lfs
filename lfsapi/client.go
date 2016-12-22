@@ -15,6 +15,30 @@ import (
 
 var UserAgent = "git-lfs"
 
+func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
+	req, err := http.NewRequest(method, joinURL(e.Url, suffix), nil)
+	if err != nil {
+		return req, err
+	}
+
+	if body != nil {
+		if merr := MarshalToRequest(req, body); merr != nil {
+			return req, merr
+		}
+	}
+
+	return req, err
+}
+
+const slash = "/"
+
+func joinURL(prefix, suffix string) string {
+	if strings.HasSuffix(prefix, slash) {
+		return prefix + suffix
+	}
+	return prefix + slash + suffix
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 

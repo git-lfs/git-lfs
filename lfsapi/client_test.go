@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -157,5 +158,26 @@ func TestNewClientWithOSSSLVerify(t *testing.T) {
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
 		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
+	}
+}
+
+func TestNewRequest(t *testing.T) {
+	tests := [][]string{
+		{"https://example.com", "a", "https://example.com/a"},
+		{"https://example.com/", "a", "https://example.com/a"},
+		{"https://example.com/a", "b", "https://example.com/a/b"},
+		{"https://example.com/a/", "b", "https://example.com/a/b"},
+	}
+
+	for _, test := range tests {
+		c, err := NewClient(nil, testEnv(map[string]string{
+			"lfs.url": test[0],
+		}))
+		require.Nil(t, err)
+
+		req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), test[1], nil)
+		require.Nil(t, err)
+		assert.Equal(t, "POST", req.Method)
+		assert.Equal(t, test[2], req.URL.String(), fmt.Sprintf("endpoint: %s, suffix: %s, expected: %s", test[0], test[1], test[2]))
 	}
 }
