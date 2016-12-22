@@ -77,6 +77,63 @@ func TestVerboseEnabled(t *testing.T) {
 	}
 }
 
+func TestVerboseWithBinaryBody(t *testing.T) {
+	var called uint32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called, 1)
+		t.Logf("srv req %s %s", r.Method, r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+
+		assert.Equal(t, "Basic ABC", r.Header.Get("Authorization"))
+		by, err := ioutil.ReadAll(r.Body)
+		assert.Nil(t, err)
+		assert.Equal(t, "binary-request", string(by))
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write([]byte(`binary-response`))
+	}))
+	defer srv.Close()
+
+	out := &bytes.Buffer{}
+	c := &Client{
+		Verbose:    true,
+		VerboseOut: out,
+	}
+
+	buf := bytes.NewBufferString("binary-request")
+	req, err := http.NewRequest("POST", srv.URL, buf)
+	req.Header.Set("Authorization", "Basic ABC")
+	req.Header.Set("Content-Type", "application/octet-stream")
+	require.Nil(t, err)
+
+	res, err := c.Do(req)
+	require.Nil(t, err)
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	assert.Equal(t, 200, res.StatusCode)
+	assert.EqualValues(t, 1, called)
+
+	s := out.String()
+	t.Log(s)
+
+	expected := []string{
+		"> Host: 127.0.0.1:",
+		"\n> Authorization: Basic * * * * *\n",
+		"\n> Content-Type: application/octet-stream\n",
+
+		"\n< HTTP/1.1 200 OK\n",
+		"\n< Content-Type: application/octet-stream\n",
+	}
+
+	for _, substr := range expected {
+		if !assert.True(t, strings.Contains(s, substr)) {
+			t.Logf("missing: %q", substr)
+		}
+	}
+
+	assert.False(t, strings.Contains(s, "binary"), "contains binary request or response body")
+}
+
 func TestVerboseEnabledWithDebugging(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
