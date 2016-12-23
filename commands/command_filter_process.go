@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -85,7 +84,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 
 	if len(malformed) > 0 {
 		fmt.Fprintf(os.Stderr, "Encountered %d files that should have been pointers, but weren't:\n", len(malformed))
-		fmt.Fprintf(os.Stderr, "%s\n", strings.Join(malformed, ", "))
+		for _, m := range malformed {
+			fmt.Fprintf(os.Stderr, "\t%s\n", m)
+		}
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {
