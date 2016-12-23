@@ -3,6 +3,7 @@ package lfsapi
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/bgentry/go-netrc/netrc"
@@ -10,7 +11,7 @@ import (
 
 func TestNetrcWithHostAndPort(t *testing.T) {
 	netrcFinder := &fakeNetrc{}
-	u, err := url.Parse("http://some-host:123/foo/bar")
+	u, err := url.Parse("http://netrc-host:123/foo/bar")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +33,7 @@ func TestNetrcWithHostAndPort(t *testing.T) {
 
 func TestNetrcWithHost(t *testing.T) {
 	netrcFinder := &fakeNetrc{}
-	u, err := url.Parse("http://some-host/foo/bar")
+	u, err := url.Parse("http://netrc-host/foo/bar")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +78,7 @@ func TestNetrcWithBadHost(t *testing.T) {
 type fakeNetrc struct{}
 
 func (n *fakeNetrc) FindMachine(host string) *netrc.Machine {
-	if host == "some-host" {
+	if strings.Contains(host, "netrc") {
 		return &netrc.Machine{Login: "abc", Password: "def"}
 	}
 	return nil

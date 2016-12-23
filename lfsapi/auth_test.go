@@ -297,6 +297,20 @@ func TestGetCreds(t *testing.T) {
 				Authorization: "custom",
 			},
 		},
+		"netrc": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://netrc-host.com/repo/lfs",
+				"lfs.https://netrc-host.com/repo/lfs.access": "basic",
+			},
+			Expected: getCredsExpected{
+				Access:        BasicAccess,
+				Endpoint:      "https://netrc-host.com/repo/lfs",
+				Authorization: basicAuth("abc", "def"),
+			},
+		},
 		"username in url": getCredsTest{
 			Remote: "origin",
 			Method: "GET",
@@ -440,6 +454,7 @@ func TestGetCreds(t *testing.T) {
 	}
 
 	credHelper := &fakeCredentialFiller{}
+	netrcFinder := &fakeNetrc{}
 	for desc, test := range tests {
 		t.Log(desc)
 		req, err := http.NewRequest(test.Method, test.Href, nil)
@@ -453,7 +468,7 @@ func TestGetCreds(t *testing.T) {
 		}
 
 		ef := NewEndpointFinder(testEnv(test.Config))
-		endpoint, access, creds, credsURL, err := getCreds(credHelper, &noFinder{}, ef, test.Remote, req)
+		endpoint, access, creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue
 		}
