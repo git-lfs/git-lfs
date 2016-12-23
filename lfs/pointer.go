@@ -104,33 +104,32 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 	return DecodePointer(f)
 }
 func DecodePointer(reader io.Reader) (*Pointer, error) {
-	_, p, err := DecodeFrom(reader)
+	p, _, err := DecodeFrom(reader)
 	return p, err
 }
 
-func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
-	output, _, p, err := DecodeFromHasMore(reader)
-	return output, p, err
-}
-
-// DecodeFromHasMore decodes an *lfs.Pointer from the given io.Reader, "reader".
+// DecodeFrom decodes an *lfs.Pointer from the given io.Reader, "reader".
 // If the pointer encoded in the reader could successfully be read and decoded,
 // it will be returned with a nil error.
 //
-// If the pointer could not be decoded, a buffer of the data read so far, along
-// with whether or not there was more data not yet consumed will be returned
-// instead.
-func DecodeFromHasMore(reader io.Reader) ([]byte, bool, *Pointer, error) {
+// If the pointer could not be decoded, an io.Reader containing the entire
+// blob's data will be returned, along with a parse error.
+func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 	buf := make([]byte, blobSizeCutoff)
 	written, rerr := reader.Read(buf)
 	output := buf[0:written]
 
+	var buffer io.Reader = bytes.NewReader(output)
+	if rerr != io.EOF {
+		buffer = io.MultiReader(buffer, reader)
+	}
+
 	if rerr != nil && rerr != io.EOF {
-		return output, true, nil, rerr
+		return nil, buffer, rerr
 	}
 
 	p, err := decodeKV(bytes.TrimSpace(output))
-	return output, rerr != io.EOF, p, err
+	return p, buffer, err
 }
 
 func verifyVersion(version string) error {

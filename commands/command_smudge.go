@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -29,14 +28,9 @@ var (
 // were non-fatal, otherwise execution will halt and the process will be
 // terminated by using the `commands.Panic()` func.
 func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
-	pbuf, more, ptr, perr := lfs.DecodeFromHasMore(from)
+	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		var r io.Reader = bytes.NewReader(pbuf)
-		if more {
-			r = io.MultiReader(r, from)
-		}
-
-		if _, err := io.Copy(to, r); err != nil {
+		if _, err := io.Copy(to, pbuf); err != nil {
 			return errors.Wrap(err, perr.Error())
 		}
 
