@@ -116,20 +116,20 @@ func DecodePointer(reader io.Reader) (*Pointer, error) {
 // blob's data will be returned, along with a parse error.
 func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 	buf := make([]byte, blobSizeCutoff)
-	written, rerr := reader.Read(buf)
-	output := buf[0:written]
+	n, err := reader.Read(buf)
+	buf = buf[:n]
 
-	var buffer io.Reader = bytes.NewReader(output)
-	if rerr != io.EOF {
-		buffer = io.MultiReader(buffer, reader)
+	var contents io.Reader = bytes.NewReader(buf)
+	if err != io.EOF {
+		contents = io.MultiReader(contents, reader)
 	}
 
-	if rerr != nil && rerr != io.EOF {
-		return nil, buffer, rerr
+	if err != nil && err != io.EOF {
+		return nil, contents, err
 	}
 
-	p, err := decodeKV(bytes.TrimSpace(output))
-	return p, buffer, err
+	p, err := decodeKV(bytes.TrimSpace(buf))
+	return p, contents, err
 }
 
 func verifyVersion(version string) error {
