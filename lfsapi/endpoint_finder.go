@@ -182,20 +182,23 @@ func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 		return NoneAccess
 	}
 
+	accessurl := urlWithoutAuth(rawurl)
+
 	e.accessMu.Lock()
 	defer e.accessMu.Unlock()
 
-	if cached, ok := e.urlAccess[rawurl]; ok {
+	if cached, ok := e.urlAccess[accessurl]; ok {
 		return cached
 	}
 
-	key := fmt.Sprintf("lfs.%s.access", rawurl)
-	e.urlAccess[rawurl] = fetchGitAccess(e.git, key)
-	return e.urlAccess[rawurl]
+	key := fmt.Sprintf("lfs.%s.access", accessurl)
+	e.urlAccess[accessurl] = fetchGitAccess(e.git, key)
+	return e.urlAccess[accessurl]
 }
 
 func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
-	key := fmt.Sprintf("lfs.%s.access", rawurl)
+	accessurl := urlWithoutAuth(rawurl)
+	key := fmt.Sprintf("lfs.%s.access", accessurl)
 	tracerx.Printf("setting repository access to %s", access)
 
 	e.accessMu.Lock()
@@ -204,11 +207,26 @@ func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
 	switch access {
 	case emptyAccess, NoneAccess:
 		git.Config.UnsetLocalKey("", key)
-		e.urlAccess[rawurl] = NoneAccess
+		e.urlAccess[accessurl] = NoneAccess
 	default:
 		git.Config.SetLocal("", key, string(access))
-		e.urlAccess[rawurl] = access
+		e.urlAccess[accessurl] = access
 	}
+}
+
+func urlWithoutAuth(rawurl string) string {
+	if !strings.Contains(rawurl, "@") {
+		return rawurl
+	}
+
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing URL %q: %s", rawurl, err)
+		return rawurl
+	}
+
+	u.User = nil
+	return u.String()
 }
 
 func fetchGitAccess(git env, key string) Access {

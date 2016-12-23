@@ -303,7 +303,7 @@ func TestGetCreds(t *testing.T) {
 			Href:   "https://git-server.com/repo/lfs/locks",
 			Config: map[string]string{
 				"lfs.url": "https://user@git-server.com/repo/lfs",
-				"lfs.https://user@git-server.com/repo/lfs.access": "basic",
+				"lfs.https://git-server.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
@@ -348,7 +348,7 @@ func TestGetCreds(t *testing.T) {
 			Href:   "https://git-server.com/repo/locks",
 			Config: map[string]string{
 				"lfs.url": "https://user:pass@git-server.com/repo",
-				"lfs.https://user:pass@git-server.com/repo.access": "basic",
+				"lfs.https://git-server.com/repo.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
