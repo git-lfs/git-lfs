@@ -84,6 +84,26 @@ func (c *Client) doWithCreds(req *http.Request, creds Creds, credsURL *url.URL, 
 	return c.Do(req)
 }
 
+// getCreds fills the authorization header for the given request if possible,
+// from the following sources:
+//
+// 1. NTLM access is handled elsewhere.
+// 2. Existing Authorization or ?token query tells LFS that the request is ready.
+// 3. Netrc based on the hostname.
+// 4. URL authentication on the Endpoint URL or the Git Remote URL.
+// 5. Git Credential Helper, potentially prompting the user.
+//
+// There are three URLs in play, that make this a little confusing.
+//
+// 1. The request URL, which should be something like "https://git.com/repo.git/info/lfs/objects/batch"
+// 2. The LFS API URL, which should be something like "https://git.com/repo.git/info/lfs"
+//    This URL used for the "lfs.URL.access" git config key, which determines
+//    what kind of auth the LFS server expects. Could be BasicAccess, NTLMAccess,
+//    or NoneAccess, in which the Git Credential Helper step is skipped. We do
+//    not want to prompt the user for a password to fetch public repository data.
+// 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
+//    This URL is used for the Git Credential Helper. This way existing https
+//    Git remote credentials can be re-used for LFS.
 func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Endpoint, Access, Creds, *url.URL, error) {
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
