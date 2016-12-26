@@ -329,7 +329,18 @@ begin_test "clone (with .lfsconfig)"
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig"
   local_reponame="clone_with_config_include"
+  set +x
   git lfs clone "$GITSERVER/$reponame" "$local_reponame"
+  ok="$?"
+  set -x
+  if [ "0" -ne "$ok" ]; then
+    # TEMP: used to catch transient failure from above `clone` command, as in:
+    # https://github.com/git-lfs/git-lfs/pull/1782#issuecomment-267678319
+    echo >&2 "[!] \`git lfs clone $GITSERVER/$reponame $local_reponame\` failed"
+    git lfs logs last
+
+    exit 1
+  fi
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
