@@ -1,11 +1,9 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -36,15 +34,49 @@ var (
 // Any errors encountered along the way will be returned immediately if they
 // were non-fatal, otherwise execution will halt and the process will be
 // terminated by using the `commands.Panic()` func.
-func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool) error {
+func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
+	ptr, pbuf, perr := lfs.DecodeFrom(from)
+	if perr != nil {
+		if _, err := io.Copy(to, pbuf); err != nil {
+			return errors.Wrap(err, perr.Error())
+		}
+
+		return errors.NewNotAPointerError(errors.Errorf(
+			"Unable to parse pointer at: %q", filename,
+		))
+	}
+
+	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+	if smudgeInfo {
+		// only invoked from `filter.lfs.smudge`, not `filter.lfs.process`
+		// NOTE: this is deprecated behavior and will be removed in v2.0.0
+
+		fmt.Fprintln(os.Stderr, "WARNING: 'smudge --info' is deprecated and will be removed in v2.0")
+		fmt.Fprintln(os.Stderr, "USE INSTEAD:")
+		fmt.Fprintln(os.Stderr, "  $ git lfs pointer --file=path/to/file")
+		fmt.Fprintln(os.Stderr, "  $ git lfs ls-files")
+		fmt.Fprintln(os.Stderr, "")
+
+		localPath, err := lfs.LocalMediaPath(ptr.Oid)
+		if err != nil {
+			Exit(err.Error())
+		}
+
+		if stat, err := longpathos.Stat(localPath); err != nil {
+			Print("%d --", ptr.Size)
+		} else {
+			Print("%d %s", stat.Size(), localPath)
+		}
+
+		return nil
+	}
+
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
 		return err
 	}
 
-	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 	download := filter.Allows(filename)
-
 	if skip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		download = false
 	}
@@ -72,56 +104,24 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
 	lfs.InstallHooks(false)
 
-	// keeps the initial buffer from lfs.DecodePointer
-	b := &bytes.Buffer{}
-	r := io.TeeReader(os.Stdin, b)
-
-	ptr, perr := lfs.DecodePointer(r)
-	if perr != nil {
-		mr := io.MultiReader(b, os.Stdin)
-		if _, err := io.Copy(os.Stdout, mr); err != nil {
-			Panic(err, "Error writing data to stdout:")
-		}
-		return
+	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
+		smudgeSkip = true
 	}
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
-	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
-
-	if smudgeInfo {
-		fmt.Fprintln(os.Stderr, "WARNING: 'smudge --info' is deprecated and will be removed in v2.0")
-		fmt.Fprintln(os.Stderr, "USE INSTEAD:")
-		fmt.Fprintln(os.Stderr, "  $ git lfs pointer --file=path/to/file")
-		fmt.Fprintln(os.Stderr, "  $ git lfs ls-files")
-		fmt.Fprintln(os.Stderr, "")
-
-		localPath, err := lfs.LocalMediaPath(ptr.Oid)
-		if err != nil {
-			Exit(err.Error())
-		}
-
-		if stat, err := longpathos.Stat(localPath); err != nil {
-			Print("%d --", ptr.Size)
+	if err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
+		if errors.IsNotAPointerError(err) {
+			fmt.Fprintln(os.Stderr, err.Error())
 		} else {
-			Print("%d %s", stat.Size(), localPath)
+			Error(err.Error())
 		}
-
-		return
-	}
-
-	if err := smudge(os.Stdout, ptr, smudgeFilename(args, perr), smudgeSkip); err != nil {
-		Error(err.Error())
 	}
 }
 
-func smudgeFilename(args []string, err error) string {
+func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-
-	if errors.IsSmudgeError(err) {
-		return filepath.Base(errors.GetContext(err, "FileName").(string))
-	}
-
 	return "<unknown file>"
 }
 
