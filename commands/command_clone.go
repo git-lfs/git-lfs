@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools/longpathos"
@@ -70,19 +71,18 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
+	filter := filepathfilter.New(determineIncludeExcludePaths(cfg, includeArg, excludeArg))
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		fetchRef("HEAD", include, exclude)
+		fetchRef("HEAD", filter)
 	} else {
-		pull(include, exclude)
+		pull(filter)
 
 		err := postCloneSubmodules(args)
 		if err != nil {
 			Exit("Error performing 'git lfs pull' for submodules: %v", err)
 		}
 	}
-
 }
 
 func postCloneSubmodules(args []string) error {

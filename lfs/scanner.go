@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -914,6 +915,7 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 	// Also when a binary is changed the diff will include a '-' line for the old SHA
 
 	// Define regexes to capture commit & diff headers
+	filter := filepathfilter.New(includePaths, excludePaths)
 	commitHeaderRegex := regexp.MustCompile(`^lfs-commit-sha: ([A-Fa-f0-9]{40})(?: ([A-Fa-f0-9]{40}))*`)
 	fileHeaderRegex := regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`)
 	fileMergeHeaderRegex := regexp.MustCompile(`diff --cc (.+)`)
@@ -954,12 +956,12 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 			} else {
 				currentFilename = match[1]
 			}
-			currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
+			currentFileIncluded = filter.Allows(currentFilename)
 		} else if match := fileMergeHeaderRegex.FindStringSubmatch(line); match != nil {
 			// Git merge file header is a little different, only one file
 			finishLastPointer()
 			currentFilename = match[1]
-			currentFileIncluded = tools.FilenamePassesIncludeExcludeFilter(currentFilename, includePaths, excludePaths)
+			currentFileIncluded = filter.Allows(currentFilename)
 		} else if currentFileIncluded {
 			if match := pointerDataRegex.FindStringSubmatch(line); match != nil {
 				// An LFS pointer data line

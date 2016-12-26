@@ -8,10 +8,10 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -33,16 +33,16 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		rootedpaths = append(rootedpaths, <-outchan)
 	}
 	close(inchan)
-	checkoutWithIncludeExclude(rootedpaths, nil)
+	checkoutWithIncludeExclude(filepathfilter.New(rootedpaths, nil))
 }
 
 // Checkout from items reported from the fetch process (in parallel)
 func checkoutAllFromFetchChan(c chan *lfs.WrappedPointer) {
 	tracerx.Printf("starting fetch/parallel checkout")
-	checkoutFromFetchChan(nil, nil, c)
+	checkoutFromFetchChan(nil, c)
 }
 
-func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.WrappedPointer) {
+func checkoutFromFetchChan(filter *filepathfilter.Filter, in chan *lfs.WrappedPointer) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -56,7 +56,7 @@ func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.Wrap
 	// Map oid to multiple pointers
 	mapping := make(map[string][]*lfs.WrappedPointer)
 	for _, pointer := range pointers {
-		if tools.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+		if filter.Allows(pointer.Name) {
 			mapping[pointer.Oid] = append(mapping[pointer.Oid], pointer)
 		}
 	}
@@ -83,7 +83,7 @@ func checkoutFromFetchChan(include []string, exclude []string, in chan *lfs.Wrap
 	wait.Wait()
 }
 
-func checkoutWithIncludeExclude(include []string, exclude []string) {
+func checkoutWithIncludeExclude(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
@@ -116,7 +116,7 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	totalBytes = 0
 	for _, pointer := range pointers {
 		totalBytes += pointer.Size
-		if tools.FilenamePassesIncludeExcludeFilter(pointer.Name, include, exclude) {
+		if filter.Allows(pointer.Name) {
 			progress.Add(pointer.Name)
 			c <- pointer
 			// not strictly correct (parallel) but we don't have a callback & it's just local
@@ -131,10 +131,6 @@ func checkoutWithIncludeExclude(include []string, exclude []string) {
 	wait.Wait()
 	progress.Finish()
 
-}
-
-func checkoutAll() {
-	checkoutWithIncludeExclude(nil, nil)
 }
 
 // Populate the working copy with the real content of objects where the file is

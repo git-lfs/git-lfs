@@ -5,14 +5,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
-	"strings"
-	"sync"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
-	"github.com/git-lfs/git-lfs/tools/longpathos"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,128 +25,18 @@ func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 	assert.Empty(t, cleaned)
 }
 
-func TestFileMatch(t *testing.T) {
-	assert.True(t, FileMatch("filename.txt", "filename.txt"))
-	assert.True(t, FileMatch("*.txt", "filename.txt"))
-	assert.False(t, FileMatch("*.tx", "filename.txt"))
-	assert.True(t, FileMatch("f*.txt", "filename.txt"))
-	assert.False(t, FileMatch("g*.txt", "filename.txt"))
-	assert.True(t, FileMatch("file*", "filename.txt"))
-	assert.False(t, FileMatch("file", "filename.txt"))
-
-	// With no path separators, should match in subfolders
-	assert.True(t, FileMatch("*.txt", "sub/filename.txt"))
-	assert.False(t, FileMatch("*.tx", "sub/filename.txt"))
-	assert.True(t, FileMatch("f*.txt", "sub/filename.txt"))
-	assert.False(t, FileMatch("g*.txt", "sub/filename.txt"))
-	assert.True(t, FileMatch("file*", "sub/filename.txt"))
-	assert.False(t, FileMatch("file", "sub/filename.txt"))
-	// Needs wildcard for exact filename
-	assert.True(t, FileMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
-
-	// Should not match dots to subparts
-	assert.False(t, FileMatch("*.ign", "sub/shouldignoreme.txt"))
-
-	// Path specific
-	assert.True(t, FileMatch("sub", "sub/filename.txt"))
-	assert.False(t, FileMatch("sub", "subfilename.txt"))
-
-	// Absolute
-	assert.True(t, FileMatch("*.dat", "/path/to/sub/.git/test.dat"))
-	assert.True(t, FileMatch("**/.git", "/path/to/sub/.git"))
-
-	// Match anything
-	assert.True(t, FileMatch(".", "path.txt"))
-	assert.True(t, FileMatch("./", "path.txt"))
-	assert.True(t, FileMatch(".\\", "path.txt"))
-
-}
-
-type TestIncludeExcludeCase struct {
-	expectedResult bool
-	includes       []string
-	excludes       []string
-}
-
-func TestFilterIncludeExclude(t *testing.T) {
-
-	cases := []TestIncludeExcludeCase{
-		// Null case
-		TestIncludeExcludeCase{true, nil, nil},
-		// Inclusion
-		TestIncludeExcludeCase{true, []string{"*.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"file*.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"file*"}, nil},
-		TestIncludeExcludeCase{true, []string{"*name.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"/*.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"otherfolder/*.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"*.nam"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, nil},
-		TestIncludeExcludeCase{false, []string{"blank", "something", "foo"}, nil},
-		TestIncludeExcludeCase{false, []string{"test/notfilename.dat"}, nil},
-		TestIncludeExcludeCase{true, []string{"test"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/*"}, nil},
-		TestIncludeExcludeCase{false, []string{"nottest"}, nil},
-		TestIncludeExcludeCase{false, []string{"nottest/*"}, nil},
-		TestIncludeExcludeCase{true, []string{"test/fil*"}, nil},
-		TestIncludeExcludeCase{false, []string{"test/g*"}, nil},
-		TestIncludeExcludeCase{true, []string{"tes*/*"}, nil},
-		// Exclusion
-		TestIncludeExcludeCase{false, nil, []string{"*.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"file*.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"file*"}},
-		TestIncludeExcludeCase{false, nil, []string{"*name.dat"}},
-		TestIncludeExcludeCase{true, nil, []string{"/*.dat"}},
-		TestIncludeExcludeCase{true, nil, []string{"otherfolder/*.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"test/filename.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"blank", "something", "test/filename.dat", "foo"}},
-		TestIncludeExcludeCase{true, nil, []string{"blank", "something", "foo"}},
-		TestIncludeExcludeCase{true, nil, []string{"test/notfilename.dat"}},
-		TestIncludeExcludeCase{false, nil, []string{"test"}},
-		TestIncludeExcludeCase{false, nil, []string{"test/*"}},
-		TestIncludeExcludeCase{true, nil, []string{"nottest"}},
-		TestIncludeExcludeCase{true, nil, []string{"nottest/*"}},
-		TestIncludeExcludeCase{false, nil, []string{"test/fil*"}},
-		TestIncludeExcludeCase{true, nil, []string{"test/g*"}},
-		TestIncludeExcludeCase{false, nil, []string{"tes*/*"}},
-
-		// Both
-		TestIncludeExcludeCase{true, []string{"test/filename.dat"}, []string{"test/notfilename.dat"}},
-		TestIncludeExcludeCase{false, []string{"test"}, []string{"test/filename.dat"}},
-		TestIncludeExcludeCase{true, []string{"test/*"}, []string{"test/notfile*"}},
-		TestIncludeExcludeCase{false, []string{"test/*"}, []string{"test/file*"}},
-		TestIncludeExcludeCase{false, []string{"another/*", "test/*"}, []string{"test/notfilename.dat", "test/filename.dat"}},
-	}
-
-	for _, c := range cases {
-		result := FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes)
-		assert.Equal(t, c.expectedResult, result, "includes: %v excludes: %v", c.includes, c.excludes)
-		if runtime.GOOS == "windows" {
-			// also test with \ path separators, tolerate mixed separators
-			for i, inc := range c.includes {
-				c.includes[i] = strings.Replace(inc, "/", "\\", -1)
-			}
-			for i, ex := range c.excludes {
-				c.excludes[i] = strings.Replace(ex, "/", "\\", -1)
-			}
-			assert.Equal(t, c.expectedResult, FilenamePassesIncludeExcludeFilter("test/filename.dat", c.includes, c.excludes), c)
-		}
-	}
-}
-
 func TestFastWalkBasic(t *testing.T) {
 	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkBasic")
 	if err != nil {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
-	defer longpathos.RemoveAll(rootDir)
-	longpathos.Chdir(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	fchan, errchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil, nil)
-	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+	fchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil)
+	gotEntries, gotErrors := collectFastWalkResults(fchan)
 
 	assert.Empty(t, gotErrors)
 
@@ -160,13 +46,58 @@ func TestFastWalkBasic(t *testing.T) {
 
 }
 
+func BenchmarkFastWalkGitRepoChannels(b *testing.B) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoChannels")
+	if err != nil {
+		assert.FailNow(b, "Unable to get temp dir: %v", err)
+	}
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	entries := createFastWalkInputData(1000, 5000)
+
+	for i := 0; i < b.N; i++ {
+		var files, errors int
+		FastWalkGitRepo(entries[0], func(parent string, info os.FileInfo, err error) {
+			if err != nil {
+				errors++
+			} else {
+				files++
+			}
+		})
+		b.Logf("files: %d, errors: %d", files, errors)
+	}
+}
+
+func BenchmarkFastWalkGitRepoCallback(b *testing.B) {
+	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoCallback")
+	if err != nil {
+		assert.FailNow(b, "Unable to get temp dir: %v", err)
+	}
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
+	entries := createFastWalkInputData(1000, 5000)
+
+	for i := 0; i < b.N; i++ {
+		var files, errors int
+		FastWalkGitRepo(entries[0], func(parentDir string, info os.FileInfo, err error) {
+			if err != nil {
+				errors++
+			} else {
+				files++
+			}
+		})
+
+		b.Logf("files: %d, errors: %d", files, errors)
+	}
+}
+
 func TestFastWalkGitRepo(t *testing.T) {
 	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkGitRepo")
 	if err != nil {
 		assert.FailNow(t, "Unable to get temp dir: %v", err)
 	}
-	defer longpathos.RemoveAll(rootDir)
-	longpathos.Chdir(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.Chdir(rootDir)
 
 	expectedEntries := createFastWalkInputData(3, 3)
 
@@ -192,7 +123,7 @@ func TestFastWalkGitRepo(t *testing.T) {
 		if len(filepath.Ext(f)) > 0 {
 			ioutil.WriteFile(fullPath, []byte("TEST"), 0644)
 		} else {
-			longpathos.MkdirAll(fullPath, 0755)
+			os.MkdirAll(fullPath, 0755)
 		}
 	}
 	// write root .gitignore
@@ -220,8 +151,15 @@ thisisnot.txt
 	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", ".gitignore"))
 	// nothing else should be there
 
-	fchan, errchan := FastWalkGitRepo(mainDir)
-	gotEntries, gotErrors := collectFastWalkResults(fchan, errchan)
+	gotEntries := make([]string, 0, 1000)
+	gotErrors := make([]error, 0, 5)
+	FastWalkGitRepo(mainDir, func(parent string, info os.FileInfo, err error) {
+		if err != nil {
+			gotErrors = append(gotErrors, err)
+		} else {
+			gotEntries = append(gotEntries, filepath.Join(parent, info.Name()))
+		}
+	})
 
 	assert.Empty(t, gotErrors)
 
@@ -248,7 +186,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	expectedEntries := make([]string, 0, 250)
 
 	for i, dir := range dirs {
-		longpathos.MkdirAll(dir, 0755)
+		os.MkdirAll(dir, 0755)
 		numFiles := smallFolder
 		expectedEntries = append(expectedEntries, filepath.Clean(dir))
 		if i >= 3 && i <= 5 {
@@ -265,24 +203,16 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	return expectedEntries
 }
 
-func collectFastWalkResults(fchan <-chan FastWalkInfo, errchan <-chan error) ([]string, []error) {
+func collectFastWalkResults(fchan <-chan fastWalkInfo) ([]string, []error) {
 	gotEntries := make([]string, 0, 1000)
 	gotErrors := make([]error, 0, 5)
-	var waitg sync.WaitGroup
-	waitg.Add(2)
-	go func() {
-		for o := range fchan {
+	for o := range fchan {
+		if o.Err != nil {
+			gotErrors = append(gotErrors, o.Err)
+		} else {
 			gotEntries = append(gotEntries, filepath.Join(o.ParentDir, o.Info.Name()))
 		}
-		waitg.Done()
-	}()
-	go func() {
-		for err := range errchan {
-			gotErrors = append(gotErrors, err)
-		}
-		waitg.Done()
-	}()
-	waitg.Wait()
+	}
 
 	return gotEntries, gotErrors
 }
