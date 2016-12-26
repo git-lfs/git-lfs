@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/config"
@@ -76,8 +77,9 @@ func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid
 		cb = nil
 	}
 
-	by, ptr, err := DecodeFrom(reader)
-	if err == nil && len(by) < 512 {
+	ptr, buf, err := DecodeFrom(reader)
+	by, rerr := ioutil.ReadAll(buf)
+	if rerr != nil || (err == nil && len(by) < 512) {
 		err = errors.NewCleanPointerError(ptr, by)
 		return
 	}
