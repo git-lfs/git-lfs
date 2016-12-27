@@ -3,6 +3,7 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -168,11 +169,13 @@ size 12345`
 }
 
 func TestDecodeFromEmptyReader(t *testing.T) {
-	by, p, err := DecodeFrom(strings.NewReader(""))
+	p, buf, err := DecodeFrom(strings.NewReader(""))
+	by, rerr := ioutil.ReadAll(buf)
 
+	assert.Nil(t, rerr)
 	assert.EqualError(t, err, "Pointer file error: invalid header")
 	assert.Nil(t, p)
-	assert.Empty(t, string(by))
+	assert.Empty(t, by)
 }
 
 func TestDecodeInvalid(t *testing.T) {
