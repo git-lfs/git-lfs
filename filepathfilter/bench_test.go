@@ -1,4 +1,4 @@
-package filepathfilterbench
+package filepathfilter_test
 
 import (
 	"os"
