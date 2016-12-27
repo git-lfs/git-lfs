@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/olekukonko/ts"
 )
 
@@ -54,7 +55,7 @@ func (s *Spinner) update(out io.Writer, prefix, msg string) {
 	if err == nil {
 		width = size.Col()
 	}
-	padding := strings.Repeat(" ", width-len(str))
+	padding := strings.Repeat(" ", tools.MaxInt(0, width-len(str)))
 
 	fmt.Fprintf(out, "\r%v%v", str, padding)
 
