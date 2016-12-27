@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/olekukonko/ts"
 )
 
@@ -55,7 +54,7 @@ func (s *Spinner) update(out io.Writer, prefix, msg string) {
 	if err == nil {
 		width = size.Col()
 	}
-	padding := strings.Repeat(" ", tools.MaxInt(0, width-len(str)))
+	padding := strings.Repeat(" ", maxInt(0, width-len(str)))
 
 	fmt.Fprintf(out, "\r%v%v", str, padding)
 
@@ -63,4 +62,15 @@ func (s *Spinner) update(out io.Writer, prefix, msg string) {
 
 func NewSpinner() *Spinner {
 	return &Spinner{}
+}
+
+// maxInt returns the greater of two `int`s, "a", or "b". This function
+// originally comes from `github.com/git-lfs/git-lfs/tools#MaxInt`, but would
+// introduce an import cycle if depended on directly.
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
 }
