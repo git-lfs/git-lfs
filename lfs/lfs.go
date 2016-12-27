@@ -16,10 +16,13 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+<<<<<<< HEAD
 const (
 	Version = "1.5.3"
 )
 
+=======
+>>>>>>> 2b606199... Merge pull request #1689 from sschuberth/version-defines
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
 )
