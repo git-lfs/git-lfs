@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"strings"
-
-	"github.com/olekukonko/ts"
 )
 
 // Indeterminate progress indicator 'spinner'
@@ -46,31 +43,9 @@ func (s *Spinner) Finish(out io.Writer, finishMsg string) {
 }
 
 func (s *Spinner) update(out io.Writer, prefix, msg string) {
-
-	str := fmt.Sprintf("%v %v", prefix, msg)
-
-	width := 80 // default to 80 chars wide if ts.GetSize() fails
-	size, err := ts.GetSize()
-	if err == nil {
-		width = size.Col()
-	}
-	padding := strings.Repeat(" ", maxInt(0, width-len(str)))
-
-	fmt.Fprintf(out, "\r%v%v", str, padding)
-
+	fmt.Fprintf(out, "\r%v", pad(fmt.Sprintf("%v %v", prefix, msg)))
 }
 
 func NewSpinner() *Spinner {
 	return &Spinner{}
-}
-
-// maxInt returns the greater of two `int`s, "a", or "b". This function
-// originally comes from `github.com/git-lfs/git-lfs/tools#MaxInt`, but would
-// introduce an import cycle if depended on directly.
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-
-	return b
 }
