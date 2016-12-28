@@ -22,6 +22,10 @@ var (
 	ErrNoOperationGiven = errors.New("lfs/api: no operation provided in schema")
 )
 
+const (
+	ContentType = "application/vnd.git-lfs+json"
+)
+
 // HttpLifecycle serves as the default implementation of the Lifecycle interface
 // for HTTP requests. Internally, it leverages the *http.Client type to execute
 // HTTP requests against a root *url.URL, as given in `NewHttpLifecycle`.
@@ -75,9 +79,9 @@ func (l *HttpLifecycle) Build(schema *RequestSchema) (*http.Request, error) {
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	req.Header.Set("Accept", ContentType)
 	if body != nil {
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Header.Set("Content-Type", ContentType)
 	}
 
 	if _, err = auth.GetCreds(l.cfg, req); err != nil {

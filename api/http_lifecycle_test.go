@@ -30,6 +30,7 @@ func TestHttpLifecycleMakesRequestsAgainstAbsolutePath(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Accept"))
 	assert.Equal(t, "https://example.com/owner/repo.git/info/lfs/foo", req.URL.String())
 }
 
@@ -47,6 +48,7 @@ func TestHttpLifecycleAttachesQueryParameters(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Accept"))
 	assert.Equal(t, "https://example.com/owner/repo.git/info/lfs/foo?a=b", req.URL.String())
 }
 
@@ -66,6 +68,8 @@ func TestHttpLifecycleAttachesBodyWhenPresent(t *testing.T) {
 
 	body, err := ioutil.ReadAll(req.Body)
 	assert.Nil(t, err)
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Accept"))
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Content-Type"))
 	assert.Equal(t, "{\"foo\":\"bar\"}", string(body))
 }
 
