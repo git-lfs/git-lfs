@@ -140,7 +140,8 @@ assert_server_lock() {
 
 # refute that a lock with the given ID exists on the test server
 refute_server_lock() {
-  local id="$1"
+  local reponame="$1"
+  local id="$2"
 
   curl -v "$GITSERVER/locks/" \
     -u "user:pass" \

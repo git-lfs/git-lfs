@@ -15,7 +15,7 @@ begin_test "unlocking a lock by path"
   assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs unlock "c.dat" 2>&1 | tee unlock.log
-  refute_server_lock $id
+  refute_server_lock "$reponame" "$id"
 )
 end_test
 
@@ -32,7 +32,7 @@ begin_test "unlocking a lock by id"
   assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs unlock --id="$id" 2>&1 | tee unlock.log
-  refute_server_lock $id
+  refute_server_lock "$reponame" "$id"
 )
 end_test
 
