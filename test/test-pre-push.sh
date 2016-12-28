@@ -486,3 +486,55 @@ begin_test "pre-push with own lock"
   grep "* locked.dat" push.log
 )
 end_test
+
+begin_test "pre-push with unowned lock"
+(
+  set -e
+
+  reponame="pre_push_unowned_lock"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  # Use a different Git persona so the locks are owned by a different person
+  git config --local user.name "Example Locker"
+  git config --local user.email "locker@example.com"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="locked contents"
+  printf "$contents" > locked_unowned.dat
+  git add locked_unowned.dat
+  git commit -m "add locked_unowned.dat"
+
+  git push origin master
+
+  GITLFSLOCKSENABLED=1 git lfs lock "locked_unowned.dat" | tee lock.log
+  grep "'locked_unowned.dat' was locked" lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  pushd "$TRASHDIR" >/dev/null
+    clone_repo "$reponame" "$reponame-assert"
+
+    printf "unauthorized changes" >> locked_unowned.dat
+    git add locked_unowned.dat
+    git commit -m "add unauthroized changes"
+
+    set +e
+    git push origin master 2>&1 | tee push.log
+    ok="${PIPESTATUS[0]}"
+    set -e
+
+    if [ "0" -eq $ok ]; then
+      echo >&2 "ERR: expected push to fail, didn't..."
+      exit 1
+    fi
+
+    grep "Some files are locked in $(git rev-parse HEAD)...origin" push.log
+    grep "locked_unowned.dat" push.log
+  popd >/dev/null
+)
+end_test
