@@ -73,16 +73,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 	defer lc.Close()
 
-	locks, err := lc.SearchLocks(map[string]string{}, 0, false)
+	lockSet, err := findLocks(lc, nil, 0, false)
 	if err != nil {
-		Exit("error finding locks: %s", err)
+		ExitWithError(err)
 	}
-	lockSet := make(map[string]locking.Lock, len(locks))
-	for _, l := range locks {
-		lockSet[l.Name] = l
-	}
-	lockConflicts := make([]string, 0, len(locks))
-	myLocks := make([]string, 0, len(locks))
+
+	lockConflicts := make([]string, 0, len(lockSet))
+	myLocks := make([]string, 0, len(lockSet))
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
