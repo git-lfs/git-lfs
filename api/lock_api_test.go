@@ -37,7 +37,7 @@ func TestLockSearchWithFilters(t *testing.T) {
 			"path":   "/path/to/file",
 		},
 		Path:      "/locks",
-		Operation: api.UploadOperation,
+		Operation: api.DownloadOperation,
 		Into:      body,
 	}, got)
 }
@@ -53,7 +53,7 @@ func TestLockSearchWithNextCursor(t *testing.T) {
 			"cursor": "some-lock-id",
 		},
 		Path:      "/locks",
-		Operation: api.UploadOperation,
+		Operation: api.DownloadOperation,
 		Into:      body,
 	}, got)
 }
@@ -69,7 +69,7 @@ func TestLockSearchWithLimit(t *testing.T) {
 			"limit": "20",
 		},
 		Path:      "/locks",
-		Operation: api.UploadOperation,
+		Operation: api.DownloadOperation,
 		Into:      body,
 	}, got)
 }
