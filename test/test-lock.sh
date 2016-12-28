@@ -16,6 +16,20 @@ begin_test "creating a lock"
 )
 end_test
 
+begin_test "creating a lock (--json)"
+(
+  set -e
+
+  setup_remote_repo_with_file "lock_create_simple_json" "a_json.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock --json "a_json.dat" | tee lock.log
+  grep "\"path\":\"a_json.dat\"" lock.log
+
+  id=$(grep -o "\"id\":\".*\"" lock.log | cut -d \" -f 4)
+  assert_server_lock $id
+)
+end_test
+
 begin_test "locking a previously locked file"
 (
   set -e
