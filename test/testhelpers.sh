@@ -122,7 +122,8 @@ assert_server_object() {
 
 # assert that a lock with the given ID exists on the test server
 assert_server_lock() {
-  local id="$1"
+  local reponame="$1"
+  local id="$2"
 
   curl -v "$GITSERVER/locks/" \
     -u "user:pass" \
