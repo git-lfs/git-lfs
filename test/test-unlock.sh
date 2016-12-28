@@ -18,6 +18,24 @@ begin_test "unlocking a lock by path"
 )
 end_test
 
+begin_test "unlocking a lock (--json)"
+(
+  set -e
+
+  setup_remote_repo_with_file "unlock_by_path_json" "c_json.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock "c_json.dat" | tee lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  GITLFSLOCKSENABLED=1 git lfs unlock --json "c_json.dat" 2>&1 | tee unlock.log
+  grep "\"unlocked\":true" unlock.log
+
+  refute_server_lock $id
+)
+end_test
+
 begin_test "unlocking a lock by id"
 (
   set -e
