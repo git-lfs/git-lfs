@@ -521,7 +521,8 @@ begin_test "pre-push with unowned lock"
 
     printf "unauthorized changes" >> locked_unowned.dat
     git add locked_unowned.dat
-    git commit -m "add unauthroized changes"
+    # --no-verify is used to avoid the pre-commit hook which is not under test
+    git commit --no-verify -m "add unauthroized changes"
 
     set +e
     git push origin master 2>&1 | tee push.log
