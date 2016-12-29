@@ -77,12 +77,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		pointers, err := scanLeftOrAll(gitscanner, left)
-		if err != nil {
+		if err := scanLeftOrAll(gitscanner, ctx, left); err != nil {
 			Print("Error scanning for Git LFS files in %q", left)
 			ExitWithError(err)
 		}
-		uploadPointers(ctx, pointers...)
 	}
 
 	ctx.Await()
