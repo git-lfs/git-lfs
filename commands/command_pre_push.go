@@ -76,7 +76,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		if err := scanLeftOrAll(gitscanner, ctx, left); err != nil {
+		if err := uploadLeftOrAll(gitscanner, ctx, left); err != nil {
 			Print("Error scanning for Git LFS files in %q", left)
 			ExitWithError(err)
 		}

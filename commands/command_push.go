@@ -35,7 +35,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		if err = scanLeftOrAll(gitscanner, ctx, ref.Name); err != nil {
+		if err = uploadLeftOrAll(gitscanner, ctx, ref.Name); err != nil {
 			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
 			ExitWithError(err)
 		}
@@ -44,7 +44,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	ctx.Await()
 }
 
-func scanLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
 	var multiErr error
 	cb := func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
