@@ -2,6 +2,7 @@ package commands
 
 import (
 	"os"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -20,6 +21,9 @@ type uploadContext struct {
 
 	meter progress.Meter
 	tq    *tq.TransferQueue
+
+	cwg *sync.WaitGroup
+	cq  *tq.TransferQueue
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -30,7 +34,25 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:     getTransferManifest(),
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
+
+		cwg: new(sync.WaitGroup),
+		// TODO(taylor): single item batches are needed to enqueue each
+		// item immediately to avoid waiting an infinite amount of time
+		// on an underfilled batch.
+		cq: newDownloadCheckQueue(c.Manifest, c.Remote, tq.WithBatchSize(1)),
 	}
+
+	ctx.cq.Notify(func(oid string, ok bool) {
+		if ok {
+			// If the object was "ok", the server already has it,
+			// and can be marked as uploaded.
+			ctx.SetUploaded(oid)
+		}
+
+		// No matter whether or not the sever has the object, mark this
+		// OID as checked.
+		ctx.cwg.Done()
+	})
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.tq = newUploadQueue(c.Manifest, c.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
@@ -107,34 +129,12 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 // against the server. Anything the server already has does not need to be
 // uploaded again.
 func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize int64) {
-	numMissing := len(missing)
-	if numMissing == 0 {
-		return
-	}
-
-	checkQueue := newDownloadCheckQueue(c.Manifest, c.Remote)
-	transferCh := checkQueue.Watch()
-
-	done := make(chan int)
-	go func() {
-		// this channel is filled with oids for which Check() succeeded
-		// and Transfer() was called
-		for oid := range transferCh {
-			c.SetUploaded(oid)
-		}
-		done <- 1
-	}()
-
+	c.cwg.Add(len(missing))
 	for _, p := range missing {
-		checkQueue.Add(downloadTransfer(p))
+		c.cq.Add(downloadTransfer(p))
 	}
 
-	// Currently this is needed to flush the batch but is not enough to sync
-	// transferc completely. By the time that checkQueue.Wait() returns, the
-	// transferCh will have been closed, allowing the goroutine above to
-	// send "1" into the `done` channel.
-	checkQueue.Wait()
-	<-done
+	c.cwg.Wait()
 }
 
 func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
