@@ -42,6 +42,8 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 		}
 		uploadPointers(ctx, pointers)
 	}
+
+	ctx.Await()
 }
 
 func scanLeftOrAll(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
@@ -77,6 +79,8 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
 	uploadPointers(ctx, pointers)
+
+	ctx.Await()
 }
 
 func refsByNames(refnames []string) ([]*git.Ref, error) {

@@ -84,6 +84,8 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		}
 		uploadPointers(ctx, pointers)
 	}
+
+	ctx.Await()
 }
 
 func scanLeft(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
