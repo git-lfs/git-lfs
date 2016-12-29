@@ -74,11 +74,11 @@ func scanLeftOrAll(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error)
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
-	pointers := make([]*lfs.WrappedPointer, len(oids))
-	for idx, oid := range oids {
-		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
+	for _, oid := range oids {
+		uploadPointers(ctx, &lfs.WrappedPointer{
+			Pointer: &lfs.Pointer{Oid: oid},
+		})
 	}
-	uploadPointers(ctx, pointers...)
 
 	ctx.Await()
 }
