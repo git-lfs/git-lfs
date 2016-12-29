@@ -50,7 +50,7 @@ func (c *uploadContext) HasUploaded(oid string) bool {
 	return c.uploadedOids.Contains(oid)
 }
 
-func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
+func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
 	numUnfiltered := len(unfiltered)
 	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
 	missingLocalObjects := make([]*lfs.WrappedPointer, 0, numUnfiltered)
@@ -137,7 +137,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 	<-done
 }
 
-func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
+func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 	if c.DryRun {
 		for _, p := range unfiltered {
 			if c.HasUploaded(p.Oid) {
@@ -151,7 +151,7 @@ func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 		return
 	}
 
-	q, pointers := c.prepareUpload(unfiltered)
+	q, pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
 		t, err := uploadTransfer(p.Oid, p.Name)
 		if err != nil {

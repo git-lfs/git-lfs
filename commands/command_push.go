@@ -40,7 +40,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
 			ExitWithError(err)
 		}
-		uploadPointers(ctx, pointers)
+		uploadPointers(ctx, pointers...)
 	}
 
 	ctx.Await()
@@ -78,7 +78,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	for idx, oid := range oids {
 		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
 	}
-	uploadPointers(ctx, pointers)
+	uploadPointers(ctx, pointers...)
 
 	ctx.Await()
 }
