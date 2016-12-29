@@ -83,6 +83,8 @@ func (b batch) Len() int           { return len(b) }
 func (b batch) Less(i, j int) bool { return b[i].Size < b[j].Size }
 func (b batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
+type NotifyFn func(oid string, ok bool)
+
 // TransferQueue organises the wider process of uploading and downloading,
 // including calling the API, passing the actual transfer request to transfer
 // adapters, and dealing with progress, errors and retries.
@@ -103,6 +105,7 @@ type TransferQueue struct {
 	incoming      chan *objectTuple
 	errorc        chan error // Channel for processing errors
 	watchers      []chan string
+	notify        []NotifyFn
 	trMutex       *sync.Mutex
 	startProgress sync.Once
 	collectorWait sync.WaitGroup
@@ -294,6 +297,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 
 				next = append(next, t)
 			} else {
+				q.sendNotifications(t.Oid, false)
 				q.wait.Done()
 			}
 		}
@@ -314,6 +318,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		if o.Error != nil {
 			q.errorc <- errors.Wrapf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 			q.Skip(o.Size)
+			q.sendNotifications(o.Oid, false)
 			q.wait.Done()
 
 			continue
@@ -330,6 +335,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			q.errorc <- errors.Errorf("[%v] The server returned an unknown OID.", o.Oid)
 
 			q.Skip(o.Size)
+			q.sendNotifications(o.Oid, false)
 			q.wait.Done()
 		} else {
 			tr := newTransfer(o, t.Name, t.Path)
@@ -348,6 +354,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 					}
 
 					q.Skip(o.Size)
+					q.sendNotifications(tr.Oid, false)
 					q.wait.Done()
 				}
 
@@ -390,6 +397,7 @@ func (q *TransferQueue) addToAdapter(e lfsapi.Endpoint, pending []*Transfer) <-c
 		q.errorc <- err
 		for _, t := range pending {
 			q.Skip(t.Size)
+			q.sendNotifications(t.Oid, false)
 			q.wait.Done()
 		}
 
@@ -459,14 +467,13 @@ func (q *TransferQueue) handleTransferResult(
 			// the retry channel, and the error will be reported
 			// immediately.
 			q.errorc <- res.Error
+			q.sendNotifications(oid, false)
 			q.wait.Done()
 		}
 	} else {
 		// Otherwise, if the transfer was successful, notify all of the
 		// watchers, and mark it as finished.
-		for _, c := range q.watchers {
-			c <- oid
-		}
+		q.sendNotifications(oid, true)
 
 		q.meter.FinishTransfer(res.Transfer.Name)
 		q.wait.Done()
@@ -567,6 +574,22 @@ func (q *TransferQueue) Watch() chan string {
 	c := make(chan string, q.batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
+}
+
+func (q *TransferQueue) Notify(cb NotifyFn) {
+	q.notify = append(q.notify, cb)
+}
+
+func (q *TransferQueue) sendNotifications(oid string, ok bool) {
+	if ok {
+		for _, c := range q.watchers {
+			c <- oid
+		}
+	}
+
+	for _, cb := range q.notify {
+		cb(oid, ok)
+	}
 }
 
 // This goroutine collects errors returned from transfers
