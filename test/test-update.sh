@@ -86,7 +86,12 @@ To resolve this, either:
 
 #!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\n\"; exit 2; }
-git lfs pre-push \"\$@\""
+git lfs pre-push \"\$@\"
+Add the following to .git/hooks/post-merge :
+
+#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-merge.\n\"; exit 2; }
+git lfs post-merge \"\$@\""
 
   [ "$expected" = "$(git lfs update --manual 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
