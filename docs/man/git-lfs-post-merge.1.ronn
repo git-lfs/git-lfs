@@ -1,0 +1,15 @@
+git-lfs-post-merge(1) -- Git post-merge hook implementation
+=======================================================
+
+## SYNOPSIS
+
+`git lfs post-merge`
+
+## DESCRIPTION
+
+For all files merged in the last successful merged with locks owned by the
+current committer, unlock those files.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.
