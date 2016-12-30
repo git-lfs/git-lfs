@@ -14,6 +14,10 @@ the following format:
 
 It also takes the remote name and URL as arguments.
 
+For all locked files contained within the refs given, warn if pushing a file
+locked by the current committer, or error if pushing a file locked by someone
+other than the current committer.
+
 ## SEE ALSO
 
 git-lfs-clean(1), git-lfs-push(1).
