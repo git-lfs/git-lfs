@@ -76,7 +76,7 @@ begin_test "install updates repo hooks"
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }
 git lfs pre-push \"\$@\""
 
-  [ "Updated pre-push hook.
+  [ "Updated hook(s).
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
@@ -84,7 +84,7 @@ Git LFS initialized." = "$(git lfs install)" ]
   # more-comprehensive hook update tests are in test-update.sh
   echo "#!/bin/sh
 git lfs push --stdin \$*" > .git/hooks/pre-push
-  [ "Updated pre-push hook.
+  [ "Updated hook(s).
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
@@ -112,7 +112,7 @@ To resolve this, either:
   set -e
 
   # force replace unexpected hook
-  [ "Updated pre-push hook.
+  [ "Updated hook(s).
 Git LFS initialized." = "$(git lfs install --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 

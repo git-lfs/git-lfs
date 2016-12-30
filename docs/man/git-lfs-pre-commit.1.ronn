@@ -1,0 +1,17 @@
+git-lfs-pre-commit(1) -- Git pre-commit hook implementation
+=======================================================
+
+## SYNOPSIS
+
+`git lfs pre-commit`
+
+## DESCRIPTION
+
+Responds to Git pre-commit events.
+
+For all locked files currently staged, contained within the refs given, error if
+staging a file locked by someone other than the current committer.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.

@@ -310,6 +310,26 @@ func UpdateIndex(file string) error {
 	return err
 }
 
+func StagedFiles() ([]string, error) {
+	cmd := subprocess.ExecCommand("git", "diff", "--cached", "--name-only", "--diff-filter=ACM")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git diff: %v", err)
+	}
+	cmd.Start()
+	defer cmd.Wait()
+
+	scanner := bufio.NewScanner(outp)
+
+	var ret []string
+	for scanner.Scan() {
+		ret = append(ret, strings.TrimSpace(scanner.Text()))
+	}
+
+	return ret, nil
+}
+
 type gitConfig struct {
 	gitVersion string
 	mu         sync.Mutex
