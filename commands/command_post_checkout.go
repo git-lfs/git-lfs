@@ -38,7 +38,7 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	if args[2] == "1" {
+	if args[2] == "1" && args[0] != "0000000000000000000000000000000000000000" {
 		postCheckoutRevChange(lockClient, args[0], args[1])
 	} else {
 		postCheckoutFileChange(lockClient)
