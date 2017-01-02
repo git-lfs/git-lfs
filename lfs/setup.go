@@ -16,10 +16,12 @@ var (
 	})
 	// postCheckoutHook invokes `git lfs post-checkout`
 	postCheckoutHook = NewStandardHook("post-checkout", []string{})
+	postCommitHook   = NewStandardHook("post-commit", []string{})
 
 	hooks = []*Hook{
 		prePushHook,
 		postCheckoutHook,
+		postCommitHook,
 	}
 
 	filters = &Attribute{

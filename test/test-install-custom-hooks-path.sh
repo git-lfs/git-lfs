@@ -27,5 +27,7 @@ begin_test "install with supported core.hooksPath"
   [ ! -e ".git/pre-push" ]
   [ -e "$hooks_dir/post-checkout" ]
   [ ! -e ".git/post-checkout" ]
+  [ -e "$hooks_dir/post-commit" ]
+  [ ! -e ".git/post-commit" ]
 )
 end_test
