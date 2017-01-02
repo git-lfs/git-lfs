@@ -201,7 +201,7 @@ func (c *Client) fixSingleFileWriteFlags(file string, lockable, unlockable *file
 		// checking every file in the system all the time, and only do it
 		// when a file has had its lockable attribute removed
 		err := tools.SetFileWriteFlag(file, true)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
