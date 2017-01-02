@@ -84,11 +84,16 @@ git lfs post-checkout \"\$@\""
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-commit.\\n\"; exit 2; }
 git lfs post-commit \"\$@\""
 
+  post_merge_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-merge.\\n\"; exit 2; }
+git lfs post-merge \"\$@\""
+
   [ "Updated git hooks.
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
+  [ "$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
 
   # replace old hook
   # more-comprehensive hook update tests are in test-update.sh
@@ -110,11 +115,13 @@ To resolve this, either:
   echo "test" > .git/hooks/pre-push
   echo "test" > .git/hooks/post-checkout
   echo "test" > .git/hooks/post-commit
+  echo "test" > .git/hooks/post-merge
   [ "test" = "$(cat .git/hooks/pre-push)" ]
   [ "$expected" = "$(git lfs install 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
   [ "test" = "$(cat .git/hooks/post-checkout)" ]
   [ "test" = "$(cat .git/hooks/post-commit)" ]
+  [ "test" = "$(cat .git/hooks/post-merge)" ]
 
   # Make sure returns non-zero
   set +e
@@ -131,6 +138,7 @@ Git LFS initialized." = "$(git lfs install --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
+  [ "$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
 
   has_test_dir || exit 0
 

@@ -29,5 +29,7 @@ begin_test "install with supported core.hooksPath"
   [ ! -e ".git/post-checkout" ]
   [ -e "$hooks_dir/post-commit" ]
   [ ! -e ".git/post-commit" ]
+  [ -e "$hooks_dir/post-merge" ]
+  [ ! -e ".git/post-merge" ]
 )
 end_test
