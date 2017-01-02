@@ -13,6 +13,9 @@ import (
 // no arguments.
 // This hook checks that files which are lockable and not locked are made read-only,
 // optimising that based on what was added / modified in the commit.
+// This is mainly to catch added files, since modified files should already be
+// locked. If we didn't do this, any added files would remain read/write on disk
+// even without a lock unless something else checked.
 func postCommitCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
