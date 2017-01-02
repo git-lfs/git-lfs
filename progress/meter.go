@@ -189,12 +189,6 @@ func (p *ProgressMeter) update() {
 		return
 	}
 
-	width := 80 // default to 80 chars wide if ts.GetSize() fails
-	size, err := ts.GetSize()
-	if err == nil {
-		width = size.Col()
-	}
-
 	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
 	// skipped counts only show when > 0
 
@@ -207,12 +201,7 @@ func (p *ProgressMeter) update() {
 		out += fmt.Sprintf(", %s skipped", formatBytes(p.skippedBytes))
 	}
 
-	padlen := width - len(out)
-	if 0 < padlen {
-		out += strings.Repeat(" ", padlen)
-	}
-
-	fmt.Fprintf(os.Stdout, out)
+	fmt.Fprintf(os.Stdout, pad(out))
 }
 
 func formatBytes(i int64) string {
@@ -228,4 +217,39 @@ func formatBytes(i int64) string {
 	}
 
 	return fmt.Sprintf("%d B", i)
+}
+
+const defaultWidth = 80
+
+// pad pads the given message to occupy the entire maximum width of the terminal
+// LFS is attached to. In doing so, this safeguards subsequent prints of shorter
+// messages from leaving stray characters from the previous message on the
+// screen by writing over them with whitespace padding.
+func pad(msg string) string {
+	width := defaultWidth
+	size, err := ts.GetSize()
+	if err == nil {
+		// If `ts.GetSize()` was successful, set the width to the number
+		// of columns present in the terminal LFS is attached to.
+		// Otherwise, fall-back to `defaultWidth`.
+		width = size.Col()
+	}
+
+	// Pad the string with whitespace so that printing at the start of the
+	// line removes all traces from the last print.removes all traces from
+	// the last print.
+	padding := strings.Repeat(" ", maxInt(0, width-len(msg)))
+
+	return msg + padding
+}
+
+// maxInt returns the greater of two `int`s, "a", or "b". This function
+// originally comes from `github.com/git-lfs/git-lfs/tools#MaxInt`, but would
+// introduce an import cycle if depended on directly.
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
 }

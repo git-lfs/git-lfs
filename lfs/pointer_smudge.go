@@ -8,16 +8,15 @@ import (
 
 	"github.com/cheggaaa/pb"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
 
-func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
+func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
@@ -37,7 +36,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest 
 	return nil
 }
 
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
+func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return err
@@ -72,38 +71,23 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	return nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *transfer.Manifest, cb progress.CopyCallback) error {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
 
-	xfers := manifest.GetDownloadAdapterNames()
-	obj, adapterName, err := api.BatchSingle(config.Config, &api.ObjectResource{Oid: ptr.Oid, Size: ptr.Size}, "download", xfers)
-	if err != nil {
-		return errors.Wrapf(err, "Error downloading %s: %s", filepath.Base(mediafile), err)
-	}
+	q := tq.NewTransferQueue(tq.Download, manifest)
+	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
+	q.Wait()
 
-	if ptr.Size == 0 {
-		ptr.Size = obj.Size
-	}
-
-	adapter := manifest.NewDownloadAdapter(adapterName)
-	var tcb transfer.TransferProgressCallback
-	if cb != nil {
-		tcb = func(name string, totalSize, readSoFar int64, readSinceLast int) error {
-			return cb(totalSize, readSoFar, readSinceLast)
+	if errs := q.Errors(); len(errs) > 0 {
+		var multiErr error
+		for _, e := range errs {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, e)
+			} else {
+				multiErr = e
+			}
+			return errors.Wrapf(multiErr, "Error downloading %s (%s)", workingfile, ptr.Oid)
 		}
-	}
-	// Single download
-	adapterResultChan := make(chan transfer.TransferResult, 1)
-	err = adapter.Begin(1, tcb, adapterResultChan)
-	if err != nil {
-		return err
-	}
-	adapter.Add(transfer.NewTransfer(filepath.Base(workingfile), obj, mediafile))
-	adapter.End()
-	res := <-adapterResultChan
-
-	if res.Error != nil {
-		return errors.Wrapf(err, "Error buffering media file: %s", res.Error)
 	}
 
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)

@@ -1,10 +1,9 @@
-package transfer
+package tq
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -74,17 +73,17 @@ func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers
 }
 
 type customAdapterTransferRequest struct { // common between upload/download
-	Event  string            `json:"event"`
-	Oid    string            `json:"oid"`
-	Size   int64             `json:"size"`
-	Path   string            `json:"path,omitempty"`
-	Action *api.LinkRelation `json:"action"`
+	Event  string  `json:"event"`
+	Oid    string  `json:"oid"`
+	Size   int64   `json:"size"`
+	Path   string  `json:"path,omitempty"`
+	Action *Action `json:"action"`
 }
 
-func NewCustomAdapterUploadRequest(oid string, size int64, path string, action *api.LinkRelation) *customAdapterTransferRequest {
+func NewCustomAdapterUploadRequest(oid string, size int64, path string, action *Action) *customAdapterTransferRequest {
 	return &customAdapterTransferRequest{"upload", oid, size, path, action}
 }
-func NewCustomAdapterDownloadRequest(oid string, size int64, action *api.LinkRelation) *customAdapterTransferRequest {
+func NewCustomAdapterDownloadRequest(oid string, size int64, action *Action) *customAdapterTransferRequest {
 	return &customAdapterTransferRequest{"download", oid, size, "", action}
 }
 
@@ -98,26 +97,24 @@ func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
 
 // A common struct that allows all types of response to be identified
 type customAdapterResponseMessage struct {
-	Event          string           `json:"event"`
-	Error          *api.ObjectError `json:"error"`
-	Oid            string           `json:"oid"`
-	Path           string           `json:"path,omitempty"` // always blank for upload
-	BytesSoFar     int64            `json:"bytesSoFar"`
-	BytesSinceLast int              `json:"bytesSinceLast"`
+	Event          string       `json:"event"`
+	Error          *ObjectError `json:"error"`
+	Oid            string       `json:"oid"`
+	Path           string       `json:"path,omitempty"` // always blank for upload
+	BytesSoFar     int64        `json:"bytesSoFar"`
+	BytesSinceLast int          `json:"bytesSinceLast"`
 }
 
-func (a *customAdapter) Begin(maxConcurrency int, cb TransferProgressCallback, completion chan TransferResult) error {
-	// If config says not to launch multiple processes, downgrade incoming value
-	useConcurrency := maxConcurrency
-	if !a.concurrent {
-		useConcurrency = 1
+func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
+	a.originalConcurrency = cfg.ConcurrentTransfers()
+	if a.concurrent {
+		// Use common workers impl, but downgrade workers to number of processes
+		return a.adapterBase.Begin(cfg, cb)
 	}
-	a.originalConcurrency = maxConcurrency
 
-	tracerx.Printf("xfer: Custom transfer adapter %q using concurrency %d", a.name, useConcurrency)
-
-	// Use common workers impl, but downgrade workers to number of processes
-	return a.adapterBase.Begin(useConcurrency, cb, completion)
+	// If config says not to launch multiple processes, downgrade incoming value
+	newCfg := &Manifest{concurrentTransfers: 1}
+	return a.adapterBase.Begin(newCfg, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {
@@ -257,7 +254,7 @@ func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 	}
 }
 
-func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProgressCallback, authOkFunc func()) error {
+func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	if ctx == nil {
 		return fmt.Errorf("Custom transfer %q was not properly initialized, see previous errors", a.name)
 	}
@@ -268,18 +265,18 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 	}
 	var authCalled bool
 
-	rel, ok := t.Object.Rel(a.getOperationName())
-	if !ok {
-		return errors.New("Object not found on the server.")
+	rel, err := t.Actions.Get(a.getOperationName())
+	if err != nil {
+		return err
+		// return errors.New("Object not found on the server.")
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
-		req = NewCustomAdapterUploadRequest(t.Object.Oid, t.Object.Size, t.Path, rel)
+		req = NewCustomAdapterUploadRequest(t.Oid, t.Size, t.Path, rel)
 	} else {
-		req = NewCustomAdapterDownloadRequest(t.Object.Oid, t.Object.Size, rel)
+		req = NewCustomAdapterDownloadRequest(t.Oid, t.Size, rel)
 	}
-	err := a.sendMessage(customCtx, req)
-	if err != nil {
+	if err = a.sendMessage(customCtx, req); err != nil {
 		return err
 	}
 
@@ -294,24 +291,24 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 		switch resp.Event {
 		case "progress":
 			// Progress
-			if resp.Oid != t.Object.Oid {
-				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
+			if resp.Oid != t.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
 			}
 			if cb != nil {
-				cb(t.Name, t.Object.Size, resp.BytesSoFar, resp.BytesSinceLast)
+				cb(t.Name, t.Size, resp.BytesSoFar, resp.BytesSinceLast)
 			}
 			wasAuthOk = resp.BytesSoFar > 0
 		case "complete":
 			// Download/Upload complete
-			if resp.Oid != t.Object.Oid {
-				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Object.Oid)
+			if resp.Oid != t.Oid {
+				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
 			}
 			if resp.Error != nil {
-				return fmt.Errorf("Error transferring %q: %v", t.Object.Oid, resp.Error)
+				return fmt.Errorf("Error transferring %q: %v", t.Oid, resp.Error)
 			}
 			if a.direction == Download {
 				// So we don't have to blindly trust external providers, check SHA
-				if err = tools.VerifyFileHash(t.Object.Oid, resp.Path); err != nil {
+				if err = tools.VerifyFileHash(t.Oid, resp.Path); err != nil {
 					return fmt.Errorf("Downloaded file failed checks: %v", err)
 				}
 				// Move file to final location
@@ -319,7 +316,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb TransferProg
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				if err = api.VerifyUpload(config.Config, t.Object); err != nil {
+				if err = api.VerifyUpload(config.Config, toApiObject(t)); err != nil {
 					return err
 				}
 			}
@@ -347,9 +344,9 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 }
 
 // Initialise custom adapters based on current config
-func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
+func configureCustomAdapters(git Env, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
-	for k, v := range cfg.Git.All() {
+	for k, v := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue
@@ -358,9 +355,9 @@ func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 		name := match[1]
 		path := v
 		// retrieve other values
-		args, _ := cfg.Git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-		concurrent := cfg.Git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-		direction, _ := cfg.Git.Get(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+		args, _ := git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
+		concurrent := git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
+		direction, _ := git.Get(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
 		if len(direction) == 0 {
 			direction = "both"
 		} else {
@@ -368,15 +365,15 @@ func configureCustomAdapters(cfg *config.Configuration, m *Manifest) {
 		}
 
 		// Separate closure for each since we need to capture vars above
-		newfunc := func(name string, dir Direction) TransferAdapter {
+		newfunc := func(name string, dir Direction) Adapter {
 			return newCustomAdapter(name, dir, path, args, concurrent)
 		}
 
 		if direction == "download" || direction == "both" {
-			m.RegisterNewTransferAdapterFunc(name, Download, newfunc)
+			m.RegisterNewAdapterFunc(name, Download, newfunc)
 		}
 		if direction == "upload" || direction == "both" {
-			m.RegisterNewTransferAdapterFunc(name, Upload, newfunc)
+			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
 }

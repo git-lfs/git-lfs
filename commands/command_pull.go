@@ -2,9 +2,15 @@ package commands
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -38,8 +44,99 @@ func pull(filter *filepathfilter.Filter) {
 		Panic(err, "Could not pull")
 	}
 
-	c := fetchRefToChan(ref.Sha, filter)
-	checkoutFromFetchChan(c, filter)
+	pointers := newPointerMap()
+	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	singleCheckout := newSingleCheckout()
+	q := newDownloadQueue(tq.WithProgress(meter))
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			LoggedError(err, "Scanner error")
+			return
+		}
+
+		if pointers.Seen(p) {
+			return
+		}
+
+		// no need to download objects that exist locally already
+		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
+		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+			singleCheckout.Run(p)
+			return
+		}
+
+		meter.Add(p.Size)
+		meter.StartTransfer(p.Name)
+		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
+		pointers.Add(p)
+		q.Add(downloadTransfer(p))
+	})
+
+	gitscanner.Filter = filter
+
+	dlwatch := q.Watch()
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		for oid := range dlwatch {
+			for _, p := range pointers.All(oid) {
+				singleCheckout.Run(p)
+			}
+		}
+		wg.Done()
+	}()
+
+	processQueue := time.Now()
+	if err := gitscanner.ScanTree(ref.Sha); err != nil {
+		ExitWithError(err)
+	}
+
+	meter.Start()
+	gitscanner.Close()
+	q.Wait()
+	wg.Wait()
+	tracerx.PerformanceSince("process queue", processQueue)
+
+	singleCheckout.Close()
+
+	for _, err := range q.Errors() {
+		FullError(err)
+	}
+}
+
+// tracks LFS objects being downloaded, according to their unique OIDs.
+type pointerMap struct {
+	pointers map[string][]*lfs.WrappedPointer
+	mu       sync.Mutex
+}
+
+func newPointerMap() *pointerMap {
+	return &pointerMap{pointers: make(map[string][]*lfs.WrappedPointer)}
+}
+
+func (m *pointerMap) Seen(p *lfs.WrappedPointer) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if existing, ok := m.pointers[p.Oid]; ok {
+		m.pointers[p.Oid] = append(existing, p)
+		return true
+	}
+	return false
+}
+
+func (m *pointerMap) Add(p *lfs.WrappedPointer) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pointers[p.Oid] = append(m.pointers[p.Oid], p)
+}
+
+func (m *pointerMap) All(oid string) []*lfs.WrappedPointer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	pointers := m.pointers[oid]
+	delete(m.pointers, oid)
+	return pointers
 }
 
 func init() {

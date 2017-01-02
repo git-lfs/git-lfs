@@ -18,7 +18,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Populate man pages
@@ -36,10 +36,98 @@ var (
 	excludeArg string
 )
 
-// TransferManifest builds a transfer.Manifest from the commands package global
+// TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.
-func TransferManifest() *transfer.Manifest {
-	return transfer.ConfigureManifest(transfer.NewManifest(), cfg)
+func TransferManifest() *tq.Manifest {
+	return lfs.TransferManifest(cfg)
+}
+
+// newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
+func newDownloadCheckQueue(options ...tq.Option) *tq.TransferQueue {
+	return lfs.NewDownloadCheckQueue(cfg, options...)
+}
+
+// newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
+func newDownloadQueue(options ...tq.Option) *tq.TransferQueue {
+	return lfs.NewDownloadQueue(cfg, options...)
+}
+
+// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func newUploadQueue(options ...tq.Option) *tq.TransferQueue {
+	return lfs.NewUploadQueue(cfg, options...)
+}
+
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+	return filepathfilter.New(inc, exc)
+}
+
+func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64) {
+	path, _ = lfs.LocalMediaPath(p.Oid)
+
+	return p.Name, path, p.Oid, p.Size
+}
+
+func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
+	localMediaPath, err := lfs.LocalMediaPath(oid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	if len(filename) > 0 {
+		if err = ensureFile(filename, localMediaPath); err != nil {
+			return nil, err
+		}
+	}
+
+	fi, err := os.Stat(localMediaPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	return &tq.Transfer{
+		Name: filename,
+		Path: localMediaPath,
+		Oid:  oid,
+		Size: fi.Size(),
+	}, nil
+}
+
+// ensureFile makes sure that the cleanPath exists before pushing it.  If it
+// does not exist, it attempts to clean it by reading the file at smudgePath.
+func ensureFile(smudgePath, cleanPath string) error {
+	if _, err := os.Stat(cleanPath); err == nil {
+		return nil
+	}
+
+	expectedOid := filepath.Base(cleanPath)
+	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
+	file, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
+	if cleaned != nil {
+		cleaned.Teardown()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if expectedOid != cleaned.Oid {
+		return fmt.Errorf("Trying to push %q with OID %s.\nNot found in %s.", smudgePath, expectedOid, filepath.Dir(cleanPath))
+	}
+
+	return nil
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -235,11 +323,6 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	for _, env := range lfs.Environ(cfg, TransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
-}
-
-func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
-	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
-	return filepathfilter.New(inc, exc)
 }
 
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {

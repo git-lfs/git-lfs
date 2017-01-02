@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -124,24 +125,12 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 
 	tempgitscanner.Filter = filter
 
-	if err := tempgitscanner.ScanTree(ref, nil); err != nil {
+	if err := tempgitscanner.ScanTree(ref); err != nil {
 		return nil, err
 	}
 
 	tempgitscanner.Close()
 	return pointers, multiErr
-}
-
-func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
-	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref, filter)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-
-	go fetchAndReportToChan(pointers, filter, c)
-
-	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
@@ -290,7 +279,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	}
 
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
-	q := lfs.NewDownloadQueue(lfs.WithProgress(meter))
+	q := newDownloadQueue(tq.WithProgress(meter))
 
 	if out != nil {
 		// If we already have it, or it won't be fetched
@@ -325,7 +314,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 
 	for _, p := range pointers {
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
-		q.Add(lfs.NewDownloadable(p))
+
+		q.Add(downloadTransfer(p))
 	}
 
 	processQueue := time.Now()
