@@ -195,7 +195,7 @@ ArgsLoop:
 	if err != nil {
 		LoggedError(err, "Error changing lockable file permissions")
 	} else {
-		err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns, true)
+		err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 		if err != nil {
 			LoggedError(err, "Error changing lockable file permissions")
 		}

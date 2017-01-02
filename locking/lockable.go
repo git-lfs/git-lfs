@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
@@ -67,7 +68,7 @@ func (c *Client) IsFileLockable(path string) bool {
 // This function can be used after a clone or checkout to ensure that file
 // state correctly reflects the locking state
 func (c *Client) FixAllLockableFileWriteFlags() error {
-	return c.fixFileWriteFlags(config.LocalWorkingDir, config.LocalWorkingDir, c.getLockableFilter(), nil, true)
+	return c.fixFileWriteFlags(config.LocalWorkingDir, config.LocalWorkingDir, c.getLockableFilter(), nil)
 }
 
 // FixFileWriteFlagsInDir scans dir (which can either be a relative dir
@@ -79,7 +80,7 @@ func (c *Client) FixAllLockableFileWriteFlags() error {
 // If unlockablePatterns is non-nil, then any file matching those patterns will
 // be made writeable if it is not already. This can be used to reset files to
 // writeable when their 'lockable' attribute is turned off.
-func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []string, recursive bool) error {
+func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockablePatterns []string) error {
 
 	// early-out if no patterns
 	if len(lockablePatterns) == 0 && len(unlockablePatterns) == 0 {
@@ -107,46 +108,46 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 		unlockableFilter = filepathfilter.New(unlockablePatterns, nil)
 	}
 
-	return c.fixFileWriteFlags(absPath, config.LocalWorkingDir, lockableFilter, unlockableFilter, recursive)
+	return c.fixFileWriteFlags(absPath, config.LocalWorkingDir, lockableFilter, unlockableFilter)
 }
 
 // Internal implementation of fixing file write flags with precompiled filters
-func (c *Client) fixFileWriteFlags(absPath, workingDir string, lockable, unlockable *filepathfilter.Filter, recursive bool) error {
+func (c *Client) fixFileWriteFlags(absPath, workingDir string, lockable, unlockable *filepathfilter.Filter) error {
 
-	// For simplicity, don't use goroutines to parallelise recursive scan
-	// This routine is almost certainly disk-limited anyway
-	// We don't need sorting so don't use ioutil.Readdir or filepath.Walk
-	d, err := os.Open(absPath)
-	if err != nil {
-		return err
-	}
-
-	contents, err := d.Readdir(-1)
-	if err != nil {
-		return err
-	}
 	var errs []error
-	for _, fi := range contents {
-		abschild := filepath.Join(absPath, fi.Name())
-		if fi.IsDir() {
-			if recursive {
-				err = c.fixFileWriteFlags(abschild, workingDir, lockable, unlockable, recursive)
-			}
-			continue
+	var errMux sync.Mutex
+
+	addErr := func(err error) {
+		errMux.Lock()
+		defer errMux.Unlock()
+
+		errs = append(errs, err)
+	}
+
+	tools.FastWalkGitRepo(absPath, func(parentDir string, fi os.FileInfo, err error) {
+		if err != nil {
+			addErr(err)
+			return
 		}
+		// Skip dirs, we only need to check files
+		if fi.IsDir() {
+			return
+		}
+		abschild := filepath.Join(parentDir, fi.Name())
 
 		// This is a file, get relative to repo root
 		relpath, err := filepath.Rel(workingDir, abschild)
 		if err != nil {
-			return err
+			addErr(err)
+			return
 		}
 
 		err = c.fixSingleFileWriteFlags(relpath, lockable, unlockable)
 		if err != nil {
-			errs = append(errs, err)
+			addErr(err)
 		}
 
-	}
+	})
 	return errors.Combine(errs)
 }
 
