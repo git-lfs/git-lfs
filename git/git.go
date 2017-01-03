@@ -575,8 +575,6 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 
 func isCygwin() bool {
 	cmd := subprocess.ExecCommand("uname")
-	buf := &bytes.Buffer{}
-	cmd.Stderr = buf
 	out, err := cmd.Output()
 	output := string(out)
 	if (err == nil) && (strings.Contains(output, "CYGWIN")) {
@@ -594,7 +592,7 @@ func translateCygwinPath(path string) (string, error) {
 	output := string(out)
 	output = strings.TrimSpace(output)
 	if err != nil {
-		return path, fmt.Errorf("Failed to translate path from cygwin to windows")
+		return path, fmt.Errorf("Failed to translate path from cygwin to windows: %s", buf.String())
 	}
 	return output, nil
 }
