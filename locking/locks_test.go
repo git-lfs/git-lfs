@@ -55,7 +55,7 @@ func TestRefreshCache(t *testing.T) {
 
 	client, err := NewClient("", lfsclient)
 	assert.Nil(t, err)
-	assert.Nil(t, client.SetupCache(tempDir))
+	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	// Should start with no cached items
 	locks, err := client.SearchLocks(nil, 0, true)
