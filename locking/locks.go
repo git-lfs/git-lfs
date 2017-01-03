@@ -68,31 +68,30 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
-
 	// TODO: this is not really the constraint we need to avoid merges, improve as per proposal
 	latest, err := git.CurrentRemoteRef()
 	if err != nil {
 		return Lock{}, err
 	}
 
-	s, resp := c.apiClient.Locks.Lock(&api.LockRequest{
+	lockReq := &lockRequest{
 		Path:               path,
-		Committer:          api.NewCommitter(c.cfg.CurrentCommitter()),
 		LatestRemoteCommit: latest.Sha,
-	})
-
-	if _, err := c.apiClient.Do(s); err != nil {
-		return Lock{}, fmt.Errorf("Error communicating with LFS API: %v", err)
+		Committer:          newCommitter(c.cfg.CurrentCommitter()),
 	}
 
-	if len(resp.Err) > 0 {
-		return Lock{}, fmt.Errorf("Server unable to create lock: %v", resp.Err)
+	lockRes, _, err := c.client.Lock(c.Remote, lockReq)
+	if err != nil {
+		return Lock{}, errors.Wrap(err, "api")
 	}
 
-	lock := c.newLockFromApi(*resp.Lock)
+	if len(lockRes.Err) > 0 {
+		return Lock{}, fmt.Errorf("Server unable to create lock: %v", lockRes.Err)
+	}
 
+	lock := *lockRes.Lock
 	if err := c.cache.Add(lock); err != nil {
-		return Lock{}, fmt.Errorf("Error caching lock information: %v", err)
+		return Lock{}, errors.Wrap(err, "lock cache")
 	}
 
 	return lock, nil
@@ -115,14 +114,13 @@ func (c *Client) UnlockFile(path string, force bool) error {
 // UnlockFileById attempts to unlock a lock with a given id on the current remote
 // Force causes the file to be unlocked from other users as well
 func (c *Client) UnlockFileById(id string, force bool) error {
-	s, resp := c.apiClient.Locks.Unlock(id, force)
-
-	if _, err := c.apiClient.Do(s); err != nil {
-		return fmt.Errorf("Error communicating with LFS API: %v", err)
+	unlockRes, _, err := c.client.Unlock(c.Remote, id, force)
+	if err != nil {
+		return errors.Wrap(err, "api")
 	}
 
-	if len(resp.Err) > 0 {
-		return fmt.Errorf("Server unable to unlock lock: %v", resp.Err)
+	if len(unlockRes.Err) > 0 {
+		return fmt.Errorf("Server unable to unlock: %s", unlockRes.Err)
 	}
 
 	if err := c.cache.RemoveById(id); err != nil {

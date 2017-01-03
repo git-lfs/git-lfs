@@ -859,6 +859,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			enc.Encode(ll)
 		}
 	case "POST":
+		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
 			var unlockRequest UnlockRequest
 			if err := dec.Decode(&unlockRequest); err != nil {
