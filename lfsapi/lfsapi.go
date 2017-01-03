@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -30,8 +31,18 @@ type Client struct {
 	NoProxy             string
 	SkipSSLVerify       bool
 
+	Verbose          bool
+	DebuggingVerbose bool
+	LoggingStats     bool
+	VerboseOut       io.Writer
+
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
+
+	transferBuckets  map[string][]*http.Response
+	transferBucketMu sync.Mutex
+	transfers        map[*http.Response]*httpTransfer
+	transferMu       sync.Mutex
 
 	// only used for per-host ssl certs
 	gitEnv env
@@ -65,6 +76,9 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
 		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 0),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
+		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
+		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
+		LoggingStats:        osEnv.Bool("GIT_LOG_STATS", false),
 		HTTPSProxy:          httpsProxy,
 		HTTPProxy:           httpProxy,
 		NoProxy:             noProxy,

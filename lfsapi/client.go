@@ -2,10 +2,10 @@ package lfsapi
 
 import (
 	"crypto/tls"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -13,7 +13,11 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var UserAgent = "git-lfs"
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", UserAgent)
+
 	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
 	if err != nil {
 		return res, err
@@ -23,14 +27,19 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
-	if seeker, ok := req.Body.(io.Seeker); ok {
-		seeker.Seek(0, io.SeekStart)
+	c.traceRequest(req)
+	if err := c.prepareRequestBody(req); err != nil {
+		return nil, err
 	}
 
+	start := time.Now()
 	res, err := cli.Do(req)
 	if err != nil {
 		return res, err
 	}
+
+	c.traceResponse(res)
+	c.startResponseStats(res, start)
 
 	if res.StatusCode != 307 {
 		return res, err
@@ -121,6 +130,9 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	c.hostClients[host] = httpClient
+	if c.VerboseOut == nil {
+		c.VerboseOut = os.Stderr
+	}
 
 	return httpClient
 }
