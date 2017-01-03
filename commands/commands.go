@@ -38,6 +38,12 @@ var (
 	excludeArg string
 )
 
+// TransferManifest builds a tq.Manifest from the commands package global
+// cfg var.
+func TransferManifest() *tq.Manifest {
+	return lfs.TransferManifest(cfg)
+}
+
 func newAPIClient() *lfsapi.Client {
 	c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
 	if err != nil {
@@ -59,25 +65,22 @@ func newLockClient(remote string) *locking.Client {
 	return lockClient
 }
 
-// TransferManifest builds a tq.Manifest from the commands package global
-// cfg var.
-func TransferManifest() *tq.Manifest {
-	return lfs.TransferManifest(cfg)
-}
-
 // newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
-func newDownloadCheckQueue(options ...tq.Option) *tq.TransferQueue {
-	return lfs.NewDownloadCheckQueue(cfg, options...)
+func newDownloadCheckQueue(manifest *tq.Manifest, options ...tq.Option) *tq.TransferQueue {
+	allOptions := make([]tq.Option, len(options), len(options)+1)
+	allOptions = append(allOptions, options...)
+	allOptions = append(allOptions, tq.DryRun(true))
+	return newDownloadQueue(manifest, allOptions...)
 }
 
 // newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func newDownloadQueue(options ...tq.Option) *tq.TransferQueue {
-	return lfs.NewDownloadQueue(cfg, options...)
+func newDownloadQueue(manifest *tq.Manifest, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Download, manifest, options...)
 }
 
 // newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func newUploadQueue(options ...tq.Option) *tq.TransferQueue {
-	return lfs.NewUploadQueue(cfg, options...)
+func newUploadQueue(manifest *tq.Manifest, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, manifest, options...)
 }
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {

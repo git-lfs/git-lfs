@@ -13,6 +13,7 @@ var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which m
 
 type uploadContext struct {
 	DryRun       bool
+	manifest     *tq.Manifest
 	uploadedOids tools.StringSet
 }
 
@@ -20,6 +21,7 @@ func newUploadContext(dryRun bool) *uploadContext {
 	return &uploadContext{
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
+		manifest:     TransferManifest(),
 	}
 }
 
@@ -75,7 +77,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*tq.Tra
 
 	// build the TransferQueue, automatically skipping any missing objects that
 	// the server already has.
-	uploadQueue := newUploadQueue(tq.WithProgress(meter), tq.DryRun(c.DryRun))
+	uploadQueue := newUploadQueue(c.manifest, tq.WithProgress(meter), tq.DryRun(c.DryRun))
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
 			// if the server already has this object, call Skip() on
@@ -99,7 +101,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		return
 	}
 
-	checkQueue := newDownloadCheckQueue()
+	checkQueue := newDownloadCheckQueue(c.manifest)
 	transferCh := checkQueue.Watch()
 
 	done := make(chan int)
