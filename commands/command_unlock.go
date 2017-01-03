@@ -17,7 +17,7 @@ type unlockFlags struct {
 }
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-	lockClient := LockClient(lockRemote)
+	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
 	if len(args) != 0 {

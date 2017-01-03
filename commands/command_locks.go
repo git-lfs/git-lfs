@@ -12,7 +12,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		Exit("Error building filters: %v", err)
 	}
 
-	lockClient := LockClient(lockRemote)
+	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
 	var lockCount int

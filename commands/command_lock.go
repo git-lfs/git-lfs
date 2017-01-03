@@ -26,7 +26,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	lockClient := LockClient(lockRemote)
+	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
 	lock, err := lockClient.LockFile(path)

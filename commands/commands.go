@@ -38,7 +38,7 @@ var (
 	excludeArg string
 )
 
-func APIClient() *lfsapi.Client {
+func newAPIClient() *lfsapi.Client {
 	c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
 	if err != nil {
 		ExitWithError(err)
@@ -46,8 +46,8 @@ func APIClient() *lfsapi.Client {
 	return c
 }
 
-func LockClient(remote string) *locking.Client {
-	lockClient, err := locking.NewClient(remote, APIClient())
+func newLockClient(remote string) *locking.Client {
+	lockClient, err := locking.NewClient(remote, newAPIClient())
 	if err == nil {
 		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
 	}
