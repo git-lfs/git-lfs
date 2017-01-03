@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
@@ -136,16 +135,6 @@ type Lock struct {
 	Email string
 	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time
-}
-
-func (c *Client) newLockFromApi(a api.Lock) Lock {
-	return Lock{
-		Id:       a.Id,
-		Path:     a.Path,
-		Name:     a.Committer.Name,
-		Email:    a.Committer.Email,
-		LockedAt: a.LockedAt,
-	}
 }
 
 // SearchLocks returns a channel of locks which match the given name/value filter
