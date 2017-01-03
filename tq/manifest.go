@@ -3,6 +3,7 @@ package tq
 import (
 	"sync"
 
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -32,7 +33,18 @@ func (m *Manifest) ConcurrentTransfers() int {
 }
 
 func NewManifest() *Manifest {
-	return NewManifestWithGitEnv("", nil)
+	cli, err := lfsapi.NewClient(nil, nil)
+	if err != nil {
+		tracerx.Printf("unable to init tq.Manifest: %s", err)
+		return nil
+	}
+
+	return NewManifestWithClient(cli, "", "")
+}
+
+func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *Manifest {
+	e := apiClient.Endpoints.Endpoint(operation, remote)
+	return NewManifestWithGitEnv(string(apiClient.Endpoints.AccessFor(e.Url)), apiClient.GitEnv())
 }
 
 func NewManifestWithGitEnv(access string, git Env) *Manifest {

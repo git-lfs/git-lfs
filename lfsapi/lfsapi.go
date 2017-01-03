@@ -90,6 +90,14 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	return c, nil
 }
 
+func (c *Client) GitEnv() env {
+	return c.gitEnv
+}
+
+func (c *Client) OSEnv() env {
+	return c.osEnv
+}
+
 func IsDecodeTypeError(err error) bool {
 	_, ok := err.(*decodeTypeError)
 	return ok
