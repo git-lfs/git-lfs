@@ -35,7 +35,7 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 		ef = defaultEndpointFinder
 	}
 
-	creds, credsURL, access, err := getCreds(credHelper, netrcFinder, ef, remote, req)
+	apiEndpoint, access, creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, remote, req)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +44,8 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := getAuthAccess(res)
-			if credsURL != nil && newAccess != access {
-				c.Endpoints.SetAccess(credsURL.String(), newAccess)
+			if newAccess != access {
+				c.Endpoints.SetAccess(apiEndpoint.Url, newAccess)
 			}
 
 			if access == NoneAccess || creds != nil {
@@ -84,32 +84,45 @@ func (c *Client) doWithCreds(req *http.Request, creds Creds, credsURL *url.URL, 
 	return c.Do(req)
 }
 
-func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Creds, *url.URL, Access, error) {
-	if skipCreds(ef, req) {
-		return nil, nil, emptyAccess, nil
-	}
-
+// getCreds fills the authorization header for the given request if possible,
+// from the following sources:
+//
+// 1. NTLM access is handled elsewhere.
+// 2. Existing Authorization or ?token query tells LFS that the request is ready.
+// 3. Netrc based on the hostname.
+// 4. URL authentication on the Endpoint URL or the Git Remote URL.
+// 5. Git Credential Helper, potentially prompting the user.
+//
+// There are three URLs in play, that make this a little confusing.
+//
+// 1. The request URL, which should be something like "https://git.com/repo.git/info/lfs/objects/batch"
+// 2. The LFS API URL, which should be something like "https://git.com/repo.git/info/lfs"
+//    This URL used for the "lfs.URL.access" git config key, which determines
+//    what kind of auth the LFS server expects. Could be BasicAccess, NTLMAccess,
+//    or NoneAccess, in which the Git Credential Helper step is skipped. We do
+//    not want to prompt the user for a password to fetch public repository data.
+// 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
+//    This URL is used for the Git Credential Helper. This way existing https
+//    Git remote credentials can be re-used for LFS.
+func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointFinder, remote string, req *http.Request) (Endpoint, Access, Creds, *url.URL, error) {
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 	access := ef.AccessFor(apiEndpoint.Url)
-	credsUrl, err := getCredURLForAPI(ef, operation, remote, access, apiEndpoint, req)
+	if access == NTLMAccess || requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access == NoneAccess {
+		return apiEndpoint, access, nil, nil, nil
+	}
+
+	credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 	if err != nil {
-		return nil, nil, access, errors.Wrap(err, "creds")
+		return apiEndpoint, access, nil, nil, errors.Wrap(err, "creds")
 	}
 
-	if credsUrl == nil {
-		return nil, nil, access, nil
+	if credsURL == nil {
+		return apiEndpoint, access, nil, nil, nil
 	}
 
-	if setAuthFromNetrc(netrcFinder, req) {
-		return nil, credsUrl, access, nil
-	}
-	if ef.AccessFor(credsUrl.String()) == NoneAccess {
-		return nil, credsUrl, access, nil
-	}
-
-	creds, err := fillCredentials(credHelper, ef, req, credsUrl)
-	return creds, credsUrl, access, err
+	creds, err := fillCredentials(credHelper, ef, req, credsURL)
+	return apiEndpoint, access, creds, credsURL, err
 }
 
 func fillCredentials(credHelper CredentialHelper, ef EndpointFinder, req *http.Request, u *url.URL) (Creds, error) {
@@ -163,51 +176,46 @@ func setAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) bool {
 	return false
 }
 
-func getCredURLForAPI(ef EndpointFinder, operation, remote string, access Access, e Endpoint, req *http.Request) (*url.URL, error) {
-	apiUrl, err := url.Parse(e.Url)
+func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint Endpoint, req *http.Request) (*url.URL, error) {
+	apiURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	// if the LFS request doesn't match the current LFS url, don't bother
 	// attempting to set the Authorization header from the LFS or Git remote URLs.
-	if req.URL.Scheme != apiUrl.Scheme ||
-		req.URL.Host != apiUrl.Host {
+	if req.URL.Scheme != apiURL.Scheme ||
+		req.URL.Host != apiURL.Host {
 		return req.URL, nil
 	}
 
-	if setRequestAuthFromUrl(req, access, apiUrl) {
+	if setRequestAuthFromURL(req, apiURL) {
 		return nil, nil
 	}
 
-	credsUrl := apiUrl
 	if len(remote) > 0 {
 		if u := ef.GitRemoteURL(remote, operation == "upload"); u != "" {
-			gitRemoteUrl, err := url.Parse(u)
+			gitRemoteURL, err := url.Parse(u)
 			if err != nil {
 				return nil, err
 			}
 
-			if gitRemoteUrl.Scheme == apiUrl.Scheme &&
-				gitRemoteUrl.Host == apiUrl.Host {
+			if gitRemoteURL.Scheme == apiURL.Scheme &&
+				gitRemoteURL.Host == apiURL.Host {
 
-				if setRequestAuthFromUrl(req, access, gitRemoteUrl) {
+				if setRequestAuthFromURL(req, gitRemoteURL) {
 					return nil, nil
 				}
 
-				credsUrl = gitRemoteUrl
+				return gitRemoteURL, nil
 			}
 		}
 	}
 
-	return credsUrl, nil
+	return apiURL, nil
 }
 
-func skipCreds(ef EndpointFinder, req *http.Request) bool {
-	if ef.AccessFor(req.URL.String()) == NTLMAccess {
-		return false
-	}
-
+func requestHasAuth(req *http.Request) bool {
 	if len(req.Header.Get("Authorization")) > 0 {
 		return true
 	}
@@ -215,8 +223,8 @@ func skipCreds(ef EndpointFinder, req *http.Request) bool {
 	return len(req.URL.Query().Get("token")) > 0
 }
 
-func setRequestAuthFromUrl(req *http.Request, access Access, u *url.URL) bool {
-	if access == NTLMAccess || u.User == nil {
+func setRequestAuthFromURL(req *http.Request, u *url.URL) bool {
+	if u.User == nil {
 		return false
 	}
 
