@@ -21,12 +21,11 @@ type unlockFlags struct {
 }
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-
 	if len(lockRemote) > 0 {
 		cfg.CurrentRemote = lockRemote
 	}
 
-	lockClient, err := locking.NewClient(lockRemote, APIClient(), cfg)
+	lockClient, err := locking.NewClient(lockRemote, APIClient())
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
 	}

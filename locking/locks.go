@@ -27,14 +27,13 @@ var (
 type Client struct {
 	Remote string
 	client *lockClient
-	cfg    *config.Configuration
 	cache  *LockCache
 }
 
 // NewClient creates a new locking client with the given configuration
 // You must call the returned object's `Close` method when you are finished with
 // it
-func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
+func NewClient(remote string, lfsClient *lfsapi.Client) (*Client, error) {
 	lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
 	err := os.MkdirAll(lockDir, 0755)
 	if err != nil {
@@ -49,7 +48,6 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 	return &Client{
 		Remote: remote,
 		client: &lockClient{Client: lfsClient},
-		cfg:    cfg,
 		cache:  cache,
 	}, nil
 }
@@ -72,7 +70,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 	lockReq := &lockRequest{
 		Path:               path,
 		LatestRemoteCommit: latest.Sha,
-		Committer:          newCommitter(c.cfg.CurrentCommitter()),
+		Committer:          newCommitter(c.client.CurrentUser()),
 	}
 
 	lockRes, _, err := c.client.Lock(c.Remote, lockReq)
@@ -96,7 +94,6 @@ func (c *Client) LockFile(path string) (Lock, error) {
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
 func (c *Client) UnlockFile(path string, force bool) error {
-
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
 		return fmt.Errorf("Unable to get lock id: %v", err)
@@ -262,7 +259,7 @@ func (c *Client) refreshLockCache() error {
 	// We're going to overwrite the entire local cache
 	c.cache.Clear()
 
-	_, email := c.cfg.CurrentCommitter()
+	_, email := c.client.CurrentUser()
 	for _, l := range locks {
 		if l.Email == email {
 			c.cache.Add(l)

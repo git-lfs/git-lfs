@@ -17,7 +17,6 @@ var (
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-
 	if len(args) == 0 {
 		Print("Usage: git lfs lock <path>")
 		return
@@ -32,7 +31,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		cfg.CurrentRemote = lockRemote
 	}
 
-	lockClient, err := locking.NewClient(lockRemote, APIClient(), cfg)
+	lockClient, err := locking.NewClient(lockRemote, APIClient())
 	if err != nil {
 		Exit("Unable to create lock system: %v", err.Error())
 	}

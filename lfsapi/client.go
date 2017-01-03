@@ -161,6 +161,12 @@ func (c *Client) httpClient(host string) *http.Client {
 	return httpClient
 }
 
+func (c *Client) CurrentUser() (string, string) {
+	userName, _ := c.gitEnv.Get("user.name")
+	userEmail, _ := c.gitEnv.Get("user.email")
+	return userName, userEmail
+}
+
 func newRequestForRetry(req *http.Request, location string) (*http.Request, error) {
 	newReq, err := http.NewRequest(req.Method, location, nil)
 	if err != nil {

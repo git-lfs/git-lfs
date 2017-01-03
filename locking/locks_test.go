@@ -51,8 +51,6 @@ func TestRefreshCache(t *testing.T) {
 		config.LocalGitStorageDir = oldStore
 	}()
 
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{"user.name": "Fred", "user.email": "fred@bloggs.com"}})
 	lfsclient, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
@@ -60,7 +58,7 @@ func TestRefreshCache(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient, cfg)
+	client, err := NewClient("", lfsclient)
 	assert.Nil(t, err)
 
 	// Should start with no cached items
