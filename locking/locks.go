@@ -25,20 +25,16 @@ var (
 
 // Client is the main interface object for the locking package
 type Client struct {
-	Remote    string
-	client    *lockClient
-	cfg       *config.Configuration
-	apiClient *api.Client
-	cache     *LockCache
+	Remote string
+	client *lockClient
+	cfg    *config.Configuration
+	cache  *LockCache
 }
 
 // NewClient creates a new locking client with the given configuration
 // You must call the returned object's `Close` method when you are finished with
 // it
 func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
-
-	apiClient := api.NewClient(api.NewHttpLifecycle(cfg))
-
 	lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
 	err := os.MkdirAll(lockDir, 0755)
 	if err != nil {
@@ -51,11 +47,10 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 	}
 
 	return &Client{
-		Remote:    remote,
-		client:    &lockClient{Client: lfsClient},
-		cfg:       cfg,
-		apiClient: apiClient,
-		cache:     cache,
+		Remote: remote,
+		client: &lockClient{Client: lfsClient},
+		cfg:    cfg,
+		cache:  cache,
 	}, nil
 }
 
