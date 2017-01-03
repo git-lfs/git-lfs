@@ -38,16 +38,16 @@ var (
 	excludeArg string
 )
 
-// TransferManifest builds a tq.Manifest from the commands package global
-// cfg var.
-func TransferManifest() *tq.Manifest {
-	return buildTransferManifest("download", cfg.CurrentRemote)
-}
-
 // buildTransferManifest builds a tq.Manifest from the global os and git
 // environments.
 func buildTransferManifest(operation, remote string) *tq.Manifest {
 	return tq.NewManifestWithClient(newAPIClient(), operation, remote)
+}
+
+// defaultTransferManifest builds a tq.Manifest from the commands package global
+// cfg var.
+func defaultTransferManifest() *tq.Manifest {
+	return buildTransferManifest("download", cfg.CurrentRemote)
 }
 
 func newAPIClient() *lfsapi.Client {
@@ -352,7 +352,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, TransferManifest()) {
+	for _, env := range lfs.Environ(cfg, defaultTransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
 }

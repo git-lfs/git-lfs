@@ -40,7 +40,8 @@ func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool, filter *
 		download = filter.Allows(filename)
 	}
 
-	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
+	manifest := buildTransferManifest("download", cfg.CurrentRemote)
+	err = ptr.Smudge(to, filename, download, manifest, cb)
 	if file != nil {
 		file.Close()
 	}

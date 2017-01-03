@@ -21,7 +21,7 @@ func newUploadContext(dryRun bool) *uploadContext {
 	return &uploadContext{
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
-		manifest:     TransferManifest(),
+		manifest:     buildTransferManifest("upload", cfg.CurrentRemote),
 	}
 }
 
