@@ -17,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
@@ -43,6 +44,19 @@ func APIClient() *lfsapi.Client {
 		ExitWithError(err)
 	}
 	return c
+}
+
+func LockClient(remote string) *locking.Client {
+	lockClient, err := locking.NewClient(remote, APIClient())
+	if err == nil {
+		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
+	}
+
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+
+	return lockClient
 }
 
 // TransferManifest builds a tq.Manifest from the commands package global

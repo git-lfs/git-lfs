@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -27,15 +26,9 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	if len(lockRemote) > 0 {
-		cfg.CurrentRemote = lockRemote
-	}
-
-	lockClient, err := locking.NewClient(lockRemote, APIClient())
-	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
-	}
+	lockClient := LockClient(lockRemote)
 	defer lockClient.Close()
+
 	lock, err := lockClient.LockFile(path)
 	if err != nil {
 		Exit("Lock failed: %v", err)

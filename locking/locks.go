@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
@@ -22,33 +21,51 @@ var (
 	ErrLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
 )
 
+type LockCacher interface {
+	Add(l Lock) error
+	RemoveByPath(filePath string) error
+	RemoveById(id string) error
+	Locks() []Lock
+	Clear()
+	Save() error
+}
+
 // Client is the main interface object for the locking package
 type Client struct {
 	Remote string
 	client *lockClient
-	cache  *LockCache
+	cache  LockCacher
 }
 
 // NewClient creates a new locking client with the given configuration
 // You must call the returned object's `Close` method when you are finished with
 // it
 func NewClient(remote string, lfsClient *lfsapi.Client) (*Client, error) {
-	lockDir := filepath.Join(config.LocalGitStorageDir, "lfs")
-	err := os.MkdirAll(lockDir, 0755)
-	if err != nil {
-		return nil, err
-	}
-	lockFile := filepath.Join(lockDir, "lockcache.db")
-	cache, err := NewLockCache(lockFile)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Client{
 		Remote: remote,
 		client: &lockClient{Client: lfsClient},
-		cache:  cache,
+		cache:  &nilLockCacher{},
 	}, nil
+}
+
+func (c *Client) SetupFileCache(path string) error {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return errors.Wrap(err, "init lock cache")
+	}
+
+	lockFile := path
+	if stat.IsDir() {
+		lockFile = filepath.Join(path, "lockcache.db")
+	}
+
+	cache, err := NewLockCache(lockFile)
+	if err != nil {
+		return errors.Wrap(err, "init lock cache")
+	}
+
+	c.cache = cache
+	return nil
 }
 
 // Close this client instance; must be called to dispose of resources
@@ -260,4 +277,23 @@ func (c *Client) refreshLockCache() error {
 
 func init() {
 	kv.RegisterTypeForStorage(&Lock{})
+}
+
+type nilLockCacher struct{}
+
+func (c *nilLockCacher) Add(l Lock) error {
+	return nil
+}
+func (c *nilLockCacher) RemoveByPath(filePath string) error {
+	return nil
+}
+func (c *nilLockCacher) RemoveById(id string) error {
+	return nil
+}
+func (c *nilLockCacher) Locks() []Lock {
+	return nil
+}
+func (c *nilLockCacher) Clear() {}
+func (c *nilLockCacher) Save() error {
+	return nil
 }

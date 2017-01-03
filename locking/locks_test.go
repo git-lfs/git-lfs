@@ -5,12 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"sort"
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,8 +22,7 @@ func (a LocksById) Less(i, j int) bool { return a[i].Id < a[j].Id }
 
 func TestRefreshCache(t *testing.T) {
 	var err error
-	oldStore := config.LocalGitStorageDir
-	config.LocalGitStorageDir, err = ioutil.TempDir("", "testCacheLock")
+	tempDir, err := ioutil.TempDir("", "testCacheLock")
 	assert.Nil(t, err)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -47,8 +44,6 @@ func TestRefreshCache(t *testing.T) {
 
 	defer func() {
 		srv.Close()
-		os.RemoveAll(config.LocalGitStorageDir)
-		config.LocalGitStorageDir = oldStore
 	}()
 
 	lfsclient, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
@@ -60,6 +55,7 @@ func TestRefreshCache(t *testing.T) {
 
 	client, err := NewClient("", lfsclient)
 	assert.Nil(t, err)
+	assert.Nil(t, client.SetupCache(tempDir))
 
 	// Should start with no cached items
 	locks, err := client.SearchLocks(nil, 0, true)
