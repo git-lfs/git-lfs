@@ -41,7 +41,13 @@ var (
 // TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.
 func TransferManifest() *tq.Manifest {
-	return lfs.TransferManifest(cfg)
+	return buildTransferManifest("download", cfg.CurrentRemote)
+}
+
+// buildTransferManifest builds a tq.Manifest from the global os and git
+// environments.
+func buildTransferManifest(operation, remote string) *tq.Manifest {
+	return tq.NewManifestWithClient(newAPIClient(), operation, remote)
 }
 
 func newAPIClient() *lfsapi.Client {
