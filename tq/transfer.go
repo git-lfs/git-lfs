@@ -160,11 +160,13 @@ type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLas
 type AdapterConfig interface {
 	APIClient() *lfsapi.Client
 	ConcurrentTransfers() int
+	Remote() string
 }
 
 type adapterConfig struct {
 	apiClient           *lfsapi.Client
 	concurrentTransfers int
+	remote              string
 }
 
 func (c *adapterConfig) ConcurrentTransfers() int {
@@ -173,6 +175,10 @@ func (c *adapterConfig) ConcurrentTransfers() int {
 
 func (c *adapterConfig) APIClient() *lfsapi.Client {
 	return c.apiClient
+}
+
+func (c *adapterConfig) Remote() string {
+	return c.remote
 }
 
 // Adapter is implemented by types which can upload and/or download LFS

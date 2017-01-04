@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -14,6 +15,8 @@ type adapterBase struct {
 	name         string
 	direction    Direction
 	transferImpl transferImplementation
+	apiClient    *lfsapi.Client
+	remote       string
 	jobChan      chan *job
 	cb           ProgressCallback
 	// WaitGroup to sync the completion of all workers
@@ -61,6 +64,8 @@ func (a *adapterBase) Direction() Direction {
 }
 
 func (a *adapterBase) Begin(cfg AdapterConfig, cb ProgressCallback) error {
+	a.apiClient = cfg.APIClient()
+	a.remote = cfg.Remote()
 	a.cb = cb
 	a.jobChan = make(chan *job, 100)
 	maxConcurrency := cfg.ConcurrentTransfers()
@@ -123,7 +128,6 @@ func (a *adapterBase) End() {
 
 // worker function, many of these run per adapter
 func (a *adapterBase) worker(workerNum int, ctx interface{}) {
-
 	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
 	waitForAuth := workerNum > 0
 	signalAuthOnResponse := workerNum == 0

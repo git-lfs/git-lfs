@@ -557,6 +557,7 @@ func (q *TransferQueue) toAdapterCfg(e lfsapi.Endpoint) AdapterConfig {
 	return &adapterConfig{
 		concurrentTransfers: concurrency,
 		apiClient:           apiClient,
+		remote:              q.remote,
 	}
 }
 
