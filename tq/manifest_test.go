@@ -1,10 +1,9 @@
-package lfs
+package tq
 
 import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/tq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +14,7 @@ func TestManifestIsConfigurable(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := tq.NewManifestWithClient(cli)
+	m := NewManifestWithClient(cli)
 	assert.Equal(t, 3, m.MaxRetries())
 }
 
@@ -27,7 +26,7 @@ func TestManifestChecksNTLM(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := tq.NewManifestWithClient(cli)
+	m := NewManifestWithClient(cli)
 	assert.Equal(t, 1, m.MaxRetries())
 }
 
@@ -37,7 +36,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := tq.NewManifestWithClient(cli)
+	m := NewManifestWithClient(cli)
 	assert.Equal(t, 1, m.MaxRetries())
 }
 
@@ -47,6 +46,6 @@ func TestManifestIgnoresNonInts(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := tq.NewManifestWithClient(cli)
+	m := NewManifestWithClient(cli)
 	assert.Equal(t, 1, m.MaxRetries())
 }
