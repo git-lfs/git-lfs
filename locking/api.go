@@ -62,14 +62,14 @@ func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *
 	}
 
 	lockRes := &lockResponse{}
-	err = lfsapi.DecodeJSON(res, lockRes)
-	return lockRes, res, err
+	return lockRes, res, lfsapi.DecodeJSON(res, lockRes)
 }
 
 // UnlockRequest encapsulates the data sent in an API request to remove a lock.
 type unlockRequest struct {
 	// Id is the Id of the lock that the user wishes to unlock.
 	Id string `json:"id"`
+
 	// Force determines whether or not the lock should be "forcibly"
 	// unlocked; that is to say whether or not a given individual should be
 	// able to break a different individual's lock.

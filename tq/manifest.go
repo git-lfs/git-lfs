@@ -21,7 +21,12 @@ type Manifest struct {
 	tusTransfersAllowed  bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
+	apiClient            *lfsapi.Client
 	mu                   sync.Mutex
+}
+
+func (m *Manifest) APIClient() *lfsapi.Client {
+	return m.apiClient
 }
 
 func (m *Manifest) MaxRetries() int {
@@ -44,6 +49,7 @@ func NewManifest() *Manifest {
 
 func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *Manifest {
 	m := &Manifest{
+		apiClient:            apiClient,
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
