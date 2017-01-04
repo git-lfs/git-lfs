@@ -3,14 +3,13 @@ package tq
 import (
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/httputil"
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 )
 
@@ -50,9 +49,13 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		// return fmt.Errorf("No upload action for this object.")
 	}
 
-	req, err := httputil.NewHttpRequest("PUT", rel.Href, rel.Header)
+	req, err := http.NewRequest("PUT", rel.Href, nil)
 	if err != nil {
 		return err
+	}
+
+	for key, value := range rel.Header {
+		req.Header.Set(key, value)
 	}
 
 	if len(req.Header.Get("Content-Type")) == 0 {
@@ -97,11 +100,17 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 	req.Body = ioutil.NopCloser(reader)
 
-	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
+	var res *http.Response
+	if t.Authenticated {
+		res, err = a.apiClient.Do(req)
+	} else {
+		res, err = a.apiClient.DoWithAuth(a.remote, req)
+	}
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
-	httputil.LogTransfer(config.Config, "lfs.data.upload", res)
+
+	a.apiClient.LogResponse("lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
@@ -111,14 +120,17 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
+		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
+			req.Method,
+			strings.SplitN(req.URL.String(), "?", 2)[0],
+			res.StatusCode,
+		)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	cli := &lfsapi.Client{}
-	return verifyUpload(cli, t)
+	return verifyUpload(a.apiClient, t)
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the
