@@ -19,6 +19,7 @@ type Manifest struct {
 	concurrentTransfers  int
 	basicTransfersOnly   bool
 	tusTransfersAllowed  bool
+	remote               string
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
 	apiClient            *lfsapi.Client
@@ -50,6 +51,7 @@ func NewManifest() *Manifest {
 func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *Manifest {
 	m := &Manifest{
 		apiClient:            apiClient,
+		remote:               remote,
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}

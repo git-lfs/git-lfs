@@ -100,4 +100,3 @@ begin_test "batch transfers occur in reverse order by size"
   [ "$pos_large" -lt "$pos_small" ]
 )
 end_test
-

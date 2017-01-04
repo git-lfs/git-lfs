@@ -2,9 +2,12 @@ package tq
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/rubyist/tracerx"
 )
 
 type tqClient struct {
@@ -35,12 +38,23 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *ht
 	e := c.Endpoints.Endpoint(bReq.Operation, remote)
 	req, err := c.NewRequest("POST", e, "objects/batch", bReq)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "batch request")
 	}
+
+	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
-		return nil, nil, err
+		tracerx.Printf("api error: %s", err)
+		return nil, nil, errors.Wrap(err, "batch response")
+	}
+	c.LogResponse("lfs.batch", res)
+
+	if res.StatusCode != 200 {
+		return nil, res, errors.Errorf("Invalid status for %s %s: %d",
+			req.Method,
+			strings.SplitN(req.URL.String(), "?", 2)[0],
+			res.StatusCode)
 	}
 
 	return bRes, res, lfsapi.DecodeJSON(res, bRes)
