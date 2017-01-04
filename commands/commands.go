@@ -40,14 +40,8 @@ var (
 
 // buildTransferManifest builds a tq.Manifest from the global os and git
 // environments.
-func buildTransferManifest(operation, remote string) *tq.Manifest {
-	return tq.NewManifestWithClient(newAPIClient(), operation, remote)
-}
-
-// defaultTransferManifest builds a tq.Manifest from the commands package global
-// cfg var.
-func defaultTransferManifest() *tq.Manifest {
-	return buildTransferManifest("download", cfg.CurrentRemote)
+func buildTransferManifest() *tq.Manifest {
+	return tq.NewManifestWithClient(newAPIClient())
 }
 
 func newAPIClient() *lfsapi.Client {
@@ -72,21 +66,21 @@ func newLockClient(remote string) *locking.Client {
 }
 
 // newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
-func newDownloadCheckQueue(manifest *tq.Manifest, options ...tq.Option) *tq.TransferQueue {
+func newDownloadCheckQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
 	allOptions := make([]tq.Option, len(options), len(options)+1)
 	allOptions = append(allOptions, options...)
 	allOptions = append(allOptions, tq.DryRun(true))
-	return newDownloadQueue(manifest, allOptions...)
+	return newDownloadQueue(manifest, remote, allOptions...)
 }
 
 // newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func newDownloadQueue(manifest *tq.Manifest, options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Download, manifest, options...)
+func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Download, manifest, remote, options...)
 }
 
 // newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func newUploadQueue(manifest *tq.Manifest, options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Upload, manifest, options...)
+func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
 }
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
@@ -352,7 +346,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, defaultTransferManifest()) {
+	for _, env := range lfs.Environ(cfg, buildTransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
 }

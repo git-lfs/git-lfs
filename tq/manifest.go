@@ -45,13 +45,12 @@ func NewManifest() *Manifest {
 		return nil
 	}
 
-	return NewManifestWithClient(cli, "", "")
+	return NewManifestWithClient(cli)
 }
 
-func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *Manifest {
+func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 	m := &Manifest{
 		apiClient:            apiClient,
-		remote:               remote,
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
@@ -73,10 +72,7 @@ func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *
 		m.maxRetries = defaultMaxRetries
 	}
 
-	e := apiClient.Endpoints.Endpoint(operation, remote)
-	if apiClient.Endpoints.AccessFor(e.Url) == lfsapi.NTLMAccess {
-		m.concurrentTransfers = 1
-	} else if m.concurrentTransfers < 1 {
+	if m.concurrentTransfers < 1 {
 		m.concurrentTransfers = defaultConcurrentTransfers
 	}
 

@@ -21,6 +21,7 @@ type batchRequest struct {
 }
 
 type batchResponse struct {
+	Endpoint            lfsapi.Endpoint
 	TransferAdapterName string                `json:"transfer"`
 	Objects             []*api.ObjectResource `json:"objects"`
 }
@@ -35,8 +36,8 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *ht
 		bReq.TransferAdapterNames = nil
 	}
 
-	e := c.Endpoints.Endpoint(bReq.Operation, remote)
-	req, err := c.NewRequest("POST", e, "objects/batch", bReq)
+	bRes.Endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
+	req, err := c.NewRequest("POST", bRes.Endpoint, "objects/batch", bReq)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "batch request")
 	}

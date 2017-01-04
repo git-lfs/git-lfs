@@ -35,7 +35,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	for _, env := range lfs.Environ(cfg, defaultTransferManifest()) {
+	for _, env := range lfs.Environ(cfg, buildTransferManifest()) {
 		Print(env)
 	}
 

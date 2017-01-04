@@ -22,7 +22,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	cfg.CurrentRemote = remote
 	return &uploadContext{
 		Remote:       remote,
-		Manifest:     buildTransferManifest("upload", remote),
+		Manifest:     buildTransferManifest(),
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
 	}
@@ -80,7 +80,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*tq.Tra
 
 	// build the TransferQueue, automatically skipping any missing objects that
 	// the server already has.
-	uploadQueue := newUploadQueue(c.Manifest, tq.WithProgress(meter), tq.DryRun(c.DryRun))
+	uploadQueue := newUploadQueue(c.Manifest, c.Remote, tq.WithProgress(meter), tq.DryRun(c.DryRun))
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
 			// if the server already has this object, call Skip() on
@@ -104,7 +104,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		return
 	}
 
-	checkQueue := newDownloadCheckQueue(c.Manifest)
+	checkQueue := newDownloadCheckQueue(c.Manifest, c.Remote)
 	transferCh := checkQueue.Watch()
 
 	done := make(chan int)

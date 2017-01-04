@@ -120,8 +120,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	var verifywait sync.WaitGroup
 
 	if verifyRemote {
-		manifest := buildTransferManifest("download", fetchPruneConfig.PruneRemoteName)
-		verifyQueue = newDownloadCheckQueue(manifest)
+		verifyQueue = newDownloadCheckQueue(buildTransferManifest(), fetchPruneConfig.PruneRemoteName)
 		verifiedObjects = tools.NewStringSetWithCapacity(len(localObjects) / 2)
 
 		// this channel is filled with oids for which Check() succeeded & Transfer() was called

@@ -15,7 +15,7 @@ import (
 
 // Handles the process of checking out a single file, and updating the git
 // index.
-func newSingleCheckout(remote string) *singleCheckout {
+func newSingleCheckout() *singleCheckout {
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
 	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
@@ -26,7 +26,7 @@ func newSingleCheckout(remote string) *singleCheckout {
 	return &singleCheckout{
 		gitIndexer:    &gitIndexer{},
 		pathConverter: pathConverter,
-		manifest:      buildTransferManifest("download", remote),
+		manifest:      buildTransferManifest(),
 	}
 }
 

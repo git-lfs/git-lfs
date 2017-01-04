@@ -123,7 +123,7 @@ func testAdapterRegButBasicOnly(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli, "", "")
+	m := NewManifestWithClient(cli)
 
 	assert := assert.New(t)
 
