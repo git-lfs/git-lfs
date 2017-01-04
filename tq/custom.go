@@ -111,8 +111,7 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	}
 
 	// If config says not to launch multiple processes, downgrade incoming value
-	newCfg := &adapterConfig{concurrentTransfers: 1, apiClient: cfg.APIClient()}
-	return a.adapterBase.Begin(newCfg, cb)
+	return a.adapterBase.Begin(&customAdapterConfig{AdapterConfig: cfg}, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {
@@ -375,4 +374,12 @@ func configureCustomAdapters(git Env, m *Manifest) {
 			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
+}
+
+type customAdapterConfig struct {
+	AdapterConfig
+}
+
+func (c *customAdapterConfig) ConcurrentTransfers() int {
+	return 1
 }

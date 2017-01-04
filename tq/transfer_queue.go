@@ -538,7 +538,7 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	err := q.adapter.Begin(toAdapterCfg(q.manifest, e), cb)
+	err := q.adapter.Begin(q.toAdapterCfg(e), cb)
 	if err != nil {
 		return err
 	}
@@ -547,13 +547,17 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	return nil
 }
 
-func toAdapterCfg(m *Manifest, e lfsapi.Endpoint) AdapterConfig {
-	apiClient := m.APIClient()
-	concurrency := m.ConcurrentTransfers()
+func (q *TransferQueue) toAdapterCfg(e lfsapi.Endpoint) AdapterConfig {
+	apiClient := q.manifest.APIClient()
+	concurrency := q.manifest.ConcurrentTransfers()
 	if apiClient.Endpoints.AccessFor(e.Url) == lfsapi.NTLMAccess {
 		concurrency = 1
 	}
-	return &adapterConfig{concurrentTransfers: concurrency, apiClient: apiClient}
+
+	return &adapterConfig{
+		concurrentTransfers: concurrency,
+		apiClient:           apiClient,
+	}
 }
 
 // Wait waits for the queue to finish processing all transfers. Once Wait is
