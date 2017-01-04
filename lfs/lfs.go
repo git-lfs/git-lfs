@@ -109,7 +109,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	}
 
 	for _, e := range osEnviron {
-		if !strings.Contains(e, "GIT_") {
+		if !strings.Contains(strings.SplitN(e, "=", 2)[0], "GIT_") {
 			continue
 		}
 		env = append(env, e)
