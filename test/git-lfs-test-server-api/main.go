@@ -49,7 +49,6 @@ func main() {
 }
 
 func testServerApi(cmd *cobra.Command, args []string) {
-
 	if (len(apiUrl) == 0 && len(cloneUrl) == 0) ||
 		(len(apiUrl) != 0 && len(cloneUrl) != 0) {
 		exit("Must supply either --url or --clone (and not both)")
@@ -138,6 +137,12 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 }
 
 func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
+	cfg := config.Config
+	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
@@ -161,7 +166,8 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(config.Config, tq.WithProgress(meter))
+	manifest := tq.NewManifestWithClient(apiClient, "upload", cfg.CurrentRemote)
+	uploadQueue := tq.NewTransferQueue(tq.Upload, manifest, tq.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 

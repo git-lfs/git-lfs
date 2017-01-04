@@ -3,6 +3,7 @@ package tq
 import (
 	"sync"
 
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -32,17 +33,23 @@ func (m *Manifest) ConcurrentTransfers() int {
 }
 
 func NewManifest() *Manifest {
-	return NewManifestWithGitEnv("", nil)
+	cli, err := lfsapi.NewClient(nil, nil)
+	if err != nil {
+		tracerx.Printf("unable to init tq.Manifest: %s", err)
+		return nil
+	}
+
+	return NewManifestWithClient(cli, "", "")
 }
 
-func NewManifestWithGitEnv(access string, git Env) *Manifest {
+func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *Manifest {
 	m := &Manifest{
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
 
 	var tusAllowed bool
-	if git != nil {
+	if git := apiClient.GitEnv(); git != nil {
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
 		}
@@ -58,7 +65,8 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 		m.maxRetries = defaultMaxRetries
 	}
 
-	if access == "ntlm" {
+	e := apiClient.Endpoints.Endpoint(operation, remote)
+	if apiClient.Endpoints.AccessFor(e.Url) == lfsapi.NTLMAccess {
 		m.concurrentTransfers = 1
 	} else if m.concurrentTransfers < 1 {
 		m.concurrentTransfers = defaultConcurrentTransfers

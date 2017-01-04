@@ -52,11 +52,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	cfg.CurrentRemote = args[0]
-	ctx := newUploadContext(prePushDryRun)
+	ctx := newUploadContext(args[0], prePushDryRun)
 
 	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+	if err := gitscanner.RemoteForPush(ctx.Remote); err != nil {
 		ExitWithError(err)
 	}
 
