@@ -111,7 +111,7 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	}
 
 	// If config says not to launch multiple processes, downgrade incoming value
-	newCfg := &Manifest{concurrentTransfers: 1}
+	newCfg := &adapterConfig{concurrentTransfers: 1, apiClient: cfg.APIClient()}
 	return a.adapterBase.Begin(newCfg, cb)
 }
 
