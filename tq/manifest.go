@@ -43,18 +43,13 @@ func NewManifest() *Manifest {
 }
 
 func NewManifestWithClient(apiClient *lfsapi.Client, operation, remote string) *Manifest {
-	e := apiClient.Endpoints.Endpoint(operation, remote)
-	return NewManifestWithGitEnv(string(apiClient.Endpoints.AccessFor(e.Url)), apiClient.GitEnv())
-}
-
-func NewManifestWithGitEnv(access string, git Env) *Manifest {
 	m := &Manifest{
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
 
 	var tusAllowed bool
-	if git != nil {
+	if git := apiClient.GitEnv(); git != nil {
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
 		}
@@ -70,7 +65,8 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 		m.maxRetries = defaultMaxRetries
 	}
 
-	if access == "ntlm" {
+	e := apiClient.Endpoints.Endpoint(operation, remote)
+	if apiClient.Endpoints.AccessFor(e.Url) == lfsapi.NTLMAccess {
 		m.concurrentTransfers = 1
 	} else if m.concurrentTransfers < 1 {
 		m.concurrentTransfers = defaultConcurrentTransfers
