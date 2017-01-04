@@ -17,7 +17,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	var totalBytes int64
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	singleCheckout := newSingleCheckout()
+	singleCheckout := newSingleCheckout("")
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error")

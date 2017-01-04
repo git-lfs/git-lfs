@@ -20,10 +20,10 @@ var (
 )
 
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
-	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
+	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
 
 	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+	if err := gitscanner.RemoteForPush(ctx.Remote); err != nil {
 		ExitWithError(err)
 	}
 	defer gitscanner.Close()
@@ -128,8 +128,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	cfg.CurrentRemote = args[0]
-	ctx := newUploadContext(pushDryRun)
+	ctx := newUploadContext(args[0], pushDryRun)
 
 	if pushObjectIDs {
 		if len(args) < 2 {
