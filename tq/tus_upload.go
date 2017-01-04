@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -49,23 +48,14 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// 1. Send HEAD request to determine upload start point
 	//    Request must include Tus-Resumable header (version)
 	tracerx.Printf("xfer: sending tus.io HEAD request for %q", t.Oid)
-	req, err := http.NewRequest("HEAD", rel.Href, nil)
+	req, err := a.newHTTPRequest("HEAD", rel)
 	if err != nil {
 		return err
 	}
 
-	for key, value := range rel.Header {
-		req.Header.Set(key, value)
-	}
-
 	req.Header.Set("Tus-Resumable", TusVersion)
 
-	var res *http.Response
-	if t.Authenticated {
-		res, err = a.apiClient.Do(req)
-	} else {
-		res, err = a.apiClient.DoWithAuth(a.remote, req)
-	}
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
@@ -112,13 +102,9 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	//    Response may include Upload-Expires header in which case check not passed
 
 	tracerx.Printf("xfer: sending tus.io PATCH request for %q", t.Oid)
-	req, err = http.NewRequest("PATCH", rel.Href, nil)
+	req, err = a.newHTTPRequest("PATCH", rel)
 	if err != nil {
 		return err
-	}
-
-	for key, value := range rel.Header {
-		req.Header.Set(key, value)
 	}
 
 	req.Header.Set("Tus-Resumable", TusVersion)
@@ -151,11 +137,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	req.Body = ioutil.NopCloser(reader)
 
-	if t.Authenticated {
-		res, err = a.apiClient.Do(req)
-	} else {
-		res, err = a.apiClient.DoWithAuth(a.remote, req)
-	}
+	res, err = a.doHTTP(t, req)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}

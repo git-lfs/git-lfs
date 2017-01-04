@@ -3,7 +3,6 @@ package tq
 import (
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -49,13 +48,9 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		// return fmt.Errorf("No upload action for this object.")
 	}
 
-	req, err := http.NewRequest("PUT", rel.Href, nil)
+	req, err := a.newHTTPRequest("PUT", rel)
 	if err != nil {
 		return err
-	}
-
-	for key, value := range rel.Header {
-		req.Header.Set(key, value)
 	}
 
 	if len(req.Header.Get("Content-Type")) == 0 {
@@ -100,12 +95,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 	req.Body = ioutil.NopCloser(reader)
 
-	var res *http.Response
-	if t.Authenticated {
-		res, err = a.apiClient.Do(req)
-	} else {
-		res, err = a.apiClient.DoWithAuth(a.remote, req)
-	}
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}

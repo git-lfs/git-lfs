@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -95,13 +94,9 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		// return errors.New("Object not found on the server.")
 	}
 
-	req, err := http.NewRequest("GET", rel.Href, nil)
+	req, err := a.newHTTPRequest("GET", rel)
 	if err != nil {
 		return err
-	}
-
-	for key, value := range rel.Header {
-		req.Header.Set(key, value)
 	}
 
 	if fromByte > 0 {
@@ -112,13 +107,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
 	}
 
-	var res *http.Response
-	if t.Authenticated {
-		res, err = a.apiClient.Do(req)
-	} else {
-		res, err = a.apiClient.DoWithAuth(a.remote, req)
-	}
-
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
