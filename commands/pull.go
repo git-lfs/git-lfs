@@ -26,7 +26,7 @@ func newSingleCheckout() *singleCheckout {
 	return &singleCheckout{
 		gitIndexer:    &gitIndexer{},
 		pathConverter: pathConverter,
-		manifest:      buildTransferManifest(),
+		manifest:      getTransferManifest(),
 	}
 }
 

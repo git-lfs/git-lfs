@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
@@ -34,26 +35,45 @@ var (
 	ManPages     = make(map[string]string, 20)
 	cfg          = config.Config
 
+	tqManifest *tq.Manifest
+	apiClient  *lfsapi.Client
+	global     sync.Mutex
+
 	includeArg string
 	excludeArg string
 )
 
-// buildTransferManifest builds a tq.Manifest from the global os and git
+// getTransferManifest builds a tq.Manifest from the global os and git
 // environments.
-func buildTransferManifest() *tq.Manifest {
-	return tq.NewManifestWithClient(newAPIClient())
+func getTransferManifest() *tq.Manifest {
+	c := getAPIClient()
+
+	global.Lock()
+	defer global.Unlock()
+
+	if tqManifest == nil {
+		tqManifest = tq.NewManifestWithClient(c)
+	}
+
+	return tqManifest
 }
 
-func newAPIClient() *lfsapi.Client {
-	c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
-	if err != nil {
-		ExitWithError(err)
+func getAPIClient() *lfsapi.Client {
+	global.Lock()
+	defer global.Unlock()
+
+	if apiClient == nil {
+		c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+		if err != nil {
+			ExitWithError(err)
+		}
+		apiClient = c
 	}
-	return c
+	return apiClient
 }
 
 func newLockClient(remote string) *locking.Client {
-	lockClient, err := locking.NewClient(remote, newAPIClient())
+	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
 		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
 	}
@@ -346,7 +366,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, buildTransferManifest()) {
+	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
 }

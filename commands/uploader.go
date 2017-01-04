@@ -22,7 +22,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	cfg.CurrentRemote = remote
 	return &uploadContext{
 		Remote:       remote,
-		Manifest:     buildTransferManifest(),
+		Manifest:     getTransferManifest(),
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
 	}
