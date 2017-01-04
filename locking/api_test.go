@@ -19,6 +19,8 @@ func TestAPILock(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
 
 		lockReq := &lockRequest{}
 		err := json.NewDecoder(r.Body).Decode(lockReq)
@@ -58,6 +60,8 @@ func TestAPIUnlock(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
 
 		unlockReq := &unlockRequest{}
 		err := json.NewDecoder(r.Body).Decode(unlockReq)
@@ -98,6 +102,9 @@ func TestAPISearch(t *testing.T) {
 		}
 
 		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, "", r.Header.Get("Content-Type"))
+
 		q := r.URL.Query()
 		assert.Equal(t, "A", q.Get("a"))
 		assert.Equal(t, "cursor", q.Get("cursor"))
