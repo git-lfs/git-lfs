@@ -50,6 +50,10 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *ht
 	}
 	c.LogResponse("lfs.batch", res)
 
+	if err := lfsapi.DecodeJSON(res, bRes); err != nil {
+		return bRes, res, errors.Wrap(err, "batch response")
+	}
+
 	if res.StatusCode != 200 {
 		return nil, res, errors.Errorf("Invalid status for %s %s: %d",
 			req.Method,
@@ -57,5 +61,5 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *ht
 			res.StatusCode)
 	}
 
-	return bRes, res, lfsapi.DecodeJSON(res, bRes)
+	return bRes, res, nil
 }
