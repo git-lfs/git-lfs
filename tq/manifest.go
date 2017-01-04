@@ -19,7 +19,6 @@ type Manifest struct {
 	concurrentTransfers  int
 	basicTransfersOnly   bool
 	tusTransfersAllowed  bool
-	remote               string
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
 	apiClient            *lfsapi.Client
