@@ -15,6 +15,10 @@ reference.  If no reference is given, scan the currently checked-out branch.
 * `-l` `--long`:
   Show the entire 64 character OID, instead of just first 10.
 
+* -d --debug:
+  Show as much information as possible about a LFS file. This is intended
+  for manual inspection; the exact format may change at any time.
+
 ## SEE ALSO
 
 git-lfs-status(1).

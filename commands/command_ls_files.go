@@ -10,6 +10,7 @@ import (
 
 var (
 	longOIDs = false
+	debug    = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
@@ -38,7 +39,24 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+		if debug {
+			Print(
+				"filepath: %s\n"+
+					"    size: %d\n"+
+					"checkout: %v\n"+
+					"download: %v\n"+
+					"     oid: %s %s\n"+
+					" version: %s\n",
+				p.Name,
+				p.Size,
+				fileExistsOfSize(p),
+				lfs.ObjectExistsOfSize(p.Oid, p.Size),
+				p.OidType,
+				p.Oid,
+				p.Version)
+		} else {
+			Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+		}
 	})
 	defer gitscanner.Close()
 
@@ -63,5 +81,6 @@ func lsFilesMarker(p *lfs.WrappedPointer) string {
 func init() {
 	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
+		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 	})
 }
