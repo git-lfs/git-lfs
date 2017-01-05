@@ -280,6 +280,48 @@ func TestGetCreds(t *testing.T) {
 				},
 			},
 		},
+		"ntlm": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://git-server.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com/repo/lfs",
+				"lfs.https://git-server.com/repo/lfs.access": "ntlm",
+			},
+			Expected: getCredsExpected{
+				Access:   NTLMAccess,
+				Endpoint: "https://git-server.com/repo/lfs",
+				CredsURL: "https://git-server.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "git-server.com",
+					"username": "git-server.com",
+					"password": "monkey",
+					"path":     "repo/lfs",
+				},
+			},
+		},
+		"ntlm with netrc": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://netrc-host.com/repo/lfs",
+				"lfs.https://netrc-host.com/repo/lfs.access": "ntlm",
+			},
+			Expected: getCredsExpected{
+				Access:   NTLMAccess,
+				Endpoint: "https://netrc-host.com/repo/lfs",
+				CredsURL: "https://netrc-host.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "netrc-host.com",
+					"username": "abc",
+					"password": "def",
+					"source":   "netrc",
+				},
+			},
+		},
 		"custom auth": getCredsTest{
 			Remote: "origin",
 			Method: "GET",
