@@ -13,7 +13,10 @@ import (
 
 func NewTestConfig() *config.Configuration {
 	c := config.NewFrom(config.Values{})
-	c.SetManualEndpoint(config.Endpoint{Url: "https://example.com"})
+	c.SetManualEndpoint(config.Endpoint{
+		Url: "https://example.com/owner/repo.git/info/lfs",
+	})
+
 	return c
 }
 func TestHttpLifecycleMakesRequestsAgainstAbsolutePath(t *testing.T) {
@@ -27,7 +30,8 @@ func TestHttpLifecycleMakesRequestsAgainstAbsolutePath(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, "https://example.com/foo", req.URL.String())
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Accept"))
+	assert.Equal(t, "https://example.com/owner/repo.git/info/lfs/foo", req.URL.String())
 }
 
 func TestHttpLifecycleAttachesQueryParameters(t *testing.T) {
@@ -44,7 +48,8 @@ func TestHttpLifecycleAttachesQueryParameters(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, "https://example.com/foo?a=b", req.URL.String())
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Accept"))
+	assert.Equal(t, "https://example.com/owner/repo.git/info/lfs/foo?a=b", req.URL.String())
 }
 
 func TestHttpLifecycleAttachesBodyWhenPresent(t *testing.T) {
@@ -63,6 +68,8 @@ func TestHttpLifecycleAttachesBodyWhenPresent(t *testing.T) {
 
 	body, err := ioutil.ReadAll(req.Body)
 	assert.Nil(t, err)
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Accept"))
+	assert.Equal(t, "application/vnd.git-lfs+json", req.Header.Get("Content-Type"))
 	assert.Equal(t, "{\"foo\":\"bar\"}", string(body))
 }
 

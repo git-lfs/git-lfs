@@ -73,7 +73,7 @@ func (s *LockService) Search(req *LockSearchRequest) (*RequestSchema, *LockList)
 	return &RequestSchema{
 		Method:    "GET",
 		Path:      "/locks",
-		Operation: UploadOperation,
+		Operation: DownloadOperation,
 		Query:     query,
 		Into:      &resp,
 	}, &resp
