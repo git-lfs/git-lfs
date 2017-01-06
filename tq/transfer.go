@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 )
@@ -33,8 +32,12 @@ type ObjectError struct {
 	Message string `json:"message"`
 }
 
+func (e *ObjectError) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
+}
+
 // newTransfer creates a new Transfer instance
-func newTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
+func newTransfer(name string, obj *objectResource, path string) *Transfer {
 	t := &Transfer{
 		Name:          name,
 		Oid:           obj.Oid,
@@ -60,7 +63,6 @@ func newTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
 	}
 
 	return t
-
 }
 
 type Action struct {
@@ -121,32 +123,6 @@ func IsActionMissingError(err error) bool {
 		return true
 	}
 	return false
-}
-
-func toApiObject(t *Transfer) *api.ObjectResource {
-	o := &api.ObjectResource{
-		Oid:           t.Oid,
-		Size:          t.Size,
-		Authenticated: t.Authenticated,
-		Actions:       make(map[string]*api.LinkRelation),
-	}
-
-	for rel, a := range t.Actions {
-		o.Actions[rel] = &api.LinkRelation{
-			Href:      a.Href,
-			Header:    a.Header,
-			ExpiresAt: a.ExpiresAt,
-		}
-	}
-
-	if t.Error != nil {
-		o.Error = &api.ObjectError{
-			Code:    t.Error.Code,
-			Message: t.Error.Message,
-		}
-	}
-
-	return o
 }
 
 // NewAdapterFunc creates new instances of Adapter. Code that wishes

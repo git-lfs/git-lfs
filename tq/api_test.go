@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,8 +45,8 @@ func TestAPIBatch(t *testing.T) {
 	tqc := &tqClient{Client: c}
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic", "whatev"},
-		Objects: []*api.ObjectResource{
-			&api.ObjectResource{Oid: "a", Size: 1},
+		Objects: []*objectResource{
+			&objectResource{Oid: "a", Size: 1},
 		},
 	}
 	bRes, res, err := tqc.Batch("remote", bReq)
@@ -92,8 +91,8 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 	tqc := &tqClient{Client: c}
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic"},
-		Objects: []*api.ObjectResource{
-			&api.ObjectResource{Oid: "a", Size: 1},
+		Objects: []*objectResource{
+			&objectResource{Oid: "a", Size: 1},
 		},
 	}
 	bRes, res, err := tqc.Batch("remote", bReq)

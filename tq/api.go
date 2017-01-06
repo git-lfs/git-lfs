@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
@@ -14,16 +13,33 @@ type tqClient struct {
 	*lfsapi.Client
 }
 
+type objectResource struct {
+	Oid           string             `json:"oid,omitempty"`
+	Size          int64              `json:"size"`
+	Authenticated bool               `json:"authenticated,omitempty"`
+	Actions       map[string]*Action `json:"actions,omitempty"`
+	Error         *ObjectError       `json:"error,omitempty"`
+}
+
+func (o *objectResource) Rel(name string) (*Action, bool) {
+	if o.Actions == nil {
+		return nil, false
+	}
+
+	rel, ok := o.Actions[name]
+	return rel, ok
+}
+
 type batchRequest struct {
-	Operation            string                `json:"operation"`
-	Objects              []*api.ObjectResource `json:"objects"`
-	TransferAdapterNames []string              `json:"transfers,omitempty"`
+	Operation            string            `json:"operation"`
+	Objects              []*objectResource `json:"objects"`
+	TransferAdapterNames []string          `json:"transfers,omitempty"`
 }
 
 type batchResponse struct {
 	Endpoint            lfsapi.Endpoint
-	TransferAdapterName string                `json:"transfer"`
-	Objects             []*api.ObjectResource `json:"objects"`
+	TransferAdapterName string            `json:"transfer"`
+	Objects             []*objectResource `json:"objects"`
 }
 
 func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *http.Response, error) {

@@ -4,7 +4,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
@@ -72,17 +71,13 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // all other workers are sitting idle.
 type batch []*objectTuple
 
-func (b batch) ApiObjects() []*api.ObjectResource {
-	transfers := make([]*api.ObjectResource, 0, len(b))
+func (b batch) ApiObjects() []*objectResource {
+	transfers := make([]*objectResource, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, tupleToApiObject(t))
+		transfers = append(transfers, &objectResource{Oid: t.Oid, Size: t.Size})
 	}
 
 	return transfers
-}
-
-func tupleToApiObject(t *objectTuple) *api.ObjectResource {
-	return &api.ObjectResource{Oid: t.Oid, Size: t.Size}
 }
 
 func (b batch) Len() int           { return len(b) }
