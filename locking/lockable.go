@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
@@ -43,7 +42,7 @@ func (c *Client) refreshLockablePatterns() {
 	// Always make non-nil even if empty
 	c.lockablePatterns = make([]string, 0, 10)
 
-	paths := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	paths := git.GetAttributePaths(c.LocalWorkingDir, c.LocalGitDir)
 	for _, p := range paths {
 		if p.Lockable {
 			c.lockablePatterns = append(c.lockablePatterns, p.Path)
@@ -68,7 +67,7 @@ func (c *Client) IsFileLockable(path string) bool {
 // This function can be used after a clone or checkout to ensure that file
 // state correctly reflects the locking state
 func (c *Client) FixAllLockableFileWriteFlags() error {
-	return c.fixFileWriteFlags(config.LocalWorkingDir, config.LocalWorkingDir, c.getLockableFilter(), nil)
+	return c.fixFileWriteFlags(c.LocalWorkingDir, c.LocalWorkingDir, c.getLockableFilter(), nil)
 }
 
 // FixFileWriteFlagsInDir scans dir (which can either be a relative dir
@@ -89,7 +88,7 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 
 	absPath := dir
 	if !filepath.IsAbs(dir) {
-		absPath = filepath.Join(config.LocalWorkingDir, dir)
+		absPath = filepath.Join(c.LocalWorkingDir, dir)
 	}
 	stat, err := os.Stat(absPath)
 	if err != nil {
@@ -108,7 +107,7 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 		unlockableFilter = filepathfilter.New(unlockablePatterns, nil)
 	}
 
-	return c.fixFileWriteFlags(absPath, config.LocalWorkingDir, lockableFilter, unlockableFilter)
+	return c.fixFileWriteFlags(absPath, c.LocalWorkingDir, lockableFilter, unlockableFilter)
 }
 
 // Internal implementation of fixing file write flags with precompiled filters

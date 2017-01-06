@@ -35,6 +35,9 @@ type Client struct {
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
 	lockableMutex    sync.Mutex
+
+	LocalWorkingDir string
+	LocalGitDir     string
 }
 
 // NewClient creates a new locking client with the given configuration
@@ -54,7 +57,13 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{cfg: cfg, apiClient: apiClient, cache: cache}, nil
+
+	return &Client{
+		cfg:             cfg,
+		apiClient:       apiClient,
+		cache:           cache,
+		LocalWorkingDir: config.LocalWorkingDir,
+		LocalGitDir:     config.LocalGitDir}, nil
 }
 
 // Close this client instance; must be called to dispose of resources
