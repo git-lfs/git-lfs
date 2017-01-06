@@ -26,7 +26,7 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Skip entire hook if lockable read only feature is disabled
-	if !cfg.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) {
+	if !cfg.SetLockableFilesReadOnly() {
 		os.Exit(0)
 	}
 
