@@ -16,6 +16,8 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
@@ -35,6 +37,27 @@ var (
 	includeArg string
 	excludeArg string
 )
+
+func newAPIClient() *lfsapi.Client {
+	c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		ExitWithError(err)
+	}
+	return c
+}
+
+func newLockClient(remote string) *locking.Client {
+	lockClient, err := locking.NewClient(remote, newAPIClient())
+	if err == nil {
+		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
+	}
+
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+
+	return lockClient
+}
 
 // TransferManifest builds a tq.Manifest from the commands package global
 // cfg var.

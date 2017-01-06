@@ -1,10 +1,6 @@
 package commands
 
-import (
-	"github.com/git-lfs/git-lfs/locking"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var (
 	unlockCmdFlags unlockFlags
@@ -21,16 +17,9 @@ type unlockFlags struct {
 }
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-
-	if len(lockRemote) > 0 {
-		cfg.CurrentRemote = lockRemote
-	}
-
-	lockClient, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
-	}
+	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
+
 	if len(args) != 0 {
 		path, err := lockPath(args[0])
 		if err != nil {

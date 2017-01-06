@@ -15,6 +15,35 @@ import (
 
 var UserAgent = "git-lfs"
 
+const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
+
+func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
+	req, err := http.NewRequest(method, joinURL(e.Url, suffix), nil)
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Accept", MediaType)
+
+	if body != nil {
+		if merr := MarshalToRequest(req, body); merr != nil {
+			return req, merr
+		}
+		req.Header.Set("Content-Type", MediaType)
+	}
+
+	return req, err
+}
+
+const slash = "/"
+
+func joinURL(prefix, suffix string) string {
+	if strings.HasSuffix(prefix, slash) {
+		return prefix + suffix
+	}
+	return prefix + slash + suffix
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
@@ -70,11 +99,11 @@ func (c *Client) httpClient(host string) *http.Client {
 	defer c.clientMu.Unlock()
 
 	if c.gitEnv == nil {
-		c.gitEnv = make(testEnv)
+		c.gitEnv = make(Env)
 	}
 
 	if c.osEnv == nil {
-		c.osEnv = make(testEnv)
+		c.osEnv = make(Env)
 	}
 
 	if c.hostClients == nil {
@@ -135,6 +164,12 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	return httpClient
+}
+
+func (c *Client) CurrentUser() (string, string) {
+	userName, _ := c.gitEnv.Get("user.name")
+	userEmail, _ := c.gitEnv.Get("user.email")
+	return userName, userEmail
 }
 
 func newRequestForRetry(req *http.Request, location string) (*http.Request, error) {

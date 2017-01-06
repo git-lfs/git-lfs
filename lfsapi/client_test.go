@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -98,7 +99,7 @@ func TestClientRedirect(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient(testEnv(map[string]string{}), testEnv(map[string]string{
+	c, err := NewClient(Env(map[string]string{}), Env(map[string]string{
 		"lfs.dialtimeout":         "151",
 		"lfs.keepalive":           "152",
 		"lfs.tlstimeout":          "153",
@@ -118,7 +119,7 @@ func TestNewClientWithGitSSLVerify(t *testing.T) {
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(testEnv(map[string]string{}), testEnv(map[string]string{
+		c, err = NewClient(Env(map[string]string{}), Env(map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
@@ -127,7 +128,7 @@ func TestNewClientWithGitSSLVerify(t *testing.T) {
 	}
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(testEnv(map[string]string{}), testEnv(map[string]string{
+		c, err = NewClient(Env(map[string]string{}), Env(map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
@@ -142,20 +143,41 @@ func TestNewClientWithOSSSLVerify(t *testing.T) {
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(testEnv(map[string]string{
+		c, err = NewClient(Env(map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
-		}), testEnv(map[string]string{}))
+		}), Env(map[string]string{}))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
 		assert.Nil(t, err)
 		assert.False(t, c.SkipSSLVerify)
 	}
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(testEnv(map[string]string{
+		c, err = NewClient(Env(map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
-		}), testEnv(map[string]string{}))
+		}), Env(map[string]string{}))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
 		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
+	}
+}
+
+func TestNewRequest(t *testing.T) {
+	tests := [][]string{
+		{"https://example.com", "a", "https://example.com/a"},
+		{"https://example.com/", "a", "https://example.com/a"},
+		{"https://example.com/a", "b", "https://example.com/a/b"},
+		{"https://example.com/a/", "b", "https://example.com/a/b"},
+	}
+
+	for _, test := range tests {
+		c, err := NewClient(nil, Env(map[string]string{
+			"lfs.url": test[0],
+		}))
+		require.Nil(t, err)
+
+		req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), test[1], nil)
+		require.Nil(t, err)
+		assert.Equal(t, "POST", req.Method)
+		assert.Equal(t, test[2], req.URL.String(), fmt.Sprintf("endpoint: %s, suffix: %s, expected: %s", test[0], test[1], test[2]))
 	}
 }

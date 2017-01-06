@@ -30,7 +30,11 @@ func (c *Client) handleResponse(res *http.Response) error {
 	}
 
 	cliErr := &ClientError{}
-	err := decodeResponse(res, cliErr)
+	err := DecodeJSON(res, cliErr)
+	if IsDecodeTypeError(err) {
+		err = nil
+	}
+
 	if err == nil {
 		if len(cliErr.Message) == 0 {
 			err = defaultError(res)
