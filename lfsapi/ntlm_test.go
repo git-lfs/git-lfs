@@ -73,11 +73,11 @@ func TestNTLMAuth(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	req, err := http.NewRequest("POST", srv.URL+"/ntlm", byteReaderBody([]byte("ntlm")))
+	req, err := http.NewRequest("POST", srv.URL+"/ntlm", NewByteBody([]byte("ntlm")))
 	require.Nil(t, err)
 
 	credHelper := newMockCredentialHelper()
-	cli, err := NewClient(nil, Env(map[string]string{
+	cli, err := NewClient(nil, TestEnv(map[string]string{
 		"lfs.url":                         srv.URL + "/ntlm",
 		"lfs." + srv.URL + "/ntlm.access": "ntlm",
 	}))
@@ -134,7 +134,7 @@ func TestNtlmCloneRequest(t *testing.T) {
 	assertRequestsEqual(t, req1, cloneOfReq1, nil)
 
 	req2Body := []byte("Moose can be request bodies")
-	req2, _ := http.NewRequest("Method", "url", byteReaderBody(req2Body))
+	req2, _ := http.NewRequest("Method", "url", NewByteBody(req2Body))
 	cloneOfReq2, err := cloneRequest(req2)
 	require.Nil(t, err)
 	assertRequestsEqual(t, req2, cloneOfReq2, req2Body)
