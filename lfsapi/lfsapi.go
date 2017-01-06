@@ -46,11 +46,11 @@ type Client struct {
 	transferMu       sync.Mutex
 
 	// only used for per-host ssl certs
-	gitEnv env
-	osEnv  env
+	gitEnv Env
+	osEnv  Env
 }
 
-func NewClient(osEnv env, gitEnv env) (*Client, error) {
+func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 	if osEnv == nil {
 		osEnv = make(TestEnv)
 	}
@@ -90,11 +90,11 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) GitEnv() env {
+func (c *Client) GitEnv() Env {
 	return c.gitEnv
 }
 
-func (c *Client) OSEnv() env {
+func (c *Client) OSEnv() Env {
 	return c.osEnv
 }
 
@@ -129,7 +129,9 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	return nil
 }
 
-type env interface {
+// Env is an interface for the config.Environment methods that this package
+// relies on.
+type Env interface {
 	Get(string) (string, bool)
 	Int(string, int) int
 	Bool(string, bool) bool
