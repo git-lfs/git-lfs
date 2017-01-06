@@ -87,7 +87,7 @@ func newLockClient(remote string) *locking.Client {
 
 // newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
 func newDownloadCheckQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
-	allOptions := make([]tq.Option, len(options), len(options)+1)
+	allOptions := make([]tq.Option, 0, len(options)+1)
 	allOptions = append(allOptions, options...)
 	allOptions = append(allOptions, tq.DryRun(true))
 	return newDownloadQueue(manifest, remote, allOptions...)
