@@ -100,3 +100,26 @@ begin_test "batch transfers occur in reverse order by size"
   [ "$pos_large" -lt "$pos_small" ]
 )
 end_test
+
+begin_test "batch transfers with ssh endpoint"
+(
+  set -e
+
+  reponame="batch-ssh"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+  git config lfs.url "$sshurl"
+  git lfs env
+
+  contents="test"
+  oid="$(calc_oid "$contents")"
+  git lfs track "*.dat"
+  printf "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  git push origin master 2>&1
+)
+end_test
