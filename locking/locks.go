@@ -36,8 +36,9 @@ type Client struct {
 	lockableFilter   *filepathfilter.Filter
 	lockableMutex    sync.Mutex
 
-	LocalWorkingDir string
-	LocalGitDir     string
+	LocalWorkingDir          string
+	LocalGitDir              string
+	SetLockableFilesReadOnly bool
 }
 
 // NewClient creates a new locking client with the given configuration
@@ -59,11 +60,12 @@ func NewClient(cfg *config.Configuration) (*Client, error) {
 	}
 
 	return &Client{
-		cfg:             cfg,
-		apiClient:       apiClient,
-		cache:           cache,
-		LocalWorkingDir: config.LocalWorkingDir,
-		LocalGitDir:     config.LocalGitDir}, nil
+		cfg:                      cfg,
+		apiClient:                apiClient,
+		cache:                    cache,
+		LocalWorkingDir:          config.LocalWorkingDir,
+		LocalGitDir:              config.LocalGitDir,
+		SetLockableFilesReadOnly: cfg.SetLockableFilesReadOnly()}, nil
 }
 
 // Close this client instance; must be called to dispose of resources
@@ -122,8 +124,7 @@ func (c *Client) UnlockFile(path string, force bool) error {
 	}
 
 	// Make non-writeable if required
-	if c.IsFileLockable(path) &&
-		config.Config.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) {
+	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
 		return tools.SetFileWriteFlag(path, false)
 	}
 	return nil
