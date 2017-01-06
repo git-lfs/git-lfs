@@ -7,7 +7,6 @@
 begin_test "batch transfer"
 (
   set -e
-  exit 0
 
   # This initializes a new bare git repository in test/remote.
   # These remote repositories are global to every test, so keep the names
