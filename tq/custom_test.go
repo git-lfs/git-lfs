@@ -10,7 +10,7 @@ import (
 
 func TestCustomTransferBasicConfig(t *testing.T) {
 	path := "/path/to/binary"
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.customtransfer.testsimple.path": path,
 	}))
 	require.Nil(t, err)
@@ -36,7 +36,7 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 func TestCustomTransferDownloadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.customtransfer.testdownload.path":       path,
 		"lfs.customtransfer.testdownload.args":       args,
 		"lfs.customtransfer.testdownload.concurrent": "false",
@@ -62,7 +62,7 @@ func TestCustomTransferDownloadConfig(t *testing.T) {
 func TestCustomTransferUploadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.customtransfer.testupload.path":       path,
 		"lfs.customtransfer.testupload.args":       args,
 		"lfs.customtransfer.testupload.concurrent": "false",
@@ -88,7 +88,7 @@ func TestCustomTransferUploadConfig(t *testing.T) {
 func TestCustomTransferBothConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever --yeah"
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.customtransfer.testboth.path":       path,
 		"lfs.customtransfer.testboth.args":       args,
 		"lfs.customtransfer.testboth.concurrent": "yes",

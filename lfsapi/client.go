@@ -99,11 +99,11 @@ func (c *Client) httpClient(host string) *http.Client {
 	defer c.clientMu.Unlock()
 
 	if c.gitEnv == nil {
-		c.gitEnv = make(Env)
+		c.gitEnv = make(TestEnv)
 	}
 
 	if c.osEnv == nil {
-		c.osEnv = make(Env)
+		c.osEnv = make(TestEnv)
 	}
 
 	if c.hostClients == nil {

@@ -46,7 +46,7 @@ func TestRefreshCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	lfsclient, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",

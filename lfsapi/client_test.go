@@ -99,7 +99,7 @@ func TestClientRedirect(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient(Env(map[string]string{}), Env(map[string]string{
+	c, err := NewClient(TestEnv(map[string]string{}), TestEnv(map[string]string{
 		"lfs.dialtimeout":         "151",
 		"lfs.keepalive":           "152",
 		"lfs.tlstimeout":          "153",
@@ -119,7 +119,7 @@ func TestNewClientWithGitSSLVerify(t *testing.T) {
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(Env(map[string]string{}), Env(map[string]string{
+		c, err = NewClient(TestEnv(map[string]string{}), TestEnv(map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
@@ -128,7 +128,7 @@ func TestNewClientWithGitSSLVerify(t *testing.T) {
 	}
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(Env(map[string]string{}), Env(map[string]string{
+		c, err = NewClient(TestEnv(map[string]string{}), TestEnv(map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
@@ -143,18 +143,18 @@ func TestNewClientWithOSSSLVerify(t *testing.T) {
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(Env(map[string]string{
+		c, err = NewClient(TestEnv(map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
-		}), Env(map[string]string{}))
+		}), TestEnv(map[string]string{}))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
 		assert.Nil(t, err)
 		assert.False(t, c.SkipSSLVerify)
 	}
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(Env(map[string]string{
+		c, err = NewClient(TestEnv(map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
-		}), Env(map[string]string{}))
+		}), TestEnv(map[string]string{}))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
 		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
@@ -170,7 +170,7 @@ func TestNewRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := NewClient(nil, Env(map[string]string{
+		c, err := NewClient(nil, TestEnv(map[string]string{
 			"lfs.url": test[0],
 		}))
 		require.Nil(t, err)

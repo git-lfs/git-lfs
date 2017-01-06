@@ -9,7 +9,7 @@ import (
 )
 
 func TestManifestIsConfigurable(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.transfer.maxretries": "3",
 	}))
 	require.Nil(t, err)
@@ -19,7 +19,7 @@ func TestManifestIsConfigurable(t *testing.T) {
 }
 
 func TestManifestChecksNTLM(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.url":                 "http://foo",
 		"lfs.http://foo.access":   "ntlm",
 		"lfs.concurrenttransfers": "3",
@@ -31,7 +31,7 @@ func TestManifestChecksNTLM(t *testing.T) {
 }
 
 func TestManifestClampsValidValues(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.transfer.maxretries": "-1",
 	}))
 	require.Nil(t, err)
@@ -41,7 +41,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 }
 
 func TestManifestIgnoresNonInts(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.transfer.maxretries": "not_an_int",
 	}))
 	require.Nil(t, err)
