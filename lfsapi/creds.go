@@ -15,7 +15,7 @@ type CredentialHelper interface {
 
 type Creds map[string]string
 
-func (c Creds) Buffer() *bytes.Buffer {
+func bufferCreds(c Creds) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 
 	for k, v := range c {
@@ -49,7 +49,7 @@ func (h *commandCredentialHelper) Approve(creds Creds) error {
 func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, error) {
 	output := new(bytes.Buffer)
 	cmd := exec.Command("git", "credential", subcommand)
-	cmd.Stdin = input.Buffer()
+	cmd.Stdin = bufferCreds(input)
 	cmd.Stdout = output
 	/*
 	   There is a reason we don't hook up stderr here:
