@@ -25,6 +25,11 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Skip entire hook if lockable read only feature is disabled
+	if !cfg.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) {
+		os.Exit(0)
+	}
+
 	requireGitVersion()
 
 	lockClient, err := locking.NewClient(cfg)
@@ -33,8 +38,7 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Skip this hook if no lockable patterns have been configured
-	if len(lockClient.GetLockablePatterns()) == 0 ||
-		!cfg.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) {
+	if len(lockClient.GetLockablePatterns()) == 0 {
 		os.Exit(0)
 	}
 
