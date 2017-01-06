@@ -113,9 +113,10 @@ begin_test "batch transfers with ssh endpoint"
   git config lfs.url "$sshurl"
   git lfs env
 
-  oid="$(calc_oid "test")"
+  contents="test"
+  oid="$(calc_oid "$contents")"
   git lfs track "*.dat"
-  printf "test" > test.dat
+  printf "$contents" > test.dat
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
