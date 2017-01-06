@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 )
 
@@ -79,21 +80,17 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		}
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         ccb,
-		TotalSize: t.Size,
-		Reader:    f,
-	}
+	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(f, t.Size, ccb)
 
 	// Signal auth was ok on first read; this frees up other workers to start
 	if authOkFunc != nil {
-		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
+		reader = newStartCallbackReader(reader, func() error {
 			authOkFunc()
+			return nil
 		})
 	}
 
-	req.Body = ioutil.NopCloser(reader)
+	req.Body = reader
 
 	res, err := a.doHTTP(t, req)
 	if err != nil {
@@ -126,20 +123,25 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 // startCallbackReader is a reader wrapper which calls a function as soon as the
 // first Read() call is made. This callback is only made once
 type startCallbackReader struct {
-	r      io.Reader
-	cb     func(*startCallbackReader)
+	cb     func() error
 	cbDone bool
+	lfsapi.ReadSeekCloser
 }
 
 func (s *startCallbackReader) Read(p []byte) (n int, err error) {
 	if !s.cbDone && s.cb != nil {
-		s.cb(s)
+		if err := s.cb(); err != nil {
+			return 0, err
+		}
 		s.cbDone = true
 	}
-	return s.r.Read(p)
+	return s.ReadSeekCloser.Read(p)
 }
-func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCallbackReader {
-	return &startCallbackReader{r, cb, false}
+func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCallbackReader {
+	return &startCallbackReader{
+		ReadSeekCloser: r,
+		cb:             cb,
+	}
 }
 
 func configureBasicUploadAdapter(m *Manifest) {

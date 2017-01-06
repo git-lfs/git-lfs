@@ -11,7 +11,6 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
-	"github.com/git-lfs/git-lfs/tools"
 
 	"github.com/rubyist/tracerx"
 )
@@ -54,7 +53,7 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 	req.Header.Set("Content-Type", MediaType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(by)))
 	req.ContentLength = int64(len(by))
-	req.Body = tools.NewReadSeekCloserWrapper(bytes.NewReader(by))
+	req.Body = newByteBody(by)
 
 	tracerx.Printf("api: batch %d files", len(objects))
 
@@ -84,4 +83,17 @@ func Batch(cfg *config.Configuration, objects []*ObjectResource, operation strin
 	}
 
 	return bresp.Objects, bresp.TransferAdapterName, nil
+}
+
+// temporary copied code from lfsapi, since api is going away
+func newByteBody(by []byte) *closingByteReader {
+	return &closingByteReader{Reader: bytes.NewReader(by)}
+}
+
+type closingByteReader struct {
+	*bytes.Reader
+}
+
+func (r *closingByteReader) Close() error {
+	return nil
 }

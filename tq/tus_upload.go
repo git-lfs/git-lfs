@@ -90,10 +90,6 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	} else {
 		tracerx.Printf("xfer: tus.io resuming upload %q from %d", t.Oid, offset)
 		advanceCallbackProgress(cb, t, offset)
-		_, err := f.Seek(offset, os.SEEK_CUR)
-		if err != nil {
-			return errors.Wrap(err, "tus upload")
-		}
 	}
 
 	// 2. Send PATCH request with byte start point (even if 0) in Upload-Offset
@@ -121,21 +117,21 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		}
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         ccb,
-		TotalSize: t.Size,
-		Reader:    f,
-	}
 
-	// Signal auth was ok on first read; this frees up other workers to start
-	if authOkFunc != nil {
-		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
+	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(f, t.Size, ccb)
+	reader = newStartCallbackReader(reader, func() error {
+		// seek to the offset since lfsapi.Client rewinds the body
+		if _, err := f.Seek(offset, os.SEEK_CUR); err != nil {
+			return err
+		}
+		// Signal auth was ok on first read; this frees up other workers to start
+		if authOkFunc != nil {
 			authOkFunc()
-		})
-	}
+		}
+		return nil
+	})
 
-	req.Body = ioutil.NopCloser(reader)
+	req.Body = reader
 
 	res, err = a.doHTTP(t, req)
 	if err != nil {
