@@ -122,3 +122,24 @@ begin_test "batch transfers with ssh endpoint"
   git push origin master 2>&1
 )
 end_test
+
+begin_test "batch transfers with ntlm server"
+(
+  set -e
+
+  reponame="ntlmtest"
+  setup_remote_repo "$reponame"
+
+  printf "ntlmdomain\\\ntlmuser:ntlmpass" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+
+  oid="$(calc_oid "test")"
+  git lfs track "*.dat"
+  printf "test" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  GIT_CURL_VERBOSE=1 git push origin master 2>&1
+)
+end_test

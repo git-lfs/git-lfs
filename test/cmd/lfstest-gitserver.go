@@ -27,6 +27,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
 var (
@@ -59,6 +61,12 @@ func main() {
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
 	serverTLS = httptest.NewTLSServer(mux)
+	ntlmSession, err := ntlm.CreateServerSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
+	if err != nil {
+		fmt.Println("Error creating ntlm session:", err)
+		os.Exit(1)
+	}
+	ntlmSession.SetUserInfo("ntlmuser", "ntlmpass", "NTLMDOMAIN")
 
 	stopch := make(chan bool)
 
@@ -75,7 +83,7 @@ func main() {
 		}
 
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if !skipIfBadAuth(w, r, id) {
+			if !skipIfBadAuth(w, r, id, ntlmSession) {
 				lfsHandler(w, r, id)
 			}
 
@@ -138,8 +146,20 @@ type lfsLink struct {
 }
 
 type lfsError struct {
-	Code    int    `json:"code"`
+	Code    int    `json:"code,omitempty"`
 	Message string `json:"message"`
+}
+
+func writeLFSError(w http.ResponseWriter, code int, msg string) {
+	by, err := json.Marshal(&lfsError{Message: msg})
+	if err != nil {
+		http.Error(w, "json encoding error: "+err.Error(), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
+	w.WriteHeader(code)
+	w.Write(by)
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -161,7 +181,6 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 			locksHandler(w, r)
 		} else {
 			panic("asdf")
-			w.WriteHeader(404)
 		}
 	case "DELETE":
 		lfsDeleteHandler(w, r, id, repo)
@@ -440,13 +459,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			return
 		case "status-storage-503":
-			w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
-			w.WriteHeader(503)
-
-			json.NewEncoder(w).Encode(&struct {
-				Message string `json:"message"`
-			}{"LFS is temporarily unavailable"})
-
+			writeLFSError(w, 503, "LFS is temporarily unavailable")
 			return
 		case "object-authenticated":
 			if len(r.Header.Get("Authorization")) > 0 {
@@ -930,15 +943,12 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
+		writeLFSError(w, 403, err.Error())
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
-		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
+		writeLFSError(w, 403, fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass))
 		return true
 	}
 
@@ -1083,8 +1093,13 @@ func extractAuth(auth string) (string, string, error) {
 	return "", "", nil
 }
 
-func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
+func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string, ntlmSession ntlm.ServerSession) bool {
 	auth := r.Header.Get("Authorization")
+	if strings.Contains(r.URL.Path, "ntlm") {
+		handleNTLM(w, r, auth, ntlmSession)
+		return false
+	}
+
 	if auth == "" {
 		w.WriteHeader(401)
 		return true
@@ -1114,6 +1129,49 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 	w.WriteHeader(403)
 	debug(id, "Bad auth: %q", auth)
 	return true
+}
+
+func handleNTLM(w http.ResponseWriter, r *http.Request, authHeader string, session ntlm.ServerSession) {
+	if strings.HasPrefix(strings.ToUpper(authHeader), "BASIC ") {
+		authHeader = ""
+	}
+
+	switch authHeader {
+	case "":
+		w.Header().Set("Www-Authenticate", "ntlm")
+		w.WriteHeader(401)
+
+	// ntlmNegotiateMessage from httputil pkg
+	case "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB":
+		ch, err := session.GenerateChallengeMessage()
+		if err != nil {
+			writeLFSError(w, 500, err.Error())
+			return
+		}
+
+		chMsg := base64.StdEncoding.EncodeToString(ch.Bytes())
+		w.Header().Set("Www-Authenticate", "ntlm "+chMsg)
+		w.WriteHeader(401)
+
+	default:
+		if !strings.HasPrefix(strings.ToUpper(authHeader), "NTLM ") {
+			writeLFSError(w, 500, "bad authorization header: "+authHeader)
+			return
+		}
+
+		auth := authHeader[5:] // strip "ntlm " prefix
+		val, err := base64.StdEncoding.DecodeString(auth)
+		if err != nil {
+			writeLFSError(w, 500, "base64 decode error: "+err.Error())
+			return
+		}
+
+		_, err = ntlm.ParseAuthenticateMessage(val, 2)
+		if err != nil {
+			writeLFSError(w, 500, "auth parse error: "+err.Error())
+			return
+		}
+	}
 }
 
 func init() {
