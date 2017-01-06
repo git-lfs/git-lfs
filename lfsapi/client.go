@@ -155,7 +155,7 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	tr := &http.Transport{
-		Proxy: ProxyFromClient(c),
+		Proxy: proxyFromClient(c),
 		Dial: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,

@@ -19,7 +19,7 @@ func TestProxyFromGitConfig(t *testing.T) {
 	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
 	require.Nil(t, err)
 
-	proxyURL, err := ProxyFromClient(c)(req)
+	proxyURL, err := proxyFromClient(c)(req)
 	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
 	assert.Nil(t, err)
 }
@@ -35,7 +35,7 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
 	require.Nil(t, err)
 
-	proxyURL, err := ProxyFromClient(c)(req)
+	proxyURL, err := proxyFromClient(c)(req)
 	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
 	assert.Nil(t, err)
 }
@@ -49,7 +49,7 @@ func TestProxyFromEnvironment(t *testing.T) {
 	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
 	require.Nil(t, err)
 
-	proxyURL, err := ProxyFromClient(c)(req)
+	proxyURL, err := proxyFromClient(c)(req)
 	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
 	assert.Nil(t, err)
 }
@@ -60,7 +60,7 @@ func TestProxyIsNil(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
 	require.Nil(t, err)
 
-	proxyURL, err := ProxyFromClient(c)(req)
+	proxyURL, err := proxyFromClient(c)(req)
 	assert.Nil(t, proxyURL)
 	assert.Nil(t, err)
 }
@@ -76,7 +76,7 @@ func TestProxyNoProxy(t *testing.T) {
 	req, err := http.NewRequest("GET", "https://some-host:8080", nil)
 	require.Nil(t, err)
 
-	proxyURL, err := ProxyFromClient(c)(req)
+	proxyURL, err := proxyFromClient(c)(req)
 	assert.Nil(t, proxyURL)
 	assert.Nil(t, err)
 }
