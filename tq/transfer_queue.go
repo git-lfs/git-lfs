@@ -71,12 +71,11 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // all other workers are sitting idle.
 type batch []*objectTuple
 
-func (b batch) ApiObjects() []*objectResource {
-	transfers := make([]*objectResource, 0, len(b))
+func (b batch) ToTransfers() []*Transfer {
+	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, &objectResource{Oid: t.Oid, Size: t.Size})
+		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size})
 	}
-
 	return transfers
 }
 
@@ -285,7 +284,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 
 	bReq := &batchRequest{
 		Operation:            q.transferKind(),
-		Objects:              batch.ApiObjects(),
+		Objects:              batch.ToTransfers(),
 		TransferAdapterNames: q.manifest.GetAdapterNames(q.direction),
 	}
 
@@ -339,7 +338,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			q.Skip(o.Size)
 			q.wait.Done()
 		} else {
-			tr := newTransfer(t.Name, o, t.Path)
+			tr := newTransfer(o, t.Name, t.Path)
 
 			if _, err := tr.Actions.Get(q.transferKind()); err != nil {
 				// XXX(taylor): duplication

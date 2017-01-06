@@ -18,13 +18,22 @@ const (
 )
 
 type Transfer struct {
-	Name          string       `json:"name"`
+	Name          string       `json:"name,omitempty"`
 	Oid           string       `json:"oid,omitempty"`
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
 	Actions       ActionSet    `json:"actions,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
-	Path          string       `json:"path"`
+	Path          string       `json:"path,omitempty"`
+}
+
+func (t *Transfer) Rel(name string) (*Action, bool) {
+	if t.Actions == nil {
+		return nil, false
+	}
+
+	rel, ok := t.Actions[name]
+	return rel, ok
 }
 
 type ObjectError struct {
@@ -36,25 +45,26 @@ func (e *ObjectError) Error() string {
 	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
 }
 
-// newTransfer creates a new Transfer instance
-func newTransfer(name string, obj *objectResource, path string) *Transfer {
+// newTransfer returns a copy of the given Transfer, with the name and path
+// values set.
+func newTransfer(tr *Transfer, name string, path string) *Transfer {
 	t := &Transfer{
 		Name:          name,
-		Oid:           obj.Oid,
-		Size:          obj.Size,
-		Authenticated: obj.Authenticated,
-		Actions:       make(ActionSet),
 		Path:          path,
+		Oid:           tr.Oid,
+		Size:          tr.Size,
+		Authenticated: tr.Authenticated,
+		Actions:       make(ActionSet),
 	}
 
-	if obj.Error != nil {
+	if tr.Error != nil {
 		t.Error = &ObjectError{
-			Code:    obj.Error.Code,
-			Message: obj.Error.Message,
+			Code:    tr.Error.Code,
+			Message: tr.Error.Message,
 		}
 	}
 
-	for rel, action := range obj.Actions {
+	for rel, action := range tr.Actions {
 		t.Actions[rel] = &Action{
 			Href:      action.Href,
 			Header:    action.Header,

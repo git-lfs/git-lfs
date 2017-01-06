@@ -45,8 +45,8 @@ func TestAPIBatch(t *testing.T) {
 	tqc := &tqClient{Client: c}
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic", "whatev"},
-		Objects: []*objectResource{
-			&objectResource{Oid: "a", Size: 1},
+		Objects: []*Transfer{
+			&Transfer{Oid: "a", Size: 1},
 		},
 	}
 	bRes, res, err := tqc.Batch("remote", bReq)
@@ -91,8 +91,8 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 	tqc := &tqClient{Client: c}
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic"},
-		Objects: []*objectResource{
-			&objectResource{Oid: "a", Size: 1},
+		Objects: []*Transfer{
+			&Transfer{Oid: "a", Size: 1},
 		},
 	}
 	bRes, res, err := tqc.Batch("remote", bReq)
