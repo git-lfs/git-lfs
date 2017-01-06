@@ -68,8 +68,6 @@ func main() {
 
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
-	mux.HandleFunc("/locks", locksHandler)
-	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, ok := reqId(w)
 		if !ok {
@@ -181,13 +179,20 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 	case "POST":
 		if strings.HasSuffix(r.URL.String(), "batch") {
 			lfsBatchHandler(w, r, id, repo)
+		} else if strings.HasSuffix(r.URL.String(), "locks") || strings.HasSuffix(r.URL.String(), "unlock") {
+			locksHandler(w, r)
 		} else {
+			panic("asdf")
 			w.WriteHeader(404)
 		}
 	case "DELETE":
 		lfsDeleteHandler(w, r, id, repo)
 	case "GET":
-		w.WriteHeader(404)
+		if strings.Contains(r.URL.String(), "/locks") {
+			locksHandler(w, r)
+		} else {
+			w.WriteHeader(404)
+		}
 	default:
 		w.WriteHeader(405)
 	}

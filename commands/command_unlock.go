@@ -1,6 +1,11 @@
 package commands
 
-import "github.com/spf13/cobra"
+import (
+	"encoding/json"
+	"os"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	unlockCmdFlags unlockFlags
@@ -39,6 +44,14 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		Error("Usage: git lfs unlock (--id my-lock-id | <path>)")
 	}
 
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(struct {
+			Unlocked bool `json:"unlocked"`
+		}{true}); err != nil {
+			Error(err.Error())
+		}
+		return
+	}
 	Print("'%s' was unlocked", args[0])
 }
 
@@ -51,5 +64,6 @@ func init() {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

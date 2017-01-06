@@ -142,16 +142,16 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 type Lock struct {
 	// Id is the unique identifier corresponding to this particular Lock. It
 	// must be consistent with the local copy, and the server's copy.
-	Id string
+	Id string `json:"id"`
 	// Path is an absolute path to the file that is locked as a part of this
 	// lock.
-	Path string
+	Path string `json:"path"`
 	// Name is the name of the person holding this lock
-	Name string
+	Name string `json:"name"`
 	// Email address of the person holding this lock
-	Email string
+	Email string `json:"email"`
 	// LockedAt is the time at which this lock was acquired.
-	LockedAt time.Time
+	LockedAt time.Time `json:"locked_at"`
 }
 
 // SearchLocks returns a channel of locks which match the given name/value filter
