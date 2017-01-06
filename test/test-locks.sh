@@ -24,12 +24,13 @@ begin_test "list a single lock (--json)"
 (
   set -e
 
-  setup_remote_repo_with_file "locks_list_single_json" "f_json.dat"
+  reponame="locks_list_single_json"
+  setup_remote_repo_with_file "$reponame" "f_json.dat"
 
   GITLFSLOCKSENABLED=1 git lfs lock "f_json.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock $id
+  assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs locks --json --path "f_json.dat" | tee locks.log
   grep "\"path\":\"f_json.dat\"" locks.log
