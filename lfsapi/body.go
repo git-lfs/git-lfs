@@ -19,8 +19,12 @@ func MarshalToRequest(req *http.Request, obj interface{}) error {
 	}
 
 	req.ContentLength = int64(len(by))
-	req.Body = &closingByteReader{Reader: bytes.NewReader(by)}
+	req.Body = byteReaderBody(by)
 	return nil
+}
+
+func byteReaderBody(by []byte) ReadSeekCloser {
+	return &closingByteReader{Reader: bytes.NewReader(by)}
 }
 
 type closingByteReader struct {

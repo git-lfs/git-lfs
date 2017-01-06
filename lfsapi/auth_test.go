@@ -72,12 +72,11 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	creds := newMockCredentialHelper()
-	c := &Client{
-		Credentials: creds,
-		Endpoints: NewEndpointFinder(TestEnv(map[string]string{
-			"lfs.url": srv.URL + "/repo/lfs",
-		})),
-	}
+	c, err := NewClient(nil, Env(map[string]string{
+		"lfs.url": srv.URL + "/repo/lfs",
+	}))
+	require.Nil(t, err)
+	c.Credentials = creds
 
 	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
 

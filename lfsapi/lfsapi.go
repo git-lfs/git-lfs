@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/errors"
 )
 
@@ -39,6 +40,9 @@ type Client struct {
 
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
+
+	ntlmSessions map[string]ntlm.ClientSession
+	ntlmMu       sync.Mutex
 
 	transferBuckets  map[string][]*http.Response
 	transferBucketMu sync.Mutex
