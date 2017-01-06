@@ -72,7 +72,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 
 	c := &Client{
 		Endpoints: NewEndpointFinder(gitEnv),
-		Credentials: &CommandCredentialHelper{
+		Credentials: &commandCredentialHelper{
 			SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
 		},
 		Netrc:               netrc,

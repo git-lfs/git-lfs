@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	defaultCredentialHelper = &CommandCredentialHelper{}
+	defaultCredentialHelper = &commandCredentialHelper{}
 	defaultNetrcFinder      = &noFinder{}
 	defaultEndpointFinder   = NewEndpointFinder(nil)
 )
