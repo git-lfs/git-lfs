@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -154,7 +153,7 @@ type lfsError struct {
 func writeLFSError(w http.ResponseWriter, code int, msg string) {
 	by, err := json.Marshal(&lfsError{Message: msg})
 	if err != nil {
-		http.Error(w, errors.Wrap(err, "json encoding error"), 500)
+		http.Error(w, "json encoding error: "+err.Error(), 500)
 		return
 	}
 
