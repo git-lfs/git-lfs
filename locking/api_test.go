@@ -39,7 +39,7 @@ func TestAPILock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	c, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -81,7 +81,7 @@ func TestAPIUnlock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	c, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -121,7 +121,7 @@ func TestAPISearch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.Env(map[string]string{
+	c, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)

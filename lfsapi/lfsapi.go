@@ -46,17 +46,17 @@ type Client struct {
 	transferMu       sync.Mutex
 
 	// only used for per-host ssl certs
-	gitEnv env
-	osEnv  env
+	gitEnv Env
+	osEnv  Env
 }
 
-func NewClient(osEnv env, gitEnv env) (*Client, error) {
+func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 	if osEnv == nil {
-		osEnv = make(Env)
+		osEnv = make(TestEnv)
 	}
 
 	if gitEnv == nil {
-		gitEnv = make(Env)
+		gitEnv = make(TestEnv)
 	}
 
 	netrc, err := ParseNetrc(osEnv)
@@ -90,6 +90,14 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	return c, nil
 }
 
+func (c *Client) GitEnv() Env {
+	return c.gitEnv
+}
+
+func (c *Client) OSEnv() Env {
+	return c.osEnv
+}
+
 func IsDecodeTypeError(err error) bool {
 	_, ok := err.(*decodeTypeError)
 	return ok
@@ -121,23 +129,25 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	return nil
 }
 
-type env interface {
+// Env is an interface for the config.Environment methods that this package
+// relies on.
+type Env interface {
 	Get(string) (string, bool)
 	Int(string, int) int
 	Bool(string, bool) bool
 	All() map[string]string
 }
 
-// basic config.Environment implementation. Only used in tests, or as a zero
-// value to NewClient().
-type Env map[string]string
+// TestEnv is a basic config.Environment implementation. Only used in tests, or
+// as a zero value to NewClient().
+type TestEnv map[string]string
 
-func (e Env) Get(key string) (string, bool) {
+func (e TestEnv) Get(key string) (string, bool) {
 	v, ok := e[key]
 	return v, ok
 }
 
-func (e Env) Int(key string, def int) (val int) {
+func (e TestEnv) Int(key string, def int) (val int) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -151,7 +161,7 @@ func (e Env) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e Env) Bool(key string, def bool) (val bool) {
+func (e TestEnv) Bool(key string, def bool) (val bool) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -167,6 +177,6 @@ func (e Env) Bool(key string, def bool) (val bool) {
 	}
 }
 
-func (e Env) All() map[string]string {
+func (e TestEnv) All() map[string]string {
 	return e
 }

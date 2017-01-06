@@ -40,7 +40,7 @@ func smudge(to io.Writer, ptr *lfs.Pointer, filename string, skip bool, filter *
 		download = filter.Allows(filename)
 	}
 
-	err = ptr.Smudge(to, filename, download, TransferManifest(), cb)
+	err = ptr.Smudge(to, filename, download, getTransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}

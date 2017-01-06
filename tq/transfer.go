@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfsapi"
 )
 
 type Direction int
@@ -157,7 +158,27 @@ type NewAdapterFunc func(name string, dir Direction) Adapter
 type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
 type AdapterConfig interface {
+	APIClient() *lfsapi.Client
 	ConcurrentTransfers() int
+	Remote() string
+}
+
+type adapterConfig struct {
+	apiClient           *lfsapi.Client
+	concurrentTransfers int
+	remote              string
+}
+
+func (c *adapterConfig) ConcurrentTransfers() int {
+	return c.concurrentTransfers
+}
+
+func (c *adapterConfig) APIClient() *lfsapi.Client {
+	return c.apiClient
+}
+
+func (c *adapterConfig) Remote() string {
+	return c.remote
 }
 
 // Adapter is implemented by types which can upload and/or download LFS

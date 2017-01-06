@@ -11,7 +11,7 @@ type NetrcFinder interface {
 	FindMachine(string) *netrc.Machine
 }
 
-func ParseNetrc(osEnv env) (NetrcFinder, error) {
+func ParseNetrc(osEnv Env) (NetrcFinder, error) {
 	home, _ := osEnv.Get("HOME")
 	if len(home) == 0 {
 		return &noFinder{}, nil
