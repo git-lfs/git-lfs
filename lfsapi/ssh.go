@@ -62,7 +62,7 @@ type sshAuthResponse struct {
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(osEnv env, e Endpoint) (exe string, baseargs []string) {
+func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
 	isPlink := false
 	isTortoise := false
 
