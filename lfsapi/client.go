@@ -18,11 +18,31 @@ var UserAgent = "git-lfs"
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
-	req, err := http.NewRequest(method, joinURL(e.Url, suffix), nil)
+	sshRes, err := c.resolveSSHEndpoint(e, method)
+	if err != nil {
+		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
+			e.SshUserAndHost, err.Error(), sshRes.Message,
+		)
+
+		if len(sshRes.Message) > 0 {
+			return nil, errors.Wrap(err, sshRes.Message)
+		}
+		return nil, err
+	}
+
+	prefix := e.Url
+	if len(sshRes.Href) > 0 {
+		prefix = sshRes.Href
+	}
+
+	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)
 	if err != nil {
 		return req, err
 	}
 
+	for key, value := range sshRes.Header {
+		req.Header.Set(key, value)
+	}
 	req.Header.Set("Accept", MediaType)
 
 	if body != nil {
