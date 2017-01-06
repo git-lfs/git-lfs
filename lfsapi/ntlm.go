@@ -14,12 +14,7 @@ import (
 )
 
 func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL) (*http.Response, error) {
-	handReq, err := cloneRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := c.Do(handReq)
+	res, err := c.Do(req)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
@@ -33,22 +28,24 @@ func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, cred
 
 // If the status is 401 then we need to re-authenticate
 func (c *Client) ntlmReAuth(req *http.Request, credHelper CredentialHelper, creds Creds, retry bool) (*http.Response, error) {
-	negotiateReq, err := cloneRequest(req)
+	body, err := rewoundRequestBody(req)
 	if err != nil {
 		return nil, err
 	}
+	req.Body = body
 
-	chRes, challengeMsg, err := c.ntlmNegotiate(negotiateReq, ntlmNegotiateMessage)
+	chRes, challengeMsg, err := c.ntlmNegotiate(req, ntlmNegotiateMessage)
 	if err != nil {
 		return chRes, err
 	}
 
-	challengeReq, err := cloneRequest(req)
+	body, err = rewoundRequestBody(req)
 	if err != nil {
 		return nil, err
 	}
+	req.Body = body
 
-	res, err := c.ntlmChallenge(challengeReq, challengeMsg, creds)
+	res, err := c.ntlmChallenge(req, challengeMsg, creds)
 	if err != nil {
 		return res, err
 	}
@@ -150,27 +147,6 @@ func parseChallengeResponse(res *http.Response) ([]byte, error) {
 		return nil, err
 	}
 	return []byte(val), nil
-}
-
-func cloneRequest(req *http.Request) (*http.Request, error) {
-	body, err := rewoundRequestBody(req)
-	if err != nil {
-		return nil, err
-	}
-
-	clonedReq, err := http.NewRequest(req.Method, req.URL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	for k := range req.Header {
-		clonedReq.Header.Add(k, req.Header.Get(k))
-	}
-
-	clonedReq.TransferEncoding = req.TransferEncoding
-	clonedReq.ContentLength = req.ContentLength
-
-	return clonedReq, nil
 }
 
 func rewoundRequestBody(req *http.Request) (io.ReadCloser, error) {

@@ -127,19 +127,6 @@ func TestNtlmClientSessionBadCreds(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNtlmCloneRequest(t *testing.T) {
-	req1, _ := http.NewRequest("Method", "url", nil)
-	cloneOfReq1, err := cloneRequest(req1)
-	require.Nil(t, err)
-	assertRequestsEqual(t, req1, cloneOfReq1, nil)
-
-	req2Body := []byte("Moose can be request bodies")
-	req2, _ := http.NewRequest("Method", "url", NewByteBody(req2Body))
-	cloneOfReq2, err := cloneRequest(req2)
-	require.Nil(t, err)
-	assertRequestsEqual(t, req2, cloneOfReq2, req2Body)
-}
-
 func TestNtlmHeaderParseValid(t *testing.T) {
 	res := http.Response{}
 	res.Header = make(map[string][]string)
