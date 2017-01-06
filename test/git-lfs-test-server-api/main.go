@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/git-lfs/git-lfs/tq"
@@ -48,7 +49,6 @@ func main() {
 }
 
 func testServerApi(cmd *cobra.Command, args []string) {
-
 	if (len(apiUrl) == 0 && len(cloneUrl) == 0) ||
 		(len(apiUrl) != 0 && len(cloneUrl) != 0) {
 		exit("Must supply either --url or --clone (and not both)")
@@ -66,11 +66,12 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	config.Config.Git.All()
 
 	// Configure the endpoint manually
-	var endp config.Endpoint
+	var endp lfsapi.Endpoint
+	finder := lfsapi.NewEndpointFinder(config.Config.Git)
 	if len(cloneUrl) > 0 {
-		endp = config.NewEndpointFromCloneURL(cloneUrl)
+		endp = finder.NewEndpointFromCloneURL(cloneUrl)
 	} else {
-		endp = config.NewEndpoint(apiUrl)
+		endp = finder.NewEndpoint(apiUrl)
 	}
 	config.Config.SetManualEndpoint(endp)
 
@@ -136,6 +137,12 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 }
 
 func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
+	cfg := config.Config
+	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
@@ -159,7 +166,8 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(config.Config, tq.WithProgress(meter))
+	manifest := tq.NewManifestWithClient(apiClient)
+	uploadQueue := tq.NewTransferQueue(tq.Upload, manifest, "", tq.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 

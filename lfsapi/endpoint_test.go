@@ -1,4 +1,4 @@
-package config
+package lfsapi
 
 import (
 	"testing"
@@ -13,9 +13,9 @@ func TestNewEndpointFromCloneURLWithConfig(t *testing.T) {
 		"https://foo/bar.git/",
 	}
 
-	cfg := New()
+	finder := NewEndpointFinder(nil)
 	for _, actual := range tests {
-		e := NewEndpointFromCloneURLWithConfig(actual, cfg)
+		e := finder.NewEndpointFromCloneURL(actual)
 		if e.Url != expected {
 			t.Errorf("%s returned bad endpoint url %s", actual, e.Url)
 		}

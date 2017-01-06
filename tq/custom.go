@@ -12,13 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
-
-	"github.com/git-lfs/git-lfs/config"
 )
 
 // Adapter for custom transfer via external process
@@ -113,8 +111,7 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	}
 
 	// If config says not to launch multiple processes, downgrade incoming value
-	newCfg := &Manifest{concurrentTransfers: 1}
-	return a.adapterBase.Begin(newCfg, cb)
+	return a.adapterBase.Begin(&customAdapterConfig{AdapterConfig: cfg}, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {
@@ -316,7 +313,8 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				if err = api.VerifyUpload(config.Config, toApiObject(t)); err != nil {
+				cli := &lfsapi.Client{}
+				if err = verifyUpload(cli, t); err != nil {
 					return err
 				}
 			}
@@ -376,4 +374,12 @@ func configureCustomAdapters(git Env, m *Manifest) {
 			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
+}
+
+type customAdapterConfig struct {
+	AdapterConfig
+}
+
+func (c *customAdapterConfig) ConcurrentTransfers() int {
+	return 1
 }

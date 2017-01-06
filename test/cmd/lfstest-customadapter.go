@@ -178,14 +178,7 @@ func performUpload(oid string, size int64, a *action, fromPath string, writer, e
 		sendProgress(oid, readSoFar, readSinceLast, writer, errWriter)
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         cb,
-		TotalSize: size,
-		Reader:    f,
-	}
-
-	req.Body = ioutil.NopCloser(reader)
+	req.Body = progress.NewBodyWithCallback(f, size, cb)
 
 	res, err := httputil.DoHttpRequest(cfg, req, true)
 	if err != nil {

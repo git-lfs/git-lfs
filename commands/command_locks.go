@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/git-lfs/git-lfs/locking"
-
 	"github.com/spf13/cobra"
 )
 
@@ -19,14 +17,9 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		Exit("Error building filters: %v", err)
 	}
 
-	if len(lockRemote) > 0 {
-		cfg.CurrentRemote = lockRemote
-	}
-	lockClient, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
-	}
+	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
+
 	var lockCount int
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
 	// Print any we got before exiting

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+
+	"github.com/git-lfs/git-lfs/lfsapi"
 )
 
 var (
@@ -28,4 +30,5 @@ func init() {
 		gitCommit,
 	)
 
+	lfsapi.UserAgent = VersionDesc
 }

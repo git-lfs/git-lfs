@@ -12,12 +12,17 @@ import (
 var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
 
 type uploadContext struct {
+	Remote       string
 	DryRun       bool
+	Manifest     *tq.Manifest
 	uploadedOids tools.StringSet
 }
 
-func newUploadContext(dryRun bool) *uploadContext {
+func newUploadContext(remote string, dryRun bool) *uploadContext {
+	cfg.CurrentRemote = remote
 	return &uploadContext{
+		Remote:       remote,
+		Manifest:     getTransferManifest(),
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
 	}
@@ -75,7 +80,7 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*tq.Tra
 
 	// build the TransferQueue, automatically skipping any missing objects that
 	// the server already has.
-	uploadQueue := newUploadQueue(tq.WithProgress(meter), tq.DryRun(c.DryRun))
+	uploadQueue := newUploadQueue(c.Manifest, c.Remote, tq.WithProgress(meter), tq.DryRun(c.DryRun))
 	for _, p := range missingLocalObjects {
 		if c.HasUploaded(p.Oid) {
 			// if the server already has this object, call Skip() on
@@ -99,7 +104,7 @@ func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize 
 		return
 	}
 
-	checkQueue := newDownloadCheckQueue()
+	checkQueue := newDownloadCheckQueue(c.Manifest, c.Remote)
 	transferCh := checkQueue.Watch()
 
 	done := make(chan int)

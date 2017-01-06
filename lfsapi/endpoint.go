@@ -1,14 +1,13 @@
-package config
+package lfsapi
 
 import (
 	"fmt"
 	"net/url"
-	"path"
 	"regexp"
 	"strings"
 )
 
-const EndpointUrlUnknown = "<unknown>"
+const UrlUnknown = "<unknown>"
 
 // An Endpoint describes how to access a Git LFS server.
 type Endpoint struct {
@@ -16,62 +15,6 @@ type Endpoint struct {
 	SshUserAndHost string
 	SshPath        string
 	SshPort        string
-}
-
-// NewEndpointFromCloneURL creates an Endpoint from a git clone URL by appending
-// "[.git]/info/lfs".
-func NewEndpointFromCloneURL(url string) Endpoint {
-	return NewEndpointFromCloneURLWithConfig(url, New())
-}
-
-// NewEndpoint initializes a new Endpoint for a given URL.
-func NewEndpoint(rawurl string) Endpoint {
-	return NewEndpointWithConfig(rawurl, New())
-}
-
-// NewEndpointFromCloneURLWithConfig creates an Endpoint from a git clone URL by appending
-// "[.git]/info/lfs".
-func NewEndpointFromCloneURLWithConfig(url string, c *Configuration) Endpoint {
-	e := NewEndpointWithConfig(url, c)
-	if e.Url == EndpointUrlUnknown {
-		return e
-	}
-
-	if strings.HasSuffix(url, "/") {
-		e.Url = url[0 : len(url)-1]
-	}
-
-	// When using main remote URL for HTTP, append info/lfs
-	if path.Ext(e.Url) == ".git" {
-		e.Url += "/info/lfs"
-	} else {
-		e.Url += ".git/info/lfs"
-	}
-
-	return e
-}
-
-// NewEndpointWithConfig initializes a new Endpoint for a given URL.
-func NewEndpointWithConfig(rawurl string, c *Configuration) Endpoint {
-	rawurl = c.ReplaceUrlAlias(rawurl)
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return endpointFromBareSshUrl(rawurl)
-	}
-
-	switch u.Scheme {
-	case "ssh":
-		return endpointFromSshUrl(u)
-	case "http", "https":
-		return endpointFromHttpUrl(u)
-	case "git":
-		return endpointFromGitUrl(u, c)
-	case "":
-		return endpointFromBareSshUrl(u.String())
-	default:
-		// Just passthrough to preserve
-		return Endpoint{Url: rawurl}
-	}
 }
 
 // endpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
@@ -95,7 +38,7 @@ func endpointFromBareSshUrl(rawurl string) Endpoint {
 	newrawurl := fmt.Sprintf("ssh://%v", newPath)
 	newu, err := url.Parse(newrawurl)
 	if err != nil {
-		return Endpoint{Url: EndpointUrlUnknown}
+		return Endpoint{Url: UrlUnknown}
 	}
 
 	return endpointFromSshUrl(newu)
@@ -108,7 +51,7 @@ func endpointFromSshUrl(u *url.URL) Endpoint {
 	regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
 	match := regex.FindStringSubmatch(u.Host)
 	if match == nil || len(match) < 2 {
-		endpoint.Url = EndpointUrlUnknown
+		endpoint.Url = UrlUnknown
 		return endpoint
 	}
 
@@ -145,7 +88,7 @@ func endpointFromHttpUrl(u *url.URL) Endpoint {
 	return Endpoint{Url: u.String()}
 }
 
-func endpointFromGitUrl(u *url.URL, c *Configuration) Endpoint {
-	u.Scheme = c.GitProtocol()
+func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) Endpoint {
+	u.Scheme = e.gitProtocol
 	return Endpoint{Url: u.String()}
 }

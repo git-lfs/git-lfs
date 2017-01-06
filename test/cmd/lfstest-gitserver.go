@@ -74,6 +74,14 @@ func main() {
 			return
 		}
 
+		if strings.Contains(r.URL.Path, "/info/lfs/locks") {
+			if !skipIfBadAuth(w, r, id) {
+				locksHandler(w, r)
+			}
+
+			return
+		}
+
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			if !skipIfBadAuth(w, r, id) {
 				lfsHandler(w, r, id)
@@ -140,6 +148,20 @@ type lfsLink struct {
 type lfsError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+func writeLFSError(w http.ResponseWriter, code int, msg string) {
+	by, err := json.Marshal(&lfsError{Message: msg})
+	if err != nil {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(500)
+		w.Write([]byte("json encoding error: " + err.Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
+	w.WriteHeader(code)
+	w.Write(by)
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -440,13 +462,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			return
 		case "status-storage-503":
-			w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
-			w.WriteHeader(503)
-
-			json.NewEncoder(w).Encode(&struct {
-				Message string `json:"message"`
-			}{"LFS is temporarily unavailable"})
-
+			writeLFSError(w, 503, "LFS is temporarily unavailable")
 			return
 		case "object-authenticated":
 			if len(r.Header.Get("Authorization")) > 0 {
@@ -789,7 +805,9 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		if !lockRe.MatchString(r.URL.Path) {
-			http.NotFound(w, r)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"unknown path: ` + r.URL.Path + `"}`))
 		} else {
 			if err := r.ParseForm(); err != nil {
 				http.Error(w, "could not parse form values", http.StatusInternalServerError)
@@ -798,6 +816,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 
 			ll := &LockList{}
 			locks := getLocks()
+			w.Header().Set("Content-Type", "application/json")
 
 			if cursor := r.FormValue("cursor"); cursor != "" {
 				lastSeen := -1
@@ -853,6 +872,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			enc.Encode(ll)
 		}
 	case "POST":
+		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
 			var unlockRequest UnlockRequest
 			if err := dec.Decode(&unlockRequest); err != nil {
@@ -930,15 +950,12 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
+		writeLFSError(w, 403, err.Error())
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
-		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
+		writeLFSError(w, 403, fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass))
 		return true
 	}
 

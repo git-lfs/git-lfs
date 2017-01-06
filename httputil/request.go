@@ -129,7 +129,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 
 		redirectedReq, err := NewHttpRequest(req.Method, redirectTo, nil)
 		if err != nil {
-			return res, errors.Wrapf(err, err.Error())
+			return res, err
 		}
 
 		via = append(via, req)
@@ -152,7 +152,7 @@ func DoHttpRequestWithRedirects(cfg *config.Configuration, req *http.Request, vi
 		redirectedReq.ContentLength = req.ContentLength
 
 		if err = CheckRedirect(redirectedReq, via); err != nil {
-			return res, errors.Wrapf(err, err.Error())
+			return res, err
 		}
 
 		return DoHttpRequestWithRedirects(cfg, redirectedReq, via, useCreds)
