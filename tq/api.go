@@ -25,6 +25,25 @@ type batchResponse struct {
 	Objects             []*Transfer `json:"objects"`
 }
 
+func Batch(dir Direction, m *Manifest, remote string, objects []*Transfer) ([]*Transfer, error) {
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
+	breq := &batchRequest{
+		Operation:            string(dir),
+		Objects:              objects,
+		TransferAdapterNames: m.GetAdapterNames(dir),
+	}
+
+	cli := &tqClient{Client: m.APIClient()}
+	bres, _, err := cli.Batch(remote, breq)
+	if err != nil {
+		return nil, err
+	}
+	return bres.Objects, nil
+}
+
 func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *http.Response, error) {
 	bRes := &batchResponse{}
 	if len(bReq.Objects) == 0 {
