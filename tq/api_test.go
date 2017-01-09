@@ -49,9 +49,8 @@ func TestAPIBatch(t *testing.T) {
 			&Transfer{Oid: "a", Size: 1},
 		},
 	}
-	bRes, res, err := tqc.Batch("remote", bReq)
+	bRes, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "basic", bRes.TransferAdapterName)
 	if assert.Equal(t, 1, len(bRes.Objects)) {
 		assert.Equal(t, "a", bRes.Objects[0].Oid)
@@ -95,9 +94,8 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 			&Transfer{Oid: "a", Size: 1},
 		},
 	}
-	bRes, res, err := tqc.Batch("remote", bReq)
+	bRes, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "basic", bRes.TransferAdapterName)
 }
 
@@ -109,9 +107,8 @@ func TestAPIBatchEmptyObjects(t *testing.T) {
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic", "whatev"},
 	}
-	bRes, res, err := tqc.Batch("remote", bReq)
+	bRes, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
-	assert.Nil(t, res)
 	assert.Equal(t, "", bRes.TransferAdapterName)
 	assert.Equal(t, 0, len(bRes.Objects))
 }

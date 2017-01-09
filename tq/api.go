@@ -1,9 +1,6 @@
 package tq
 
 import (
-	"net/http"
-	"strings"
-
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
@@ -27,23 +24,20 @@ type BatchResponse struct {
 
 func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*BatchResponse, error) {
 	if len(objects) == 0 {
-		return nil, nil
+		return &BatchResponse{}, nil
 	}
 
-	breq := &batchRequest{
+	return m.batchClient().Batch(remote, &batchRequest{
 		Operation:            dir.String(),
 		Objects:              objects,
 		TransferAdapterNames: m.GetAdapterNames(dir),
-	}
-
-	bres, _, err := m.batchClient().Batch(remote, breq)
-	return bres, err
+	})
 }
 
-func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, *http.Response, error) {
+func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, error) {
 	bRes := &BatchResponse{}
 	if len(bReq.Objects) == 0 {
-		return bRes, nil, nil
+		return bRes, nil
 	}
 
 	if len(bReq.TransferAdapterNames) == 1 && bReq.TransferAdapterNames[0] == "basic" {
@@ -53,7 +47,7 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, *ht
 	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
 	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "batch request")
+		return nil, errors.Wrap(err, "batch request")
 	}
 
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
@@ -61,20 +55,17 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, *ht
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
-		return nil, nil, errors.Wrap(err, "batch response")
+		return nil, errors.Wrap(err, "batch response")
 	}
 	c.LogResponse("lfs.batch", res)
 
 	if err := lfsapi.DecodeJSON(res, bRes); err != nil {
-		return bRes, res, errors.Wrap(err, "batch response")
+		return bRes, errors.Wrap(err, "batch response")
 	}
 
 	if res.StatusCode != 200 {
-		return nil, res, errors.Errorf("Invalid status for %s %s: %d",
-			req.Method,
-			strings.SplitN(req.URL.String(), "?", 2)[0],
-			res.StatusCode)
+		return nil, lfsapi.NewStatusCodeError(res)
 	}
 
-	return bRes, res, nil
+	return bRes, nil
 }
