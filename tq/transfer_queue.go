@@ -282,13 +282,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	next := q.makeBatch()
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
-	bReq := &batchRequest{
-		Operation:            q.direction.String(),
-		Objects:              batch.ToTransfers(),
-		TransferAdapterNames: q.manifest.GetAdapterNames(q.direction),
-	}
-
-	bRes, _, err := q.client.Batch(q.remote, bReq)
+	bRes, err := Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
 	if err != nil {
 		// If there was an error making the batch API call, mark all of
 		// the objects for retry, and return them along with the error

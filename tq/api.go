@@ -36,8 +36,7 @@ func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*Bat
 		TransferAdapterNames: m.GetAdapterNames(dir),
 	}
 
-	cli := &tqClient{Client: m.APIClient()}
-	bres, _, err := cli.Batch(remote, breq)
+	bres, _, err := m.batchClient().Batch(remote, breq)
 	return bres, err
 }
 
