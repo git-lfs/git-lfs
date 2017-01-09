@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 )
@@ -18,14 +17,34 @@ const (
 	Download = Direction(iota)
 )
 
+func (d Direction) String() string {
+	switch d {
+	case Download:
+		return "download"
+	case Upload:
+		return "upload"
+	default:
+		return "<unknown>"
+	}
+}
+
 type Transfer struct {
-	Name          string       `json:"name"`
+	Name          string       `json:"name,omitempty"`
 	Oid           string       `json:"oid,omitempty"`
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
 	Actions       ActionSet    `json:"actions,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
-	Path          string       `json:"path"`
+	Path          string       `json:"path,omitempty"`
+}
+
+func (t *Transfer) Rel(name string) (*Action, bool) {
+	if t.Actions == nil {
+		return nil, false
+	}
+
+	rel, ok := t.Actions[name]
+	return rel, ok
 }
 
 type ObjectError struct {
@@ -33,25 +52,30 @@ type ObjectError struct {
 	Message string `json:"message"`
 }
 
-// newTransfer creates a new Transfer instance
-func newTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
+func (e *ObjectError) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
+}
+
+// newTransfer returns a copy of the given Transfer, with the name and path
+// values set.
+func newTransfer(tr *Transfer, name string, path string) *Transfer {
 	t := &Transfer{
 		Name:          name,
-		Oid:           obj.Oid,
-		Size:          obj.Size,
-		Authenticated: obj.Authenticated,
-		Actions:       make(ActionSet),
 		Path:          path,
+		Oid:           tr.Oid,
+		Size:          tr.Size,
+		Authenticated: tr.Authenticated,
+		Actions:       make(ActionSet),
 	}
 
-	if obj.Error != nil {
+	if tr.Error != nil {
 		t.Error = &ObjectError{
-			Code:    obj.Error.Code,
-			Message: obj.Error.Message,
+			Code:    tr.Error.Code,
+			Message: tr.Error.Message,
 		}
 	}
 
-	for rel, action := range obj.Actions {
+	for rel, action := range tr.Actions {
 		t.Actions[rel] = &Action{
 			Href:      action.Href,
 			Header:    action.Header,
@@ -60,7 +84,6 @@ func newTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
 	}
 
 	return t
-
 }
 
 type Action struct {
@@ -121,32 +144,6 @@ func IsActionMissingError(err error) bool {
 		return true
 	}
 	return false
-}
-
-func toApiObject(t *Transfer) *api.ObjectResource {
-	o := &api.ObjectResource{
-		Oid:           t.Oid,
-		Size:          t.Size,
-		Authenticated: t.Authenticated,
-		Actions:       make(map[string]*api.LinkRelation),
-	}
-
-	for rel, a := range t.Actions {
-		o.Actions[rel] = &api.LinkRelation{
-			Href:      a.Href,
-			Header:    a.Header,
-			ExpiresAt: a.ExpiresAt,
-		}
-	}
-
-	if t.Error != nil {
-		o.Error = &api.ObjectError{
-			Code:    t.Error.Code,
-			Message: t.Error.Message,
-		}
-	}
-
-	return o
 }
 
 // NewAdapterFunc creates new instances of Adapter. Code that wishes

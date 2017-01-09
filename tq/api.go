@@ -1,10 +1,6 @@
 package tq
 
 import (
-	"net/http"
-	"strings"
-
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
@@ -15,31 +11,43 @@ type tqClient struct {
 }
 
 type batchRequest struct {
-	Operation            string                `json:"operation"`
-	Objects              []*api.ObjectResource `json:"objects"`
-	TransferAdapterNames []string              `json:"transfers,omitempty"`
+	Operation            string      `json:"operation"`
+	Objects              []*Transfer `json:"objects"`
+	TransferAdapterNames []string    `json:"transfers,omitempty"`
 }
 
-type batchResponse struct {
-	Endpoint            lfsapi.Endpoint
-	TransferAdapterName string                `json:"transfer"`
-	Objects             []*api.ObjectResource `json:"objects"`
+type BatchResponse struct {
+	Objects             []*Transfer `json:"objects"`
+	TransferAdapterName string      `json:"transfer"`
+	endpoint            lfsapi.Endpoint
 }
 
-func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *http.Response, error) {
-	bRes := &batchResponse{}
+func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*BatchResponse, error) {
+	if len(objects) == 0 {
+		return &BatchResponse{}, nil
+	}
+
+	return m.batchClient().Batch(remote, &batchRequest{
+		Operation:            dir.String(),
+		Objects:              objects,
+		TransferAdapterNames: m.GetAdapterNames(dir),
+	})
+}
+
+func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, error) {
+	bRes := &BatchResponse{}
 	if len(bReq.Objects) == 0 {
-		return bRes, nil, nil
+		return bRes, nil
 	}
 
 	if len(bReq.TransferAdapterNames) == 1 && bReq.TransferAdapterNames[0] == "basic" {
 		bReq.TransferAdapterNames = nil
 	}
 
-	bRes.Endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
-	req, err := c.NewRequest("POST", bRes.Endpoint, "objects/batch", bReq)
+	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
+	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "batch request")
+		return nil, errors.Wrap(err, "batch request")
 	}
 
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
@@ -47,20 +55,17 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *ht
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
-		return nil, nil, errors.Wrap(err, "batch response")
+		return nil, errors.Wrap(err, "batch response")
 	}
 	c.LogResponse("lfs.batch", res)
 
 	if err := lfsapi.DecodeJSON(res, bRes); err != nil {
-		return bRes, res, errors.Wrap(err, "batch response")
+		return bRes, errors.Wrap(err, "batch response")
 	}
 
 	if res.StatusCode != 200 {
-		return nil, res, errors.Errorf("Invalid status for %s %s: %d",
-			req.Method,
-			strings.SplitN(req.URL.String(), "?", 2)[0],
-			res.StatusCode)
+		return nil, lfsapi.NewStatusCodeError(res)
 	}
 
-	return bRes, res, nil
+	return bRes, nil
 }

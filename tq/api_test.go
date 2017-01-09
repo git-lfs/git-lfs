@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +30,7 @@ func TestAPIBatch(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(&batchResponse{
+		err = json.NewEncoder(w).Encode(&BatchResponse{
 			TransferAdapterName: "basic",
 			Objects:             bReq.Objects,
 		})
@@ -46,13 +45,12 @@ func TestAPIBatch(t *testing.T) {
 	tqc := &tqClient{Client: c}
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic", "whatev"},
-		Objects: []*api.ObjectResource{
-			&api.ObjectResource{Oid: "a", Size: 1},
+		Objects: []*Transfer{
+			&Transfer{Oid: "a", Size: 1},
 		},
 	}
-	bRes, res, err := tqc.Batch("remote", bReq)
+	bRes, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "basic", bRes.TransferAdapterName)
 	if assert.Equal(t, 1, len(bRes.Objects)) {
 		assert.Equal(t, "a", bRes.Objects[0].Oid)
@@ -78,7 +76,7 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(&batchResponse{
+		err = json.NewEncoder(w).Encode(&BatchResponse{
 			TransferAdapterName: "basic",
 		})
 	}))
@@ -92,13 +90,12 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 	tqc := &tqClient{Client: c}
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic"},
-		Objects: []*api.ObjectResource{
-			&api.ObjectResource{Oid: "a", Size: 1},
+		Objects: []*Transfer{
+			&Transfer{Oid: "a", Size: 1},
 		},
 	}
-	bRes, res, err := tqc.Batch("remote", bReq)
+	bRes, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "basic", bRes.TransferAdapterName)
 }
 
@@ -110,9 +107,8 @@ func TestAPIBatchEmptyObjects(t *testing.T) {
 	bReq := &batchRequest{
 		TransferAdapterNames: []string{"basic", "whatev"},
 	}
-	bRes, res, err := tqc.Batch("remote", bReq)
+	bRes, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
-	assert.Nil(t, res)
 	assert.Equal(t, "", bRes.TransferAdapterName)
 	assert.Equal(t, 0, len(bRes.Objects))
 }
