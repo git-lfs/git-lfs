@@ -13,7 +13,7 @@ type httpError interface {
 	HTTPResponse() *http.Response
 }
 
-func IsHTTPError(err error) (*http.Response, bool) {
+func IsHTTP(err error) (*http.Response, bool) {
 	if httpErr, ok := err.(httpError); ok {
 		return httpErr.HTTPResponse(), true
 	}
