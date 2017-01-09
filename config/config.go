@@ -239,22 +239,9 @@ func (c *Configuration) NtlmAccess(operation string) bool {
 	return c.Access(operation) == lfsapi.NTLMAccess
 }
 
-// PrivateAccess will retrieve the access value and return true if
-// the value is set to private. When a repo is marked as having private
-// access, the http requests for the batch api will fetch the credentials
-// before running, otherwise the request will run without credentials.
-func (c *Configuration) PrivateAccess(operation string) bool {
-	return c.Access(operation) != lfsapi.NoneAccess
-}
-
 // Access returns the access auth type.
 func (c *Configuration) Access(operation string) lfsapi.Access {
 	return c.EndpointAccess(c.Endpoint(operation))
-}
-
-// SetAccess will set the private access flag in .git/config.
-func (c *Configuration) SetAccess(operation string, authType string) {
-	c.endpointConfig().SetAccess(c.Endpoint(operation).Url, lfsapi.Access(authType))
 }
 
 func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
