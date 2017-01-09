@@ -21,8 +21,8 @@ type batchRequest struct {
 
 type BatchResponse struct {
 	Objects             []*Transfer `json:"objects"`
+	TransferAdapterName string      `json:"transfer"`
 	endpoint            lfsapi.Endpoint
-	transferAdapterName string `json:"transfer"`
 }
 
 func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*BatchResponse, error) {

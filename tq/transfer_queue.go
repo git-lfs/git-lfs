@@ -311,7 +311,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		return next, nil
 	}
 
-	q.useAdapter(bRes.transferAdapterName)
+	q.useAdapter(bRes.TransferAdapterName)
 	q.startProgress.Do(q.meter.Start)
 
 	toTransfer := make([]*Transfer, 0, len(bRes.Objects))
