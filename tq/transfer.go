@@ -10,12 +10,23 @@ import (
 	"github.com/git-lfs/git-lfs/lfsapi"
 )
 
-type Direction string
+type Direction int
 
 const (
-	Upload   = Direction("upload")
-	Download = Direction("download")
+	Upload   = Direction(iota)
+	Download = Direction(iota)
 )
+
+func (d Direction) String() string {
+	switch d {
+	case Download:
+		return "download"
+	case Upload:
+		return "upload"
+	default:
+		return "<unknown>"
+	}
+}
 
 type Transfer struct {
 	Name          string       `json:"name,omitempty"`

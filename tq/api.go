@@ -25,13 +25,13 @@ type batchResponse struct {
 	Objects             []*Transfer `json:"objects"`
 }
 
-func Batch(dir Direction, m *Manifest, remote string, objects []*Transfer) ([]*Transfer, error) {
+func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) ([]*Transfer, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
 
 	breq := &batchRequest{
-		Operation:            string(dir),
+		Operation:            dir.String(),
 		Objects:              objects,
 		TransferAdapterNames: m.GetAdapterNames(dir),
 	}

@@ -283,7 +283,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
 	bReq := &batchRequest{
-		Operation:            q.transferKind(),
+		Operation:            q.direction.String(),
 		Objects:              batch.ToTransfers(),
 		TransferAdapterNames: q.manifest.GetAdapterNames(q.direction),
 	}
@@ -340,7 +340,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		} else {
 			tr := newTransfer(o, t.Name, t.Path)
 
-			if _, err := tr.Actions.Get(q.transferKind()); err != nil {
+			if _, err := tr.Actions.Get(q.direction.String()); err != nil {
 				// XXX(taylor): duplication
 				if q.canRetryObject(tr.Oid, err) {
 					q.rc.Increment(tr.Oid)
@@ -509,14 +509,6 @@ func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
 }
 
-func (q *TransferQueue) transferKind() string {
-	if q.direction == Download {
-		return "download"
-	} else {
-		return "upload"
-	}
-}
-
 func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
@@ -527,7 +519,7 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 
 	// Progress callback - receives byte updates
 	cb := func(name string, total, read int64, current int) error {
-		q.meter.TransferBytes(q.transferKind(), name, read, total, current)
+		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
 		return nil
 	}
 
