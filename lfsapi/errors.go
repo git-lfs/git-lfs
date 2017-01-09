@@ -3,14 +3,32 @@ package lfsapi
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 )
+
+type httpError interface {
+	Error() string
+	HTTPResponse() *http.Response
+}
+
+func IsHTTPError(err error) (*http.Response, bool) {
+	if httpErr, ok := err.(httpError); ok {
+		return httpErr.HTTPResponse(), true
+	}
+	return nil, false
+}
 
 type ClientError struct {
 	Message          string `json:"message"`
 	DocumentationUrl string `json:"documentation_url,omitempty"`
 	RequestId        string `json:"request_id,omitempty"`
+	response         *http.Response
+}
+
+func (e *ClientError) HTTPResponse() *http.Response {
+	return e.response
 }
 
 func (e *ClientError) Error() string {
@@ -29,7 +47,7 @@ func (c *Client) handleResponse(res *http.Response) error {
 		return nil
 	}
 
-	cliErr := &ClientError{}
+	cliErr := &ClientError{response: res}
 	err := DecodeJSON(res, cliErr)
 	if IsDecodeTypeError(err) {
 		err = nil
@@ -52,6 +70,27 @@ func (c *Client) handleResponse(res *http.Response) error {
 	}
 
 	return err
+}
+
+type statusCodeError struct {
+	response *http.Response
+}
+
+func NewStatusCodeError(res *http.Response) error {
+	return &statusCodeError{response: res}
+}
+
+func (e *statusCodeError) Error() string {
+	req := e.response.Request
+	return fmt.Sprintf("Invalid HTTP status for %s %s: %d",
+		req.Method,
+		strings.SplitN(req.URL.String(), "?", 2)[0],
+		e.response.StatusCode,
+	)
+}
+
+func (e *statusCodeError) HTTPResponse() *http.Response {
+	return e.response
 }
 
 var (
