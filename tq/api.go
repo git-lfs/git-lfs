@@ -19,13 +19,13 @@ type batchRequest struct {
 	TransferAdapterNames []string    `json:"transfers,omitempty"`
 }
 
-type batchResponse struct {
-	Endpoint            lfsapi.Endpoint
-	TransferAdapterName string      `json:"transfer"`
+type BatchResponse struct {
 	Objects             []*Transfer `json:"objects"`
+	endpoint            lfsapi.Endpoint
+	transferAdapterName string `json:"transfer"`
 }
 
-func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) ([]*Transfer, error) {
+func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*BatchResponse, error) {
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -38,14 +38,11 @@ func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) ([]*T
 
 	cli := &tqClient{Client: m.APIClient()}
 	bres, _, err := cli.Batch(remote, breq)
-	if err != nil {
-		return nil, err
-	}
-	return bres.Objects, nil
+	return bres, err
 }
 
-func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *http.Response, error) {
-	bRes := &batchResponse{}
+func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, *http.Response, error) {
+	bRes := &BatchResponse{}
 	if len(bReq.Objects) == 0 {
 		return bRes, nil, nil
 	}
@@ -54,8 +51,8 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*batchResponse, *ht
 		bReq.TransferAdapterNames = nil
 	}
 
-	bRes.Endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
-	req, err := c.NewRequest("POST", bRes.Endpoint, "objects/batch", bReq)
+	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
+	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "batch request")
 	}

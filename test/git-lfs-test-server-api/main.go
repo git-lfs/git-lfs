@@ -265,7 +265,11 @@ func callBatchApi(manifest *tq.Manifest, dir tq.Direction, objs []TestObject) ([
 		apiobjs = append(apiobjs, &tq.Transfer{Oid: o.Oid, Size: o.Size})
 	}
 
-	return tq.Batch(manifest, dir, "origin", apiobjs)
+	bres, err := tq.Batch(manifest, dir, "origin", apiobjs)
+	if err != nil {
+		return nil, err
+	}
+	return bres.Objects, nil
 }
 
 // Combine 2 slices into one by "randomly" interleaving

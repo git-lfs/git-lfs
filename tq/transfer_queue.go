@@ -311,7 +311,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		return next, nil
 	}
 
-	q.useAdapter(bRes.TransferAdapterName)
+	q.useAdapter(bRes.transferAdapterName)
 	q.startProgress.Do(q.meter.Start)
 
 	toTransfer := make([]*Transfer, 0, len(bRes.Objects))
@@ -364,7 +364,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		}
 	}
 
-	retries := q.addToAdapter(bRes.Endpoint, toTransfer)
+	retries := q.addToAdapter(bRes.endpoint, toTransfer)
 	for t := range retries {
 		q.rc.Increment(t.Oid)
 		count := q.rc.CountFor(t.Oid)

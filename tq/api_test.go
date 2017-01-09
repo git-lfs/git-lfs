@@ -30,8 +30,8 @@ func TestAPIBatch(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(&batchResponse{
-			TransferAdapterName: "basic",
+		err = json.NewEncoder(w).Encode(&BatchResponse{
+			transferAdapterName: "basic",
 			Objects:             bReq.Objects,
 		})
 	}))
@@ -52,7 +52,7 @@ func TestAPIBatch(t *testing.T) {
 	bRes, res, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
-	assert.Equal(t, "basic", bRes.TransferAdapterName)
+	assert.Equal(t, "basic", bRes.transferAdapterName)
 	if assert.Equal(t, 1, len(bRes.Objects)) {
 		assert.Equal(t, "a", bRes.Objects[0].Oid)
 	}
@@ -77,8 +77,8 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(&batchResponse{
-			TransferAdapterName: "basic",
+		err = json.NewEncoder(w).Encode(&BatchResponse{
+			transferAdapterName: "basic",
 		})
 	}))
 	defer srv.Close()
@@ -98,7 +98,7 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 	bRes, res, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
-	assert.Equal(t, "basic", bRes.TransferAdapterName)
+	assert.Equal(t, "basic", bRes.transferAdapterName)
 }
 
 func TestAPIBatchEmptyObjects(t *testing.T) {
@@ -112,6 +112,6 @@ func TestAPIBatchEmptyObjects(t *testing.T) {
 	bRes, res, err := tqc.Batch("remote", bReq)
 	require.Nil(t, err)
 	assert.Nil(t, res)
-	assert.Equal(t, "", bRes.TransferAdapterName)
+	assert.Equal(t, "", bRes.transferAdapterName)
 	assert.Equal(t, 0, len(bRes.Objects))
 }
