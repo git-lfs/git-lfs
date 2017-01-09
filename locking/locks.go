@@ -105,7 +105,11 @@ func (c *Client) LockFile(path string) (Lock, error) {
 	}
 
 	// Ensure writeable on return
-	return lock, tools.SetFileWriteFlag(path, true)
+	if err := tools.SetFileWriteFlag(path, true); err != nil {
+		return Lock{}, err
+	}
+
+	return lock, nil
 }
 
 // UnlockFile attempts to unlock a file on the current remote
