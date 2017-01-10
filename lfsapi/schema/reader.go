@@ -11,9 +11,6 @@ import (
 )
 
 var (
-	// ErrNoValidationDone is an error returned when `ValidationErr()` is
-	// called before having processed any data.
-	ErrNoValidationDone = errors.New("lfsapi/schema: no validation done")
 	// ErrValidationIncomplete is an error returned when `ValidationErr()`
 	// is called while the reader is still processing data.
 	ErrValidationIncomplete = errors.New("lfsapi/schema: validation incomplete")
@@ -88,9 +85,7 @@ func (r *Reader) ValidationErr() error {
 		return r.resultErr
 	} else {
 		switch state(atomic.LoadUint32(&r.state)) {
-		case stateNotStarted:
-			return ErrNoValidationDone
-		case stateProcessing:
+		case stateNotStarted, stateProcessing:
 			return ErrValidationIncomplete
 		}
 	}
