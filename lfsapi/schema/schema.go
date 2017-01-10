@@ -30,7 +30,6 @@ func FromJSON(schemaPath string) (*Schema, error) {
 		return nil, err
 	}
 
-	// Platform compatibility: use "/" separators always for file://
 	dir = filepath.ToSlash(dir)
 	schemaPath = filepath.Join(dir, schemaPath)
 
@@ -39,7 +38,8 @@ func FromJSON(schemaPath string) (*Schema, error) {
 	}
 
 	schema, err := gojsonschema.NewSchema(gojsonschema.NewReferenceLoader(
-		fmt.Sprintf("file:///%s", schemaPath),
+		// Platform compatibility: use "/" separators always for file://
+		fmt.Sprintf("file:///%s", filepath.ToSlash(schemaPath)),
 	))
 	if err != nil {
 		return nil, err
