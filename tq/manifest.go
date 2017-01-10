@@ -22,6 +22,7 @@ type Manifest struct {
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
 	apiClient            *lfsapi.Client
+	tqClient             *tqClient
 	mu                   sync.Mutex
 }
 
@@ -37,6 +38,10 @@ func (m *Manifest) ConcurrentTransfers() int {
 	return m.concurrentTransfers
 }
 
+func (m *Manifest) batchClient() *tqClient {
+	return m.tqClient
+}
+
 func NewManifest() *Manifest {
 	cli, err := lfsapi.NewClient(nil, nil)
 	if err != nil {
@@ -50,6 +55,7 @@ func NewManifest() *Manifest {
 func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 	m := &Manifest{
 		apiClient:            apiClient,
+		tqClient:             &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}

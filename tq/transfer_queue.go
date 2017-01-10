@@ -4,7 +4,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
@@ -72,17 +71,12 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // all other workers are sitting idle.
 type batch []*objectTuple
 
-func (b batch) ApiObjects() []*api.ObjectResource {
-	transfers := make([]*api.ObjectResource, 0, len(b))
+func (b batch) ToTransfers() []*Transfer {
+	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, tupleToApiObject(t))
+		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size})
 	}
-
 	return transfers
-}
-
-func tupleToApiObject(t *objectTuple) *api.ObjectResource {
-	return &api.ObjectResource{Oid: t.Oid, Size: t.Size}
 }
 
 func (b batch) Len() int           { return len(b) }
@@ -288,13 +282,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	next := q.makeBatch()
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
-	bReq := &batchRequest{
-		Operation:            q.transferKind(),
-		Objects:              batch.ApiObjects(),
-		TransferAdapterNames: q.manifest.GetAdapterNames(q.direction),
-	}
-
-	bRes, _, err := q.client.Batch(q.remote, bReq)
+	bRes, err := Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
 	if err != nil {
 		// If there was an error making the batch API call, mark all of
 		// the objects for retry, and return them along with the error
@@ -344,9 +332,9 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			q.Skip(o.Size)
 			q.wait.Done()
 		} else {
-			tr := newTransfer(t.Name, o, t.Path)
+			tr := newTransfer(o, t.Name, t.Path)
 
-			if _, err := tr.Actions.Get(q.transferKind()); err != nil {
+			if _, err := tr.Actions.Get(q.direction.String()); err != nil {
 				// XXX(taylor): duplication
 				if q.canRetryObject(tr.Oid, err) {
 					q.rc.Increment(tr.Oid)
@@ -370,7 +358,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		}
 	}
 
-	retries := q.addToAdapter(bRes.Endpoint, toTransfer)
+	retries := q.addToAdapter(bRes.endpoint, toTransfer)
 	for t := range retries {
 		q.rc.Increment(t.Oid)
 		count := q.rc.CountFor(t.Oid)
@@ -515,14 +503,6 @@ func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
 }
 
-func (q *TransferQueue) transferKind() string {
-	if q.direction == Download {
-		return "download"
-	} else {
-		return "upload"
-	}
-}
-
 func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
@@ -533,7 +513,7 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 
 	// Progress callback - receives byte updates
 	cb := func(name string, total, read int64, current int) error {
-		q.meter.TransferBytes(q.transferKind(), name, read, total, current)
+		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
 		return nil
 	}
 
