@@ -36,7 +36,7 @@ func TestSchemaReaderBeforeValidation(t *testing.T) {
 
 	r := schema.Reader(strings.NewReader("1"))
 
-	assert.Equal(t, ErrValidationIncomplete, r.ValidationErr())
+	assert.Equal(t, errValidationIncomplete, r.ValidationErr())
 }
 
 func TestSchemaReaderDuringValidation(t *testing.T) {
@@ -51,5 +51,5 @@ func TestSchemaReaderDuringValidation(t *testing.T) {
 	assert.Equal(t, 1, n)
 	assert.Nil(t, err)
 
-	assert.Equal(t, ErrValidationIncomplete, r.ValidationErr())
+	assert.Equal(t, errValidationIncomplete, r.ValidationErr())
 }

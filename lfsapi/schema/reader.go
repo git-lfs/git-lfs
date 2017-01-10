@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	// ErrValidationIncomplete is an error returned when `ValidationErr()`
+	// errValidationIncomplete is an error returned when `ValidationErr()`
 	// is called while the reader is still processing data.
-	ErrValidationIncomplete = errors.New("lfsapi/schema: validation incomplete")
+	errValidationIncomplete = errors.New("lfsapi/schema: validation incomplete")
 )
 
 // state represents the set of valid states a `*Reader` (see below) can be in
@@ -86,7 +86,7 @@ func (r *Reader) ValidationErr() error {
 	} else {
 		switch state(atomic.LoadUint32(&r.state)) {
 		case stateNotStarted, stateProcessing:
-			return ErrValidationIncomplete
+			return errValidationIncomplete
 		}
 	}
 
