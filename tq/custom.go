@@ -86,7 +86,7 @@ func NewCustomAdapterDownloadRequest(oid string, size int64, action *Action) *cu
 }
 
 type customAdapterTerminateRequest struct {
-	MessageType string `json:"type"`
+	Event string `json:"event"`
 }
 
 func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
