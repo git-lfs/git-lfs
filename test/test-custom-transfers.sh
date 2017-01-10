@@ -103,6 +103,8 @@ begin_test "custom-transfer-upload-download"
   grep "xfer\[lfstest-customadapter\]:" fetchcustom.log
   grep "11 of 11 files" fetchcustom.log
 
+  grep "Terminating test custom adapter gracefully" fetchcustom.log
+
   objectlist=`find .git/lfs/objects -type f`
   [ "$(echo "$objectlist" | wc -l)" -eq 11 ]
 )
