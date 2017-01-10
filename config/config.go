@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
-	"github.com/bgentry/go-netrc/netrc"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -54,19 +52,12 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
-	CurrentRemote   string
-	NtlmSession     ntlm.ClientSession
-	envVars         map[string]string
-	envVarsMutex    sync.Mutex
-	IsTracingHttp   bool
-	IsDebuggingHttp bool
-	IsLoggingStats  bool
+	CurrentRemote string
 
 	loading        sync.Mutex // guards initialization of gitConfig and remotes
 	remotes        []string
 	extensions     map[string]Extension
 	manualEndpoint *lfsapi.Endpoint
-	parsedNetrc    netrcfinder
 	endpointFinder lfsapi.EndpointFinder
 	endpointMu     sync.Mutex
 }
@@ -103,10 +94,6 @@ func NewFrom(v Values) *Configuration {
 
 func initConfig(c *Configuration) {
 	c.CurrentRemote = defaultRemote
-	c.envVars = make(map[string]string)
-	c.IsTracingHttp = c.Os.Bool("GIT_CURL_VERBOSE", false)
-	c.IsDebuggingHttp = c.Os.Bool("LFS_DEBUG_HTTP", false)
-	c.IsLoggingStats = c.Os.Bool("GIT_LOG_STATS", false)
 }
 
 // Unmarshal unmarshals the *Configuration in context into all of `v`'s fields,
@@ -252,41 +239,9 @@ func (c *Configuration) NtlmAccess(operation string) bool {
 	return c.Access(operation) == lfsapi.NTLMAccess
 }
 
-// PrivateAccess will retrieve the access value and return true if
-// the value is set to private. When a repo is marked as having private
-// access, the http requests for the batch api will fetch the credentials
-// before running, otherwise the request will run without credentials.
-func (c *Configuration) PrivateAccess(operation string) bool {
-	return c.Access(operation) != lfsapi.NoneAccess
-}
-
 // Access returns the access auth type.
 func (c *Configuration) Access(operation string) lfsapi.Access {
 	return c.EndpointAccess(c.Endpoint(operation))
-}
-
-// SetAccess will set the private access flag in .git/config.
-func (c *Configuration) SetAccess(operation string, authType string) {
-	c.endpointConfig().SetAccess(c.Endpoint(operation).Url, lfsapi.Access(authType))
-}
-
-func (c *Configuration) FindNetrcHost(host string) (*netrc.Machine, error) {
-	c.loading.Lock()
-	defer c.loading.Unlock()
-	if c.parsedNetrc == nil {
-		n, err := c.parseNetrc()
-		if err != nil {
-			return nil, err
-		}
-		c.parsedNetrc = n
-	}
-
-	return c.parsedNetrc.FindMachine(host), nil
-}
-
-// Manually override the netrc config
-func (c *Configuration) SetNetrc(n netrcfinder) {
-	c.parsedNetrc = n
 }
 
 func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
