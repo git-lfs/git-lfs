@@ -132,7 +132,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  [ $(grep -c "(3 of 3 files)" push.log) -eq 2 ]
+  [ $(grep -c "(6 of 6 files)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -162,10 +162,9 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "(2 of 2 files, 1 skipped)" push.log
-  grep "(3 of 3 files)" push.log
-  [ $(grep -c "files)" push.log) -eq 1 ]
-  [ $(grep -c "skipped)" push.log) -eq 1 ]
+  grep "(5 of 5 files, 1 skipped)" push.log
+  [ $(grep -c "files" push.log) -eq 1 ]
+  [ $(grep -c "skipped" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"

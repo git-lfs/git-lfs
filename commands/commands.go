@@ -114,28 +114,26 @@ func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64
 	return p.Name, path, p.Oid, p.Size
 }
 
-func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
+func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
+	filename := p.Name
+	oid := p.Oid
+
 	localMediaPath, err := lfs.LocalMediaPath(oid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	if len(filename) > 0 {
-		if err = ensureFile(filename, localMediaPath); err != nil {
+		if err = ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err
 		}
-	}
-
-	fi, err := os.Stat(localMediaPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	return &tq.Transfer{
 		Name: filename,
 		Path: localMediaPath,
 		Oid:  oid,
-		Size: fi.Size(),
+		Size: p.Size,
 	}, nil
 }
 
@@ -146,7 +144,6 @@ func ensureFile(smudgePath, cleanPath string) error {
 		return nil
 	}
 
-	expectedOid := filepath.Base(cleanPath)
 	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
@@ -168,11 +165,6 @@ func ensureFile(smudgePath, cleanPath string) error {
 	if err != nil {
 		return err
 	}
-
-	if expectedOid != cleaned.Oid {
-		return fmt.Errorf("Trying to push %q with OID %s.\nNot found in %s.", smudgePath, expectedOid, filepath.Dir(cleanPath))
-	}
-
 	return nil
 }
 

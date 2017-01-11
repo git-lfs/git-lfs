@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 
@@ -77,36 +76,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		pointers, err := scanLeftOrAll(gitscanner, left)
-		if err != nil {
+		if err := uploadLeftOrAll(gitscanner, ctx, left); err != nil {
 			Print("Error scanning for Git LFS files in %q", left)
 			ExitWithError(err)
 		}
-		uploadPointers(ctx, pointers)
-	}
-}
-
-func scanLeft(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
-	var pointers []*lfs.WrappedPointer
-	var multiErr error
-	cb := func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
-			return
-		}
-
-		pointers = append(pointers, p)
 	}
 
-	if err := g.ScanLeftToRemote(ref, cb); err != nil {
-		return pointers, err
-	}
-
-	return pointers, multiErr
+	ctx.Await()
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push

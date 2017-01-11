@@ -1,6 +1,7 @@
 package tq
 
 import (
+	"os"
 	"sort"
 	"sync"
 
@@ -396,22 +397,60 @@ func (q *TransferQueue) addToAdapter(e lfsapi.Endpoint, pending []*Transfer) <-c
 		return retries
 	}
 
+	present, missingResults := q.partitionTransfers(pending)
+
 	go func() {
 		defer close(retries)
 
 		var results <-chan TransferResult
 		if q.dryRun {
-			results = q.makeDryRunResults(pending)
+			results = q.makeDryRunResults(present)
 		} else {
-			results = q.adapter.Add(pending...)
+			results = q.adapter.Add(present...)
 		}
 
+		for _, res := range missingResults {
+			q.handleTransferResult(res, retries)
+		}
 		for res := range results {
 			q.handleTransferResult(res, retries)
 		}
 	}()
 
 	return retries
+}
+
+func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Transfer, results []TransferResult) {
+	if q.direction != Upload {
+		return transfers, nil
+	}
+
+	present = make([]*Transfer, 0, len(transfers))
+	results = make([]TransferResult, 0, len(transfers))
+
+	for _, t := range transfers {
+		var err error
+
+		if t.Size < 0 {
+			err = errors.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
+		} else {
+			fd, serr := os.Stat(t.Path)
+			if serr != nil || fd.Size() != t.Size {
+				err = errors.Errorf("Unable to find object (%s) locally.", t.Oid)
+			}
+		}
+
+		if err != nil {
+			results = append(results, TransferResult{
+				Transfer: t,
+				Error:    err,
+			})
+		} else {
+			present = append(present, t)
+		}
+	}
+
+	return
 }
 
 // makeDryRunResults returns a channel populated immediately with "successful"
