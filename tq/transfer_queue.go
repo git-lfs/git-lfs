@@ -294,6 +294,8 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				q.rc.Increment(t.Oid)
 
 				next = append(next, t)
+			} else {
+				q.wait.Done()
 			}
 		}
 
