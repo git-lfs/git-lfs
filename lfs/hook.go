@@ -15,7 +15,7 @@ import (
 
 var (
 	// The basic hook which just calls 'git lfs TYPE'
-	hookBaseContent = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/__CMD__.\\n\"; exit 2; }\ngit lfs __CMD__ \"$@\""
+	hookBaseContent = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/{{Command}}.\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -31,7 +31,7 @@ type Hook struct {
 func NewStandardHook(theType string, upgradeables []string) *Hook {
 	return &Hook{
 		Type:         theType,
-		Contents:     strings.Replace(hookBaseContent, "__CMD__", theType, -1),
+		Contents:     strings.Replace(hookBaseContent, "{{Command}}", theType, -1),
 		Upgradeables: upgradeables,
 	}
 }
