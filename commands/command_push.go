@@ -64,9 +64,10 @@ func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
 		if err := g.ScanRefWithDeleted(ref, cb); err != nil {
 			return err
 		}
-	}
-	if err := g.ScanLeftToRemote(ref, cb); err != nil {
-		return err
+	} else {
+		if err := g.ScanLeftToRemote(ref, cb); err != nil {
+			return err
+		}
 	}
 
 	return multiErr
