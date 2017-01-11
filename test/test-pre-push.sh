@@ -189,7 +189,7 @@ begin_test "pre-push with missing pointer not on server"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
-  grep "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c does not exist in .git/lfs/objects. Tried new.dat, which matches 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c." push.log
+  grep "Unable to find object (7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c) locally." push.log
 )
 end_test
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/rubyist/tracerx"
@@ -73,8 +74,22 @@ func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	for _, oid := range oids {
+		mp, err := lfs.LocalMediaPath(oid)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
+		}
+
+		stat, err := os.Stat(mp)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
+		}
+
 		uploadPointers(ctx, &lfs.WrappedPointer{
-			Pointer: &lfs.Pointer{Oid: oid},
+			Name: mp,
+			Pointer: &lfs.Pointer{
+				Oid:  oid,
+				Size: stat.Size(),
+			},
 		})
 	}
 

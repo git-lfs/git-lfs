@@ -2,7 +2,6 @@ package commands
 
 import (
 	"os"
-	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -10,8 +9,6 @@ import (
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 )
-
-var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
 
 type uploadContext struct {
 	Remote       string
@@ -21,41 +18,20 @@ type uploadContext struct {
 
 	meter progress.Meter
 	tq    *tq.TransferQueue
-
-	cwg *sync.WaitGroup
-	cq  *tq.TransferQueue
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
 	cfg.CurrentRemote = remote
 
-	return &uploadContext{
+	ctx := &uploadContext{
 		Remote:       remote,
 		Manifest:     getTransferManifest(),
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
-
-		cwg: new(sync.WaitGroup),
-		// TODO(taylor): single item batches are needed to enqueue each
-		// item immediately to avoid waiting an infinite amount of time
-		// on an underfilled batch.
-		cq: newDownloadCheckQueue(c.Manifest, c.Remote, tq.WithBatchSize(1)),
 	}
 
-	ctx.cq.Notify(func(oid string, ok bool) {
-		if ok {
-			// If the object was "ok", the server already has it,
-			// and can be marked as uploaded.
-			ctx.SetUploaded(oid)
-		}
-
-		// No matter whether or not the sever has the object, mark this
-		// OID as checked.
-		ctx.cwg.Done()
-	})
-
 	ctx.meter = buildProgressMeter(ctx.DryRun)
-	ctx.tq = newUploadQueue(c.Manifest, c.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
+	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 
 	return ctx
 }
@@ -75,8 +51,6 @@ func (c *uploadContext) HasUploaded(oid string) bool {
 func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
 	numUnfiltered := len(unfiltered)
 	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
-	missingLocalObjects := make([]*lfs.WrappedPointer, 0, numUnfiltered)
-	missingSize := int64(0)
 
 	// XXX(taylor): temporary measure to fix duplicate (broken) results from
 	// scanner
@@ -96,45 +70,10 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 		// we will call Skip() based on the results of the download check queue.
 		c.meter.Add(p.Size)
 
-		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
-			uploadables = append(uploadables, p)
-		} else {
-			// We think we need to push this but we don't have it
-			// Store for server checking later
-			missingLocalObjects = append(missingLocalObjects, p)
-			missingSize += p.Size
-		}
-	}
-
-	// check to see if the server has the missing objects.
-	c.checkMissing(missingLocalObjects, missingSize)
-
-	// use the context's TransferQueue, automatically skipping any missing
-	// objects that the server already has.
-	for _, p := range missingLocalObjects {
-		if c.HasUploaded(p.Oid) {
-			// if the server already has this object, call Skip() on
-			// the progressmeter to decrement the number of files by
-			// 1 and the number of bytes by `p.Size`.
-			c.tq.Skip(p.Size)
-		} else {
-			uploadables = append(uploadables, p)
-		}
+		uploadables = append(uploadables, p)
 	}
 
 	return c.tq, uploadables
-}
-
-// This checks the given slice of pointers that don't exist in .git/lfs/objects
-// against the server. Anything the server already has does not need to be
-// uploaded again.
-func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize int64) {
-	c.cwg.Add(len(missing))
-	for _, p := range missing {
-		c.cq.Add(downloadTransfer(p))
-	}
-
-	c.cwg.Wait()
 }
 
 func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
@@ -153,13 +92,9 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 
 	q, pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
-		t, err := uploadTransfer(p.Oid, p.Name)
-		if err != nil {
-			if errors.IsCleanPointerError(err) {
-				Exit(uploadMissingErr, p.Oid, p.Name, errors.GetContext(err, "pointer").(*lfs.Pointer).Oid)
-			} else {
-				ExitWithError(err)
-			}
+		t, err := uploadTransfer(p)
+		if err != nil && !errors.IsCleanPointerError(err) {
+			ExitWithError(err)
 		}
 
 		q.Add(t.Name, t.Path, t.Oid, t.Size)
