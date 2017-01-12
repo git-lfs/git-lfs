@@ -1,5 +1,11 @@
 # Git LFS Changelog
 
+## 1.5.5 (12 January, 2017)
+
+### Bugs
+
+* lfs: only buffer first 1k when creating a CleanPointerError #1856 (@ttaylorr)
+
 ## 1.5.4 (27 December, 2016)
 
 ### Bugs
