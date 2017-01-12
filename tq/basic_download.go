@@ -9,9 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -44,7 +42,6 @@ func (a *basicDownloadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-
 	f, fromByte, hashSoFar, err := a.checkResumeDownload(t)
 	if err != nil {
 		return err
@@ -97,7 +94,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		// return errors.New("Object not found on the server.")
 	}
 
-	req, err := httputil.NewHttpRequest("GET", rel.Href, rel.Header)
+	req, err := a.newHTTPRequest("GET", rel)
 	if err != nil {
 		return err
 	}
@@ -110,7 +107,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
 	}
 
-	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
@@ -121,7 +118,8 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		}
 		return errors.NewRetriableError(err)
 	}
-	httputil.LogTransfer(config.Config, "lfs.data.download", res)
+
+	a.apiClient.LogResponse("lfs.data.download", res)
 	defer res.Body.Close()
 
 	// Range request must return 206 & content range to confirm

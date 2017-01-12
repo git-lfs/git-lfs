@@ -122,9 +122,10 @@ assert_server_object() {
 
 # assert that a lock with the given ID exists on the test server
 assert_server_lock() {
-  local id="$1"
+  local reponame="$1"
+  local id="$2"
 
-  curl -v "$GITSERVER/locks/" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 |
@@ -139,9 +140,10 @@ assert_server_lock() {
 
 # refute that a lock with the given ID exists on the test server
 refute_server_lock() {
-  local id="$1"
+  local reponame="$1"
+  local id="$2"
 
-  curl -v "$GITSERVER/locks/" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log

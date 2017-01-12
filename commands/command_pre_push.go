@@ -2,13 +2,11 @@ package commands
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/locking"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -53,11 +51,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	cfg.CurrentRemote = args[0]
-	ctx := newUploadContext(prePushDryRun)
+	ctx := newUploadContext(args[0], prePushDryRun)
 
 	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+	if err := gitscanner.RemoteForPush(ctx.Remote); err != nil {
 		ExitWithError(err)
 	}
 
@@ -65,21 +62,6 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
-
-	name, email := cfg.CurrentCommitter()
-	lc, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
-	}
-	defer lc.Close()
-
-	lockSet, err := findLocks(lc, nil, 0, false)
-	if err != nil {
-		ExitWithError(err)
-	}
-
-	lockConflicts := make([]string, 0, len(lockSet))
-	myLocks := make([]string, 0, len(lockSet))
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -95,62 +77,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		pointers, err := scanLeftOrAll(gitscanner, left)
-		if err != nil {
+		if err := uploadLeftOrAll(gitscanner, ctx, left); err != nil {
 			Print("Error scanning for Git LFS files in %q", left)
 			ExitWithError(err)
 		}
-
-		for _, p := range pointers {
-			if l, ok := lockSet[p.Name]; ok {
-				if l.Name == name && l.Email == email {
-					myLocks = append(myLocks, l.Path)
-				} else {
-					lockConflicts = append(lockConflicts, p.Name)
-				}
-			}
-		}
-
-		if len(lockConflicts) > 0 {
-			Error("Some files are locked in %s...%s", left, cfg.CurrentRemote)
-			for _, file := range lockConflicts {
-				Error("* %s", file)
-			}
-			os.Exit(1)
-		}
-
-		uploadPointers(ctx, pointers)
 	}
 
-	if len(myLocks) > 0 {
-		Print("Pushing your locked files:")
-		for _, file := range myLocks {
-			Print("* %s", file)
-		}
-	}
-}
-
-func scanLeft(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
-	var pointers []*lfs.WrappedPointer
-	var multiErr error
-	cb := func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
-			return
-		}
-
-		pointers = append(pointers, p)
-	}
-
-	if err := g.ScanLeftToRemote(ref, cb); err != nil {
-		return pointers, err
-	}
-
-	return pointers, multiErr
+	ctx.Await()
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push

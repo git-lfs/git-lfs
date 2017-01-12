@@ -6,13 +6,29 @@ begin_test "creating a lock"
 (
   set -e
 
-  setup_remote_repo_with_file "lock_create_simple" "a.dat"
+  reponame="lock_create_simple"
+  setup_remote_repo_with_file "$reponame" "a.dat"
 
   GITLFSLOCKSENABLED=1 git lfs lock "a.dat" | tee lock.log
   grep "'a.dat' was locked" lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock $id
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "creating a lock (--json)"
+(
+  set -e
+
+  reponame="lock_create_simple_json"
+  setup_remote_repo_with_file "$reponame" "a_json.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock --json "a_json.dat" | tee lock.log
+  grep "\"path\":\"a_json.dat\"" lock.log
+
+  id=$(grep -o "\"id\":\".*\"" lock.log | cut -d \" -f 4)
+  assert_server_lock "$reponame" "$id"
 )
 end_test
 
@@ -20,13 +36,14 @@ begin_test "locking a previously locked file"
 (
   set -e
 
-  setup_remote_repo_with_file "lock_create_previously_created" "b.dat"
+  reponame="lock_create_previously_created"
+  setup_remote_repo_with_file "$reponame" "b.dat"
 
   GITLFSLOCKSENABLED=1 git lfs lock "b.dat" | tee lock.log
   grep "'b.dat' was locked" lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock $id
+  assert_server_lock "$reponame" "$id"
 
   grep "lock already created" <(GITLFSLOCKSENABLED=1 git lfs lock "b.dat" 2>&1)
 )

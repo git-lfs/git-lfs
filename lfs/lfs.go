@@ -109,18 +109,13 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	}
 
 	for _, e := range osEnviron {
-		if !strings.Contains(e, "GIT_") {
+		if !strings.Contains(strings.SplitN(e, "=", 2)[0], "GIT_") {
 			continue
 		}
 		env = append(env, e)
 	}
 
 	return env
-}
-
-// TransferManifest builds a tq.Manifest using the given cfg.
-func TransferManifest(cfg *config.Configuration) *tq.Manifest {
-	return tq.NewManifestWithGitEnv(cfg.Access("download"), cfg.Git)
 }
 
 func InRepo() bool {
