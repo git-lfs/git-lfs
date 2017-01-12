@@ -183,7 +183,10 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 	}
 
 	locks := &lockList{}
-	err = lfsapi.DecodeJSON(res, locks)
+	if res.StatusCode == http.StatusOK {
+		err = lfsapi.DecodeJSON(res, locks)
+	}
+
 	return locks, res, err
 }
 
