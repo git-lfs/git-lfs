@@ -188,7 +188,6 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 		} else if strings.HasSuffix(r.URL.String(), "locks") || strings.HasSuffix(r.URL.String(), "unlock") {
 			locksHandler(w, r)
 		} else {
-			panic("asdf")
 			w.WriteHeader(404)
 		}
 	case "DELETE":
