@@ -21,10 +21,10 @@ type uploadContext struct {
 	meter progress.Meter
 	tq    *tq.TransferQueue
 
-	lockClient     *locking.Client
 	committerName  string
 	committerEmail string
 	unownedLocks   uint64
+	locks          map[string]locking.Lock
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -35,12 +35,22 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:     getTransferManifest(),
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
-		lockClient:   newLockClient(remote),
+		locks:        make(map[string]locking.Lock),
 	}
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
+
+	lockClient := newLockClient(remote)
+	locks, err := lockClient.SearchLocks(nil, 0, false)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	for _, l := range locks {
+		ctx.locks[l.Path] = l
+	}
 
 	return ctx
 }
@@ -81,15 +91,7 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 		// current committer.
 		var canUpload bool = true
 
-		lockQuery := map[string]string{"path": p.Name}
-		locks, err := c.lockClient.SearchLocks(lockQuery, 1, false)
-		if err != nil {
-			ExitWithError(err)
-		}
-
-		if len(locks) > 0 {
-			lock := locks[0]
-
+		if lock, ok := c.locks[p.Name]; ok {
 			owned := lock.Committer.Name == c.committerName &&
 				lock.Committer.Email == c.committerEmail
 
