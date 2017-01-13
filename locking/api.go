@@ -200,4 +200,9 @@ type Committer struct {
 func NewCommitter(name, email string) Committer {
 	return Committer{Name: name, Email: email}
 }
+
+// String implements the fmt.Stringer interface by returning a string
+// representation of the Committer in the format "First Last <email>".
+func (c *Committer) String() string {
+	return fmt.Sprintf("%s <%s>", c.Name, c.Email)
 }
