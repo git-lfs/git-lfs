@@ -86,7 +86,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 	lockReq := &lockRequest{
 		Path:               path,
 		LatestRemoteCommit: latest.Sha,
-		Committer:          newCommitter(c.client.CurrentUser()),
+		Committer:          NewCommitter(c.client.CurrentUser()),
 	}
 
 	lockRes, _, err := c.client.Lock(c.Remote, lockReq)
@@ -146,10 +146,9 @@ type Lock struct {
 	// Path is an absolute path to the file that is locked as a part of this
 	// lock.
 	Path string `json:"path"`
-	// Name is the name of the person holding this lock
-	Name string `json:"name"`
-	// Email address of the person holding this lock
-	Email string `json:"email"`
+	// Committer is the identity of the person who holds the ownership of
+	// this lock.
+	Committer Committer `json:"committer"`
 	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time `json:"locked_at"`
 }
@@ -267,7 +266,7 @@ func (c *Client) refreshLockCache() error {
 
 	_, email := c.client.CurrentUser()
 	for _, l := range locks {
-		if l.Email == email {
+		if l.Committer.Email == email {
 			c.cache.Add(l)
 		}
 	}

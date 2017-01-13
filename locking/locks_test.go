@@ -32,11 +32,11 @@ func TestRefreshCache(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(lockList{
 			Locks: []Lock{
-				Lock{Id: "99", Path: "folder/test3.dat", Name: "Alice", Email: "alice@wonderland.com"},
-				Lock{Id: "101", Path: "folder/test1.dat", Name: "Fred", Email: "fred@bloggs.com"},
-				Lock{Id: "102", Path: "folder/test2.dat", Name: "Fred", Email: "fred@bloggs.com"},
-				Lock{Id: "103", Path: "root.dat", Name: "Fred", Email: "fred@bloggs.com"},
-				Lock{Id: "199", Path: "other/test1.dat", Name: "Charles", Email: "charles@incharge.com"},
+				Lock{Id: "99", Path: "folder/test3.dat", Committer: Committer{Name: "Alice", Email: "alice@wonderland.com"}},
+				Lock{Id: "101", Path: "folder/test1.dat", Committer: Committer{Name: "Fred", Email: "fred@bloggs.com"}},
+				Lock{Id: "102", Path: "folder/test2.dat", Committer: Committer{Name: "Fred", Email: "fred@bloggs.com"}},
+				Lock{Id: "103", Path: "root.dat", Committer: Committer{Name: "Fred", Email: "fred@bloggs.com"}},
+				Lock{Id: "199", Path: "other/test1.dat", Committer: Committer{Name: "Charles", Email: "charles@incharge.com"}},
 			},
 		})
 		assert.Nil(t, err)
@@ -74,9 +74,9 @@ func TestRefreshCache(t *testing.T) {
 	// Sort locks for stable comparison
 	sort.Sort(LocksById(locks))
 	assert.Equal(t, []Lock{
-		Lock{Path: "folder/test1.dat", Id: "101", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
-		Lock{Path: "folder/test2.dat", Id: "102", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
-		Lock{Path: "root.dat", Id: "103", Name: "Fred", Email: "fred@bloggs.com", LockedAt: zeroTime},
+		Lock{Path: "folder/test1.dat", Id: "101", Committer: Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
+		Lock{Path: "folder/test2.dat", Id: "102", Committer: Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
+		Lock{Path: "root.dat", Id: "103", Committer: Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
 	}, locks)
 
 }
