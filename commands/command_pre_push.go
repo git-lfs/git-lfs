@@ -62,6 +62,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
