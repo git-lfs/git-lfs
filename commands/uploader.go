@@ -2,7 +2,7 @@ package commands
 
 import (
 	"os"
-	"sync/atomic"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -23,19 +23,23 @@ type uploadContext struct {
 
 	committerName  string
 	committerEmail string
-	unownedLocks   uint64
+
 	locks          map[string]locking.Lock
+	trackedLocksMu *sync.Mutex
+	ownedLocks     []locking.Lock
+	unownedLocks   []locking.Lock
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
 	cfg.CurrentRemote = remote
 
 	ctx := &uploadContext{
-		Remote:       remote,
-		Manifest:     getTransferManifest(),
-		DryRun:       dryRun,
-		uploadedOids: tools.NewStringSet(),
-		locks:        make(map[string]locking.Lock),
+		Remote:         remote,
+		Manifest:       getTransferManifest(),
+		DryRun:         dryRun,
+		uploadedOids:   tools.NewStringSet(),
+		locks:          make(map[string]locking.Lock),
+		trackedLocksMu: new(sync.Mutex),
 	}
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)
@@ -95,14 +99,14 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 			owned := lock.Committer.Name == c.committerName &&
 				lock.Committer.Email == c.committerEmail
 
+			c.trackedLocksMu.Lock()
 			if owned {
-				Print("Consider unlocking your locked file: %s", lock.Path)
+				c.ownedLocks = append(c.ownedLocks, lock)
 			} else {
-				Print("Unable to push file %s locked by: %s", lock.Path, &lock.Committer)
-
-				atomic.AddUint64(&c.unownedLocks, 1)
+				c.unownedLocks = append(c.unownedLocks, lock)
 				canUpload = false
 			}
+			c.trackedLocksMu.Unlock()
 		}
 
 		if canUpload {
@@ -145,6 +149,8 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 }
 
 func (c *uploadContext) Await() {
+	var avoidPush bool
+
 	c.tq.Wait()
 
 	for _, err := range c.tq.Errors() {
@@ -152,10 +158,26 @@ func (c *uploadContext) Await() {
 	}
 
 	if len(c.tq.Errors()) > 0 {
-		os.Exit(2)
+		avoidPush = true
 	}
 
-	if nl := atomic.LoadUint64(&c.unownedLocks); nl > 0 {
-		ExitWithError(errors.Errorf("lfs: refusing to push %d un-owned lock(s)", nl))
+	c.trackedLocksMu.Lock()
+	if ul := len(c.unownedLocks); ul > 0 {
+		avoidPush = true
+
+		Print("Unable to push %d locked file(s):", ul)
+		for _, unowned := range c.unownedLocks {
+			Print("* %s - %s", unowned.Path, &unowned.Committer)
+		}
+	} else if len(c.ownedLocks) > 0 {
+		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")
+		for _, owned := range c.ownedLocks {
+			Print("* %s", owned.Path)
+		}
+	}
+	c.trackedLocksMu.Unlock()
+
+	if avoidPush {
+		os.Exit(2)
 	}
 }

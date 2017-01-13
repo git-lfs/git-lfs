@@ -482,7 +482,8 @@ begin_test "pre-push with own lock"
 
   assert_server_lock "$id"
 
-  grep "Consider unlocking your locked file: locked.dat" push.log
+  grep "Consider unlocking your own locked file(s)" push.log
+  grep "* locked.dat" push.log
 )
 end_test
 
@@ -533,7 +534,8 @@ begin_test "pre-push with unowned lock"
       exit 1
     fi
 
-    grep "Unable to push file locked_unowned.dat locked by: Example Locker" push.log
+    grep "Unable to push 1 locked file(s)" push.log
+    grep "* locked_unowned.dat - Example Locker <locker@example.com>" push.log
   popd >/dev/null
 )
 end_test
