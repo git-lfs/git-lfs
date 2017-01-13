@@ -482,8 +482,7 @@ begin_test "pre-push with own lock"
 
   assert_server_lock "$id"
 
-  grep "Pushing your locked files:" push.log
-  grep "* locked.dat" push.log
+  grep "Consider unlocking your locked file: locked.dat" push.log
 )
 end_test
 
@@ -534,8 +533,7 @@ begin_test "pre-push with unowned lock"
       exit 1
     fi
 
-    grep "Some files are locked in $(git rev-parse HEAD)...origin" push.log
-    grep "locked_unowned.dat" push.log
+    grep "Unable to push file locked_unowned.dat locked by: Example Locker" push.log
   popd >/dev/null
 )
 end_test
