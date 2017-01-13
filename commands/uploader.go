@@ -82,7 +82,7 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 		var canUpload bool = true
 
 		lockQuery := map[string]string{"path": p.Name}
-		locks, err := c.lockClient.SearchLocks(lockQuery, 1, true)
+		locks, err := c.lockClient.SearchLocks(lockQuery, 1, false)
 		if err != nil {
 			ExitWithError(err)
 		}
@@ -90,13 +90,13 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 		if len(locks) > 0 {
 			lock := locks[0]
 
-			owned := lock.Name == c.committerName &&
-				lock.Email == c.committerEmail
+			owned := lock.Committer.Name == c.committerName &&
+				lock.Committer.Email == c.committerEmail
 
 			if owned {
 				Print("Consider unlocking your locked file: %s", lock.Path)
 			} else {
-				Print("Unable to push file %s locked by: %s", lock.Path, lock.Name)
+				Print("Unable to push file %s locked by: %s", lock.Path, &lock.Committer)
 
 				atomic.AddUint64(&c.unownedLocks, 1)
 				canUpload = false
