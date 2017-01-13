@@ -384,24 +384,6 @@ func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
 	)
 }
 
-// findLocks finds matching locks using the given "lc" *locking.Client, and all
-// other parameters for the lookup. If an error was encountered, it will be
-// returned immediately, otherise a map of lock.Path -> lock will be returned
-// instead.
-func findLocks(lc *locking.Client, filter map[string]string, limit int, localOnly bool) (map[string]locking.Lock, error) {
-	locks, err := lc.SearchLocks(filter, limit, localOnly)
-	if err != nil {
-		return nil, errors.Wrap(err, "error finding locks")
-	}
-
-	idx := make(map[string]locking.Lock, len(locks))
-	for _, l := range locks {
-		idx[l.Path] = l
-	}
-
-	return idx, nil
-}
-
 // isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
 // is "truthy" according to config.Os.Bool (see
 // github.com/git-lfs/git-lfs/config#Configuration.Env.Os), returning false
