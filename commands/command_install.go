@@ -13,6 +13,7 @@ var (
 	localInstall      = false
 	systemInstall     = false
 	skipSmudgeInstall = false
+	skipRepoInstall   = false
 )
 
 func installCommand(cmd *cobra.Command, args []string) {
@@ -41,7 +42,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 		Exit("Run `git lfs install --force` to reset git config.")
 	}
 
-	if localInstall || lfs.InRepo() {
+	if !skipRepoInstall && (localInstall || lfs.InRepo()) {
 		localstorage.InitStorageOrFail()
 		installHooksCommand(cmd, args)
 	}
@@ -60,6 +61,7 @@ func init() {
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
 		cmd.Flags().BoolVarP(&skipSmudgeInstall, "skip-smudge", "s", false, "Skip automatic downloading of objects on clone or pull.")
+		cmd.Flags().BoolVarP(&skipRepoInstall, "skip-repo", "", false, "Skip repo setup, just install global filters.")
 		cmd.AddCommand(NewCommand("hooks", installHooksCommand))
 		cmd.PreRun = setupLocalStorage
 	})
