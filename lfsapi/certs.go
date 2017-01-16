@@ -1,6 +1,7 @@
 package lfsapi
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -18,6 +19,35 @@ func isCertVerificationDisabledForHost(c *Client, host string) bool {
 	}
 
 	return c.SkipSSLVerify
+}
+
+// isClientCertEnabledForHost returns whether client certificate
+// are configured for the given host
+func isClientCertEnabledForHost(c *Client, host string) bool {
+
+	_, hostSslKeyOk := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslKey", host))
+	_, hostSslCertOk := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslCert", host))
+	_, hostSslCaInfoOk := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslCaInfo", host))
+
+	if hostSslKeyOk && hostSslCertOk && hostSslCaInfoOk {
+		return true
+	}
+
+	return false
+}
+
+// getClientCertForHost returns a client certificate for a specific host (which may
+// be "host:port" loaded from the gitconfig
+func getClientCertForHost(c *Client, host string) tls.Certificate {
+
+	hostSslKey, _ := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslKey", host))
+	hostSslCert, _ := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslCert", host))
+
+	cert, err := tls.LoadX509KeyPair(hostSslCert, hostSslKey)
+	if err != nil {
+		tracerx.Printf("Error reading client cert/key %v", err)
+	}
+	return cert
 }
 
 // getRootCAsForHost returns a certificate pool for that specific host (which may

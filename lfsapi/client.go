@@ -165,6 +165,16 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	tr.TLSClientConfig = &tls.Config{}
+
+	if isClientCertEnabledForHost(c, host) {
+
+		tracerx.Printf("using certs ...")
+
+		tr.TLSClientConfig.Certificates = []tls.Certificate{getClientCertForHost(c, host)}
+		tr.TLSClientConfig.BuildNameToCertificate()
+
+	}
+
 	if isCertVerificationDisabledForHost(c, host) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
