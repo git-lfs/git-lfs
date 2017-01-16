@@ -33,6 +33,7 @@ dependencies:
 
     # needed for git-lfs-test-server-api
     - go get -d -v github.com/spf13/cobra
+    - go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
 
 test:
   override:

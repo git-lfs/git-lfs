@@ -32,10 +32,7 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 
 	requireGitVersion()
 
-	lockClient, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err)
-	}
+	lockClient := newLockClient(cfg.CurrentRemote)
 
 	// Skip this hook if no lockable patterns have been configured
 	if len(lockClient.GetLockablePatterns()) == 0 {

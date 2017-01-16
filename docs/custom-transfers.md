@@ -129,8 +129,10 @@ Or if there was an error:
 
 #### Stage 2: 0..N Transfers
 
-After the initiation exchange, git-lfs will send any number of transfer 
-requests to the stdin of the transfer process. 
+After the initiation exchange, git-lfs will send any number of transfer
+requests to the stdin of the transfer process, in a serial sequence. Once a
+transfer request is sent to the process, it awaits a completion response before
+sending the next request.
 
 ##### Uploads
 

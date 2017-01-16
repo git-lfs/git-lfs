@@ -13,7 +13,6 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -191,14 +190,10 @@ ArgsLoop:
 		}
 	}
 	// now flip read-only mode based on lockable / not lockable changes
-	lockClient, err := locking.NewClient(cfg)
+	lockClient := newLockClient(cfg.CurrentRemote)
+	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
 		LoggedError(err, "Error changing lockable file permissions")
-	} else {
-		err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
-		if err != nil {
-			LoggedError(err, "Error changing lockable file permissions")
-		}
 	}
 }
 

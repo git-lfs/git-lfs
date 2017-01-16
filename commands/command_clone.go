@@ -62,19 +62,21 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 	// Now just call pull with default args
 	// Support --origin option to clone
+	var remote string
 	if len(cloneFlags.Origin) > 0 {
-		cfg.CurrentRemote = cloneFlags.Origin
+		remote = cloneFlags.Origin
 	} else {
-		cfg.CurrentRemote = "origin"
+		remote = "origin"
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
+		cfg.CurrentRemote = remote
 		fetchRef("HEAD", filter)
 	} else {
-		pull(filter)
+		pull(remote, filter)
 		err := postCloneSubmodules(args)
 		if err != nil {
 			Exit("Error performing 'git lfs pull' for submodules: %v", err)

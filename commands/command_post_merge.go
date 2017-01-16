@@ -3,7 +3,6 @@ package commands
 import (
 	"os"
 
-	"github.com/git-lfs/git-lfs/locking"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -25,10 +24,7 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 
 	requireGitVersion()
 
-	lockClient, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err)
-	}
+	lockClient := newLockClient(cfg.CurrentRemote)
 
 	// Skip this hook if no lockable patterns have been configured
 	if len(lockClient.GetLockablePatterns()) == 0 {
@@ -43,7 +39,7 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 	tracerx.Printf("post-merge: checking write flags for all lockable files")
 	// Sadly we don't get any information about what files were checked out,
 	// so we have to check the entire repo
-	err = lockClient.FixAllLockableFileWriteFlags()
+	err := lockClient.FixAllLockableFileWriteFlags()
 	if err != nil {
 		LoggedError(err, "Warning: post-merge locked file check failed: %v", err)
 	}

@@ -1,12 +1,12 @@
 package tq
 
 import (
+	"os"
 	"sort"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
@@ -72,17 +72,12 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // all other workers are sitting idle.
 type batch []*objectTuple
 
-func (b batch) ApiObjects() []*api.ObjectResource {
-	transfers := make([]*api.ObjectResource, 0, len(b))
+func (b batch) ToTransfers() []*Transfer {
+	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, tupleToApiObject(t))
+		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size})
 	}
-
 	return transfers
-}
-
-func tupleToApiObject(t *objectTuple) *api.ObjectResource {
-	return &api.ObjectResource{Oid: t.Oid, Size: t.Size}
 }
 
 func (b batch) Len() int           { return len(b) }
@@ -94,6 +89,8 @@ func (b batch) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 // adapters, and dealing with progress, errors and retries.
 type TransferQueue struct {
 	direction         Direction
+	client            *tqClient
+	remote            string
 	adapter           Adapter
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
@@ -147,9 +144,11 @@ func WithBufferDepth(depth int) Option {
 }
 
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func NewTransferQueue(dir Direction, manifest *Manifest, options ...Option) *TransferQueue {
+func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options ...Option) *TransferQueue {
 	q := &TransferQueue{
 		direction: dir,
+		client:    &tqClient{Client: manifest.APIClient()},
+		remote:    remote,
 		errorc:    make(chan error),
 		transfers: make(map[string]*objectTuple),
 		trMutex:   &sync.Mutex{},
@@ -281,16 +280,10 @@ func (q *TransferQueue) collectBatches() {
 // enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
 // processed.
 func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) {
-	cfg := config.Config
-
 	next := q.makeBatch()
-	transferAdapterNames := q.manifest.GetAdapterNames(q.direction)
-
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
-	objs, adapterName, err := api.Batch(
-		cfg, batch.ApiObjects(), q.transferKind(), transferAdapterNames,
-	)
+	bRes, err := Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
 	if err != nil {
 		// If there was an error making the batch API call, mark all of
 		// the objects for retry, and return them along with the error
@@ -309,12 +302,16 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		return next, err
 	}
 
-	q.useAdapter(adapterName)
+	if len(bRes.Objects) == 0 {
+		return next, nil
+	}
+
+	q.useAdapter(bRes.TransferAdapterName)
 	q.startProgress.Do(q.meter.Start)
 
-	toTransfer := make([]*Transfer, 0, len(objs))
+	toTransfer := make([]*Transfer, 0, len(bRes.Objects))
 
-	for _, o := range objs {
+	for _, o := range bRes.Objects {
 		if o.Error != nil {
 			q.errorc <- errors.Wrapf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 			q.Skip(o.Size)
@@ -336,9 +333,9 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			q.Skip(o.Size)
 			q.wait.Done()
 		} else {
-			tr := newTransfer(t.Name, o, t.Path)
+			tr := newTransfer(o, t.Name, t.Path)
 
-			if _, err := tr.Actions.Get(q.transferKind()); err != nil {
+			if _, err := tr.Actions.Get(q.direction.String()); err != nil {
 				// XXX(taylor): duplication
 				if q.canRetryObject(tr.Oid, err) {
 					q.rc.Increment(tr.Oid)
@@ -362,7 +359,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		}
 	}
 
-	retries := q.addToAdapter(toTransfer)
+	retries := q.addToAdapter(bRes.endpoint, toTransfer)
 	for t := range retries {
 		q.rc.Increment(t.Oid)
 		count := q.rc.CountFor(t.Oid)
@@ -385,10 +382,10 @@ func (q *TransferQueue) makeBatch() batch { return make(batch, 0, q.batchSize) }
 // closed.
 //
 // addToAdapter returns immediately, and does not block.
-func (q *TransferQueue) addToAdapter(pending []*Transfer) <-chan *objectTuple {
+func (q *TransferQueue) addToAdapter(e lfsapi.Endpoint, pending []*Transfer) <-chan *objectTuple {
 	retries := make(chan *objectTuple, len(pending))
 
-	if err := q.ensureAdapterBegun(); err != nil {
+	if err := q.ensureAdapterBegun(e); err != nil {
 		close(retries)
 
 		q.errorc <- err
@@ -400,22 +397,60 @@ func (q *TransferQueue) addToAdapter(pending []*Transfer) <-chan *objectTuple {
 		return retries
 	}
 
+	present, missingResults := q.partitionTransfers(pending)
+
 	go func() {
 		defer close(retries)
 
 		var results <-chan TransferResult
 		if q.dryRun {
-			results = q.makeDryRunResults(pending)
+			results = q.makeDryRunResults(present)
 		} else {
-			results = q.adapter.Add(pending...)
+			results = q.adapter.Add(present...)
 		}
 
+		for _, res := range missingResults {
+			q.handleTransferResult(res, retries)
+		}
 		for res := range results {
 			q.handleTransferResult(res, retries)
 		}
 	}()
 
 	return retries
+}
+
+func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Transfer, results []TransferResult) {
+	if q.direction != Upload {
+		return transfers, nil
+	}
+
+	present = make([]*Transfer, 0, len(transfers))
+	results = make([]TransferResult, 0, len(transfers))
+
+	for _, t := range transfers {
+		var err error
+
+		if t.Size < 0 {
+			err = errors.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
+		} else {
+			fd, serr := os.Stat(t.Path)
+			if serr != nil || fd.Size() != t.Size {
+				err = errors.Errorf("Unable to find object (%s) locally.", t.Oid)
+			}
+		}
+
+		if err != nil {
+			results = append(results, TransferResult{
+				Transfer: t,
+				Error:    err,
+			})
+		} else {
+			present = append(present, t)
+		}
+	}
+
+	return
 }
 
 // makeDryRunResults returns a channel populated immediately with "successful"
@@ -507,15 +542,7 @@ func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
 }
 
-func (q *TransferQueue) transferKind() string {
-	if q.direction == Download {
-		return "download"
-	} else {
-		return "upload"
-	}
-}
-
-func (q *TransferQueue) ensureAdapterBegun() error {
+func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
 
@@ -525,18 +552,32 @@ func (q *TransferQueue) ensureAdapterBegun() error {
 
 	// Progress callback - receives byte updates
 	cb := func(name string, total, read int64, current int) error {
-		q.meter.TransferBytes(q.transferKind(), name, read, total, current)
+		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
 		return nil
 	}
 
 	tracerx.Printf("tq: starting transfer adapter %q", q.adapter.Name())
-	err := q.adapter.Begin(q.manifest, cb)
+	err := q.adapter.Begin(q.toAdapterCfg(e), cb)
 	if err != nil {
 		return err
 	}
 	q.adapterInProgress = true
 
 	return nil
+}
+
+func (q *TransferQueue) toAdapterCfg(e lfsapi.Endpoint) AdapterConfig {
+	apiClient := q.manifest.APIClient()
+	concurrency := q.manifest.ConcurrentTransfers()
+	if apiClient.Endpoints.AccessFor(e.Url) == lfsapi.NTLMAccess {
+		concurrency = 1
+	}
+
+	return &adapterConfig{
+		concurrentTransfers: concurrency,
+		apiClient:           apiClient,
+		remote:              q.remote,
+	}
 }
 
 // Wait waits for the queue to finish processing all transfers. Once Wait is
