@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -52,7 +51,7 @@ func (t *traceWriter) Flush() {
 
 type customAdapterWorkerContext struct {
 	workerNum   int
-	cmd         *exec.Cmd
+	cmd         *subprocess.Cmd
 	stdout      io.ReadCloser
 	bufferedOut *bufio.Reader
 	stdin       io.WriteCloser
@@ -70,7 +69,8 @@ func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers
 	return &customAdapterInitRequest{"init", op, concurrent, concurrentTransfers}
 }
 
-type customAdapterTransferRequest struct { // common between upload/download
+type customAdapterTransferRequest struct {
+	// common between upload/download
 	Event  string  `json:"event"`
 	Oid    string  `json:"oid"`
 	Size   int64   `json:"size"`

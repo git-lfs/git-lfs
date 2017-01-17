@@ -445,10 +445,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
 	}
 	cmd.Start()
-	defer func() {
-		outp.Close()
-		cmd.Wait()
-	}()
+	defer cmd.Wait()
 
 	scanner := bufio.NewScanner(outp)
 
