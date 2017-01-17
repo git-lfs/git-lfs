@@ -445,7 +445,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
 	}
 	cmd.Start()
-	defer func(){
+	defer func() {
 		outp.Close()
 		cmd.Wait()
 	}()
