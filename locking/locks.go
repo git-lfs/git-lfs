@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
+	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -35,6 +39,14 @@ type Client struct {
 	Remote string
 	client *lockClient
 	cache  LockCacher
+
+	lockablePatterns []string
+	lockableFilter   *filepathfilter.Filter
+	lockableMutex    sync.Mutex
+
+	LocalWorkingDir          string
+	LocalGitDir              string
+	SetLockableFilesReadOnly bool
 }
 
 // NewClient creates a new locking client with the given configuration
@@ -103,6 +115,11 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, errors.Wrap(err, "lock cache")
 	}
 
+	// Ensure writeable on return
+	if err := tools.SetFileWriteFlag(path, true); err != nil {
+		return Lock{}, err
+	}
+
 	return lock, nil
 }
 
@@ -115,7 +132,16 @@ func (c *Client) UnlockFile(path string, force bool) error {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return c.UnlockFileById(id, force)
+	err = c.UnlockFileById(id, force)
+	if err != nil {
+		return err
+	}
+
+	// Make non-writeable if required
+	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
+		return tools.SetFileWriteFlag(path, false)
+	}
+	return nil
 
 }
 
@@ -272,6 +298,19 @@ func (c *Client) refreshLockCache() error {
 	}
 
 	return nil
+}
+
+// IsFileLockedByCurrentCommitter returns whether a file is locked by the
+// current committer, as cached locally
+func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
+
+	filter := map[string]string{"path": path}
+	locks, err := c.searchCachedLocks(filter, 1)
+	if err != nil {
+		tracerx.Printf("Error searching cached locks: %s\nForcing remote search", err)
+		locks, _ = c.searchRemoteLocks(filter, 1)
+	}
+	return len(locks) > 0
 }
 
 func init() {

@@ -311,6 +311,10 @@ func (c *Configuration) SkipDownloadErrors() bool {
 	return c.Os.Bool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.Git.Bool("lfs.skipdownloaderrors", false)
 }
 
+func (c *Configuration) SetLockableFilesReadOnly() bool {
+	return c.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) && c.Git.Bool("lfs.setlockablereadonly", true)
+}
+
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
 // accessing properties set by ReadGitConfig, namely:
 //  - `c.extensions`
