@@ -174,7 +174,7 @@ type Lock struct {
 	Path string `json:"path"`
 	// Committer is the identity of the person who holds the ownership of
 	// this lock.
-	Committer Committer `json:"committer"`
+	Committer *Committer `json:"committer"`
 	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time `json:"locked_at"`
 }
