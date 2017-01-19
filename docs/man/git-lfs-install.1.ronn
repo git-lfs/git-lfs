@@ -33,6 +33,9 @@ filters if they are not already set.
     Skips automatic downloading of objects on clone or pull. This requires a
     manual "git lfs pull" every time a new commit is checked out on your
     repository.
+* `--skip-repo`:
+    Skips setup of the local repo; use if you want to install the global lfs
+    filters but not make changes to the current repo.
 
 ## SEE ALSO
 
