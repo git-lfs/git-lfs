@@ -261,3 +261,25 @@ begin_test "install in directory without access to .git/lfs"
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
 )
 end_test
+
+
+begin_test "install in repo without changing hooks"
+(
+  set -e
+  git init non-lfs-repo
+  cd non-lfs-repo
+
+  git lfs install --skip-repo
+
+  # should not install hooks
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-merge ]
+  [ ! -f .git/hooks/post-commit ]
+
+  # filters should still be installed
+  [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
+)
+end_test
