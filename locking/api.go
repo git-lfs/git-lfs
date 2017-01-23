@@ -22,7 +22,7 @@ type lockRequest struct {
 	// `.git/refs/origin/<name>`.
 	LatestRemoteCommit string `json:"latest_remote_commit"`
 	// Committer is the individual that wishes to obtain the lock.
-	Committer Committer `json:"committer"`
+	Committer *Committer `json:"committer"`
 }
 
 // LockResponse encapsulates the information sent over the API in response to
@@ -200,8 +200,8 @@ type Committer struct {
 	Email string `json:"email"`
 }
 
-func NewCommitter(name, email string) Committer {
-	return Committer{Name: name, Email: email}
+func NewCommitter(name, email string) *Committer {
+	return &Committer{Name: name, Email: email}
 }
 
 // String implements the fmt.Stringer interface by returning a string
