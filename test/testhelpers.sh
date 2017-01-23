@@ -153,6 +153,22 @@ refute_server_lock() {
   [ $(grep -c "$id" http.json) -eq 0 ]
 }
 
+# Assert that .gitattributes contains a given attribute N times
+assert_attributes_count() {
+  local fileext="$1"
+  local attrib="$2"
+  local count="$3"
+
+  pattern="\*.$fileext.*$attrib"
+  actual=$(grep -e "$pattern" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$actual")" != "$count" ]; then
+    echo "wrong number of $attrib entries for $fileext"
+    echo "expected: $count actual: $actual"
+    cat .gitattributes
+    exit 1
+  fi
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123 <version>
@@ -335,7 +351,7 @@ setup() {
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
   mkdir "$HOME"
-  git lfs install
+  git lfs install --skip-repo
   git config --global credential.usehttppath true
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"

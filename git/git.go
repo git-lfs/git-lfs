@@ -1047,3 +1047,43 @@ func sanitizePattern(pattern string) string {
 
 	return pattern
 }
+
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
+func GetFilesChanged(from, to string) ([]string, error) {
+	var files []string
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"diff-tree",
+		"--no-commit-id",
+		"--name-only",
+		"-r",
+	}
+
+	if len(from) > 0 {
+		args = append(args, from)
+	}
+	if len(to) > 0 {
+		args = append(args, to)
+	}
+	args = append(args, "--") // no ambiguous patterns
+
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git diff: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("Failed to start git diff: %v", err)
+	}
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		files = append(files, strings.TrimSpace(scanner.Text()))
+	}
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("Git diff failed: %v", err)
+	}
+
+	return files, err
+}

@@ -291,3 +291,32 @@ func loadExcludeFilename(filename, parentDir string, excludePaths []filepathfilt
 
 	return retPaths, nil
 }
+
+// SetFileWriteFlag changes write permissions on a file
+// Used to make a file read-only or not. When writeEnabled = false, the write
+// bit is removed for all roles. When writeEnabled = true, the behaviour is
+// different per platform:
+// On Mac & Linux, the write bit is set only on the owner as per default umask.
+// All other bits are unaffected.
+// On Windows, all the write bits are set since Windows doesn't support Unix permissions.
+func SetFileWriteFlag(path string, writeEnabled bool) error {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	mode := uint32(stat.Mode())
+
+	if (writeEnabled && (mode&0200) > 0) ||
+		(!writeEnabled && (mode&0222) == 0) {
+		// no change needed
+		return nil
+	}
+
+	if writeEnabled {
+		mode = mode | 0200 // set owner write only
+		// Go's own Chmod makes Windows set all though
+	} else {
+		mode = mode &^ 0222 // disable all write
+	}
+	return os.Chmod(path, os.FileMode(mode))
+}
