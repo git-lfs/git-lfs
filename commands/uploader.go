@@ -49,11 +49,12 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	lockClient := newLockClient(remote)
 	locks, err := lockClient.SearchLocks(nil, 0, false)
 	if err != nil {
-		ExitWithError(err)
-	}
-
-	for _, l := range locks {
-		ctx.locks[l.Path] = l
+		Error("WARNING: Unable to search for locks contained in this push.")
+		Error("         Temporarily skipping check ...")
+	} else {
+		for _, l := range locks {
+			ctx.locks[l.Path] = l
+		}
 	}
 
 	return ctx
