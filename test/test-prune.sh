@@ -538,3 +538,66 @@ begin_test "prune verify"
 
 )
 end_test
+
+begin_test "prune verify large numbers of refs"
+(
+  set -e
+
+  reponame="prune_verify_large"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  content_head="HEAD content"
+  content_commit1="Recent commit"
+  content_oldcommit="Old content"
+  oid_head=$(calc_oid "$content_head")
+
+  # Add two recent commits that should not be pruned
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit}, \"Data\":\"$(uuidgen)\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -45d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit}, \"Data\":\"$(uuidgen)\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit1}, \"Data\":\"$content_commit1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # Generate a large number of refs to old commits make sure prune has a lot of data to read
+  git checkout $(git log --pretty=oneline  master | tail -2 | awk '{print $1}' | head -1)
+  for i in $(seq 0 1000); do
+    git tag v$i
+  done
+  git checkout master
+
+  # push all so no unpushed reason to not prune
+  # git push origin master
+
+  # set no recents so max ability to prune normally
+  git config lfs.fetchrecentrefsdays 3
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 3
+  git config lfs.pruneoffsetdays 3
+
+  # confirm that prune does not hang
+  git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
+
+)
+end_test
