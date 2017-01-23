@@ -524,10 +524,7 @@ begin_test "pre-push with unowned lock"
     # --no-verify is used to avoid the pre-commit hook which is not under test
     git commit --no-verify -m "add unauthroized changes"
 
-    set +e
     git push origin master 2>&1 | tee push.log
-    ok="${PIPESTATUS[0]}"
-    set -e
 
     grep "Unable to push 1 locked file(s)" push.log
     grep "* locked_unowned.dat - Example Locker <locker@example.com>" push.log
