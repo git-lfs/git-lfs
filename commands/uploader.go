@@ -150,8 +150,6 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 }
 
 func (c *uploadContext) Await() {
-	var avoidPush bool
-
 	c.tq.Wait()
 
 	for _, err := range c.tq.Errors() {
@@ -159,8 +157,10 @@ func (c *uploadContext) Await() {
 	}
 
 	if len(c.tq.Errors()) > 0 {
-		avoidPush = true
+		os.Exit(2)
 	}
+
+	var avoidPush bool
 
 	c.trackedLocksMu.Lock()
 	if ul := len(c.unownedLocks); ul > 0 {
@@ -179,6 +179,6 @@ func (c *uploadContext) Await() {
 	c.trackedLocksMu.Unlock()
 
 	if avoidPush {
-		os.Exit(2)
+		Error("WARNING: The above files would have halted this push.")
 	}
 }

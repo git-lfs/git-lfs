@@ -529,11 +529,6 @@ begin_test "pre-push with unowned lock"
     ok="${PIPESTATUS[0]}"
     set -e
 
-    if [ "0" -eq $ok ]; then
-      echo >&2 "ERR: expected push to fail, didn't..."
-      exit 1
-    fi
-
     grep "Unable to push 1 locked file(s)" push.log
     grep "* locked_unowned.dat - Example Locker <locker@example.com>" push.log
   popd >/dev/null
