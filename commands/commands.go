@@ -82,6 +82,10 @@ func newLockClient(remote string) *locking.Client {
 		Exit("Unable to create lock system: %v", err.Error())
 	}
 
+	// Configure dirs
+	lockClient.LocalWorkingDir = config.LocalWorkingDir
+	lockClient.LocalGitDir = config.LocalGitDir
+
 	return lockClient
 }
 

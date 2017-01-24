@@ -49,11 +49,12 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	lockClient := newLockClient(remote)
 	locks, err := lockClient.SearchLocks(nil, 0, false)
 	if err != nil {
-		ExitWithError(err)
-	}
-
-	for _, l := range locks {
-		ctx.locks[l.Path] = l
+		Error("WARNING: Unable to search for locks contained in this push.")
+		Error("         Temporarily skipping check ...")
+	} else {
+		for _, l := range locks {
+			ctx.locks[l.Path] = l
+		}
 	}
 
 	return ctx
@@ -149,8 +150,6 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 }
 
 func (c *uploadContext) Await() {
-	var avoidPush bool
-
 	c.tq.Wait()
 
 	for _, err := range c.tq.Errors() {
@@ -158,8 +157,10 @@ func (c *uploadContext) Await() {
 	}
 
 	if len(c.tq.Errors()) > 0 {
-		avoidPush = true
+		os.Exit(2)
 	}
+
+	var avoidPush bool
 
 	c.trackedLocksMu.Lock()
 	if ul := len(c.unownedLocks); ul > 0 {
@@ -167,7 +168,7 @@ func (c *uploadContext) Await() {
 
 		Print("Unable to push %d locked file(s):", ul)
 		for _, unowned := range c.unownedLocks {
-			Print("* %s - %s", unowned.Path, &unowned.Committer)
+			Print("* %s - %s", unowned.Path, unowned.Committer)
 		}
 	} else if len(c.ownedLocks) > 0 {
 		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")
@@ -178,6 +179,6 @@ func (c *uploadContext) Await() {
 	c.trackedLocksMu.Unlock()
 
 	if avoidPush {
-		os.Exit(2)
+		Error("WARNING: The above files would have halted this push.")
 	}
 }
