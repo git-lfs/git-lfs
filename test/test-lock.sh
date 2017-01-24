@@ -17,6 +17,21 @@ begin_test "creating a lock"
 )
 end_test
 
+begin_test "create lock with server using client cert"
+(
+  set -e
+  reponame="lock_create_client_cert"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+
+  git config lfs.url "$CLIENTCERTGITSERVER/$reponame.git/info/lfs"
+  GITLFSLOCKSENABLED=1 git lfs lock "a.dat" | tee lock.log
+  grep "'a.dat' was locked" lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "creating a lock (--json)"
 (
   set -e

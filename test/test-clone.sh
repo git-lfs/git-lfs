@@ -144,10 +144,10 @@ begin_test "clone ClientCert"
 (
 
   set -e
-#  if $TRAVIS; then
-#    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
-#    exit 0
-#  fi
+  if $TRAVIS; then
+    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
+    exit 0
+  fi
 
   reponame="test-cloneClientCert"
   setup_remote_repo "$reponame"
