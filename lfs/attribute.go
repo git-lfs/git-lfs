@@ -100,10 +100,16 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOpt
 }
 
 // Uninstall removes all properties in the path of this property.
-func (a *Attribute) Uninstall() {
-	// uninstall from both system and global
-	git.Config.UnsetSystemSection(a.Section)
-	git.Config.UnsetGlobalSection(a.Section)
+func (a *Attribute) Uninstall(opt InstallOptions) {
+	if opt.Local {
+		git.Config.UnsetLocalSection(a.Section)
+	} else if opt.System {
+		git.Config.UnsetSystemSection(a.Section)
+	} else {
+		// uninstall from both system and global
+		git.Config.UnsetSystemSection(a.Section)
+		git.Config.UnsetGlobalSection(a.Section)
+	}
 }
 
 // shouldReset determines whether or not a value is resettable given its current
