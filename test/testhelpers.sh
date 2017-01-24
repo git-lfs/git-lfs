@@ -258,6 +258,25 @@ clone_repo_ssl() {
   echo "$out"
 }
 
+# clone_repo_clientcert clones a repository from the test Git server to the subdirectory
+# $dir under $TRASHDIR, using the client cert endpoint.
+# setup_remote_repo() needs to be run first. Output is written to clone_client_cert.log.
+clone_repo_clientcert() {
+  cd "$TRASHDIR"
+
+  local reponame="$1"
+  local dir="$2"
+  echo "clone $CLIENTCERTGITSERVER/$reponame to $dir"
+  out=$(git clone "$CLIENTCERTGITSERVER/$reponame" "$dir" 2>&1)
+  cd "$dir"
+
+  git config credential.helper lfstest
+#todo setup client cert...
+
+  echo "$out" > clone_client_cert.log
+  echo "$out"
+}
+
 # setup_remote_repo_with_file creates a remote repo, clones it locally, commits
 # a file tracked by LFS, and pushes it to the remote:
 #
@@ -330,7 +349,16 @@ setup() {
     fi
   fi
 
-  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+
+  wait_for_file "$LFS_URL_FILE"
+  wait_for_file "$LFS_SSL_URL_FILE"
+  wait_for_file "$LFS_CLIENT_CERT_URL_FILE"
+  wait_for_file "$LFS_CERT_FILE"
+  wait_for_file "$LFS_CLIENT_CERT_FILE"
+  wait_for_file "$LFS_CLIENT_KEY_FILE"
+
+  LFS_CLIENT_CERT_URL=`cat $LFS_CLIENT_CERT_URL_FILE`
 
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
@@ -341,6 +369,8 @@ setup() {
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
 
   ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
@@ -359,14 +389,13 @@ setup() {
   echo "lfstest-gitserver:"
   echo "  LFSTEST_URL=$LFS_URL_FILE"
   echo "  LFSTEST_SSL_URL=$LFS_SSL_URL_FILE"
+  echo "  LFSTEST_CLIENT_CERT_URL=$LFS_CLIENT_CERT_URL_FILE ($LFS_CLIENT_CERT_URL)"
   echo "  LFSTEST_CERT=$LFS_CERT_FILE"
+  echo "  LFSTEST_CLIENT_CERT=$LFS_CLIENT_CERT_FILE"
+  echo "  LFSTEST_CLIENT_KEY=$LFS_CLIENT_KEY_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
   git config --global --get-regexp "lfs|credential|user"
-
-  wait_for_file "$LFS_URL_FILE"
-  wait_for_file "$LFS_SSL_URL_FILE"
-  wait_for_file "$LFS_CERT_FILE"
 
   echo
 }
