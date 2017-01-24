@@ -111,6 +111,12 @@ func (p *ProgressMeter) Start() {
 	}
 }
 
+func (p *ProgressMeter) Pause() {
+	if atomic.SwapInt32(&p.started, 0) == 1 {
+		p.finished <- true
+	}
+}
+
 // Add tells the progress meter that a single file of the given size will
 // possibly be transferred. If a file doesn't need to be transferred for some
 // reason, be sure to call Skip(int64) with the same size.
