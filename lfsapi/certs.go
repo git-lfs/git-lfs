@@ -26,9 +26,8 @@ func isCertVerificationDisabledForHost(c *Client, host string) bool {
 func isClientCertEnabledForHost(c *Client, host string) bool {
 	_, hostSslKeyOk := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslKey", host))
 	_, hostSslCertOk := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslCert", host))
-	_, hostSslCaInfoOk := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslCaInfo", host))
 
-	return hostSslKeyOk && hostSslCertOk && hostSslCaInfoOk
+	return hostSslKeyOk && hostSslCertOk
 }
 
 // getClientCertForHost returns a client certificate for a specific host (which may
