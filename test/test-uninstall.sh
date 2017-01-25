@@ -86,7 +86,7 @@ begin_test "uninstall inside repository with default pre-push hook"
 )
 end_test
 
-begin_test "uninstall inside repository without git lfs pre-push hook"
+begin_test "uninstall inside repository without lfs pre-push hook"
 (
   set -e
 
