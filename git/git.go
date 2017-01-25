@@ -366,9 +366,14 @@ func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
 }
 
-// UnsetGlobalSection removes the entire named section from the system config
+// UnsetSystemSection removes the entire named section from the system config
 func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
+}
+
+// UnsetLocalSection removes the entire named section from the system config
+func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file

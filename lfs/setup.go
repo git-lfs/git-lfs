@@ -59,7 +59,6 @@ var (
 
 // Get user-readable manual install steps for hooks
 func GetHookInstallSteps() string {
-
 	var buf bytes.Buffer
 	for _, h := range hooks {
 		buf.WriteString(fmt.Sprintf("Add the following to .git/hooks/%s :\n\n", h.Type))
@@ -107,7 +106,7 @@ func InstallFilters(opt InstallOptions, passThrough bool) error {
 
 // UninstallFilters proxies into the Uninstall method on the Filters type to
 // remove all installed filters.
-func UninstallFilters() error {
-	filters.Uninstall()
+func UninstallFilters(opt InstallOptions) error {
+	filters.Uninstall(opt)
 	return nil
 }
