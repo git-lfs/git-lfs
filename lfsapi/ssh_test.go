@@ -30,19 +30,20 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 		"git-lfs-authenticate user/repo download",
 	}, args)
 
-	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
-	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{
-		"user@foo.com",
-		"git-lfs-authenticate user/repo upload",
-	}, args)
-
-	endpoint.Operation = "download"
+	// this is going by endpoint.Operation, implicitly set by Endpoint() on L15.
 	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
 		"user@foo.com",
 		"git-lfs-authenticate user/repo download",
+	}, args)
+
+	endpoint.Operation = "upload"
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate user/repo upload",
 	}, args)
 }
 
