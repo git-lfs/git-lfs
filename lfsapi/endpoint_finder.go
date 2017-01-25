@@ -65,6 +65,12 @@ func NewEndpointFinder(git Env) EndpointFinder {
 }
 
 func (e *endpointGitFinder) Endpoint(operation, remote string) Endpoint {
+	ep := e.getEndpoint(operation, remote)
+	ep.Operation = operation
+	return ep
+}
+
+func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
 	if e.git == nil {
 		return Endpoint{}
 	}

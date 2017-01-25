@@ -17,19 +17,7 @@ func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse,
 		return res, nil
 	}
 
-	operation := "upload"
-	switch method {
-	case "GET", "HEAD":
-		operation = "download"
-	}
-
-	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s",
-		e.SshUserAndHost, e.SshPath, operation)
-
-	exe, args := sshGetExeAndArgs(c.osEnv, e)
-	args = append(args,
-		fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
-
+	exe, args := sshGetLFSExeAndArgs(c.osEnv, e, method)
 	cmd := exec.Command(exe, args...)
 
 	// Save stdout and stderr in separate buffers
@@ -58,6 +46,16 @@ type sshAuthResponse struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt string            `json:"expires_at"`
+}
+
+func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string) {
+	operation := endpointOperation(e, method)
+	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s",
+		e.SshUserAndHost, e.SshPath, operation)
+
+	exe, args := sshGetExeAndArgs(osEnv, e)
+	return exe, append(args,
+		fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
 }
 
 // Return the executable name for ssh on this machine and the base args
