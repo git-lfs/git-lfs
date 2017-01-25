@@ -106,8 +106,6 @@ func (a *Attribute) Uninstall(opt InstallOptions) {
 	} else if opt.System {
 		git.Config.UnsetSystemSection(a.Section)
 	} else {
-		// uninstall from both system and global
-		git.Config.UnsetSystemSection(a.Section)
 		git.Config.UnsetGlobalSection(a.Section)
 	}
 }
