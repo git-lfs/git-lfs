@@ -181,3 +181,38 @@ func TestNewRequest(t *testing.T) {
 		assert.Equal(t, test[2], req.URL.String(), fmt.Sprintf("endpoint: %s, suffix: %s, expected: %s", test[0], test[1], test[2]))
 	}
 }
+
+func TestNewRequestWithBody(t *testing.T) {
+	c, err := NewClient(nil, TestEnv(map[string]string{
+		"lfs.url": "https://example.com",
+	}))
+	require.Nil(t, err)
+
+	body := struct {
+		Test string
+	}{Test: "test"}
+	req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), "body", body)
+	require.Nil(t, err)
+
+	assert.NotNil(t, req.Body)
+	assert.Equal(t, "15", req.Header.Get("Content-Length"))
+	assert.EqualValues(t, 15, req.ContentLength)
+}
+
+func TestMarshalToRequest(t *testing.T) {
+	req, err := http.NewRequest("POST", "https://foo/bar", nil)
+	require.Nil(t, err)
+
+	assert.Nil(t, req.Body)
+	assert.Equal(t, "", req.Header.Get("Content-Length"))
+	assert.EqualValues(t, 0, req.ContentLength)
+
+	body := struct {
+		Test string
+	}{Test: "test"}
+	require.Nil(t, MarshalToRequest(req, body))
+
+	assert.NotNil(t, req.Body)
+	assert.Equal(t, "15", req.Header.Get("Content-Length"))
+	assert.EqualValues(t, 15, req.ContentLength)
+}

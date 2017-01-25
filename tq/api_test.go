@@ -19,6 +19,7 @@ func TestAPIBatch(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "80", r.Header.Get("Content-Length"))
 
 		bReq := &batchRequest{}
 		err := json.NewDecoder(r.Body).Decode(bReq)
