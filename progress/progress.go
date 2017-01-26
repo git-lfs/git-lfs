@@ -4,6 +4,7 @@ package progress
 
 type Meter interface {
 	Start()
+	Pause()
 	Add(int64)
 	Skip(size int64)
 	StartTransfer(name string)

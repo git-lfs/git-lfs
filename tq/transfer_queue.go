@@ -105,7 +105,6 @@ type TransferQueue struct {
 	errorc        chan error // Channel for processing errors
 	watchers      []chan string
 	trMutex       *sync.Mutex
-	startProgress sync.Once
 	collectorWait sync.WaitGroup
 	errorwait     sync.WaitGroup
 	// wait is used to keep track of pending transfers. It is incremented
@@ -283,6 +282,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	next := q.makeBatch()
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
+	q.meter.Pause()
 	bRes, err := Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
 	if err != nil {
 		// If there was an error making the batch API call, mark all of
@@ -307,7 +307,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	}
 
 	q.useAdapter(bRes.TransferAdapterName)
-	q.startProgress.Do(q.meter.Start)
+	q.meter.Start()
 
 	toTransfer := make([]*Transfer, 0, len(bRes.Objects))
 
