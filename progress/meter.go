@@ -106,13 +106,14 @@ func NewMeter(options ...meterOption) *ProgressMeter {
 
 // Start begins sending status updates to the optional log file, and stdout.
 func (p *ProgressMeter) Start() {
-	if atomic.SwapInt32(&p.started, 1) == 0 {
+	if atomic.CompareAndSwapInt32(&p.started, 0, 1) {
 		go p.writer()
 	}
 }
 
+// Pause stops sending status updates temporarily, until Start() is called again.
 func (p *ProgressMeter) Pause() {
-	if atomic.SwapInt32(&p.started, 0) == 1 {
+	if atomic.CompareAndSwapInt32(&p.started, 1, 0) {
 		p.finished <- true
 	}
 }
