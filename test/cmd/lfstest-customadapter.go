@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -26,10 +27,14 @@ var cfg = config.New()
 // All we actually do is relay the requests back to the normal storage URLs
 // of our test server for simplicity, but this proves the principle
 func main() {
-
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(os.Stdout)
 	errWriter := bufio.NewWriter(os.Stderr)
+	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		writeToStderr("Error creating api client: "+err.Error(), errWriter)
+		os.Exit(1)
+	}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -46,10 +51,10 @@ func main() {
 			sendResponse(resp, writer, errWriter)
 		case "download":
 			writeToStderr(fmt.Sprintf("Received download request for %s\n", req.Oid), errWriter)
-			performDownload(req.Oid, req.Size, req.Action, writer, errWriter)
+			performDownload(apiClient, req.Oid, req.Size, req.Action, writer, errWriter)
 		case "upload":
 			writeToStderr(fmt.Sprintf("Received upload request for %s\n", req.Oid), errWriter)
-			performUpload(req.Oid, req.Size, req.Action, req.Path, writer, errWriter)
+			performUpload(apiClient, req.Oid, req.Size, req.Action, req.Path, writer, errWriter)
 		case "terminate":
 			writeToStderr("Terminating test custom adapter gracefully.\n", errWriter)
 			break
@@ -98,15 +103,20 @@ func sendProgress(oid string, bytesSoFar int64, bytesSinceLast int, writer, errW
 	}
 }
 
-func performDownload(oid string, size int64, a *action, writer, errWriter *bufio.Writer) {
+func performDownload(apiClient *lfsapi.Client, oid string, size int64, a *action, writer, errWriter *bufio.Writer) {
 	// We just use the URLs we're given, so we're just a proxy for the direct method
 	// but this is enough to test intermediate custom adapters
-	req, err := httputil.NewHttpRequest("GET", a.Href, a.Header)
+	req, err := http.NewRequest("GET", a.Href, nil)
 	if err != nil {
 		sendTransferError(oid, 2, err.Error(), writer, errWriter)
 		return
 	}
-	res, err := httputil.DoHttpRequest(cfg, req, true)
+
+	for k := range a.Header {
+		req.Header.Set(k, a.Header[k])
+	}
+
+	res, err := apiClient.DoWithAuth("origin", req)
 	if err != nil {
 		sendTransferError(oid, res.StatusCode, err.Error(), writer, errWriter)
 		return
@@ -145,13 +155,17 @@ func performDownload(oid string, size int64, a *action, writer, errWriter *bufio
 	}
 }
 
-func performUpload(oid string, size int64, a *action, fromPath string, writer, errWriter *bufio.Writer) {
+func performUpload(apiClient *lfsapi.Client, oid string, size int64, a *action, fromPath string, writer, errWriter *bufio.Writer) {
 	// We just use the URLs we're given, so we're just a proxy for the direct method
 	// but this is enough to test intermediate custom adapters
-	req, err := httputil.NewHttpRequest("PUT", a.Href, a.Header)
+	req, err := http.NewRequest("PUT", a.Href, nil)
 	if err != nil {
 		sendTransferError(oid, 2, err.Error(), writer, errWriter)
 		return
+	}
+
+	for k := range a.Header {
+		req.Header.Set(k, a.Header[k])
 	}
 
 	if len(req.Header.Get("Content-Type")) == 0 {
@@ -178,23 +192,18 @@ func performUpload(oid string, size int64, a *action, fromPath string, writer, e
 		sendProgress(oid, readSoFar, readSinceLast, writer, errWriter)
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         cb,
-		TotalSize: size,
-		Reader:    f,
-	}
+	req.Body = progress.NewBodyWithCallback(f, size, cb)
 
-	req.Body = ioutil.NopCloser(reader)
-
-	res, err := httputil.DoHttpRequest(cfg, req, true)
+	res, err := apiClient.DoWithAuth("origin", req)
 	if err != nil {
 		sendTransferError(oid, res.StatusCode, fmt.Sprintf("Error uploading data for %s: %v", oid, err), writer, errWriter)
 		return
 	}
 
 	if res.StatusCode > 299 {
-		sendTransferError(oid, res.StatusCode, fmt.Sprintf("Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode), writer, errWriter)
+		msg := fmt.Sprintf("Invalid status for %s %s: %d",
+			req.Method, strings.SplitN(req.URL.String(), "?", 2)[0], res.StatusCode)
+		sendTransferError(oid, res.StatusCode, msg, writer, errWriter)
 		return
 	}
 

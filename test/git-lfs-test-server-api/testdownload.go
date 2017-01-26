@@ -6,11 +6,12 @@ import (
 	"fmt"
 
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // "download" - all present
-func downloadAllExist(oidsExist, oidsMissing []TestObject) error {
-	retobjs, err := callBatchApi("download", oidsExist)
+func downloadAllExist(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+	retobjs, err := callBatchApi(manifest, tq.Download, oidsExist)
 
 	if err != nil {
 		return err
@@ -36,8 +37,8 @@ func downloadAllExist(oidsExist, oidsMissing []TestObject) error {
 }
 
 // "download" - all missing (test includes 404 error entry)
-func downloadAllMissing(oidsExist, oidsMissing []TestObject) error {
-	retobjs, err := callBatchApi("download", oidsMissing)
+func downloadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+	retobjs, err := callBatchApi(manifest, tq.Download, oidsMissing)
 
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func downloadAllMissing(oidsExist, oidsMissing []TestObject) error {
 			errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %s\n", o.Oid, link))
 		}
 		if o.Error == nil {
-			errbuf.WriteString(fmt.Sprintf("Download should include an error for missing object %s, was %s\n", o.Oid))
+			errbuf.WriteString(fmt.Sprintf("Download should include an error for missing object %s\n", o.Oid))
 		} else if o.Error.Code != 404 {
 			errbuf.WriteString(fmt.Sprintf("Download error code for missing object %s should be 404, got %d\n", o.Oid, o.Error.Code))
 		}
@@ -68,8 +69,7 @@ func downloadAllMissing(oidsExist, oidsMissing []TestObject) error {
 }
 
 // "download" - mixture
-func downloadMixed(oidsExist, oidsMissing []TestObject) error {
-
+func downloadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)
@@ -80,7 +80,7 @@ func downloadMixed(oidsExist, oidsMissing []TestObject) error {
 	}
 
 	calloids := interleaveTestData(oidsExist, oidsMissing)
-	retobjs, err := callBatchApi("download", calloids)
+	retobjs, err := callBatchApi(manifest, tq.Download, calloids)
 
 	if err != nil {
 		return err

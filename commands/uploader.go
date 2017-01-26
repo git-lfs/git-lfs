@@ -2,25 +2,62 @@ package commands
 
 import (
 	"os"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 )
 
-var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which matches %s."
-
 type uploadContext struct {
+	Remote       string
 	DryRun       bool
+	Manifest     *tq.Manifest
 	uploadedOids tools.StringSet
+
+	meter progress.Meter
+	tq    *tq.TransferQueue
+
+	committerName  string
+	committerEmail string
+
+	locks          map[string]locking.Lock
+	trackedLocksMu *sync.Mutex
+	ownedLocks     []locking.Lock
+	unownedLocks   []locking.Lock
 }
 
-func newUploadContext(dryRun bool) *uploadContext {
-	return &uploadContext{
-		DryRun:       dryRun,
-		uploadedOids: tools.NewStringSet(),
+func newUploadContext(remote string, dryRun bool) *uploadContext {
+	cfg.CurrentRemote = remote
+
+	ctx := &uploadContext{
+		Remote:         remote,
+		Manifest:       getTransferManifest(),
+		DryRun:         dryRun,
+		uploadedOids:   tools.NewStringSet(),
+		locks:          make(map[string]locking.Lock),
+		trackedLocksMu: new(sync.Mutex),
 	}
+
+	ctx.meter = buildProgressMeter(ctx.DryRun)
+	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
+	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
+
+	lockClient := newLockClient(remote)
+	locks, err := lockClient.SearchLocks(nil, 0, false)
+	if err != nil {
+		Error("WARNING: Unable to search for locks contained in this push.")
+		Error("         Temporarily skipping check ...")
+	} else {
+		for _, l := range locks {
+			ctx.locks[l.Path] = l
+		}
+	}
+
+	return ctx
 }
 
 // AddUpload adds the given oid to the set of oids that have been uploaded in
@@ -35,12 +72,9 @@ func (c *uploadContext) HasUploaded(oid string) bool {
 	return c.uploadedOids.Contains(oid)
 }
 
-func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
+func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
 	numUnfiltered := len(unfiltered)
 	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
-	missingLocalObjects := make([]*lfs.WrappedPointer, 0, numUnfiltered)
-	missingSize := int64(0)
-	meter := buildProgressMeter(c.DryRun)
 
 	// XXX(taylor): temporary measure to fix duplicate (broken) results from
 	// scanner
@@ -56,75 +90,40 @@ func (c *uploadContext) prepareUpload(unfiltered []*lfs.WrappedPointer) (*tq.Tra
 		}
 		uniqOids.Add(p.Oid)
 
-		// estimate in meter early (even if it's not going into uploadables), since
-		// we will call Skip() based on the results of the download check queue.
-		meter.Add(p.Size)
+		// canUpload determines whether the current pointer "p" can be
+		// uploaded through the TransferQueue below. It is set to false
+		// only when the file is locked by someone other than the
+		// current committer.
+		var canUpload bool = true
 
-		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+		if lock, ok := c.locks[p.Name]; ok {
+			owned := lock.Committer.Name == c.committerName &&
+				lock.Committer.Email == c.committerEmail
+
+			c.trackedLocksMu.Lock()
+			if owned {
+				c.ownedLocks = append(c.ownedLocks, lock)
+			} else {
+				c.unownedLocks = append(c.unownedLocks, lock)
+				canUpload = false
+			}
+			c.trackedLocksMu.Unlock()
+		}
+
+		if canUpload {
+			// estimate in meter early (even if it's not going into
+			// uploadables), since we will call Skip() based on the
+			// results of the download check queue.
+			c.meter.Add(p.Size)
+
 			uploadables = append(uploadables, p)
-		} else {
-			// We think we need to push this but we don't have it
-			// Store for server checking later
-			missingLocalObjects = append(missingLocalObjects, p)
-			missingSize += p.Size
 		}
 	}
 
-	// check to see if the server has the missing objects.
-	c.checkMissing(missingLocalObjects, missingSize)
-
-	// build the TransferQueue, automatically skipping any missing objects that
-	// the server already has.
-	uploadQueue := newUploadQueue(tq.WithProgress(meter), tq.DryRun(c.DryRun))
-	for _, p := range missingLocalObjects {
-		if c.HasUploaded(p.Oid) {
-			// if the server already has this object, call Skip() on
-			// the progressmeter to decrement the number of files by
-			// 1 and the number of bytes by `p.Size`.
-			uploadQueue.Skip(p.Size)
-		} else {
-			uploadables = append(uploadables, p)
-		}
-	}
-
-	return uploadQueue, uploadables
+	return c.tq, uploadables
 }
 
-// This checks the given slice of pointers that don't exist in .git/lfs/objects
-// against the server. Anything the server already has does not need to be
-// uploaded again.
-func (c *uploadContext) checkMissing(missing []*lfs.WrappedPointer, missingSize int64) {
-	numMissing := len(missing)
-	if numMissing == 0 {
-		return
-	}
-
-	checkQueue := newDownloadCheckQueue()
-	transferCh := checkQueue.Watch()
-
-	done := make(chan int)
-	go func() {
-		// this channel is filled with oids for which Check() succeeded
-		// and Transfer() was called
-		for oid := range transferCh {
-			c.SetUploaded(oid)
-		}
-		done <- 1
-	}()
-
-	for _, p := range missing {
-		checkQueue.Add(downloadTransfer(p))
-	}
-
-	// Currently this is needed to flush the batch but is not enough to sync
-	// transferc completely. By the time that checkQueue.Wait() returns, the
-	// transferCh will have been closed, allowing the goroutine above to
-	// send "1" into the `done` channel.
-	checkQueue.Wait()
-	<-done
-}
-
-func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
+func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 	if c.DryRun {
 		for _, p := range unfiltered {
 			if c.HasUploaded(p.Oid) {
@@ -138,28 +137,48 @@ func uploadPointers(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 		return
 	}
 
-	q, pointers := c.prepareUpload(unfiltered)
+	q, pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
-		t, err := uploadTransfer(p.Oid, p.Name)
-		if err != nil {
-			if errors.IsCleanPointerError(err) {
-				Exit(uploadMissingErr, p.Oid, p.Name, errors.GetContext(err, "pointer").(*lfs.Pointer).Oid)
-			} else {
-				ExitWithError(err)
-			}
+		t, err := uploadTransfer(p)
+		if err != nil && !errors.IsCleanPointerError(err) {
+			ExitWithError(err)
 		}
 
 		q.Add(t.Name, t.Path, t.Oid, t.Size)
 		c.SetUploaded(p.Oid)
 	}
+}
 
-	q.Wait()
+func (c *uploadContext) Await() {
+	c.tq.Wait()
 
-	for _, err := range q.Errors() {
+	for _, err := range c.tq.Errors() {
 		FullError(err)
 	}
 
-	if len(q.Errors()) > 0 {
+	if len(c.tq.Errors()) > 0 {
 		os.Exit(2)
+	}
+
+	var avoidPush bool
+
+	c.trackedLocksMu.Lock()
+	if ul := len(c.unownedLocks); ul > 0 {
+		avoidPush = true
+
+		Print("Unable to push %d locked file(s):", ul)
+		for _, unowned := range c.unownedLocks {
+			Print("* %s - %s", unowned.Path, unowned.Committer)
+		}
+	} else if len(c.ownedLocks) > 0 {
+		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")
+		for _, owned := range c.ownedLocks {
+			Print("* %s", owned.Path)
+		}
+	}
+	c.trackedLocksMu.Unlock()
+
+	if avoidPush {
+		Error("WARNING: The above files would have halted this push.")
 	}
 }

@@ -67,7 +67,7 @@ lfs option can be scoped inside the configuration for a remote.
 
   If set to true, this enables resumable uploads of LFS objects through the
   tus.io API. Once this feature is finalized, this setting will be removed,
-  and tus.io uploads will be available for all clients. 
+  and tus.io uploads will be available for all clients.
 
 * `lfs.customtransfer.<name>.path`
 
@@ -222,6 +222,15 @@ lfs option can be scoped inside the configuration for a remote.
   * `downloaded` The number of bytes already downloaded.
   * `total` The entire size of the file, in bytes.
   * `name` The name of the file.
+
+* `GIT_LFS_SET_LOCKABLE_READONLY`
+  `lfs.setlockablereadonly`
+
+  These settings, the first an environment variable and the second a gitconfig
+  setting, control whether files marked as 'lockable' in `git lfs track` are
+  made read-only in the working copy when not locked by the current user.
+  The default is `true`; you can disable this behaviour and have all files
+  writeable by setting either variable to 0, 'no' or 'false'.
 
 ## SEE ALSO
 

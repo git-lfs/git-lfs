@@ -6,11 +6,12 @@ import (
 	"fmt"
 
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // "upload" - all missing
-func uploadAllMissing(oidsExist, oidsMissing []TestObject) error {
-	retobjs, err := callBatchApi("upload", oidsMissing)
+func uploadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+	retobjs, err := callBatchApi(manifest, tq.Upload, oidsMissing)
 
 	if err != nil {
 		return err
@@ -37,8 +38,8 @@ func uploadAllMissing(oidsExist, oidsMissing []TestObject) error {
 }
 
 // "upload" - all present
-func uploadAllExists(oidsExist, oidsMissing []TestObject) error {
-	retobjs, err := callBatchApi("upload", oidsExist)
+func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+	retobjs, err := callBatchApi(manifest, tq.Upload, oidsExist)
 
 	if err != nil {
 		return err
@@ -64,8 +65,7 @@ func uploadAllExists(oidsExist, oidsMissing []TestObject) error {
 }
 
 // "upload" - mix of missing & present
-func uploadMixed(oidsExist, oidsMissing []TestObject) error {
-
+func uploadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)
@@ -76,7 +76,7 @@ func uploadMixed(oidsExist, oidsMissing []TestObject) error {
 	}
 
 	calloids := interleaveTestData(oidsExist, oidsMissing)
-	retobjs, err := callBatchApi("upload", calloids)
+	retobjs, err := callBatchApi(manifest, tq.Upload, calloids)
 
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func uploadMixed(oidsExist, oidsMissing []TestObject) error {
 
 }
 
-func uploadEdgeCases(oidsExist, oidsMissing []TestObject) error {
+func uploadEdgeCases(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	errorCases := make([]TestObject, 0, 5)
 	errorCodeMap := make(map[string]int, 5)
 	errorReasonMap := make(map[string]string, 5)
@@ -149,7 +149,7 @@ func uploadEdgeCases(oidsExist, oidsMissing []TestObject) error {
 	validReasonMap[sha] = "Zero size should be allowed"
 
 	calloids := interleaveTestData(errorCases, validCases)
-	retobjs, err := callBatchApi("upload", calloids)
+	retobjs, err := callBatchApi(manifest, tq.Upload, calloids)
 
 	if err != nil {
 		return err

@@ -6,11 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
-	"github.com/git-lfs/git-lfs/api"
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 )
 
@@ -50,7 +49,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		// return fmt.Errorf("No upload action for this object.")
 	}
 
-	req, err := httputil.NewHttpRequest("PUT", rel.Href, rel.Header)
+	req, err := a.newHTTPRequest("PUT", rel)
 	if err != nil {
 		return err
 	}
@@ -81,27 +80,24 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		}
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         ccb,
-		TotalSize: t.Size,
-		Reader:    f,
-	}
+	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(f, t.Size, ccb)
 
 	// Signal auth was ok on first read; this frees up other workers to start
 	if authOkFunc != nil {
-		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
+		reader = newStartCallbackReader(reader, func() error {
 			authOkFunc()
+			return nil
 		})
 	}
 
-	req.Body = ioutil.NopCloser(reader)
+	req.Body = reader
 
-	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
-	httputil.LogTransfer(config.Config, "lfs.data.upload", res)
+
+	a.apiClient.LogResponse("lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
@@ -111,32 +107,41 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
+		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
+			req.Method,
+			strings.SplitN(req.URL.String(), "?", 2)[0],
+			res.StatusCode,
+		)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(config.Config, toApiObject(t))
+	return verifyUpload(a.apiClient, t)
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the
 // first Read() call is made. This callback is only made once
 type startCallbackReader struct {
-	r      io.Reader
-	cb     func(*startCallbackReader)
+	cb     func() error
 	cbDone bool
+	lfsapi.ReadSeekCloser
 }
 
 func (s *startCallbackReader) Read(p []byte) (n int, err error) {
 	if !s.cbDone && s.cb != nil {
-		s.cb(s)
+		if err := s.cb(); err != nil {
+			return 0, err
+		}
 		s.cbDone = true
 	}
-	return s.r.Read(p)
+	return s.ReadSeekCloser.Read(p)
 }
-func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCallbackReader {
-	return &startCallbackReader{r, cb, false}
+func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCallbackReader {
+	return &startCallbackReader{
+		ReadSeekCloser: r,
+		cb:             cb,
+	}
 }
 
 func configureBasicUploadAdapter(m *Manifest) {

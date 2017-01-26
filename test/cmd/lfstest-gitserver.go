@@ -6,16 +6,22 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"math"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
@@ -27,13 +33,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
 var (
-	repoDir      string
-	largeObjects = newLfsStorage()
-	server       *httptest.Server
-	serverTLS    *httptest.Server
+	repoDir          string
+	largeObjects     = newLfsStorage()
+	server           *httptest.Server
+	serverTLS        *httptest.Server
+	serverClientCert *httptest.Server
 
 	// maps OIDs to content strings. Both the LFS and Storage test servers below
 	// see OIDs.
@@ -59,6 +68,28 @@ func main() {
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
 	serverTLS = httptest.NewTLSServer(mux)
+	serverClientCert = httptest.NewUnstartedServer(mux)
+
+	//setup Client Cert server
+	rootKey, rootCert := generateCARootCertificates()
+	_, clientCertPEM, clientKeyPEM := generateClientCertificates(rootCert, rootKey)
+
+	certPool := x509.NewCertPool()
+	certPool.AddCert(rootCert)
+
+	serverClientCert.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverTLS.TLS.Certificates[0]},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    certPool,
+	}
+	serverClientCert.StartTLS()
+
+	ntlmSession, err := ntlm.CreateServerSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
+	if err != nil {
+		fmt.Println("Error creating ntlm session:", err)
+		os.Exit(1)
+	}
+	ntlmSession.SetUserInfo("ntlmuser", "ntlmpass", "NTLMDOMAIN")
 
 	stopch := make(chan bool)
 
@@ -68,16 +99,22 @@ func main() {
 
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
-	mux.HandleFunc("/locks", locksHandler)
-	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, ok := reqId(w)
 		if !ok {
 			return
 		}
 
+		if strings.Contains(r.URL.Path, "/info/lfs/locks") {
+			if !skipIfBadAuth(w, r, id, ntlmSession) {
+				locksHandler(w, r)
+			}
+
+			return
+		}
+
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if !skipIfBadAuth(w, r, id) {
+			if !skipIfBadAuth(w, r, id, ntlmSession) {
 				lfsHandler(w, r, id)
 			}
 
@@ -94,15 +131,26 @@ func main() {
 	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
+	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-ssl")
+	defer os.RemoveAll(clientCertUrlname)
+
 	block := &pem.Block{}
 	block.Type = "CERTIFICATE"
 	block.Bytes = serverTLS.TLS.Certificates[0].Certificate[0]
 	pembytes := pem.EncodeToMemory(block)
+
 	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
 	defer os.RemoveAll(certname)
 
+	cccertname := writeTestStateFile(clientCertPEM, "LFSTEST_CLIENT_CERT", "lfstest-gitserver-client-cert")
+	defer os.RemoveAll(cccertname)
+
+	ckcertname := writeTestStateFile(clientKeyPEM, "LFSTEST_CLIENT_KEY", "lfstest-gitserver-client-key")
+	defer os.RemoveAll(ckcertname)
+
 	debug("init", "server url: %s", server.URL)
 	debug("init", "server tls url: %s", serverTLS.URL)
+	debug("init", "server client cert url: %s", serverClientCert.URL)
 
 	<-stopch
 	debug("init", "git server done")
@@ -140,8 +188,20 @@ type lfsLink struct {
 }
 
 type lfsError struct {
-	Code    int    `json:"code"`
+	Code    int    `json:"code,omitempty"`
 	Message string `json:"message"`
+}
+
+func writeLFSError(w http.ResponseWriter, code int, msg string) {
+	by, err := json.Marshal(&lfsError{Message: msg})
+	if err != nil {
+		http.Error(w, "json encoding error: "+err.Error(), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
+	w.WriteHeader(code)
+	w.Write(by)
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -159,13 +219,19 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 	case "POST":
 		if strings.HasSuffix(r.URL.String(), "batch") {
 			lfsBatchHandler(w, r, id, repo)
+		} else if strings.HasSuffix(r.URL.String(), "locks") || strings.HasSuffix(r.URL.String(), "unlock") {
+			locksHandler(w, r)
 		} else {
 			w.WriteHeader(404)
 		}
 	case "DELETE":
 		lfsDeleteHandler(w, r, id, repo)
 	case "GET":
-		w.WriteHeader(404)
+		if strings.Contains(r.URL.String(), "/locks") {
+			locksHandler(w, r)
+		} else {
+			w.WriteHeader(404)
+		}
 	default:
 		w.WriteHeader(405)
 	}
@@ -435,13 +501,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			return
 		case "status-storage-503":
-			w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
-			w.WriteHeader(503)
-
-			json.NewEncoder(w).Encode(&struct {
-				Message string `json:"message"`
-			}{"LFS is temporarily unavailable"})
-
+			writeLFSError(w, 503, "LFS is temporarily unavailable")
 			return
 		case "object-authenticated":
 			if len(r.Header.Get("Authorization")) > 0 {
@@ -784,7 +844,9 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		if !lockRe.MatchString(r.URL.Path) {
-			http.NotFound(w, r)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"unknown path: ` + r.URL.Path + `"}`))
 		} else {
 			if err := r.ParseForm(); err != nil {
 				http.Error(w, "could not parse form values", http.StatusInternalServerError)
@@ -793,6 +855,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 
 			ll := &LockList{}
 			locks := getLocks()
+			w.Header().Set("Content-Type", "application/json")
 
 			if cursor := r.FormValue("cursor"); cursor != "" {
 				lastSeen := -1
@@ -848,6 +911,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			enc.Encode(ll)
 		}
 	case "POST":
+		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
 			var unlockRequest UnlockRequest
 			if err := dec.Decode(&unlockRequest); err != nil {
@@ -925,15 +989,12 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
+		writeLFSError(w, 403, err.Error())
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
-		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
+		writeLFSError(w, 403, fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass))
 		return true
 	}
 
@@ -1078,8 +1139,12 @@ func extractAuth(auth string) (string, string, error) {
 	return "", "", nil
 }
 
-func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
+func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string, ntlmSession ntlm.ServerSession) bool {
 	auth := r.Header.Get("Authorization")
+	if strings.Contains(r.URL.Path, "ntlm") {
+		return false
+	}
+
 	if auth == "" {
 		w.WriteHeader(401)
 		return true
@@ -1111,6 +1176,49 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 	return true
 }
 
+func handleNTLM(w http.ResponseWriter, r *http.Request, authHeader string, session ntlm.ServerSession) {
+	if strings.HasPrefix(strings.ToUpper(authHeader), "BASIC ") {
+		authHeader = ""
+	}
+
+	switch authHeader {
+	case "":
+		w.Header().Set("Www-Authenticate", "ntlm")
+		w.WriteHeader(401)
+
+	// ntlmNegotiateMessage from httputil pkg
+	case "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB":
+		ch, err := session.GenerateChallengeMessage()
+		if err != nil {
+			writeLFSError(w, 500, err.Error())
+			return
+		}
+
+		chMsg := base64.StdEncoding.EncodeToString(ch.Bytes())
+		w.Header().Set("Www-Authenticate", "ntlm "+chMsg)
+		w.WriteHeader(401)
+
+	default:
+		if !strings.HasPrefix(strings.ToUpper(authHeader), "NTLM ") {
+			writeLFSError(w, 500, "bad authorization header: "+authHeader)
+			return
+		}
+
+		auth := authHeader[5:] // strip "ntlm " prefix
+		val, err := base64.StdEncoding.DecodeString(auth)
+		if err != nil {
+			writeLFSError(w, 500, "base64 decode error: "+err.Error())
+			return
+		}
+
+		_, err = ntlm.ParseAuthenticateMessage(val, 2)
+		if err != nil {
+			writeLFSError(w, 500, "auth parse error: "+err.Error())
+			return
+		}
+	}
+}
+
 func init() {
 	oidHandlers = make(map[string]string)
 	for _, content := range contentHandlers {
@@ -1137,4 +1245,96 @@ func reqId(w http.ResponseWriter) (string, bool) {
 		return "", false
 	}
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), true
+}
+
+// https://ericchiang.github.io/post/go-tls/
+func generateCARootCertificates() (rootKey *rsa.PrivateKey, rootCert *x509.Certificate) {
+
+	// generate a new key-pair
+	rootKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatalf("generating random key: %v", err)
+	}
+
+	rootCertTmpl, err := CertTemplate()
+	if err != nil {
+		log.Fatalf("creating cert template: %v", err)
+	}
+	// describe what the certificate will be used for
+	rootCertTmpl.IsCA = true
+	rootCertTmpl.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature
+	rootCertTmpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
+	//	rootCertTmpl.IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
+
+	rootCert, _, err = CreateCert(rootCertTmpl, rootCertTmpl, &rootKey.PublicKey, rootKey)
+
+	return
+}
+
+func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{}) (clientKey *rsa.PrivateKey, clientCertPEM []byte, clientKeyPEM []byte) {
+
+	// create a key-pair for the client
+	clientKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatalf("generating random key: %v", err)
+	}
+
+	// create a template for the client
+	clientCertTmpl, err1 := CertTemplate()
+	if err1 != nil {
+		log.Fatalf("creating cert template: %v", err1)
+	}
+	clientCertTmpl.KeyUsage = x509.KeyUsageDigitalSignature
+	clientCertTmpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	// the root cert signs the cert by again providing its private key
+	_, clientCertPEM, err2 := CreateCert(clientCertTmpl, rootCert, &clientKey.PublicKey, rootKey)
+	if err2 != nil {
+		log.Fatalf("error creating cert: %v", err2)
+	}
+
+	// encode and load the cert and private key for the client
+	clientKeyPEM = pem.EncodeToMemory(&pem.Block{
+		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientKey),
+	})
+
+	return
+}
+
+// helper function to create a cert template with a serial number and other required fields
+func CertTemplate() (*x509.Certificate, error) {
+	// generate a random serial number (a real cert authority would have some logic behind this)
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return nil, errors.New("failed to generate serial number: " + err.Error())
+	}
+
+	tmpl := x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               pkix.Name{Organization: []string{"Yhat, Inc."}},
+		SignatureAlgorithm:    x509.SHA256WithRSA,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour), // valid for an hour
+		BasicConstraintsValid: true,
+	}
+	return &tmpl, nil
+}
+
+func CreateCert(template, parent *x509.Certificate, pub interface{}, parentPriv interface{}) (
+	cert *x509.Certificate, certPEM []byte, err error) {
+
+	certDER, err := x509.CreateCertificate(rand.Reader, template, parent, pub, parentPriv)
+	if err != nil {
+		return
+	}
+	// parse the resulting certificate so we can use it again
+	cert, err = x509.ParseCertificate(certDER)
+	if err != nil {
+		return
+	}
+	// PEM encode the certificate (this is a standard TLS encoding)
+	b := pem.Block{Type: "CERTIFICATE", Bytes: certDER}
+	certPEM = pem.EncodeToMemory(&b)
+	return
 }

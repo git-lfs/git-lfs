@@ -366,9 +366,14 @@ func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
 }
 
-// UnsetGlobalSection removes the entire named section from the system config
+// UnsetSystemSection removes the entire named section from the system config
 func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
+}
+
+// UnsetLocalSection removes the entire named section from the system config
+func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
@@ -573,6 +578,27 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 	}
 }
 
+func isCygwin() bool {
+	cmd := subprocess.ExecCommand("uname")
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	return bytes.Contains(out, []byte("CYGWIN"))
+}
+
+func translateCygwinPath(path string) (string, error) {
+	cmd := subprocess.ExecCommand("cygpath", "-w", path)
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
+	out, err := cmd.Output()
+	output := strings.TrimSpace(string(out))
+	if err != nil {
+		return path, fmt.Errorf("Failed to translate path from cygwin to windows: %s", buf.String())
+	}
+	return output, nil
+}
+
 func GitAndRootDirs() (string, string, error) {
 	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
 	buf := &bytes.Buffer{}
@@ -586,6 +612,12 @@ func GitAndRootDirs() (string, string, error) {
 
 	paths := strings.Split(output, "\n")
 	pathLen := len(paths)
+
+	if isCygwin() {
+		for i := 0; i < pathLen; i++ {
+			paths[i], err = translateCygwinPath(paths[i])
+		}
+	}
 
 	if pathLen == 0 {
 		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
@@ -612,6 +644,9 @@ func RootDir() (string, error) {
 	}
 
 	path := strings.TrimSpace(string(out))
+	if isCygwin() {
+		path, err = translateCygwinPath(path)
+	}
 	if len(path) > 0 {
 		return filepath.Abs(path)
 	}
@@ -1016,4 +1051,44 @@ func sanitizePattern(pattern string) string {
 	}
 
 	return pattern
+}
+
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
+func GetFilesChanged(from, to string) ([]string, error) {
+	var files []string
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"diff-tree",
+		"--no-commit-id",
+		"--name-only",
+		"-r",
+	}
+
+	if len(from) > 0 {
+		args = append(args, from)
+	}
+	if len(to) > 0 {
+		args = append(args, to)
+	}
+	args = append(args, "--") // no ambiguous patterns
+
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git diff: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("Failed to start git diff: %v", err)
+	}
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		files = append(files, strings.TrimSpace(scanner.Text()))
+	}
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("Git diff failed: %v", err)
+	}
+
+	return files, err
 }

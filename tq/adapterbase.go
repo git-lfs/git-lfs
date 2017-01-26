@@ -2,8 +2,10 @@ package tq
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -14,6 +16,8 @@ type adapterBase struct {
 	name         string
 	direction    Direction
 	transferImpl transferImplementation
+	apiClient    *lfsapi.Client
+	remote       string
 	jobChan      chan *job
 	cb           ProgressCallback
 	// WaitGroup to sync the completion of all workers
@@ -47,8 +51,7 @@ func newAdapterBase(name string, dir Direction, ti transferImplementation) *adap
 		name:         name,
 		direction:    dir,
 		transferImpl: ti,
-
-		jobWait: new(sync.WaitGroup),
+		jobWait:      new(sync.WaitGroup),
 	}
 }
 
@@ -61,6 +64,8 @@ func (a *adapterBase) Direction() Direction {
 }
 
 func (a *adapterBase) Begin(cfg AdapterConfig, cb ProgressCallback) error {
+	a.apiClient = cfg.APIClient()
+	a.remote = cfg.Remote()
 	a.cb = cb
 	a.jobChan = make(chan *job, 100)
 	maxConcurrency := cfg.ConcurrentTransfers()
@@ -123,7 +128,6 @@ func (a *adapterBase) End() {
 
 // worker function, many of these run per adapter
 func (a *adapterBase) worker(workerNum int, ctx interface{}) {
-
 	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
 	waitForAuth := workerNum > 0
 	signalAuthOnResponse := workerNum == 0
@@ -170,6 +174,26 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 	tracerx.Printf("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
 	a.transferImpl.WorkerEnding(workerNum, ctx)
 	a.workerWait.Done()
+}
+
+func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
+	req, err := http.NewRequest(method, rel.Href, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range rel.Header {
+		req.Header.Set(key, value)
+	}
+
+	return req, nil
+}
+
+func (a *adapterBase) doHTTP(t *Transfer, req *http.Request) (*http.Response, error) {
+	if t.Authenticated {
+		return a.apiClient.Do(req)
+	}
+	return a.apiClient.DoWithAuth(a.remote, req)
 }
 
 func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {

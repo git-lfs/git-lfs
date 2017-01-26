@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/git-lfs/git-lfs/tq"
@@ -27,7 +27,7 @@ type TestObject struct {
 
 type ServerTest struct {
 	Name string
-	F    func(oidsExist, oidsMissing []TestObject) error
+	F    func(m *tq.Manifest, oidsExist, oidsMissing []TestObject) error
 }
 
 var (
@@ -48,7 +48,6 @@ func main() {
 }
 
 func testServerApi(cmd *cobra.Command, args []string) {
-
 	if (len(apiUrl) == 0 && len(cloneUrl) == 0) ||
 		(len(apiUrl) != 0 && len(cloneUrl) != 0) {
 		exit("Must supply either --url or --clone (and not both)")
@@ -65,12 +64,18 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	// Force loading of config before we alter it
 	config.Config.Git.All()
 
+	manifest, err := buildManifest()
+	if err != nil {
+		exit("error building tq.Manifest: " + err.Error())
+	}
+
 	// Configure the endpoint manually
-	var endp config.Endpoint
+	var endp lfsapi.Endpoint
+	finder := lfsapi.NewEndpointFinder(config.Config.Git)
 	if len(cloneUrl) > 0 {
-		endp = config.NewEndpointFromCloneURL(cloneUrl)
+		endp = finder.NewEndpointFromCloneURL(cloneUrl)
 	} else {
-		endp = config.NewEndpoint(apiUrl)
+		endp = finder.NewEndpoint(apiUrl)
 	}
 	config.Config.SetManualEndpoint(endp)
 
@@ -82,7 +87,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Creating test data (will upload to server)\n")
 		var err error
-		oidsExist, oidsMissing, err = buildTestData()
+		oidsExist, oidsMissing, err = buildTestData(manifest)
 		if err != nil {
 			exit("Failed to set up test data, aborting")
 		}
@@ -96,7 +101,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 
 	}
 
-	ok := runTests(oidsExist, oidsMissing)
+	ok := runTests(manifest, oidsExist, oidsMissing)
 	if !ok {
 		exit("One or more tests failed, see above")
 	}
@@ -135,7 +140,16 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
+func buildManifest() (*tq.Manifest, error) {
+	cfg := config.Config
+	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		return nil, err
+	}
+	return tq.NewManifestWithClient(apiClient), nil
+}
+
+func buildTestData(manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
@@ -159,7 +173,7 @@ func buildTestData() (oidsExist, oidsMissing []TestObject, err error) {
 	outputs := repo.AddCommits([]*test.CommitInput{&commit})
 
 	// now upload
-	uploadQueue := lfs.NewUploadQueue(config.Config, tq.WithProgress(meter))
+	uploadQueue := tq.NewTransferQueue(tq.Upload, manifest, "origin", tq.WithProgress(meter))
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
@@ -203,12 +217,11 @@ func saveTestOids(filename string, objs []TestObject) {
 
 }
 
-func runTests(oidsExist, oidsMissing []TestObject) bool {
-
+func runTests(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) bool {
 	ok := true
 	fmt.Printf("Running %d tests...\n", len(tests))
 	for _, t := range tests {
-		err := runTest(t, oidsExist, oidsMissing)
+		err := runTest(t, manifest, oidsExist, oidsMissing)
 		if err != nil {
 			ok = false
 		}
@@ -216,7 +229,7 @@ func runTests(oidsExist, oidsMissing []TestObject) bool {
 	return ok
 }
 
-func runTest(t ServerTest, oidsExist, oidsMissing []TestObject) error {
+func runTest(t ServerTest, manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	const linelen = 70
 	line := t.Name
 	if len(line) > linelen {
@@ -226,7 +239,7 @@ func runTest(t ServerTest, oidsExist, oidsMissing []TestObject) error {
 	}
 	fmt.Printf("%s...\r", line)
 
-	err := t.F(oidsExist, oidsMissing)
+	err := t.F(manifest, oidsExist, oidsMissing)
 	if err != nil {
 		fmt.Printf("%s FAILED\n", line)
 		fmt.Println(err.Error())
@@ -242,21 +255,21 @@ func exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
-func addTest(name string, f func(oidsExist, oidsMissing []TestObject) error) {
+func addTest(name string, f func(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error) {
 	tests = append(tests, ServerTest{Name: name, F: f})
 }
 
-func callBatchApi(op string, objs []TestObject) ([]*api.ObjectResource, error) {
-
-	apiobjs := make([]*api.ObjectResource, 0, len(objs))
+func callBatchApi(manifest *tq.Manifest, dir tq.Direction, objs []TestObject) ([]*tq.Transfer, error) {
+	apiobjs := make([]*tq.Transfer, 0, len(objs))
 	for _, o := range objs {
-		apiobjs = append(apiobjs, &api.ObjectResource{Oid: o.Oid, Size: o.Size})
+		apiobjs = append(apiobjs, &tq.Transfer{Oid: o.Oid, Size: o.Size})
 	}
-	o, _, err := api.Batch(config.Config, apiobjs, op, []string{"basic"})
+
+	bres, err := tq.Batch(manifest, dir, "origin", apiobjs)
 	if err != nil {
 		return nil, err
 	}
-	return o, nil
+	return bres.Objects, nil
 }
 
 // Combine 2 slices into one by "randomly" interleaving

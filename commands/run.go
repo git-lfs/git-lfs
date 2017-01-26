@@ -3,11 +3,13 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
@@ -64,7 +66,7 @@ func Run() {
 	}
 
 	root.Execute()
-	httputil.LogHttpStats(cfg)
+	logHTTPStats(getAPIClient())
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
@@ -102,4 +104,29 @@ func printHelp(commandName string) {
 	} else {
 		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
 	}
+}
+
+func logHTTPStats(c *lfsapi.Client) {
+	if !c.LoggingStats {
+		return
+	}
+
+	file, err := statsLogFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		return
+	}
+
+	defer file.Close()
+	c.LogStats(file)
+}
+
+func statsLogFile() (*os.File, error) {
+	logBase := filepath.Join(config.LocalLogDir, "http")
+	if err := os.MkdirAll(logBase, 0755); err != nil {
+		return nil, err
+	}
+
+	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
+	return os.Create(filepath.Join(logBase, logFile))
 }
