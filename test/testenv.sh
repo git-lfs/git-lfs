@@ -102,8 +102,18 @@ LFS_URL_FILE="$REMOTEDIR/url"
 # section in test/README.md
 LFS_SSL_URL_FILE="$REMOTEDIR/sslurl"
 
+# This file contains the client cert SSL URL of the test Git server. See the "Test Suite"
+# section in test/README.md
+LFS_CLIENT_CERT_URL_FILE="$REMOTEDIR/clientcerturl"
+
 # This file contains the self-signed SSL cert of the TLS endpoint of the test Git server.
 LFS_CERT_FILE="$REMOTEDIR/cert"
+
+# This file contains the client certificate of the client cert endpoint of the test Git server.
+LFS_CLIENT_CERT_FILE="$REMOTEDIR/client.crt"
+
+# This file contains the client key of the client cert endpoint of the test Git server.
+LFS_CLIENT_KEY_FILE="$REMOTEDIR/client.key"
 
 # the fake home dir used for the initial setup
 TESTHOME="$REMOTEDIR/home"
