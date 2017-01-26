@@ -8,6 +8,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSSHGetLFSExeAndArgs(t *testing.T) {
+	cli, err := NewClient(TestEnv(map[string]string{}), nil)
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+	endpoint.SshPath = "user/repo"
+
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "GET")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate user/repo download",
+	}, args)
+
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "HEAD")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate user/repo download",
+	}, args)
+
+	// this is going by endpoint.Operation, implicitly set by Endpoint() on L15.
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate user/repo download",
+	}, args)
+
+	endpoint.Operation = "upload"
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate user/repo upload",
+	}, args)
+}
+
 func TestSSHGetExeAndArgsSsh(t *testing.T) {
 	cli, err := NewClient(TestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
