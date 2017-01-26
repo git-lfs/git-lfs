@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 type ReadSeekCloser interface {
@@ -18,7 +19,9 @@ func MarshalToRequest(req *http.Request, obj interface{}) error {
 		return err
 	}
 
-	req.ContentLength = int64(len(by))
+	clen := len(by)
+	req.Header.Set("Content-Length", strconv.Itoa(clen))
+	req.ContentLength = int64(clen)
 	req.Body = NewByteBody(by)
 	return nil
 }

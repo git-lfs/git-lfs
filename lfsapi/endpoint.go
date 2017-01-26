@@ -15,6 +15,20 @@ type Endpoint struct {
 	SshUserAndHost string
 	SshPath        string
 	SshPort        string
+	Operation      string
+}
+
+func endpointOperation(e Endpoint, method string) string {
+	if len(e.Operation) > 0 {
+		return e.Operation
+	}
+
+	switch method {
+	case "GET", "HEAD":
+		return "download"
+	default:
+		return "upload"
+	}
 }
 
 // endpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
