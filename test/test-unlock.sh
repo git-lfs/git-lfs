@@ -72,3 +72,52 @@ begin_test "unlocking a lock without sufficient info"
   assert_server_lock "$reponame" "$id"
 )
 end_test
+
+begin_test "unlocking a lock while uncommitted"
+(
+  set -e
+
+  reponame="unlock_modified"
+  setup_remote_repo_with_file "$reponame" "f.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock "f.dat" | tee lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock "$reponame" "$id"
+
+  echo "\nSomething" >> f.dat
+
+  GITLFSLOCKSENABLED=1 git lfs unlock "f.dat" 2>&1 | tee unlock.log
+  [ ${PIPESTATUS[0]} -ne "0" ]
+
+  grep "Cannot unlock file with uncommitted changes" unlock.log
+
+  assert_server_lock "$reponame" "$id"
+
+  # should allow after discard
+  git checkout f.dat
+  GITLFSLOCKSENABLED=1 git lfs unlock "f.dat" 2>&1 | tee unlock.log
+  refute_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "unlocking a lock while uncommitted with --force"
+(
+  set -e
+
+  reponame="unlock_modified_force"
+  setup_remote_repo_with_file "$reponame" "g.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock "g.dat" | tee lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock "$reponame" "$id"
+
+  echo "\nSomething" >> g.dat
+
+  # should allow with --force
+  GITLFSLOCKSENABLED=1 git lfs unlock --force "g.dat" 2>&1 | tee unlock.log
+  grep "Warning: unlocking with uncommitted changes" unlock.log
+  refute_server_lock "$reponame" "$id"
+)
+end_test

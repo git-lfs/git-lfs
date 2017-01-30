@@ -1092,3 +1092,43 @@ func GetFilesChanged(from, to string) ([]string, error) {
 
 	return files, err
 }
+
+// IsFileModified returns whether the filepath specified is modified according
+// to `git status`. A file is modified if it has uncommitted changes in the
+// working copy or the index. This includes being untracked.
+func IsFileModified(filepath string) (bool, error) {
+
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"status",
+		"--porcelain",
+		"--", // separator in case filename ambiguous
+		filepath,
+	}
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, fmt.Errorf("Failed to call git status: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return false, fmt.Errorf("Failed to start git status: %v", err)
+	}
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Porcelain format is "<I><W> <filename>"
+		// Where <I> = index status, <W> = working copy status
+		if len(line) > 3 {
+			// Double-check even though should be only match
+			if strings.TrimSpace(line[3:]) == filepath {
+				return true, nil
+			}
+		}
+
+	}
+	if err := cmd.Wait(); err != nil {
+		return false, fmt.Errorf("Git status failed: %v", err)
+	}
+
+	return false, nil
+}

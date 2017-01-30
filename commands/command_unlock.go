@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -31,11 +33,16 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 			Exit("Unable to determine path: %v", err.Error())
 		}
 
+		unlockCheckFileStatus(path)
+
 		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
 		if err != nil {
 			Exit("Unable to unlock: %v", err.Error())
 		}
 	} else if unlockCmdFlags.Id != "" {
+
+		unlockCheckFileStatusById(unlockCmdFlags.Id, lockClient)
+
 		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
 			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, err.Error())
@@ -53,6 +60,41 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 	Print("'%s' was unlocked", args[0])
+}
+
+func unlockCheckFileStatus(path string) {
+	modified, err := git.IsFileModified(path)
+
+	if err != nil {
+		Exit(err.Error())
+	}
+
+	if modified {
+		if unlockCmdFlags.Force {
+			// Only a warning
+			Error("Warning: unlocking with uncommitted changes because --force")
+		} else {
+			Exit("Cannot unlock file with uncommitted changes")
+		}
+
+	}
+}
+
+func unlockCheckFileStatusById(id string, lockClient *locking.Client) {
+	// Get the path so we can check the status
+	filter := map[string]string{"id": id}
+	// try local cache first
+	locks, _ := lockClient.SearchLocks(filter, 0, true)
+	if len(locks) == 0 {
+		// Fall back on calling server
+		locks, _ = lockClient.SearchLocks(filter, 0, false)
+	}
+
+	if len(locks) > 0 {
+		unlockCheckFileStatus(locks[0].Path)
+	}
+
+	// Don't block if we can't determine the path, may be cleaning up old data
 }
 
 func init() {
