@@ -78,5 +78,73 @@ func TestRefreshCache(t *testing.T) {
 		Lock{Path: "folder/test2.dat", Id: "102", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
 		Lock{Path: "root.dat", Id: "103", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
 	}, locks)
+}
 
+func TestGetVerifiableLocks(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "/api/locks/verify", r.URL.Path)
+
+		body := lockVerifiableRequest{}
+		if assert.Nil(t, json.NewDecoder(r.Body).Decode(&body)) {
+			w.Header().Set("Content-Type", "application/json")
+			list := lockVerifiableList{}
+			if body.Cursor == "1" {
+				list.Ours = []Lock{
+					Lock{Path: "folder/1/test1.dat", Id: "111"},
+				}
+				list.Theirs = []Lock{
+					Lock{Path: "folder/1/test2.dat", Id: "112"},
+					Lock{Path: "folder/1/test3.dat", Id: "113"},
+				}
+			} else {
+				list.Ours = []Lock{
+					Lock{Path: "folder/0/test1.dat", Id: "101"},
+					Lock{Path: "folder/0/test2.dat", Id: "102"},
+				}
+				list.Theirs = []Lock{
+					Lock{Path: "folder/0/test3.dat", Id: "103"},
+				}
+				list.NextCursor = "1"
+			}
+
+			err := json.NewEncoder(w).Encode(&list)
+			assert.Nil(t, err)
+		} else {
+			w.WriteHeader(500)
+		}
+	}))
+
+	defer srv.Close()
+
+	lfsclient, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.url":    srv.URL + "/api",
+		"user.name":  "Fred",
+		"user.email": "fred@bloggs.com",
+	}))
+	require.Nil(t, err)
+
+	client, err := NewClient("", lfsclient)
+	assert.Nil(t, err)
+
+	ourLocks, theirLocks, err := client.VerifiableLocks(0)
+	assert.Nil(t, err)
+
+	// Need to include zero time in structure for equal to work
+	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Sort locks for stable comparison
+	sort.Sort(LocksById(ourLocks))
+	assert.Equal(t, []Lock{
+		Lock{Path: "folder/0/test1.dat", Id: "101", LockedAt: zeroTime},
+		Lock{Path: "folder/0/test2.dat", Id: "102", LockedAt: zeroTime},
+		Lock{Path: "folder/1/test1.dat", Id: "111", LockedAt: zeroTime},
+	}, ourLocks)
+
+	sort.Sort(LocksById(theirLocks))
+	assert.Equal(t, []Lock{
+		Lock{Path: "folder/0/test3.dat", Id: "103", LockedAt: zeroTime},
+		Lock{Path: "folder/1/test2.dat", Id: "112", LockedAt: zeroTime},
+		Lock{Path: "folder/1/test3.dat", Id: "113", LockedAt: zeroTime},
+	}, theirLocks)
 }
