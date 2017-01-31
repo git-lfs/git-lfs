@@ -809,24 +809,45 @@ type LockList struct {
 }
 
 var (
-	lmu   sync.RWMutex
-	locks = []Lock{}
+	lmu       sync.RWMutex
+	repoLocks = map[string][]Lock{}
 )
 
-func addLocks(l ...Lock) {
+func addLocks(repo string, l ...Lock) {
 	lmu.Lock()
 	defer lmu.Unlock()
-
-	locks = append(locks, l...)
-
-	sort.Sort(LocksByCreatedAt(locks))
+	repoLocks[repo] = append(repoLocks[repo], l...)
+	sort.Sort(LocksByCreatedAt(repoLocks[repo]))
 }
 
-func getLocks() []Lock {
+func getLocks(repo string) []Lock {
 	lmu.RLock()
 	defer lmu.RUnlock()
 
+	found := repoLocks[repo]
+	locks := make([]Lock, len(found))
+	for i, l := range found {
+		locks[i] = l
+	}
+
 	return locks
+}
+
+func delLock(repo string, id string) *Lock {
+	lmu.RLock()
+	defer lmu.RUnlock()
+
+	var deleted *Lock
+	locks := make([]Lock, 0, len(repoLocks[repo]))
+	for _, l := range repoLocks[repo] {
+		if l.Id == id {
+			deleted = &l
+			continue
+		}
+		locks = append(locks, l)
+	}
+	repoLocks[repo] = locks
+	return deleted
 }
 
 type LocksByCreatedAt []Lock
@@ -838,6 +859,13 @@ func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 var lockRe = regexp.MustCompile(`/locks/?$`)
 
 func locksHandler(w http.ResponseWriter, r *http.Request) {
+	repo, err := repoFromLfsUrl(r.URL.Path)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
@@ -854,7 +882,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ll := &LockList{}
-			locks := getLocks()
+			locks := getLocks(repo)
 			w.Header().Set("Content-Type", "application/json")
 
 			if cursor := r.FormValue("cursor"); cursor != "" {
@@ -920,20 +948,10 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 
-			lockIndex := -1
-			for i, l := range locks {
-				if l.Id == unlockRequest.Id {
-					lockIndex = i
-					break
-				}
-			}
-
-			if lockIndex > -1 {
+			if l := delLock(repo, unlockRequest.Id); l != nil {
 				enc.Encode(&UnlockResponse{
-					Lock: &locks[lockIndex],
+					Lock: l,
 				})
-
-				locks = append(locks[:lockIndex], locks[lockIndex+1:]...)
 			} else {
 				enc.Encode(&UnlockResponse{
 					Err: "unable to find lock",
@@ -947,7 +965,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 
-			for _, l := range getLocks() {
+			for _, l := range getLocks(repo) {
 				if l.Path == lockRequest.Path {
 					enc.Encode(&LockResponse{
 						Err: "lock already created",
@@ -967,7 +985,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				LockedAt:  time.Now(),
 			}
 
-			addLocks(*lock)
+			addLocks(repo, *lock)
 
 			// TODO(taylor): commit_needed case
 			// TODO(taylor): err case
