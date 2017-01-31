@@ -190,6 +190,10 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	}
 }
 
+//func (c *Client) VerifiableLocks(limit int) (locks []Lock, err error) {
+
+//}
+
 func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
 	cachedlocks := c.cache.Locks()
 	path, filterByPath := filter["path"]
