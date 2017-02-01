@@ -12,10 +12,10 @@ begin_test "unlocking a lock by path"
   GITLFSLOCKSENABLED=1 git lfs lock "c.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock "remote_$reponame" "$id"
+  assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs unlock "c.dat" 2>&1 | tee unlock.log
-  refute_server_lock "remote_$reponame" "$id"
+  refute_server_lock "$reponame" "$id"
 )
 end_test
 
@@ -29,12 +29,12 @@ begin_test "unlocking a lock (--json)"
   GITLFSLOCKSENABLED=1 git lfs lock "c_json.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock "remote_$reponame" "$id"
+  assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs unlock --json "c_json.dat" 2>&1 | tee unlock.log
   grep "\"unlocked\":true" unlock.log
 
-  refute_server_lock "remote_$reponame" "$id"
+  refute_server_lock "$reponame" "$id"
 )
 end_test
 
@@ -48,10 +48,10 @@ begin_test "unlocking a lock by id"
   GITLFSLOCKSENABLED=1 git lfs lock "d.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock "remote_$reponame" "$id"
+  assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs unlock --id="$id" 2>&1 | tee unlock.log
-  refute_server_lock "remote_$reponame" "$id"
+  refute_server_lock "$reponame" "$id"
 )
 end_test
 
@@ -65,10 +65,10 @@ begin_test "unlocking a lock without sufficient info"
   GITLFSLOCKSENABLED=1 git lfs lock "e.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock "remote_$reponame" "$id"
+  assert_server_lock "$reponame" "$id"
 
   GITLFSLOCKSENABLED=1 git lfs unlock 2>&1 | tee unlock.log
   grep "Usage: git lfs unlock" unlock.log
-  assert_server_lock "remote_$reponame" "$id"
+  assert_server_lock "$reponame" "$id"
 )
 end_test
