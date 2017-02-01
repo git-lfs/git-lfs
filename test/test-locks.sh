@@ -44,8 +44,8 @@ begin_test "list locks with a limit"
   set -e
 
   reponame="locks_list_limit"
-  setup_remote_repo "remote_$reponame"
-  clone_repo "remote_$reponame" "clone_$reponame"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "clone_$reponame"
 
   git lfs track "*.dat"
   echo "foo" > "g_1.dat"
@@ -78,8 +78,8 @@ begin_test "list locks with pagination"
   set -e
 
   reponame="locks_list_paginate"
-  setup_remote_repo "remote_$reponame"
-  clone_repo "remote_$reponame" "clone_$reponame"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "clone_$reponame"
 
   git lfs track "*.dat"
   for i in $(seq 1 5); do
@@ -151,5 +151,3 @@ begin_test "cached locks"
   grep "1 lock(s) matched query" locks.log
 )
 end_test
-
-

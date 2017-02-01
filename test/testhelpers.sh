@@ -313,8 +313,8 @@ setup_remote_repo_with_file() {
   local reponame="$1"
   local filename="$2"
 
-  setup_remote_repo "remote_$reponame"
-  clone_repo "remote_$reponame" "clone_$reponame"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "clone_$reponame"
 
   git lfs track "$filename"
   echo "$filename" > "$filename"
