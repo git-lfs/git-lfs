@@ -816,13 +816,13 @@ func getLocks(repo string) []Lock {
 	lmu.RLock()
 	defer lmu.RUnlock()
 
-	found := repoLocks[repo]
-	locks := make([]Lock, len(found))
-	for i, l := range found {
-		locks[i] = l
+	locks := repoLocks[repo]
+	cp := make([]Lock, len(locks))
+	for i, l := range locks {
+		cp[i] = l
 	}
 
-	return locks
+	return cp
 }
 
 func delLock(repo string, id string) *Lock {
