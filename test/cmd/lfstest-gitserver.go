@@ -105,14 +105,6 @@ func main() {
 			return
 		}
 
-		if strings.Contains(r.URL.Path, "/info/lfs/locks") {
-			if !skipIfBadAuth(w, r, id, ntlmSession) {
-				locksHandler(w, r)
-			}
-
-			return
-		}
-
 		if strings.Contains(r.URL.Path, "/info/lfs") {
 			if !skipIfBadAuth(w, r, id, ntlmSession) {
 				lfsHandler(w, r, id)
@@ -220,7 +212,7 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if strings.HasSuffix(r.URL.String(), "batch") {
 			lfsBatchHandler(w, r, id, repo)
 		} else if strings.HasSuffix(r.URL.String(), "locks") || strings.HasSuffix(r.URL.String(), "unlock") {
-			locksHandler(w, r)
+			locksHandler(w, r, repo)
 		} else {
 			w.WriteHeader(404)
 		}
@@ -228,7 +220,7 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 		lfsDeleteHandler(w, r, id, repo)
 	case "GET":
 		if strings.Contains(r.URL.String(), "/locks") {
-			locksHandler(w, r)
+			locksHandler(w, r, repo)
 		} else {
 			w.WriteHeader(404)
 		}
@@ -858,14 +850,7 @@ func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 var lockRe = regexp.MustCompile(`/locks/?$`)
 
-func locksHandler(w http.ResponseWriter, r *http.Request) {
-	repo, err := repoFromLfsUrl(r.URL.Path)
-	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
+func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
