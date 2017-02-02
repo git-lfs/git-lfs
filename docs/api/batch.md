@@ -1,6 +1,6 @@
 # Git LFS Batch API
 
-Added: v1.0
+Added: v0.6
 
 The Batch API is used to request the ability to transfer LFS objects with the
 LFS server. The Batch URL is built by adding `/objects/batch` to the LFS server

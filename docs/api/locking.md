@@ -60,8 +60,9 @@ Successful responses return the created lock:
 
 * `id` - String ID of the Lock. Git LFS doesn't enforce what type of ID is used,
 as long as it's returned a string.
-* `path` - String path name of the locked file.
-* `locked_at` - The String timestamp the lock was created.
+* `path` - String path name of the locked file. This should be relative to the
+root of the repository working directory.
+* `locked_at` - The string ISO 8601 formatted timestamp the lock was created.
 * `committer` - The optional name/email of the user that created the Lock. This
 could be different from the `committer` values in the request if the lock
 service already knows the committer's identity based on the API credentials.
