@@ -21,7 +21,7 @@ func TestAPILock(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
-		assert.Equal(t, "61", r.Header.Get("Content-Length"))
+		assert.Equal(t, "35", r.Header.Get("Content-Length"))
 
 		lockReq := &lockRequest{}
 		err := json.NewDecoder(r.Body).Decode(lockReq)
@@ -68,7 +68,6 @@ func TestAPIUnlock(t *testing.T) {
 		err := json.NewDecoder(r.Body).Decode(unlockReq)
 		r.Body.Close()
 		assert.Nil(t, err)
-		assert.Equal(t, "123", unlockReq.Id)
 		assert.True(t, unlockReq.Force)
 
 		w.Header().Set("Content-Type", "application/json")

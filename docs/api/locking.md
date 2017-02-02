@@ -401,7 +401,6 @@ response section to see what Lock properties are possible.
     "id": "some-uuid",
     "path": "/path/to/file",
     "locked_at": "2016-05-17T15:49:06+00:00",
-    "unlocked_at": "2016-05-17T15:49:06+00:00",
     "committer": {
       "name": "Jane Doe"
     }

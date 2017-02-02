@@ -9,7 +9,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
@@ -89,16 +88,9 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
-	// TODO: this is not really the constraint we need to avoid merges, improve as per proposal
-	latest, err := git.CurrentRemoteRef()
-	if err != nil {
-		return Lock{}, err
-	}
-
 	lockReq := &lockRequest{
-		Path:               path,
-		LatestRemoteCommit: latest.Sha,
-		Committer:          NewCommitter(c.client.CurrentUser()),
+		Path:      path,
+		Committer: NewCommitter(c.client.CurrentUser()),
 	}
 
 	lockRes, _, err := c.client.Lock(c.Remote, lockReq)
@@ -106,8 +98,13 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, errors.Wrap(err, "api")
 	}
 
-	if len(lockRes.Err) > 0 {
-		return Lock{}, fmt.Errorf("Server unable to create lock: %v", lockRes.Err)
+	if len(lockRes.Message) > 0 {
+		return Lock{}, fmt.Errorf("Server unable to create lock: %s",
+			lfsapi.ClientErrorMessage(
+				lockRes.Message,
+				lockRes.DocumentationUrl,
+				lockRes.RequestId,
+			))
 	}
 
 	lock := *lockRes.Lock
@@ -153,8 +150,13 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		return errors.Wrap(err, "api")
 	}
 
-	if len(unlockRes.Err) > 0 {
-		return fmt.Errorf("Server unable to unlock: %s", unlockRes.Err)
+	if len(unlockRes.Message) > 0 {
+		return fmt.Errorf("Server unable to unlock: %s",
+			lfsapi.ClientErrorMessage(
+				unlockRes.Message,
+				unlockRes.DocumentationUrl,
+				unlockRes.RequestId,
+			))
 	}
 
 	if err := c.cache.RemoveById(id); err != nil {
@@ -203,8 +205,13 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 			return ourLocks, theirLocks, err
 		}
 
-		if list.Err != "" {
-			return ourLocks, theirLocks, errors.New(list.Err)
+		if list.Message != "" {
+			return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s",
+				lfsapi.ClientErrorMessage(
+					list.Message,
+					list.DocumentationUrl,
+					list.RequestId,
+				))
 		}
 
 		for _, l := range list.Ours {
@@ -266,8 +273,13 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 			return locks, errors.Wrap(err, "locking")
 		}
 
-		if list.Err != "" {
-			return locks, errors.Wrap(err, "locking")
+		if list.Message != "" {
+			return locks, fmt.Errorf("Server error searching for locks: %s",
+				lfsapi.ClientErrorMessage(
+					list.Message,
+					list.DocumentationUrl,
+					list.RequestId,
+				))
 		}
 
 		for _, l := range list.Locks {

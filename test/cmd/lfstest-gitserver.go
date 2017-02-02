@@ -763,40 +763,35 @@ type Committer struct {
 }
 
 type Lock struct {
-	Id         string    `json:"id"`
-	Path       string    `json:"path"`
-	Committer  Committer `json:"committer"`
-	CommitSHA  string    `json:"commit_sha"`
-	LockedAt   time.Time `json:"locked_at"`
-	UnlockedAt time.Time `json:"unlocked_at,omitempty"`
+	Id        string    `json:"id"`
+	Path      string    `json:"path"`
+	Committer Committer `json:"committer"`
+	LockedAt  time.Time `json:"locked_at"`
 }
 
 type LockRequest struct {
-	Path               string    `json:"path"`
-	LatestRemoteCommit string    `json:"latest_remote_commit"`
-	Committer          Committer `json:"committer"`
+	Path      string    `json:"path"`
+	Committer Committer `json:"committer"`
 }
 
 type LockResponse struct {
-	Lock         *Lock  `json:"lock"`
-	CommitNeeded string `json:"commit_needed,omitempty"`
-	Err          string `json:"error,omitempty"`
+	Lock    *Lock  `json:"lock"`
+	Message string `json:"message,omitempty"`
 }
 
 type UnlockRequest struct {
-	Id    string `json:"id"`
-	Force bool   `json:"force"`
+	Force bool `json:"force"`
 }
 
 type UnlockResponse struct {
-	Lock *Lock  `json:"lock"`
-	Err  string `json:"error,omitempty"`
+	Lock    *Lock  `json:"lock"`
+	Message string `json:"message,omitempty"`
 }
 
 type LockList struct {
 	Locks      []Lock `json:"locks"`
 	NextCursor string `json:"next_cursor,omitempty"`
-	Err        string `json:"error,omitempty"`
+	Message    string `json:"message,omitempty"`
 }
 
 type VerifiableLockRequest struct {
@@ -808,7 +803,7 @@ type VerifiableLockList struct {
 	Ours       []Lock `json:"ours"`
 	Theirs     []Lock `json:"theirs"`
 	NextCursor string `json:"next_cursor,omitempty"`
-	Err        string `json:"error,omitempty"`
+	Message    string `json:"message,omitempty"`
 }
 
 var (
@@ -908,7 +903,10 @@ func (c LocksByCreatedAt) Len() int           { return len(c) }
 func (c LocksByCreatedAt) Less(i, j int) bool { return c[i].LockedAt.Before(c[j].LockedAt) }
 func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
-var lockRe = regexp.MustCompile(`/locks/?$`)
+var (
+	lockRe   = regexp.MustCompile(`/locks/?$`)
+	unlockRe = regexp.MustCompile(`locks/([^/]+)/unlock\z`)
+)
 
 func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	dec := json.NewDecoder(r.Body)
@@ -936,7 +934,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			r.FormValue("limit"))
 
 		if err != nil {
-			ll.Err = err.Error()
+			ll.Message = err.Error()
 		} else {
 			ll.Locks = locks
 			ll.NextCursor = nextCursor
@@ -948,21 +946,25 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
 			var unlockRequest UnlockRequest
+
+			var lockId string
+			if matches := unlockRe.FindStringSubmatch(r.URL.Path); len(matches) > 1 {
+				lockId = matches[1]
+			}
+
+			if len(lockId) == 0 {
+				enc.Encode(&UnlockResponse{Message: "Invalid lock"})
+			}
+
 			if err := dec.Decode(&unlockRequest); err != nil {
-				enc.Encode(&UnlockResponse{
-					Err: err.Error(),
-				})
+				enc.Encode(&UnlockResponse{Message: err.Error()})
 				return
 			}
 
-			if l := delLock(repo, unlockRequest.Id); l != nil {
-				enc.Encode(&UnlockResponse{
-					Lock: l,
-				})
+			if l := delLock(repo, lockId); l != nil {
+				enc.Encode(&UnlockResponse{Lock: l})
 			} else {
-				enc.Encode(&UnlockResponse{
-					Err: "unable to find lock",
-				})
+				enc.Encode(&UnlockResponse{Message: "unable to find lock"})
 			}
 			return
 		}
@@ -993,7 +995,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				reqBody.Cursor,
 				strconv.Itoa(reqBody.Limit))
 			if err != nil {
-				ll.Err = err.Error()
+				ll.Message = err.Error()
 			} else {
 				ll.NextCursor = nextCursor
 
@@ -1013,16 +1015,12 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		if strings.HasSuffix(r.URL.Path, "/locks") {
 			var lockRequest LockRequest
 			if err := dec.Decode(&lockRequest); err != nil {
-				enc.Encode(&LockResponse{
-					Err: err.Error(),
-				})
+				enc.Encode(&LockResponse{Message: err.Error()})
 			}
 
 			for _, l := range getLocks(repo) {
 				if l.Path == lockRequest.Path {
-					enc.Encode(&LockResponse{
-						Err: "lock already created",
-					})
+					enc.Encode(&LockResponse{Message: "lock already created"})
 					return
 				}
 			}
@@ -1034,7 +1032,6 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				Id:        fmt.Sprintf("%x", id[:]),
 				Path:      lockRequest.Path,
 				Committer: lockRequest.Committer,
-				CommitSHA: lockRequest.LatestRemoteCommit,
 				LockedAt:  time.Now(),
 			}
 
