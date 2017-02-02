@@ -27,14 +27,14 @@ type uploadContext struct {
 	trackedLocksMu *sync.Mutex
 
 	// ALL verifiable locks
-	ourLocks   map[string]locking.Lock
-	theirLocks map[string]locking.Lock
+	ourLocks   map[string]*locking.Lock
+	theirLocks map[string]*locking.Lock
 
 	// locks from ourLocks that were modified in this push
-	ownedLocks []locking.Lock
+	ownedLocks []*locking.Lock
 
 	// locks from theirLocks that were modified in this push
-	unownedLocks []locking.Lock
+	unownedLocks []*locking.Lock
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -45,8 +45,8 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:       getTransferManifest(),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
-		ourLocks:       make(map[string]locking.Lock),
-		theirLocks:     make(map[string]locking.Lock),
+		ourLocks:       make(map[string]*locking.Lock),
+		theirLocks:     make(map[string]*locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
 	}
 
@@ -61,10 +61,10 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Error("         Temporarily skipping check ...")
 	} else {
 		for _, l := range theirLocks {
-			ctx.theirLocks[l.Path] = l
+			ctx.theirLocks[l.Path] = &l
 		}
 		for _, l := range ourLocks {
-			ctx.ourLocks[l.Path] = l
+			ctx.ourLocks[l.Path] = &l
 		}
 	}
 
