@@ -141,3 +141,53 @@ func TestAPISearch(t *testing.T) {
 	assert.Equal(t, "1", locks.Locks[0].Id)
 	assert.Equal(t, "2", locks.Locks[1].Id)
 }
+
+func TestAPIVerifiableLocks(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/locks/verify" {
+			w.WriteHeader(404)
+			return
+		}
+
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
+
+		body := lockVerifiableRequest{}
+		if assert.Nil(t, json.NewDecoder(r.Body).Decode(&body)) {
+			assert.Equal(t, "cursor", body.Cursor)
+			assert.Equal(t, 5, body.Limit)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(&lockVerifiableList{
+			Ours: []Lock{
+				{Id: "1"},
+				{Id: "2"},
+			},
+			Theirs: []Lock{
+				{Id: "3"},
+			},
+		})
+		assert.Nil(t, err)
+	}))
+	defer srv.Close()
+
+	c, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.url": srv.URL + "/api",
+	}))
+	require.Nil(t, err)
+
+	lc := &lockClient{Client: c}
+	locks, res, err := lc.SearchVerifiable("", &lockVerifiableRequest{
+		Cursor: "cursor",
+		Limit:  5,
+	})
+	require.Nil(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+	assert.Equal(t, 2, len(locks.Ours))
+	assert.Equal(t, "1", locks.Ours[0].Id)
+	assert.Equal(t, "2", locks.Ours[1].Id)
+	assert.Equal(t, 1, len(locks.Theirs))
+	assert.Equal(t, "3", locks.Theirs[0].Id)
+}
