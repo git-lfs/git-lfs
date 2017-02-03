@@ -17,8 +17,6 @@ type lockClient struct {
 type lockRequest struct {
 	// Path is the path that the client would like to obtain a lock against.
 	Path string `json:"path"`
-	// Committer is the individual that wishes to obtain the lock.
-	Committer *Committer `json:"committer"`
 }
 
 // LockResponse encapsulates the information sent over the API in response to

@@ -33,12 +33,6 @@ The client sends the following to create a lock by sending a `POST` to `/locks`
 
 * `path` - String path name of the file that is locked. This should be
 relative to the root of the repository working directory.
-* `committer` - The optional values of `user.name` and `user.email` from the
-git config.
-
-Lock services are not required to use or store the committer details, since most
-lock services should already be able to identify the committer according to
-their credentials. The `committer` values are used for display purposes only.
 
 ```js
 // POST https://lfs-server.com/locks
@@ -47,10 +41,6 @@ their credentials. The `committer` values are used for display purposes only.
 // Authorization: Basic ...
 {
   "path": "foo/bar.zip",
-  "committer": {
-    "name": "Jane Doe",
-    "email": "janedoe@email.com"
-  }
 }
 ```
 

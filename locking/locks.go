@@ -88,12 +88,7 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
-	lockReq := &lockRequest{
-		Path:      path,
-		Committer: NewCommitter(c.client.CurrentUser()),
-	}
-
-	lockRes, _, err := c.client.Lock(c.Remote, lockReq)
+	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{Path: path})
 	if err != nil {
 		return Lock{}, errors.Wrap(err, "api")
 	}
