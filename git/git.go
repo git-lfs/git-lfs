@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
@@ -1108,10 +1109,10 @@ func IsFileModified(filepath string) (bool, error) {
 	cmd := subprocess.ExecCommand("git", args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return false, fmt.Errorf("Failed to call git status: %v", err)
+		return false, lfserrors.Wrap(err, "Failed to call git status")
 	}
 	if err := cmd.Start(); err != nil {
-		return false, fmt.Errorf("Failed to start git status: %v", err)
+		return false, lfserrors.Wrap(err, "Failed to start git status")
 	}
 	scanner := bufio.NewScanner(outp)
 	matched := false
@@ -1127,10 +1128,9 @@ func IsFileModified(filepath string) (bool, error) {
 				// will typically fall straight through anyway due to 1 line output
 			}
 		}
-
 	}
 	if err := cmd.Wait(); err != nil {
-		return false, fmt.Errorf("Git status failed: %v", err)
+		return false, lfserrors.Wrap(err, "Git status failed")
 	}
 
 	return matched, nil
