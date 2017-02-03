@@ -1114,9 +1114,8 @@ func IsFileModified(filepath string) (bool, error) {
 	if err := cmd.Start(); err != nil {
 		return false, lfserrors.Wrap(err, "Failed to start git status")
 	}
-	scanner := bufio.NewScanner(outp)
 	matched := false
-	for scanner.Scan() {
+	for scanner := bufio.NewScanner(outp); scanner.Scan(); {
 		line := scanner.Text()
 		// Porcelain format is "<I><W> <filename>"
 		// Where <I> = index status, <W> = working copy status
