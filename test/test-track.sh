@@ -103,7 +103,7 @@ begin_test "track without trailing linebreak"
 
   git lfs track "*.gif"
 
-  expected="*.mov filter=lfs -text
+  expected="*.mov filter=lfs -text$(win_cr)
 *.gif filter=lfs diff=lfs merge=lfs -text"
 
   if [ "$expected" != "$(cat .gitattributes)" ]; then
@@ -374,4 +374,3 @@ begin_test "track lockable read-only/read-write"
 
 )
 end_test
-
