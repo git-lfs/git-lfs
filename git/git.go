@@ -1114,6 +1114,7 @@ func IsFileModified(filepath string) (bool, error) {
 		return false, fmt.Errorf("Failed to start git status: %v", err)
 	}
 	scanner := bufio.NewScanner(outp)
+	matched := false
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Porcelain format is "<I><W> <filename>"
@@ -1121,7 +1122,9 @@ func IsFileModified(filepath string) (bool, error) {
 		if len(line) > 3 {
 			// Double-check even though should be only match
 			if strings.TrimSpace(line[3:]) == filepath {
-				return true, nil
+				matched = true
+				// keep consuming output to exit cleanly
+				// will typically fall straight through anyway due to 1 line output
 			}
 		}
 
@@ -1130,5 +1133,5 @@ func IsFileModified(filepath string) (bool, error) {
 		return false, fmt.Errorf("Git status failed: %v", err)
 	}
 
-	return false, nil
+	return matched, nil
 }
