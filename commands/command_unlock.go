@@ -33,7 +33,8 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 			Exit("Unable to determine path: %v", err.Error())
 		}
 
-		unlockCheckFileStatus(path)
+		// This call can early-out
+		unlockAbortIfFileModified(path)
 
 		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
 		if err != nil {
@@ -41,7 +42,8 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		}
 	} else if unlockCmdFlags.Id != "" {
 
-		unlockCheckFileStatusById(unlockCmdFlags.Id, lockClient)
+		// This call can early-out
+		unlockAbortIfFileModifiedById(unlockCmdFlags.Id, lockClient)
 
 		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
@@ -62,7 +64,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	Print("'%s' was unlocked", args[0])
 }
 
-func unlockCheckFileStatus(path string) {
+func unlockAbortIfFileModified(path string) {
 	modified, err := git.IsFileModified(path)
 
 	if err != nil {
@@ -80,7 +82,7 @@ func unlockCheckFileStatus(path string) {
 	}
 }
 
-func unlockCheckFileStatusById(id string, lockClient *locking.Client) {
+func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
 	// Get the path so we can check the status
 	filter := map[string]string{"id": id}
 	// try local cache first
@@ -91,7 +93,7 @@ func unlockCheckFileStatusById(id string, lockClient *locking.Client) {
 	}
 
 	if len(locks) > 0 {
-		unlockCheckFileStatus(locks[0].Path)
+		unlockAbortIfFileModified(locks[0].Path)
 	}
 
 	// Don't block if we can't determine the path, may be cleaning up old data
