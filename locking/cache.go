@@ -25,24 +25,6 @@ func NewLockCache(filepath string) (*LockCache, error) {
 	return &LockCache{kv}, nil
 }
 
-func (c *LockCache) encodeIdKey(id string) string {
-	// Safety against accidents
-	if !c.isIdKey(id) {
-		return idKeyPrefix + id
-	}
-	return id
-}
-func (c *LockCache) decodeIdKey(key string) string {
-	// Safety against accidents
-	if c.isIdKey(key) {
-		return key[len(idKeyPrefix):]
-	}
-	return key
-}
-func (c *LockCache) isIdKey(key string) bool {
-	return strings.HasPrefix(key, idKeyPrefix)
-}
-
 // Cache a successful lock for faster local lookup later
 func (c *LockCache) Add(l Lock) error {
 	// Store reference in both directions
@@ -98,4 +80,24 @@ func (c *LockCache) Clear() {
 // Save the cache
 func (c *LockCache) Save() error {
 	return c.kv.Save()
+}
+
+func (c *LockCache) encodeIdKey(id string) string {
+	// Safety against accidents
+	if !c.isIdKey(id) {
+		return idKeyPrefix + id
+	}
+	return id
+}
+
+func (c *LockCache) decodeIdKey(key string) string {
+	// Safety against accidents
+	if c.isIdKey(key) {
+		return key[len(idKeyPrefix):]
+	}
+	return key
+}
+
+func (c *LockCache) isIdKey(key string) bool {
+	return strings.HasPrefix(key, idKeyPrefix)
 }

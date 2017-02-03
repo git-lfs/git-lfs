@@ -9,7 +9,7 @@ import (
 )
 
 // Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.
-func ProxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
+func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	httpProxy := c.HTTPProxy
 	httpsProxy := c.HTTPSProxy
 	noProxy := c.NoProxy
@@ -48,7 +48,7 @@ func ProxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-func getProxyServers(osEnv env, gitEnv env) (string, string, string) {
+func getProxyServers(osEnv Env, gitEnv Env) (string, string, string) {
 	var httpsProxy string
 	httpProxy, _ := gitEnv.Get("http.proxy")
 	if strings.HasPrefix(httpProxy, "https://") {

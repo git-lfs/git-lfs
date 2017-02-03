@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
@@ -16,6 +17,8 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
@@ -32,29 +35,76 @@ var (
 	ManPages     = make(map[string]string, 20)
 	cfg          = config.Config
 
+	tqManifest *tq.Manifest
+	apiClient  *lfsapi.Client
+	global     sync.Mutex
+
 	includeArg string
 	excludeArg string
 )
 
-// TransferManifest builds a tq.Manifest from the commands package global
-// cfg var.
-func TransferManifest() *tq.Manifest {
-	return lfs.TransferManifest(cfg)
+// getTransferManifest builds a tq.Manifest from the global os and git
+// environments.
+func getTransferManifest() *tq.Manifest {
+	c := getAPIClient()
+
+	global.Lock()
+	defer global.Unlock()
+
+	if tqManifest == nil {
+		tqManifest = tq.NewManifestWithClient(c)
+	}
+
+	return tqManifest
+}
+
+func getAPIClient() *lfsapi.Client {
+	global.Lock()
+	defer global.Unlock()
+
+	if apiClient == nil {
+		c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+		if err != nil {
+			ExitWithError(err)
+		}
+		apiClient = c
+	}
+	return apiClient
+}
+
+func newLockClient(remote string) *locking.Client {
+	lockClient, err := locking.NewClient(remote, getAPIClient())
+	if err == nil {
+		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
+	}
+
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+
+	// Configure dirs
+	lockClient.LocalWorkingDir = config.LocalWorkingDir
+	lockClient.LocalGitDir = config.LocalGitDir
+
+	return lockClient
 }
 
 // newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
-func newDownloadCheckQueue(options ...tq.Option) *tq.TransferQueue {
-	return lfs.NewDownloadCheckQueue(cfg, options...)
+func newDownloadCheckQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	allOptions := make([]tq.Option, 0, len(options)+1)
+	allOptions = append(allOptions, options...)
+	allOptions = append(allOptions, tq.DryRun(true))
+	return newDownloadQueue(manifest, remote, allOptions...)
 }
 
 // newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
-func newDownloadQueue(options ...tq.Option) *tq.TransferQueue {
-	return lfs.NewDownloadQueue(cfg, options...)
+func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Download, manifest, remote, options...)
 }
 
 // newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func newUploadQueue(options ...tq.Option) *tq.TransferQueue {
-	return lfs.NewUploadQueue(cfg, options...)
+func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
 }
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
@@ -68,28 +118,26 @@ func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64
 	return p.Name, path, p.Oid, p.Size
 }
 
-func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
+func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
+	filename := p.Name
+	oid := p.Oid
+
 	localMediaPath, err := lfs.LocalMediaPath(oid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	if len(filename) > 0 {
-		if err = ensureFile(filename, localMediaPath); err != nil {
+		if err = ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err
 		}
-	}
-
-	fi, err := os.Stat(localMediaPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}
 
 	return &tq.Transfer{
 		Name: filename,
 		Path: localMediaPath,
 		Oid:  oid,
-		Size: fi.Size(),
+		Size: p.Size,
 	}, nil
 }
 
@@ -100,7 +148,6 @@ func ensureFile(smudgePath, cleanPath string) error {
 		return nil
 	}
 
-	expectedOid := filepath.Base(cleanPath)
 	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
@@ -122,11 +169,6 @@ func ensureFile(smudgePath, cleanPath string) error {
 	if err != nil {
 		return err
 	}
-
-	if expectedOid != cleaned.Oid {
-		return fmt.Errorf("Trying to push %q with OID %s.\nNot found in %s.", smudgePath, expectedOid, filepath.Dir(cleanPath))
-	}
-
 	return nil
 }
 
@@ -320,7 +362,7 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, TransferManifest()) {
+	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
 }

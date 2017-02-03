@@ -279,7 +279,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	}
 
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
-	q := newDownloadQueue(tq.WithProgress(meter))
+	q := newDownloadQueue(getTransferManifest(), cfg.CurrentRemote, tq.WithProgress(meter))
 
 	if out != nil {
 		// If we already have it, or it won't be fetched

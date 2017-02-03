@@ -136,10 +136,67 @@ begin_test "cloneSSL"
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
   git clone "$SSLGITSERVER/$reponame"
-
 )
 end_test
 
+begin_test "clone ClientCert"
+(
+  set -e
+  reponame="test-cloneClientCert"
+  setup_remote_repo "$reponame"
+  clone_repo_clientcert "$reponame" "$reponame"
+  if [ $(grep -c "client-cert-mac-openssl" clone_client_cert.log) -gt 0 ]; then
+    echo "Skipping due to SSL client cert bug in Git"
+    exit 0
+  fi
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":100},
+      {\"Filename\":\"file2.dat\",\"Size\":75}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":30}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now clone again with 'git lfs clone', test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="testcloneClietCert1"
+  git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Git LFS:" lfsclone.log
+  # should be no filter errors
+  [ ! $(grep "filter" lfsclone.log) ]
+  [ ! $(grep "error" lfsclone.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+  [ $(wc -c < "file1.dat") -eq 100 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 30 ]
+  popd
+
+
+  # Now check SSL clone with standard 'git clone' and smudge download
+  rm -rf "$reponame"
+  git clone "$CLIENTCERTGITSERVER/$reponame"
+
+)
+end_test
 
 begin_test "clone with flags"
 (
@@ -329,7 +386,18 @@ begin_test "clone (with .lfsconfig)"
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig"
   local_reponame="clone_with_config_include"
+  set +x
   git lfs clone "$GITSERVER/$reponame" "$local_reponame"
+  ok="$?"
+  set -x
+  if [ "0" -ne "$ok" ]; then
+    # TEMP: used to catch transient failure from above `clone` command, as in:
+    # https://github.com/git-lfs/git-lfs/pull/1782#issuecomment-267678319
+    echo >&2 "[!] \`git lfs clone $GITSERVER/$reponame $local_reponame\` failed"
+    git lfs logs last
+
+    exit 1
+  fi
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"

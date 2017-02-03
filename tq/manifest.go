@@ -3,6 +3,7 @@ package tq
 import (
 	"sync"
 
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -20,7 +21,13 @@ type Manifest struct {
 	tusTransfersAllowed  bool
 	downloadAdapterFuncs map[string]NewAdapterFunc
 	uploadAdapterFuncs   map[string]NewAdapterFunc
+	apiClient            *lfsapi.Client
+	tqClient             *tqClient
 	mu                   sync.Mutex
+}
+
+func (m *Manifest) APIClient() *lfsapi.Client {
+	return m.apiClient
 }
 
 func (m *Manifest) MaxRetries() int {
@@ -31,18 +38,30 @@ func (m *Manifest) ConcurrentTransfers() int {
 	return m.concurrentTransfers
 }
 
-func NewManifest() *Manifest {
-	return NewManifestWithGitEnv("", nil)
+func (m *Manifest) batchClient() *tqClient {
+	return m.tqClient
 }
 
-func NewManifestWithGitEnv(access string, git Env) *Manifest {
+func NewManifest() *Manifest {
+	cli, err := lfsapi.NewClient(nil, nil)
+	if err != nil {
+		tracerx.Printf("unable to init tq.Manifest: %s", err)
+		return nil
+	}
+
+	return NewManifestWithClient(cli)
+}
+
+func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 	m := &Manifest{
+		apiClient:            apiClient,
+		tqClient:             &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
 
 	var tusAllowed bool
-	if git != nil {
+	if git := apiClient.GitEnv(); git != nil {
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
 		}
@@ -58,9 +77,7 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 		m.maxRetries = defaultMaxRetries
 	}
 
-	if access == "ntlm" {
-		m.concurrentTransfers = 1
-	} else if m.concurrentTransfers < 1 {
+	if m.concurrentTransfers < 1 {
 		m.concurrentTransfers = defaultConcurrentTransfers
 	}
 

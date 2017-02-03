@@ -122,9 +122,10 @@ assert_server_object() {
 
 # assert that a lock with the given ID exists on the test server
 assert_server_lock() {
-  local id="$1"
+  local reponame="$1"
+  local id="$2"
 
-  curl -v "$GITSERVER/locks/" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 |
@@ -139,9 +140,10 @@ assert_server_lock() {
 
 # refute that a lock with the given ID exists on the test server
 refute_server_lock() {
-  local id="$1"
+  local reponame="$1"
+  local id="$2"
 
-  curl -v "$GITSERVER/locks/" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log
@@ -149,6 +151,22 @@ refute_server_lock() {
   grep "200 OK" http.log
 
   [ $(grep -c "$id" http.json) -eq 0 ]
+}
+
+# Assert that .gitattributes contains a given attribute N times
+assert_attributes_count() {
+  local fileext="$1"
+  local attrib="$2"
+  local count="$3"
+
+  pattern="\*.$fileext.*$attrib"
+  actual=$(grep -e "$pattern" .gitattributes | wc -l)
+  if [ "$(printf "%d" "$actual")" != "$count" ]; then
+    echo "wrong number of $attrib entries for $fileext"
+    echo "expected: $count actual: $actual"
+    cat .gitattributes
+    exit 1
+  fi
 }
 
 # pointer returns a string Git LFS pointer file.
@@ -256,6 +274,37 @@ clone_repo_ssl() {
   echo "$out"
 }
 
+# clone_repo_clientcert clones a repository from the test Git server to the subdirectory
+# $dir under $TRASHDIR, using the client cert endpoint.
+# setup_remote_repo() needs to be run first. Output is written to clone_client_cert.log.
+clone_repo_clientcert() {
+  cd "$TRASHDIR"
+
+  local reponame="$1"
+  local dir="$2"
+  echo "clone $CLIENTCERTGITSERVER/$reponame to $dir"
+  set +e
+  out=$(git clone "$CLIENTCERTGITSERVER/$reponame" "$dir" 2>&1)
+  res="${PIPESTATUS[0]}"
+  set -e
+
+  if [ "0" -eq "$res" ]; then
+    cd "$dir"
+    echo "$out" > clone_client_cert.log
+
+    git config credential.helper lfstest
+    exit 0
+  fi
+
+  echo "$out" > clone_client_cert.log
+  if [ $(grep -c "NSInvalidArgumentException" clone_client_cert.log) -gt 0 ]; then
+    echo "client-cert-mac-openssl" > clone_client_cert.log
+    exit 0
+  fi
+
+  exit 1
+}
+
 # setup_remote_repo_with_file creates a remote repo, clones it locally, commits
 # a file tracked by LFS, and pushes it to the remote:
 #
@@ -264,8 +313,8 @@ setup_remote_repo_with_file() {
   local reponame="$1"
   local filename="$2"
 
-  setup_remote_repo "remote_$reponame"
-  clone_repo "remote_$reponame" "clone_$reponame"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "clone_$reponame"
 
   git lfs track "$filename"
   echo "$filename" > "$filename"
@@ -328,17 +377,29 @@ setup() {
     fi
   fi
 
-  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+
+  wait_for_file "$LFS_URL_FILE"
+  wait_for_file "$LFS_SSL_URL_FILE"
+  wait_for_file "$LFS_CLIENT_CERT_URL_FILE"
+  wait_for_file "$LFS_CERT_FILE"
+  wait_for_file "$LFS_CLIENT_CERT_FILE"
+  wait_for_file "$LFS_CLIENT_KEY_FILE"
+
+  LFS_CLIENT_CERT_URL=`cat $LFS_CLIENT_CERT_URL_FILE`
 
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
   mkdir "$HOME"
-  git lfs install
+  git lfs install --skip-repo
   git config --global credential.usehttppath true
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
   git config --global user.email "git-lfs@example.com"
   git config --global http.sslcainfo "$LFS_CERT_FILE"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslVerify "false"
 
   ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
     echo "global git config should be set in $REMOTEDIR/home"
@@ -357,14 +418,13 @@ setup() {
   echo "lfstest-gitserver:"
   echo "  LFSTEST_URL=$LFS_URL_FILE"
   echo "  LFSTEST_SSL_URL=$LFS_SSL_URL_FILE"
+  echo "  LFSTEST_CLIENT_CERT_URL=$LFS_CLIENT_CERT_URL_FILE ($LFS_CLIENT_CERT_URL)"
   echo "  LFSTEST_CERT=$LFS_CERT_FILE"
+  echo "  LFSTEST_CLIENT_CERT=$LFS_CLIENT_CERT_FILE"
+  echo "  LFSTEST_CLIENT_KEY=$LFS_CLIENT_KEY_FILE"
   echo "  LFSTEST_DIR=$REMOTEDIR"
   echo "GIT:"
   git config --global --get-regexp "lfs|credential|user"
-
-  wait_for_file "$LFS_URL_FILE"
-  wait_for_file "$LFS_SSL_URL_FILE"
-  wait_for_file "$LFS_CERT_FILE"
 
   echo
 }

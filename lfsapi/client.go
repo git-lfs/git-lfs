@@ -2,10 +2,10 @@ package lfsapi
 
 import (
 	"crypto/tls"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -13,7 +13,60 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+var UserAgent = "git-lfs"
+
+const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
+
+func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
+	sshRes, err := c.resolveSSHEndpoint(e, method)
+	if err != nil {
+		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
+			e.SshUserAndHost, err.Error(), sshRes.Message,
+		)
+
+		if len(sshRes.Message) > 0 {
+			return nil, errors.Wrap(err, sshRes.Message)
+		}
+		return nil, err
+	}
+
+	prefix := e.Url
+	if len(sshRes.Href) > 0 {
+		prefix = sshRes.Href
+	}
+
+	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)
+	if err != nil {
+		return req, err
+	}
+
+	for key, value := range sshRes.Header {
+		req.Header.Set(key, value)
+	}
+	req.Header.Set("Accept", MediaType)
+
+	if body != nil {
+		if merr := MarshalToRequest(req, body); merr != nil {
+			return req, merr
+		}
+		req.Header.Set("Content-Type", MediaType)
+	}
+
+	return req, err
+}
+
+const slash = "/"
+
+func joinURL(prefix, suffix string) string {
+	if strings.HasSuffix(prefix, slash) {
+		return prefix + suffix
+	}
+	return prefix + slash + suffix
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", UserAgent)
+
 	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
 	if err != nil {
 		return res, err
@@ -23,14 +76,19 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
-	if seeker, ok := req.Body.(io.Seeker); ok {
-		seeker.Seek(0, io.SeekStart)
+	c.traceRequest(req)
+	if err := c.prepareRequestBody(req); err != nil {
+		return nil, err
 	}
 
+	start := time.Now()
 	res, err := cli.Do(req)
 	if err != nil {
 		return res, err
 	}
+
+	c.traceResponse(res)
+	c.startResponseStats(res, start)
 
 	if res.StatusCode != 307 {
 		return res, err
@@ -61,11 +119,11 @@ func (c *Client) httpClient(host string) *http.Client {
 	defer c.clientMu.Unlock()
 
 	if c.gitEnv == nil {
-		c.gitEnv = make(testEnv)
+		c.gitEnv = make(TestEnv)
 	}
 
 	if c.osEnv == nil {
-		c.osEnv = make(testEnv)
+		c.osEnv = make(TestEnv)
 	}
 
 	if c.hostClients == nil {
@@ -97,7 +155,7 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	tr := &http.Transport{
-		Proxy: ProxyFromClient(c),
+		Proxy: proxyFromClient(c),
 		Dial: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
@@ -107,6 +165,13 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	tr.TLSClientConfig = &tls.Config{}
+
+	if isClientCertEnabledForHost(c, host) {
+		tracerx.Printf("http: client cert for %s", host)
+		tr.TLSClientConfig.Certificates = []tls.Certificate{getClientCertForHost(c, host)}
+		tr.TLSClientConfig.BuildNameToCertificate()
+	}
+
 	if isCertVerificationDisabledForHost(c, host) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
@@ -121,8 +186,17 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	c.hostClients[host] = httpClient
+	if c.VerboseOut == nil {
+		c.VerboseOut = os.Stderr
+	}
 
 	return httpClient
+}
+
+func (c *Client) CurrentUser() (string, string) {
+	userName, _ := c.gitEnv.Get("user.name")
+	userEmail, _ := c.gitEnv.Get("user.email")
+	return userName, userEmail
 }
 
 func newRequestForRetry(req *http.Request, location string) (*http.Request, error) {

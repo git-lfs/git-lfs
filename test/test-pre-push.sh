@@ -189,7 +189,7 @@ begin_test "pre-push with missing pointer not on server"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
-  grep "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c does not exist in .git/lfs/objects. Tried new.dat, which matches 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c." push.log
+  grep "Unable to find object (7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c) locally." push.log
 )
 end_test
 
@@ -444,7 +444,126 @@ begin_test "pre-push delete branch"
   # deleting a branch with git push should not fail
   # (requires correct special casing of "(delete) 0000000000.." in hook)
   git push origin --delete branch-to-delete
+)
+end_test
 
+begin_test "pre-push with locks/verify 404"
+(
+  set -e
 
+  # magic string that tells test server to return 404
+  reponame="pre_push_locks_verify_404"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="locked contents"
+  printf "$contents" > locked.dat
+  git add locked.dat
+  git commit -m "add locked.dat"
+
+  git push origin master
+
+  GITLFSLOCKSENABLED=1 git lfs lock "locked.dat" | tee lock.log
+  grep "'locked.dat' was locked" lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  printf "authorized changes" >> locked.dat
+  git add locked.dat
+  git commit -m "add unauthorized changes"
+
+  git push origin master 2>&1 | tee push.log
+  grep "Unable to search for locks contained in this push" push.log
+
+  assert_server_lock "$id"
+)
+end_test
+
+begin_test "pre-push with our lock"
+(
+  set -e
+
+  reponame="pre_push_owned_locks"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="locked contents"
+  printf "$contents" > locked.dat
+  git add locked.dat
+  git commit -m "add locked.dat"
+
+  git push origin master
+
+  GITLFSLOCKSENABLED=1 git lfs lock "locked.dat" | tee lock.log
+  grep "'locked.dat' was locked" lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  printf "authorized changes" >> locked.dat
+  git add locked.dat
+  git commit -m "add unauthorized changes"
+
+  GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  grep "Consider unlocking your own locked file(s)" push.log
+  grep "* locked.dat" push.log
+
+  assert_server_lock "$id"
+)
+end_test
+
+begin_test "pre-push with their lock"
+(
+  set -e
+
+  reponame="pre_push_unowned_lock"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  # Use a different Git persona so the locks are owned by a different person
+  git config --local user.name "Example Locker"
+  git config --local user.email "locker@example.com"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="locked contents"
+
+  # any lock path with "theirs" is returned as "their" lock by /locks/verify
+  printf "$contents" > locked_theirs.dat
+  git add locked_theirs.dat
+  git commit -m "add locked_theirs.dat"
+
+  git push origin master
+
+  GITLFSLOCKSENABLED=1 git lfs lock "locked_theirs.dat" | tee lock.log
+  grep "'locked_theirs.dat' was locked" lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  pushd "$TRASHDIR" >/dev/null
+    clone_repo "$reponame" "$reponame-assert"
+
+    printf "unauthorized changes" >> locked_theirs.dat
+    git add locked_theirs.dat
+    # --no-verify is used to avoid the pre-commit hook which is not under test
+    git commit --no-verify -m "add unauthorized changes"
+
+    git push origin master 2>&1 | tee push.log
+
+    grep "Unable to push 1 locked file(s)" push.log
+    grep "* locked_theirs.dat - Example Locker <locker@example.com>" push.log
+  popd >/dev/null
 )
 end_test

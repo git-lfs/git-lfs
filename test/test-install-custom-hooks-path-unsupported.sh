@@ -21,7 +21,7 @@ begin_test "install with unsupported core.hooksPath"
   git config --local core.hooksPath "$hooks_dir"
 
   git lfs install 2>&1 | tee install.log
-  grep "Updated pre-push hook" install.log
+  grep "Updated git hooks" install.log
 
   [ ! -e "$hooks_dir/pre-push" ]
   [ -e ".git/hooks/pre-push" ]

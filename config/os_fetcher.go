@@ -57,11 +57,3 @@ func (o *OsFetcher) Get(key string) (val string, ok bool) {
 func (o *OsFetcher) All() map[string]string {
 	return nil
 }
-
-func (o *OsFetcher) set(key, value string) {
-	panic("cannot modify OS ENV keys")
-}
-
-func (o *OsFetcher) del(key string) {
-	panic("cannot modify OS ENV keys")
-}

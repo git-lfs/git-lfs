@@ -36,7 +36,7 @@ type EndpointFinder interface {
 }
 
 type endpointGitFinder struct {
-	git         env
+	git         Env
 	gitProtocol string
 
 	aliasMu sync.Mutex
@@ -46,7 +46,7 @@ type endpointGitFinder struct {
 	urlAccess map[string]Access
 }
 
-func NewEndpointFinder(git env) EndpointFinder {
+func NewEndpointFinder(git Env) EndpointFinder {
 	e := &endpointGitFinder{
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
@@ -65,6 +65,12 @@ func NewEndpointFinder(git env) EndpointFinder {
 }
 
 func (e *endpointGitFinder) Endpoint(operation, remote string) Endpoint {
+	ep := e.getEndpoint(operation, remote)
+	ep.Operation = operation
+	return ep
+}
+
+func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
 	if e.git == nil {
 		return Endpoint{}
 	}
@@ -229,7 +235,7 @@ func urlWithoutAuth(rawurl string) string {
 	return u.String()
 }
 
-func fetchGitAccess(git env, key string) Access {
+func fetchGitAccess(git Env, key string) Access {
 	if v, _ := git.Get(key); len(v) > 0 {
 		access := Access(strings.ToLower(v))
 		if access == PrivateAccess {
@@ -269,7 +275,7 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	return rawurl
 }
 
-func initAliases(e *endpointGitFinder, git env) {
+func initAliases(e *endpointGitFinder, git Env) {
 	prefix := "url."
 	suffix := ".insteadof"
 	for gitkey, gitval := range git.All() {

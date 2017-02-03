@@ -72,12 +72,11 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	creds := newMockCredentialHelper()
-	c := &Client{
-		Credentials: creds,
-		Endpoints: NewEndpointFinder(testEnv(map[string]string{
-			"lfs.url": srv.URL + "/repo/lfs",
-		})),
-	}
+	c, err := NewClient(nil, TestEnv(map[string]string{
+		"lfs.url": srv.URL + "/repo/lfs",
+	}))
+	require.Nil(t, err)
+	c.Credentials = creds
 
 	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
 
@@ -144,7 +143,7 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	c := &Client{
 		Credentials: creds,
-		Endpoints: NewEndpointFinder(testEnv(map[string]string{
+		Endpoints: NewEndpointFinder(TestEnv(map[string]string{
 			"lfs.url": srv.URL,
 		})),
 	}
@@ -277,6 +276,48 @@ func TestGetCreds(t *testing.T) {
 					"username": "git-server.com",
 					"password": "monkey",
 					"path":     "repo/lfs",
+				},
+			},
+		},
+		"ntlm": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://git-server.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com/repo/lfs",
+				"lfs.https://git-server.com/repo/lfs.access": "ntlm",
+			},
+			Expected: getCredsExpected{
+				Access:   NTLMAccess,
+				Endpoint: "https://git-server.com/repo/lfs",
+				CredsURL: "https://git-server.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "git-server.com",
+					"username": "git-server.com",
+					"password": "monkey",
+					"path":     "repo/lfs",
+				},
+			},
+		},
+		"ntlm with netrc": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://netrc-host.com/repo/lfs",
+				"lfs.https://netrc-host.com/repo/lfs.access": "ntlm",
+			},
+			Expected: getCredsExpected{
+				Access:   NTLMAccess,
+				Endpoint: "https://netrc-host.com/repo/lfs",
+				CredsURL: "https://netrc-host.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "netrc-host.com",
+					"username": "abc",
+					"password": "def",
+					"source":   "netrc",
 				},
 			},
 		},
@@ -467,7 +508,7 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ef := NewEndpointFinder(testEnv(test.Config))
+		ef := NewEndpointFinder(TestEnv(test.Config))
 		endpoint, access, creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue
