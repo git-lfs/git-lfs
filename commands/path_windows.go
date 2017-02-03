@@ -17,6 +17,10 @@ var (
 	winBashRe     *regexp.Regexp
 )
 
+func lineEnding() string {
+	return "\r\n"
+}
+
 // cleanRootPath replaces the windows root path prefix with a unix path prefix:
 // "/". Git Bash (provided with Git For Windows) expands a path like "/foo" to
 // the actual Windows directory, but with forward slashes. You can see this

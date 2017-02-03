@@ -6,3 +6,7 @@ package commands
 func cleanRootPath(pattern string) string {
 	return pattern
 }
+
+func lineEnding() string {
+	return "\n"
+}

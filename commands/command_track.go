@@ -47,6 +47,8 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	lineEnd := lineEnding()
+
 	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
 	wd, _ := os.Getwd()
 	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
@@ -77,7 +79,7 @@ ArgsLoop:
 			lockableArg = " " + git.LockableAttrib
 		}
 
-		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v\n", encodedArg, lockableArg)
+		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
 
 		if trackLockableFlag {
 			readOnlyPatterns = append(readOnlyPatterns, pattern)
@@ -119,7 +121,7 @@ ArgsLoop:
 				delete(changedAttribLines, pattern)
 			} else {
 				// Write line unchanged (replace newline)
-				attributesFile.WriteString(line + "\n")
+				attributesFile.WriteString(line + lineEnd)
 			}
 		}
 
