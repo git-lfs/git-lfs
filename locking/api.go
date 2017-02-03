@@ -39,8 +39,8 @@ type lockResponse struct {
 	// Message is the optional error that was encountered while trying to create
 	// the above lock.
 	Message          string `json:"message,omitempty"`
-	DocumentationUrl string `json:"documentation_url,omitempty"`
-	RequestId        string `json:"request_id,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *http.Response, error) {
@@ -78,8 +78,8 @@ type unlockResponse struct {
 	// Message is an optional field which holds any error that was experienced
 	// while removing the lock.
 	Message          string `json:"message,omitempty"`
-	DocumentationUrl string `json:"documentation_url,omitempty"`
-	RequestId        string `json:"request_id,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) Unlock(remote, id string, force bool) (*unlockResponse, *http.Response, error) {
@@ -156,8 +156,8 @@ type lockList struct {
 	// error was encountered and the operation was succesful, then a value
 	// of nil will be passed here.
 	Message          string `json:"message,omitempty"`
-	DocumentationUrl string `json:"documentation_url,omitempty"`
-	RequestId        string `json:"request_id,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, *http.Response, error) {
@@ -219,8 +219,8 @@ type lockVerifiableList struct {
 	// error was encountered and the operation was succesful, then a value
 	// of nil will be passed here.
 	Message          string `json:"message,omitempty"`
-	DocumentationUrl string `json:"documentation_url,omitempty"`
-	RequestId        string `json:"request_id,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, *http.Response, error) {

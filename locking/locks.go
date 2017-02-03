@@ -97,8 +97,8 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, fmt.Errorf("Server unable to create lock: %s",
 			lfsapi.ClientErrorMessage(
 				lockRes.Message,
-				lockRes.DocumentationUrl,
-				lockRes.RequestId,
+				lockRes.DocumentationURL,
+				lockRes.RequestID,
 			))
 	}
 
@@ -149,8 +149,8 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		return fmt.Errorf("Server unable to unlock: %s",
 			lfsapi.ClientErrorMessage(
 				unlockRes.Message,
-				unlockRes.DocumentationUrl,
-				unlockRes.RequestId,
+				unlockRes.DocumentationURL,
+				unlockRes.RequestID,
 			))
 	}
 
@@ -203,8 +203,8 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 			return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s",
 				lfsapi.ClientErrorMessage(
 					list.Message,
-					list.DocumentationUrl,
-					list.RequestId,
+					list.DocumentationURL,
+					list.RequestID,
 				))
 		}
 
@@ -271,8 +271,8 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 			return locks, fmt.Errorf("Server error searching for locks: %s",
 				lfsapi.ClientErrorMessage(
 					list.Message,
-					list.DocumentationUrl,
-					list.RequestId,
+					list.DocumentationURL,
+					list.RequestID,
 				))
 		}
 
