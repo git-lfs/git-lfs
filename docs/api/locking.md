@@ -260,10 +260,9 @@ likely be added to this request body in future iterations.
 
 A successful response will list the relevant locks:
 
-* `ours` - Array of Lock objects matching files that the user is allowed to
+* `ours` - Array of Lock objects currently owned by the authenticated user.
 modify.
-* `theirs` - Array of Lock objects matching files that the user is not allowed
-to modify.
+* `theirs` - Array of Lock objects currently owned by other users.
 * `next_cursor` - Optional string cursor that the server can return if there
 are more locks matching the given filters. The client will re-do the request,
 setting the `cursor` property with this `next_cursor` value.
