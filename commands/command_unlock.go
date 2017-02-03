@@ -92,11 +92,13 @@ func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
 		locks, _ = lockClient.SearchLocks(filter, 0, false)
 	}
 
-	if len(locks) > 0 {
-		unlockAbortIfFileModified(locks[0].Path)
+	if len(locks) == 0 {
+		// Don't block if we can't determine the path, may be cleaning up old data
+		return
 	}
 
-	// Don't block if we can't determine the path, may be cleaning up old data
+	unlockAbortIfFileModified(locks[0].Path)
+
 }
 
 func init() {
