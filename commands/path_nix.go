@@ -8,5 +8,5 @@ func cleanRootPath(pattern string) string {
 }
 
 func lineEnding() string {
-	return "\n"
+	return lf
 }

@@ -99,16 +99,52 @@ begin_test "track without trailing linebreak"
   mkdir no-linebreak
   cd no-linebreak
   git init
+
   printf "*.mov filter=lfs -text" > .gitattributes
+  [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
 
   git lfs track "*.gif"
+  expected="*.mov filter=lfs -text$(cat_end)
+*.gif filter=lfs diff=lfs merge=lfs -text$(cat_end)"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+)
+end_test
 
-  expected="*.mov filter=lfs -text$(win_cr)
-*.gif filter=lfs diff=lfs merge=lfs -text"
+begin_test "track with autocrlf=true"
+(
+  set -e
 
-  if [ "$expected" != "$(cat .gitattributes)" ]; then
-    exit 1
-  fi
+  mkdir autocrlf-true
+  cd autocrlf-true
+  git init
+  git config core.autocrlf true
+
+  printf "*.mov filter=lfs -text" > .gitattributes
+  [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
+
+  git lfs track "*.gif"
+  expected="*.mov filter=lfs -text$(cat_end)
+*.gif filter=lfs diff=lfs merge=lfs -text$(cat_end)"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+)
+end_test
+
+begin_test "track with autocrlf=input"
+(
+  set -e
+
+  mkdir autocrlf-input
+  cd autocrlf-input
+  git init
+  git config core.autocrlf input
+
+  printf "*.mov filter=lfs -text" > .gitattributes
+  [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
+
+  git lfs track "*.gif"
+  expected="*.mov filter=lfs -text$(cat_end)
+*.gif filter=lfs diff=lfs merge=lfs -text$(cat_end)"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
 )
 end_test
 
