@@ -330,19 +330,15 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 func (c *Client) refreshLockCache() error {
 	// TODO: filters don't seem to currently define how to search for a
 	// committer's email. Is it "committer.email"? For now, just iterate
-	locks, err := c.SearchLocks(nil, 0, false)
+	ourLocks, _, err := c.VerifiableLocks(0)
 	if err != nil {
 		return err
 	}
 
 	// We're going to overwrite the entire local cache
 	c.cache.Clear()
-
-	_, email := c.client.CurrentUser()
-	for _, l := range locks {
-		if l.Committer.Email == email {
-			c.cache.Add(l)
-		}
+	for _, l := range ourLocks {
+		c.cache.Add(l)
 	}
 
 	return nil
