@@ -592,12 +592,6 @@ native_path_escaped() {
   escape_path "$unescaped"
 }
 
-win_cr() {
-  if [ $IS_WINDOWS -eq 1 ]; then
-    printf '\r'
-  fi
-}
-
 cat_end() {
   if [ $IS_WINDOWS -eq 1 ]; then
     printf '^M$'
