@@ -32,7 +32,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, lock := range locks {
-		Print("%s\t%s", lock.Path, lock.Committer)
+		Print("%s\t%s", lock.Path, lock.Owner)
 		lockCount++
 	}
 

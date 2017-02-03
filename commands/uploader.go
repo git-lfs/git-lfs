@@ -178,7 +178,7 @@ func (c *uploadContext) Await() {
 
 		Print("Unable to push %d locked file(s):", ul)
 		for _, unowned := range c.unownedLocks {
-			Print("* %s - %s", unowned.Path, unowned.Committer)
+			Print("* %s - %s", unowned.Path, unowned.Owner)
 		}
 	} else if len(c.ownedLocks) > 0 {
 		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")

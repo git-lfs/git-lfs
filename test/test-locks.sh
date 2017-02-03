@@ -17,7 +17,7 @@ begin_test "list a single lock"
   GITLFSLOCKSENABLED=1 git lfs locks --path "f.dat" | tee locks.log
   grep "1 lock(s) matched query" locks.log
   grep "f.dat" locks.log
-  grep "Git LFS Tests <git-lfs@example.com>" locks.log
+  grep "Git LFS Tests" locks.log
 )
 end_test
 
@@ -35,7 +35,7 @@ begin_test "list a single lock (--json)"
 
   GITLFSLOCKSENABLED=1 git lfs locks --json --path "f_json.dat" | tee locks.log
   grep "\"path\":\"f_json.dat\"" locks.log
-  grep "\"committer\":{\"name\":\"Git LFS Tests\",\"email\":\"git-lfs@example.com\"}" locks.log
+  grep "\"owner\":{\"name\":\"Git LFS Tests\"}" locks.log
 )
 end_test
 

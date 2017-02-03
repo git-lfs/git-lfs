@@ -169,9 +169,8 @@ type Lock struct {
 	// Path is an absolute path to the file that is locked as a part of this
 	// lock.
 	Path string `json:"path"`
-	// Committer is the identity of the person who holds the ownership of
-	// this lock.
-	Committer *Committer `json:"committer"`
+	// Owner is the identity of the user that created this lock.
+	Owner *User `json:"owner"`
 	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time `json:"locked_at"`
 }
@@ -325,11 +324,9 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 	}
 }
 
-// Fetch locked files for the current committer and cache them locally
+// Fetch locked files for the current user and cache them locally
 // This can be used to sync up locked files when moving machines
 func (c *Client) refreshLockCache() error {
-	// TODO: filters don't seem to currently define how to search for a
-	// committer's email. Is it "committer.email"? For now, just iterate
 	ourLocks, _, err := c.VerifiableLocks(0)
 	if err != nil {
 		return err
@@ -345,9 +342,8 @@ func (c *Client) refreshLockCache() error {
 }
 
 // IsFileLockedByCurrentCommitter returns whether a file is locked by the
-// current committer, as cached locally
+// current user, as cached locally
 func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
-
 	filter := map[string]string{"path": path}
 	locks, err := c.searchCachedLocks(filter, 1)
 	if err != nil {

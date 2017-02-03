@@ -757,21 +757,19 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(307)
 }
 
-type Committer struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+type User struct {
+	Name string `json:"name"`
 }
 
 type Lock struct {
-	Id        string    `json:"id"`
-	Path      string    `json:"path"`
-	Committer Committer `json:"committer"`
-	LockedAt  time.Time `json:"locked_at"`
+	Id       string    `json:"id"`
+	Path     string    `json:"path"`
+	Owner    User      `json:"owner"`
+	LockedAt time.Time `json:"locked_at"`
 }
 
 type LockRequest struct {
-	Path      string    `json:"path"`
-	Committer Committer `json:"committer"`
+	Path string `json:"path"`
 }
 
 type LockResponse struct {
@@ -1029,10 +1027,10 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			rand.Read(id[:])
 
 			lock := &Lock{
-				Id:        fmt.Sprintf("%x", id[:]),
-				Path:      lockRequest.Path,
-				Committer: lockRequest.Committer,
-				LockedAt:  time.Now(),
+				Id:       fmt.Sprintf("%x", id[:]),
+				Path:     lockRequest.Path,
+				Owner:    User{Name: "Git LFS Tests"},
+				LockedAt: time.Now(),
 			}
 
 			addLocks(repo, *lock)

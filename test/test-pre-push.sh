@@ -529,10 +529,6 @@ begin_test "pre-push with their lock"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  # Use a different Git persona so the locks are owned by a different person
-  git config --local user.name "Example Locker"
-  git config --local user.email "locker@example.com"
-
   git lfs track "*.dat"
   git add .gitattributes
   git commit -m "initial commit"
@@ -563,7 +559,7 @@ begin_test "pre-push with their lock"
     git push origin master 2>&1 | tee push.log
 
     grep "Unable to push 1 locked file(s)" push.log
-    grep "* locked_theirs.dat - Example Locker <locker@example.com>" push.log
+    grep "* locked_theirs.dat - Git LFS Tests" push.log
   popd >/dev/null
 )
 end_test

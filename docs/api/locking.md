@@ -53,9 +53,8 @@ as long as it's returned a string.
 * `path` - String path name of the locked file. This should be relative to the
 root of the repository working directory.
 * `locked_at` - The string ISO 8601 formatted timestamp the lock was created.
-* `committer` - The optional name/email of the user that created the Lock. This
-could be different from the `committer` values in the request if the lock
-service already knows the committer's identity based on the API credentials.
+* `owner` - The name of the user that created the Lock. This should be set from
+the user credentials posted when creating the lock.
 
 ```js
 // HTTP/1.1 201 Created
@@ -65,9 +64,8 @@ service already knows the committer's identity based on the API credentials.
     "id": "some-uuid",
     "path": "/path/to/file",
     "locked_at": "2016-05-17T15:49:06+00:00",
-    "committer": {
+    "owner": {
       "name": "Jane Doe",
-      "email": "janedoe@email.com"
     }
   }
 }
@@ -177,7 +175,7 @@ Note: If the server has no locks, it must return an empty `locks` array.
       "id": "some-uuid",
       "path": "/path/to/file",
       "locked_at": "2016-05-17T15:49:06+00:00",
-      "committer": {
+      "owner": {
         "name": "Jane Doe"
       }
     }
@@ -285,7 +283,7 @@ Note: If the server has no locks, it must return an empty array in the `ours` or
       "id": "some-uuid",
       "path": "/path/to/file",
       "locked_at": "2016-05-17T15:49:06+00:00",
-      "committer": {
+      "owner": {
         "name": "Jane Doe"
       }
     }
@@ -390,7 +388,7 @@ response section to see what Lock properties are possible.
     "id": "some-uuid",
     "path": "/path/to/file",
     "locked_at": "2016-05-17T15:49:06+00:00",
-    "committer": {
+    "owner": {
       "name": "Jane Doe"
     }
   }

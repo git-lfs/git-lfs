@@ -243,22 +243,18 @@ func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest
 	return locks, res, err
 }
 
-// Committer represents a "First Last <email@domain.com>" pair.
-type Committer struct {
+// User represents the owner of a lock.
+type User struct {
 	// Name is the name of the individual who would like to obtain the
-	// lock, for instance: "Rick Olson".
+	// lock, for instance: "Rick Sanchez".
 	Name string `json:"name"`
-	// Email is the email assopsicated with the individual who would
-	// like to obtain the lock, for instance: "rick@github.com".
-	Email string `json:"email"`
 }
 
-func NewCommitter(name, email string) *Committer {
-	return &Committer{Name: name, Email: email}
+func NewUser(name string) *User {
+	return &User{Name: name}
 }
 
-// String implements the fmt.Stringer interface by returning a string
-// representation of the Committer in the format "First Last <email>".
-func (c *Committer) String() string {
-	return fmt.Sprintf("%s <%s>", c.Name, c.Email)
+// String implements the fmt.Stringer interface.
+func (u *User) String() string {
+	return u.Name
 }
