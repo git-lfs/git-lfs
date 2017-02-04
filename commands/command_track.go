@@ -47,9 +47,12 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	lineEnd := gitLineEnding(cfg.Git)
-
 	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	lineEnd := getAttributeLineEnding(knownPatterns)
+	if len(lineEnd) == 0 {
+		lineEnd = gitLineEnding(cfg.Git)
+	}
+
 	wd, _ := os.Getwd()
 	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
 	if err != nil {
@@ -206,6 +209,15 @@ func listPatterns() {
 			Print("    %s (%s)", t.Path, t.Source)
 		}
 	}
+}
+
+func getAttributeLineEnding(attribs []git.AttributePath) string {
+	for _, a := range attribs {
+		if a.Source.Path == ".gitattributes" {
+			return a.Source.LineEnding
+		}
+	}
+	return ""
 }
 
 // blocklistItem returns the name of the blocklist item preventing the given

@@ -2,6 +2,7 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,9 +20,18 @@ type AttributePath struct {
 	// Path entry in the attribute file
 	Path string
 	// The attribute file which was the source of this entry
-	Source string
+	Source *AttributeSource
 	// Path also has the 'lockable' attribute
 	Lockable bool
+}
+
+type AttributeSource struct {
+	Path       string
+	LineEnding string
+}
+
+func (s *AttributeSource) String() string {
+	return s.Path
 }
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
@@ -37,15 +47,20 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 			continue
 		}
 
+		relfile, _ := filepath.Rel(workingDir, path)
+		reldir := filepath.Dir(relfile)
+		source := &AttributeSource{Path: relfile}
+
+		le := &lineEndingSplitter{}
 		scanner := bufio.NewScanner(attributes)
+		scanner.Split(le.ScanLines)
 
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.Contains(line, "filter=lfs") {
 				fields := strings.Fields(line)
-				relfile, _ := filepath.Rel(workingDir, path)
 				pattern := fields[0]
-				if reldir := filepath.Dir(relfile); len(reldir) > 0 {
+				if len(reldir) > 0 {
 					pattern = filepath.Join(reldir, pattern)
 				}
 				// Find lockable flag in any position after pattern to avoid
@@ -57,12 +72,59 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 						break
 					}
 				}
-				paths = append(paths, AttributePath{Path: pattern, Source: relfile, Lockable: lockable})
+				paths = append(paths, AttributePath{
+					Path:     pattern,
+					Source:   source,
+					Lockable: lockable,
+				})
 			}
 		}
+
+		source.LineEnding = le.LineEnding()
 	}
 
 	return paths
+}
+
+// copies bufio.ScanLines(), counting LF vs CRLF in a file
+type lineEndingSplitter struct {
+	LFCount   int
+	CRLFCount int
+}
+
+func (s *lineEndingSplitter) LineEnding() string {
+	if s.CRLFCount > s.LFCount {
+		return "\r\n"
+	} else if s.LFCount == 0 {
+		return ""
+	}
+	return "\n"
+}
+
+func (s *lineEndingSplitter) ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, s.dropCR(data[0:i]), nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+// dropCR drops a terminal \r from the data.
+func (s *lineEndingSplitter) dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		s.CRLFCount++
+		return data[0 : len(data)-1]
+	}
+	s.LFCount++
+	return data
 }
 
 func findAttributeFiles(workingDir, gitDir string) []string {
