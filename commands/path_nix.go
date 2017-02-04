@@ -7,6 +7,6 @@ func cleanRootPath(pattern string) string {
 	return pattern
 }
 
-func lineEnding() string {
+func osLineEnding() string {
 	return "\n"
 }

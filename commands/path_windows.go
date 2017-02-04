@@ -17,7 +17,7 @@ var (
 	winBashRe     *regexp.Regexp
 )
 
-func lineEnding() string {
+func osLineEnding() string {
 	return "\r\n"
 }
 

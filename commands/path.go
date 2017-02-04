@@ -8,7 +8,7 @@ func gitLineEnding(git env) string {
 	case "input", "true", "t", "1":
 		return "\r\n"
 	default:
-		return lineEnding()
+		return osLineEnding()
 	}
 }
 
