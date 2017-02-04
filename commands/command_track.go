@@ -47,7 +47,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	lineEnd := lineEnding()
+	lineEnd := gitLineEnding(cfg.Git)
 
 	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
 	wd, _ := os.Getwd()

@@ -123,8 +123,8 @@ begin_test "track with autocrlf=true"
   [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
 
   git lfs track "*.gif"
-  expected="*.mov filter=lfs -text$(cat_end)
-*.gif filter=lfs diff=lfs merge=lfs -text$(cat_end)"
+  expected="*.mov filter=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$"
   [ "$expected" = "$(cat -e .gitattributes)" ]
 )
 end_test
@@ -142,8 +142,8 @@ begin_test "track with autocrlf=input"
   [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
 
   git lfs track "*.gif"
-  expected="*.mov filter=lfs -text$(cat_end)
-*.gif filter=lfs diff=lfs merge=lfs -text$(cat_end)"
+  expected="*.mov filter=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$"
   [ "$expected" = "$(cat -e .gitattributes)" ]
 )
 end_test
