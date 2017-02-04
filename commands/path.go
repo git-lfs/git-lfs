@@ -2,16 +2,11 @@ package commands
 
 import "strings"
 
-const (
-	lf   = "\n"
-	crlf = "\r\n"
-)
-
 func gitLineEnding(git env) string {
 	value, _ := git.Get("core.autocrlf")
 	switch strings.ToLower(value) {
 	case "input", "true", "t", "1":
-		return crlf
+		return "\r\n"
 	default:
 		return lineEnding()
 	}

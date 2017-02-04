@@ -18,7 +18,7 @@ var (
 )
 
 func lineEnding() string {
-	return crlf
+	return "\r\n"
 }
 
 // cleanRootPath replaces the windows root path prefix with a unix path prefix:
