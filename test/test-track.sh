@@ -110,6 +110,29 @@ begin_test "track without trailing linebreak"
 )
 end_test
 
+begin_test "track with existing crlf"
+(
+  set -e
+
+  mkdir existing-crlf
+  cd existing-crlf
+  git init
+
+  git config core.autocrlf true
+  git lfs track "*.mov" "*.gif"
+  expected="*.mov filter=lfs diff=lfs merge=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+
+  git config core.autocrlf false
+  git lfs track "*.jpg"
+  expected="*.mov filter=lfs diff=lfs merge=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$
+*.jpg filter=lfs diff=lfs merge=lfs -text^M$"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+)
+end_test
+
 begin_test "track with autocrlf=true"
 (
   set -e
