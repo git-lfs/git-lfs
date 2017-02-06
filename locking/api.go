@@ -190,6 +190,61 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 	return locks, res, err
 }
 
+// lockVerifiableRequest encapsulates the request sent to the server when the
+// client would like a list of locks to verify a Git push.
+type lockVerifiableRequest struct {
+	// Cursor is an optional field used to tell the server which lock was
+	// seen last, if scanning through multiple pages of results.
+	//
+	// Servers must return a list of locks sorted in reverse chronological
+	// order, so the Cursor provides a consistent method of viewing all
+	// locks, even if more were created between two requests.
+	Cursor string `json:"cursor,omitempty"`
+	// Limit is the maximum number of locks to return in a single page.
+	Limit int `json:"limit,omitempty"`
+}
+
+// lockVerifiableList encapsulates a set of Locks to verify a Git push.
+type lockVerifiableList struct {
+	// Ours is the set of locks returned back matching filenames that the user
+	// is allowed to edit.
+	Ours []Lock `json:"ours"`
+
+	// Their is the set of locks returned back matching filenames that the user
+	// is NOT allowed to edit. Any edits matching these files should reject
+	// the Git push.
+	Theirs []Lock `json:"theirs"`
+
+	// NextCursor returns the Id of the Lock the client should update its
+	// cursor to, if there are multiple pages of results for a particular
+	// `LockListRequest`.
+	NextCursor string `json:"next_cursor,omitempty"`
+	// Err populates any error that was encountered during the search. If no
+	// error was encountered and the operation was succesful, then a value
+	// of nil will be passed here.
+	Err string `json:"error,omitempty"`
+}
+
+func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, *http.Response, error) {
+	e := c.Endpoints.Endpoint("upload", remote)
+	req, err := c.NewRequest("POST", e, "locks/verify", vreq)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	res, err := c.DoWithAuth(remote, req)
+	if err != nil {
+		return nil, res, err
+	}
+
+	locks := &lockVerifiableList{}
+	if res.StatusCode == http.StatusOK {
+		err = lfsapi.DecodeJSON(res, locks)
+	}
+
+	return locks, res, err
+}
+
 // Committer represents a "First Last <email@domain.com>" pair.
 type Committer struct {
 	// Name is the name of the individual who would like to obtain the

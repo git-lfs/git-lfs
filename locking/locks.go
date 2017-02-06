@@ -182,12 +182,53 @@ type Lock struct {
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
 // If localOnly = true, don't query the server & report only own local locks
-func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) (locks []Lock, err error) {
+func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) ([]Lock, error) {
 	if localOnly {
 		return c.searchCachedLocks(filter, limit)
 	} else {
 		return c.searchRemoteLocks(filter, limit)
 	}
+}
+
+func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err error) {
+	ourLocks = make([]Lock, 0, limit)
+	theirLocks = make([]Lock, 0, limit)
+	body := &lockVerifiableRequest{
+		Limit: limit,
+	}
+
+	for {
+		list, _, err := c.client.SearchVerifiable(c.Remote, body)
+		if err != nil {
+			return ourLocks, theirLocks, err
+		}
+
+		if list.Err != "" {
+			return ourLocks, theirLocks, errors.New(list.Err)
+		}
+
+		for _, l := range list.Ours {
+			ourLocks = append(ourLocks, l)
+			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
+				return ourLocks, theirLocks, nil
+			}
+		}
+
+		for _, l := range list.Theirs {
+			theirLocks = append(theirLocks, l)
+			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
+				return ourLocks, theirLocks, nil
+			}
+		}
+
+		if list.NextCursor != "" {
+			body.Cursor = list.NextCursor
+		} else {
+			break
+		}
+	}
+
+	return ourLocks, theirLocks, nil
 }
 
 func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {

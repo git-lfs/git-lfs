@@ -24,10 +24,17 @@ type uploadContext struct {
 	committerName  string
 	committerEmail string
 
-	locks          map[string]locking.Lock
 	trackedLocksMu *sync.Mutex
-	ownedLocks     []locking.Lock
-	unownedLocks   []locking.Lock
+
+	// ALL verifiable locks
+	ourLocks   map[string]*locking.Lock
+	theirLocks map[string]*locking.Lock
+
+	// locks from ourLocks that were modified in this push
+	ownedLocks []*locking.Lock
+
+	// locks from theirLocks that were modified in this push
+	unownedLocks []*locking.Lock
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -38,7 +45,8 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:       getTransferManifest(),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
-		locks:          make(map[string]locking.Lock),
+		ourLocks:       make(map[string]*locking.Lock),
+		theirLocks:     make(map[string]*locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
 	}
 
@@ -47,13 +55,16 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 
 	lockClient := newLockClient(remote)
-	locks, err := lockClient.SearchLocks(nil, 0, false)
+	ourLocks, theirLocks, err := lockClient.VerifiableLocks(0)
 	if err != nil {
 		Error("WARNING: Unable to search for locks contained in this push.")
 		Error("         Temporarily skipping check ...")
 	} else {
-		for _, l := range locks {
-			ctx.locks[l.Path] = l
+		for _, l := range theirLocks {
+			ctx.theirLocks[l.Path] = &l
+		}
+		for _, l := range ourLocks {
+			ctx.ourLocks[l.Path] = &l
 		}
 	}
 
@@ -96,17 +107,16 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 		// current committer.
 		var canUpload bool = true
 
-		if lock, ok := c.locks[p.Name]; ok {
-			owned := lock.Committer.Name == c.committerName &&
-				lock.Committer.Email == c.committerEmail
-
+		if lock, ok := c.theirLocks[p.Name]; ok {
 			c.trackedLocksMu.Lock()
-			if owned {
-				c.ownedLocks = append(c.ownedLocks, lock)
-			} else {
-				c.unownedLocks = append(c.unownedLocks, lock)
-				canUpload = false
-			}
+			c.unownedLocks = append(c.unownedLocks, lock)
+			c.trackedLocksMu.Unlock()
+			canUpload = false
+		}
+
+		if lock, ok := c.ourLocks[p.Name]; ok {
+			c.trackedLocksMu.Lock()
+			c.ownedLocks = append(c.ownedLocks, lock)
 			c.trackedLocksMu.Unlock()
 		}
 
