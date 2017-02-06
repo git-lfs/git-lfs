@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
@@ -1091,4 +1092,45 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	}
 
 	return files, err
+}
+
+// IsFileModified returns whether the filepath specified is modified according
+// to `git status`. A file is modified if it has uncommitted changes in the
+// working copy or the index. This includes being untracked.
+func IsFileModified(filepath string) (bool, error) {
+
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"status",
+		"--porcelain",
+		"--", // separator in case filename ambiguous
+		filepath,
+	}
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, lfserrors.Wrap(err, "Failed to call git status")
+	}
+	if err := cmd.Start(); err != nil {
+		return false, lfserrors.Wrap(err, "Failed to start git status")
+	}
+	matched := false
+	for scanner := bufio.NewScanner(outp); scanner.Scan(); {
+		line := scanner.Text()
+		// Porcelain format is "<I><W> <filename>"
+		// Where <I> = index status, <W> = working copy status
+		if len(line) > 3 {
+			// Double-check even though should be only match
+			if strings.TrimSpace(line[3:]) == filepath {
+				matched = true
+				// keep consuming output to exit cleanly
+				// will typically fall straight through anyway due to 1 line output
+			}
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		return false, lfserrors.Wrap(err, "Git status failed")
+	}
+
+	return matched, nil
 }
