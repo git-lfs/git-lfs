@@ -226,7 +226,7 @@ type lockVerifiableList struct {
 }
 
 func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, *http.Response, error) {
-	e := c.Endpoints.Endpoint("download", remote)
+	e := c.Endpoints.Endpoint("upload", remote)
 	req, err := c.NewRequest("POST", e, "locks/verify", vreq)
 	if err != nil {
 		return nil, nil, err
