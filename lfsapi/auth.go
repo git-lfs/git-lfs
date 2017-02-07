@@ -111,7 +111,12 @@ func getCreds(credHelper CredentialHelper, netrcFinder NetrcFinder, ef EndpointF
 	access := ef.AccessFor(apiEndpoint.Url)
 
 	if access != NTLMAccess {
-		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access == NoneAccess {
+		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) {
+			return apiEndpoint, access, nil, nil, nil
+		}
+
+		if access == NoneAccess {
+			tracerx.Printf("Attempting with no authorization for %s", sanitizedURL(req.URL))
 			return apiEndpoint, access, nil, nil, nil
 		}
 
@@ -173,8 +178,13 @@ func getGitCreds(credHelper CredentialHelper, ef EndpointFinder, req *http.Reque
 func fillGitCreds(credHelper CredentialHelper, ef EndpointFinder, req *http.Request, u *url.URL) (Creds, error) {
 	creds, err := getGitCreds(credHelper, ef, req, u)
 	if err == nil {
-		tracerx.Printf("Filled credentials for %s", u)
-		setRequestAuth(req, creds["username"], creds["password"])
+		if setRequestAuth(req, creds["username"], creds["password"]) {
+			tracerx.Printf("Using Git credentials for %s", sanitizedURL(u))
+		} else {
+			tracerx.Printf("No Git credentials for %s", sanitizedURL(u))
+		}
+	} else {
+		tracerx.Printf("Git Credential error for %s: %s", sanitizedURL(u), err)
 	}
 
 	return creds, err
@@ -200,8 +210,13 @@ func getAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) *netrc.Machine
 
 func setAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) bool {
 	if machine := getAuthFromNetrc(netrcFinder, req); machine != nil {
-		setRequestAuth(req, machine.Login, machine.Password)
-		return true
+		if setRequestAuth(req, machine.Login, machine.Password) {
+			tracerx.Printf("Using netrc for %s", sanitizedURL(req.URL))
+			return true
+		} else {
+			tracerx.Printf("Empty netrc for %s", sanitizedURL(req.URL))
+			return false
+		}
 	}
 
 	return false
@@ -248,6 +263,7 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint E
 
 func requestHasAuth(req *http.Request) bool {
 	if len(req.Header.Get("Authorization")) > 0 {
+		tracerx.Printf("Using existing Authorization for %s", sanitizedURL(req.URL))
 		return true
 	}
 
@@ -268,15 +284,16 @@ func setRequestAuthFromURL(req *http.Request, u *url.URL) bool {
 	return false
 }
 
-func setRequestAuth(req *http.Request, user, pass string) {
+func setRequestAuth(req *http.Request, user, pass string) bool {
 	// better not be NTLM!
 	if len(user) == 0 && len(pass) == 0 {
-		return
+		return false
 	}
 
 	token := fmt.Sprintf("%s:%s", user, pass)
 	auth := "Basic " + strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(token)))
 	req.Header.Set("Authorization", auth)
+	return true
 }
 
 func getReqOperation(req *http.Request) string {

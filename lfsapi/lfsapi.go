@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -131,6 +132,16 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	}
 
 	return nil
+}
+
+func sanitizedURL(u *url.URL) string {
+	u2 := *u
+	u2.RawQuery = ""
+	if u.User != nil {
+		u2.User = url.User(u.User.Username())
+	}
+
+	return (&u2).String()
 }
 
 // Env is an interface for the config.Environment methods that this package
