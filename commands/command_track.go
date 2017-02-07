@@ -119,6 +119,10 @@ ArgsLoop:
 		for scanner.Scan() {
 			line := scanner.Text()
 			fields := strings.Fields(line)
+			if len(fields) < 1 {
+				continue
+			}
+
 			pattern := fields[0]
 			if newline, ok := changedAttribLines[pattern]; ok {
 				// Replace this line (newline already embedded)

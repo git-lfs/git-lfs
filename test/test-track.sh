@@ -12,6 +12,13 @@ begin_test "track"
   cd track
   git init
 
+  echo "###############################################################################
+# Set default behavior to automatically normalize line endings.
+###############################################################################
+* text=auto
+
+#*.cs     diff=csharp" > .gitattributes
+
   # track *.jpg once
   git lfs track "*.jpg" | grep "Tracking \*.jpg"
   assert_attributes_count "jpg" "filter=lfs" 1
@@ -374,4 +381,3 @@ begin_test "track lockable read-only/read-write"
 
 )
 end_test
-
