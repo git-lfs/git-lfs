@@ -15,7 +15,7 @@ import (
 
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {
-	tracerx.Printf("run_command: '%s' %s", name, strings.Join(args, " "))
+	tracerx.Printf("run_command: %s %s", name, strings.Join(args, " "))
 	cmd := ExecCommand(name, args...)
 
 	//start copied from Go 1.6 exec.go

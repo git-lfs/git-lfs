@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/rubyist/tracerx"
 )
 
 type CredentialHelper interface {
@@ -60,6 +62,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	   See https://github.com/git-lfs/git-lfs/issues/117 for more details.
 	*/
 
+	tracerx.Printf("run_command: git credential %s", subcommand)
 	err := cmd.Start()
 	if err == nil {
 		err = cmd.Wait()
