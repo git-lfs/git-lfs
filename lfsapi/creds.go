@@ -63,11 +63,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	*/
 
 	tracerx.Printf("run_command: git credential %s", subcommand)
-	err := cmd.Start()
-	if err == nil {
-		err = cmd.Wait()
-	}
-
+	err := cmd.Run()
 	if _, ok := err.(*exec.ExitError); ok {
 		if h.SkipPrompt {
 			return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
