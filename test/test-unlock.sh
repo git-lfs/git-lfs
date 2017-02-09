@@ -19,6 +19,32 @@ begin_test "unlocking a lock by path"
 )
 end_test
 
+begin_test "force unlocking lock with missing file"
+(
+  set -e
+
+  reponame="force-unlock-missing-file"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock "a.dat" | tee lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock "$reponame" "$id"
+
+  git rm a.dat
+  git commit -m "a.dat"
+  rm *.log *.json # ensure clean git status
+  git status
+
+  GITLFSLOCKSENABLED=1 git lfs unlock "a.dat" 2>&1 | tee unlock.log
+  grep "Unable to determine path" unlock.log
+  assert_server_lock "$reponame" "$id"
+
+  rm unlock.log
+  GITLFSLOCKSENABLED=1 git lfs unlock --force "a.dat" 2>&1 | tee unlock.log
+  refute_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "unlocking a lock (--json)"
 (
   set -e

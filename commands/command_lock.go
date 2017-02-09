@@ -72,15 +72,18 @@ func lockPath(file string) (string, error) {
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
+	if len(path) > 1 {
+		path = path[1:]
+	}
 
 	if stat, err := os.Stat(abs); err != nil {
-		return "", err
+		return path, err
 	} else {
 		if stat.IsDir() {
-			return "", fmt.Errorf("lfs: cannot lock directory: %s", file)
+			return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
 		}
 
-		return path[1:], nil
+		return path, nil
 	}
 }
 
