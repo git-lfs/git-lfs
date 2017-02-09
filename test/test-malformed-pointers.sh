@@ -18,6 +18,9 @@ begin_test "malformed pointers"
   base64 /dev/urandom | head -c 1024 > malformed_exact.dat
   base64 /dev/urandom | head -c 1025 > malformed_large.dat
 
+  base64 /dev/urandom | head -c 200160 > malformed_xxl_works.dat
+  base64 /dev/urandom | head -c 200161 > malformed_xxl_fails.dat
+
   git \
     -c "filter.lfs.process=" \
     -c "filter.lfs.clean=cat" \
