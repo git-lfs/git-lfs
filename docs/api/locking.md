@@ -40,7 +40,7 @@ relative to the root of the repository working directory.
 // Content-Type: application/vnd.git-lfs+json
 // Authorization: Basic ...
 {
-  "path": "foo/bar.zip",
+  "path": "foo/bar.zip"
 }
 ```
 

@@ -77,7 +77,7 @@
     },
     "documentation_url": {
       "type": "string"
-    },
+    }
   },
   "required": ["objects"]
 }
