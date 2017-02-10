@@ -197,9 +197,9 @@ Note: An error of RequiredType has an err.Type() return value of "required"
 
 **err.Details()**: *gojsonschema.ErrorDetails* Returns a map[string]interface{} of additional error details specific to the error. For example, GTE errors will have a "min" value, LTE will have a "max" value. See errors.go for a full description of all the error details. Every error always contains a "field" key that holds the value of *err.Field()*
 
-Note in most cases, the err.Details() will be used to generate replacement strings in your locales. and not used directly i.e.
+Note in most cases, the err.Details() will be used to generate replacement strings in your locales, and not used directly. These strings follow the text/template format i.e.
 ```
-%field% must be greater than or equal to %min%
+{{.field}} must be greater than or equal to {{.min}}
 ```
 
 ## Formats
