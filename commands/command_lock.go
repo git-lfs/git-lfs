@@ -72,7 +72,7 @@ func lockPath(file string) (string, error) {
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
-	path = strings.TrimPrefix(path, "/")
+	path = strings.TrimPrefix(path, os.PathSeparator)
 	if stat, err := os.Stat(abs); err != nil {
 		return path, err
 	} else {
