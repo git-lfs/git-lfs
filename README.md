@@ -1,7 +1,8 @@
 # Git Large File Storage
 
-[![Build Status](https://travis-ci.org/git-lfs/git-lfs.svg?branch=master)](https://travis-ci.org/git-lfs/git-lfs)
-[![Build status](https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true)](https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master)
+[![Linux Build Status](https://travis-ci.org/git-lfs/git-lfs.svg?branch=master)](https://travis-ci.org/git-lfs/git-lfs)
+[![Windows Build Status](https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true)](https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master)
+[![Mac Build Status](https://circleci.com/gh/git-lfs/git-lfs.svg?style=shield&circle-token=856152c2b02bfd236f54d21e1f581f3e4ebf47ad)](https://circleci.com/gh/git-lfs/git-lfs)
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
