@@ -1,6 +1,6 @@
 # Git Large File Storage
 
-| Linux | Windows | macOS |
+| Linux | macOS | Windows |
 | :---- | :------ | :---- |
 [ ![Linux build status][1]][2] | [![macOS build status][3]][4] | [![Windows build status][5]][6] |
 
