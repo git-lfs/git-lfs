@@ -3,8 +3,12 @@ package tools
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"io"
+	"io/ioutil"
+	"os"
+	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
@@ -88,4 +92,43 @@ func (r *RetriableReader) Read(b []byte) (int, error) {
 	}
 
 	return n, errors.NewRetriableError(err)
+}
+
+// Spool spools the contents from 'from' to 'to' by buffering the entire
+// contents of 'from' into a temprorary file, first.
+//
+// A name of "lfs-<time>" is used, where "<time>" is the number of seconds since
+// the Unix epoch.
+//
+// The temporary file is cleaned up after the copy is complete.
+//
+// The number of bytes written to "to", as well as any error encountered are
+// returned.
+func Spool(to io.Writer, from io.Reader) (n int64, err error) {
+	return SpoolName(to, from, fmt.Sprintf("lfs-%d", time.Now().Unix()))
+}
+
+// Spool spools the contents from 'from' to 'to' by buffering the entire
+// contents of 'from' into a temprorary file named "name", first.
+//
+// The temporary file is cleaned up after the copy is complete.
+//
+// The number of bytes written to "to", as well as any error encountered are
+// returned.
+func SpoolName(to io.Writer, from io.Reader, name string) (n int64, err error) {
+	tmp, err := ioutil.TempFile("", name)
+	if err != nil {
+		return 0, errors.Wrap(err, "spool tmp.")
+	}
+	defer os.Remove(tmp.Name())
+
+	if n, err = io.Copy(tmp, from); err != nil {
+		return n, errors.Wrap(err, "unable to spool")
+	}
+
+	if _, err = tmp.Seek(0, io.SeekStart); err != nil {
+		return 0, errors.Wrap(err, "unable to seek")
+	}
+
+	return io.Copy(to, tmp)
 }
