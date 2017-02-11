@@ -97,7 +97,7 @@ func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-	return "<unknown file>"
+	return "unknown"
 }
 
 func init() {
