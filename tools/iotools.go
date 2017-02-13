@@ -114,6 +114,8 @@ func Spool(to io.Writer, from io.Reader) (n int64, err error) {
 	buf := make([]byte, memoryBufferLimit)
 	if bn, err := from.Read(buf); err != nil && err != io.EOF {
 		return int64(bn), err
+	} else {
+		buf = buf[:bn]
 	}
 
 	var spool io.Reader = bytes.NewReader(buf)
