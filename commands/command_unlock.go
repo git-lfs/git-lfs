@@ -29,7 +29,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) != 0 {
 		path, err := lockPath(args[0])
-		if err != nil {
+		if err != nil && !unlockCmdFlags.Force {
 			Exit("Unable to determine path: %v", err.Error())
 		}
 
