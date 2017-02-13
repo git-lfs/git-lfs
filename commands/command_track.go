@@ -41,18 +41,16 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	lfs.InstallHooks(false)
-	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
 
 	if len(args) == 0 {
-		Print("Listing tracked patterns")
-		for _, t := range knownPatterns {
-			if t.Lockable {
-				Print("    %s [lockable] (%s)", t.Path, t.Source)
-			} else {
-				Print("    %s (%s)", t.Path, t.Source)
-			}
-		}
+		listPatterns()
 		return
+	}
+
+	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	lineEnd := getAttributeLineEnding(knownPatterns)
+	if len(lineEnd) == 0 {
+		lineEnd = gitLineEnding(cfg.Git)
 	}
 
 	wd, _ := os.Getwd()
@@ -84,7 +82,7 @@ ArgsLoop:
 			lockableArg = " " + git.LockableAttrib
 		}
 
-		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v\n", encodedArg, lockableArg)
+		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
 
 		if trackLockableFlag {
 			readOnlyPatterns = append(readOnlyPatterns, pattern)
@@ -93,7 +91,6 @@ ArgsLoop:
 		}
 
 		Print("Tracking %s", pattern)
-
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -131,7 +128,7 @@ ArgsLoop:
 				delete(changedAttribLines, pattern)
 			} else {
 				// Write line unchanged (replace newline)
-				attributesFile.WriteString(line + "\n")
+				attributesFile.WriteString(line + lineEnd)
 			}
 		}
 
@@ -157,6 +154,7 @@ ArgsLoop:
 		if trackVerboseLoggingFlag {
 			Print("Searching for files matching pattern: %s", pattern)
 		}
+
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
 			Exit("Error getting tracked files for %q: %s", pattern, err)
@@ -172,7 +170,6 @@ ArgsLoop:
 				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
 				matchedBlocklist = true
 			}
-
 		}
 		if matchedBlocklist {
 			continue
@@ -193,12 +190,38 @@ ArgsLoop:
 			}
 		}
 	}
+
 	// now flip read-only mode based on lockable / not lockable changes
 	lockClient := newLockClient(cfg.CurrentRemote)
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
 		LoggedError(err, "Error changing lockable file permissions")
 	}
+}
+
+func listPatterns() {
+	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	if len(knownPatterns) < 1 {
+		return
+	}
+
+	Print("Listing tracked patterns")
+	for _, t := range knownPatterns {
+		if t.Lockable {
+			Print("    %s [lockable] (%s)", t.Path, t.Source)
+		} else {
+			Print("    %s (%s)", t.Path, t.Source)
+		}
+	}
+}
+
+func getAttributeLineEnding(attribs []git.AttributePath) string {
+	for _, a := range attribs {
+		if a.Source.Path == ".gitattributes" {
+			return a.Source.LineEnding
+		}
+	}
+	return ""
 }
 
 // blocklistItem returns the name of the blocklist item preventing the given
