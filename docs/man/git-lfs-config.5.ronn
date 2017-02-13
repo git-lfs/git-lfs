@@ -12,12 +12,12 @@ lfs option can be scoped inside the configuration for a remote.
 
 ### General settings
 
-* `lfs.url` / `<remote>.lfsurl`
+* `lfs.url` / `remote.<remote>.lfsurl`
 
   The url used to call the Git LFS remote API. Default blank (derive from clone
   URL).
 
-* `lfs.pushurl` / `<remote>.lfspushurl`
+* `lfs.pushurl` / `remote.<remote>.lfspushurl`
 
   The url used to call the Git LFS remote API when pushing. Default blank (derive
   from either LFS non-push urls or clone url).
@@ -183,6 +183,22 @@ lfs option can be scoped inside the configuration for a remote.
 
   If set to "basic" then credentials will be requested before making batch
   requests to this url, otherwise a public request will initially be attempted.
+
+* `lfs.<url>.skiplocksverify`
+
+  Determines whether locks are checked before Git pushes. This prevents you from
+  pushing changes to files that other users have locked. The Git LFS pre-push
+  hook varies its behavior based on the value of this config key.
+
+  * `null` - In the absence of a value, Git LFS will attempt the call, and warn
+  if it returns an error. If the response is valid, Git LFS will set the value
+  to `true`, and will halt the push if the user attempts to update a file locked
+  by another user. If the server returns a `501 Not Implemented` response, Git
+  LFS will set the value to `false.`
+  * `true` - Git LFS will attempt to verify locks, halting the Git push if there
+  are any server issues, or if the user attempts to update a file locked by
+  another user.
+  * `false` - Git LFS will completely skip the lock check in the pre-push hook.
 
 * `lfs.skipdownloaderrors`
 

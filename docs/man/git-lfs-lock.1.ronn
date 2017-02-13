@@ -1,0 +1,26 @@
+git-lfs-lock(1) -- Set a file as "locked" on the Git LFS server
+===============================================================
+
+## SYNOPSIS
+
+`git lfs lock` [options] <path>
+
+## DESCRIPTION
+
+Sets the given file path as "locked" against the Git LFS server, with the
+intention of blocking attempts by other users to update the given path.
+
+## OPTIONS
+
+* `-r` <name> `--remote=`<name>:
+  Specify the Git LFS server to use. Ignored if the `lfs.url` config key is set.
+
+* `--json`:
+  Writes lock info as JSON to STDOUT. Intended for interoperation with external
+  tools.
+
+## SEE ALSO
+
+git-lfs-unlock(1), git-lfs-locks(1).
+
+Part of the git-lfs(1) suite.
