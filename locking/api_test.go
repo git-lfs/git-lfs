@@ -2,16 +2,24 @@ package locking
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func TestAPILock(t *testing.T) {
+	require.NotNil(t, createReqSchema)
+	require.NotNil(t, createResSchema)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/locks" {
 			w.WriteHeader(404)
@@ -23,20 +31,24 @@ func TestAPILock(t *testing.T) {
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
 		assert.Equal(t, "18", r.Header.Get("Content-Length"))
 
+		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		lockReq := &lockRequest{}
-		err := json.NewDecoder(r.Body).Decode(lockReq)
+		err := json.NewDecoder(body).Decode(lockReq)
 		r.Body.Close()
 		assert.Nil(t, err)
 		assert.Equal(t, "request", lockReq.Path)
+		assertSchema(t, createReqSchema, reqLoader)
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(&lockResponse{
+		resLoader, resWriter := gojsonschema.NewWriterLoader(w)
+		err = json.NewEncoder(resWriter).Encode(&lockResponse{
 			Lock: &Lock{
 				Id:   "1",
 				Path: "response",
 			},
 		})
 		assert.Nil(t, err)
+		assertSchema(t, createResSchema, resLoader)
 	}))
 	defer srv.Close()
 
@@ -54,6 +66,9 @@ func TestAPILock(t *testing.T) {
 }
 
 func TestAPIUnlock(t *testing.T) {
+	require.NotNil(t, delReqSchema)
+	require.NotNil(t, createResSchema)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/locks/123/unlock" {
 			w.WriteHeader(404)
@@ -64,20 +79,24 @@ func TestAPIUnlock(t *testing.T) {
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
 
+		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		unlockReq := &unlockRequest{}
-		err := json.NewDecoder(r.Body).Decode(unlockReq)
+		err := json.NewDecoder(body).Decode(unlockReq)
 		r.Body.Close()
 		assert.Nil(t, err)
 		assert.True(t, unlockReq.Force)
+		assertSchema(t, delReqSchema, reqLoader)
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(&unlockResponse{
+		resLoader, resWriter := gojsonschema.NewWriterLoader(w)
+		err = json.NewEncoder(resWriter).Encode(&unlockResponse{
 			Lock: &Lock{
 				Id:   "123",
 				Path: "response",
 			},
 		})
 		assert.Nil(t, err)
+		assertSchema(t, createResSchema, resLoader)
 	}))
 	defer srv.Close()
 
@@ -95,6 +114,8 @@ func TestAPIUnlock(t *testing.T) {
 }
 
 func TestAPISearch(t *testing.T) {
+	require.NotNil(t, listResSchema)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/locks" {
 			w.WriteHeader(404)
@@ -111,13 +132,15 @@ func TestAPISearch(t *testing.T) {
 		assert.Equal(t, "5", q.Get("limit"))
 
 		w.Header().Set("Content-Type", "application/json")
-		err := json.NewEncoder(w).Encode(&lockList{
+		resLoader, resWriter := gojsonschema.NewWriterLoader(w)
+		err := json.NewEncoder(resWriter).Encode(&lockList{
 			Locks: []Lock{
 				{Id: "1"},
 				{Id: "2"},
 			},
 		})
 		assert.Nil(t, err)
+		assertSchema(t, listResSchema, resLoader)
 	}))
 	defer srv.Close()
 
@@ -142,6 +165,8 @@ func TestAPISearch(t *testing.T) {
 }
 
 func TestAPIVerifiableLocks(t *testing.T) {
+	require.NotNil(t, verifyResSchema)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/locks/verify" {
 			w.WriteHeader(404)
@@ -159,7 +184,8 @@ func TestAPIVerifiableLocks(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err := json.NewEncoder(w).Encode(&lockVerifiableList{
+		resLoader, resWriter := gojsonschema.NewWriterLoader(w)
+		err := json.NewEncoder(resWriter).Encode(&lockVerifiableList{
 			Ours: []Lock{
 				{Id: "1"},
 				{Id: "2"},
@@ -169,6 +195,7 @@ func TestAPIVerifiableLocks(t *testing.T) {
 			},
 		})
 		assert.Nil(t, err)
+		assertSchema(t, verifyResSchema, resLoader)
 	}))
 	defer srv.Close()
 
@@ -189,4 +216,56 @@ func TestAPIVerifiableLocks(t *testing.T) {
 	assert.Equal(t, "2", locks.Ours[1].Id)
 	assert.Equal(t, 1, len(locks.Theirs))
 	assert.Equal(t, "3", locks.Theirs[0].Id)
+}
+
+var (
+	createReqSchema *sourcedSchema
+	createResSchema *sourcedSchema
+	delReqSchema    *sourcedSchema
+	listResSchema   *sourcedSchema
+	verifyResSchema *sourcedSchema
+)
+
+func init() {
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("getwd error:", err)
+		return
+	}
+
+	createReqSchema = getSchema(wd, "schemas/http-lock-create-request-schema.json")
+	createResSchema = getSchema(wd, "schemas/http-lock-create-response-schema.json")
+	delReqSchema = getSchema(wd, "schemas/http-lock-delete-request-schema.json")
+	listResSchema = getSchema(wd, "schemas/http-lock-list-response-schema.json")
+	verifyResSchema = getSchema(wd, "schemas/http-lock-verify-response-schema.json")
+}
+
+type sourcedSchema struct {
+	Source string
+	*gojsonschema.Schema
+}
+
+func getSchema(wd, relpath string) *sourcedSchema {
+	abspath := filepath.ToSlash(filepath.Join(wd, relpath))
+	s, err := gojsonschema.NewSchema(gojsonschema.NewReferenceLoader(fmt.Sprintf("file:///%s", abspath)))
+	if err != nil {
+		fmt.Printf("schema load error for %q: %+v\n", relpath, err)
+	}
+	return &sourcedSchema{Source: relpath, Schema: s}
+}
+
+func assertSchema(t *testing.T, schema *sourcedSchema, dataLoader gojsonschema.JSONLoader) {
+	res, err := schema.Validate(dataLoader)
+	if assert.Nil(t, err) {
+		if res.Valid() {
+			return
+		}
+
+		resErrors := res.Errors()
+		valErrors := make([]string, 0, len(resErrors))
+		for _, resErr := range resErrors {
+			valErrors = append(valErrors, resErr.String())
+		}
+		t.Errorf("Schema: %s\n%s", schema.Source, strings.Join(valErrors, "\n"))
+	}
 }

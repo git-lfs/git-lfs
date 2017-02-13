@@ -170,7 +170,7 @@ type Lock struct {
 	// lock.
 	Path string `json:"path"`
 	// Owner is the identity of the user that created this lock.
-	Owner *User `json:"owner"`
+	Owner *User `json:"owner,omitempty"`
 	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time `json:"locked_at"`
 }
