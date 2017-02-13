@@ -118,7 +118,7 @@ func Spool(to io.Writer, from io.Reader) (n int64, err error) {
 func SpoolName(to io.Writer, from io.Reader, name string) (n int64, err error) {
 	tmp, err := ioutil.TempFile("", name)
 	if err != nil {
-		return 0, errors.Wrap(err, "spool tmp.")
+		return 0, errors.Wrap(err, "spool tmp")
 	}
 	defer os.Remove(tmp.Name())
 
