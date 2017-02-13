@@ -119,7 +119,8 @@ begin_test "track with existing crlf"
   git init
 
   git config core.autocrlf true
-  git lfs track "*.mov" "*.gif"
+  git lfs track "*.mov"
+  git lfs track "*.gif"
   expected="*.mov filter=lfs diff=lfs merge=lfs -text^M$
 *.gif filter=lfs diff=lfs merge=lfs -text^M$"
   [ "$expected" = "$(cat -e .gitattributes)" ]
