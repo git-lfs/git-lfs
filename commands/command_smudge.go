@@ -35,8 +35,7 @@ var (
 func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		name := fmt.Sprintf("%s-malformed", filename)
-		if _, err := tools.SpoolName(to, pbuf, name); err != nil {
+		if _, err := tools.Spool(to, pbuf); err != nil {
 			return errors.Wrap(err, perr.Error())
 		}
 
@@ -97,7 +96,7 @@ func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-	return "unknown"
+	return "<unknown file>"
 }
 
 func init() {

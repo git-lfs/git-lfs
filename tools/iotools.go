@@ -1,17 +1,23 @@
 package tools
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"hash"
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
+)
+
+const (
+	// memoryBufferLimit is the number of bytes to buffer in memory before
+	// spooling the contents of an `io.Reader` in `Spool()` to a temporary
+	// file on disk.
+	memoryBufferLimit = 1024
 )
 
 // CopyWithCallback copies reader to writer while performing a progress callback
@@ -95,40 +101,44 @@ func (r *RetriableReader) Read(b []byte) (int, error) {
 }
 
 // Spool spools the contents from 'from' to 'to' by buffering the entire
-// contents of 'from' into a temprorary file, first.
-//
-// A name of "lfs-<time>" is used, where "<time>" is the number of seconds since
-// the Unix epoch.
+// contents of 'from' into a temprorary buffer. That buffer is held in memory
+// until the file grows to larger than 'memoryBufferLimit`, then the remaining
+// contents are spooled to disk.
 //
 // The temporary file is cleaned up after the copy is complete.
 //
 // The number of bytes written to "to", as well as any error encountered are
 // returned.
 func Spool(to io.Writer, from io.Reader) (n int64, err error) {
-	return SpoolName(to, from, fmt.Sprintf("lfs-%d", time.Now().Unix()))
-}
-
-// Spool spools the contents from 'from' to 'to' by buffering the entire
-// contents of 'from' into a temprorary file named "name", first.
-//
-// The temporary file is cleaned up after the copy is complete.
-//
-// The number of bytes written to "to", as well as any error encountered are
-// returned.
-func SpoolName(to io.Writer, from io.Reader, name string) (n int64, err error) {
-	tmp, err := ioutil.TempFile("", name)
-	if err != nil {
-		return 0, errors.Wrap(err, "spool tmp")
-	}
-	defer os.Remove(tmp.Name())
-
-	if n, err = io.Copy(tmp, from); err != nil {
-		return n, errors.Wrap(err, "unable to spool")
+	// First, buffer up to `memoryBufferLimit` in memory.
+	buf := make([]byte, memoryBufferLimit)
+	if bn, err := from.Read(buf); err != nil && err != io.EOF {
+		return int64(bn), err
 	}
 
-	if _, err = tmp.Seek(0, io.SeekStart); err != nil {
-		return 0, errors.Wrap(err, "unable to seek")
+	var spool io.Reader = bytes.NewReader(buf)
+	if err != io.EOF {
+		// If we weren't at the end of the stream, create a temporary
+		// file, and spool the remaining contents there.
+		tmp, err := ioutil.TempFile("", "")
+		if err != nil {
+			return 0, errors.Wrap(err, "spool tmp")
+		}
+		defer os.Remove(tmp.Name())
+
+		if n, err = io.Copy(tmp, from); err != nil {
+			return n, errors.Wrap(err, "unable to spool")
+		}
+
+		if _, err = tmp.Seek(0, io.SeekStart); err != nil {
+			return 0, errors.Wrap(err, "unable to seek")
+		}
+
+		// The spooled contents will now be the concatenation of the
+		// contents we stored in memory, then the remainder of the
+		// contents on disk.
+		spool = io.MultiReader(spool, tmp)
 	}
 
-	return io.Copy(to, tmp)
+	return io.Copy(to, spool)
 }
