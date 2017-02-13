@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/gojsonschema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func TestAPIBatch(t *testing.T) {

@@ -1,5 +1,5 @@
-hash: 2c8a18352e7f3c8968ca3caa843aed8b48d3fbc0885534dfd1d6c415a890fca8
-updated: 2017-02-10T11:03:24.047832187-07:00
+hash: 53affc5afb75c731ebb7be5683c55d635afefd093f90015ae2c62ea88130a4cc
+updated: 2017-02-13T11:32:39.724259135-07:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -7,8 +7,6 @@ imports:
   - netrc
 - name: github.com/cheggaaa/pb
   version: bd14546a551971ae7f460e6d6e527c5b56cd38d7
-- name: github.com/git-lfs/gojsonschema
-  version: 21d0d72ffdd8bd4fa7d19b22e41b82fdf436ad3b
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/pretty
@@ -41,6 +39,8 @@ imports:
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - name: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
+- name: github.com/xeipuuv/gojsonschema
+  version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 testImports:
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
