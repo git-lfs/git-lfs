@@ -84,7 +84,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("ConcurrentTransfers=%d", cfg.ConcurrentTransfers()),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
-		fmt.Sprintf("BatchTransfer=%v", cfg.BatchTransfer()),
 		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),
 		fmt.Sprintf("FetchRecentAlways=%v", fetchPruneConfig.FetchRecentAlways),
 		fmt.Sprintf("FetchRecentRefsDays=%d", fetchPruneConfig.FetchRecentRefsDays),

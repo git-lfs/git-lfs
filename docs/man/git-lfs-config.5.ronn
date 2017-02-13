@@ -22,12 +22,6 @@ lfs option can be scoped inside the configuration for a remote.
   The url used to call the Git LFS remote API when pushing. Default blank (derive
   from either LFS non-push urls or clone url).
 
-* `lfs.batch`
-
-  Whether to use the batch API instead of requesting objects individually.
-  Default true. This setting transitions clients from the legacy to the newer
-  batch API and will be gone in Git LFS v1.0.
-
 * `lfs.dialtimeout`
 
   Sets the maximum time, in seconds, that the HTTP client will wait initiate a
