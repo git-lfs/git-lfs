@@ -21,7 +21,7 @@ import (
 var (
 	BuildOS    = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
 	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
-	BuildAll   = flag.Bool("all", false, "Builds all architectures")
+	BuildAll   = flag.Bool("all", false, "Builds all architectures (omits DWARF tables)")
 	BuildDwarf = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
 	ShowHelp   = flag.Bool("help", false, "Shows help")
 	matrixKeys = map[string]string{
@@ -55,7 +55,7 @@ func mainBuild() {
 			"github.com/git-lfs/git-lfs/config.GitCommit="+string(cmd),
 		))
 	}
-	if !*BuildDwarf {
+	if !*BuildDwarf || *BuildAll {
 		LdFlags = append(LdFlags, "-s", "-w")
 	}
 
