@@ -20,6 +20,16 @@ func IsHTTP(err error) (*http.Response, bool) {
 	return nil, false
 }
 
+func ClientErrorMessage(msg, docURL, reqID string) string {
+	if len(docURL) > 0 {
+		msg += "\nDocs: " + docURL
+	}
+	if len(reqID) > 0 {
+		msg += "\nRequest ID: " + reqID
+	}
+	return msg
+}
+
 type ClientError struct {
 	Message          string `json:"message"`
 	DocumentationUrl string `json:"documentation_url,omitempty"`
@@ -32,14 +42,7 @@ func (e *ClientError) HTTPResponse() *http.Response {
 }
 
 func (e *ClientError) Error() string {
-	msg := e.Message
-	if len(e.DocumentationUrl) > 0 {
-		msg += "\nDocs: " + e.DocumentationUrl
-	}
-	if len(e.RequestId) > 0 {
-		msg += "\nRequest ID: " + e.RequestId
-	}
-	return msg
+	return ClientErrorMessage(e.Message, e.DocumentationUrl, e.RequestId)
 }
 
 func (c *Client) handleResponse(res *http.Response) error {

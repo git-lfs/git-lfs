@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +21,10 @@ var (
 // smudge smudges the given `*lfs.Pointer`, "ptr", and writes its objects
 // contents to the `io.Writer`, "to".
 //
+// If the encoded LFS pointer is not parse-able as a pointer, the contents of
+// that file will instead be spooled to a temporary location on disk and then
+// copied out back to Git.
+//
 // If the smudged object did not "pass" the include and exclude filterset, it
 // will not be downloaded, and the object will remain a pointer on disk, as if
 // the smudge filter had not been applied at all.
@@ -30,7 +35,7 @@ var (
 func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		if _, err := io.Copy(to, pbuf); err != nil {
+		if _, err := tools.Spool(to, pbuf); err != nil {
 			return errors.Wrap(err, perr.Error())
 		}
 

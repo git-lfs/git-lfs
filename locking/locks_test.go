@@ -26,17 +26,19 @@ func TestRefreshCache(t *testing.T) {
 	assert.Nil(t, err)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "GET", r.Method)
-		assert.Equal(t, "/api/locks", r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "/api/locks/verify", r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(lockList{
-			Locks: []Lock{
-				Lock{Id: "99", Path: "folder/test3.dat", Committer: &Committer{Name: "Alice", Email: "alice@wonderland.com"}},
-				Lock{Id: "101", Path: "folder/test1.dat", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}},
-				Lock{Id: "102", Path: "folder/test2.dat", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}},
-				Lock{Id: "103", Path: "root.dat", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}},
-				Lock{Id: "199", Path: "other/test1.dat", Committer: &Committer{Name: "Charles", Email: "charles@incharge.com"}},
+		err = json.NewEncoder(w).Encode(lockVerifiableList{
+			Theirs: []Lock{
+				Lock{Id: "99", Path: "folder/test3.dat", Owner: &User{Name: "Alice"}},
+				Lock{Id: "199", Path: "other/test1.dat", Owner: &User{Name: "Charles"}},
+			},
+			Ours: []Lock{
+				Lock{Id: "101", Path: "folder/test1.dat", Owner: &User{Name: "Fred"}},
+				Lock{Id: "102", Path: "folder/test2.dat", Owner: &User{Name: "Fred"}},
+				Lock{Id: "103", Path: "root.dat", Owner: &User{Name: "Fred"}},
 			},
 		})
 		assert.Nil(t, err)
@@ -74,9 +76,9 @@ func TestRefreshCache(t *testing.T) {
 	// Sort locks for stable comparison
 	sort.Sort(LocksById(locks))
 	assert.Equal(t, []Lock{
-		Lock{Path: "folder/test1.dat", Id: "101", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
-		Lock{Path: "folder/test2.dat", Id: "102", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
-		Lock{Path: "root.dat", Id: "103", Committer: &Committer{Name: "Fred", Email: "fred@bloggs.com"}, LockedAt: zeroTime},
+		Lock{Path: "folder/test1.dat", Id: "101", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
+		Lock{Path: "folder/test2.dat", Id: "102", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
+		Lock{Path: "root.dat", Id: "103", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
 	}, locks)
 }
 

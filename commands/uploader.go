@@ -27,14 +27,14 @@ type uploadContext struct {
 	trackedLocksMu *sync.Mutex
 
 	// ALL verifiable locks
-	ourLocks   map[string]locking.Lock
-	theirLocks map[string]locking.Lock
+	ourLocks   map[string]*locking.Lock
+	theirLocks map[string]*locking.Lock
 
 	// locks from ourLocks that were modified in this push
-	ownedLocks []locking.Lock
+	ownedLocks []*locking.Lock
 
 	// locks from theirLocks that were modified in this push
-	unownedLocks []locking.Lock
+	unownedLocks []*locking.Lock
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -45,8 +45,8 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:       getTransferManifest(),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
-		ourLocks:       make(map[string]locking.Lock),
-		theirLocks:     make(map[string]locking.Lock),
+		ourLocks:       make(map[string]*locking.Lock),
+		theirLocks:     make(map[string]*locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
 	}
 
@@ -61,10 +61,10 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Error("         Temporarily skipping check ...")
 	} else {
 		for _, l := range theirLocks {
-			ctx.theirLocks[l.Path] = l
+			ctx.theirLocks[l.Path] = &l
 		}
 		for _, l := range ourLocks {
-			ctx.ourLocks[l.Path] = l
+			ctx.ourLocks[l.Path] = &l
 		}
 	}
 
@@ -178,7 +178,7 @@ func (c *uploadContext) Await() {
 
 		Print("Unable to push %d locked file(s):", ul)
 		for _, unowned := range c.unownedLocks {
-			Print("* %s - %s", unowned.Path, unowned.Committer)
+			Print("* %s - %s", unowned.Path, unowned.Owner)
 		}
 	} else if len(c.ownedLocks) > 0 {
 		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")

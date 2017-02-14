@@ -17,6 +17,7 @@ begin_test "malformed pointers"
   base64 /dev/urandom | head -c 1023 > malformed_small.dat
   base64 /dev/urandom | head -c 1024 > malformed_exact.dat
   base64 /dev/urandom | head -c 1025 > malformed_large.dat
+  base64 /dev/urandom | head -c 1048576 > malformed_xxl.dat
 
   git \
     -c "filter.lfs.process=" \
@@ -33,18 +34,22 @@ begin_test "malformed pointers"
     grep "malformed_small.dat" clone.log
     grep "malformed_exact.dat" clone.log
     grep "malformed_large.dat" clone.log
+    grep "malformed_xxl.dat" clone.log
 
     expected_small="$(cat ../$reponame/malformed_small.dat)"
     expected_exact="$(cat ../$reponame/malformed_exact.dat)"
     expected_large="$(cat ../$reponame/malformed_large.dat)"
+    expected_xxl="$(cat ../$reponame/malformed_xxl.dat)"
 
     actual_small="$(cat malformed_small.dat)"
     actual_exact="$(cat malformed_exact.dat)"
     actual_large="$(cat malformed_large.dat)"
+    actual_xxl="$(cat malformed_xxl.dat)"
 
     [ "$expected_small" = "$actual_small" ]
     [ "$expected_exact" = "$actual_exact" ]
     [ "$expected_large" = "$actual_large" ]
+    [ "$expected_xxl" = "$actual_xxl" ]
   popd >/dev/null
 )
 end_test
