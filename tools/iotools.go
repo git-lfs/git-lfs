@@ -13,7 +13,6 @@ import (
 	"github.com/git-lfs/git-lfs/progress"
 )
 
-<<<<<<< HEAD
 type readSeekCloserWrapper struct {
 	readSeeker io.ReadSeeker
 }
@@ -35,14 +34,13 @@ func (r *readSeekCloserWrapper) Close() error {
 func NewReadSeekCloserWrapper(r io.ReadSeeker) io.ReadCloser {
 	return &readSeekCloserWrapper{r}
 }
-=======
+
 const (
 	// memoryBufferLimit is the number of bytes to buffer in memory before
 	// spooling the contents of an `io.Reader` in `Spool()` to a temporary
 	// file on disk.
 	memoryBufferLimit = 1024
 )
->>>>>>> 038626b1... Merge pull request #1932 from git-lfs/malformed-spool
 
 // CopyWithCallback copies reader to writer while performing a progress callback
 func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {

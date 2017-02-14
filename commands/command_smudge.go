@@ -8,11 +8,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
-<<<<<<< HEAD
-	"github.com/git-lfs/git-lfs/tools/longpathos"
-=======
 	"github.com/git-lfs/git-lfs/tools"
->>>>>>> 038626b1... Merge pull request #1932 from git-lfs/malformed-spool
+	"github.com/git-lfs/git-lfs/tools/longpathos"
 	"github.com/spf13/cobra"
 )
 
