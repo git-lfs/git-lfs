@@ -30,7 +30,7 @@ var (
 		"windows": "Windows",
 		"amd64":   "AMD64",
 	}
-	LdFlag string
+	LdFlags []string
 )
 
 func mainBuild() {
@@ -50,7 +50,9 @@ func mainBuild() {
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
 	if len(cmd) > 0 {
-		LdFlag = strings.TrimSpace("-X github.com/git-lfs/git-lfs/config.GitCommit=" + string(cmd))
+		LdFlags = append(LdFlags, "-X", strings.TrimSpace(
+			"github.com/git-lfs/git-lfs/config.GitCommit="+string(cmd),
+		))
 	}
 
 	buildMatrix := make(map[string]Release)
@@ -139,8 +141,8 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	args := make([]string, 1, 6)
 	args[0] = "build"
-	if len(LdFlag) > 0 {
-		args = append(args, "-ldflags", LdFlag)
+	if len(LdFlags) > 0 {
+		args = append(args, "-ldflags", strings.Join(LdFlags, " "))
 	}
 	args = append(args, "-o", bin, ".")
 
