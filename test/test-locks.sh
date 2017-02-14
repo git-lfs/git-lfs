@@ -16,6 +16,28 @@ begin_test "list a single lock"
   GITLFSLOCKSENABLED=1 git lfs locks --path "f.dat" | tee locks.log
   grep "1 lock(s) matched query" locks.log
   grep "f.dat" locks.log
+<<<<<<< HEAD
+=======
+  grep "Git LFS Tests" locks.log
+)
+end_test
+
+begin_test "list a single lock (--json)"
+(
+  set -e
+
+  reponame="locks_list_single_json"
+  setup_remote_repo_with_file "$reponame" "f_json.dat"
+
+  GITLFSLOCKSENABLED=1 git lfs lock "f_json.dat" | tee lock.log
+
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock "$reponame" "$id"
+
+  GITLFSLOCKSENABLED=1 git lfs locks --json --path "f_json.dat" | tee locks.log
+  grep "\"path\":\"f_json.dat\"" locks.log
+  grep "\"owner\":{\"name\":\"Git LFS Tests\"}" locks.log
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 )
 end_test
 

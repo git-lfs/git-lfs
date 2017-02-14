@@ -13,6 +13,7 @@ var uploadMissingErr = "%s does not exist in .git/lfs/objects. Tried %s, which m
 type uploadContext struct {
 	DryRun       bool
 	uploadedOids tools.StringSet
+<<<<<<< HEAD
 }
 
 func newUploadContext(dryRun bool) *uploadContext {
@@ -20,6 +21,60 @@ func newUploadContext(dryRun bool) *uploadContext {
 		DryRun:       dryRun,
 		uploadedOids: tools.NewStringSet(),
 	}
+=======
+
+	meter progress.Meter
+	tq    *tq.TransferQueue
+
+	committerName  string
+	committerEmail string
+
+	trackedLocksMu *sync.Mutex
+
+	// ALL verifiable locks
+	ourLocks   map[string]*locking.Lock
+	theirLocks map[string]*locking.Lock
+
+	// locks from ourLocks that were modified in this push
+	ownedLocks []*locking.Lock
+
+	// locks from theirLocks that were modified in this push
+	unownedLocks []*locking.Lock
+}
+
+func newUploadContext(remote string, dryRun bool) *uploadContext {
+	cfg.CurrentRemote = remote
+
+	ctx := &uploadContext{
+		Remote:         remote,
+		Manifest:       getTransferManifest(),
+		DryRun:         dryRun,
+		uploadedOids:   tools.NewStringSet(),
+		ourLocks:       make(map[string]*locking.Lock),
+		theirLocks:     make(map[string]*locking.Lock),
+		trackedLocksMu: new(sync.Mutex),
+	}
+
+	ctx.meter = buildProgressMeter(ctx.DryRun)
+	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
+	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
+
+	lockClient := newLockClient(remote)
+	ourLocks, theirLocks, err := lockClient.VerifiableLocks(0)
+	if err != nil {
+		Error("WARNING: Unable to search for locks contained in this push.")
+		Error("         Temporarily skipping check ...")
+	} else {
+		for _, l := range theirLocks {
+			ctx.theirLocks[l.Path] = &l
+		}
+		for _, l := range ourLocks {
+			ctx.ourLocks[l.Path] = &l
+		}
+	}
+
+	return ctx
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 }
 
 // AddUpload adds the given oid to the set of oids that have been uploaded in
@@ -164,4 +219,29 @@ func upload(c *uploadContext, unfiltered []*lfs.WrappedPointer) {
 	if len(q.Errors()) > 0 {
 		os.Exit(2)
 	}
+<<<<<<< HEAD
+=======
+
+	var avoidPush bool
+
+	c.trackedLocksMu.Lock()
+	if ul := len(c.unownedLocks); ul > 0 {
+		avoidPush = true
+
+		Print("Unable to push %d locked file(s):", ul)
+		for _, unowned := range c.unownedLocks {
+			Print("* %s - %s", unowned.Path, unowned.Owner)
+		}
+	} else if len(c.ownedLocks) > 0 {
+		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")
+		for _, owned := range c.ownedLocks {
+			Print("* %s", owned.Path)
+		}
+	}
+	c.trackedLocksMu.Unlock()
+
+	if avoidPush {
+		Error("WARNING: The above files would have halted this push.")
+	}
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 }

@@ -1,7 +1,20 @@
 # Git Large File Storage
 
+<<<<<<< HEAD
 [![Build Status](https://travis-ci.org/github/git-lfs.svg?branch=master)](https://travis-ci.org/github/git-lfs)
 [![Build status](https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true)](https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master)
+=======
+| Linux | macOS | Windows |
+| :---- | :------ | :---- |
+[ ![Linux build status][1]][2] | [![macOS build status][3]][4] | [![Windows build status][5]][6] |
+
+[1]: https://travis-ci.org/git-lfs/git-lfs.svg?branch=master
+[2]: https://travis-ci.org/git-lfs/git-lfs
+[3]: https://circleci.com/gh/git-lfs/git-lfs.svg?style=shield&circle-token=856152c2b02bfd236f54d21e1f581f3e4ebf47ad
+[4]: https://circleci.com/gh/git-lfs/git-lfs
+[5]: https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true
+[6]: https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled

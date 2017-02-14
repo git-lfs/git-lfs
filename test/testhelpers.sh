@@ -507,6 +507,14 @@ native_path_escaped() {
   escape_path "$unescaped"
 }
 
+cat_end() {
+  if [ $IS_WINDOWS -eq 1 ]; then
+    printf '^M$'
+  else
+    printf '$'
+  fi
+}
+
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
 contains_same_elements() {
   # Remove blank lines then sort

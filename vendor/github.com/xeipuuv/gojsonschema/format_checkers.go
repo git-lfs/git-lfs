@@ -60,6 +60,9 @@ type (
 
 	// UUIDFormatChecker validates a UUID is in the correct format
 	UUIDFormatChecker struct{}
+
+	// RegexFormatChecker validates a regex is in the correct format
+	RegexFormatChecker struct{}
 )
 
 var (
@@ -74,6 +77,7 @@ var (
 			"ipv6":      IPV6FormatChecker{},
 			"uri":       URIFormatChecker{},
 			"uuid":      UUIDFormatChecker{},
+			"regex":     RegexFormatChecker{},
 		},
 	}
 
@@ -175,4 +179,16 @@ func (f HostnameFormatChecker) IsFormat(input string) bool {
 
 func (f UUIDFormatChecker) IsFormat(input string) bool {
 	return rxUUID.MatchString(input)
+}
+
+// IsFormat implements FormatChecker interface.
+func (f RegexFormatChecker) IsFormat(input string) bool {
+	if input == "" {
+		return true
+	}
+	_, err := regexp.Compile(input)
+	if err != nil {
+		return false
+	}
+	return true
 }
