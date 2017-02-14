@@ -9,7 +9,7 @@ clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 install:
   - cinst golang --version 1.7.4 -y
   - cinst InnoSetup -y
-  - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
+  - refreshenv
 
 build_script:
   - bash --login -c 'GOARCH=386 script/bootstrap'
