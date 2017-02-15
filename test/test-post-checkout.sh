@@ -105,8 +105,8 @@ begin_test "post-checkout"
   [ ! -w file5.dat ]
 
   # now lock files, then remove & restore
-  GITLFSLOCKSENABLED=1 git lfs lock file1.dat 
-  GITLFSLOCKSENABLED=1 git lfs lock file2.dat
+  git lfs lock file1.dat 
+  git lfs lock file2.dat
   [ -w file1.dat ]
   [ -w file2.dat ]
   rm -f *.dat

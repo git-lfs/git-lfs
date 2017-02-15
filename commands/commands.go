@@ -388,17 +388,6 @@ func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
 	)
 }
 
-// isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
-// is "truthy" according to config.Os.Bool (see
-// github.com/git-lfs/git-lfs/config#Configuration.Env.Os), returning false
-// by default if the enviornment variable is not specified.
-//
-// This function call should only guard commands that do not yet have stable
-// APIs or solid server implementations.
-func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
-	return cfg.Os.Bool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
-}
-
 func requireGitVersion() {
 	minimumGit := "1.8.2"
 

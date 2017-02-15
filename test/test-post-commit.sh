@@ -33,8 +33,8 @@ begin_test "post-commit"
   git push -u origin master
 
   # now lock files, then edit
-  GITLFSLOCKSENABLED=1 git lfs lock pcfile1.dat 
-  GITLFSLOCKSENABLED=1 git lfs lock pcfile2.dat
+  git lfs lock pcfile1.dat 
+  git lfs lock pcfile2.dat
 
   echo "Take a look" > pcfile1.dat
   echo "and you'll see" > pcfile2.dat
