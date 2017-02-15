@@ -467,7 +467,7 @@ begin_test "pre-push with locks/verify 404"
 
   git push origin master
 
-  GITLFSLOCKSENABLED=1 git lfs lock "locked.dat" | tee lock.log
+  git lfs lock "locked.dat" | tee lock.log
   grep "'locked.dat' was locked" lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
@@ -503,7 +503,7 @@ begin_test "pre-push with our lock"
 
   git push origin master
 
-  GITLFSLOCKSENABLED=1 git lfs lock "locked.dat" | tee lock.log
+  git lfs lock "locked.dat" | tee lock.log
   grep "'locked.dat' was locked" lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
@@ -542,7 +542,7 @@ begin_test "pre-push with their lock"
 
   git push origin master
 
-  GITLFSLOCKSENABLED=1 git lfs lock "locked_theirs.dat" | tee lock.log
+  git lfs lock "locked_theirs.dat" | tee lock.log
   grep "'locked_theirs.dat' was locked" lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")

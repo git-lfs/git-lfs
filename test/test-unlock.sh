@@ -9,12 +9,12 @@ begin_test "unlocking a lock by path"
   reponame="unlock_by_path"
   setup_remote_repo_with_file "unlock_by_path" "c.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "c.dat" | tee lock.log
+  git lfs lock "c.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs unlock "c.dat" 2>&1 | tee unlock.log
+  git lfs unlock "c.dat" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test
@@ -26,7 +26,7 @@ begin_test "force unlocking lock with missing file"
   reponame="force-unlock-missing-file"
   setup_remote_repo_with_file "$reponame" "a.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "a.dat" | tee lock.log
+  git lfs lock "a.dat" | tee lock.log
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
@@ -35,12 +35,12 @@ begin_test "force unlocking lock with missing file"
   rm *.log *.json # ensure clean git status
   git status
 
-  GITLFSLOCKSENABLED=1 git lfs unlock "a.dat" 2>&1 | tee unlock.log
+  git lfs unlock "a.dat" 2>&1 | tee unlock.log
   grep "Unable to determine path" unlock.log
   assert_server_lock "$reponame" "$id"
 
   rm unlock.log
-  GITLFSLOCKSENABLED=1 git lfs unlock --force "a.dat" 2>&1 | tee unlock.log
+  git lfs unlock --force "a.dat" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test
@@ -52,12 +52,12 @@ begin_test "unlocking a lock (--json)"
   reponame="unlock_by_path_json"
   setup_remote_repo_with_file "$reponame" "c_json.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "c_json.dat" | tee lock.log
+  git lfs lock "c_json.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs unlock --json "c_json.dat" 2>&1 | tee unlock.log
+  git lfs unlock --json "c_json.dat" 2>&1 | tee unlock.log
   grep "\"unlocked\":true" unlock.log
 
   refute_server_lock "$reponame" "$id"
@@ -71,12 +71,12 @@ begin_test "unlocking a lock by id"
   reponame="unlock_by_id"
   setup_remote_repo_with_file "unlock_by_id" "d.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "d.dat" | tee lock.log
+  git lfs lock "d.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test
@@ -88,12 +88,12 @@ begin_test "unlocking a lock without sufficient info"
   reponame="unlock_ambiguous"
   setup_remote_repo_with_file "$reponame" "e.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "e.dat" | tee lock.log
+  git lfs lock "e.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs unlock 2>&1 | tee unlock.log
+  git lfs unlock 2>&1 | tee unlock.log
   grep "Usage: git lfs unlock" unlock.log
   assert_server_lock "$reponame" "$id"
 )
@@ -106,14 +106,14 @@ begin_test "unlocking a lock while uncommitted"
   reponame="unlock_modified"
   setup_remote_repo_with_file "$reponame" "mod.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "mod.dat" | tee lock.log
+  git lfs lock "mod.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
   echo "\nSomething" >> mod.dat
 
-  GITLFSLOCKSENABLED=1 git lfs unlock "mod.dat" 2>&1 | tee unlock.log
+  git lfs unlock "mod.dat" 2>&1 | tee unlock.log
   [ ${PIPESTATUS[0]} -ne "0" ]
 
   grep "Cannot unlock file with uncommitted changes" unlock.log
@@ -122,7 +122,7 @@ begin_test "unlocking a lock while uncommitted"
 
   # should allow after discard
   git checkout mod.dat
-  GITLFSLOCKSENABLED=1 git lfs unlock "mod.dat" 2>&1 | tee unlock.log
+  git lfs unlock "mod.dat" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test
@@ -134,7 +134,7 @@ begin_test "unlocking a lock while uncommitted with --force"
   reponame="unlock_modified_force"
   setup_remote_repo_with_file "$reponame" "modforce.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "modforce.dat" | tee lock.log
+  git lfs lock "modforce.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
@@ -142,7 +142,7 @@ begin_test "unlocking a lock while uncommitted with --force"
   echo "\nSomething" >> modforce.dat
 
   # should allow with --force
-  GITLFSLOCKSENABLED=1 git lfs unlock --force "modforce.dat" 2>&1 | tee unlock.log
+  git lfs unlock --force "modforce.dat" 2>&1 | tee unlock.log
   grep "Warning: unlocking with uncommitted changes" unlock.log
   refute_server_lock "$reponame" "$id"
 )
@@ -159,12 +159,12 @@ begin_test "unlocking a lock while untracked"
   # Create file but don't add it to git
   # Shouldn't be able to unlock it
   echo "something" > untracked.dat
-  GITLFSLOCKSENABLED=1 git lfs lock "untracked.dat" | tee lock.log
+  git lfs lock "untracked.dat" | tee lock.log
 
   id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs unlock "untracked.dat" 2>&1 | tee unlock.log
+  git lfs unlock "untracked.dat" 2>&1 | tee unlock.log
   [ ${PIPESTATUS[0]} -ne "0" ]
 
   grep "Cannot unlock file with uncommitted changes" unlock.log
@@ -174,7 +174,7 @@ begin_test "unlocking a lock while untracked"
   # should allow after add/commit
   git add untracked.dat
   git commit -m "Added untracked"
-  GITLFSLOCKSENABLED=1 git lfs unlock "untracked.dat" 2>&1 | tee unlock.log
+  git lfs unlock "untracked.dat" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test
