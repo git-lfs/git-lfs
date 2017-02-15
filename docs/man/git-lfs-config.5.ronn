@@ -184,7 +184,7 @@ lfs option can be scoped inside the configuration for a remote.
   If set to "basic" then credentials will be requested before making batch
   requests to this url, otherwise a public request will initially be attempted.
 
-* `lfs.<url>.skiplocksverify`
+* `lfs.<url>.locksverify`
 
   Determines whether locks are checked before Git pushes. This prevents you from
   pushing changes to files that other users have locked. The Git LFS pre-push
@@ -199,6 +199,8 @@ lfs option can be scoped inside the configuration for a remote.
   are any server issues, or if the user attempts to update a file locked by
   another user.
   * `false` - Git LFS will completely skip the lock check in the pre-push hook.
+  You should set this if you're not using File Locking, or your Git server
+  verifies locked files on pushes automatically.
 
 * `lfs.skipdownloaderrors`
 

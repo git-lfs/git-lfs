@@ -3,7 +3,7 @@ git-lfs-unlock(1) -- Remove "locked" setting for a file on the Git LFS server
 
 ## SYNOPSIS
 
-`git lfs unlock` [options] <path>
+`git lfs unlock` [OPTIONS] <path>
 
 ## DESCRIPTION
 
@@ -23,8 +23,9 @@ skip these checks.
   Specifies a lock by its ID instead of path.
 
 * `--json`:
-  Writes lock info as JSON to STDOUT. Intended for interoperation with external
-  tools.
+  Writes lock info as JSON to STDOUT if the command exits successfully. Intended
+  for interoperation with external tools. If the command returns with a non-zero
+  exit code, plain text messages will be sent to STDERR.
 
 ## SEE ALSO
 

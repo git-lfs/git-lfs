@@ -15,10 +15,10 @@ Lists current locks from the Git LFS server.
   Specify the Git LFS server to use. Ignored if the `lfs.url` config key is set.
 
 * `-i <id>` `--id=<id>`:
-  Specifies a lock by its ID.
+  Specifies a lock by its ID. Returns a single result.
 
 * `-p <path>` `--path=<path>`:
-  Specifies a lock by its path.
+  Specifies a lock by its path. Returns a single result.
 
 * `--local`:
   Lists only the locks cached locally. Skips a remote call.
@@ -27,8 +27,9 @@ Lists current locks from the Git LFS server.
   Specifies number of results to return.
 
 * `--json`:
-  Writes lock info as JSON to STDOUT. Intended for interoperation with external
-  tools.
+  Writes lock info as JSON to STDOUT if the command exits successfully. Intended
+  for interoperation with external tools. If the command returns with a non-zero
+  exit code, plain text messages will be sent to STDERR.
 
 ## SEE ALSO
 
