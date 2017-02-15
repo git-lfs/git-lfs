@@ -7,7 +7,9 @@ git-lfs-unlock(1) -- Remove "locked" setting for a file on the Git LFS server
 
 ## DESCRIPTION
 
-Removes the given file path as "locked" on the Git LFS server.
+Removes the given file path as "locked" on the Git LFS server. Files must exist
+and have a clean git status before they can be unlocked. The `--force` flag will
+skip these checks.
 
 ## OPTIONS
 

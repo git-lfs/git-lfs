@@ -8,7 +8,8 @@ git-lfs-lock(1) -- Set a file as "locked" on the Git LFS server
 ## DESCRIPTION
 
 Sets the given file path as "locked" against the Git LFS server, with the
-intention of blocking attempts by other users to update the given path.
+intention of blocking attempts by other users to update the given path. Locking
+a file requires the file to exist in the working copy.
 
 ## OPTIONS
 
