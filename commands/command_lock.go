@@ -85,10 +85,6 @@ func lockPath(file string) (string, error) {
 }
 
 func init() {
-	if !isCommandEnabled(cfg, "locks") {
-		return
-	}
-
 	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
