@@ -29,7 +29,9 @@ as we experiment with more advanced locking scenarios, as defined in the
 ## Create Lock
 
 The client sends the following to create a lock by sending a `POST` to `/locks`
-(appended to the LFS server url, as described above).
+(appended to the LFS server url, as described above). Servers should ensure that
+users have push access to the repository, and that files are locked exclusively
+to one user.
 
 * `path` - String path name of the file that is locked. This should be
 relative to the root of the repository working directory.
@@ -138,8 +140,10 @@ errors.
 ## List Locks
 
 The client can request the current active locks for a repository by sending a
-`GET` to `/locks` (appended to the LFS server url, as described above). The
-properties are sent as URI query values, instead of through a JSON body:
+`GET` to `/locks` (appended to the LFS server url, as described above).  LFS
+Servers should ensure that users have at least pull access to the repository.
+
+The properties are sent as URI query values, instead of through a JSON body:
 
 * `path` - Optional string path to match against locks on the server.
 * `id` - Optional string ID to match against a lock on the server.
@@ -233,6 +237,8 @@ that can affect a Git push. For a caller, this endpoint is very similar to the
 * The `cursor` and `limit` values are sent as properties in the json request
 body.
 * The response includes locks partitioned into `ours` and `theirs` properties.
+
+LFS Servers should ensure that users have push access to the repository.
 
 Clients send the following to list locks for verification by sending a `POST`
 to `/locks/verify` (appended to the LFS server url, as described above):
@@ -359,7 +365,12 @@ errors.
 ## Delete Lock
 
 The client can delete a lock, given its ID, by sending a `POST` to
-`/locks/:id/unlock` (appended to the LFS server url, as described above):
+`/locks/:id/unlock` (appended to the LFS server url, as described above). LFS
+servers should ensure that callers have push access to the repository. They
+should also prevent a user from deleting another user's lock, unless the `force`
+property is given.
+
+Properties:
 
 * `force` - Optional boolean specifying that the user is deleting another user's
 lock.

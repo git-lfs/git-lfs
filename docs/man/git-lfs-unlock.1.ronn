@@ -1,0 +1,34 @@
+git-lfs-unlock(1) -- Remove "locked" setting for a file on the Git LFS server
+=============================================================================
+
+## SYNOPSIS
+
+`git lfs unlock` [OPTIONS] <path>
+
+## DESCRIPTION
+
+Removes the given file path as "locked" on the Git LFS server. Files must exist
+and have a clean git status before they can be unlocked. The `--force` flag will
+skip these checks.
+
+## OPTIONS
+
+* `-r` <name> `--remote=`<name>:
+  Specify the Git LFS server to use. Ignored if the `lfs.url` config key is set.
+
+* `-f` `--force`:
+  Tells the server to remove the lock, even if it's owned by another user.
+
+* `-i <id>` `--id=<id>`:
+  Specifies a lock by its ID instead of path.
+
+* `--json`:
+  Writes lock info as JSON to STDOUT if the command exits successfully. Intended
+  for interoperation with external tools. If the command returns with a non-zero
+  exit code, plain text messages will be sent to STDERR.
+
+## SEE ALSO
+
+git-lfs-lock(1), git-lfs-locks(1).
+
+Part of the git-lfs(1) suite.

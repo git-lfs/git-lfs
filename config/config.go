@@ -231,10 +231,6 @@ func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
 }
 
-func (c *Configuration) BatchTransfer() bool {
-	return c.Git.Bool("lfs.batch", true)
-}
-
 func (c *Configuration) NtlmAccess(operation string) bool {
 	return c.Access(operation) == lfsapi.NTLMAccess
 }

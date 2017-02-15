@@ -616,8 +616,7 @@ func (q *TransferQueue) errorCollector() {
 	q.errorwait.Done()
 }
 
-// run starts the transfer queue, doing individual or batch transfers depending
-// on the Config.BatchTransfer() value. run will transfer files sequentially or
+// run begins the transfer queue. It transfers files sequentially or
 // concurrently depending on the Config.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
 	tracerx.Printf("tq: running as batched queue, batch size of %d", q.batchSize)
