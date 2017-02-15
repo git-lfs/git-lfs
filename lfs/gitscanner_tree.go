@@ -18,7 +18,7 @@ type TreeBlob struct {
 	Filename string
 }
 
-func runScanTree(cb GitScannerCallback, ref string, filter *filepathfilter.Filter) error {
+func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter) error {
 	// We don't use the nameMap approach here since that's imprecise when >1 file
 	// can be using the same content
 	treeShas, err := lsTreeBlobs(ref, filter)
