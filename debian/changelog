@@ -1,3 +1,9 @@
+git-lfs (1.5.6) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 16 Feb 2017 14:29:00 +0000
+
 git-lfs (1.5.5) stable; urgency=low
 
   * New upstream version
