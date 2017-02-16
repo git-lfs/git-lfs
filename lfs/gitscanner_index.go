@@ -59,14 +59,14 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 		close(allRevsErr)
 	}()
 
-	smallShas, err := catFileBatchCheck(allRevs)
+	smallShas, _, err := catFileBatchCheck(allRevs, nil)
 	if err != nil {
 		return err
 	}
 
 	ch := make(chan gitscannerResult, chanBufSize)
 
-	barePointerCh, err := catFileBatch(smallShas)
+	barePointerCh, _, err := catFileBatch(smallShas, nil)
 	if err != nil {
 		return err
 	}

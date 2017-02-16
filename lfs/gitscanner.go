@@ -20,10 +20,12 @@ func IsCallbackMissing(err error) bool {
 
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
-	Filter       *filepathfilter.Filter
-	FoundPointer GitScannerFoundPointer
-	remote       string
-	skippedRefs  []string
+	Filter             *filepathfilter.Filter
+	FoundPointer       GitScannerFoundPointer
+	FoundLockable      GitScannerFoundLockable
+	PotentialLockables GitScannerSet
+	remote             string
+	skippedRefs        []string
 
 	closed  bool
 	started time.Time
@@ -31,6 +33,11 @@ type GitScanner struct {
 }
 
 type GitScannerFoundPointer func(*WrappedPointer, error)
+type GitScannerFoundLockable func(filename string)
+
+type GitScannerSet interface {
+	Contains(string) bool
+}
 
 // NewGitScanner initializes a *GitScanner for a Git repository in the current
 // working directory.
@@ -82,7 +89,7 @@ func (s *GitScanner) ScanLeftToRemote(left string, cb GitScannerFoundPointer) er
 	}
 	s.mu.Unlock()
 
-	return scanRefsToChan(callback, left, "", s.opts(ScanLeftToRemoteMode))
+	return scanRefsToChan(s, callback, left, "", s.opts(ScanLeftToRemoteMode))
 }
 
 // ScanRefRange scans through all commits from the given left and right refs,
@@ -95,7 +102,7 @@ func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer)
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan(callback, left, right, opts)
+	return scanRefsToChan(s, callback, left, right, opts)
 }
 
 // ScanRefWithDeleted scans through all objects in the given ref, including
@@ -114,7 +121,7 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
-	return scanRefsToChan(callback, ref, "", opts)
+	return scanRefsToChan(s, callback, ref, "", opts)
 }
 
 // ScanAll scans through all objects in the git repository.
@@ -126,7 +133,7 @@ func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan(callback, "", "", opts)
+	return scanRefsToChan(s, callback, "", "", opts)
 }
 
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that
