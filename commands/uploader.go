@@ -41,18 +41,32 @@ type uploadContext struct {
 	trackedLocksMu *sync.Mutex
 
 	// ALL verifiable locks
-	ourLocks   map[string]*locking.Lock
-	theirLocks map[string]*locking.Lock
+	ourLocks   map[string]locking.Lock
+	theirLocks map[string]locking.Lock
 
 	// locks from ourLocks that were modified in this push
-	ownedLocks []*locking.Lock
+	ownedLocks []locking.Lock
 
 	// locks from theirLocks that were modified in this push
-	unownedLocks []*locking.Lock
+	unownedLocks []locking.Lock
 
 	// tracks errors from gitscanner callbacks
 	scannerErr error
 	errMu      sync.Mutex
+}
+
+// Determines if a filename is lockable. Serves as a wrapper around theirLocks
+// that implements GitScannerSet.
+type gitScannerLockables struct {
+	m map[string]locking.Lock
+}
+
+func (l *gitScannerLockables) Contains(name string) bool {
+	if l == nil {
+		return false
+	}
+	_, ok := l.m[name]
+	return ok
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -63,8 +77,8 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:       getTransferManifest(),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
-		ourLocks:       make(map[string]*locking.Lock),
-		theirLocks:     make(map[string]*locking.Lock),
+		ourLocks:       make(map[string]locking.Lock),
+		theirLocks:     make(map[string]locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
 	}
 
@@ -79,10 +93,10 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Error("         Temporarily skipping check ...")
 	} else {
 		for _, l := range theirLocks {
-			ctx.theirLocks[l.Path] = &l
+			ctx.theirLocks[l.Path] = l
 		}
 		for _, l := range ourLocks {
-			ctx.ourLocks[l.Path] = &l
+			ctx.ourLocks[l.Path] = l
 		}
 	}
 
@@ -116,6 +130,15 @@ func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
 		}
 	})
 
+	gitscanner.FoundLockable = func(name string) {
+		if lock, ok := c.theirLocks[name]; ok {
+			c.trackedLocksMu.Lock()
+			c.unownedLocks = append(c.unownedLocks, lock)
+			c.trackedLocksMu.Unlock()
+		}
+	}
+
+	gitscanner.PotentialLockables = &gitScannerLockables{m: c.theirLocks}
 	return gitscanner, gitscanner.RemoteForPush(c.Remote)
 }
 
