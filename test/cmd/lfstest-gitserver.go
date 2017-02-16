@@ -968,6 +968,15 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 
 		if strings.HasSuffix(r.URL.Path, "/locks/verify") {
+			if strings.HasSuffix(repo, "verify-5xx") {
+				w.WriteHeader(500)
+				return
+			}
+			if strings.HasSuffix(repo, "verify-501") {
+				w.WriteHeader(501)
+				return
+			}
+
 			switch repo {
 			case "pre_push_locks_verify_404":
 				w.WriteHeader(http.StatusNotFound)
