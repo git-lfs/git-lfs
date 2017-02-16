@@ -550,7 +550,7 @@ begin_test "pre-push locks verify 5xx with verification enabled"
 
   git push origin master 2>&1 | tee push.log
   grep "\"origin\" does not support the LFS locking API" push.log
-  grep "git config lfs.$endpoint.locksverify false" push.log
+  grep "git config 'lfs.$endpoint.locksverify' false" push.log
 )
 end_test
 
@@ -688,5 +688,5 @@ begin_test "pre-push locks verify 200"
   git push origin master 2>&1 | tee push.log
 
   grep "Locking support detected on remote \"origin\"." push.log
-  grep "git config lfs.$endpoint.locksverify true" push.log
+  grep "git config 'lfs.$endpoint.locksverify' true" push.log
 )
