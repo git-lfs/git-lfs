@@ -530,3 +530,163 @@ begin_test "pre-push with their lock"
   popd >/dev/null
 )
 end_test
+
+begin_test "pre-push locks verify 5xx with verification enabled"
+(
+  set -e
+
+  reponame="lock-enabled-verify-5xx"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" true
+
+  git push origin master 2>&1 | tee push.log
+  grep "\"origin\" does not support the LFS locking API" push.log
+  grep "git config lfs.$endpoint.locksverify false" push.log
+)
+end_test
+
+
+begin_test "pre-push locks verify 5xx with verification disabled"
+(
+  set -e
+
+  reponame="lock-disabled-verify-5xx"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" false
+
+  git push origin master 2>&1 | tee push.log
+  [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
+)
+end_test
+
+begin_test "pre-push locks verify 5xx with verification unset"
+(
+  set -e
+
+  reponame="lock-unset-verify-5xx"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  git push origin master 2>&1 | tee push.log
+  grep "\"origin\" does not support the LFS locking API" push.log
+)
+end_test
+
+begin_test "pre-push locks verify 501 with verification enabled"
+(
+  set -e
+
+  reponame="lock-enabled-verify-501"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" true
+
+  git push origin master 2>&1 | tee push.log
+
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+
+begin_test "pre-push locks verify 501 with verification disabled"
+(
+  set -e
+
+  reponame="lock-disabled-verify-501"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" false
+
+  git push origin master 2>&1 | tee push.log
+
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+begin_test "pre-push locks verify 501 with verification unset"
+(
+  set -e
+
+  reponame="lock-unset-verify-501"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  git push origin master 2>&1 | tee push.log
+
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+begin_test "pre-push locks verify 200"
+(
+  set -e
+
+  reponame="lock-verify-200"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  printf "example" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git push origin master 2>&1 | tee push.log
+
+  grep "Locking support detected on remote \"origin\"." push.log
+  grep "git config lfs.$endpoint.locksverify true" push.log
+)
