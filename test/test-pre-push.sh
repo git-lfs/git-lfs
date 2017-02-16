@@ -541,7 +541,9 @@ begin_test "pre-push locks verify 5xx with verification enabled"
 
   endpoint="$(repo_endpoint $GITSERVER $reponame)"
 
-  printf "example" > a.dat
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -551,6 +553,8 @@ begin_test "pre-push locks verify 5xx with verification enabled"
   git push origin master 2>&1 | tee push.log
   grep "\"origin\" does not support the LFS locking API" push.log
   grep "git config 'lfs.$endpoint.locksverify' false" push.log
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
@@ -574,6 +578,8 @@ begin_test "pre-push locks verify 5xx with verification disabled"
 
   git push origin master 2>&1 | tee push.log
   [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
@@ -596,6 +602,8 @@ begin_test "pre-push locks verify 5xx with verification unset"
 
   git push origin master 2>&1 | tee push.log
   grep "\"origin\" does not support the LFS locking API" push.log
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
@@ -609,7 +617,9 @@ begin_test "pre-push locks verify 501 with verification enabled"
 
   endpoint="$(repo_endpoint $GITSERVER $reponame)"
 
-  printf "example" > a.dat
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -618,6 +628,7 @@ begin_test "pre-push locks verify 501 with verification enabled"
 
   git push origin master 2>&1 | tee push.log
 
+  assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test
@@ -633,7 +644,9 @@ begin_test "pre-push locks verify 501 with verification disabled"
 
   endpoint="$(repo_endpoint $GITSERVER $reponame)"
 
-  printf "example" > a.dat
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -642,6 +655,7 @@ begin_test "pre-push locks verify 501 with verification disabled"
 
   git push origin master 2>&1 | tee push.log
 
+  assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test
@@ -656,7 +670,9 @@ begin_test "pre-push locks verify 501 with verification unset"
 
   endpoint="$(repo_endpoint $GITSERVER $reponame)"
 
-  printf "example" > a.dat
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -665,6 +681,7 @@ begin_test "pre-push locks verify 501 with verification unset"
 
   git push origin master 2>&1 | tee push.log
 
+  assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test
@@ -680,7 +697,9 @@ begin_test "pre-push locks verify 200"
   endpoint="$(repo_endpoint $GITSERVER $reponame)"
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 
-  printf "example" > a.dat
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -689,4 +708,5 @@ begin_test "pre-push locks verify 200"
 
   grep "Locking support detected on remote \"origin\"." push.log
   grep "git config 'lfs.$endpoint.locksverify' true" push.log
+  assert_server_object "$reponame" "$contents_oid"
 )
