@@ -348,6 +348,16 @@ substring_position() {
     | wc -c
 }
 
+# repo_endpoint returns the LFS endpoint for a given server and repository.
+#
+#     [ "$GITSERVER/example/repo.git/info/lfs" = "$(repo_endpoint $GITSERVER example-repo)" ]
+repo_endpoint() {
+  local server="$1"
+  local repo="$2"
+
+  echo "$server/$repo.git/info/lfs"
+}
+
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
