@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -53,11 +52,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 	ctx := newUploadContext(args[0], prePushDryRun)
 
-	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(ctx.Remote); err != nil {
+	gitscanner, err := ctx.buildGitScanner()
+	if err != nil {
 		ExitWithError(err)
 	}
-
 	defer gitscanner.Close()
 
 	// We can be passed multiple lines of refs

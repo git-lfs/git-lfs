@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"sync"
 
@@ -11,6 +12,19 @@ import (
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 )
+
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
+	if pushAll {
+		if err := g.ScanRefWithDeleted(ref, nil); err != nil {
+			return err
+		}
+	} else {
+		if err := g.ScanLeftToRemote(ref, nil); err != nil {
+			return err
+		}
+	}
+	return ctx.scannerError()
+}
 
 type uploadContext struct {
 	Remote       string
@@ -35,6 +49,10 @@ type uploadContext struct {
 
 	// locks from theirLocks that were modified in this push
 	unownedLocks []*locking.Lock
+
+	// tracks errors from gitscanner callbacks
+	scannerErr error
+	errMu      sync.Mutex
 }
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
@@ -69,6 +87,36 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	}
 
 	return ctx
+}
+
+func (c *uploadContext) scannerError() error {
+	c.errMu.Lock()
+	defer c.errMu.Unlock()
+
+	return c.scannerErr
+}
+
+func (c *uploadContext) addScannerError(err error) {
+	c.errMu.Lock()
+	defer c.errMu.Unlock()
+
+	if c.scannerErr != nil {
+		c.scannerErr = fmt.Errorf("%v\n%v", c.scannerErr, err)
+	} else {
+		c.scannerErr = err
+	}
+}
+
+func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			c.addScannerError(err)
+		} else {
+			uploadPointers(c, p)
+		}
+	})
+
+	return gitscanner, gitscanner.RemoteForPush(c.Remote)
 }
 
 // AddUpload adds the given oid to the set of oids that have been uploaded in
