@@ -1,5 +1,11 @@
 # Git LFS Changelog
 
+## 1.5.6 (16 February, 2017)
+
+## Bugs
+
+* Spool malformed pointers to avoid deadlock #1932 (@ttaylorr)
+
 ## 1.5.5 (12 January, 2017)
 
 ### Bugs
