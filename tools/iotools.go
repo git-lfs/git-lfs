@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
@@ -144,3 +145,71 @@ func Spool(to io.Writer, from io.Reader) (n int64, err error) {
 
 	return io.Copy(to, spool)
 }
+
+type ReadSeekCloser interface {
+	io.Reader
+	io.Seeker
+	io.Closer
+}
+
+// CountingReadSeekCloser wraps an underlying reader and keeps track of the
+// number of bytes that that reader has read.
+type CountingReadSeekCloser struct {
+	ReadSeekCloser
+
+	// n is the number of bytes that have been read from the underlying
+	// reader.
+	n int64
+
+	// n is the number of bytes that have been read from the underlying
+	// reader.
+	totalSize int64
+}
+
+var _ io.Reader = (*CountingReadSeekCloser)(nil)
+
+// NewCountingReadSeekCloser wraps a given io.Reader "r" as a
+// CountingReadSeekCloser. If "r" already is a CountingReadSeekCloser, it will
+// be returned as is.
+func NewCountingReadSeekCloser(r ReadSeekCloser, total int64) *CountingReadSeekCloser {
+	if cr, ok := r.(*CountingReadSeekCloser); ok {
+		return cr
+	}
+
+	return &CountingReadSeekCloser{
+		ReadSeekCloser: r,
+		totalSize:      total,
+	}
+}
+
+// Read wraps the underlying Reader's "Read" method. It also captures the number
+// of bytes read, and atomically updates the running count, making this method
+// safe to call across multiple goroutines.
+func (r *CountingReadSeekCloser) Read(p []byte) (n int, err error) {
+	n, err = r.ReadSeekCloser.Read(p)
+	atomic.AddInt64(&r.n, int64(n))
+
+	return
+}
+
+// Seek wraps the underlying Seeker's "Seak" method, atomically updating the
+// number of bytes that have been consumed by this reader. Since the data access
+// is atomic, this method is safe to call across multiple goroutines.
+func (r *CountingReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart:
+		atomic.SwapInt64(&r.n, offset)
+	case io.SeekCurrent:
+		atomic.AddInt64(&r.n, offset)
+	case io.SeekEnd:
+		atomic.SwapInt64(&r.n, r.totalSize+offset)
+	}
+
+	return r.ReadSeekCloser.Seek(offset, whence)
+}
+
+// N returns the number of bytes read from the underlying reader.
+//
+// N uses accesses the number of bytes read atomically, so this method is safe
+// to call across multiple goroutines.
+func (r *CountingReadSeekCloser) N() int64 { return atomic.LoadInt64(&r.n) }
