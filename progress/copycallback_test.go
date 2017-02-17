@@ -72,3 +72,29 @@ func TestEOFReaderReturnsEOFs(t *testing.T) {
 	assert.Equal(t, 1, n)
 	assert.Equal(t, io.EOF, err)
 }
+
+func TestBodyCallbackReaderCountsReads(t *testing.T) {
+	br := NewByteBodyWithCallback([]byte{0x1, 0x2, 0x3, 0x4}, 4, nil)
+
+	assert.EqualValues(t, 0, br.readSize)
+
+	p := make([]byte, 8)
+	n, err := br.Read(p)
+
+	assert.Equal(t, 4, n)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 4, br.readSize)
+}
+
+func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
+	br := NewByteBodyWithCallback([]byte{0x1, 0x2, 0x3, 0x4}, 4, nil)
+
+	br.Seek(1, io.SeekStart)
+	assert.EqualValues(t, 1, br.readSize)
+
+	br.Seek(1, io.SeekCurrent)
+	assert.EqualValues(t, 2, br.readSize)
+
+	br.Seek(-1, io.SeekEnd)
+	assert.EqualValues(t, 3, br.readSize)
+}

@@ -64,48 +64,6 @@ func TestRetriableReaderDoesNotRewrap(t *testing.T) {
 
 }
 
-func TestCountingReaderCountsReads(t *testing.T) {
-	cr := tools.NewCountingReadSeekCloser(NopReadSeekCloser(bytes.NewReader(
-		[]byte{0x1, 0x2, 0x3, 0x4},
-	)), 0)
-
-	assert.EqualValues(t, 0, cr.N())
-
-	p := make([]byte, 8)
-	n, err := cr.Read(p)
-
-	assert.Equal(t, 4, n)
-	assert.Nil(t, err)
-	assert.EqualValues(t, 4, cr.N())
-}
-
-func TestCountingReaderPassesErrors(t *testing.T) {
-	expected := errors.New("some err")
-
-	cr := tools.NewCountingReadSeekCloser(NopReadSeekCloser(&ErrReader{expected}), -1)
-
-	p := make([]byte, 4)
-	n, err := cr.Read(p)
-
-	assert.Equal(t, 0, n)
-	assert.Equal(t, expected, err)
-}
-
-func TestCountingReaderUpdatesOffsetOnSeek(t *testing.T) {
-	cr := tools.NewCountingReadSeekCloser(NopReadSeekCloser(bytes.NewReader(
-		[]byte{0x1, 0x2, 0x3, 0x4},
-	)), 4)
-
-	cr.Seek(1, io.SeekStart)
-	assert.EqualValues(t, 1, cr.N())
-
-	cr.Seek(1, io.SeekCurrent)
-	assert.EqualValues(t, 2, cr.N())
-
-	cr.Seek(-1, io.SeekEnd)
-	assert.EqualValues(t, 3, cr.N())
-}
-
 // ErrReader implements io.Reader and only returns errors.
 type ErrReader struct {
 	// err is the error that this reader will return.
@@ -116,18 +74,3 @@ type ErrReader struct {
 func (e *ErrReader) Read(p []byte) (n int, err error) {
 	return 0, e.err
 }
-
-// Seek implements io.Seeker.Seek and returns (0, e.err).
-func (e *ErrReader) Seek(offset int64, whence int) (int64, error) {
-	return 0, e.err
-}
-
-type readSeekCloser struct {
-	io.ReadSeeker
-}
-
-func NopReadSeekCloser(r io.ReadSeeker) tools.ReadSeekCloser {
-	return &readSeekCloser{r}
-}
-
-func (rsc *readSeekCloser) Close() error { return nil }

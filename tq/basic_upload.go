@@ -11,7 +11,6 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -73,11 +72,6 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 	defer f.Close()
 
-	stat, err := f.Stat()
-	if err != nil {
-		return errors.Wrap(err, "basic upload stat")
-	}
-
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
@@ -87,8 +81,8 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return nil
 	}
 
-	fcount := tools.NewCountingReadSeekCloser(f, stat.Size())
-	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(fcount, t.Size, ccb)
+	cbr := progress.NewBodyWithCallback(f, t.Size, ccb)
+	var reader lfsapi.ReadSeekCloser = cbr
 
 	// Signal auth was ok on first read; this frees up other workers to start
 	if authOkFunc != nil {
@@ -108,8 +102,9 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		// Either way, let's decrement the number of bytes that we've
 		// read _so far_, so that the next iteration doesn't re-transfer
 		// those bytes, according to the progress meter.
-		offset := fcount.N()
-		ccb(t.Size, offset, -int(offset))
+		if perr := cbr.ResetProgress(); perr != nil {
+			err = errors.Wrap(err, perr.Error())
+		}
 
 		return errors.NewRetriableError(err)
 	}
