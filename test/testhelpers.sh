@@ -120,6 +120,12 @@ assert_server_object() {
   }
 }
 
+# Parses the Lock ID returned from a single 'git lfs lock <path>' call
+get_lock_id() {
+  local log="$1"
+  grep -oh "\((.*)\)" "$log" | tr -d \(\)
+}
+
 # assert that a lock with the given ID exists on the test server
 assert_server_lock() {
   local reponame="$1"

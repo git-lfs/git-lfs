@@ -11,7 +11,7 @@ begin_test "unlocking a lock by path"
 
   git lfs lock "c.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock "c.dat" 2>&1 | tee unlock.log
@@ -27,7 +27,7 @@ begin_test "force unlocking lock with missing file"
   setup_remote_repo_with_file "$reponame" "a.dat"
 
   git lfs lock "a.dat" | tee lock.log
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git rm a.dat
@@ -54,7 +54,7 @@ begin_test "unlocking a lock (--json)"
 
   git lfs lock "c_json.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock --json "c_json.dat" 2>&1 | tee unlock.log
@@ -73,7 +73,7 @@ begin_test "unlocking a lock by id"
 
   git lfs lock "d.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock --id="$id" 2>&1 | tee unlock.log
@@ -90,7 +90,7 @@ begin_test "unlocking a lock without sufficient info"
 
   git lfs lock "e.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock 2>&1 | tee unlock.log
@@ -108,7 +108,7 @@ begin_test "unlocking a lock while uncommitted"
 
   git lfs lock "mod.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   echo "\nSomething" >> mod.dat
@@ -136,7 +136,7 @@ begin_test "unlocking a lock while uncommitted with --force"
 
   git lfs lock "modforce.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   echo "\nSomething" >> modforce.dat
@@ -161,7 +161,7 @@ begin_test "unlocking a lock while untracked"
   echo "something" > untracked.dat
   git lfs lock "untracked.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock "untracked.dat" 2>&1 | tee unlock.log
