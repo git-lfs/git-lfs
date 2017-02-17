@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -72,6 +73,11 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 	defer f.Close()
 
+	stat, err := f.Stat()
+	if err != nil {
+		return errors.Wrap(err, "basic upload stat")
+	}
+
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
@@ -80,7 +86,9 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		}
 		return nil
 	}
-	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(f, t.Size, ccb)
+
+	fcount := tools.NewCountingReadSeekCloser(f, stat.Size())
+	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(fcount, t.Size, ccb)
 
 	// Signal auth was ok on first read; this frees up other workers to start
 	if authOkFunc != nil {
@@ -94,6 +102,15 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 	res, err := a.doHTTP(t, req)
 	if err != nil {
+		// We're about to return a retriable error, meaning that this
+		// transfer will either be retried, or it will fail.
+		//
+		// Either way, let's decrement the number of bytes that we've
+		// read _so far_, so that the next iteration doesn't re-transfer
+		// those bytes, according to the progress meter.
+		offset := fcount.N()
+		ccb(t.Size, offset, -int(offset))
+
 		return errors.NewRetriableError(err)
 	}
 
