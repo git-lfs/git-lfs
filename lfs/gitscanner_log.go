@@ -39,7 +39,7 @@ type gitscannerResult struct {
 	Err     error
 }
 
-func scanUnpushed(cb GitScannerCallback, remote string) error {
+func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 	logArgs := []string{"log",
 		"--branches", "--tags", // include all locally referenced commits
 		"--not"} // but exclude everything that comes after
@@ -62,7 +62,7 @@ func scanUnpushed(cb GitScannerCallback, remote string) error {
 	return nil
 }
 
-func parseScannerLogOutput(cb GitScannerCallback, direction LogDiffDirection, cmd *wrappedCmd) {
+func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *wrappedCmd) {
 	ch := make(chan gitscannerResult, chanBufSize)
 
 	go func() {
@@ -88,7 +88,7 @@ func parseScannerLogOutput(cb GitScannerCallback, direction LogDiffDirection, cm
 
 // logPreviousVersions scans history for all previous versions of LFS pointers
 // from 'since' up to (but not including) the final state at ref
-func logPreviousSHAs(cb GitScannerCallback, ref string, since time.Time) error {
+func logPreviousSHAs(cb GitScannerFoundPointer, ref string, since time.Time) error {
 	logArgs := []string{"log",
 		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
 	}

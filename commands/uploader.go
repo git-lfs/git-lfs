@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -17,6 +18,19 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
+	if pushAll {
+		if err := g.ScanRefWithDeleted(ref, nil); err != nil {
+			return err
+		}
+	} else {
+		if err := g.ScanLeftToRemote(ref, nil); err != nil {
+			return err
+		}
+	}
+	return ctx.scannerError()
+}
+
 type uploadContext struct {
 	Remote       string
 	DryRun       bool
@@ -32,14 +46,32 @@ type uploadContext struct {
 	trackedLocksMu *sync.Mutex
 
 	// ALL verifiable locks
-	ourLocks   map[string]*locking.Lock
-	theirLocks map[string]*locking.Lock
+	ourLocks   map[string]locking.Lock
+	theirLocks map[string]locking.Lock
 
 	// locks from ourLocks that were modified in this push
-	ownedLocks []*locking.Lock
+	ownedLocks []locking.Lock
 
 	// locks from theirLocks that were modified in this push
-	unownedLocks []*locking.Lock
+	unownedLocks []locking.Lock
+
+	// tracks errors from gitscanner callbacks
+	scannerErr error
+	errMu      sync.Mutex
+}
+
+// Determines if a filename is lockable. Serves as a wrapper around theirLocks
+// that implements GitScannerSet.
+type gitScannerLockables struct {
+	m map[string]locking.Lock
+}
+
+func (l *gitScannerLockables) Contains(name string) bool {
+	if l == nil {
+		return false
+	}
+	_, ok := l.m[name]
+	return ok
 }
 
 type verifyState byte
@@ -58,8 +90,8 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:       getTransferManifest(),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
-		ourLocks:       make(map[string]*locking.Lock),
-		theirLocks:     make(map[string]*locking.Lock),
+		ourLocks:       make(map[string]locking.Lock),
+		theirLocks:     make(map[string]locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
 	}
 
@@ -69,10 +101,10 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 
 	ourLocks, theirLocks := verifyLocks(remote)
 	for _, l := range theirLocks {
-		ctx.theirLocks[l.Path] = &l
+		ctx.theirLocks[l.Path] = l
 	}
 	for _, l := range ourLocks {
-		ctx.ourLocks[l.Path] = &l
+		ctx.ourLocks[l.Path] = l
 	}
 
 	return ctx
@@ -106,6 +138,45 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock) {
 	}
 
 	return ours, theirs
+}
+
+func (c *uploadContext) scannerError() error {
+	c.errMu.Lock()
+	defer c.errMu.Unlock()
+
+	return c.scannerErr
+}
+
+func (c *uploadContext) addScannerError(err error) {
+	c.errMu.Lock()
+	defer c.errMu.Unlock()
+
+	if c.scannerErr != nil {
+		c.scannerErr = fmt.Errorf("%v\n%v", c.scannerErr, err)
+	} else {
+		c.scannerErr = err
+	}
+}
+
+func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			c.addScannerError(err)
+		} else {
+			uploadPointers(c, p)
+		}
+	})
+
+	gitscanner.FoundLockable = func(name string) {
+		if lock, ok := c.theirLocks[name]; ok {
+			c.trackedLocksMu.Lock()
+			c.unownedLocks = append(c.unownedLocks, lock)
+			c.trackedLocksMu.Unlock()
+		}
+	}
+
+	gitscanner.PotentialLockables = &gitScannerLockables{m: c.theirLocks}
+	return gitscanner, gitscanner.RemoteForPush(c.Remote)
 }
 
 // AddUpload adds the given oid to the set of oids that have been uploaded in

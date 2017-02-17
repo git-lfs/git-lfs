@@ -488,7 +488,7 @@ begin_test "pre-push with our lock"
 )
 end_test
 
-begin_test "pre-push with their lock"
+begin_test "pre-push with their lock on lfs file"
 (
   set -e
 
@@ -527,6 +527,56 @@ begin_test "pre-push with their lock"
 
     grep "Unable to push 1 locked file(s)" push.log
     grep "* locked_theirs.dat - Git LFS Tests" push.log
+  popd >/dev/null
+)
+end_test
+
+begin_test "pre-push with their lock on non-lfs lockable file"
+(
+  set -e
+
+  reponame="pre_push_unowned_lock_not_lfs"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  echo "*.dat lockable" > .gitattributes
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  # any lock path with "theirs" is returned as "their" lock by /locks/verify
+  echo "hi" > readme.txt
+  echo "tiny" > tiny_locked_theirs.dat
+  git help > large_locked_theirs.dat
+  git add readme.txt tiny_locked_theirs.dat large_locked_theirs.dat
+  git commit -m "add initial files"
+
+  git push origin master
+
+  git lfs lock "tiny_locked_theirs.dat" | tee lock.log
+  grep "'tiny_locked_theirs.dat' was locked" lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  git lfs lock "large_locked_theirs.dat" | tee lock.log
+  grep "'large_locked_theirs.dat' was locked" lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  assert_server_lock $id
+
+  pushd "$TRASHDIR" >/dev/null
+    clone_repo "$reponame" "$reponame-assert"
+
+    git lfs update # manually add pre-push hook, since lfs clean hook is not used
+    echo "other changes" >> readme.txt
+    echo "unauthorized changes" >> large_locked_theirs.dat
+    echo "unauthorized changes" >> tiny_locked_theirs.dat
+    # --no-verify is used to avoid the pre-commit hook which is not under test
+    git commit --no-verify -am "add unauthorized changes"
+
+    git push origin master 2>&1 | tee push.log
+
+    grep "Unable to push 2 locked file(s)" push.log
+    grep "* large_locked_theirs.dat - Git LFS Tests" push.log
+    grep "* tiny_locked_theirs.dat - Git LFS Tests" push.log
   popd >/dev/null
 )
 end_test

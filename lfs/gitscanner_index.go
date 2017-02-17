@@ -11,7 +11,7 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(cb GitScannerCallback, ref string) error {
+func scanIndex(cb GitScannerFoundPointer, ref string) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),
@@ -59,14 +59,14 @@ func scanIndex(cb GitScannerCallback, ref string) error {
 		close(allRevsErr)
 	}()
 
-	smallShas, err := catFileBatchCheck(allRevs)
+	smallShas, _, err := catFileBatchCheck(allRevs, nil)
 	if err != nil {
 		return err
 	}
 
 	ch := make(chan gitscannerResult, chanBufSize)
 
-	barePointerCh, err := catFileBatch(smallShas)
+	barePointerCh, _, err := catFileBatch(smallShas, nil)
 	if err != nil {
 		return err
 	}
