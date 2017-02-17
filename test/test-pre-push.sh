@@ -473,7 +473,7 @@ begin_test "pre-push with our lock"
   git lfs lock "locked.dat" | tee lock.log
   grep "'locked.dat' was locked" lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock $id
 
   printf "authorized changes" >> locked.dat
@@ -512,7 +512,7 @@ begin_test "pre-push with their lock on lfs file"
   git lfs lock "locked_theirs.dat" | tee lock.log
   grep "'locked_theirs.dat' was locked" lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock $id
 
   pushd "$TRASHDIR" >/dev/null
@@ -554,12 +554,12 @@ begin_test "pre-push with their lock on non-lfs lockable file"
 
   git lfs lock "tiny_locked_theirs.dat" | tee lock.log
   grep "'tiny_locked_theirs.dat' was locked" lock.log
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock $id
 
   git lfs lock "large_locked_theirs.dat" | tee lock.log
   grep "'large_locked_theirs.dat' was locked" lock.log
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock $id
 
   pushd "$TRASHDIR" >/dev/null

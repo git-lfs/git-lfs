@@ -12,7 +12,7 @@ begin_test "creating a lock"
   git lfs lock "a.dat" | tee lock.log
   grep "'a.dat' was locked" lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -27,7 +27,7 @@ begin_test "create lock with server using client cert"
   git lfs lock "cc.dat" | tee lock.log
   grep "'cc.dat' was locked" lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -57,7 +57,7 @@ begin_test "locking a previously locked file"
   git lfs lock "b.dat" | tee lock.log
   grep "'b.dat' was locked" lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   grep "lock already created" <(git lfs lock "b.dat" 2>&1)

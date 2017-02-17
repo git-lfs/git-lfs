@@ -11,7 +11,7 @@ begin_test "list a single lock"
 
   git lfs lock "f.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs locks --path "f.dat" | tee locks.log
@@ -30,7 +30,7 @@ begin_test "list a single lock (--json)"
 
   git lfs lock "f_json.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(get_lock_id lock.log)
   assert_server_lock "$reponame" "$id"
 
   git lfs locks --json --path "f_json.dat" | tee locks.log
@@ -63,10 +63,10 @@ begin_test "list locks with a limit"
   grep "master -> master" push.log
 
   git lfs lock "g_1.dat" | tee lock.log
-  assert_server_lock "$reponame" "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  assert_server_lock "$reponame" "$(get_lock_id "lock.log")"
 
   git lfs lock "g_2.dat" | tee lock.log
-  assert_server_lock "$reponame" "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  assert_server_lock "$reponame" "$(get_lock_id "lock.log")"
 
   git lfs locks --limit 1 | tee locks.log
   grep "1 lock(s) matched query" locks.log
@@ -100,7 +100,7 @@ begin_test "list locks with pagination"
 
   for i in $(seq 1 5); do
     git lfs lock "h_$i.dat" | tee lock.log
-    assert_server_lock "$reponame" "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+    assert_server_lock "$reponame" "$(get_lock_id "lock.log")"
   done
 
   # The server will return, at most, three locks at a time
@@ -132,10 +132,10 @@ begin_test "cached locks"
   grep "master -> master" push.log
 
   git lfs lock "cached1.dat" | tee lock.log
-  assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  assert_server_lock "$(get_lock_id "lock.log")"
 
   git lfs lock "cached2.dat" | tee lock.log
-  assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  assert_server_lock "$(get_lock_id "lock.log")"
 
   git lfs locks --local | tee locks.log
   grep "2 lock(s) matched query" locks.log
