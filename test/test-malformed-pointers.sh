@@ -53,3 +53,35 @@ begin_test "malformed pointers"
   popd >/dev/null
 )
 end_test
+
+begin_test "empty pointers"
+(
+  set -e
+
+  reponame="empty-pointers"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  touch empty.dat
+
+  git \
+    -c "filter.lfs.process=" \
+    -c "filter.lfs.clean=cat" \
+    -c "filter.lfs.required=false" \
+    add empty.dat
+  git commit -m "add empty pointer"
+
+  git push origin master
+
+  pushd .. >/dev/null
+    clone_repo "$reponame" "$reponame-assert"
+
+    [ "0" -eq "$(grep -c "empty.dat" clone.log)" ]
+    [ "0" -eq "$(wc -c < empty.dat)" ]
+  popd >/dev/null
+)
+end_test
