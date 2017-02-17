@@ -23,7 +23,8 @@ var (
 //
 // If the encoded LFS pointer is not parse-able as a pointer, the contents of
 // that file will instead be spooled to a temporary location on disk and then
-// copied out back to Git.
+// copied out back to Git. If the pointer file is empty, an empty file will be
+// written with no error.
 //
 // If the smudged object did not "pass" the include and exclude filterset, it
 // will not be downloaded, and the object will remain a pointer on disk, as if
@@ -35,13 +36,17 @@ var (
 func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		if _, err := tools.Spool(to, pbuf); err != nil {
+		n, err := tools.Spool(to, pbuf)
+		if err != nil {
 			return errors.Wrap(err, perr.Error())
 		}
 
-		return errors.NewNotAPointerError(errors.Errorf(
-			"Unable to parse pointer at: %q", filename,
-		))
+		if n != 0 {
+			return errors.NewNotAPointerError(errors.Errorf(
+				"Unable to parse pointer at: %q", filename,
+			))
+		}
+		return nil
 	}
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
