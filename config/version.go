@@ -12,6 +12,13 @@ var (
 	VersionDesc string
 )
 
+<<<<<<< HEAD
+=======
+const (
+	Version = "2.0-pre"
+)
+
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 func init() {
 	gitCommit := ""
 	if len(GitCommit) > 0 {

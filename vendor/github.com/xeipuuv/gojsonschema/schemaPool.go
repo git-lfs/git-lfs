@@ -28,7 +28,6 @@ package gojsonschema
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/xeipuuv/gojsonreference"
 )
@@ -40,15 +39,15 @@ type schemaPoolDocument struct {
 type schemaPool struct {
 	schemaPoolDocuments map[string]*schemaPoolDocument
 	standaloneDocument  interface{}
-	fs                  http.FileSystem
+	jsonLoaderFactory   JSONLoaderFactory
 }
 
-func newSchemaPool(fs http.FileSystem) *schemaPool {
+func newSchemaPool(f JSONLoaderFactory) *schemaPool {
 
 	p := &schemaPool{}
 	p.schemaPoolDocuments = make(map[string]*schemaPoolDocument)
 	p.standaloneDocument = nil
-	p.fs = fs
+	p.jsonLoaderFactory = f
 
 	return p
 }
@@ -96,8 +95,8 @@ func (p *schemaPool) GetDocument(reference gojsonreference.JsonReference) (*sche
 		return spd, nil
 	}
 
-	jsonReferenceLoader := NewReferenceLoaderFileSystem(reference.String(), p.fs)
-	document, err := jsonReferenceLoader.loadJSON()
+	jsonReferenceLoader := p.jsonLoaderFactory.New(reference.String())
+	document, err := jsonReferenceLoader.LoadJSON()
 	if err != nil {
 		return nil, err
 	}

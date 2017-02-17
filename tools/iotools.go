@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/progress"
 )
 
+<<<<<<< HEAD
 type readSeekCloserWrapper struct {
 	readSeeker io.ReadSeeker
 }
@@ -35,6 +36,8 @@ func NewReadSeekCloserWrapper(r io.ReadSeeker) io.ReadCloser {
 	return &readSeekCloserWrapper{r}
 }
 
+=======
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 const (
 	// memoryBufferLimit is the number of bytes to buffer in memory before
 	// spooling the contents of an `io.Reader` in `Spool()` to a temporary

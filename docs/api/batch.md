@@ -1,5 +1,7 @@
 # Git LFS Batch API
 
+Added: v0.6
+
 The Batch API is used to request the ability to transfer LFS objects with the
 LFS server. The Batch URL is built by adding `/objects/batch` to the LFS server
 URL.
@@ -172,7 +174,7 @@ errors.
 
 {
   "message": "Not found",
-  "documentation_url": "https://git-lfs-server.com/docs/errors",
+  "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
 ```
@@ -189,7 +191,7 @@ a custom header key so it does not trigger password prompts in browsers.
 
 {
   "message": "Credentials needed",
-  "documentation_url": "https://git-lfs-server.com/docs/errors",
+  "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
 ```

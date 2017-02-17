@@ -90,15 +90,21 @@ func lockPath(file string) (string, error) {
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
+<<<<<<< HEAD
 
 	if stat, err := longpathos.Stat(abs); err != nil {
 		return "", err
+=======
+	path = strings.TrimPrefix(path, string(os.PathSeparator))
+	if stat, err := os.Stat(abs); err != nil {
+		return path, err
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 	} else {
 		if stat.IsDir() {
-			return "", fmt.Errorf("lfs: cannot lock directory: %s", file)
+			return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
 		}
 
-		return path[1:], nil
+		return path, nil
 	}
 }
 

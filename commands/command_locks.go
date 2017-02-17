@@ -27,6 +27,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 			Exit("Error communicating with LFS API.")
 		}
 
+<<<<<<< HEAD
 		if resp.Err != "" {
 			Error(resp.Err)
 		}
@@ -43,6 +44,11 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		} else {
 			break
 		}
+=======
+	for _, lock := range locks {
+		Print("%s\t%s", lock.Path, lock.Owner)
+		lockCount++
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 	}
 
 	Print("\n%d lock(s) matched query:", len(locks))

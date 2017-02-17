@@ -808,48 +808,56 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(307)
 }
 
-type Committer struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+type User struct {
+	Name string `json:"name"`
 }
 
 type Lock struct {
-	Id         string    `json:"id"`
-	Path       string    `json:"path"`
-	Committer  Committer `json:"committer"`
-	CommitSHA  string    `json:"commit_sha"`
-	LockedAt   time.Time `json:"locked_at"`
-	UnlockedAt time.Time `json:"unlocked_at,omitempty"`
+	Id       string    `json:"id"`
+	Path     string    `json:"path"`
+	Owner    User      `json:"owner"`
+	LockedAt time.Time `json:"locked_at"`
 }
 
 type LockRequest struct {
-	Path               string    `json:"path"`
-	LatestRemoteCommit string    `json:"latest_remote_commit"`
-	Committer          Committer `json:"committer"`
+	Path string `json:"path"`
 }
 
 type LockResponse struct {
-	Lock         *Lock  `json:"lock"`
-	CommitNeeded string `json:"commit_needed,omitempty"`
-	Err          string `json:"error,omitempty"`
+	Lock    *Lock  `json:"lock"`
+	Message string `json:"message,omitempty"`
 }
 
 type UnlockRequest struct {
-	Id    string `json:"id"`
-	Force bool   `json:"force"`
+	Force bool `json:"force"`
 }
 
 type UnlockResponse struct {
-	Lock *Lock  `json:"lock"`
-	Err  string `json:"error,omitempty"`
+	Lock    *Lock  `json:"lock"`
+	Message string `json:"message,omitempty"`
 }
 
 type LockList struct {
 	Locks      []Lock `json:"locks"`
 	NextCursor string `json:"next_cursor,omitempty"`
-	Err        string `json:"error,omitempty"`
+	Message    string `json:"message,omitempty"`
 }
 
+<<<<<<< HEAD
+=======
+type VerifiableLockRequest struct {
+	Cursor string `json:"cursor,omitempty"`
+	Limit  int    `json:"limit,omitempty"`
+}
+
+type VerifiableLockList struct {
+	Ours       []Lock `json:"ours"`
+	Theirs     []Lock `json:"theirs"`
+	NextCursor string `json:"next_cursor,omitempty"`
+	Message    string `json:"message,omitempty"`
+}
+
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 var (
 	lmu   sync.RWMutex
 	locks = []Lock{}
@@ -877,7 +885,10 @@ func (c LocksByCreatedAt) Len() int           { return len(c) }
 func (c LocksByCreatedAt) Less(i, j int) bool { return c[i].LockedAt.Before(c[j].LockedAt) }
 func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
-var lockRe = regexp.MustCompile(`/locks/?$`)
+var (
+	lockRe   = regexp.MustCompile(`/locks/?$`)
+	unlockRe = regexp.MustCompile(`locks/([^/]+)/unlock\z`)
+)
 
 func locksHandler(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
@@ -945,6 +956,12 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
+<<<<<<< HEAD
+=======
+		if err != nil {
+			ll.Message = err.Error()
+		} else {
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 			ll.Locks = locks
 
 			enc.Encode(ll)
@@ -952,7 +969,18 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		if strings.HasSuffix(r.URL.Path, "unlock") {
 			var unlockRequest UnlockRequest
+
+			var lockId string
+			if matches := unlockRe.FindStringSubmatch(r.URL.Path); len(matches) > 1 {
+				lockId = matches[1]
+			}
+
+			if len(lockId) == 0 {
+				enc.Encode(&UnlockResponse{Message: "Invalid lock"})
+			}
+
 			if err := dec.Decode(&unlockRequest); err != nil {
+<<<<<<< HEAD
 				enc.Encode(&UnlockResponse{
 					Err: err.Error(),
 				})
@@ -972,24 +1000,76 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 				})
 
 				locks = append(locks[:lockIndex], locks[lockIndex+1:]...)
-			} else {
-				enc.Encode(&UnlockResponse{
-					Err: "unable to find lock",
-				})
+=======
+				enc.Encode(&UnlockResponse{Message: err.Error()})
+				return
 			}
+
+			if l := delLock(repo, lockId); l != nil {
+				enc.Encode(&UnlockResponse{Lock: l})
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
+			} else {
+				enc.Encode(&UnlockResponse{Message: "unable to find lock"})
+			}
+<<<<<<< HEAD
 		} else {
+=======
+			return
+		}
+
+		if strings.HasSuffix(r.URL.Path, "/locks/verify") {
+			switch repo {
+			case "pre_push_locks_verify_404":
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{"message":"pre_push_locks_verify_404"}`))
+				return
+			case "pre_push_locks_verify_410":
+				w.WriteHeader(http.StatusGone)
+				w.Write([]byte(`{"message":"pre_push_locks_verify_410"}`))
+				return
+			}
+
+			reqBody := &VerifiableLockRequest{}
+			if err := dec.Decode(reqBody); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				enc.Encode(struct {
+					Message string `json:"message"`
+				}{"json decode error: " + err.Error()})
+				return
+			}
+
+			ll := &VerifiableLockList{}
+			locks, nextCursor, err := getFilteredLocks(repo, "",
+				reqBody.Cursor,
+				strconv.Itoa(reqBody.Limit))
+			if err != nil {
+				ll.Message = err.Error()
+			} else {
+				ll.NextCursor = nextCursor
+
+				for _, l := range locks {
+					if strings.Contains(l.Path, "theirs") {
+						ll.Theirs = append(ll.Theirs, l)
+					} else {
+						ll.Ours = append(ll.Ours, l)
+					}
+				}
+			}
+
+			enc.Encode(ll)
+			return
+		}
+
+		if strings.HasSuffix(r.URL.Path, "/locks") {
+>>>>>>> f8a50160... Merge branch 'master' into no-dwarf-tables
 			var lockRequest LockRequest
 			if err := dec.Decode(&lockRequest); err != nil {
-				enc.Encode(&LockResponse{
-					Err: err.Error(),
-				})
+				enc.Encode(&LockResponse{Message: err.Error()})
 			}
 
 			for _, l := range getLocks() {
 				if l.Path == lockRequest.Path {
-					enc.Encode(&LockResponse{
-						Err: "lock already created",
-					})
+					enc.Encode(&LockResponse{Message: "lock already created"})
 					return
 				}
 			}
@@ -998,11 +1078,10 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			rand.Read(id[:])
 
 			lock := &Lock{
-				Id:        fmt.Sprintf("%x", id[:]),
-				Path:      lockRequest.Path,
-				Committer: lockRequest.Committer,
-				CommitSHA: lockRequest.LatestRemoteCommit,
-				LockedAt:  time.Now(),
+				Id:       fmt.Sprintf("%x", id[:]),
+				Path:     lockRequest.Path,
+				Owner:    User{Name: "Git LFS Tests"},
+				LockedAt: time.Now(),
 			}
 
 			addLocks(*lock)
