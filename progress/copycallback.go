@@ -31,12 +31,11 @@ func (r *bodyWithCallback) Read(p []byte) (int, error) {
 
 	if n > 0 {
 		r.readSize += int64(n)
-	}
 
-	if err == nil && r.c != nil {
-		err = r.c(r.totalSize, r.readSize, n)
+		if (err == nil || err == io.EOF) && r.c != nil {
+			err = r.c(r.totalSize, r.readSize, n)
+		}
 	}
-
 	return n, err
 }
 
@@ -52,12 +51,11 @@ func (w *CallbackReader) Read(p []byte) (int, error) {
 
 	if n > 0 {
 		w.ReadSize += int64(n)
-	}
 
-	if err == nil && w.C != nil {
-		err = w.C(w.TotalSize, w.ReadSize, n)
+		if (err == nil || err == io.EOF) && w.C != nil {
+			err = w.C(w.TotalSize, w.ReadSize, n)
+		}
 	}
-
 	return n, err
 }
 
