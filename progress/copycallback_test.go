@@ -1,7 +1,7 @@
 package progress
 
 import (
-	"bytes"
+	"io"
 	"sync/atomic"
 	"testing"
 
@@ -31,7 +31,7 @@ func TestCopyCallbackReaderCallsCallbackUnderfilledBuffer(t *testing.T) {
 		C:         cb,
 		TotalSize: 3,
 		ReadSize:  2,
-		Reader:    bytes.NewReader(buf),
+		Reader:    &EOFReader{b: buf},
 	}
 
 	p := make([]byte, len(buf)+1)
@@ -40,8 +40,35 @@ func TestCopyCallbackReaderCallsCallbackUnderfilledBuffer(t *testing.T) {
 	assert.Equal(t, 1, n)
 	assert.Nil(t, err)
 
-	assert.EqualValues(t, 1, calls)
+	assert.EqualValues(t, 1, calls, "expected 1 call(s) to callback, got %d", calls)
 	assert.EqualValues(t, 3, actualTotalSize)
 	assert.EqualValues(t, 2+1, actualReadSoFar)
 	assert.EqualValues(t, 1, actualReadSinceLast)
+}
+
+type EOFReader struct {
+	b []byte
+	i int
+}
+
+var _ io.Reader = (*EOFReader)(nil)
+
+func (r *EOFReader) Read(p []byte) (n int, err error) {
+	n = copy(p, r.b[r.i:])
+	r.i += n
+
+	if r.i == len(r.b) {
+		err = io.EOF
+	}
+	return
+}
+
+func TestEOFReaderReturnsEOFs(t *testing.T) {
+	r := EOFReader{[]byte{0x1}, 0}
+
+	p := make([]byte, 2)
+	n, err := r.Read(p)
+
+	assert.Equal(t, 1, n)
+	assert.Equal(t, io.EOF, err)
 }
