@@ -2,6 +2,7 @@ package locking
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -194,7 +195,11 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 	}
 
 	for {
-		list, _, err := c.client.SearchVerifiable(c.Remote, body)
+		list, res, err := c.client.SearchVerifiable(c.Remote, body)
+		if res != nil && res.StatusCode == http.StatusNotImplemented {
+			return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+		}
+
 		if err != nil {
 			return ourLocks, theirLocks, err
 		}

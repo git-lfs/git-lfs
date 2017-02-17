@@ -10,6 +10,8 @@ begin_test "push"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo
 
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
+
   git lfs track "*.dat"
   echo "push a" > a.dat
   git add .gitattributes a.dat
@@ -67,6 +69,7 @@ push_all_setup() {
   [ -d "push-all" ] && exit 0
 
   clone_repo "$reponame" "push-all"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
   git lfs track "*.dat"
 
   echo "[
@@ -114,6 +117,7 @@ push_all_setup() {
   git rev-parse HEAD > .git/refs/remotes/origin/HEAD
 
   setup_alternate_remote "$reponame-$suffix"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix").locksverify" true
 }
 
 begin_test "push --all (no ref args)"
@@ -142,6 +146,8 @@ begin_test "push --all (no ref args)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
+
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -196,6 +202,7 @@ begin_test "push --all (1 ref arg)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -246,6 +253,7 @@ begin_test "push --all (multiple ref args)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -298,6 +306,7 @@ begin_test "push --all (ref with deleted files)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -333,6 +342,8 @@ begin_test "push object id(s)"
   reponame="$(basename "$0" ".sh")"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo2
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
 
   git lfs track "*.dat"
   echo "push a" > a.dat
