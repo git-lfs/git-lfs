@@ -8,9 +8,7 @@ clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
   - rd C:\Go /s /q
-  - appveyor DownloadFile https://storage.googleapis.com/golang/go1.8.windows-amd64.zip
-  - 7z x go1.8.windows-amd64.zip -oC:\ >nul
-  - C:\go\bin\go version
+  - cinst golang --version 1.8.0 -y
   - cinst InnoSetup -y
   - refreshenv
 
