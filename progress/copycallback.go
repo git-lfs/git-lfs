@@ -14,8 +14,6 @@ type BodyWithCallback struct {
 	ReadSeekCloser
 }
 
-var _ ReadSeekCloser = (*BodyWithCallback)(nil)
-
 func NewByteBodyWithCallback(by []byte, totalSize int64, cb CopyCallback) *BodyWithCallback {
 	return NewBodyWithCallback(NewByteBody(by), totalSize, cb)
 }
