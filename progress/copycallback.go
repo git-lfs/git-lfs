@@ -7,26 +7,28 @@ import (
 
 type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
 
-type bodyWithCallback struct {
+type BodyWithCallback struct {
 	c         CopyCallback
 	totalSize int64
 	readSize  int64
 	ReadSeekCloser
 }
 
-func NewByteBodyWithCallback(by []byte, totalSize int64, cb CopyCallback) ReadSeekCloser {
+func NewByteBodyWithCallback(by []byte, totalSize int64, cb CopyCallback) *BodyWithCallback {
 	return NewBodyWithCallback(NewByteBody(by), totalSize, cb)
 }
 
-func NewBodyWithCallback(body ReadSeekCloser, totalSize int64, cb CopyCallback) ReadSeekCloser {
-	return &bodyWithCallback{
+func NewBodyWithCallback(body ReadSeekCloser, totalSize int64, cb CopyCallback) *BodyWithCallback {
+	return &BodyWithCallback{
 		c:              cb,
 		totalSize:      totalSize,
 		ReadSeekCloser: body,
 	}
 }
 
-func (r *bodyWithCallback) Read(p []byte) (int, error) {
+// Read wraps the underlying Reader's "Read" method. It also captures the number
+// of bytes read, and calls the callback.
+func (r *BodyWithCallback) Read(p []byte) (int, error) {
 	n, err := r.ReadSeekCloser.Read(p)
 
 	if n > 0 {
@@ -37,6 +39,27 @@ func (r *bodyWithCallback) Read(p []byte) (int, error) {
 		}
 	}
 	return n, err
+}
+
+// Seek wraps the underlying Seeker's "Seek" method, updating the number of
+// bytes that have been consumed by this reader.
+func (r *BodyWithCallback) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart:
+		r.readSize = offset
+	case io.SeekCurrent:
+		r.readSize += offset
+	case io.SeekEnd:
+		r.readSize = r.totalSize + offset
+	}
+
+	return r.ReadSeekCloser.Seek(offset, whence)
+}
+
+// ResetProgress calls the callback with a negative read size equal to the
+// total number of bytes read so far, effectively "resetting" the progress.
+func (r *BodyWithCallback) ResetProgress() error {
+	return r.c(r.totalSize, r.readSize, -int(r.readSize))
 }
 
 type CallbackReader struct {

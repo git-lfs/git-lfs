@@ -80,7 +80,9 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		}
 		return nil
 	}
-	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(f, t.Size, ccb)
+
+	cbr := progress.NewBodyWithCallback(f, t.Size, ccb)
+	var reader lfsapi.ReadSeekCloser = cbr
 
 	// Signal auth was ok on first read; this frees up other workers to start
 	if authOkFunc != nil {
@@ -94,6 +96,16 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 	res, err := a.doHTTP(t, req)
 	if err != nil {
+		// We're about to return a retriable error, meaning that this
+		// transfer will either be retried, or it will fail.
+		//
+		// Either way, let's decrement the number of bytes that we've
+		// read _so far_, so that the next iteration doesn't re-transfer
+		// those bytes, according to the progress meter.
+		if perr := cbr.ResetProgress(); perr != nil {
+			err = errors.Wrap(err, perr.Error())
+		}
+
 		return errors.NewRetriableError(err)
 	}
 
