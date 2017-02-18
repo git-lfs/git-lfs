@@ -177,6 +177,20 @@ func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 	assert.Equal(t, []string{"--args", "1", "user@foo.com"}, args)
 }
 
+func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
+	cli, err := NewClient(TestEnv(map[string]string{
+		"GIT_SSH_COMMAND": "sshcmd foo 'bar \"baz\"'",
+	}), nil)
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	assert.Equal(t, "sshcmd", exe)
+	assert.Equal(t, []string{"foo", "'bar \"baz\"'", "user@foo.com"}, args)
+}
+
 func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 	cli, err := NewClient(TestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd",
