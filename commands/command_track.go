@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +54,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		lineEnd = gitLineEnding(cfg.Git)
 	}
 
-	wd, _ := os.Getwd()
+	wd, _ := tools.Getwd()
 	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
 	if err != nil {
 		Exit("Current directory %q outside of git working directory %q.", wd, config.LocalWorkingDir)

@@ -28,7 +28,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// now execute pull (need to be inside dir)
-	cwd, err := os.Getwd()
+	cwd, err := tools.Getwd()
 	if err != nil {
 		Exit("Unable to derive current working dir: %v", err)
 	}
