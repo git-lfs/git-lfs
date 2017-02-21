@@ -14,26 +14,26 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
+AppCopyright=GitHub, Inc. and Git LFS contributors
 AppId={{286391DE-F778-44EA-9375-1B21AAA04FF0}
 AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppCopyright=GitHub, Inc. and Git LFS contributors
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
+AppVersion={#MyAppVersion}
+ArchitecturesInstallIn64BitMode=x64
+ChangesEnvironment=yes
+Compression=lzma
+DefaultDirName={pf}\{#MyAppName}
+DirExistsWarning=no
+DisableReadyPage=True
 LicenseFile=..\..\LICENSE.md
 OutputBaseFilename={#MyAppFilePrefix}-{#MyAppVersion}
 OutputDir=..\..\
-Compression=lzma
-SolidCompression=yes
-DefaultDirName={pf}\{#MyAppName}
-UsePreviousAppDir=no
-DirExistsWarning=no
-DisableReadyPage=True
-ArchitecturesInstallIn64BitMode=x64
-ChangesEnvironment=yes
 SetupIconFile=git-lfs-logo.ico
+SolidCompression=yes
+UsePreviousAppDir=no
 VersionInfoVersion={#MyVersionInfoVersion}
 WizardImageFile=git-lfs-wizard-image.bmp
 WizardSmallImageFile=git-lfs-logo.bmp
