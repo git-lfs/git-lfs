@@ -188,7 +188,7 @@ func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
 
 	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
 	assert.Equal(t, "sshcmd", exe)
-	assert.Equal(t, []string{"foo", "'bar \"baz\"'", "user@foo.com"}, args)
+	assert.Equal(t, []string{"foo", `bar "baz"`, "user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
