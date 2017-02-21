@@ -5,7 +5,7 @@ import "regexp"
 var (
 	// quoteFieldRe greedily matches between matching pairs of '', "", or
 	// non-word characters.
-	quoteFieldRe = regexp.MustCompile("'(.+)'|\"(.+)\"|(\\S+)")
+	quoteFieldRe = regexp.MustCompile("'(.*)'|\"(.*)\"|(\\S*)")
 )
 
 // QuotedFields is an alternative to strings.Fields (see:
@@ -22,6 +22,13 @@ func QuotedFields(s string) []string {
 	out := make([]string, 0, len(submatches))
 
 	for _, matches := range submatches {
+		// if a leading or trailing space is found, ignore that
+		if matches[0] == "" {
+			continue
+		}
+
+		// otherwise, find the first non-empty match (inside balanced
+		// quotes, or a space-delimited string)
 		var str string
 		for _, m := range matches[1:] {
 			if len(m) > 0 {
