@@ -25,7 +25,7 @@ AppVersion={#MyAppVersion}
 ArchitecturesInstallIn64BitMode=x64
 ChangesEnvironment=yes
 Compression=lzma
-DefaultDirName={pf}\{#MyAppName}
+DefaultDirName={code:GetDefaultDirName}
 DirExistsWarning=no
 DisableReadyPage=True
 LicenseFile=..\..\LICENSE.md
@@ -56,6 +56,15 @@ Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environmen
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: string; ValueName: "GIT_LFS_PATH"; ValueData: "{app}"
 
 [Code]
+function GetDefaultDirName(Dummy: string): string;
+begin
+  if IsAdminLoggedOn then begin
+    Result:=ExpandConstant('{pf}\{#MyAppName}');
+  end else begin
+    Result:=ExpandConstant('{userpf}\{#MyAppName}');
+  end;
+end;
+
 // Uses cmd to parse and find the location of Git through the env vars.
 // Currently only used to support running the uninstaller for the old Git LFS version.
 function GetExistingGitInstallation(Value: string): string;
