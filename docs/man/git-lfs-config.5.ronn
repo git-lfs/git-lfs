@@ -99,8 +99,8 @@ lfs option can be scoped inside the configuration for a remote.
 
   Specifies how many retries LFS will attempt per OID before marking the
   transfer as failed. Must be an integer which is at least one. If the value is
-  not an integer, is less than one, or is not given, a value of one will be used
-  instead.
+  not an integer, is less than one, or is not given, a value of eight will be
+  used instead.
 
 ### Fetch settings
 

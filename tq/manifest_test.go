@@ -27,7 +27,7 @@ func TestManifestChecksNTLM(t *testing.T) {
 	require.Nil(t, err)
 
 	m := NewManifestWithClient(cli)
-	assert.Equal(t, 1, m.MaxRetries())
+	assert.Equal(t, 8, m.MaxRetries())
 }
 
 func TestManifestClampsValidValues(t *testing.T) {
@@ -37,7 +37,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 	require.Nil(t, err)
 
 	m := NewManifestWithClient(cli)
-	assert.Equal(t, 1, m.MaxRetries())
+	assert.Equal(t, 8, m.MaxRetries())
 }
 
 func TestManifestIgnoresNonInts(t *testing.T) {
@@ -47,5 +47,5 @@ func TestManifestIgnoresNonInts(t *testing.T) {
 	require.Nil(t, err)
 
 	m := NewManifestWithClient(cli)
-	assert.Equal(t, 1, m.MaxRetries())
+	assert.Equal(t, 8, m.MaxRetries())
 }
