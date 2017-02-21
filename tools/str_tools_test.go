@@ -46,6 +46,7 @@ func TestQuotedFields(t *testing.T) {
 		"mixed quotes trailing": {"foo 'bar \"baz\"' ", []string{"foo", "'bar \"baz\"'"}},
 		"mixed quotes leading":  {" foo 'bar \"baz\"'", []string{"foo", "'bar \"baz\"'"}},
 	} {
-		t.Run(desc, c.Assert)
+		t.Log(desc)
+		c.Assert(t)
 	}
 }
