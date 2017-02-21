@@ -31,6 +31,7 @@ DisableReadyPage=True
 LicenseFile=..\..\LICENSE.md
 OutputBaseFilename={#MyAppFilePrefix}-{#MyAppVersion}
 OutputDir=..\..\
+PrivilegesRequired=none
 SetupIconFile=git-lfs-logo.ico
 SolidCompression=yes
 UsePreviousAppDir=no
