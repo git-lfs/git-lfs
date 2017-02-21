@@ -2,7 +2,10 @@ skip_branch_with_pr: true
 
 environment:
   GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
-  MSYSTEM: MINGW64
+  matrix:
+    - BASH_PATH: C:\Program Files\Git\usr\bin
+      MSYSTEM: MINGW64
+    - BASH_PATH: C:\cygwin64\bin
 
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
@@ -15,16 +18,16 @@ install:
   - refreshenv
 
 build_script:
-  - bash --login -c 'GOARCH=386 script/bootstrap'
+  - "\"%BASH_PATH%\\bash\" --login -c 'GOARCH=386 script/bootstrap'"
   - mv bin\git-lfs.exe git-lfs-x86.exe
-  - bash --login -c 'GOARCH=amd64 script/bootstrap'
+  - "\"%BASH_PATH%\\bash\" --login -c 'GOARCH=amd64 script/bootstrap'"
   - mv bin\git-lfs.exe git-lfs-x64.exe
 
 after_build:
   - iscc script\windows-installer\inno-setup-git-lfs-installer.iss
 
 test_script:
-  - bash --login script/cibuild
+  - "\"%BASH_PATH%\\bash\" --login script/cibuild"
 
 artifacts:
   - path: git-lfs-x86.exe
