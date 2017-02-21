@@ -18,16 +18,16 @@ install:
   - refreshenv
 
 build_script:
-  - "\"%BASH_PATH%\\bash\" --login -c 'GOARCH=386 script/bootstrap'"
+  - "\"%BASH_PATH%\\bash\" --login -c 'cd $APPVEYOR_BUILD_FOLDER ; GOARCH=386 script/bootstrap'"
   - mv bin\git-lfs.exe git-lfs-x86.exe
-  - "\"%BASH_PATH%\\bash\" --login -c 'GOARCH=amd64 script/bootstrap'"
+  - "\"%BASH_PATH%\\bash\" --login -c 'cd $APPVEYOR_BUILD_FOLDER ; GOARCH=amd64 script/bootstrap'"
   - mv bin\git-lfs.exe git-lfs-x64.exe
 
 after_build:
   - iscc script\windows-installer\inno-setup-git-lfs-installer.iss
 
 test_script:
-  - "\"%BASH_PATH%\\bash\" --login script/cibuild"
+  - "\"%BASH_PATH%\\bash\" --login -c 'cd $APPVEYOR_BUILD_FOLDER ; script/cibuild'"
 
 artifacts:
   - path: git-lfs-x86.exe
