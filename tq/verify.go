@@ -48,7 +48,9 @@ func verifyUpload(c *lfsapi.Client, t *Transfer) error {
 
 		var res *http.Response
 
-		if res, err = c.Do(req); err == nil {
+		if res, err = c.Do(req); err != nil {
+			tracerx.Printf("tq: verify err: %+v", err.Error())
+		} else {
 			err = res.Body.Close()
 			break
 		}
