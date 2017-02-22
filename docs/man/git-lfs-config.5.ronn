@@ -106,7 +106,7 @@ lfs option can be scoped inside the configuration for a remote.
 
   Specifies how many verification requests LFS will attempt per OID before
   marking the transfer as failed, if the object has a verification action
-  assosciated with it. Must be an integer which is at least one. If the value is
+  associated with it. Must be an integer which is at least one. If the value is
   not an integer, is less than one, or is not given, a default value of three
   will be used instead.
 
