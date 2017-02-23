@@ -3,7 +3,11 @@ package commands
 import (
 	"encoding/json"
 	"os"
+	"sort"
+	"strings"
 
+	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -30,8 +34,20 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	var maxlen int
+	lockPaths := make([]string, 0, len(locks))
+	locksByPath := make(map[string]locking.Lock)
 	for _, lock := range locks {
-		Print("%s\t%s", lock.Path, lock.Owner)
+		lockPaths = append(lockPaths, lock.Path)
+		locksByPath[lock.Path] = lock
+		maxlen = tools.MaxInt(maxlen, len(lock.Path))
+	}
+
+	sort.Strings(lockPaths)
+	for _, lockPath := range lockPaths {
+		lock := locksByPath[lockPath]
+		padding := tools.MaxInt(maxlen-len(lock.Path), 0)
+		Print("%s%s\t%s", lock.Path, strings.Repeat(" ", padding), lock.Owner)
 	}
 
 	if err != nil {
