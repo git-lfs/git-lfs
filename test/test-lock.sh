@@ -9,10 +9,8 @@ begin_test "creating a lock"
   reponame="lock_create_simple"
   setup_remote_repo_with_file "$reponame" "a.dat"
 
-  git lfs lock "a.dat" | tee lock.log
-  grep "'a.dat' was locked" lock.log
-
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "a.dat" | tee lock.json
+  id=$(assert_lock lock.json a.dat)
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -24,25 +22,22 @@ begin_test "create lock with server using client cert"
   setup_remote_repo_with_file "$reponame" "cc.dat"
 
   git config lfs.url "$CLIENTCERTGITSERVER/$reponame.git/info/lfs"
-  git lfs lock "cc.dat" | tee lock.log
-  grep "'cc.dat' was locked" lock.log
-
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "cc.dat" | tee lock.json
+  id=$(assert_lock lock.json cc.dat)
   assert_server_lock "$reponame" "$id"
 )
 end_test
 
-begin_test "creating a lock (--json)"
+begin_test "creating a lock (with output)"
 (
   set -e
 
-  reponame="lock_create_simple_json"
-  setup_remote_repo_with_file "$reponame" "a_json.dat"
+  reponame="lock_create_simple_output"
+  setup_remote_repo_with_file "$reponame" "a_output.dat"
 
-  git lfs lock --json "a_json.dat" | tee lock.log
-  grep "\"path\":\"a_json.dat\"" lock.log
-
-  id=$(grep -o "\"id\":\".*\"" lock.log | cut -d \" -f 4)
+  git lfs lock "a_output.dat" | tee lock.log
+  grep "'a_output.dat' was locked" lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d \(\))
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -54,10 +49,8 @@ begin_test "locking a previously locked file"
   reponame="lock_create_previously_created"
   setup_remote_repo_with_file "$reponame" "b.dat"
 
-  git lfs lock "b.dat" | tee lock.log
-  grep "'b.dat' was locked" lock.log
-
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "b.dat" | tee lock.json
+  id=$(assert_lock lock.json b.dat)
   assert_server_lock "$reponame" "$id"
 
   grep "lock already created" <(git lfs lock "b.dat" 2>&1)

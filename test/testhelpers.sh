@@ -120,10 +120,21 @@ assert_server_object() {
   }
 }
 
-# Parses the Lock ID returned from a single 'git lfs lock <path>' call
-get_lock_id() {
+# This asserts the lock path and returns the lock ID by parsing the response of
+#
+#   git lfs lock --json <path>
+assert_lock() {
   local log="$1"
-  grep -oh "\((.*)\)" "$log" | tr -d \(\)
+  local path="$2"
+
+  if [ $(grep -c "\"path\":\"$path\"" "$log") -eq 0 ]; then
+    echo "path '$path' not found in:"
+    cat "$log"
+    exit 1
+  fi
+
+  local jsonid=$(grep -oh "\"id\":\"\w\+\"" "$log")
+  echo "${jsonid:3}" | tr -d \"\:
 }
 
 # assert that a lock with the given ID exists on the test server
