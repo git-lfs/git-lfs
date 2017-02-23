@@ -61,7 +61,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		}
 		return
 	}
-	Print("'%s' was unlocked", args[0])
+	Print("Unlocked %s", args[0])
 }
 
 func unlockAbortIfFileModified(path string) {

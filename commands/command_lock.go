@@ -42,7 +42,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	Print("\n'%s' was locked (%s)", args[0], lock.Id)
+	Print("Locked %s", args[0])
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root

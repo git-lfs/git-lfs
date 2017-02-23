@@ -36,7 +36,7 @@ begin_test "creating a lock (with output)"
   setup_remote_repo_with_file "$reponame" "a_output.dat"
 
   git lfs lock "a_output.dat" | tee lock.log
-  grep "'a_output.dat' was locked" lock.log
+  grep "Locked a_output.dat" lock.log
   id=$(grep -oh "\((.*)\)" lock.log | tr -d \(\))
   assert_server_lock "$reponame" "$id"
 )
