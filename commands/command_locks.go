@@ -20,7 +20,6 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
-	var lockCount int
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
 	// Print any we got before exiting
 
@@ -33,13 +32,11 @@ func locksCommand(cmd *cobra.Command, args []string) {
 
 	for _, lock := range locks {
 		Print("%s\t%s", lock.Path, lock.Owner)
-		lockCount++
 	}
 
 	if err != nil {
 		Exit("Error while retrieving locks: %v", err)
 	}
-	Print("\n%d lock(s) matched query.", lockCount)
 }
 
 // locksFlags wraps up and holds all of the flags that can be given to the

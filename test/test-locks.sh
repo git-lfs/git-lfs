@@ -15,7 +15,7 @@ begin_test "list a single lock"
   assert_server_lock "$reponame" "$id"
 
   git lfs locks --path "f.dat" | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
   grep "Git LFS Tests" locks.log
 )
@@ -69,7 +69,7 @@ begin_test "list locks with a limit"
   assert_server_lock "$reponame" "$(assert_lock "lock.log" g_2.dat)"
 
   git lfs locks --limit 1 | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
 )
 end_test
 
@@ -105,7 +105,7 @@ begin_test "list locks with pagination"
 
   # The server will return, at most, three locks at a time
   git lfs locks --limit 4 | tee locks.log
-  grep "4 lock(s) matched query" locks.log
+  [ $(wc -l < locks.log) -eq 4 ]
 )
 end_test
 
@@ -138,16 +138,16 @@ begin_test "cached locks"
   assert_server_lock "$(assert_lock "lock.log" cached2.dat)"
 
   git lfs locks --local | tee locks.log
-  grep "2 lock(s) matched query" locks.log
+  [ $(wc -l < locks.log) -eq 2 ]
 
   # delete the remote to prove we're using the local records
   git remote remove origin
 
   git lfs locks --local --path "cached1.dat" | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
   grep "cached1.dat" locks.log
 
   git lfs locks --local --limit 1 | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
 )
 end_test
