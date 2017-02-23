@@ -7,12 +7,12 @@ import (
 )
 
 func TestManifestDefaultsToFixedRetries(t *testing.T) {
-	assert.Equal(t, 1, NewManifest().MaxRetries())
+	assert.Equal(t, 8, NewManifest().MaxRetries())
 }
 
 func TestRetryCounterDefaultsToFixedRetries(t *testing.T) {
 	rc := newRetryCounter()
-	assert.Equal(t, 1, rc.MaxRetries)
+	assert.Equal(t, 8, rc.MaxRetries)
 }
 
 func TestRetryCounterIncrementsObjects(t *testing.T) {
@@ -23,6 +23,7 @@ func TestRetryCounterIncrementsObjects(t *testing.T) {
 
 func TestRetryCounterCanNotRetryAfterExceedingRetryCount(t *testing.T) {
 	rc := newRetryCounter()
+	rc.MaxRetries = 1
 	rc.Increment("oid")
 
 	count, canRetry := rc.CanRetry("oid")
