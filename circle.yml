@@ -10,6 +10,8 @@ machine:
     GOPATH: $HOME/git-lfs/.go
     NO_OPENSSL: YesPlease
     APPLE_COMMON_CRYPTO: YesPlease
+  xcode:
+    version: 8.2
 
 general:
   build_dir: .go/src/github.com/git-lfs/git-lfs
