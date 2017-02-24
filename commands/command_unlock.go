@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
@@ -23,7 +24,14 @@ type unlockFlags struct {
 	Force bool
 }
 
+var unlockUsage = "Usage: git lfs unlock (--id my-lock-id | <path>)"
+
 func unlockCommand(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		Print(unlockUsage)
+		return
+	}
+
 	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
@@ -38,7 +46,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
 		if err != nil {
-			Exit("Unable to unlock: %v", err.Error())
+			Exit("%s", errors.Cause(err))
 		}
 	} else if unlockCmdFlags.Id != "" {
 
@@ -47,10 +55,10 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
-			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, err.Error())
+			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err))
 		}
 	} else {
-		Error("Usage: git lfs unlock (--id my-lock-id | <path>)")
+		Error(unlockUsage)
 	}
 
 	if locksCmdFlags.JSON {
@@ -61,6 +69,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		}
 		return
 	}
+
 	Print("Unlocked %s", args[0])
 }
 
@@ -98,7 +107,6 @@ func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
 	}
 
 	unlockAbortIfFileModified(locks[0].Path)
-
 }
 
 func init() {
