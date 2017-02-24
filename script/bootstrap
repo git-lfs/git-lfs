@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-go version
-
 if uname -s | grep -q "_NT-"; then
   # Tell Cygwin / MSYS to really create symbolic links.
   export CYGWIN="$CYGWIN winsymlinks:nativestrict"
