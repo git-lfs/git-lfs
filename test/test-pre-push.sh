@@ -470,10 +470,9 @@ begin_test "pre-push with our lock"
 
   git push origin master
 
-  git lfs lock "locked.dat" | tee lock.log
-  grep "'locked.dat' was locked" lock.log
+  git lfs lock --json "locked.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log locked.dat)
   assert_server_lock $id
 
   printf "authorized changes" >> locked.dat
@@ -509,10 +508,8 @@ begin_test "pre-push with their lock on lfs file"
 
   git push origin master
 
-  git lfs lock "locked_theirs.dat" | tee lock.log
-  grep "'locked_theirs.dat' was locked" lock.log
-
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "locked_theirs.dat" | tee lock.log
+  id=$(assert_lock lock.log locked_theirs.dat)
   assert_server_lock $id
 
   pushd "$TRASHDIR" >/dev/null
@@ -552,14 +549,12 @@ begin_test "pre-push with their lock on non-lfs lockable file"
 
   git push origin master
 
-  git lfs lock "tiny_locked_theirs.dat" | tee lock.log
-  grep "'tiny_locked_theirs.dat' was locked" lock.log
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "tiny_locked_theirs.dat" | tee lock.log
+  id=$(assert_lock lock.log tiny_locked_theirs.dat)
   assert_server_lock $id
 
-  git lfs lock "large_locked_theirs.dat" | tee lock.log
-  grep "'large_locked_theirs.dat' was locked" lock.log
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "large_locked_theirs.dat" | tee lock.log
+  id=$(assert_lock lock.log large_locked_theirs.dat)
   assert_server_lock $id
 
   pushd "$TRASHDIR" >/dev/null
