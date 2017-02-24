@@ -7,8 +7,6 @@ environment:
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
-  - rd C:\Go /s /q
-  - cinst golang --version 1.8.0 -y
   - cinst InnoSetup -y
   - refreshenv
   - ps: |
