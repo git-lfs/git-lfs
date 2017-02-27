@@ -38,7 +38,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
-	if len(args) != 0 {
+	if hasPath {
 		path, err := lockPath(args[0])
 		if err != nil && !unlockCmdFlags.Force {
 			Exit("Unable to determine path: %v", err.Error())
@@ -51,8 +51,12 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		if err != nil {
 			Exit("%s", errors.Cause(err))
 		}
-	} else if unlockCmdFlags.Id != "" {
 
+		if !locksCmdFlags.JSON {
+			Print("Unlocked %s", path)
+			return
+		}
+	} else if unlockCmdFlags.Id != "" {
 		// This call can early-out
 		unlockAbortIfFileModifiedById(unlockCmdFlags.Id, lockClient)
 
@@ -60,20 +64,21 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		if err != nil {
 			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err))
 		}
+
+		if !locksCmdFlags.JSON {
+			Print("Unlocked Lock %s", unlockCmdFlags.Id)
+			return
+		}
 	} else {
 		Error(unlockUsage)
 	}
 
-	if locksCmdFlags.JSON {
-		if err := json.NewEncoder(os.Stdout).Encode(struct {
-			Unlocked bool `json:"unlocked"`
-		}{true}); err != nil {
-			Error(err.Error())
-		}
-		return
+	if err := json.NewEncoder(os.Stdout).Encode(struct {
+		Unlocked bool `json:"unlocked"`
+	}{true}); err != nil {
+		Error(err.Error())
 	}
-
-	Print("Unlocked %s", args[0])
+	return
 }
 
 func unlockAbortIfFileModified(path string) {

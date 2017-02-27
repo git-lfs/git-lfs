@@ -76,7 +76,7 @@ begin_test "unlocking a lock by id"
   id=$(assert_lock lock.log d.dat)
   assert_server_lock "$reponame" "$id"
 
-  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  git lfs unlock --id="$id"
   refute_server_lock "$reponame" "$id"
 )
 end_test
