@@ -27,9 +27,12 @@ type unlockFlags struct {
 var unlockUsage = "Usage: git lfs unlock (--id my-lock-id | <path>)"
 
 func unlockCommand(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		Print(unlockUsage)
-		return
+	hasPath := len(args) > 0
+	hasId := len(unlockCmdFlags.Id) > 0
+	if hasPath == hasId {
+		// If there is both an `--id` AND a `<path>`, or there is
+		// neither, print the usage and quit.
+		Exit(unlockUsage)
 	}
 
 	lockClient := newLockClient(lockRemote)
