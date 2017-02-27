@@ -60,7 +60,7 @@ func (c *Client) handleResponse(res *http.Response) error {
 		if len(cliErr.Message) == 0 {
 			err = defaultError(res)
 		} else {
-			err = errors.Wrap(cliErr, "http")
+			err = cliErr
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
@@ -51,7 +52,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if err != nil {
-		Exit("Error while retrieving locks: %v", err)
+		Exit("Error while retrieving locks: %v", errors.Cause(err))
 	}
 }
 

@@ -127,6 +127,29 @@ begin_test "unlocking a lock while uncommitted"
 )
 end_test
 
+begin_test "unlocking a lock with ambiguious arguments"
+(
+  set -e
+
+  reponame="unlock_ambiguious_args"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log a.dat)
+  assert_server_lock "$reponame" "$id"
+
+  git lfs unlock --id "$id" a.dat 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "expected ambiguous \`git lfs unlock\` command to exit, didn't"
+    exit 1
+  fi
+
+  grep "Usage:" unlock.log
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "unlocking a lock while uncommitted with --force"
 (
   set -e

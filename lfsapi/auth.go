@@ -58,8 +58,6 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 				return c.DoWithAuth(remote, req)
 			}
 		}
-
-		err = errors.Wrap(err, "http")
 	}
 
 	if res == nil {
