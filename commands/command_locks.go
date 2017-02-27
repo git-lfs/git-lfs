@@ -35,20 +35,33 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var maxlen int
+	var maxPathLen int
+	var maxNameLen int
 	lockPaths := make([]string, 0, len(locks))
 	locksByPath := make(map[string]locking.Lock)
 	for _, lock := range locks {
 		lockPaths = append(lockPaths, lock.Path)
 		locksByPath[lock.Path] = lock
-		maxlen = tools.MaxInt(maxlen, len(lock.Path))
+		maxPathLen = tools.MaxInt(maxPathLen, len(lock.Path))
+		if lock.Owner != nil {
+			maxNameLen = tools.MaxInt(maxNameLen, len(lock.Owner.Name))
+		}
 	}
 
 	sort.Strings(lockPaths)
 	for _, lockPath := range lockPaths {
+		var ownerName string
 		lock := locksByPath[lockPath]
-		padding := tools.MaxInt(maxlen-len(lock.Path), 0)
-		Print("%s%s\t%s", lock.Path, strings.Repeat(" ", padding), lock.Owner)
+		if lock.Owner != nil {
+			ownerName = lock.Owner.Name
+		}
+
+		pathPadding := tools.MaxInt(maxPathLen-len(lock.Path), 0)
+		namePadding := tools.MaxInt(maxNameLen-len(ownerName), 0)
+		Print("%s%s\t%s%s\tID:%s", lock.Path, strings.Repeat(" ", pathPadding),
+			ownerName, strings.Repeat(" ", namePadding),
+			lock.Id,
+		)
 	}
 
 	if err != nil {
