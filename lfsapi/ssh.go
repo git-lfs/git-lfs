@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -66,7 +67,7 @@ func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
 
 	ssh, _ := osEnv.Get("GIT_SSH")
 	sshCmd, _ := osEnv.Get("GIT_SSH_COMMAND")
-	cmdArgs := strings.Fields(sshCmd)
+	cmdArgs := tools.QuotedFields(sshCmd)
 	if len(cmdArgs) > 0 {
 		ssh = cmdArgs[0]
 		cmdArgs = cmdArgs[1:]

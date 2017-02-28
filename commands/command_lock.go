@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 
 	lock, err := lockClient.LockFile(path)
 	if err != nil {
-		Exit("Lock failed: %v", err)
+		Exit("Lock failed: %v", errors.Cause(err))
 	}
 
 	if locksCmdFlags.JSON {
@@ -42,7 +43,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	Print("\n'%s' was locked (%s)", args[0], lock.Id)
+	Print("Locked %s", args[0])
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root

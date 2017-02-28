@@ -116,3 +116,14 @@ func Combine(errs []error) error {
 	}
 	return fmt.Errorf(buf.String())
 }
+
+func Cause(err error) error {
+	type causer interface {
+		Cause() error
+	}
+
+	if cause, ok := err.(causer); ok {
+		return Cause(cause.Cause())
+	}
+	return err
+}

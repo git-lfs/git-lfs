@@ -59,6 +59,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "unknown-oid",
+		"send-verify-action",
 	}
 )
 
@@ -98,6 +99,7 @@ func main() {
 	})
 
 	mux.HandleFunc("/storage/", storageHandler)
+	mux.HandleFunc("/verify", verifyHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, ok := reqId(w)
@@ -402,6 +404,15 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 				}
 				o.Actions[action] = a
 			}
+
+			if handler == "send-verify-action" {
+				o.Actions["verify"] = lfsLink{
+					Href: server.URL + "/verify",
+					Header: map[string]string{
+						"repo": repo,
+					},
+				}
+			}
 		}
 
 		if testingChunked && addAction {
@@ -457,6 +468,46 @@ func serveExpired(repo string) {
 // Persistent state across requests
 var batchResumeFailFallbackStorageAttempts = 0
 var tusStorageAttempts = 0
+
+var (
+	vmu           sync.Mutex
+	verifyCounts  = make(map[string]int)
+	verifyRetryRe = regexp.MustCompile(`verify-fail-(\d+)-times?$`)
+)
+
+func verifyHandler(w http.ResponseWriter, r *http.Request) {
+	repo := r.Header.Get("repo")
+	var payload struct {
+		Oid  string `json:"oid"`
+		Size int64  `json:"size"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeLFSError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	var max int
+	if matches := verifyRetryRe.FindStringSubmatch(repo); len(matches) < 2 {
+		return
+	} else {
+		max, _ = strconv.Atoi(matches[1])
+	}
+
+	key := strings.Join([]string{repo, payload.Oid}, ":")
+
+	vmu.Lock()
+	verifyCounts[key] = verifyCounts[key] + 1
+	count := verifyCounts[key]
+	vmu.Unlock()
+
+	if count < max {
+		writeLFSError(w, http.StatusServiceUnavailable, fmt.Sprintf(
+			"intentionally failing verify request %d (out of %d)", count, max,
+		))
+		return
+	}
+}
 
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {

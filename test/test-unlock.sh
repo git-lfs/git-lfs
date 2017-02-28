@@ -9,9 +9,9 @@ begin_test "unlocking a lock by path"
   reponame="unlock_by_path"
   setup_remote_repo_with_file "unlock_by_path" "c.dat"
 
-  git lfs lock "c.dat" | tee lock.log
+  git lfs lock --json "c.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log c.dat)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock "c.dat" 2>&1 | tee unlock.log
@@ -26,8 +26,8 @@ begin_test "force unlocking lock with missing file"
   reponame="force-unlock-missing-file"
   setup_remote_repo_with_file "$reponame" "a.dat"
 
-  git lfs lock "a.dat" | tee lock.log
-  id=$(get_lock_id lock.log)
+  git lfs lock --json "a.dat" | tee lock.log
+  id=$(assert_lock lock.log a.dat)
   assert_server_lock "$reponame" "$id"
 
   git rm a.dat
@@ -52,9 +52,9 @@ begin_test "unlocking a lock (--json)"
   reponame="unlock_by_path_json"
   setup_remote_repo_with_file "$reponame" "c_json.dat"
 
-  git lfs lock "c_json.dat" | tee lock.log
+  git lfs lock --json "c_json.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log c_json.dat)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock --json "c_json.dat" 2>&1 | tee unlock.log
@@ -71,12 +71,12 @@ begin_test "unlocking a lock by id"
   reponame="unlock_by_id"
   setup_remote_repo_with_file "unlock_by_id" "d.dat"
 
-  git lfs lock "d.dat" | tee lock.log
+  git lfs lock --json "d.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log d.dat)
   assert_server_lock "$reponame" "$id"
 
-  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  git lfs unlock --id="$id"
   refute_server_lock "$reponame" "$id"
 )
 end_test
@@ -88,9 +88,9 @@ begin_test "unlocking a lock without sufficient info"
   reponame="unlock_ambiguous"
   setup_remote_repo_with_file "$reponame" "e.dat"
 
-  git lfs lock "e.dat" | tee lock.log
+  git lfs lock --json "e.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log e.dat)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock 2>&1 | tee unlock.log
@@ -106,9 +106,9 @@ begin_test "unlocking a lock while uncommitted"
   reponame="unlock_modified"
   setup_remote_repo_with_file "$reponame" "mod.dat"
 
-  git lfs lock "mod.dat" | tee lock.log
+  git lfs lock --json "mod.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log mod.dat)
   assert_server_lock "$reponame" "$id"
 
   echo "\nSomething" >> mod.dat
@@ -127,6 +127,29 @@ begin_test "unlocking a lock while uncommitted"
 )
 end_test
 
+begin_test "unlocking a lock with ambiguious arguments"
+(
+  set -e
+
+  reponame="unlock_ambiguious_args"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log a.dat)
+  assert_server_lock "$reponame" "$id"
+
+  git lfs unlock --id "$id" a.dat 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "expected ambiguous \`git lfs unlock\` command to exit, didn't"
+    exit 1
+  fi
+
+  grep "Usage:" unlock.log
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "unlocking a lock while uncommitted with --force"
 (
   set -e
@@ -134,9 +157,9 @@ begin_test "unlocking a lock while uncommitted with --force"
   reponame="unlock_modified_force"
   setup_remote_repo_with_file "$reponame" "modforce.dat"
 
-  git lfs lock "modforce.dat" | tee lock.log
+  git lfs lock --json "modforce.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log modforce.dat)
   assert_server_lock "$reponame" "$id"
 
   echo "\nSomething" >> modforce.dat
@@ -159,9 +182,9 @@ begin_test "unlocking a lock while untracked"
   # Create file but don't add it to git
   # Shouldn't be able to unlock it
   echo "something" > untracked.dat
-  git lfs lock "untracked.dat" | tee lock.log
+  git lfs lock --json "untracked.dat" | tee lock.log
 
-  id=$(get_lock_id lock.log)
+  id=$(assert_lock lock.log untracked.dat)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock "untracked.dat" 2>&1 | tee unlock.log

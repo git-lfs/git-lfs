@@ -58,21 +58,10 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 				return c.DoWithAuth(remote, req)
 			}
 		}
-
-		err = errors.Wrap(err, "http")
 	}
 
-	if res == nil {
-		return nil, err
-	}
-
-	switch res.StatusCode {
-	case 401, 403:
-		credHelper.Reject(creds)
-	default:
-		if res.StatusCode < 300 && res.StatusCode > 199 {
-			credHelper.Approve(creds)
-		}
+	if res != nil && res.StatusCode < 300 && res.StatusCode > 199 {
+		credHelper.Approve(creds)
 	}
 
 	return res, err
