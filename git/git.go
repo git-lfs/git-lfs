@@ -595,7 +595,7 @@ func GitAndRootDirs() (string, string, error) {
 	pathLen := len(paths)
 
 	for i := 0; i < pathLen; i++ {
-		paths[i], err = tools.TranslateIfCygwin(paths[i])
+		paths[i], err = tools.TranslateCygwinPath(paths[i])
 	}
 
 	if pathLen == 0 {
@@ -623,7 +623,7 @@ func RootDir() (string, error) {
 	}
 
 	path := strings.TrimSpace(string(out))
-	path, err = tools.TranslateIfCygwin(path)
+	path, err = tools.TranslateCygwinPath(path)
 	if len(path) > 0 {
 		return filepath.Abs(path)
 	}

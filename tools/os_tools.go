@@ -38,7 +38,7 @@ func translateCygwinPath(path string) (string, error) {
 	return output, nil
 }
 
-func TranslateIfCygwin(path string) (string, error) {
+func TranslateCygwinPath(path string) (string, error) {
 	if isCygwin() {
 		var err error
 
