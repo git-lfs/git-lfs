@@ -19,6 +19,7 @@ import (
 
 	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -579,27 +580,6 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 	}
 }
 
-func isCygwin() bool {
-	cmd := subprocess.ExecCommand("uname")
-	out, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-	return bytes.Contains(out, []byte("CYGWIN"))
-}
-
-func translateCygwinPath(path string) (string, error) {
-	cmd := subprocess.ExecCommand("cygpath", "-w", path)
-	buf := &bytes.Buffer{}
-	cmd.Stderr = buf
-	out, err := cmd.Output()
-	output := strings.TrimSpace(string(out))
-	if err != nil {
-		return path, fmt.Errorf("Failed to translate path from cygwin to windows: %s", buf.String())
-	}
-	return output, nil
-}
-
 func GitAndRootDirs() (string, string, error) {
 	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
 	buf := &bytes.Buffer{}
@@ -614,10 +594,8 @@ func GitAndRootDirs() (string, string, error) {
 	paths := strings.Split(output, "\n")
 	pathLen := len(paths)
 
-	if isCygwin() {
-		for i := 0; i < pathLen; i++ {
-			paths[i], err = translateCygwinPath(paths[i])
-		}
+	for i := 0; i < pathLen; i++ {
+		paths[i], err = tools.TranslateCygwinPath(paths[i])
 	}
 
 	if pathLen == 0 {
@@ -645,9 +623,7 @@ func RootDir() (string, error) {
 	}
 
 	path := strings.TrimSpace(string(out))
-	if isCygwin() {
-		path, err = translateCygwinPath(path)
-	}
+	path, err = tools.TranslateCygwinPath(path)
 	if len(path) > 0 {
 		return filepath.Abs(path)
 	}
