@@ -95,12 +95,10 @@ func (c *Client) LockFile(path string) (Lock, error) {
 	}
 
 	if len(lockRes.Message) > 0 {
-		return Lock{}, fmt.Errorf("Server unable to create lock: %s",
-			lfsapi.ClientErrorMessage(
-				lockRes.Message,
-				lockRes.DocumentationURL,
-				lockRes.RequestID,
-			))
+		if len(lockRes.RequestID) > 0 {
+			tracerx.Printf("Server Request ID: %s", lockRes.RequestID)
+		}
+		return Lock{}, fmt.Errorf("Server unable to create lock: %s", lockRes.Message)
 	}
 
 	lock := *lockRes.Lock
@@ -147,12 +145,10 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 	}
 
 	if len(unlockRes.Message) > 0 {
-		return fmt.Errorf("Server unable to unlock: %s",
-			lfsapi.ClientErrorMessage(
-				unlockRes.Message,
-				unlockRes.DocumentationURL,
-				unlockRes.RequestID,
-			))
+		if len(unlockRes.RequestID) > 0 {
+			tracerx.Printf("Server Request ID: %s", unlockRes.RequestID)
+		}
+		return fmt.Errorf("Server unable to unlock: %s", unlockRes.Message)
 	}
 
 	if err := c.cache.RemoveById(id); err != nil {
@@ -205,12 +201,10 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 		}
 
 		if list.Message != "" {
-			return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s",
-				lfsapi.ClientErrorMessage(
-					list.Message,
-					list.DocumentationURL,
-					list.RequestID,
-				))
+			if len(list.RequestID) > 0 {
+				tracerx.Printf("Server Request ID: %s", list.RequestID)
+			}
+			return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s", list.Message)
 		}
 
 		for _, l := range list.Ours {
@@ -273,12 +267,10 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 		}
 
 		if list.Message != "" {
-			return locks, fmt.Errorf("Server error searching for locks: %s",
-				lfsapi.ClientErrorMessage(
-					list.Message,
-					list.DocumentationURL,
-					list.RequestID,
-				))
+			if len(list.RequestID) > 0 {
+				tracerx.Printf("Server Request ID: %s", list.RequestID)
+			}
+			return locks, fmt.Errorf("Server error searching for locks: %s", list.Message)
 		}
 
 		for _, l := range list.Locks {
