@@ -2,8 +2,8 @@
 	"FixedFileInfo":
 	{
 		"FileVersion": {
-			"Major": 1,
-			"Minor": 5,
+			"Major": 2,
+			"Minor": 0,
 			"Patch": 0,
 			"Build": 0
 		}
@@ -13,6 +13,6 @@
 		"FileDescription": "Git LFS",
 		"LegalCopyright": "GitHub, Inc. and Git LFS contributors",
 		"ProductName": "Git Large File Storage (LFS)",
-		"ProductVersion": "1.5.0"
+		"ProductVersion": "2.0.0"
 	}
 }
