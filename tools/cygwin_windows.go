@@ -33,7 +33,7 @@ var (
 )
 
 func isCygwin() bool {
-	if cygwinState != cygwinUnknown {
+	if cygwinState != cygwinStateUnknown {
 		return cygwinState.Enabled()
 	}
 
