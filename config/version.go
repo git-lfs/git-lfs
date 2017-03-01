@@ -14,7 +14,7 @@ var (
 )
 
 const (
-	Version = "2.0-pre"
+	Version = "2.0.0"
 )
 
 func init() {
