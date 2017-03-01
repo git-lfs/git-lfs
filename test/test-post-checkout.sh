@@ -16,7 +16,6 @@ begin_test "post-checkout"
   git add .gitattributes
   git commit -m "add git attributes"
 
-
   echo "[
   {
     \"CommitDate\":\"$(get_date -10d)\",
@@ -39,7 +38,7 @@ begin_test "post-checkout"
   },
   {
     \"CommitDate\":\"$(get_date -3d)\",
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file5.dat\",\"Data\":\"file 5 creation in branch2\"},
       {\"Filename\":\"file6.big\",\"Data\":\"file 6 creation in branch2\"}]
@@ -70,21 +69,21 @@ begin_test "post-checkout"
   [ ! -e file5.dat ]
   [ ! -e file6.big ]
   # without the post-checkout hook, any changed files would now be writeable
-  [ ! -w file1.dat ]
-  [ ! -w file2.dat ]
-  [ -w file3.big ]
-  [ -w file4.big ]
+  refute_file_writable file1.dat
+  refute_file_writable file2.dat
+  assert_file_writable file3.big
+  assert_file_writable file4.big
 
   # checkout branch
   git checkout branch2
   [ -e file5.dat ]
   [ -e file6.big ]
-  [ ! -w file1.dat ]
-  [ ! -w file2.dat ]
-  [ ! -w file5.dat ]
-  [ -w file3.big ]
-  [ -w file4.big ]
-  [ -w file6.big ]
+  refute_file_writable file1.dat
+  refute_file_writable file2.dat
+  refute_file_writable file5.dat
+  assert_file_writable file3.big
+  assert_file_writable file4.big
+  assert_file_writable file6.big
 
   # Confirm that contents of existing files were updated even though were read-only
   [ "$(cat file2.dat)" == "file 2 updated in branch2" ]
@@ -100,21 +99,20 @@ begin_test "post-checkout"
   [ "$(cat file1.dat)" == "file 1 updated commit 2" ]
   [ "$(cat file2.dat)" == "file 2 updated in branch2" ]
   [ "$(cat file5.dat)" == "file 5 creation in branch2" ]
-  [ ! -w file1.dat ]
-  [ ! -w file2.dat ]
-  [ ! -w file5.dat ]
+  refute_file_writable file1.dat
+  refute_file_writable file2.dat
+  refute_file_writable file5.dat
 
   # now lock files, then remove & restore
-  git lfs lock file1.dat 
+  git lfs lock file1.dat
   git lfs lock file2.dat
-  [ -w file1.dat ]
-  [ -w file2.dat ]
+  assert_file_writable file1.dat
+  assert_file_writable file2.dat
   rm -f *.dat
   git checkout file1.dat file2.dat file5.dat
-  [ -w file1.dat ]
-  [ -w file2.dat ]
-  [ ! -w file5.dat ]
+  assert_file_writable file1.dat
+  assert_file_writable file2.dat
+  refute_file_writable file5.dat
 
 )
 end_test
-

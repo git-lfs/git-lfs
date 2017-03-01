@@ -186,6 +186,14 @@ assert_attributes_count() {
   fi
 }
 
+assert_file_writable() {
+  ls -l "$1" | grep -e "^-rw"
+}
+
+refute_file_writable() {
+  ls -l "$1" | grep -e "^-r-"
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123 <version>

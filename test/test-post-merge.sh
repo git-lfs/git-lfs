@@ -39,7 +39,7 @@ begin_test "post-merge"
   },
   {
     \"CommitDate\":\"$(get_date -3d)\",
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file5.dat\",\"Data\":\"file 5 creation in branch2\"},
       {\"Filename\":\"file6.big\",\"Data\":\"file 6 creation in branch2\"}]
@@ -70,31 +70,28 @@ begin_test "post-merge"
   [ ! -e file5.dat ]
   [ ! -e file6.big ]
   # without the post-checkout hook, any changed files would now be writeable
-  [ ! -w file1.dat ]
-  [ ! -w file2.dat ]
-  [ -w file3.big ]
-  [ -w file4.big ]
+  refute_file_writable file1.dat
+  refute_file_writable file2.dat
+  assert_file_writable file3.big
+  assert_file_writable file4.big
 
   # merge branch, with readonly option disabled to demonstrate what would happen
   GIT_LFS_SET_LOCKABLE_READONLY=0 git merge origin/branch2
   # branch2 had hanges to file2.dat and file5.dat which were lockable
   # but because we disabled the readonly feature they will be writeable now
-  [ -w file2.dat ]
-  [ -w file5.dat ]
+  assert_file_writable file2.dat
+  assert_file_writable file5.dat
 
   # now let's do it again with the readonly option enabled
   git reset --hard HEAD^
   git merge origin/branch2
 
   # This time they should be read-only
-  [ ! -w file2.dat ]
-  [ ! -w file5.dat ]
+  refute_file_writable file2.dat
+  refute_file_writable file5.dat
 
   # Confirm that contents of existing files were updated even though were read-only
   [ "$(cat file2.dat)" == "file 2 updated in branch2" ]
   [ "$(cat file5.dat)" == "file 5 creation in branch2" ]
-
-
 )
 end_test
-
