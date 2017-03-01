@@ -43,7 +43,6 @@ using LFS servers on the old API, you'll have to stick to v1.5.6.
 * Add `--skip-repo` option to `git lfs install` & use in tests #1868 (@sinbad)
 * commands: convert push, pre-push to use async gitscanner #1812 (@ttaylorr)
 * tq: prioritize transferring retries before new items #1758 (@ttaylorr)
-* Fast walk no channels #1710 (@technoweenie)
 
 ### Bugs
 
@@ -55,10 +54,15 @@ using LFS servers on the old API, you'll have to stick to v1.5.6.
 * Custom transfer terminate #1847 (@sinbad)
 * Fix Install in root problems #1727 (@technoweenie)
 * cat-file batch: read all of the bytes #1680 (@technoweenie)
-* Fixed file paths on cygwin. #1820 (@creste)
+* Fixed file paths on cygwin. #1820, #1965 (@creste, @ttaylorr)
+* tq: decrement uploaded bytes in basic_upload before retry #1958 (@ttaylorr)
+* progress: fix never reading bytes with sufficiently small files #1955 (@ttaylorr)
+* tools: fix truncating string fields between balanced quotes in GIT_SSH_COMMAND #1962 (@ttaylorr)
+* commands/smudge: treat empty pointers as empty files #1954 (@ttaylorr)
 
 ### Misc
 
+* all: build using Go 1.8 #1952 (@ttaylorr)
 * Embed the version information into the Windows executable #1689 (@sschuberth)
 * Add more meta-data to the Windows installer executable #1752 (@sschuberth)
 * docs/api: object size must be positive #1779 (@ttaylorr)
