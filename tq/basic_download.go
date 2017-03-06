@@ -93,7 +93,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		return err
 	}
 	if rel == nil {
-		return errors.New("Object not found on the server.")
+		return errors.Errorf("Object %s not found on the server.", t.Oid[:7])
 	}
 
 	req, err := a.newHTTPRequest("GET", rel)

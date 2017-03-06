@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 
@@ -268,7 +268,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 		return err
 	}
 	if rel == nil {
-		return errors.New("Object not found on the server.")
+		return errors.Errorf("Object %s not found on the server.", t.Oid[:7])
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
