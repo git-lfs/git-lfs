@@ -1,5 +1,11 @@
 # Git LFS Changelog
 
+## 2.0.1 (6 March, 2017)
+
+### Misc
+
+* tq: fallback to `_links` if present #2007 (@ttaylorr)
+
 ## 2.0.0 (1 March, 2017)
 
 Git LFS v2.0.0 brings a number of important bug fixes, some new features, and
