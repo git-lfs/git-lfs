@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 
@@ -262,10 +263,12 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	}
 	var authCalled bool
 
-	rel, err := t.Actions.Get(a.getOperationName())
+	rel, err := t.Rel(a.getOperationName())
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil {
+		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {

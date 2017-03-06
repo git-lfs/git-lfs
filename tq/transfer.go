@@ -34,17 +34,25 @@ type Transfer struct {
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
 	Actions       ActionSet    `json:"actions,omitempty"`
+	Links         ActionSet    `json:"_links,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
 }
 
-func (t *Transfer) Rel(name string) (*Action, bool) {
-	if t.Actions == nil {
-		return nil, false
+func (t *Transfer) Rel(name string) (*Action, error) {
+	a, err := t.Actions.Get(name)
+	if a != nil || err != nil {
+		return a, err
 	}
 
-	rel, ok := t.Actions[name]
-	return rel, ok
+	if t.Links != nil {
+		a, err := t.Links.Get(name)
+		if a != nil || err != nil {
+			return a, err
+		}
+	}
+
+	return nil, nil
 }
 
 type ObjectError struct {
@@ -83,6 +91,18 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 		}
 	}
 
+	if tr.Links != nil {
+		t.Links = make(ActionSet)
+
+		for rel, link := range tr.Links {
+			t.Links[rel] = &Action{
+				Href:      link.Href,
+				Header:    link.Header,
+				ExpiresAt: link.ExpiresAt,
+			}
+		}
+	}
+
 	return t
 }
 
@@ -104,7 +124,7 @@ const (
 func (as ActionSet) Get(rel string) (*Action, error) {
 	a, ok := as[rel]
 	if !ok {
-		return nil, &ActionMissingError{Rel: rel}
+		return nil, nil
 	}
 
 	if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(time.Now().Add(objectExpirationToTransfer)) {
@@ -124,23 +144,8 @@ func (e ActionExpiredErr) Error() string {
 		e.Rel, e.At.In(time.Local).Format(time.RFC822))
 }
 
-type ActionMissingError struct {
-	Rel string
-}
-
-func (e ActionMissingError) Error() string {
-	return fmt.Sprintf("tq: unable to find action %q", e.Rel)
-}
-
 func IsActionExpiredError(err error) bool {
 	if _, ok := err.(*ActionExpiredErr); ok {
-		return true
-	}
-	return false
-}
-
-func IsActionMissingError(err error) bool {
-	if _, ok := err.(*ActionMissingError); ok {
 		return true
 	}
 	return false
