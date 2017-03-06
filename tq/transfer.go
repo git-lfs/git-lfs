@@ -33,7 +33,7 @@ type Transfer struct {
 	Oid           string       `json:"oid,omitempty"`
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
-	Actions       ActionSet    `json:"actions,omitempty"`
+	Actions       mapActionSet `json:"actions,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
 }
@@ -65,7 +65,7 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 		Oid:           tr.Oid,
 		Size:          tr.Size,
 		Authenticated: tr.Authenticated,
-		Actions:       make(ActionSet),
+		Actions:       make(mapActionSet),
 	}
 
 	if tr.Error != nil {
@@ -92,7 +92,11 @@ type Action struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
-type ActionSet map[string]*Action
+type ActionSet interface {
+	Get(rel string) (*Action, error)
+}
+
+type mapActionSet map[string]*Action
 
 const (
 	// objectExpirationToTransfer is the duration we expect to have passed
@@ -101,7 +105,7 @@ const (
 	objectExpirationToTransfer = 5 * time.Second
 )
 
-func (as ActionSet) Get(rel string) (*Action, error) {
+func (as mapActionSet) Get(rel string) (*Action, error) {
 	a, ok := as[rel]
 	if !ok {
 		return nil, nil
