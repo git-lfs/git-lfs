@@ -39,6 +39,15 @@ type Transfer struct {
 	Path          string       `json:"path,omitempty"`
 }
 
+// HybridActions returns an action set composed of the "actions" property, as
+// well as the "_links" property. It is implemented by a multiActionSet, and
+// therefore retains that ordering.
+func (t *Transfer) HybridActions() ActionSet {
+	return &multiActionSet{as: []ActionSet{
+		t.Actions, t.Links,
+	}}
+}
+
 func (t *Transfer) Rel(name string) (*Action, bool) {
 	if t.Actions == nil {
 		return nil, false

@@ -335,7 +335,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		} else {
 			tr := newTransfer(o, t.Name, t.Path)
 
-			if a, err := tr.Actions.Get(q.direction.String()); err != nil {
+			if a, err := tr.HybridActions().Get(q.direction.String()); err != nil {
 				// XXX(taylor): duplication
 				if q.canRetryObject(tr.Oid, err) {
 					q.rc.Increment(tr.Oid)

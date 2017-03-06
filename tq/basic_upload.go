@@ -43,7 +43,7 @@ func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, err := t.Actions.Get("upload")
+	rel, err := t.HybridActions().Get("upload")
 	if err != nil {
 		return err
 	}
