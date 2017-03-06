@@ -582,3 +582,27 @@ begin_test "push (with invalid object size)"
   refute_server_object "$reponame" "$(calc_oid "$contents")"
 )
 end_test
+
+begin_test "push with deprecated _links"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-deprecated"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="send-deprecated-links"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
