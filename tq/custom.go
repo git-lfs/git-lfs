@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -265,7 +266,9 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	rel, err := t.Actions.Get(a.getOperationName())
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil {
+		return errors.New("Object not found on the server.")
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {

@@ -16,10 +16,10 @@ const (
 func verifyUpload(c *lfsapi.Client, t *Transfer) error {
 	action, err := t.Actions.Get("verify")
 	if err != nil {
-		if IsActionMissingError(err) {
-			return nil
-		}
 		return err
+	}
+	if action == nil {
+		return nil
 	}
 
 	req, err := http.NewRequest("POST", action.Href, nil)

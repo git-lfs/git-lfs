@@ -46,7 +46,9 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	rel, err := t.Actions.Get("upload")
 	if err != nil {
 		return err
-		// return fmt.Errorf("No upload action for this object.")
+	}
+	if rel == nil {
+		return errors.New("No upload action for this object.")
 	}
 
 	req, err := a.newHTTPRequest("PUT", rel)

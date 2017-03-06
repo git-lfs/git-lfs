@@ -104,7 +104,7 @@ const (
 func (as ActionSet) Get(rel string) (*Action, error) {
 	a, ok := as[rel]
 	if !ok {
-		return nil, &ActionMissingError{Rel: rel}
+		return nil, nil
 	}
 
 	if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(time.Now().Add(objectExpirationToTransfer)) {
@@ -124,23 +124,8 @@ func (e ActionExpiredErr) Error() string {
 		e.Rel, e.At.In(time.Local).Format(time.RFC822))
 }
 
-type ActionMissingError struct {
-	Rel string
-}
-
-func (e ActionMissingError) Error() string {
-	return fmt.Sprintf("tq: unable to find action %q", e.Rel)
-}
-
 func IsActionExpiredError(err error) bool {
 	if _, ok := err.(*ActionExpiredErr); ok {
-		return true
-	}
-	return false
-}
-
-func IsActionMissingError(err error) bool {
-	if _, ok := err.(*ActionMissingError); ok {
 		return true
 	}
 	return false
