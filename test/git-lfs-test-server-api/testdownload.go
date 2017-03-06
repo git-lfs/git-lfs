@@ -23,8 +23,8 @@ func downloadAllExist(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		_, ok := o.Rel("download")
-		if !ok {
+		rel, _ := o.Rel("download")
+		if rel == nil {
 			errbuf.WriteString(fmt.Sprintf("Missing download link for %s\n", o.Oid))
 		}
 	}
@@ -50,8 +50,8 @@ func downloadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObje
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("download")
-		if ok {
+		link, _ := o.Rel("download")
+		if link != nil {
 			errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %s\n", o.Oid, link))
 		}
 		if o.Error == nil {
@@ -93,9 +93,9 @@ func downloadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) e
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("download")
+		link, _ := o.Rel("download")
 		if missingSet.Contains(o.Oid) {
-			if ok {
+			if link != nil {
 				errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %s\n", o.Oid, link))
 			}
 			if o.Error == nil {
@@ -104,7 +104,7 @@ func downloadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) e
 				errbuf.WriteString(fmt.Sprintf("Download error code for missing object %s should be 404, got %d\n", o.Oid, o.Error.Code))
 			}
 		}
-		if existSet.Contains(o.Oid) && !ok {
+		if existSet.Contains(o.Oid) && link == nil {
 			errbuf.WriteString(fmt.Sprintf("Missing download link for %s\n", o.Oid))
 		}
 

@@ -43,10 +43,12 @@ func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, err := t.Actions.Get("upload")
+	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
-		// return fmt.Errorf("No upload action for this object.")
+	}
+	if rel == nil {
+		return errors.Errorf("No upload action for object: %s", t.Oid)
 	}
 
 	req, err := a.newHTTPRequest("PUT", rel)

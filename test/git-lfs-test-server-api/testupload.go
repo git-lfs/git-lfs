@@ -23,8 +23,8 @@ func uploadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		_, ok := o.Rel("upload")
-		if !ok {
+		rel, _ := o.Rel("upload")
+		if rel == nil {
 			errbuf.WriteString(fmt.Sprintf("Missing upload link for %s\n", o.Oid))
 		}
 		// verify link is optional so don't check
@@ -51,8 +51,8 @@ func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("upload")
-		if ok {
+		link, _ := o.Rel("upload")
+		if link == nil {
 			errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %s\n", o.Oid, link))
 		}
 	}
@@ -89,13 +89,13 @@ func uploadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) err
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("upload")
+		link, _ := o.Rel("upload")
 		if existSet.Contains(o.Oid) {
-			if ok {
+			if link != nil {
 				errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %s\n", o.Oid, link))
 			}
 		}
-		if missingSet.Contains(o.Oid) && !ok {
+		if missingSet.Contains(o.Oid) && link == nil {
 			errbuf.WriteString(fmt.Sprintf("Missing upload link for %s\n", o.Oid))
 		}
 
@@ -162,10 +162,10 @@ func uploadEdgeCases(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("upload")
+		link, _ := o.Rel("upload")
 		if code, iserror := errorCodeMap[o.Oid]; iserror {
 			reason, _ := errorReasonMap[o.Oid]
-			if ok {
+			if link != nil {
 				errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %s, reason %s\n", o.Oid, link, reason))
 			}
 			if o.Error == nil {
@@ -176,7 +176,7 @@ func uploadEdgeCases(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 
 		}
 		if reason, reasonok := validReasonMap[o.Oid]; reasonok {
-			if !ok {
+			if link == nil {
 				errbuf.WriteString(fmt.Sprintf("Missing upload link for %s, should be present because %s\n", o.Oid, reason))
 			}
 		}

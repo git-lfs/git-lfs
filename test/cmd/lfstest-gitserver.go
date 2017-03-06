@@ -59,7 +59,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "unknown-oid",
-		"send-verify-action",
+		"send-verify-action", "send-deprecated-links",
 	}
 )
 
@@ -172,6 +172,7 @@ type lfsObject struct {
 	Size          int64              `json:"size,omitempty"`
 	Authenticated bool               `json:"authenticated,omitempty"`
 	Actions       map[string]lfsLink `json:"actions,omitempty"`
+	Links         map[string]lfsLink `json:"_links,omitempty"`
 	Err           *lfsError          `json:"error,omitempty"`
 }
 
@@ -392,6 +393,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 				o.Size = -1
 			}
 
+			if handler == "send-deprecated-links" {
+				o.Links = make(map[string]lfsLink)
+			}
+
 			if addAction {
 				a := lfsLink{
 					Href:   lfsUrl(repo, obj.Oid),
@@ -402,7 +407,12 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
 					serveExpired(repo)
 				}
-				o.Actions[action] = a
+
+				if handler == "send-deprecated-links" {
+					o.Links[action] = a
+				} else {
+					o.Actions[action] = a
+				}
 			}
 
 			if handler == "send-verify-action" {
@@ -416,10 +426,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		}
 
 		if testingChunked && addAction {
-			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
+			if handler == "send-deprecated-links" {
+				o.Links[action].Header["Transfer-Encoding"] = "chunked"
+			} else {
+				o.Actions[action].Header["Transfer-Encoding"] = "chunked"
+			}
 		}
 		if testingTusInterrupt && addAction {
-			o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
+			if handler == "send-deprecated-links" {
+				o.Links[action].Header["Lfs-Tus-Interrupt"] = "true"
+			} else {
+				o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
+			}
 		}
 
 		res = append(res, o)
