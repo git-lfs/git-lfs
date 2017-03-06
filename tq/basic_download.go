@@ -88,7 +88,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		defer dlFile.Close()
 	}
 
-	rel, err := t.HybridActions().Get("download")
+	rel, err := t.Rel("download")
 	if err != nil {
 		return err
 	}

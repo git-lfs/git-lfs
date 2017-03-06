@@ -33,28 +33,26 @@ type Transfer struct {
 	Oid           string       `json:"oid,omitempty"`
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
-	Actions       mapActionSet `json:"actions,omitempty"`
-	Links         mapActionSet `json:"_links,omitempty"`
+	Actions       ActionSet    `json:"actions,omitempty"`
+	Links         ActionSet    `json:"_links,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
 }
 
-// HybridActions returns an action set composed of the "actions" property, as
-// well as the "_links" property. It is implemented by a multiActionSet, and
-// therefore retains that ordering.
-func (t *Transfer) HybridActions() ActionSet {
-	return &multiActionSet{as: []ActionSet{
-		t.Actions, t.Links,
-	}}
-}
-
-func (t *Transfer) Rel(name string) (*Action, bool) {
-	if t.Actions == nil {
-		return nil, false
+func (t *Transfer) Rel(name string) (*Action, error) {
+	a, err := t.Actions.Get(name)
+	if a != nil || err != nil {
+		return a, err
 	}
 
-	rel, ok := t.Actions[name]
-	return rel, ok
+	if t.Links != nil {
+		a, err := t.Links.Get(name)
+		if a != nil || err != nil {
+			return a, err
+		}
+	}
+
+	return nil, nil
 }
 
 type ObjectError struct {
@@ -75,7 +73,7 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 		Oid:           tr.Oid,
 		Size:          tr.Size,
 		Authenticated: tr.Authenticated,
-		Actions:       make(mapActionSet),
+		Actions:       make(ActionSet),
 	}
 
 	if tr.Error != nil {
@@ -94,7 +92,7 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 	}
 
 	if tr.Links != nil {
-		t.Links = make(mapActionSet)
+		t.Links = make(ActionSet)
 
 		for rel, link := range tr.Links {
 			t.Links[rel] = &Action{
@@ -114,11 +112,7 @@ type Action struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
-type ActionSet interface {
-	Get(rel string) (*Action, error)
-}
-
-type mapActionSet map[string]*Action
+type ActionSet map[string]*Action
 
 const (
 	// objectExpirationToTransfer is the duration we expect to have passed
@@ -127,7 +121,7 @@ const (
 	objectExpirationToTransfer = 5 * time.Second
 )
 
-func (as mapActionSet) Get(rel string) (*Action, error) {
+func (as ActionSet) Get(rel string) (*Action, error) {
 	a, ok := as[rel]
 	if !ok {
 		return nil, nil
@@ -138,25 +132,6 @@ func (as mapActionSet) Get(rel string) (*Action, error) {
 	}
 
 	return a, nil
-}
-
-// multiActionSet composes multiple `ActionSet`s.
-type multiActionSet struct {
-	as []ActionSet
-}
-
-// Get implements ActionSet.Get, and returns the first "ok" result (i.e., having
-// a non-nil error, or action) from the `ActionSet`s of which it is composed, in
-// their respective order.
-func (m *multiActionSet) Get(rel string) (*Action, error) {
-	for _, what := range m.as {
-		a, err := what.Get(rel)
-		if a != nil || err != nil {
-			return a, err
-		}
-	}
-
-	return nil, nil
 }
 
 type ActionExpiredErr struct {

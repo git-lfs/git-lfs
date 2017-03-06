@@ -36,7 +36,7 @@ func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, err := t.HybridActions().Get("upload")
+	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
 	}

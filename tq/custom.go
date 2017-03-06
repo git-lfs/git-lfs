@@ -263,7 +263,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	}
 	var authCalled bool
 
-	rel, err := t.HybridActions().Get(a.getOperationName())
+	rel, err := t.Rel(a.getOperationName())
 	if err != nil {
 		return err
 	}
