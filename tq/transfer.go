@@ -131,6 +131,25 @@ func (as mapActionSet) Get(rel string) (*Action, error) {
 	return a, nil
 }
 
+// multiActionSet composes multiple `ActionSet`s.
+type multiActionSet struct {
+	as []ActionSet
+}
+
+// Get implements ActionSet.Get, and returns the first "ok" result (i.e., having
+// a non-nil error, or action) from the `ActionSet`s of which it is composed, in
+// their respective order.
+func (m *multiActionSet) Get(rel string) (*Action, error) {
+	for _, what := range m.as {
+		a, err := what.Get(rel)
+		if a != nil || err != nil {
+			return a, err
+		}
+	}
+
+	return nil, nil
+}
+
 type ActionExpiredErr struct {
 	Rel string
 	At  time.Time
