@@ -34,6 +34,7 @@ type Transfer struct {
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
 	Actions       mapActionSet `json:"actions,omitempty"`
+	Links         mapActionSet `json:"_links,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
 }
@@ -80,6 +81,18 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 			Href:      action.Href,
 			Header:    action.Header,
 			ExpiresAt: action.ExpiresAt,
+		}
+	}
+
+	if tr.Links != nil {
+		t.Links = make(mapActionSet)
+
+		for rel, link := range tr.Links {
+			t.Links[rel] = &Action{
+				Href:      link.Href,
+				Header:    link.Header,
+				ExpiresAt: link.ExpiresAt,
+			}
 		}
 	}
 
