@@ -257,6 +257,12 @@ The `.lfsconfig` file uses the same format as `.gitconfig`.
   The default is `true`; you can disable this behaviour and have all files
   writeable by setting either variable to 0, 'no' or 'false'.
 
+## EXAMPLES
+
+*  Configure a custom LFS endpoint for your repository:
+
+  `git config -f .lfsconfig lfs.url https://lfs.example.com/foo/bar/info/lfs`
+
 ## SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5)
