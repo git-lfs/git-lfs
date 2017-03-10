@@ -57,6 +57,7 @@ func NewClient(remote string, lfsClient *lfsapi.Client) (*Client, error) {
 		Remote: remote,
 		client: &lockClient{Client: lfsClient},
 		cache:  &nilLockCacher{},
+		SetLockableFilesReadOnly: true,
 	}, nil
 }
 
