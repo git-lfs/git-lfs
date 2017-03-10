@@ -10,6 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
@@ -107,8 +108,13 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, errors.Wrap(err, "lock cache")
 	}
 
+	gitRoot, err := git.RootDir()
+	if err != nil {
+		return Lock{}, err
+	}
+	absPath := filepath.Join(gitRoot, path)
 	// Ensure writeable on return
-	if err := tools.SetFileWriteFlag(path, true); err != nil {
+	if err := tools.SetFileWriteFlag(absPath, true); err != nil {
 		return Lock{}, err
 	}
 
@@ -129,10 +135,6 @@ func (c *Client) UnlockFile(path string, force bool) error {
 		return err
 	}
 
-	// Make non-writeable if required
-	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
-		return tools.SetFileWriteFlag(path, false)
-	}
 	return nil
 
 }
@@ -154,6 +156,17 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 
 	if err := c.cache.RemoveById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
+	}
+	path := unlockRes.Lock.Path
+	gitRoot, err := git.RootDir()
+	if err != nil {
+		return err
+	}
+	absPath := filepath.Join(gitRoot, path)
+
+	// Make non-writeable if required
+	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
+		return tools.SetFileWriteFlag(absPath, false)
 	}
 
 	return nil
