@@ -17,6 +17,7 @@ begin_test "env with no remote"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -41,13 +42,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
 
   contains_same_elements "$expected" "$actual"
@@ -67,6 +69,7 @@ begin_test "env with origin remote"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -91,13 +94,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -123,6 +127,7 @@ begin_test "env with multiple remotes"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -148,13 +153,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -178,6 +184,7 @@ begin_test "env with other remote"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -203,13 +210,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -235,6 +243,7 @@ begin_test "env with multiple remotes and lfs.url config"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -260,13 +269,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -293,6 +303,7 @@ begin_test "env with multiple remotes and lfs configs"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -318,13 +329,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -352,6 +364,7 @@ begin_test "env with multiple remotes and lfs url and batch configs"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -377,13 +390,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -419,6 +433,7 @@ concurrenttransfers = 50
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -443,13 +458,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -473,6 +489,7 @@ begin_test "env with environment variables"
   localwd=$(native_path "$TRASHDIR/$reponame/a/b")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
@@ -496,13 +513,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
 
   actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
   contains_same_elements "$expected" "$actual"
@@ -540,12 +558,13 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
   contains_same_elements "$expected5" "$actual5"
 
@@ -571,13 +590,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual7=$(GIT_DIR=$gitDir git lfs env)
   contains_same_elements "$expected7" "$actual7"
 
@@ -603,13 +623,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual8=$(GIT_WORK_TREE=$workTree git lfs env)
   contains_same_elements "$expected8" "$actual8"
 )
@@ -624,6 +645,7 @@ begin_test "env with bare repo"
 
   localgit=$(native_path "$TRASHDIR/$reponame")
   localgitstore=$(native_path "$TRASHDIR/$reponame")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -646,13 +668,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expected" "$actual"
 
@@ -690,6 +713,7 @@ begin_test "env with skip download errors"
 
   localgit=$(native_path "$TRASHDIR/$reponame")
   localgitstore=$(native_path "$TRASHDIR/$reponame")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -697,6 +721,7 @@ begin_test "env with skip download errors"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -721,13 +746,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expectedenabled" "$actual"
 
@@ -753,13 +779,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expecteddisabled" "$actual"
 
@@ -785,6 +812,7 @@ begin_test "env with extra transfer methods"
 
   localgit=$(native_path "$TRASHDIR/$reponame")
   localgitstore=$(native_path "$TRASHDIR/$reponame")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -792,6 +820,7 @@ begin_test "env with extra transfer methods"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
@@ -816,13 +845,14 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic,supertransfer
 UploadTransfers=basic,supertransfer,tus
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env)
   contains_same_elements "$expectedenabled" "$actual"
 

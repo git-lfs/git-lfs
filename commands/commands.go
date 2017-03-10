@@ -73,9 +73,10 @@ func getAPIClient() *lfsapi.Client {
 }
 
 func newLockClient(remote string) *locking.Client {
+	storageConfig := config.Config.StorageConfig()
 	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
-		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
+		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
 	}
 
 	if err != nil {
