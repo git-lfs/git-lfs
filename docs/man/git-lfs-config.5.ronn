@@ -3,15 +3,17 @@ git-lfs-config(5) -- Configuration options for git-lfs
 
 ## CONFIGURATION FILES
 
-git-lfs uses the same configuration files as git-config(1) with the same
-precedence. Most options pertaining to git-lfs are contained in the `[lfs]`
-section, meaning they all named `lfs.foo` or similar, although occasionally an
-lfs option can be scoped inside the configuration for a remote.
+git-lfs reads its configuration from a file called `.lfsconfig` at the root of
+the repository. The `.lfsconfig` file uses the same format as `.gitconfig`.
 
-These settings are read from a file called `.lfsconfig` found at the root of the
-repository, though legacy support exists to read from `.gitconfig` as well.
+Additionally, all settings can be overridden by values returned by `git config -l`.
+This allows you to override settings like `lfs.url` in your local environment
+without having to modify the `.lfsconfig` file.
 
-The `.lfsconfig` file uses the same format as `.gitconfig`.
+Most options regarding git-lfs are contained in the `[lfs]` section, meaning
+they are all named `lfs.foo` or similar, although occasionally an lfs option can
+be scoped inside the configuration for a remote.
+
 
 ## LIST OF OPTIONS
 
