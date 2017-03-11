@@ -2,12 +2,15 @@ package lfsapi
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/errors"
 )
 
@@ -30,21 +33,34 @@ type Client struct {
 	NoProxy             string
 	SkipSSLVerify       bool
 
+	Verbose          bool
+	DebuggingVerbose bool
+	LoggingStats     bool
+	VerboseOut       io.Writer
+
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
 
+	ntlmSessions map[string]ntlm.ClientSession
+	ntlmMu       sync.Mutex
+
+	transferBuckets  map[string][]*http.Response
+	transferBucketMu sync.Mutex
+	transfers        map[*http.Response]*httpTransfer
+	transferMu       sync.Mutex
+
 	// only used for per-host ssl certs
-	gitEnv env
-	osEnv  env
+	gitEnv Env
+	osEnv  Env
 }
 
-func NewClient(osEnv env, gitEnv env) (*Client, error) {
+func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 	if osEnv == nil {
-		osEnv = make(testEnv)
+		osEnv = make(TestEnv)
 	}
 
 	if gitEnv == nil {
-		gitEnv = make(testEnv)
+		gitEnv = make(TestEnv)
 	}
 
 	netrc, err := ParseNetrc(osEnv)
@@ -56,7 +72,7 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 
 	c := &Client{
 		Endpoints: NewEndpointFinder(gitEnv),
-		Credentials: &CommandCredentialHelper{
+		Credentials: &commandCredentialHelper{
 			SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
 		},
 		Netrc:               netrc,
@@ -65,6 +81,9 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
 		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 0),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
+		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
+		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
+		LoggingStats:        osEnv.Bool("GIT_LOG_STATS", false),
 		HTTPSProxy:          httpsProxy,
 		HTTPProxy:           httpProxy,
 		NoProxy:             noProxy,
@@ -75,10 +94,33 @@ func NewClient(osEnv env, gitEnv env) (*Client, error) {
 	return c, nil
 }
 
-func decodeResponse(res *http.Response, obj interface{}) error {
+func (c *Client) GitEnv() Env {
+	return c.gitEnv
+}
+
+func (c *Client) OSEnv() Env {
+	return c.osEnv
+}
+
+func IsDecodeTypeError(err error) bool {
+	_, ok := err.(*decodeTypeError)
+	return ok
+}
+
+type decodeTypeError struct {
+	Type string
+}
+
+func (e *decodeTypeError) TypeError() {}
+
+func (e *decodeTypeError) Error() string {
+	return fmt.Sprintf("Expected json type, got: %q", e.Type)
+}
+
+func DecodeJSON(res *http.Response, obj interface{}) error {
 	ctype := res.Header.Get("Content-Type")
 	if !(lfsMediaTypeRE.MatchString(ctype) || jsonMediaTypeRE.MatchString(ctype)) {
-		return nil
+		return &decodeTypeError{Type: ctype}
 	}
 
 	err := json.NewDecoder(res.Body).Decode(obj)
@@ -91,23 +133,25 @@ func decodeResponse(res *http.Response, obj interface{}) error {
 	return nil
 }
 
-type env interface {
+// Env is an interface for the config.Environment methods that this package
+// relies on.
+type Env interface {
 	Get(string) (string, bool)
 	Int(string, int) int
 	Bool(string, bool) bool
 	All() map[string]string
 }
 
-// basic config.Environment implementation. Only used in tests, or as a zero
-// value to NewClient().
-type testEnv map[string]string
+// TestEnv is a basic config.Environment implementation. Only used in tests, or
+// as a zero value to NewClient().
+type TestEnv map[string]string
 
-func (e testEnv) Get(key string) (string, bool) {
+func (e TestEnv) Get(key string) (string, bool) {
 	v, ok := e[key]
 	return v, ok
 }
 
-func (e testEnv) Int(key string, def int) (val int) {
+func (e TestEnv) Int(key string, def int) (val int) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -121,7 +165,7 @@ func (e testEnv) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e testEnv) Bool(key string, def bool) (val bool) {
+func (e TestEnv) Bool(key string, def bool) (val bool) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -137,6 +181,6 @@ func (e testEnv) Bool(key string, def bool) (val bool) {
 	}
 }
 
-func (e testEnv) All() map[string]string {
+func (e TestEnv) All() map[string]string {
 	return e
 }

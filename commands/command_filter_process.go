@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -30,35 +30,6 @@ const (
 // in the working tree.
 var filterSmudgeSkip bool
 
-// filterSmudge is a gateway to the `smudge()` function and serves to bail out
-// immediately if the pointer decoded from "from" has no data (i.e., is empty).
-// This function, unlike the implementation found in the legacy smudge command,
-// only combines the `io.Reader`s when necessary, since the implementation
-// found in `*git.PacketReader` blocks while waiting for the following packet.
-func filterSmudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
-	var pbuf bytes.Buffer
-	from = io.TeeReader(from, &pbuf)
-
-	ptr, err := lfs.DecodePointer(from)
-	if err != nil {
-		// If we tried to decode a pointer out of the data given to us,
-		// and the file was _empty_, write out an empty file in
-		// response. This occurs because when the clean filter
-		// encounters an empty file, and writes out an empty file,
-		// instead of a pointer.
-		if pbuf.Len() == 0 {
-			if _, cerr := io.Copy(to, &pbuf); cerr != nil {
-				Panic(cerr, "Error writing data to stdout:")
-			}
-			return nil
-		}
-
-		return err
-	}
-
-	return smudge(to, ptr, filename, skip, filter)
-}
-
 func filterCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git filter process")
 	lfs.InstallHooks(false)
@@ -75,6 +46,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
+	var malformed []string
+
 	for s.Scan() {
 		var err error
 		var w *git.PktlineWriter
@@ -89,9 +62,14 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			err = clean(w, req.Payload, req.Header["pathname"])
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = filterSmudge(w, req.Payload, req.Header["pathname"], skip, filter)
+			err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
 		default:
 			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
+		}
+
+		if errors.IsNotAPointerError(err) {
+			malformed = append(malformed, req.Header["pathname"])
+			err = nil
 		}
 
 		var status string
@@ -102,6 +80,13 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		}
 
 		s.WriteStatus(status)
+	}
+
+	if len(malformed) > 0 {
+		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that should have been pointers, but weren't:\n", len(malformed))
+		for _, m := range malformed {
+			fmt.Fprintf(os.Stderr, "\t%s\n", m)
+		}
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {

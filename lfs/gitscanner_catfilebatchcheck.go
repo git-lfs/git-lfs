@@ -9,10 +9,10 @@ import (
 
 // runCatFileBatchCheck uses 'git cat-file --batch-check' to get the type and
 // size of a git object. Any object that isn't of type blob and under the
-// blobSizeCutoff will be ignored. revs is a channel over which strings
-// containing git sha1s will be sent. It returns a channel from which sha1
-// strings can be read.
-func runCatFileBatchCheck(smallRevCh chan string, revs *StringChannelWrapper, errCh chan error) error {
+// blobSizeCutoff will be ignored, unless it's a locked file. revs is a channel
+// over which strings containing git sha1s will be sent. It returns a channel
+// from which sha1 strings can be read.
+func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
 	cmd, err := startCommand("git", "cat-file", "--batch-check")
 	if err != nil {
 		return err
@@ -23,12 +23,14 @@ func runCatFileBatchCheck(smallRevCh chan string, revs *StringChannelWrapper, er
 		for r := range revs.Results {
 			cmd.Stdin.Write([]byte(r + "\n"))
 			hasNext := scanner.Scan()
-			if b := scanner.BlobOID(); len(b) > 0 {
-				smallRevCh <- b
-			}
-
 			if err := scanner.Err(); err != nil {
 				errCh <- err
+			} else if b := scanner.LFSBlobOID(); len(b) > 0 {
+				smallRevCh <- b
+			} else if b := scanner.GitBlobOID(); len(b) > 0 {
+				if name, ok := lockableSet.Check(b); ok {
+					lockableCh <- name
+				}
 			}
 
 			if !hasNext {
@@ -54,13 +56,18 @@ func runCatFileBatchCheck(smallRevCh chan string, revs *StringChannelWrapper, er
 }
 
 type catFileBatchCheckScanner struct {
-	s       *bufio.Scanner
-	limit   int
-	blobOID string
+	s          *bufio.Scanner
+	limit      int
+	lfsBlobOID string
+	gitBlobOID string
 }
 
-func (s *catFileBatchCheckScanner) BlobOID() string {
-	return s.blobOID
+func (s *catFileBatchCheckScanner) LFSBlobOID() string {
+	return s.lfsBlobOID
+}
+
+func (s *catFileBatchCheckScanner) GitBlobOID() string {
+	return s.gitBlobOID
 }
 
 func (s *catFileBatchCheckScanner) Err() error {
@@ -68,13 +75,13 @@ func (s *catFileBatchCheckScanner) Err() error {
 }
 
 func (s *catFileBatchCheckScanner) Scan() bool {
-	s.blobOID = ""
-	b, hasNext := s.next()
-	s.blobOID = b
+	lfsBlobSha, gitBlobSha, hasNext := s.next()
+	s.lfsBlobOID = lfsBlobSha
+	s.gitBlobOID = gitBlobSha
 	return hasNext
 }
 
-func (s *catFileBatchCheckScanner) next() (string, bool) {
+func (s *catFileBatchCheckScanner) next() (string, string, bool) {
 	hasNext := s.s.Scan()
 	line := s.s.Text()
 	lineLen := len(line)
@@ -84,21 +91,22 @@ func (s *catFileBatchCheckScanner) next() (string, bool) {
 	// type is at a fixed spot, if we see that it's "blob", we can avoid
 	// splitting the line just to get the size.
 	if lineLen < 46 {
-		return "", hasNext
+		return "", "", hasNext
 	}
 
 	if line[41:45] != "blob" {
-		return "", hasNext
+		return "", "", hasNext
 	}
 
 	size, err := strconv.Atoi(line[46:lineLen])
 	if err != nil {
-		return "", hasNext
+		return "", "", hasNext
 	}
 
+	blobSha := line[0:40]
 	if size >= s.limit {
-		return "", hasNext
+		return "", blobSha, hasNext
 	}
 
-	return line[0:40], hasNext
+	return blobSha, "", hasNext
 }

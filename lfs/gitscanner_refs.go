@@ -12,10 +12,34 @@ import (
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
+type lockableNameSet struct {
+	opt *ScanRefsOptions
+	set GitScannerSet
+}
+
+// Determines if the given blob sha matches a locked file.
+func (s *lockableNameSet) Check(blobSha string) (string, bool) {
+	if s == nil || s.opt == nil || s.set == nil {
+		return "", false
+	}
+
+	name, ok := s.opt.GetName(blobSha)
+	if !ok {
+		return name, ok
+	}
+
+	if s.set.Contains(name) {
+		return name, true
+	}
+	return name, false
+}
+
+func noopFoundLockable(name string) {}
+
 // scanRefsToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanRefsToChan(cb GitScannerCallback, refLeft, refRight string, opt *ScanRefsOptions) error {
+func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft, refRight string, opt *ScanRefsOptions) error {
 	if opt == nil {
 		panic("no scan ref options")
 	}
@@ -25,12 +49,24 @@ func scanRefsToChan(cb GitScannerCallback, refLeft, refRight string, opt *ScanRe
 		return err
 	}
 
-	smallShas, err := catFileBatchCheck(revs)
+	lockableSet := &lockableNameSet{opt: opt, set: scanner.PotentialLockables}
+	smallShas, batchLockableCh, err := catFileBatchCheck(revs, lockableSet)
 	if err != nil {
 		return err
 	}
 
-	pointers, err := catFileBatch(smallShas)
+	lockableCb := scanner.FoundLockable
+	if lockableCb == nil {
+		lockableCb = noopFoundLockable
+	}
+
+	go func(cb GitScannerFoundLockable, ch chan string) {
+		for name := range ch {
+			cb(name)
+		}
+	}(lockableCb, batchLockableCh)
+
+	pointers, checkLockableCh, err := catFileBatch(smallShas, lockableSet)
 	if err != nil {
 		return err
 	}
@@ -39,11 +75,15 @@ func scanRefsToChan(cb GitScannerCallback, refLeft, refRight string, opt *ScanRe
 		if name, ok := opt.GetName(p.Sha1); ok {
 			p.Name = name
 		}
-		cb(p, nil)
+		pointerCb(p, nil)
+	}
+
+	for lockableName := range checkLockableCh {
+		lockableCb(lockableName)
 	}
 
 	if err := pointers.Wait(); err != nil {
-		cb(nil, err)
+		pointerCb(nil, err)
 	}
 
 	return nil

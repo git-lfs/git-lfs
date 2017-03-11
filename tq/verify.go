@@ -4,15 +4,22 @@ import (
 	"net/http"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/rubyist/tracerx"
+)
+
+const (
+	maxVerifiesConfigKey     = "lfs.transfer.maxverifies"
+	defaultMaxVerifyAttempts = 3
 )
 
 func verifyUpload(c *lfsapi.Client, t *Transfer) error {
 	action, err := t.Actions.Get("verify")
 	if err != nil {
-		if IsActionMissingError(err) {
-			return nil
-		}
 		return err
+	}
+	if action == nil {
+		return nil
 	}
 
 	req, err := http.NewRequest("POST", action.Href, nil)
@@ -33,10 +40,20 @@ func verifyUpload(c *lfsapi.Client, t *Transfer) error {
 	}
 	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 
-	res, err := c.Do(req)
-	if err != nil {
-		return err
-	}
+	mv := c.GitEnv().Int(maxVerifiesConfigKey, defaultMaxVerifyAttempts)
+	mv = tools.MaxInt(defaultMaxVerifyAttempts, mv)
 
-	return res.Body.Close()
+	for i := 1; i <= mv; i++ {
+		tracerx.Printf("tq: verify %s attempt #%d (max: %d)", t.Oid[:7], i, mv)
+
+		var res *http.Response
+
+		if res, err = c.Do(req); err != nil {
+			tracerx.Printf("tq: verify err: %+v", err.Error())
+		} else {
+			err = res.Body.Close()
+			break
+		}
+	}
+	return err
 }

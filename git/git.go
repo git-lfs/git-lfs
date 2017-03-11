@@ -17,7 +17,9 @@ import (
 	"sync"
 	"time"
 
+	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -366,9 +368,14 @@ func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
 }
 
-// UnsetGlobalSection removes the entire named section from the system config
+// UnsetSystemSection removes the entire named section from the system config
 func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
 	return subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
+}
+
+// UnsetLocalSection removes the entire named section from the system config
+func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
@@ -587,6 +594,10 @@ func GitAndRootDirs() (string, string, error) {
 	paths := strings.Split(output, "\n")
 	pathLen := len(paths)
 
+	for i := 0; i < pathLen; i++ {
+		paths[i], err = tools.TranslateCygwinPath(paths[i])
+	}
+
 	if pathLen == 0 {
 		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
 	}
@@ -612,6 +623,7 @@ func RootDir() (string, error) {
 	}
 
 	path := strings.TrimSpace(string(out))
+	path, err = tools.TranslateCygwinPath(path)
 	if len(path) > 0 {
 		return filepath.Abs(path)
 	}
@@ -1016,4 +1028,85 @@ func sanitizePattern(pattern string) string {
 	}
 
 	return pattern
+}
+
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
+func GetFilesChanged(from, to string) ([]string, error) {
+	var files []string
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"diff-tree",
+		"--no-commit-id",
+		"--name-only",
+		"-r",
+	}
+
+	if len(from) > 0 {
+		args = append(args, from)
+	}
+	if len(to) > 0 {
+		args = append(args, to)
+	}
+	args = append(args, "--") // no ambiguous patterns
+
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git diff: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("Failed to start git diff: %v", err)
+	}
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		files = append(files, strings.TrimSpace(scanner.Text()))
+	}
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("Git diff failed: %v", err)
+	}
+
+	return files, err
+}
+
+// IsFileModified returns whether the filepath specified is modified according
+// to `git status`. A file is modified if it has uncommitted changes in the
+// working copy or the index. This includes being untracked.
+func IsFileModified(filepath string) (bool, error) {
+
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"status",
+		"--porcelain",
+		"--", // separator in case filename ambiguous
+		filepath,
+	}
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, lfserrors.Wrap(err, "Failed to call git status")
+	}
+	if err := cmd.Start(); err != nil {
+		return false, lfserrors.Wrap(err, "Failed to start git status")
+	}
+	matched := false
+	for scanner := bufio.NewScanner(outp); scanner.Scan(); {
+		line := scanner.Text()
+		// Porcelain format is "<I><W> <filename>"
+		// Where <I> = index status, <W> = working copy status
+		if len(line) > 3 {
+			// Double-check even though should be only match
+			if strings.TrimSpace(line[3:]) == filepath {
+				matched = true
+				// keep consuming output to exit cleanly
+				// will typically fall straight through anyway due to 1 line output
+			}
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		return false, lfserrors.Wrap(err, "Git status failed")
+	}
+
+	return matched, nil
 }

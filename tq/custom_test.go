@@ -3,17 +3,19 @@ package tq
 import (
 	"testing"
 
-	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCustomTransferBasicConfig(t *testing.T) {
 	path := "/path/to/binary"
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{"lfs.customtransfer.testsimple.path": path},
-	})
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.customtransfer.testsimple.path": path,
+	}))
+	require.Nil(t, err)
 
-	m := NewManifestWithGitEnv("", cfg.Git)
+	m := NewManifestWithClient(cli)
 	u := m.NewUploadAdapter("testsimple")
 	assert.NotNil(t, u, "Upload adapter should be present")
 	cu, _ := u.(*customAdapter)
@@ -34,16 +36,15 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 func TestCustomTransferDownloadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.customtransfer.testdownload.path":       path,
-			"lfs.customtransfer.testdownload.args":       args,
-			"lfs.customtransfer.testdownload.concurrent": "false",
-			"lfs.customtransfer.testdownload.direction":  "download",
-		},
-	})
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.customtransfer.testdownload.path":       path,
+		"lfs.customtransfer.testdownload.args":       args,
+		"lfs.customtransfer.testdownload.concurrent": "false",
+		"lfs.customtransfer.testdownload.direction":  "download",
+	}))
+	require.Nil(t, err)
 
-	m := NewManifestWithGitEnv("", cfg.Git)
+	m := NewManifestWithClient(cli)
 	u := m.NewUploadAdapter("testdownload")
 	assert.NotNil(t, u, "Upload adapter should always be created")
 	cu, _ := u.(*customAdapter)
@@ -61,16 +62,15 @@ func TestCustomTransferDownloadConfig(t *testing.T) {
 func TestCustomTransferUploadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.customtransfer.testupload.path":       path,
-			"lfs.customtransfer.testupload.args":       args,
-			"lfs.customtransfer.testupload.concurrent": "false",
-			"lfs.customtransfer.testupload.direction":  "upload",
-		},
-	})
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.customtransfer.testupload.path":       path,
+		"lfs.customtransfer.testupload.args":       args,
+		"lfs.customtransfer.testupload.concurrent": "false",
+		"lfs.customtransfer.testupload.direction":  "upload",
+	}))
+	require.Nil(t, err)
 
-	m := NewManifestWithGitEnv("", cfg.Git)
+	m := NewManifestWithClient(cli)
 	d := m.NewDownloadAdapter("testupload")
 	assert.NotNil(t, d, "Download adapter should always be created")
 	cd, _ := d.(*customAdapter)
@@ -88,16 +88,15 @@ func TestCustomTransferUploadConfig(t *testing.T) {
 func TestCustomTransferBothConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever --yeah"
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.customtransfer.testboth.path":       path,
-			"lfs.customtransfer.testboth.args":       args,
-			"lfs.customtransfer.testboth.concurrent": "yes",
-			"lfs.customtransfer.testboth.direction":  "both",
-		},
-	})
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.customtransfer.testboth.path":       path,
+		"lfs.customtransfer.testboth.args":       args,
+		"lfs.customtransfer.testboth.concurrent": "yes",
+		"lfs.customtransfer.testboth.direction":  "both",
+	}))
+	require.Nil(t, err)
 
-	m := NewManifestWithGitEnv("", cfg.Git)
+	m := NewManifestWithClient(cli)
 	d := m.NewDownloadAdapter("testboth")
 	assert.NotNil(t, d, "Download adapter should be present")
 	cd, _ := d.(*customAdapter)

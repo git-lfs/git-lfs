@@ -12,23 +12,20 @@ begin_test "track"
   cd track
   git init
 
+  echo "###############################################################################
+# Set default behavior to automatically normalize line endings.
+###############################################################################
+* text=auto
+
+#*.cs     diff=csharp" > .gitattributes
+
   # track *.jpg once
   git lfs track "*.jpg" | grep "Tracking \*.jpg"
-  numjpg=$(grep "\*.jpg" .gitattributes | wc -l)
-  if [ "$(printf "%d" "$numjpg")" != "1" ]; then
-    echo "wrong number of jpgs"
-    cat .gitattributes
-    exit 1
-  fi
+  assert_attributes_count "jpg" "filter=lfs" 1
 
   # track *.jpg again
   git lfs track "*.jpg" | grep "*.jpg already supported"
-  numjpg=$(grep "\*.jpg" .gitattributes | wc -l)
-  if [ "$(printf "%d" "$numjpg")" != "1" ]; then
-    echo "wrong number of jpgs"
-    cat .gitattributes
-    exit 1
-  fi
+  assert_attributes_count "jpg" "filter=lfs" 1
 
   mkdir -p a/b
 
@@ -36,12 +33,18 @@ begin_test "track"
   echo "*.gif filter=lfs -text" > a/.gitattributes
   echo "*.png filter=lfs -text" > a/b/.gitattributes
 
-  out=$(git lfs track)
-  echo "$out" | grep "Listing tracked patterns"
-  echo "$out" | grep "*.mov ($(native_path_escaped ".git/info/attributes"))"
-  echo "$out" | grep "*.jpg (.gitattributes)"
-  echo "$out" | grep "*.gif ($(native_path_escaped "a/.gitattributes"))"
-  echo "$out" | grep "*.png ($(native_path_escaped "a/b/.gitattributes"))"
+  git lfs track | tee track.log
+  grep "Listing tracked patterns" track.log
+  grep "*.mov ($(native_path_escaped ".git/info/attributes"))" track.log
+  grep "*.jpg (.gitattributes)" track.log
+  grep "*.gif ($(native_path_escaped "a/.gitattributes"))" track.log
+  grep "*.png ($(native_path_escaped "a/b/.gitattributes"))" track.log
+
+  grep "Set default behavior" .gitattributes
+  grep "############" .gitattributes
+  grep "* text=auto" .gitattributes
+  grep "diff=csharp" .gitattributes
+  grep "*.jpg" .gitattributes
 )
 end_test
 
@@ -109,16 +112,76 @@ begin_test "track without trailing linebreak"
   mkdir no-linebreak
   cd no-linebreak
   git init
+
   printf "*.mov filter=lfs -text" > .gitattributes
+  [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
 
   git lfs track "*.gif"
+  expected="*.mov filter=lfs -text$(cat_end)
+*.gif filter=lfs diff=lfs merge=lfs -text$(cat_end)"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+)
+end_test
 
-  expected="*.mov filter=lfs -text
-*.gif filter=lfs diff=lfs merge=lfs -text"
+begin_test "track with existing crlf"
+(
+  set -e
 
-  if [ "$expected" != "$(cat .gitattributes)" ]; then
-    exit 1
-  fi
+  mkdir existing-crlf
+  cd existing-crlf
+  git init
+
+  git config core.autocrlf true
+  git lfs track "*.mov"
+  git lfs track "*.gif"
+  expected="*.mov filter=lfs diff=lfs merge=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+
+  git config core.autocrlf false
+  git lfs track "*.jpg"
+  expected="*.mov filter=lfs diff=lfs merge=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$
+*.jpg filter=lfs diff=lfs merge=lfs -text^M$"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+)
+end_test
+
+begin_test "track with autocrlf=true"
+(
+  set -e
+
+  mkdir autocrlf-true
+  cd autocrlf-true
+  git init
+  git config core.autocrlf true
+
+  printf "*.mov filter=lfs -text" > .gitattributes
+  [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
+
+  git lfs track "*.gif"
+  expected="*.mov filter=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
+)
+end_test
+
+begin_test "track with autocrlf=input"
+(
+  set -e
+
+  mkdir autocrlf-input
+  cd autocrlf-input
+  git init
+  git config core.autocrlf input
+
+  printf "*.mov filter=lfs -text" > .gitattributes
+  [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
+
+  git lfs track "*.gif"
+  expected="*.mov filter=lfs -text^M$
+*.gif filter=lfs diff=lfs merge=lfs -text^M$"
+  [ "$expected" = "$(cat -e .gitattributes)" ]
 )
 end_test
 
@@ -290,5 +353,97 @@ begin_test "track blocklisted files with glob"
 
   git lfs track ".git*" 2>&1 > track.log
   grep "Pattern .git\* matches forbidden file" track.log
+)
+end_test
+
+begin_test "track lockable"
+(
+  set -e
+
+  repo="track_lockable"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  # track *.jpg once, lockable
+  git lfs track --lockable "*.jpg" | grep "Tracking \*.jpg"
+  assert_attributes_count "jpg" "lockable" 1
+  # track *.jpg again, don't change anything. Should retain lockable
+  git lfs track "*.jpg" | grep "*.jpg already supported"
+  assert_attributes_count "jpg" "lockable" 1
+
+
+  # track *.png once, not lockable yet
+  git lfs track "*.png" | grep "Tracking \*.png"
+  assert_attributes_count "png" "filter=lfs" 1
+  assert_attributes_count "png" "lockable" 0
+
+  # track png again, enable lockable, should replace
+  git lfs track --lockable "*.png" | grep "Tracking \*.png"
+  assert_attributes_count "png" "filter=lfs" 1
+  assert_attributes_count "png" "lockable" 1
+
+  # track png again, disable lockable, should replace
+  git lfs track --not-lockable "*.png" | grep "Tracking \*.png"
+  assert_attributes_count "png" "filter=lfs" 1
+  assert_attributes_count "png" "lockable" 0
+
+  # check output reflects lockable
+  out=$(git lfs track)
+  echo "$out" | grep "Listing tracked patterns"
+  echo "$out" | grep "*.jpg \[lockable\] (.gitattributes)"
+  echo "$out" | grep "*.png (.gitattributes)"
+)
+end_test
+
+begin_test "track lockable read-only/read-write"
+(
+  set -e
+
+  repo="track_lockable_ro_rw"
+  mkdir "$repo"
+  cd "$repo"
+  git init
+
+  echo "blah blah" > test.bin
+  echo "foo bar" > test.dat
+  mkdir subfolder
+  echo "sub blah blah" > subfolder/test.bin
+  echo "sub foo bar" > subfolder/test.dat
+  # should start writeable
+  assert_file_writable test.bin
+  assert_file_writable test.dat
+  assert_file_writable subfolder/test.bin
+  assert_file_writable subfolder/test.dat
+
+  # track *.bin, not lockable yet
+  git lfs track "*.bin" | grep "Tracking \*.bin"
+  # track *.dat, lockable immediately
+  git lfs track --lockable "*.dat" | grep "Tracking \*.dat"
+
+  # bin should remain writeable, dat should have been made read-only
+
+  assert_file_writable test.bin
+  refute_file_writable test.dat
+  assert_file_writable subfolder/test.bin
+  refute_file_writable subfolder/test.dat
+
+  git add .gitattributes test.bin test.dat
+  git commit -m "First commit"
+
+  # bin should still be writeable
+  assert_file_writable test.bin
+  assert_file_writable subfolder/test.bin
+  # now make bin lockable
+  git lfs track --lockable "*.bin" | grep "Tracking \*.bin"
+  # bin should now be read-only
+  refute_file_writable test.bin
+  refute_file_writable subfolder/test.bin
+
+  # remove lockable again
+  git lfs track --not-lockable "*.bin" | grep "Tracking \*.bin"
+  # bin should now be writeable again
+  assert_file_writable test.bin
+  assert_file_writable subfolder/test.bin
 )
 end_test

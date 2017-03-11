@@ -6,21 +6,24 @@ import (
 )
 
 var (
-	// prePushHook invokes `git lfs push` at the pre-push phase.
-	prePushHook = &Hook{
-		Type:     "pre-push",
-		Contents: "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
-		Upgradeables: []string{
-			"#!/bin/sh\ngit lfs push --stdin $*",
-			"#!/bin/sh\ngit lfs push --stdin \"$@\"",
-			"#!/bin/sh\ngit lfs pre-push \"$@\"",
-			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
-			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
-		},
-	}
+	// prePushHook invokes `git lfs pre-push` at the pre-push phase.
+	prePushHook = NewStandardHook("pre-push", []string{
+		"#!/bin/sh\ngit lfs push --stdin $*",
+		"#!/bin/sh\ngit lfs push --stdin \"$@\"",
+		"#!/bin/sh\ngit lfs pre-push \"$@\"",
+		"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
+		"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
+	})
+	// postCheckoutHook invokes `git lfs post-checkout`
+	postCheckoutHook = NewStandardHook("post-checkout", []string{})
+	postCommitHook   = NewStandardHook("post-commit", []string{})
+	postMergeHook    = NewStandardHook("post-merge", []string{})
 
 	hooks = []*Hook{
 		prePushHook,
+		postCheckoutHook,
+		postCommitHook,
+		postMergeHook,
 	}
 
 	filters = &Attribute{
@@ -56,7 +59,6 @@ var (
 
 // Get user-readable manual install steps for hooks
 func GetHookInstallSteps() string {
-
 	var buf bytes.Buffer
 	for _, h := range hooks {
 		buf.WriteString(fmt.Sprintf("Add the following to .git/hooks/%s :\n\n", h.Type))
@@ -104,7 +106,7 @@ func InstallFilters(opt InstallOptions, passThrough bool) error {
 
 // UninstallFilters proxies into the Uninstall method on the Filters type to
 // remove all installed filters.
-func UninstallFilters() error {
-	filters.Uninstall()
+func UninstallFilters(opt InstallOptions) error {
+	filters.Uninstall(opt)
 	return nil
 }

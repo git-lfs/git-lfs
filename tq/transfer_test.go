@@ -3,9 +3,9 @@ package tq
 import (
 	"testing"
 
-	"github.com/git-lfs/git-lfs/config"
-
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testAdapter struct {
@@ -118,10 +118,12 @@ func testAdapterRegAndOverride(t *testing.T) {
 }
 
 func testAdapterRegButBasicOnly(t *testing.T) {
-	cfg := config.NewFrom(config.Values{
-		Git: map[string]string{"lfs.basictransfersonly": "yes"},
-	})
-	m := NewManifestWithGitEnv("", cfg.Git)
+	cli, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+		"lfs.basictransfersonly": "yes",
+	}))
+	require.Nil(t, err)
+
+	m := NewManifestWithClient(cli)
 
 	assert := assert.New(t)
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyWithoutAction(t *testing.T) {
@@ -33,19 +34,22 @@ func TestVerifySuccess(t *testing.T) {
 
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "bar", r.Header.Get("Foo"))
-		assert.Equal(t, "24", r.Header.Get("Content-Length"))
+		assert.Equal(t, "29", r.Header.Get("Content-Length"))
 		assert.Equal(t, "application/vnd.git-lfs+json", r.Header.Get("Content-Type"))
 
 		var tr Transfer
 		assert.Nil(t, json.NewDecoder(r.Body).Decode(&tr))
-		assert.Equal(t, "abc", tr.Oid)
+		assert.Equal(t, "abcd1234", tr.Oid)
 		assert.EqualValues(t, 123, tr.Size)
 	}))
 	defer srv.Close()
 
-	c := &lfsapi.Client{}
+	c, err := lfsapi.NewClient(nil, lfsapi.TestEnv{
+		"lfs.transfer.maxverifies": "1",
+	})
+	require.Nil(t, err)
 	tr := &Transfer{
-		Oid:  "abc",
+		Oid:  "abcd1234",
 		Size: 123,
 		Actions: map[string]*Action{
 			"verify": &Action{

@@ -31,26 +31,28 @@ type WrappedPointer struct {
 // under the blobSizeCutoff will be ignored. revs is a channel over
 // which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
-func catFileBatchCheck(revs *StringChannelWrapper) (*StringChannelWrapper, error) {
+func catFileBatchCheck(revs *StringChannelWrapper, lockableSet *lockableNameSet) (*StringChannelWrapper, chan string, error) {
 	smallRevCh := make(chan string, chanBufSize)
+	lockableCh := make(chan string, chanBufSize)
 	errCh := make(chan error, 2) // up to 2 errors, one from each goroutine
-	if err := runCatFileBatchCheck(smallRevCh, revs, errCh); err != nil {
-		return nil, err
+	if err := runCatFileBatchCheck(smallRevCh, lockableCh, lockableSet, revs, errCh); err != nil {
+		return nil, nil, err
 	}
-	return NewStringChannelWrapper(smallRevCh, errCh), nil
+	return NewStringChannelWrapper(smallRevCh, errCh), lockableCh, nil
 }
 
 // catFileBatch uses git cat-file --batch to get the object contents
 // of a git object, given its sha1. The contents will be decoded into
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
-func catFileBatch(revs *StringChannelWrapper) (*PointerChannelWrapper, error) {
+func catFileBatch(revs *StringChannelWrapper, lockableSet *lockableNameSet) (*PointerChannelWrapper, chan string, error) {
 	pointerCh := make(chan *WrappedPointer, chanBufSize)
+	lockableCh := make(chan string, chanBufSize)
 	errCh := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
-	if err := runCatFileBatch(pointerCh, revs, errCh); err != nil {
-		return nil, err
+	if err := runCatFileBatch(pointerCh, lockableCh, lockableSet, revs, errCh); err != nil {
+		return nil, nil, err
 	}
-	return NewPointerChannelWrapper(pointerCh, errCh), nil
+	return NewPointerChannelWrapper(pointerCh, errCh), lockableCh, nil
 }
 
 // ChannelWrapper for pointer Scan* functions to more easily return async error data via Wait()

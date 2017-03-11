@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 
@@ -52,7 +52,7 @@ func (t *traceWriter) Flush() {
 
 type customAdapterWorkerContext struct {
 	workerNum   int
-	cmd         *exec.Cmd
+	cmd         *subprocess.Cmd
 	stdout      io.ReadCloser
 	bufferedOut *bufio.Reader
 	stdin       io.WriteCloser
@@ -70,7 +70,8 @@ func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers
 	return &customAdapterInitRequest{"init", op, concurrent, concurrentTransfers}
 }
 
-type customAdapterTransferRequest struct { // common between upload/download
+type customAdapterTransferRequest struct {
+	// common between upload/download
 	Event  string  `json:"event"`
 	Oid    string  `json:"oid"`
 	Size   int64   `json:"size"`
@@ -86,7 +87,7 @@ func NewCustomAdapterDownloadRequest(oid string, size int64, action *Action) *cu
 }
 
 type customAdapterTerminateRequest struct {
-	MessageType string `json:"type"`
+	Event string `json:"event"`
 }
 
 func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
@@ -111,8 +112,7 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	}
 
 	// If config says not to launch multiple processes, downgrade incoming value
-	newCfg := &Manifest{concurrentTransfers: 1}
-	return a.adapterBase.Begin(newCfg, cb)
+	return a.adapterBase.Begin(&customAdapterConfig{AdapterConfig: cfg}, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {
@@ -263,10 +263,12 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	}
 	var authCalled bool
 
-	rel, err := t.Actions.Get(a.getOperationName())
+	rel, err := t.Rel(a.getOperationName())
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil {
+		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
@@ -375,4 +377,12 @@ func configureCustomAdapters(git Env, m *Manifest) {
 			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
+}
+
+type customAdapterConfig struct {
+	AdapterConfig
+}
+
+func (c *customAdapterConfig) ConcurrentTransfers() int {
+	return 1
 }

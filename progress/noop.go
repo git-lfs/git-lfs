@@ -7,6 +7,7 @@ func Noop() Meter {
 type nonMeter struct{}
 
 func (m *nonMeter) Start()                                                               {}
+func (m *nonMeter) Pause()                                                               {}
 func (m *nonMeter) Add(size int64)                                                       {}
 func (m *nonMeter) Skip(size int64)                                                      {}
 func (m *nonMeter) StartTransfer(name string)                                            {}
