@@ -51,7 +51,7 @@ relative to the root of the repository working directory.
 Successful responses return the created lock:
 
 * `id` - String ID of the Lock. Git LFS doesn't enforce what type of ID is used,
-as long as it's returned a string.
+as long as it's returned as a string.
 * `path` - String path name of the locked file. This should be relative to the
 root of the repository working directory.
 * `locked_at` - The string ISO 8601 formatted timestamp the lock was created.
