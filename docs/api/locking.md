@@ -131,7 +131,7 @@ errors.
 // HTTP/1.1 500 Internal server error
 // Content-Type: application/vnd.git-lfs+json
 {
-  "message": "already created lock",
+  "message": "internal server error",
   "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
