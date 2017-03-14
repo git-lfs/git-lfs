@@ -54,7 +54,7 @@ Successful responses return the created lock:
 as long as it's returned as a string.
 * `path` - String path name of the locked file. This should be relative to the
 root of the repository working directory.
-* `locked_at` - The string ISO 8601 formatted timestamp the lock was created.
+* `locked_at` - The timestamp the lock was created, as an ISO 8601 formatted string.
 * `owner` - The name of the user that created the Lock. This should be set from
 the user credentials posted when creating the lock.
 
