@@ -135,7 +135,9 @@ func (s *DiffIndexScanner) Scan() bool {
 	}
 
 	s.next, s.err = s.scan(s.from.Text())
-	s.err = errors.Wrap(s.err, "diff-index scan")
+	if s.err != nil {
+		s.err = errors.Wrap(s.err, "diff-index scan")
+	}
 
 	return s.err == nil
 }
