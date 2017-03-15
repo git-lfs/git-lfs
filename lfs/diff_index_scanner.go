@@ -99,19 +99,19 @@ type DiffIndexScanner struct {
 // If any error was encountered in starting the command or closing its `stdin`,
 // that error will be returned immediately. Otherwise, a `*DiffIndexScanner`
 // will be returned with a `nil` error.
-func NewDiffIndexScanner(ref string, cached bool) (*DiffIndexScanner, *wrappedCmd, error) {
+func NewDiffIndexScanner(ref string, cached bool) (*DiffIndexScanner, error) {
 	cmd, err := startCommand("git", diffIndexCmdArgs(ref, cached)...)
 	if err != nil {
-		return nil, cmd, errors.Wrap(err, "diff-index")
+		return nil, errors.Wrap(err, "diff-index")
 	}
 
 	if err = cmd.Stdin.Close(); err != nil {
-		return nil, cmd, errors.Wrap(err, "diff-index: close")
+		return nil, errors.Wrap(err, "diff-index: close")
 	}
 
 	return &DiffIndexScanner{
 		from: bufio.NewScanner(cmd.Stdout),
-	}, cmd, nil
+	}, nil
 }
 
 // diffIndexCmdArgs returns a string slice containing the arguments necessary

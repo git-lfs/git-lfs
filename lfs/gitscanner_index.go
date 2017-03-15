@@ -105,7 +105,7 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
 func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChannelWrapper, error) {
-	scanner, cmd, err := NewDiffIndexScanner(atRef, cache)
+	scanner, err := NewDiffIndexScanner(atRef, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +137,6 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 		if err := scanner.Err(); err != nil {
 			errs <- err
 		}
-
-		cmd.Wait()
 
 		close(revs)
 		close(errs)
