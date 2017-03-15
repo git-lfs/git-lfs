@@ -13,22 +13,22 @@ import (
 //
 // More information about each of its valid instances can be found:
 // https://git-scm.com/docs/git-diff-index
-type Status rune
+type DiffIndexStatus rune
 
 const (
-	StatusAddition     Status = 'A'
-	StatusCopy         Status = 'C'
-	StatusDeletion     Status = 'D'
-	StatusModification Status = 'M'
-	StatusRename       Status = 'R'
-	StatusTypeChange   Status = 'T'
-	StatusUnmerged     Status = 'U'
-	StatusUnknown      Status = 'X'
+	StatusAddition     DiffIndexStatus = 'A'
+	StatusCopy         DiffIndexStatus = 'C'
+	StatusDeletion     DiffIndexStatus = 'D'
+	StatusModification DiffIndexStatus = 'M'
+	StatusRename       DiffIndexStatus = 'R'
+	StatusTypeChange   DiffIndexStatus = 'T'
+	StatusUnmerged     DiffIndexStatus = 'U'
+	StatusUnknown      DiffIndexStatus = 'X'
 )
 
 // String implements fmt.Stringer by returning a huamn-readable name for each
 // status.
-func (s Status) String() string {
+func (s DiffIndexStatus) String() string {
 	switch s {
 	case StatusAddition:
 		return "addition"
@@ -64,7 +64,7 @@ type DiffIndexEntry struct {
 	// DstSha is the Git blob ID of the "dst" file.
 	DstSha string
 	// Status is the status of the file in the index.
-	Status Status
+	Status DiffIndexStatus
 	// StatusScore is the optional "score" assosicated with a particular
 	// status.
 	StatusScore int
@@ -175,7 +175,7 @@ func (s *DiffIndexScanner) scan(line string) (*DiffIndexEntry, error) {
 		DstMode: desc[1],
 		SrcSha:  desc[2],
 		DstSha:  desc[3],
-		Status:  Status(rune(desc[4][0])),
+		Status:  DiffIndexStatus(rune(desc[4][0])),
 		SrcName: parts[1],
 	}
 
