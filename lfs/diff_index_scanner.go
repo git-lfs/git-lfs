@@ -163,6 +163,10 @@ func (s *DiffIndexScanner) prepareScan() bool {
 // scan parses the given line and returns a `*DiffIndexEntry` or an error,
 // depending on whether or not the parse was successful.
 func (s *DiffIndexScanner) scan(line string) (*DiffIndexEntry, error) {
+	// Format is:
+	//   :100644 100644 c5b3d83a7542255ec7856487baa5e83d65b1624c 9e82ac1b514be060945392291b5b3108c22f6fe3 M foo.gif
+	//   :<old mode> <new mode> <old sha1> <new sha1> <status>\t<file name>[\t<file name>]
+
 	parts := strings.Split(line, "\t")
 	if len(parts) < 2 {
 		return nil, errors.Errorf("invalid line: %s", line)
