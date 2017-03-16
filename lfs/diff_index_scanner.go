@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"bufio"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -48,6 +49,27 @@ func (s DiffIndexStatus) String() string {
 		return "unknown"
 	}
 	return "<unknown>"
+}
+
+// Format implements fmt.Formatter. If printed as "%+d", "%+s", or "%+v", the
+// status will be written out as an English word: i.e., "addition", "copy",
+// "deletion", etc.
+//
+// If the '+' flag is not given, the shorthand will be used instead: 'A', 'C',
+// and 'D', respectively.
+//
+// If any other format verb is given, this function will panic().
+func (s DiffIndexStatus) Format(state fmt.State, c rune) {
+	switch c {
+	case 'd', 's', 'v':
+		if state.Flag('+') {
+			state.Write([]byte(s.String()))
+		} else {
+			state.Write([]byte{byte(rune(s))})
+		}
+	default:
+		panic(fmt.Sprintf("cannot format %v for DiffIndexStatus", c))
+	}
 }
 
 // DiffIndexEntry holds information about a single item in the results of a `git
