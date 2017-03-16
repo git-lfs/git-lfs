@@ -422,7 +422,7 @@ errors.
 // HTTP/1.1 403 Forbidden
 // Content-Type: application/vnd.git-lfs+json
 {
-  "message": "You must have push access to verify locks",
+  "message": "You must have push access to delete locks",
   "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
@@ -440,7 +440,7 @@ errors.
 // HTTP/1.1 500 Internal server error
 // Content-Type: application/vnd.git-lfs+json
 {
-  "message": "already deleting lock",
+  "message": "unable to delete lock",
   "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
