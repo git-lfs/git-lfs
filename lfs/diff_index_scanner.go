@@ -102,11 +102,11 @@ type DiffIndexScanner struct {
 func NewDiffIndexScanner(ref string, cached bool) (*DiffIndexScanner, error) {
 	cmd, err := startCommand("git", diffIndexCmdArgs(ref, cached)...)
 	if err != nil {
-		return nil, errors.Wrap(err, "diff-index")
+		return nil, err
 	}
 
 	if err = cmd.Stdin.Close(); err != nil {
-		return nil, errors.Wrap(err, "diff-index: close")
+		return nil, err
 	}
 
 	return &DiffIndexScanner{
@@ -136,7 +136,7 @@ func (s *DiffIndexScanner) Scan() bool {
 
 	s.next, s.err = s.scan(s.from.Text())
 	if s.err != nil {
-		s.err = errors.Wrap(s.err, "diff-index scan")
+		s.err = errors.Wrap(s.err, "scan")
 	}
 
 	return s.err == nil
