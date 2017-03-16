@@ -26,7 +26,7 @@ const (
 	StatusUnknown      DiffIndexStatus = 'X'
 )
 
-// String implements fmt.Stringer by returning a huamn-readable name for each
+// String implements fmt.Stringer by returning a human-readable name for each
 // status.
 func (s DiffIndexStatus) String() string {
 	switch s {
@@ -65,13 +65,13 @@ type DiffIndexEntry struct {
 	DstSha string
 	// Status is the status of the file in the index.
 	Status DiffIndexStatus
-	// StatusScore is the optional "score" assosicated with a particular
+	// StatusScore is the optional "score" associated with a particular
 	// status.
 	StatusScore int
-	// SrcName is the name of the file in it's "src" state as it appears in
+	// SrcName is the name of the file in its "src" state as it appears in
 	// the index.
 	SrcName string
-	// DstName is the name of the file in it's "dst" state as it appears in
+	// DstName is the name of the file in its "dst" state as it appears in
 	// the index.
 	DstName string
 }
