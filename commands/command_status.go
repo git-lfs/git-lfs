@@ -28,39 +28,97 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	statusScanRefRange(ref)
 
-	Print("\nGit LFS objects to be committed:\n")
-
-	var unstagedPointers []*lfs.WrappedPointer
-	indexScanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			ExitWithError(err)
-			return
-		}
-
-		switch p.Status {
-		case "R", "C":
-			Print("\t%s -> %s", p.SrcName, p.Name)
-		case "M":
-			unstagedPointers = append(unstagedPointers, p)
-		default:
-			Print("\t%s", p.Name)
-		}
-	})
-
-	if err := indexScanner.ScanIndex(scanIndexAt, nil); err != nil {
+	entries, errs, err := scanIndex(scanIndexAt)
+	if err != nil {
 		ExitWithError(err)
 	}
 
-	indexScanner.Close()
+	staged := make([]*lfs.DiffIndexEntry, 0)
+	unstaged := make([]*lfs.DiffIndexEntry, 0)
 
-	Print("\nGit LFS objects not staged for commit:\n")
-	for _, p := range unstagedPointers {
-		if p.Status == "M" {
-			Print("\t%s", p.Name)
+L:
+	for {
+		select {
+		case entry, ok := <-entries:
+			if !ok {
+				break L
+			}
+
+			switch entry.Status {
+			case lfs.StatusModification:
+				unstaged = append(unstaged, entry)
+			default:
+				staged = append(staged, entry)
+			}
+		case err := <-errs:
+			if err != nil {
+				ExitWithError(err)
+			}
 		}
 	}
 
+	Print("\nGit LFS objects to be committed:\n")
+	for _, entry := range staged {
+		switch entry.Status {
+		case lfs.StatusRename, lfs.StatusCopy:
+			Print("\t%s -> %s", entry.SrcName, entry.DstName)
+		default:
+			Print("\t%s", entry.SrcName)
+		}
+	}
+
+	Print("\nGit LFS objects not staged for commit:\n")
+	for _, entry := range unstaged {
+		Print("\t%s", entry.SrcName)
+	}
+
 	Print("")
+}
+
+func scanIndex(ref string) (<-chan *lfs.DiffIndexEntry, <-chan error, error) {
+	uncached, err := lfs.NewDiffIndexScanner(ref, false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cached, err := lfs.NewDiffIndexScanner(ref, true)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	entries := make(chan *lfs.DiffIndexEntry)
+	errs := make(chan error)
+
+	go func() {
+		seenNames := make(map[string]struct{}, 0)
+
+		for _, scanner := range []*lfs.DiffIndexScanner{
+			uncached, cached,
+		} {
+			for scanner.Scan() {
+				entry := scanner.Entry()
+
+				name := entry.DstName
+				if len(name) == 0 {
+					name = entry.SrcName
+				}
+
+				if _, seen := seenNames[name]; !seen {
+					entries <- entry
+					seenNames[name] = struct{}{}
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				errs <- err
+			}
+		}
+
+		close(entries)
+		close(errs)
+	}()
+
+	return entries, errs, nil
 }
 
 func statusScanRefRange(ref *git.Ref) {
