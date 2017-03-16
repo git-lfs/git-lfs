@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -41,11 +39,11 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 		switch p.Status {
 		case "R", "C":
-			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
+			Print("\t%s -> %s", p.SrcName, p.Name)
 		case "M":
 			unstagedPointers = append(unstagedPointers, p)
 		default:
-			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+			Print("\t%s", p.Name)
 		}
 	})
 
@@ -83,7 +81,7 @@ func statusScanRefRange(ref *git.Ref) {
 			return
 		}
 
-		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+		Print("\t%s (%s)", p.Name)
 	})
 	defer gitscanner.Close()
 
@@ -102,11 +100,11 @@ func porcelainStagedPointers(ref string) {
 
 		switch p.Status {
 		case "R", "C":
-			Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
+			Print("%s  %s -> %s", p.Status, p.SrcName, p.Name)
 		case "M":
-			Print(" %s %s %d", p.Status, p.Name, p.Size)
+			Print(" %s %s", p.Status, p.Name)
 		default:
-			Print("%s  %s %d", p.Status, p.Name, p.Size)
+			Print("%s  %s", p.Status, p.Name)
 		}
 	})
 	defer gitscanner.Close()
@@ -114,26 +112,6 @@ func porcelainStagedPointers(ref string) {
 	if err := gitscanner.ScanIndex(ref, nil); err != nil {
 		ExitWithError(err)
 	}
-}
-
-var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}
-
-func humanizeBytes(bytes int64) string {
-	var output string
-	size := float64(bytes)
-
-	if bytes < 1024 {
-		return fmt.Sprintf("%d B", bytes)
-	}
-
-	for _, unit := range byteUnits {
-		if size < 1024.0 {
-			output = fmt.Sprintf("%3.1f %s", size, unit)
-			break
-		}
-		size /= 1024.0
-	}
-	return output
 }
 
 func init() {

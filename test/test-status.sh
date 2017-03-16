@@ -27,8 +27,8 @@ begin_test "status"
 
 Git LFS objects to be committed:
 
-	file2.dat (11 B)
-	file3.dat (11 B)
+	file2.dat
+	file3.dat
 
 Git LFS objects not staged for commit:
 
@@ -59,9 +59,9 @@ begin_test "status --porcelain"
 
   echo "file3 other data" > file3.dat
 
-  expected=" M file1.dat 10
-A  file2.dat 11
-A  file3.dat 11"
+  expected=" M file1.dat
+A  file2.dat
+A  file3.dat"
 
   [ "$expected" = "$(git lfs status --porcelain)" ]
 )
@@ -101,7 +101,7 @@ begin_test "status - before initial commit"
   expected="
 Git LFS objects to be committed:
 
-	file1.dat (10 B)
+	file1.dat
 
 Git LFS objects not staged for commit:"
 
