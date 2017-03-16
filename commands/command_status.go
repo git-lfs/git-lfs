@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -151,25 +153,35 @@ func statusScanRefRange(ref *git.Ref) {
 }
 
 func porcelainStagedPointers(ref string) {
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			ExitWithError(err)
-		}
-
-		switch p.Status {
-		case "R", "C":
-			Print("%s  %s -> %s", p.Status, p.SrcName, p.Name)
-		case "M":
-			Print(" %s %s", p.Status, p.Name)
-		default:
-			Print("%s  %s", p.Status, p.Name)
-		}
-	})
-	defer gitscanner.Close()
-
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
+	entries, errs, err := scanIndex(ref)
+	if err != nil {
 		ExitWithError(err)
 	}
+
+L:
+	for {
+		select {
+		case entry, ok := <-entries:
+			if !ok {
+				break L
+			}
+
+			Print(porcelainStatusLine(entry))
+		case err := <-errs:
+			ExitWithError(err)
+		}
+	}
+}
+
+func porcelainStatusLine(entry *lfs.DiffIndexEntry) string {
+	switch entry.Status {
+	case lfs.StatusRename, lfs.StatusCopy:
+		return fmt.Sprintf("%s  %s -> %s", entry.Status, entry.SrcName, entry.DstName)
+	case lfs.StatusModification:
+		return fmt.Sprintf(" %s %s", entry.Status, entry.SrcName)
+	}
+
+	return fmt.Sprintf("%s  %s", entry.Status, entry.SrcName)
 }
 
 func init() {
