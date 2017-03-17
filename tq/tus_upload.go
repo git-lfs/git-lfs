@@ -160,8 +160,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	cli := &lfsapi.Client{}
-	return verifyUpload(cli, t)
+	return verifyUpload(a.apiClient, t)
 }
 
 func configureTusAdapter(m *Manifest) {
