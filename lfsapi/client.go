@@ -17,11 +17,29 @@ var UserAgent = "git-lfs"
 
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 
-func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
-	sshRes, err := c.resolveSSHEndpoint(e, method)
+type RequestFactory interface {
+	NewRequest() (*http.Request, error)
+	InvalidateAuthorization() bool
+}
+
+type HttpRequestWrapper struct {
+	req *http.Request
+	err error
+}
+
+type sshRequestFactory struct {
+	c      *Client
+	method string
+	e      Endpoint
+	suffix string
+	body   interface{}
+}
+
+func (f *sshRequestFactory) NewRequest() (*http.Request, error) {
+	sshRes, err := f.c.resolveSSHEndpoint(f.e, f.method)
 	if err != nil {
 		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
-			e.SshUserAndHost, err.Error(), sshRes.Message,
+			f.e.SshUserAndHost, err.Error(), sshRes.Message,
 		)
 
 		if len(sshRes.Message) > 0 {
@@ -30,19 +48,51 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 		return nil, err
 	}
 
-	prefix := e.Url
+	prefix := f.e.Url
 	if len(sshRes.Href) > 0 {
 		prefix = sshRes.Href
 	}
+	req, err := newRequestForPrefix(f.method, joinURL(prefix, f.suffix), f.body)
+	if err == nil {
+		for key, value := range sshRes.Header {
+			if req.Header.Get(key) == "" {
+				req.Header.Set(key, value)
+			}
+		}
+	}
+	return req, err
+}
 
-	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)
+func (f *sshRequestFactory) InvalidateAuthorization() bool {
+	_, ok := f.c.sshAuthCache[f.e.SshUserAndHost]
+	if ok {
+		delete(f.c.sshAuthCache, f.e.SshUserAndHost)
+	}
+	return ok
+}
+
+func (f *HttpRequestWrapper) NewRequest() (*http.Request, error) {
+	return f.req, f.err
+}
+
+func (f *HttpRequestWrapper) InvalidateAuthorization() bool {
+	if f.req.Header.Get("Authorization") != "" {
+		f.req.Header.Del("Authorization")
+		return true
+	}
+	return false
+}
+
+func NewRequestWrapper(req *http.Request) *HttpRequestWrapper {
+	return &HttpRequestWrapper{req, nil}
+}
+
+func newRequestForPrefix(method string, url string, body interface{}) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return req, err
 	}
 
-	for key, value := range sshRes.Header {
-		req.Header.Set(key, value)
-	}
 	req.Header.Set("Accept", MediaType)
 
 	if body != nil {
@@ -53,6 +103,14 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 	}
 
 	return req, err
+}
+
+func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) RequestFactory {
+	if len(e.SshUserAndHost) != 0 {
+		return &sshRequestFactory{c, method, e, suffix, body}
+	}
+	req, err := newRequestForPrefix(method, joinURL(e.Url, suffix), body)
+	return &HttpRequestWrapper{req, err}
 }
 
 const slash = "/"
