@@ -30,33 +30,9 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	statusScanRefRange(ref)
 
-	entries, errs, err := scanIndex(scanIndexAt)
+	staged, unstaged, err := scanIndex(scanIndexAt)
 	if err != nil {
 		ExitWithError(err)
-	}
-
-	staged := make([]*lfs.DiffIndexEntry, 0)
-	unstaged := make([]*lfs.DiffIndexEntry, 0)
-
-L:
-	for {
-		select {
-		case entry, ok := <-entries:
-			if !ok {
-				break L
-			}
-
-			switch entry.Status {
-			case lfs.StatusModification:
-				unstaged = append(unstaged, entry)
-			default:
-				staged = append(staged, entry)
-			}
-		case err := <-errs:
-			if err != nil {
-				ExitWithError(err)
-			}
-		}
 	}
 
 	Print("\nGit LFS objects to be committed:\n")
@@ -77,7 +53,7 @@ L:
 	Print("")
 }
 
-func scanIndex(ref string) (<-chan *lfs.DiffIndexEntry, <-chan error, error) {
+func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
 	uncached, err := lfs.NewDiffIndexScanner(ref, false)
 	if err != nil {
 		return nil, nil, err
@@ -88,39 +64,36 @@ func scanIndex(ref string) (<-chan *lfs.DiffIndexEntry, <-chan error, error) {
 		return nil, nil, err
 	}
 
-	entries := make(chan *lfs.DiffIndexEntry)
-	errs := make(chan error)
+	seenNames := make(map[string]struct{}, 0)
 
-	go func() {
-		seenNames := make(map[string]struct{}, 0)
+	for _, scanner := range []*lfs.DiffIndexScanner{
+		uncached, cached,
+	} {
+		for scanner.Scan() {
+			entry := scanner.Entry()
 
-		for _, scanner := range []*lfs.DiffIndexScanner{
-			uncached, cached,
-		} {
-			for scanner.Scan() {
-				entry := scanner.Entry()
-
-				name := entry.DstName
-				if len(name) == 0 {
-					name = entry.SrcName
-				}
-
-				if _, seen := seenNames[name]; !seen {
-					entries <- entry
-					seenNames[name] = struct{}{}
-				}
+			name := entry.DstName
+			if len(name) == 0 {
+				name = entry.SrcName
 			}
 
-			if err := scanner.Err(); err != nil {
-				errs <- err
+			if _, seen := seenNames[name]; !seen {
+				switch entry.Status {
+				case lfs.StatusModification:
+					unstaged = append(unstaged, entry)
+				default:
+					staged = append(staged, entry)
+				}
+
+				seenNames[name] = struct{}{}
 			}
 		}
 
-		close(entries)
-		close(errs)
-	}()
-
-	return entries, errs, nil
+		if err := scanner.Err(); err != nil {
+			return nil, nil, err
+		}
+	}
+	return
 }
 
 func statusScanRefRange(ref *git.Ref) {
@@ -153,23 +126,13 @@ func statusScanRefRange(ref *git.Ref) {
 }
 
 func porcelainStagedPointers(ref string) {
-	entries, errs, err := scanIndex(ref)
+	staged, unstaged, err := scanIndex(ref)
 	if err != nil {
 		ExitWithError(err)
 	}
 
-L:
-	for {
-		select {
-		case entry, ok := <-entries:
-			if !ok {
-				break L
-			}
-
-			Print(porcelainStatusLine(entry))
-		case err := <-errs:
-			ExitWithError(err)
-		}
+	for _, entry := range append(unstaged, staged...) {
+		Print(porcelainStatusLine(entry))
 	}
 }
 
