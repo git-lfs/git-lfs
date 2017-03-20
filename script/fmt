@@ -6,7 +6,7 @@ hash goimports 2>/dev/null && {
 }
 
 # don't run gofmt in these directories
-ignored=(/bin/ /docs/ /log/ /man/ /tmp/ /vendor/ /rpm/ /docker/ /debian/)
+ignored=(/bin/ /docs/ /log/ /man/ /tmp/ /vendor/ /rpm/ /docker/ /debian/ /src/)
 for i in */ ; do
   if [[ ! ${ignored[*]} =~ "/$i" ]]; then
     $formatter -w -l "$@" "${i%?}"

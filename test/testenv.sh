@@ -6,9 +6,16 @@ set -e
 UNAME=$(uname -s)
 IS_WINDOWS=0
 IS_MAC=0
-if [[ $UNAME == MINGW* || $UNAME == CYGWIN* ]]
+SHASUM="shasum -a 256"
+
+if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]
 then
   IS_WINDOWS=1
+
+  # Windows might be MSYS2 which does not have the shasum Perl wrapper
+  # script by default, so use sha256sum directly. MacOS on the other hand
+  # does not have sha256sum, so still use shasum as the default.
+  SHASUM="sha256sum"
 elif [[ $UNAME == *Darwin* ]]
 then
   IS_MAC=1
@@ -16,9 +23,9 @@ fi
 
 resolve_symlink() {
   local arg=$1
-  if [ $IS_WINDOWS == "1" ]; then
+  if [ $IS_WINDOWS -eq 1 ]; then
     printf '%s' "$arg"
-  elif [ $IS_MAC == "1" ]; then
+  elif [ $IS_MAC -eq 1 ]; then
     # no readlink -f on Mac
     local oldwd=$(pwd)
     local target=$arg
@@ -95,27 +102,36 @@ LFS_URL_FILE="$REMOTEDIR/url"
 # section in test/README.md
 LFS_SSL_URL_FILE="$REMOTEDIR/sslurl"
 
+# This file contains the client cert SSL URL of the test Git server. See the "Test Suite"
+# section in test/README.md
+LFS_CLIENT_CERT_URL_FILE="$REMOTEDIR/clientcerturl"
+
 # This file contains the self-signed SSL cert of the TLS endpoint of the test Git server.
 LFS_CERT_FILE="$REMOTEDIR/cert"
+
+# This file contains the client certificate of the client cert endpoint of the test Git server.
+LFS_CLIENT_CERT_FILE="$REMOTEDIR/client.crt"
+
+# This file contains the client key of the client cert endpoint of the test Git server.
+LFS_CLIENT_KEY_FILE="$REMOTEDIR/client.key"
 
 # the fake home dir used for the initial setup
 TESTHOME="$REMOTEDIR/home"
 
 GIT_CONFIG_NOSYSTEM=1
 GIT_TERMINAL_PROMPT=0
+GIT_SSH=ssh-echo
+APPVEYOR_REPO_COMMIT_MESSAGE="test: env test should look for GIT_SSH too"
 
 export CREDSDIR
-
-if [[ `git config --system credential.helper | grep osxkeychain` == "osxkeychain" ]]
-then
-  OSXKEYFILE="$TMPDIR/temp.keychain"
-fi
+export GIT_CONFIG_NOSYSTEM
+export GIT_SSH
+export APPVEYOR_REPO_COMMIT_MESSAGE
 
 mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 
-
-if [ $IS_WINDOWS == "1" ]; then
+if [ $IS_WINDOWS -eq 1 ]; then
   # prevent Windows OpenSSH from opening GUI prompts
   SSH_ASKPASS=""
 fi

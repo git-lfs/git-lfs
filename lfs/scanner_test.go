@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,182 +96,240 @@ index 0000000..92a88f8
 `
 )
 
-func TestParseLogOutputToPointersAdditions(t *testing.T) {
-
-	// test + diff, no filtering
+func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	pchan := make(chan *WrappedPointer, chanBufSize)
-	go func() {
-		parseLogOutputToPointers(r, LogDiffAdditions, nil, nil, pchan)
-		close(pchan)
-	}()
-	pointers := make([]*WrappedPointer, 0, 5)
-	for p := range pchan {
-		pointers = append(pointers, p)
-	}
-	assert.Len(t, pointers, 5)
+	scanner := newLogScanner(LogDiffAdditions, r)
 
 	// modification, + side
-	assert.Equal(t, "radial_1.png", pointers[0].Name)
-	assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", pointers[0].Oid)
-	assert.Equal(t, int64(3152388), pointers[0].Size)
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
 	// modification, + side with extensions
-	assert.Equal(t, "radial_2.png", pointers[1].Name)
-	assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", pointers[1].Oid)
-	assert.Equal(t, int64(3152388), pointers[1].Size)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
 	// addition, + side
-	assert.Equal(t, "1D_Noise.png", pointers[2].Name)
-	assert.Equal(t, "f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6", pointers[2].Oid)
-	assert.Equal(t, int64(1289), pointers[2].Size)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "1D_Noise.png", p.Name)
+		assert.Equal(t, "f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6", p.Oid)
+		assert.Equal(t, int64(1289), p.Size)
+	}
+
 	// addition, + side
-	assert.Equal(t, "waveNM.png", pointers[3].Name)
-	assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", pointers[3].Oid)
-	assert.Equal(t, int64(125873), pointers[3].Size)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "waveNM.png", p.Name)
+		assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", p.Oid)
+		assert.Equal(t, int64(125873), p.Size)
+	}
+
 	// addition, + side with extensions
-	assert.Equal(t, "hobbit_5armies_2.mov", pointers[4].Name)
-	assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", pointers[4].Oid)
-	assert.Equal(t, int64(127142413), pointers[4].Size)
-
-	// test filtered, include
-	r = strings.NewReader(pointerParseLogOutput)
-	pointers = pointers[:0]
-	pchan = make(chan *WrappedPointer, chanBufSize)
-	go func() {
-		parseLogOutputToPointers(r, LogDiffAdditions, []string{"wave*"}, nil, pchan)
-		close(pchan)
-	}()
-	for p := range pchan {
-		pointers = append(pointers, p)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "hobbit_5armies_2.mov", p.Name)
+		assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", p.Oid)
+		assert.Equal(t, int64(127142413), p.Size)
 	}
-	assert.Len(t, pointers, 1)
-	assert.Equal(t, "waveNM.png", pointers[0].Name)
-	assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", pointers[0].Oid)
-	assert.Equal(t, int64(125873), pointers[0].Size)
 
-	// test filtered, exclude
-	r = strings.NewReader(pointerParseLogOutput)
-	pointers = pointers[:0]
-	pchan = make(chan *WrappedPointer, chanBufSize)
-	go func() {
-		parseLogOutputToPointers(r, LogDiffAdditions, nil, []string{"wave*"}, pchan)
-		close(pchan)
-	}()
-	for p := range pchan {
-		pointers = append(pointers, p)
-	}
-	assert.Len(t, pointers, 4)
-	assert.Equal(t, "radial_1.png", pointers[0].Name)
-	assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", pointers[0].Oid)
-	assert.Equal(t, int64(3152388), pointers[0].Size)
-	assert.Equal(t, "radial_2.png", pointers[1].Name)
-	assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", pointers[1].Oid)
-	assert.Equal(t, int64(3152388), pointers[1].Size)
-	assert.Equal(t, "1D_Noise.png", pointers[2].Name)
-	assert.Equal(t, "f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6", pointers[2].Oid)
-	assert.Equal(t, int64(1289), pointers[2].Size)
-	assert.Equal(t, "hobbit_5armies_2.mov", pointers[3].Name)
-	assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", pointers[3].Oid)
-	assert.Equal(t, int64(127142413), pointers[3].Size)
-
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
 }
 
-func TestParseLogOutputToPointersDeletion(t *testing.T) {
-
-	// test - diff, no filtering
+func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
-	pchan := make(chan *WrappedPointer, chanBufSize)
-	go func() {
-		parseLogOutputToPointers(r, LogDiffDeletions, nil, nil, pchan)
-		close(pchan)
-	}()
-	pointers := make([]*WrappedPointer, 0, 5)
-	for p := range pchan {
-		pointers = append(pointers, p)
+	scanner := newLogScanner(LogDiffAdditions, r)
+	scanner.Filter = filepathfilter.New([]string{"wave*"}, nil)
+
+	// addition, + side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "waveNM.png", p.Name)
+		assert.Equal(t, "fe2c2f236b97bba4585d9909a227a8fa64897d9bbe297fa272f714302d86c908", p.Oid)
+		assert.Equal(t, int64(125873), p.Size)
+	}
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
+}
+
+func TestLogScannerAdditionsFilterExclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(LogDiffAdditions, r)
+	scanner.Filter = filepathfilter.New(nil, []string{"wave*"})
+
+	// modification, + side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
 	}
 
-	assert.Len(t, pointers, 4)
+	// modification, + side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+
+	// addition, + side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "1D_Noise.png", p.Name)
+		assert.Equal(t, "f5d84da40ab1f6aa28df2b2bf1ade2cdcd4397133f903c12b4106641b10e1ed6", p.Oid)
+		assert.Equal(t, int64(1289), p.Size)
+	}
+
+	// addition, + side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "hobbit_5armies_2.mov", p.Name)
+		assert.Equal(t, "ebff26d6b557b1416a6fded097fd9b9102e2d8195532c377ac365c736c87d4bc", p.Oid)
+		assert.Equal(t, int64(127142413), p.Size)
+	}
+
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
+}
+
+func TestLogScannerDeletionsNoFiltering(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(LogDiffDeletions, r)
 
 	// deletion, - side
-	assert.Equal(t, "smoke_1.png", pointers[0].Name)
-	assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", pointers[0].Oid)
-	assert.Equal(t, int64(35022), pointers[0].Size)
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "smoke_1.png", p.Name)
+		assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", p.Oid)
+		assert.Equal(t, int64(35022), p.Size)
+	}
+
 	// deletion, - side with extensions
-	assert.Equal(t, "flare_1.png", pointers[1].Name)
-	assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", pointers[1].Oid)
-	assert.Equal(t, int64(72982), pointers[1].Size)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "flare_1.png", p.Name)
+		assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", p.Oid)
+		assert.Equal(t, int64(72982), p.Size)
+	}
+
 	// modification, - side
-	assert.Equal(t, "radial_1.png", pointers[2].Name)
-	assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", pointers[2].Oid)
-	assert.Equal(t, int64(16849), pointers[2].Size)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
 	// modification, - side with extensions
-	assert.Equal(t, "radial_2.png", pointers[3].Name)
-	assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", pointers[3].Oid)
-	assert.Equal(t, int64(16849), pointers[3].Size)
-
-	// test filtered, include
-	r = strings.NewReader(pointerParseLogOutput)
-	pointers = pointers[:0]
-	pchan = make(chan *WrappedPointer, chanBufSize)
-	go func() {
-		parseLogOutputToPointers(r, LogDiffDeletions, []string{"flare*"}, nil, pchan)
-		close(pchan)
-	}()
-	for p := range pchan {
-		pointers = append(pointers, p)
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
 	}
-	assert.Len(t, pointers, 1)
-	assert.Equal(t, "flare_1.png", pointers[0].Name)
-	assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", pointers[0].Oid)
-	assert.Equal(t, int64(72982), pointers[0].Size)
 
-	// test filtered, exclude
-	r = strings.NewReader(pointerParseLogOutput)
-	pointers = pointers[:0]
-	pchan = make(chan *WrappedPointer, chanBufSize)
-	go func() {
-		parseLogOutputToPointers(r, LogDiffDeletions, nil, []string{"flare*"}, pchan)
-		close(pchan)
-	}()
-	for p := range pchan {
-		pointers = append(pointers, p)
+	assertScannerDone(t, scanner)
+}
+
+func TestLogScannerDeletionsFilterInclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(LogDiffDeletions, r)
+	scanner.Filter = filepathfilter.New([]string{"flare*"}, nil)
+
+	// deletion, - side with extensions
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "flare_1.png", p.Name)
+		assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", p.Oid)
+		assert.Equal(t, int64(72982), p.Size)
 	}
-	assert.Len(t, pointers, 3)
-	assert.Equal(t, "smoke_1.png", pointers[0].Name)
-	assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", pointers[0].Oid)
-	assert.Equal(t, int64(35022), pointers[0].Size)
-	assert.Equal(t, "radial_1.png", pointers[1].Name)
-	assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", pointers[1].Oid)
-	assert.Equal(t, int64(16849), pointers[1].Size)
-	assert.Equal(t, "radial_2.png", pointers[2].Name)
-	assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", pointers[2].Oid)
-	assert.Equal(t, int64(16849), pointers[2].Size)
 
+	assertScannerDone(t, scanner)
+}
+
+func TestLogScannerDeletionsFilterExclude(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(LogDiffDeletions, r)
+	scanner.Filter = filepathfilter.New(nil, []string{"flare*"})
+
+	// deletion, - side
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "smoke_1.png", p.Name)
+		assert.Equal(t, "8eb65d66303acc60062f44b44ef1f7360d7189db8acf3d066e59e2528f39514e", p.Oid)
+		assert.Equal(t, int64(35022), p.Size)
+	}
+
+	// modification, - side
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_1.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
+	// modification, - side with extensions
+	assertNextScan(t, scanner)
+	p = scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
+	}
+
+	assertScannerDone(t, scanner)
 }
 
 func TestLsTreeParser(t *testing.T) {
 	stdout := "100644 blob d899f6551a51cf19763c5955c7a06a2726f018e9      42	.gitattributes\000100644 blob 4d343e022e11a8618db494dc3c501e80c7e18197     126	PB SCN 16 Odhrán.wav"
+	scanner := newLsTreeScanner(strings.NewReader(stdout))
 
-	blobs := make(chan TreeBlob, 2)
-	parseLsTree(strings.NewReader(stdout), blobs)
-	close(blobs)
+	assertNextTreeBlob(t, scanner, "d899f6551a51cf19763c5955c7a06a2726f018e9", ".gitattributes")
+	assertNextTreeBlob(t, scanner, "4d343e022e11a8618db494dc3c501e80c7e18197", "PB SCN 16 Odhrán.wav")
+	assertScannerDone(t, scanner)
+}
 
-	<-blobs // gitattributes
-	blob := <-blobs
-	if blob.Sha1 != "4d343e022e11a8618db494dc3c501e80c7e18197" {
-		t.Errorf("Bad sha1: %q", blob.Sha1)
-	}
-
-	if blob.Filename != "PB SCN 16 Odhrán.wav" {
-		t.Errorf("Bad name: %q", blob.Filename)
-	}
+func assertNextTreeBlob(t *testing.T, scanner *lsTreeScanner, oid, filename string) {
+	assertNextScan(t, scanner)
+	b := scanner.TreeBlob()
+	assert.NotNil(t, b)
+	assert.Equal(t, oid, b.Sha1)
+	assert.Equal(t, filename, b.Filename)
 }
 
 func BenchmarkLsTreeParser(b *testing.B) {
 	stdout := "100644 blob d899f6551a51cf19763c5955c7a06a2726f018e9      42	.gitattributes\000100644 blob 4d343e022e11a8618db494dc3c501e80c7e18197     126	PB SCN 16 Odhrán.wav"
-	blobs := make(chan TreeBlob, b.N*2)
+
 	// run the Fib function b.N times
 	for n := 0; n < b.N; n++ {
-		parseLsTree(strings.NewReader(stdout), blobs)
+		scanner := newLsTreeScanner(strings.NewReader(stdout))
+		for scanner.Scan() {
+		}
 	}
-	close(blobs)
 }

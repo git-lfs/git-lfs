@@ -190,13 +190,18 @@ func setBash() {
 		// can't understand paths like '/usr/bin/bash', needs Windows version
 		findcmd = "where"
 	}
+
 	out, err := exec.Command(findcmd, "bash").Output()
 	if err != nil {
 		fmt.Println("Unable to find bash:", err)
 		os.Exit(1)
 	}
+	if len(out) == 0 {
+		fmt.Printf("No output from '%s bash'\n", findcmd)
+		os.Exit(1)
+	}
 
-	bashPath = strings.TrimSpace(string(out))
+	bashPath = strings.TrimSpace(strings.Split(string(out), "\n")[0])
 	if debugging {
 		fmt.Println("Using", bashPath)
 	}

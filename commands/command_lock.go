@@ -1,46 +1,26 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/spf13/cobra"
 )
 
 var (
 	lockRemote     string
 	lockRemoteHelp = "specify which remote to use when interacting with locks"
-
-	// TODO(taylor): consider making this (and the above flag) a property of
-	// some parent-command, or another similarly less ugly way of handling
-	// this
-	setLockRemoteFor = func(c *config.Configuration) {
-		c.CurrentRemote = lockRemote
-	}
-
-	lockCmd = &cobra.Command{
-		Use: "lock",
-		Run: lockCommand,
-	}
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(cfg)
-
 	if len(args) == 0 {
 		Print("Usage: git lfs lock <path>")
 		return
-	}
-
-	latest, err := git.CurrentRemoteRef()
-	if err != nil {
-		Error(err.Error())
-		Exit("Unable to determine lastest remote ref for branch.")
 	}
 
 	path, err := lockPath(args[0])
@@ -48,23 +28,22 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	s, resp := API.Locks.Lock(&api.LockRequest{
-		Path:               path,
-		Committer:          api.CurrentCommitter(),
-		LatestRemoteCommit: latest.Sha,
-	})
+	lockClient := newLockClient(lockRemote)
+	defer lockClient.Close()
 
-	if _, err := API.Do(s); err != nil {
-		Error(err.Error())
-		Exit("Error communicating with LFS API.")
+	lock, err := lockClient.LockFile(path)
+	if err != nil {
+		Exit("Lock failed: %v", errors.Cause(err))
 	}
 
-	if len(resp.Err) > 0 {
-		Error(resp.Err)
-		Exit("Server unable to create lock.")
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(lock); err != nil {
+			Error(err.Error())
+		}
+		return
 	}
 
-	Print("\n'%s' was locked (%s)", args[0], resp.Lock.Id)
+	Print("Locked %s", args[0])
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root
@@ -94,22 +73,21 @@ func lockPath(file string) (string, error) {
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
-
+	path = strings.TrimPrefix(path, string(os.PathSeparator))
 	if stat, err := os.Stat(abs); err != nil {
-		return "", err
+		return path, err
 	} else {
 		if stat.IsDir() {
-			return "", fmt.Errorf("lfs: cannot lock directory: %s", file)
+			return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
 		}
 
-		return path[1:], nil
+		return path, nil
 	}
 }
 
 func init() {
-	lockCmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
-
-	if isCommandEnabled(cfg, "locks") {
-		RootCmd.AddCommand(lockCmd)
-	}
+	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
+	})
 }

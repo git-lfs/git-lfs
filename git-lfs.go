@@ -1,3 +1,5 @@
+//go:generate goversioninfo -icon=script/windows-installer/git-lfs-logo.ico
+
 package main
 
 import (
@@ -7,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/github/git-lfs/commands"
+	"github.com/git-lfs/git-lfs/commands"
 )
 
 func main() {

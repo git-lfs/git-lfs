@@ -9,15 +9,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/tools"
-	"github.com/github/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
-)
-
-const (
-	Version = "1.3.1"
 )
 
 var (
@@ -67,13 +63,16 @@ func ObjectExistsOfSize(oid string, size int64) bool {
 	return tools.FileExistsOfSize(path, size)
 }
 
-func Environ() []string {
+func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
-	dltransfers := transfer.GetDownloadAdapterNames()
+
+	dltransfers := manifest.GetDownloadAdapterNames()
 	sort.Strings(dltransfers)
-	ultransfers := transfer.GetUploadAdapterNames()
+	ultransfers := manifest.GetUploadAdapterNames()
 	sort.Strings(ultransfers)
+
+	fetchPruneConfig := cfg.FetchPruneConfig()
 
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),
@@ -82,35 +81,34 @@ func Environ() []string {
 		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
 		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
 		fmt.Sprintf("TempDir=%s", TempDir()),
-		fmt.Sprintf("ConcurrentTransfers=%d", config.Config.ConcurrentTransfers()),
-		fmt.Sprintf("TusTransfers=%v", config.Config.TusTransfersAllowed()),
-		fmt.Sprintf("BasicTransfersOnly=%v", config.Config.BasicTransfersOnly()),
-		fmt.Sprintf("BatchTransfer=%v", config.Config.BatchTransfer()),
-		fmt.Sprintf("SkipDownloadErrors=%v", config.Config.SkipDownloadErrors()),
-		fmt.Sprintf("FetchRecentAlways=%v", config.Config.FetchPruneConfig().FetchRecentAlways),
-		fmt.Sprintf("FetchRecentRefsDays=%d", config.Config.FetchPruneConfig().FetchRecentRefsDays),
-		fmt.Sprintf("FetchRecentCommitsDays=%d", config.Config.FetchPruneConfig().FetchRecentCommitsDays),
-		fmt.Sprintf("FetchRecentRefsIncludeRemotes=%v", config.Config.FetchPruneConfig().FetchRecentRefsIncludeRemotes),
-		fmt.Sprintf("PruneOffsetDays=%d", config.Config.FetchPruneConfig().PruneOffsetDays),
-		fmt.Sprintf("PruneVerifyRemoteAlways=%v", config.Config.FetchPruneConfig().PruneVerifyRemoteAlways),
-		fmt.Sprintf("PruneRemoteName=%s", config.Config.FetchPruneConfig().PruneRemoteName),
-		fmt.Sprintf("AccessDownload=%s", config.Config.Access("download")),
-		fmt.Sprintf("AccessUpload=%s", config.Config.Access("upload")),
+		fmt.Sprintf("ConcurrentTransfers=%d", cfg.ConcurrentTransfers()),
+		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
+		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
+		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),
+		fmt.Sprintf("FetchRecentAlways=%v", fetchPruneConfig.FetchRecentAlways),
+		fmt.Sprintf("FetchRecentRefsDays=%d", fetchPruneConfig.FetchRecentRefsDays),
+		fmt.Sprintf("FetchRecentCommitsDays=%d", fetchPruneConfig.FetchRecentCommitsDays),
+		fmt.Sprintf("FetchRecentRefsIncludeRemotes=%v", fetchPruneConfig.FetchRecentRefsIncludeRemotes),
+		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
+		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
+		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
+		fmt.Sprintf("AccessDownload=%s", cfg.Access("download")),
+		fmt.Sprintf("AccessUpload=%s", cfg.Access("upload")),
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
 		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
 	)
-	if len(config.Config.FetchExcludePaths()) > 0 {
-		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(config.Config.FetchExcludePaths(), ", ")))
+	if len(cfg.FetchExcludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(cfg.FetchExcludePaths(), ", ")))
 	}
-	if len(config.Config.FetchIncludePaths()) > 0 {
-		env = append(env, fmt.Sprintf("FetchInclude=%s", strings.Join(config.Config.FetchIncludePaths(), ", ")))
+	if len(cfg.FetchIncludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchInclude=%s", strings.Join(cfg.FetchIncludePaths(), ", ")))
 	}
-	for _, ext := range config.Config.Extensions() {
+	for _, ext := range cfg.Extensions() {
 		env = append(env, fmt.Sprintf("Extension[%d]=%s", ext.Priority, ext.Name))
 	}
 
 	for _, e := range osEnviron {
-		if !strings.Contains(e, "GIT_") {
+		if !strings.Contains(strings.SplitN(e, "=", 2)[0], "GIT_") {
 			continue
 		}
 		env = append(env, e)
@@ -137,8 +135,6 @@ func ScanObjectsChan() <-chan localstorage.Object {
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
-
-	localstorage.ResolveDirs()
 }
 
 const (

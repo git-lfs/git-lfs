@@ -3,7 +3,8 @@
 . "test/testlib.sh"
 
 ensure_git_version_isnt $VERSION_LOWER "2.5.0"
-envInitConfig='git config filter.lfs.smudge = "git-lfs smudge -- %f"
+envInitConfig='git config filter.lfs.process = "git-lfs filter-process"
+git config filter.lfs.smudge = "git-lfs smudge -- %f"
 git config filter.lfs.clean = "git-lfs clean -- %f"'
 
 begin_test "git worktree"
@@ -29,7 +30,6 @@ TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -65,7 +65,6 @@ TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename/
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7

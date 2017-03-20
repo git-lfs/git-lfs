@@ -1,6 +1,6 @@
-This project is licensed under the [MIT license](https://en.wikipedia.org/wiki/MIT_License). 
+MIT License
 
-Copyright (c) GitHub, Inc. and Git LFS contributors
+Copyright (c) 2014-2016 GitHub, Inc. and Git LFS contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

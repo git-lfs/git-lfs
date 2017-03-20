@@ -18,7 +18,7 @@ func (n *noNetrc) FindMachine(host string) *netrc.Machine {
 }
 
 func (c *Configuration) parseNetrc() (netrcfinder, error) {
-	home := c.Getenv("HOME")
+	home, _ := c.Os.Get("HOME")
 	if len(home) == 0 {
 		return &noNetrc{}, nil
 	}

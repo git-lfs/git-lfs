@@ -3,81 +3,117 @@ package commands
 import (
 	"fmt"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
 var (
-	statusCmd = &cobra.Command{
-		Use: "status",
-		Run: statusCommand,
-	}
 	porcelain = false
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
-	ref, err := git.CurrentRef()
-	if err != nil {
-		Panic(err, "Could not get the current ref")
-	}
+	// tolerate errors getting ref so this works before first commit
+	ref, _ := git.CurrentRef()
 
-	stagedPointers, err := lfs.ScanIndex()
-	if err != nil {
-		Panic(err, "Could not scan staging for Git LFS objects")
+	scanIndexAt := "HEAD"
+	if ref == nil {
+		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
 	if porcelain {
-		for _, p := range stagedPointers {
-			switch p.Status {
-			case "R", "C":
-				Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
-			case "M":
-				Print(" %s %s %d", p.Status, p.Name, p.Size)
-			default:
-				Print("%s  %s %d", p.Status, p.Name, p.Size)
-			}
-		}
+		porcelainStagedPointers(scanIndexAt)
 		return
 	}
 
-	Print("On branch %s", ref.Name)
-
-	remoteRef, err := git.CurrentRemoteRef()
-	if err == nil {
-
-		pointers, err := lfs.ScanRefs(ref.Sha, "^"+remoteRef.Sha, nil)
-		if err != nil {
-			Panic(err, "Could not scan for Git LFS objects")
-		}
-
-		Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-		for _, p := range pointers {
-			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
-		}
-	}
+	statusScanRefRange(ref)
 
 	Print("\nGit LFS objects to be committed:\n")
-	for _, p := range stagedPointers {
+
+	var unstagedPointers []*lfs.WrappedPointer
+	indexScanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			ExitWithError(err)
+			return
+		}
+
 		switch p.Status {
 		case "R", "C":
 			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
 		case "M":
+			unstagedPointers = append(unstagedPointers, p)
 		default:
 			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
 		}
+	})
+
+	if err := indexScanner.ScanIndex(scanIndexAt, nil); err != nil {
+		ExitWithError(err)
 	}
 
+	indexScanner.Close()
+
 	Print("\nGit LFS objects not staged for commit:\n")
-	for _, p := range stagedPointers {
+	for _, p := range unstagedPointers {
 		if p.Status == "M" {
 			Print("\t%s", p.Name)
 		}
 	}
 
 	Print("")
+}
+
+func statusScanRefRange(ref *git.Ref) {
+	if ref == nil {
+		return
+	}
+
+	Print("On branch %s", ref.Name)
+
+	remoteRef, err := git.CurrentRemoteRef()
+	if err != nil {
+		return
+	}
+
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS objects")
+			return
+		}
+
+		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+	})
+	defer gitscanner.Close()
+
+	Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
+	if err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha, nil); err != nil {
+		Panic(err, "Could not scan for Git LFS objects")
+	}
+
+}
+
+func porcelainStagedPointers(ref string) {
+	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			ExitWithError(err)
+		}
+
+		switch p.Status {
+		case "R", "C":
+			Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
+		case "M":
+			Print(" %s %s %d", p.Status, p.Name, p.Size)
+		default:
+			Print("%s  %s %d", p.Status, p.Name, p.Size)
+		}
+	})
+	defer gitscanner.Close()
+
+	if err := gitscanner.ScanIndex(ref, nil); err != nil {
+		ExitWithError(err)
+	}
 }
 
 var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}
@@ -101,6 +137,7 @@ func humanizeBytes(bytes int64) string {
 }
 
 func init() {
-	statusCmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
-	RootCmd.AddCommand(statusCmd)
+	RegisterCommand("status", statusCommand, func(cmd *cobra.Command) {
+		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
+	})
 }

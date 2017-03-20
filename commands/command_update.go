@@ -3,17 +3,12 @@ package commands
 import (
 	"regexp"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
 var (
-	updateCmd = &cobra.Command{
-		Use: "update",
-		Run: updateCommand,
-	}
-
 	updateForce  = false
 	updateManual = false
 )
@@ -21,10 +16,11 @@ var (
 // updateCommand is used for updating parts of Git LFS that reside under
 // .git/lfs.
 func updateCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
 	requireInRepo()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
-	for key, value := range cfg.AllGitConfig() {
+	for key, value := range cfg.Git.All() {
 		matches := lfsAccessRE.FindStringSubmatch(key)
 		if len(matches) < 2 {
 			continue
@@ -52,14 +48,15 @@ func updateCommand(cmd *cobra.Command, args []string) {
 			Error(err.Error())
 			Exit("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook.")
 		} else {
-			Print("Updated pre-push hook.")
+			Print("Updated git hooks.")
 		}
 	}
 
 }
 
 func init() {
-	updateCmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
-	updateCmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
-	RootCmd.AddCommand(updateCmd)
+	RegisterCommand("update", updateCommand, func(cmd *cobra.Command) {
+		cmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
+		cmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
+	})
 }

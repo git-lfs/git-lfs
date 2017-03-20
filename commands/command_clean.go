@@ -1,32 +1,29 @@
 package commands
 
 import (
+	"io"
 	"os"
 
-	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/spf13/cobra"
 )
 
-var (
-	cleanCmd = &cobra.Command{
-		Use: "clean",
-		Run: cleanCommand,
-	}
-)
-
-func cleanCommand(cmd *cobra.Command, args []string) {
-	requireStdin("This command should be run by the Git 'clean' filter")
-	lfs.InstallHooks(false)
-
-	var fileName string
+// clean cleans an object read from the given `io.Reader`, "from", and writes
+// out a corresponding pointer to the `io.Writer`, "to". If there were any
+// errors encountered along the way, they will be returned immediately if the
+// error is non-fatal, otherwise they will halt using the built in
+// `commands.Panic`.
+//
+// If the object read from "from" is _already_ a clean pointer, then it will be
+// written out verbatim to "to", without trying to make it a pointer again.
+func clean(to io.Writer, from io.Reader, fileName string) error {
 	var cb progress.CopyCallback
 	var file *os.File
 	var fileSize int64
-	if len(args) > 0 {
-		fileName = args[0]
 
+	if len(fileName) > 0 {
 		stat, err := os.Stat(fileName)
 		if err == nil && stat != nil {
 			fileSize = stat.Size()
@@ -41,7 +38,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	cleaned, err := lfs.PointerClean(os.Stdin, fileName, fileSize, cb)
+	cleaned, err := lfs.PointerClean(from, fileName, fileSize, cb)
 	if file != nil {
 		file.Close()
 	}
@@ -50,9 +47,13 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		defer cleaned.Teardown()
 	}
 
-	if errutil.IsCleanPointerError(err) {
-		os.Stdout.Write(errutil.ErrorGetContext(err, "bytes").([]byte))
-		return
+	if errors.IsCleanPointerError(err) {
+		// If the contents read from the working directory was _already_
+		// a pointer, we'll get a `CleanPointerError`, with the context
+		// containing the bytes that we should write back out to Git.
+
+		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
+		return err
 	}
 
 	if err != nil {
@@ -78,9 +79,24 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		Debug("Writing %s", mediafile)
 	}
 
-	lfs.EncodePointer(os.Stdout, cleaned.Pointer)
+	_, err = lfs.EncodePointer(to, cleaned.Pointer)
+	return err
+}
+
+func cleanCommand(cmd *cobra.Command, args []string) {
+	requireStdin("This command should be run by the Git 'clean' filter")
+	lfs.InstallHooks(false)
+
+	var fileName string
+	if len(args) > 0 {
+		fileName = args[0]
+	}
+
+	if err := clean(os.Stdout, os.Stdin, fileName); err != nil {
+		Error(err.Error())
+	}
 }
 
 func init() {
-	RootCmd.AddCommand(cleanCmd)
+	RegisterCommand("clean", cleanCommand, nil)
 }

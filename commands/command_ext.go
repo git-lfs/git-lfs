@@ -3,21 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/spf13/cobra"
-)
-
-var (
-	extCmd = &cobra.Command{
-		Use: "ext",
-		Run: extCommand,
-	}
-
-	extListCmd = &cobra.Command{
-		Use:   "list",
-		Short: "View details for specified extensions",
-		Run:   extListCommand,
-	}
 )
 
 func extCommand(cmd *cobra.Command, args []string) {
@@ -56,6 +43,7 @@ func printExt(ext config.Extension) {
 }
 
 func init() {
-	extCmd.AddCommand(extListCmd)
-	RootCmd.AddCommand(extCmd)
+	RegisterCommand("ext", extCommand, func(cmd *cobra.Command) {
+		cmd.AddCommand(NewCommand("list", extListCommand))
+	})
 }

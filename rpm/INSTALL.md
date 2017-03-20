@@ -67,7 +67,7 @@ as lfs/lfs.go is updated, build_rpms.bsh parses the version number using the
 pattern ```s|const Version = "\([0-9.]*\)"|\1|``` and updates
 SPECS/git-lfs.spec. The version number is then used to download:
 
-https://github.com/github/git-lfs/archive/v%{version}.tar.gz
+https://github.com/git-lfs/git-lfs/archive/v%{version}.tar.gz
 
 This way when a new version is archived, it will get downloaded and built
 against. When developing, it is advantageous to use the currently checked out

@@ -35,6 +35,8 @@ $distro_name_map = {
     el/7
     fedora/22
     fedora/23
+    fedora/24
+    fedora/25
   ),
   "debian/7" => %w(
     debian/wheezy

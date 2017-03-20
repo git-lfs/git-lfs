@@ -10,6 +10,8 @@ begin_test "push"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo
 
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
+
   git lfs track "*.dat"
   echo "push a" > a.dat
   git add .gitattributes a.dat
@@ -67,6 +69,7 @@ push_all_setup() {
   [ -d "push-all" ] && exit 0
 
   clone_repo "$reponame" "push-all"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
   git lfs track "*.dat"
 
   echo "[
@@ -114,6 +117,7 @@ push_all_setup() {
   git rev-parse HEAD > .git/refs/remotes/origin/HEAD
 
   setup_alternate_remote "$reponame-$suffix"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix").locksverify" true
 }
 
 begin_test "push --all (no ref args)"
@@ -132,7 +136,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  [ $(grep -c "(3 of 3 files)" push.log) -eq 2 ]
+  [ $(grep -c "(6 of 6 files)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -142,6 +146,8 @@ begin_test "push --all (no ref args)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
+
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -162,10 +168,9 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "(2 of 2 files, 1 skipped)" push.log
-  grep "(3 of 3 files)" push.log
-  [ $(grep -c "files)" push.log) -eq 1 ]
-  [ $(grep -c "skipped)" push.log) -eq 1 ]
+  grep "(5 of 5 files, 1 skipped)" push.log
+  [ $(grep -c "files" push.log) -eq 1 ]
+  [ $(grep -c "skipped" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -197,6 +202,7 @@ begin_test "push --all (1 ref arg)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -247,6 +253,7 @@ begin_test "push --all (multiple ref args)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -299,6 +306,7 @@ begin_test "push --all (ref with deleted files)"
 
   echo "push while missing old objects locally"
   setup_alternate_remote "$reponame-$suffix-2"
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame-$suffix-2").locksverify" true
   git lfs push --object-id origin $oid1
   assert_server_object "$reponame-$suffix-2" "$oid1"
   refute_server_object "$reponame-$suffix-2" "$oid2"
@@ -334,6 +342,8 @@ begin_test "push object id(s)"
   reponame="$(basename "$0" ".sh")"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo2
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
 
   git lfs track "*.dat"
   echo "push a" > a.dat
@@ -507,8 +517,38 @@ begin_test "push (retry with expired actions)"
 
   GIT_TRACE=1 git push origin master 2>&1 | tee push.log
 
-  [ "1" -eq "$(grep -c "expired, retrying..." push.log)" ]
+  [ "1" -eq "$(grep -c "enqueue retry" push.log)" ]
   grep "(1 of 1 files)" push.log
+)
+end_test
+
+begin_test "push to raw remote url"
+(
+  set -e
+
+  setup_remote_repo "push-raw"
+  mkdir push-raw
+  cd push-raw
+  git init
+
+  git lfs track "*.dat"
+
+  contents="raw"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "$contents" > raw.dat
+  git add raw.dat .gitattributes
+  git commit -m "add" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 raw.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  refute_server_object push-raw "$contents_oid"
+
+  git lfs push $GITSERVER/push-raw master
+
+  assert_server_object push-raw "$contents_oid"
 )
 end_test
 
@@ -540,5 +580,29 @@ begin_test "push (with invalid object size)"
   [ "0" -ne "$res" ]
 
   refute_server_object "$reponame" "$(calc_oid "$contents")"
+)
+end_test
+
+begin_test "push with deprecated _links"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-deprecated"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="send-deprecated-links"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
 )
 end_test

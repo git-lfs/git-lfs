@@ -55,9 +55,10 @@ begin_test "clone"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 110 ] 
-  [ $(wc -c < "file2.dat") -eq 75 ] 
-  [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ $(wc -c < "file1.dat") -eq 110 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 66 ]
+  [ ! -e "lfs" ]
   popd
   # Now check clone with implied dir
   rm -rf "$reponame"
@@ -70,9 +71,10 @@ begin_test "clone"
   # clone location should be implied
   [ -d "$reponame" ]
   pushd "$reponame"
-  [ $(wc -c < "file1.dat") -eq 110 ] 
-  [ $(wc -c < "file2.dat") -eq 75 ] 
-  [ $(wc -c < "file3.dat") -eq 66 ] 
+  [ $(wc -c < "file1.dat") -eq 110 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 66 ]
+  [ ! -e "lfs" ]
   popd
 
 )
@@ -125,19 +127,76 @@ begin_test "cloneSSL"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 100 ] 
-  [ $(wc -c < "file2.dat") -eq 75 ] 
-  [ $(wc -c < "file3.dat") -eq 30 ] 
+  [ $(wc -c < "file1.dat") -eq 100 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 30 ]
   popd
 
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
   git clone "$SSLGITSERVER/$reponame"
-
 )
 end_test
 
+begin_test "clone ClientCert"
+(
+  set -e
+  reponame="test-cloneClientCert"
+  setup_remote_repo "$reponame"
+  clone_repo_clientcert "$reponame" "$reponame"
+  if [ $(grep -c "client-cert-mac-openssl" clone_client_cert.log) -gt 0 ]; then
+    echo "Skipping due to SSL client cert bug in Git"
+    exit 0
+  fi
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":100},
+      {\"Filename\":\"file2.dat\",\"Size\":75}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":30}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now clone again with 'git lfs clone', test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="testcloneClietCert1"
+  git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Git LFS:" lfsclone.log
+  # should be no filter errors
+  [ ! $(grep "filter" lfsclone.log) ]
+  [ ! $(grep "error" lfsclone.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+  [ $(wc -c < "file1.dat") -eq 100 ]
+  [ $(wc -c < "file2.dat") -eq 75 ]
+  [ $(wc -c < "file3.dat") -eq 30 ]
+  popd
+
+
+  # Now check SSL clone with standard 'git clone' and smudge download
+  rm -rf "$reponame"
+  git clone "$CLIENTCERTGITSERVER/$reponame"
+
+)
+end_test
 
 begin_test "clone with flags"
 (
@@ -160,7 +219,7 @@ begin_test "clone with flags"
   },
   {
     \"CommitDate\":\"$(get_date -7d)\",
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"fileonbranch2.dat\",\"Size\":66}]
   },
@@ -215,7 +274,7 @@ begin_test "clone with flags"
 
   # specific test for --bare
   git lfs clone --bare "$GITSERVER/$reponame" "$newclonedir"
-  [ -d "$newclonedir/objects" ]  
+  [ -d "$newclonedir/objects" ]
 
   # short flags
   git lfs clone -l -v -n -s -b branch2 "$GITSERVER/$reponame" "$newclonedir"
@@ -238,16 +297,20 @@ begin_test "clone (with include/exclude args)"
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
   printf "$contents_a" > "a.dat"
+  printf "$contents_a" > "a-dupe.dat"
+  printf "$contents_a" > "dupe-a.dat"
 
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
   printf "$contents_b" > "b.dat"
 
-  git add a.dat b.dat .gitattributes
+  git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
-  grep "3 files changed" commit.log
+  grep "5 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 a-dupe.dat" commit.log
+  grep "create mode 100644 dupe-a.dat" commit.log
   grep "create mode 100644 b.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
@@ -258,10 +321,14 @@ begin_test "clone (with include/exclude args)"
   cd "$TRASHDIR"
 
   local_reponame="clone_with_includes"
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a.dat"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a*.dat"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
+  [ "a" = "$(cat a.dat)" ]
+  [ "a" = "$(cat a-dupe.dat)" ]
+  [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
+  [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
   popd
 
   local_reponame="clone_with_excludes"
@@ -269,6 +336,8 @@ begin_test "clone (with include/exclude args)"
   pushd "$local_reponame"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
+  [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
+  [ "b" = "$(cat b.dat)" ]
   popd
 )
 end_test
@@ -317,7 +386,18 @@ begin_test "clone (with .lfsconfig)"
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig"
   local_reponame="clone_with_config_include"
+  set +x
   git lfs clone "$GITSERVER/$reponame" "$local_reponame"
+  ok="$?"
+  set -x
+  if [ "0" -ne "$ok" ]; then
+    # TEMP: used to catch transient failure from above `clone` command, as in:
+    # https://github.com/git-lfs/git-lfs/pull/1782#issuecomment-267678319
+    echo >&2 "[!] \`git lfs clone $GITSERVER/$reponame $local_reponame\` failed"
+    git lfs logs last
+
+    exit 1
+  fi
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
@@ -385,7 +465,7 @@ begin_test "clone with submodules"
   contents_sub2="Inception. Now, before you bother telling me it's impossible..."
   contents_sub2_oid=$(calc_oid "$contents_sub2")
   printf "$contents_sub2" > "sub2.dat"
-  git add sub2.dat .gitattributes 
+  git add sub2.dat .gitattributes
   git commit -m "Nested submodule level 2"
   git push origin master
 
@@ -400,7 +480,7 @@ begin_test "clone with submodules"
   # add submodule2 as submodule of submodule1
   git submodule add "$GITSERVER/$submodname2" sub2
   git submodule update
-  git add sub2 sub1.dat .gitattributes 
+  git add sub2 sub1.dat .gitattributes
   git commit -m "Nested submodule level 1"
   git push origin master
 
@@ -415,7 +495,7 @@ begin_test "clone with submodules"
   # add submodule1 as submodule of root
   git submodule add "$GITSERVER/$submodname1" sub1
   git submodule update
-  git add sub1 root.dat .gitattributes 
+  git add sub1 root.dat .gitattributes
   git commit -m "Root repo"
   git push origin master
 
@@ -428,18 +508,56 @@ begin_test "clone with submodules"
   cd $local_reponame
   # check LFS store and working copy
   assert_local_object "$contents_root_oid" "${#contents_root}"
-  [ $(wc -c < "root.dat") -eq ${#contents_root} ] 
+  [ $(wc -c < "root.dat") -eq ${#contents_root} ]
   # and so on for nested subs
   cd sub1
   assert_local_object "$contents_sub1_oid" "${#contents_sub1}"
-  [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ] 
+  [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ]
   cd sub2
   assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
-  [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ] 
+  [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ]
 
 
   popd
 
 
+)
+end_test
+
+begin_test "clone in current directory"
+(
+  set -e
+
+  reponame="clone_in_current_dir"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" $reponame
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \*.dat" track.log
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+
+  printf "$contents" > a.dat
+
+  git add .gitattributes a.dat
+
+  git commit -m "initial commit" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  git push origin master 2>&1 | tee push.log
+
+  pushd $TRASHDIR
+    mkdir "$reponame-clone"
+    cd "$reponame-clone"
+
+    git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Git LFS"
+
+    assert_local_object "$contents_oid" 8
+    [ ! -f ./lfs ]
+  popd
 )
 end_test

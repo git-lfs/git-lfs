@@ -109,7 +109,62 @@ support:
 |10 |List current locks<ul><li>That the current user has</li><li>That anyone has</li><li>Potentially scoped to folder</li></ul>|`git lfs lock --list [paths...]`
 |11 |Reject a push containing a binary file currently locked by someone else|pre-receive hook on server, allow --force to override (i.e. existing parameter to git push)
 
-## Implementation details
+## Locking challenges
+
+### Making files read-only
+
+This is useful because it means it provides a reminder that the user should be
+locking the file before they start to edit it, to avoid the case of an unexpected
+merge later on. 
+
+I've done some tests with chmod and discovered:
+
+* Removing the write bit doesn't cause the file to be marked modified (good)
+* In most editors it either prevents saving or (in Apple tools) prompts to
+  'unlock'. The latter is slightly unhelpful
+* In terms of marking files that need locking, adding custom flags to
+  .gitattributes (like 'lock') seems to work; `git check-attr -a <file>`
+  correctly lists the custom attribute
+* Once a file is marked read-only however, `git checkout` replaces it without
+  prompting, with the write bit set
+* We can use the `post-checkout` hook to make files read-only, but we don't get
+  any file information, on refs. This means we'd have to scan the whole working
+  copy to figure out what we needed to mark read-only. To do this we'd have to
+  have the attribute information and all the current lock information. This
+  could be time consuming.
+  * A way to speed up the `post-checkout` would be to diff the pre- and post-ref
+    information that's provided and only check the files that changed. In the case
+    of single-file checkouts I'm not sure this is possible though.
+  * We could also feed either the diff or a file scan into `git check-attr --stdin`
+    in order to share the exe, or do our own attribute matching
+* It's not entirely clear yet how merge & rebase might operate. May also need
+  the `post-merge` hook
+* See contrib/hooks/setgitperms.perl for an example; so this isn't unprecedented
+
+#### Test cases for post-checkout
+
+* Checkout a branch
+  * Calls `post-checkout` with pre/post SHA and branch=1
+* Checkout a tag
+  * Calls `post-checkout` with pre/post SHA and branch=1 (even though it's a tag)
+* Checkout by commit SHA
+  * Calls `post-checkout` with pre/post SHA and branch=1 (even though it's a plain SHA)
+* Checkout named files (e.g. discard changes)
+  * Calls `post-checkout` with identical pre/post SHA (HEAD) and branch=0
+* Reset all files (discard all changes ie git reset --hard HEAD) 
+  * Doesn't call `post-checkout` - could restore write bit, but must have been
+    set anyway for file to be edited, so not a problem?
+* Reset a branch to a previous commit
+  * Doesn't call `post-checkout` - PROBLEM because can restore write bit & file
+    was not modified. BUT: rare & maybe liveable
+* Merge a branch with lockable file changes (non-conflicting)
+* Rebase a branch with lockable files (non-conflicting)
+* Merge conflicts - fix then commit
+* Rebase conflicts - fix then continue
+* 
+
+
+## Implementation details (Initial simple API-only pass)
 ### Types
 To make the implementing locking on the lfs-test-server as well as other servers
 in the future easier, it makes sense to create a `lock` package that can be

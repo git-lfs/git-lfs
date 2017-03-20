@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,13 +15,14 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/config"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 var (
-	BuildOS    = flag.String("os", "", "OS to target: darwin, freebsd, linux, windows")
+	BuildOS    = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
 	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
 	BuildAll   = flag.Bool("all", false, "Builds all architectures")
+	BuildDwarf = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
 	ShowHelp   = flag.Bool("help", false, "Shows help")
 	matrixKeys = map[string]string{
 		"darwin":  "Mac",
@@ -27,7 +31,7 @@ var (
 		"windows": "Windows",
 		"amd64":   "AMD64",
 	}
-	LdFlag string
+	LdFlags []string
 )
 
 func mainBuild() {
@@ -47,14 +51,19 @@ func mainBuild() {
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
 	if len(cmd) > 0 {
-		LdFlag = strings.TrimSpace("-X github.com/github/git-lfs/config.GitCommit=" + string(cmd))
+		LdFlags = append(LdFlags, "-X", strings.TrimSpace(
+			"github.com/git-lfs/git-lfs/config.GitCommit="+string(cmd),
+		))
+	}
+	if !*BuildDwarf {
+		LdFlags = append(LdFlags, "-s", "-w")
 	}
 
 	buildMatrix := make(map[string]Release)
 	errored := false
 
 	if *BuildAll {
-		for _, buildos := range []string{"linux", "darwin", "freebsd"} {
+		for _, buildos := range []string{"linux", "darwin", "freebsd", "windows"} {
 			for _, buildarch := range []string{"amd64", "386"} {
 				if err := build(buildos, buildarch, buildMatrix); err != nil {
 					errored = true
@@ -136,8 +145,8 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	args := make([]string, 1, 6)
 	args[0] = "build"
-	if len(LdFlag) > 0 {
-		args = append(args, "-ldflags", LdFlag)
+	if len(LdFlags) > 0 {
+		args = append(args, "-ldflags", strings.Join(LdFlags, " "))
 	}
 	args = append(args, "-o", bin, ".")
 
@@ -202,12 +211,14 @@ func unixInstaller(textfiles []string, buildos, buildarch, dir string, buildMatr
 	}
 
 	name := zipName(buildos, buildarch) + ".tar.gz"
-
-	addToMatrix(buildMatrix, buildos, buildarch, name)
-
 	cmd = exec.Command("tar", "czf", "../"+name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
-	return logAndRun(cmd)
+	if err := logAndRun(cmd); err != nil {
+		return nil
+	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+	return nil
 }
 
 func winInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
@@ -232,22 +243,45 @@ func winInstaller(textfiles []string, buildos, buildarch, dir string, buildMatri
 		return err
 	}
 
-	addToMatrix(buildMatrix, buildos, buildarch, name)
-
 	args := make([]string, len(matches)+2)
 	args[0] = "-j" // junk the zip paths
 	args[1] = full
 	copy(args[2:], matches)
 
 	cmd := exec.Command("zip", args...)
-	return logAndRun(cmd)
+	if err := logAndRun(cmd); err != nil {
+		return err
+	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+	return nil
 }
 
 func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string) {
 	buildMatrix[fmt.Sprintf("%s-%s", buildos, buildarch)] = Release{
 		Label:    releaseLabel(buildos, buildarch),
 		Filename: name,
+		SHA256:   hashRelease(name),
 	}
+}
+
+func hashRelease(name string) string {
+	full := filepath.Join("bin/releases", name)
+	file, err := os.Open(full)
+	if err != nil {
+		fmt.Printf("unable to open release %q: %+v\n", full, err)
+		os.Exit(1)
+	}
+
+	defer file.Close()
+
+	h := sha256.New()
+	if _, err = io.Copy(h, file); err != nil {
+		fmt.Printf("error reading release %q: %+v\n", full, err)
+		os.Exit(1)
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func logAndRun(cmd *exec.Cmd) error {

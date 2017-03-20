@@ -1,4 +1,4 @@
-package: github.com/github/git-lfs
+package: github.com/git-lfs/git-lfs
 import:
 - package: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -26,14 +26,13 @@ import:
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
 - package: github.com/ThomsonReutersEikon/go-ntlm
   version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
-  # go-ntlm includes a util/ directory, which was removed
   subpackages:
   - ntlm
-- package: github.com/technoweenie/go-contentaddressable
-  version: 38171def3cd15e3b76eb156219b3d48704643899
 - package: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - package: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - package: github.com/xeipuuv/gojsonschema
-  version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
+  version: 6b67b3fab74d992bd07f72550006ab2c6907c416
+- package: github.com/pkg/errors
+  version: 01fa4104b9c248c8945d14d9f128454d5b28d595

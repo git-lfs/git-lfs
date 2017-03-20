@@ -3,30 +3,31 @@ git-lfs-config(5) -- Configuration options for git-lfs
 
 ## CONFIGURATION FILES
 
-git-lfs uses the same configuration files as git-config(1) with the same
-precedence. Most options pertaining to git-lfs are contained in the `[lfs]`
-section, meaning they all named `lfs.foo` or similar, although occasionally an
-lfs option can be scoped inside the configuration for a remote.
+git-lfs reads its configuration from a file called `.lfsconfig` at the root of
+the repository. The `.lfsconfig` file uses the same format as `.gitconfig`.
+
+Additionally, all settings can be overridden by values returned by `git config -l`.
+This allows you to override settings like `lfs.url` in your local environment
+without having to modify the `.lfsconfig` file.
+
+Most options regarding git-lfs are contained in the `[lfs]` section, meaning
+they are all named `lfs.foo` or similar, although occasionally an lfs option can
+be scoped inside the configuration for a remote.
+
 
 ## LIST OF OPTIONS
 
 ### General settings
 
-* `lfs.url` / `<remote>.lfsurl`
+* `lfs.url` / `remote.<remote>.lfsurl`
 
   The url used to call the Git LFS remote API. Default blank (derive from clone
   URL).
 
-* `lfs.pushurl` / `<remote>.lfspushurl`
+* `lfs.pushurl` / `remote.<remote>.lfspushurl`
 
   The url used to call the Git LFS remote API when pushing. Default blank (derive
   from either LFS non-push urls or clone url).
-
-* `lfs.batch`
-
-  Whether to use the batch API instead of requesting objects individually.
-  Default true. This setting transitions clients from the legacy to the newer
-  batch API and will be gone in Git LFS v1.0.
 
 * `lfs.dialtimeout`
 
@@ -67,7 +68,7 @@ lfs option can be scoped inside the configuration for a remote.
 
   If set to true, this enables resumable uploads of LFS objects through the
   tus.io API. Once this feature is finalized, this setting will be removed,
-  and tus.io uploads will be available for all clients. 
+  and tus.io uploads will be available for all clients.
 
 * `lfs.customtransfer.<name>.path`
 
@@ -76,7 +77,7 @@ lfs option can be scoped inside the configuration for a remote.
   using any mechanism you like (rather than just HTTP). `path` should point to
   the process you wish to invoke. The protocol between the git-lfs client and
   the custom transfer process is documented at
-  https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md
+  https://github.com/git-lfs/git-lfs/blob/master/docs/custom-transfers.md
 
   <name> must be a unique identifier that the LFS server understands. When
   calling the LFS API the client will include a list of supported transfer
@@ -100,6 +101,21 @@ lfs option can be scoped inside the configuration for a remote.
 
   Specifies which direction the custom transfer process supports, either
   "download", "upload", or "both". The default if unspecified is "both".
+
+* `lfs.transfer.maxretries`
+
+  Specifies how many retries LFS will attempt per OID before marking the
+  transfer as failed. Must be an integer which is at least one. If the value is
+  not an integer, is less than one, or is not given, a value of eight will be
+  used instead.
+
+* `lfs.transfer.maxverifies`
+
+  Specifies how many verification requests LFS will attempt per OID before
+  marking the transfer as failed, if the object has a verification action
+  associated with it. Must be an integer which is at least one. If the value is
+  not an integer, is less than one, or is not given, a default value of three
+  will be used instead.
 
 ### Fetch settings
 
@@ -183,6 +199,24 @@ lfs option can be scoped inside the configuration for a remote.
   If set to "basic" then credentials will be requested before making batch
   requests to this url, otherwise a public request will initially be attempted.
 
+* `lfs.<url>.locksverify`
+
+  Determines whether locks are checked before Git pushes. This prevents you from
+  pushing changes to files that other users have locked. The Git LFS pre-push
+  hook varies its behavior based on the value of this config key.
+
+  * `null` - In the absence of a value, Git LFS will attempt the call, and warn
+  if it returns an error. If the response is valid, Git LFS will set the value
+  to `true`, and will halt the push if the user attempts to update a file locked
+  by another user. If the server returns a `501 Not Implemented` response, Git
+  LFS will set the value to `false.`
+  * `true` - Git LFS will attempt to verify locks, halting the Git push if there
+  are any server issues, or if the user attempts to update a file locked by
+  another user.
+  * `false` - Git LFS will completely skip the lock check in the pre-push hook.
+  You should set this if you're not using File Locking, or your Git server
+  verifies locked files on pushes automatically.
+
 * `lfs.skipdownloaderrors`
 
   Causes Git LFS not to abort the smudge filter when a download error is
@@ -196,6 +230,40 @@ lfs option can be scoped inside the configuration for a remote.
 
   You can also set the environment variable GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 to
   get the same effect.
+
+* `GIT_LFS_PROGRESS`
+
+  This environment variable causes Git LFS to emit progress updates to an
+  absolute file-path on disk when cleaning, smudging, or fetching.
+
+  Progress is reported periodically in the form of a new line being appended to
+  the end of the file. Each new line will take the following format:
+
+  `<direction> <current>/<total files> <downloaded>/<total> <name>`
+
+  Each field is described below:
+  * `direction`: The direction of transfer, either "checkout", "download", or
+    "upload".
+  * `current` The index of the currently transferring file.
+  * `total files` The estimated count of all files to be transferred.
+  * `downloaded` The number of bytes already downloaded.
+  * `total` The entire size of the file, in bytes.
+  * `name` The name of the file.
+
+* `GIT_LFS_SET_LOCKABLE_READONLY`
+  `lfs.setlockablereadonly`
+
+  These settings, the first an environment variable and the second a gitconfig
+  setting, control whether files marked as 'lockable' in `git lfs track` are
+  made read-only in the working copy when not locked by the current user.
+  The default is `true`; you can disable this behaviour and have all files
+  writeable by setting either variable to 0, 'no' or 'false'.
+
+## EXAMPLES
+
+*  Configure a custom LFS endpoint for your repository:
+
+  `git config -f .lfsconfig lfs.url https://lfs.example.com/foo/bar/info/lfs`
 
 ## SEE ALSO
 

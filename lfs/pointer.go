@@ -3,7 +3,6 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,8 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 var (
@@ -60,8 +60,8 @@ func NewPointerExtension(name string, priority int, oid string) *PointerExtensio
 	return &PointerExtension{name, priority, oid, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, cb progress.CopyCallback) error {
-	return PointerSmudge(writer, p, workingfile, download, cb)
+func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
+	return PointerSmudge(writer, p, workingfile, download, manifest, cb)
 }
 
 func (p *Pointer) Encode(writer io.Writer) (int, error) {
@@ -94,7 +94,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	if stat.Size() > blobSizeCutoff {
-		return nil, errutil.NewNotAPointerError(nil)
+		return nil, errors.NewNotAPointerError(errors.New("file size exceeds lfs pointer size cutoff"))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
@@ -104,26 +104,37 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 	return DecodePointer(f)
 }
 func DecodePointer(reader io.Reader) (*Pointer, error) {
-	_, p, err := DecodeFrom(reader)
+	p, _, err := DecodeFrom(reader)
 	return p, err
 }
 
-func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
+// DecodeFrom decodes an *lfs.Pointer from the given io.Reader, "reader".
+// If the pointer encoded in the reader could successfully be read and decoded,
+// it will be returned with a nil error.
+//
+// If the pointer could not be decoded, an io.Reader containing the entire
+// blob's data will be returned, along with a parse error.
+func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 	buf := make([]byte, blobSizeCutoff)
-	written, err := reader.Read(buf)
-	output := buf[0:written]
+	n, err := reader.Read(buf)
+	buf = buf[:n]
 
-	if err != nil {
-		return output, nil, err
+	var contents io.Reader = bytes.NewReader(buf)
+	if err != io.EOF {
+		contents = io.MultiReader(contents, reader)
 	}
 
-	p, err := decodeKV(bytes.TrimSpace(output))
-	return output, p, err
+	if err != nil && err != io.EOF {
+		return nil, contents, err
+	}
+
+	p, err := decodeKV(bytes.TrimSpace(buf))
+	return p, contents, err
 }
 
 func verifyVersion(version string) error {
 	if len(version) == 0 {
-		return errutil.NewNotAPointerError(errors.New("Missing version"))
+		return errors.NewNotAPointerError(errors.New("Missing version"))
 	}
 
 	for _, v := range v1Aliases {
@@ -138,8 +149,8 @@ func verifyVersion(version string) error {
 func decodeKV(data []byte) (*Pointer, error) {
 	kvps, exts, err := decodeKVData(data)
 	if err != nil {
-		if errutil.IsBadPointerKeyError(err) {
-			return nil, errutil.StandardizeBadPointerError(err)
+		if errors.IsBadPointerKeyError(err) {
+			return nil, errors.StandardizeBadPointerError(err)
 		}
 		return nil, err
 	}
@@ -233,7 +244,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 	kvps = make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		err = errutil.NewNotAPointerError(err)
+		err = errors.NewNotAPointerError(errors.New("invalid header"))
 		return
 	}
 
@@ -262,7 +273,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		if expected := pointerKeys[line]; key != expected {
 			if !extRE.Match([]byte(key)) {
-				err = errutil.NewBadPointerKeyError(expected, key)
+				err = errors.NewBadPointerKeyError(expected, key)
 				return
 			}
 			if exts == nil {

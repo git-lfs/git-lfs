@@ -1,5 +1,266 @@
 # Git LFS Changelog
 
+## 2.0.0 (1 March, 2017)
+
+Git LFS v2.0.0 brings a number of important bug fixes, some new features, and
+a lot of internal refactoring. It also completely removes old APIs that were
+deprecated in Git LFS v0.6.
+
+### Locking
+
+File Locking is a brand new feature that lets teams communicate when they are
+working on files that are difficult to merge. Users are not able to edit or push
+changes to any files that are locked by other users. While the feature has been
+in discussion for a year, we are releasing a basic Locking implementation to
+solicit feedback from the community.
+
+### Transfer Queue
+
+LFS 2.0 introduces a new Git Scanner, which walks a range of Git commits looking
+for LFS objects to transfer. The Git Scanner is now asynchronous, initiating
+large uploads or downloads in the Transfer Queue immediately once an LFS object
+is found. Previously, the Transfer Queue waited until all of the Git commits
+have been scanned before initiating the transfer. The Transfer Queue also
+automatically retries failed uploads and downloads more often.
+
+### Deprecations
+
+Git LFS v2.0.0 also drops support for the legacy API in v0.5.0. If you're still
+using LFS servers on the old API, you'll have to stick to v1.5.6.
+
+### Features
+
+* Mid-stage locking support #1769 (@sinbad)
+* Define lockable files, make read-only in working copy #1870 (@sinbad)
+* Check that files are not uncommitted before unlock #1896 (@sinbad)
+* Fix `lfs unlock --force` on a missing file #1927 (@technoweenie)
+* locking: teach pre-push hook to check for locks #1815 (@ttaylorr)
+* locking: add `--json` flag #1814 (@ttaylorr)
+* Implement local lock cache, support querying it #1760 (@sinbad)
+* support for client certificates pt 2 #1893 (@technoweenie)
+* Fix clash between progress meter and credential helper #1886 (@technoweenie)
+* Teach uninstall cmd about --local and --system #1887 (@technoweenie)
+* Add `--skip-repo` option to `git lfs install` & use in tests #1868 (@sinbad)
+* commands: convert push, pre-push to use async gitscanner #1812 (@ttaylorr)
+* tq: prioritize transferring retries before new items #1758 (@ttaylorr)
+
+### Bugs
+
+* ensure you're in the correct directory when installing #1793 (@technoweenie)
+* locking: make API requests relative to repository, not root #1818 (@ttaylorr)
+* Teach 'track' about CRLF #1914 (@technoweenie)
+* Teach 'track' how to handle empty lines in .gitattributes #1921 (@technoweenie)
+* Closing stdout pipe before function return #1861 (@monitorjbl)
+* Custom transfer terminate #1847 (@sinbad)
+* Fix Install in root problems #1727 (@technoweenie)
+* cat-file batch: read all of the bytes #1680 (@technoweenie)
+* Fixed file paths on cygwin. #1820, #1965 (@creste, @ttaylorr)
+* tq: decrement uploaded bytes in basic_upload before retry #1958 (@ttaylorr)
+* progress: fix never reading bytes with sufficiently small files #1955 (@ttaylorr)
+* tools: fix truncating string fields between balanced quotes in GIT_SSH_COMMAND #1962 (@ttaylorr)
+* commands/smudge: treat empty pointers as empty files #1954 (@ttaylorr)
+
+### Misc
+
+* all: build using Go 1.8 #1952 (@ttaylorr)
+* Embed the version information into the Windows executable #1689 (@sschuberth)
+* Add more meta-data to the Windows installer executable #1752 (@sschuberth)
+* docs/api: object size must be positive #1779 (@ttaylorr)
+* build: omit DWARF tables by default #1937 (@ttaylorr)
+* Add test to prove set operator [] works in filter matching #1768 (@sinbad)
+* test: add ntlm integration test #1840 (@technoweenie)
+* lfs/tq: completely remove legacy support #1686 (@ttaylorr)
+* remove deprecated features #1679 (@technoweenie)
+* remove legacy api support #1629 (@technoweenie)
+
+## 1.5.6 (16 February, 2017)
+
+## Bugs
+
+* Spool malformed pointers to avoid deadlock #1932 (@ttaylorr)
+
+## 1.5.5 (12 January, 2017)
+
+### Bugs
+
+* lfs: only buffer first 1k when creating a CleanPointerError #1856 (@ttaylorr)
+
+## 1.5.4 (27 December, 2016)
+
+### Bugs
+
+* progress: guard negative padding width, panic in `strings.Repeat` #1807 (@ttaylorr)
+* commands,lfs: handle malformed pointers #1805 (@ttaylorr)
+
+### Misc
+
+* script/packagecloud: release LFS on fedora/25 #1798 (@ttaylorr)
+* backport filepathfilter to v1.5.x #1782 (@technoweenie)
+
+## 1.5.3 (5 December, 2016)
+
+### Bugs
+
+* Support LFS installations at filesystem root #1732 (@technoweenie)
+* git: parse filter process header values containing '=' properly #1733 (@larsxschneider)
+* Fix SSH endpoint parsing #1738 (@technoweenie)
+
+### Misc
+
+* build: release on Go 1.7.4 #1741 (@ttaylorr)
+
+## 1.5.2 (22 November, 2016)
+
+### Features
+
+* Release LFS on Fedora 24 #1685 (@technoweenie)
+
+### Bugs
+
+* filter-process: fix reading 1024 byte files #1708 (@ttaylorr)
+* Support long paths on Windows #1705 (@technoweenie)
+
+### Misc
+
+* filter-process: exit with error if we detect an unknown command from Git #1707 (@ttaylorr)
+* vendor: remove contentaddressable lib #1706 (@technoweenie)
+
+## 1.5.1 (18 November, 2016)
+
+### Bugs
+
+* cat-file --batch parser errors on non-lfs git blobs #1680 (@technoweenie)
+
+## 1.5.0 (17 November, 2016)
+
+### Features
+
+* Filter Protocol Support #1617 (@ttaylorr, @larsxschneider)
+* Fast directory walk #1616 (@sinbad)
+* Allow usage of proxies even when contacting localhost #1605 (@chalstrick)
+
+### Bugs
+
+* start reading off the Watch() channel before sending any input #1671 (@technoweenie)
+* wait for remote ref commands to exit before returning #1656 (@jjgod, @technoweenie)
+
+### Misc
+
+* rewrite new catfilebatch implementation for upcoming gitscanner pkg #1650 (@technoweenie)
+* refactor testutils.FileInput so it's a little more clear #1666 (@technoweenie)
+* Update the lfs track docs #1642 (@technoweenie)
+* Pre push tracing #1638 (@technoweenie)
+* Remove `AllGitConfig()` #1634 (@technoweenie)
+* README: set minimal required Git version to 1.8.5 #1636 (@larsxschneider)
+* 'smudge --info' is deprecated in favor of 'ls-files' #1631 (@technoweenie)
+* travis-ci: test GitLFS with ancient Git version #1626 (@larsxschneider)
+
+## 1.4.4 (24 October, 2016)
+
+### Bugs
+
+* transfer: more descriptive "expired at" errors #1603 (@ttaylorr)
+* commands,lfs/tq: Only send unique OIDs to the Transfer Queue #1600 (@ttaylorr)
+* Expose the result message in case of an SSH authentication error #1599 (@sschuberth)
+
+### Misc
+
+* AppVeyor: Do not build branches with open pull requests #1594 (@sschuberth)
+* Update .mailmap #1593 (@dpursehouse)
+
+## 1.4.3 (17 October, 2016)
+
+### Bugs
+
+* lfs/tq: use extra arguments given to tracerx.Printf #1583 (@ttaylorr)
+* api: correctly print legacy API warning to Stderr #1582 (@ttaylorr)
+
+### Misc
+
+* Test storage retries #1585 (@ttaylorr)
+* Test legacy check retries behavior #1584 (@ttaylorr)
+* docs: Fix a link to the legacy API #1579 (@sschuberth)
+* Add a .mailmap file #1577 (@sschuberth)
+* Add a large wizard image to the Windows installer #1575 (@sschuberth)
+* Appveyor badge #1574 (@ttaylorr)
+
+## 1.4.2 (10 October, 2016)
+
+v1.4.2 brings a number of bug fixes and usability improvements to LFS. This
+release also adds support for multiple retries within the transfer queue, making
+transfers much more reliable. To enable this feature, see the documentation for
+`lfs.transfer.maxretries` in `git-lfs-config(5)`.
+
+We'd also like to extend a special thank-you to @sschuberth who undertook the
+process of making LFS's test run on Windows through AppVeyor. Now all pull
+requests run tests on macOS, Linux, and Windows.
+
+### Features
+
+* lfs: warn on usage of the legacy API #1564 (@ttaylorr)
+* use filepath.Clean() when comparing filenames to include/exclude patterns #1565 (@technoweenie)
+* lfs/transfer_queue: support multiple retries per object #1505, #1528, #1535, #1545 (@ttaylorr)
+* Automatically upgrade old filters instead of requiring —force #1497 (@sinbad)
+* Allow lfs.pushurl in .lfsconfig #1489 (@technoweenie)
+
+### Bugs
+
+* Use "sha256sum" on Windows  #1566 (@sschuberth)
+* git: ignore non-root wildcards #1563 (@ttaylorr)
+* Teach status to recognize multiple files with identical contents #1550 (@ttaylorr)
+* Status initial commit #1540 (@sinbad)
+* Make path comparison robust against Windows short / long path issues #1523 (@sschuberth)
+* Allow fetch to run without a remote configured #1507 (@sschuberth)
+
+### Misc
+
+* travis: run tests on Go 1.7.1 #1568 (@ttaylorr)
+* Enable running tests on AppVeyor CI #1567 (@sschuberth)
+* Travis: Only install git if not installed yet #1557 (@sschuberth)
+* Windows test framework fixes #1522 (@sschuberth)
+* Simplify getting the absolute Git root directory #1518 (@sschuberth)
+* Add icons to the Windows installer #1504 (@sschuberth)
+* docs/man: reference git-lfs-pointer(1) in clean documentation #1503 (@ttaylorr)
+* Make AppVeyor CI for Windows work again #1506 (@sschuberth)
+* commands: try out RegisterCommand() #1495 (@technoweenie)
+
+## 1.4.1 (26 August, 2016)
+
+### Features
+
+* retry if file download failed #1454 (@larsxschneider)
+* Support wrapped clone in current directory #1478 (@ttaylorr)
+
+### Misc
+
+* Test `RetriableReader` #1482 (@ttaylorr)
+
+## 1.4.0 (19 August, 2016)
+
+### Features
+
+* Install LFS at the system level when packaged #1460 (@javabrett)
+* Fetch remote urls #1451 (@technoweenie)
+* add object Authenticated property #1452 (@technoweenie)
+* add support for `url.*.insteadof` in git config #1117, #1443 (@artagnon, @technoweenie)
+
+### Bugs
+
+* fix --include bug when multiple files have same lfs content #1458 (@technoweenie)
+* check the git version is ok in some key commands #1461 (@technoweenie)
+* fix duplicate error reporting #1445, #1453 (@dpursehouse, @technoweenie)
+* transfer/custom: encode "event" as lowercase #1441 (@ttaylorr)
+
+### Misc
+
+* docs/man: note GIT_LFS_PROGRESS #1469 (@ttaylorr)
+* Reword the description of HTTP 509 status #1467 (@dpursehouse)
+* Update fetch include/exclude docs for pattern matching #1455 (@ralfthewise)
+* config-next: API changes to the `config` package #1425 (@ttaylorr)
+* errors-next: Contextualize error messages #1463 (@ttaylorr, @technoweenie)
+* scope commands to not leak instances of themselves #1434 (@technoweenie)
+* Transfer manifest #1430 (@technoweenie)
+
 ## 1.3.1 (2 August 2016)
 
 ### Features
@@ -23,7 +284,7 @@
 * Enhanced upload/download of LFS content: #1265 #1279 #1297 #1303 #1367 (@sinbad)
   * Resumable downloads using HTTP range headers
   * Resumable uploads using [tus.io protocol](http://tus.io)
-  * Pluggable [custom transfer adapters](https://github.com/github/git-lfs/blob/master/docs/custom-transfers.md)
+  * Pluggable [custom transfer adapters](https://github.com/git-lfs/git-lfs/blob/master/docs/custom-transfers.md)
 * In git 2.9+, run "git lfs pull" in submodules after "git lfs clone" #1373 (@sinbad)
 * cmd,doc,test: teach `git lfs track --{no-touch,verbose,dry-run}` #1344 (@ttaylorr)
 * ⏳ Retry transfers with expired actions #1350 (@ttaylorr)
@@ -223,9 +484,9 @@ are updated.
   * Add `--all` option for download all objects from the server. #633 (@sinbad)
 * Fix error handling while `git update-index` is running. #570 (@rubyist)
 
-See [git-lfs-fetch(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-fetch.1.ronn),
-[git-lfs-checkout(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-checkout.1.ronn),
-and [git-lfs-pull(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-pull.1.ronn)
+See [git-lfs-fetch(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-fetch.1.ronn),
+[git-lfs-checkout(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-checkout.1.ronn),
+and [git-lfs-pull(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-pull.1.ronn)
  for details.
 
 ### Push
@@ -237,7 +498,7 @@ and [git-lfs-pull(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git
 * Support pushing all objects to the server, regardless of the remote ref. #646 (@technoweenie)
 * Fix case where pre-push git hook exits with 0. #582 (@sinbad)
 
-See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-push.1.ronn) for details.
+See [git-lfs-push(1)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-push.1.ronn) for details.
 
 ### API Clients
 
@@ -262,7 +523,7 @@ See [git-lfs-push(1)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git
 
 ### Misc
 
-* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/github/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn). #610 (@sinbad)
+* Documented Git config values used by Git LFS in [git-lfs-config(5)](https://github.com/git-lfs/git-lfs/blob/v0.6.0/docs/man/git-lfs-config.5.ronn). #610 (@sinbad)
 * Experimental support for Git worktrees (in Git 2.5+) #546 (@sinbad)
 * Experimental extension support. #486 (@ryansimmen)
 

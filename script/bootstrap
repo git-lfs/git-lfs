@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 set -e
 
-# Only set GOPATH on non-Windows platforms as Windows can't do the symlinking
-# that we need.
-if [ -z "$GOPATH" ] && uname -s | grep -vq "_NT-"; then
+if uname -s | grep -q "_NT-"; then
+  # Tell Cygwin / MSYS to really create symbolic links.
+  export CYGWIN="$CYGWIN winsymlinks:nativestrict"
+  export MSYS="$MSYS winsymlinks:nativestrict"
+fi
+
+if [ -z "$GOPATH" ]; then
   export GOPATH="$(pwd)"
-  mkdir -p src/github.com/github
-  [ -h src/github.com/github/git-lfs ] ||
-    ln -s "$GOPATH" src/github.com/github/git-lfs
+  mkdir -p src/github.com/git-lfs
+  [ -h src/github.com/git-lfs/git-lfs ] ||
+    ln -s "$GOPATH" src/github.com/git-lfs/git-lfs
+fi
+
+if uname -s | grep -q "_NT-"; then
+  echo "Installing goversioninfo to embed resources into Windows executables..."
+  go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+  export PATH=$PATH:$GOPATH/bin/windows_386
+  echo "Creating the resource.syso version information file..."
+  go generate
 fi
 
 script/fmt

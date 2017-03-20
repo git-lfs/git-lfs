@@ -2,7 +2,8 @@
 
 . "test/testlib.sh"
 
-envInitConfig='git config filter.lfs.smudge = "git-lfs smudge -- %f"
+envInitConfig='git config filter.lfs.process = "git-lfs filter-process"
+git config filter.lfs.smudge = "git-lfs smudge -- %f"
 git config filter.lfs.clean = "git-lfs clean -- %f"'
 
 begin_test "env with no remote"
@@ -32,7 +33,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -83,7 +83,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -141,7 +140,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -197,7 +195,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -255,7 +252,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -314,7 +310,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -350,7 +345,6 @@ begin_test "env with multiple remotes and lfs url and batch configs"
   git remote add origin "$GITSERVER/env-origin-remote"
   git remote add other "$GITSERVER/env-other-remote"
   git config lfs.url "http://foo/bar"
-  git config lfs.batch false
   git config lfs.concurrenttransfers 5
   git config remote.origin.lfsurl "http://custom/origin"
   git config remote.other.lfsurl "http://custom/other"
@@ -375,7 +369,6 @@ TempDir=%s
 ConcurrentTransfers=5
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=false
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -442,68 +435,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
-SkipDownloadErrors=false
-FetchRecentAlways=false
-FetchRecentRefsDays=7
-FetchRecentCommitsDays=0
-FetchRecentRefsIncludeRemotes=true
-PruneOffsetDays=3
-PruneVerifyRemoteAlways=false
-PruneRemoteName=origin
-AccessDownload=none
-AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
-  contains_same_elements "$expected" "$actual"
-
-  mkdir a
-  cd a
-  actual2=$(git lfs env)
-  contains_same_elements "$expected" "$actual2"
-)
-end_test
-
-begin_test "env with .gitconfig"
-(
-  set -e
-  reponame="env-with-gitconfig"
-
-  git init $reponame
-  cd $reponame
-
-  git remote add origin "$GITSERVER/env-origin-remote"
-  echo '[remote "origin"]
-	lfsurl = http://foobar:8080/
-[lfs]
-     batch = false
-	concurrenttransfers = 5
-' > .gitconfig
-
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
-  expected=$(printf '%s
-%s
-
-Endpoint=http://foobar:8080/ (auth=none)
-LocalWorkingDir=%s
-LocalGitDir=%s
-LocalGitStorageDir=%s
-LocalMediaDir=%s
-LocalReferenceDir=
-TempDir=%s
-ConcurrentTransfers=3
-TusTransfers=false
-BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -557,7 +488,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -602,7 +532,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -616,8 +545,6 @@ AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
-git config filter.lfs.smudge = \"\"
-git config filter.lfs.clean = \"\"
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$envVars")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
   contains_same_elements "$expected5" "$actual5"
@@ -636,7 +563,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -669,7 +595,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -713,7 +638,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -748,7 +672,8 @@ begin_test "env with multiple ssh remotes"
   expected='Endpoint=https://git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=git@git-server.com:user/repo.git
 Endpoint (other)=https://other-git-server.com/user/repo.git/info/lfs (auth=none)
-  SSH=git@other-git-server.com:user/repo.git'
+  SSH=git@other-git-server.com:user/repo.git
+GIT_SSH=ssh-echo'
 
   contains_same_elements "$expected" "$(git lfs env | grep -e "Endpoint" -e "SSH=")"
 )
@@ -788,7 +713,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=true
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -821,7 +745,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=true
 FetchRecentAlways=false
 FetchRecentRefsDays=7
@@ -885,7 +808,6 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=true
 BasicTransfersOnly=false
-BatchTransfer=true
 SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7

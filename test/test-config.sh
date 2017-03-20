@@ -83,69 +83,55 @@ begin_test "extension config"
 )
 end_test
 
-begin_test "default config (with gitconfig)"
+begin_test "url alias config"
 (
   set -e
-  reponame="default-config-with-gitconfig"
-  mkdir $reponame
-  cd $reponame
+
+  mkdir url-alias
+  cd url-alias
+
   git init
-  git remote add origin "$GITSERVER/$reponame"
-  git lfs env | tee env.log
-  grep "Endpoint=$GITSERVER/$reponame.git/info/lfs (auth=none)" env.log
 
-  git config --file=.gitconfig lfs.url http://gitconfig-file
+  # When more than one insteadOf strings match a given URL, the longest match is used.
+  git config url."http://wrong-url/".insteadOf alias
+  git config url."http://actual-url/".insteadOf alias:
+  git config lfs.url alias:rest
   git lfs env | tee env.log
-  grep "Endpoint=http://gitconfig-file (auth=none)" env.log
-
-  git config lfs.url http://local-gitconfig
-  git lfs env | tee env.log
-  grep "Endpoint=http://local-gitconfig (auth=none)" env.log
+  grep "Endpoint=http://actual-url/rest (auth=none)" env.log
 )
 end_test
 
-begin_test "extension config (with gitconfig)"
+begin_test "ambiguous url alias"
 (
   set -e
 
-  git config --global lfs.extension.env-test.clean "env-test-clean"
-  git config --global lfs.extension.env-test.smudge "env-test-smudge"
-  git config --global lfs.extension.env-test.priority 0
+  mkdir url-alias-ambiguous
+  cd url-alias-ambiguous
 
-  reponame="extension-config-with-gitconfig"
-  mkdir $reponame
-  cd $reponame
   git init
 
-  expected0="Extension: env-test
-    clean = env-test-clean
-    smudge = env-test-smudge
-    priority = 0"
+  git config url."http://actual-url/".insteadOf alias:
+  git config url."http://dupe-url".insteadOf alias:
+  git config lfs.url alias:rest
+  git config -l | grep url
 
-  [ "$expected0" = "$(git lfs ext)" ]
+  git lfs env 2>&1 | tee env2.log
+  grep "WARNING: Multiple 'url.*.insteadof'" env2.log
+)
+end_test
 
-  # any git config takes precedence over .gitconfig
-  git config --global --unset lfs.extension.env-test.priority
+begin_test "url alias must be prefix"
+(
+  set -e
 
-  git config --file=.gitconfig lfs.extension.env-test.clean "file-env-test-clean"
-  git config --file=.gitconfig lfs.extension.env-test.smudge "file-env-test-smudge"
-  git config --file=.gitconfig lfs.extension.env-test.priority 1
-  cat .gitconfig
-  expected1="Extension: env-test
-    clean = env-test-clean
-    smudge = env-test-smudge
-    priority = 1"
+  mkdir url-alias-bad
+  cd url-alias-bad
 
-  [ "$expected1" = "$(GIT_TRACE=5 git lfs ext)" ]
+  git init
 
-  git config lfs.extension.env-test.clean "local-env-test-clean"
-  git config lfs.extension.env-test.smudge "local-env-test-smudge"
-  git config lfs.extension.env-test.priority 2
-  expected2="Extension: env-test
-    clean = local-env-test-clean
-    smudge = local-env-test-smudge
-    priority = 2"
-
-  [ "$expected2" = "$(git lfs ext)" ]
+  git config url."http://actual-url/".insteadOf alias:
+  git config lfs.url badalias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=badalias:rest (auth=none)" env.log
 )
 end_test

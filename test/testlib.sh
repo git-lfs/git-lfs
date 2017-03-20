@@ -59,6 +59,7 @@ fi
 
 GITSERVER=$(cat "$LFS_URL_FILE")
 SSLGITSERVER=$(cat "$LFS_SSL_URL_FILE")
+CLIENTCERTGITSERVER=$(cat "$LFS_CLIENT_CERT_URL_FILE")
 cd "$TRASHDIR"
 
 # Mark the beginning of a test. A subshell should immediately follow this
@@ -80,7 +81,7 @@ begin_test () {
 
     # enabling GIT_TRACE can cause Windows git to stall, esp with fd 5
     # other fd numbers like 8/9 don't stall but still don't work, so disable
-    if [ $IS_WINDOWS == "0" ]; then
+    if [ $IS_WINDOWS -eq 0 ]; then
       exec 5>"$trace"
       export GIT_TRACE=5
     fi
@@ -90,10 +91,6 @@ begin_test () {
     rm -rf "$TRASHDIR/home"
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
-
-    if [ "$OSXKEYFILE" ]; then
-      ln -s "$TESTHOME/Library" "$HOME"
-    fi
 
     # allow the subshell to exit non-zero without exiting this process
     set -x +e
@@ -118,7 +115,7 @@ end_test () {
             echo "-- stderr --"
             grep -v -e '^\+ end_test' -e '^+ set +x' <"$TRASHDIR/err" |
                 sed 's/^/    /'
-            if [ "$IS_WINDOWS" == "0" ]; then
+            if [ $IS_WINDOWS -eq 0 ]; then
                 echo "-- git trace --"
                 sed 's/^/   /' <"$TRASHDIR/trace"
             fi

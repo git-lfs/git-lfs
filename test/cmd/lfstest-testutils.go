@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/test"
+	"github.com/git-lfs/git-lfs/test"
 )
 
 type TestUtilRepoCallback struct{}

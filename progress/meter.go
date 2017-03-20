@@ -3,6 +3,7 @@ package progress
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,39 +33,97 @@ type ProgressMeter struct {
 	dryRun            bool
 }
 
-// NewProgressMeter creates a new ProgressMeter for the number and size of
-// files given.
-func NewProgressMeter(estFiles int, estBytes int64, dryRun bool, logPath string) *ProgressMeter {
-	logger, err := newProgressLogger(logPath)
-	if err != nil {
+type env interface {
+	Get(key string) (val string, ok bool)
+}
+
+type meterOption func(*ProgressMeter)
+
+// DryRun is an option for NewMeter() that determines whether updates should be
+// sent to stdout.
+func DryRun(dryRun bool) meterOption {
+	return func(m *ProgressMeter) {
+		m.dryRun = dryRun
+	}
+}
+
+// WithLogFile is an option for NewMeter() that sends updates to a text file.
+func WithLogFile(name string) meterOption {
+	printErr := func(err string) {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
-	return &ProgressMeter{
-		logger:         logger,
+	return func(m *ProgressMeter) {
+		if len(name) == 0 {
+			return
+		}
+
+		if !filepath.IsAbs(name) {
+			printErr("GIT_LFS_PROGRESS must be an absolute path")
+			return
+		}
+
+		cbDir := filepath.Dir(name)
+		if err := os.MkdirAll(cbDir, 0755); err != nil {
+			printErr(err.Error())
+			return
+		}
+
+		file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			printErr(err.Error())
+			return
+		}
+
+		m.logger.writeData = true
+		m.logger.log = file
+	}
+}
+
+// WithOSEnv is an option for NewMeter() that sends updates to the text file
+// path specified in the OS Env.
+func WithOSEnv(os env) meterOption {
+	name, _ := os.Get("GIT_LFS_PROGRESS")
+	return WithLogFile(name)
+}
+
+// NewMeter creates a new ProgressMeter.
+func NewMeter(options ...meterOption) *ProgressMeter {
+	m := &ProgressMeter{
+		logger:         &progressLogger{},
 		startTime:      time.Now(),
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		finished:       make(chan interface{}),
-		estimatedFiles: int32(estFiles),
-		estimatedBytes: estBytes,
-		dryRun:         dryRun,
 	}
+
+	for _, opt := range options {
+		opt(m)
+	}
+
+	return m
 }
 
+// Start begins sending status updates to the optional log file, and stdout.
 func (p *ProgressMeter) Start() {
-	if atomic.SwapInt32(&p.started, 1) == 0 {
+	if atomic.CompareAndSwapInt32(&p.started, 0, 1) {
 		go p.writer()
 	}
 }
 
-// Add tells the progress meter that a transferring file is being added to the
-// TransferQueue.
-func (p *ProgressMeter) Add(name string) {
-	idx := atomic.AddInt64(&p.transferringFiles, 1)
-	p.fileIndexMutex.Lock()
-	p.fileIndex[name] = idx
-	p.fileIndexMutex.Unlock()
+// Pause stops sending status updates temporarily, until Start() is called again.
+func (p *ProgressMeter) Pause() {
+	if atomic.CompareAndSwapInt32(&p.started, 1, 0) {
+		p.finished <- true
+	}
+}
+
+// Add tells the progress meter that a single file of the given size will
+// possibly be transferred. If a file doesn't need to be transferred for some
+// reason, be sure to call Skip(int64) with the same size.
+func (p *ProgressMeter) Add(size int64) {
+	atomic.AddInt32(&p.estimatedFiles, 1)
+	atomic.AddInt64(&p.estimatedBytes, size)
 }
 
 // Skip tells the progress meter that a file of size `size` is being skipped
@@ -75,7 +134,15 @@ func (p *ProgressMeter) Skip(size int64) {
 	// Reduce bytes and files so progress easier to parse
 	atomic.AddInt32(&p.estimatedFiles, -1)
 	atomic.AddInt64(&p.estimatedBytes, -size)
+}
 
+// StartTransfer tells the progress meter that a transferring file is being
+// added to the TransferQueue.
+func (p *ProgressMeter) StartTransfer(name string) {
+	idx := atomic.AddInt64(&p.transferringFiles, 1)
+	p.fileIndexMutex.Lock()
+	p.fileIndex[name] = idx
+	p.fileIndexMutex.Unlock()
 }
 
 // TransferBytes increments the number of bytes transferred
@@ -129,12 +196,6 @@ func (p *ProgressMeter) update() {
 		return
 	}
 
-	width := 80 // default to 80 chars wide if ts.GetSize() fails
-	size, err := ts.GetSize()
-	if err == nil {
-		width = size.Col()
-	}
-
 	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
 	// skipped counts only show when > 0
 
@@ -147,12 +208,7 @@ func (p *ProgressMeter) update() {
 		out += fmt.Sprintf(", %s skipped", formatBytes(p.skippedBytes))
 	}
 
-	padlen := width - len(out)
-	if 0 < padlen {
-		out += strings.Repeat(" ", padlen)
-	}
-
-	fmt.Fprintf(os.Stdout, out)
+	fmt.Fprintf(os.Stdout, pad(out))
 }
 
 func formatBytes(i int64) string {
@@ -168,4 +224,39 @@ func formatBytes(i int64) string {
 	}
 
 	return fmt.Sprintf("%d B", i)
+}
+
+const defaultWidth = 80
+
+// pad pads the given message to occupy the entire maximum width of the terminal
+// LFS is attached to. In doing so, this safeguards subsequent prints of shorter
+// messages from leaving stray characters from the previous message on the
+// screen by writing over them with whitespace padding.
+func pad(msg string) string {
+	width := defaultWidth
+	size, err := ts.GetSize()
+	if err == nil {
+		// If `ts.GetSize()` was successful, set the width to the number
+		// of columns present in the terminal LFS is attached to.
+		// Otherwise, fall-back to `defaultWidth`.
+		width = size.Col()
+	}
+
+	// Pad the string with whitespace so that printing at the start of the
+	// line removes all traces from the last print.removes all traces from
+	// the last print.
+	padding := strings.Repeat(" ", maxInt(0, width-len(msg)))
+
+	return msg + padding
+}
+
+// maxInt returns the greater of two `int`s, "a", or "b". This function
+// originally comes from `github.com/git-lfs/git-lfs/tools#MaxInt`, but would
+// introduce an import cycle if depended on directly.
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
 }

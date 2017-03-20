@@ -35,9 +35,9 @@ as a pull request that adds a markdown file to `docs/proposals` discussing the
 feature. This gives the community time to discuss it before a lot of code has
 been written. Roadmap items are linked to one or more Issue task lists ([example][roadmap-items]), with the `roadmap` label, that go into more detail.
 
-[chat]: https://gitter.im/github/git-lfs
+[chat]: https://gitter.im/git-lfs/git-lfs
 [roadmap]: ./ROADMAP.md
-[roadmap-items]: https://github.com/github/git-lfs/issues/490
+[roadmap-items]: https://github.com/git-lfs/git-lfs/issues/490
 
 The Git LFS teams mark issues and pull requests with the following labels:
 
@@ -78,7 +78,7 @@ them as separate pull requests.
 
 ### Prerequisites
 
-Git LFS depends on having a working Go 1.5+ environment, with your standard
+Git LFS depends on having a working Go 1.7.3+ environment, with your standard
 `$GOROOT` and `$GOPATH` environment variables set.
 
 On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
@@ -98,13 +98,13 @@ In order to run the RPM build `rpm/build_rpms.bsh` you will also need to:
 
 The easiest way to download Git LFS for making changes is `go get`:
 
-    $ go get github.com/github/git-lfs
+    $ go get github.com/git-lfs/git-lfs
 
 This clones the Git LFS repository to your `$GOPATH`. If you typically keep
 your projects in a specific directory, you can symlink it from `$GOPATH`:
 
     $ cd ~/path/to/your/projects
-    $ ln -s $GOPATH/src/github.com/github/git-lfs
+    $ ln -s $GOPATH/src/github.com/git-lfs/git-lfs
 
 From here, run `script/bootstrap` to build Git LFS in the `./bin` directory.
 Before submitting changes, be sure to run the Go tests and the shell integration
@@ -125,27 +125,30 @@ tests:
 
 If you are the current maintainer:
 
-* Create a [new draft Release](https://github.com/github/git-lfs/releases/new).
+* Create a [new draft Release](https://github.com/git-lfs/git-lfs/releases/new).
 List any changes with links to related PRs.
 * Make sure your local dependencies are up to date: `script/bootstrap`
 * Ensure that tests are green: `script/cibuild`
-* Bump the version in `lfs/lfs.go`, [like this](https://github.com/github/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
+* Bump the version in `lfs/lfs.go`, [like this](https://github.com/git-lfs/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
 * Add the new version to the top of CHANGELOG.md
 * Build for all platforms with `script/bootstrap -all` (you need Go setup for
 cross compiling with Mac, Linux, FreeBSD, and Windows support).
 * Test the command locally.  The compiled version will be in `bin/releases/{os}-{arch}/git-lfs-{version}/git-lfs`
-* Get the draft Release ID from the GitHub API: `curl -in https://api.github.com/repos/github/git-lfs/releases`
+* Get the draft Release ID from the GitHub API: `curl -in https://api.github.com/repos/git-lfs/git-lfs/releases`
 * Run `script/release -id {id}` to upload all of the compiled binaries to the
 release.
 * Publish the Release on GitHub.
-* Update [Git LFS website](https://github.com/github/git-lfs.github.com/blob/gh-pages/_config.yml#L4)
+* Update [Git LFS website](https://github.com/git-lfs/git-lfs.github.com/blob/gh-pages/_config.yml#L4)
 (release engineer access rights required).
 * Ping external teams on GitHub:
   * @github/desktop
 * Build packages:
   * rpm
   * apt
-* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/github/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566))
+* Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/git-lfs/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566))
+* Create release branch for bug fixes, such as `release-1.5`.
+* Increment version in `config/version.go` to the next expected version. If
+v1.5 just shipped, set the version in master to `1.6-pre`, for example.
 
 ## Resources
 
@@ -153,7 +156,7 @@ release.
 - [Using Pull Requests](https://help.github.com/articles/using-pull-requests/)
 - [GitHub Help](https://help.github.com)
 
-[fork]: https://github.com/github/git-lfs/fork
-[pr]: https://github.com/github/git-lfs/compare
+[fork]: https://github.com/git-lfs/git-lfs/fork
+[pr]: https://github.com/git-lfs/git-lfs/compare
 [style]: https://github.com/golang/go/wiki/CodeReviewComments
-[cla]: https://cla.github.com/github/git-lfs/accept
+[cla]: https://cla.github.com/git-lfs/git-lfs/accept

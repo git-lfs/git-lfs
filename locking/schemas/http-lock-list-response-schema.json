@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "title": "Git LFS HTTPS Lock List API Response",
+  "type": "object",
+  "properties": {
+    "locks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "locked_at": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "next_cursor": {
+      "type": "string"
+    }
+  },
+  "required": ["locks"]
+}

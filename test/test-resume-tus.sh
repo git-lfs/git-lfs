@@ -16,7 +16,7 @@ begin_test "tus-upload-uninterrupted"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
 
-  contents="jksgdfljkgsdlkjafg lsjdgf alkjgsd lkfjag sldjkgf alkjsgdflkjagsd kljfg asdjgf kalsd"
+  contents="send-verify-action"
   contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
@@ -46,15 +46,19 @@ begin_test "tus-upload-interrupted-resume"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \*.dat" track.log
 
+  contents_verify="send-verify-action"
+  contents_verify_oid="$(calc_oid "$contents_verify")"
+
   # this string announces to server that we want it to abort the download part
   # way, but reject the Range: header and fall back on re-downloading instead
   contents="234587134187634598o634857619384765b747qcvtuedvoaicwtvseudtvcoqi7280r7qvow4i7r8c46pr9q6v9pri6ioq2r8"
   contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
-  git add a.dat
+  printf "$contents_verify" > verify.dat
+  git add a.dat verify.dat
   git add .gitattributes
-  git commit -m "add a.dat" 2>&1 | tee commit.log
+  git commit -m "add a.dat, verify.dat" 2>&1 | tee commit.log
   GIT_TRACE=1 git push origin master 2>&1 | tee pushtus_resume.log
   # first attempt will start from the beginning
   grep "xfer: tus.io uploading" pushtus_resume.log
@@ -65,6 +69,7 @@ begin_test "tus-upload-interrupted-resume"
 
   # should have completed in the end
   assert_server_object "$reponame" "$contents_oid"
+  assert_server_object "$reponame" "$contents_verify_oid"
 
 )
 end_test

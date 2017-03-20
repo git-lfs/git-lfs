@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Builds git from a given git ref. Used for CircleCI OSX builds
+
+cd git-source
+git checkout "$1"
+make --jobs=2
+make install
+cd ..

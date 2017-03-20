@@ -5,16 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
 var (
-	prePushCmd = &cobra.Command{
-		Use: "pre-push",
-		Run: prePushCommand,
-	}
 	prePushDryRun       = false
 	prePushDeleteBranch = strings.Repeat("0", 40)
 )
@@ -47,20 +43,24 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	requireGitVersion()
+
 	// Remote is first arg
 	if err := git.ValidateRemote(args[0]); err != nil {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	cfg.CurrentRemote = args[0]
-	ctx := newUploadContext(prePushDryRun)
+	ctx := newUploadContext(args[0], prePushDryRun)
 
-	scanOpt := lfs.NewScanRefsOptions()
-	scanOpt.ScanMode = lfs.ScanLeftToRemoteMode
-	scanOpt.RemoteName = cfg.CurrentRemote
+	gitscanner, err := ctx.buildGitScanner()
+	if err != nil {
+		ExitWithError(err)
+	}
+	defer gitscanner.Close()
 
 	// We can be passed multiple lines of refs
 	scanner := bufio.NewScanner(os.Stdin)
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
@@ -68,18 +68,20 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		left, right := decodeRefs(line)
+		tracerx.Printf("pre-push: %s", line)
+
+		left, _ := decodeRefs(line)
 		if left == prePushDeleteBranch {
 			continue
 		}
 
-		pointers, err := lfs.ScanRefs(left, right, scanOpt)
-		if err != nil {
-			Panic(err, "Error scanning for Git LFS files")
+		if err := uploadLeftOrAll(gitscanner, ctx, left); err != nil {
+			Print("Error scanning for Git LFS files in %q", left)
+			ExitWithError(err)
 		}
-
-		upload(ctx, pointers)
 	}
+
+	ctx.Await()
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
@@ -100,6 +102,7 @@ func decodeRefs(input string) (string, string) {
 }
 
 func init() {
-	prePushCmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
-	RootCmd.AddCommand(prePushCmd)
+	RegisterCommand("pre-push", prePushCommand, func(cmd *cobra.Command) {
+		cmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
+	})
 }

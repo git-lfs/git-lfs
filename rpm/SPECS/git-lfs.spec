@@ -1,12 +1,12 @@
 Name:           git-lfs
-Version:        1.3.1
+Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
 Group:          Applications/Archiving
 License:        MIT
 URL:            https://git-lfs.github.com/
-Source0:        https://github.com/github/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
+Source0:        https://github.com/git-lfs/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  perl-Digest-SHA
 BuildRequires:  golang, tar, rubygem-ronn, which, git >= 1.8.2
@@ -25,15 +25,15 @@ Enterprise.
 %prep
 %setup -q -n %{name}-%{version}
 export GOPATH=`pwd`
-mkdir -p src/github.com/github
-ln -s $(pwd) src/github.com/github/%{name}
+mkdir -p src/github.com/git-lfs
+ln -s $(pwd) src/github.com/git-lfs/%{name}
 
 %build
 %if 0%{?rhel} == 5
   export CGO_ENABLED=0
 %endif
 
-pushd src/github.com/github/%{name}
+pushd src/github.com/git-lfs/%{name}
   %if %{_arch} == i386
     GOARCH=386 ./script/bootstrap
   %else
@@ -50,6 +50,12 @@ mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man5
 install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
+%post
+git lfs install --system
+
+%preun
+git lfs uninstall
+
 %check
 export GOPATH=`pwd`
 export GIT_LFS_TEST_DIR=$(mktemp -d)
@@ -59,8 +65,9 @@ export GIT_LFS_TEST_DIR=$(mktemp -d)
 # skip it.
 export SKIPAPITESTCOMPILE=1
 
-pushd src/github.com/github/%{name}
+pushd src/github.com/git-lfs/%{name}
   ./script/test
+  go get github.com/ThomsonReutersEikon/go-ntlm/ntlm
   ./script/integration
 popd
 

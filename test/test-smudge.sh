@@ -28,16 +28,6 @@ begin_test "smudge"
 )
 end_test
 
-begin_test "smudge --info"
-(
-  set -e
-
-  cd repo
-  output="$(pointer aaaaa15df7a9089a7aa7fe74139d4b8f7d62e52d5a34f9a87aeffc8e8c668254 123 | git lfs smudge --info)"
-  [ "123 --" = "$output" ]
-)
-end_test
-
 begin_test "smudge with temp file"
 (
   set -e
@@ -217,7 +207,7 @@ begin_test "smudge skip download failure"
 
   # this should fail
   set +e
-  echo "$pointer" | git lfs smudge a.dat; test ${PIPESTATUS[1]} -ne 0 
+  echo "$pointer" | git lfs smudge a.dat; test ${PIPESTATUS[1]} -ne 0
   set -e
 
   git config lfs.skipdownloaderrors true

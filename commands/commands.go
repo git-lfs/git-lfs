@@ -9,59 +9,187 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/github/git-lfs/api"
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/httputil"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/tools"
-	"github.com/spf13/cobra"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Populate man pages
 //go:generate go run ../docs/man/mangen.go
 
 var (
-	// API is a package-local instance of the API client for use within
-	// various command implementations.
-	API = api.NewClient(nil)
-
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
-	RootCmd      = &cobra.Command{
-		Use: "git-lfs",
-		Run: func(cmd *cobra.Command, args []string) {
-			versionCommand(cmd, args)
-			cmd.Usage()
-		},
-	}
-	ManPages = make(map[string]string, 20)
-	cfg      = config.Config
+	ManPages     = make(map[string]string, 20)
+	cfg          = config.Config
+
+	tqManifest *tq.Manifest
+	apiClient  *lfsapi.Client
+	global     sync.Mutex
 
 	includeArg string
 	excludeArg string
 )
 
+// getTransferManifest builds a tq.Manifest from the global os and git
+// environments.
+func getTransferManifest() *tq.Manifest {
+	c := getAPIClient()
+
+	global.Lock()
+	defer global.Unlock()
+
+	if tqManifest == nil {
+		tqManifest = tq.NewManifestWithClient(c)
+	}
+
+	return tqManifest
+}
+
+func getAPIClient() *lfsapi.Client {
+	global.Lock()
+	defer global.Unlock()
+
+	if apiClient == nil {
+		c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+		if err != nil {
+			ExitWithError(err)
+		}
+		apiClient = c
+	}
+	return apiClient
+}
+
+func newLockClient(remote string) *locking.Client {
+	lockClient, err := locking.NewClient(remote, getAPIClient())
+	if err == nil {
+		err = lockClient.SetupFileCache(filepath.Join(config.LocalGitStorageDir, "lfs"))
+	}
+
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+
+	// Configure dirs
+	lockClient.LocalWorkingDir = config.LocalWorkingDir
+	lockClient.LocalGitDir = config.LocalGitDir
+
+	return lockClient
+}
+
+// newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
+func newDownloadCheckQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	allOptions := make([]tq.Option, 0, len(options)+1)
+	allOptions = append(allOptions, options...)
+	allOptions = append(allOptions, tq.DryRun(true))
+	return newDownloadQueue(manifest, remote, allOptions...)
+}
+
+// newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
+func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Download, manifest, remote, options...)
+}
+
+// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
+}
+
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+	return filepathfilter.New(inc, exc)
+}
+
+func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64) {
+	path, _ = lfs.LocalMediaPath(p.Oid)
+
+	return p.Name, path, p.Oid, p.Size
+}
+
+func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
+	filename := p.Name
+	oid := p.Oid
+
+	localMediaPath, err := lfs.LocalMediaPath(oid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	if len(filename) > 0 {
+		if err = ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
+			return nil, err
+		}
+	}
+
+	return &tq.Transfer{
+		Name: filename,
+		Path: localMediaPath,
+		Oid:  oid,
+		Size: p.Size,
+	}, nil
+}
+
+// ensureFile makes sure that the cleanPath exists before pushing it.  If it
+// does not exist, it attempts to clean it by reading the file at smudgePath.
+func ensureFile(smudgePath, cleanPath string) error {
+	if _, err := os.Stat(cleanPath); err == nil {
+		return nil
+	}
+
+	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
+	file, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
+	if cleaned != nil {
+		cleaned.Teardown()
+	}
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {
-	line := format
-	if len(args) > 0 {
-		line = fmt.Sprintf(format, args...)
+	if len(args) == 0 {
+		fmt.Fprintln(ErrorWriter, format)
+		return
 	}
-	fmt.Fprintln(ErrorWriter, line)
+	fmt.Fprintf(ErrorWriter, format+"\n", args...)
 }
 
 // Print prints a formatted message to Stdout.  It also gets printed to the
 // panic log if one is created for this command.
 func Print(format string, args ...interface{}) {
-	line := fmt.Sprintf(format, args...)
-	fmt.Fprintln(OutputWriter, line)
+	if len(args) == 0 {
+		fmt.Fprintln(OutputWriter, format)
+		return
+	}
+	fmt.Fprintf(OutputWriter, format+"\n", args...)
 }
 
 // Exit prints a formatted message and exits.
@@ -70,15 +198,25 @@ func Exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
+// ExitWithError either panics with a full stack trace for fatal errors, or
+// simply prints the error message and exits immediately.
 func ExitWithError(err error) {
-	if Debugging || errutil.IsFatalError(err) {
-		Panic(err, err.Error())
-	} else {
-		if inner := errutil.GetInnerError(err); inner != nil {
-			Error(inner.Error())
-		}
-		Exit(err.Error())
+	errorWith(err, Panic, Exit)
+}
+
+// FullError prints either a full stack trace for fatal errors, or just the
+// error message.
+func FullError(err error) {
+	errorWith(err, LoggedError, Error)
+}
+
+func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
+	if Debugging || errors.IsFatalError(err) {
+		fatalErrFn(err, "%s", err)
+		return
 	}
+
+	errFn("%s", err)
 }
 
 // Debug prints a formatted message if debugging is enabled.  The formatted
@@ -90,10 +228,16 @@ func Debug(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-// LoggedError prints a formatted message to Stderr and writes a stack trace for
-// the error to a log file without exiting.
+// LoggedError prints the given message formatted with its arguments (if any) to
+// Stderr. If an empty string is passed as the "format" arguemnt, only the
+// standard error logging message will be printed, and the error's body will be
+// omitted.
+//
+// It also writes a stack trace for the error to a log file without exiting.
 func LoggedError(err error, format string, args ...interface{}) {
-	Error(format, args...)
+	if len(format) > 0 {
+		Error(format, args...)
+	}
 	file := handlePanic(err)
 
 	if len(file) > 0 {
@@ -106,11 +250,6 @@ func LoggedError(err error, format string, args ...interface{}) {
 func Panic(err error, format string, args ...interface{}) {
 	LoggedError(err, format, args...)
 	os.Exit(2)
-}
-
-func Run() {
-	RootCmd.Execute()
-	httputil.LogHttpStats(cfg)
 }
 
 func Cleanup() {
@@ -211,29 +350,21 @@ func logPanicToWriter(w io.Writer, loggedError error) {
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprintln(w)
 
-	fmt.Fprintln(w, loggedError.Error())
-
-	if err, ok := loggedError.(ErrorWithStack); ok {
-		fmt.Fprintln(w, err.InnerError())
-		for key, value := range err.Context() {
-			fmt.Fprintf(w, "%s=%s\n", key, value)
-		}
-		w.Write(err.Stack())
-	} else {
-		w.Write(errutil.Stack())
+	fmt.Fprintf(w, "%s\n", loggedError)
+	for _, stackline := range errors.StackTrace(loggedError) {
+		fmt.Fprintln(w, stackline)
 	}
+
+	for key, val := range errors.Context(err) {
+		fmt.Fprintf(w, "%s=%v\n", key, val)
+	}
+
 	fmt.Fprintln(w, "\nENV:")
 
 	// log the environment
-	for _, env := range lfs.Environ() {
+	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
 		fmt.Fprintln(w, env)
 	}
-}
-
-type ErrorWithStack interface {
-	Context() map[string]string
-	InnerError() string
-	Stack() []byte
 }
 
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
@@ -250,45 +381,25 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func printHelp(commandName string) {
-	if txt, ok := ManPages[commandName]; ok {
-		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(txt))
-	} else {
-		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
+func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
+	return progress.NewMeter(
+		progress.WithOSEnv(cfg.Os),
+		progress.DryRun(dryRun),
+	)
+}
+
+func requireGitVersion() {
+	minimumGit := "1.8.2"
+
+	if !git.Config.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := git.Config.Version()
+		if err != nil {
+			Exit("Error getting git version: %s", err)
+		}
+		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
-}
-
-// help is used for 'git-lfs help <command>'
-func help(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		printHelp("git-lfs")
-	} else {
-		printHelp(args[0])
-	}
-
-}
-
-// usage is used for 'git-lfs <command> --help' or when invoked manually
-func usage(cmd *cobra.Command) error {
-	printHelp(cmd.Name())
-	return nil
-}
-
-// isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
-// is "truthy" according to config.GetenvBool (see
-// github.com/github/git-lfs/config#Configuration.GetenvBool), returning false
-// by default if the enviornment variable is not specified.
-//
-// This function call should only guard commands that do not yet have stable
-// APIs or solid server implementations.
-func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
-	return cfg.GetenvBool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
 }
 
 func init() {
 	log.SetOutput(ErrorWriter)
-	// Set up help/usage funcs based on manpage text
-	RootCmd.SetHelpFunc(help)
-	RootCmd.SetHelpTemplate("{{.UsageString}}")
-	RootCmd.SetUsageFunc(usage)
 }

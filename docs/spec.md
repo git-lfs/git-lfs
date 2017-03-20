@@ -115,43 +115,6 @@ a pointer built by another tool.
     Pointers do not match
     ```
 
-## The Server
-
-Git LFS needs a URL endpoint to talk to a remote server.  A Git repository
-can have different Git LFS endpoints for different remotes.  Here is the list
-of rules that Git LFS uses to determine a repository's Git LFS server:
-
-1. The `lfs.url` string.
-2. The `remote.{name}.lfsurl` string.
-3. Append `/info/lfs` to the remote URL.  Only works with HTTPS URLs.
-
-Git LFS runs two `git config` commands to build up the list of values that it
-uses:
-
-1. `git config -l -f .lfsconfig` - This file is checked into the repository and
-can set defaults for every user that clones the repository. Note: Git LFS used
-".gitconfig" instead of ".lfsconfig" until Git LFS v1.1. Git LFS will continue
-to read ".gitconfig" if ".lfsconfig" does not exist until Git LFS v2.0.
-2. `git config -l` - A user's local git configuration can override any settings
-from `.gitconfig`.
-
-Here's a sample Git config file with the optional remote and Git LFS
-configuration options:
-
-```
-[core]
-  repositoryformatversion = 0
-[lfs]
-  url = "https://github.com/github/git-lfs.git/info/lfs"
-[remote "origin"]
-  url = https://github.com/github/git-lfs
-  fetch = +refs/heads/*:refs/remotes/origin/*
-  lfsurl = "https://github.com/github/git-lfs.git/info/lfs"
-```
-
-Git LFS uses `git credential` to fetch credentials for HTTPS requests.  Setup
-a credential cache helper to save passwords for future users.
-
 ## Intercepting Git
 
 Git LFS uses the `clean` and `smudge` filters to decide which files use it.  The

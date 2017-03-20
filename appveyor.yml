@@ -1,56 +1,37 @@
-version: 1.0.{build}
-init:
-- cmd: >-
-    set REPO_DIR=%cd%
+skip_branch_with_pr: true
 
-
-    mkdir %BASHROOT%
-
-    cd %BASHROOT%
-
-
-    curl -LOk https://github.com/git-for-windows/git/releases/download/v2.6.2.windows.1/PortableGit-2.6.2-64-bit.7z.exe
-
-
-    7z x PortableGit-2.6.2-64-bit.7z.exe > nul
-
-
-    mkdir c:\go15
-
-    cd \go15
-
-
-    curl -LO https://storage.googleapis.com/golang/go1.5.1.windows-amd64.zip
-
-    unzip -o go1.5.1.windows-amd64.zip > nul
-
-
-    set PATH=%BASHROOT%\bin;%GOROOT%\bin;%PATH%
-
-
-    cd %REPO_DIR%
 environment:
-  GOROOT: c:\go15\go
-  BASHROOT: c:\bash2
+  GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
+  MSYSTEM: MINGW64
+
+clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
+
 install:
-- cmd: 
+  - cinst InnoSetup -y
+  - refreshenv
+  - ps: |
+      echo "Go directories in machine PATH environment:"
+      [environment]::GetEnvironmentVariable("PATH","Machine").split(";") | Select-String -Pattern "\\go\\"
+      echo "Go directories in user PATH environment:"
+      [environment]::GetEnvironmentVariable("PATH","User").split(";") | Select-String -Pattern "\\go\\"
+      echo "Go directories in process PATH environment:"
+      [environment]::GetEnvironmentVariable("PATH","Process").split(";") | Select-String -Pattern "\\go\\"
+      echo "Go version information:"
+      go version
+
 build_script:
-- cmd: >-
-    mkdir src\github.com\github
+  - bash --login -c 'GOARCH=386 script/bootstrap'
+  - mv bin\git-lfs.exe git-lfs-x86.exe
+  - bash --login -c 'GOARCH=amd64 script/bootstrap'
+  - mv bin\git-lfs.exe git-lfs-x64.exe
 
+after_build:
+  - iscc script\windows-installer\inno-setup-git-lfs-installer.iss
 
-    mklink /J src\github.com\github\git-lfs .
+test_script:
+  - bash --login script/cibuild
 
-
-    set GOPATH=%CD%
-
-
-    go version
-
-
-    bash script\bootstrap
-
-
-    mv bin\git-lfs bin\git-lfs.exe
 artifacts:
-- path: bin\git-lfs.exe
+  - path: git-lfs-x86.exe
+  - path: git-lfs-x64.exe
+  - path: git-lfs-windows-*.exe

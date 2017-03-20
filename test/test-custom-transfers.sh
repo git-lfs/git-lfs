@@ -28,7 +28,7 @@ begin_test "custom-transfer-wrong-path"
   GIT_TRACE=1 git push origin master 2>&1 | tee pushcustom.log
   # use PIPESTATUS otherwise we get exit code from tee
   res=${PIPESTATUS[0]}
-  grep "xfer: Custom transfer adapter" pushcustom.log
+  grep "xfer: adapter \"testcustom\" Begin()" pushcustom.log
   grep "Failed to start custom transfer command" pushcustom.log
   if [ "$res" = "0" ]; then
     echo "Push should have failed because of an incorrect custom transfer path."
@@ -61,6 +61,7 @@ begin_test "custom-transfer-upload-download"
   {
     \"CommitDate\":\"$(get_date -10d)\",
     \"Files\":[
+      {\"Filename\":\"verify.dat\",\"Size\":18,\"Data\":\"send-verify-action\"},
       {\"Filename\":\"file1.dat\",\"Size\":1024},
       {\"Filename\":\"file2.dat\",\"Size\":750}]
   },
@@ -93,7 +94,7 @@ begin_test "custom-transfer-upload-download"
 
   grep "xfer: started custom adapter process" pushcustom.log
   grep "xfer\[lfstest-customadapter\]:" pushcustom.log
-  grep "11 of 11 files" pushcustom.log
+  grep "12 of 12 files" pushcustom.log
 
   rm -rf .git/lfs/objects
   GIT_TRACE=1 git lfs fetch --all  2>&1 | tee fetchcustom.log
@@ -101,9 +102,11 @@ begin_test "custom-transfer-upload-download"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-customadapter\]:" fetchcustom.log
-  grep "11 of 11 files" fetchcustom.log  
-  [ `find .git/lfs/objects -type f | wc -l` = 11 ]
+  grep "12 of 12 files" fetchcustom.log
 
+  grep "Terminating test custom adapter gracefully" fetchcustom.log
+
+  objectlist=`find .git/lfs/objects -type f`
+  [ "$(echo "$objectlist" | wc -l)" -eq 12 ]
 )
 end_test
-

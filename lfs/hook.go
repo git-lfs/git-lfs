@@ -8,9 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/errutil"
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
+)
+
+var (
+	// The basic hook which just calls 'git lfs TYPE'
+	hookBaseContent = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/{{Command}}.\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -20,6 +25,15 @@ type Hook struct {
 	Type         string
 	Contents     string
 	Upgradeables []string
+}
+
+// NewStandardHook creates a new hook using the template script calling 'git lfs theType'
+func NewStandardHook(theType string, upgradeables []string) *Hook {
+	return &Hook{
+		Type:         theType,
+		Contents:     strings.Replace(hookBaseContent, "{{Command}}", theType, -1),
+		Upgradeables: upgradeables,
+	}
 }
 
 func (h *Hook) Exists() bool {
@@ -39,7 +53,7 @@ func (h *Hook) Path() string {
 // greater than "2.9.0"), it will return that instead.
 func (h *Hook) Dir() string {
 	customHooksSupported := git.Config.IsGitVersionAtLeast("2.9.0")
-	if hp, ok := config.Config.GitConfig("core.hooksPath"); ok && customHooksSupported {
+	if hp, ok := config.Config.Git.Get("core.hooksPath"); ok && customHooksSupported {
 		return hp
 	}
 
@@ -90,7 +104,7 @@ func (h *Hook) Upgrade() error {
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
 	if !InRepo() {
-		return errutil.NewInvalidRepoError(nil)
+		return errors.New("Not in a git repository")
 	}
 
 	match, err := h.matchesCurrent()

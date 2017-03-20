@@ -6,16 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
-)
-
-var (
-	untrackCmd = &cobra.Command{
-		Use: "untrack",
-		Run: untrackCommand,
-	}
 )
 
 // untrackCommand takes a list of paths as an argument, and removes each path from the
@@ -82,5 +75,5 @@ func removePath(path string, args []string) bool {
 }
 
 func init() {
-	RootCmd.AddCommand(untrackCmd)
+	RegisterCommand("untrack", untrackCommand, nil)
 }

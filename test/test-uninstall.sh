@@ -6,25 +6,56 @@ begin_test "uninstall outside repository"
 (
   set -e
 
+  mkdir uninstall-test
+  cd uninstall-test
+
   smudge="$(git config filter.lfs.smudge)"
   clean="$(git config filter.lfs.clean)"
+  filter="$(git config filter.lfs.process)"
 
   printf "$smudge" | grep "git-lfs smudge"
   printf "$clean" | grep "git-lfs clean"
+  printf "$filter" | grep "git-lfs filter-process"
 
-  # uninstall multiple times to trigger https://github.com/github/git-lfs/issues/529
+  # uninstall multiple times to trigger https://github.com/git-lfs/git-lfs/issues/529
   git lfs uninstall
+
+  [ ! -e "lfs" ]
+
   git lfs install
   git lfs uninstall | tee uninstall.log
   grep "configuration has been removed" uninstall.log
 
   [ "" = "$(git config --global filter.lfs.smudge)" ]
   [ "" = "$(git config --global filter.lfs.clean)" ]
+  [ "" = "$(git config --global filter.lfs.process)" ]
 
   cat $HOME/.gitconfig
   [ "$(grep 'filter "lfs"' $HOME/.gitconfig -c)" = "0" ]
 )
 end_test
+
+begin_test "uninstall outside repository without access to .git/lfs"
+(
+  set -e
+
+  mkdir uninstall-no-lfs
+  cd uninstall-no-lfs
+
+  mkdir .git
+  touch .git/lfs
+  touch lfs
+
+  [ "" != "$(git config --global filter.lfs.smudge)" ]
+  [ "" != "$(git config --global filter.lfs.clean)" ]
+  [ "" != "$(git config --global filter.lfs.process)" ]
+
+  git lfs uninstall
+
+  [ "" = "$(git config --global filter.lfs.smudge)" ]
+  [ "" = "$(git config --global filter.lfs.clean)" ]
+  [ "" = "$(git config --global filter.lfs.process)" ]
+)
 
 begin_test "uninstall inside repository with default pre-push hook"
 (
@@ -41,6 +72,7 @@ begin_test "uninstall inside repository with default pre-push hook"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 
   git lfs uninstall
 
@@ -50,10 +82,11 @@ begin_test "uninstall inside repository with default pre-push hook"
   }
   [ "" = "$(git config filter.lfs.smudge)" ]
   [ "" = "$(git config filter.lfs.clean)" ]
+  [ "" = "$(git config filter.lfs.process)" ]
 )
 end_test
 
-begin_test "uninstall inside repository without git lfs pre-push hook"
+begin_test "uninstall inside repository without lfs pre-push hook"
 (
   set -e
 
@@ -70,12 +103,14 @@ begin_test "uninstall inside repository without git lfs pre-push hook"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 
   git lfs uninstall
 
   [ -f .git/hooks/pre-push ]
   [ "" = "$(git config filter.lfs.smudge)" ]
   [ "" = "$(git config filter.lfs.clean)" ]
+  [ "" = "$(git config filter.lfs.process)" ]
 )
 end_test
 
@@ -94,6 +129,7 @@ begin_test "uninstall hooks inside repository"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 
   git lfs uninstall hooks
 
@@ -104,5 +140,45 @@ begin_test "uninstall hooks inside repository"
 
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
+)
+end_test
+
+begin_test "uninstall --local"
+(
+  set -e
+
+  # old values that should be ignored by `uninstall --local`
+  git config --global filter.lfs.smudge "global smudge"
+  git config --global filter.lfs.clean "global clean"
+  git config --global filter.lfs.process "global filter"
+
+  reponame="$(basename "$0" ".sh")-local"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+  git lfs install --local
+
+  # local configs are correct
+  [ "git-lfs smudge -- %f" = "$(git config --local filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config --local filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config --local filter.lfs.process)" ]
+
+  # global configs
+  [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config --global filter.lfs.process)" ]
+
+  git lfs uninstall --local
+
+  # global configs
+  [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config --global filter.lfs.process)" ]
+
+  # local configs are empty
+  [ "" = "$(git config --local filter.lfs.smudge)" ]
+  [ "" = "$(git config --local filter.lfs.clean)" ]
+  [ "" = "$(git config --local filter.lfs.process)" ]
 )
 end_test

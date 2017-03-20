@@ -45,12 +45,8 @@ begin_test "batch error handling"
 
   refute_server_object "$reponame" "$contents_oid"
 
-  # Ensure batch transfer is turned on for this repo
-  git config --add --local lfs.batch true
-
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log
   grep "Unable to parse HTTP response" push.log
 )
 end_test
-

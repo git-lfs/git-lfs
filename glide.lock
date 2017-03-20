@@ -1,5 +1,5 @@
-hash: 275cba8ff30fe108a79618e8ad803f600136572260dc78a7d879bd248b3bdbdb
-updated: 2016-05-25T10:47:36.829238548-06:00
+hash: 53affc5afb75c731ebb7be5683c55d635afefd093f90015ae2c62ea88130a4cc
+updated: 2017-02-13T11:32:39.724259135-07:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -17,6 +17,8 @@ imports:
   version: 6807e777504f54ad073ecef66747de158294b639
 - name: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
+- name: github.com/pkg/errors
+  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
 - name: github.com/rubyist/tracerx
   version: d7bcc0bc315bed2a841841bee5dbecc8d7d7582f
 - name: github.com/spf13/cobra
@@ -25,16 +27,26 @@ imports:
   version: 580b9be06c33d8ba9dcc8757ea56b7642472c2f5
 - name: github.com/stretchr/testify
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
-- name: github.com/technoweenie/go-contentaddressable
-  version: 38171def3cd15e3b76eb156219b3d48704643899
+  subpackages:
+  - assert
+  - require
 - name: github.com/ThomsonReutersEikon/go-ntlm
   version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
   subpackages:
   - ntlm
+  - ntlm/md4
 - name: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - name: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
-  version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
-devImports: []
+  version: 6b67b3fab74d992bd07f72550006ab2c6907c416
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib

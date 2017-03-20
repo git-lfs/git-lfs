@@ -8,14 +8,18 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/github/git-lfs/subprocess"
+	lfserrors "github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -28,6 +32,10 @@ const (
 	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
+
+	// A ref which can be used as a placeholder for before the first commit
+	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
+	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
 // A git reference (branch, tag etc)
@@ -65,7 +73,7 @@ func LsRemote(remote, remoteRef string) (string, error) {
 func ResolveRef(ref string) (*Ref, error) {
 	outp, err := subprocess.SimpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
 	}
 	if outp == "" {
 		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
@@ -233,7 +241,37 @@ func ValidateRemote(remote string) error {
 			return nil
 		}
 	}
-	return errors.New("Invalid remote name")
+
+	if err = ValidateRemoteURL(remote); err == nil {
+		return nil
+	}
+
+	return fmt.Errorf("Invalid remote name: %q", remote)
+}
+
+// ValidateRemoteURL checks that a string is a valid Git remote URL
+func ValidateRemoteURL(remote string) error {
+	u, err := url.Parse(remote)
+	if err != nil {
+		return err
+	}
+
+	switch u.Scheme {
+	case "ssh", "http", "https", "git":
+		return nil
+	case "":
+		// This is either an invalid remote name (maybe the user made a typo
+		// when selecting a named remote) or a bare SSH URL like
+		// "x@y.com:path/to/resource.git". Guess that this is a URL in the latter
+		// form if the string contains a colon ":", and an invalid remote if it
+		// does not.
+		if strings.Contains(remote, ":") {
+			return nil
+		}
+		return fmt.Errorf("Invalid remote name: %q", remote)
+	default:
+		return fmt.Errorf("Invalid remote url protocol %q in %q", u.Scheme, remote)
+	}
 }
 
 // DefaultRemote returns the default remote based on:
@@ -275,6 +313,8 @@ func UpdateIndex(file string) error {
 }
 
 type gitConfig struct {
+	gitVersion string
+	mu         sync.Mutex
 }
 
 var Config = &gitConfig{}
@@ -285,9 +325,15 @@ func (c *gitConfig) Find(val string) string {
 	return output
 }
 
-// Find returns the git config value for the key
+// FindGlobal returns the git config value global scope for the key
 func (c *gitConfig) FindGlobal(val string) string {
 	output, _ := subprocess.SimpleExec("git", "config", "--global", val)
+	return output
+}
+
+// FindSystem returns the git config value in system scope for the key
+func (c *gitConfig) FindSystem(val string) string {
+	output, _ := subprocess.SimpleExec("git", "config", "--system", val)
 	return output
 }
 
@@ -298,39 +344,60 @@ func (c *gitConfig) FindLocal(val string) string {
 }
 
 // SetGlobal sets the git config value for the key in the global config
-func (c *gitConfig) SetGlobal(key, val string) {
-	subprocess.SimpleExec("git", "config", "--global", key, val)
+func (c *gitConfig) SetGlobal(key, val string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", key, val)
+}
+
+// SetSystem sets the git config value for the key in the system config
+func (c *gitConfig) SetSystem(key, val string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
-func (c *gitConfig) UnsetGlobal(key string) {
-	subprocess.SimpleExec("git", "config", "--global", "--unset", key)
+func (c *gitConfig) UnsetGlobal(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", "--unset", key)
 }
 
-func (c *gitConfig) UnsetGlobalSection(key string) {
-	subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
+// UnsetSystem removes the git config value for the key from the system config
+func (c *gitConfig) UnsetSystem(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", "--unset", key)
+}
+
+// UnsetGlobalSection removes the entire named section from the global config
+func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
+}
+
+// UnsetSystemSection removes the entire named section from the system config
+func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
+}
+
+// UnsetLocalSection removes the entire named section from the system config
+func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
+	return subprocess.SimpleExec("git", "config", "--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
-func (c *gitConfig) SetLocal(file, key, val string) {
+func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
 	args := make([]string, 1, 5)
 	args[0] = "config"
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
 	args = append(args, key, val)
-	subprocess.SimpleExec("git", args...)
+	return subprocess.SimpleExec("git", args...)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
-func (c *gitConfig) UnsetLocalKey(file, key string) {
+func (c *gitConfig) UnsetLocalKey(file, key string) (string, error) {
 	args := make([]string, 1, 5)
 	args[0] = "config"
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
 	args = append(args, "--unset", key)
-	subprocess.SimpleExec("git", args...)
+	return subprocess.SimpleExec("git", args...)
 }
 
 // List lists all of the git config values
@@ -345,7 +412,18 @@ func (c *gitConfig) ListFromFile(f string) (string, error) {
 
 // Version returns the git version
 func (c *gitConfig) Version() (string, error) {
-	return subprocess.SimpleExec("git", "version")
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if len(c.gitVersion) == 0 {
+		v, err := subprocess.SimpleExec("git", "version")
+		if err != nil {
+			return v, err
+		}
+		c.gitVersion = v
+	}
+
+	return c.gitVersion, nil
 }
 
 // IsVersionAtLeast returns whether the git version is the one specified or higher
@@ -516,6 +594,10 @@ func GitAndRootDirs() (string, string, error) {
 	paths := strings.Split(output, "\n")
 	pathLen := len(paths)
 
+	for i := 0; i < pathLen; i++ {
+		paths[i], err = tools.TranslateCygwinPath(paths[i])
+	}
+
 	if pathLen == 0 {
 		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
 	}
@@ -529,11 +611,7 @@ func GitAndRootDirs() (string, string, error) {
 		return absGitDir, "", nil
 	}
 
-	absRootDir, err := filepath.Abs(paths[1])
-	if err != nil {
-		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[1], err)
-	}
-
+	absRootDir := paths[1]
 	return absGitDir, absRootDir, nil
 }
 
@@ -545,6 +623,7 @@ func RootDir() (string, error) {
 	}
 
 	path := strings.TrimSpace(string(out))
+	path, err = tools.TranslateCygwinPath(path)
 	if len(path) > 0 {
 		return filepath.Abs(path)
 	}
@@ -742,6 +821,7 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	// with --skip-smudge is costly across many files in a checkout
 	cmdargs := []string{
 		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
+		"-c", "filter.lfs.process=",
 		"-c", "filter.lfs.required=false",
 		"clone"}
 
@@ -844,7 +924,6 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 // CachedRemoteRefs returns the list of branches & tags for a remote which are
 // currently cached locally. No remote request is made to verify them.
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
-
 	var ret []*Ref
 	cmd := subprocess.ExecCommand("git", "show-ref")
 
@@ -868,13 +947,12 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 		}
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 }
 
 // RemoteRefs returns a list of branches & tags for a remote by actually
 // accessing the remote vir git ls-remote
 func RemoteRefs(remoteName string) ([]*Ref, error) {
-
 	var ret []*Ref
 	cmd := subprocess.ExecCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
 
@@ -902,7 +980,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 			}
 		}
 	}
-	return ret, nil
+	return ret, cmd.Wait()
 }
 
 // GetTrackedFiles returns a list of files which are tracked in Git which match
@@ -911,7 +989,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // the root of the repository
 func GetTrackedFiles(pattern string) ([]string, error) {
 	safePattern := sanitizePattern(pattern)
-	sanitized := len(safePattern) < len(pattern)
+	rootWildcard := len(safePattern) < len(pattern) && strings.ContainsRune(safePattern, '*')
 
 	var ret []string
 	cmd := subprocess.ExecCommand("git",
@@ -930,16 +1008,18 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// If the given pattern was sanitized, then skip all files which
-		// are not direct cendantsof the repository's root.
-		if sanitized && filepath.Dir(line) != "." {
+		// If the given pattern is a root wildcard, skip all files which
+		// are not direct descendants of the repository's root.
+		//
+		// This matches the behavior of how .gitattributes performs
+		// filename matches.
+		if rootWildcard && filepath.Dir(line) != "." {
 			continue
 		}
 
 		ret = append(ret, strings.TrimSpace(line))
 	}
 	return ret, cmd.Wait()
-
 }
 
 func sanitizePattern(pattern string) string {
@@ -948,4 +1028,85 @@ func sanitizePattern(pattern string) string {
 	}
 
 	return pattern
+}
+
+// GetFilesChanged returns a list of files which were changed, either between 2
+// commits, or at a single commit if you only supply one argument and a blank
+// string for the other
+func GetFilesChanged(from, to string) ([]string, error) {
+	var files []string
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"diff-tree",
+		"--no-commit-id",
+		"--name-only",
+		"-r",
+	}
+
+	if len(from) > 0 {
+		args = append(args, from)
+	}
+	if len(to) > 0 {
+		args = append(args, to)
+	}
+	args = append(args, "--") // no ambiguous patterns
+
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git diff: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("Failed to start git diff: %v", err)
+	}
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		files = append(files, strings.TrimSpace(scanner.Text()))
+	}
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("Git diff failed: %v", err)
+	}
+
+	return files, err
+}
+
+// IsFileModified returns whether the filepath specified is modified according
+// to `git status`. A file is modified if it has uncommitted changes in the
+// working copy or the index. This includes being untracked.
+func IsFileModified(filepath string) (bool, error) {
+
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"status",
+		"--porcelain",
+		"--", // separator in case filename ambiguous
+		filepath,
+	}
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, lfserrors.Wrap(err, "Failed to call git status")
+	}
+	if err := cmd.Start(); err != nil {
+		return false, lfserrors.Wrap(err, "Failed to start git status")
+	}
+	matched := false
+	for scanner := bufio.NewScanner(outp); scanner.Scan(); {
+		line := scanner.Text()
+		// Porcelain format is "<I><W> <filename>"
+		// Where <I> = index status, <W> = working copy status
+		if len(line) > 3 {
+			// Double-check even though should be only match
+			if strings.TrimSpace(line[3:]) == filepath {
+				matched = true
+				// keep consuming output to exit cleanly
+				// will typically fall straight through anyway due to 1 line output
+			}
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		return false, lfserrors.Wrap(err, "Git status failed")
+	}
+
+	return matched, nil
 }

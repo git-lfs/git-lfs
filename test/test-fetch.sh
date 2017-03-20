@@ -503,6 +503,29 @@ begin_test "fetch --prune"
 )
 end_test
 
+begin_test "fetch raw remote url"
+(
+  set -e
+  mkdir raw
+  cd raw
+  git init
+  git lfs install --local --skip-smudge
+
+  git remote add origin $GITSERVER/test-fetch
+  git pull origin master
+
+  # LFS object not downloaded, pointer in working directory
+  refute_local_object "$contents_oid"
+  grep "$content_oid" a.dat
+
+  git lfs fetch "$GITSERVER/test-fetch"
+
+  # LFS object downloaded, pointer still in working directory
+  assert_local_object "$contents_oid" 1
+  grep "$content_oid" a.dat
+)
+end_test
+
 begin_test "fetch with invalid remote"
 (
   set -e

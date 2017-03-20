@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -18,10 +18,6 @@ var (
 	pointerFile    string
 	pointerCompare string
 	pointerStdin   bool
-	pointerCmd     = &cobra.Command{
-		Use: "pointer",
-		Run: pointerCommand,
-	}
 )
 
 func pointerCommand(cmd *cobra.Command, args []string) {
@@ -133,9 +129,9 @@ func gitHashObject(by []byte) string {
 }
 
 func init() {
-	flags := pointerCmd.Flags()
-	flags.StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
-	flags.StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
-	flags.BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
-	RootCmd.AddCommand(pointerCmd)
+	RegisterCommand("pointer", pointerCommand, func(cmd *cobra.Command) {
+		cmd.Flags().StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
+		cmd.Flags().StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
+		cmd.Flags().BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
+	})
 }

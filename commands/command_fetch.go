@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
-	"github.com/github/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
 var (
-	fetchCmd = &cobra.Command{
-		Use: "fetch",
-		Run: fetchCommand,
-	}
 	fetchRecentArg bool
 	fetchAllArg    bool
 	fetchPruneArg  bool
@@ -46,12 +44,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 		cfg.CurrentRemote = args[0]
 	} else {
-		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := git.DefaultRemote()
-		if err != nil {
-			Exit("No default remote")
-		}
-		cfg.CurrentRemote = defaultRemote
+		cfg.CurrentRemote = ""
 	}
 
 	if len(args) > 1 {
@@ -69,6 +62,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	success := true
+	gitscanner := lfs.NewGitScanner(nil)
+	defer gitscanner.Close()
+
 	include, exclude := getIncludeExcludeArgs(cmd)
 
 	if fetchAllArg {
@@ -84,25 +80,26 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		success = fetchAll()
 
 	} else { // !all
-		includePaths, excludePaths := determineIncludeExcludePaths(cfg, include, exclude)
+		filter := buildFilepathFilter(cfg, include, exclude)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
 			Print("Fetching %v", ref.Name)
-			s := fetchRef(ref.Sha, includePaths, excludePaths)
+			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
 
 		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(refs, includePaths, excludePaths)
+			s := fetchRecent(refs, filter)
 			success = success && s
 		}
 	}
 
 	if fetchPruneArg {
-		verify := cfg.FetchPruneConfig().PruneVerifyRemoteAlways
+		fetchconf := cfg.FetchPruneConfig()
+		verify := fetchconf.PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
-		prune(verify, false, false)
+		prune(fetchconf, verify, false, false)
 	}
 
 	if !success {
@@ -110,56 +107,67 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func init() {
-	fetchCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
-	fetchCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-	fetchCmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
-	fetchCmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
-	fetchCmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
-	RootCmd.AddCommand(fetchCmd)
-}
+func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, error) {
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
 
-func pointersToFetchForRef(ref string) ([]*lfs.WrappedPointer, error) {
-	// Use SkipDeletedBlobs to avoid fetching ALL previous versions of modified files
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanRefsMode
-	opts.SkipDeletedBlobs = true
-	return lfs.ScanRefs(ref, "", opts)
-}
+		pointers = append(pointers, p)
+	})
 
-func fetchRefToChan(ref string, include, exclude []string) chan *lfs.WrappedPointer {
-	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+	tempgitscanner.Filter = filter
+
+	if err := tempgitscanner.ScanTree(ref); err != nil {
+		return nil, err
 	}
 
-	go fetchAndReportToChan(pointers, include, exclude, c)
-
-	return c
+	tempgitscanner.Close()
+	return pointers, multiErr
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(ref string, include, exclude []string) bool {
-	pointers, err := pointersToFetchForRef(ref)
+func fetchRef(ref string, filter *filepathfilter.Filter) bool {
+	pointers, err := pointersToFetchForRef(ref, filter)
 	if err != nil {
 		Panic(err, "Could not scan for Git LFS files")
 	}
-	return fetchPointers(pointers, include, exclude)
+	return fetchAndReportToChan(pointers, filter, nil)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
-func fetchPreviousVersions(ref string, since time.Time, include, exclude []string) bool {
-	pointers, err := lfs.ScanPreviousVersions(ref, since)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS previous versions")
+func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.Filter) bool {
+	var pointers []*lfs.WrappedPointer
+
+	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Panic(err, "Could not scan for Git LFS previous versions")
+			return
+		}
+
+		pointers = append(pointers, p)
+	})
+
+	tempgitscanner.Filter = filter
+
+	if err := tempgitscanner.ScanPreviousVersions(ref, since, nil); err != nil {
+		ExitWithError(err)
 	}
-	return fetchPointers(pointers, include, exclude)
+
+	tempgitscanner.Close()
+	return fetchAndReportToChan(pointers, filter, nil)
 }
 
 // Fetch recent objects based on config
-func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool {
+func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	fetchconf := cfg.FetchPruneConfig()
 
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
@@ -189,7 +197,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
 				Print("Fetching %v", ref.Name)
-				k := fetchRef(ref.Sha, include, exclude)
+				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
 		}
@@ -205,7 +213,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 			}
 			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
-			k := fetchPreviousVersions(commit, commitsSince, include, exclude)
+			k := fetchPreviousVersions(commit, commitsSince, filter)
 			ok = ok && k
 		}
 
@@ -216,55 +224,70 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, include, exclude []string) bool 
 func fetchAll() bool {
 	pointers := scanAll()
 	Print("Fetching objects...")
-	return fetchPointers(pointers, nil, nil)
+	return fetchAndReportToChan(pointers, nil, nil)
 }
 
 func scanAll() []*lfs.WrappedPointer {
-	// converts to `git rev-list --all`
-	// We only pick up objects in real commits and not the reflog
-	opts := lfs.NewScanRefsOptions()
-	opts.ScanMode = lfs.ScanAllMode
-	opts.SkipDeletedBlobs = false
-
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
 	spinner := progress.NewSpinner()
 	var numObjs int64
-	pointerchan, err := lfs.ScanRefsToChan("", "", opts)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
 
-	pointers := make([]*lfs.WrappedPointer, 0)
+	// use temp gitscanner to collect pointers
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
 
-	for p := range pointerchan.Results {
 		numObjs++
 		spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
 		pointers = append(pointers, p)
-	}
-	err = pointerchan.Wait()
-	if err != nil {
+	})
+
+	if err := tempgitscanner.ScanAll(nil); err != nil {
 		Panic(err, "Could not scan for Git LFS files")
+	}
+
+	tempgitscanner.Close()
+
+	if multiErr != nil {
+		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
 	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
 	return pointers
 }
 
-func fetchPointers(pointers []*lfs.WrappedPointer, include, exclude []string) bool {
-	return fetchAndReportToChan(pointers, include, exclude, nil)
-}
-
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []string, out chan<- *lfs.WrappedPointer) bool {
-	totalSize := int64(0)
-	for _, p := range pointers {
-		totalSize += p.Size
+func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
+	// Lazily initialize the current remote.
+	if len(cfg.CurrentRemote) == 0 {
+		// Actively find the default remote, don't just assume origin
+		defaultRemote, err := git.DefaultRemote()
+		if err != nil {
+			Exit("No default remote")
+		}
+		cfg.CurrentRemote = defaultRemote
 	}
-	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+
+	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
+	q := newDownloadQueue(getTransferManifest(), cfg.CurrentRemote, tq.WithProgress(meter))
 
 	if out != nil {
+		// If we already have it, or it won't be fetched
+		// report it to chan immediately to support pull/checkout
+		for _, p := range ready {
+			out <- p
+		}
+
 		dlwatch := q.Watch()
 
 		go func() {
@@ -290,32 +313,9 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	}
 
 	for _, p := range pointers {
-		// Only add to download queue if local file is not the right size already
-		// This avoids previous case of over-reporting a requirement for files we already have
-		// which would only be skipped by PointerSmudgeObject later
-		passFilter := lfs.FilenamePassesIncludeExcludeFilter(p.Name, include, exclude)
+		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 
-		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
-
-		if !lfs.ObjectExistsOfSize(p.Oid, p.Size) && passFilter {
-			tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
-			q.Add(lfs.NewDownloadable(p))
-		} else {
-			// Ensure progress matches
-			q.Skip(p.Size)
-			if !passFilter {
-				tracerx.Printf("Skipping %v [%v], include/exclude filters applied", p.Name, p.Oid)
-			} else {
-				tracerx.Printf("Skipping %v [%v], already exists", p.Name, p.Oid)
-			}
-
-			// If we already have it, or it won't be fetched
-			// report it to chan immediately to support pull/checkout
-			if out != nil {
-				out <- p
-			}
-
-		}
+		q.Add(downloadTransfer(p))
 	}
 
 	processQueue := time.Now()
@@ -325,7 +325,45 @@ func fetchAndReportToChan(pointers []*lfs.WrappedPointer, include, exclude []str
 	ok := true
 	for _, err := range q.Errors() {
 		ok = false
-		ExitWithError(err)
+		FullError(err)
 	}
 	return ok
+}
+
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.ProgressMeter) {
+	meter := buildProgressMeter(false)
+	seen := make(map[string]bool, len(allpointers))
+	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
+
+	for _, p := range allpointers {
+		// no need to download the same object multiple times
+		if seen[p.Oid] {
+			continue
+		}
+
+		seen[p.Oid] = true
+
+		// no need to download objects that exist locally already
+		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
+		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+			ready = append(ready, p)
+			continue
+		}
+
+		missing = append(missing, p)
+		meter.Add(p.Size)
+	}
+
+	return ready, missing, meter
+}
+
+func init() {
+	RegisterCommand("fetch", fetchCommand, func(cmd *cobra.Command) {
+		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
+		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
+		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
+	})
 }

@@ -6,24 +6,20 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/github/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/subprocess"
 
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/localstorage"
-	"github.com/github/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
 var (
-	cloneCmd = &cobra.Command{
-		Use: "clone",
-		Run: cloneCommand,
-	}
-
 	cloneFlags git.CloneFlags
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
+	requireGitVersion()
 
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)
@@ -32,7 +28,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// now execute pull (need to be inside dir)
-	cwd, err := os.Getwd()
+	cwd, err := tools.Getwd()
 	if err != nil {
 		Exit("Unable to derive current working dir: %v", err)
 	}
@@ -66,26 +62,26 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 	// Now just call pull with default args
 	// Support --origin option to clone
+	var remote string
 	if len(cloneFlags.Origin) > 0 {
-		cfg.CurrentRemote = cloneFlags.Origin
+		remote = cloneFlags.Origin
 	} else {
-		cfg.CurrentRemote = "origin"
+		remote = "origin"
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	include, exclude := determineIncludeExcludePaths(cfg, includeArg, excludeArg)
+	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
 	if cloneFlags.NoCheckout || cloneFlags.Bare {
 		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		fetchRef("HEAD", include, exclude)
+		cfg.CurrentRemote = remote
+		fetchRef("HEAD", filter)
 	} else {
-		pull(include, exclude)
-
+		pull(remote, filter)
 		err := postCloneSubmodules(args)
 		if err != nil {
 			Exit("Error performing 'git lfs pull' for submodules: %v", err)
 		}
 	}
-
 }
 
 func postCloneSubmodules(args []string) error {
@@ -112,34 +108,36 @@ func postCloneSubmodules(args []string) error {
 }
 
 func init() {
-	// Mirror all git clone flags
-	cloneCmd.Flags().StringVarP(&cloneFlags.TemplateDirectory, "template", "", "", "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Local, "local", "l", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Shared, "shared", "s", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.NoHardlinks, "no-hardlinks", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Quiet, "quiet", "q", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.NoCheckout, "no-checkout", "n", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Progress, "progress", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Bare, "bare", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Mirror, "mirror", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.Origin, "origin", "o", "", "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.Branch, "branch", "b", "", "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.Upload, "upload-pack", "u", "", "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.Reference, "reference", "", "", "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Dissociate, "dissociate", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.SeparateGit, "separate-git-dir", "", "", "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.Depth, "depth", "", "", "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Recursive, "recursive", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.RecurseSubmodules, "recurse-submodules", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().StringVarP(&cloneFlags.Config, "config", "c", "", "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.SingleBranch, "single-branch", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.NoSingleBranch, "no-single-branch", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Verbose, "verbose", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
-	cloneCmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
+	RegisterCommand("clone", cloneCommand, func(cmd *cobra.Command) {
+		cmd.PreRun = nil
 
-	cloneCmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
-	cloneCmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+		// Mirror all git clone flags
+		cmd.Flags().StringVarP(&cloneFlags.TemplateDirectory, "template", "", "", "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Local, "local", "l", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Shared, "shared", "s", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.NoHardlinks, "no-hardlinks", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Quiet, "quiet", "q", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.NoCheckout, "no-checkout", "n", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Progress, "progress", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Bare, "bare", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Mirror, "mirror", "", false, "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.Origin, "origin", "o", "", "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.Branch, "branch", "b", "", "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.Upload, "upload-pack", "u", "", "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.Reference, "reference", "", "", "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Dissociate, "dissociate", "", false, "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.SeparateGit, "separate-git-dir", "", "", "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.Depth, "depth", "", "", "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Recursive, "recursive", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.RecurseSubmodules, "recurse-submodules", "", false, "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.Config, "config", "c", "", "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.SingleBranch, "single-branch", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.NoSingleBranch, "no-single-branch", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Verbose, "verbose", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
+		cmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
 
-	RootCmd.AddCommand(cloneCmd)
+		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+	})
 }

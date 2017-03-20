@@ -1,0 +1,38 @@
+git-lfs-locks(1) -- Lists currently locked files from the Git LFS server.
+=============================================================================
+
+## SYNOPSIS
+
+`git lfs locks` [options]
+
+## DESCRIPTION
+
+Lists current locks from the Git LFS server.
+
+## OPTIONS
+
+* `-r` <name> `--remote=`<name>:
+  Specify the Git LFS server to use. Ignored if the `lfs.url` config key is set.
+
+* `-i <id>` `--id=<id>`:
+  Specifies a lock by its ID. Returns a single result.
+
+* `-p <path>` `--path=<path>`:
+  Specifies a lock by its path. Returns a single result.
+
+* `--local`:
+  Lists only the locks cached locally. Skips a remote call.
+
+* `-l <num>` `--limit=<num>`:
+  Specifies number of results to return.
+
+* `--json`:
+  Writes lock info as JSON to STDOUT if the command exits successfully. Intended
+  for interoperation with external tools. If the command returns with a non-zero
+  exit code, plain text messages will be sent to STDERR.
+
+## SEE ALSO
+
+git-lfs-lock(1), git-lfs-unlock(1).
+
+Part of the git-lfs(1) suite.

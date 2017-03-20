@@ -20,7 +20,7 @@ Apt/deb repos:
 Yum/rpm repos:
 `curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | sudo bash`
 
-If you are running a distribution which does not match exactly a repository uploaded for Git LFS, but for which there is a repository for a compatible upstream distribution, you can either run the script with some additional parameters, or run it and then manually-correct the resulting repository URLs.  See [#1074](https://github.com/github/git-lfs/issues/1074) for details.
+If you are running a distribution which does not match exactly a repository uploaded for Git LFS, but for which there is a repository for a compatible upstream distribution, you can either run the script with some additional parameters, or run it and then manually-correct the resulting repository URLs.  See [#1074](https://github.com/git-lfs/git-lfs/issues/1074) for details.
 
 If you are running LinuxMint 17.1 Rebecca, which is downstream of Ubuntu Trusty and Debian Jessie, you can run:
 

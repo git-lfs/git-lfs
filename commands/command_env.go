@@ -1,17 +1,10 @@
 package commands
 
 import (
-	"github.com/github/git-lfs/config"
-	"github.com/github/git-lfs/git"
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
-)
-
-var (
-	envCmd = &cobra.Command{
-		Use: "env",
-		Run: envCommand,
-	}
 )
 
 func envCommand(cmd *cobra.Command, args []string) {
@@ -42,16 +35,16 @@ func envCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	for _, env := range lfs.Environ() {
+	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
 		Print(env)
 	}
 
-	for _, key := range []string{"filter.lfs.smudge", "filter.lfs.clean"} {
-		value, _ := cfg.GitConfig(key)
+	for _, key := range []string{"filter.lfs.process", "filter.lfs.smudge", "filter.lfs.clean"} {
+		value, _ := cfg.Git.Get(key)
 		Print("git config %s = %q", key, value)
 	}
 }
 
 func init() {
-	RootCmd.AddCommand(envCmd)
+	RegisterCommand("env", envCommand, nil)
 }

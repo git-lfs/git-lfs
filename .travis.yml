@@ -1,28 +1,38 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
 
-go: 1.6
+go: 1.8
 
 os:
   - linux
-  - osx
 
 env:
   global:
     - GIT_LFS_TEST_DIR="$HOME/git-lfs-tests"
     - GIT_SOURCE_REPO="https://github.com/git/git.git"
-    - GIT_SOURCE_BRANCH="master"
+    - GIT_EARLIEST_SUPPORTED_VERSION="v1.8.5"
+    - GIT_LATEST_SOURCE_BRANCH="master"
 
 matrix:
   fast_finish: true
   include:
-    - env: git-from-source
+    - env: git-latest-master-from-source
       os: linux
       before_script:
         - >
           git clone $GIT_SOURCE_REPO git-source;
           cd git-source;
-          git checkout $GIT_SOURCE_BRANCH;
+          git checkout $GIT_LATEST_SOURCE_BRANCH;
+          make --jobs=2;
+          make install;
+          cd ..;
+    - env: git-earliest-supported-version-from-source
+      os: linux
+      before_script:
+        - >
+          git clone $GIT_SOURCE_REPO git-source;
+          cd git-source;
+          git checkout $GIT_EARLIEST_SUPPORTED_VERSION;
           make --jobs=2;
           make install;
           cd ..;
@@ -34,41 +44,16 @@ matrix:
           - git-core
           packages:
           - git
-    - env: git-latest
-      os: osx
-      # The 'before_install' phase cannot be used here as we would override the
-      # default 'before_install' phase. The 'before_script' phase is sufficient
-      # for the Git install since the Git binary is only used in the tests.
-      before_script:
-        - >
-          brew update;
-          brew install git;
-    - env: git-latest-go-1.5
-      os: linux
-      go: 1.5
-      addons:
-        apt:
-          sources:
-          - git-core
-          packages:
-          - git
-    - env: git-latest-go-1.5
-      os: osx
-      go: 1.5
-      before_script:
-        - >
-          brew update;
-          brew install git;
 
 before_install:
   - >
     repo=`basename $PWD`;
     localDir=`dirname $PWD`;
-    cfDir="`dirname $localDir`/github";
+    cfDir="`dirname $localDir`/git-lfs";
     if [[ "$localDir" != "$cfDir" ]];
     then
       mv "$localDir" "$cfDir";
-      cd ../../github/$repo;
+      cd ../../git-lfs/$repo;
       export TRAVIS_BUILD_DIR=`dirname $TRAVIS_BUILD_DIR`/$repo;
     fi;
 

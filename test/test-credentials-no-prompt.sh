@@ -5,14 +5,6 @@
 # these tests rely on GIT_TERMINAL_PROMPT to test properly
 ensure_git_version_isnt $VERSION_LOWER "2.3.0"
 
-# if there is a system cred helper we can't run this test
-# can't disable without changing state outside test & probably don't have permission
-# this is common on OS X with certain versions of Git installed, default cred helper
-if [[ -n "$(git config --system credential.helper)" ]]; then
-  echo "skip: $0 (system cred helper we can't disable)"
-  exit
-fi
-
 begin_test "attempt private access without credential helper"
 (
   set -e
@@ -31,7 +23,7 @@ begin_test "attempt private access without credential helper"
   git config credential.helper lfsnoop
   git config -l
 
-  git push origin master 2>&1 | tee push.log
+  GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
   grep "Authorization error: $GITSERVER/$reponame" push.log ||
     grep "Git credentials for $GITSERVER/$reponame not found" push.log
 )
