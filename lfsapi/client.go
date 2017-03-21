@@ -64,9 +64,9 @@ func (f *sshRequestFactory) NewRequest() (*http.Request, error) {
 }
 
 func (f *sshRequestFactory) InvalidateAuthorization() bool {
-	_, ok := f.c.sshAuthCache[f.e.SshUserAndHost]
+	_, ok := f.c.sshAuthCache[f.e.SshUserAndHost+f.method]
 	if ok {
-		delete(f.c.sshAuthCache, f.e.SshUserAndHost)
+		delete(f.c.sshAuthCache, f.e.SshUserAndHost+f.method)
 	}
 	return ok
 }

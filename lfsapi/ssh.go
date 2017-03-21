@@ -44,7 +44,7 @@ func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse,
 	}
 
 	if err == nil {
-		c.sshAuthCache[e.SshUserAndHost] = res
+		c.sshAuthCache[e.SshUserAndHost+method] = res
 	}
 
 	return res, err
