@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -66,34 +67,46 @@ func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
 
 	seenNames := make(map[string]struct{}, 0)
 
-	for _, scanner := range []*lfs.DiffIndexScanner{
-		uncached, cached,
-	} {
-		for scanner.Scan() {
-			entry := scanner.Entry()
+	staged, err = drainScanner(seenNames, cached)
+	if err != nil {
+		return nil, nil, err
+	}
 
-			name := entry.DstName
-			if len(name) == 0 {
-				name = entry.SrcName
-			}
+	unstaged, err = drainScanner(seenNames, uncached)
+	if err != nil {
+		return nil, nil, err
+	}
 
-			if _, seen := seenNames[name]; !seen {
-				switch entry.Status {
-				case lfs.StatusModification:
-					unstaged = append(unstaged, entry)
-				default:
-					staged = append(staged, entry)
-				}
+	return
+}
 
-				seenNames[name] = struct{}{}
-			}
-		}
+func drainScanner(cache map[string]struct{}, scanner *lfs.DiffIndexScanner) ([]*lfs.DiffIndexEntry, error) {
+	var to []*lfs.DiffIndexEntry
 
-		if err := scanner.Err(); err != nil {
-			return nil, nil, err
+	for scanner.Scan() {
+		entry := scanner.Entry()
+
+		key := keyFromEntry(entry)
+		if _, seen := cache[key]; !seen {
+			to = append(to, entry)
+
+			cache[key] = struct{}{}
 		}
 	}
-	return
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return to, nil
+}
+
+func keyFromEntry(e *lfs.DiffIndexEntry) string {
+	var name string = e.DstName
+	if len(name) == 0 {
+		name = e.SrcName
+	}
+
+	return strings.Join([]string{e.SrcSha, e.DstSha, name}, ":")
 }
 
 func statusScanRefRange(ref *git.Ref) {
@@ -131,8 +144,19 @@ func porcelainStagedPointers(ref string) {
 		ExitWithError(err)
 	}
 
+	seenNames := make(map[string]struct{})
+
 	for _, entry := range append(unstaged, staged...) {
-		Print(porcelainStatusLine(entry))
+		name := entry.DstName
+		if len(name) == 0 {
+			name = entry.SrcName
+		}
+
+		if _, seen := seenNames[name]; !seen {
+			Print(porcelainStatusLine(entry))
+
+			seenNames[name] = struct{}{}
+		}
 	}
 }
 
