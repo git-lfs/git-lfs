@@ -30,39 +30,70 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	statusScanRefRange(ref)
 
-	Print("\nGit LFS objects to be committed:\n")
-
-	var unstagedPointers []*lfs.WrappedPointer
-	indexScanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			ExitWithError(err)
-			return
-		}
-
-		switch p.Status {
-		case "R", "C":
-			Print("\t%s -> %s (%s)", p.SrcName, p.Name, humanizeBytes(p.Size))
-		case "M":
-			unstagedPointers = append(unstagedPointers, p)
-		default:
-			Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
-		}
-	})
-
-	if err := indexScanner.ScanIndex(scanIndexAt, nil); err != nil {
+	staged, unstaged, err := scanIndex(scanIndexAt)
+	if err != nil {
 		ExitWithError(err)
 	}
 
-	indexScanner.Close()
-
-	Print("\nGit LFS objects not staged for commit:\n")
-	for _, p := range unstagedPointers {
-		if p.Status == "M" {
-			Print("\t%s", p.Name)
+	Print("\nGit LFS objects to be committed:\n")
+	for _, entry := range staged {
+		switch entry.Status {
+		case lfs.StatusRename, lfs.StatusCopy:
+			Print("\t%s -> %s", entry.SrcName, entry.DstName)
+		default:
+			Print("\t%s", entry.SrcName)
 		}
 	}
 
+	Print("\nGit LFS objects not staged for commit:\n")
+	for _, entry := range unstaged {
+		Print("\t%s", entry.SrcName)
+	}
+
 	Print("")
+}
+
+func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
+	uncached, err := lfs.NewDiffIndexScanner(ref, false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cached, err := lfs.NewDiffIndexScanner(ref, true)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	seenNames := make(map[string]struct{}, 0)
+
+	for _, scanner := range []*lfs.DiffIndexScanner{
+		uncached, cached,
+	} {
+		for scanner.Scan() {
+			entry := scanner.Entry()
+
+			name := entry.DstName
+			if len(name) == 0 {
+				name = entry.SrcName
+			}
+
+			if _, seen := seenNames[name]; !seen {
+				switch entry.Status {
+				case lfs.StatusModification:
+					unstaged = append(unstaged, entry)
+				default:
+					staged = append(staged, entry)
+				}
+
+				seenNames[name] = struct{}{}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			return nil, nil, err
+		}
+	}
+	return
 }
 
 func statusScanRefRange(ref *git.Ref) {
@@ -83,7 +114,7 @@ func statusScanRefRange(ref *git.Ref) {
 			return
 		}
 
-		Print("\t%s (%s)", p.Name, humanizeBytes(p.Size))
+		Print("\t%s (%s)", p.Name)
 	})
 	defer gitscanner.Close()
 
@@ -95,45 +126,25 @@ func statusScanRefRange(ref *git.Ref) {
 }
 
 func porcelainStagedPointers(ref string) {
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			ExitWithError(err)
-		}
-
-		switch p.Status {
-		case "R", "C":
-			Print("%s  %s -> %s %d", p.Status, p.SrcName, p.Name, p.Size)
-		case "M":
-			Print(" %s %s %d", p.Status, p.Name, p.Size)
-		default:
-			Print("%s  %s %d", p.Status, p.Name, p.Size)
-		}
-	})
-	defer gitscanner.Close()
-
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
+	staged, unstaged, err := scanIndex(ref)
+	if err != nil {
 		ExitWithError(err)
+	}
+
+	for _, entry := range append(unstaged, staged...) {
+		Print(porcelainStatusLine(entry))
 	}
 }
 
-var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}
-
-func humanizeBytes(bytes int64) string {
-	var output string
-	size := float64(bytes)
-
-	if bytes < 1024 {
-		return fmt.Sprintf("%d B", bytes)
+func porcelainStatusLine(entry *lfs.DiffIndexEntry) string {
+	switch entry.Status {
+	case lfs.StatusRename, lfs.StatusCopy:
+		return fmt.Sprintf("%s  %s -> %s", entry.Status, entry.SrcName, entry.DstName)
+	case lfs.StatusModification:
+		return fmt.Sprintf(" %s %s", entry.Status, entry.SrcName)
 	}
 
-	for _, unit := range byteUnits {
-		if size < 1024.0 {
-			output = fmt.Sprintf("%3.1f %s", size, unit)
-			break
-		}
-		size /= 1024.0
-	}
-	return output
+	return fmt.Sprintf("%s  %s", entry.Status, entry.SrcName)
 }
 
 func init() {
