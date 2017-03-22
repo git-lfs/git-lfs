@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -316,8 +315,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				cli := &lfsapi.Client{}
-				if err = verifyUpload(cli, t); err != nil {
+				if err = verifyUpload(a.apiClient, t); err != nil {
 					return err
 				}
 			}
