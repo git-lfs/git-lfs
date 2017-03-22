@@ -32,7 +32,7 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		return
 	}
 
-	scanner := &catFileBatchScanner{r: bufio.NewReader(reader)}
+	scanner := &CatFileBatchScanner{r: bufio.NewReader(reader)}
 
 	for i := 0; i < 5; i++ {
 		assertNextEmptyPointer(t, scanner)
@@ -50,19 +50,25 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		assertNextEmptyPointer(t, scanner)
 	}
 
-	assertScannerDone(t, scanner)
+	assert.False(t, scanner.Scan(nil))
+	assert.Nil(t, scanner.Err())
 	assert.Nil(t, scanner.Pointer())
 }
 
-func assertNextPointer(t *testing.T, scanner *catFileBatchScanner, oid string) {
-	assertNextScan(t, scanner)
+func assertNextPointer(t *testing.T, scanner *CatFileBatchScanner, oid string) {
+	assert.True(t, scanner.Scan(nil))
+	assert.Nil(t, scanner.Err())
+
 	p := scanner.Pointer()
+
 	assert.NotNil(t, p)
 	assert.Equal(t, oid, p.Oid)
 }
 
-func assertNextEmptyPointer(t *testing.T, scanner *catFileBatchScanner) {
-	assertNextScan(t, scanner)
+func assertNextEmptyPointer(t *testing.T, scanner *CatFileBatchScanner) {
+	assert.True(t, scanner.Scan(nil))
+	assert.Nil(t, scanner.Err())
+
 	assert.Nil(t, scanner.Pointer())
 }
 
