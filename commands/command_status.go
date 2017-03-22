@@ -60,6 +60,26 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
+func formatBlobInfo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) string {
+	fromSha, fromSrc, err := blobInfoFrom(s, entry)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	from := fmt.Sprintf("%s: %s", fromSrc, fromSha[:7])
+	if entry.Status == lfs.StatusAddition {
+		return from
+	}
+
+	toSha, toSrc, err := blobInfoTo(s, entry)
+	if err != nil {
+		ExitWithError(err)
+	}
+	to := fmt.Sprintf("%s: %s", toSrc, toSha[:7])
+
+	return fmt.Sprintf("%s -> %s", from, to)
+}
+
 func blobInfoFrom(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
 	var blobSha string = entry.SrcSha
 	if z40.MatchString(blobSha) {
