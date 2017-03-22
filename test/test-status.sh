@@ -195,3 +195,132 @@ Git LFS objects not staged for commit:
   diff -u <(echo "$expected") <(echo "$actual")
 )
 end_test
+
+begin_test "status: LFS to LFS change"
+(
+  set -e
+
+  reponame="status-lfs-to-lfs-change"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat files"
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  contents_new="$contents +extra"
+  contents_new_oid="$(calc_oid "$contents_new")"
+  contents_new_oid_short="$(echo $contents_new_oid | head -c 7)"
+
+  printf "$contents_new" > a.dat
+  git add a.dat
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+	a.dat (LFS: $contents_oid_short -> LFS: $contents_new_oid_short)
+
+Git LFS objects not staged for commit:"
+  actual="$(git lfs status)"
+
+  [ "$expected" = "$actual" ]
+)
+end_test
+
+begin_test "status: Git to LFS change"
+(
+  set -e
+
+  reponame="status-git-to-lfs-change"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat files"
+
+  contents_new="$contents +extra"
+  contents_new_oid="$(calc_oid "$contents_new")"
+  contents_new_oid_short="$(echo $contents_new_oid | head -c 7)"
+
+  printf "$contents_new" > a.dat
+  git add a.dat
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+	a.dat (Git: $contents_oid_short -> LFS: $contents_new_oid_short)
+
+Git LFS objects not staged for commit:"
+  actual="$(git lfs status)"
+
+  [ "$expected" = "$actual" ]
+)
+end_test
+
+begin_test "status: Git to LFS conversion"
+(
+  set -e
+
+  reponame="status-git-to-lfs-conversion"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat"
+
+  git push origin master
+
+  pushd "$TRASHDIR" > /dev/null
+    clone_repo "$reponame" "$reponame-2"
+
+    git add a.dat
+
+    git lfs status 2>&1 | tee status.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "git lfs status should have succeeded, didn't ..."
+      exit 1
+    fi
+
+    expected="On branch master
+Git LFS objects to be pushed to origin/master:
+
+
+Git LFS objects to be committed:
+
+	a.dat (Git: $contents_oid_short -> LFS: $contents_oid_short)
+
+Git LFS objects not staged for commit:"
+    actual="$(cat status.log)"
+
+    [ "$expected" = "$actual" ]
+  popd > /dev/null
+)
+end_test
