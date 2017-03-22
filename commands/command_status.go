@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -66,8 +67,9 @@ func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
 
 	seenNames := make(map[string]struct{}, 0)
 
-	for _, scanner := range []*lfs.DiffIndexScanner{
-		uncached, cached,
+	for scanner, to := range map[*lfs.DiffIndexScanner]*[]*lfs.DiffIndexEntry{
+		cached:   &staged,
+		uncached: &unstaged,
 	} {
 		for scanner.Scan() {
 			entry := scanner.Entry()
@@ -76,16 +78,12 @@ func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
 			if len(name) == 0 {
 				name = entry.SrcName
 			}
+			key := strings.Join([]string{entry.SrcSha, entry.DstSha, name}, ":")
 
-			if _, seen := seenNames[name]; !seen {
-				switch entry.Status {
-				case lfs.StatusModification:
-					unstaged = append(unstaged, entry)
-				default:
-					staged = append(staged, entry)
-				}
+			if _, seen := seenNames[key]; !seen {
+				*to = append(*to, entry)
 
-				seenNames[name] = struct{}{}
+				seenNames[key] = struct{}{}
 			}
 		}
 
@@ -131,8 +129,19 @@ func porcelainStagedPointers(ref string) {
 		ExitWithError(err)
 	}
 
+	seenNames := make(map[string]struct{})
+
 	for _, entry := range append(unstaged, staged...) {
-		Print(porcelainStatusLine(entry))
+		name := entry.DstName
+		if len(name) == 0 {
+			name = entry.SrcName
+		}
+
+		if _, seen := seenNames[name]; !seen {
+			Print(porcelainStatusLine(entry))
+
+			seenNames[name] = struct{}{}
+		}
 	}
 }
 

@@ -32,7 +32,8 @@ Git LFS objects to be committed:
 
 Git LFS objects not staged for commit:
 
-	file1.dat"
+	file1.dat
+	file3.dat"
 
   [ "$expected" = "$(git lfs status)" ]
 )
@@ -60,8 +61,8 @@ begin_test "status --porcelain"
   echo "file3 other data" > file3.dat
 
   expected=" M file1.dat
-A  file2.dat
-A  file3.dat"
+A  file3.dat
+A  file2.dat"
 
   [ "$expected" = "$(git lfs status --porcelain)" ]
 )
@@ -130,5 +131,42 @@ begin_test "status shows multiple files with identical contents"
 
   [ "1" -eq "$(grep -c "a.dat" status.log)" ]
   [ "1" -eq "$(grep -c "b.dat" status.log)" ]
+)
+end_test
+
+begin_test "status shows multiple copies of partially staged files"
+(
+  set -e
+
+  reponame="status-partially-staged"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents_1="part 1"
+  printf "$contents_1" > a.dat
+
+  # "$contents_1" changes are staged
+  git add a.dat
+
+  # "$contents_2" changes are unstaged
+  contents_2="part 2"
+  printf "$contents_2" >> a.dat
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+	a.dat
+
+Git LFS objects not staged for commit:
+
+	a.dat"
+  actual="$(git lfs status)"
+
+  diff -u <(echo "$expected") <(echo "$actual")
 )
 end_test
