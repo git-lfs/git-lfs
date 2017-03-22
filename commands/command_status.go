@@ -1,7 +1,11 @@
 package commands
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -52,6 +56,57 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 
 	Print("")
+}
+
+var z40 = regexp.MustCompile(`\^?0{40}`)
+
+func blobInfoFrom(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
+	var blobSha string = entry.SrcSha
+	if z40.MatchString(blobSha) {
+		blobSha = entry.DstSha
+	}
+
+	return blobInfo(s, blobSha, entry.SrcName)
+}
+
+func blobInfoTo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
+	var name string = entry.DstName
+	if len(name) == 0 {
+		name = entry.SrcName
+	}
+
+	return blobInfo(s, entry.DstSha, name)
+}
+
+func blobInfo(s *lfs.CatFileBatchScanner, blobSha, name string) (sha, from string, err error) {
+	if !z40.MatchString(blobSha) {
+		s.Scan([]byte(blobSha))
+		if err := s.Err(); err != nil {
+			return "", "", err
+		}
+
+		var from string
+		if s.Pointer() != nil {
+			from = "LFS"
+		} else {
+			from = "Git"
+		}
+
+		return s.ContentsSha(), from, nil
+	}
+
+	f, err := os.Open(name)
+	if err != nil {
+		return "", "", err
+	}
+	defer f.Close()
+
+	shasum := sha256.New()
+	if _, err = io.Copy(shasum, f); err != nil {
+		return "", "", err
+	}
+
+	return fmt.Sprintf("%x", shasum.Sum(nil)), "Git", nil
 }
 
 func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
