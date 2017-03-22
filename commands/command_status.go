@@ -40,22 +40,31 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
+	scanner, err := lfs.NewCatFileBatchScanner()
+	if err != nil {
+		ExitWithError(err)
+	}
+
 	Print("\nGit LFS objects to be committed:\n")
 	for _, entry := range staged {
 		switch entry.Status {
 		case lfs.StatusRename, lfs.StatusCopy:
-			Print("\t%s -> %s", entry.SrcName, entry.DstName)
+			Print("\t%s -> %s (%s)", entry.SrcName, entry.DstName, formatBlobInfo(scanner, entry))
 		default:
-			Print("\t%s", entry.SrcName)
+			Print("\t%s (%s)", entry.SrcName, formatBlobInfo(scanner, entry))
 		}
 	}
 
 	Print("\nGit LFS objects not staged for commit:\n")
 	for _, entry := range unstaged {
-		Print("\t%s", entry.SrcName)
+		Print("\t%s (%s)", entry.SrcName, formatBlobInfo(scanner, entry))
 	}
 
 	Print("")
+
+	if err = scanner.Close(); err != nil {
+		ExitWithError(err)
+	}
 }
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
