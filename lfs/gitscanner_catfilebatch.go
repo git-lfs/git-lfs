@@ -3,6 +3,7 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,16 +20,14 @@ import (
 // if that blob is for a locked file. Any errors are sent to errCh. An error is
 // returned if the 'git cat-file' command fails to start.
 func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
-	cmd, err := startCommand("git", "cat-file", "--batch")
+	scanner, err := NewCatFileBatchScanner()
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		scanner := &catFileBatchScanner{r: cmd.Stdout}
 		for r := range revs.Results {
-			cmd.Stdin.Write([]byte(r + "\n"))
-			canScan := scanner.Scan()
+			canScan := scanner.Scan(r)
 
 			if err := scanner.Err(); err != nil {
 				errCh <- err
@@ -49,12 +48,8 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 			errCh <- err
 		}
 
-		cmd.Stdin.Close()
-
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errCh <- fmt.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
+		if err := scanner.Close(); err != nil {
+			errCh <- err
 		}
 
 		close(pointerCh)
@@ -65,29 +60,73 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 	return nil
 }
 
-type catFileBatchScanner struct {
+type CatFileBatchScanner struct {
 	r       *bufio.Reader
-	blobSha string
-	pointer *WrappedPointer
-	err     error
+	w       io.Writer
+	closeFn func() error
+
+	blobSha     string
+	contentsSha string
+	pointer     *WrappedPointer
+	err         error
 }
 
-func (s *catFileBatchScanner) BlobSHA() string {
+func NewCatFileBatchScanner() (*CatFileBatchScanner, error) {
+	cmd, err := startCommand("git", "cat-file", "--batch")
+	if err != nil {
+		return nil, err
+	}
+
+	closeFn := func() error {
+		if err := cmd.Stdin.Close(); err != nil {
+			return err
+		}
+
+		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		if err := cmd.Wait(); err != nil {
+			return errors.Errorf("Error in git cat-file --batch: %v %v", err, string(stderr))
+		}
+
+		return nil
+	}
+
+	return &CatFileBatchScanner{
+		r:       cmd.Stdout,
+		w:       cmd.Stdin,
+		closeFn: closeFn,
+	}, nil
+}
+
+func (s *CatFileBatchScanner) BlobSHA() string {
 	return s.blobSha
 }
 
-func (s *catFileBatchScanner) Pointer() *WrappedPointer {
+func (s *CatFileBatchScanner) ContentsSha() string {
+	return s.contentsSha
+}
+
+func (s *CatFileBatchScanner) Pointer() *WrappedPointer {
 	return s.pointer
 }
 
-func (s *catFileBatchScanner) Err() error {
+func (s *CatFileBatchScanner) Err() error {
 	return s.err
 }
 
-func (s *catFileBatchScanner) Scan() bool {
+func (s *CatFileBatchScanner) Scan(sha string) bool {
 	s.pointer, s.err = nil, nil
-	b, p, err := s.next()
+	s.blobSha, s.contentsSha = "", ""
+
+	if s.w != nil && len(sha) > 0 {
+		if _, err := fmt.Fprintf(s.w, "%s\n", sha); err != nil {
+			s.err = err
+			return false
+		}
+	}
+
+	b, c, p, err := s.next()
 	s.blobSha = b
+	s.contentsSha = c
 	s.pointer = p
 
 	if err != nil {
@@ -100,40 +139,64 @@ func (s *catFileBatchScanner) Scan() bool {
 	return true
 }
 
-func (s *catFileBatchScanner) next() (string, *WrappedPointer, error) {
+func (s *CatFileBatchScanner) Close() error {
+	if s.closeFn == nil {
+		return nil
+	}
+	return s.closeFn()
+}
+
+func (s *CatFileBatchScanner) next() (string, string, *WrappedPointer, error) {
 	l, err := s.r.ReadBytes('\n')
 	if err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 
 	// Line is formatted:
 	// <sha1> <type> <size>
 	fields := bytes.Fields(l)
 	if len(fields) < 3 {
-		return "", nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch")
+		return "", "", nil, errors.Wrap(fmt.Errorf("Invalid: %q", string(l)), "git cat-file --batch")
 	}
 
 	blobSha := string(fields[0])
 	size, _ := strconv.Atoi(string(fields[2]))
-	buf := make([]byte, size)
-	read, err := io.ReadFull(s.r, buf)
+	sha := sha256.New()
+
+	var buf *bytes.Buffer
+	var to io.Writer = sha
+	if size <= blobSizeCutoff {
+		buf = bytes.NewBuffer(make([]byte, 0, size))
+		to = io.MultiWriter(to, buf)
+	}
+
+	read, err := io.CopyN(to, s.r, int64(size))
 	if err != nil {
-		return blobSha, nil, err
+		return blobSha, "", nil, err
 	}
 
-	if size != read {
-		return blobSha, nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
+	if int64(size) != read {
+		return blobSha, "", nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
 	}
 
-	p, err := DecodePointer(bytes.NewBuffer(buf[:read]))
 	var pointer *WrappedPointer
-	if err == nil {
-		pointer = &WrappedPointer{
-			Sha1:    blobSha,
-			Pointer: p,
+	var contentsSha string
+
+	if size <= blobSizeCutoff {
+		if p, err := DecodePointer(bytes.NewReader(buf.Bytes())); err != nil {
+			contentsSha = fmt.Sprintf("%x", sha.Sum(nil))
+		} else {
+			pointer = &WrappedPointer{
+				Sha1:    blobSha,
+				Pointer: p,
+			}
+			contentsSha = p.Oid
 		}
+	} else {
+		contentsSha = fmt.Sprintf("%x", sha.Sum(nil))
 	}
 
 	_, err = s.r.ReadBytes('\n') // Extra \n inserted by cat-file
-	return blobSha, pointer, err
+
+	return blobSha, contentsSha, pointer, err
 }

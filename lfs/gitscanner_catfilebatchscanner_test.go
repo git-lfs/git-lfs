@@ -3,12 +3,14 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
@@ -32,7 +34,7 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		return
 	}
 
-	scanner := &catFileBatchScanner{r: bufio.NewReader(reader)}
+	scanner := &CatFileBatchScanner{r: bufio.NewReader(reader)}
 
 	for i := 0; i < 5; i++ {
 		assertNextEmptyPointer(t, scanner)
@@ -50,19 +52,47 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		assertNextEmptyPointer(t, scanner)
 	}
 
-	assertScannerDone(t, scanner)
+	assert.False(t, scanner.Scan(""))
+	assert.Nil(t, scanner.Err())
 	assert.Nil(t, scanner.Pointer())
 }
 
-func assertNextPointer(t *testing.T, scanner *catFileBatchScanner, oid string) {
-	assertNextScan(t, scanner)
+func TestCatFileBatchScannerWithLargeBlobs(t *testing.T) {
+	buf := bytes.NewBuffer(make([]byte, 0, 1025))
+	sha := sha256.New()
+	rng := rand.New(rand.NewSource(0))
+
+	_, err := io.CopyN(io.MultiWriter(sha, buf), rng, 1025)
+	require.Nil(t, err)
+
+	fake := bytes.NewBuffer(nil)
+	writeFakeBuffer(t, fake, buf.Bytes(), buf.Len())
+
+	scanner := &CatFileBatchScanner{r: bufio.NewReader(fake)}
+
+	require.True(t, scanner.Scan(""))
+	assert.Nil(t, scanner.Pointer())
+	assert.Equal(t, fmt.Sprintf("%x", sha.Sum(nil)), scanner.ContentsSha())
+
+	assert.False(t, scanner.Scan(""))
+	assert.Nil(t, scanner.Err())
+	assert.Nil(t, scanner.Pointer())
+}
+
+func assertNextPointer(t *testing.T, scanner *CatFileBatchScanner, oid string) {
+	assert.True(t, scanner.Scan(""))
+	assert.Nil(t, scanner.Err())
+
 	p := scanner.Pointer()
+
 	assert.NotNil(t, p)
 	assert.Equal(t, oid, p.Oid)
 }
 
-func assertNextEmptyPointer(t *testing.T, scanner *catFileBatchScanner) {
-	assertNextScan(t, scanner)
+func assertNextEmptyPointer(t *testing.T, scanner *CatFileBatchScanner) {
+	assert.True(t, scanner.Scan(""))
+	assert.Nil(t, scanner.Err())
+
 	assert.Nil(t, scanner.Pointer())
 }
 
