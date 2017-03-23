@@ -458,5 +458,8 @@ begin_test "track escaped pattern"
 
   git lfs track " " | grep "Tracking  "
   assert_attributes_count "[[:space:]]" "filter=lfs" 1
+
+  git lfs track "#" | grep "Tracking #"
+  assert_attributes_count "\\#" "filter=lfs" 1
 )
 end_test

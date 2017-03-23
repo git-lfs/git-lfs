@@ -242,6 +242,7 @@ func blocklistItem(name string) string {
 var (
 	trackEscapePatterns = map[string]string{
 		" ": "[[:space:]]",
+		"#": "\\#",
 	}
 )
 
