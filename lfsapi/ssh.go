@@ -16,6 +16,31 @@ type SSHResolver interface {
 	Resolve(Endpoint, string) (sshAuthResponse, error)
 }
 
+func withSSHCache(ssh SSHResolver) SSHResolver {
+	return &sshCache{
+		endpoints: make(map[string]*sshAuthResponse),
+		ssh:       ssh,
+	}
+}
+
+type sshCache struct {
+	endpoints map[string]*sshAuthResponse
+	ssh       SSHResolver
+}
+
+func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
+	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
+	if res, ok := c.endpoints[key]; ok {
+		return *res, nil
+	}
+
+	res, err := c.ssh.Resolve(e, method)
+	if err == nil {
+		c.endpoints[key] = &res
+	}
+	return res, err
+}
+
 type sshAuthResponse struct {
 	Message   string            `json:"-"`
 	Href      string            `json:"href"`

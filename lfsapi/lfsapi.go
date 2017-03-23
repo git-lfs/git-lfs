@@ -74,7 +74,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 	creds := &commandCredentialHelper{
 		SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
 	}
-	sshResolver := &sshAuthClient{os: osEnv}
+	sshResolver := withSSHCache(&sshAuthClient{os: osEnv})
 
 	c := &Client{
 		Endpoints:           NewEndpointFinder(gitEnv),
