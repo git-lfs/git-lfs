@@ -239,6 +239,32 @@ func blocklistItem(name string) string {
 	return ""
 }
 
+var (
+	trackEscapePatterns = map[string]string{
+		" ": "[[:space:]]",
+	}
+)
+
+func escapeTrackPattern(unescaped string) string {
+	var escaped string = unescaped
+
+	for from, to := range trackEscapePatterns {
+		escaped = strings.Replace(escaped, from, to, -1)
+	}
+
+	return escaped
+}
+
+func unescapeTrackPattern(escaped string) string {
+	var unescaped string = escaped
+
+	for to, from := range trackEscapePatterns {
+		unescaped = strings.Replace(unescaped, from, to, -1)
+	}
+
+	return unescaped
+}
+
 func init() {
 	RegisterCommand("track", trackCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&trackLockableFlag, "lockable", "l", false, "make pattern lockable, i.e. read-only unless locked")
