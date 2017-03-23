@@ -22,6 +22,7 @@ var (
 type Client struct {
 	Endpoints   EndpointFinder
 	Credentials CredentialHelper
+	SSH         SSHResolver
 	Netrc       NetrcFinder
 
 	DialTimeout         int
@@ -40,8 +41,6 @@ type Client struct {
 
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
-
-	sshResolver sshResolver
 
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
@@ -72,11 +71,15 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 
 	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
 
+	creds := &commandCredentialHelper{
+		SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
+	}
+	sshResolver := &sshAuthClient{os: osEnv}
+
 	c := &Client{
-		Endpoints: NewEndpointFinder(gitEnv),
-		Credentials: &commandCredentialHelper{
-			SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
-		},
+		Endpoints:           NewEndpointFinder(gitEnv),
+		Credentials:         creds,
+		SSH:                 sshResolver,
 		Netrc:               netrc,
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
@@ -91,7 +94,6 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		NoProxy:             noProxy,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
-		sshResolver:         &sshAuthClient{os: osEnv},
 	}
 
 	return c, nil

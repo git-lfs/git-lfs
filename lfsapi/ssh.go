@@ -12,7 +12,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-type sshResolver interface {
+type SSHResolver interface {
 	Resolve(Endpoint, string) (sshAuthResponse, error)
 }
 
