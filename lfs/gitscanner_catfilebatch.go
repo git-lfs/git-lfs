@@ -27,7 +27,7 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 
 	go func() {
 		for r := range revs.Results {
-			canScan := scanner.Scan([]byte(r))
+			canScan := scanner.Scan(r)
 
 			if err := scanner.Err(); err != nil {
 				errCh <- err
@@ -113,11 +113,11 @@ func (s *CatFileBatchScanner) Err() error {
 	return s.err
 }
 
-func (s *CatFileBatchScanner) Scan(sha []byte) bool {
+func (s *CatFileBatchScanner) Scan(sha string) bool {
 	s.pointer, s.err = nil, nil
 	s.blobSha, s.contentsSha = "", ""
 
-	if s.w != nil && sha != nil {
+	if s.w != nil && len(sha) > 0 {
 		if _, err := fmt.Fprintf(s.w, "%s\n", sha); err != nil {
 			s.err = err
 			return false

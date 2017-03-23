@@ -56,7 +56,7 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 
 	go func() {
 		for t := range treeblobs.Results {
-			hasNext := scanner.Scan([]byte(t.Sha1))
+			hasNext := scanner.Scan(t.Sha1)
 			if p := scanner.Pointer(); p != nil {
 				p.Name = t.Filename
 				pointers <- p

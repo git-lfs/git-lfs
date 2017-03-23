@@ -109,7 +109,7 @@ func blobInfoTo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, fro
 
 func blobInfo(s *lfs.CatFileBatchScanner, blobSha, name string) (sha, from string, err error) {
 	if !z40.MatchString(blobSha) {
-		s.Scan([]byte(blobSha))
+		s.Scan(blobSha)
 		if err := s.Err(); err != nil {
 			return "", "", err
 		}

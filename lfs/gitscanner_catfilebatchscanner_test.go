@@ -52,7 +52,7 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		assertNextEmptyPointer(t, scanner)
 	}
 
-	assert.False(t, scanner.Scan(nil))
+	assert.False(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Err())
 	assert.Nil(t, scanner.Pointer())
 }
@@ -70,17 +70,17 @@ func TestCatFileBatchScannerWithLargeBlobs(t *testing.T) {
 
 	scanner := &CatFileBatchScanner{r: bufio.NewReader(fake)}
 
-	require.True(t, scanner.Scan(nil))
+	require.True(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Pointer())
 	assert.Equal(t, fmt.Sprintf("%x", sha.Sum(nil)), scanner.ContentsSha())
 
-	assert.False(t, scanner.Scan(nil))
+	assert.False(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Err())
 	assert.Nil(t, scanner.Pointer())
 }
 
 func assertNextPointer(t *testing.T, scanner *CatFileBatchScanner, oid string) {
-	assert.True(t, scanner.Scan(nil))
+	assert.True(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Err())
 
 	p := scanner.Pointer()
@@ -90,7 +90,7 @@ func assertNextPointer(t *testing.T, scanner *CatFileBatchScanner, oid string) {
 }
 
 func assertNextEmptyPointer(t *testing.T, scanner *CatFileBatchScanner) {
-	assert.True(t, scanner.Scan(nil))
+	assert.True(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Err())
 
 	assert.Nil(t, scanner.Pointer())
