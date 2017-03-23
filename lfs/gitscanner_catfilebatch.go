@@ -162,24 +162,35 @@ func (s *CatFileBatchScanner) next() (string, string, *WrappedPointer, error) {
 	blobSha := string(fields[0])
 	size, _ := strconv.Atoi(string(fields[2]))
 	sha := sha256.New()
-	buf := make([]byte, size)
-	read, err := io.ReadFull(io.TeeReader(s.r, sha), buf)
+
+	var buf *bytes.Buffer
+	var to io.Writer = sha
+	if size <= blobSizeCutoff {
+		buf = bytes.NewBuffer(make([]byte, 0, size))
+		to = io.MultiWriter(to, buf)
+	}
+
+	read, err := io.CopyN(to, s.r, int64(size))
 	if err != nil {
 		return blobSha, "", nil, err
 	}
 
-	if size != read {
+	if int64(size) != read {
 		return blobSha, "", nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
 	}
 
-	p, err := DecodePointer(bytes.NewBuffer(buf[:read]))
 	var pointer *WrappedPointer
 	var contentsSha string
-	if err == nil {
-		contentsSha = p.Oid
-		pointer = &WrappedPointer{
-			Sha1:    blobSha,
-			Pointer: p,
+
+	if size <= blobSizeCutoff {
+		if p, err := DecodePointer(bytes.NewReader(buf.Bytes())); err != nil {
+			contentsSha = fmt.Sprintf("%x", sha.Sum(nil))
+		} else {
+			pointer = &WrappedPointer{
+				Sha1:    blobSha,
+				Pointer: p,
+			}
+			contentsSha = p.Oid
 		}
 	} else {
 		contentsSha = fmt.Sprintf("%x", sha.Sum(nil))
