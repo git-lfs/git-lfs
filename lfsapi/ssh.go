@@ -12,13 +12,28 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse, error) {
+type sshResolver interface {
+	Resolve(Endpoint, string) (sshAuthResponse, error)
+}
+
+type sshAuthResponse struct {
+	Message   string            `json:"-"`
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header"`
+	ExpiresAt string            `json:"expires_at"`
+}
+
+type sshAuthClient struct {
+	os Env
+}
+
+func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	res := sshAuthResponse{}
 	if len(e.SshUserAndHost) == 0 {
 		return res, nil
 	}
 
-	exe, args := sshGetLFSExeAndArgs(c.osEnv, e, method)
+	exe, args := sshGetLFSExeAndArgs(c.os, e, method)
 	cmd := exec.Command(exe, args...)
 
 	// Save stdout and stderr in separate buffers
@@ -40,13 +55,6 @@ func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse,
 	}
 
 	return res, err
-}
-
-type sshAuthResponse struct {
-	Message   string            `json:"-"`
-	Href      string            `json:"href"`
-	Header    map[string]string `json:"header"`
-	ExpiresAt string            `json:"expires_at"`
 }
 
 func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string) {

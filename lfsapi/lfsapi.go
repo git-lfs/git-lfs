@@ -41,6 +41,8 @@ type Client struct {
 	hostClients map[string]*http.Client
 	clientMu    sync.Mutex
 
+	sshResolver sshResolver
+
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
 
@@ -89,6 +91,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		NoProxy:             noProxy,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
+		sshResolver:         &sshAuthClient{os: osEnv},
 	}
 
 	return c, nil
