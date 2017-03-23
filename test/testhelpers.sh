@@ -194,6 +194,28 @@ refute_file_writable() {
   ls -l "$1" | grep -e "^-r-"
 }
 
+git_root() {
+  git rev-parse --show-toplevel 2>/dev/null
+}
+
+dot_git_dir() {
+  echo "$(git_root)/.git"
+}
+
+assert_hooks() {
+  local git_root="$1"
+
+  if [ -z "$git_root" ]; then
+    echo >&2 "fatal: (assert_hooks) not in git repository"
+    exit 1
+  fi
+
+  [ -x "$git_root/hooks/post-checkout" ]
+  [ -x "$git_root/hooks/post-commit" ]
+  [ -x "$git_root/hooks/post-merge" ]
+  [ -x "$git_root/hooks/pre-push" ]
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123 <version>
