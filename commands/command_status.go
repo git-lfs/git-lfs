@@ -135,7 +135,7 @@ func blobInfo(s *lfs.CatFileBatchScanner, blobSha, name string) (sha, from strin
 		return "", "", err
 	}
 
-	return fmt.Sprintf("%x", shasum.Sum(nil)), "Git", nil
+	return fmt.Sprintf("%x", shasum.Sum(nil)), "File", nil
 }
 
 func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {

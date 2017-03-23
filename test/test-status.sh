@@ -49,8 +49,8 @@ Git LFS objects to be committed:
 
 Git LFS objects not staged for commit:
 
-	file1.dat (LFS: $file_1_oid_short -> Git: $file_1_new_oid_short)
-	file3.dat (Git: $file_3_new_oid_short)"
+	file1.dat (LFS: $file_1_oid_short -> File: $file_1_new_oid_short)
+	file3.dat (File: $file_3_new_oid_short)"
 
   [ "$expected" = "$(git lfs status)" ]
 )
@@ -189,7 +189,7 @@ Git LFS objects to be committed:
 
 Git LFS objects not staged for commit:
 
-	a.dat (Git: $contents_2_oid_short)"
+	a.dat (File: $contents_2_oid_short)"
   actual="$(git lfs status)"
 
   diff -u <(echo "$expected") <(echo "$actual")
