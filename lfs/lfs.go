@@ -135,6 +135,11 @@ func ScanObjectsChan() <-chan localstorage.Object {
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
+	if len(os.Getenv("GIT_TRACE")) < 1 {
+		if tt := os.Getenv("GIT_TRANSFER_TRACE"); len(tt) > 0 {
+			os.Setenv("GIT_TRACE", tt)
+		}
+	}
 }
 
 const (
