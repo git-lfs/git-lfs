@@ -46,7 +46,7 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 // a Git LFS pointer. treeblobs is a channel over which blob entries
 // will be sent. It returns a channel from which point.Pointers can be read.
 func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper, error) {
-	cmd, err := startCommand("git", "cat-file", "--batch")
+	scanner, err := NewCatFileBatchScanner()
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +55,8 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 	errchan := make(chan error, 10) // Multiple errors possible
 
 	go func() {
-		scanner := &catFileBatchScanner{r: cmd.Stdout}
 		for t := range treeblobs.Results {
-			cmd.Stdin.Write([]byte(t.Sha1 + "\n"))
-
-			hasNext := scanner.Scan()
+			hasNext := scanner.Scan(t.Sha1)
 			if p := scanner.Pointer(); p != nil {
 				p.Name = t.Filename
 				pointers <- p
@@ -80,14 +77,10 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 			errchan <- err
 		}
 
-		cmd.Stdin.Close()
-
-		// also errors from our command
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err = cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git cat-file: %v %v", err, string(stderr))
+		if err = scanner.Close(); err != nil {
+			errchan <- err
 		}
+
 		close(pointers)
 		close(errchan)
 	}()

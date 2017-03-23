@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/subprocess"
 
@@ -16,6 +17,8 @@ import (
 
 var (
 	cloneFlags git.CloneFlags
+
+	cloneSkipRepoInstall bool
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
@@ -82,6 +85,15 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 			Exit("Error performing 'git lfs pull' for submodules: %v", err)
 		}
 	}
+
+	if !cloneSkipRepoInstall {
+		// If --skip-repo wasn't given, install repo-level hooks while
+		// we're still in the checkout directory.
+
+		if err := lfs.InstallHooks(false); err != nil {
+			ExitWithError(err)
+		}
+	}
 }
 
 func postCloneSubmodules(args []string) error {
@@ -139,5 +151,7 @@ func init() {
 
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+
+		cmd.Flags().BoolVar(&cloneSkipRepoInstall, "skip-repo", false, "Skip LFS repo setup")
 	})
 }

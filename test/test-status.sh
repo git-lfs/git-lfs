@@ -10,30 +10,47 @@ begin_test "status"
   cd repo-1
   git init
   git lfs track "*.dat"
-  echo "some data" > file1.dat
+
+  file_1="some data"
+  file_1_oid="$(calc_oid "$file_1")"
+  file_1_oid_short="$(echo "$file_1_oid" | head -c 7)"
+  printf "$file_1" > file1.dat
   git add file1.dat
   git commit -m "file1.dat"
 
-  echo "other data" > file1.dat
-  echo "file2 data" > file2.dat
+  file_1_new="other data"
+  file_1_new_oid="$(calc_oid "$file_1_new")"
+  file_1_new_oid_short="$(echo "$file_1_new_oid" | head -c 7)"
+  printf "$file_1_new" > file1.dat
+
+  file_2="file2 data"
+  file_2_oid="$(calc_oid "$file_2")"
+  file_2_oid_short="$(echo "$file_2_oid" | head -c 7)"
+  printf "$file_2" > file2.dat
   git add file2.dat
 
-  echo "file3 data" > file3.dat
+  file_3="file3 data"
+  file_3_oid="$(calc_oid "$file_3")"
+  file_3_oid_short="$(echo "$file_3_oid" | head -c 7)"
+  printf "$file_3" > file3.dat
   git add file3.dat
 
-  echo "file3 other data" > file3.dat
+  file_3_new="file3 other data"
+  file_3_new_oid="$(calc_oid "$file_3_new")"
+  file_3_new_oid_short="$(echo "$file_3_new_oid" | head -c 7)"
+  printf "$file_3_new" > file3.dat
 
   expected="On branch master
 
 Git LFS objects to be committed:
 
-	file2.dat
-	file3.dat
+	file2.dat (LFS: $file_2_oid_short)
+	file3.dat (LFS: $file_3_oid_short)
 
 Git LFS objects not staged for commit:
 
-	file1.dat
-	file3.dat"
+	file1.dat (LFS: $file_1_oid_short -> File: $file_1_new_oid_short)
+	file3.dat (File: $file_3_new_oid_short)"
 
   [ "$expected" = "$(git lfs status)" ]
 )
@@ -96,13 +113,17 @@ begin_test "status - before initial commit"
   # should not fail when nothing to display (ignore output, will be blank)
   git lfs status
 
-  echo "some data" > file1.dat
+  contents="some data"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  printf "$contents" > file1.dat
   git add file1.dat
 
   expected="
 Git LFS objects to be committed:
 
-	file1.dat
+	file1.dat (LFS: $contents_oid_short)
 
 Git LFS objects not staged for commit:"
 
@@ -147,6 +168,8 @@ begin_test "status shows multiple copies of partially staged files"
   git commit -m "initial commit"
 
   contents_1="part 1"
+  contents_1_oid="$(calc_oid "$contents_1")"
+  contents_1_oid_short="$(echo "$contents_1_oid" | head -c 7)"
   printf "$contents_1" > a.dat
 
   # "$contents_1" changes are staged
@@ -154,19 +177,150 @@ begin_test "status shows multiple copies of partially staged files"
 
   # "$contents_2" changes are unstaged
   contents_2="part 2"
-  printf "$contents_2" >> a.dat
+  contents_2_oid="$(calc_oid "$contents_2")"
+  contents_2_oid_short="$(echo "$contents_2_oid" | head -c 7)"
+  printf "$contents_2" > a.dat
 
   expected="On branch master
 
 Git LFS objects to be committed:
 
-	a.dat
+	a.dat (LFS: $contents_1_oid_short)
 
 Git LFS objects not staged for commit:
 
-	a.dat"
+	a.dat (File: $contents_2_oid_short)"
   actual="$(git lfs status)"
 
   diff -u <(echo "$expected") <(echo "$actual")
+)
+end_test
+
+begin_test "status: LFS to LFS change"
+(
+  set -e
+
+  reponame="status-lfs-to-lfs-change"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat files"
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  contents_new="$contents +extra"
+  contents_new_oid="$(calc_oid "$contents_new")"
+  contents_new_oid_short="$(echo $contents_new_oid | head -c 7)"
+
+  printf "$contents_new" > a.dat
+  git add a.dat
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+	a.dat (LFS: $contents_oid_short -> LFS: $contents_new_oid_short)
+
+Git LFS objects not staged for commit:"
+  actual="$(git lfs status)"
+
+  [ "$expected" = "$actual" ]
+)
+end_test
+
+begin_test "status: Git to LFS change"
+(
+  set -e
+
+  reponame="status-git-to-lfs-change"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat files"
+
+  contents_new="$contents +extra"
+  contents_new_oid="$(calc_oid "$contents_new")"
+  contents_new_oid_short="$(echo $contents_new_oid | head -c 7)"
+
+  printf "$contents_new" > a.dat
+  git add a.dat
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+	a.dat (Git: $contents_oid_short -> LFS: $contents_new_oid_short)
+
+Git LFS objects not staged for commit:"
+  actual="$(git lfs status)"
+
+  [ "$expected" = "$actual" ]
+)
+end_test
+
+begin_test "status: Git to LFS conversion"
+(
+  set -e
+
+  reponame="status-git-to-lfs-conversion"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+  contents_oid_short="$(echo "$contents_oid" | head -c 7)"
+
+  printf "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat"
+
+  git push origin master
+
+  pushd "$TRASHDIR" > /dev/null
+    clone_repo "$reponame" "$reponame-2"
+
+    git add a.dat
+
+    git lfs status 2>&1 | tee status.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "git lfs status should have succeeded, didn't ..."
+      exit 1
+    fi
+
+    expected="On branch master
+Git LFS objects to be pushed to origin/master:
+
+
+Git LFS objects to be committed:
+
+	a.dat (Git: $contents_oid_short -> LFS: $contents_oid_short)
+
+Git LFS objects not staged for commit:"
+    actual="$(cat status.log)"
+
+    [ "$expected" = "$actual" ]
+  popd > /dev/null
 )
 end_test

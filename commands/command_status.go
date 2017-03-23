@@ -1,7 +1,11 @@
 package commands
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -36,22 +40,102 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
+	scanner, err := lfs.NewCatFileBatchScanner()
+	if err != nil {
+		ExitWithError(err)
+	}
+
 	Print("\nGit LFS objects to be committed:\n")
 	for _, entry := range staged {
 		switch entry.Status {
 		case lfs.StatusRename, lfs.StatusCopy:
-			Print("\t%s -> %s", entry.SrcName, entry.DstName)
+			Print("\t%s -> %s (%s)", entry.SrcName, entry.DstName, formatBlobInfo(scanner, entry))
 		default:
-			Print("\t%s", entry.SrcName)
+			Print("\t%s (%s)", entry.SrcName, formatBlobInfo(scanner, entry))
 		}
 	}
 
 	Print("\nGit LFS objects not staged for commit:\n")
 	for _, entry := range unstaged {
-		Print("\t%s", entry.SrcName)
+		Print("\t%s (%s)", entry.SrcName, formatBlobInfo(scanner, entry))
 	}
 
 	Print("")
+
+	if err = scanner.Close(); err != nil {
+		ExitWithError(err)
+	}
+}
+
+var z40 = regexp.MustCompile(`\^?0{40}`)
+
+func formatBlobInfo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) string {
+	fromSha, fromSrc, err := blobInfoFrom(s, entry)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	from := fmt.Sprintf("%s: %s", fromSrc, fromSha[:7])
+	if entry.Status == lfs.StatusAddition {
+		return from
+	}
+
+	toSha, toSrc, err := blobInfoTo(s, entry)
+	if err != nil {
+		ExitWithError(err)
+	}
+	to := fmt.Sprintf("%s: %s", toSrc, toSha[:7])
+
+	return fmt.Sprintf("%s -> %s", from, to)
+}
+
+func blobInfoFrom(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
+	var blobSha string = entry.SrcSha
+	if z40.MatchString(blobSha) {
+		blobSha = entry.DstSha
+	}
+
+	return blobInfo(s, blobSha, entry.SrcName)
+}
+
+func blobInfoTo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
+	var name string = entry.DstName
+	if len(name) == 0 {
+		name = entry.SrcName
+	}
+
+	return blobInfo(s, entry.DstSha, name)
+}
+
+func blobInfo(s *lfs.CatFileBatchScanner, blobSha, name string) (sha, from string, err error) {
+	if !z40.MatchString(blobSha) {
+		s.Scan(blobSha)
+		if err := s.Err(); err != nil {
+			return "", "", err
+		}
+
+		var from string
+		if s.Pointer() != nil {
+			from = "LFS"
+		} else {
+			from = "Git"
+		}
+
+		return s.ContentsSha(), from, nil
+	}
+
+	f, err := os.Open(name)
+	if err != nil {
+		return "", "", err
+	}
+	defer f.Close()
+
+	shasum := sha256.New()
+	if _, err = io.Copy(shasum, f); err != nil {
+		return "", "", err
+	}
+
+	return fmt.Sprintf("%x", shasum.Sum(nil)), "File", nil
 }
 
 func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
