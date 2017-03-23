@@ -77,7 +77,7 @@ ArgsLoop:
 		}
 
 		// Generate the new / changed attrib line for merging
-		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
+		encodedArg := escapeTrackPattern(pattern)
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib

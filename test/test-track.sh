@@ -447,3 +447,16 @@ begin_test "track lockable read-only/read-write"
   assert_file_writable subfolder/test.bin
 )
 end_test
+
+begin_test "track escaped pattern"
+(
+  set -e
+
+  reponame="track-escaped-pattern"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track " " | grep "Tracking  "
+  assert_attributes_count "[[:space:]]" "filter=lfs" 1
+)
+end_test
