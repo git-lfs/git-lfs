@@ -50,3 +50,19 @@ begin_test "untrack outside git repo"
   fi
 )
 end_test
+
+begin_test "untrack removes escape sequences"
+(
+  set -e
+
+  reponame="untrack-remove-escape-sequence"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track " " | grep "Tracking  "
+  assert_attributes_count "[[:space:]]" "filter=lfs" 1
+
+  git lfs untrack " " | grep "Untracking  "
+  assert_attributes_count "[[:space:]]" "filter=lfs" 0
+)
+end_test

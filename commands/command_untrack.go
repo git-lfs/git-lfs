@@ -57,7 +57,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 		path := strings.Fields(line)[0]
 		if removePath(path, args) {
-			Print("Untracking %s", path)
+			Print("Untracking %s", unescapeTrackPattern(path))
 		} else {
 			attributesFile.WriteString(line + "\n")
 		}
@@ -66,7 +66,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 func removePath(path string, args []string) bool {
 	for _, t := range args {
-		if path == t {
+		if path == escapeTrackPattern(t) {
 			return true
 		}
 	}
