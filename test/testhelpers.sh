@@ -38,15 +38,28 @@ assert_local_object() {
   fi
 }
 
-# refute_local_object confirms that an object file is NOT stored for an oid
+# refute_local_object confirms that an object file is NOT stored for an oid.
+# If "$size" is given as the second argument, assert that the file exists _and_
+# that it does _not_ the expected size
+#
 # $ refute_local_object "some-oid"
+# $ refute_local_object "some-oid" "123"
 refute_local_object() {
   local oid="$1"
+  local size="$2"
   local cfg=`git lfs env | grep LocalMediaDir`
   local regex="LocalMediaDir=(\S+)"
   local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
   if [ -e $f ]; then
-    exit 1
+    if [ -z "$size" ]; then
+      exit 1
+    fi
+
+    actual_size="$(wc -c < "$f" | awk '{ print $1 }')"
+    if [ "$size" -eq "$actual_size" ]; then
+      echo >&2 "fatal: expected object $oid not to have size: $size"
+      exit 1
+    fi
   fi
 }
 
