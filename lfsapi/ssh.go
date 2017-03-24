@@ -29,8 +29,14 @@ type sshCache struct {
 }
 
 func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
+	if len(e.SshUserAndHost) == 0 {
+		return sshAuthResponse{}, nil
+	}
+
 	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
 	if res, ok := c.endpoints[key]; ok {
+		tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
+			e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
 		return *res, nil
 	}
 
