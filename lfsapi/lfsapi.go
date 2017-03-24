@@ -71,10 +71,15 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 
 	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
 
-	creds := withCredentialCache(&commandCredentialHelper{
+	var creds CredentialHelper = &commandCredentialHelper{
 		SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
-	})
-	sshResolver := withSSHCache(&sshAuthClient{os: osEnv})
+	}
+	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
+
+	if gitEnv.Bool("lfs.cachecredentials", false) {
+		creds = withCredentialCache(creds)
+		sshResolver = withSSHCache(sshResolver)
+	}
 
 	c := &Client{
 		Endpoints:           NewEndpointFinder(gitEnv),
