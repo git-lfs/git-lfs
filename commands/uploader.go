@@ -82,7 +82,7 @@ const (
 	verifyStateDisabled
 )
 
-func newUploadContext(remote string, dryRun bool) *uploadContext {
+func newUploadContext(remote string, dryRun, requireAll bool) *uploadContext {
 	cfg.CurrentRemote = remote
 
 	ctx := &uploadContext{
@@ -96,7 +96,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	}
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)
-	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
+	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun), tq.RequireAllObjects(requireAll))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 
 	ourLocks, theirLocks := verifyLocks(remote)
