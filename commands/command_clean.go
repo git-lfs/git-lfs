@@ -57,7 +57,7 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 	}
 
 	if err != nil {
-		Panic(err, "Error cleaning asset.")
+		Panic(err, "Error cleaning LFS object: %s", err)
 	}
 
 	tmpfile := cleaned.Filename
