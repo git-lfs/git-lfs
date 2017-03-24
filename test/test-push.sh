@@ -572,7 +572,7 @@ begin_test "push (with invalid object size)"
   grep "create mode 100644 .gitattributes" commit.log
 
   set +e
-  git push origin master 2>&1 2> push.log
+  git lfs push --strict-mode origin master 2>&1 2> push.log
   res="$?"
   set -e
 

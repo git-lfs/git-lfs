@@ -12,6 +12,7 @@ import (
 
 var (
 	prePushDryRun       = false
+	prePushRequireAll   = false
 	prePushDeleteBranch = strings.Repeat("0", 40)
 )
 
@@ -50,7 +51,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	ctx := newUploadContext(args[0], prePushDryRun)
+	ctx := newUploadContext(args[0], prePushDryRun, prePushRequireAll)
 
 	gitscanner, err := ctx.buildGitScanner()
 	if err != nil {
@@ -104,5 +105,6 @@ func decodeRefs(input string) (string, string) {
 func init() {
 	RegisterCommand("pre-push", prePushCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&prePushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
+		cmd.Flags().BoolVar(&prePushRequireAll, "strict-mode", false, "Require all objects to be present.")
 	})
 }

@@ -27,6 +27,12 @@ of the remote.
     This pushes only the object OIDs listed at the end of the command, separated
     by spaces.
 
+* `--strict-mode`:
+    This enforces that all LFS objects in the push exist in the local cache and
+    have the right size. If given and an object is missing or has the wrong
+    size, the push will be halted and subsequent objects will not be uploaded.
+    Not given by default.
+
 ## SEE ALSO
 
 git-lfs-pre-push(1).

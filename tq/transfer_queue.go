@@ -1,6 +1,7 @@
 package tq
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"sync"
@@ -100,6 +101,7 @@ type TransferQueue struct {
 	transfers         map[string]*objectTuple
 	batchSize         int
 	bufferDepth       int
+	requireAllObjects bool
 	// Channel for processing (and buffering) incoming items
 	incoming      chan *objectTuple
 	errorc        chan error // Channel for processing errors
@@ -140,6 +142,10 @@ func WithBatchSize(size int) Option {
 
 func WithBufferDepth(depth int) Option {
 	return func(tq *TransferQueue) { tq.bufferDepth = depth }
+}
+
+func RequireAllObjects(enabled bool) Option {
+	return func(tq *TransferQueue) { tq.requireAllObjects = enabled }
 }
 
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
@@ -410,7 +416,16 @@ func (q *TransferQueue) addToAdapter(e lfsapi.Endpoint, pending []*Transfer) <-c
 		}
 
 		for _, res := range missingResults {
-			q.handleTransferResult(res, retries)
+			if q.requireAllObjects {
+				q.handleTransferResult(res, retries)
+			} else {
+				q.meter.Pause()
+				fmt.Fprintf(os.Stderr, "Missing: %s (%s)\n", res.Transfer.Name, res.Transfer.Oid)
+				q.meter.Start()
+
+				q.wait.Done()
+				q.meter.Skip(res.Transfer.Size)
+			}
 		}
 		for res := range results {
 			q.handleTransferResult(res, retries)
