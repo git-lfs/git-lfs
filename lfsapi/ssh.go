@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -34,7 +35,7 @@ func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	}
 
 	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
-	if res, ok := c.endpoints[key]; ok {
+	if res, ok := c.endpoints[key]; ok && (res.ExpiresAt.IsZero() || res.ExpiresAt.After(time.Now().Add(5*time.Second))) {
 		tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
 			e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
 		return *res, nil
@@ -51,7 +52,7 @@ type sshAuthResponse struct {
 	Message   string            `json:"-"`
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
-	ExpiresAt string            `json:"expires_at"`
+	ExpiresAt time.Time         `json:"expires_at"`
 }
 
 type sshAuthClient struct {

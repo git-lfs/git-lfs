@@ -4,6 +4,7 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,7 @@ func TestSSHCacheResolveFromCache(t *testing.T) {
 	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
 		Href: "cache",
 	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
 
 	e := Endpoint{
 		SshUserAndHost: "userandhost",
@@ -25,6 +27,46 @@ func TestSSHCacheResolveFromCache(t *testing.T) {
 	res, err := cache.Resolve(e, "post")
 	assert.Nil(t, err)
 	assert.Equal(t, "cache", res.Href)
+}
+
+func TestSSHCacheResolveFromCacheWithFutureExpiresAt(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresAt: time.Now().Add(time.Duration(1) * time.Hour),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "cache", res.Href)
+}
+
+func TestSSHCacheResolveFromCacheWithPastExpiresAt(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresAt: time.Now().Add(time.Duration(-1) * time.Hour),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "real", res.Href)
 }
 
 func TestSSHCacheResolveWithoutError(t *testing.T) {
