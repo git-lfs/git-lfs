@@ -12,7 +12,7 @@ begin_test "prune unreferenced and old"
   clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate content we'll use
   content_unreferenced="To delete: unreferenced"
@@ -50,7 +50,7 @@ begin_test "prune unreferenced and old"
   },
   {
     \"CommitDate\":\"$(get_date -4d)\",
-    \"NewBranch\":\"branch_to_delete\",    
+    \"NewBranch\":\"branch_to_delete\",
     \"Files\":[
       {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
   },
@@ -111,7 +111,7 @@ begin_test "prune keep unpushed"
   clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
 
   content_keepunpushedhead1="Keep: unpushed HEAD 1"
@@ -138,7 +138,7 @@ begin_test "prune keep unpushed"
   {
     \"CommitDate\":\"$(get_date -31d)\",
     \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch_unpushed\",    
+    \"NewBranch\":\"branch_unpushed\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch1}, \"Data\":\"$content_keepunpushedbranch1\"}]
   },
@@ -185,7 +185,7 @@ begin_test "prune keep unpushed"
   refute_local_object "$oid_keepunpushedhead2"
 
 
-  # MERGE the secondary branch, delete the branch then push master, then make sure 
+  # MERGE the secondary branch, delete the branch then push master, then make sure
   # we delete the intermediate commits but also make sure they're on server
   # resolve conflicts by taking other branch
   git merge -Xtheirs branch_unpushed
@@ -220,7 +220,7 @@ begin_test "prune keep recent"
   clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   content_keephead="Keep: HEAD"
   content_keeprecentbranch1tip="Keep: Recent branch 1 tip"
@@ -264,7 +264,7 @@ begin_test "prune keep recent"
   },
   {
     \"CommitDate\":\"$(get_date -8d)\",
-    \"NewBranch\":\"branch_old\",    
+    \"NewBranch\":\"branch_old\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitoldbranch1}, \"Data\":\"$content_prunecommitoldbranch1\"}]
   },
@@ -276,7 +276,7 @@ begin_test "prune keep recent"
   {
     \"CommitDate\":\"$(get_date -9d)\",
     \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch1\",    
+    \"NewBranch\":\"branch1\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitbranch1}, \"Data\":\"$content_prunecommitbranch1\"}]
   },
@@ -293,7 +293,7 @@ begin_test "prune keep recent"
   {
     \"CommitDate\":\"$(get_date -17d)\",
     \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitbranch2}, \"Data\":\"$content_prunecommitbranch2\"}]
   },
@@ -318,7 +318,7 @@ begin_test "prune keep recent"
   # keep refs for 6 days & any prev commit that overlaps 2 days before tip (recent + offset)
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
-  git config lfs.fetchrecentcommitsdays 1 
+  git config lfs.fetchrecentcommitsdays 1
   git config lfs.pruneoffsetdays 1
 
   # push everything so that's not a reason to retain
@@ -380,7 +380,7 @@ begin_test "prune remote tests"
   cd "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   echo "[
   {
@@ -408,7 +408,7 @@ begin_test "prune remote tests"
   # set no recents so max ability to prune normally
   git config lfs.fetchrecentrefsdays 0
   git config lfs.fetchrecentremoterefs true
-  git config lfs.fetchrecentcommitsdays 0 
+  git config lfs.fetchrecentcommitsdays 0
   git config lfs.pruneoffsetdays 1
 
   # can never prune with no remote
@@ -452,7 +452,7 @@ begin_test "prune verify"
   clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   content_head="HEAD content"
   content_commit3="Content for commit 3 (prune)"
@@ -492,7 +492,7 @@ begin_test "prune verify"
   # set no recents so max ability to prune normally
   git config lfs.fetchrecentrefsdays 0
   git config lfs.fetchrecentremoterefs true
-  git config lfs.fetchrecentcommitsdays 0 
+  git config lfs.fetchrecentcommitsdays 0
   git config lfs.pruneoffsetdays 1
 
   # confirm that it would prune with verify when no issues
@@ -549,7 +549,7 @@ begin_test "prune verify large numbers of refs"
   clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   content_head="HEAD content"
   content_commit1="Recent commit"

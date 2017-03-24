@@ -71,7 +71,7 @@ ArgsLoop:
 				((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
 					(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
 					(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
-				Print("%s already supported", pattern)
+				Print("%q already supported", pattern)
 				continue ArgsLoop
 			}
 		}
@@ -91,7 +91,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %s", pattern)
+		Print("Tracking %q", pattern)
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -178,7 +178,7 @@ ArgsLoop:
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
-				Print("Git LFS: touching %s", f)
+				Print("Git LFS: touching %q", f)
 			}
 
 			if !trackDryRunFlag {

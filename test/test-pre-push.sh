@@ -248,7 +248,7 @@ begin_test "pre-push multiple branches"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=6
   # generate content we'll use
@@ -334,7 +334,7 @@ begin_test "pre-push unfetched deleted remote branch & server GC"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=4
   # generate content we'll use
@@ -407,7 +407,7 @@ begin_test "pre-push delete branch"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=4
   # generate content we'll use

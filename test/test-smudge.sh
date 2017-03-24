@@ -147,7 +147,7 @@ begin_test "smudge clone with include/exclude"
   clone_repo "$reponame" "repo_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")

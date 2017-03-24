@@ -15,7 +15,7 @@ begin_test "prune worktree"
   clone_repo "remote_$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   content_head="First checkout HEAD"
   content_worktree1head="Worktree 1 head"
@@ -39,7 +39,7 @@ begin_test "prune worktree"
   },
   {
     \"CommitDate\":\"$(get_date -35d)\",
-    \"NewBranch\":\"branch1\",    
+    \"NewBranch\":\"branch1\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit2}, \"Data\":\"$content_oldcommit2\"}]
   },
@@ -51,7 +51,7 @@ begin_test "prune worktree"
   {
     \"CommitDate\":\"$(get_date -30d)\",
     \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit3}, \"Data\":\"$content_oldcommit3\"}]
   },
@@ -74,7 +74,7 @@ begin_test "prune worktree"
   # don't keep any recent, just checkouts
   git config lfs.fetchrecentrefsdays 0
   git config lfs.fetchrecentremoterefs true
-  git config lfs.fetchrecentcommitsdays 0 
+  git config lfs.fetchrecentcommitsdays 0
 
   # before worktree, everything except current checkout would be pruned
   git lfs prune --dry-run 2>&1 | tee prune.log
