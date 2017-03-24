@@ -45,6 +45,11 @@ be scoped inside the configuration for a remote.
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
 
+* `lfs.cachecredentials`
+
+  Enables in-memory SSH and Git Credential caching for a single 'git lfs'
+  command. Default: false. This will default to true in v2.1.0.
+
 ### Transfer (upload / download) settings
 
   These settings control how the upload and download of LFS content occurs.
