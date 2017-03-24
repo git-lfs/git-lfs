@@ -26,7 +26,7 @@ begin_test "init fetch-recent"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   echo "[
   {

@@ -14,7 +14,7 @@ begin_test "init fetch unclean paths"
   clone_repo $reponame repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   mkdir dir
   printf "$contents" > dir/a.dat
