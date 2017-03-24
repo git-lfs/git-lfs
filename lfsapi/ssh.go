@@ -35,7 +35,7 @@ func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	}
 
 	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
-	if res, ok := c.endpoints[key]; ok && (res.ExpiresAt.IsZero() || res.ExpiresAt.After(time.Now().Add(5*time.Second))) {
+	if res, ok := c.endpoints[key]; ok && (res.ExpiresAt.IsZero() || time.Until(res.ExpiresAt) > 5*time.Second) {
 		tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
 			e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
 		return *res, nil
