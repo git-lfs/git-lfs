@@ -12,7 +12,7 @@ begin_test "resume-http-range"
   clone_repo "$reponame" $reponame
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # this string announces to server that we want a test that
   # interrupts the transfer when started from 0 to cause resume
@@ -23,7 +23,7 @@ begin_test "resume-http-range"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  git push origin master 
+  git push origin master
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -53,7 +53,7 @@ begin_test "resume-http-range-fallback"
   clone_repo "$reponame" $reponame
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # this string announces to server that we want it to abort the download part
   # way, but reject the Range: header and fall back on re-downloading instead
@@ -64,7 +64,7 @@ begin_test "resume-http-range-fallback"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  git push origin master 
+  git push origin master
 
   assert_server_object "$reponame" "$contents_oid"
 

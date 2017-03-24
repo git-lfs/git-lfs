@@ -13,7 +13,7 @@ begin_test "clone"
   clone_repo "$reponame" repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -95,7 +95,7 @@ begin_test "cloneSSL"
   clone_repo_ssl "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -154,7 +154,7 @@ begin_test "clone ClientCert"
   fi
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -211,7 +211,7 @@ begin_test "clone with flags"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -298,7 +298,7 @@ begin_test "clone (with include/exclude args)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
@@ -359,7 +359,7 @@ begin_test "clone (with .lfsconfig)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
@@ -472,7 +472,7 @@ begin_test "clone with submodules"
 
   clone_repo "$submodname2" submod2
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_sub2="Inception. Now, before you bother telling me it's impossible..."
   contents_sub2_oid=$(calc_oid "$contents_sub2")
@@ -484,7 +484,7 @@ begin_test "clone with submodules"
 
   clone_repo "$submodname1" submod1
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_sub1="We're dreaming?"
   contents_sub1_oid=$(calc_oid "$contents_sub1")
@@ -499,7 +499,7 @@ begin_test "clone with submodules"
 
   clone_repo "$reponame" rootrepo
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_root="Downwards is the only way forwards."
   contents_root_oid=$(calc_oid "$contents_root")
@@ -546,7 +546,7 @@ begin_test "clone in current directory"
   clone_repo "$reponame" $reponame
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="contents"
   contents_oid="$(calc_oid "$contents")"

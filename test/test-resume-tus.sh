@@ -14,7 +14,7 @@ begin_test "tus-upload-uninterrupted"
   git config lfs.tustransfers true
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="send-verify-action"
   contents_oid=$(calc_oid "$contents")
@@ -44,7 +44,7 @@ begin_test "tus-upload-interrupted-resume"
   git config lfs.tustransfers true
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_verify="send-verify-action"
   contents_verify_oid="$(calc_oid "$contents_verify")"
