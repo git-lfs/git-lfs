@@ -47,8 +47,13 @@ func verifyUpload(c *lfsapi.Client, remote string, t *Transfer) error {
 		tracerx.Printf("tq: verify %s attempt #%d (max: %d)", t.Oid[:7], i, mv)
 
 		var res *http.Response
+		if t.Authenticated {
+			res, err = c.Do(req)
+		} else {
+			res, err = c.DoWithAuth(remote, req)
+		}
 
-		if res, err = c.Do(req); err != nil {
+		if err != nil {
 			tracerx.Printf("tq: verify err: %+v", err.Error())
 		} else {
 			err = res.Body.Close()
