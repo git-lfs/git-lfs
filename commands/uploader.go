@@ -286,7 +286,7 @@ func (c *uploadContext) Await() {
 	}
 
 	if len(missing) > 0 || len(corrupt) > 0 {
-		Print("Push completed with missing objects:")
+		Print("LFS upload failed:")
 		for name, oid := range missing {
 			Print("  (missing) %s (%s)", name, oid)
 		}

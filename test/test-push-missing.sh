@@ -53,7 +53,7 @@ begin_test "push missing objects"
     exit 1
   fi
 
-  grep "Push completed with missing objects:" push.log
+  grep "LFS upload failed:" push.log
   grep "  (missing) missing.dat ($missing_oid)" push.log
   grep "  (corrupt) corrupt.dat ($corrupt_oid)" push.log
 
