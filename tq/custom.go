@@ -315,7 +315,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				if err = verifyUpload(a.apiClient, t); err != nil {
+				if err = verifyUpload(a.apiClient, a.remote, t); err != nil {
 					return err
 				}
 			}
