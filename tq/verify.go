@@ -13,7 +13,7 @@ const (
 	defaultMaxVerifyAttempts = 3
 )
 
-func verifyUpload(c *lfsapi.Client, t *Transfer) error {
+func verifyUpload(c *lfsapi.Client, remote string, t *Transfer) error {
 	action, err := t.Actions.Get("verify")
 	if err != nil {
 		return err

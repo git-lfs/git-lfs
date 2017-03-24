@@ -159,7 +159,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return verifyUpload(a.apiClient, t)
+	return verifyUpload(a.apiClient, a.remote, t)
 }
 
 func configureTusAdapter(m *Manifest) {
