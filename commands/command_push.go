@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	pushDryRun    = false
-	pushObjectIDs = false
-	pushAll       = false
-	useStdin      = false
+	pushDryRun     = false
+	pushObjectIDs  = false
+	pushAll        = false
+	pushRequireAll = false
+	useStdin       = false
 
 	// shares some global vars and functions with command_pre_push.go
 )
@@ -117,7 +118,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	ctx := newUploadContext(args[0], pushDryRun)
+	ctx := newUploadContext(args[0], pushDryRun, pushRequireAll)
 
 	if pushObjectIDs {
 		if len(args) < 2 {
@@ -141,5 +142,6 @@ func init() {
 		cmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 		cmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
 		cmd.Flags().BoolVarP(&pushAll, "all", "a", false, "Push all objects for the current ref to the remote.")
+		cmd.Flags().BoolVar(&pushRequireAll, "strict-mode", false, "Require all objects to be present.")
 	})
 }
