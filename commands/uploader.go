@@ -270,8 +270,31 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 func (c *uploadContext) Await() {
 	c.tq.Wait()
 
+	var missing = make(map[string]string)
+	var corrupt = make(map[string]string)
+
 	for _, err := range c.tq.Errors() {
-		FullError(err)
+		if malformed, ok := err.(*tq.MalformedObjectError); ok {
+			if malformed.Missing() {
+				missing[malformed.Name] = malformed.Oid
+			} else if malformed.Corrupt() {
+				corrupt[malformed.Name] = malformed.Oid
+			}
+		} else {
+			FullError(err)
+		}
+	}
+
+	if len(missing) > 0 || len(corrupt) > 0 {
+		Print("Push completed with missing objects:")
+		for name, oid := range missing {
+			Print("  (missing) %s (%s)", name, oid)
+		}
+		for name, oid := range corrupt {
+			Print("  (corrupt) %s (%s)", name, oid)
+		}
+
+		os.Exit(2)
 	}
 
 	if len(c.tq.Errors()) > 0 {
