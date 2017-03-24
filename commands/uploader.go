@@ -272,6 +272,7 @@ func (c *uploadContext) Await() {
 
 	var missing = make(map[string]string)
 	var corrupt = make(map[string]string)
+	var others = make([]error, 0, len(c.tq.Errors()))
 
 	for _, err := range c.tq.Errors() {
 		if malformed, ok := err.(*tq.MalformedObjectError); ok {
@@ -281,7 +282,7 @@ func (c *uploadContext) Await() {
 				corrupt[malformed.Name] = malformed.Oid
 			}
 		} else {
-			FullError(err)
+			others = append(others, err)
 		}
 	}
 
@@ -293,8 +294,10 @@ func (c *uploadContext) Await() {
 		for name, oid := range corrupt {
 			Print("  (corrupt) %s (%s)", name, oid)
 		}
+	}
 
-		os.Exit(2)
+	for _, err := range others {
+		FullError(err)
 	}
 
 	if len(c.tq.Errors()) > 0 {
