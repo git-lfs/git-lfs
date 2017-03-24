@@ -14,7 +14,7 @@ begin_test "pull"
   clone_repo "$reponame" repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")

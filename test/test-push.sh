@@ -443,7 +443,7 @@ begin_test "push ambiguous branch name"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=5
   # generate content we'll use

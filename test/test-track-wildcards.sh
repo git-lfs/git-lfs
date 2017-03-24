@@ -69,15 +69,15 @@ begin_test "track files using filename pattern with leading slash"
 
   # These are added by git.GetTrackedFiles
   git lfs track "/a.dat" | tee track.log
-  grep "Tracking /a.dat" track.log
+  grep "Tracking \"/a.dat\"" track.log
   git lfs track "/dir/b.dat" | tee track.log
-  grep "Tracking /dir/b.dat" track.log
+  grep "Tracking \"/dir/b.dat\"" track.log
 
   # These are added by Git's `clean` filter
   git lfs track "/c.dat" | tee track.log
-  grep "Tracking /c.dat" track.log
+  grep "Tracking \"/c.dat\"" track.log
   git lfs track "/dir/d.dat" | tee track.log
-  grep "Tracking /dir/d.dat" track.log
+  grep "Tracking \"/dir/d.dat\"" track.log
 
   cat .gitattributes
 
