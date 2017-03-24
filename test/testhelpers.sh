@@ -72,6 +72,15 @@ delete_local_object() {
   rm "$f"
 }
 
+# corrupt_local_object corrupts the local storage for an oid
+# $ corrupt_local_object "some-oid"
+corrupt_local_object() {
+  local oid="$1"
+  local cfg=`git lfs env | grep LocalMediaDir`
+  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  cp /dev/null "$f"
+}
+
 
 # check that the object does not exist in the git lfs server. HTTP log is
 # written to http.log. JSON output is written to http.json.
