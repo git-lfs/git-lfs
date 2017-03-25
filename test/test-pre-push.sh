@@ -183,7 +183,9 @@ begin_test "pre-push with missing pointer not on server"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" missing-pointer
 
-  echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
+  oid="7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
+
+  echo "$(pointer "$oid" 4)" > new.dat
   git add new.dat
   git commit -m "add new pointer"
 
@@ -193,7 +195,8 @@ begin_test "pre-push with missing pointer not on server"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
-  grep "Unable to find object (7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c) locally." push.log
+
+  grep "  (missing) new.dat ($oid)" push.log
 )
 end_test
 
