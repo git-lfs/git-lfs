@@ -8,6 +8,10 @@ ifeq ($(DEB_HOST_ARCH), i386)
 	export GOARCH := 386
 else ifeq ($(DEB_HOST_ARCH), amd64)
 	export GOARCH := amd64
+else ifeq ($(DEB_HOST_ARCH), armhf)
+	export GOARCH := arm
+else ifeq ($(DEB_HOST_ARCH), arm64)
+	export GOARCH := arm64
 endif
 
 BUILD_DIR := obj-$(DEB_HOST_GNU_TYPE)
