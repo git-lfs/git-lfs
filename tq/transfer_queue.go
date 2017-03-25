@@ -435,8 +435,14 @@ func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Tr
 			err = errors.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
 		} else {
 			fd, serr := os.Stat(t.Path)
-			if serr != nil || fd.Size() != t.Size {
-				err = errors.Errorf("Unable to find object (%s) locally.", t.Oid)
+			if serr != nil {
+				if os.IsNotExist(serr) {
+					err = newObjectMissingError(t.Name, t.Oid)
+				} else {
+					err = serr
+				}
+			} else if t.Size != fd.Size() {
+				err = newCorruptObjectError(t.Name, t.Oid)
 			}
 		}
 
