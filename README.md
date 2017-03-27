@@ -128,5 +128,5 @@ These are the humans that form the Git LFS core team, which runs the project.
 In alphabetical order:
 
 | [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) | [@ttaylorr](https://github.com/ttaylorr) |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 | [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) | [![](https://avatars3.githubusercontent.com/u/443245?v=3&s=100)](https://github.com/ttaylorr) |
