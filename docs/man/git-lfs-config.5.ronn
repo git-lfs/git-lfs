@@ -8,6 +8,11 @@ precedence. Most options pertaining to git-lfs are contained in the `[lfs]`
 section, meaning they all named `lfs.foo` or similar, although occasionally an
 lfs option can be scoped inside the configuration for a remote.
 
+These settings are read from a file called `.lfsconfig` found at the root of the
+repository, though legacy support exists to read from `.gitconfig` as well.
+
+The `.lfsconfig` file uses the same format as `.gitconfig`.
+
 ## LIST OF OPTIONS
 
 ### General settings
