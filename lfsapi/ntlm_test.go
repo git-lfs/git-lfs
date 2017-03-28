@@ -96,7 +96,7 @@ func TestNTLMAuth(t *testing.T) {
 	}
 	credHelper.Approve(creds)
 
-	res, err := cli.DoWithAuth("remote", req)
+	res, err := cli.DoWithAuth("remote", NewRequestWrapper(req))
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 	assert.True(t, credHelper.IsApproved(creds))

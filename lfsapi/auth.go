@@ -20,10 +20,15 @@ var (
 	defaultEndpointFinder   = NewEndpointFinder(nil)
 )
 
-func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
+func (c *Client) DoWithAuth(remote string, factory RequestFactory) (*http.Response, error) {
 	credHelper := c.Credentials
 	if credHelper == nil {
 		credHelper = defaultCredentialHelper
+	}
+
+	req, err := factory.NewRequest()
+	if err != nil {
+		return nil, err
 	}
 
 	netrcFinder := c.Netrc
@@ -44,6 +49,11 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access)
 	if err != nil {
 		if errors.IsAuthError(err) {
+			if requestHasAuth(req) && creds == nil && factory.InvalidateAuthorization() {
+				tracerx.Printf("api: http response indicates expired authentication. Resubmitting...")
+				return c.DoWithAuth(remote, factory)
+			}
+
 			newAccess := getAuthAccess(res)
 			if newAccess != access {
 				c.Endpoints.SetAccess(apiEndpoint.Url, newAccess)
@@ -51,11 +61,11 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 
 			if access == NoneAccess || creds != nil {
 				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess)
-				req.Header.Del("Authorization")
 				if creds != nil {
 					credHelper.Reject(creds)
 				}
-				return c.DoWithAuth(remote, req)
+				factory.InvalidateAuthorization()
+				return c.DoWithAuth(remote, factory)
 			}
 		}
 	}

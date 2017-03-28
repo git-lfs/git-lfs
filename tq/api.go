@@ -45,10 +45,8 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	}
 
 	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
-	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "batch request")
-	}
+
+	req := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
 
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 

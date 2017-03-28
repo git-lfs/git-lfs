@@ -49,6 +49,8 @@ type Client struct {
 	transfers        map[*http.Response]*httpTransfer
 	transferMu       sync.Mutex
 
+	sshAuthCache map[string]sshAuthResponse
+
 	// only used for per-host ssl certs
 	gitEnv Env
 	osEnv  Env
@@ -89,6 +91,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		NoProxy:             noProxy,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
+		sshAuthCache:        make(map[string]sshAuthResponse),
 	}
 
 	return c, nil

@@ -202,7 +202,7 @@ func (a *adapterBase) doHTTP(t *Transfer, req *http.Request) (*http.Response, er
 	if t.Authenticated {
 		return a.apiClient.Do(req)
 	}
-	return a.apiClient.DoWithAuth(a.remote, req)
+	return a.apiClient.DoWithAuth(a.remote, lfsapi.NewRequestWrapper(req))
 }
 
 func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {

@@ -18,6 +18,10 @@ func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse,
 		return res, nil
 	}
 
+	if cached, ok := c.sshAuthCache[e.SshUserAndHost]; ok {
+		return cached, nil
+	}
+
 	exe, args := sshGetLFSExeAndArgs(c.osEnv, e, method)
 	cmd := exec.Command(exe, args...)
 
@@ -37,6 +41,10 @@ func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse,
 		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
+	}
+
+	if err == nil {
+		c.sshAuthCache[e.SshUserAndHost+method] = res
 	}
 
 	return res, err

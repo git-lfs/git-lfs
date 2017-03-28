@@ -45,11 +45,7 @@ type lockResponse struct {
 
 func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
-	req, err := c.NewRequest("POST", e, "locks", lockReq)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	req := c.NewRequest("POST", e, "locks", lockReq)
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
@@ -82,14 +78,34 @@ type unlockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
+type searchRequestFactory struct {
+	lfsapi.RequestFactory
+	searchReq *lockSearchRequest
+}
+
+func (f *searchRequestFactory) NewRequest() (*http.Request, error) {
+	req, err := f.RequestFactory.NewRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	q := req.URL.Query()
+	for key, value := range f.searchReq.QueryValues() {
+		q.Add(key, value)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	return req, nil
+}
+
+func (f *searchRequestFactory) Credentials() lfsapi.CredentialHelper {
+	return f.Credentials()
+}
+
 func (c *lockClient) Unlock(remote, id string, force bool) (*unlockResponse, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
-	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{Force: force})
-	if err != nil {
-		return nil, nil, err
-	}
-
+	req := c.NewRequest("POST", e, suffix, &unlockRequest{Force: force})
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
@@ -162,18 +178,11 @@ type lockList struct {
 
 func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
-	req, err := c.NewRequest("GET", e, "locks", nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	q := req.URL.Query()
-	for key, value := range searchReq.QueryValues() {
-		q.Add(key, value)
-	}
-	req.URL.RawQuery = q.Encode()
-
-	res, err := c.DoWithAuth(remote, req)
+	req := c.NewRequest("GET", e, "locks", nil)
+	res, err := c.DoWithAuth(remote, &searchRequestFactory{
+		req,
+		searchReq,
+	})
 	if err != nil {
 		return nil, res, err
 	}
@@ -225,11 +234,7 @@ type lockVerifiableList struct {
 
 func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
-	req, err := c.NewRequest("POST", e, "locks/verify", vreq)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	req := c.NewRequest("POST", e, "locks/verify", vreq)
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err

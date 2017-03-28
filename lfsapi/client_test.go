@@ -175,7 +175,7 @@ func TestNewRequest(t *testing.T) {
 		}))
 		require.Nil(t, err)
 
-		req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), test[1], nil)
+		req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), test[1], nil).NewRequest()
 		require.Nil(t, err)
 		assert.Equal(t, "POST", req.Method)
 		assert.Equal(t, test[2], req.URL.String(), fmt.Sprintf("endpoint: %s, suffix: %s, expected: %s", test[0], test[1], test[2]))
@@ -191,7 +191,7 @@ func TestNewRequestWithBody(t *testing.T) {
 	body := struct {
 		Test string
 	}{Test: "test"}
-	req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), "body", body)
+	req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), "body", body).NewRequest()
 	require.Nil(t, err)
 
 	assert.NotNil(t, req.Body)
