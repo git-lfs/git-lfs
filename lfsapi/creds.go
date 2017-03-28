@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/rubyist/tracerx"
 )
 
 type CredentialHelper interface {
@@ -28,11 +30,62 @@ func bufferCreds(c Creds) *bytes.Buffer {
 	return buf
 }
 
+func withCredentialCache(helper CredentialHelper) CredentialHelper {
+	return &credentialCacher{
+		creds:  make(map[string]Creds),
+		helper: helper,
+	}
+}
+
+type credentialCacher struct {
+	creds  map[string]Creds
+	helper CredentialHelper
+}
+
+func credCacheKey(creds Creds) string {
+	parts := []string{
+		creds["protocol"],
+		creds["host"],
+		creds["path"],
+	}
+	return strings.Join(parts, "//")
+}
+
+func (c *credentialCacher) Fill(creds Creds) (Creds, error) {
+	key := credCacheKey(creds)
+	if cache, ok := c.creds[key]; ok {
+		tracerx.Printf("creds: git credential cache (%q, %q, %q)",
+			creds["protocol"], creds["host"], creds["path"])
+		return cache, nil
+	}
+
+	creds, err := c.helper.Fill(creds)
+	if err == nil && len(creds["username"]) > 0 && len(creds["password"]) > 0 {
+		c.creds[key] = creds
+	}
+	return creds, err
+}
+
+func (c *credentialCacher) Reject(creds Creds) error {
+	delete(c.creds, credCacheKey(creds))
+	return c.helper.Reject(creds)
+}
+
+func (c *credentialCacher) Approve(creds Creds) error {
+	err := c.helper.Approve(creds)
+	if err == nil {
+		c.creds[credCacheKey(creds)] = creds
+	}
+	return err
+}
+
 type commandCredentialHelper struct {
 	SkipPrompt bool
 }
 
 func (h *commandCredentialHelper) Fill(creds Creds) (Creds, error) {
+	tracerx.Printf("creds: git credential fill (%q, %q, %q)",
+		creds["protocol"], creds["host"], creds["path"])
 	return h.exec("fill", creds)
 }
 
