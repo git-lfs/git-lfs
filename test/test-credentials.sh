@@ -18,7 +18,7 @@ begin_test "credentials without useHttpPath, with bad path password"
   git checkout -b without-path
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -46,7 +46,7 @@ begin_test "credentials with useHttpPath, with wrong password"
   git checkout -b with-path-wrong-pass
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -74,7 +74,7 @@ begin_test "credentials with useHttpPath, with correct password"
   git checkout -b with-path-correct-pass
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # creating new branch does not re-send any objects existing on other
   # remote branches anymore, generate new object, different from prev tests

@@ -13,7 +13,7 @@ begin_test "untrack"
   cd $reponame
 
   # track *.jpg once
-  git lfs track "*.jpg" | grep "Tracking \*.jpg"
+  git lfs track "*.jpg" | grep "Tracking \"\*.jpg\""
   echo "* annex.backend=SHA512E" >> .gitattributes
 
   git lfs untrack "*.jpg"
@@ -48,5 +48,27 @@ begin_test "untrack outside git repo"
     echo "GIT_LFS_TEST_DIR should be set outside of any Git repository"
     exit 1
   fi
+)
+end_test
+
+begin_test "untrack removes escape sequences"
+(
+  set -e
+
+  reponame="untrack-remove-escape-sequence"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track " " | grep "Tracking \" \""
+  assert_attributes_count "[[:space:]]" "filter=lfs" 1
+
+  git lfs untrack " " | grep "Untracking \" \""
+  assert_attributes_count "[[:space:]]" "filter=lfs" 0
+
+  git lfs track "#" | grep "Tracking \"#\""
+  assert_attributes_count "\\#" "filter=lfs" 1
+
+  git lfs untrack "#" | grep "Untracking \"#\""
+  assert_attributes_count "\\#" "filter=lfs" 0
 )
 end_test

@@ -16,7 +16,7 @@ begin_test "custom-transfer-wrong-path"
   git config lfs.customtransfer.testcustom.path path-to-nothing
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="jksgdfljkgsdlkjafg lsjdgf alkjgsd lkfjag sldjkgf alkjsgdflkjagsd kljfg asdjgf kalsd"
   contents_oid=$(calc_oid "$contents")
@@ -52,7 +52,7 @@ begin_test "custom-transfer-upload-download"
   git config lfs.customtransfer.testcustom.path lfstest-customadapter
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
   git add .gitattributes
   git commit -m "Tracking"
 

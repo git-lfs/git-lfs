@@ -22,7 +22,9 @@ begin_test "verify with retries"
   git add a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+
+  grep "Authorization: Basic * * * * *" push.log
 
   [ "0" -eq "${PIPESTATUS[0]}" ]
   [ "2" -eq "$(grep -c "verify $contents_short_oid attempt" push.log)" ]
@@ -49,7 +51,9 @@ begin_test "verify with retries (success without retry)"
   git add a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+
+  grep "Authorization: Basic * * * * *" push.log
 
   [ "0" -eq "${PIPESTATUS[0]}" ]
   [ "1" -eq "$(grep -c "verify $contents_short_oid attempt" push.log)" ]
@@ -111,7 +115,9 @@ begin_test "verify with retries (bad .gitconfig)"
   git add a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+
+  grep "Authorization: Basic * * * * *" push.log
 
   [ "0" -eq "${PIPESTATUS[0]}" ]
   [ "2" -eq "$(grep -c "verify $contents_short_oid attempt" push.log)" ]

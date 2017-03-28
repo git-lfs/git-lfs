@@ -71,13 +71,13 @@ ArgsLoop:
 				((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
 					(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
 					(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
-				Print("%s already supported", pattern)
+				Print("%q already supported", pattern)
 				continue ArgsLoop
 			}
 		}
 
 		// Generate the new / changed attrib line for merging
-		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
+		encodedArg := escapeTrackPattern(pattern)
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib
@@ -91,7 +91,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %s", pattern)
+		Print("Tracking %q", pattern)
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -178,7 +178,7 @@ ArgsLoop:
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
-				Print("Git LFS: touching %s", f)
+				Print("Git LFS: touching %q", f)
 			}
 
 			if !trackDryRunFlag {
@@ -237,6 +237,33 @@ func blocklistItem(name string) string {
 	}
 
 	return ""
+}
+
+var (
+	trackEscapePatterns = map[string]string{
+		" ": "[[:space:]]",
+		"#": "\\#",
+	}
+)
+
+func escapeTrackPattern(unescaped string) string {
+	var escaped string = unescaped
+
+	for from, to := range trackEscapePatterns {
+		escaped = strings.Replace(escaped, from, to, -1)
+	}
+
+	return escaped
+}
+
+func unescapeTrackPattern(escaped string) string {
+	var unescaped string = escaped
+
+	for to, from := range trackEscapePatterns {
+		unescaped = strings.Replace(unescaped, from, to, -1)
+	}
+
+	return unescaped
 }
 
 func init() {
