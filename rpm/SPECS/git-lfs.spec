@@ -1,9 +1,5 @@
 Name:           git-lfs
-<<<<<<< HEAD
 Version:        2.0.1
-=======
-Version:        2.1.0-pre
->>>>>>> f8e71189... Merge branch 'master' into auth-caching
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
