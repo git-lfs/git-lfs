@@ -1,12 +1,145 @@
 package lfsapi
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSSHCacheResolveFromCache(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href: "cache",
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "cache", res.Href)
+}
+
+func TestSSHCacheResolveFromCacheWithFutureExpiresAt(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresAt: time.Now().Add(time.Duration(1) * time.Hour),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "cache", res.Href)
+}
+
+func TestSSHCacheResolveFromCacheWithPastExpiresAt(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresAt: time.Now().Add(time.Duration(-1) * time.Hour),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "real", res.Href)
+}
+
+func TestSSHCacheResolveWithoutError(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+
+	assert.Equal(t, 0, len(cache.endpoints))
+
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "real", res.Href)
+
+	assert.Equal(t, 1, len(cache.endpoints))
+	cacheres, ok := cache.endpoints["userandhost//1//path//post"]
+	assert.True(t, ok)
+	assert.NotNil(t, cacheres)
+	assert.Equal(t, "real", cacheres.Href)
+
+	delete(ssh.responses, "userandhost")
+	res2, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "real", res2.Href)
+}
+
+func TestSSHCacheResolveWithError(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+
+	assert.Equal(t, 0, len(cache.endpoints))
+
+	ssh.responses["userandhost"] = sshAuthResponse{Message: "resolve error", Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.NotNil(t, err)
+	assert.Equal(t, "real", res.Href)
+
+	assert.Equal(t, 0, len(cache.endpoints))
+	delete(ssh.responses, "userandhost")
+	res2, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "", res2.Href)
+}
+
+func newFakeResolver() *fakeResolver {
+	return &fakeResolver{responses: make(map[string]sshAuthResponse)}
+}
+
+type fakeResolver struct {
+	responses map[string]sshAuthResponse
+}
+
+func (r *fakeResolver) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
+	res := r.responses[e.SshUserAndHost]
+	var err error
+	if len(res.Message) > 0 {
+		err = errors.New(res.Message)
+	}
+	return res, err
+}
 
 func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	cli, err := NewClient(TestEnv(map[string]string{}), nil)
