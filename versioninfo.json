@@ -13,6 +13,10 @@
 		"FileDescription": "Git LFS",
 		"LegalCopyright": "GitHub, Inc. and Git LFS contributors",
 		"ProductName": "Git Large File Storage (LFS)",
+<<<<<<< HEAD
 		"ProductVersion": "2.0.1"
+=======
+		"ProductVersion": "2.1.0-pre"
+>>>>>>> f8e71189... Merge branch 'master' into auth-caching
 	}
 }
