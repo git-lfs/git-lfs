@@ -1044,6 +1044,10 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				w.WriteHeader(501)
 				return
 			}
+			if strings.HasSuffix(repo, "verify-403") {
+				w.WriteHeader(403)
+				return
+			}
 
 			switch repo {
 			case "pre_push_locks_verify_404":
