@@ -938,9 +938,8 @@ func getFilteredLocks(repo, path, cursor, limit string) ([]Lock, string, error) 
 			return nil, "", nil
 		}
 
-		locks = locks[:size]
 		if size+1 < len(locks) {
-			return locks, locks[size+1].Id, nil
+			return locks[:size], locks[size+1].Id, nil
 		}
 	}
 
