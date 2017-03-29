@@ -124,13 +124,15 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock) {
 	if err != nil {
 		if errors.IsNotImplementedError(err) {
 			disableFor(endpoint)
-		} else {
+		} else if !errors.IsAuthError(err) {
 			Print("Remote %q does not support the LFS locking API. Consider disabling it with:", remote)
 			Print("  $ git config 'lfs.%s.locksverify' false", endpoint.Url)
 
 			if state == verifyStateEnabled {
 				ExitWithError(err)
 			}
+		} else {
+			ExitWithError(err)
 		}
 	} else if state == verifyStateUnknown {
 		Print("Locking support detected on remote %q. Consider enabling it with:", remote)
