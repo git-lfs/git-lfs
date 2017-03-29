@@ -1,5 +1,31 @@
 # Git LFS Changelog
 
+## 2.0.2 (29 March, 2017)
+
+### Features
+
+* ssh auth and credential helper caching #2094 (@ttaylorr)
+* commands,tq: specialized logging for missing/corrupt objects #2085 (@ttaylorr)
+* commands/clone: install repo-level hooks after `git lfs clone` #2074 (@ttaylorr)
+* debian: Support building on armhf and arm64 #2089 (@p12tic)
+
+### Bugs
+
+* commands,locking: don't disable locking for auth errors during verify #2111 (@ttaylorr)
+* commands: show real error while cleaning #2096 (@ttaylorr)
+* lfsapi/auth: optionally prepend an empty scheme to Git remote URLs #2092 (@ttaylorr)
+* tq/verify: authenticate verify requests if required #2084 (@ttaylorr)
+* commands/{,un}track: correctly escape '#' and ' ' characters #2079 (@ttaylorr)
+* tq: use initialized lfsapi.Client instances in transfer adapters #2048 (@ttaylorr)
+
+### Misc
+
+* locking: send locks limit to server #2109 (@ttaylorr)
+* docs: update configuration documentation #2097 #2019 #2102 (@terrorobe)
+* docs: update locking API documentation #2099 #2101 (@dpursehouse)
+* fixed table markdown in README.md #2095 (@ZaninAndrea)
+* remove the the duplicate work #2098 (@grimreaper)
+
 ## 2.0.1 (6 March, 2017)
 
 ### Misc
