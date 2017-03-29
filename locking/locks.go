@@ -196,6 +196,8 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 			switch res.StatusCode {
 			case http.StatusNotFound, http.StatusNotImplemented:
 				return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+			case http.StatusForbidden:
+				return ourLocks, theirLocks, errors.NewAuthError(err)
 			}
 		}
 
