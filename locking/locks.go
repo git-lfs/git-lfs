@@ -192,8 +192,13 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 
 	for {
 		list, res, err := c.client.SearchVerifiable(c.Remote, body)
-		if res != nil && res.StatusCode == http.StatusNotImplemented {
-			return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+		if res != nil {
+			switch res.StatusCode {
+			case http.StatusNotFound, http.StatusNotImplemented:
+				return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+			case http.StatusForbidden:
+				return ourLocks, theirLocks, errors.NewAuthError(err)
+			}
 		}
 
 		if err != nil {
