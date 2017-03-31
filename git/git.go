@@ -59,6 +59,52 @@ type CommitSummary struct {
 	Subject        string
 }
 
+func CommitTree(tree, parent, message string) (string, error) {
+	args := []string{
+		"commit-tree", "-m", message,
+	}
+	if len(parent) > 0 {
+		args = append(args, "-p", parent)
+	}
+
+	return subprocess.SimpleExec("git", append(args, tree)...)
+}
+
+func UpdateRef(from, to string) error {
+	args := []string{
+		"update-ref", from, to,
+	}
+
+	_, err := subprocess.SimpleExec("git", args...)
+	return err
+}
+
+func ReadTree(treeish string) error {
+	_, err := subprocess.SimpleExec("git", "read-tree", treeish)
+	return err
+}
+
+func WriteTree(prefix string) (string, error) {
+	if len(prefix) == 0 {
+		prefix = "/"
+	}
+
+	args := []string{
+		"write-tree", // fmt.Sprintf("--prefix=%s", prefix),
+	}
+
+	return subprocess.SimpleExec("git", args...)
+}
+
+func CheckoutIndex(files ...string) error {
+	args := []string{
+		"checkout-index", "-u",
+	}
+
+	_, err := subprocess.SimpleExec("git", append(args, files...)...)
+	return err
+}
+
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
 		return "", errors.New("remote required")
@@ -308,7 +354,7 @@ func DefaultRemote() (string, error) {
 }
 
 func UpdateIndex(file string) error {
-	_, err := subprocess.SimpleExec("git", "update-index", "-q", "--refresh", file)
+	_, err := subprocess.SimpleExec("git", "update-index", "--add", "-q", "--refresh", file)
 	return err
 }
 

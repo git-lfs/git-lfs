@@ -88,6 +88,10 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 	return NewPointerChannelWrapper(pointers, errchan), nil
 }
 
+func P_lsTreeBlobs(ref string, filter *filepathfilter.Filter) (*TreeBlobChannelWrapper, error) {
+	return lsTreeBlobs(ref, filter)
+}
+
 // Use ls-tree at ref to find a list of candidate tree blobs which might be lfs files
 // The returned channel will be sent these blobs which should be sent to catFileBatchTree
 // for final check & conversion to Pointer
