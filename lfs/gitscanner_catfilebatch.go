@@ -107,7 +107,6 @@ func (s *CatFileBatchScanner) Scan(sha string) bool {
 		return false
 	}
 
-	fmt.Println("returning true with blobsha:", b, "contents:", c, err)
 	return true
 }
 
