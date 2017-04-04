@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
+func TestPointerScannerWithValidOutput(t *testing.T) {
 	blobs := []*Pointer{
 		&Pointer{
 			Version: "https://git-lfs.github.com/spec/v1",
@@ -34,7 +34,7 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		return
 	}
 
-	scanner := &CatFileBatchScanner{
+	scanner := &PointerScanner{
 		scanner: git.NewObjectScannerFrom(reader),
 	}
 
@@ -59,7 +59,7 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 	assert.Nil(t, scanner.Pointer())
 }
 
-func TestCatFileBatchScannerWithLargeBlobs(t *testing.T) {
+func TestPointerScannerWithLargeBlobs(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 0, 1025))
 	sha := sha256.New()
 	rng := rand.New(rand.NewSource(0))
@@ -70,7 +70,7 @@ func TestCatFileBatchScannerWithLargeBlobs(t *testing.T) {
 	fake := bytes.NewBuffer(nil)
 	writeFakeBuffer(t, fake, buf.Bytes(), buf.Len())
 
-	scanner := &CatFileBatchScanner{
+	scanner := &PointerScanner{
 		scanner: git.NewObjectScannerFrom(fake),
 	}
 
@@ -83,7 +83,7 @@ func TestCatFileBatchScannerWithLargeBlobs(t *testing.T) {
 	assert.Nil(t, scanner.Pointer())
 }
 
-func assertNextPointer(t *testing.T, scanner *CatFileBatchScanner, oid string) {
+func assertNextPointer(t *testing.T, scanner *PointerScanner, oid string) {
 	assert.True(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Err())
 
@@ -93,7 +93,7 @@ func assertNextPointer(t *testing.T, scanner *CatFileBatchScanner, oid string) {
 	assert.Equal(t, oid, p.Oid)
 }
 
-func assertNextEmptyPointer(t *testing.T, scanner *CatFileBatchScanner) {
+func assertNextEmptyPointer(t *testing.T, scanner *PointerScanner) {
 	assert.True(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Err())
 

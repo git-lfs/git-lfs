@@ -17,7 +17,7 @@ import (
 // if that blob is for a locked file. Any errors are sent to errCh. An error is
 // returned if the 'git cat-file' command fails to start.
 func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
-	scanner, err := NewCatFileBatchScanner()
+	scanner, err := NewPointerScanner()
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 	return nil
 }
 
-type CatFileBatchScanner struct {
+type PointerScanner struct {
 	scanner *git.ObjectScanner
 
 	blobSha     string
@@ -66,32 +66,32 @@ type CatFileBatchScanner struct {
 	err         error
 }
 
-func NewCatFileBatchScanner() (*CatFileBatchScanner, error) {
+func NewPointerScanner() (*PointerScanner, error) {
 	scanner, err := git.NewObjectScanner()
 	if err != nil {
 		return nil, err
 	}
 
-	return &CatFileBatchScanner{scanner: scanner}, nil
+	return &PointerScanner{scanner: scanner}, nil
 }
 
-func (s *CatFileBatchScanner) BlobSHA() string {
+func (s *PointerScanner) BlobSHA() string {
 	return s.blobSha
 }
 
-func (s *CatFileBatchScanner) ContentsSha() string {
+func (s *PointerScanner) ContentsSha() string {
 	return s.contentsSha
 }
 
-func (s *CatFileBatchScanner) Pointer() *WrappedPointer {
+func (s *PointerScanner) Pointer() *WrappedPointer {
 	return s.pointer
 }
 
-func (s *CatFileBatchScanner) Err() error {
+func (s *PointerScanner) Err() error {
 	return s.err
 }
 
-func (s *CatFileBatchScanner) Scan(sha string) bool {
+func (s *PointerScanner) Scan(sha string) bool {
 	s.pointer, s.err = nil, nil
 	s.blobSha, s.contentsSha = "", ""
 
@@ -110,11 +110,11 @@ func (s *CatFileBatchScanner) Scan(sha string) bool {
 	return true
 }
 
-func (s *CatFileBatchScanner) Close() error {
+func (s *PointerScanner) Close() error {
 	return s.scanner.Close()
 }
 
-func (s *CatFileBatchScanner) next(blob string) (string, string, *WrappedPointer, error) {
+func (s *PointerScanner) next(blob string) (string, string, *WrappedPointer, error) {
 	if !s.scanner.Scan(blob) {
 		if err := s.scanner.Err(); err != nil {
 			return "", "", nil, err
