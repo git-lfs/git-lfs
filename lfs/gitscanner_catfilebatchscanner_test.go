@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +34,9 @@ func TestCatFileBatchScannerWithValidOutput(t *testing.T) {
 		return
 	}
 
-	scanner := &CatFileBatchScanner{r: bufio.NewReader(reader)}
+	scanner := &CatFileBatchScanner{
+		scanner: git.NewObjectScannerFrom(reader),
+	}
 
 	for i := 0; i < 5; i++ {
 		assertNextEmptyPointer(t, scanner)
@@ -68,7 +70,9 @@ func TestCatFileBatchScannerWithLargeBlobs(t *testing.T) {
 	fake := bytes.NewBuffer(nil)
 	writeFakeBuffer(t, fake, buf.Bytes(), buf.Len())
 
-	scanner := &CatFileBatchScanner{r: bufio.NewReader(fake)}
+	scanner := &CatFileBatchScanner{
+		scanner: git.NewObjectScannerFrom(fake),
+	}
 
 	require.True(t, scanner.Scan(""))
 	assert.Nil(t, scanner.Pointer())
