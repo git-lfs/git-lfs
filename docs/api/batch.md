@@ -6,8 +6,8 @@ The Batch API is used to request the ability to transfer LFS objects with the
 LFS server. The Batch URL is built by adding `/objects/batch` to the LFS server
 URL.
 
-Git remote: https://git-server.com/foo/bar  
-LFS server: https://git-server.com/foo/bar.git/info/lfs  
+Git remote: https://git-server.com/foo/bar
+LFS server: https://git-server.com/foo/bar.git/info/lfs
 Batch API: https://git-server.com/foo/bar.git/info/lfs/objects/batch
 
 See the [Server Discovery doc](./server-discovery.md) for more info on how LFS
@@ -83,6 +83,8 @@ omitted.
     * `href` - String URL to download the object.
     * `header` - Optional hash of String HTTP header key/value pairs to apply
     to the request.
+    * `expires_in` - Nanoseconds after local client time when transfer will
+      expire. Preferred over `expires_at` if both are provided.
     * `expires_at` - String ISO 8601 formatted timestamp for when the given
     action expires (usually due to a temporary token).
 

@@ -168,18 +168,19 @@ func writeTestStateFile(contents []byte, envVar, defaultFilename string) string 
 }
 
 type lfsObject struct {
-	Oid           string             `json:"oid,omitempty"`
-	Size          int64              `json:"size,omitempty"`
-	Authenticated bool               `json:"authenticated,omitempty"`
-	Actions       map[string]lfsLink `json:"actions,omitempty"`
-	Links         map[string]lfsLink `json:"_links,omitempty"`
-	Err           *lfsError          `json:"error,omitempty"`
+	Oid           string              `json:"oid,omitempty"`
+	Size          int64               `json:"size,omitempty"`
+	Authenticated bool                `json:"authenticated,omitempty"`
+	Actions       map[string]*lfsLink `json:"actions,omitempty"`
+	Links         map[string]*lfsLink `json:"_links,omitempty"`
+	Err           *lfsError           `json:"error,omitempty"`
 }
 
 type lfsLink struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+	ExpiresIn time.Duration     `json:"expires_in,omitempty"`
 }
 
 type lfsError struct {
@@ -349,7 +350,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 
 		o := lfsObject{
 			Size:    obj.Size,
-			Actions: make(map[string]lfsLink),
+			Actions: make(map[string]*lfsLink),
 		}
 
 		// Clobber the OID if told to do so.
@@ -394,19 +395,15 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 			}
 
 			if handler == "send-deprecated-links" {
-				o.Links = make(map[string]lfsLink)
+				o.Links = make(map[string]*lfsLink)
 			}
 
 			if addAction {
-				a := lfsLink{
+				a := &lfsLink{
 					Href:   lfsUrl(repo, obj.Oid),
 					Header: map[string]string{},
 				}
-
-				if handler == "return-expired-action-forever" || (handler == "return-expired-action" && canServeExpired(repo)) {
-					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
-					serveExpired(repo)
-				}
+				a = serveExpired(a, repo, handler)
 
 				if handler == "send-deprecated-links" {
 					o.Links[action] = a
@@ -416,7 +413,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 			}
 
 			if handler == "send-verify-action" {
-				o.Actions["verify"] = lfsLink{
+				o.Actions["verify"] = &lfsLink{
 					Href: server.URL + "/verify",
 					Header: map[string]string{
 						"repo": repo,
@@ -464,6 +461,38 @@ var emu sync.Mutex
 // has yet served an expired object.
 var expiredRepos = map[string]bool{}
 
+// serveExpired marks the given repo as having served an expired object, making
+// it unable for that same repository to return an expired object in the future,
+func serveExpired(a *lfsLink, repo, handler string) *lfsLink {
+	var (
+		dur = -5 * time.Minute
+		at  = time.Now().Add(dur)
+	)
+
+	if handler == "return-expired-action-forever" ||
+		(handler == "return-expired-action" && canServeExpired(repo)) {
+
+		emu.Lock()
+		expiredRepos[repo] = true
+		emu.Unlock()
+
+		a.ExpiresAt = at
+		return a
+	}
+
+	switch repo {
+	case "expired-absolute":
+		a.ExpiresAt = at
+	case "expired-relative":
+		a.ExpiresIn = dur
+	case "expired-both":
+		a.ExpiresAt = at
+		a.ExpiresIn = dur
+	}
+
+	return a
+}
+
 // canServeExpired returns whether or not a repository is capable of serving an
 // expired object. In other words, canServeExpired returns whether or not the
 // given repo has yet served an expired object.
@@ -472,15 +501,6 @@ func canServeExpired(repo string) bool {
 	defer emu.Unlock()
 
 	return !expiredRepos[repo]
-}
-
-// serveExpired marks the given repo as having served an expired object, making
-// it unable for that same repository to return an expired object in the future
-func serveExpired(repo string) {
-	emu.Lock()
-	defer emu.Unlock()
-
-	expiredRepos[repo] = true
 }
 
 // Persistent state across requests

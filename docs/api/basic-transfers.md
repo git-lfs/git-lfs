@@ -27,7 +27,7 @@ response that looks like this:
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_at": "2016-11-10T15:29:07Z",
+          "expires_in": 86400000000000,
         }
       }
     }
@@ -68,7 +68,7 @@ are provided by an upload `action` object.
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_at": "2016-11-10T15:29:07Z",
+          "expires_in": 86400000000000,
         }
       }
     }
@@ -110,14 +110,14 @@ after a successful upload.
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_at": "2016-11-10T15:29:07Z",
+          "expires_in": 86400000000000,
         },
         "verify": {
           "href": "https://some-verify-callback.com",
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_at": "2016-11-10T15:29:07Z",
+          "expires_in": 86400000000000,
         }
       }
     }
