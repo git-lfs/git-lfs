@@ -59,7 +59,7 @@ $ ssh git@git-server.com git-lfs-authenticate foo/bar.git download
   "header": {
     "Authorization": "RemoteAuth some-token"
   },
-  "expires_in": 86400000000000
+  "expires_in": 86400
 }
 ```
 
