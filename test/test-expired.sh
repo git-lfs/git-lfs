@@ -35,3 +35,34 @@ for typ in "${expiration_types[@]}"; do
   )
   end_test
 done
+
+for typ in "${expiration_types[@]}"; do
+  begin_test "ssh expired ($typ time)"
+  (
+    set -e
+
+    reponame="ssh-expired-$typ"
+    setup_remote_repo "$reponame"
+    clone_repo "$reponame" "$reponame"
+
+    sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+    git config lfs.url "$sshurl"
+    git config lfs.cachecredentials "true"
+
+    contents="contents"
+    contents_oid="$(calc_oid "$contents")"
+
+    git lfs track "*.dat"
+    git add .gitattributes
+    git commit -m "initial commit"
+
+    printf "$contents" > a.dat
+
+    git add a.dat
+    git commit -m "add a.dat"
+
+    GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+    grep "ssh cache expired" push.log
+  )
+  end_test
+done
