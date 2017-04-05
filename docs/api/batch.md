@@ -6,8 +6,8 @@ The Batch API is used to request the ability to transfer LFS objects with the
 LFS server. The Batch URL is built by adding `/objects/batch` to the LFS server
 URL.
 
-Git remote: https://git-server.com/foo/bar
-LFS server: https://git-server.com/foo/bar.git/info/lfs
+Git remote: https://git-server.com/foo/bar</br>
+LFS server: https://git-server.com/foo/bar.git/info/lfs<br>
 Batch API: https://git-server.com/foo/bar.git/info/lfs/objects/batch
 
 See the [Server Discovery doc](./server-discovery.md) for more info on how LFS

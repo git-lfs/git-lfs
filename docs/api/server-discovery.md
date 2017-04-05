@@ -14,16 +14,16 @@ servers.
 By default, Git LFS will append `.git/info/lfs` to the end of a Git remote url
 to build the LFS server URL it will use:
 
-Git Remote: `https://git-server.com/foo/bar`
+Git Remote: `https://git-server.com/foo/bar`<br>
 LFS Server: `https://git-server.com/foo/bar.git/info/lfs`
 
-Git Remote: `https://git-server.com/foo/bar.git`
+Git Remote: `https://git-server.com/foo/bar.git`<br>
 LFS Server: `https://git-server.com/foo/bar.git/info/lfs`
 
-Git Remote: `git@git-server.com:foo/bar.git`
+Git Remote: `git@git-server.com:foo/bar.git`<br>
 LFS Server: `https://git-server.com/foo/bar.git/info/lfs`
 
-Git Remote: `ssh://git-server.com/foo/bar.git`
+Git Remote: `ssh://git-server.com/foo/bar.git`<br>
 LFS Server: `https://git-server.com/foo/bar.git/info/lfs`
 
 ## SSH
