@@ -3,7 +3,6 @@ package commands
 import (
 	"bufio"
 	"bytes"
-	"io"
 	"os"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -18,6 +17,11 @@ var (
 
 func migrateCommand(cmd *cobra.Command, args []string) {
 	lfs.InstallHooks(false)
+
+	objects, err := git.NewObjectScanner()
+	if err != nil {
+		ExitWithError(err)
+	}
 
 	var last string
 
@@ -36,40 +40,29 @@ func migrateCommand(cmd *cobra.Command, args []string) {
 		}
 
 		for blob := range ch.Results {
-			if err = git.CheckoutIndex(blob.Filename); err != nil {
-				ExitWithError(err)
+			if !objects.Scan(blob.Sha1) {
+				ExitWithError(objects.Err())
 			}
 
 			trackCommand(nil, []string{blob.Filename})
 
-			var flags int = os.O_RDWR
-			f, err := os.OpenFile(blob.Filename, flags, os.ModeAppend)
+			pbuf := bytes.NewBuffer(nil)
+
+			if err := clean(pbuf, objects.Contents(), blob.Filename); err != nil {
+				ExitWithError(err)
+			}
+
+			newOid, err := git.HashObject(pbuf)
 			if err != nil {
 				ExitWithError(err)
 			}
 
-			pbuf := bytes.NewBuffer(nil)
-
-			// TODO(@ttaylorr): read real contents via
-			// git-cat-file(1) instead of faking it, or requiring
-			// git.CheckoutIndex().
-			clean(pbuf, f, blob.Filename)
-
-			if _, err = f.Seek(0, io.SeekStart); err != nil {
-				ExitWithError(err)
-			}
-			if _, err = io.Copy(f, pbuf); err != nil {
+			if err := git.UpdateIndex(".gitattributes"); err != nil {
 				ExitWithError(err)
 			}
 
-			if err = f.Close(); err != nil {
+			if err := git.UpdateIndexInfo("0644", newOid, blob.Filename); err != nil {
 				ExitWithError(err)
-			}
-
-			for _, n := range []string{".gitattributes", f.Name()} {
-				if err = git.UpdateIndex(n); err != nil {
-					ExitWithError(err)
-				}
 			}
 
 			newtree, err := git.WriteTree("/")

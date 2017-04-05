@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -96,13 +97,18 @@ func WriteTree(prefix string) (string, error) {
 	return subprocess.SimpleExec("git", args...)
 }
 
-func CheckoutIndex(files ...string) error {
-	args := []string{
-		"checkout-index", "-u",
-	}
+func HashObject(r io.Reader) (string, error) {
+	cmd := subprocess.ExecCommand("git", "hash-object", "-w", "--no-filters", "--stdin")
 
-	_, err := subprocess.SimpleExec("git", append(args, files...)...)
-	return err
+	buf := bytes.NewBuffer(nil)
+
+	cmd.Stdout = buf
+	cmd.Stdin = r
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return buf.String()[:40], nil
 }
 
 func LsRemote(remote, remoteRef string) (string, error) {
@@ -355,6 +361,13 @@ func DefaultRemote() (string, error) {
 
 func UpdateIndex(file string) error {
 	_, err := subprocess.SimpleExec("git", "update-index", "--add", "-q", "--refresh", file)
+	return err
+}
+
+func UpdateIndexInfo(mode, sha, path string) error {
+	_, err := subprocess.SimpleExec(
+		"git", "update-index", "--cacheinfo", fmt.Sprintf("%s,%s,%s", mode, sha, path),
+	)
 	return err
 }
 
