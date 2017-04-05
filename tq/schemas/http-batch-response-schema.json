@@ -16,8 +16,8 @@
         },
         "expires_in": {
             "type": "number",
-            "maximum": 9223372036,
-            "minimum": -9223372036
+            "maximum": 2147483647,
+            "minimum": -2147483647
         },
         "expires_at": {
           "type": "string"

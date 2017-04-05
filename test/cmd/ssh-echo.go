@@ -14,7 +14,7 @@ type sshResponse struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
-	ExpiresIn int64             `json:"expires_in,omitempty"`
+	ExpiresIn int               `json:"expires_in,omitempty"`
 }
 
 func main() {

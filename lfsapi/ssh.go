@@ -58,7 +58,7 @@ type sshAuthResponse struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt time.Time         `json:"expires_at"`
-	ExpiresIn int64             `json:"expires_in"`
+	ExpiresIn int               `json:"expires_in"`
 }
 
 func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {

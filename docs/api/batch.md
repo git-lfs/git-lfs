@@ -85,7 +85,7 @@ omitted.
     to the request.
     * `expires_in` - Whole number of seconds after local client time when
       transfer will expire. Preferred over `expires_at` if both are provided.
-      Maximum of 9223372036, minimum of -9223372036.
+      Maximum of 2147483647, minimum of -2147483647.
     * `expires_at` - String ISO 8601 formatted timestamp for when the given
     action expires (usually due to a temporary token).
 

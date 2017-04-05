@@ -113,7 +113,7 @@ type Action struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
-	ExpiresIn int64             `json:"expires_in,omitempty"`
+	ExpiresIn int               `json:"expires_in,omitempty"`
 }
 
 func (a *Action) IsExpiredWithin(d time.Duration) (time.Time, bool) {
