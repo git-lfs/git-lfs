@@ -83,8 +83,9 @@ omitted.
     * `href` - String URL to download the object.
     * `header` - Optional hash of String HTTP header key/value pairs to apply
     to the request.
-    * `expires_in` - Nanoseconds after local client time when transfer will
-      expire. Preferred over `expires_at` if both are provided.
+    * `expires_in` - Whole number of seconds after local client time when
+      transfer will expire. Preferred over `expires_at` if both are provided.
+      Maximum of 9223372036, minimum of -9223372036.
     * `expires_at` - String ISO 8601 formatted timestamp for when the given
     action expires (usually due to a temporary token).
 

@@ -14,6 +14,11 @@
           "type": "object",
           "additionalProperties": true
         },
+        "expires_in": {
+            "type": "number",
+            "maximum": 9223372036,
+            "minimum": -9223372036
+        },
         "expires_at": {
           "type": "string"
         }

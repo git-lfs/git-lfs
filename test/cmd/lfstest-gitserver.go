@@ -180,7 +180,7 @@ type lfsLink struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
-	ExpiresIn time.Duration     `json:"expires_in,omitempty"`
+	ExpiresIn int64             `json:"expires_in,omitempty"`
 }
 
 type lfsError struct {
@@ -484,10 +484,10 @@ func serveExpired(a *lfsLink, repo, handler string) *lfsLink {
 	case "expired-absolute":
 		a.ExpiresAt = at
 	case "expired-relative":
-		a.ExpiresIn = dur
+		a.ExpiresIn = -5
 	case "expired-both":
 		a.ExpiresAt = at
-		a.ExpiresIn = dur
+		a.ExpiresIn = -5
 	}
 
 	return a

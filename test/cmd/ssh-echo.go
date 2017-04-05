@@ -14,7 +14,7 @@ type sshResponse struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
-	ExpiresIn time.Duration     `json:"expires_in,omitempty"`
+	ExpiresIn int64             `json:"expires_in,omitempty"`
 }
 
 func main() {
@@ -40,10 +40,10 @@ func main() {
 	case "ssh-expired-absolute":
 		r.ExpiresAt = time.Now().Add(-5 * time.Minute)
 	case "ssh-expired-relative":
-		r.ExpiresIn = -5 * time.Minute
+		r.ExpiresIn = -5
 	case "ssh-expired-both":
 		r.ExpiresAt = time.Now().Add(-5 * time.Minute)
-		r.ExpiresIn = -5 * time.Minute
+		r.ExpiresIn = -5
 	}
 
 	json.NewEncoder(os.Stdout).Encode(r)
