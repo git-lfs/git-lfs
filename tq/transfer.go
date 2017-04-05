@@ -90,6 +90,7 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 			Header:    action.Header,
 			ExpiresAt: action.ExpiresAt,
 			ExpiresIn: action.ExpiresIn,
+			createdAt: action.createdAt,
 		}
 	}
 
@@ -102,6 +103,7 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 				Header:    link.Header,
 				ExpiresAt: link.ExpiresAt,
 				ExpiresIn: link.ExpiresIn,
+				createdAt: link.createdAt,
 			}
 		}
 	}
@@ -114,10 +116,12 @@ type Action struct {
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 	ExpiresIn int               `json:"expires_in,omitempty"`
+
+	createdAt time.Time `json:"-"`
 }
 
 func (a *Action) IsExpiredWithin(d time.Duration) (time.Time, bool) {
-	return tools.IsExpiredAtOrIn(d, a.ExpiresAt, time.Duration(a.ExpiresIn)*time.Second)
+	return tools.IsExpiredAtOrIn(a.createdAt, d, a.ExpiresAt, time.Duration(a.ExpiresIn)*time.Second)
 }
 
 type ActionSet map[string]*Action

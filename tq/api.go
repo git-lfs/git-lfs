@@ -1,6 +1,8 @@
 package tq
 
 import (
+	"time"
+
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
@@ -45,6 +47,8 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	}
 
 	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
+	requestedAt := time.Now()
+
 	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "batch request")
@@ -65,6 +69,12 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 
 	if res.StatusCode != 200 {
 		return nil, lfsapi.NewStatusCodeError(res)
+	}
+
+	for _, obj := range bRes.Objects {
+		for _, a := range obj.Actions {
+			a.createdAt = requestedAt
+		}
 	}
 
 	return bRes, nil

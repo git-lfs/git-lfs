@@ -59,10 +59,12 @@ type sshAuthResponse struct {
 	Header    map[string]string `json:"header"`
 	ExpiresAt time.Time         `json:"expires_at"`
 	ExpiresIn int               `json:"expires_in"`
+
+	createdAt time.Time
 }
 
 func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
-	return tools.IsExpiredAtOrIn(d, r.ExpiresAt, time.Duration(r.ExpiresIn)*time.Second)
+	return tools.IsExpiredAtOrIn(r.createdAt, d, r.ExpiresAt, time.Duration(r.ExpiresIn)*time.Second)
 }
 
 type sshAuthClient struct {
@@ -83,6 +85,8 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
+	now := time.Now()
+
 	// Execute command
 	err := cmd.Start()
 	if err == nil {
@@ -94,6 +98,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
+		res.createdAt = now
 	}
 
 	return res, err
