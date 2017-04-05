@@ -40,7 +40,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	scanner, err := lfs.NewCatFileBatchScanner()
+	scanner, err := lfs.NewPointerScanner()
 	if err != nil {
 		ExitWithError(err)
 	}
@@ -69,7 +69,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
 
-func formatBlobInfo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) string {
+func formatBlobInfo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) string {
 	fromSha, fromSrc, err := blobInfoFrom(s, entry)
 	if err != nil {
 		ExitWithError(err)
@@ -89,7 +89,7 @@ func formatBlobInfo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) strin
 	return fmt.Sprintf("%s -> %s", from, to)
 }
 
-func blobInfoFrom(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
+func blobInfoFrom(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
 	var blobSha string = entry.SrcSha
 	if z40.MatchString(blobSha) {
 		blobSha = entry.DstSha
@@ -98,7 +98,7 @@ func blobInfoFrom(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, f
 	return blobInfo(s, blobSha, entry.SrcName)
 }
 
-func blobInfoTo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
+func blobInfoTo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
 	var name string = entry.DstName
 	if len(name) == 0 {
 		name = entry.SrcName
@@ -107,7 +107,7 @@ func blobInfoTo(s *lfs.CatFileBatchScanner, entry *lfs.DiffIndexEntry) (sha, fro
 	return blobInfo(s, entry.DstSha, name)
 }
 
-func blobInfo(s *lfs.CatFileBatchScanner, blobSha, name string) (sha, from string, err error) {
+func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, err error) {
 	if !z40.MatchString(blobSha) {
 		s.Scan(blobSha)
 		if err := s.Err(); err != nil {

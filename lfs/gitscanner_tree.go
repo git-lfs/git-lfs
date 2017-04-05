@@ -46,7 +46,7 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 // a Git LFS pointer. treeblobs is a channel over which blob entries
 // will be sent. It returns a channel from which point.Pointers can be read.
 func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper, error) {
-	scanner, err := NewCatFileBatchScanner()
+	scanner, err := NewPointerScanner()
 	if err != nil {
 		return nil, err
 	}
