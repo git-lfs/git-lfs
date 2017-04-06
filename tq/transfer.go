@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type Direction int
@@ -88,6 +89,8 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 			Href:      action.Href,
 			Header:    action.Header,
 			ExpiresAt: action.ExpiresAt,
+			ExpiresIn: action.ExpiresIn,
+			createdAt: action.createdAt,
 		}
 	}
 
@@ -99,6 +102,8 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 				Href:      link.Href,
 				Header:    link.Header,
 				ExpiresAt: link.ExpiresAt,
+				ExpiresIn: link.ExpiresIn,
+				createdAt: link.createdAt,
 			}
 		}
 	}
@@ -110,14 +115,21 @@ type Action struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+	ExpiresIn int               `json:"expires_in,omitempty"`
+
+	createdAt time.Time `json:"-"`
+}
+
+func (a *Action) IsExpiredWithin(d time.Duration) (time.Time, bool) {
+	return tools.IsExpiredAtOrIn(a.createdAt, d, a.ExpiresAt, time.Duration(a.ExpiresIn)*time.Second)
 }
 
 type ActionSet map[string]*Action
 
 const (
 	// objectExpirationToTransfer is the duration we expect to have passed
-	// from the time that the object's expires_at property is checked to
-	// when the transfer is executed.
+	// from the time that the object's expires_at (or expires_in) property
+	// is checked to when the transfer is executed.
 	objectExpirationToTransfer = 5 * time.Second
 )
 
@@ -127,8 +139,8 @@ func (as ActionSet) Get(rel string) (*Action, error) {
 		return nil, nil
 	}
 
-	if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(time.Now().Add(objectExpirationToTransfer)) {
-		return nil, errors.NewRetriableError(&ActionExpiredErr{Rel: rel, At: a.ExpiresAt})
+	if at, expired := a.IsExpiredWithin(objectExpirationToTransfer); expired {
+		return nil, errors.NewRetriableError(&ActionExpiredErr{Rel: rel, At: at})
 	}
 
 	return a, nil

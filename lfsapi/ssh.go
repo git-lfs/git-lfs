@@ -35,10 +35,15 @@ func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	}
 
 	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
-	if res, ok := c.endpoints[key]; ok && (res.ExpiresAt.IsZero() || time.Until(res.ExpiresAt) > 5*time.Second) {
-		tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
-			e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
-		return *res, nil
+	if res, ok := c.endpoints[key]; ok {
+		if _, expired := res.IsExpiredWithin(5 * time.Second); !expired {
+			tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
+				e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
+			return *res, nil
+		} else {
+			tracerx.Printf("ssh cache expired: %s git-lfs-authenticate %s %s",
+				e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
+		}
 	}
 
 	res, err := c.ssh.Resolve(e, method)
@@ -53,6 +58,13 @@ type sshAuthResponse struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt time.Time         `json:"expires_at"`
+	ExpiresIn int               `json:"expires_in"`
+
+	createdAt time.Time
+}
+
+func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
+	return tools.IsExpiredAtOrIn(r.createdAt, d, r.ExpiresAt, time.Duration(r.ExpiresIn)*time.Second)
 }
 
 type sshAuthClient struct {
@@ -73,6 +85,8 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
+	now := time.Now()
+
 	// Execute command
 	err := cmd.Start()
 	if err == nil {
@@ -84,6 +98,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
+		res.createdAt = now
 	}
 
 	return res, err
