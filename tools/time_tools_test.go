@@ -34,3 +34,63 @@ func TestTimeAtOrInZeroTime(t *testing.T) {
 
 	assert.Equal(t, zero, got)
 }
+
+func TestIsExpiredAtOrInWithNonZeroTime(t *testing.T) {
+	now := time.Now()
+	within := 5 * time.Minute
+	at := now.Add(10 * time.Minute)
+	in := time.Duration(0)
+
+	expired, ok := IsExpiredAtOrIn(now, within, at, in)
+
+	assert.False(t, ok)
+	assert.Equal(t, at, expired)
+}
+
+func TestIsExpiredAtOrInWithNonZeroDuration(t *testing.T) {
+	now := time.Now()
+	within := 5 * time.Minute
+	at := time.Time{}
+	in := 10 * time.Minute
+
+	expired, ok := IsExpiredAtOrIn(now, within, at, in)
+
+	assert.Equal(t, now.Add(in), expired)
+	assert.False(t, ok)
+}
+
+func TestIsExpiredAtOrInWithNonZeroTimeExpired(t *testing.T) {
+	now := time.Now()
+	within := 5 * time.Minute
+	at := now.Add(3 * time.Minute)
+	in := time.Duration(0)
+
+	expired, ok := IsExpiredAtOrIn(now, within, at, in)
+
+	assert.True(t, ok)
+	assert.Equal(t, at, expired)
+}
+
+func TestIsExpiredAtOrInWithNonZeroDurationExpired(t *testing.T) {
+	now := time.Now()
+	within := 5 * time.Minute
+	at := time.Time{}
+	in := -10 * time.Minute
+
+	expired, ok := IsExpiredAtOrIn(now, within, at, in)
+
+	assert.Equal(t, now.Add(in), expired)
+	assert.True(t, ok)
+}
+
+func TestIsExpiredAtOrInWithAmbiguousTime(t *testing.T) {
+	now := time.Now()
+	within := 5 * time.Minute
+	at := now.Add(-10 * time.Minute)
+	in := 10 * time.Minute
+
+	expired, ok := IsExpiredAtOrIn(now, within, at, in)
+
+	assert.Equal(t, now.Add(in), expired)
+	assert.False(t, ok)
+}
