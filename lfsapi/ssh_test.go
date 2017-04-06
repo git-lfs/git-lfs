@@ -14,7 +14,8 @@ func TestSSHCacheResolveFromCache(t *testing.T) {
 	ssh := newFakeResolver()
 	cache := withSSHCache(ssh).(*sshCache)
 	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
-		Href: "cache",
+		Href:      "cache",
+		createdAt: time.Now(),
 	}
 	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
 
@@ -35,6 +36,7 @@ func TestSSHCacheResolveFromCacheWithFutureExpiresAt(t *testing.T) {
 	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
 		Href:      "cache",
 		ExpiresAt: time.Now().Add(time.Duration(1) * time.Hour),
+		createdAt: time.Now(),
 	}
 	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
 
@@ -55,6 +57,7 @@ func TestSSHCacheResolveFromCacheWithPastExpiresAt(t *testing.T) {
 	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
 		Href:      "cache",
 		ExpiresAt: time.Now().Add(time.Duration(-1) * time.Hour),
+		createdAt: time.Now(),
 	}
 	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
 
@@ -138,6 +141,9 @@ func (r *fakeResolver) Resolve(e Endpoint, method string) (sshAuthResponse, erro
 	if len(res.Message) > 0 {
 		err = errors.New(res.Message)
 	}
+
+	res.createdAt = time.Now()
+
 	return res, err
 }
 
