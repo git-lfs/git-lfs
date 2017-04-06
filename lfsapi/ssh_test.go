@@ -51,6 +51,27 @@ func TestSSHCacheResolveFromCacheWithFutureExpiresAt(t *testing.T) {
 	assert.Equal(t, "cache", res.Href)
 }
 
+func TestSSHCacheResolveFromCacheWithFutureExpiresIn(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresIn: 60 * 60,
+		createdAt: time.Now(),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "cache", res.Href)
+}
+
 func TestSSHCacheResolveFromCacheWithPastExpiresAt(t *testing.T) {
 	ssh := newFakeResolver()
 	cache := withSSHCache(ssh).(*sshCache)
@@ -70,6 +91,49 @@ func TestSSHCacheResolveFromCacheWithPastExpiresAt(t *testing.T) {
 	res, err := cache.Resolve(e, "post")
 	assert.Nil(t, err)
 	assert.Equal(t, "real", res.Href)
+}
+
+func TestSSHCacheResolveFromCacheWithPastExpiresIn(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresIn: -60 * 60,
+		createdAt: time.Now(),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "real", res.Href)
+}
+
+func TestSSHCacheResolveFromCacheWithAmbiguousExpirationInfo(t *testing.T) {
+	ssh := newFakeResolver()
+	cache := withSSHCache(ssh).(*sshCache)
+	cache.endpoints["userandhost//1//path//post"] = &sshAuthResponse{
+		Href:      "cache",
+		ExpiresIn: 60 * 60,
+		ExpiresAt: time.Now().Add(-1 * time.Hour),
+		createdAt: time.Now(),
+	}
+	ssh.responses["userandhost"] = sshAuthResponse{Href: "real"}
+
+	e := Endpoint{
+		SshUserAndHost: "userandhost",
+		SshPort:        "1",
+		SshPath:        "path",
+	}
+
+	res, err := cache.Resolve(e, "post")
+	assert.Nil(t, err)
+	assert.Equal(t, "cache", res.Href)
 }
 
 func TestSSHCacheResolveWithoutError(t *testing.T) {
