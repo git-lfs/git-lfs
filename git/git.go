@@ -615,6 +615,32 @@ func GitAndRootDirs() (string, string, error) {
 	return absGitDir, absRootDir, nil
 }
 
+func PathFromRoot(pattern string) ([]string, error) {
+	safePattern := sanitizePattern(pattern)
+
+	var ret []string
+	cmd := subprocess.ExecCommand("git",
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"ls-files",
+		"--full-name",
+		"-cdmok", // Admit files in any state, let the lock fail afterwards if not valid
+		"--",       // no ambiguous patterns
+		safePattern)
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to call git ls-files: %v", err)
+	}
+	cmd.Start()
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		line := scanner.Text()
+		ret = append(ret, strings.TrimSpace(line))
+	}
+	return ret, cmd.Wait()
+
+}
+
 func RootDir() (string, error) {
 	cmd := subprocess.ExecCommand("git", "rev-parse", "--show-toplevel")
 	out, err := cmd.Output()

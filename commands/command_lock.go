@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -61,20 +60,19 @@ func lockCommand(cmd *cobra.Command, args []string) {
 //     - File to lock: ./baz
 //     - Resolved path bar/baz
 func lockPath(file string) (string, error) {
-	repo, err := git.RootDir()
+	paths, err := git.PathFromRoot(file)
 	if err != nil {
 		return "", err
 	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
+	if len(paths) == 0 {
+		return "", fmt.Errorf("Unable to find file in repo: %s", file)
 	}
+	if len(paths) > 1 {
+		return "", fmt.Errorf("Found multiple results for file %s:\n  %s", file, strings.Join(paths, "\n  "))
+	}
+	path := paths[0]
 
-	abs := filepath.Join(wd, file)
-	path := strings.TrimPrefix(abs, repo)
-	path = strings.TrimPrefix(path, string(os.PathSeparator))
-	if stat, err := os.Stat(abs); err != nil {
+	if stat, err := os.Stat(file); err != nil {
 		return path, err
 	} else {
 		if stat.IsDir() {
