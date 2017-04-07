@@ -101,15 +101,15 @@ func (r *RetriableReader) Read(b []byte) (int, error) {
 }
 
 // Spool spools the contents from 'from' to 'to' by buffering the entire
-// contents of 'from' into a temprorary buffer. That buffer is held in memory
-// until the file grows to larger than 'memoryBufferLimit`, then the remaining
-// contents are spooled to disk.
+// contents of 'from' into a temprorary file created in the directory "dir".
+// That buffer is held in memory until the file grows to larger than
+// 'memoryBufferLimit`, then the remaining contents are spooled to disk.
 //
 // The temporary file is cleaned up after the copy is complete.
 //
 // The number of bytes written to "to", as well as any error encountered are
 // returned.
-func Spool(to io.Writer, from io.Reader) (n int64, err error) {
+func Spool(to io.Writer, from io.Reader, dir string) (n int64, err error) {
 	// First, buffer up to `memoryBufferLimit` in memory.
 	buf := make([]byte, memoryBufferLimit)
 	if bn, err := from.Read(buf); err != nil && err != io.EOF {
@@ -122,7 +122,7 @@ func Spool(to io.Writer, from io.Reader) (n int64, err error) {
 	if err != io.EOF {
 		// If we weren't at the end of the stream, create a temporary
 		// file, and spool the remaining contents there.
-		tmp, err := ioutil.TempFile("", "")
+		tmp, err := ioutil.TempFile(dir, "")
 		if err != nil {
 			return 0, errors.Wrap(err, "spool tmp")
 		}

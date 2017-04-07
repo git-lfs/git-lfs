@@ -36,7 +36,7 @@ var (
 func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		n, err := tools.Spool(to, pbuf)
+		n, err := tools.Spool(to, pbuf, "")
 		if err != nil {
 			return errors.Wrap(err, perr.Error())
 		}
