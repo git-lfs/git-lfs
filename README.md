@@ -27,7 +27,7 @@ preferences.
 * Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.
 * Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs`.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
-* You can build it with Go 1.7.3+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
+* You can build it with Go 1.8.1+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
 [rel]: https://github.com/git-lfs/git-lfs/releases
 
