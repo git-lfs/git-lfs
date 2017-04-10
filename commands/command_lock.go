@@ -43,12 +43,15 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	Print("Locked %s", args[0])
+	Print("Locked %s", path)
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root
 // path of the repository it is contained within, taking into account the
 // working directory of the caller.
+//
+// lockPaths also respects different filesystem directory separators, so that a
+// Windows path of "\foo\bar" will be normalized to "foo/bar".
 //
 // If the root directory, working directory, or file cannot be
 // determined/opened, an error will be returned. If the file in question is
@@ -75,13 +78,13 @@ func lockPath(file string) (string, error) {
 	path := strings.TrimPrefix(abs, repo)
 	path = strings.TrimPrefix(path, string(os.PathSeparator))
 	if stat, err := os.Stat(abs); err != nil {
-		return path, err
+		return "", err
 	} else {
 		if stat.IsDir() {
 			return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
 		}
 
-		return path, nil
+		return filepath.ToSlash(path), nil
 	}
 }
 
