@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +37,7 @@ var (
 func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		n, err := tools.Spool(to, pbuf)
+		n, err := tools.Spool(to, pbuf, localstorage.Objects().TempDir)
 		if err != nil {
 			return errors.Wrap(err, perr.Error())
 		}
