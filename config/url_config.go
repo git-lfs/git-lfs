@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-type HTTPConfig struct {
+type URLConfig struct {
 	git Environment
 }
 
-func NewHTTPConfig(git Environment) *HTTPConfig {
-	return &HTTPConfig{
+func NewURLConfig(git Environment) *URLConfig {
+	return &URLConfig{
 		git: git,
 	}
 }
@@ -20,7 +20,7 @@ func NewHTTPConfig(git Environment) *HTTPConfig {
 // rules in https://git-scm.com/docs/git-config#git-config-httplturlgt.
 // The value for `http.{key}` is returned as a fallback if no config keys are
 // set for the given urls.
-func (c *HTTPConfig) Get(prefix, key string, rawurl string) (string, bool) {
+func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
 	if v, ok := c.get(key, rawurl); ok {
@@ -29,7 +29,7 @@ func (c *HTTPConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	return c.git.Get(strings.Join([]string{prefix, key}, "."))
 }
 
-func (c *HTTPConfig) get(key, rawurl string) (string, bool) {
+func (c *URLConfig) get(key, rawurl string) (string, bool) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		return "", false

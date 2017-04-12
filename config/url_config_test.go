@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHTTPConfig(t *testing.T) {
-	c := NewHTTPConfig(EnvironmentOf(MapFetcher(map[string]string{
+func TestURLConfig(t *testing.T) {
+	u := NewURLConfig(EnvironmentOf(MapFetcher(map[string]string{
 		"http.key":                         "root",
 		"http.https://host.com.key":        "host",
 		"http.https://user@host.com/a.key": "user-a",
@@ -26,7 +26,7 @@ func TestHTTPConfig(t *testing.T) {
 	}
 
 	for rawurl, expected := range tests {
-		value, _ := c.Get("http", "key", rawurl)
+		value, _ := u.Get("http", "key", rawurl)
 		assert.Equal(t, expected, value, rawurl)
 	}
 }
