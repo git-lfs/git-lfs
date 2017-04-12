@@ -1,4 +1,4 @@
-package lfsapi
+package config
 
 import (
 	"testing"
@@ -7,14 +7,14 @@ import (
 )
 
 func TestHTTPConfig(t *testing.T) {
-	c := &httpconfig{git: TestEnv(map[string]string{
+	c := NewHTTPConfig(EnvironmentOf(MapFetcher(map[string]string{
 		"http.key":                         "root",
 		"http.https://host.com.key":        "host",
 		"http.https://user@host.com/a.key": "user-a",
 		"http.https://user@host.com.key":   "user",
 		"http.https://host.com/a.key":      "host-a",
 		"http.https://host.com:8080.key":   "port",
-	})}
+	})))
 
 	tests := map[string]string{
 		"https://root.com/a/b/c":           "root",
