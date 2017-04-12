@@ -345,14 +345,14 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 // Initialise custom adapters based on current config
 func configureCustomAdapters(git Env, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
-	for k, v := range git.All() {
+	for k, _ := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue
 		}
 
 		name := match[1]
-		path := v
+		path, _ := git.Get(k)
 		// retrieve other values
 		args, _ := git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
 		concurrent := git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)

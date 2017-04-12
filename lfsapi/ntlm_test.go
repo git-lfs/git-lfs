@@ -77,7 +77,7 @@ func TestNTLMAuth(t *testing.T) {
 	require.Nil(t, err)
 
 	credHelper := newMockCredentialHelper()
-	cli, err := NewClient(nil, TestEnv(map[string]string{
+	cli, err := NewClient(nil, UniqTestEnv(map[string]string{
 		"lfs.url":                         srv.URL + "/ntlm",
 		"lfs." + srv.URL + "/ntlm.access": "ntlm",
 	}))

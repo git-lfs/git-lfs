@@ -9,9 +9,9 @@ import (
 
 var (
 	testcfg = config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.fetchinclude": "/default/include",
-			"lfs.fetchexclude": "/default/exclude",
+		Git: map[string][]string{
+			"lfs.fetchinclude": []string{"/default/include"},
+			"lfs.fetchexclude": []string{"/default/exclude"},
 		},
 	})
 )

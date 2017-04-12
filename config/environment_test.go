@@ -8,8 +8,8 @@ import (
 )
 
 func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
-	fetcher := MapFetcher(map[string]string{
-		"foo": "bar",
+	fetcher := MapFetcher(map[string][]string{
+		"foo": []string{"bar"},
 	})
 
 	env := EnvironmentOf(fetcher)
@@ -79,8 +79,8 @@ var (
 )
 
 func (c *EnvironmentConversionTestCase) Assert(t *testing.T) {
-	fetcher := MapFetcher(map[string]string{
-		c.Val: c.Val,
+	fetcher := MapFetcher(map[string][]string{
+		c.Val: []string{c.Val},
 	})
 
 	env := EnvironmentOf(fetcher)

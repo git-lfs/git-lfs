@@ -22,6 +22,14 @@ func (g *gitEnvironment) Get(key string) (val string, ok bool) {
 }
 
 // Get is shorthand for calling the loadGitConfig, and then returning
+// `g.git.GetAll(key)`.
+func (g *gitEnvironment) GetAll(key string) []string {
+	g.loadGitConfig()
+
+	return g.git.GetAll(key)
+}
+
+// Get is shorthand for calling the loadGitConfig, and then returning
 // `g.git.Bool(key, def)`.
 func (g *gitEnvironment) Bool(key string, def bool) (val bool) {
 	g.loadGitConfig()
@@ -38,7 +46,7 @@ func (g *gitEnvironment) Int(key string, def int) (val int) {
 }
 
 // All returns a copy of all the key/value pairs for the current git config.
-func (g *gitEnvironment) All() map[string]string {
+func (g *gitEnvironment) All() map[string][]string {
 	g.loadGitConfig()
 
 	return g.git.All()

@@ -54,6 +54,15 @@ func (o *OsFetcher) Get(key string) (val string, ok bool) {
 	return v, ok
 }
 
-func (o *OsFetcher) All() map[string]string {
+// GetAll implements the `config.Fetcher.GetAll` method by returning, at most, a
+// 1-ary set containing the result of `config.OsFetcher.Get()`.
+func (o *OsFetcher) GetAll(key string) []string {
+	if v, ok := o.Get(key); ok {
+		return []string{v}
+	}
+	return make([]string, 0)
+}
+
+func (o *OsFetcher) All() map[string][]string {
 	return nil
 }

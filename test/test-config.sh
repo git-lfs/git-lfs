@@ -19,6 +19,9 @@ begin_test "default config"
   git lfs env | tee env.log
   grep "Endpoint=http://lfsconfig-file (auth=lfsconfig)" env.log
 
+  git config --file=.lfsconfig --unset lfs.url
+  git config --file=.lfsconfig --unset lfs.http://lfsconfig-file.access
+
   # new endpoint url from local git config
   # access setting no longer applied
   git config lfs.url http://local-lfsconfig
@@ -29,6 +32,8 @@ begin_test "default config"
   git config --file=.lfsconfig lfs.http://local-lfsconfig.access lfsconfig
   git lfs env | tee env.log
   grep "Endpoint=http://local-lfsconfig (auth=lfsconfig)" env.log
+
+  git config --file=.lfsconfig --unset lfs.http://local-lfsconfig.access
 
   # add the access setting to git config
   git config lfs.http://local-lfsconfig.access gitconfig

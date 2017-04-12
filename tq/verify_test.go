@@ -44,7 +44,7 @@ func TestVerifySuccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.TestEnv{
+	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv{
 		"lfs.transfer.maxverifies": "1",
 	})
 	require.Nil(t, err)
