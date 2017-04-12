@@ -9,7 +9,7 @@ import (
 
 func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
 	fetcher := MapFetcher(map[string][]string{
-		"foo": []string{"bar"},
+		"foo": []string{"bar", "baz"},
 	})
 
 	env := EnvironmentOf(fetcher)
@@ -17,6 +17,17 @@ func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
 
 	assert.True(t, ok)
 	assert.Equal(t, "bar", val)
+}
+
+func TestEnvironmentGetAllDelegatesToFetcher(t *testing.T) {
+	fetcher := MapFetcher(map[string][]string{
+		"foo": []string{"bar", "baz"},
+	})
+
+	env := EnvironmentOf(fetcher)
+	vals := env.GetAll("foo")
+
+	assert.Equal(t, []string{"bar", "baz"}, vals)
 }
 
 func TestEnvironmentUnsetBoolDefault(t *testing.T) {
