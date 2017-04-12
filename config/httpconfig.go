@@ -20,12 +20,13 @@ func NewHTTPConfig(git Environment) *HTTPConfig {
 // rules in https://git-scm.com/docs/git-config#git-config-httplturlgt.
 // The value for `http.{key}` is returned as a fallback if no config keys are
 // set for the given urls.
-func (c *HTTPConfig) Get(key string, rawurl string) (string, bool) {
+func (c *HTTPConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	key = strings.ToLower(key)
+	prefix = strings.ToLower(prefix)
 	if v, ok := c.get(key, rawurl); ok {
 		return v, ok
 	}
-	return c.git.Get(fmt.Sprintf("http.%s", key))
+	return c.git.Get(strings.Join([]string{prefix, key}, "."))
 }
 
 func (c *HTTPConfig) get(key, rawurl string) (string, bool) {

@@ -26,7 +26,7 @@ func TestHTTPConfig(t *testing.T) {
 	}
 
 	for rawurl, expected := range tests {
-		value, _ := c.Get("key", rawurl)
+		value, _ := c.Get("http", "key", rawurl)
 		assert.Equal(t, expected, value, rawurl)
 	}
 }
