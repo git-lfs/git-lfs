@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -23,8 +22,8 @@ var (
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
 
-	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(ctx.Remote); err != nil {
+	gitscanner, err := ctx.buildGitScanner()
+	if err != nil {
 		ExitWithError(err)
 	}
 	defer gitscanner.Close()
@@ -43,34 +42,6 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	ctx.Await()
-}
-
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, ref string) error {
-	var multiErr error
-	cb := func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
-			return
-		}
-
-		uploadPointers(ctx, p)
-	}
-
-	if pushAll {
-		if err := g.ScanRefWithDeleted(ref, cb); err != nil {
-			return err
-		}
-	} else {
-		if err := g.ScanLeftToRemote(ref, cb); err != nil {
-			return err
-		}
-	}
-
-	return multiErr
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {

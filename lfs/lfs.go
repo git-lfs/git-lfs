@@ -84,7 +84,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("ConcurrentTransfers=%d", cfg.ConcurrentTransfers()),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
-		fmt.Sprintf("BatchTransfer=%v", cfg.BatchTransfer()),
 		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),
 		fmt.Sprintf("FetchRecentAlways=%v", fetchPruneConfig.FetchRecentAlways),
 		fmt.Sprintf("FetchRecentRefsDays=%d", fetchPruneConfig.FetchRecentRefsDays),
@@ -136,6 +135,11 @@ func ScanObjectsChan() <-chan localstorage.Object {
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
+	if len(os.Getenv("GIT_TRACE")) < 1 {
+		if tt := os.Getenv("GIT_TRANSFER_TRACE"); len(tt) > 0 {
+			os.Setenv("GIT_TRACE", tt)
+		}
+	}
 }
 
 const (

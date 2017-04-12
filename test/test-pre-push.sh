@@ -14,6 +14,8 @@ begin_test "pre-push"
   git add .gitattributes
   git commit -m "add git attributes"
 
+  git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
+
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
@@ -49,6 +51,8 @@ begin_test "pre-push dry-run"
   git lfs track "*.dat"
   git add .gitattributes
   git commit -m "add git attributes"
+
+  git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
@@ -179,7 +183,9 @@ begin_test "pre-push with missing pointer not on server"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" missing-pointer
 
-  echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
+  oid="7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
+
+  echo "$(pointer "$oid" 4)" > new.dat
   git add new.dat
   git commit -m "add new pointer"
 
@@ -189,7 +195,8 @@ begin_test "pre-push with missing pointer not on server"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
-  grep "Unable to find object (7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c) locally." push.log
+
+  grep "  (missing) new.dat ($oid)" push.log
 )
 end_test
 
@@ -244,7 +251,7 @@ begin_test "pre-push multiple branches"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=6
   # generate content we'll use
@@ -330,7 +337,7 @@ begin_test "pre-push unfetched deleted remote branch & server GC"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=4
   # generate content we'll use
@@ -403,7 +410,7 @@ begin_test "pre-push delete branch"
 
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=4
   # generate content we'll use
@@ -447,43 +454,6 @@ begin_test "pre-push delete branch"
 )
 end_test
 
-begin_test "pre-push with locks/verify 404"
-(
-  set -e
-
-  # magic string that tells test server to return 404
-  reponame="pre_push_locks_verify_404"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" "$reponame"
-
-  git lfs track "*.dat"
-  git add .gitattributes
-  git commit -m "initial commit"
-
-  contents="locked contents"
-  printf "$contents" > locked.dat
-  git add locked.dat
-  git commit -m "add locked.dat"
-
-  git push origin master
-
-  GITLFSLOCKSENABLED=1 git lfs lock "locked.dat" | tee lock.log
-  grep "'locked.dat' was locked" lock.log
-
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock $id
-
-  printf "authorized changes" >> locked.dat
-  git add locked.dat
-  git commit -m "add unauthorized changes"
-
-  git push origin master 2>&1 | tee push.log
-  grep "Unable to search for locks contained in this push" push.log
-
-  assert_server_lock "$id"
-)
-end_test
-
 begin_test "pre-push with our lock"
 (
   set -e
@@ -503,10 +473,9 @@ begin_test "pre-push with our lock"
 
   git push origin master
 
-  GITLFSLOCKSENABLED=1 git lfs lock "locked.dat" | tee lock.log
-  grep "'locked.dat' was locked" lock.log
+  git lfs lock --json "locked.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(assert_lock lock.log locked.dat)
   assert_server_lock $id
 
   printf "authorized changes" >> locked.dat
@@ -521,17 +490,13 @@ begin_test "pre-push with our lock"
 )
 end_test
 
-begin_test "pre-push with their lock"
+begin_test "pre-push with their lock on lfs file"
 (
   set -e
 
   reponame="pre_push_unowned_lock"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
-
-  # Use a different Git persona so the locks are owned by a different person
-  git config --local user.name "Example Locker"
-  git config --local user.email "locker@example.com"
 
   git lfs track "*.dat"
   git add .gitattributes
@@ -546,10 +511,8 @@ begin_test "pre-push with their lock"
 
   git push origin master
 
-  GITLFSLOCKSENABLED=1 git lfs lock "locked_theirs.dat" | tee lock.log
-  grep "'locked_theirs.dat' was locked" lock.log
-
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  git lfs lock --json "locked_theirs.dat" | tee lock.log
+  id=$(assert_lock lock.log locked_theirs.dat)
   assert_server_lock $id
 
   pushd "$TRASHDIR" >/dev/null
@@ -563,7 +526,317 @@ begin_test "pre-push with their lock"
     git push origin master 2>&1 | tee push.log
 
     grep "Unable to push 1 locked file(s)" push.log
-    grep "* locked_theirs.dat - Example Locker <locker@example.com>" push.log
+    grep "* locked_theirs.dat - Git LFS Tests" push.log
   popd >/dev/null
+)
+end_test
+
+begin_test "pre-push with their lock on non-lfs lockable file"
+(
+  set -e
+
+  reponame="pre_push_unowned_lock_not_lfs"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  echo "*.dat lockable" > .gitattributes
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  # any lock path with "theirs" is returned as "their" lock by /locks/verify
+  echo "hi" > readme.txt
+  echo "tiny" > tiny_locked_theirs.dat
+  git help > large_locked_theirs.dat
+  git add readme.txt tiny_locked_theirs.dat large_locked_theirs.dat
+  git commit -m "add initial files"
+
+  git push origin master
+
+  git lfs lock --json "tiny_locked_theirs.dat" | tee lock.log
+  id=$(assert_lock lock.log tiny_locked_theirs.dat)
+  assert_server_lock $id
+
+  git lfs lock --json "large_locked_theirs.dat" | tee lock.log
+  id=$(assert_lock lock.log large_locked_theirs.dat)
+  assert_server_lock $id
+
+  pushd "$TRASHDIR" >/dev/null
+    clone_repo "$reponame" "$reponame-assert"
+
+    git lfs update # manually add pre-push hook, since lfs clean hook is not used
+    echo "other changes" >> readme.txt
+    echo "unauthorized changes" >> large_locked_theirs.dat
+    echo "unauthorized changes" >> tiny_locked_theirs.dat
+    # --no-verify is used to avoid the pre-commit hook which is not under test
+    git commit --no-verify -am "add unauthorized changes"
+
+    git push origin master 2>&1 | tee push.log
+
+    grep "Unable to push 2 locked file(s)" push.log
+    grep "* large_locked_theirs.dat - Git LFS Tests" push.log
+    grep "* tiny_locked_theirs.dat - Git LFS Tests" push.log
+  popd >/dev/null
+)
+end_test
+
+begin_test "pre-push locks verify 5xx with verification enabled"
+(
+  set -e
+
+  reponame="lock-enabled-verify-5xx"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" true
+
+  git push origin master 2>&1 | tee push.log
+  grep "\"origin\" does not support the LFS locking API" push.log
+  grep "git config 'lfs.$endpoint.locksverify' false" push.log
+
+  refute_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+
+begin_test "pre-push locks verify 5xx with verification disabled"
+(
+  set -e
+
+  reponame="lock-disabled-verify-5xx"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" false
+
+  git push origin master 2>&1 | tee push.log
+  [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 5xx with verification unset"
+(
+  set -e
+
+  reponame="lock-unset-verify-5xx"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  git push origin master 2>&1 | tee push.log
+  grep "\"origin\" does not support the LFS locking API" push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 501 with verification enabled"
+(
+  set -e
+
+  reponame="lock-enabled-verify-501"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" true
+
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+
+begin_test "pre-push locks verify 501 with verification disabled"
+(
+  set -e
+
+  reponame="lock-disabled-verify-501"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" false
+
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+begin_test "pre-push locks verify 501 with verification unset"
+(
+  set -e
+
+  reponame="lock-unset-verify-501"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+begin_test "pre-push locks verify 200"
+(
+  set -e
+
+  reponame="lock-verify-200"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git push origin master 2>&1 | tee push.log
+
+  grep "Locking support detected on remote \"origin\"." push.log
+  grep "git config 'lfs.$endpoint.locksverify' true" push.log
+  assert_server_object "$reponame" "$contents_oid"
+)
+
+begin_test "pre-push locks verify 403 with verification enabled"
+(
+  set -e
+
+  reponame="lock-enabled-verify-403"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" true
+
+  git push origin master 2>&1 | tee push.log
+
+  refute_server_object "$reponame" "$contents_oid"
+  [ "true" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+begin_test "pre-push locks verify 403 with verification disabled"
+(
+  set -e
+
+  reponame="lock-disabled-verify-403"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" false
+
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+  [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
+)
+end_test
+
+begin_test "pre-push locks verify 403 with verification unset"
+(
+  set -e
+
+  reponame="lock-unset-verify-403"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
+
+  git push origin master 2>&1 | tee push.log
+
+  refute_server_object "$reponame" "$contents_oid"
+  [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test

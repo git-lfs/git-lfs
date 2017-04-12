@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type Direction int
@@ -34,17 +35,25 @@ type Transfer struct {
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
 	Actions       ActionSet    `json:"actions,omitempty"`
+	Links         ActionSet    `json:"_links,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
 }
 
-func (t *Transfer) Rel(name string) (*Action, bool) {
-	if t.Actions == nil {
-		return nil, false
+func (t *Transfer) Rel(name string) (*Action, error) {
+	a, err := t.Actions.Get(name)
+	if a != nil || err != nil {
+		return a, err
 	}
 
-	rel, ok := t.Actions[name]
-	return rel, ok
+	if t.Links != nil {
+		a, err := t.Links.Get(name)
+		if a != nil || err != nil {
+			return a, err
+		}
+	}
+
+	return nil, nil
 }
 
 type ObjectError struct {
@@ -80,6 +89,22 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 			Href:      action.Href,
 			Header:    action.Header,
 			ExpiresAt: action.ExpiresAt,
+			ExpiresIn: action.ExpiresIn,
+			createdAt: action.createdAt,
+		}
+	}
+
+	if tr.Links != nil {
+		t.Links = make(ActionSet)
+
+		for rel, link := range tr.Links {
+			t.Links[rel] = &Action{
+				Href:      link.Href,
+				Header:    link.Header,
+				ExpiresAt: link.ExpiresAt,
+				ExpiresIn: link.ExpiresIn,
+				createdAt: link.createdAt,
+			}
 		}
 	}
 
@@ -90,25 +115,32 @@ type Action struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+	ExpiresIn int               `json:"expires_in,omitempty"`
+
+	createdAt time.Time `json:"-"`
+}
+
+func (a *Action) IsExpiredWithin(d time.Duration) (time.Time, bool) {
+	return tools.IsExpiredAtOrIn(a.createdAt, d, a.ExpiresAt, time.Duration(a.ExpiresIn)*time.Second)
 }
 
 type ActionSet map[string]*Action
 
 const (
 	// objectExpirationToTransfer is the duration we expect to have passed
-	// from the time that the object's expires_at property is checked to
-	// when the transfer is executed.
+	// from the time that the object's expires_at (or expires_in) property
+	// is checked to when the transfer is executed.
 	objectExpirationToTransfer = 5 * time.Second
 )
 
 func (as ActionSet) Get(rel string) (*Action, error) {
 	a, ok := as[rel]
 	if !ok {
-		return nil, &ActionMissingError{Rel: rel}
+		return nil, nil
 	}
 
-	if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(time.Now().Add(objectExpirationToTransfer)) {
-		return nil, errors.NewRetriableError(&ActionExpiredErr{Rel: rel, At: a.ExpiresAt})
+	if at, expired := a.IsExpiredWithin(objectExpirationToTransfer); expired {
+		return nil, errors.NewRetriableError(&ActionExpiredErr{Rel: rel, At: at})
 	}
 
 	return a, nil
@@ -124,23 +156,8 @@ func (e ActionExpiredErr) Error() string {
 		e.Rel, e.At.In(time.Local).Format(time.RFC822))
 }
 
-type ActionMissingError struct {
-	Rel string
-}
-
-func (e ActionMissingError) Error() string {
-	return fmt.Sprintf("tq: unable to find action %q", e.Rel)
-}
-
 func IsActionExpiredError(err error) bool {
 	if _, ok := err.(*ActionExpiredErr); ok {
-		return true
-	}
-	return false
-}
-
-func IsActionMissingError(err error) bool {
-	if _, ok := err.(*ActionMissingError); ok {
 		return true
 	}
 	return false

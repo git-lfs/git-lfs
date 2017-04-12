@@ -3,7 +3,12 @@ package commands
 import (
 	"encoding/json"
 	"os"
+	"sort"
+	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +25,6 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	lockClient := newLockClient(lockRemote)
 	defer lockClient.Close()
 
-	var lockCount int
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
 	// Print any we got before exiting
 
@@ -31,15 +35,38 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	var maxPathLen int
+	var maxNameLen int
+	lockPaths := make([]string, 0, len(locks))
+	locksByPath := make(map[string]locking.Lock)
 	for _, lock := range locks {
-		Print("%s\t%s", lock.Path, lock.Committer)
-		lockCount++
+		lockPaths = append(lockPaths, lock.Path)
+		locksByPath[lock.Path] = lock
+		maxPathLen = tools.MaxInt(maxPathLen, len(lock.Path))
+		if lock.Owner != nil {
+			maxNameLen = tools.MaxInt(maxNameLen, len(lock.Owner.Name))
+		}
+	}
+
+	sort.Strings(lockPaths)
+	for _, lockPath := range lockPaths {
+		var ownerName string
+		lock := locksByPath[lockPath]
+		if lock.Owner != nil {
+			ownerName = lock.Owner.Name
+		}
+
+		pathPadding := tools.MaxInt(maxPathLen-len(lock.Path), 0)
+		namePadding := tools.MaxInt(maxNameLen-len(ownerName), 0)
+		Print("%s%s\t%s%s\tID:%s", lock.Path, strings.Repeat(" ", pathPadding),
+			ownerName, strings.Repeat(" ", namePadding),
+			lock.Id,
+		)
 	}
 
 	if err != nil {
-		Exit("Error while retrieving locks: %v", err)
+		Exit("Error while retrieving locks: %v", errors.Cause(err))
 	}
-	Print("\n%d lock(s) matched query.", lockCount)
 }
 
 // locksFlags wraps up and holds all of the flags that can be given to the
@@ -81,10 +108,6 @@ func (l *locksFlags) Filters() (map[string]string, error) {
 }
 
 func init() {
-	if !isCommandEnabled(cfg, "locks") {
-		return
-	}
-
 	RegisterCommand("locks", locksCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")

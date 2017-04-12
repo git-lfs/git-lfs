@@ -9,10 +9,8 @@ begin_test "creating a lock"
   reponame="lock_create_simple"
   setup_remote_repo_with_file "$reponame" "a.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "a.dat" | tee lock.log
-  grep "'a.dat' was locked" lock.log
-
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  git lfs lock --json "a.dat" | tee lock.json
+  id=$(assert_lock lock.json a.dat)
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -24,25 +22,22 @@ begin_test "create lock with server using client cert"
   setup_remote_repo_with_file "$reponame" "cc.dat"
 
   git config lfs.url "$CLIENTCERTGITSERVER/$reponame.git/info/lfs"
-  GITLFSLOCKSENABLED=1 git lfs lock "cc.dat" | tee lock.log
-  grep "'cc.dat' was locked" lock.log
-
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  git lfs lock --json "cc.dat" | tee lock.json
+  id=$(assert_lock lock.json cc.dat)
   assert_server_lock "$reponame" "$id"
 )
 end_test
 
-begin_test "creating a lock (--json)"
+begin_test "creating a lock (with output)"
 (
   set -e
 
-  reponame="lock_create_simple_json"
-  setup_remote_repo_with_file "$reponame" "a_json.dat"
+  reponame="lock_create_simple_output"
+  setup_remote_repo_with_file "$reponame" "a_output.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock --json "a_json.dat" | tee lock.log
-  grep "\"path\":\"a_json.dat\"" lock.log
-
-  id=$(grep -o "\"id\":\".*\"" lock.log | cut -d \" -f 4)
+  git lfs lock "a_output.dat" | tee lock.log
+  grep "Locked a_output.dat" lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d \(\))
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -54,13 +49,11 @@ begin_test "locking a previously locked file"
   reponame="lock_create_previously_created"
   setup_remote_repo_with_file "$reponame" "b.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "b.dat" | tee lock.log
-  grep "'b.dat' was locked" lock.log
-
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  git lfs lock --json "b.dat" | tee lock.json
+  id=$(assert_lock lock.json b.dat)
   assert_server_lock "$reponame" "$id"
 
-  grep "lock already created" <(GITLFSLOCKSENABLED=1 git lfs lock "b.dat" 2>&1)
+  grep "lock already created" <(git lfs lock "b.dat" 2>&1)
 )
 end_test
 
@@ -87,7 +80,40 @@ begin_test "locking a directory"
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
 
-  GITLFSLOCKSENABLED=1 git lfs lock ./dir/ 2>&1 | tee lock.log
+  git lfs lock ./dir/ 2>&1 | tee lock.log
   grep "cannot lock directory" lock.log
+)
+end_test
+
+begin_test "locking a nested file"
+(
+  set -e
+
+  reponame="locking-nested-file"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat" --lockable
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir -p foo/bar/baz
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+
+  printf "$contents" > foo/bar/baz/a.dat
+  git add foo/bar/baz/a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  git lfs lock foo/bar/baz/a.dat 2>&1 | tee lock.log
+  grep "Locked foo/bar/baz/a.dat" lock.log
+
+  git lfs locks 2>&1 | tee locks.log
+  grep "foo/bar/baz/a.dat" locks.log
 )
 end_test

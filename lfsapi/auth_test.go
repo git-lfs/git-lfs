@@ -492,6 +492,30 @@ func TestGetCreds(t *testing.T) {
 				},
 			},
 		},
+		"bare ssh URI": getCredsTest{
+			Remote: "origin",
+			Method: "POST",
+			Href:   "https://git-server.com/repo/lfs/objects/batch",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com/repo/lfs",
+				"lfs.https://git-server.com/repo/lfs.access": "basic",
+
+				"remote.origin.url": "git@git-server.com:repo.git",
+			},
+			Expected: getCredsExpected{
+				Access:        BasicAccess,
+				Endpoint:      "https://git-server.com/repo/lfs",
+				Authorization: basicAuth("git-server.com", "monkey"),
+				CredsURL:      "https://git-server.com/repo/lfs",
+				Creds: map[string]string{
+					"host":     "git-server.com",
+					"password": "monkey",
+					"path":     "repo/lfs",
+					"protocol": "https",
+					"username": "git-server.com",
+				},
+			},
+		},
 	}
 
 	credHelper := &fakeCredentialFiller{}

@@ -38,15 +38,28 @@ assert_local_object() {
   fi
 }
 
-# refute_local_object confirms that an object file is NOT stored for an oid
+# refute_local_object confirms that an object file is NOT stored for an oid.
+# If "$size" is given as the second argument, assert that the file exists _and_
+# that it does _not_ the expected size
+#
 # $ refute_local_object "some-oid"
+# $ refute_local_object "some-oid" "123"
 refute_local_object() {
   local oid="$1"
+  local size="$2"
   local cfg=`git lfs env | grep LocalMediaDir`
   local regex="LocalMediaDir=(\S+)"
   local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
   if [ -e $f ]; then
-    exit 1
+    if [ -z "$size" ]; then
+      exit 1
+    fi
+
+    actual_size="$(wc -c < "$f" | awk '{ print $1 }')"
+    if [ "$size" -eq "$actual_size" ]; then
+      echo >&2 "fatal: expected object $oid not to have size: $size"
+      exit 1
+    fi
   fi
 }
 
@@ -57,6 +70,15 @@ delete_local_object() {
   local cfg=`git lfs env | grep LocalMediaDir`
   local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
   rm "$f"
+}
+
+# corrupt_local_object corrupts the local storage for an oid
+# $ corrupt_local_object "some-oid"
+corrupt_local_object() {
+  local oid="$1"
+  local cfg=`git lfs env | grep LocalMediaDir`
+  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  cp /dev/null "$f"
 }
 
 
@@ -120,6 +142,23 @@ assert_server_object() {
   }
 }
 
+# This asserts the lock path and returns the lock ID by parsing the response of
+#
+#   git lfs lock --json <path>
+assert_lock() {
+  local log="$1"
+  local path="$2"
+
+  if [ $(grep -c "\"path\":\"$path\"" "$log") -eq 0 ]; then
+    echo "path '$path' not found in:"
+    cat "$log"
+    exit 1
+  fi
+
+  local jsonid=$(grep -oh "\"id\":\"\w\+\"" "$log")
+  echo "${jsonid:3}" | tr -d \"\:
+}
+
 # assert that a lock with the given ID exists on the test server
 assert_server_lock() {
   local reponame="$1"
@@ -159,7 +198,7 @@ assert_attributes_count() {
   local attrib="$2"
   local count="$3"
 
-  pattern="\*.$fileext.*$attrib"
+  pattern="\(*.\)\?$fileext\(.*\)$attrib"
   actual=$(grep -e "$pattern" .gitattributes | wc -l)
   if [ "$(printf "%d" "$actual")" != "$count" ]; then
     echo "wrong number of $attrib entries for $fileext"
@@ -167,6 +206,36 @@ assert_attributes_count() {
     cat .gitattributes
     exit 1
   fi
+}
+
+assert_file_writable() {
+  ls -l "$1" | grep -e "^-rw"
+}
+
+refute_file_writable() {
+  ls -l "$1" | grep -e "^-r-"
+}
+
+git_root() {
+  git rev-parse --show-toplevel 2>/dev/null
+}
+
+dot_git_dir() {
+  echo "$(git_root)/.git"
+}
+
+assert_hooks() {
+  local git_root="$1"
+
+  if [ -z "$git_root" ]; then
+    echo >&2 "fatal: (assert_hooks) not in git repository"
+    exit 1
+  fi
+
+  [ -x "$git_root/hooks/post-checkout" ]
+  [ -x "$git_root/hooks/post-commit" ]
+  [ -x "$git_root/hooks/post-merge" ]
+  [ -x "$git_root/hooks/pre-push" ]
 }
 
 # pointer returns a string Git LFS pointer file.
@@ -346,6 +415,16 @@ substring_position() {
   echo "$str" \
     | sed "s/$substr.*$//" \
     | wc -c
+}
+
+# repo_endpoint returns the LFS endpoint for a given server and repository.
+#
+#     [ "$GITSERVER/example/repo.git/info/lfs" = "$(repo_endpoint $GITSERVER example-repo)" ]
+repo_endpoint() {
+  local server="$1"
+  local repo="$2"
+
+  echo "$server/$repo.git/info/lfs"
 }
 
 # setup initializes the clean, isolated environment for integration tests.
@@ -590,6 +669,14 @@ escape_path() {
 native_path_escaped() {
   local unescaped=$(native_path "$1")
   escape_path "$unescaped"
+}
+
+cat_end() {
+  if [ $IS_WINDOWS -eq 1 ]; then
+    printf '^M$'
+  else
+    printf '$'
+  fi
 }
 
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines

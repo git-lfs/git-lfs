@@ -25,16 +25,16 @@ begin_test "post-commit"
   git commit -m "Committed large files"
 
   # New lockable files should have been made read-only now since not locked
-  [ ! -w pcfile1.dat ]
-  [ ! -w pcfile2.dat ]
-  [ -w pcfile3.big ]
-  [ -w pcfile4.big ]
+  refute_file_writable pcfile1.dat
+  refute_file_writable pcfile2.dat
+  assert_file_writable pcfile3.big
+  assert_file_writable pcfile4.big
 
   git push -u origin master
 
   # now lock files, then edit
-  GITLFSLOCKSENABLED=1 git lfs lock pcfile1.dat 
-  GITLFSLOCKSENABLED=1 git lfs lock pcfile2.dat
+  git lfs lock pcfile1.dat
+  git lfs lock pcfile2.dat
 
   echo "Take a look" > pcfile1.dat
   echo "and you'll see" > pcfile2.dat
@@ -43,9 +43,8 @@ begin_test "post-commit"
   git commit -m "Updated"
 
   # files should remain writeable since locked
-  [ -w pcfile1.dat ]
-  [ -w pcfile2.dat ]
+  assert_file_writable pcfile1.dat
+  assert_file_writable pcfile2.dat 
 
 )
 end_test
-

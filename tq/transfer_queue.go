@@ -335,7 +335,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		} else {
 			tr := newTransfer(o, t.Name, t.Path)
 
-			if _, err := tr.Actions.Get(q.direction.String()); err != nil {
+			if a, err := tr.Rel(q.direction.String()); err != nil {
 				// XXX(taylor): duplication
 				if q.canRetryObject(tr.Oid, err) {
 					q.rc.Increment(tr.Oid)
@@ -344,14 +344,14 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 					tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, tr.Oid, tr.Size)
 					next = append(next, t)
 				} else {
-					if !IsActionMissingError(err) {
-						q.errorc <- errors.Errorf("[%v] %v", tr.Name, err)
-					}
+					q.errorc <- errors.Errorf("[%v] %v", tr.Name, err)
 
 					q.Skip(o.Size)
 					q.wait.Done()
 				}
-
+			} else if a == nil {
+				q.Skip(o.Size)
+				q.wait.Done()
 			} else {
 				q.meter.StartTransfer(t.Name)
 				toTransfer = append(toTransfer, tr)
@@ -435,8 +435,14 @@ func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Tr
 			err = errors.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
 		} else {
 			fd, serr := os.Stat(t.Path)
-			if serr != nil || fd.Size() != t.Size {
-				err = errors.Errorf("Unable to find object (%s) locally.", t.Oid)
+			if serr != nil {
+				if os.IsNotExist(serr) {
+					err = newObjectMissingError(t.Name, t.Oid)
+				} else {
+					err = serr
+				}
+			} else if t.Size != fd.Size() {
+				err = newCorruptObjectError(t.Name, t.Oid)
 			}
 		}
 
@@ -616,8 +622,7 @@ func (q *TransferQueue) errorCollector() {
 	q.errorwait.Done()
 }
 
-// run starts the transfer queue, doing individual or batch transfers depending
-// on the Config.BatchTransfer() value. run will transfer files sequentially or
+// run begins the transfer queue. It transfers files sequentially or
 // concurrently depending on the Config.ConcurrentTransfers() value.
 func (q *TransferQueue) run() {
 	tracerx.Printf("tq: running as batched queue, batch size of %d", q.batchSize)

@@ -2,6 +2,7 @@ package locking
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
@@ -89,25 +89,16 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
-	// TODO: this is not really the constraint we need to avoid merges, improve as per proposal
-	latest, err := git.CurrentRemoteRef()
-	if err != nil {
-		return Lock{}, err
-	}
-
-	lockReq := &lockRequest{
-		Path:               path,
-		LatestRemoteCommit: latest.Sha,
-		Committer:          NewCommitter(c.client.CurrentUser()),
-	}
-
-	lockRes, _, err := c.client.Lock(c.Remote, lockReq)
+	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{Path: path})
 	if err != nil {
 		return Lock{}, errors.Wrap(err, "api")
 	}
 
-	if len(lockRes.Err) > 0 {
-		return Lock{}, fmt.Errorf("Server unable to create lock: %v", lockRes.Err)
+	if len(lockRes.Message) > 0 {
+		if len(lockRes.RequestID) > 0 {
+			tracerx.Printf("Server Request ID: %s", lockRes.RequestID)
+		}
+		return Lock{}, fmt.Errorf("Server unable to create lock: %s", lockRes.Message)
 	}
 
 	lock := *lockRes.Lock
@@ -153,8 +144,11 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		return errors.Wrap(err, "api")
 	}
 
-	if len(unlockRes.Err) > 0 {
-		return fmt.Errorf("Server unable to unlock: %s", unlockRes.Err)
+	if len(unlockRes.Message) > 0 {
+		if len(unlockRes.RequestID) > 0 {
+			tracerx.Printf("Server Request ID: %s", unlockRes.RequestID)
+		}
+		return fmt.Errorf("Server unable to unlock: %s", unlockRes.Message)
 	}
 
 	if err := c.cache.RemoveById(id); err != nil {
@@ -172,9 +166,8 @@ type Lock struct {
 	// Path is an absolute path to the file that is locked as a part of this
 	// lock.
 	Path string `json:"path"`
-	// Committer is the identity of the person who holds the ownership of
-	// this lock.
-	Committer *Committer `json:"committer"`
+	// Owner is the identity of the user that created this lock.
+	Owner *User `json:"owner,omitempty"`
 	// LockedAt is the time at which this lock was acquired.
 	LockedAt time.Time `json:"locked_at"`
 }
@@ -198,13 +191,25 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 	}
 
 	for {
-		list, _, err := c.client.SearchVerifiable(c.Remote, body)
+		list, res, err := c.client.SearchVerifiable(c.Remote, body)
+		if res != nil {
+			switch res.StatusCode {
+			case http.StatusNotFound, http.StatusNotImplemented:
+				return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+			case http.StatusForbidden:
+				return ourLocks, theirLocks, errors.NewAuthError(err)
+			}
+		}
+
 		if err != nil {
 			return ourLocks, theirLocks, err
 		}
 
-		if list.Err != "" {
-			return ourLocks, theirLocks, errors.New(list.Err)
+		if list.Message != "" {
+			if len(list.RequestID) > 0 {
+				tracerx.Printf("Server Request ID: %s", list.RequestID)
+			}
+			return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s", list.Message)
 		}
 
 		for _, l := range list.Ours {
@@ -259,15 +264,18 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 	for k, v := range filter {
 		apifilters = append(apifilters, lockFilter{Property: k, Value: v})
 	}
-	query := &lockSearchRequest{Filters: apifilters}
+	query := &lockSearchRequest{Filters: apifilters, Limit: limit}
 	for {
 		list, _, err := c.client.Search(c.Remote, query)
 		if err != nil {
 			return locks, errors.Wrap(err, "locking")
 		}
 
-		if list.Err != "" {
-			return locks, errors.Wrap(err, "locking")
+		if list.Message != "" {
+			if len(list.RequestID) > 0 {
+				tracerx.Printf("Server Request ID: %s", list.RequestID)
+			}
+			return locks, fmt.Errorf("Server error searching for locks: %s", list.Message)
 		}
 
 		for _, l := range list.Locks {
@@ -318,33 +326,26 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 	}
 }
 
-// Fetch locked files for the current committer and cache them locally
+// Fetch locked files for the current user and cache them locally
 // This can be used to sync up locked files when moving machines
 func (c *Client) refreshLockCache() error {
-	// TODO: filters don't seem to currently define how to search for a
-	// committer's email. Is it "committer.email"? For now, just iterate
-	locks, err := c.SearchLocks(nil, 0, false)
+	ourLocks, _, err := c.VerifiableLocks(0)
 	if err != nil {
 		return err
 	}
 
 	// We're going to overwrite the entire local cache
 	c.cache.Clear()
-
-	_, email := c.client.CurrentUser()
-	for _, l := range locks {
-		if l.Committer.Email == email {
-			c.cache.Add(l)
-		}
+	for _, l := range ourLocks {
+		c.cache.Add(l)
 	}
 
 	return nil
 }
 
 // IsFileLockedByCurrentCommitter returns whether a file is locked by the
-// current committer, as cached locally
+// current user, as cached locally
 func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
-
 	filter := map[string]string{"path": path}
 	locks, err := c.searchCachedLocks(filter, 1)
 	if err != nil {

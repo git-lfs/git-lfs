@@ -9,7 +9,7 @@ begin_test "ls-files"
   mkdir repo
   cd repo
   git init
-  git lfs track "*.dat" | grep "Tracking \*.dat"
+  git lfs track "*.dat" | grep "Tracking \"\*.dat\""
   echo "some data" > some.dat
   echo "some text" > some.txt
   echo "missing" > missing.dat
@@ -74,7 +74,7 @@ begin_test "ls-files: show duplicate files"
   cd dupRepoShort
   git init
 
-  git lfs track "*.tgz" | grep "Tracking \*.tgz"
+  git lfs track "*.tgz" | grep "Tracking \"\*.tgz\""
   echo "test content" > one.tgz
   echo "test content" > two.tgz
   git add one.tgz
@@ -96,7 +96,7 @@ begin_test "ls-files: show duplicate files with long OID"
   cd dupRepoLong
   git init
 
-  git lfs track "*.tgz" | grep "Tracking \*.tgz"
+  git lfs track "*.tgz" | grep "Tracking \"\*.tgz\""
   echo "test content" > one.tgz
   echo "test content" > two.tgz
   git add one.tgz

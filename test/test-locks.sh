@@ -9,15 +9,15 @@ begin_test "list a single lock"
   reponame="locks_list_single"
   setup_remote_repo_with_file "$reponame" "f.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "f.dat" | tee lock.log
+  git lfs lock --json "f.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(assert_lock lock.log f.dat)
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs locks --path "f.dat" | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  git lfs locks --path "f.dat" | tee locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
-  grep "Git LFS Tests <git-lfs@example.com>" locks.log
+  grep "Git LFS Tests" locks.log
 )
 end_test
 
@@ -28,14 +28,14 @@ begin_test "list a single lock (--json)"
   reponame="locks_list_single_json"
   setup_remote_repo_with_file "$reponame" "f_json.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "f_json.dat" | tee lock.log
+  git lfs lock --json "f_json.dat" | tee lock.log
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
+  id=$(assert_lock lock.log f_json.dat)
   assert_server_lock "$reponame" "$id"
 
-  GITLFSLOCKSENABLED=1 git lfs locks --json --path "f_json.dat" | tee locks.log
+  git lfs locks --json --path "f_json.dat" | tee locks.log
   grep "\"path\":\"f_json.dat\"" locks.log
-  grep "\"committer\":{\"name\":\"Git LFS Tests\",\"email\":\"git-lfs@example.com\"}" locks.log
+  grep "\"owner\":{\"name\":\"Git LFS Tests\"}" locks.log
 )
 end_test
 
@@ -62,14 +62,14 @@ begin_test "list locks with a limit"
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
 
-  GITLFSLOCKSENABLED=1 git lfs lock "g_1.dat" | tee lock.log
-  assert_server_lock "$reponame" "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  git lfs lock --json "g_1.dat" | tee lock.log
+  assert_server_lock "$reponame" "$(assert_log "lock.log" g_1.dat)"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "g_2.dat" | tee lock.log
-  assert_server_lock "$reponame" "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  git lfs lock --json "g_2.dat" | tee lock.log
+  assert_server_lock "$reponame" "$(assert_lock "lock.log" g_2.dat)"
 
-  GITLFSLOCKSENABLED=1 git lfs locks --limit 1 | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  git lfs locks --limit 1 | tee locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
 )
 end_test
 
@@ -99,13 +99,13 @@ begin_test "list locks with pagination"
   grep "master -> master" push.log
 
   for i in $(seq 1 5); do
-    GITLFSLOCKSENABLED=1 git lfs lock "h_$i.dat" | tee lock.log
-    assert_server_lock "$reponame" "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+    git lfs lock --json "h_$i.dat" | tee lock.log
+    assert_server_lock "$reponame" "$(assert_lock "lock.log" "h_$1.dat")"
   done
 
   # The server will return, at most, three locks at a time
-  GITLFSLOCKSENABLED=1 git lfs locks --limit 4 | tee locks.log
-  grep "4 lock(s) matched query" locks.log
+  git lfs locks --limit 4 | tee locks.log
+  [ $(wc -l < locks.log) -eq 4 ]
 )
 end_test
 
@@ -131,23 +131,23 @@ begin_test "cached locks"
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
 
-  GITLFSLOCKSENABLED=1 git lfs lock "cached1.dat" | tee lock.log
-  assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  git lfs lock --json "cached1.dat" | tee lock.log
+  assert_server_lock "$(assert_lock "lock.log" cached1.dat)"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "cached2.dat" | tee lock.log
-  assert_server_lock "$(grep -oh "\((.*)\)" lock.log | tr -d "()")"
+  git lfs lock --json "cached2.dat" | tee lock.log
+  assert_server_lock "$(assert_lock "lock.log" cached2.dat)"
 
-  GITLFSLOCKSENABLED=1 git lfs locks --local | tee locks.log
-  grep "2 lock(s) matched query" locks.log
+  git lfs locks --local | tee locks.log
+  [ $(wc -l < locks.log) -eq 2 ]
 
   # delete the remote to prove we're using the local records
   git remote remove origin
 
-  GITLFSLOCKSENABLED=1 git lfs locks --local --path "cached1.dat" | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  git lfs locks --local --path "cached1.dat" | tee locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
   grep "cached1.dat" locks.log
 
-  GITLFSLOCKSENABLED=1 git lfs locks --local --limit 1 | tee locks.log
-  grep "1 lock(s) matched query" locks.log
+  git lfs locks --local --limit 1 | tee locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
 )
 end_test

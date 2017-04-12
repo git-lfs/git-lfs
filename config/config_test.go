@@ -116,35 +116,6 @@ func TestTusTransfersAllowedInvalidValue(t *testing.T) {
 	assert.Equal(t, false, b)
 }
 
-func TestBatch(t *testing.T) {
-	tests := map[string]bool{
-		"":         true,
-		"true":     true,
-		"1":        true,
-		"42":       false,
-		"-1":       false,
-		"0":        false,
-		"false":    false,
-		"elephant": false,
-	}
-
-	for value, expected := range tests {
-		cfg := NewFrom(Values{
-			Git: map[string]string{"lfs.batch": value},
-		})
-
-		if actual := cfg.BatchTransfer(); actual != expected {
-			t.Errorf("lfs.batch %q == %v, not %v", value, actual, expected)
-		}
-	}
-}
-
-func TestBatchAbsentIsTrue(t *testing.T) {
-	cfg := NewFrom(Values{})
-	v := cfg.BatchTransfer()
-	assert.True(t, v)
-}
-
 func TestLoadValidExtension(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string]string{},

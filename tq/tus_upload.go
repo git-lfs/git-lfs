@@ -11,7 +11,6 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
-	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -36,10 +35,12 @@ func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, err := t.Actions.Get("upload")
+	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
-		// return fmt.Errorf("No upload action for this object.")
+	}
+	if rel == nil {
+		return errors.Errorf("No upload action for object: %s", t.Oid)
 	}
 
 	// Note not supporting the Creation extension since the batch API generates URLs
@@ -47,7 +48,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	// 1. Send HEAD request to determine upload start point
 	//    Request must include Tus-Resumable header (version)
-	tracerx.Printf("xfer: sending tus.io HEAD request for %q", t.Oid)
+	a.Trace("xfer: sending tus.io HEAD request for %q", t.Oid)
 	req, err := a.newHTTPRequest("HEAD", rel)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// Upload-Offset=size means already completed (skip)
 	// Batch API will probably already detect this, but handle just in case
 	if offset >= t.Size {
-		tracerx.Printf("xfer: tus.io HEAD offset %d indicates %q is already fully uploaded, skipping", offset, t.Oid)
+		a.Trace("xfer: tus.io HEAD offset %d indicates %q is already fully uploaded, skipping", offset, t.Oid)
 		advanceCallbackProgress(cb, t, t.Size)
 		return nil
 	}
@@ -86,9 +87,9 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	// Upload-Offset=0 means start from scratch, but still send PATCH
 	if offset == 0 {
-		tracerx.Printf("xfer: tus.io uploading %q from start", t.Oid)
+		a.Trace("xfer: tus.io uploading %q from start", t.Oid)
 	} else {
-		tracerx.Printf("xfer: tus.io resuming upload %q from %d", t.Oid, offset)
+		a.Trace("xfer: tus.io resuming upload %q from %d", t.Oid, offset)
 		advanceCallbackProgress(cb, t, offset)
 	}
 
@@ -97,7 +98,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	//    Response Upload-Offset must be request Upload-Offset plus sent bytes
 	//    Response may include Upload-Expires header in which case check not passed
 
-	tracerx.Printf("xfer: sending tus.io PATCH request for %q", t.Oid)
+	a.Trace("xfer: sending tus.io PATCH request for %q", t.Oid)
 	req, err = a.newHTTPRequest("PATCH", rel)
 	if err != nil {
 		return err
@@ -158,8 +159,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	cli := &lfsapi.Client{}
-	return verifyUpload(cli, t)
+	return verifyUpload(a.apiClient, a.remote, t)
 }
 
 func configureTusAdapter(m *Manifest) {

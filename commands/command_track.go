@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -41,21 +42,19 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	lfs.InstallHooks(false)
-	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
 
 	if len(args) == 0 {
-		Print("Listing tracked patterns")
-		for _, t := range knownPatterns {
-			if t.Lockable {
-				Print("    %s [lockable] (%s)", t.Path, t.Source)
-			} else {
-				Print("    %s (%s)", t.Path, t.Source)
-			}
-		}
+		listPatterns()
 		return
 	}
 
-	wd, _ := os.Getwd()
+	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	lineEnd := getAttributeLineEnding(knownPatterns)
+	if len(lineEnd) == 0 {
+		lineEnd = gitLineEnding(cfg.Git)
+	}
+
+	wd, _ := tools.Getwd()
 	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
 	if err != nil {
 		Exit("Current directory %q outside of git working directory %q.", wd, config.LocalWorkingDir)
@@ -72,19 +71,19 @@ ArgsLoop:
 				((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
 					(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
 					(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
-				Print("%s already supported", pattern)
+				Print("%q already supported", pattern)
 				continue ArgsLoop
 			}
 		}
 
 		// Generate the new / changed attrib line for merging
-		encodedArg := strings.Replace(pattern, " ", "[[:space:]]", -1)
+		encodedArg := escapeTrackPattern(pattern)
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib
 		}
 
-		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v\n", encodedArg, lockableArg)
+		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
 
 		if trackLockableFlag {
 			readOnlyPatterns = append(readOnlyPatterns, pattern)
@@ -92,8 +91,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %s", pattern)
-
+		Print("Tracking %q", pattern)
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -119,6 +117,10 @@ ArgsLoop:
 		for scanner.Scan() {
 			line := scanner.Text()
 			fields := strings.Fields(line)
+			if len(fields) < 1 {
+				continue
+			}
+
 			pattern := fields[0]
 			if newline, ok := changedAttribLines[pattern]; ok {
 				// Replace this line (newline already embedded)
@@ -127,7 +129,7 @@ ArgsLoop:
 				delete(changedAttribLines, pattern)
 			} else {
 				// Write line unchanged (replace newline)
-				attributesFile.WriteString(line + "\n")
+				attributesFile.WriteString(line + lineEnd)
 			}
 		}
 
@@ -153,6 +155,7 @@ ArgsLoop:
 		if trackVerboseLoggingFlag {
 			Print("Searching for files matching pattern: %s", pattern)
 		}
+
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
 			Exit("Error getting tracked files for %q: %s", pattern, err)
@@ -168,7 +171,6 @@ ArgsLoop:
 				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
 				matchedBlocklist = true
 			}
-
 		}
 		if matchedBlocklist {
 			continue
@@ -176,7 +178,7 @@ ArgsLoop:
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
-				Print("Git LFS: touching %s", f)
+				Print("Git LFS: touching %q", f)
 			}
 
 			if !trackDryRunFlag {
@@ -189,12 +191,38 @@ ArgsLoop:
 			}
 		}
 	}
+
 	// now flip read-only mode based on lockable / not lockable changes
 	lockClient := newLockClient(cfg.CurrentRemote)
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
 		LoggedError(err, "Error changing lockable file permissions")
 	}
+}
+
+func listPatterns() {
+	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	if len(knownPatterns) < 1 {
+		return
+	}
+
+	Print("Listing tracked patterns")
+	for _, t := range knownPatterns {
+		if t.Lockable {
+			Print("    %s [lockable] (%s)", t.Path, t.Source)
+		} else {
+			Print("    %s (%s)", t.Path, t.Source)
+		}
+	}
+}
+
+func getAttributeLineEnding(attribs []git.AttributePath) string {
+	for _, a := range attribs {
+		if a.Source.Path == ".gitattributes" {
+			return a.Source.LineEnding
+		}
+	}
+	return ""
 }
 
 // blocklistItem returns the name of the blocklist item preventing the given
@@ -209,6 +237,33 @@ func blocklistItem(name string) string {
 	}
 
 	return ""
+}
+
+var (
+	trackEscapePatterns = map[string]string{
+		" ": "[[:space:]]",
+		"#": "\\#",
+	}
+)
+
+func escapeTrackPattern(unescaped string) string {
+	var escaped string = unescaped
+
+	for from, to := range trackEscapePatterns {
+		escaped = strings.Replace(escaped, from, to, -1)
+	}
+
+	return escaped
+}
+
+func unescapeTrackPattern(escaped string) string {
+	var unescaped string = escaped
+
+	for to, from := range trackEscapePatterns {
+		unescaped = strings.Replace(unescaped, from, to, -1)
+	}
+
+	return unescaped
 }
 
 func init() {

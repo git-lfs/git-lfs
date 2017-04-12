@@ -17,7 +17,9 @@ import (
 	"sync"
 	"time"
 
+	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -578,27 +580,6 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 	}
 }
 
-func isCygwin() bool {
-	cmd := subprocess.ExecCommand("uname")
-	out, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-	return bytes.Contains(out, []byte("CYGWIN"))
-}
-
-func translateCygwinPath(path string) (string, error) {
-	cmd := subprocess.ExecCommand("cygpath", "-w", path)
-	buf := &bytes.Buffer{}
-	cmd.Stderr = buf
-	out, err := cmd.Output()
-	output := strings.TrimSpace(string(out))
-	if err != nil {
-		return path, fmt.Errorf("Failed to translate path from cygwin to windows: %s", buf.String())
-	}
-	return output, nil
-}
-
 func GitAndRootDirs() (string, string, error) {
 	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
 	buf := &bytes.Buffer{}
@@ -613,10 +594,8 @@ func GitAndRootDirs() (string, string, error) {
 	paths := strings.Split(output, "\n")
 	pathLen := len(paths)
 
-	if isCygwin() {
-		for i := 0; i < pathLen; i++ {
-			paths[i], err = translateCygwinPath(paths[i])
-		}
+	for i := 0; i < pathLen; i++ {
+		paths[i], err = tools.TranslateCygwinPath(paths[i])
 	}
 
 	if pathLen == 0 {
@@ -644,9 +623,7 @@ func RootDir() (string, error) {
 	}
 
 	path := strings.TrimSpace(string(out))
-	if isCygwin() {
-		path, err = translateCygwinPath(path)
-	}
+	path, err = tools.TranslateCygwinPath(path)
 	if len(path) > 0 {
 		return filepath.Abs(path)
 	}
@@ -1091,4 +1068,45 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	}
 
 	return files, err
+}
+
+// IsFileModified returns whether the filepath specified is modified according
+// to `git status`. A file is modified if it has uncommitted changes in the
+// working copy or the index. This includes being untracked.
+func IsFileModified(filepath string) (bool, error) {
+
+	args := []string{
+		"-c", "core.quotepath=false", // handle special chars in filenames
+		"status",
+		"--porcelain",
+		"--", // separator in case filename ambiguous
+		filepath,
+	}
+	cmd := subprocess.ExecCommand("git", args...)
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, lfserrors.Wrap(err, "Failed to call git status")
+	}
+	if err := cmd.Start(); err != nil {
+		return false, lfserrors.Wrap(err, "Failed to start git status")
+	}
+	matched := false
+	for scanner := bufio.NewScanner(outp); scanner.Scan(); {
+		line := scanner.Text()
+		// Porcelain format is "<I><W> <filename>"
+		// Where <I> = index status, <W> = working copy status
+		if len(line) > 3 {
+			// Double-check even though should be only match
+			if strings.TrimSpace(line[3:]) == filepath {
+				matched = true
+				// keep consuming output to exit cleanly
+				// will typically fall straight through anyway due to 1 line output
+			}
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		return false, lfserrors.Wrap(err, "Git status failed")
+	}
+
+	return matched, nil
 }

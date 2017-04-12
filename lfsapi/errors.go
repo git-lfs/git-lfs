@@ -32,14 +32,7 @@ func (e *ClientError) HTTPResponse() *http.Response {
 }
 
 func (e *ClientError) Error() string {
-	msg := e.Message
-	if len(e.DocumentationUrl) > 0 {
-		msg += "\nDocs: " + e.DocumentationUrl
-	}
-	if len(e.RequestId) > 0 {
-		msg += "\nRequest ID: " + e.RequestId
-	}
-	return msg
+	return e.Message
 }
 
 func (c *Client) handleResponse(res *http.Response) error {
@@ -57,7 +50,7 @@ func (c *Client) handleResponse(res *http.Response) error {
 		if len(cliErr.Message) == 0 {
 			err = defaultError(res)
 		} else {
-			err = errors.Wrap(cliErr, "http")
+			err = cliErr
 		}
 	}
 

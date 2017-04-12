@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"bufio"
 	"strings"
 	"sync"
 )
@@ -11,7 +10,7 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(cb GitScannerCallback, ref string) error {
+func scanIndex(cb GitScannerFoundPointer, ref string) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),
@@ -59,14 +58,14 @@ func scanIndex(cb GitScannerCallback, ref string) error {
 		close(allRevsErr)
 	}()
 
-	smallShas, err := catFileBatchCheck(allRevs)
+	smallShas, _, err := catFileBatchCheck(allRevs, nil)
 	if err != nil {
 		return err
 	}
 
 	ch := make(chan gitscannerResult, chanBufSize)
 
-	barePointerCh, err := catFileBatch(smallShas)
+	barePointerCh, _, err := catFileBatch(smallShas, nil)
 	if err != nil {
 		return err
 	}
@@ -106,67 +105,44 @@ func scanIndex(cb GitScannerCallback, ref string) error {
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
 func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChannelWrapper, error) {
-	cmdArgs := []string{"diff-index", "-M"}
-	if cache {
-		cmdArgs = append(cmdArgs, "--cached")
-	}
-	cmdArgs = append(cmdArgs, atRef)
-
-	cmd, err := startCommand("git", cmdArgs...)
+	scanner, err := NewDiffIndexScanner(atRef, cache)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd.Stdin.Close()
-
 	revs := make(chan string, chanBufSize)
-	errchan := make(chan error, 1)
+	errs := make(chan error, 1)
 
 	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
-			// Format is:
-			// :100644 100644 c5b3d83a7542255ec7856487baa5e83d65b1624c 9e82ac1b514be060945392291b5b3108c22f6fe3 M foo.gif
-			// :<old mode> <new mode> <old sha1> <new sha1> <status>\t<file name>[\t<file name>]
-			line := scanner.Text()
-			parts := strings.Split(line, "\t")
-			if len(parts) < 2 {
-				continue
+			var name string = scanner.Entry().DstName
+			if len(name) == 0 {
+				name = scanner.Entry().SrcName
 			}
 
-			description := strings.Split(parts[0], " ")
-			files := parts[1:len(parts)]
-
-			if len(description) >= 5 {
-				status := description[4][0:1]
-				sha1 := description[3]
-				if status == "M" {
-					sha1 = description[2] // This one is modified but not added
-				}
-
-				indexMap.Add(sha1, &indexFile{
-					Name:    files[len(files)-1],
-					SrcName: files[0],
-					Status:  status,
-				})
-				revs <- sha1
+			var sha string = scanner.Entry().DstSha
+			if scanner.Entry().Status == StatusModification {
+				sha = scanner.Entry().SrcSha
 			}
+
+			indexMap.Add(sha, &indexFile{
+				Name:    name,
+				SrcName: scanner.Entry().SrcName,
+				Status:  string(scanner.Entry().Status),
+			})
+
+			revs <- sha
 		}
 
-		// Note: deliberately not checking result code here, because doing that
-		// can fail fsck process too early since clean filter will detect errors
-		// and set this to non-zero. How to cope with this better?
-		// stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		// err := cmd.Wait()
-		// if err != nil {
-		// 	errchan <- fmt.Errorf("Error in git diff-index: %v %v", err, string(stderr))
-		// }
-		cmd.Wait()
+		if err := scanner.Err(); err != nil {
+			errs <- err
+		}
+
 		close(revs)
-		close(errchan)
+		close(errs)
 	}()
 
-	return NewStringChannelWrapper(revs, errchan), nil
+	return NewStringChannelWrapper(revs, errs), nil
 }
 
 // indexFile is used when scanning the index. It stores the name of

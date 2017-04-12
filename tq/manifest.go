@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultMaxRetries          = 1
+	defaultMaxRetries          = 8
 	defaultConcurrentTransfers = 3
 )
 

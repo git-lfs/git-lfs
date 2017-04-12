@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -123,7 +123,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 
 	// Start a process per worker
 	// If concurrent = false we have already dialled back workers to 1
-	tracerx.Printf("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
+	a.Trace("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
 	cmd := subprocess.ExecCommand(a.path, a.args)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -156,7 +156,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 		return nil, fmt.Errorf("Error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error)
 	}
 
-	tracerx.Printf("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
+	a.Trace("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
 
 	// Save this process context and use in future callbacks
 	return ctx, nil
@@ -175,7 +175,7 @@ func (a *customAdapter) sendMessage(ctx *customAdapterWorkerContext, req interfa
 	if err != nil {
 		return err
 	}
-	tracerx.Printf("xfer: Custom adapter worker %d sending message: %v", ctx.workerNum, string(b))
+	a.Trace("xfer: Custom adapter worker %d sending message: %v", ctx.workerNum, string(b))
 	// Line oriented JSON
 	b = append(b, '\n')
 	_, err = ctx.stdin.Write(b)
@@ -187,7 +187,7 @@ func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAd
 	if err != nil {
 		return nil, err
 	}
-	tracerx.Printf("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, strings.TrimSpace(line))
+	a.Trace("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, strings.TrimSpace(line))
 	resp := &customAdapterResponseMessage{}
 	err = json.Unmarshal([]byte(line), resp)
 	return resp, err
@@ -209,7 +209,7 @@ func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req int
 func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) error {
 	defer ctx.errTracer.Flush()
 
-	tracerx.Printf("xfer: Shutting down adapter worker %d", ctx.workerNum)
+	a.Trace("xfer: Shutting down adapter worker %d", ctx.workerNum)
 
 	finishChan := make(chan error, 1)
 	go func() {
@@ -232,7 +232,7 @@ func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) e
 
 // abortWorkerProcess terminates & aborts untidily, most probably breakdown of comms or internal error
 func (a *customAdapter) abortWorkerProcess(ctx *customAdapterWorkerContext) {
-	tracerx.Printf("xfer: Aborting worker process: %d", ctx.workerNum)
+	a.Trace("xfer: Aborting worker process: %d", ctx.workerNum)
 	ctx.stdin.Close()
 	ctx.stdout.Close()
 	ctx.cmd.Process.Kill()
@@ -262,10 +262,12 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	}
 	var authCalled bool
 
-	rel, err := t.Actions.Get(a.getOperationName())
+	rel, err := t.Rel(a.getOperationName())
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil {
+		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
@@ -313,8 +315,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				cli := &lfsapi.Client{}
-				if err = verifyUpload(cli, t); err != nil {
+				if err = verifyUpload(a.apiClient, a.remote, t); err != nil {
 					return err
 				}
 			}

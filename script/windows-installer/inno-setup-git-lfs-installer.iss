@@ -14,26 +14,27 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
+AppCopyright=GitHub, Inc. and Git LFS contributors
 AppId={{286391DE-F778-44EA-9375-1B21AAA04FF0}
 AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppCopyright=GitHub, Inc. and Git LFS contributors
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
+AppVersion={#MyAppVersion}
+ArchitecturesInstallIn64BitMode=x64
+ChangesEnvironment=yes
+Compression=lzma
+DefaultDirName={code:GetDefaultDirName}
+DirExistsWarning=no
+DisableReadyPage=True
 LicenseFile=..\..\LICENSE.md
 OutputBaseFilename={#MyAppFilePrefix}-{#MyAppVersion}
 OutputDir=..\..\
-Compression=lzma
-SolidCompression=yes
-DefaultDirName={pf}\{#MyAppName}
-UsePreviousAppDir=no
-DirExistsWarning=no
-DisableReadyPage=True
-ArchitecturesInstallIn64BitMode=x64
-ChangesEnvironment=yes
+PrivilegesRequired=none
 SetupIconFile=git-lfs-logo.ico
+SolidCompression=yes
+UsePreviousAppDir=no
 VersionInfoVersion={#MyVersionInfoVersion}
 WizardImageFile=git-lfs-wizard-image.bmp
 WizardSmallImageFile=git-lfs-logo.bmp
@@ -51,10 +52,21 @@ Source: ..\..\git-lfs-x64.exe; DestDir: "{app}"; Flags: ignoreversion; DestName:
 Source: ..\..\git-lfs-x86.exe; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: not Is64BitInstallMode
 
 [Registry]
-Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: NeedsAddPath('{app}')
-Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: string; ValueName: "GIT_LFS_PATH"; ValueData: "{app}"
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: IsAdminLoggedOn and NeedsAddPath('{app}')
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: string; ValueName: "GIT_LFS_PATH"; ValueData: "{app}"; Check: IsAdminLoggedOn
+Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: (not IsAdminLoggedOn) and NeedsAddPath('{app}')
+Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "GIT_LFS_PATH"; ValueData: "{app}"; Check: not IsAdminLoggedOn
 
 [Code]
+function GetDefaultDirName(Dummy: string): string;
+begin
+  if IsAdminLoggedOn then begin
+    Result:=ExpandConstant('{pf}\{#MyAppName}');
+  end else begin
+    Result:=ExpandConstant('{userpf}\{#MyAppName}');
+  end;
+end;
+
 // Uses cmd to parse and find the location of Git through the env vars.
 // Currently only used to support running the uninstaller for the old Git LFS version.
 function GetExistingGitInstallation(Value: string): string;

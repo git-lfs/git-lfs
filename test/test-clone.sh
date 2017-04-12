@@ -13,7 +13,7 @@ begin_test "clone"
   clone_repo "$reponame" repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -58,6 +58,7 @@ begin_test "clone"
   [ $(wc -c < "file1.dat") -eq 110 ]
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 66 ]
+  assert_hooks "$(dot_git_dir)"
   [ ! -e "lfs" ]
   popd
   # Now check clone with implied dir
@@ -74,6 +75,7 @@ begin_test "clone"
   [ $(wc -c < "file1.dat") -eq 110 ]
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 66 ]
+  assert_hooks "$(dot_git_dir)"
   [ ! -e "lfs" ]
   popd
 
@@ -93,7 +95,7 @@ begin_test "cloneSSL"
   clone_repo_ssl "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -130,6 +132,7 @@ begin_test "cloneSSL"
   [ $(wc -c < "file1.dat") -eq 100 ]
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 30 ]
+  assert_hooks "$(dot_git_dir)"
   popd
 
 
@@ -151,7 +154,7 @@ begin_test "clone ClientCert"
   fi
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -188,6 +191,7 @@ begin_test "clone ClientCert"
   [ $(wc -c < "file1.dat") -eq 100 ]
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 30 ]
+  assert_hooks "$(dot_git_dir)"
   popd
 
 
@@ -207,7 +211,7 @@ begin_test "clone with flags"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -257,6 +261,7 @@ begin_test "clone with flags"
   [ -e "fileonbranch2.dat" ]
   # confirm remote is called differentorigin
   git remote get-url differentorigin
+  assert_hooks "$(dot_git_dir)"
   popd
   rm -rf "$newclonedir"
 
@@ -269,6 +274,7 @@ begin_test "clone with flags"
   fi
   [ -e "$newclonedir/.git" ]
   [ -d "$gitdir/objects" ]
+  assert_hooks "$gitdir"
   rm -rf "$newclonedir"
   rm -rf "$gitdir"
 
@@ -292,7 +298,7 @@ begin_test "clone (with include/exclude args)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
@@ -329,6 +335,7 @@ begin_test "clone (with include/exclude args)"
   [ "a" = "$(cat a-dupe.dat)" ]
   [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
   [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
+  assert_hooks "$(dot_git_dir)"
   popd
 
   local_reponame="clone_with_excludes"
@@ -338,6 +345,7 @@ begin_test "clone (with include/exclude args)"
   refute_local_object "$contents_a_oid"
   [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
   [ "b" = "$(cat b.dat)" ]
+  assert_hooks "$(dot_git_dir)"
   popd
 )
 end_test
@@ -351,7 +359,7 @@ begin_test "clone (with .lfsconfig)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
@@ -401,6 +409,7 @@ begin_test "clone (with .lfsconfig)"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
+  assert_hooks "$(dot_git_dir)"
   popd
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig, and args"
@@ -409,6 +418,7 @@ begin_test "clone (with .lfsconfig)"
   pushd "$local_reponame"
   refute_local_object "$contents_a_oid"
   assert_local_object "$contents_b_oid" 1
+  assert_hooks "$(dot_git_dir)"
   popd
 
   popd
@@ -431,6 +441,7 @@ begin_test "clone (with .lfsconfig)"
   cat ".lfsconfig"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
+  assert_hooks "$(dot_git_dir)"
   popd
 
   echo "test: clone with lfs.fetchexclude in .lfsconfig, and args"
@@ -439,6 +450,7 @@ begin_test "clone (with .lfsconfig)"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
+  assert_hooks "$(dot_git_dir)"
   popd
 
   popd
@@ -460,7 +472,7 @@ begin_test "clone with submodules"
 
   clone_repo "$submodname2" submod2
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_sub2="Inception. Now, before you bother telling me it's impossible..."
   contents_sub2_oid=$(calc_oid "$contents_sub2")
@@ -472,7 +484,7 @@ begin_test "clone with submodules"
 
   clone_repo "$submodname1" submod1
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_sub1="We're dreaming?"
   contents_sub1_oid=$(calc_oid "$contents_sub1")
@@ -487,7 +499,7 @@ begin_test "clone with submodules"
 
   clone_repo "$reponame" rootrepo
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_root="Downwards is the only way forwards."
   contents_root_oid=$(calc_oid "$contents_root")
@@ -506,6 +518,7 @@ begin_test "clone with submodules"
 
   # check everything is where it should be
   cd $local_reponame
+  assert_hooks "$(dot_git_dir)"
   # check LFS store and working copy
   assert_local_object "$contents_root_oid" "${#contents_root}"
   [ $(wc -c < "root.dat") -eq ${#contents_root} ]
@@ -533,7 +546,7 @@ begin_test "clone in current directory"
   clone_repo "$reponame" $reponame
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="contents"
   contents_oid="$(calc_oid "$contents")"
@@ -557,6 +570,7 @@ begin_test "clone in current directory"
     git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Git LFS"
 
     assert_local_object "$contents_oid" 8
+    assert_hooks "$(dot_git_dir)"
     [ ! -f ./lfs ]
   popd
 )

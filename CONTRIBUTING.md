@@ -146,6 +146,9 @@ release.
   * rpm
   * apt
 * Bump homebrew version and generate the homebrew hash with `curl --location https://github.com/git-lfs/git-lfs/archive/vx.y.z.tar.gz | shasum -a 256` ([example](https://github.com/Homebrew/homebrew-core/pull/413/commits/dc0eb1f62514f48f3f5a8d01ad3bea06f78bd566))
+* Create release branch for bug fixes, such as `release-1.5`.
+* Increment version in `config/version.go` to the next expected version. If
+v1.5 just shipped, set the version in master to `1.6-pre`, for example.
 
 ## Resources
 

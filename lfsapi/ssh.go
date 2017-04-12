@@ -7,23 +7,85 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
-func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse, error) {
+type SSHResolver interface {
+	Resolve(Endpoint, string) (sshAuthResponse, error)
+}
+
+func withSSHCache(ssh SSHResolver) SSHResolver {
+	return &sshCache{
+		endpoints: make(map[string]*sshAuthResponse),
+		ssh:       ssh,
+	}
+}
+
+type sshCache struct {
+	endpoints map[string]*sshAuthResponse
+	ssh       SSHResolver
+}
+
+func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
+	if len(e.SshUserAndHost) == 0 {
+		return sshAuthResponse{}, nil
+	}
+
+	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
+	if res, ok := c.endpoints[key]; ok {
+		if _, expired := res.IsExpiredWithin(5 * time.Second); !expired {
+			tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
+				e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
+			return *res, nil
+		} else {
+			tracerx.Printf("ssh cache expired: %s git-lfs-authenticate %s %s",
+				e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
+		}
+	}
+
+	res, err := c.ssh.Resolve(e, method)
+	if err == nil {
+		c.endpoints[key] = &res
+	}
+	return res, err
+}
+
+type sshAuthResponse struct {
+	Message   string            `json:"-"`
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	ExpiresIn int               `json:"expires_in"`
+
+	createdAt time.Time
+}
+
+func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
+	return tools.IsExpiredAtOrIn(r.createdAt, d, r.ExpiresAt, time.Duration(r.ExpiresIn)*time.Second)
+}
+
+type sshAuthClient struct {
+	os Env
+}
+
+func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	res := sshAuthResponse{}
 	if len(e.SshUserAndHost) == 0 {
 		return res, nil
 	}
 
-	exe, args := sshGetLFSExeAndArgs(c.osEnv, e, method)
+	exe, args := sshGetLFSExeAndArgs(c.os, e, method)
 	cmd := exec.Command(exe, args...)
 
 	// Save stdout and stderr in separate buffers
 	var outbuf, errbuf bytes.Buffer
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
+
+	now := time.Now()
 
 	// Execute command
 	err := cmd.Start()
@@ -36,16 +98,10 @@ func (c *Client) resolveSSHEndpoint(e Endpoint, method string) (sshAuthResponse,
 		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
+		res.createdAt = now
 	}
 
 	return res, err
-}
-
-type sshAuthResponse struct {
-	Message   string            `json:"-"`
-	Href      string            `json:"href"`
-	Header    map[string]string `json:"header"`
-	ExpiresAt string            `json:"expires_at"`
 }
 
 func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string) {
@@ -66,7 +122,7 @@ func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
 
 	ssh, _ := osEnv.Get("GIT_SSH")
 	sshCmd, _ := osEnv.Get("GIT_SSH_COMMAND")
-	cmdArgs := strings.Fields(sshCmd)
+	cmdArgs := tools.QuotedFields(sshCmd)
 	if len(cmdArgs) > 0 {
 		ssh = cmdArgs[0]
 		cmdArgs = cmdArgs[1:]

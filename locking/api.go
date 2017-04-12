@@ -17,12 +17,6 @@ type lockClient struct {
 type lockRequest struct {
 	// Path is the path that the client would like to obtain a lock against.
 	Path string `json:"path"`
-	// LatestRemoteCommit is the SHA of the last known commit from the
-	// remote that we are trying to create the lock against, as found in
-	// `.git/refs/origin/<name>`.
-	LatestRemoteCommit string `json:"latest_remote_commit"`
-	// Committer is the individual that wishes to obtain the lock.
-	Committer *Committer `json:"committer"`
 }
 
 // LockResponse encapsulates the information sent over the API in response to
@@ -41,12 +35,12 @@ type lockResponse struct {
 	// If an error was experienced in creating this lock, then the
 	// zero-value of Lock should be sent here instead.
 	Lock *Lock `json:"lock"`
-	// CommitNeeded holds the minimum commit SHA that client must have to
-	// obtain the lock.
-	CommitNeeded string `json:"commit_needed,omitempty"`
-	// Err is the optional error that was encountered while trying to create
+
+	// Message is the optional error that was encountered while trying to create
 	// the above lock.
-	Err string `json:"error,omitempty"`
+	Message          string `json:"message,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *http.Response, error) {
@@ -67,9 +61,6 @@ func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *
 
 // UnlockRequest encapsulates the data sent in an API request to remove a lock.
 type unlockRequest struct {
-	// Id is the Id of the lock that the user wishes to unlock.
-	Id string `json:"id"`
-
 	// Force determines whether or not the lock should be "forcibly"
 	// unlocked; that is to say whether or not a given individual should be
 	// able to break a different individual's lock.
@@ -83,15 +74,18 @@ type unlockResponse struct {
 	// `UnlockPayload` (see above). If no matching lock was found, this
 	// field will take the zero-value of Lock, and Err will be non-nil.
 	Lock *Lock `json:"lock"`
-	// Err is an optional field which holds any error that was experienced
+
+	// Message is an optional field which holds any error that was experienced
 	// while removing the lock.
-	Err string `json:"error,omitempty"`
+	Message          string `json:"message,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) Unlock(remote, id string, force bool) (*unlockResponse, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
-	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{Id: id, Force: force})
+	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{Force: force})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,10 +152,12 @@ type lockList struct {
 	// cursor to, if there are multiple pages of results for a particular
 	// `LockListRequest`.
 	NextCursor string `json:"next_cursor,omitempty"`
-	// Err populates any error that was encountered during the search. If no
+	// Message populates any error that was encountered during the search. If no
 	// error was encountered and the operation was succesful, then a value
 	// of nil will be passed here.
-	Err string `json:"error,omitempty"`
+	Message          string `json:"message,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, *http.Response, error) {
@@ -219,14 +215,16 @@ type lockVerifiableList struct {
 	// cursor to, if there are multiple pages of results for a particular
 	// `LockListRequest`.
 	NextCursor string `json:"next_cursor,omitempty"`
-	// Err populates any error that was encountered during the search. If no
+	// Message populates any error that was encountered during the search. If no
 	// error was encountered and the operation was succesful, then a value
 	// of nil will be passed here.
-	Err string `json:"error,omitempty"`
+	Message          string `json:"message,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }
 
 func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, *http.Response, error) {
-	e := c.Endpoints.Endpoint("download", remote)
+	e := c.Endpoints.Endpoint("upload", remote)
 	req, err := c.NewRequest("POST", e, "locks/verify", vreq)
 	if err != nil {
 		return nil, nil, err
@@ -245,22 +243,18 @@ func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest
 	return locks, res, err
 }
 
-// Committer represents a "First Last <email@domain.com>" pair.
-type Committer struct {
+// User represents the owner of a lock.
+type User struct {
 	// Name is the name of the individual who would like to obtain the
-	// lock, for instance: "Rick Olson".
+	// lock, for instance: "Rick Sanchez".
 	Name string `json:"name"`
-	// Email is the email assopsicated with the individual who would
-	// like to obtain the lock, for instance: "rick@github.com".
-	Email string `json:"email"`
 }
 
-func NewCommitter(name, email string) *Committer {
-	return &Committer{Name: name, Email: email}
+func NewUser(name string) *User {
+	return &User{Name: name}
 }
 
-// String implements the fmt.Stringer interface by returning a string
-// representation of the Committer in the format "First Last <email>".
-func (c *Committer) String() string {
-	return fmt.Sprintf("%s <%s>", c.Name, c.Email)
+// String implements the fmt.Stringer interface.
+func (u *User) String() string {
+	return u.Name
 }

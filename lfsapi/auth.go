@@ -58,21 +58,10 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 				return c.DoWithAuth(remote, req)
 			}
 		}
-
-		err = errors.Wrap(err, "http")
 	}
 
-	if res == nil {
-		return nil, err
-	}
-
-	switch res.StatusCode {
-	case 401, 403:
-		credHelper.Reject(creds)
-	default:
-		if res.StatusCode < 300 && res.StatusCode > 199 {
-			credHelper.Approve(creds)
-		}
+	if res != nil && res.StatusCode < 300 && res.StatusCode > 199 {
+		credHelper.Approve(creds)
 	}
 
 	return res, err
@@ -226,7 +215,9 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint E
 
 	if len(remote) > 0 {
 		if u := ef.GitRemoteURL(remote, operation == "upload"); u != "" {
-			gitRemoteURL, err := url.Parse(u)
+			schemedUrl, _ := prependEmptySchemeIfAbsent(u)
+
+			gitRemoteURL, err := url.Parse(schemedUrl)
 			if err != nil {
 				return nil, err
 			}
@@ -244,6 +235,46 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint E
 	}
 
 	return apiURL, nil
+}
+
+// prependEmptySchemeIfAbsent prepends an empty scheme "//" if none was found in
+// the URL in order to satisfy RFC 3986 §3.3, and `net/url.Parse()`.
+//
+// It returns a string parse-able with `net/url.Parse()` and a boolean whether
+// or not an empty scheme was added.
+func prependEmptySchemeIfAbsent(u string) (string, bool) {
+	if hasScheme(u) {
+		return u, false
+	}
+
+	colon := strings.Index(u, ":")
+	slash := strings.Index(u, "/")
+
+	if colon >= 0 && (slash < 0 || colon < slash) {
+		// First path segment has a colon, assumed that it's a
+		// scheme-less URL. Append an empty scheme on top to
+		// satisfy RFC 3986 §3.3, and `net/url.Parse()`.
+		return fmt.Sprintf("//%s", u), true
+	}
+	return u, true
+}
+
+var (
+	// supportedSchemes is the list of URL schemes the `lfsapi` package
+	// supports.
+	supportedSchemes = []string{"ssh", "http", "https"}
+)
+
+// hasScheme returns whether or not a given string (taken to represent a RFC
+// 3986 URL) has a scheme that is supported by the `lfsapi` package.
+func hasScheme(what string) bool {
+	for _, scheme := range supportedSchemes {
+		if strings.HasPrefix(what, fmt.Sprintf("%s://", scheme)) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func requestHasAuth(req *http.Request) bool {

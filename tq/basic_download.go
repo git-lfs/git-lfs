@@ -88,10 +88,12 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		defer dlFile.Close()
 	}
 
-	rel, err := t.Actions.Get("download")
+	rel, err := t.Rel("download")
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil {
+		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 
 	req, err := a.newHTTPRequest("GET", rel)
