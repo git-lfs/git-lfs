@@ -23,39 +23,47 @@ func NewURLConfig(git Environment) *URLConfig {
 func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
-	if v, ok := c.get(key, rawurl); ok {
-		return v, ok
+	if v := c.getAll(key, rawurl); len(v) > 0 {
+		return v[0], true
 	}
 	return c.git.Get(strings.Join([]string{prefix, key}, "."))
 }
 
-func (c *URLConfig) get(key, rawurl string) (string, bool) {
+func (c *URLConfig) GetAll(prefix, key string, rawurl string) []string {
+	key = strings.ToLower(key)
+	prefix = strings.ToLower(prefix)
+	if v := c.getAll(key, rawurl); len(v) > 0 {
+		return v
+	}
+	return c.git.GetAll(strings.Join([]string{prefix, key}, "."))
+}
+
+func (c *URLConfig) getAll(key, rawurl string) []string {
 	hosts, paths := c.hostsAndPaths(rawurl)
 
 	for i := len(paths); i > 0; i-- {
 		for _, host := range hosts {
 			path := strings.Join(paths[:i], "/")
-			if v, ok := c.git.Get(fmt.Sprintf("http.%s/%s.%s", host, path, key)); ok {
-				return v, ok
+			if v := c.git.GetAll(fmt.Sprintf("http.%s/%s.%s", host, path, key)); len(v) > 0 {
+				return v
 			}
-			if v, ok := c.git.Get(fmt.Sprintf("http.%s/%s/.%s", host, path, key)); ok {
-				return v, ok
+			if v := c.git.GetAll(fmt.Sprintf("http.%s/%s/.%s", host, path, key)); len(v) > 0 {
+				return v
 			}
 		}
 	}
 
 	for _, host := range hosts {
-		if v, ok := c.git.Get(fmt.Sprintf("http.%s.%s", host, key)); ok {
-			return v, ok
+		if v := c.git.GetAll(fmt.Sprintf("http.%s.%s", host, key)); len(v) > 0 {
+			return v
 		}
-		if v, ok := c.git.Get(fmt.Sprintf("http.%s/.%s", host, key)); ok {
-			return v, ok
+		if v := c.git.GetAll(fmt.Sprintf("http.%s/.%s", host, key)); len(v) > 0 {
+			return v
 		}
 	}
-	return "", false
+	return nil
 
 }
-
 func (c *URLConfig) hostsAndPaths(rawurl string) (hosts, paths []string) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
