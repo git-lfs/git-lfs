@@ -264,10 +264,6 @@ func (c *Configuration) Remotes() []string {
 	return c.remotes
 }
 
-func (c *Configuration) GitProtocol() string {
-	return c.endpointConfig().GitProtocol()
-}
-
 func (c *Configuration) endpointConfig() lfsapi.EndpointFinder {
 	c.endpointMu.Lock()
 	defer c.endpointMu.Unlock()
