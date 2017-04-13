@@ -30,13 +30,7 @@ func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
 }
 
 func (c *URLConfig) get(key, rawurl string) (string, bool) {
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return "", false
-	}
-
-	hosts := c.hosts(u)
-	paths := c.paths(u.Path)
+	hosts, paths := c.hostsAndPaths(rawurl)
 
 	for i := len(paths); i > 0; i-- {
 		for _, host := range hosts {
@@ -60,6 +54,15 @@ func (c *URLConfig) get(key, rawurl string) (string, bool) {
 	}
 	return "", false
 
+}
+
+func (c *URLConfig) hostsAndPaths(rawurl string) (hosts, paths []string) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, nil
+	}
+
+	return c.hosts(u), c.paths(u.Path)
 }
 
 func (c *URLConfig) hosts(u *url.URL) []string {
