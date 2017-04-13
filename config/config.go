@@ -197,7 +197,7 @@ func (c *Configuration) Endpoint(operation string) lfsapi.Endpoint {
 }
 
 func (c *Configuration) ConcurrentTransfers() int {
-	if c.NtlmAccess("download") {
+	if c.Access("download") == lfsapi.NTLMAccess {
 		return 1
 	}
 
@@ -223,10 +223,6 @@ func (c *Configuration) BasicTransfersOnly() bool {
 // Default is false, including if the lfs.tustransfers is invalid
 func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
-}
-
-func (c *Configuration) NtlmAccess(operation string) bool {
-	return c.Access(operation) == lfsapi.NTLMAccess
 }
 
 // Access returns the access auth type.
