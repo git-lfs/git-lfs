@@ -184,12 +184,6 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environ
 	return
 }
 
-// GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
-// the forpush argument is to cater for separate remote.name.pushurl settings
-func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
-	return c.endpointConfig().GitRemoteURL(remote, forpush)
-}
-
 // Manually set an Endpoint to use instead of deriving from Git config
 func (c *Configuration) SetManualEndpoint(e lfsapi.Endpoint) {
 	c.manualEndpoint = &e
