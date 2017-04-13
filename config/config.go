@@ -254,10 +254,6 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
-func (c *Configuration) RemoteEndpoint(remote, operation string) lfsapi.Endpoint {
-	return c.endpointConfig().RemoteEndpoint(operation, remote)
-}
-
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
 
