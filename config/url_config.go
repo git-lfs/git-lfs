@@ -35,11 +35,7 @@ func (c *URLConfig) get(key, rawurl string) (string, bool) {
 		return "", false
 	}
 
-	hosts := make([]string, 0)
-	if u.User != nil {
-		hosts = append(hosts, fmt.Sprintf("%s://%s@%s", u.Scheme, u.User.Username(), u.Host))
-	}
-	hosts = append(hosts, fmt.Sprintf("%s://%s", u.Scheme, u.Host))
+	hosts := c.hosts(u)
 
 	pLen := len(u.Path)
 	if pLen > 2 {
@@ -72,4 +68,15 @@ func (c *URLConfig) get(key, rawurl string) (string, bool) {
 	}
 	return "", false
 
+}
+
+func (c *URLConfig) hosts(u *url.URL) []string {
+	hosts := make([]string, 0, 1)
+
+	if u.User != nil {
+		hosts = append(hosts, fmt.Sprintf("%s://%s@%s", u.Scheme, u.User.Username(), u.Host))
+	}
+	hosts = append(hosts, fmt.Sprintf("%s://%s", u.Scheme, u.Host))
+
+	return hosts
 }
