@@ -74,6 +74,9 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		panic(err.Error())
 	}
 
+	download := api.Endpoints.AccessFor(api.Endpoints.Endpoint("download", cfg.CurrentRemote).Url)
+	upload := api.Endpoints.AccessFor(api.Endpoints.Endpoint("upload", cfg.CurrentRemote).Url)
+
 	dltransfers := manifest.GetDownloadAdapterNames()
 	sort.Strings(dltransfers)
 	ultransfers := manifest.GetUploadAdapterNames()
@@ -99,8 +102,8 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
 		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
 		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
-		fmt.Sprintf("AccessDownload=%s", cfg.Access("download")),
-		fmt.Sprintf("AccessUpload=%s", cfg.Access("upload")),
+		fmt.Sprintf("AccessDownload=%s", download),
+		fmt.Sprintf("AccessUpload=%s", upload),
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
 		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
 	)
