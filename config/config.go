@@ -57,7 +57,6 @@ type Configuration struct {
 	loading        sync.Mutex // guards initialization of gitConfig and remotes
 	remotes        []string
 	extensions     map[string]Extension
-	manualEndpoint *lfsapi.Endpoint
 	endpointFinder lfsapi.EndpointFinder
 	endpointMu     sync.Mutex
 }
@@ -184,15 +183,7 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environ
 	return
 }
 
-// Manually set an Endpoint to use instead of deriving from Git config
-func (c *Configuration) SetManualEndpoint(e lfsapi.Endpoint) {
-	c.manualEndpoint = &e
-}
-
 func (c *Configuration) Endpoint(operation string) lfsapi.Endpoint {
-	if c.manualEndpoint != nil {
-		return *c.manualEndpoint
-	}
 	return c.endpointConfig().Endpoint(operation, c.CurrentRemote)
 }
 
