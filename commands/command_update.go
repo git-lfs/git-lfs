@@ -20,11 +20,13 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
-	for key, value := range cfg.Git.All() {
+	for key, _ := range cfg.Git.All() {
 		matches := lfsAccessRE.FindStringSubmatch(key)
 		if len(matches) < 2 {
 			continue
 		}
+
+		value, _ := cfg.Git.Get(key)
 
 		switch value {
 		case "basic":

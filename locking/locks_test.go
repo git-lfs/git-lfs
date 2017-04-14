@@ -48,7 +48,7 @@ func TestRefreshCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+	lfsclient, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
@@ -119,7 +119,7 @@ func TestGetVerifiableLocks(t *testing.T) {
 
 	defer srv.Close()
 
-	lfsclient, err := lfsapi.NewClient(nil, lfsapi.TestEnv(map[string]string{
+	lfsclient, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",

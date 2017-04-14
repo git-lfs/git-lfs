@@ -7,13 +7,13 @@ import (
 )
 
 func TestURLConfig(t *testing.T) {
-	u := NewURLConfig(EnvironmentOf(MapFetcher(map[string]string{
-		"http.key":                         "root",
-		"http.https://host.com.key":        "host",
-		"http.https://user@host.com/a.key": "user-a",
-		"http.https://user@host.com.key":   "user",
-		"http.https://host.com/a.key":      "host-a",
-		"http.https://host.com:8080.key":   "port",
+	u := NewURLConfig(EnvironmentOf(MapFetcher(map[string][]string{
+		"http.key":                         []string{"root"},
+		"http.https://host.com.key":        []string{"host"},
+		"http.https://user@host.com/a.key": []string{"user-a"},
+		"http.https://user@host.com.key":   []string{"user"},
+		"http.https://host.com/a.key":      []string{"host-a"},
+		"http.https://host.com:8080.key":   []string{"port"},
 	})))
 
 	tests := map[string]string{

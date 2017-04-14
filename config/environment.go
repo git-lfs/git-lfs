@@ -15,6 +15,9 @@ type Environment interface {
 	// Get is shorthand for calling `e.Fetcher.Get(key)`.
 	Get(key string) (val string, ok bool)
 
+	// Get is shorthand for calling `e.Fetcher.GetAll(key)`.
+	GetAll(key string) (vals []string)
+
 	// Bool returns the boolean state associated with a given key, or the
 	// value "def", if no value was associated.
 	//
@@ -38,8 +41,9 @@ type Environment interface {
 	// then it will be returned wholesale.
 	Int(key string, def int) (val int)
 
-	// All returns a copy of all the key/value pairs for the current environment.
-	All() map[string]string
+	// All returns a copy of all the key/value pairs for the current
+	// environment.
+	All() map[string][]string
 }
 
 type environment struct {
@@ -55,6 +59,10 @@ func EnvironmentOf(f Fetcher) Environment {
 
 func (e *environment) Get(key string) (val string, ok bool) {
 	return e.Fetcher.Get(key)
+}
+
+func (e *environment) GetAll(key string) []string {
+	return e.Fetcher.GetAll(key)
 }
 
 func (e *environment) Bool(key string, def bool) (val bool) {
@@ -87,6 +95,6 @@ func (e *environment) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e *environment) All() map[string]string {
+func (e *environment) All() map[string][]string {
 	return e.Fetcher.All()
 }
