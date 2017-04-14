@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
@@ -221,4 +222,8 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	newReq.Body = req.Body
 	newReq.ContentLength = req.ContentLength
 	return newReq, nil
+}
+
+func init() {
+	UserAgent = config.VersionDesc
 }
