@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -53,11 +52,9 @@ type Configuration struct {
 
 	CurrentRemote string
 
-	loading        sync.Mutex // guards initialization of gitConfig and remotes
-	remotes        []string
-	extensions     map[string]Extension
-	endpointFinder lfsapi.EndpointFinder
-	endpointMu     sync.Mutex
+	loading    sync.Mutex // guards initialization of gitConfig and remotes
+	remotes    []string
+	extensions map[string]Extension
 }
 
 func New() *Configuration {
@@ -208,17 +205,6 @@ func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
 
 	return c.remotes
-}
-
-func (c *Configuration) endpointConfig() lfsapi.EndpointFinder {
-	c.endpointMu.Lock()
-	defer c.endpointMu.Unlock()
-
-	if c.endpointFinder == nil {
-		c.endpointFinder = lfsapi.NewEndpointFinder(c.Git)
-	}
-
-	return c.endpointFinder
 }
 
 func (c *Configuration) Extensions() map[string]Extension {
