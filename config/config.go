@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
@@ -185,23 +184,6 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environ
 
 func (c *Configuration) Endpoint(operation string) lfsapi.Endpoint {
 	return c.endpointConfig().Endpoint(operation, c.CurrentRemote)
-}
-
-func (c *Configuration) ConcurrentTransfers() int {
-	if c.Access("download") == lfsapi.NTLMAccess {
-		return 1
-	}
-
-	uploads := 3
-
-	if v, ok := c.Git.Get("lfs.concurrenttransfers"); ok {
-		n, err := strconv.Atoi(v)
-		if err == nil && n > 0 {
-			uploads = n
-		}
-	}
-
-	return uploads
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
