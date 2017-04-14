@@ -9,8 +9,8 @@ import (
 
 func TestBasicTransfersOnlySetValue(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"lfs.basictransfersonly": "true",
+		Git: map[string][]string{
+			"lfs.basictransfersonly": []string{"true"},
 		},
 	})
 
@@ -27,8 +27,8 @@ func TestBasicTransfersOnlyDefault(t *testing.T) {
 
 func TestBasicTransfersOnlyInvalidValue(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"lfs.basictransfersonly": "wat",
+		Git: map[string][]string{
+			"lfs.basictransfersonly": []string{"wat"},
 		},
 	})
 
@@ -38,8 +38,8 @@ func TestBasicTransfersOnlyInvalidValue(t *testing.T) {
 
 func TestTusTransfersAllowedSetValue(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"lfs.tustransfers": "true",
+		Git: map[string][]string{
+			"lfs.tustransfers": []string{"true"},
 		},
 	})
 
@@ -56,8 +56,8 @@ func TestTusTransfersAllowedDefault(t *testing.T) {
 
 func TestTusTransfersAllowedInvalidValue(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"lfs.tustransfers": "wat",
+		Git: map[string][]string{
+			"lfs.tustransfers": []string{"wat"},
 		},
 	})
 
@@ -67,7 +67,7 @@ func TestTusTransfersAllowedInvalidValue(t *testing.T) {
 
 func TestLoadValidExtension(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{},
+		Git: map[string][]string{},
 	})
 
 	cfg.extensions = map[string]Extension{
@@ -112,13 +112,13 @@ func TestFetchPruneConfigDefault(t *testing.T) {
 }
 func TestFetchPruneConfigCustom(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"lfs.fetchrecentrefsdays":     "12",
-			"lfs.fetchrecentremoterefs":   "false",
-			"lfs.fetchrecentcommitsdays":  "9",
-			"lfs.pruneoffsetdays":         "30",
-			"lfs.pruneverifyremotealways": "true",
-			"lfs.pruneremotetocheck":      "upstream",
+		Git: map[string][]string{
+			"lfs.fetchrecentrefsdays":     []string{"12"},
+			"lfs.fetchrecentremoterefs":   []string{"false"},
+			"lfs.fetchrecentcommitsdays":  []string{"9"},
+			"lfs.pruneoffsetdays":         []string{"30"},
+			"lfs.pruneverifyremotealways": []string{"true"},
+			"lfs.pruneremotetocheck":      []string{"upstream"},
 		},
 	})
 	fp := cfg.FetchPruneConfig()
@@ -133,9 +133,9 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 
 func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"lfs.fetchinclude": "/path/to/clean/",
-			"lfs.fetchexclude": "/other/path/to/clean/",
+		Git: map[string][]string{
+			"lfs.fetchinclude": []string{"/path/to/clean/"},
+			"lfs.fetchexclude": []string{"/other/path/to/clean/"},
 		},
 	})
 
@@ -145,15 +145,15 @@ func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
 
 func TestUnmarshalMultipleTypes(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"string": "string",
-			"int":    "1",
-			"bool":   "true",
+		Git: map[string][]string{
+			"string": []string{"string"},
+			"int":    []string{"1"},
+			"bool":   []string{"true"},
 		},
-		Os: map[string]string{
-			"string": "string",
-			"int":    "1",
-			"bool":   "true",
+		Os: map[string][]string{
+			"string": []string{"string"},
+			"int":    []string{"1"},
+			"bool":   []string{"true"},
 		},
 	})
 
@@ -213,10 +213,10 @@ func TestUnmarshalOverridesNonZeroValuesWhenValuesPresent(t *testing.T) {
 	}{"foo", 1, true}
 
 	cfg := NewFrom(Values{
-		Git: map[string]string{
-			"string": "bar",
-			"int":    "2",
-			"bool":   "false",
+		Git: map[string][]string{
+			"string": []string{"bar"},
+			"int":    []string{"2"},
+			"bool":   []string{"false"},
 		},
 	})
 
@@ -256,7 +256,7 @@ func TestUnmarshalErrsOnUnsupportedTypes(t *testing.T) {
 	}{}
 
 	cfg := NewFrom(Values{
-		Git: map[string]string{"duration": "foo"},
+		Git: map[string][]string{"duration": []string{"foo"}},
 	})
 
 	err := cfg.Unmarshal(v)

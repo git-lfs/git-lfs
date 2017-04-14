@@ -186,7 +186,8 @@ func (m *Manifest) NewUploadAdapter(name string) Adapter {
 // Env is any object with a config.Environment interface.
 type Env interface {
 	Get(key string) (val string, ok bool)
+	GetAll(key string) []string
 	Bool(key string, def bool) (val bool)
 	Int(key string, def int) (val int)
-	All() map[string]string
+	All() map[string][]string
 }

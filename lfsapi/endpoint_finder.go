@@ -279,12 +279,12 @@ func initAliases(e *endpointGitFinder, git Env) {
 	prefix := "url."
 	suffix := ".insteadof"
 	for gitkey, gitval := range git.All() {
-		if !(strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix)) {
+		if len(gitval) == 0 || !(strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix)) {
 			continue
 		}
-		if _, ok := e.aliases[gitval]; ok {
+		if _, ok := e.aliases[gitval[len(gitval)-1]]; ok {
 			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
 		}
-		e.aliases[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+		e.aliases[gitval[len(gitval)-1]] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
 	}
 }

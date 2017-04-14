@@ -23,53 +23,76 @@ func NewURLConfig(git Environment) *URLConfig {
 func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
-	if v, ok := c.get(key, rawurl); ok {
-		return v, ok
+	if v := c.getAll(key, rawurl); len(v) > 0 {
+		return v[len(v)-1], true
 	}
 	return c.git.Get(strings.Join([]string{prefix, key}, "."))
 }
 
-func (c *URLConfig) get(key, rawurl string) (string, bool) {
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return "", false
+func (c *URLConfig) GetAll(prefix, key string, rawurl string) []string {
+	key = strings.ToLower(key)
+	prefix = strings.ToLower(prefix)
+	if v := c.getAll(key, rawurl); len(v) > 0 {
+		return v
 	}
+	return c.git.GetAll(strings.Join([]string{prefix, key}, "."))
+}
 
-	hosts := make([]string, 0)
-	if u.User != nil {
-		hosts = append(hosts, fmt.Sprintf("%s://%s@%s", u.Scheme, u.User.Username(), u.Host))
-	}
-	hosts = append(hosts, fmt.Sprintf("%s://%s", u.Scheme, u.Host))
+func (c *URLConfig) getAll(key, rawurl string) []string {
+	hosts, paths := c.hostsAndPaths(rawurl)
 
-	pLen := len(u.Path)
-	if pLen > 2 {
-		end := pLen
-		if strings.HasSuffix(u.Path, "/") {
-			end -= 1
-		}
-
-		paths := strings.Split(u.Path[1:end], "/")
-		for i := len(paths); i > 0; i-- {
-			for _, host := range hosts {
-				path := strings.Join(paths[:i], "/")
-				if v, ok := c.git.Get(fmt.Sprintf("http.%s/%s.%s", host, path, key)); ok {
-					return v, ok
-				}
-				if v, ok := c.git.Get(fmt.Sprintf("http.%s/%s/.%s", host, path, key)); ok {
-					return v, ok
-				}
+	for i := len(paths); i > 0; i-- {
+		for _, host := range hosts {
+			path := strings.Join(paths[:i], "/")
+			if v := c.git.GetAll(fmt.Sprintf("http.%s/%s.%s", host, path, key)); len(v) > 0 {
+				return v
+			}
+			if v := c.git.GetAll(fmt.Sprintf("http.%s/%s/.%s", host, path, key)); len(v) > 0 {
+				return v
 			}
 		}
 	}
 
 	for _, host := range hosts {
-		if v, ok := c.git.Get(fmt.Sprintf("http.%s.%s", host, key)); ok {
-			return v, ok
+		if v := c.git.GetAll(fmt.Sprintf("http.%s.%s", host, key)); len(v) > 0 {
+			return v
 		}
-		if v, ok := c.git.Get(fmt.Sprintf("http.%s/.%s", host, key)); ok {
-			return v, ok
+		if v := c.git.GetAll(fmt.Sprintf("http.%s/.%s", host, key)); len(v) > 0 {
+			return v
 		}
 	}
-	return "", false
+	return nil
 
+}
+func (c *URLConfig) hostsAndPaths(rawurl string) (hosts, paths []string) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, nil
+	}
+
+	return c.hosts(u), c.paths(u.Path)
+}
+
+func (c *URLConfig) hosts(u *url.URL) []string {
+	hosts := make([]string, 0, 1)
+
+	if u.User != nil {
+		hosts = append(hosts, fmt.Sprintf("%s://%s@%s", u.Scheme, u.User.Username(), u.Host))
+	}
+	hosts = append(hosts, fmt.Sprintf("%s://%s", u.Scheme, u.Host))
+
+	return hosts
+}
+
+func (c *URLConfig) paths(path string) []string {
+	pLen := len(path)
+	if pLen <= 2 {
+		return nil
+	}
+
+	end := pLen
+	if strings.HasSuffix(path, "/") {
+		end -= 1
+	}
+	return strings.Split(path[1:end], "/")
 }

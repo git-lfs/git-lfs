@@ -212,7 +212,7 @@ func (r *fakeResolver) Resolve(e Endpoint, method string) (sshAuthResponse, erro
 }
 
 func TestSSHGetLFSExeAndArgs(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{}), nil)
+	cli, err := NewClient(UniqTestEnv(map[string]string{}), nil)
 	require.Nil(t, err)
 
 	endpoint := cli.Endpoints.Endpoint("download", "")
@@ -251,7 +251,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSsh(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}), nil)
@@ -266,7 +266,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}), nil)
@@ -284,7 +284,7 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsPlink(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink.exe")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}), nil)
@@ -301,7 +301,7 @@ func TestSSHGetExeAndArgsPlink(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}), nil)
@@ -319,7 +319,7 @@ func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink.exe")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}), nil)
@@ -336,7 +336,7 @@ func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}), nil)
@@ -352,7 +352,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd",
 		"GIT_SSH":         "bad",
 	}), nil)
@@ -367,7 +367,7 @@ func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd --args 1",
 	}), nil)
 	require.Nil(t, err)
@@ -381,7 +381,7 @@ func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd foo 'bar \"baz\"'",
 	}), nil)
 	require.Nil(t, err)
@@ -395,7 +395,7 @@ func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd",
 	}), nil)
 	require.Nil(t, err)
@@ -412,7 +412,7 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink.exe")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}), nil)
 	require.Nil(t, err)
@@ -428,7 +428,7 @@ func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}), nil)
 	require.Nil(t, err)
@@ -445,7 +445,7 @@ func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink.exe")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}), nil)
 	require.Nil(t, err)
@@ -461,7 +461,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink")
 
-	cli, err := NewClient(TestEnv(map[string]string{
+	cli, err := NewClient(UniqTestEnv(map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}), nil)
 	require.Nil(t, err)

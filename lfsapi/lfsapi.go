@@ -147,18 +147,79 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 // relies on.
 type Env interface {
 	Get(string) (string, bool)
+	GetAll(string) []string
 	Int(string, int) int
 	Bool(string, bool) bool
-	All() map[string]string
+	All() map[string][]string
+}
+
+type UniqTestEnv map[string]string
+
+func (e UniqTestEnv) Get(key string) (v string, ok bool) {
+	v, ok = e[key]
+	return
+}
+
+func (e UniqTestEnv) GetAll(key string) []string {
+	if v, ok := e.Get(key); ok {
+		return []string{v}
+	}
+	return make([]string, 0)
+}
+
+func (e UniqTestEnv) Int(key string, def int) (val int) {
+	s, _ := e.Get(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+
+	return i
+}
+
+func (e UniqTestEnv) Bool(key string, def bool) (val bool) {
+	s, _ := e.Get(key)
+	if len(s) == 0 {
+		return def
+	}
+
+	switch strings.ToLower(s) {
+	case "true", "1", "on", "yes", "t":
+		return true
+	case "false", "0", "off", "no", "f":
+		return false
+	default:
+		return false
+	}
+}
+
+func (e UniqTestEnv) All() map[string][]string {
+	m := make(map[string][]string)
+	for k, _ := range e {
+		m[k] = e.GetAll(k)
+	}
+	return m
 }
 
 // TestEnv is a basic config.Environment implementation. Only used in tests, or
 // as a zero value to NewClient().
-type TestEnv map[string]string
+type TestEnv map[string][]string
 
 func (e TestEnv) Get(key string) (string, bool) {
-	v, ok := e[key]
-	return v, ok
+	all := e.GetAll(key)
+
+	if len(all) == 0 {
+		return "", false
+	}
+	return all[len(all)-1], true
+}
+
+func (e TestEnv) GetAll(key string) []string {
+	return e[key]
 }
 
 func (e TestEnv) Int(key string, def int) (val int) {
@@ -191,6 +252,6 @@ func (e TestEnv) Bool(key string, def bool) (val bool) {
 	}
 }
 
-func (e TestEnv) All() map[string]string {
+func (e TestEnv) All() map[string][]string {
 	return e
 }

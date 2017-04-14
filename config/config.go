@@ -70,7 +70,7 @@ func New() *Configuration {
 type Values struct {
 	// Git and Os are the stand-in maps used to provide values for their
 	// respective environments.
-	Git, Os map[string]string
+	Git, Os map[string][]string
 }
 
 // NewFrom returns a new `*config.Configuration` that reads both its Git
