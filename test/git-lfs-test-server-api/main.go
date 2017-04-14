@@ -69,16 +69,6 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		exit("error building tq.Manifest: " + err.Error())
 	}
 
-	// Configure the endpoint manually
-	var endp lfsapi.Endpoint
-	finder := lfsapi.NewEndpointFinder(config.Config.Git)
-	if len(cloneUrl) > 0 {
-		endp = finder.NewEndpointFromCloneURL(cloneUrl)
-	} else {
-		endp = finder.NewEndpoint(apiUrl)
-	}
-	config.Config.SetManualEndpoint(endp)
-
 	var oidsExist, oidsMissing []TestObject
 	if len(args) >= 2 {
 		fmt.Printf("Reading test data from files (no server content changes)\n")
@@ -142,7 +132,22 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 
 func buildManifest() (*tq.Manifest, error) {
 	cfg := config.Config
+
+	// Configure the endpoint manually
+	finder := lfsapi.NewEndpointFinder(config.Config.Git)
+
+	var endp lfsapi.Endpoint
+	if len(cloneUrl) > 0 {
+		endp = finder.NewEndpointFromCloneURL(cloneUrl)
+	} else {
+		endp = finder.NewEndpoint(apiUrl)
+	}
+
 	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	apiClient.Endpoints = &constantEndpoint{
+		e:              endp,
+		EndpointFinder: apiClient.Endpoints,
+	}
 	if err != nil {
 		return nil, err
 	}
