@@ -149,6 +149,20 @@ func buildManifest() (*tq.Manifest, error) {
 	return tq.NewManifestWithClient(apiClient), nil
 }
 
+type constantEndpoint struct {
+	e lfsapi.Endpoint
+
+	lfsapi.EndpointFinder
+}
+
+func (c *constantEndpoint) NewEndpointFromCloneURL(rawurl string) lfsapi.Endpoint { return c.e }
+
+func (c *constantEndpoint) NewEndpoint(rawurl string) lfsapi.Endpoint { return c.e }
+
+func (c *constantEndpoint) Endpoint(operation, remote string) lfsapi.Endpoint { return c.e }
+
+func (c *constantEndpoint) RemoteEndpoint(operation, remote string) lfsapi.Endpoint { return c.e }
+
 func buildTestData(manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
