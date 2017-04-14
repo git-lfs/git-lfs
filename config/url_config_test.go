@@ -17,12 +17,12 @@ func TestURLConfig(t *testing.T) {
 	})))
 
 	getOne := map[string]string{
-		"https://root.com/a/b/c":           "root",
-		"https://host.com/":                "host",
-		"https://host.com/a/b/c":           "host-a",
-		"https://user:pass@host.com/a/b/c": "user-a",
-		"https://user:pass@host.com/z/b/c": "user",
-		"https://host.com:8080/a":          "port",
+		"https://root.com/a/b/c":           "root-2",
+		"https://host.com/":                "host-2",
+		"https://host.com/a/b/c":           "host-b",
+		"https://user:pass@host.com/a/b/c": "user-b",
+		"https://user:pass@host.com/z/b/c": "user-2",
+		"https://host.com:8080/a":          "port-2",
 	}
 
 	for rawurl, expected := range getOne {
