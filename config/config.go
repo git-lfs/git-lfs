@@ -198,10 +198,6 @@ func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
 }
 
-func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
-	return c.endpointConfig().AccessFor(e.Url)
-}
-
 func (c *Configuration) FetchIncludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
