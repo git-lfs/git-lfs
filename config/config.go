@@ -182,10 +182,6 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environ
 	return
 }
 
-func (c *Configuration) Endpoint(operation string) lfsapi.Endpoint {
-	return c.endpointConfig().Endpoint(operation, c.CurrentRemote)
-}
-
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
 // Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
