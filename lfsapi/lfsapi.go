@@ -215,7 +215,7 @@ func (e TestEnv) Get(key string) (string, bool) {
 	if len(all) == 0 {
 		return "", false
 	}
-	return all[0], true
+	return all[len(all)-1], true
 }
 
 func (e TestEnv) GetAll(key string) []string {
