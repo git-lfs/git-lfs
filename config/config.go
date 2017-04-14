@@ -198,11 +198,6 @@ func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
 }
 
-// Access returns the access auth type.
-func (c *Configuration) Access(operation string) lfsapi.Access {
-	return c.EndpointAccess(c.Endpoint(operation))
-}
-
 func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
 	return c.endpointConfig().AccessFor(e.Url)
 }
