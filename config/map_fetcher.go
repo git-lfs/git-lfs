@@ -24,7 +24,7 @@ func (m mapFetcher) Get(key string) (val string, ok bool) {
 	if len(all) == 0 {
 		return "", false
 	}
-	return all[0], true
+	return all[len(all)-1], true
 }
 
 // Get implements the func `Fetcher.GetAll`.
