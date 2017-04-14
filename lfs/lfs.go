@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
@@ -67,6 +68,12 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
 
+	api, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		// TODO(@ttaylorr): don't panic
+		panic(err.Error())
+	}
+
 	dltransfers := manifest.GetDownloadAdapterNames()
 	sort.Strings(dltransfers)
 	ultransfers := manifest.GetUploadAdapterNames()
@@ -81,7 +88,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
 		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
 		fmt.Sprintf("TempDir=%s", TempDir()),
-		fmt.Sprintf("ConcurrentTransfers=%d", cfg.ConcurrentTransfers()),
+		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
 		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),
