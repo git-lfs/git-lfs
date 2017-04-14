@@ -24,7 +24,7 @@ func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
 	if v := c.getAll(key, rawurl); len(v) > 0 {
-		return v[0], true
+		return v[len(v)-1], true
 	}
 	return c.git.Get(strings.Join([]string{prefix, key}, "."))
 }
