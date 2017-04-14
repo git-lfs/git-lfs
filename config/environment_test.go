@@ -16,7 +16,7 @@ func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
 	val, ok := env.Get("foo")
 
 	assert.True(t, ok)
-	assert.Equal(t, "bar", val)
+	assert.Equal(t, "baz", val)
 }
 
 func TestEnvironmentGetAllDelegatesToFetcher(t *testing.T) {
