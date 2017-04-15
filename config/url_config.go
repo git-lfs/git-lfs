@@ -20,7 +20,7 @@ func NewURLConfig(git Environment) *URLConfig {
 // rules in https://git-scm.com/docs/git-config#git-config-httplturlgt.
 // The value for `http.{key}` is returned as a fallback if no config keys are
 // set for the given urls.
-func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
+func (c *URLConfig) Get(prefix, rawurl, key string) (string, bool) {
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
 	if v := c.getAll(prefix, rawurl, key); len(v) > 0 {
@@ -29,7 +29,7 @@ func (c *URLConfig) Get(prefix, key string, rawurl string) (string, bool) {
 	return c.git.Get(strings.Join([]string{prefix, key}, "."))
 }
 
-func (c *URLConfig) GetAll(prefix, key string, rawurl string) []string {
+func (c *URLConfig) GetAll(prefix, rawurl, key string) []string {
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
 	if v := c.getAll(prefix, rawurl, key); len(v) > 0 {

@@ -26,7 +26,7 @@ func TestURLConfig(t *testing.T) {
 	}
 
 	for rawurl, expected := range getOne {
-		value, _ := u.Get("http", "key", rawurl)
+		value, _ := u.Get("http", rawurl, "key")
 		assert.Equal(t, expected, value, rawurl)
 	}
 
@@ -40,7 +40,7 @@ func TestURLConfig(t *testing.T) {
 	}
 
 	for rawurl, expected := range getAll {
-		values := u.GetAll("http", "key", rawurl)
+		values := u.GetAll("http", rawurl, "key")
 		assert.Equal(t, expected, values, rawurl)
 	}
 }
