@@ -11,6 +11,10 @@ type URLConfig struct {
 }
 
 func NewURLConfig(git Environment) *URLConfig {
+	if git == nil {
+		git = EnvironmentOf(make(mapFetcher))
+	}
+
 	return &URLConfig{
 		git: git,
 	}
