@@ -76,7 +76,25 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return res, c.handleResponse(res)
 }
 
+func (c *Client) setExtraHeaders(req *http.Request) http.Header {
+	var copy http.Header = make(http.Header)
+	for k, vs := range req.Header {
+		copy[k] = vs
+	}
+
+	for k, vs := range c.extraHeaders(req.URL) {
+		for _, v := range vs {
+			copy[k] = append(copy[k], v)
+		}
+	}
+	return copy
+}
+
 func (c *Client) extraHeaders(u *url.URL) map[string][]string {
+	if c.uc == nil {
+		c.uc = config.NewURLConfig(c.GitEnv())
+	}
+
 	hdrs := c.uc.GetAll("http", u.String(), "extraHeader")
 	m := make(map[string][]string, len(hdrs))
 
