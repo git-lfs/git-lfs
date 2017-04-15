@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 )
 
@@ -53,6 +54,7 @@ type Client struct {
 	// only used for per-host ssl certs
 	gitEnv Env
 	osEnv  Env
+	uc     *config.URLConfig
 }
 
 func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
