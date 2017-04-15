@@ -76,6 +76,23 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return res, c.handleResponse(res)
 }
 
+func (c *Client) extraHeaders(u *url.URL) map[string][]string {
+	hdrs := c.uc.GetAll("http", u.String(), "extraHeader")
+	m := make(map[string][]string, len(hdrs))
+
+	for _, hdr := range hdrs {
+		parts := strings.SplitN(hdr, ": ", 2)
+		if len(parts) < 2 {
+			continue
+		}
+
+		k, v := parts[0], parts[1]
+
+		m[k] = append(m[k], v)
+	}
+	return m
+}
+
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
 	c.traceRequest(req)
 	if err := c.prepareRequestBody(req); err != nil {
