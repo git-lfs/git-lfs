@@ -78,7 +78,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) setExtraHeaders(req *http.Request) http.Header {
-	var copy http.Header = make(http.Header)
+	copy := make(http.Header, len(req.Header))
 	for k, vs := range req.Header {
 		copy[k] = vs
 	}
