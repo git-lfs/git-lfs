@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/rubyist/tracerx"
 )
@@ -44,6 +45,7 @@ type endpointGitFinder struct {
 
 	accessMu  sync.Mutex
 	urlAccess map[string]Access
+	urlConfig *config.URLConfig
 }
 
 func NewEndpointFinder(git Env) EndpointFinder {
@@ -55,6 +57,7 @@ func NewEndpointFinder(git Env) EndpointFinder {
 
 	if git != nil {
 		e.git = git
+		e.urlConfig = config.NewURLConfig(e.git)
 		if v, ok := git.Get("lfs.gitprotocol"); ok {
 			e.gitProtocol = v
 		}
