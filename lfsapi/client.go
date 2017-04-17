@@ -92,10 +92,6 @@ func (c *Client) setExtraHeaders(req *http.Request) http.Header {
 }
 
 func (c *Client) extraHeaders(u *url.URL) map[string][]string {
-	if c.uc == nil {
-		c.uc = config.NewURLConfig(c.GitEnv())
-	}
-
 	hdrs := c.uc.GetAll("http", u.String(), "extraHeader")
 	m := make(map[string][]string, len(hdrs))
 
