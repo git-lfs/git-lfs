@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -333,9 +334,9 @@ func (c *uploadContext) Await() {
 // given "endpoint". If no state has been explicitly set, an "unknown" state
 // will be returned instead.
 func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
-	key := strings.Join([]string{"lfs", endpoint.Url, "locksverify"}, ".")
+	uc := config.NewURLConfig(cfg.Git)
 
-	v, ok := cfg.Git.Get(key)
+	v, ok := uc.Get("lfs", endpoint.Url, "locksverify")
 	if !ok {
 		return verifyStateUnknown
 	}
