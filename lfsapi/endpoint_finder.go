@@ -198,7 +198,7 @@ func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 	}
 
 	key := fmt.Sprintf("lfs.%s.access", accessurl)
-	e.urlAccess[accessurl] = fetchGitAccess(e.git, key)
+	e.urlAccess[accessurl] = e.fetchGitAccess(key)
 	return e.urlAccess[accessurl]
 }
 
@@ -235,8 +235,8 @@ func urlWithoutAuth(rawurl string) string {
 	return u.String()
 }
 
-func fetchGitAccess(git Env, key string) Access {
-	if v, _ := git.Get(key); len(v) > 0 {
+func (e *endpointGitFinder) fetchGitAccess(key string) Access {
+	if v, _ := e.git.Get(key); len(v) > 0 {
 		access := Access(strings.ToLower(v))
 		if access == PrivateAccess {
 			return BasicAccess
