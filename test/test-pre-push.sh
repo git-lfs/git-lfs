@@ -762,6 +762,7 @@ begin_test "pre-push locks verify 200"
   grep "git config 'lfs.$endpoint.locksverify' true" push.log
   assert_server_object "$reponame" "$contents_oid"
 )
+end_test
 
 begin_test "pre-push locks verify 403 with verification enabled"
 (
