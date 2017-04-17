@@ -222,6 +222,10 @@ be scoped inside the configuration for a remote.
   You should set this if you're not using File Locking, or your Git server
   verifies locked files on pushes automatically.
 
+  Supports URL config lookup as described in:
+  https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this value
+  per-host: `git config lfs.https://github.com/.locksverify 0`.
+
 * `lfs.skipdownloaderrors`
 
   Causes Git LFS not to abort the smudge filter when a download error is
