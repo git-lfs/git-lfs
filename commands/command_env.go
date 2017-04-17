@@ -9,7 +9,7 @@ import (
 
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
-	endpoint := cfg.Endpoint("download")
+	endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.CurrentRemote)
 
 	gitV, err := git.Config.Version()
 	if err != nil {
@@ -21,15 +21,17 @@ func envCommand(cmd *cobra.Command, args []string) {
 	Print("")
 
 	if len(endpoint.Url) > 0 {
-		Print("Endpoint=%s (auth=%s)", endpoint.Url, cfg.EndpointAccess(endpoint))
+		access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
+		Print("Endpoint=%s (auth=%s)", endpoint.Url, access)
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
 	}
 
 	for _, remote := range cfg.Remotes() {
-		remoteEndpoint := cfg.RemoteEndpoint(remote, "download")
-		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, cfg.EndpointAccess(remoteEndpoint))
+		remoteEndpoint := getAPIClient().Endpoints.RemoteEndpoint("download", remote)
+		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
+		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess)
 		if len(remoteEndpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)
 		}

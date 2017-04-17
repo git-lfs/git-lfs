@@ -6,10 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -54,12 +52,9 @@ type Configuration struct {
 
 	CurrentRemote string
 
-	loading        sync.Mutex // guards initialization of gitConfig and remotes
-	remotes        []string
-	extensions     map[string]Extension
-	manualEndpoint *lfsapi.Endpoint
-	endpointFinder lfsapi.EndpointFinder
-	endpointMu     sync.Mutex
+	loading    sync.Mutex // guards initialization of gitConfig and remotes
+	remotes    []string
+	extensions map[string]Extension
 }
 
 func New() *Configuration {
@@ -184,41 +179,6 @@ func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environ
 	return
 }
 
-// GitRemoteUrl returns the git clone/push url for a given remote (blank if not found)
-// the forpush argument is to cater for separate remote.name.pushurl settings
-func (c *Configuration) GitRemoteUrl(remote string, forpush bool) string {
-	return c.endpointConfig().GitRemoteURL(remote, forpush)
-}
-
-// Manually set an Endpoint to use instead of deriving from Git config
-func (c *Configuration) SetManualEndpoint(e lfsapi.Endpoint) {
-	c.manualEndpoint = &e
-}
-
-func (c *Configuration) Endpoint(operation string) lfsapi.Endpoint {
-	if c.manualEndpoint != nil {
-		return *c.manualEndpoint
-	}
-	return c.endpointConfig().Endpoint(operation, c.CurrentRemote)
-}
-
-func (c *Configuration) ConcurrentTransfers() int {
-	if c.NtlmAccess("download") {
-		return 1
-	}
-
-	uploads := 3
-
-	if v, ok := c.Git.Get("lfs.concurrenttransfers"); ok {
-		n, err := strconv.Atoi(v)
-		if err == nil && n > 0 {
-			uploads = n
-		}
-	}
-
-	return uploads
-}
-
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
 // Default is false, including if the lfs.basictransfersonly is invalid
 func (c *Configuration) BasicTransfersOnly() bool {
@@ -231,19 +191,6 @@ func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
 }
 
-func (c *Configuration) NtlmAccess(operation string) bool {
-	return c.Access(operation) == lfsapi.NTLMAccess
-}
-
-// Access returns the access auth type.
-func (c *Configuration) Access(operation string) lfsapi.Access {
-	return c.EndpointAccess(c.Endpoint(operation))
-}
-
-func (c *Configuration) EndpointAccess(e lfsapi.Endpoint) lfsapi.Access {
-	return c.endpointConfig().AccessFor(e.Url)
-}
-
 func (c *Configuration) FetchIncludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
@@ -254,29 +201,10 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
-func (c *Configuration) RemoteEndpoint(remote, operation string) lfsapi.Endpoint {
-	return c.endpointConfig().RemoteEndpoint(operation, remote)
-}
-
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
 
 	return c.remotes
-}
-
-func (c *Configuration) GitProtocol() string {
-	return c.endpointConfig().GitProtocol()
-}
-
-func (c *Configuration) endpointConfig() lfsapi.EndpointFinder {
-	c.endpointMu.Lock()
-	defer c.endpointMu.Unlock()
-
-	if c.endpointFinder == nil {
-		c.endpointFinder = lfsapi.NewEndpointFinder(c.Git)
-	}
-
-	return c.endpointFinder
 }
 
 func (c *Configuration) Extensions() map[string]Extension {

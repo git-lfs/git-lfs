@@ -7,57 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConcurrentTransfersSetValue(t *testing.T) {
-	cfg := NewFrom(Values{
-		Git: map[string][]string{
-			"lfs.concurrenttransfers": []string{"5"},
-		},
-	})
-
-	n := cfg.ConcurrentTransfers()
-	assert.Equal(t, 5, n)
-}
-
-func TestConcurrentTransfersDefault(t *testing.T) {
-	cfg := NewFrom(Values{})
-
-	n := cfg.ConcurrentTransfers()
-	assert.Equal(t, 3, n)
-}
-
-func TestConcurrentTransfersZeroValue(t *testing.T) {
-	cfg := NewFrom(Values{
-		Git: map[string][]string{
-			"lfs.concurrenttransfers": []string{"0"},
-		},
-	})
-
-	n := cfg.ConcurrentTransfers()
-	assert.Equal(t, 3, n)
-}
-
-func TestConcurrentTransfersNonNumeric(t *testing.T) {
-	cfg := NewFrom(Values{
-		Git: map[string][]string{
-			"lfs.concurrenttransfers": []string{"elephant"},
-		},
-	})
-
-	n := cfg.ConcurrentTransfers()
-	assert.Equal(t, 3, n)
-}
-
-func TestConcurrentTransfersNegativeValue(t *testing.T) {
-	cfg := NewFrom(Values{
-		Git: map[string][]string{
-			"lfs.concurrenttransfers": []string{"-5"},
-		},
-	})
-
-	n := cfg.ConcurrentTransfers()
-	assert.Equal(t, 3, n)
-}
-
 func TestBasicTransfersOnlySetValue(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{
