@@ -100,12 +100,12 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 	m := make(map[string][]string, len(hdrs))
 
 	for _, hdr := range hdrs {
-		parts := strings.SplitN(hdr, ": ", 2)
+		parts := strings.SplitN(hdr, ":", 2)
 		if len(parts) < 2 {
 			continue
 		}
 
-		k, v := parts[0], parts[1]
+		k, v := parts[0], strings.TrimSpace(parts[1])
 
 		m[k] = append(m[k], v)
 	}
