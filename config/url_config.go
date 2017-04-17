@@ -25,6 +25,10 @@ func NewURLConfig(git Environment) *URLConfig {
 // The value for `http.{key}` is returned as a fallback if no config keys are
 // set for the given urls.
 func (c *URLConfig) Get(prefix, rawurl, key string) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
 	if v := c.getAll(prefix, rawurl, key); len(v) > 0 {
@@ -34,6 +38,10 @@ func (c *URLConfig) Get(prefix, rawurl, key string) (string, bool) {
 }
 
 func (c *URLConfig) GetAll(prefix, rawurl, key string) []string {
+	if c == nil {
+		return nil
+	}
+
 	key = strings.ToLower(key)
 	prefix = strings.ToLower(prefix)
 	if v := c.getAll(prefix, rawurl, key); len(v) > 0 {
