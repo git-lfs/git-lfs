@@ -101,6 +101,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		NoProxy:             noProxy,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
+		uc:                  config.NewURLConfig(gitEnv),
 	}
 
 	return c, nil
