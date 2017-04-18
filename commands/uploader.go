@@ -144,35 +144,6 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock) {
 	return ours, theirs
 }
 
-var (
-	// hostsWithKnownLockingSupport is a list of scheme-less hostnames
-	// (without port numbers) that are known to implement the LFS locking
-	// API.
-	//
-	// Additions are welcome.
-	hostsWithKnownLockingSupport = []string{
-		"github.com",
-	}
-)
-
-// supportsLockingAPI returns whether or not a given lfsapi.Endpoint "e"
-// is known to support the LFS locking API by whether or not its hostname is
-// included in the list above.
-func supportsLockingAPI(e lfsapi.Endpoint) bool {
-	u, err := url.Parse(e.Url)
-	if err != nil {
-		tracerx.Printf("commands: unable to parse %q to determine locking support: %v", e.Url, err)
-		return false
-	}
-
-	for _, host := range hostsWithKnownLockingSupport {
-		if u.Hostname() == host {
-			return true
-		}
-	}
-	return false
-}
-
 func (c *uploadContext) scannerError() error {
 	c.errMu.Lock()
 	defer c.errMu.Unlock()
@@ -360,6 +331,17 @@ func (c *uploadContext) Await() {
 	}
 }
 
+var (
+	// hostsWithKnownLockingSupport is a list of scheme-less hostnames
+	// (without port numbers) that are known to implement the LFS locking
+	// API.
+	//
+	// Additions are welcome.
+	hostsWithKnownLockingSupport = []string{
+		"github.com",
+	}
+)
+
 // getVerifyStateFor returns whether or not lock verification is enabled for the
 // given "endpoint". If no state has been explicitly set, an "unknown" state
 // will be returned instead.
@@ -378,6 +360,24 @@ func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
 		return verifyStateEnabled
 	}
 	return verifyStateDisabled
+}
+
+// supportsLockingAPI returns whether or not a given lfsapi.Endpoint "e"
+// is known to support the LFS locking API by whether or not its hostname is
+// included in the list above.
+func supportsLockingAPI(e lfsapi.Endpoint) bool {
+	u, err := url.Parse(e.Url)
+	if err != nil {
+		tracerx.Printf("commands: unable to parse %q to determine locking support: %v", e.Url, err)
+		return false
+	}
+
+	for _, host := range hostsWithKnownLockingSupport {
+		if u.Hostname() == host {
+			return true
+		}
+	}
+	return false
 }
 
 // disableFor disables lock verification for the given lfsapi.Endpoint,
