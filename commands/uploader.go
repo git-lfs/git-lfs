@@ -136,7 +136,7 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock) {
 		} else {
 			ExitWithError(err)
 		}
-	} else if state == verifyStateUnknown && !supportsLockingAPI(endpoint) {
+	} else if state == verifyStateUnknown {
 		Print("Locking support detected on remote %q. Consider enabling it with:", remote)
 		Print("  $ git config 'lfs.%s.locksverify' true", endpoint.Url)
 	}
@@ -368,6 +368,9 @@ func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
 
 	v, ok := uc.Get("lfs", endpoint.Url, "locksverify")
 	if !ok {
+		if supportsLockingAPI(endpoint.Url) {
+			return verifyStateEnabled
+		}
 		return verifyStateUnknown
 	}
 
