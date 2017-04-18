@@ -350,7 +350,7 @@ func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
 
 	v, ok := uc.Get("lfs", endpoint.Url, "locksverify")
 	if !ok {
-		if supportsLockingAPI(endpoint.Url) {
+		if supportsLockingAPI(endpoint) {
 			return verifyStateEnabled
 		}
 		return verifyStateUnknown
