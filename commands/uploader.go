@@ -2,11 +2,13 @@ package commands
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -329,14 +331,31 @@ func (c *uploadContext) Await() {
 	}
 }
 
+var (
+	githubHttps, _ = url.Parse("https://github.com")
+	githubSsh, _   = url.Parse("ssh://github.com")
+
+	// hostsWithKnownLockingSupport is a list of scheme-less hostnames
+	// (without port numbers) that are known to implement the LFS locking
+	// API.
+	//
+	// Additions are welcome.
+	hostsWithKnownLockingSupport = []*url.URL{
+		githubHttps, githubSsh,
+	}
+)
+
 // getVerifyStateFor returns whether or not lock verification is enabled for the
 // given "endpoint". If no state has been explicitly set, an "unknown" state
 // will be returned instead.
 func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
-	key := strings.Join([]string{"lfs", endpoint.Url, "locksverify"}, ".")
+	uc := config.NewURLConfig(cfg.Git)
 
-	v, ok := cfg.Git.Get(key)
+	v, ok := uc.Get("lfs", endpoint.Url, "locksverify")
 	if !ok {
+		if supportsLockingAPI(endpoint) {
+			return verifyStateEnabled
+		}
 		return verifyStateUnknown
 	}
 
@@ -344,6 +363,26 @@ func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
 		return verifyStateEnabled
 	}
 	return verifyStateDisabled
+}
+
+// supportsLockingAPI returns whether or not a given lfsapi.Endpoint "e"
+// is known to support the LFS locking API by whether or not its hostname is
+// included in the list above.
+func supportsLockingAPI(e lfsapi.Endpoint) bool {
+	u, err := url.Parse(e.Url)
+	if err != nil {
+		tracerx.Printf("commands: unable to parse %q to determine locking support: %v", e.Url, err)
+		return false
+	}
+
+	for _, supported := range hostsWithKnownLockingSupport {
+		if supported.Scheme == u.Scheme &&
+			supported.Hostname() == u.Hostname() &&
+			strings.HasPrefix(u.Path, supported.Path) {
+			return true
+		}
+	}
+	return false
 }
 
 // disableFor disables lock verification for the given lfsapi.Endpoint,
