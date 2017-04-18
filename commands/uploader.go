@@ -332,13 +332,16 @@ func (c *uploadContext) Await() {
 }
 
 var (
+	githubHttps, _ = url.Parse("https://github.com")
+	githubSsh, _   = url.Parse("ssh://github.com")
+
 	// hostsWithKnownLockingSupport is a list of scheme-less hostnames
 	// (without port numbers) that are known to implement the LFS locking
 	// API.
 	//
 	// Additions are welcome.
-	hostsWithKnownLockingSupport = []string{
-		"github.com",
+	hostsWithKnownLockingSupport = []*url.URL{
+		githubHttps, githubSsh,
 	}
 )
 
@@ -372,8 +375,10 @@ func supportsLockingAPI(e lfsapi.Endpoint) bool {
 		return false
 	}
 
-	for _, host := range hostsWithKnownLockingSupport {
-		if u.Hostname() == host {
+	for _, supported := range hostsWithKnownLockingSupport {
+		if supported.Scheme == u.Scheme &&
+			supported.Hostname() == u.Hostname() &&
+			strings.HasPrefix(u.Path, supported.Path) {
 			return true
 		}
 	}
