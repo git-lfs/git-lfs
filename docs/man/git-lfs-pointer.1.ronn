@@ -3,8 +3,8 @@ git-lfs-pointer(1) -- Build and compare pointers
 
 ## SYNOPSIS
 
-`git lfs pointer --file=path/to/file`<br>
-`git lfs pointer --file=path/to/file --pointer=path/to/pointer`<br>
+`git lfs pointer --file=path/to/file`
+`git lfs pointer --file=path/to/file --pointer=path/to/pointer`
 `git lfs pointer --file=path/to/file --stdin`
 
 ## Description
