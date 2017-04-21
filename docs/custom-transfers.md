@@ -252,7 +252,7 @@ When all transfers have been processed, git-lfs will send the following message
 to the stdin of the transfer process:
 
 ```json
-{ "event":"terminate" }
+{ "type":"terminate" }
 ```
 
 On receiving this message the transfer process should clean up and terminate.
