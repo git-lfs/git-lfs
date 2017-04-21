@@ -517,6 +517,7 @@ begin_test "pre-push with their lock on lfs file"
 
   pushd "$TRASHDIR" >/dev/null
     clone_repo "$reponame" "$reponame-assert"
+    git config lfs.locksverify true
 
     printf "unauthorized changes" >> locked_theirs.dat
     git add locked_theirs.dat
@@ -524,6 +525,11 @@ begin_test "pre-push with their lock on lfs file"
     git commit --no-verify -m "add unauthorized changes"
 
     git push origin master 2>&1 | tee push.log
+    res="${PIPESTATUS[0]}"
+    if [ "0" -eq "$res" ]; then
+      echo "push should fail"
+      exit 1
+    fi
 
     grep "Unable to push 1 locked file(s)" push.log
     grep "* locked_theirs.dat - Git LFS Tests" push.log
@@ -562,6 +568,7 @@ begin_test "pre-push with their lock on non-lfs lockable file"
 
   pushd "$TRASHDIR" >/dev/null
     clone_repo "$reponame" "$reponame-assert"
+    git config lfs.locksverify true
 
     git lfs update # manually add pre-push hook, since lfs clean hook is not used
     echo "other changes" >> readme.txt
@@ -571,6 +578,11 @@ begin_test "pre-push with their lock on non-lfs lockable file"
     git commit --no-verify -am "add unauthorized changes"
 
     git push origin master 2>&1 | tee push.log
+    res="${PIPESTATUS[0]}"
+    if [ "0" -eq "$res" ]; then
+      echo "push should fail"
+      exit 1
+    fi
 
     grep "Unable to push 2 locked file(s)" push.log
     grep "* large_locked_theirs.dat - Git LFS Tests" push.log
