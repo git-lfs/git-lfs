@@ -828,3 +828,43 @@ UploadTransfers=basic,supertransfer,tus
 
 )
 end_test
+
+begin_test "env in symlink"
+(
+  set -e
+  mkdir -p projects/foo
+  cd projects/foo
+  git init
+  cd ../..
+
+  target="$TRASHDIR/projects"
+  link="symlink-projects"
+  ln -s "$target" "$link"
+
+  cd symlink-projects/foo
+  git lfs env
+)
+end_test
+
+begin_test "env in windows junction"
+(
+  set -e
+
+  if [[ ! -n "$WINDIR" ]]; then
+    echo "skip: not windows"
+    exit 0
+  fi
+
+  mkdir -p windows-projects/foo
+  cd windows-projects/foo
+  git init
+  cd ../..
+
+  target="$TRASHDIR/windows-projects"
+  link="windows-symlink-projects"
+  cmd <<< "mklink /D \"${link%/}\" \"${target%/}\"" > /dev/null
+
+  cd windows-symlink-projects/foo
+  git lfs env
+)
+end_test
