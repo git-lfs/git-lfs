@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-if uname -s | grep -q "_NT-"; then
-  # Tell Cygwin / MSYS to really create symbolic links.
-  export CYGWIN="$CYGWIN winsymlinks:nativestrict"
-  export MSYS="$MSYS winsymlinks:nativestrict"
+UNAME=$(uname -s)
+
+if echo $UNAME | grep -q "_NT-"; then
+  WINDOWS=1
+  # Now that we know to be on Windows, tell Cygwin / MSYS to
+  # really create symbolic links
+  if echo $UNAME | grep -q "CYGWIN"; then
+    echo "Enabling symbolic links for Cygwin..."
+    export CYGWIN="$CYGWIN winsymlinks:nativestrict"
+  else
+    echo "Enabling symbolic links for MSYS..."
+    export MSYS="$MSYS winsymlinks:nativestrict"
+  fi
 fi
 
 if [ -z "$GOPATH" ]; then
@@ -14,7 +23,7 @@ if [ -z "$GOPATH" ]; then
     ln -s "$GOPATH" src/github.com/git-lfs/git-lfs
 fi
 
-if uname -s | grep -q "_NT-"; then
+if [ -n "$WINDOWS" ]; then
   echo "Installing goversioninfo to embed resources into Windows executables..."
   go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
   export PATH=$PATH:$GOPATH/bin/windows_386
