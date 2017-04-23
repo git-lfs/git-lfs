@@ -274,8 +274,3 @@ Custom transfer agents do not handle the verification process, only the
 upload and download of content. The verify link is typically used to notify
 a system *other* than the actual content store after an upload was completed,
 therefore it makes more sense for that to be handled via the normal API process.
-
-
-
-
-
