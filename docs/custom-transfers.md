@@ -209,8 +209,8 @@ then a final completion message as follows:
 * `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
 * `path`: the path to a file containing the downloaded data, which the transfer
-  process reliquishes control of to git-lfs. git-lfs will move the file into LFS
-  storage.
+  process relinquishes control of to git-lfs. git-lfs will move the file into
+  LFS storage.
 
 Or, if there was a failure transferring this item:
 
