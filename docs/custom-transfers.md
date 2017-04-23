@@ -18,7 +18,7 @@ they will work with that transfer type.
 Some people might want to be able to transfer content in other ways, however.
 To enable this, git-lfs has an option to configure Custom Transfers, which are
 simply processes which must adhere to the protocol defined later in this
-document. git-lfs will invoke the process at the start of all transfers, 
+document. git-lfs will invoke the process at the start of all transfers,
 and will communicate with the process via stdin/stdout for each transfer.
 
 ## Configuration
@@ -33,7 +33,7 @@ A custom transfer process is defined under a settings group called
   the start of all transfers (possibly many times, see the 'concurrent' option
   below) and the protocol over stdin/stdout is defined below in the
   [Protocol](#protocol) section.
-  
+
 * `lfs.customtransfer.<name>.args`
 
   If the custom transfer process requires any arguments, these can be provided
@@ -47,12 +47,12 @@ A custom transfer process is defined under a settings group called
   the transfer workload between the processes.
 
   If you would prefer that only one instance of the transfer process is invoked,
-  maybe because you want to do your own parallelism internally (e.g. slicing 
+  maybe because you want to do your own parallelism internally (e.g. slicing
   files into parts), set this to false.
 
 * `lfs.customtransfer.<name>.direction`
 
-  Specifies which direction the custom transfer process supports, either 
+  Specifies which direction the custom transfer process supports, either
   "download", "upload", or "both". The default if unspecified is "both".
 
 ## Naming
@@ -78,7 +78,7 @@ and stdout streams. No file content is communicated on these streams, only
 request / response metadata. The metadata exchanged is always in JSON format.
 External files will be referenced when actual content is exchanged.
 
-### Line Delimited JSON 
+### Line Delimited JSON
 Because multiple JSON messages will be exchanged on the same stream it's useful
 to delimit them explicitly rather than have the parser find the closing `}` in
 an arbitrary stream, therefore each JSON structure will be sent and received on
@@ -154,7 +154,7 @@ like this:
   "href" will give the primary connection details, with "header" containing any
   miscellaneous information needed.
 
-The transfer process should post one or more [progress messages](#progress) and 
+The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
@@ -193,11 +193,11 @@ like this:
   "href" will give the primary connection details, with "header" containing any
   miscellaneous information needed.
 
-Note there is no file path included in the download request; the transfer 
+Note there is no file path included in the download request; the transfer
 process should create a file itself and return the path in the final response
 after completion (see below).
 
-The transfer process should post one or more [progress messages](#progress) and 
+The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
@@ -229,7 +229,7 @@ the LFS store.
 
 ##### Progress
 
-In order to support progress reporting while data is uploading / downloading, 
+In order to support progress reporting while data is uploading / downloading,
 the transfer process should post messages to stdout as follows before sending
 the final completion message:
 
@@ -240,7 +240,7 @@ the final completion message:
 * `event`: Always "progress" to identify this message
 * `oid`: the identifier of the LFS object
 * `bytesSoFar`: the total number of bytes transferred so far
-* `bytesSinceLast`: the number of bytes transferred since the last progress 
+* `bytesSinceLast`: the number of bytes transferred since the last progress
   message
 
 The transfer process should post these messages such that the last one sent
@@ -261,16 +261,16 @@ No response is expected.
 ## Error handling
 
 Any unexpected fatal errors in the transfer process (not errors specific to a
-transfer request) should set the exit code to non-zero and print information to 
+transfer request) should set the exit code to non-zero and print information to
 stderr. Otherwise the exit code should be 0 even if some transfers failed.
 
 ## A Note On Verify Actions
 
 You may have noticed that that only the "upload" and "download" actions are
-passed to the custom transfer agent for processing, what about the "verify" 
+passed to the custom transfer agent for processing, what about the "verify"
 action, if the API returns one?
 
-Custom transfer agents do not handle the verification process, only the 
+Custom transfer agents do not handle the verification process, only the
 upload and download of content. The verify link is typically used to notify
 a system *other* than the actual content store after an upload was completed,
 therefore it makes more sense for that to be handled via the normal API process.
