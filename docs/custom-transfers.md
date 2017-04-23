@@ -104,7 +104,7 @@ the configuration.
 The message will look like this:
 
 ```json
-{ "event":"init", "operation":"download", "concurrent": true, "concurrenttransfers": 3 }
+{ "event": "init", "operation": "download", "concurrent": true, "concurrenttransfers": 3 }
 ```
 
 * `event`: Always `init` to identify this message
@@ -142,7 +142,7 @@ For uploads the request sent from git-lfs to the transfer process will look
 like this:
 
 ```json
-{ "event":"upload", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
+{ "event": "upload", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
 * `event`: Always `upload` to identify this message
@@ -160,7 +160,7 @@ The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
-{ "event":"complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a"}
+{ "event": "complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a" }
 ```
 
 * `event`: Always `complete` to identify this message
@@ -169,7 +169,7 @@ then a final completion message as follows:
 Or if there was an error in the transfer:
 
 ```json
-{ "event":"complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
+{ "event": "complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" } }
 ```
 
 * `event`: Always `complete` to identify this message
@@ -182,7 +182,7 @@ For downloads the request sent from git-lfs to the transfer process will look
 like this:
 
 ```json
-{ "event":"download", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
+{ "event": "download", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
 * `event`: Always `download` to identify this message
@@ -203,7 +203,7 @@ The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
 
 ```json
-{ "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png"}
+{ "event": "complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png" }
 ```
 
 * `event`: Always `complete` to identify this message
@@ -215,7 +215,7 @@ then a final completion message as follows:
 Or, if there was a failure transferring this item:
 
 ```json
-{ "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
+{ "event": "complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" } }
 ```
 
 * `event`: Always `complete` to identify this message
@@ -236,7 +236,7 @@ the transfer process should post messages to stdout as follows before sending
 the final completion message:
 
 ```json
-{ "event":"progress", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "bytesSoFar": 1234, "bytesSinceLast": 64 }
+{ "event": "progress", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "bytesSoFar": 1234, "bytesSinceLast": 64 }
 ```
 
 * `event`: Always `progress` to identify this message
@@ -254,7 +254,7 @@ When all transfers have been processed, git-lfs will send the following message
 to the stdin of the transfer process:
 
 ```json
-{ "event":"terminate" }
+{ "event": "terminate" }
 ```
 
 On receiving this message the transfer process should clean up and terminate.
