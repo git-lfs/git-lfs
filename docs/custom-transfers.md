@@ -24,7 +24,7 @@ and will communicate with the process via stdin/stdout for each transfer.
 ## Configuration
 
 A custom transfer process is defined under a settings group called
-`lfs.customtransfer.<name>`, where <name> is an identifier (see
+`lfs.customtransfer.<name>`, where `<name>` is an identifier (see
 [Naming](#naming) below).
 
 * `lfs.customtransfer.<name>.path`
