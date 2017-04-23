@@ -30,7 +30,7 @@ A custom transfer process is defined under a settings group called
 * `lfs.customtransfer.<name>.path`
 
   `path` should point to the process you wish to invoke. This will be invoked at
-  the start of all transfers (possibly many times, see the 'concurrent' option
+  the start of all transfers (possibly many times, see the `concurrent` option
   below) and the protocol over stdin/stdout is defined below in the
   [Protocol](#protocol) section.
 
@@ -53,7 +53,7 @@ A custom transfer process is defined under a settings group called
 * `lfs.customtransfer.<name>.direction`
 
   Specifies which direction the custom transfer process supports, either
-  "download", "upload", or "both". The default if unspecified is "both".
+  `download`, `upload`, or `both`. The default if unspecified is `both`.
 
 ## Naming
 
@@ -65,7 +65,7 @@ these may be very different from standard HTTP URLs it's important that the
 client and server agree on the name.
 
 For example, let's say I've implemented a custom transfer process which uses
-NFS. I could call this transfer type 'nfs' - although it's not specific to my
+NFS. I could call this transfer type `nfs` - although it's not specific to my
 configuration exactly, it is specific to the way NFS works, and the server will
 need to give me different URLs. Assuming I define my transfer like this, and the
 server supports it, I might start getting object action links back like
@@ -105,8 +105,8 @@ The message will look like this:
 { "event":"init", "operation":"download", "concurrent": true, "concurrenttransfers": 3 }
 ```
 
-* `event`: Always "init" to identify this message
-* `operation`: will be "upload" or "download" depending on transfer direction
+* `event`: Always `init` to identify this message
+* `operation`: will be `upload` or `download` depending on transfer direction
 * `concurrent`: reflects the value of `lfs.customtransfer.<name>.concurrent`, in
   case the process needs to know
 * `concurrenttransfers`: reflects the value of `lfs.concurrenttransfers`, for if
@@ -143,15 +143,15 @@ like this:
 { "event":"upload", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
-* `event`: Always "upload" to identify this message
+* `event`: Always `upload` to identify this message
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
 * `path`: the file which the transfer process should read the upload data from
-* `action`: the "upload" action copied from the response from the batch API.
-  This contains "href" and "header" contents, which are named per HTTP
+* `action`: the `upload` action copied from the response from the batch API.
+  This contains `href` and `header` contents, which are named per HTTP
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
-  "href" will give the primary connection details, with "header" containing any
+  `href` will give the primary connection details, with `header` containing any
   miscellaneous information needed.
 
 The transfer process should post one or more [progress messages](#progress) and
@@ -161,7 +161,7 @@ then a final completion message as follows:
 { "event":"complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a"}
 ```
 
-* `event`: Always "complete" to identify this message
+* `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
 
 Or if there was an error in the transfer:
@@ -170,7 +170,7 @@ Or if there was an error in the transfer:
 { "event":"complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
 ```
 
-* `event`: Always "complete" to identify this message
+* `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
 * `error`: Should contain a `code` and `message` explaining the error
 
@@ -183,14 +183,14 @@ like this:
 { "event":"download", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
 ```
 
-* `event`: Always "download" to identify this message
+* `event`: Always `download` to identify this message
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
-* `action`: the "download" action copied from the response from the batch API.
-  This contains "href" and "header" contents, which are named per HTTP
+* `action`: the `download` action copied from the response from the batch API.
+  This contains `href` and `header` contents, which are named per HTTP
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
-  "href" will give the primary connection details, with "header" containing any
+  `href` will give the primary connection details, with `header` containing any
   miscellaneous information needed.
 
 Note there is no file path included in the download request; the transfer
@@ -204,7 +204,7 @@ then a final completion message as follows:
 { "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/path/to/file.png"}
 ```
 
-* `event`: Always "complete" to identify this message
+* `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
 * `path`: the path to a file containing the downloaded data, which the transfer
   process reliquishes control of to git-lfs. git-lfs will move the file into LFS
@@ -216,7 +216,7 @@ Or, if there was a failure transferring this item:
 { "event":"complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" }}
 ```
 
-* `event`: Always "complete" to identify this message
+* `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
 * `error`: Should contain a `code` and `message` explaining the error
 
@@ -237,7 +237,7 @@ the final completion message:
 { "event":"progress", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "bytesSoFar": 1234, "bytesSinceLast": 64 }
 ```
 
-* `event`: Always "progress" to identify this message
+* `event`: Always `progress` to identify this message
 * `oid`: the identifier of the LFS object
 * `bytesSoFar`: the total number of bytes transferred so far
 * `bytesSinceLast`: the number of bytes transferred since the last progress
@@ -266,8 +266,8 @@ stderr. Otherwise the exit code should be 0 even if some transfers failed.
 
 ## A Note On Verify Actions
 
-You may have noticed that that only the "upload" and "download" actions are
-passed to the custom transfer agent for processing, what about the "verify"
+You may have noticed that that only the `upload` and `download` actions are
+passed to the custom transfer agent for processing, what about the `verify`
 action, if the API returns one?
 
 Custom transfer agents do not handle the verification process, only the
