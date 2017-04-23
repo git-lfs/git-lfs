@@ -79,6 +79,7 @@ request / response metadata. The metadata exchanged is always in JSON format.
 External files will be referenced when actual content is exchanged.
 
 ### Line Delimited JSON
+
 Because multiple JSON messages will be exchanged on the same stream it's useful
 to delimit them explicitly rather than have the parser find the closing `}` in
 an arbitrary stream, therefore each JSON structure will be sent and received on
@@ -101,6 +102,7 @@ data to the process over stdin. This tells the process useful information about
 the configuration.
 
 The message will look like this:
+
 ```json
 { "event":"init", "operation":"download", "concurrent": true, "concurrenttransfers": 3 }
 ```
