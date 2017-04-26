@@ -75,7 +75,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 				oid = oid[:7]
 			}
 
-			LoggedError(err, "Error downloading object: %s (%s): %s", filename, oid)
+			LoggedError(err, "Error downloading object: %s (%s): %s", filename, oid, err)
 			if !cfg.SkipDownloadErrors() {
 				os.Exit(2)
 			}
