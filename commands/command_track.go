@@ -196,7 +196,7 @@ ArgsLoop:
 				now := time.Now()
 				err := os.Chtimes(f, now, now)
 				if err != nil {
-					LoggedError(err, "Error marking %q modified", f)
+					LoggedError(err, "Error marking %q modified: %s", f, err)
 					continue
 				}
 			}
