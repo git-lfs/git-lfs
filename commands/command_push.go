@@ -102,7 +102,7 @@ func refsByNames(refnames []string) ([]*git.Ref, error) {
 //
 // Remote must be a remote name, not a URL
 //
-// pushCommand calculates the git objects to send by looking comparing the range
+// pushCommand calculates the git objects to send by comparing the range
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {

@@ -26,6 +26,7 @@ var (
 	trackNotLockableFlag    bool
 	trackVerboseLoggingFlag bool
 	trackDryRunFlag         bool
+	trackNoModifyAttrsFlag  bool
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -66,13 +67,15 @@ func trackCommand(cmd *cobra.Command, args []string) {
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
 		pattern := cleanRootPath(unsanitizedPattern)
-		for _, known := range knownPatterns {
-			if known.Path == filepath.Join(relpath, pattern) &&
-				((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
-					(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
-					(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
-				Print("%q already supported", pattern)
-				continue ArgsLoop
+		if !trackNoModifyAttrsFlag {
+			for _, known := range knownPatterns {
+				if known.Path == filepath.Join(relpath, pattern) &&
+					((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
+						(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
+						(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
+					Print("%q already supported", pattern)
+					continue ArgsLoop
+				}
 			}
 		}
 
@@ -98,49 +101,57 @@ ArgsLoop:
 	// replacing any lines where the values have changed, and appending new lines
 	// change this:
 
-	attribContents, err := ioutil.ReadFile(".gitattributes")
-	// it's fine for file to not exist
-	if err != nil && !os.IsNotExist(err) {
-		Print("Error reading .gitattributes file")
-		return
-	}
-	// Re-generate the file with merge of old contents and new (to deal with changes)
-	attributesFile, err := os.OpenFile(".gitattributes", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0660)
-	if err != nil {
-		Print("Error opening .gitattributes file")
-		return
-	}
-	defer attributesFile.Close()
-
-	if len(attribContents) > 0 {
-		scanner := bufio.NewScanner(bytes.NewReader(attribContents))
-		for scanner.Scan() {
-			line := scanner.Text()
-			fields := strings.Fields(line)
-			if len(fields) < 1 {
-				continue
-			}
-
-			pattern := fields[0]
-			if newline, ok := changedAttribLines[pattern]; ok {
-				// Replace this line (newline already embedded)
-				attributesFile.WriteString(newline)
-				// Remove from map so we know we don't have to add it to the end
-				delete(changedAttribLines, pattern)
-			} else {
-				// Write line unchanged (replace newline)
-				attributesFile.WriteString(line + lineEnd)
-			}
+	var (
+		attribContents []byte
+		attributesFile *os.File
+	)
+	if !trackNoModifyAttrsFlag {
+		attribContents, err = ioutil.ReadFile(".gitattributes")
+		// it's fine for file to not exist
+		if err != nil && !os.IsNotExist(err) {
+			Print("Error reading .gitattributes file")
+			return
 		}
+		// Re-generate the file with merge of old contents and new (to deal with changes)
+		attributesFile, err = os.OpenFile(".gitattributes", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0660)
+		if err != nil {
+			Print("Error opening .gitattributes file")
+			return
+		}
+		defer attributesFile.Close()
 
-		// Our method of writing also made sure there's always a newline at end
+		if len(attribContents) > 0 {
+			scanner := bufio.NewScanner(bytes.NewReader(attribContents))
+			for scanner.Scan() {
+				line := scanner.Text()
+				fields := strings.Fields(line)
+				if len(fields) < 1 {
+					continue
+				}
+
+				pattern := fields[0]
+				if newline, ok := changedAttribLines[pattern]; ok {
+					// Replace this line (newline already embedded)
+					attributesFile.WriteString(newline)
+					// Remove from map so we know we don't have to add it to the end
+					delete(changedAttribLines, pattern)
+				} else {
+					// Write line unchanged (replace newline)
+					attributesFile.WriteString(line + lineEnd)
+				}
+			}
+
+			// Our method of writing also made sure there's always a newline at end
+		}
 	}
 
 	// Any items left in the map, write new lines at the end of the file
 	// Note this is only new patterns, not ones which changed locking flags
 	for pattern, newline := range changedAttribLines {
-		// Newline already embedded
-		attributesFile.WriteString(newline)
+		if !trackNoModifyAttrsFlag {
+			// Newline already embedded
+			attributesFile.WriteString(newline)
+		}
 
 		// Also, for any new patterns we've added, make sure any existing git
 		// tracked files have their timestamp updated so they will now show as
@@ -185,7 +196,7 @@ ArgsLoop:
 				now := time.Now()
 				err := os.Chtimes(f, now, now)
 				if err != nil {
-					LoggedError(err, "Error marking %q modified", f)
+					LoggedError(err, "Error marking %q modified: %s", f, err)
 					continue
 				}
 			}
@@ -196,7 +207,7 @@ ArgsLoop:
 	lockClient := newLockClient(cfg.CurrentRemote)
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
-		LoggedError(err, "Error changing lockable file permissions")
+		LoggedError(err, "Error changing lockable file permissions: %s", err)
 	}
 }
 
@@ -272,5 +283,6 @@ func init() {
 		cmd.Flags().BoolVarP(&trackNotLockableFlag, "not-lockable", "", false, "remove lockable attribute from pattern")
 		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
 		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
+		cmd.Flags().BoolVarP(&trackNoModifyAttrsFlag, "no-modify-attrs", "", false, "skip modifying .gitattributes file")
 	})
 }
