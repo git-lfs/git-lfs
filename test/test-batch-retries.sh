@@ -19,7 +19,15 @@ begin_test "batch storage upload causes retries"
   git commit -m "initial commit"
 
   git config --local lfs.transfer.maxretries 3
-  git push origin master
+
+  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \`git push origin master\` to succeed ..."
+    exit 1
+  fi
+
+  actual_count="$(grep -c "tq: retrying object $oid: Fatal error: Server error" push.log)"
+  [ "2" = "$actual_count" ]
 
   assert_server_object "$reponame" "$oid"
 )
@@ -56,7 +64,14 @@ begin_test "batch storage download causes retries"
     git config credential.helper lfstest
     git config --local lfs.transfer.maxretries 3
 
-    git lfs pull origin
+    GIT_TRACE=1 git lfs pull origin master 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected \`git lfs pull origin master\` to succeed ..."
+      exit 1
+    fi
+
+    actual_count="$(grep -c "tq: retrying object $oid: Fatal error: Server error" pull.log)"
+    [ "2" = "$actual_count" ]
 
     assert_local_object "$oid" "${#contents}"
   popd

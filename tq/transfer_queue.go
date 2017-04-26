@@ -487,7 +487,7 @@ func (q *TransferQueue) handleTransferResult(
 			// If the object can be retried, send it on the retries
 			// channel, where it will be read at the call-site and
 			// its retry count will be incremented.
-			tracerx.Printf("tq: retrying object %s", oid)
+			tracerx.Printf("tq: retrying object %s: %s", oid, res.Error)
 
 			q.trMutex.Lock()
 			t, ok := q.transfers[oid]
