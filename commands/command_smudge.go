@@ -70,7 +70,12 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 		ptr.Encode(to)
 		// Download declined error is ok to skip if we weren't requesting download
 		if !(errors.IsDownloadDeclinedError(err) && !download) {
-			LoggedError(err, "Error downloading object: %s (%s)", filename, ptr.Oid)
+			var oid string = ptr.Oid
+			if len(oid) >= 7 {
+				oid = oid[:7]
+			}
+
+			LoggedError(err, "Error downloading object: %s (%s): %s", filename, oid)
 			if !cfg.SkipDownloadErrors() {
 				os.Exit(2)
 			}
