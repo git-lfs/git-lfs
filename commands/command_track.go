@@ -207,7 +207,7 @@ ArgsLoop:
 	lockClient := newLockClient(cfg.CurrentRemote)
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
-		LoggedError(err, "Error changing lockable file permissions")
+		LoggedError(err, "Error changing lockable file permissions: %s", err)
 	}
 }
 
