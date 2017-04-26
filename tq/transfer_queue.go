@@ -341,7 +341,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 					q.rc.Increment(tr.Oid)
 					count := q.rc.CountFor(tr.Oid)
 
-					tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, tr.Oid, tr.Size)
+					tracerx.Printf("tq: enqueue retry #%d for %q (size: %d): %s", count, tr.Oid, tr.Size, err)
 					next = append(next, t)
 				} else {
 					q.errorc <- errors.Errorf("[%v] %v", tr.Name, err)
@@ -487,7 +487,7 @@ func (q *TransferQueue) handleTransferResult(
 			// If the object can be retried, send it on the retries
 			// channel, where it will be read at the call-site and
 			// its retry count will be incremented.
-			tracerx.Printf("tq: retrying object %s", oid)
+			tracerx.Printf("tq: retrying object %s: %s", oid, res.Error)
 
 			q.trMutex.Lock()
 			t, ok := q.transfers[oid]
