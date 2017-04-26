@@ -20,7 +20,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	singleCheckout := newSingleCheckout()
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			LoggedError(err, "Scanner error")
+			LoggedError(err, "Scanner error: %s", err)
 			return
 		}
 

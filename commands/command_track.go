@@ -196,7 +196,7 @@ ArgsLoop:
 				now := time.Now()
 				err := os.Chtimes(f, now, now)
 				if err != nil {
-					LoggedError(err, "Error marking %q modified", f)
+					LoggedError(err, "Error marking %q modified: %s", f, err)
 					continue
 				}
 			}
@@ -207,7 +207,7 @@ ArgsLoop:
 	lockClient := newLockClient(cfg.CurrentRemote)
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
-		LoggedError(err, "Error changing lockable file permissions")
+		LoggedError(err, "Error changing lockable file permissions: %s", err)
 	}
 }
 
