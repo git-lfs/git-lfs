@@ -116,11 +116,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 
 func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
 	endpoint := getAPIClient().Endpoints.Endpoint("upload", remote)
-
 	state := getVerifyStateFor(endpoint)
-	if state == verifyStateDisabled {
-		return
-	}
 
 	lockClient := newLockClient(remote)
 
@@ -128,15 +124,17 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
 	if err != nil {
 		if errors.IsNotImplementedError(err) {
 			disableFor(endpoint)
-		} else if !errors.IsAuthError(err) {
-			Print("Remote %q does not support the LFS locking API. Consider disabling it with:", remote)
-			Print("  $ git config 'lfs.%s.locksverify' false", endpoint.Url)
+		} else if state == verifyStateUnknown || state == verifyStateEnabled {
+			if !errors.IsAuthError(err) {
+				Print("Remote %q does not support the LFS locking API. Consider disabling it with:", remote)
+				Print("  $ git config 'lfs.%s.locksverify' false", endpoint.Url)
 
-			if state == verifyStateEnabled {
+				if state == verifyStateEnabled {
+					ExitWithError(err)
+				}
+			} else {
 				ExitWithError(err)
 			}
-		} else {
-			ExitWithError(err)
 		}
 	} else if state == verifyStateUnknown {
 		Print("Locking support detected on remote %q. Consider enabling it with:", remote)
@@ -225,7 +223,14 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 			c.trackedLocksMu.Lock()
 			c.unownedLocks = append(c.unownedLocks, lock)
 			c.trackedLocksMu.Unlock()
-			canUpload = false
+
+			// If the verification state is enabled or undefined,
+			// this failed locks verification means that the push
+			// should fail.
+			//
+			// If the state is disabled, the verification error is
+			// silent and the user can upload.
+			canUpload = c.lockVerifyState == verifyStateDisabled
 		}
 
 		if lock, ok := c.ourLocks[p.Name]; ok {
@@ -310,15 +315,17 @@ func (c *uploadContext) Await() {
 		os.Exit(2)
 	}
 
-	var avoidPush bool
-
 	c.trackedLocksMu.Lock()
 	if ul := len(c.unownedLocks); ul > 0 {
-		avoidPush = true
-
 		Print("Unable to push %d locked file(s):", ul)
 		for _, unowned := range c.unownedLocks {
 			Print("* %s - %s", unowned.Path, unowned.Owner)
+		}
+
+		if c.lockVerifyState == verifyStateEnabled {
+			Exit("ERROR: Cannot update locked files.")
+		} else {
+			Error("WARNING: The above files would have halted this push.")
 		}
 	} else if len(c.ownedLocks) > 0 {
 		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")
@@ -327,14 +334,6 @@ func (c *uploadContext) Await() {
 		}
 	}
 	c.trackedLocksMu.Unlock()
-
-	if avoidPush {
-		if c.lockVerifyState == verifyStateEnabled {
-			Exit("ERROR: Cannot update locked files.")
-		} else {
-			Error("WARNING: The above files would have halted this push.")
-		}
-	}
 }
 
 var (
