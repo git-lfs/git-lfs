@@ -506,7 +506,10 @@ begin_test "push (retry with expired actions)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat"
-  printf "return-expired-action" > a.dat
+  contents="return-expired-action"
+  contents_oid="$(calc_oid "$contents")"
+  contents_size="$(printf "$contents" | wc -c | awk '{ print $1 }')"
+  printf "$contents" > a.dat
   git add .gitattributes a.dat
 
   git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
@@ -517,7 +520,9 @@ begin_test "push (retry with expired actions)"
 
   GIT_TRACE=1 git push origin master 2>&1 | tee push.log
 
-  [ "1" -eq "$(grep -c "enqueue retry" push.log)" ]
+  expected="enqueue retry #1 for \"$contents_oid\" (size: $contents_size): LFS: tq: action \"upload\" expires at"
+
+  grep "$expected" push.log
   grep "(1 of 1 files)" push.log
 )
 end_test
