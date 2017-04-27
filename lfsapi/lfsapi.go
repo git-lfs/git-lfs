@@ -37,7 +37,6 @@ type Client struct {
 
 	Verbose          bool
 	DebuggingVerbose bool
-	LoggingStats     bool
 	VerboseOut       io.Writer
 
 	hostClients map[string]*http.Client
@@ -47,10 +46,10 @@ type Client struct {
 	ntlmMu       sync.Mutex
 
 	httpLogger io.WriteCloser
-	responses  []*http.Response
-	responseMu sync.Mutex
 	transfers  map[*http.Response]*httpTransfer
 	transferMu sync.Mutex
+
+	LoggingStats bool // DEPRECATED
 
 	// only used for per-host ssl certs
 	gitEnv Env
@@ -96,7 +95,6 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
-		LoggingStats:        osEnv.Bool("GIT_LOG_STATS", false),
 		HTTPSProxy:          httpsProxy,
 		HTTPProxy:           httpProxy,
 		NoProxy:             noProxy,

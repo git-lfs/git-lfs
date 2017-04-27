@@ -32,10 +32,9 @@ func TestStatsWithKey(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{
-		ConcurrentTransfers: 5,
-		LoggingStats:        true,
-	}
+	out := &bytes.Buffer{}
+	c := &Client{ConcurrentTransfers: 5}
+	c.LogHTTPStats(nopCloser(out))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req = c.LogRequest(req, "stats-test")
@@ -52,9 +51,6 @@ func TestStatsWithKey(t *testing.T) {
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
-
-	out := &bytes.Buffer{}
-	c.LogStats(out)
 
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
@@ -94,10 +90,9 @@ func TestStatsWithoutKey(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{
-		ConcurrentTransfers: 5,
-		LoggingStats:        true,
-	}
+	out := &bytes.Buffer{}
+	c := &Client{ConcurrentTransfers: 5}
+	c.LogHTTPStats(nopCloser(out))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req.Header.Set("Authorization", "Basic ABC")
@@ -112,9 +107,6 @@ func TestStatsWithoutKey(t *testing.T) {
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
-
-	out := &bytes.Buffer{}
-	c.LogStats(out)
 
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
@@ -140,10 +132,7 @@ func TestStatsDisabled(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{
-		ConcurrentTransfers: 5,
-		LoggingStats:        false,
-	}
+	c := &Client{ConcurrentTransfers: 5}
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req = c.LogRequest(req, "stats-test")
@@ -165,4 +154,16 @@ func TestStatsDisabled(t *testing.T) {
 	out := &bytes.Buffer{}
 	c.LogStats(out)
 	assert.Equal(t, 0, out.Len())
+}
+
+func nopCloser(w io.Writer) io.WriteCloser {
+	return nopWCloser{w}
+}
+
+type nopWCloser struct {
+	io.Writer
+}
+
+func (w nopWCloser) Close() error {
+	return nil
 }

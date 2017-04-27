@@ -109,7 +109,7 @@ func printHelp(commandName string) {
 }
 
 func setupHTTPLogger(c *lfsapi.Client) {
-	if c == nil || !c.LoggingStats {
+	if c == nil || len(os.Getenv("GIT_LOG_STATS")) < 1 {
 		return
 	}
 

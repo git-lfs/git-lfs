@@ -51,7 +51,7 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 func (c *Client) LogResponse(key string, res *http.Response) {}
 
 func (c *Client) startResponseStats(res *http.Response, start time.Time) {
-	if !c.LoggingStats {
+	if c.httpLogger == nil {
 		return
 	}
 
@@ -87,7 +87,7 @@ func (c *Client) startResponseStats(res *http.Response, start time.Time) {
 }
 
 func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
-	if !c.LoggingStats || res == nil {
+	if res == nil || c.httpLogger == nil {
 		return
 	}
 
