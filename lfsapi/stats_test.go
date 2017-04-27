@@ -59,12 +59,8 @@ func TestStatsWithKey(t *testing.T) {
 	assert.True(t, strings.Contains(lines[0], "concurrent=5"))
 	expected := []string{
 		"key=stats-test",
-		"reqheader=",
-		"reqbody=18",
-		"resheader=",
-		"resbody=15",
-		"restime=",
-		"status=200",
+		"event=request",
+		"body=18",
 		"url=" + srv.URL,
 	}
 
@@ -111,8 +107,7 @@ func TestStatsWithoutKey(t *testing.T) {
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
 	assert.True(t, strings.Contains(stats, "concurrent=5"))
-	assert.True(t, strings.Contains(stats, "key=none"))
-	assert.Equal(t, 2, len(strings.Split(stats, "\n")))
+	assert.Equal(t, 1, len(strings.Split(stats, "\n")))
 }
 
 func TestStatsDisabled(t *testing.T) {
