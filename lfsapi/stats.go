@@ -5,26 +5,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
+	"strings"
 	"time"
 )
 
-type httpTransferStats struct {
-	HeaderSize int
-	BodySize   int64
-	Start      time.Time
-	Stop       time.Time
-}
-
 type httpTransfer struct {
-	Key           string
-	RequestStats  httpTransferStats
-	ResponseStats httpTransferStats
+	Key             string
+	RequestBodySize int64
+	Start           time.Time
 }
 
 type statsContextKey string
 
-const statsKeytransferKey = statsContextKey("transfer")
+const transferKey = statsContextKey("transfer")
 
 func (c *Client) LogHTTPStats(w io.WriteCloser) {
 	fmt.Fprintf(w, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
@@ -41,11 +34,7 @@ func (c *Client) LogStats(out io.Writer) {}
 // LogRequest tells the client to log the request's stats to the http log
 // after the response body has been read.
 func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
-	ctx := context.WithValue(r.Context(), transferKey, httpTransfer{
-		Key:           reqKey,
-		RequestStats:  httpTransferStats{},
-		ResponseStats: httpTransferStats{},
-	})
+	ctx := context.WithValue(r.Context(), transferKey, httpTransfer{Key: reqKey})
 	return r.WithContext(ctx)
 }
 
@@ -55,49 +44,30 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 func (c *Client) LogResponse(key string, res *http.Response) {}
 
 func (c *Client) startResponseStats(res *http.Response, start time.Time) {
-	v := res.Request.Context().Value(transferKey)
-	if v == nil {
-		return
-	}
-
-	t := v.(httpTransfer)
-
-	t.RequestStats.BodySize = res.Request.ContentLength
-	if dump, err := httputil.DumpRequest(res.Request, false); err == nil {
-		t.RequestStats.HeaderSize = len(dump)
-	}
-
-	// Response body size cannot be figured until it is read. Do not rely on a Content-Length
-	// header because it may not exist or be -1 in the case of chunked responses.
-	t.ResponseStats.Start = start
-	if dump, err := httputil.DumpResponse(res, false); err == nil {
-		t.ResponseStats.HeaderSize = len(dump)
+	if v := res.Request.Context().Value(transferKey); v != nil {
+		t := v.(httpTransfer)
+		t.Start = start
+		t.RequestBodySize = res.Request.ContentLength
 	}
 }
 
 func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
-	v := res.Request.Context().Value(transferKey)
-	if v == nil {
+	if c.httpLogger == nil {
 		return
 	}
 
-	t := v.(httpTransfer)
-	t.ResponseStats.BodySize = bodySize
-	t.ResponseStats.Stop = time.Now()
-	if c.httpLogger != nil {
-		writeHTTPStats(c.httpLogger, res, t)
+	if v := res.Request.Context().Value(transferKey); v != nil {
+		writeHTTPStats(c.httpLogger, res, v.(httpTransfer), bodySize, time.Now())
 	}
 }
 
-func writeHTTPStats(w io.Writer, res *http.Response, t httpTransfer) {
-	fmt.Fprintf(w, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
-		t.Key,
-		t.RequestStats.HeaderSize,
-		t.RequestStats.BodySize,
-		t.ResponseStats.HeaderSize,
-		t.ResponseStats.BodySize,
-		t.ResponseStats.Stop.Sub(t.ResponseStats.Start).Nanoseconds(),
+func writeHTTPStats(w io.Writer, res *http.Response, tr httpTransfer, bodySize int64, t time.Time) {
+	fmt.Fprintf(w, "key=%s url=%s status=%d reqbody=%d resbody=%d restime=%d\n",
+		tr.Key,
+		strings.SplitN(res.Request.URL.String(), "?", 2)[0],
 		res.StatusCode,
-		res.Request.URL,
+		tr.RequestBodySize,
+		bodySize,
+		t.Sub(tr.Start).Nanoseconds(),
 	)
 }

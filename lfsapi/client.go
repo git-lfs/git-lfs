@@ -77,6 +77,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return res, c.handleResponse(res)
 }
 
+// Close closes any resources that this client opened.
 func (c *Client) Close() error {
 	if c.httpLogger != nil {
 		return c.httpLogger.Close()
