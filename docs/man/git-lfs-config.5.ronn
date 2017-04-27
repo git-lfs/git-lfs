@@ -31,14 +31,20 @@ be scoped inside the configuration for a remote.
 
 * `lfs.dialtimeout`
 
-  Sets the maximum time, in seconds, that the HTTP client will wait initiate a
-  connection. This does not include the time to send a request and wait for a
+  Sets the maximum time, in seconds, that the HTTP client will wait to initiate
+  a connection. This does not include the time to send a request and wait for a
   response. Default: 30 seconds
 
 * `lfs.tlstimeout`
 
   Sets the maximum time, in seconds, that the HTTP client will wait for a TLS
   handshake. Default: 30 seconds.
+
+* `lfs.activitytimeout` / `lfs.https://<host>.activitytimeout`
+
+  Sets the maximum time, in seconds, that the HTTP client will wait for the
+  next tcp read or write. Default: 10 seconds
+  response. Default: 30 seconds
 
 * `lfs.keepalive`
 

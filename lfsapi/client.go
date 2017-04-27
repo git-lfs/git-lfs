@@ -1,16 +1,20 @@
 package lfsapi
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -191,13 +195,33 @@ func (c *Client) httpClient(host string) *http.Client {
 		tlstime = 30
 	}
 
+	activityTimeout := 10
+	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
+		if i, err := strconv.Atoi(v); err == nil {
+			activityTimeout = tools.MaxInt(i, 1)
+		}
+	}
+	activityDuration := time.Duration(activityTimeout) * time.Second
+
+	dialer := &net.Dialer{
+		Timeout:   time.Duration(dialtime) * time.Second,
+		KeepAlive: time.Duration(keepalivetime) * time.Second,
+		DualStack: true,
+	}
+
 	tr := &http.Transport{
 		Proxy: proxyFromClient(c),
-		DialContext: (&net.Dialer{
-			Timeout:   time.Duration(dialtime) * time.Second,
-			KeepAlive: time.Duration(keepalivetime) * time.Second,
-			DualStack: true,
-		}).DialContext,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			c, err := dialer.DialContext(ctx, network, addr)
+			if c == nil {
+				return c, err
+			}
+			if tc, ok := c.(*net.TCPConn); ok {
+				tc.SetKeepAlive(true)
+				tc.SetKeepAlivePeriod(dialer.KeepAlive)
+			}
+			return &deadlineConn{Timeout: activityDuration, Conn: c}, err
+		},
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
 		MaxIdleConnsPerHost: concurrentTransfers,
 	}
@@ -259,6 +283,26 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	newReq.Body = req.Body
 	newReq.ContentLength = req.ContentLength
 	return newReq, nil
+}
+
+type deadlineConn struct {
+	Timeout time.Duration
+	net.Conn
+}
+
+func (c *deadlineConn) Read(b []byte) (int, error) {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.Timeout)); err != nil {
+		return 0, err
+	}
+	return c.Conn.Read(b)
+}
+
+func (c *deadlineConn) Write(b []byte) (int, error) {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.Timeout)); err != nil {
+		return 0, err
+	}
+
+	return c.Conn.Write(b)
 }
 
 func init() {
