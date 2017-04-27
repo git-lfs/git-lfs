@@ -50,6 +50,7 @@ func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *
 		return nil, nil, err
 	}
 
+	req = c.LogRequest(req, "lfs.locks.lock")
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
@@ -90,6 +91,7 @@ func (c *lockClient) Unlock(remote, id string, force bool) (*unlockResponse, *ht
 		return nil, nil, err
 	}
 
+	req = c.LogRequest(req, "lfs.locks.unlock")
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
@@ -173,6 +175,7 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 	}
 	req.URL.RawQuery = q.Encode()
 
+	req = c.LogRequest(req, "lfs.locks.search")
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
@@ -230,6 +233,7 @@ func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest
 		return nil, nil, err
 	}
 
+	req = c.LogRequest(req, "lfs.locks.verify")
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
