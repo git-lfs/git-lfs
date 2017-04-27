@@ -53,13 +53,13 @@ func (r *tracedRequest) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func (c *Client) traceResponse(tracedReq *tracedRequest, res *http.Response) {
+func (c *Client) traceResponse(req *http.Request, tracedReq *tracedRequest, res *http.Response) {
 	if tracedReq != nil {
-		c.httpLogger.LogRequest(res.Request, tracedReq.BodySize)
+		c.httpLogger.LogRequest(req, tracedReq.BodySize)
 	}
 
 	if res == nil {
-		c.httpLogger.LogResponse(res.Request, -1, 0)
+		c.httpLogger.LogResponse(req, -1, 0)
 		return
 	}
 

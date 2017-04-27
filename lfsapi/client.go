@@ -121,11 +121,11 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 
 	res, err := cli.Do(req)
 	if err != nil {
-		c.traceResponse(tracedReq, nil)
+		c.traceResponse(req, tracedReq, nil)
 		return res, err
 	}
 
-	c.traceResponse(tracedReq, res)
+	c.traceResponse(req, tracedReq, res)
 
 	if res.StatusCode != 307 {
 		return res, err
