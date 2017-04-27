@@ -77,6 +77,13 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return res, c.handleResponse(res)
 }
 
+func (c *Client) Close() error {
+	if c.HTTPLogger != nil {
+		return c.HTTPLogger.Close()
+	}
+	return nil
+}
+
 func (c *Client) extraHeadersFor(req *http.Request) http.Header {
 	copy := make(http.Header, len(req.Header))
 	for k, vs := range req.Header {

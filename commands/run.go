@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
@@ -65,19 +65,12 @@ func Run() {
 		}
 	}
 
-	apiClient := getAPIClient()
-	var file io.WriteCloser
-	if apiClient.LoggingStats {
-		file = statsLogFile()
-		if file != nil {
-			defer file.Close()
-		}
-	}
-
+	defer getAPIClient().Close()
 	root.Execute()
 
-	if file != nil {
-		apiClient.LogStats(file)
+	apiClient := getAPIClient()
+	if apiClient.HTTPLogger != nil {
+		apiClient.LogStats(apiClient.HTTPLogger)
 	}
 }
 
@@ -91,10 +84,12 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 // will resolve the localstorage directories.
 func resolveLocalStorage(cmd *cobra.Command, args []string) {
 	localstorage.ResolveDirs()
+	setupHTTPLogger(getAPIClient())
 }
 
 func setupLocalStorage(cmd *cobra.Command, args []string) {
 	config.ResolveGitBasicDirs()
+	setupHTTPLogger(getAPIClient())
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {
@@ -118,17 +113,22 @@ func printHelp(commandName string) {
 	}
 }
 
-func statsLogFile() io.WriteCloser {
+func setupHTTPLogger(c *lfsapi.Client) {
+	if c == nil || !c.LoggingStats {
+		return
+	}
+
 	logBase := filepath.Join(config.LocalLogDir, "http")
 	if err := os.MkdirAll(logBase, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
-		return nil
+		return
 	}
 
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
 	file, err := os.Create(filepath.Join(logBase, logFile))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+	} else {
+		c.HTTPLogger = file
 	}
-	return file
 }
