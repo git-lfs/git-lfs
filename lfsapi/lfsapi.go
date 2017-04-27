@@ -46,8 +46,6 @@ type Client struct {
 	ntlmMu       sync.Mutex
 
 	httpLogger io.WriteCloser
-	transfers  map[*http.Response]*httpTransfer
-	transferMu sync.Mutex
 
 	LoggingStats bool // DEPRECATED
 
