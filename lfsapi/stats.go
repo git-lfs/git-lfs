@@ -34,6 +34,7 @@ type statsContextKey string
 const transferKey = statsContextKey("transfer")
 
 func (c *Client) LogHTTPStats(w io.WriteCloser) {
+	fmt.Println("client LogHTTPStats")
 	fmt.Fprintf(w, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
 	c.httpLogger = newSyncLogger(w)
 }
@@ -49,9 +50,11 @@ func (c *Client) LogStats(out io.Writer) {}
 // after the response body has been read.
 func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 	if c.httpLogger == nil {
+		fmt.Println("client LogRequest NO LOGGER")
 		return r
 	}
 
+	fmt.Println("client LogRequest")
 	t := &httpTransfer{
 		URL:    strings.SplitN(r.URL.String(), "?", 2)[0],
 		Method: r.Method,
@@ -117,6 +120,7 @@ func (l *syncLogger) LogRequest(req *http.Request, bodySize int64) {
 	}
 
 	if v := req.Context().Value(transferKey); v != nil {
+		fmt.Println("syncLogger LogRequest")
 		l.logTransfer(v.(*httpTransfer), "request", fmt.Sprintf(" body=%d", bodySize))
 	}
 }
@@ -127,6 +131,7 @@ func (l *syncLogger) LogResponse(req *http.Request, status int, bodySize int64) 
 	}
 
 	if v := req.Context().Value(transferKey); v != nil {
+		fmt.Println("syncLogger LogResponse")
 		t := v.(*httpTransfer)
 		now := time.Now().UnixNano()
 		l.logTransfer(t, "request",
