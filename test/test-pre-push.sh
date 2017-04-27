@@ -803,8 +803,9 @@ begin_test "pre-push locks verify 403 with verification enabled"
   git config "lfs.$endpoint.locksverify" true
 
   git push origin master 2>&1 | tee push.log
+  grep "Authentication required" push.log
 
-  assert_server_object "$reponame" "$contents_oid"
+  refute_server_object "$reponame" "$contents_oid"
   [ "true" = "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test
@@ -855,8 +856,9 @@ begin_test "pre-push locks verify 403 with verification unset"
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 
   git push origin master 2>&1 | tee push.log
+  grep "Authentication required" push.log
 
-  assert_server_object "$reponame" "$contents_oid"
+  refute_server_object "$reponame" "$contents_oid"
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test
