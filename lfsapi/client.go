@@ -79,10 +79,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 
 // Close closes any resources that this client opened.
 func (c *Client) Close() error {
-	if c.httpLogger != nil {
-		return c.httpLogger.Close()
-	}
-	return nil
+	return c.httpLogger.Close()
 }
 
 func (c *Client) extraHeadersFor(req *http.Request) http.Header {

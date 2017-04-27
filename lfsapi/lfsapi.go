@@ -45,7 +45,7 @@ type Client struct {
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
 
-	httpLogger io.WriteCloser
+	httpLogger *syncLogger
 
 	LoggingStats bool // DEPRECATED
 

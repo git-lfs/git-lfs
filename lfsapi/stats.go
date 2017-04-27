@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,7 +22,7 @@ const transferKey = statsContextKey("transfer")
 
 func (c *Client) LogHTTPStats(w io.WriteCloser) {
 	fmt.Fprintf(w, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
-	c.httpLogger = w
+	c.httpLogger = newSyncLogger(w)
 }
 
 // LogStats is intended to be called after all HTTP operations for the
@@ -52,22 +53,53 @@ func (c *Client) startResponseStats(res *http.Response, start time.Time) {
 }
 
 func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
-	if c.httpLogger == nil {
-		return
-	}
-
 	if v := res.Request.Context().Value(transferKey); v != nil {
-		writeHTTPStats(c.httpLogger, res, v.(httpTransfer), bodySize, time.Now())
+		t := v.(httpTransfer)
+		c.httpLogger.Write(fmt.Sprintf("key=%s url=%s status=%d reqbody=%d resbody=%d restime=%d\n",
+			t.Key,
+			strings.SplitN(res.Request.URL.String(), "?", 2)[0],
+			res.StatusCode,
+			t.RequestBodySize,
+			bodySize,
+			time.Since(t.Start).Nanoseconds(),
+		))
 	}
 }
 
-func writeHTTPStats(w io.Writer, res *http.Response, tr httpTransfer, bodySize int64, t time.Time) {
-	fmt.Fprintf(w, "key=%s url=%s status=%d reqbody=%d resbody=%d restime=%d\n",
-		tr.Key,
-		strings.SplitN(res.Request.URL.String(), "?", 2)[0],
-		res.StatusCode,
-		tr.RequestBodySize,
-		bodySize,
-		t.Sub(tr.Start).Nanoseconds(),
-	)
+func newSyncLogger(w io.WriteCloser) *syncLogger {
+	ch := make(chan string, 100)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go func(c chan string, w io.Writer, wg *sync.WaitGroup) {
+		for l := range c {
+			w.Write([]byte(l))
+			wg.Done()
+		}
+	}(ch, w, wg)
+
+	return &syncLogger{w: w, ch: ch, wg: wg}
+}
+
+type syncLogger struct {
+	w  io.WriteCloser
+	ch chan string
+	wg *sync.WaitGroup
+}
+
+func (l *syncLogger) Write(line string) {
+	if l != nil {
+		l.wg.Add(1)
+		l.ch <- line
+	}
+}
+
+func (l *syncLogger) Close() error {
+	if l == nil {
+		return nil
+	}
+
+	l.wg.Done()
+	l.wg.Wait()
+	return l.w.Close()
 }
