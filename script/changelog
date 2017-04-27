@@ -31,7 +31,7 @@ features=""
 bugs=""
 misc=""
 
-for rev in $(git rev-list --merges $range); do
+for rev in $(git rev-list --merges --first-parent $range); do
   git show $rev
 
   processed=0
