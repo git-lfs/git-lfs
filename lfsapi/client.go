@@ -119,7 +119,6 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		return nil, err
 	}
 
-	req = annotateReqStart(req)
 	res, err := cli.Do(req)
 	if err != nil {
 		return res, err
@@ -193,10 +192,11 @@ func (c *Client) httpClient(host string) *http.Client {
 
 	tr := &http.Transport{
 		Proxy: proxyFromClient(c),
-		Dial: (&net.Dialer{
+		DialContext: (&net.Dialer{
 			Timeout:   time.Duration(dialtime) * time.Second,
 			KeepAlive: time.Duration(keepalivetime) * time.Second,
-		}).Dial,
+			DualStack: true,
+		}).DialContext,
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
 		MaxIdleConnsPerHost: concurrentTransfers,
 	}

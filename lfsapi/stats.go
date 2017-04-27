@@ -2,11 +2,14 @@ package lfsapi
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptrace"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,7 +18,13 @@ type httpTransfer struct {
 	Method          string
 	Key             string
 	RequestBodySize int64
-	Start           time.Time
+	Start           int64
+	ConnStart       int64
+	ConnEnd         int64
+	DNSStart        int64
+	DNSEnd          int64
+	TLSStart        int64
+	TLSEnd          int64
 }
 
 type statsContextKey string
@@ -37,12 +46,41 @@ func (c *Client) LogStats(out io.Writer) {}
 // LogRequest tells the client to log the request's stats to the http log
 // after the response body has been read.
 func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
-	ctx := context.WithValue(r.Context(), transferKey, &httpTransfer{
+	if c.httpLogger == nil {
+		return r
+	}
+
+	t := &httpTransfer{
 		URL:    strings.SplitN(r.URL.String(), "?", 2)[0],
 		Method: r.Method,
 		Key:    reqKey,
+	}
+
+	ctx := httptrace.WithClientTrace(r.Context(), &httptrace.ClientTrace{
+		GetConn: func(_ string) {
+			atomic.CompareAndSwapInt64(&t.Start, 0, time.Now().UnixNano())
+		},
+		DNSStart: func(_ httptrace.DNSStartInfo) {
+			atomic.CompareAndSwapInt64(&t.DNSStart, 0, time.Now().UnixNano())
+		},
+		DNSDone: func(_ httptrace.DNSDoneInfo) {
+			atomic.CompareAndSwapInt64(&t.DNSEnd, 0, time.Now().UnixNano())
+		},
+		ConnectStart: func(_, _ string) {
+			atomic.CompareAndSwapInt64(&t.ConnStart, 0, time.Now().UnixNano())
+		},
+		ConnectDone: func(_, _ string, _ error) {
+			atomic.CompareAndSwapInt64(&t.ConnEnd, 0, time.Now().UnixNano())
+		},
+		TLSHandshakeStart: func() {
+			atomic.CompareAndSwapInt64(&t.TLSStart, 0, time.Now().UnixNano())
+		},
+		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
+			atomic.CompareAndSwapInt64(&t.TLSEnd, 0, time.Now().UnixNano())
+		},
 	})
-	return r.WithContext(ctx)
+
+	return r.WithContext(context.WithValue(ctx, transferKey, t))
 }
 
 // LogResponse sends the current response stats to the http log.
@@ -71,29 +109,44 @@ type syncLogger struct {
 	wg *sync.WaitGroup
 }
 
-func (l *syncLogger) Log(req *http.Request, event, extra string) {
+func (l *syncLogger) LogRequest(req *http.Request, bodySize int64) {
 	if l == nil {
 		return
 	}
 
 	if v := req.Context().Value(transferKey); v != nil {
-		l.LogTransfer(v.(*httpTransfer), event, extra)
+		l.logTransfer(v.(*httpTransfer), "request", fmt.Sprintf(" body=%d", bodySize))
 	}
 }
 
-func (l *syncLogger) LogTransfer(t *httpTransfer, event, extra string) {
+func (l *syncLogger) LogResponse(req *http.Request, status int, bodySize int64) {
 	if l == nil {
 		return
 	}
 
+	if v := req.Context().Value(transferKey); v != nil {
+		t := v.(*httpTransfer)
+		now := time.Now().UnixNano()
+		l.logTransfer(t, "request",
+			fmt.Sprintf(" status=%d body=%d conntime=%d dnstime=%d tlstime=%d time=%d",
+				status,
+				bodySize,
+				(t.ConnEnd-t.ConnStart),
+				(t.DNSEnd-t.DNSStart),
+				(t.TLSEnd-t.TLSStart),
+				(now-t.Start),
+			))
+	}
+}
+
+func (l *syncLogger) logTransfer(t *httpTransfer, event, extra string) {
 	l.wg.Add(1)
-	l.ch <- fmt.Sprintf("key=%s event=%s url=%s method=%s %ssince=%d\n",
+	l.ch <- fmt.Sprintf("key=%s event=%s url=%s method=%s%s\n",
 		t.Key,
 		event,
 		t.URL,
 		t.Method,
 		extra,
-		time.Since(t.Start).Nanoseconds(),
 	)
 }
 

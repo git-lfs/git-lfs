@@ -3,13 +3,11 @@ package lfsapi
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"strings"
-	"time"
 
 	"github.com/rubyist/tracerx"
 )
@@ -57,8 +55,7 @@ func (r *tracedRequest) Read(b []byte) (int, error) {
 
 func (c *Client) traceResponse(tracedReq *tracedRequest, res *http.Response) {
 	if tracedReq != nil {
-		c.httpLogger.Log(res.Request, "request",
-			fmt.Sprintf("body=%d ", tracedReq.BodySize))
+		c.httpLogger.LogRequest(res.Request, tracedReq.BodySize)
 	}
 
 	if res == nil {
@@ -98,6 +95,7 @@ type tracedResponse struct {
 	verbose    bool
 	gitTrace   bool
 	verboseOut io.Writer
+	eof        bool
 	io.ReadCloser
 }
 
@@ -105,9 +103,9 @@ func (r *tracedResponse) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadCloser, b, r.verboseOut, r.gitTrace, r.verbose)
 	r.BodySize += int64(n)
 
-	if err == io.EOF {
-		r.httpLogger.Log(r.response.Request, "response",
-			fmt.Sprintf("status=%d body=%d ", r.response.StatusCode, r.BodySize))
+	if err == io.EOF && !r.eof {
+		r.httpLogger.LogResponse(r.response.Request, r.response.StatusCode, r.BodySize)
+		r.eof = true
 	}
 	return n, err
 }
@@ -157,16 +155,4 @@ func isTraceableContent(h http.Header) bool {
 
 func traceReq(req *http.Request) string {
 	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
-}
-
-func annotateReqStart(r *http.Request) *http.Request {
-	ctx := r.Context()
-	v := ctx.Value(transferKey)
-	if v == nil {
-		return r
-	}
-
-	t := v.(*httpTransfer)
-	t.Start = time.Now()
-	return r.WithContext(context.WithValue(ctx, transferKey, t))
 }
