@@ -11,6 +11,7 @@ import (
 )
 
 type httpTransfer struct {
+	URL             string
 	Key             string
 	RequestBodySize int64
 	Start           time.Time
@@ -35,7 +36,10 @@ func (c *Client) LogStats(out io.Writer) {}
 // LogRequest tells the client to log the request's stats to the http log
 // after the response body has been read.
 func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
-	ctx := context.WithValue(r.Context(), transferKey, httpTransfer{Key: reqKey})
+	ctx := context.WithValue(r.Context(), transferKey, httpTransfer{
+		URL: strings.SplitN(r.URL.String(), "?", 2)[0],
+		Key: reqKey,
+	})
 	return r.WithContext(ctx)
 }
 
@@ -53,17 +57,8 @@ func (c *Client) startResponseStats(res *http.Response, start time.Time) {
 }
 
 func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
-	if v := res.Request.Context().Value(transferKey); v != nil {
-		t := v.(httpTransfer)
-		c.httpLogger.Write(fmt.Sprintf("key=%s url=%s status=%d reqbody=%d resbody=%d restime=%d\n",
-			t.Key,
-			strings.SplitN(res.Request.URL.String(), "?", 2)[0],
-			res.StatusCode,
-			t.RequestBodySize,
-			bodySize,
-			time.Since(t.Start).Nanoseconds(),
-		))
-	}
+	c.httpLogger.Log(res.Request, "finish",
+		fmt.Sprintf("status=%d reqbody=%d resbody=%d ", res.StatusCode, 0, bodySize))
 }
 
 func newSyncLogger(w io.WriteCloser) *syncLogger {
@@ -87,11 +82,26 @@ type syncLogger struct {
 	wg *sync.WaitGroup
 }
 
-func (l *syncLogger) Write(line string) {
-	if l != nil {
-		l.wg.Add(1)
-		l.ch <- line
+func (l *syncLogger) Log(req *http.Request, event, extra string) {
+	if l == nil {
+		return
 	}
+
+	v := req.Context().Value(transferKey)
+	if v == nil {
+		return
+	}
+
+	t := v.(httpTransfer)
+	l.wg.Add(1)
+	l.ch <- fmt.Sprintf("key=%s event=%s url=%s reqbody=%d %ssince=%d\n",
+		t.Key,
+		event,
+		t.URL,
+		t.RequestBodySize,
+		extra,
+		time.Since(t.Start).Nanoseconds(),
+	)
 }
 
 func (l *syncLogger) Close() error {
