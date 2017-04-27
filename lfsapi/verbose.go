@@ -166,7 +166,7 @@ func annotateReqStart(r *http.Request) *http.Request {
 		return r
 	}
 
-	t := v.(httpTransfer)
+	t := v.(*httpTransfer)
 	t.Start = time.Now()
 	return r.WithContext(context.WithValue(ctx, transferKey, t))
 }

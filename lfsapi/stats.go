@@ -12,6 +12,7 @@ import (
 
 type httpTransfer struct {
 	URL             string
+	Method          string
 	Key             string
 	RequestBodySize int64
 	Start           time.Time
@@ -36,9 +37,10 @@ func (c *Client) LogStats(out io.Writer) {}
 // LogRequest tells the client to log the request's stats to the http log
 // after the response body has been read.
 func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
-	ctx := context.WithValue(r.Context(), transferKey, httpTransfer{
-		URL: strings.SplitN(r.URL.String(), "?", 2)[0],
-		Key: reqKey,
+	ctx := context.WithValue(r.Context(), transferKey, &httpTransfer{
+		URL:    strings.SplitN(r.URL.String(), "?", 2)[0],
+		Method: r.Method,
+		Key:    reqKey,
 	})
 	return r.WithContext(ctx)
 }
@@ -74,18 +76,22 @@ func (l *syncLogger) Log(req *http.Request, event, extra string) {
 		return
 	}
 
-	v := req.Context().Value(transferKey)
-	if v == nil {
+	if v := req.Context().Value(transferKey); v != nil {
+		l.LogTransfer(v.(*httpTransfer), event, extra)
+	}
+}
+
+func (l *syncLogger) LogTransfer(t *httpTransfer, event, extra string) {
+	if l == nil {
 		return
 	}
 
-	t := v.(httpTransfer)
 	l.wg.Add(1)
 	l.ch <- fmt.Sprintf("key=%s event=%s url=%s method=%s %ssince=%d\n",
 		t.Key,
 		event,
 		t.URL,
-		req.Method,
+		t.Method,
 		extra,
 		time.Since(t.Start).Nanoseconds(),
 	)
