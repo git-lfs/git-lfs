@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStatsWithBucket(t *testing.T) {
+func TestStatsWithKey(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -77,7 +77,7 @@ func TestStatsWithBucket(t *testing.T) {
 	}
 }
 
-func TestStatsWithoutBucket(t *testing.T) {
+func TestStatsWithoutKey(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -119,7 +119,8 @@ func TestStatsWithoutBucket(t *testing.T) {
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
 	assert.True(t, strings.Contains(stats, "concurrent=5"))
-	assert.Equal(t, 1, len(strings.Split(stats, "\n")))
+	assert.True(t, strings.Contains(stats, "key=none"))
+	assert.Equal(t, 2, len(strings.Split(stats, "\n")))
 }
 
 func TestStatsDisabled(t *testing.T) {

@@ -17,6 +17,7 @@ type httpTransferStats struct {
 }
 
 type httpTransfer struct {
+	Key           string
 	requestStats  *httpTransferStats
 	responseStats *httpTransferStats
 }
@@ -35,19 +36,17 @@ func (c *Client) LogStats(out io.Writer) {
 
 	fmt.Fprintf(out, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
 
-	for key, responses := range c.transferBuckets {
-		for _, response := range responses {
-			stats := c.transfers[response]
-			fmt.Fprintf(out, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
-				key,
-				stats.requestStats.HeaderSize,
-				stats.requestStats.BodySize,
-				stats.responseStats.HeaderSize,
-				stats.responseStats.BodySize,
-				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
-				response.StatusCode,
-				response.Request.URL)
-		}
+	for _, response := range c.responses {
+		stats := c.transfers[response]
+		fmt.Fprintf(out, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
+			stats.Key,
+			stats.requestStats.HeaderSize,
+			stats.requestStats.BodySize,
+			stats.responseStats.HeaderSize,
+			stats.responseStats.BodySize,
+			stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
+			response.StatusCode,
+			response.Request.URL)
 	}
 }
 
@@ -61,11 +60,7 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 // LogResponse sends the current response stats to the http log.
 //
 // DEPRECATED: Use LogRequest() instead.
-func (c *Client) LogResponse(key string, res *http.Response) {
-	if c.LoggingStats {
-		c.logResponse(key, res)
-	}
-}
+func (c *Client) LogResponse(key string, res *http.Response) {}
 
 func (c *Client) startResponseStats(res *http.Response, start time.Time) {
 	if !c.LoggingStats {
@@ -89,6 +84,15 @@ func (c *Client) startResponseStats(res *http.Response, start time.Time) {
 	// header because it may not exist or be -1 in the case of chunked responses.
 	resstats := &httpTransferStats{HeaderSize: resHeaderSize, Start: start}
 	t := &httpTransfer{requestStats: reqstats, responseStats: resstats}
+	if v := res.Request.Context().Value(httpStatsKey); v != nil {
+		t.Key = v.(string)
+	} else {
+		t.Key = "none"
+	}
+
+	c.responseMu.Lock()
+	c.responses = append(c.responses, res)
+	c.responseMu.Unlock()
 
 	c.transferMu.Lock()
 	if c.transfers == nil {
@@ -114,19 +118,4 @@ func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
 		transfer.responseStats.BodySize = bodySize
 		transfer.responseStats.Stop = time.Now()
 	}
-
-	if v := res.Request.Context().Value(httpStatsKey); v != nil {
-		c.logResponse(v.(string), res)
-	}
-}
-
-func (c *Client) logResponse(key string, res *http.Response) {
-	c.transferBucketMu.Lock()
-	defer c.transferBucketMu.Unlock()
-
-	if c.transferBuckets == nil {
-		c.transferBuckets = make(map[string][]*http.Response)
-	}
-
-	c.transferBuckets[key] = append(c.transferBuckets[key], res)
 }

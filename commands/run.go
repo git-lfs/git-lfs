@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
@@ -65,8 +65,20 @@ func Run() {
 		}
 	}
 
+	apiClient := getAPIClient()
+	var file io.WriteCloser
+	if apiClient.LoggingStats {
+		file = statsLogFile()
+		if file != nil {
+			defer file.Close()
+		}
+	}
+
 	root.Execute()
-	logHTTPStats(getAPIClient())
+
+	if file != nil {
+		apiClient.LogStats(file)
+	}
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
@@ -106,27 +118,17 @@ func printHelp(commandName string) {
 	}
 }
 
-func logHTTPStats(c *lfsapi.Client) {
-	if !c.LoggingStats {
-		return
-	}
-
-	file, err := statsLogFile()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
-		return
-	}
-
-	defer file.Close()
-	c.LogStats(file)
-}
-
-func statsLogFile() (*os.File, error) {
+func statsLogFile() io.WriteCloser {
 	logBase := filepath.Join(config.LocalLogDir, "http")
 	if err := os.MkdirAll(logBase, 0755); err != nil {
-		return nil, err
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		return nil
 	}
 
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
-	return os.Create(filepath.Join(logBase, logFile))
+	file, err := os.Create(filepath.Join(logBase, logFile))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+	}
+	return file
 }
