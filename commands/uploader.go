@@ -227,13 +227,15 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 			c.unownedLocks = append(c.unownedLocks, lock)
 			c.trackedLocksMu.Unlock()
 
-			// If the verification state is enabled or undefined,
-			// this failed locks verification means that the push
-			// should fail.
+			// If the verification state is enabled, this failed
+			// locks verification means that the push should fail.
 			//
 			// If the state is disabled, the verification error is
 			// silent and the user can upload.
-			canUpload = c.lockVerifyState == verifyStateDisabled
+			//
+			// If the state is undefined, the verification error is
+			// sent as a warning and the user can upload.
+			canUpload = c.lockVerifyState != verifyStateEnabled
 		}
 
 		if lock, ok := c.ourLocks[p.Name]; ok {
