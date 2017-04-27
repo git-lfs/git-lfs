@@ -3,46 +3,47 @@ package lfsapi
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	"github.com/rubyist/tracerx"
 )
 
-func (c *Client) traceRequest(req *http.Request) {
+func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 	tracerx.Printf("HTTP: %s", traceReq(req))
 
-	if !c.Verbose {
-		return
+	if c.Verbose {
+		if dump, err := httputil.DumpRequest(req, false); err == nil {
+			c.traceHTTPDump(">", dump)
+		}
 	}
 
-	if dump, err := httputil.DumpRequest(req, false); err == nil {
-		c.traceHTTPDump(">", dump)
-	}
-}
-
-func (c *Client) prepareRequestBody(req *http.Request) error {
 	body, ok := req.Body.(ReadSeekCloser)
 	if body != nil && !ok {
-		return fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
+		return nil, fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
 	}
 
 	if body != nil && ok {
 		body.Seek(0, io.SeekStart)
-		req.Body = &tracedRequest{
+		tr := &tracedRequest{
 			verbose:        c.Verbose && isTraceableContent(req.Header),
 			verboseOut:     c.VerboseOut,
 			ReadSeekCloser: body,
 		}
+		req.Body = tr
+		return tr, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 type tracedRequest struct {
+	BodySize   int64
 	verbose    bool
 	verboseOut io.Writer
 	ReadSeekCloser
@@ -50,10 +51,16 @@ type tracedRequest struct {
 
 func (r *tracedRequest) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadSeekCloser, b, r.verboseOut, false, r.verbose)
+	r.BodySize += int64(n)
 	return n, err
 }
 
-func (c *Client) traceResponse(res *http.Response) {
+func (c *Client) traceResponse(tracedReq *tracedRequest, res *http.Response) {
+	if tracedReq != nil {
+		c.httpLogger.Log(res.Request, "request",
+			fmt.Sprintf("body=%d ", tracedReq.BodySize))
+	}
+
 	if res == nil {
 		return
 	}
@@ -62,7 +69,7 @@ func (c *Client) traceResponse(res *http.Response) {
 
 	verboseBody := isTraceableContent(res.Header)
 	res.Body = &tracedResponse{
-		client:     c,
+		httpLogger: c.httpLogger,
 		response:   res,
 		gitTrace:   verboseBody,
 		verbose:    verboseBody && c.Verbose,
@@ -85,8 +92,8 @@ func (c *Client) traceResponse(res *http.Response) {
 }
 
 type tracedResponse struct {
-	Count      int
-	client     *Client
+	BodySize   int64
+	httpLogger *syncLogger
 	response   *http.Response
 	verbose    bool
 	gitTrace   bool
@@ -96,10 +103,11 @@ type tracedResponse struct {
 
 func (r *tracedResponse) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadCloser, b, r.verboseOut, r.gitTrace, r.verbose)
-	r.Count += n
+	r.BodySize += int64(n)
 
 	if err == io.EOF {
-		r.client.finishResponseStats(r.response, int64(r.Count))
+		r.httpLogger.Log(r.response.Request, "response",
+			fmt.Sprintf("status=%d body=%d ", r.response.StatusCode, r.BodySize))
 	}
 	return n, err
 }
@@ -149,4 +157,16 @@ func isTraceableContent(h http.Header) bool {
 
 func traceReq(req *http.Request) string {
 	return fmt.Sprintf("%s %s", req.Method, strings.SplitN(req.URL.String(), "?", 2)[0])
+}
+
+func annotateReqStart(r *http.Request) *http.Request {
+	ctx := r.Context()
+	v := ctx.Value(transferKey)
+	if v == nil {
+		return r
+	}
+
+	t := v.(httpTransfer)
+	t.Start = time.Now()
+	return r.WithContext(context.WithValue(ctx, transferKey, t))
 }

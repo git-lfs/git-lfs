@@ -48,19 +48,6 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 // DEPRECATED: Use LogRequest() instead.
 func (c *Client) LogResponse(key string, res *http.Response) {}
 
-func (c *Client) startResponseStats(res *http.Response, start time.Time) {
-	if v := res.Request.Context().Value(transferKey); v != nil {
-		t := v.(httpTransfer)
-		t.Start = start
-		t.RequestBodySize = res.Request.ContentLength
-	}
-}
-
-func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
-	c.httpLogger.Log(res.Request, "finish",
-		fmt.Sprintf("status=%d reqbody=%d resbody=%d ", res.StatusCode, 0, bodySize))
-}
-
 func newSyncLogger(w io.WriteCloser) *syncLogger {
 	ch := make(chan string, 100)
 	wg := &sync.WaitGroup{}
@@ -94,11 +81,11 @@ func (l *syncLogger) Log(req *http.Request, event, extra string) {
 
 	t := v.(httpTransfer)
 	l.wg.Add(1)
-	l.ch <- fmt.Sprintf("key=%s event=%s url=%s reqbody=%d %ssince=%d\n",
+	l.ch <- fmt.Sprintf("key=%s event=%s url=%s method=%s %ssince=%d\n",
 		t.Key,
 		event,
 		t.URL,
-		t.RequestBodySize,
+		req.Method,
 		extra,
 		time.Since(t.Start).Nanoseconds(),
 	)

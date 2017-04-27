@@ -114,19 +114,18 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
-	c.traceRequest(req)
-	if err := c.prepareRequestBody(req); err != nil {
+	tracedReq, err := c.traceRequest(req)
+	if err != nil {
 		return nil, err
 	}
 
-	start := time.Now()
+	req = annotateReqStart(req)
 	res, err := cli.Do(req)
 	if err != nil {
 		return res, err
 	}
 
-	c.traceResponse(res)
-	c.startResponseStats(res, start)
+	c.traceResponse(tracedReq, res)
 
 	if res.StatusCode != 307 {
 		return res, err
