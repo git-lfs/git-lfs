@@ -67,11 +67,6 @@ func Run() {
 
 	defer getAPIClient().Close()
 	root.Execute()
-
-	apiClient := getAPIClient()
-	if apiClient.HTTPLogger != nil {
-		apiClient.LogStats(apiClient.HTTPLogger)
-	}
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
@@ -129,6 +124,6 @@ func setupHTTPLogger(c *lfsapi.Client) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 	} else {
-		c.HTTPLogger = file
+		c.LogHTTPStats(file)
 	}
 }

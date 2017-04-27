@@ -78,8 +78,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) Close() error {
-	if c.HTTPLogger != nil {
-		return c.HTTPLogger.Close()
+	if c.httpLogger != nil {
+		return c.httpLogger.Close()
 	}
 	return nil
 }

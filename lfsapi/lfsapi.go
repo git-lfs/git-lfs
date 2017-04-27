@@ -46,7 +46,7 @@ type Client struct {
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
 
-	HTTPLogger io.WriteCloser
+	httpLogger io.WriteCloser
 	responses  []*http.Response
 	responseMu sync.Mutex
 	transfers  map[*http.Response]*httpTransfer
