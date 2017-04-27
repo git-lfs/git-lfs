@@ -38,6 +38,7 @@ func TestStatsWithBucket(t *testing.T) {
 	}
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
+	req = c.LogRequest(req, "stats-test")
 	req.Header.Set("Authorization", "Basic ABC")
 	req.Header.Set("Content-Type", "application/json")
 	require.Nil(t, err)
@@ -45,8 +46,6 @@ func TestStatsWithBucket(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-
-	c.LogResponse("stats-test", res)
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
@@ -146,6 +145,8 @@ func TestStatsDisabled(t *testing.T) {
 	}
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
+	req = c.LogRequest(req, "stats-test")
+
 	req.Header.Set("Authorization", "Basic ABC")
 	req.Header.Set("Content-Type", "application/json")
 	require.Nil(t, err)
@@ -153,8 +154,6 @@ func TestStatsDisabled(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-
-	c.LogResponse("stats-test", res)
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()

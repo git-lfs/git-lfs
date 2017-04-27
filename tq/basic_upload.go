@@ -96,6 +96,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 	req.Body = reader
 
+	req = a.apiClient.LogRequest(req, "lfs.data.upload")
 	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// We're about to return a retriable error, meaning that this
@@ -110,8 +111,6 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 
 		return errors.NewRetriableError(err)
 	}
-
-	a.apiClient.LogResponse("lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.

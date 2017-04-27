@@ -56,12 +56,12 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
+	req = c.LogRequest(req, "lfs.batch")
 	res, err := c.DoWithAuth(remote, req)
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
 		return nil, errors.Wrap(err, "batch response")
 	}
-	c.LogResponse("lfs.batch", res)
 
 	if err := lfsapi.DecodeJSON(res, bRes); err != nil {
 		return bRes, errors.Wrap(err, "batch response")

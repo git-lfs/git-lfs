@@ -1,6 +1,7 @@
 package lfsapi
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,10 @@ type httpTransfer struct {
 	requestStats  *httpTransferStats
 	responseStats *httpTransferStats
 }
+
+type statsContextKey string
+
+const httpStatsKey = statsContextKey("http")
 
 // LogStats is intended to be called after all HTTP operations for the
 // commmand have finished. It dumps k/v logs, one line per httpTransfer into
@@ -46,19 +51,20 @@ func (c *Client) LogStats(out io.Writer) {
 	}
 }
 
+// LogRequest tells the client to log the request's stats to the http log
+// after the response body has been read.
+func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
+	ctx := context.WithValue(r.Context(), httpStatsKey, reqKey)
+	return r.WithContext(ctx)
+}
+
+// LogResponse sends the current response stats to the http log.
+//
+// DEPRECATED: Use LogRequest() instead.
 func (c *Client) LogResponse(key string, res *http.Response) {
-	if !c.LoggingStats {
-		return
+	if c.LoggingStats {
+		c.logResponse(key, res)
 	}
-
-	c.transferBucketMu.Lock()
-	defer c.transferBucketMu.Unlock()
-
-	if c.transferBuckets == nil {
-		c.transferBuckets = make(map[string][]*http.Response)
-	}
-
-	c.transferBuckets[key] = append(c.transferBuckets[key], res)
 }
 
 func (c *Client) startResponseStats(res *http.Response, start time.Time) {
@@ -108,4 +114,19 @@ func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
 		transfer.responseStats.BodySize = bodySize
 		transfer.responseStats.Stop = time.Now()
 	}
+
+	if v := res.Request.Context().Value(httpStatsKey); v != nil {
+		c.logResponse(v.(string), res)
+	}
+}
+
+func (c *Client) logResponse(key string, res *http.Response) {
+	c.transferBucketMu.Lock()
+	defer c.transferBucketMu.Unlock()
+
+	if c.transferBuckets == nil {
+		c.transferBuckets = make(map[string][]*http.Response)
+	}
+
+	c.transferBuckets[key] = append(c.transferBuckets[key], res)
 }
