@@ -59,6 +59,7 @@ func (c *Client) traceResponse(tracedReq *tracedRequest, res *http.Response) {
 	}
 
 	if res == nil {
+		c.httpLogger.LogResponse(res.Request, -1, 0)
 		return
 	}
 
