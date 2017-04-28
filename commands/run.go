@@ -66,7 +66,7 @@ func Run() {
 	}
 
 	root.Execute()
-	logHTTPStats(getAPIClient())
+	getAPIClient().Close()
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
@@ -79,10 +79,12 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 // will resolve the localstorage directories.
 func resolveLocalStorage(cmd *cobra.Command, args []string) {
 	localstorage.ResolveDirs()
+	setupHTTPLogger(getAPIClient())
 }
 
 func setupLocalStorage(cmd *cobra.Command, args []string) {
 	config.ResolveGitBasicDirs()
+	setupHTTPLogger(getAPIClient())
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {
@@ -106,27 +108,22 @@ func printHelp(commandName string) {
 	}
 }
 
-func logHTTPStats(c *lfsapi.Client) {
-	if !c.LoggingStats {
+func setupHTTPLogger(c *lfsapi.Client) {
+	if c == nil || len(os.Getenv("GIT_LOG_STATS")) < 1 {
 		return
 	}
 
-	file, err := statsLogFile()
-	if err != nil {
+	logBase := filepath.Join(config.LocalLogDir, "http")
+	if err := os.MkdirAll(logBase, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 		return
 	}
 
-	defer file.Close()
-	c.LogStats(file)
-}
-
-func statsLogFile() (*os.File, error) {
-	logBase := filepath.Join(config.LocalLogDir, "http")
-	if err := os.MkdirAll(logBase, 0755); err != nil {
-		return nil, err
-	}
-
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
-	return os.Create(filepath.Join(logBase, logFile))
+	file, err := os.Create(filepath.Join(logBase, logFile))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+	} else {
+		c.LogHTTPStats(file)
+	}
 }

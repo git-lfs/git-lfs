@@ -42,6 +42,7 @@ func verifyUpload(c *lfsapi.Client, remote string, t *Transfer) error {
 
 	mv := c.GitEnv().Int(maxVerifiesConfigKey, defaultMaxVerifyAttempts)
 	mv = tools.MaxInt(defaultMaxVerifyAttempts, mv)
+	req = c.LogRequest(req, "lfs.verify")
 
 	for i := 1; i <= mv; i++ {
 		tracerx.Printf("tq: verify %s attempt #%d (max: %d)", t.Oid[:7], i, mv)

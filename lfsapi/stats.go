@@ -1,111 +1,168 @@
 package lfsapi
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
+	"net/http/httptrace"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/git-lfs/git-lfs/tools"
 )
 
-type httpTransferStats struct {
-	HeaderSize int
-	BodySize   int64
-	Start      time.Time
-	Stop       time.Time
+type httpTransfer struct {
+	URL             string
+	Method          string
+	Key             string
+	RequestBodySize int64
+	Start           int64
+	ResponseStart   int64
+	ConnStart       int64
+	ConnEnd         int64
+	DNSStart        int64
+	DNSEnd          int64
+	TLSStart        int64
+	TLSEnd          int64
 }
 
-type httpTransfer struct {
-	requestStats  *httpTransferStats
-	responseStats *httpTransferStats
+type statsContextKey string
+
+const transferKey = statsContextKey("transfer")
+
+func (c *Client) LogHTTPStats(w io.WriteCloser) {
+	fmt.Fprintf(w, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
+	c.httpLogger = newSyncLogger(w)
 }
 
 // LogStats is intended to be called after all HTTP operations for the
 // commmand have finished. It dumps k/v logs, one line per httpTransfer into
 // a log file with the current timestamp.
-func (c *Client) LogStats(out io.Writer) {
-	if !c.LoggingStats {
-		return
+//
+// DEPRECATED: Call LogHTTPStats() before the first HTTP request.
+func (c *Client) LogStats(out io.Writer) {}
+
+// LogRequest tells the client to log the request's stats to the http log
+// after the response body has been read.
+func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
+	if c.httpLogger == nil {
+		return r
 	}
 
-	fmt.Fprintf(out, "concurrent=%d time=%d version=%s\n", c.ConcurrentTransfers, time.Now().Unix(), UserAgent)
+	t := &httpTransfer{
+		URL:    strings.SplitN(r.URL.String(), "?", 2)[0],
+		Method: r.Method,
+		Key:    reqKey,
+	}
 
-	for key, responses := range c.transferBuckets {
-		for _, response := range responses {
-			stats := c.transfers[response]
-			fmt.Fprintf(out, "key=%s reqheader=%d reqbody=%d resheader=%d resbody=%d restime=%d status=%d url=%s\n",
-				key,
-				stats.requestStats.HeaderSize,
-				stats.requestStats.BodySize,
-				stats.responseStats.HeaderSize,
-				stats.responseStats.BodySize,
-				stats.responseStats.Stop.Sub(stats.responseStats.Start).Nanoseconds(),
-				response.StatusCode,
-				response.Request.URL)
+	ctx := httptrace.WithClientTrace(r.Context(), &httptrace.ClientTrace{
+		GetConn: func(_ string) {
+			atomic.CompareAndSwapInt64(&t.Start, 0, time.Now().UnixNano())
+		},
+		DNSStart: func(_ httptrace.DNSStartInfo) {
+			atomic.CompareAndSwapInt64(&t.DNSStart, 0, time.Now().UnixNano())
+		},
+		DNSDone: func(_ httptrace.DNSDoneInfo) {
+			atomic.CompareAndSwapInt64(&t.DNSEnd, 0, time.Now().UnixNano())
+		},
+		ConnectStart: func(_, _ string) {
+			atomic.CompareAndSwapInt64(&t.ConnStart, 0, time.Now().UnixNano())
+		},
+		ConnectDone: func(_, _ string, _ error) {
+			atomic.CompareAndSwapInt64(&t.ConnEnd, 0, time.Now().UnixNano())
+		},
+		TLSHandshakeStart: func() {
+			atomic.CompareAndSwapInt64(&t.TLSStart, 0, time.Now().UnixNano())
+		},
+		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
+			atomic.CompareAndSwapInt64(&t.TLSEnd, 0, time.Now().UnixNano())
+		},
+		GotFirstResponseByte: func() {
+			atomic.CompareAndSwapInt64(&t.ResponseStart, 0, time.Now().UnixNano())
+		},
+	})
+
+	return r.WithContext(context.WithValue(ctx, transferKey, t))
+}
+
+// LogResponse sends the current response stats to the http log.
+//
+// DEPRECATED: Use LogRequest() instead.
+func (c *Client) LogResponse(key string, res *http.Response) {}
+
+func newSyncLogger(w io.WriteCloser) *syncLogger {
+	ch := make(chan string, 100)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go func(c chan string, w io.Writer, wg *sync.WaitGroup) {
+		for l := range c {
+			w.Write([]byte(l))
+			wg.Done()
 		}
+	}(ch, w, wg)
+
+	return &syncLogger{w: w, ch: ch, wg: wg}
+}
+
+type syncLogger struct {
+	w  io.WriteCloser
+	ch chan string
+	wg *sync.WaitGroup
+}
+
+func (l *syncLogger) LogRequest(req *http.Request, bodySize int64) {
+	if l == nil {
+		return
+	}
+
+	if v := req.Context().Value(transferKey); v != nil {
+		l.logTransfer(v.(*httpTransfer), "request", fmt.Sprintf(" body=%d", bodySize))
 	}
 }
 
-func (c *Client) LogResponse(key string, res *http.Response) {
-	if !c.LoggingStats {
+func (l *syncLogger) LogResponse(req *http.Request, status int, bodySize int64) {
+	if l == nil {
 		return
 	}
 
-	c.transferBucketMu.Lock()
-	defer c.transferBucketMu.Unlock()
-
-	if c.transferBuckets == nil {
-		c.transferBuckets = make(map[string][]*http.Response)
+	if v := req.Context().Value(transferKey); v != nil {
+		t := v.(*httpTransfer)
+		now := time.Now().UnixNano()
+		l.logTransfer(t, "response",
+			fmt.Sprintf(" status=%d body=%d conntime=%d dnstime=%d tlstime=%d restime=%d time=%d",
+				status,
+				bodySize,
+				tools.MaxInt64(t.ConnEnd-t.ConnStart, 0),
+				tools.MaxInt64(t.DNSEnd-t.DNSStart, 0),
+				tools.MaxInt64(t.TLSEnd-t.TLSStart, 0),
+				tools.MaxInt64(now-t.ResponseStart, 0),
+				tools.MaxInt64(now-t.Start, 0),
+			))
 	}
-
-	c.transferBuckets[key] = append(c.transferBuckets[key], res)
 }
 
-func (c *Client) startResponseStats(res *http.Response, start time.Time) {
-	if !c.LoggingStats {
-		return
-	}
-
-	reqHeaderSize := 0
-	resHeaderSize := 0
-
-	if dump, err := httputil.DumpRequest(res.Request, false); err == nil {
-		reqHeaderSize = len(dump)
-	}
-
-	if dump, err := httputil.DumpResponse(res, false); err == nil {
-		resHeaderSize = len(dump)
-	}
-
-	reqstats := &httpTransferStats{HeaderSize: reqHeaderSize, BodySize: res.Request.ContentLength}
-
-	// Response body size cannot be figured until it is read. Do not rely on a Content-Length
-	// header because it may not exist or be -1 in the case of chunked responses.
-	resstats := &httpTransferStats{HeaderSize: resHeaderSize, Start: start}
-	t := &httpTransfer{requestStats: reqstats, responseStats: resstats}
-
-	c.transferMu.Lock()
-	if c.transfers == nil {
-		c.transfers = make(map[*http.Response]*httpTransfer)
-	}
-	c.transfers[res] = t
-	c.transferMu.Unlock()
+func (l *syncLogger) logTransfer(t *httpTransfer, event, extra string) {
+	l.wg.Add(1)
+	l.ch <- fmt.Sprintf("key=%s event=%s url=%s method=%s%s\n",
+		t.Key,
+		event,
+		t.URL,
+		t.Method,
+		extra,
+	)
 }
 
-func (c *Client) finishResponseStats(res *http.Response, bodySize int64) {
-	if !c.LoggingStats || res == nil {
-		return
+func (l *syncLogger) Close() error {
+	if l == nil {
+		return nil
 	}
 
-	c.transferMu.Lock()
-	defer c.transferMu.Unlock()
-
-	if c.transfers == nil {
-		return
-	}
-
-	if transfer, ok := c.transfers[res]; ok {
-		transfer.responseStats.BodySize = bodySize
-		transfer.responseStats.Stop = time.Now()
-	}
+	l.wg.Done()
+	l.wg.Wait()
+	return l.w.Close()
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStatsWithBucket(t *testing.T) {
+func TestStatsWithKey(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -32,12 +32,12 @@ func TestStatsWithBucket(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{
-		ConcurrentTransfers: 5,
-		LoggingStats:        true,
-	}
+	out := &bytes.Buffer{}
+	c := &Client{ConcurrentTransfers: 5}
+	c.LogHTTPStats(nopCloser(out))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
+	req = c.LogRequest(req, "stats-test")
 	req.Header.Set("Authorization", "Basic ABC")
 	req.Header.Set("Content-Type", "application/json")
 	require.Nil(t, err)
@@ -46,39 +46,41 @@ func TestStatsWithBucket(t *testing.T) {
 	res, err := c.Do(req)
 	require.Nil(t, err)
 
-	c.LogResponse("stats-test", res)
-
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
+	assert.Nil(t, c.Close())
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
 
-	out := &bytes.Buffer{}
-	c.LogStats(out)
-
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
 	lines := strings.Split(stats, "\n")
-	assert.Equal(t, 2, len(lines))
+	require.Equal(t, 3, len(lines))
 	assert.True(t, strings.Contains(lines[0], "concurrent=5"))
 	expected := []string{
 		"key=stats-test",
-		"reqheader=",
-		"reqbody=18",
-		"resheader=",
-		"resbody=15",
-		"restime=",
-		"status=200",
+		"event=request",
+		"body=18",
 		"url=" + srv.URL,
 	}
 
 	for _, substr := range expected {
 		assert.True(t, strings.Contains(lines[1], substr), "missing: "+substr)
 	}
+
+	expected = []string{
+		"key=stats-test",
+		"event=response",
+		"url=" + srv.URL,
+	}
+
+	for _, substr := range expected {
+		assert.True(t, strings.Contains(lines[2], substr), "missing: "+substr)
+	}
 }
 
-func TestStatsWithoutBucket(t *testing.T) {
+func TestStatsWithoutKey(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -95,10 +97,9 @@ func TestStatsWithoutBucket(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{
-		ConcurrentTransfers: 5,
-		LoggingStats:        true,
-	}
+	out := &bytes.Buffer{}
+	c := &Client{ConcurrentTransfers: 5}
+	c.LogHTTPStats(nopCloser(out))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req.Header.Set("Authorization", "Basic ABC")
@@ -110,12 +111,10 @@ func TestStatsWithoutBucket(t *testing.T) {
 	require.Nil(t, err)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
+	assert.Nil(t, c.Close())
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
-
-	out := &bytes.Buffer{}
-	c.LogStats(out)
 
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
@@ -140,12 +139,11 @@ func TestStatsDisabled(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{
-		ConcurrentTransfers: 5,
-		LoggingStats:        false,
-	}
+	c := &Client{ConcurrentTransfers: 5}
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
+	req = c.LogRequest(req, "stats-test")
+
 	req.Header.Set("Authorization", "Basic ABC")
 	req.Header.Set("Content-Type", "application/json")
 	require.Nil(t, err)
@@ -153,8 +151,6 @@ func TestStatsDisabled(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-
-	c.LogResponse("stats-test", res)
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
@@ -165,4 +161,16 @@ func TestStatsDisabled(t *testing.T) {
 	out := &bytes.Buffer{}
 	c.LogStats(out)
 	assert.Equal(t, 0, out.Len())
+}
+
+func nopCloser(w io.Writer) io.WriteCloser {
+	return nopWCloser{w}
+}
+
+type nopWCloser struct {
+	io.Writer
+}
+
+func (w nopWCloser) Close() error {
+	return nil
 }

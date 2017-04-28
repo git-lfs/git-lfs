@@ -109,6 +109,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
 	}
 
+	req = a.apiClient.LogRequest(req, "lfs.data.download")
 	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// Special-case status code 416 () - fall back
@@ -121,7 +122,6 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		return errors.NewRetriableError(err)
 	}
 
-	a.apiClient.LogResponse("lfs.data.download", res)
 	defer res.Body.Close()
 
 	// Range request must return 206 & content range to confirm

@@ -1,11 +1,14 @@
 package lfsapi
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -77,6 +80,11 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return res, c.handleResponse(res)
 }
 
+// Close closes any resources that this client opened.
+func (c *Client) Close() error {
+	return c.httpLogger.Close()
+}
+
 func (c *Client) extraHeadersFor(req *http.Request) http.Header {
 	copy := make(http.Header, len(req.Header))
 	for k, vs := range req.Header {
@@ -109,19 +117,18 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
-	c.traceRequest(req)
-	if err := c.prepareRequestBody(req); err != nil {
+	tracedReq, err := c.traceRequest(req)
+	if err != nil {
 		return nil, err
 	}
 
-	start := time.Now()
 	res, err := cli.Do(req)
 	if err != nil {
+		c.traceResponse(req, tracedReq, nil)
 		return res, err
 	}
 
-	c.traceResponse(res)
-	c.startResponseStats(res, start)
+	c.traceResponse(req, tracedReq, res)
 
 	if res.StatusCode != 307 {
 		return res, err
@@ -188,13 +195,41 @@ func (c *Client) httpClient(host string) *http.Client {
 	}
 
 	tr := &http.Transport{
-		Proxy: proxyFromClient(c),
-		Dial: (&net.Dialer{
-			Timeout:   time.Duration(dialtime) * time.Second,
-			KeepAlive: time.Duration(keepalivetime) * time.Second,
-		}).Dial,
+		Proxy:               proxyFromClient(c),
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
 		MaxIdleConnsPerHost: concurrentTransfers,
+	}
+
+	activityTimeout := 10
+	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
+		if i, err := strconv.Atoi(v); err == nil {
+			activityTimeout = i
+		} else {
+			activityTimeout = 0
+		}
+	}
+
+	dialer := &net.Dialer{
+		Timeout:   time.Duration(dialtime) * time.Second,
+		KeepAlive: time.Duration(keepalivetime) * time.Second,
+		DualStack: true,
+	}
+
+	if activityTimeout > 0 {
+		activityDuration := time.Duration(activityTimeout) * time.Second
+		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			c, err := dialer.DialContext(ctx, network, addr)
+			if c == nil {
+				return c, err
+			}
+			if tc, ok := c.(*net.TCPConn); ok {
+				tc.SetKeepAlive(true)
+				tc.SetKeepAlivePeriod(dialer.KeepAlive)
+			}
+			return &deadlineConn{Timeout: activityDuration, Conn: c}, err
+		}
+	} else {
+		tr.DialContext = dialer.DialContext
 	}
 
 	tr.TLSClientConfig = &tls.Config{}
@@ -254,6 +289,26 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	newReq.Body = req.Body
 	newReq.ContentLength = req.ContentLength
 	return newReq, nil
+}
+
+type deadlineConn struct {
+	Timeout time.Duration
+	net.Conn
+}
+
+func (c *deadlineConn) Read(b []byte) (int, error) {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.Timeout)); err != nil {
+		return 0, err
+	}
+	return c.Conn.Read(b)
+}
+
+func (c *deadlineConn) Write(b []byte) (int, error) {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.Timeout)); err != nil {
+		return 0, err
+	}
+
+	return c.Conn.Write(b)
 }
 
 func init() {

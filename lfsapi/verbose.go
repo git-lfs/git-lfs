@@ -12,37 +12,36 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func (c *Client) traceRequest(req *http.Request) {
+func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 	tracerx.Printf("HTTP: %s", traceReq(req))
 
-	if !c.Verbose {
-		return
+	if c.Verbose {
+		if dump, err := httputil.DumpRequest(req, false); err == nil {
+			c.traceHTTPDump(">", dump)
+		}
 	}
 
-	if dump, err := httputil.DumpRequest(req, false); err == nil {
-		c.traceHTTPDump(">", dump)
-	}
-}
-
-func (c *Client) prepareRequestBody(req *http.Request) error {
 	body, ok := req.Body.(ReadSeekCloser)
 	if body != nil && !ok {
-		return fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
+		return nil, fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
 	}
 
 	if body != nil && ok {
 		body.Seek(0, io.SeekStart)
-		req.Body = &tracedRequest{
+		tr := &tracedRequest{
 			verbose:        c.Verbose && isTraceableContent(req.Header),
 			verboseOut:     c.VerboseOut,
 			ReadSeekCloser: body,
 		}
+		req.Body = tr
+		return tr, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 type tracedRequest struct {
+	BodySize   int64
 	verbose    bool
 	verboseOut io.Writer
 	ReadSeekCloser
@@ -50,11 +49,17 @@ type tracedRequest struct {
 
 func (r *tracedRequest) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadSeekCloser, b, r.verboseOut, false, r.verbose)
+	r.BodySize += int64(n)
 	return n, err
 }
 
-func (c *Client) traceResponse(res *http.Response) {
+func (c *Client) traceResponse(req *http.Request, tracedReq *tracedRequest, res *http.Response) {
+	if tracedReq != nil {
+		c.httpLogger.LogRequest(req, tracedReq.BodySize)
+	}
+
 	if res == nil {
+		c.httpLogger.LogResponse(req, -1, 0)
 		return
 	}
 
@@ -62,7 +67,7 @@ func (c *Client) traceResponse(res *http.Response) {
 
 	verboseBody := isTraceableContent(res.Header)
 	res.Body = &tracedResponse{
-		client:     c,
+		httpLogger: c.httpLogger,
 		response:   res,
 		gitTrace:   verboseBody,
 		verbose:    verboseBody && c.Verbose,
@@ -85,21 +90,23 @@ func (c *Client) traceResponse(res *http.Response) {
 }
 
 type tracedResponse struct {
-	Count      int
-	client     *Client
+	BodySize   int64
+	httpLogger *syncLogger
 	response   *http.Response
 	verbose    bool
 	gitTrace   bool
 	verboseOut io.Writer
+	eof        bool
 	io.ReadCloser
 }
 
 func (r *tracedResponse) Read(b []byte) (int, error) {
 	n, err := tracedRead(r.ReadCloser, b, r.verboseOut, r.gitTrace, r.verbose)
-	r.Count += n
+	r.BodySize += int64(n)
 
-	if err == io.EOF {
-		r.client.finishResponseStats(r.response, int64(r.Count))
+	if err == io.EOF && !r.eof {
+		r.httpLogger.LogResponse(r.response.Request, r.response.StatusCode, r.BodySize)
+		r.eof = true
 	}
 	return n, err
 }
