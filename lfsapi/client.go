@@ -14,7 +14,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -195,13 +194,20 @@ func (c *Client) httpClient(host string) *http.Client {
 		tlstime = 30
 	}
 
+	tr := &http.Transport{
+		Proxy:               proxyFromClient(c),
+		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
+		MaxIdleConnsPerHost: concurrentTransfers,
+	}
+
 	activityTimeout := 10
 	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
 		if i, err := strconv.Atoi(v); err == nil {
-			activityTimeout = tools.MaxInt(i, 1)
+			activityTimeout = i
+		} else {
+			activityTimeout = 0
 		}
 	}
-	activityDuration := time.Duration(activityTimeout) * time.Second
 
 	dialer := &net.Dialer{
 		Timeout:   time.Duration(dialtime) * time.Second,
@@ -209,9 +215,9 @@ func (c *Client) httpClient(host string) *http.Client {
 		DualStack: true,
 	}
 
-	tr := &http.Transport{
-		Proxy: proxyFromClient(c),
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+	if activityTimeout > 0 {
+		activityDuration := time.Duration(activityTimeout) * time.Second
+		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			c, err := dialer.DialContext(ctx, network, addr)
 			if c == nil {
 				return c, err
@@ -221,9 +227,9 @@ func (c *Client) httpClient(host string) *http.Client {
 				tc.SetKeepAlivePeriod(dialer.KeepAlive)
 			}
 			return &deadlineConn{Timeout: activityDuration, Conn: c}, err
-		},
-		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
-		MaxIdleConnsPerHost: concurrentTransfers,
+		}
+	} else {
+		tr.DialContext = dialer.DialContext
 	}
 
 	tr.TLSClientConfig = &tls.Config{}
