@@ -48,8 +48,9 @@ type uploadContext struct {
 	trackedLocksMu *sync.Mutex
 
 	// ALL verifiable locks
-	ourLocks   map[string]locking.Lock
-	theirLocks map[string]locking.Lock
+	lockVerifyState verifyState
+	ourLocks        map[string]locking.Lock
+	theirLocks      map[string]locking.Lock
 
 	// locks from ourLocks that were modified in this push
 	ownedLocks []locking.Lock
@@ -101,7 +102,8 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 
-	ourLocks, theirLocks := verifyLocks(remote)
+	ourLocks, theirLocks, verifyState := verifyLocks(remote)
+	ctx.lockVerifyState = verifyState
 	for _, l := range theirLocks {
 		ctx.theirLocks[l.Path] = l
 	}
@@ -112,13 +114,9 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	return ctx
 }
 
-func verifyLocks(remote string) (ours, theirs []locking.Lock) {
+func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
 	endpoint := getAPIClient().Endpoints.Endpoint("upload", remote)
-
 	state := getVerifyStateFor(endpoint)
-	if state == verifyStateDisabled {
-		return
-	}
 
 	lockClient := newLockClient(remote)
 
@@ -126,22 +124,27 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock) {
 	if err != nil {
 		if errors.IsNotImplementedError(err) {
 			disableFor(endpoint)
-		} else if !errors.IsAuthError(err) {
-			Print("Remote %q does not support the LFS locking API. Consider disabling it with:", remote)
-			Print("  $ git config 'lfs.%s.locksverify' false", endpoint.Url)
-
-			if state == verifyStateEnabled {
-				ExitWithError(err)
+		} else if state == verifyStateUnknown || state == verifyStateEnabled {
+			if errors.IsAuthError(err) {
+				if state == verifyStateUnknown {
+					Error("WARNING: Authentication error: %s", err)
+				} else if state == verifyStateEnabled {
+					Exit("ERROR: Authentication error: %s", err)
+				}
+			} else {
+				Print("Remote %q does not support the LFS locking API. Consider disabling it with:", remote)
+				Print("  $ git config 'lfs.%s.locksverify' false", endpoint.Url)
+				if state == verifyStateEnabled {
+					ExitWithError(err)
+				}
 			}
-		} else {
-			ExitWithError(err)
 		}
 	} else if state == verifyStateUnknown {
 		Print("Locking support detected on remote %q. Consider enabling it with:", remote)
 		Print("  $ git config 'lfs.%s.locksverify' true", endpoint.Url)
 	}
 
-	return ours, theirs
+	return ours, theirs, state
 }
 
 func (c *uploadContext) scannerError() error {
@@ -223,7 +226,16 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 			c.trackedLocksMu.Lock()
 			c.unownedLocks = append(c.unownedLocks, lock)
 			c.trackedLocksMu.Unlock()
-			canUpload = false
+
+			// If the verification state is enabled, this failed
+			// locks verification means that the push should fail.
+			//
+			// If the state is disabled, the verification error is
+			// silent and the user can upload.
+			//
+			// If the state is undefined, the verification error is
+			// sent as a warning and the user can upload.
+			canUpload = c.lockVerifyState != verifyStateEnabled
 		}
 
 		if lock, ok := c.ourLocks[p.Name]; ok {
@@ -308,15 +320,17 @@ func (c *uploadContext) Await() {
 		os.Exit(2)
 	}
 
-	var avoidPush bool
-
 	c.trackedLocksMu.Lock()
 	if ul := len(c.unownedLocks); ul > 0 {
-		avoidPush = true
-
 		Print("Unable to push %d locked file(s):", ul)
 		for _, unowned := range c.unownedLocks {
 			Print("* %s - %s", unowned.Path, unowned.Owner)
+		}
+
+		if c.lockVerifyState == verifyStateEnabled {
+			Exit("ERROR: Cannot update locked files.")
+		} else {
+			Error("WARNING: The above files would have halted this push.")
 		}
 	} else if len(c.ownedLocks) > 0 {
 		Print("Consider unlocking your own locked file(s): (`git lfs unlock <path>`)")
@@ -325,10 +339,6 @@ func (c *uploadContext) Await() {
 		}
 	}
 	c.trackedLocksMu.Unlock()
-
-	if avoidPush {
-		Error("WARNING: The above files would have halted this push.")
-	}
 }
 
 var (

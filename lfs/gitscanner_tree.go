@@ -48,6 +48,8 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper, error) {
 	scanner, err := NewPointerScanner()
 	if err != nil {
+		scanner.Close()
+
 		return nil, err
 	}
 
