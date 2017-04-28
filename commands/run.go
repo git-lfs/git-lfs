@@ -65,8 +65,8 @@ func Run() {
 		}
 	}
 
-	defer getAPIClient().Close()
 	root.Execute()
+	getAPIClient().Close()
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
