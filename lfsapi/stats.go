@@ -21,6 +21,7 @@ type httpTransfer struct {
 	Key             string
 	RequestBodySize int64
 	Start           int64
+	ResponseStart   int64
 	ConnStart       int64
 	ConnEnd         int64
 	DNSStart        int64
@@ -80,6 +81,9 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
 			atomic.CompareAndSwapInt64(&t.TLSEnd, 0, time.Now().UnixNano())
 		},
+		GotFirstResponseByte: func() {
+			atomic.CompareAndSwapInt64(&t.ResponseStart, 0, time.Now().UnixNano())
+		},
 	})
 
 	return r.WithContext(context.WithValue(ctx, transferKey, t))
@@ -130,12 +134,13 @@ func (l *syncLogger) LogResponse(req *http.Request, status int, bodySize int64) 
 		t := v.(*httpTransfer)
 		now := time.Now().UnixNano()
 		l.logTransfer(t, "request",
-			fmt.Sprintf(" status=%d body=%d conntime=%d dnstime=%d tlstime=%d time=%d",
+			fmt.Sprintf(" status=%d body=%d conntime=%d dnstime=%d tlstime=%d restime=%d time=%d",
 				status,
 				bodySize,
 				tools.MaxInt64(t.ConnEnd-t.ConnStart, 0),
 				tools.MaxInt64(t.DNSEnd-t.DNSStart, 0),
 				tools.MaxInt64(t.TLSEnd-t.TLSStart, 0),
+				tools.MaxInt64(now-t.ResponseStart, 0),
 				tools.MaxInt64(now-t.Start, 0),
 			))
 	}
