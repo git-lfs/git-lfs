@@ -1,5 +1,78 @@
 # Git LFS Changelog
 
+## 2.1.0 (28 April, 2017)
+
+### Features
+
+* commands/track: teach --no-modify-attrs #2175 (@ttaylorr)
+* commands/status: add blob info to each entry #2070 (@ttaylorr)
+* lfsapi: improve HTTP request/response stats #2184 (@technoweenie)
+* all: support URL-style configuration lookups (@ttaylorr)
+  * commands: support URL-style lookups for `lfs.{url}.locksverify` #2162 (@ttaylorr)
+  * lfsapi: support URL-style lookups for `lfs.{url}.access` #2161 (@ttaylorr)
+  * lfsapi/certs: use `*config.URLConfig` to do per-host config lookup #2160 (@ttaylorr)
+  * lfsapi: support for http.<url>.extraHeader #2159 (@ttaylorr)
+  * config: add prefix to URLConfig type #2158 (@ttaylorr)
+  * config: remove dependency on lfsapi package #2156 (@ttaylorr)
+  * config: support multi-value lookup on URLConfig #2154 (@ttaylorr)
+  * lfsapi: initial httpconfig type #1912 (@technoweenie, @ttaylorr)
+* lfsapi,tq: relative expiration support #2130 (@ttaylorr)
+
+### Bugs
+
+* commands: include error in `LoggedError()` #2179 (@ttaylorr)
+* commands: cross-platform log formatting to files #2178 (@ttaylorr)
+* locks: cross-platform path normalization #2139 (@ttaylorr)
+* commands,locking: don't disable locking for auth errors during verify #2110 (@ttaylorr)
+* commands/status: show partially staged files twice #2067 (@ttaylorr)
+
+### Misc
+
+* all: build on Go 1.8.1 #2145 (@ttaylorr)
+* Polish custom-transfers.md #2171 (@sprohaska)
+* commands/push: Fix typo in comment #2170 (@sprohaska)
+* config: support multi-valued config entries #2152 (@ttaylorr)
+* smudge: use localstorage temp directory, not system #2140 (@ttaylorr)
+* locking: send locks limit to server #2107 (@ttaylorr)
+* lfs: extract `DiffIndexScanner` #2035 (@ttaylorr)
+* status: use DiffIndexScanner to populate results #2042 (@ttaylorr)
+
+## 2.0.2 (29 March, 2017)
+
+### Features
+
+* ssh auth and credential helper caching #2094 (@ttaylorr)
+* commands,tq: specialized logging for missing/corrupt objects #2085 (@ttaylorr)
+* commands/clone: install repo-level hooks after `git lfs clone` #2074
+* (@ttaylorr)
+* debian: Support building on armhf and arm64 #2089 (@p12tic)
+
+### Bugs
+
+* commands,locking: don't disable locking for auth errors during verify #2111
+* (@ttaylorr)
+* commands: show real error while cleaning #2096 (@ttaylorr)
+* lfsapi/auth: optionally prepend an empty scheme to Git remote URLs #2092
+* (@ttaylorr)
+* tq/verify: authenticate verify requests if required #2084 (@ttaylorr)
+* commands/{,un}track: correctly escape '#' and ' ' characters #2079 (@ttaylorr)
+* tq: use initialized lfsapi.Client instances in transfer adapters #2048
+* (@ttaylorr)
+
+### Misc
+
+* locking: send locks limit to server #2109 (@ttaylorr)
+* docs: update configuration documentation #2097 #2019 #2102 (@terrorobe)
+* docs: update locking API documentation #2099 #2101 (@dpursehouse)
+* fixed table markdown in README.md #2095 (@ZaninAndrea)
+* remove the the duplicate work #2098 (@grimreaper)
+
+## 2.0.1 (6 March, 2017)
+
+### Misc
+
+* tq: fallback to `_links` if present #2007 (@ttaylorr)
+
 ## 2.0.0 (1 March, 2017)
 
 Git LFS v2.0.0 brings a number of important bug fixes, some new features, and
