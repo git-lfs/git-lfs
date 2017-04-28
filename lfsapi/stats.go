@@ -133,7 +133,7 @@ func (l *syncLogger) LogResponse(req *http.Request, status int, bodySize int64) 
 	if v := req.Context().Value(transferKey); v != nil {
 		t := v.(*httpTransfer)
 		now := time.Now().UnixNano()
-		l.logTransfer(t, "request",
+		l.logTransfer(t, "response",
 			fmt.Sprintf(" status=%d body=%d conntime=%d dnstime=%d tlstime=%d restime=%d time=%d",
 				status,
 				bodySize,

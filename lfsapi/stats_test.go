@@ -48,6 +48,7 @@ func TestStatsWithKey(t *testing.T) {
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
+	assert.Nil(t, c.Close())
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
@@ -55,7 +56,7 @@ func TestStatsWithKey(t *testing.T) {
 	stats := strings.TrimSpace(out.String())
 	t.Log(stats)
 	lines := strings.Split(stats, "\n")
-	assert.Equal(t, 2, len(lines))
+	require.Equal(t, 3, len(lines))
 	assert.True(t, strings.Contains(lines[0], "concurrent=5"))
 	expected := []string{
 		"key=stats-test",
@@ -66,6 +67,16 @@ func TestStatsWithKey(t *testing.T) {
 
 	for _, substr := range expected {
 		assert.True(t, strings.Contains(lines[1], substr), "missing: "+substr)
+	}
+
+	expected = []string{
+		"key=stats-test",
+		"event=response",
+		"url=" + srv.URL,
+	}
+
+	for _, substr := range expected {
+		assert.True(t, strings.Contains(lines[2], substr), "missing: "+substr)
 	}
 }
 
@@ -100,6 +111,7 @@ func TestStatsWithoutKey(t *testing.T) {
 	require.Nil(t, err)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
+	assert.Nil(t, c.Close())
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
