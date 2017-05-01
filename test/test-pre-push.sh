@@ -625,8 +625,7 @@ begin_test "pre-push locks verify 5xx with verification enabled"
 )
 end_test
 
-
-begin_test "pre-push locks verify 5xx with verification disabled"
+begin_test "pre-push disable locks verify on exact url"
 (
   set -e
 
@@ -635,6 +634,32 @@ begin_test "pre-push locks verify 5xx with verification disabled"
   clone_repo "$reponame" "$reponame"
 
   endpoint="$(repo_endpoint $GITSERVER $reponame)"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$endpoint.locksverify" false
+
+  git push origin master 2>&1 | tee push.log
+  [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push disable locks verify on partial url"
+(
+  set -e
+
+  reponame="lock-disabled-verify-5xx-partial"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint="$server/$repo"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
