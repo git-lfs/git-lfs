@@ -200,6 +200,36 @@ begin_test "pre-push with missing pointer not on server"
 )
 end_test
 
+begin_test "pre-push with missing object (lfs.allowincompletepush)"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-missing-pointer-allow-incomplete"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  oid="7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
+
+  echo "$(pointer "$oid" 4)" > new.dat
+  git add new.dat
+  git commit -m "add new pointer"
+
+  git config "lfs.allowincompletepush" "true"
+
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+
+  if [ "0" -ne "${PIPESTATUS[1]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to succeed"
+    exit 1
+  fi
+
+  grep "LFS upload missing objects" push.log
+  grep "  (missing) new.dat ($oid)" push.log
+)
+end_test
+
 begin_test "pre-push with missing pointer which is on server"
 (
   # should permit push if files missing locally but are on server, shouldn't
