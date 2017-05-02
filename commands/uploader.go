@@ -326,9 +326,13 @@ func (c *uploadContext) Await() {
 		for name, oid := range corrupt {
 			Print("  (corrupt) %s (%s)", name, oid)
 		}
+
+		if !c.allowMissing {
+			os.Exit(2)
+		}
 	}
 
-	if len(c.tq.Errors()) > 0 {
+	if len(others) > 0 {
 		os.Exit(2)
 	}
 
