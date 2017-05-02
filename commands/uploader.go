@@ -302,6 +302,10 @@ func (c *uploadContext) Await() {
 		}
 	}
 
+	for _, err := range others {
+		FullError(err)
+	}
+
 	if len(missing) > 0 || len(corrupt) > 0 {
 		Print("LFS upload failed:")
 		for name, oid := range missing {
@@ -310,10 +314,6 @@ func (c *uploadContext) Await() {
 		for name, oid := range corrupt {
 			Print("  (corrupt) %s (%s)", name, oid)
 		}
-	}
-
-	for _, err := range others {
-		FullError(err)
 	}
 
 	if len(c.tq.Errors()) > 0 {
