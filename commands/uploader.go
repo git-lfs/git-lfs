@@ -58,6 +58,10 @@ type uploadContext struct {
 	// locks from theirLocks that were modified in this push
 	unownedLocks []locking.Lock
 
+	// allowMissing specifies whether pushes containing missing/corrupt
+	// pointers should allow pushing Git blobs
+	allowMissing bool
+
 	// tracks errors from gitscanner callbacks
 	scannerErr error
 	errMu      sync.Mutex
@@ -96,6 +100,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		ourLocks:       make(map[string]locking.Lock),
 		theirLocks:     make(map[string]locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
+		allowMissing:   cfg.Git.Bool("lfs.allowincompletepush", false),
 	}
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)
