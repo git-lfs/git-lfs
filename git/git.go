@@ -251,15 +251,8 @@ func ValidateRemote(remote string) error {
 
 // ValidateRemoteURL checks that a string is a valid Git remote URL
 func ValidateRemoteURL(remote string) error {
-	u, err := url.Parse(remote)
-	if err != nil {
-		return err
-	}
-
-	switch u.Scheme {
-	case "ssh", "http", "https", "git":
-		return nil
-	case "":
+	u, _ := url.Parse(remote)
+	if u == nil || u.Scheme == "" {
 		// This is either an invalid remote name (maybe the user made a typo
 		// when selecting a named remote) or a bare SSH URL like
 		// "x@y.com:path/to/resource.git". Guess that this is a URL in the latter
@@ -267,8 +260,14 @@ func ValidateRemoteURL(remote string) error {
 		// does not.
 		if strings.Contains(remote, ":") {
 			return nil
+		} else {
+			return fmt.Errorf("Invalid remote name: %q", remote)
 		}
-		return fmt.Errorf("Invalid remote name: %q", remote)
+	}
+
+	switch u.Scheme {
+	case "ssh", "http", "https", "git":
+		return nil
 	default:
 		return fmt.Errorf("Invalid remote url protocol %q in %q", u.Scheme, remote)
 	}
