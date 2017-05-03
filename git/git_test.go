@@ -531,3 +531,14 @@ func TestGetFilesChanges(t *testing.T) {
 	assert.Equal(t, expected1to2, changes)
 
 }
+
+func TestValidateRemoteURL(t *testing.T) {
+	assert.Nil(t, ValidateRemoteURL("https://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("http://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("ssh://git@github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("ssh://git@github.com:22/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git@github.com:git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git@server:/absolute/path.git"))
+	assert.NotNil(t, ValidateRemoteURL("ftp://git@github.com/git-lfs/git-lfs"))
+}
