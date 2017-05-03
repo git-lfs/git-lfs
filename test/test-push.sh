@@ -610,4 +610,48 @@ begin_test "push with deprecated _links"
 
   assert_server_object "$reponame" "$contents_oid"
 )
+
+begin_test "push with missing objects (lfs.allowincompletepush)"
+(
+  set -e
+
+  reponame="push-with-missing-objects"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  present="present"
+  present_oid="$(calc_oid "$present")"
+  printf "$present" > present.dat
+
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "$missing" > missing.dat
+
+  git add missing.dat present.dat
+  git commit -m "add objects"
+
+  # :fire: the "missing" object
+  missing_oid_part_1="$(echo "$missing_oid" | cut -b 1-2)"
+  missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"
+  missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
+  rm "$missing_oid_path"
+
+  git config "lfs.allowincompletepush" "true"
+
+  git push origin master 2>&1 | tee push.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \`git push origin master\` to succeed ..."
+    exit 1
+  fi
+
+  grep "LFS upload missing objects" push.log
+  grep "  (missing) missing.dat ($missing_oid)" push.log
+
+  assert_server_object "$reponame" "$present_oid"
+  refute_server_object "$reponame" "$missing_oid"
+)
 end_test
