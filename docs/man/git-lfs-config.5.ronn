@@ -128,6 +128,13 @@ be scoped inside the configuration for a remote.
   not an integer, is less than one, or is not given, a default value of three
   will be used instead.
 
+### Push settings
+
+* `lfs.allowincompletepush`
+
+  When pushing, allow objects to be missing from the local cache without halting
+  a Git push.
+
 ### Fetch settings
 
 * `lfs.fetchinclude`
@@ -141,7 +148,6 @@ be scoped inside the configuration for a remote.
   When fetching, do not download objects which match any item on this
   comma-separated list of paths/filenames. Wildcard matching is as per
   git-ignore(1). See git-lfs-fetch(1) for examples.
-
 
 * `lfs.fetchrecentrefsdays`
 
