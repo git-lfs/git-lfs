@@ -931,6 +931,7 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
 	}
 	cmd.Start()
+	defer cmd.Wait()
 	scanner := bufio.NewScanner(outp)
 
 	r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
@@ -960,6 +961,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 		return nil, fmt.Errorf("Failed to call git ls-remote: %v", err)
 	}
 	cmd.Start()
+	defer cmd.Wait()
 	scanner := bufio.NewScanner(outp)
 
 	r := regexp.MustCompile(`([0-9a-fA-F]{40})\s+refs/(heads|tags)/(.*)`)
