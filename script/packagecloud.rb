@@ -53,6 +53,13 @@ $distro_name_map = {
     ubuntu/wily
     ubuntu/xenial
   ),
+  "debian/9" => %W(
+    debian/stretch
+    linuxmint/sarah
+    linuxmint/serena
+    ubuntu/yakkety
+    ubuntu/zesty
+  ),
 }
 
 # caches distro id lookups
