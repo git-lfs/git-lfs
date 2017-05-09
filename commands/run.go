@@ -102,9 +102,9 @@ func usageCommand(cmd *cobra.Command) error {
 
 func printHelp(commandName string) {
 	if txt, ok := ManPages[commandName]; ok {
-		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(txt))
+		fmt.Fprintf(os.Stdout, "%s\n", strings.TrimSpace(txt))
 	} else {
-		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
+		fmt.Fprintf(os.Stdout, "Sorry, no usage text found for %q\n", commandName)
 	}
 }
 
