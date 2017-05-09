@@ -54,7 +54,7 @@ while [[ $# > 0 ]]; do
 done
 
 if [[ ${#IMAGES[@]} == 0 ]]; then
-  IMAGES=(centos_6 centos_7 debian_7 debian_8)
+  IMAGES=(centos_6 centos_7 debian_7 debian_8 debian_9)
 fi
 
 mkdir -p "${PACKAGE_DIR}"
