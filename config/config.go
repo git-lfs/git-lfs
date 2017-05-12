@@ -3,9 +3,11 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/tools"
@@ -120,32 +122,27 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 		field := into.Field(i)
 		sfield := into.Type().Field(i)
 
-		key, env, err := c.parseTag(sfield.Tag)
-		if err != nil {
-			return err
-		}
-
-		if env == nil {
-			continue
-		}
-
 		var val interface{}
-		switch sfield.Type.Kind() {
-		case reflect.String:
-			var ok bool
-
-			val, ok = env.Get(key)
-			if !ok {
-				val = field.String()
+		for _, lookup := range c.parseTag(sfield.Tag) {
+			if _, ok := lookup.Get(); !ok {
+				continue
 			}
-		case reflect.Int:
-			val = env.Int(key, int(field.Int()))
-		case reflect.Bool:
-			val = env.Bool(key, field.Bool())
-		default:
-			return fmt.Errorf(
-				"lfs/config: unsupported target type for field %q: %v",
-				sfield.Name, sfield.Type.String())
+
+			switch sfield.Type.Kind() {
+			case reflect.String:
+				val, _ = lookup.Get()
+			case reflect.Int:
+				val = lookup.Int(int(field.Int()))
+			case reflect.Bool:
+				val = lookup.Bool(field.Bool())
+			default:
+				return fmt.Errorf("lfs/config: unsupported target type for field %q: %v",
+					sfield.Name, sfield.Type.String())
+			}
+
+			if val != nil {
+				break
+			}
 		}
 
 		if val != nil {
@@ -156,27 +153,59 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 	return nil
 }
 
+var (
+	tagRe    = regexp.MustCompile("((\\w+:\"[^\"]*\")\\b?)+")
+	emptyEnv = EnvironmentOf(MapFetcher(nil))
+)
+
+type lookup struct {
+	key string
+	env Environment
+}
+
+func (l *lookup) Get() (interface{}, bool) { return l.env.Get(l.key) }
+func (l *lookup) Int(or int) int           { return l.env.Int(l.key, or) }
+func (l *lookup) Bool(or bool) bool        { return l.env.Bool(l.key, or) }
+
 // parseTag returns the key, environment, and optional error assosciated with a
 // given tag. It will return the XOR of either the `git` or `os` tag. That is to
 // say, a field tagged with EITHER `git` OR `os` is valid, but pone tagged with
 // both is not.
 //
 // If neither field was found, then a nil environment will be returned.
-func (c *Configuration) parseTag(tag reflect.StructTag) (key string, env Environment, err error) {
-	git, os := tag.Get("git"), tag.Get("os")
+func (c *Configuration) parseTag(tag reflect.StructTag) []*lookup {
+	var lookups []*lookup
 
-	if len(git) != 0 && len(os) != 0 {
-		return "", nil, errors.New("lfs/config: ambiguous tags")
+	parts := tagRe.FindAllString(string(tag), -1)
+	for _, part := range parts {
+		sep := strings.SplitN(part, ":", 2)
+		if len(sep) != 2 {
+			panic(fmt.Sprintf("config: invalid struct tag %q", tag))
+		}
+
+		var env Environment
+		switch strings.ToLower(sep[0]) {
+		case "git":
+			env = c.Git
+		case "os":
+			env = c.Os
+		default:
+			// ignore other struct tags, like `json:""`, etc.
+			env = emptyEnv
+		}
+
+		uq, err := strconv.Unquote(sep[1])
+		if err != nil {
+			panic(err.Error())
+		}
+
+		lookups = append(lookups, &lookup{
+			key: uq,
+			env: env,
+		})
 	}
 
-	if len(git) != 0 {
-		return git, c.Git, nil
-	}
-	if len(os) != 0 {
-		return os, c.Os, nil
-	}
-
-	return
+	return lookups
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
