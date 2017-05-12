@@ -74,7 +74,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 	var creds CredentialHelper = &commandCredentialHelper{
 		SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
 	}
-	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
+	var sshResolver SSHResolver = &sshAuthClient{os: osEnv, git: gitEnv}
 
 	if gitEnv.Bool("lfs.cachecredentials", false) {
 		creds = withCredentialCache(creds)
