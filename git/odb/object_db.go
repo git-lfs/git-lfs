@@ -21,6 +21,33 @@ func FromFilesystem(root string) (*ObjectDatabase, error) {
 	return &ObjectDatabase{s: NewFileStorer(root)}, nil
 }
 
+// Blob returns a *Blob as identified by the SHA given, or an error if one was
+// encountered.
+func (o *ObjectDatabase) Blob(sha []byte) (*Blob, error) {
+	var b Blob
+
+	if err := o.decode(sha, &b); err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+// WriteBlob stores a *Blob on disk and returns the SHA it is uniquely
+// identified by, or an error if one was encountered.
+func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
+	buf, err := ioutil.TempFile("", "")
+	if err != nil {
+		return nil, err
+	}
+	defer buf.Close()
+
+	sha, _, err := o.encodeBuffer(b, buf)
+	if err != nil {
+		return nil, err
+	}
+	return sha, nil
+}
+
 // encode encodes and saves an object to the storage backend and uses an
 // in-memory buffer to calculate the object's encoded body.
 func (d *ObjectDatabase) encode(object Object) (sha []byte, n int, err error) {
