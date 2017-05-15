@@ -32,6 +32,16 @@ func (o *ObjectDatabase) Blob(sha []byte) (*Blob, error) {
 	return &b, nil
 }
 
+// Tree returns a *Tree as identified by the SHA given, or an error if one was
+// encountered.
+func (o *ObjectDatabase) Tree(sha []byte) (*Tree, error) {
+	var t Tree
+	if err := o.decode(sha, &t); err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 // WriteBlob stores a *Blob on disk and returns the SHA it is uniquely
 // identified by, or an error if one was encountered.
 func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
@@ -42,6 +52,16 @@ func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
 	defer buf.Close()
 
 	sha, _, err := o.encodeBuffer(b, buf)
+	if err != nil {
+		return nil, err
+	}
+	return sha, nil
+}
+
+// WriteTree stores a *Tree on disk and returns the SHA it is uniquely
+// identified by, or an error if one was encountered.
+func (o *ObjectDatabase) WriteTree(t *Tree) ([]byte, error) {
+	sha, _, err := o.encode(t)
 	if err != nil {
 		return nil, err
 	}
