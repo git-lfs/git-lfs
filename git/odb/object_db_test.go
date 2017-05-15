@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,6 +73,37 @@ func TestDecodeTree(t *testing.T) {
 	}, tree.Entries[0])
 }
 
+func TestDecodeCommit(t *testing.T) {
+	sha := "d7283480bb6dc90be621252e1001a93871dcf511"
+	commitShaHex, err := hex.DecodeString(sha)
+	assert.Nil(t, err)
+
+	var buf bytes.Buffer
+
+	zw := zlib.NewWriter(&buf)
+	fmt.Fprintf(zw, "commit 173\x00")
+	fmt.Fprintf(zw, "tree fcb545d5746547a597811b7441ed8eba307be1ff\n")
+	fmt.Fprintf(zw, "author Taylor Blau <me@ttaylorr.com> 1494620424 -0600\n")
+	fmt.Fprintf(zw, "committer Taylor Blau <me@ttaylorr.com> 1494620424 -0600\n")
+	fmt.Fprintf(zw, "\ninitial commit\n")
+	zw.Close()
+
+	odb := &ObjectDatabase{s: NewMemoryStorer(map[string]io.ReadWriter{
+		sha: &buf,
+	})}
+
+	commit, err := odb.Commit(commitShaHex)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "Taylor Blau", commit.Author.Name)
+	assert.Equal(t, "me@ttaylorr.com", commit.Author.Email)
+	assert.Equal(t, "Taylor Blau", commit.Committer.Name)
+	assert.Equal(t, "me@ttaylorr.com", commit.Committer.Email)
+	assert.Equal(t, "initial commit", commit.Message)
+	assert.Equal(t, 0, len(commit.ParentIds))
+	assert.Equal(t, "fcb545d5746547a597811b7441ed8eba307be1ff", hex.EncodeToString(commit.TreeId))
+}
+
 func TestWriteBlob(t *testing.T) {
 	fs := NewMemoryStorer(make(map[string]io.ReadWriter))
 	odb := &ObjectDatabase{s: fs}
@@ -106,6 +138,32 @@ func TestWriteTree(t *testing.T) {
 	}})
 
 	expected := "fcb545d5746547a597811b7441ed8eba307be1ff"
+
+	assert.Nil(t, err)
+	assert.Equal(t, expected, hex.EncodeToString(sha))
+	assert.NotNil(t, fs.fs[hex.EncodeToString(sha)])
+}
+
+func TestWriteCommit(t *testing.T) {
+	fs := NewMemoryStorer(make(map[string]io.ReadWriter))
+	odb := &ObjectDatabase{s: fs}
+
+	when := time.Unix(1494258422, 0)
+	author := &Signature{Name: "John Doe", Email: "john@example.com", When: when}
+	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: when}
+
+	tree := "fcb545d5746547a597811b7441ed8eba307be1ff"
+	treeHex, err := hex.DecodeString(tree)
+	assert.Nil(t, err)
+
+	sha, err := odb.WriteCommit(&Commit{
+		Author:    author,
+		Committer: committer,
+		TreeId:    treeHex,
+		Message:   "initial commit",
+	})
+
+	expected := "5ba51ea684770de6fef57a94734c4f4a02cb361b"
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, hex.EncodeToString(sha))
