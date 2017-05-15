@@ -46,9 +46,8 @@ func TestCommitEncoding(t *testing.T) {
 }
 
 func TestCommitDecoding(t *testing.T) {
-	when := time.Unix(1494258422, 0)
-	author := &Signature{Name: "John Doe", Email: "john@example.com", When: when}
-	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: when}
+	author := &Signature{Name: "John Doe", Email: "john@example.com", When: time.Now()}
+	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: time.Now()}
 
 	p1 := []byte("aaaaaaaaaaaaaaaaaaaa")
 	p2 := []byte("bbbbbbbbbbbbbbbbbbbb")
