@@ -26,8 +26,7 @@ func (b *Blob) Type() ObjectType { return BlobObjectType }
 // being read. It returns the number of bytes that it consumed off of the
 // stream, which is always zero.
 //
-// If any error(s) was(were) encountered while reading the blob, that error will
-// be returned.
+// If any errors are encountered while reading the blob, they will be returned.
 func (b *Blob) Decode(r io.Reader, size int64) (n int, err error) {
 	b.Size = size
 	b.Contents = io.LimitReader(r, size)
