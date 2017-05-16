@@ -67,7 +67,16 @@ func (t *Tree) Decode(from io.Reader, size int64) (n int, err error) {
 		case syscall.S_IFLNK:
 			typ = BlobObjectType
 		default:
-			panic(fmt.Sprintf("git/odb: unknown object type: %q %q", modes, fname))
+			if mode == 0xe000 {
+				// Mode 0xe000, or a gitlink, has no formal
+				// filesystem (`syscall.S_IF<t>`) equivalent.
+				//
+				// Safeguard that catch here, or otherwise
+				// panic.
+				typ = CommitObjectType
+			} else {
+				panic(fmt.Sprintf("git/odb: unknown object type: %q %q", modes, fname))
+			}
 		}
 
 		entries = append(entries, &TreeEntry{

@@ -29,6 +29,12 @@ func TestTreeEncoding(t *testing.T) {
 				Oid:      []byte("bbbbbbbbbbbbbbbbbbbb"),
 				Filemode: 040000,
 			},
+			{
+				Name:     "submodule",
+				Type:     CommitObjectType,
+				Oid:      []byte("cccccccccccccccccccc"),
+				Filemode: 0160000,
+			},
 		},
 	}
 
@@ -40,6 +46,7 @@ func TestTreeEncoding(t *testing.T) {
 
 	assertTreeEntry(t, buf, "a.dat", BlobObjectType, []byte("aaaaaaaaaaaaaaaaaaaa"), 0100644)
 	assertTreeEntry(t, buf, "subdir", TreeObjectType, []byte("bbbbbbbbbbbbbbbbbbbb"), 040000)
+	assertTreeEntry(t, buf, "submodule", CommitObjectType, []byte("cccccccccccccccccccc"), 0160000)
 
 	assert.Equal(t, 0, buf.Len())
 }
@@ -55,6 +62,9 @@ func TestTreeDecoding(t *testing.T) {
 	fmt.Fprintf(from, "%s %s\x00%s",
 		strconv.FormatInt(int64(0120000), 8),
 		"symlink", []byte("cccccccccccccccccccc"))
+	fmt.Fprintf(from, "%s %s\x00%s",
+		strconv.FormatInt(int64(0160000), 8),
+		"submodule", []byte("dddddddddddddddddddd"))
 
 	flen := from.Len()
 
@@ -64,7 +74,7 @@ func TestTreeDecoding(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, flen, n)
 
-	require.Equal(t, 3, len(tree.Entries))
+	require.Equal(t, 4, len(tree.Entries))
 	assert.Equal(t, &TreeEntry{
 		Name:     "a.dat",
 		Type:     BlobObjectType,
@@ -83,6 +93,12 @@ func TestTreeDecoding(t *testing.T) {
 		Oid:      []byte("cccccccccccccccccccc"),
 		Filemode: 0120000,
 	}, tree.Entries[2])
+	assert.Equal(t, &TreeEntry{
+		Name:     "submodule",
+		Type:     CommitObjectType,
+		Oid:      []byte("dddddddddddddddddddd"),
+		Filemode: 0160000,
+	}, tree.Entries[3])
 }
 
 func assertTreeEntry(t *testing.T, buf *bytes.Buffer,
