@@ -45,7 +45,7 @@ func (s *Signature) String() string {
 var (
 	signatureNameRe  = regexp.MustCompile("^[^<]+")
 	signatureEmailRe = regexp.MustCompile("<(.*)>")
-	signatureTimeRe  = regexp.MustCompile("(\\d+)(\\s[-]?\\d+)?$")
+	signatureTimeRe  = regexp.MustCompile("(\\d+)(\\s[-+]?\\d+)?$")
 )
 
 // ParseSignature parses a given string into a signature instance, returning any
