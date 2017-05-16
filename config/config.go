@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -122,8 +123,13 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 		field := into.Field(i)
 		sfield := into.Type().Field(i)
 
+		lookups, err := c.parseTag(sfield.Tag)
+		if err != nil {
+			return err
+		}
+
 		var val interface{}
-		for _, lookup := range c.parseTag(sfield.Tag) {
+		for _, lookup := range lookups {
 			if _, ok := lookup.Get(); !ok {
 				continue
 			}
@@ -173,14 +179,14 @@ func (l *lookup) Bool(or bool) bool        { return l.env.Bool(l.key, or) }
 // both is not.
 //
 // If neither field was found, then a nil environment will be returned.
-func (c *Configuration) parseTag(tag reflect.StructTag) []*lookup {
+func (c *Configuration) parseTag(tag reflect.StructTag) ([]*lookup, error) {
 	var lookups []*lookup
 
 	parts := tagRe.FindAllString(string(tag), -1)
 	for _, part := range parts {
 		sep := strings.SplitN(part, ":", 2)
 		if len(sep) != 2 {
-			panic(fmt.Sprintf("config: invalid struct tag %q", tag))
+			return nil, errors.Errorf("config: invalid struct tag %q", tag)
 		}
 
 		var env Environment
@@ -196,7 +202,7 @@ func (c *Configuration) parseTag(tag reflect.StructTag) []*lookup {
 
 		uq, err := strconv.Unquote(sep[1])
 		if err != nil {
-			panic(err.Error())
+			return nil, err
 		}
 
 		lookups = append(lookups, &lookup{
@@ -205,7 +211,7 @@ func (c *Configuration) parseTag(tag reflect.StructTag) []*lookup {
 		})
 	}
 
-	return lookups
+	return lookups, nil
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
