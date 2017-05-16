@@ -45,7 +45,7 @@ func (s *Signature) String() string {
 var (
 	signatureNameRe  = regexp.MustCompile("^[^<]+")
 	signatureEmailRe = regexp.MustCompile("<(.*)>")
-	signatureTimeRe  = regexp.MustCompile("[-]?\\d+")
+	signatureTimeRe  = regexp.MustCompile("(\\d+)(\\s[-]?\\d+)?$")
 )
 
 // ParseSignature parses a given string into a signature instance, returning any
@@ -57,25 +57,31 @@ var (
 func ParseSignature(str string) (*Signature, error) {
 	name := signatureNameRe.FindString(str)
 	emailParts := signatureEmailRe.FindStringSubmatch(str)
-	timeParts := signatureTimeRe.FindAllStringSubmatch(str, 2)
+	timeParts := signatureTimeRe.FindStringSubmatch(str)
 
 	if len(emailParts) < 2 {
 		return nil, errors.Errorf("git/odb: expected email in signature: %q", str)
 	}
 	email := emailParts[1]
 
-	if len(timeParts) < 1 {
+	if len(timeParts) < 2 {
 		return nil, errors.Errorf("git/odb: expected time in signature: %q", str)
 	}
 
-	epoch, err := strconv.ParseInt(timeParts[0][0], 10, 64)
+	timestamp, timezone := timeParts[1], "0000"
+	if len(timeParts) >= 3 {
+		timezone = strings.TrimSpace(timeParts[2])
+	}
+
+	epoch, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
 		return nil, errors.Errorf("git/odb: unable to parse time in signature: %q", str)
 	}
 
 	t := time.Unix(epoch, 0).In(time.UTC)
-	if len(timeParts) > 1 && timeParts[1][0] != "0000" {
-		loc, err := parseTimeZone(timeParts[1][0])
+
+	if timezone != "0000" {
+		loc, err := parseTimeZone(timezone)
 		if err != nil {
 			return nil, errors.Wrap(err, "git/odb: unable to coerce timezone")
 		}
