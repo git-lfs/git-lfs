@@ -101,7 +101,7 @@ func TestDecodeCommit(t *testing.T) {
 	assert.Equal(t, "me@ttaylorr.com", commit.Committer.Email)
 	assert.Equal(t, "initial commit", commit.Message)
 	assert.Equal(t, 0, len(commit.ParentIds))
-	assert.Equal(t, "fcb545d5746547a597811b7441ed8eba307be1ff", hex.EncodeToString(commit.TreeId))
+	assert.Equal(t, "fcb545d5746547a597811b7441ed8eba307be1ff", hex.EncodeToString(commit.TreeID))
 }
 
 func TestWriteBlob(t *testing.T) {
@@ -159,7 +159,7 @@ func TestWriteCommit(t *testing.T) {
 	sha, err := odb.WriteCommit(&Commit{
 		Author:    author,
 		Committer: committer,
-		TreeId:    treeHex,
+		TreeID:    treeHex,
 		Message:   "initial commit",
 	})
 

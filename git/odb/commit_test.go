@@ -25,7 +25,7 @@ func TestCommitEncoding(t *testing.T) {
 		ParentIds: [][]byte{
 			[]byte("aaaaaaaaaaaaaaaaaaaa"), []byte("bbbbbbbbbbbbbbbbbbbb"),
 		},
-		TreeId:  []byte("cccccccccccccccccccc"),
+		TreeID:  []byte("cccccccccccccccccccc"),
 		Message: "initial commit",
 	}
 

@@ -112,8 +112,8 @@ type Commit struct {
 	// ParentIds are the IDs of all parents for which this commit is a
 	// linear child.
 	ParentIds [][]byte
-	// TreeId is the root Tree associated with this commit.
-	TreeId []byte
+	// TreeID is the root Tree associated with this commit.
+	TreeID []byte
 	// Message is the commit message, including any signing information
 	// associated with this commit.
 	Message string
@@ -148,7 +148,7 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 					panic(1)
 					return n, err
 				}
-				c.TreeId = id
+				c.TreeID = id
 			case "parent":
 				id, err := hex.DecodeString(fields[1])
 				if err != nil {
@@ -192,7 +192,7 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 //
 // Otherwise, the number of bytes written will be returned.
 func (c *Commit) Encode(to io.Writer) (n int, err error) {
-	n, err = fmt.Fprintf(to, "tree %s\n", hex.EncodeToString(c.TreeId))
+	n, err = fmt.Fprintf(to, "tree %s\n", hex.EncodeToString(c.TreeID))
 	if err != nil {
 		return n, err
 	}
