@@ -228,16 +228,49 @@ func TestUnmarshalOverridesNonZeroValuesWhenValuesPresent(t *testing.T) {
 	assert.Equal(t, false, v.Bool)
 }
 
-func TestUnmarshalDoesNotAllowBothOsAndGitTags(t *testing.T) {
+func TestUnmarshalAllowsBothOsAndGitTags(t *testing.T) {
 	v := &struct {
 		String string `git:"string" os:"STRING"`
 	}{}
+
+	cfg := NewFrom(Values{
+		Git: map[string][]string{"string": []string{"foo"}},
+		Os:  map[string][]string{"STRING": []string{"bar"}},
+	})
+
+	err := cfg.Unmarshal(v)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", v.String)
+}
+
+func TestUnmarshalYieldsToDefaultIfBothEnvsMissing(t *testing.T) {
+	v := &struct {
+		String string `git:"string" os:"STRING"`
+	}{"foo"}
 
 	cfg := NewFrom(Values{})
 
 	err := cfg.Unmarshal(v)
 
-	assert.Equal(t, "lfs/config: ambiguous tags", err.Error())
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", v.String)
+}
+
+func TestUnmarshalOverridesDefaultIfAnyEnvPresent(t *testing.T) {
+	v := &struct {
+		String string `git:"string" os:"STRING"`
+	}{"foo"}
+
+	cfg := NewFrom(Values{
+		Git: map[string][]string{"string": []string{"bar"}},
+		Os:  map[string][]string{"STRING": []string{"baz"}},
+	})
+
+	err := cfg.Unmarshal(v)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", v.String)
 }
 
 func TestUnmarshalIgnoresUnknownEnvironments(t *testing.T) {
