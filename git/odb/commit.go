@@ -109,9 +109,9 @@ type Commit struct {
 	// Committer is the individual or entity that added this commit to the
 	// history.
 	Committer *Signature
-	// ParentIds are the IDs of all parents for which this commit is a
+	// ParentIDs are the IDs of all parents for which this commit is a
 	// linear child.
-	ParentIds [][]byte
+	ParentIDs [][]byte
 	// TreeID is the root Tree associated with this commit.
 	TreeID []byte
 	// Message is the commit message, including any signing information
@@ -154,7 +154,7 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 				if err != nil {
 					return n, err
 				}
-				c.ParentIds = append(c.ParentIds, id)
+				c.ParentIDs = append(c.ParentIDs, id)
 			case "author":
 				author, err := ParseSignature(strings.Join(fields[1:], " "))
 				if err != nil {
@@ -197,7 +197,7 @@ func (c *Commit) Encode(to io.Writer) (n int, err error) {
 		return n, err
 	}
 
-	for _, pid := range c.ParentIds {
+	for _, pid := range c.ParentIDs {
 		n1, err := fmt.Fprintf(to, "parent %s\n", hex.EncodeToString(pid))
 		if err != nil {
 			return n, err

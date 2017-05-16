@@ -22,7 +22,7 @@ func TestCommitEncoding(t *testing.T) {
 	c := &Commit{
 		Author:    author,
 		Committer: committer,
-		ParentIds: [][]byte{
+		ParentIDs: [][]byte{
 			[]byte("aaaaaaaaaaaaaaaaaaaa"), []byte("bbbbbbbbbbbbbbbbbbbb"),
 		},
 		TreeID:  []byte("cccccccccccccccccccc"),
@@ -71,7 +71,7 @@ func TestCommitDecoding(t *testing.T) {
 
 	assert.Equal(t, author.String(), commit.Author.String())
 	assert.Equal(t, committer.String(), commit.Committer.String())
-	assert.Equal(t, [][]byte{p1, p2}, commit.ParentIds)
+	assert.Equal(t, [][]byte{p1, p2}, commit.ParentIDs)
 	assert.Equal(t, "initial commit", commit.Message)
 }
 

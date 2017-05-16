@@ -100,7 +100,7 @@ func TestDecodeCommit(t *testing.T) {
 	assert.Equal(t, "Taylor Blau", commit.Committer.Name)
 	assert.Equal(t, "me@ttaylorr.com", commit.Committer.Email)
 	assert.Equal(t, "initial commit", commit.Message)
-	assert.Equal(t, 0, len(commit.ParentIds))
+	assert.Equal(t, 0, len(commit.ParentIDs))
 	assert.Equal(t, "fcb545d5746547a597811b7441ed8eba307be1ff", hex.EncodeToString(commit.TreeID))
 }
 
