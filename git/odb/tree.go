@@ -41,7 +41,6 @@ func (t *Tree) Decode(from io.Reader, size int64) (n int, err error) {
 		}
 		n += len(modes)
 		modes = strings.TrimSuffix(modes, " ")
-		modes = fmt.Sprintf("%06s", modes)
 
 		mode, _ := strconv.ParseInt(modes, 8, 32)
 
