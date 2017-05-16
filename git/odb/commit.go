@@ -70,14 +70,14 @@ func ParseSignature(str string) (*Signature, error) {
 
 	epoch, err := strconv.ParseInt(timeParts[0][0], 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("git/odb: unable to parse time in signature: %q", str)
 	}
 
 	t := time.Unix(epoch, 0).In(time.UTC)
 	if len(timeParts) > 1 && timeParts[1][0] != "0000" {
 		loc, err := parseTimeZone(timeParts[1][0])
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "git/odb: unable to coerce timezone")
 		}
 
 		t = t.In(loc)
