@@ -48,9 +48,7 @@ func (b *Blob) Decode(r io.Reader, size int64) (n int, err error) {
 // Otherwise, the number of bytes written will be returned.
 func (b *Blob) Encode(to io.Writer) (n int, err error) {
 	nn, err := io.Copy(to, b.Contents)
-	if err != nil {
-		return 0, err
-	}
+
 	return int(nn), err
 }
 
