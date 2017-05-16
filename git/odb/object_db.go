@@ -91,13 +91,13 @@ func (o *ObjectDatabase) WriteCommit(c *Commit) ([]byte, error) {
 
 // encode encodes and saves an object to the storage backend and uses an
 // in-memory buffer to calculate the object's encoded body.
-func (d *ObjectDatabase) encode(object Object) (sha []byte, n int, err error) {
+func (d *ObjectDatabase) encode(object Object) (sha []byte, n int64, err error) {
 	return d.encodeBuffer(object, bytes.NewBuffer(nil))
 }
 
 // encodeBuffer encodes and saves an object to the storage backend by using the
 // given buffer to calculate and store the object's encoded body.
-func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []byte, n int, err error) {
+func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []byte, n int64, err error) {
 	cn, err := object.Encode(buf)
 	if err != nil {
 		return nil, 0, err
@@ -133,15 +133,10 @@ func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []b
 
 // save writes the given buffer to the location given by the storer "o.s" as
 // identified by the sha []byte.
-func (o *ObjectDatabase) save(sha []byte, buf io.Reader) ([]byte, int, error) {
-	f, err := o.s.Create(sha)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer f.Close()
+func (o *ObjectDatabase) save(sha []byte, buf io.Reader) ([]byte, int64, error) {
+	n, err := o.s.Store(sha, buf)
 
-	n, err := io.Copy(f, buf)
-	return sha, int(n), err
+	return sha, n, err
 }
 
 // decode decodes an object given by the sha "sha []byte" into the given object

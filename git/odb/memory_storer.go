@@ -36,20 +36,20 @@ func NewMemoryStorer(m map[string]io.ReadWriter) *MemoryStorer {
 	}
 }
 
-// Create implements the Storere.Create function and returns an
-// io.ReadWriteCloser for the given SHA, provided that an object of that SHA is
-// not already indexed in the database.
-func (ms *MemoryStorer) Create(sha []byte) (f io.ReadWriteCloser, err error) {
+// Store implements the Storer.Store function and copies the data given in "r"
+// into an object entry in the memory. If an object given by that SHA "sha" is
+// already indexed in the database, Store will panic().
+func (ms *MemoryStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
 	key := fmt.Sprintf("%x", sha)
 	if _, ok := ms.fs[key]; ok {
 		panic(fmt.Sprintf("git/odb: memory storage create %x, already exists", sha))
-	} else {
-		ms.fs[key] = &bufCloser{new(bytes.Buffer)}
 	}
-	return ms.fs[key], nil
+
+	ms.fs[key] = &bufCloser{new(bytes.Buffer)}
+	return io.Copy(ms.fs[key], r)
 }
 
 // Open implements the Storer.Open function, and returns a io.ReadWriteCloser

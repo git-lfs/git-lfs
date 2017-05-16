@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,7 @@ func TestMemoryStorerDoesntOpenMissingEntries(t *testing.T) {
 	ms.Open(hex)
 }
 
-func TestMemoryStorerCreatesNewEntries(t *testing.T) {
+func TestMemoryStorerStoresNewEntries(t *testing.T) {
 	hex, err := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(t, err)
 
@@ -64,12 +65,19 @@ func TestMemoryStorerCreatesNewEntries(t *testing.T) {
 
 	assert.Equal(t, 0, len(ms.fs))
 
-	_, err = ms.Create(hex)
+	_, err = ms.Store(hex, strings.NewReader("hello"))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(ms.fs))
+
+	got, err := ms.Open(hex)
+	assert.Nil(t, err)
+
+	contents, err := ioutil.ReadAll(got)
+	assert.Nil(t, err)
+	assert.Equal(t, "hello", string(contents))
 }
 
-func TestMemoryStorerCreatesNewEntriesExclusively(t *testing.T) {
+func TestMemoryStorerStoresNewEntriesExclusively(t *testing.T) {
 	hex, err := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(t, err)
 
@@ -77,7 +85,7 @@ func TestMemoryStorerCreatesNewEntriesExclusively(t *testing.T) {
 
 	assert.Equal(t, 0, len(ms.fs))
 
-	_, err = ms.Create(hex)
+	_, err = ms.Store(hex, new(bytes.Buffer))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(ms.fs))
 
@@ -90,5 +98,5 @@ func TestMemoryStorerCreatesNewEntriesExclusively(t *testing.T) {
 		}
 	}()
 
-	ms.Create(hex)
+	ms.Store(hex, new(bytes.Buffer))
 }
