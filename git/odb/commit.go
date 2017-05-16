@@ -83,7 +83,7 @@ func ParseSignature(str string) (*Signature, error) {
 	if timezone != "0000" {
 		loc, err := parseTimeZone(timezone)
 		if err != nil {
-			return nil, errors.Wrap(err, "git/odb: unable to coerce timezone")
+			return nil, errors.Wrapf(err, "git/odb: unable to coerce timezone in %q", str)
 		}
 
 		t = t.In(loc)
