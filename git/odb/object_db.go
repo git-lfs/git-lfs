@@ -147,7 +147,7 @@ func (o *ObjectDatabase) decode(sha []byte, into Object) error {
 		return err
 	}
 
-	r, err := NewReadCloser(f)
+	r, err := NewObjectReadCloser(f)
 	if err != nil {
 		return err
 	}

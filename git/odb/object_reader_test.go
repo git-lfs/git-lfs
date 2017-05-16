@@ -18,7 +18,7 @@ func TestObjectReaderReadsHeaders(t *testing.T) {
 	zw.Write([]byte("blob 1\x00"))
 	zw.Close()
 
-	or, err := NewReader(&compressed)
+	or, err := NewObjectReader(&compressed)
 	assert.Nil(t, err)
 
 	typ, size, err := or.Header()
@@ -35,7 +35,7 @@ func TestObjectReaderConsumesHeaderBeforeReads(t *testing.T) {
 	zw.Write([]byte("blob 1\x00asdf"))
 	zw.Close()
 
-	or, err := NewReader(&compressed)
+	or, err := NewObjectReader(&compressed)
 	assert.Nil(t, err)
 
 	var buf [4]byte
@@ -61,7 +61,7 @@ func TestObjectReaderCallsClose(t *testing.T) {
 	var calls uint32
 	expected := errors.New("expected")
 
-	or, err := NewReadCloser(&ReadCloserFn{
+	or, err := NewObjectReadCloser(&ReadCloserFn{
 		Reader: bytes.NewBuffer([]byte{0x78, 0x01}),
 		closeFn: func() error {
 			atomic.AddUint32(&calls, 1)

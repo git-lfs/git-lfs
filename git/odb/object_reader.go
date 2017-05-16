@@ -40,11 +40,11 @@ type ObjectReader struct {
 
 var _ io.ReadCloser = (*ObjectReader)(nil)
 
-// NewReader takes a given io.Reader that yields zlib-compressed data, and
+// NewObjectReader takes a given io.Reader that yields zlib-compressed data, and
 // returns an *ObjectReader wrapping it, or an error if one occurred during
 // construction time.
-func NewReader(r io.Reader) (*ObjectReader, error) {
-	return NewReadCloser(ioutil.NopCloser(r))
+func NewObjectReader(r io.Reader) (*ObjectReader, error) {
+	return NewObjectReadCloser(ioutil.NopCloser(r))
 }
 
 // NewReader takes a given io.Reader that yields zlib-compressed data, and
@@ -53,7 +53,7 @@ func NewReader(r io.Reader) (*ObjectReader, error) {
 //
 // It also calls the Close() function given by the implementation "r" of the
 // type io.Closer.
-func NewReadCloser(r io.ReadCloser) (*ObjectReader, error) {
+func NewObjectReadCloser(r io.ReadCloser) (*ObjectReader, error) {
 	zr, err := zlib.NewReader(r)
 	if err != nil {
 		return nil, err
