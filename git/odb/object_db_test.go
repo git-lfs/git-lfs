@@ -148,7 +148,7 @@ func TestWriteCommit(t *testing.T) {
 	fs := NewMemoryStorer(make(map[string]io.ReadWriter))
 	odb := &ObjectDatabase{s: fs}
 
-	when := time.Unix(1494258422, 0)
+	when := time.Unix(1257894000, 0)
 	author := &Signature{Name: "John Doe", Email: "john@example.com", When: when}
 	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: when}
 
@@ -163,7 +163,7 @@ func TestWriteCommit(t *testing.T) {
 		Message:   "initial commit",
 	})
 
-	expected := "5ba51ea684770de6fef57a94734c4f4a02cb361b"
+	expected := "0f5bb589358adfc2f18c30561e38fafcb6649c86"
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, hex.EncodeToString(sha))
