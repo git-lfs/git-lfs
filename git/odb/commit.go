@@ -74,7 +74,7 @@ func ParseSignature(str string) (*Signature, error) {
 	}
 
 	t := time.Unix(epoch, 0).In(time.UTC)
-	if len(timeParts) > 1 {
+	if len(timeParts) > 1 && timeParts[1][0] != "0000" {
 		loc, err := parseTimeZone(timeParts[1][0])
 		if err != nil {
 			return nil, err
