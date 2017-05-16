@@ -2,9 +2,9 @@ package odb
 
 import "io"
 
-// Storer implements a storage engine for reading, writing, and creating
+// storer implements a storage engine for reading, writing, and creating
 // io.ReadWriters that can store information about loose objects
-type Storer interface {
+type storer interface {
 	// Open returns a handle on an existing object keyed by the given SHA.
 	// It returns an error if that file does not already exist.
 	Open(sha []byte) (f io.ReadWriteCloser, err error)

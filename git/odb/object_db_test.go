@@ -25,7 +25,7 @@ func TestDecodeBlob(t *testing.T) {
 	fmt.Fprintf(zw, "blob 14\x00%s", contents)
 	zw.Close()
 
-	odb := &ObjectDatabase{s: NewMemoryStorer(map[string]io.ReadWriter{
+	odb := &ObjectDatabase{s: newMemoryStorer(map[string]io.ReadWriter{
 		sha: &buf,
 	})}
 
@@ -57,7 +57,7 @@ func TestDecodeTree(t *testing.T) {
 	zw.Write(hexBlobSha)
 	zw.Close()
 
-	odb := &ObjectDatabase{s: NewMemoryStorer(map[string]io.ReadWriter{
+	odb := &ObjectDatabase{s: newMemoryStorer(map[string]io.ReadWriter{
 		sha: &buf,
 	})}
 
@@ -88,7 +88,7 @@ func TestDecodeCommit(t *testing.T) {
 	fmt.Fprintf(zw, "\ninitial commit\n")
 	zw.Close()
 
-	odb := &ObjectDatabase{s: NewMemoryStorer(map[string]io.ReadWriter{
+	odb := &ObjectDatabase{s: newMemoryStorer(map[string]io.ReadWriter{
 		sha: &buf,
 	})}
 
@@ -105,7 +105,7 @@ func TestDecodeCommit(t *testing.T) {
 }
 
 func TestWriteBlob(t *testing.T) {
-	fs := NewMemoryStorer(make(map[string]io.ReadWriter))
+	fs := newMemoryStorer(make(map[string]io.ReadWriter))
 	odb := &ObjectDatabase{s: fs}
 
 	sha, err := odb.WriteBlob(&Blob{
@@ -121,7 +121,7 @@ func TestWriteBlob(t *testing.T) {
 }
 
 func TestWriteTree(t *testing.T) {
-	fs := NewMemoryStorer(make(map[string]io.ReadWriter))
+	fs := newMemoryStorer(make(map[string]io.ReadWriter))
 	odb := &ObjectDatabase{s: fs}
 
 	blobSha := "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
@@ -145,7 +145,7 @@ func TestWriteTree(t *testing.T) {
 }
 
 func TestWriteCommit(t *testing.T) {
-	fs := NewMemoryStorer(make(map[string]io.ReadWriter))
+	fs := newMemoryStorer(make(map[string]io.ReadWriter))
 	odb := &ObjectDatabase{s: fs}
 
 	when := time.Unix(1257894000, 0).UTC()

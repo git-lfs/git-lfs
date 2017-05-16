@@ -7,10 +7,10 @@ import (
 )
 
 // ObjectDatabase enables the reading and writing of objects against a storage
-// backend, the Storer.
+// backend.
 type ObjectDatabase struct {
 	// s is the storage backend which opens/creates/reads/writes.
-	s Storer
+	s storer
 }
 
 // FromFilesystem constructs an *ObjectDatabase instance that is backed by a
@@ -18,7 +18,7 @@ type ObjectDatabase struct {
 //
 //  /absolute/repo/path/.git/objects
 func FromFilesystem(root string) (*ObjectDatabase, error) {
-	return &ObjectDatabase{s: NewFileStorer(root)}, nil
+	return &ObjectDatabase{s: newFileStorer(root)}, nil
 }
 
 // Blob returns a *Blob as identified by the SHA given, or an error if one was

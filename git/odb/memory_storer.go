@@ -7,9 +7,9 @@ import (
 	"sync"
 )
 
-// MemoryStorer is an implementation of the Storer interface that holds data for
+// memoryStorer is an implementation of the storer interface that holds data for
 // the object database in memory.
-type MemoryStorer struct {
+type memoryStorer struct {
 	// mu guards reads and writes to the map "fs" below.
 	mu *sync.Mutex
 	// fs maps a hex-encoded SHA to a bytes.Buffer wrapped in a no-op closer
@@ -17,29 +17,29 @@ type MemoryStorer struct {
 	fs map[string]*bufCloser
 }
 
-var _ Storer = (*MemoryStorer)(nil)
+var _ storer = (*memoryStorer)(nil)
 
-// NewMemoryStorer initializes a new MemoryStorer instance with the given
+// newMemoryStorer initializes a new memoryStorer instance with the given
 // initial set.
 //
 // A value of "nil" is acceptable and indicates that no entries shall be added
 // to the memory storer at/during construction time.
-func NewMemoryStorer(m map[string]io.ReadWriter) *MemoryStorer {
+func newMemoryStorer(m map[string]io.ReadWriter) *memoryStorer {
 	fs := make(map[string]*bufCloser, len(m))
 	for n, rw := range m {
 		fs[n] = &bufCloser{rw}
 	}
 
-	return &MemoryStorer{
+	return &memoryStorer{
 		mu: new(sync.Mutex),
 		fs: fs,
 	}
 }
 
-// Store implements the Storer.Store function and copies the data given in "r"
+// Store implements the storer.Store function and copies the data given in "r"
 // into an object entry in the memory. If an object given by that SHA "sha" is
 // already indexed in the database, Store will panic().
-func (ms *MemoryStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
+func (ms *memoryStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -52,10 +52,10 @@ func (ms *MemoryStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	return io.Copy(ms.fs[key], r)
 }
 
-// Open implements the Storer.Open function, and returns a io.ReadWriteCloser
+// Open implements the storer.Open function, and returns a io.ReadWriteCloser
 // for the given SHA. If a reader for the given SHA does not exist an error will
 // be returned.
-func (ms *MemoryStorer) Open(sha []byte) (f io.ReadWriteCloser, err error) {
+func (ms *memoryStorer) Open(sha []byte) (f io.ReadWriteCloser, err error) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 

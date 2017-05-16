@@ -18,7 +18,7 @@ func TestMemoryStorerIncludesGivenEntries(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	ms := NewMemoryStorer(map[string]io.ReadWriter{
+	ms := newMemoryStorer(map[string]io.ReadWriter{
 		sha: bytes.NewBuffer([]byte{0x1}),
 	})
 
@@ -31,7 +31,7 @@ func TestMemoryStorerIncludesGivenEntries(t *testing.T) {
 }
 
 func TestMemoryStorerAcceptsNilEntries(t *testing.T) {
-	ms := NewMemoryStorer(nil)
+	ms := newMemoryStorer(nil)
 
 	assert.NotNil(t, ms)
 	assert.Equal(t, 0, len(ms.fs))
@@ -52,7 +52,7 @@ func TestMemoryStorerDoesntOpenMissingEntries(t *testing.T) {
 		}
 	}()
 
-	ms := NewMemoryStorer(nil)
+	ms := newMemoryStorer(nil)
 
 	ms.Open(hex)
 }
@@ -61,7 +61,7 @@ func TestMemoryStorerStoresNewEntries(t *testing.T) {
 	hex, err := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(t, err)
 
-	ms := NewMemoryStorer(nil)
+	ms := newMemoryStorer(nil)
 
 	assert.Equal(t, 0, len(ms.fs))
 
@@ -81,7 +81,7 @@ func TestMemoryStorerStoresNewEntriesExclusively(t *testing.T) {
 	hex, err := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(t, err)
 
-	ms := NewMemoryStorer(nil)
+	ms := newMemoryStorer(nil)
 
 	assert.Equal(t, 0, len(ms.fs))
 
