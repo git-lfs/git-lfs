@@ -91,7 +91,7 @@ func NewPattern(rawpattern string) Pattern {
 		pattern := regexp.QuoteMeta(cleanpattern)
 		regpattern = fmt.Sprintf(`\A%s\z`, strings.Replace(pattern, `\*\*`, ".*", -1))
 	} else {
-		regpattern = fmt.Sprintf(`(\A|%s)%s%s`,
+		regpattern = fmt.Sprintf(`(\A|%s)%s(%s|\z)`,
 			string(filepath.Separator),
 			cleanpattern,
 			string(filepath.Separator),
