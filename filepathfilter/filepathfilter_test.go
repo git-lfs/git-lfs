@@ -33,6 +33,9 @@ func TestPatternMatch(t *testing.T) {
 
 	// Path specific
 	assert.True(t, patternMatch("sub", "sub/filename.txt"))
+	assert.True(t, patternMatch("sub/", "sub/filename.txt"))
+	assert.True(t, patternMatch("sub", "top/sub/filename.txt"))
+	assert.True(t, patternMatch("sub/", "top/sub/filename.txt"))
 	assert.False(t, patternMatch("sub", "subfilename.txt"))
 
 	// Absolute
