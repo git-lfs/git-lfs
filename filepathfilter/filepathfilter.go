@@ -77,21 +77,30 @@ func NewPattern(rawpattern string) Pattern {
 	// Don't need to test cross-platform separators as both cleaned above
 	if !hasPathSep && strings.Contains(cleanpattern, "*") {
 		pattern := regexp.QuoteMeta(cleanpattern)
-		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
-		return &pathlessWildcardPattern{
+		regpattern := fmt.Sprintf(`\A%s\z`, strings.Replace(pattern, `\*`, ".*", -1))
+		return &baseMatchingPattern{
 			rawPattern: cleanpattern,
-			wildcardRE: regexp.MustCompile(regpattern),
+			regex:      regexp.MustCompile(regpattern),
 		}
-		// Also support ** with path separators
-	} else if hasPathSep && strings.Contains(cleanpattern, "**") {
+	}
+
+	var regpattern string
+
+	// Also support ** with path separators
+	if hasPathSep && strings.Contains(cleanpattern, "**") {
 		pattern := regexp.QuoteMeta(cleanpattern)
-		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
-		return &doubleWildcardPattern{
-			rawPattern: cleanpattern,
-			wildcardRE: regexp.MustCompile(regpattern),
-		}
+		regpattern = fmt.Sprintf(`\A%s\z`, strings.Replace(pattern, `\*\*`, ".*", -1))
 	} else {
-		return &basicPattern{rawPattern: cleanpattern}
+		regpattern = fmt.Sprintf(`(\A|%s)%s(%s|\z)`,
+			regexp.QuoteMeta(string(filepath.Separator)),
+			regexp.QuoteMeta(cleanpattern),
+			regexp.QuoteMeta(string(filepath.Separator)),
+		)
+	}
+
+	return &nameMatchingPattern{
+		rawPattern: cleanpattern,
+		regex:      regexp.MustCompile(regpattern),
 	}
 }
 
@@ -103,42 +112,30 @@ func convertToPatterns(rawpatterns []string) []Pattern {
 	return patterns
 }
 
-type basicPattern struct {
+type nameMatchingPattern struct {
 	rawPattern string
+	regex      *regexp.Regexp
 }
 
 // Match is a revised version of filepath.Match which makes it behave more
 // like gitignore
-func (p *basicPattern) Match(name string) bool {
-	matched, _ := filepath.Match(p.rawPattern, name)
-	// Also support matching a parent directory without a wildcard
-	return matched || strings.HasPrefix(name, p.rawPattern+string(filepath.Separator))
-}
-
-type pathlessWildcardPattern struct {
-	rawPattern string
-	wildcardRE *regexp.Regexp
-}
-
-// Match is a revised version of filepath.Match which makes it behave more
-// like gitignore
-func (p *pathlessWildcardPattern) Match(name string) bool {
+func (p *nameMatchingPattern) Match(name string) bool {
 	matched, _ := filepath.Match(p.rawPattern, name)
 	// Match the whole of the base name but allow matching in folders if no path
-	return matched || p.wildcardRE.MatchString(filepath.Base(name))
+	return matched || p.regex.MatchString(name)
 }
 
-type doubleWildcardPattern struct {
+type baseMatchingPattern struct {
 	rawPattern string
-	wildcardRE *regexp.Regexp
+	regex      *regexp.Regexp
 }
 
 // Match is a revised version of filepath.Match which makes it behave more
 // like gitignore
-func (p *doubleWildcardPattern) Match(name string) bool {
+func (p *baseMatchingPattern) Match(name string) bool {
 	matched, _ := filepath.Match(p.rawPattern, name)
 	// Match the whole of the base name but allow matching in folders if no path
-	return matched || p.wildcardRE.MatchString(name)
+	return matched || p.regex.MatchString(filepath.Base(name))
 }
 
 type noOpMatcher struct {
