@@ -77,7 +77,7 @@ func NewPattern(rawpattern string) Pattern {
 	// Don't need to test cross-platform separators as both cleaned above
 	if !hasPathSep && strings.Contains(cleanpattern, "*") {
 		pattern := regexp.QuoteMeta(cleanpattern)
-		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*", ".*", -1))
+		regpattern := fmt.Sprintf(`\A%s\z`, strings.Replace(pattern, `\*`, ".*", -1))
 		return &baseMatchingPattern{
 			rawPattern: cleanpattern,
 			regex:      regexp.MustCompile(regpattern),
@@ -89,7 +89,7 @@ func NewPattern(rawpattern string) Pattern {
 	// Also support ** with path separators
 	if hasPathSep && strings.Contains(cleanpattern, "**") {
 		pattern := regexp.QuoteMeta(cleanpattern)
-		regpattern = fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
+		regpattern = fmt.Sprintf(`\A%s\z`, strings.Replace(pattern, `\*\*`, ".*", -1))
 	} else {
 		regpattern = fmt.Sprintf(`(\A|%s)%s%s`,
 			string(filepath.Separator),
