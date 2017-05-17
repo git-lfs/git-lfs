@@ -113,7 +113,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// Special-case status code 416 () - fall back
-		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
+		if fromByte > 0 && dlFile != nil && (res != nil && res.StatusCode == 416) {
 			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Oid, fromByte)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
