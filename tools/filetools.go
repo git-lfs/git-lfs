@@ -139,14 +139,16 @@ type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 //    determine absolute path rather than tracking it yourself
 //  * Automatically ignores any .git directories
 //  * Respects .gitignore contents and skips ignored files/dirs
-func FastWalkGitRepo(dir string, cb FastWalkCallback) {
+//
+// rootDir - Absolute path to the top of the repository working directory
+func FastWalkGitRepo(rootDir string, cb FastWalkCallback) {
 	// Ignore all git metadata including subrepos
 	excludePaths := []filepathfilter.Pattern{
 		filepathfilter.NewPattern(".git"),
 		filepathfilter.NewPattern(filepath.Join("**", ".git")),
 	}
 
-	fileCh := fastWalkWithExcludeFiles(dir, ".gitignore", excludePaths)
+	fileCh := fastWalkWithExcludeFiles(rootDir, ".gitignore", excludePaths)
 	for file := range fileCh {
 		cb(file.ParentDir, file.Info, file.Err)
 	}
@@ -164,17 +166,20 @@ type fastWalkInfo struct {
 // fastWalkWithExcludeFiles walks the contents of a dir, respecting
 // include/exclude patterns and also loading new exlude patterns from files
 // named excludeFilename in directories walked
-func fastWalkWithExcludeFiles(dir, excludeFilename string,
+//
+// rootDir - Absolute path to the top of the repository working directory
+func fastWalkWithExcludeFiles(rootDir, excludeFilename string,
 	excludePaths []filepathfilter.Pattern) <-chan fastWalkInfo {
 	fiChan := make(chan fastWalkInfo, 256)
-	go fastWalkFromRoot(dir, excludeFilename, excludePaths, fiChan)
+	go fastWalkFromRoot(rootDir, excludeFilename, excludePaths, fiChan)
 	return fiChan
 }
 
-func fastWalkFromRoot(dir string, excludeFilename string,
+// rootDir - Absolute path to the top of the repository working directory
+func fastWalkFromRoot(rootDir string, excludeFilename string,
 	excludePaths []filepathfilter.Pattern, fiChan chan<- fastWalkInfo) {
 
-	dirFi, err := os.Stat(dir)
+	dirFi, err := os.Stat(rootDir)
 	if err != nil {
 		fiChan <- fastWalkInfo{Err: err}
 		return
@@ -182,7 +187,7 @@ func fastWalkFromRoot(dir string, excludeFilename string,
 
 	// This waitgroup will be incremented for each nested goroutine
 	var waitg sync.WaitGroup
-	fastWalkFileOrDir(filepath.Dir(dir), dirFi, excludeFilename, excludePaths, fiChan, &waitg)
+	fastWalkFileOrDir(true, rootDir, "", dirFi, excludeFilename, excludePaths, fiChan, &waitg)
 	waitg.Wait()
 	close(fiChan)
 }
@@ -193,26 +198,42 @@ func fastWalkFromRoot(dir string, excludeFilename string,
 // the excludePaths with its content before (parallel) recursing into contents
 // Also splits large directories into multiple goroutines.
 // Increments waitg.Add(1) for each new goroutine launched internally
-func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename string,
+//
+// rootDir - Absolute path to the top of the repository working directory
+// workDir - Relative path inside the repository
+func fastWalkFileOrDir(isRoot bool, rootDir, workDir string, itemFi os.FileInfo, excludeFilename string,
 	excludePaths []filepathfilter.Pattern, fiChan chan<- fastWalkInfo, waitg *sync.WaitGroup) {
 
-	fullPath := filepath.Join(parentDir, itemFi.Name())
+	var fullPath string      // Absolute path to the current file or dir
+	var parentWorkDir string // Absolute path to the workDir inside the repository
+	if isRoot {
+		fullPath = rootDir
+	} else {
+		parentWorkDir = filepath.Join(rootDir, workDir)
+		fullPath = filepath.Join(parentWorkDir, itemFi.Name())
+	}
 
-	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(fullPath) {
+	workPath := filepath.Join(workDir, itemFi.Name())
+	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(workPath) {
 		return
 	}
 
-	fiChan <- fastWalkInfo{ParentDir: parentDir, Info: itemFi}
+	fiChan <- fastWalkInfo{ParentDir: parentWorkDir, Info: itemFi}
 
 	if !itemFi.IsDir() {
 		// Nothing more to do if this is not a dir
 		return
 	}
 
+	var childWorkDir string
+	if !isRoot {
+		childWorkDir = filepath.Join(workDir, itemFi.Name())
+	}
+
 	if len(excludeFilename) > 0 {
 		possibleExcludeFile := filepath.Join(fullPath, excludeFilename)
 		var err error
-		excludePaths, err = loadExcludeFilename(possibleExcludeFile, fullPath, excludePaths)
+		excludePaths, err = loadExcludeFilename(possibleExcludeFile, childWorkDir, excludePaths)
 		if err != nil {
 			fiChan <- fastWalkInfo{Err: err}
 		}
@@ -231,12 +252,13 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 
 	// The number of items in a dir we process in each goroutine
 	jobSize := 100
+
 	for children, err := df.Readdir(jobSize); err == nil; children, err = df.Readdir(jobSize) {
 		// Parallelise all dirs, and chop large dirs into batches
 		waitg.Add(1)
 		go func(subitems []os.FileInfo) {
 			for _, childFi := range subitems {
-				fastWalkFileOrDir(fullPath, childFi, excludeFilename, excludePaths, fiChan, waitg)
+				fastWalkFileOrDir(false, rootDir, childWorkDir, childFi, excludeFilename, excludePaths, fiChan, waitg)
 			}
 			waitg.Done()
 		}(children)
@@ -251,7 +273,7 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 // revised array of exclude paths if there are any changes.
 // If any changes are made a copy of the array is taken so the original is not
 // modified
-func loadExcludeFilename(filename, parentDir string, excludePaths []filepathfilter.Pattern) ([]filepathfilter.Pattern, error) {
+func loadExcludeFilename(filename, workDir string, excludePaths []filepathfilter.Pattern) ([]filepathfilter.Pattern, error) {
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -284,7 +306,7 @@ func loadExcludeFilename(filename, parentDir string, excludePaths []filepathfilt
 		// Allow for both styles of separator at this point
 		if strings.ContainsAny(path, "/\\") ||
 			!strings.Contains(path, "*") {
-			path = filepath.Join(parentDir, line)
+			path = filepath.Join(workDir, line)
 		}
 		retPaths = append(retPaths, filepathfilter.NewPattern(path))
 	}
