@@ -10,6 +10,16 @@ import (
 	"github.com/git-lfs/git-lfs/tools"
 )
 
+func BenchmarkFilterNoWildcard(b *testing.B) {
+	files := benchmarkTree(b)
+	filter := filepathfilter.New([]string{"lfs"}, nil)
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			filter.Allows(f)
+		}
+	}
+}
+
 func BenchmarkFilterIncludeWildcardOnly(b *testing.B) {
 	files := benchmarkTree(b)
 	filter := filepathfilter.New([]string{"*.go"}, nil)
