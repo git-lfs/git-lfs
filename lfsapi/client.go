@@ -284,7 +284,7 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 
 	for key := range req.Header {
 		if key == "Authorization" {
-			if req.URL.Scheme != newReq.URL.Scheme || req.URL.Host != newReq.URL.Host {
+			if req.URL.Host != newReq.URL.Host {
 				continue
 			}
 		}
