@@ -32,8 +32,16 @@ func TestPatternMatch(t *testing.T) {
 	assert.False(t, patternMatch("*.ign", "sub/shouldignoreme.txt"))
 
 	// Path specific
+	assert.True(t, patternMatch("sub", "sub/"))
+	assert.True(t, patternMatch("sub", "sub"))
 	assert.True(t, patternMatch("sub", "sub/filename.txt"))
+	assert.True(t, patternMatch("sub/", "sub/filename.txt"))
+	assert.True(t, patternMatch("sub", "top/sub/filename.txt"))
+	assert.True(t, patternMatch("sub/", "top/sub/filename.txt"))
+	assert.True(t, patternMatch("sub", "top/sub/"))
+	assert.True(t, patternMatch("sub", "top/sub"))
 	assert.False(t, patternMatch("sub", "subfilename.txt"))
+	assert.False(t, patternMatch("sub/", "subfilename.txt"))
 
 	// Absolute
 	assert.True(t, patternMatch("*.dat", "/path/to/sub/.git/test.dat"))

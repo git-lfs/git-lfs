@@ -91,7 +91,13 @@ func NewPattern(rawpattern string) Pattern {
 			wildcardRE: regexp.MustCompile(regpattern),
 		}
 	} else {
-		return &basicPattern{rawPattern: cleanpattern}
+		s := string(filepath.Separator)
+		return &basicPattern{
+			rawPattern: cleanpattern,
+			prefix:     cleanpattern + s,
+			suffix:     s + cleanpattern,
+			inner:      s + cleanpattern + s,
+		}
 	}
 }
 
@@ -105,14 +111,19 @@ func convertToPatterns(rawpatterns []string) []Pattern {
 
 type basicPattern struct {
 	rawPattern string
+	prefix     string
+	suffix     string
+	inner      string
 }
 
 // Match is a revised version of filepath.Match which makes it behave more
 // like gitignore
 func (p *basicPattern) Match(name string) bool {
 	matched, _ := filepath.Match(p.rawPattern, name)
-	// Also support matching a parent directory without a wildcard
-	return matched || strings.HasPrefix(name, p.rawPattern+string(filepath.Separator))
+	return matched ||
+		strings.HasPrefix(name, p.prefix) ||
+		strings.HasSuffix(name, p.suffix) ||
+		strings.Contains(name, p.inner)
 }
 
 type pathlessWildcardPattern struct {

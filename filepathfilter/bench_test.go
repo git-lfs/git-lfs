@@ -10,7 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/tools"
 )
 
-func BenchmarkFilterNoWildcard(b *testing.B) {
+func BenchmarkFilterSimplePath(b *testing.B) {
 	files := benchmarkTree(b)
 	filter := filepathfilter.New([]string{"lfs"}, nil)
 	for i := 0; i < b.N; i++ {
@@ -20,7 +20,7 @@ func BenchmarkFilterNoWildcard(b *testing.B) {
 	}
 }
 
-func BenchmarkFilterIncludeWildcardOnly(b *testing.B) {
+func BenchmarkFilterSimpleExtension(b *testing.B) {
 	files := benchmarkTree(b)
 	filter := filepathfilter.New([]string{"*.go"}, nil)
 	for i := 0; i < b.N; i++ {
@@ -30,7 +30,17 @@ func BenchmarkFilterIncludeWildcardOnly(b *testing.B) {
 	}
 }
 
-func BenchmarkFilterIncludeDoubleAsterisk(b *testing.B) {
+func BenchmarkFilterComplexExtension(b *testing.B) {
+	files := benchmarkTree(b)
+	filter := filepathfilter.New([]string{"*.travis.yml"}, nil)
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			filter.Allows(f)
+		}
+	}
+}
+
+func BenchmarkFilterDoubleAsterisk(b *testing.B) {
 	files := benchmarkTree(b)
 	filter := filepathfilter.New([]string{"**/README.md"}, nil)
 	for i := 0; i < b.N; i++ {
