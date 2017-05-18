@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -e
-script/test
+#script/test
 
 # re-run test to ensure GIT_TRACE output doesn't leak into the git package
-GIT_TRACE=1 script/test git
+#GIT_TRACE=1 script/test git
 
-VERBOSE_LOGS=1 script/integration
+test/test-credentials.sh
+#VERBOSE_LOGS=1 script/integration
