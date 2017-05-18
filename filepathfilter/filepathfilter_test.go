@@ -10,47 +10,72 @@ import (
 )
 
 func TestPatternMatch(t *testing.T) {
-	assert.True(t, patternMatch("filename.txt", "filename.txt"))
-	assert.True(t, patternMatch("*.txt", "filename.txt"))
-	assert.False(t, patternMatch("*.tx", "filename.txt"))
-	assert.True(t, patternMatch("f*.txt", "filename.txt"))
-	assert.False(t, patternMatch("g*.txt", "filename.txt"))
-	assert.True(t, patternMatch("file*", "filename.txt"))
-	assert.False(t, patternMatch("file", "filename.txt"))
+	assertPatternMatch(t, "filename.txt", "filename.txt")
+	assertPatternMatch(t, "*.txt", "filename.txt")
+	refutePatternMatch(t, "*.tx", "filename.txt")
+	assertPatternMatch(t, "f*.txt", "filename.txt")
+	refutePatternMatch(t, "g*.txt", "filename.txt")
+	assertPatternMatch(t, "file*", "filename.txt")
+	refutePatternMatch(t, "file", "filename.txt")
 
 	// With no path separators, should match in subfolders
-	assert.True(t, patternMatch("*.txt", "sub/filename.txt"))
-	assert.False(t, patternMatch("*.tx", "sub/filename.txt"))
-	assert.True(t, patternMatch("f*.txt", "sub/filename.txt"))
-	assert.False(t, patternMatch("g*.txt", "sub/filename.txt"))
-	assert.True(t, patternMatch("file*", "sub/filename.txt"))
-	assert.False(t, patternMatch("file", "sub/filename.txt"))
+	assertPatternMatch(t, "*.txt", "sub/filename.txt")
+	refutePatternMatch(t, "*.tx", "sub/filename.txt")
+	assertPatternMatch(t, "f*.txt", "sub/filename.txt")
+	refutePatternMatch(t, "g*.txt", "sub/filename.txt")
+	assertPatternMatch(t, "file*", "sub/filename.txt")
+	refutePatternMatch(t, "file", "sub/filename.txt")
+
+	// matches only in subdir
+	assertPatternMatch(t, "sub/*.txt", "sub/filename.txt")
+	refutePatternMatch(t, "sub/*.txt", "top/sub/filename.txt")
+	refutePatternMatch(t, "sub/*.txt", "sub/filename.dat")
+	refutePatternMatch(t, "sub/*.txt", "other/filename.txt")
+
 	// Needs wildcard for exact filename
-	assert.True(t, patternMatch("**/filename.txt", "sub/sub/sub/filename.txt"))
+	assertPatternMatch(t, "**/filename.txt", "sub/sub/sub/filename.txt")
 
 	// Should not match dots to subparts
-	assert.False(t, patternMatch("*.ign", "sub/shouldignoreme.txt"))
+	refutePatternMatch(t, "*.ign", "sub/shouldignoreme.txt")
 
 	// Path specific
-	assert.True(t, patternMatch("sub", "sub/"))
-	assert.True(t, patternMatch("sub", "sub"))
-	assert.True(t, patternMatch("sub", "sub/filename.txt"))
-	assert.True(t, patternMatch("sub/", "sub/filename.txt"))
-	assert.True(t, patternMatch("sub", "top/sub/filename.txt"))
-	assert.True(t, patternMatch("sub/", "top/sub/filename.txt"))
-	assert.True(t, patternMatch("sub", "top/sub/"))
-	assert.True(t, patternMatch("sub", "top/sub"))
-	assert.False(t, patternMatch("sub", "subfilename.txt"))
-	assert.False(t, patternMatch("sub/", "subfilename.txt"))
+	assertPatternMatch(t, "sub", "sub/")
+	assertPatternMatch(t, "sub", "sub")
+	assertPatternMatch(t, "sub", "sub/filename.txt")
+	assertPatternMatch(t, "sub/", "sub/filename.txt")
+	assertPatternMatch(t, "sub", "top/sub/filename.txt")
+	assertPatternMatch(t, "sub/", "top/sub/filename.txt")
+	assertPatternMatch(t, "sub", "top/sub/")
+	assertPatternMatch(t, "sub", "top/sub")
+	refutePatternMatch(t, "sub", "subfilename.txt")
+	refutePatternMatch(t, "sub/", "subfilename.txt")
+
+	// nested path
+	assertPatternMatch(t, "top/sub", "top/sub/filename.txt")
+	assertPatternMatch(t, "top/sub/", "top/sub/filename.txt")
+	assertPatternMatch(t, "top/sub", "top/sub/")
+	assertPatternMatch(t, "top/sub", "top/sub")
+	assertPatternMatch(t, "top/sub", "root/top/sub/filename.txt")
+	assertPatternMatch(t, "top/sub/", "root/top/sub/filename.txt")
+	assertPatternMatch(t, "top/sub", "root/top/sub/")
+	assertPatternMatch(t, "top/sub", "root/top/sub")
 
 	// Absolute
-	assert.True(t, patternMatch("*.dat", "/path/to/sub/.git/test.dat"))
-	assert.True(t, patternMatch("**/.git", "/path/to/sub/.git"))
+	assertPatternMatch(t, "*.dat", "/path/to/sub/.git/test.dat")
+	assertPatternMatch(t, "**/.git", "/path/to/sub/.git")
 
 	// Match anything
-	assert.True(t, patternMatch(".", "path.txt"))
-	assert.True(t, patternMatch("./", "path.txt"))
-	assert.True(t, patternMatch(".\\", "path.txt"))
+	assertPatternMatch(t, ".", "path.txt")
+	assertPatternMatch(t, "./", "path.txt")
+	assertPatternMatch(t, ".\\", "path.txt")
+}
+
+func assertPatternMatch(t *testing.T, pattern, filename string) {
+	assert.True(t, patternMatch(pattern, filename), "%q should match pattern %q", filename, pattern)
+}
+
+func refutePatternMatch(t *testing.T, pattern, filename string) {
+	assert.False(t, patternMatch(pattern, filename), "%q should not match pattern %q", filename, pattern)
 }
 
 func patternMatch(pattern, filename string) bool {
