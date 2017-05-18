@@ -43,6 +43,8 @@ commands and low level ("plumbing") commands.
     Install Git LFS configuration.
 * git-lfs-lock(1):
     Set a file as "locked" on the Git LFS server.
+* git-lfs-locks(1):
+    List currently locked files from the Git LFS server.
 * git-lfs-logs(1):
     Show errors from the git-lfs command.
 * git-lfs-ls-files(1):
