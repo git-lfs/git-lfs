@@ -100,6 +100,22 @@ func NewPattern(rawpattern string) Pattern {
 		}
 	}
 
+	if hasPathSep && strings.HasPrefix(cleanpattern, sep) {
+		rel := cleanpattern[1:len(cleanpattern)]
+		prefix := rel
+		if strings.HasSuffix(rel, sep) {
+			rel = rel[0 : len(rel)-1]
+		} else {
+			prefix += sep
+		}
+
+		return &pathPrefixPattern{
+			rawPattern: cleanpattern,
+			relative:   rel,
+			prefix:     prefix,
+		}
+	}
+
 	return &pathPattern{
 		rawPattern: cleanpattern,
 		prefix:     cleanpattern + sep,
@@ -114,6 +130,19 @@ func convertToPatterns(rawpatterns []string) []Pattern {
 		patterns[i] = NewPattern(raw)
 	}
 	return patterns
+}
+
+type pathPrefixPattern struct {
+	rawPattern string
+	relative   string
+	prefix     string
+}
+
+// Match is a revised version of filepath.Match which makes it behave more
+// like gitignore
+func (p *pathPrefixPattern) Match(name string) bool {
+	matched, _ := filepath.Match(p.rawPattern, name)
+	return matched || name == p.relative || strings.HasPrefix(name, p.prefix)
 }
 
 type pathPattern struct {
