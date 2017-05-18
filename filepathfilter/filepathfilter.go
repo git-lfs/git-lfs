@@ -141,8 +141,11 @@ type pathPrefixPattern struct {
 // Match is a revised version of filepath.Match which makes it behave more
 // like gitignore
 func (p *pathPrefixPattern) Match(name string) bool {
+	if name == p.relative || strings.HasPrefix(name, p.prefix) {
+		return true
+	}
 	matched, _ := filepath.Match(p.rawPattern, name)
-	return matched || name == p.relative || strings.HasPrefix(name, p.prefix)
+	return matched
 }
 
 type pathPattern struct {
@@ -155,11 +158,11 @@ type pathPattern struct {
 // Match is a revised version of filepath.Match which makes it behave more
 // like gitignore
 func (p *pathPattern) Match(name string) bool {
+	if strings.HasPrefix(name, p.prefix) || strings.HasSuffix(name, p.suffix) || strings.Contains(name, p.inner) {
+		return true
+	}
 	matched, _ := filepath.Match(p.rawPattern, name)
-	return matched ||
-		strings.HasPrefix(name, p.prefix) ||
-		strings.HasSuffix(name, p.suffix) ||
-		strings.Contains(name, p.inner)
+	return matched
 }
 
 type simpleExtPattern struct {
