@@ -130,7 +130,16 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 
 	c.traceResponse(req, tracedReq, res)
 
-	if res.StatusCode != 307 {
+	if res.StatusCode != 301 &&
+		res.StatusCode != 302 &&
+		res.StatusCode != 303 &&
+		res.StatusCode != 307 &&
+		res.StatusCode != 308 {
+
+		// Above are the list of 3xx status codes that we know
+		// how to handle below. If the status code contained in
+		// the HTTP response was none of them, return the (res,
+		// err) tuple as-is, otherwise handle the redirect.
 		return res, err
 	}
 
@@ -273,9 +282,14 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 		return nil, err
 	}
 
+	if req.URL.Scheme == "https" && newReq.URL.Scheme == "http" {
+		return nil, errors.New("lfsapi/client: refusing insecure redirect, https->http")
+	}
+
+	sameHost := req.URL.Host == newReq.URL.Host
 	for key := range req.Header {
 		if key == "Authorization" {
-			if req.URL.Scheme != newReq.URL.Scheme || req.URL.Host != newReq.URL.Host {
+			if !sameHost {
 				continue
 			}
 		}
@@ -286,6 +300,8 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	newURL := strings.SplitN(newReq.URL.String(), "?", 2)[0]
 	tracerx.Printf("api: redirect %s %s to %s", req.Method, oldestURL, newURL)
 
+	// This body will have already been rewound from a call to
+	// lfsapi.Client.traceRequest().
 	newReq.Body = req.Body
 	newReq.ContentLength = req.ContentLength
 	return newReq, nil
