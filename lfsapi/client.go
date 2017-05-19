@@ -282,9 +282,12 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 		return nil, err
 	}
 
+	insecureDowngrade := req.URL.Scheme == "https" && newReq.URL.Scheme == "http"
+	sameHost := req.URL.Host == newReq.URL.Host
+
 	for key := range req.Header {
 		if key == "Authorization" {
-			if req.URL.Host != newReq.URL.Host {
+			if insecureDowngrade && !sameHost {
 				continue
 			}
 		}
