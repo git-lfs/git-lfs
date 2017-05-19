@@ -139,6 +139,26 @@ begin_test "pull with raw remote url"
 )
 end_test
 
+begin_test "pull: with missing object"
+(
+  set -e
+  cd ../clone
+  rm -rf .git/lfs/objects
+
+  delete_server_object "$reponame" "$b_oid"
+  refute_server_object "$reponame" "$b_oid"
+
+  # should return non-zero, but should also download all the other valid files too
+  set +e
+  git lfs pull
+  pull_exit=$?
+  set -e
+  [ "$pull_exit" != "0" ]
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$b_oid"
+)
+end_test
+
 begin_test "pull: outside git repository"
 (
   set +e
