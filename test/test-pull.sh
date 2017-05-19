@@ -10,7 +10,6 @@ begin_test "pull"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" clone
-
   clone_repo "$reponame" repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
@@ -142,20 +141,26 @@ end_test
 begin_test "pull: with missing object"
 (
   set -e
-  cd ../clone
+
+  # this clone is setup in the first test in this file
+  cd clone
   rm -rf .git/lfs/objects
 
-  delete_server_object "$reponame" "$b_oid"
-  refute_server_object "$reponame" "$b_oid"
+  contents_oid=$(calc_oid "a")
+  reponame="$(basename "$0" ".sh")"
+  delete_server_object "$reponame" "$contents_oid"
+  refute_server_object "$reponame" "$contents_oid"
 
   # should return non-zero, but should also download all the other valid files too
   set +e
   git lfs pull
   pull_exit=$?
   set -e
+
   [ "$pull_exit" != "0" ]
-  assert_local_object "$contents_oid" 1
-  refute_local_object "$b_oid"
+  contents2_oid=$(calc_oid "A")
+  assert_local_object "$contents2_oid" 1
+  refute_local_object "$contents_oid"
 )
 end_test
 
