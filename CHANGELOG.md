@@ -1,5 +1,29 @@
 # Git LFS Changelog
 
+## 2.1.1 (19 May, 2017)
+
+Git LFS v2.1.1 ships with bug fixes and a security patch fixing a remote code
+execution vulnerability exploitable by setting a SSH remote via your
+repository's `.lfsconfig` to contain the string "-oProxyCommand". This
+vulnerability is only exploitable if an attacker has write access to your
+repository, or you clone a repository with a `.lfsconfig` file containing that
+string.
+
+### Bugs
+
+* Make pull return non-zero error code when some downloads failed #2245 (@seth2810, @technoweenie)
+* lfsapi: support cross-scheme redirection #2243 (@ttaylorr)
+* sanitize ssh options parsed from ssh:// url #2242 (@technoweenie)
+* filepathfilter: interpret as .gitignore syntax #2238 (@technoweenie)
+* tq/basic_download: guard against nil HTTP response #2229 (@ttaylorr)
+* commands: fix logged error not interpolating format qualifiers #2230 (@ttaylorr)
+
+### Misc
+
+* release: backport Debian 9-related changes #2244 (@ssgelm, @andyneff, @ttaylorr)
+* Add git-lfs-lock and git-lfs-unlock to help index #2240 (@dpursehouse)
+* config: allow multiple environments when calling config.Unmarshal #2224 (@ttaylorr)
+
 ## 2.1.0 (28 April, 2017)
 
 ### Features
