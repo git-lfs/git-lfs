@@ -152,12 +152,12 @@ begin_test "pull: with missing object"
   refute_server_object "$reponame" "$contents_oid"
 
   # should return non-zero, but should also download all the other valid files too
-  set +e
-  git lfs pull
-  pull_exit=$?
-  set -e
-
+  git lfs pull 2>&1 | tee pull.log
+  pull_exit="${PIPESTATUS[0]}"
   [ "$pull_exit" != "0" ]
+
+  grep "$contents_oid" pull.log
+
   contents2_oid=$(calc_oid "A")
   assert_local_object "$contents2_oid" 1
   refute_local_object "$contents_oid"
