@@ -111,7 +111,9 @@ func pull(remote string, filter *filepathfilter.Filter) {
 	}
 
 	if !success {
-		Exit("Warning: errors occurred")
+		c := getAPIClient()
+		e := c.Endpoints.Endpoint("download", remote)
+		Exit("error: failed to push some objects to '%s'", e.Url)
 	}
 }
 
