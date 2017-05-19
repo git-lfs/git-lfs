@@ -41,6 +41,10 @@ commands and low level ("plumbing") commands.
     Check GIT LFS files for consistency.
 * git-lfs-install(1):
     Install Git LFS configuration.
+* git-lfs-lock(1):
+    Set a file as "locked" on the Git LFS server.
+* git-lfs-locks(1):
+    List currently locked files from the Git LFS server.
 * git-lfs-logs(1):
     Show errors from the git-lfs command.
 * git-lfs-ls-files(1):
@@ -53,6 +57,8 @@ commands and low level ("plumbing") commands.
     Show the status of Git LFS files in the working tree.
 * git-lfs-track(1):
     View or add Git LFS paths to Git attributes.
+* git-lfs-unlock(1):
+    Remove "locked" setting for a file on the Git LFS server.
 * git-lfs-untrack(1):
     Remove Git LFS paths from Git Attributes.
 * git-lfs-update(1):

@@ -354,10 +354,10 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprint(w, le)
 
-	fmt.Fprint(w, "%+v"+le, loggedError)
+	fmt.Fprintf(w, "%+v"+le, loggedError)
 
 	for key, val := range errors.Context(err) {
-		fmt.Fprint(w, "%s=%v"+le, key, val)
+		fmt.Fprintf(w, "%s=%v"+le, key, val)
 	}
 
 	fmt.Fprint(w, le+"ENV:"+le)
