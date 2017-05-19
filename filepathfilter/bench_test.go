@@ -10,7 +10,27 @@ import (
 	"github.com/git-lfs/git-lfs/tools"
 )
 
-func BenchmarkFilterIncludeWildcardOnly(b *testing.B) {
+func BenchmarkFilterSimplePath(b *testing.B) {
+	files := benchmarkTree(b)
+	filter := filepathfilter.New([]string{"lfs"}, nil)
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			filter.Allows(f)
+		}
+	}
+}
+
+func BenchmarkPatternSimplePath(b *testing.B) {
+	files := benchmarkTree(b)
+	pattern := filepathfilter.NewPattern("lfs")
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			pattern.Match(f)
+		}
+	}
+}
+
+func BenchmarkFilterSimpleExtension(b *testing.B) {
 	files := benchmarkTree(b)
 	filter := filepathfilter.New([]string{"*.go"}, nil)
 	for i := 0; i < b.N; i++ {
@@ -20,12 +40,52 @@ func BenchmarkFilterIncludeWildcardOnly(b *testing.B) {
 	}
 }
 
-func BenchmarkFilterIncludeDoubleAsterisk(b *testing.B) {
+func BenchmarkPatternSimpleExtension(b *testing.B) {
+	files := benchmarkTree(b)
+	pattern := filepathfilter.NewPattern("*.go")
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			pattern.Match(f)
+		}
+	}
+}
+
+func BenchmarkFilterComplexExtension(b *testing.B) {
+	files := benchmarkTree(b)
+	filter := filepathfilter.New([]string{"*.travis.yml"}, nil)
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			filter.Allows(f)
+		}
+	}
+}
+
+func BenchmarkPatternComplexExtension(b *testing.B) {
+	files := benchmarkTree(b)
+	pattern := filepathfilter.NewPattern("*.travis.yml")
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			pattern.Match(f)
+		}
+	}
+}
+
+func BenchmarkFilterDoubleAsterisk(b *testing.B) {
 	files := benchmarkTree(b)
 	filter := filepathfilter.New([]string{"**/README.md"}, nil)
 	for i := 0; i < b.N; i++ {
 		for _, f := range files {
 			filter.Allows(f)
+		}
+	}
+}
+
+func BenchmarkPatternDoubleAsterisk(b *testing.B) {
+	files := benchmarkTree(b)
+	pattern := filepathfilter.NewPattern("**/README.md")
+	for i := 0; i < b.N; i++ {
+		for _, f := range files {
+			pattern.Match(f)
 		}
 	}
 }
