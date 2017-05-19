@@ -120,7 +120,7 @@ TESTHOME="$REMOTEDIR/home"
 
 GIT_CONFIG_NOSYSTEM=1
 GIT_TERMINAL_PROMPT=0
-GIT_SSH=ssh-echo
+GIT_SSH=lfs-ssh-echo
 APPVEYOR_REPO_COMMIT_MESSAGE="test: env test should look for GIT_SSH too"
 
 export CREDSDIR
