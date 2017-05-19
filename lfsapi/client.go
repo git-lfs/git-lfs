@@ -282,12 +282,14 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 		return nil, err
 	}
 
-	insecureDowngrade := req.URL.Scheme == "https" && newReq.URL.Scheme == "http"
-	sameHost := req.URL.Host == newReq.URL.Host
+	if req.URL.Scheme == "https" && newReq.URL.Scheme == "http" {
+		return nil, errors.New("lfsapi/client: refusing insecure redirect, https->http")
+	}
 
+	sameHost := req.URL.Host == newReq.URL.Host
 	for key := range req.Header {
 		if key == "Authorization" {
-			if insecureDowngrade && !sameHost {
+			if !sameHost {
 				continue
 			}
 		}
