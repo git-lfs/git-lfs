@@ -44,14 +44,20 @@ $distro_name_map = {
   ),
   "debian/8" => %w(
     debian/jessie
-    linuxmint/sarah
-    linuxmint/rebecca
     linuxmint/rafaela
+    linuxmint/rebecca
     linuxmint/rosa
     ubuntu/trusty
     ubuntu/vivid
     ubuntu/wily
+  ),
+  "debian/9" => %W(
+    debian/stretch
+    linuxmint/sarah
+    linuxmint/serena
     ubuntu/xenial
+    ubuntu/yakkety
+    ubuntu/zesty
   ),
 }
 
@@ -91,6 +97,7 @@ package_files.each do |full_path|
   os, distro = case full_path
   when /debian\/7/ then ["Debian 7", "debian/wheezy"]
   when /debian\/8/ then ["Debian 8", "debian/jessie"]
+  when /debian\/9/ then ["Debian 9", "debian/stretch"]
   when /centos\/5/ then ["RPM RHEL 5/CentOS 5", "el/5"]
   when /centos\/6/ then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/ then ["RPM RHEL 7/CentOS 7", "el/7"]
