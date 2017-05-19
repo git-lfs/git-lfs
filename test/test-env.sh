@@ -673,7 +673,7 @@ begin_test "env with multiple ssh remotes"
   SSH=git@git-server.com:user/repo.git
 Endpoint (other)=https://other-git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=git@other-git-server.com:user/repo.git
-GIT_SSH=ssh-echo'
+GIT_SSH=lfs-ssh-echo'
 
   contains_same_elements "$expected" "$(git lfs env | grep -e "Endpoint" -e "SSH=")"
 )
