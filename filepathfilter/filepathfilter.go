@@ -67,7 +67,13 @@ func NewPattern(rawpattern string) Pattern {
 		return noOpMatcher{}
 	}
 
-	hasPathSep := strings.Contains(cleanpattern, string(filepath.Separator))
+	sep := string(filepath.Separator)
+	hasPathSep := strings.Contains(cleanpattern, sep)
+	ext := filepath.Ext(cleanpattern)
+	plen := len(cleanpattern)
+	if plen > 1 && !hasPathSep && strings.HasPrefix(cleanpattern, "*") && cleanpattern[1:plen] == ext {
+		return &simpleExtPattern{ext: ext}
+	}
 
 	// special case * when there are no path separators
 	// filepath.Match never allows * to match a path separator, which is correct
@@ -82,16 +88,39 @@ func NewPattern(rawpattern string) Pattern {
 			rawPattern: cleanpattern,
 			wildcardRE: regexp.MustCompile(regpattern),
 		}
-		// Also support ** with path separators
-	} else if hasPathSep && strings.Contains(cleanpattern, "**") {
+	}
+
+	// Also support ** with path separators
+	if hasPathSep && strings.Contains(cleanpattern, "**") {
 		pattern := regexp.QuoteMeta(cleanpattern)
 		regpattern := fmt.Sprintf("^%s$", strings.Replace(pattern, "\\*\\*", ".*", -1))
 		return &doubleWildcardPattern{
 			rawPattern: cleanpattern,
 			wildcardRE: regexp.MustCompile(regpattern),
 		}
-	} else {
-		return &basicPattern{rawPattern: cleanpattern}
+	}
+
+	if hasPathSep && strings.HasPrefix(cleanpattern, sep) {
+		rel := cleanpattern[1:len(cleanpattern)]
+		prefix := rel
+		if strings.HasSuffix(rel, sep) {
+			rel = rel[0 : len(rel)-1]
+		} else {
+			prefix += sep
+		}
+
+		return &pathPrefixPattern{
+			rawPattern: cleanpattern,
+			relative:   rel,
+			prefix:     prefix,
+		}
+	}
+
+	return &pathPattern{
+		rawPattern: cleanpattern,
+		prefix:     cleanpattern + sep,
+		suffix:     sep + cleanpattern,
+		inner:      sep + cleanpattern + sep,
 	}
 }
 
@@ -103,16 +132,45 @@ func convertToPatterns(rawpatterns []string) []Pattern {
 	return patterns
 }
 
-type basicPattern struct {
+type pathPrefixPattern struct {
 	rawPattern string
+	relative   string
+	prefix     string
 }
 
 // Match is a revised version of filepath.Match which makes it behave more
 // like gitignore
-func (p *basicPattern) Match(name string) bool {
+func (p *pathPrefixPattern) Match(name string) bool {
+	if name == p.relative || strings.HasPrefix(name, p.prefix) {
+		return true
+	}
 	matched, _ := filepath.Match(p.rawPattern, name)
-	// Also support matching a parent directory without a wildcard
-	return matched || strings.HasPrefix(name, p.rawPattern+string(filepath.Separator))
+	return matched
+}
+
+type pathPattern struct {
+	rawPattern string
+	prefix     string
+	suffix     string
+	inner      string
+}
+
+// Match is a revised version of filepath.Match which makes it behave more
+// like gitignore
+func (p *pathPattern) Match(name string) bool {
+	if strings.HasPrefix(name, p.prefix) || strings.HasSuffix(name, p.suffix) || strings.Contains(name, p.inner) {
+		return true
+	}
+	matched, _ := filepath.Match(p.rawPattern, name)
+	return matched
+}
+
+type simpleExtPattern struct {
+	ext string
+}
+
+func (p *simpleExtPattern) Match(name string) bool {
+	return strings.HasSuffix(name, p.ext)
 }
 
 type pathlessWildcardPattern struct {
