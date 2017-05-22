@@ -776,6 +776,8 @@ type CloneFlags struct {
 	Upload string
 	// --reference <repository>
 	Reference string
+	// --reference-if-able <repository>
+	ReferenceIfAble string
 	// --dissociate
 	Dissociate bool
 	// --separate-git-dir <git dir>
@@ -798,6 +800,16 @@ type CloneFlags struct {
 	Ipv4 bool
 	// --ipv6
 	Ipv6 bool
+	// --shallow-since <date>
+	ShallowSince string
+	// --shallow-since <date>
+	ShallowExclude string
+	// --shallow-submodules
+	ShallowSubmodules bool
+	// --no-shallow-submodules
+	NoShallowSubmodules bool
+	// jobs <n>
+	Jobs int64
 }
 
 // CloneWithoutFilters clones a git repo but without the smudge filter enabled
@@ -879,6 +891,9 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	if len(flags.Reference) > 0 {
 		cmdargs = append(cmdargs, "--reference", flags.Reference)
 	}
+	if len(flags.ReferenceIfAble) > 0 {
+		cmdargs = append(cmdargs, "--reference-if-able", flags.ReferenceIfAble)
+	}
 	if len(flags.SeparateGit) > 0 {
 		cmdargs = append(cmdargs, "--separate-git-dir", flags.SeparateGit)
 	}
@@ -896,6 +911,21 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	}
 	if flags.Verbose {
 		cmdargs = append(cmdargs, "--verbose")
+	}
+	if len(flags.ShallowSince) > 0 {
+		cmdargs = append(cmdargs, "--shallow-since", flags.ShallowSince)
+	}
+	if len(flags.ShallowExclude) > 0 {
+		cmdargs = append(cmdargs, "--shallow-exclude", flags.ShallowExclude)
+	}
+	if flags.ShallowSubmodules {
+		cmdargs = append(cmdargs, "--shallow-submodules")
+	}
+	if flags.NoShallowSubmodules {
+		cmdargs = append(cmdargs, "--no-shallow-submodules")
+	}
+	if flags.Jobs > -1 {
+		cmdargs = append(cmdargs, "--jobs", strconv.FormatInt(flags.Jobs, 10))
 	}
 
 	// Now args

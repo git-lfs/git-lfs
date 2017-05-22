@@ -281,11 +281,11 @@ begin_test "clone with flags"
   # specific test for --bare
   git lfs clone --bare "$GITSERVER/$reponame" "$newclonedir"
   [ -d "$newclonedir/objects" ]
+  rm -rf "$newclonedir"
 
   # short flags
   git lfs clone -l -v -n -s -b branch2 "$GITSERVER/$reponame" "$newclonedir"
   rm -rf "$newclonedir"
-
 )
 end_test
 
