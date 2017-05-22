@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -105,13 +106,11 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 }
 
 func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string) {
-	operation := endpointOperation(e, method)
-	tracerx.Printf("ssh: %s git-lfs-authenticate %s %s",
-		e.SshUserAndHost, e.SshPath, operation)
-
 	exe, args := sshGetExeAndArgs(osEnv, e)
-	return exe, append(args,
-		fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
+	operation := endpointOperation(e, method)
+	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
+	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
+	return exe, args
 }
 
 // Return the executable name for ssh on this machine and the base args
@@ -129,9 +128,12 @@ func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
 	}
 
 	if ssh == "" {
-		ssh = "ssh"
-	} else {
-		basessh := filepath.Base(ssh)
+		ssh = defaultSSHCmd
+	}
+
+	basessh := filepath.Base(ssh)
+
+	if basessh != defaultSSHCmd {
 		// Strip extension for easier comparison
 		if ext := filepath.Ext(basessh); len(ext) > 0 {
 			basessh = basessh[:len(basessh)-len(ext)]
@@ -140,7 +142,7 @@ func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
 		isTortoise = strings.EqualFold(basessh, "tortoiseplink")
 	}
 
-	args := make([]string, 0, 4+len(cmdArgs))
+	args := make([]string, 0, 5+len(cmdArgs))
 	if len(cmdArgs) > 0 {
 		args = append(args, cmdArgs...)
 	}
@@ -158,7 +160,30 @@ func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
 		}
 		args = append(args, e.SshPort)
 	}
-	args = append(args, e.SshUserAndHost)
+
+	if sep, ok := sshSeparators[basessh]; ok {
+		// inserts a separator between cli -options and host/cmd commands
+		// example: $ ssh -p 12345 -- user@host.com git-lfs-authenticate ...
+		args = append(args, sep, e.SshUserAndHost)
+	} else {
+		// no prefix supported, strip leading - off host to prevent cmd like:
+		// $ git config lfs.url ssh://-proxycmd=whatever
+		// $ plink -P 12345 -proxycmd=foo git-lfs-authenticate ...
+		//
+		// Instead, it'll attempt this, and eventually return an error
+		// $ plink -P 12345 proxycmd=foo git-lfs-authenticate ...
+		args = append(args, sshOptPrefixRE.ReplaceAllString(e.SshUserAndHost, ""))
+	}
 
 	return ssh, args
 }
+
+const defaultSSHCmd = "ssh"
+
+var (
+	sshOptPrefixRE = regexp.MustCompile(`\A\-+`)
+	sshSeparators  = map[string]string{
+		"ssh":          "--",
+		"lfs-ssh-echo": "--", // used in lfs integration tests only
+	}
+)

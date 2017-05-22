@@ -2,6 +2,7 @@ package lfsapi
 
 import (
 	"errors"
+	"net/url"
 	"path/filepath"
 	"testing"
 	"time"
@@ -222,6 +223,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "GET")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
+		"--",
 		"user@foo.com",
 		"git-lfs-authenticate user/repo download",
 	}, args)
@@ -229,6 +231,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "HEAD")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
+		"--",
 		"user@foo.com",
 		"git-lfs-authenticate user/repo download",
 	}, args)
@@ -237,6 +240,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
+		"--",
 		"user@foo.com",
 		"git-lfs-authenticate user/repo download",
 	}, args)
@@ -245,6 +249,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
+		"--",
 		"user@foo.com",
 		"git-lfs-authenticate user/repo upload",
 	}, args)
@@ -262,7 +267,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 
 	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
 	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{"user@foo.com"}, args)
+	assert.Equal(t, []string{"--", "user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
@@ -278,7 +283,7 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 
 	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
 	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{"-p", "8888", "user@foo.com"}, args)
+	assert.Equal(t, []string{"-p", "8888", "--", "user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsPlink(t *testing.T) {
@@ -407,6 +412,122 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
 	assert.Equal(t, "sshcmd", exe)
 	assert.Equal(t, []string{"-p", "8888", "user@foo.com"}, args)
+}
+
+func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
+	cli, err := NewClient(UniqTestEnv(map[string]string{
+		"GIT_SSH": "not-ssh",
+	}), nil)
+	require.Nil(t, err)
+
+	u, err := url.Parse("ssh://git@host.com:12345/repo")
+	require.Nil(t, err)
+
+	e := endpointFromSshUrl(u)
+	t.Logf("ENDPOINT: %+v", e)
+	assert.Equal(t, "12345", e.SshPort)
+	assert.Equal(t, "git@host.com", e.SshUserAndHost)
+	assert.Equal(t, "repo", e.SshPath)
+
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), e, "GET")
+	assert.Equal(t, "not-ssh", exe)
+	assert.Equal(t, []string{"-p", "12345", "git@host.com", "git-lfs-authenticate repo download"}, args)
+}
+
+func TestSSHGetLFSExeAndArgsInvalidOptionsAsHost(t *testing.T) {
+	cli, err := NewClient(nil, nil)
+	require.Nil(t, err)
+
+	u, err := url.Parse("ssh://-oProxyCommand=gnome-calculator/repo")
+	require.Nil(t, err)
+	assert.Equal(t, "-oProxyCommand=gnome-calculator", u.Host)
+
+	e := endpointFromSshUrl(u)
+	t.Logf("ENDPOINT: %+v", e)
+	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshUserAndHost)
+	assert.Equal(t, "repo", e.SshPath)
+
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), e, "GET")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator", "git-lfs-authenticate repo download"}, args)
+}
+
+func TestSSHGetLFSExeAndArgsInvalidOptionsAsHostWithCustomSSH(t *testing.T) {
+	cli, err := NewClient(UniqTestEnv(map[string]string{
+		"GIT_SSH": "not-ssh",
+	}), nil)
+	require.Nil(t, err)
+
+	u, err := url.Parse("ssh://--oProxyCommand=gnome-calculator/repo")
+	require.Nil(t, err)
+	assert.Equal(t, "--oProxyCommand=gnome-calculator", u.Host)
+
+	e := endpointFromSshUrl(u)
+	t.Logf("ENDPOINT: %+v", e)
+	assert.Equal(t, "--oProxyCommand=gnome-calculator", e.SshUserAndHost)
+	assert.Equal(t, "repo", e.SshPath)
+
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), e, "GET")
+	assert.Equal(t, "not-ssh", exe)
+	assert.Equal(t, []string{"oProxyCommand=gnome-calculator", "git-lfs-authenticate repo download"}, args)
+}
+
+func TestSSHGetExeAndArgsInvalidOptionsAsHost(t *testing.T) {
+	cli, err := NewClient(nil, nil)
+	require.Nil(t, err)
+
+	u, err := url.Parse("ssh://-oProxyCommand=gnome-calculator")
+	require.Nil(t, err)
+	assert.Equal(t, "-oProxyCommand=gnome-calculator", u.Host)
+
+	e := endpointFromSshUrl(u)
+	t.Logf("ENDPOINT: %+v", e)
+	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshUserAndHost)
+	assert.Equal(t, "", e.SshPath)
+
+	exe, args := sshGetExeAndArgs(cli.OSEnv(), e)
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator"}, args)
+}
+
+func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
+	cli, err := NewClient(nil, nil)
+	require.Nil(t, err)
+
+	u, err := url.Parse("ssh://git@git-host.com/-oProxyCommand=gnome-calculator")
+	require.Nil(t, err)
+	assert.Equal(t, "git-host.com", u.Host)
+
+	e := endpointFromSshUrl(u)
+	t.Logf("ENDPOINT: %+v", e)
+	assert.Equal(t, "git@git-host.com", e.SshUserAndHost)
+	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshPath)
+
+	exe, args := sshGetExeAndArgs(cli.OSEnv(), e)
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{"--", "git@git-host.com"}, args)
+}
+
+func TestParseBareSSHUrl(t *testing.T) {
+	e := endpointFromBareSshUrl("git@git-host.com:repo.git")
+	t.Logf("endpoint: %+v", e)
+	assert.Equal(t, "git@git-host.com", e.SshUserAndHost)
+	assert.Equal(t, "repo.git", e.SshPath)
+
+	e = endpointFromBareSshUrl("git@git-host.com/should-be-a-colon.git")
+	t.Logf("endpoint: %+v", e)
+	assert.Equal(t, "", e.SshUserAndHost)
+	assert.Equal(t, "", e.SshPath)
+
+	e = endpointFromBareSshUrl("-oProxyCommand=gnome-calculator")
+	t.Logf("endpoint: %+v", e)
+	assert.Equal(t, "", e.SshUserAndHost)
+	assert.Equal(t, "", e.SshPath)
+
+	e = endpointFromBareSshUrl("git@git-host.com:-oProxyCommand=gnome-calculator")
+	t.Logf("endpoint: %+v", e)
+	assert.Equal(t, "git@git-host.com", e.SshUserAndHost)
+	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshPath)
 }
 
 func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
