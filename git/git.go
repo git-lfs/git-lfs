@@ -808,6 +808,8 @@ type CloneFlags struct {
 	ShallowSubmodules bool
 	// --no-shallow-submodules
 	NoShallowSubmodules bool
+	// jobs <n>
+	Jobs int64
 }
 
 // CloneWithoutFilters clones a git repo but without the smudge filter enabled
@@ -921,6 +923,9 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	}
 	if flags.NoShallowSubmodules {
 		cmdargs = append(cmdargs, "--no-shallow-submodules")
+	}
+	if flags.Jobs > -1 {
+		cmdargs = append(cmdargs, "--jobs", strconv.FormatInt(flags.Jobs, 10))
 	}
 
 	// Now args
