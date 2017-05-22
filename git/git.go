@@ -776,6 +776,8 @@ type CloneFlags struct {
 	Upload string
 	// --reference <repository>
 	Reference string
+	// --reference-if-able <repository>
+	ReferenceIfAble string
 	// --dissociate
 	Dissociate bool
 	// --separate-git-dir <git dir>
@@ -878,6 +880,9 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	}
 	if len(flags.Reference) > 0 {
 		cmdargs = append(cmdargs, "--reference", flags.Reference)
+	}
+	if len(flags.ReferenceIfAble) > 0 {
+		cmdargs = append(cmdargs, "--reference-if-able", flags.ReferenceIfAble)
 	}
 	if len(flags.SeparateGit) > 0 {
 		cmdargs = append(cmdargs, "--separate-git-dir", flags.SeparateGit)
