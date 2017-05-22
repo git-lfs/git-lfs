@@ -40,6 +40,19 @@ func (s *Signature) String() string {
 	return fmt.Sprintf("%s <%s> %d %s", s.Name, s.Email, at, zone)
 }
 
+// ExtraHeader encapsulates a key-value pairing of header key to header value.
+// It is stored as a struct{string, string} in memory as opposed to a
+// map[string]string to maintain ordering in a byte-for-byte encode/decode round
+// trip.
+type ExtraHeader struct {
+	// K is the header key, or the first run of bytes up until a ' ' (\x20)
+	// character.
+	K string
+	// V is the header value, or the remaining run of bytes in the line,
+	// stripping off the above "K" field as a prefix.
+	V string
+}
+
 // Commit encapsulates a Git commit entry.
 type Commit struct {
 	// Author is the Author this commit, or the original writer of the
@@ -59,6 +72,9 @@ type Commit struct {
 	ParentIDs [][]byte
 	// TreeID is the root Tree associated with this commit.
 	TreeID []byte
+	// ExtraHeaders stores headers not listed above, for instance
+	// "encoding", "gpgsig", or "mergetag" (among others).
+	ExtraHeaders []*ExtraHeader
 	// Message is the commit message, including any signing information
 	// associated with this commit.
 	Message string
@@ -77,10 +93,16 @@ func (c *Commit) Type() ObjectType { return CommitObjectType }
 // If any error was encountered along the way, that will be returned, along with
 // the number of bytes read up to that point.
 func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
+	var finishedHeaders bool
+	var messageParts []string
+
 	s := bufio.NewScanner(from)
 	for s.Scan() {
 		text := s.Text()
+		n = n + len(text+"\n")
+
 		if len(s.Text()) == 0 {
+			finishedHeaders = true
 			continue
 		}
 
@@ -105,16 +127,19 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 			case "committer":
 				c.Committer = strings.Join(fields[1:], " ")
 			default:
-				if len(c.Message) == 0 {
-					c.Message = s.Text()
+				if finishedHeaders {
+					messageParts = append(messageParts, s.Text())
 				} else {
-					c.Message = strings.Join([]string{c.Message, s.Text()}, "\n")
+					c.ExtraHeaders = append(c.ExtraHeaders, &ExtraHeader{
+						K: fields[0],
+						V: strings.Join(fields[1:], " "),
+					})
 				}
 			}
 		}
-
-		n = n + len(text+"\n")
 	}
+
+	c.Message = strings.Join(messageParts, "\n")
 
 	if err = s.Err(); err != nil {
 		return n, err
@@ -141,11 +166,26 @@ func (c *Commit) Encode(to io.Writer) (n int, err error) {
 		n = n + n1
 	}
 
-	n2, err := fmt.Fprintf(to, "author %s\ncommitter %s\n\n%s\n",
-		c.Author, c.Committer, c.Message)
+	n2, err := fmt.Fprintf(to, "author %s\ncommitter %s\n", c.Author, c.Committer)
 	if err != nil {
 		return n, err
 	}
 
-	return n + n2, err
+	n = n + n2
+
+	for _, hdr := range c.ExtraHeaders {
+		n3, err := fmt.Fprintf(to, "%s %s\n", hdr.K, hdr.V)
+		if err != nil {
+			return n, err
+		}
+
+		n = n + n3
+	}
+
+	n4, err := fmt.Fprintf(to, "\n%s\n", c.Message)
+	if err != nil {
+		return n, err
+	}
+
+	return n + n4, err
 }

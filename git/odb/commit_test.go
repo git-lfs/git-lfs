@@ -25,7 +25,10 @@ func TestCommitEncoding(t *testing.T) {
 		ParentIDs: [][]byte{
 			[]byte("aaaaaaaaaaaaaaaaaaaa"), []byte("bbbbbbbbbbbbbbbbbbbb"),
 		},
-		TreeID:  []byte("cccccccccccccccccccc"),
+		TreeID: []byte("cccccccccccccccccccc"),
+		ExtraHeaders: []*ExtraHeader{
+			{"foo", "bar"},
+		},
 		Message: "initial commit",
 	}
 
@@ -39,6 +42,7 @@ func TestCommitEncoding(t *testing.T) {
 	assertLine(t, buf, "parent 6262626262626262626262626262626262626262")
 	assertLine(t, buf, "author %s", author.String())
 	assertLine(t, buf, "committer %s", committer.String())
+	assertLine(t, buf, "foo bar")
 	assertLine(t, buf, "")
 	assertLine(t, buf, "initial commit")
 
@@ -58,8 +62,9 @@ func TestCommitDecoding(t *testing.T) {
 	fmt.Fprintf(from, "committer %s\n", committer)
 	fmt.Fprintf(from, "parent %s\n", hex.EncodeToString(p1))
 	fmt.Fprintf(from, "parent %s\n", hex.EncodeToString(p2))
+	fmt.Fprintf(from, "foo bar\n")
 	fmt.Fprintf(from, "tree %s\n", hex.EncodeToString(treeId))
-	fmt.Fprintf(from, "initial commit\n")
+	fmt.Fprintf(from, "\ninitial commit\n")
 
 	flen := from.Len()
 
@@ -72,6 +77,9 @@ func TestCommitDecoding(t *testing.T) {
 	assert.Equal(t, author.String(), commit.Author)
 	assert.Equal(t, committer.String(), commit.Committer)
 	assert.Equal(t, [][]byte{p1, p2}, commit.ParentIDs)
+	assert.Equal(t, 1, len(commit.ExtraHeaders))
+	assert.Equal(t, "foo", commit.ExtraHeaders[0].K)
+	assert.Equal(t, "bar", commit.ExtraHeaders[0].V)
 	assert.Equal(t, "initial commit", commit.Message)
 }
 
