@@ -5,17 +5,16 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
-
-	"github.com/git-lfs/git-lfs/errors"
 )
 
 // Signature represents a commit signature, which can represent either
 // committership or authorship of the commit that this signature belongs to. It
 // specifies a name, email, and time that the signature was created.
+//
+// NOTE: this type is _not_ used by the `*Commit` instance, as it does not
+// preserve cruft bytes. It is kept as a convenience type to test with.
 type Signature struct {
 	// Name is the first and last name of the individual holding this
 	// signature.
@@ -27,7 +26,6 @@ type Signature struct {
 }
 
 const (
-	parseTimeZoneOnly  = "2006 -0700"
 	formatTimeZoneOnly = "-0700"
 )
 
@@ -42,79 +40,20 @@ func (s *Signature) String() string {
 	return fmt.Sprintf("%s <%s> %d %s", s.Name, s.Email, at, zone)
 }
 
-var (
-	signatureNameRe  = regexp.MustCompile("^[^<]+")
-	signatureEmailRe = regexp.MustCompile("<(.*)>")
-	signatureTimeRe  = regexp.MustCompile("(\\d+)(\\s[-+]?\\d+)?$")
-)
-
-// ParseSignature parses a given string into a signature instance, returning any
-// error that it encounters along the way.
-//
-// ParseSignature expects the signature encoded in the given string to be
-// formatted correctly, and reproduce-able by the Signature.String() function
-// above.
-func ParseSignature(str string) (*Signature, error) {
-	name := signatureNameRe.FindString(str)
-	emailParts := signatureEmailRe.FindStringSubmatch(str)
-	timeParts := signatureTimeRe.FindStringSubmatch(str)
-
-	if len(emailParts) < 2 {
-		return nil, errors.Errorf("git/odb: expected email in signature: %q", str)
-	}
-	email := emailParts[1]
-
-	if len(timeParts) < 2 {
-		return nil, errors.Errorf("git/odb: expected time in signature: %q", str)
-	}
-
-	timestamp, timezone := timeParts[1], "0000"
-	if len(timeParts) >= 3 {
-		timezone = strings.TrimSpace(timeParts[2])
-	}
-
-	epoch, err := strconv.ParseInt(timestamp, 10, 64)
-	if err != nil {
-		return nil, errors.Errorf("git/odb: unable to parse time in signature: %q", str)
-	}
-
-	t := time.Unix(epoch, 0).In(time.UTC)
-
-	if timezone != "0000" {
-		loc, err := parseTimeZone(timezone)
-		if err != nil {
-			return nil, errors.Wrapf(err, "git/odb: unable to coerce timezone in %q", str)
-		}
-
-		t = t.In(loc)
-	}
-
-	return &Signature{
-		Name:  strings.TrimSpace(name),
-		Email: email,
-		When:  t,
-	}, nil
-}
-
-// parseTimeZone returns the *time.Location corresponding to a Git-formatted
-// string offset. For instance, the string "-0700" would format into a
-// *time.Location that is 7 hours east of UTC.
-func parseTimeZone(zone string) (*time.Location, error) {
-	loc, err := time.Parse(parseTimeZoneOnly, fmt.Sprintf("1970 %s", zone))
-	if err != nil {
-		return nil, err
-	}
-	return loc.Location(), nil
-}
-
 // Commit encapsulates a Git commit entry.
 type Commit struct {
 	// Author is the Author this commit, or the original writer of the
 	// contents.
-	Author *Signature
+	//
+	// NOTE: this field is stored as a string to ensure any extra "cruft"
+	// bytes are preserved through migration.
+	Author string
 	// Committer is the individual or entity that added this commit to the
 	// history.
-	Committer *Signature
+	//
+	// NOTE: this field is stored as a string to ensure any extra "cruft"
+	// bytes are preserved through migration.
+	Committer string
 	// ParentIDs are the IDs of all parents for which this commit is a
 	// linear child.
 	ParentIDs [][]byte
@@ -162,19 +101,9 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 				}
 				c.ParentIDs = append(c.ParentIDs, id)
 			case "author":
-				author, err := ParseSignature(strings.Join(fields[1:], " "))
-				if err != nil {
-					return n, err
-				}
-
-				c.Author = author
+				c.Author = strings.Join(fields[1:], " ")
 			case "committer":
-				committer, err := ParseSignature(strings.Join(fields[1:], " "))
-				if err != nil {
-					return n, err
-				}
-
-				c.Committer = committer
+				c.Committer = strings.Join(fields[1:], " ")
 			default:
 				if len(c.Message) == 0 {
 					c.Message = s.Text()

@@ -20,8 +20,8 @@ func TestCommitEncoding(t *testing.T) {
 	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: time.Now()}
 
 	c := &Commit{
-		Author:    author,
-		Committer: committer,
+		Author:    author.String(),
+		Committer: committer.String(),
 		ParentIDs: [][]byte{
 			[]byte("aaaaaaaaaaaaaaaaaaaa"), []byte("bbbbbbbbbbbbbbbbbbbb"),
 		},
@@ -37,8 +37,8 @@ func TestCommitEncoding(t *testing.T) {
 	assertLine(t, buf, "tree 6363636363636363636363636363636363636363")
 	assertLine(t, buf, "parent 6161616161616161616161616161616161616161")
 	assertLine(t, buf, "parent 6262626262626262626262626262626262626262")
-	assertLine(t, buf, "author %s", author)
-	assertLine(t, buf, "committer %s", committer)
+	assertLine(t, buf, "author %s", author.String())
+	assertLine(t, buf, "committer %s", committer.String())
 	assertLine(t, buf, "")
 	assertLine(t, buf, "initial commit")
 
@@ -69,8 +69,8 @@ func TestCommitDecoding(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, flen, n)
 
-	assert.Equal(t, author.String(), commit.Author.String())
-	assert.Equal(t, committer.String(), commit.Committer.String())
+	assert.Equal(t, author.String(), commit.Author)
+	assert.Equal(t, committer.String(), commit.Committer)
 	assert.Equal(t, [][]byte{p1, p2}, commit.ParentIDs)
 	assert.Equal(t, "initial commit", commit.Message)
 }
