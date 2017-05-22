@@ -16,8 +16,6 @@ type Blob struct {
 	closeFn func() error
 }
 
-var _ Object = (*Blob)(nil)
-
 // Type implements Object.ObjectType by returning the correct object type for
 // Blobs, BlobObjectType.
 func (b *Blob) Type() ObjectType { return BlobObjectType }

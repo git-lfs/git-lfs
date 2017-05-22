@@ -17,8 +17,6 @@ type memoryStorer struct {
 	fs map[string]*bufCloser
 }
 
-var _ storer = (*memoryStorer)(nil)
-
 // newMemoryStorer initializes a new memoryStorer instance with the given
 // initial set.
 //
@@ -72,8 +70,6 @@ func (ms *memoryStorer) Open(sha []byte) (f io.ReadWriteCloser, err error) {
 type bufCloser struct {
 	io.ReadWriter
 }
-
-var _ io.ReadWriteCloser = (*bufCloser)(nil)
 
 // Close implements io.Closer, and returns nothing.
 func (b *bufCloser) Close() error { return nil }

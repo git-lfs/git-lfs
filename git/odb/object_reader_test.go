@@ -51,8 +51,6 @@ type ReadCloserFn struct {
 	closeFn func() error
 }
 
-var _ io.ReadCloser = (*ReadCloserFn)(nil)
-
 func (r *ReadCloserFn) Close() error {
 	return r.closeFn()
 }

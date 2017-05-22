@@ -38,8 +38,6 @@ type ObjectReader struct {
 	closeFn func() error
 }
 
-var _ io.ReadCloser = (*ObjectReader)(nil)
-
 // NewObjectReader takes a given io.Reader that yields zlib-compressed data, and
 // returns an *ObjectReader wrapping it, or an error if one occurred during
 // construction time.

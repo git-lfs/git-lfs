@@ -15,8 +15,6 @@ type Tree struct {
 	Entries []*TreeEntry
 }
 
-var _ Object = (*Tree)(nil)
-
 // Type implements Object.ObjectType by returning the correct object type for
 // Trees, TreeObjectType.
 func (t *Tree) Type() ObjectType { return TreeObjectType }

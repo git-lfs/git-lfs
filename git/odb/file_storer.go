@@ -17,8 +17,6 @@ type fileStorer struct {
 	root string
 }
 
-var _ storer = (*fileStorer)(nil)
-
 // NewFileStorer returns a new fileStorer instance with the given root.
 func newFileStorer(root string) *fileStorer {
 	return &fileStorer{

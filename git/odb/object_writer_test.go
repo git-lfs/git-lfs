@@ -96,8 +96,6 @@ type WriteCloserFn struct {
 	closeFn func() error
 }
 
-var _ io.WriteCloser = (*WriteCloserFn)(nil)
-
 func (r *WriteCloserFn) Close() error { return r.closeFn() }
 
 func TestObjectWriterCallsClose(t *testing.T) {

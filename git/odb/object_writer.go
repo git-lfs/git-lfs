@@ -33,8 +33,6 @@ type ObjectWriter struct {
 	closeFn func() error
 }
 
-var _ io.WriteCloser = (*ObjectWriter)(nil)
-
 // nopCloser provides a no-op implementation of the io.WriteCloser interface by
 // taking an io.Writer and wrapping it with a Close() method that returns nil.
 type nopCloser struct {
@@ -42,8 +40,6 @@ type nopCloser struct {
 	// call.
 	io.Writer
 }
-
-var _ io.WriteCloser = (*nopCloser)(nil)
 
 // Close implements the io.Closer interface by returning nil.
 func (n *nopCloser) Close() error {

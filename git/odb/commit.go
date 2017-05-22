@@ -80,8 +80,6 @@ type Commit struct {
 	Message string
 }
 
-var _ Object = (*Commit)(nil)
-
 // Type implements Object.ObjectType by returning the correct object type for
 // Commits, CommitObjectType.
 func (c *Commit) Type() ObjectType { return CommitObjectType }
