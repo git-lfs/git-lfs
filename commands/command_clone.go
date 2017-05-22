@@ -149,6 +149,7 @@ func init() {
 		cmd.Flags().BoolVarP(&cloneFlags.Verbose, "verbose", "", false, "See 'git clone --help'")
 		cmd.Flags().BoolVarP(&cloneFlags.Ipv4, "ipv4", "", false, "See 'git clone --help'")
 		cmd.Flags().BoolVarP(&cloneFlags.Ipv6, "ipv6", "", false, "See 'git clone --help'")
+		cmd.Flags().StringVarP(&cloneFlags.ShallowSince, "shallow-since", "", "", "See 'git clone --help'")
 
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")

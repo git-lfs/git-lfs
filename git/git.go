@@ -800,6 +800,8 @@ type CloneFlags struct {
 	Ipv4 bool
 	// --ipv6
 	Ipv6 bool
+	// --shallow-since <date>
+	ShallowSince string
 }
 
 // CloneWithoutFilters clones a git repo but without the smudge filter enabled
@@ -901,6 +903,9 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	}
 	if flags.Verbose {
 		cmdargs = append(cmdargs, "--verbose")
+	}
+	if len(flags.ShallowSince) > 0 {
+		cmdargs = append(cmdargs, "--shallow-since", flags.ShallowSince)
 	}
 
 	// Now args
