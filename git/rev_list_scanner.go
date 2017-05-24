@@ -28,6 +28,17 @@ const (
 	ScanLeftToRemoteMode
 )
 
+// RevListOrder is a constant type that allows for variation in the ordering of
+// revisions given by the *RevListScanner below.
+type RevListOrder int
+
+const (
+	// DefaultRevListOrder is the zero-value for this type and yields the
+	// results as given by git-rev-list(1) without any `--<t>-order`
+	// argument given. By default: reverse chronological order.
+	DefaultRevListOrder RevListOrder = iota
+)
+
 // ScanRefsOptions is an "options" type that is used to configure a scan
 // operation on the `*git.RevListScanner` instance when given to the function
 // `NewRevListScanner()`.
@@ -41,6 +52,10 @@ type ScanRefsOptions struct {
 	// ancestry (revealing potentially deleted (unreferenced) blobs, trees,
 	// or commits.
 	SkipDeletedBlobs bool
+	// Order specifies the order in which revisions are yielded from the
+	// output of `git-rev-list(1)`. For more information, see the above
+	// documentation on the RevListOrder type.
+	Order RevListOrder
 
 	// SkippedRefs provides a list of refs to ignore.
 	SkippedRefs []string
