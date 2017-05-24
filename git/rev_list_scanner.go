@@ -37,6 +37,9 @@ const (
 	// results as given by git-rev-list(1) without any `--<t>-order`
 	// argument given. By default: reverse chronological order.
 	DefaultRevListOrder RevListOrder = iota
+	// DateRevListOrder gives the revisions such that no parents are shown
+	// before children, and otherwise in commit timestamp order.
+	DateRevListOrder
 )
 
 // ScanRefsOptions is an "options" type that is used to configure a scan
@@ -182,6 +185,11 @@ func NewRevListScanner(left, right string, opt *ScanRefsOptions) (*RevListScanne
 func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error) {
 	var stdin io.Reader
 	args := []string{"rev-list", "--objects"}
+
+	switch opt.Order {
+	case DateRevListOrder:
+		args = append(args, "--date-order")
+	}
 
 	switch opt.Mode {
 	case ScanRefsMode:
