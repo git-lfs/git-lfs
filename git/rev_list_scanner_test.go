@@ -121,6 +121,13 @@ func TestRevListArgs(t *testing.T) {
 			},
 			ExpectedArgs: []string{"rev-list", "--objects", "--author-date-order", "--do-walk", "left", "right", "--"},
 		},
+		"scan topo order": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:  ScanRefsMode,
+				Order: TopoRevListOrder,
+			},
+			ExpectedArgs: []string{"rev-list", "--objects", "--topo-order", "--do-walk", "left", "right", "--"},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}

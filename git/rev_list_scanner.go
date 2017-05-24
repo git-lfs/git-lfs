@@ -43,6 +43,9 @@ const (
 	// AuthorDateRevListOrder gives the revisions such that no parents are
 	// shown before children, and otherwise in author date timestamp order.
 	AuthorDateRevListOrder
+	// TopoRevListOrder gives the revisions such that they appear in
+	// topological order.
+	TopoRevListOrder
 )
 
 // ScanRefsOptions is an "options" type that is used to configure a scan
@@ -194,6 +197,8 @@ func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error)
 		args = append(args, "--date-order")
 	case AuthorDateRevListOrder:
 		args = append(args, "--author-date-order")
+	case TopoRevListOrder:
+		args = append(args, "--topo-order")
 	}
 
 	switch opt.Mode {
