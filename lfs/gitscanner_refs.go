@@ -5,7 +5,6 @@ import (
 	"regexp"
 
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/rubyist/tracerx"
 )
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
@@ -109,16 +108,9 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 
 	go func() {
 		for scanner.Scan() {
-			rev := scanner.Object()
-			if rev == nil {
-				break
-			}
-
-			sha := hex.EncodeToString(rev.Oid)
-			tracerx.Printf(sha)
-			if len(rev.Name) > 0 {
-				tracerx.Printf("\t%s", rev.Name)
-				opt.SetName(sha, rev.Name)
+			sha := hex.EncodeToString(scanner.OID())
+			if name := scanner.Name(); len(name) > 0 {
+				opt.SetName(sha, name)
 			}
 			revs <- sha
 		}

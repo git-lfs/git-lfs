@@ -146,12 +146,13 @@ func TestRevListScannerParsesLinesWithNames(t *testing.T) {
 	}
 
 	assert.True(t, s.Scan())
-	assert.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", hex.EncodeToString(s.Object().Oid))
-	assert.Equal(t, "name.dat", s.Object().Name)
+	assert.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", hex.EncodeToString(s.OID()))
+	assert.Equal(t, "name.dat", s.Name())
 	assert.Nil(t, s.Err())
 
 	assert.False(t, s.Scan())
-	assert.Nil(t, s.Object())
+	assert.Equal(t, "", s.Name())
+	assert.Equal(t, "", s.OID())
 	assert.Nil(t, s.Err())
 }
 
@@ -162,10 +163,11 @@ func TestRevListScannerParsesLinesWithoutName(t *testing.T) {
 	}
 
 	assert.True(t, s.Scan())
-	assert.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", hex.EncodeToString(s.Object().Oid))
+	assert.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", hex.EncodeToString(s.OID()))
 	assert.Nil(t, s.Err())
 
 	assert.False(t, s.Scan())
-	assert.Nil(t, s.Object())
+	assert.Equal(t, "", s.Name())
+	assert.Equal(t, "", s.OID())
 	assert.Nil(t, s.Err())
 }

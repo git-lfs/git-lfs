@@ -74,15 +74,6 @@ func (o *ScanRefsOptions) SetName(sha, name string) {
 	o.Names[sha] = name
 }
 
-// RevListObject is a tuple type returning results from the RevListScanner.
-type RevListObject struct {
-	// Name is an optional field that gives the name of the object (if the
-	// object is a tree, blob).
-	Name string
-	// Oid is the hex-decoded bytes of the object's ID.
-	Oid []byte
-}
-
 // RevListScanner is a Scanner type that parses through results of the `git
 // rev-list` command.
 type RevListScanner struct {
@@ -94,8 +85,10 @@ type RevListScanner struct {
 	// type.
 	closeFn func() error
 
-	// obj is the most recently read object.
-	obj *RevListObject
+	// name is the name of the most recently read object.
+	name string
+	// oid is the oid of the most recently read object.
+	oid []byte
 	// err is the most recently encountered error.
 	err error
 }
@@ -204,11 +197,18 @@ func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error)
 	return stdin, append(args, "--"), nil
 }
 
-// Object returns the last read *RevListObject parsed by the *RevListScanner.
+// Name is an optional field that gives the name of the object (if the object is
+// a tree, blob).
 //
-// It can be called before or after Scan(), but will return nil if called
+// It can be called before or after Scan(), but will return "" if called
 // before.
-func (s *RevListScanner) Object() *RevListObject { return s.obj }
+func (s *RevListScanner) Name() string { return s.name }
+
+// OID is the hex-decoded bytes of the object's ID.
+//
+// It can be called before or after Scan(), but will return "" if called
+// before.
+func (s *RevListScanner) OID() []byte { return s.oid }
 
 // Err returns the last encountered error (or nil) after a call to Scan().
 //
@@ -219,7 +219,7 @@ func (s *RevListScanner) Err() error { return s.err }
 // indicating if there are more results to scan.
 func (s *RevListScanner) Scan() bool {
 	var err error
-	s.obj, err = s.scan()
+	s.oid, s.name, err = s.scan()
 
 	if err != nil {
 		if err != io.EOF {
@@ -227,7 +227,7 @@ func (s *RevListScanner) Scan() bool {
 		}
 		return false
 	}
-	return s.obj != nil
+	return len(s.oid) > 0
 }
 
 // Close closes the RevListScanner by freeing any resources held by the
@@ -241,19 +241,19 @@ func (s *RevListScanner) Close() error {
 
 // scan provides the internal implementation of scanning a line of text from the
 // output of `git-rev-list(1)`.
-func (s *RevListScanner) scan() (*RevListObject, error) {
+func (s *RevListScanner) scan() ([]byte, string, error) {
 	if !s.s.Scan() {
-		return nil, s.s.Err()
+		return nil, "", s.s.Err()
 	}
 
 	line := strings.TrimSpace(s.s.Text())
 	if len(line) < 40 {
-		return nil, nil
+		return nil, "", nil
 	}
 
 	sha1, err := hex.DecodeString(line[:40])
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	var name string
@@ -261,8 +261,5 @@ func (s *RevListScanner) scan() (*RevListObject, error) {
 		name = line[41:]
 	}
 
-	return &RevListObject{
-		Name: name,
-		Oid:  sha1,
-	}, nil
+	return sha1, name, nil
 }
