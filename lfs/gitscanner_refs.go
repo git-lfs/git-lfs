@@ -1,13 +1,11 @@
 package lfs
 
 import (
-	"bufio"
-	"errors"
-	"fmt"
-	"io/ioutil"
+	"encoding/hex"
 	"regexp"
-	"strconv"
-	"strings"
+
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/rubyist/tracerx"
 )
 
 var z40 = regexp.MustCompile(`\^?0{40}`)
@@ -93,84 +91,51 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLe
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
 func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannelWrapper, error) {
-	refArgs := []string{"rev-list", "--objects"}
-	var stdin []string
-	switch opt.ScanMode {
-	case ScanRefsMode:
-		if opt.SkipDeletedBlobs {
-			refArgs = append(refArgs, "--no-walk")
-		} else {
-			refArgs = append(refArgs, "--do-walk")
-		}
+	scanner, err := git.NewRevListScanner(refLeft, refRight, &git.ScanRefsOptions{
+		Mode:             git.ScanningMode(opt.ScanMode),
+		Remote:           opt.RemoteName,
+		SkipDeletedBlobs: opt.SkipDeletedBlobs,
+		SkippedRefs:      opt.skippedRefs,
+		Mutex:            opt.mutex,
+		Names:            opt.nameMap,
+	})
 
-		refArgs = append(refArgs, refLeft)
-		if refRight != "" && !z40.MatchString(refRight) {
-			refArgs = append(refArgs, refRight)
-		}
-	case ScanAllMode:
-		refArgs = append(refArgs, "--all")
-	case ScanLeftToRemoteMode:
-		args, commits := revListArgsRefVsRemote(refLeft, opt.RemoteName, opt.skippedRefs)
-		refArgs = append(refArgs, args...)
-		if len(commits) > 0 {
-			stdin = commits
-		}
-	default:
-		return nil, errors.New("scanner: unknown scan type: " + strconv.Itoa(int(opt.ScanMode)))
-	}
-
-	// Use "--" at the end of the command to disambiguate arguments as refs,
-	// so Git doesn't complain about ambiguity if you happen to also have a
-	// file named "master".
-	refArgs = append(refArgs, "--")
-
-	cmd, err := startCommand("git", refArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(stdin) > 0 {
-		cmd.Stdin.Write([]byte(strings.Join(stdin, "\n")))
-	}
-
-	cmd.Stdin.Close()
-
 	revs := make(chan string, chanBufSize)
-	errchan := make(chan error, 5) // may be multiple errors
+	errs := make(chan error, 5) // may be multiple errors
 
 	go func() {
-		scanner := bufio.NewScanner(cmd.Stdout)
 		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if len(line) < 40 {
-				continue
+			rev := scanner.Object()
+			if rev == nil {
+				break
 			}
 
-			sha1 := line[0:40]
-			if len(line) > 40 {
-				opt.SetName(sha1, line[41:len(line)])
+			sha := hex.EncodeToString(rev.Oid)
+			tracerx.Printf(sha)
+			if len(rev.Name) > 0 {
+				tracerx.Printf("\t%s", rev.Name)
+				opt.SetName(sha, rev.Name)
 			}
-			revs <- sha1
+			revs <- sha
 		}
 
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err := cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git rev-list --objects: %v %v", err, string(stderr))
-		} else {
-			// Special case detection of ambiguous refs; lower level commands like
-			// git rev-list do not return non-zero exit codes in this case, just warn
-			ambiguousRegex := regexp.MustCompile(`warning: refname (.*) is ambiguous`)
-			if match := ambiguousRegex.FindStringSubmatch(string(stderr)); match != nil {
-				// Promote to fatal & exit
-				errchan <- fmt.Errorf("Error: ref %s is ambiguous", match[1])
-			}
+		if err = scanner.Err(); err != nil {
+			errs <- err
 		}
+
+		if err = scanner.Close(); err != nil {
+			errs <- err
+		}
+
 		close(revs)
-		close(errchan)
+		close(errs)
 	}()
 
-	return NewStringChannelWrapper(revs, errchan), nil
+	return NewStringChannelWrapper(revs, errs), nil
 }
 
 // Get additional arguments needed to limit 'git rev-list' to just the changes
