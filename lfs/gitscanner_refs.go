@@ -129,20 +129,3 @@ func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannel
 
 	return NewStringChannelWrapper(revs, errs), nil
 }
-
-// Get additional arguments needed to limit 'git rev-list' to just the changes
-// in refTo that are also not on remoteName.
-//
-// Returns a slice of string command arguments, and a slice of string git
-// commits to pass to `git rev-list` via STDIN.
-func revListArgsRefVsRemote(refTo, remoteName string, skippedRefs []string) ([]string, []string) {
-	if len(skippedRefs) < 1 {
-		// Safe to use cached
-		return []string{refTo, "--not", "--remotes=" + remoteName}, nil
-	}
-
-	// Use only the non-missing refs as 'from' points
-	commits := make([]string, 1, len(skippedRefs)+1)
-	commits[0] = refTo
-	return []string{"--stdin"}, append(commits, skippedRefs...)
-}
