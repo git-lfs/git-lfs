@@ -152,7 +152,7 @@ func TestRevListScannerParsesLinesWithNames(t *testing.T) {
 
 	assert.False(t, s.Scan())
 	assert.Equal(t, "", s.Name())
-	assert.Equal(t, "", s.OID())
+	assert.Nil(t, s.OID())
 	assert.Nil(t, s.Err())
 }
 
@@ -168,6 +168,6 @@ func TestRevListScannerParsesLinesWithoutName(t *testing.T) {
 
 	assert.False(t, s.Scan())
 	assert.Equal(t, "", s.Name())
-	assert.Equal(t, "", s.OID())
+	assert.Nil(t, s.OID())
 	assert.Nil(t, s.Err())
 }
