@@ -107,6 +107,27 @@ func TestRevListArgs(t *testing.T) {
 			},
 			ExpectedErr: "unknown scan type: -1",
 		},
+		"scan date order": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:  ScanRefsMode,
+				Order: DateRevListOrder,
+			},
+			ExpectedArgs: []string{"rev-list", "--objects", "--date-order", "--do-walk", "left", "right", "--"},
+		},
+		"scan author date order": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:  ScanRefsMode,
+				Order: AuthorDateRevListOrder,
+			},
+			ExpectedArgs: []string{"rev-list", "--objects", "--author-date-order", "--do-walk", "left", "right", "--"},
+		},
+		"scan topo order": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:  ScanRefsMode,
+				Order: TopoRevListOrder,
+			},
+			ExpectedArgs: []string{"rev-list", "--objects", "--topo-order", "--do-walk", "left", "right", "--"},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}

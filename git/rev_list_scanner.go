@@ -3,6 +3,7 @@ package git
 import (
 	"bufio"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os/exec"
@@ -28,6 +29,47 @@ const (
 	ScanLeftToRemoteMode
 )
 
+// RevListOrder is a constant type that allows for variation in the ordering of
+// revisions given by the *RevListScanner below.
+type RevListOrder int
+
+const (
+	// DefaultRevListOrder is the zero-value for this type and yields the
+	// results as given by git-rev-list(1) without any `--<t>-order`
+	// argument given. By default: reverse chronological order.
+	DefaultRevListOrder RevListOrder = iota
+	// DateRevListOrder gives the revisions such that no parents are shown
+	// before children, and otherwise in commit timestamp order.
+	DateRevListOrder
+	// AuthorDateRevListOrder gives the revisions such that no parents are
+	// shown before children, and otherwise in author date timestamp order.
+	AuthorDateRevListOrder
+	// TopoRevListOrder gives the revisions such that they appear in
+	// topological order.
+	TopoRevListOrder
+)
+
+// Flag returns the command-line flag to be passed to git-rev-list(1) in order
+// to order the output according to the given RevListOrder. It returns both the
+// flag ("--date-order", "--topo-order", etc) and a bool, whether or not to
+// append the flag (for instance, DefaultRevListOrder requires no flag).
+//
+// Given a type other than those defined above, Flag() will panic().
+func (o RevListOrder) Flag() (string, bool) {
+	switch o {
+	case DefaultRevListOrder:
+		return "", false
+	case DateRevListOrder:
+		return "--date-order", true
+	case AuthorDateRevListOrder:
+		return "--author-date-order", true
+	case TopoRevListOrder:
+		return "--topo-order", true
+	default:
+		panic(fmt.Sprintf("git/rev_list_scanner: unknown RevListOrder %d", o))
+	}
+}
+
 // ScanRefsOptions is an "options" type that is used to configure a scan
 // operation on the `*git.RevListScanner` instance when given to the function
 // `NewRevListScanner()`.
@@ -41,6 +83,10 @@ type ScanRefsOptions struct {
 	// ancestry (revealing potentially deleted (unreferenced) blobs, trees,
 	// or commits.
 	SkipDeletedBlobs bool
+	// Order specifies the order in which revisions are yielded from the
+	// output of `git-rev-list(1)`. For more information, see the above
+	// documentation on the RevListOrder type.
+	Order RevListOrder
 
 	// SkippedRefs provides a list of refs to ignore.
 	SkippedRefs []string
@@ -167,6 +213,10 @@ func NewRevListScanner(left, right string, opt *ScanRefsOptions) (*RevListScanne
 func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error) {
 	var stdin io.Reader
 	args := []string{"rev-list", "--objects"}
+
+	if orderFlag, ok := opt.Order.Flag(); ok {
+		args = append(args, orderFlag)
+	}
 
 	switch opt.Mode {
 	case ScanRefsMode:
