@@ -3,6 +3,7 @@ package git
 import (
 	"bufio"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os/exec"
@@ -47,6 +48,27 @@ const (
 	// topological order.
 	TopoRevListOrder
 )
+
+// Flag returns the command-line flag to be passed to git-rev-list(1) in order
+// to order the output according to the given RevListOrder. It returns both the
+// flag ("--date-order", "--topo-order", etc) and a bool, whether or not to
+// append the flag (for instance, DefaultRevListOrder requires no flag).
+//
+// Given a type other than those defined above, Flag() will panic().
+func (o RevListOrder) Flag() (string, bool) {
+	switch o {
+	case DefaultRevListOrder:
+		return "", false
+	case DateRevListOrder:
+		return "--date-order", true
+	case AuthorDateRevListOrder:
+		return "--author-date-order", true
+	case TopoRevListOrder:
+		return "--topo-order", true
+	default:
+		panic(fmt.Sprintf("git/rev_list_scanner: unknown RevListOrder %d", o))
+	}
+}
 
 // ScanRefsOptions is an "options" type that is used to configure a scan
 // operation on the `*git.RevListScanner` instance when given to the function
@@ -192,13 +214,8 @@ func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error)
 	var stdin io.Reader
 	args := []string{"rev-list", "--objects"}
 
-	switch opt.Order {
-	case DateRevListOrder:
-		args = append(args, "--date-order")
-	case AuthorDateRevListOrder:
-		args = append(args, "--author-date-order")
-	case TopoRevListOrder:
-		args = append(args, "--topo-order")
+	if orderFlag, ok := opt.Order.Flag(); ok {
+		args = append(args, orderFlag)
 	}
 
 	switch opt.Mode {
