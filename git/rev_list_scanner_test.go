@@ -114,6 +114,13 @@ func TestRevListArgs(t *testing.T) {
 			},
 			ExpectedArgs: []string{"rev-list", "--objects", "--date-order", "--do-walk", "left", "right", "--"},
 		},
+		"scan author date order": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:  ScanRefsMode,
+				Order: AuthorDateRevListOrder,
+			},
+			ExpectedArgs: []string{"rev-list", "--objects", "--author-date-order", "--do-walk", "left", "right", "--"},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}

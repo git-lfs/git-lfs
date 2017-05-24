@@ -40,6 +40,9 @@ const (
 	// DateRevListOrder gives the revisions such that no parents are shown
 	// before children, and otherwise in commit timestamp order.
 	DateRevListOrder
+	// AuthorDateRevListOrder gives the revisions such that no parents are
+	// shown before children, and otherwise in author date timestamp order.
+	AuthorDateRevListOrder
 )
 
 // ScanRefsOptions is an "options" type that is used to configure a scan
@@ -189,6 +192,8 @@ func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error)
 	switch opt.Order {
 	case DateRevListOrder:
 		args = append(args, "--date-order")
+	case AuthorDateRevListOrder:
+		args = append(args, "--author-date-order")
 	}
 
 	switch opt.Mode {
