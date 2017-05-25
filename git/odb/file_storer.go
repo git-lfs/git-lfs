@@ -50,6 +50,9 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	if err != nil {
 		return n, err
 	}
+	if err = tmp.Close(); err != nil {
+		return n, err
+	}
 
 	path := fs.path(sha)
 
@@ -61,9 +64,6 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 		return n, err
 	}
 
-	if err = tmp.Close(); err != nil {
-		return n, err
-	}
 	return n, nil
 }
 
