@@ -128,6 +128,9 @@ func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []b
 		return nil, 0, err
 	}
 
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return nil, 0, err
+	}
 	return d.save(to.Sha(), tmp)
 }
 
