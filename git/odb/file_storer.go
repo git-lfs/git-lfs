@@ -47,11 +47,22 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	}
 
 	n, err = io.Copy(tmp, r)
+	if err = tmp.Close(); err != nil {
+		return n, err
+	}
 	if err != nil {
 		return n, err
 	}
 
 	path := fs.path(sha)
+	dir := filepath.Dir(path)
+
+	// Since .git/objects partitions objects based on the first two
+	// characters of their ASCII-encoded SHA1 object ID, ensure that
+	// the directory exists before copying a file into it.
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return n, err
+	}
 
 	if _, err := os.Stat(path); os.IsExist(err) {
 		return n, errors.Errorf("git/odb: file storer cannot copy into file %q, which already exists", path)
@@ -61,9 +72,6 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 		return n, err
 	}
 
-	if err = tmp.Close(); err != nil {
-		return n, err
-	}
 	return n, nil
 }
 
