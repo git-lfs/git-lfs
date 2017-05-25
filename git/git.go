@@ -38,6 +38,30 @@ const (
 	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
+// Prefix returns the given RefType's prefix, "refs/heads", "ref/remotes",
+// etc. It returns an additional value of either true/false, whether or not this
+// given ref type has a prefix.
+//
+// If the RefType is unrecognized, Prefix() will panic.
+func (t RefType) Prefix() (string, bool) {
+	switch t {
+	case RefTypeLocalBranch:
+		return "refs/heads", true
+	case RefTypeRemoteBranch:
+		return "refs/remotes", true
+	case RefTypeLocalTag:
+		return "refs/tags", true
+	case RefTypeRemoteTag:
+		return "refs/remotes/tags", true
+	case RefTypeHEAD:
+		return "", false
+	case RefTypeOther:
+		return "", false
+	default:
+		panic(fmt.Sprintf("git: unknown RefType %d", t))
+	}
+}
+
 // A git reference (branch, tag etc)
 type Ref struct {
 	Name string
