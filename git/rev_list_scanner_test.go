@@ -128,6 +128,13 @@ func TestRevListArgs(t *testing.T) {
 			},
 			ExpectedArgs: []string{"rev-list", "--objects", "--topo-order", "--do-walk", "left", "right", "--"},
 		},
+		"scan commits only": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:        ScanRefsMode,
+				CommitsOnly: true,
+			},
+			ExpectedArgs: []string{"rev-list", "--do-walk", "left", "right", "--"},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}

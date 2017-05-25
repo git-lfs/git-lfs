@@ -87,6 +87,10 @@ type ScanRefsOptions struct {
 	// output of `git-rev-list(1)`. For more information, see the above
 	// documentation on the RevListOrder type.
 	Order RevListOrder
+	// CommitsOnly specifies whether or not the *RevListScanner should
+	// return only commits, or all objects in range by performing a
+	// traversal of the graph. By default, false: show all objects.
+	CommitsOnly bool
 
 	// SkippedRefs provides a list of refs to ignore.
 	SkippedRefs []string
@@ -212,7 +216,10 @@ func NewRevListScanner(left, right string, opt *ScanRefsOptions) (*RevListScanne
 // occurred.
 func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error) {
 	var stdin io.Reader
-	args := []string{"rev-list", "--objects"}
+	args := []string{"rev-list"}
+	if !opt.CommitsOnly {
+		args = append(args, "--objects")
+	}
 
 	if orderFlag, ok := opt.Order.Flag(); ok {
 		args = append(args, orderFlag)
