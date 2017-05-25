@@ -47,10 +47,10 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	}
 
 	n, err = io.Copy(tmp, r)
-	if err != nil {
+	if err = tmp.Close(); err != nil {
 		return n, err
 	}
-	if err = tmp.Close(); err != nil {
+	if err != nil {
 		return n, err
 	}
 
