@@ -5,6 +5,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -251,6 +252,31 @@ func LocalRefs() ([]*Ref, error) {
 	}
 
 	return refs, cmd.Wait()
+}
+
+// UpdateRef moves the given ref to a new sha, and returns an error if any were
+// encountered.
+func UpdateRef(ref *Ref, to []byte) error {
+	return UpdateRefReason(ref, to, "")
+}
+
+// UpdateRef moves the given ref to a new sha with a given reason (and creates a
+// reflog entry). It returns an error if any were encountered.
+func UpdateRefReason(ref *Ref, to []byte, reason string) error {
+	var refspec string
+	if prefix, ok := ref.Type.Prefix(); ok {
+		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
+	} else {
+		refspec = ref.Name
+	}
+
+	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	if len(reason) > 0 {
+		args = append(args, "-m", reason)
+	}
+
+	_, err := subprocess.SimpleExec("git", args...)
+	return err
 }
 
 // ValidateRemote checks that a named remote is valid for use
