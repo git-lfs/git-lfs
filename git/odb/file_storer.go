@@ -57,14 +57,11 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	path := fs.path(sha)
 	dir := filepath.Dir(path)
 
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		// Since .git/objects partitions objects based on the first two
-		// characters of their ASCII-encoded SHA1 object ID, ensure that
-		// the directory exists before copying a file into it.
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			return n, err
-		}
+	// Since .git/objects partitions objects based on the first two
+	// characters of their ASCII-encoded SHA1 object ID, ensure that
+	// the directory exists before copying a file into it.
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return n, err
 	}
 
 	if _, err := os.Stat(path); os.IsExist(err) {
