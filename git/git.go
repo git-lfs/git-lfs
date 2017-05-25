@@ -5,6 +5,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -37,6 +38,30 @@ const (
 	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
 	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
+
+// Prefix returns the given RefType's prefix, "refs/heads", "ref/remotes",
+// etc. It returns an additional value of either true/false, whether or not this
+// given ref type has a prefix.
+//
+// If the RefType is unrecognized, Prefix() will panic.
+func (t RefType) Prefix() (string, bool) {
+	switch t {
+	case RefTypeLocalBranch:
+		return "refs/heads", true
+	case RefTypeRemoteBranch:
+		return "refs/remotes", true
+	case RefTypeLocalTag:
+		return "refs/tags", true
+	case RefTypeRemoteTag:
+		return "refs/remotes/tags", true
+	case RefTypeHEAD:
+		return "", false
+	case RefTypeOther:
+		return "", false
+	default:
+		panic(fmt.Sprintf("git: unknown RefType %d", t))
+	}
+}
 
 // A git reference (branch, tag etc)
 type Ref struct {
@@ -227,6 +252,26 @@ func LocalRefs() ([]*Ref, error) {
 	}
 
 	return refs, cmd.Wait()
+}
+
+// UpdateRef moves the given ref to a new sha with a given reason (and creates a
+// reflog entry, if a "reason" was provided). It returns an error if any were
+// encountered.
+func UpdateRef(ref *Ref, to []byte, reason string) error {
+	var refspec string
+	if prefix, ok := ref.Type.Prefix(); ok {
+		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
+	} else {
+		refspec = ref.Name
+	}
+
+	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	if len(reason) > 0 {
+		args = append(args, "-m", reason)
+	}
+
+	_, err := subprocess.SimpleExec("git", args...)
+	return err
 }
 
 // ValidateRemote checks that a named remote is valid for use
