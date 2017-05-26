@@ -995,6 +995,29 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 	return nil
 }
 
+// Checkout performs an invocation of `git-checkout(1)` applying the given
+// treeish, paths, and force option, if given.
+//
+// If any error was encountered, it will be returned immediately. Otherwise, the
+// checkout has occurred successfully.
+func Checkout(treeish string, paths []string, force bool) error {
+	args := []string{"checkout"}
+	if force {
+		args = append(args, "--force")
+	}
+
+	if len(treeish) > 0 {
+		args = append(args, treeish)
+	}
+
+	if len(paths) > 0 {
+		args = append(args, append([]string{"--"}, paths...)...)
+	}
+
+	_, err := subprocess.SimpleExec("git", args...)
+	return err
+}
+
 // CachedRemoteRefs returns the list of branches & tags for a remote which are
 // currently cached locally. No remote request is made to verify them.
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
