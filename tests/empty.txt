@@ -1,0 +1,30 @@
+# HAWSER PATH TESTS
+
+$ git hawser path
+Listing paths
+
+$ git hawser add "*.gif"
+Adding path "*.gif"
+
+$ git hawser add "*.zip"
+Adding path "*.zip"
+
+$ git hawser path
+Listing paths
+    "*.gif" (.gitattributes)
+    "*.zip" (.gitattributes)
+
+$ git hawser remove "*.gif"
+Removing path "*.gif"
+
+$ git hawser path
+Listing paths
+    "*.zip" (.gitattributes)
+
+$ tree .git/hawser
+.git/hawser
+├── objects
+│   └── logs
+└── tmp
+
+3 directories, 0 files
