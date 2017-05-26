@@ -1,0 +1,27 @@
+[submodule ".vendor/src/github.com/cheggaaa/pb"]
+	path = .vendor/src/github.com/cheggaaa/pb
+	url = git://github.com/cheggaaa/pb.git
+[submodule ".vendor/src/github.com/bmizerany/assert"]
+	path = .vendor/src/github.com/bmizerany/assert
+	url = git://github.com/bmizerany/assert.git
+[submodule ".vendor/src/github.com/kr/pretty"]
+	path = .vendor/src/github.com/kr/pretty
+	url = git://github.com/kr/pretty.git
+[submodule ".vendor/src/github.com/kr/text"]
+	path = .vendor/src/github.com/kr/text
+	url = git://github.com/kr/text.git
+[submodule ".vendor/src/github.com/olekukonko/ts"]
+	path = .vendor/src/github.com/olekukonko/ts
+	url = git://github.com/olekukonko/ts.git
+[submodule ".vendor/src/github.com/rubyist/tracerx"]
+	path = .vendor/src/github.com/rubyist/tracerx
+	url = git://github.com/rubyist/tracerx.git
+[submodule ".vendor/src/github.com/spf13/cobra"]
+	path = .vendor/src/github.com/spf13/cobra
+	url = git://github.com/spf13/cobra.git
+[submodule ".vendor/src/github.com/spf13/pflag"]
+	path = .vendor/src/github.com/spf13/pflag
+	url = git://github.com/spf13/pflag.git
+[submodule ".vendor/src/github.com/technoweenie/go-contentaddressable"]
+	path = .vendor/src/github.com/technoweenie/go-contentaddressable
+	url = git://github.com/technoweenie/go-contentaddressable.git
