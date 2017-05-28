@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Including in script/integration and every test/test-*.sh file.
 
+# Compatibility with go 1.6
+export GO15VENDOREXPERIMENT=0
+
 set -e
 
 UNAME=$(uname -s)

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# Compatibility with go 1.6
+export GO15VENDOREXPERIMENT=0
+
 script/fmt
 commit=`git rev-parse --short HEAD`
 GO15VENDOREXPERIMENT=1 go run -ldflags="-X github.com/git-lfs/git-lfs/config.GitCommit=$commit" ./git-lfs.go "$@"

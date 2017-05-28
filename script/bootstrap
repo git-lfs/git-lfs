@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# Compatibility with go 1.6
+export GO15VENDOREXPERIMENT=0
+
 set -e
 
 if uname -s | grep -q "_NT-"; then

@@ -2,6 +2,9 @@
 #/ Usage: script/test          # run all non-vendored tests
 #/        script/test <subdir> # run just a package's tests
 
+# Compatibility with go 1.6
+export GO15VENDOREXPERIMENT=0
+
 script/fmt
 if [ $# -gt 0 ]; then
     GO15VENDOREXPERIMENT=1 go test "./$@"
