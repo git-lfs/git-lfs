@@ -122,6 +122,9 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
 	endpoint := getAPIClient().Endpoints.Endpoint("upload", remote)
 	state := getVerifyStateFor(endpoint)
+	if state == verifyStateDisabled {
+		return
+	}
 
 	lockClient := newLockClient(remote)
 
