@@ -43,7 +43,7 @@ func isCygwin() bool {
 		return false
 	}
 
-	if bytes.Contains(out, []byte("CYGWIN")) {
+	if bytes.Contains(out, []byte("CYGWIN")) || bytes.Contains(out, []byte("MSYS")) {
 		cygwinState = cygwinStateEnabled
 	} else {
 		cygwinState = cygwinStateDisabled
