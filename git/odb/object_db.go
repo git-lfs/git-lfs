@@ -142,15 +142,21 @@ func (o *ObjectDatabase) save(sha []byte, buf io.Reader) ([]byte, int64, error) 
 	return sha, n, err
 }
 
+// open gives an `*ObjectReader` for the given loose object keyed by the given
+// "sha" []byte, or an error.
+func (o *ObjectDatabase) open(sha []byte) (*ObjectReader, error) {
+	f, err := o.s.Open(sha)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewObjectReadCloser(f)
+}
+
 // decode decodes an object given by the sha "sha []byte" into the given object
 // "into", or returns an error if one was encountered.
 func (o *ObjectDatabase) decode(sha []byte, into Object) error {
-	f, err := o.s.Open(sha)
-	if err != nil {
-		return err
-	}
-
-	r, err := NewObjectReadCloser(f)
+	r, err := o.open(sha)
 	if err != nil {
 		return err
 	}
