@@ -45,7 +45,14 @@ func NewObjectReader(r io.Reader) (*ObjectReader, error) {
 	return NewObjectReadCloser(ioutil.NopCloser(r))
 }
 
-// NewReader takes a given io.Reader that yields zlib-compressed data, and
+// NewObjectReader takes a given io.Reader that yields uncompressed data and
+// returns an *ObjectReader wrapping it, or an error if one occurred during
+// construction time.
+func NewUncompressedObjectReader(r io.Reader) (*ObjectReader, error) {
+	return NewUncompressedObjectReadCloser(ioutil.NopCloser(r))
+}
+
+// NewObjectReadCloser takes a given io.Reader that yields zlib-compressed data, and
 // returns an *ObjectReader wrapping it, or an error if one occurred during
 // construction time.
 //
@@ -68,6 +75,19 @@ func NewObjectReadCloser(r io.ReadCloser) (*ObjectReader, error) {
 			}
 			return nil
 		},
+	}, nil
+}
+
+// NewUncompressObjectReadCloser takes a given io.Reader that yields
+// uncompressed data, and returns an *ObjectReader wrapping it, or an error if
+// one occurred during construction time.
+//
+// It also calls the Close() function given by the implementation "r" of the
+// type io.Closer.
+func NewUncompressedObjectReadCloser(r io.ReadCloser) (*ObjectReader, error) {
+	return &ObjectReader{
+		r:       bufio.NewReader(r),
+		closeFn: r.Close,
 	}, nil
 }
 
