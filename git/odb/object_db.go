@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"sync/atomic"
+
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // ObjectDatabase enables the reading and writing of objects against a storage
@@ -11,6 +14,14 @@ import (
 type ObjectDatabase struct {
 	// s is the storage backend which opens/creates/reads/writes.
 	s storer
+
+	// closed is a uint32 managed by sync/atomic's <X>Uint32 methods. It
+	// yields a value of 0 if the *ObjectDatabase it is stored upon is open,
+	// and a value of 1 if it is closed.
+	closed uint32
+	// objectScanner is the running instance of `*git.ObjectScanner` used to
+	// scan packed objects not found in .git/objects/xx/... directly.
+	objectScanner *git.ObjectScanner
 }
 
 // FromFilesystem constructs an *ObjectDatabase instance that is backed by a
@@ -18,7 +29,31 @@ type ObjectDatabase struct {
 //
 //  /absolute/repo/path/.git/objects
 func FromFilesystem(root string) (*ObjectDatabase, error) {
-	return &ObjectDatabase{s: newFileStorer(root)}, nil
+	os, err := git.NewObjectScanner()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ObjectDatabase{
+		s:             newFileStorer(root),
+		objectScanner: os,
+	}, nil
+}
+
+// Close closes the *ObjectDatabase, freeing any open resources (namely: the
+// `*git.ObjectScanner instance), and returning any errors encountered in
+// closing them.
+//
+// If Close() has already been called, this function will panic().
+func (o *ObjectDatabase) Close() error {
+	if !atomic.CompareAndSwapUint32(&o.closed, 0, 1) {
+		panic("git/odb: *ObjectDatabase already closed")
+	}
+
+	if err := o.objectScanner.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Blob returns a *Blob as identified by the SHA given, or an error if one was

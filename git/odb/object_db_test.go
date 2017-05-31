@@ -167,3 +167,19 @@ func TestWriteCommit(t *testing.T) {
 	assert.Equal(t, expected, hex.EncodeToString(sha))
 	assert.NotNil(t, fs.fs[hex.EncodeToString(sha)])
 }
+
+func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
+	defer func() {
+		if err := recover(); err != nil {
+			assert.Equal(t, "git/odb: *ObjectDatabase already closed", err)
+		} else {
+			t.Fatal("git/odb: expected panic() ...")
+		}
+	}()
+
+	db, err := FromFilesystem("/tmp")
+	assert.Nil(t, err)
+
+	db.Close()
+	db.Close() // <- panic()
+}
