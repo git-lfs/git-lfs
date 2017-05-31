@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -43,18 +44,11 @@ func TestMemoryStorerDoesntOpenMissingEntries(t *testing.T) {
 	hex, err := hex.DecodeString(sha)
 	assert.Nil(t, err)
 
-	defer func() {
-		if err := recover(); err != nil {
-			expeced := fmt.Sprintf("git/odb: memory storage cannot open %x, doesn't exist", hex)
-			assert.Equal(t, expeced, err)
-		} else {
-			t.Fatal("expected panic()")
-		}
-	}()
-
 	ms := newMemoryStorer(nil)
 
-	ms.Open(hex)
+	f, err := ms.Open(hex)
+	assert.Equal(t, os.ErrNotExist, err)
+	assert.Nil(t, f)
 }
 
 func TestMemoryStorerStoresNewEntries(t *testing.T) {
