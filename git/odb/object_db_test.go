@@ -196,29 +196,15 @@ func TestReadingAMissingObjectAfterClose(t *testing.T) {
 		closed: 1,
 	}
 
-	defer func() {
-		if err := recover(); err != nil {
-			assert.Equal(t, "git/odb: cannot use closed *git.ObjectScanner", err)
-		} else {
-			t.Fatal("git/odb: expected panic() ...")
-		}
-	}()
-
-	db.Blob(sha)
+	blob, err := db.Blob(sha)
+	assert.EqualError(t, err, "git/odb: cannot use closed *git.ObjectScanner")
+	assert.Nil(t, blob)
 }
 
 func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
-	defer func() {
-		if err := recover(); err != nil {
-			assert.Equal(t, "git/odb: *ObjectDatabase already closed", err)
-		} else {
-			t.Fatal("git/odb: expected panic() ...")
-		}
-	}()
-
 	db, err := FromFilesystem("/tmp")
 	assert.Nil(t, err)
 
-	db.Close()
-	db.Close() // <- panic()
+	assert.Nil(t, db.Close())
+	assert.EqualError(t, db.Close(), "git/odb: *ObjectDatabase already closed")
 }
