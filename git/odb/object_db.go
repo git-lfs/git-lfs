@@ -49,7 +49,7 @@ func FromFilesystem(root string) (*ObjectDatabase, error) {
 // `*git.ObjectScanner instance), and returning any errors encountered in
 // closing them.
 //
-// If Close() has already been called, this function will panic().
+// If Close() has already been called, this function will return an error.
 func (o *ObjectDatabase) Close() error {
 	if !atomic.CompareAndSwapUint32(&o.closed, 0, 1) {
 		return errors.New("git/odb: *ObjectDatabase already closed")
