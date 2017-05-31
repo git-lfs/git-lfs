@@ -2,8 +2,12 @@ package odb
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"strings"
 	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -182,7 +186,33 @@ func (o *ObjectDatabase) save(sha []byte, buf io.Reader) ([]byte, int64, error) 
 func (o *ObjectDatabase) open(sha []byte) (*ObjectReader, error) {
 	f, err := o.s.Open(sha)
 	if err != nil {
-		return nil, err
+		if !os.IsNotExist(err) {
+			// If there was some other issue beyond not being able
+			// to find the object, return that immediately and don't
+			// try and fallback to the *git.ObjectScanner.
+			return nil, err
+		}
+
+		// Otherwise, if the file simply couldn't be found, attempt to
+		// load its contents from the *git.ObjectScanner by leveraging
+		// `git-cat-file --batch`.
+		if atomic.LoadUint32(&o.closed) == 1 {
+			panic("git/odb: cannot use closed *git.ObjectScanner")
+		}
+
+		if !o.objectScanner.Scan(hex.EncodeToString(sha)) {
+			return nil, o.objectScanner.Err()
+		}
+
+		return NewUncompressedObjectReader(io.MultiReader(
+			// Git object header:
+			strings.NewReader(fmt.Sprintf("%s %d\x00",
+				o.objectScanner.Type(), o.objectScanner.Size(),
+			)),
+
+			// Git object (uncompressed) contents:
+			o.objectScanner.Contents(),
+		))
 	}
 
 	return NewObjectReadCloser(f)
