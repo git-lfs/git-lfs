@@ -2,8 +2,16 @@ package odb
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"strings"
+	"sync/atomic"
+
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // ObjectDatabase enables the reading and writing of objects against a storage
@@ -11,6 +19,14 @@ import (
 type ObjectDatabase struct {
 	// s is the storage backend which opens/creates/reads/writes.
 	s storer
+
+	// closed is a uint32 managed by sync/atomic's <X>Uint32 methods. It
+	// yields a value of 0 if the *ObjectDatabase it is stored upon is open,
+	// and a value of 1 if it is closed.
+	closed uint32
+	// objectScanner is the running instance of `*git.ObjectScanner` used to
+	// scan packed objects not found in .git/objects/xx/... directly.
+	objectScanner *git.ObjectScanner
 }
 
 // FromFilesystem constructs an *ObjectDatabase instance that is backed by a
@@ -18,7 +34,31 @@ type ObjectDatabase struct {
 //
 //  /absolute/repo/path/.git/objects
 func FromFilesystem(root string) (*ObjectDatabase, error) {
-	return &ObjectDatabase{s: newFileStorer(root)}, nil
+	os, err := git.NewObjectScanner()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ObjectDatabase{
+		s:             newFileStorer(root),
+		objectScanner: os,
+	}, nil
+}
+
+// Close closes the *ObjectDatabase, freeing any open resources (namely: the
+// `*git.ObjectScanner instance), and returning any errors encountered in
+// closing them.
+//
+// If Close() has already been called, this function will return an error.
+func (o *ObjectDatabase) Close() error {
+	if !atomic.CompareAndSwapUint32(&o.closed, 0, 1) {
+		return errors.New("git/odb: *ObjectDatabase already closed")
+	}
+
+	if err := o.objectScanner.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Blob returns a *Blob as identified by the SHA given, or an error if one was
@@ -142,15 +182,47 @@ func (o *ObjectDatabase) save(sha []byte, buf io.Reader) ([]byte, int64, error) 
 	return sha, n, err
 }
 
+// open gives an `*ObjectReader` for the given loose object keyed by the given
+// "sha" []byte, or an error.
+func (o *ObjectDatabase) open(sha []byte) (*ObjectReader, error) {
+	f, err := o.s.Open(sha)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			// If there was some other issue beyond not being able
+			// to find the object, return that immediately and don't
+			// try and fallback to the *git.ObjectScanner.
+			return nil, err
+		}
+
+		// Otherwise, if the file simply couldn't be found, attempt to
+		// load its contents from the *git.ObjectScanner by leveraging
+		// `git-cat-file --batch`.
+		if atomic.LoadUint32(&o.closed) == 1 {
+			return nil, errors.New("git/odb: cannot use closed *git.ObjectScanner")
+		}
+
+		if !o.objectScanner.Scan(hex.EncodeToString(sha)) {
+			return nil, o.objectScanner.Err()
+		}
+
+		return NewUncompressedObjectReader(io.MultiReader(
+			// Git object header:
+			strings.NewReader(fmt.Sprintf("%s %d\x00",
+				o.objectScanner.Type(), o.objectScanner.Size(),
+			)),
+
+			// Git object (uncompressed) contents:
+			o.objectScanner.Contents(),
+		))
+	}
+
+	return NewObjectReadCloser(f)
+}
+
 // decode decodes an object given by the sha "sha []byte" into the given object
 // "into", or returns an error if one was encountered.
 func (o *ObjectDatabase) decode(sha []byte, into Object) error {
-	f, err := o.s.Open(sha)
-	if err != nil {
-		return err
-	}
-
-	r, err := NewObjectReadCloser(f)
+	r, err := o.open(sha)
 	if err != nil {
 		return err
 	}

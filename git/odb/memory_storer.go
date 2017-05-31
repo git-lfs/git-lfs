@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"sync"
 )
 
@@ -59,7 +60,7 @@ func (ms *memoryStorer) Open(sha []byte) (f io.ReadWriteCloser, err error) {
 
 	key := fmt.Sprintf("%x", sha)
 	if _, ok := ms.fs[key]; !ok {
-		panic(fmt.Sprintf("git/odb: memory storage cannot open %x, doesn't exist", sha))
+		return nil, os.ErrNotExist
 	}
 	return ms.fs[key], nil
 }
