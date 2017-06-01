@@ -95,6 +95,9 @@ type ScanRefsOptions struct {
 	// git-rev-list(1). If this is an empty string, (has len(WorkingDir) ==
 	// 0), it is equivalent to running in os.Getwd().
 	WorkingDir string
+	// Reverse specifies whether or not to give the revisions in reverse
+	// order.
+	Reverse bool
 
 	// SkippedRefs provides a list of refs to ignore.
 	SkippedRefs []string
@@ -226,6 +229,10 @@ func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error)
 	args := []string{"rev-list"}
 	if !opt.CommitsOnly {
 		args = append(args, "--objects")
+	}
+
+	if opt.Reverse {
+		args = append(args, "--reverse")
 	}
 
 	if orderFlag, ok := opt.Order.Flag(); ok {
