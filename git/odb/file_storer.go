@@ -75,6 +75,11 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	return n, nil
 }
 
+// Root gives the absolute (fully-qualified) path to the file storer on disk.
+func (fs *fileStorer) Root() string {
+	return fs.root
+}
+
 // open opens a given file.
 func (fs *fileStorer) open(path string, flag int) (*os.File, error) {
 	return os.OpenFile(path, flag, 0)
