@@ -91,6 +91,10 @@ type ScanRefsOptions struct {
 	// return only commits, or all objects in range by performing a
 	// traversal of the graph. By default, false: show all objects.
 	CommitsOnly bool
+	// WorkingDir specifies the working directory in which to run
+	// git-rev-list(1). If this is an empty string, (has len(WorkingDir) ==
+	// 0), it is equivalent to running in os.Getwd().
+	WorkingDir string
 
 	// SkippedRefs provides a list of refs to ignore.
 	SkippedRefs []string
@@ -167,6 +171,9 @@ func NewRevListScanner(left, right string, opt *ScanRefsOptions) (*RevListScanne
 	}
 
 	cmd := exec.Command("git", args...)
+	if len(opt.WorkingDir) > 0 {
+		cmd.Dir = opt.WorkingDir
+	}
 
 	cmd.Stdin = stdin
 	stdout, err := cmd.StdoutPipe()
