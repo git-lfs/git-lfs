@@ -1,6 +1,7 @@
 package odb
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,6 +26,17 @@ func DatabaseFromFixture(t *testing.T, name string) *ObjectDatabase {
 		t.Fatalf("git/odb: could not create object database: %v", err)
 	}
 	return db
+}
+
+// HexDecode decodes the given ASCII hex-encoded string into []byte's, or fails
+// the test immediately if the given "sha" wasn't a valid hex-encoded sequence.
+func HexDecode(t *testing.T, sha string) []byte {
+	b, err := hex.DecodeString(sha)
+	if err != nil {
+		t.Fatalf("git/odb: could not decode string: %q, %v", sha, err)
+	}
+
+	return b
 }
 
 // copyToTmp copies the given fixutre to a folder in /tmp.
