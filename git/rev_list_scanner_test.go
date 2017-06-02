@@ -135,6 +135,13 @@ func TestRevListArgs(t *testing.T) {
 			},
 			ExpectedArgs: []string{"rev-list", "--do-walk", "left", "right", "--"},
 		},
+		"scan reverse": {
+			Left: "left", Right: "right", Opt: &ScanRefsOptions{
+				Mode:    ScanRefsMode,
+				Reverse: true,
+			},
+			ExpectedArgs: []string{"rev-list", "--objects", "--reverse", "--do-walk", "left", "right", "--"},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}
