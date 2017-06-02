@@ -7,7 +7,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // DatabaseFromFixture returns a *git/odb.ObjectDatabase instance that is safely
@@ -26,6 +29,70 @@ func DatabaseFromFixture(t *testing.T, name string) *ObjectDatabase {
 		t.Fatalf("git/odb: could not create object database: %v", err)
 	}
 	return db
+}
+
+// AssertBlobContents asserts that the blob contents given by loading the path
+// starting from the root tree "tree" has the given "contents".
+func AssertBlobContents(t *testing.T, db *ObjectDatabase, tree, path, contents string) {
+	// First, load the root tree.
+	root, err := db.Tree(HexDecode(t, tree))
+	if err != nil {
+		t.Fatalf("git/odb: cannot load tree: %s: %s", tree, err)
+	}
+
+	// Then, iterating through each part of the filepath (i.e., a/b/c.txt ->
+	// []string{"a", "b", "c.txt"}).
+	parts := strings.Split(path, string(os.PathSeparator))
+	for i := 0; i < len(parts)-1; i++ {
+		part := parts[i]
+
+		// Load the subtree given by that name.
+		var subtree *Tree
+		for _, entry := range root.Entries {
+			if entry.Name != part {
+				continue
+			}
+
+			subtree, err = db.Tree(entry.Oid)
+			if err != nil {
+				t.Fatalf("git/odb: cannot load subtree %s: %s", filepath.Join(parts[:i]...), err)
+			}
+			break
+		}
+
+		if subtree == nil {
+			t.Fatalf("git/odb: subtree %s does not exist", path)
+		}
+
+		// And re-assign it to root, creating a sort of pseudo-recursion.
+		root = subtree
+	}
+
+	filename := parts[len(parts)-1]
+
+	// Find the blob given by the last entry in parts (the filename).
+	var blob *Blob
+	for _, entry := range root.Entries {
+		if entry.Name == filename {
+			blob, err = db.Blob(entry.Oid)
+			if err != nil {
+				t.Fatalf("git/odb: cannot load blob %x: %s", entry.Oid, err)
+			}
+		}
+	}
+
+	// If we couldn't find the blob, fail immediately.
+	if blob == nil {
+		t.Fatalf("git/odb: blob at %s in %s does not exist", path, tree)
+	}
+
+	// Perform an assertion on the blob's contents.
+	got, err := ioutil.ReadAll(blob.Contents)
+	if err != nil {
+		t.Fatalf("git/odb: cannot read contents from blob %s: %s", path, err)
+	}
+
+	assert.Equal(t, contents, string(got))
 }
 
 // HexDecode decodes the given ASCII hex-encoded string into []byte's, or fails
