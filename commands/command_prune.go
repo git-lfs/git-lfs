@@ -53,8 +53,8 @@ type PruneProgress struct {
 type PruneProgressChan chan PruneProgress
 
 func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
-	localObjects := make([]localstorage.Object, 0, 100)
-	retainedObjects := tools.NewStringSetWithCapacity(100)
+	localObjects := make([]localstorage.Object, 0, 500)
+	retainedObjects := tools.NewStringSetWithCapacity(500)
 	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
 
@@ -66,7 +66,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 		taskwait.Add(1) // 5
 	}
 
-	progressChan := make(PruneProgressChan, 100)
+	progressChan := make(PruneProgressChan, 500)
 
 	// Collect errors
 	errorChan := make(chan error, 10)
@@ -79,14 +79,14 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	go pruneTaskGetLocalObjects(&localObjects, progressChan, &taskwait)
 
 	// Now find files to be retained from many sources
-	retainChan := make(chan string, 100)
+	retainChan := make(chan string, 500)
 
 	gitscanner := lfs.NewGitScanner(nil)
 	go pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedWorktree(gitscanner, retainChan, errorChan, &taskwait)
 	if verifyRemote {
-		reachableObjects = tools.NewStringSetWithCapacity(100)
+		reachableObjects = tools.NewStringSetWithCapacity(500)
 		go pruneTaskGetReachableObjects(gitscanner, &reachableObjects, errorChan, &taskwait)
 	}
 
