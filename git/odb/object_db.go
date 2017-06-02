@@ -129,6 +129,22 @@ func (o *ObjectDatabase) WriteCommit(c *Commit) ([]byte, error) {
 	return sha, nil
 }
 
+// Root returns the filesystem root that this *ObjectDatabase works within, if
+// backed by a fileStorer (constructed by FromFilesystem). If so, it returns
+// the fully-qualified path on a disk and a value of true.
+//
+// Otherwise, it returns empty-string and a value of false.
+func (o *ObjectDatabase) Root() (string, bool) {
+	type rooter interface {
+		Root() string
+	}
+
+	if root, ok := o.s.(rooter); ok {
+		return root.Root(), true
+	}
+	return "", false
+}
+
 // encode encodes and saves an object to the storage backend and uses an
 // in-memory buffer to calculate the object's encoded body.
 func (d *ObjectDatabase) encode(object Object) (sha []byte, n int64, err error) {

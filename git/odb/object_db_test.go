@@ -208,3 +208,19 @@ func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
 	assert.Nil(t, db.Close())
 	assert.EqualError(t, db.Close(), "git/odb: *ObjectDatabase already closed")
 }
+
+func TestObjectDatabaseRootWithRoot(t *testing.T) {
+	db, err := FromFilesystem("/foo/bar/baz")
+	assert.Nil(t, err)
+
+	root, ok := db.Root()
+	assert.Equal(t, "/foo/bar/baz", root)
+	assert.True(t, ok)
+}
+
+func TestObjectDatabaseRootWithoutRoot(t *testing.T) {
+	root, ok := new(ObjectDatabase).Root()
+
+	assert.Equal(t, "", root)
+	assert.False(t, ok)
+}
