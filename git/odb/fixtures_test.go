@@ -112,6 +112,22 @@ func AssertCommitParent(t *testing.T, db *ObjectDatabase, sha, parent string) {
 		"git/odb: expected parents of commit: %s to contain: %s", sha, parent)
 }
 
+// AssertCommitTree asserts that the given commit has a tree equivelant to the
+// one provided.
+func AssertCommitTree(t *testing.T, db *ObjectDatabase, sha, tree string) {
+	commit, err := db.Commit(HexDecode(t, sha))
+	if err != nil {
+		t.Fatalf("git/odb: expected to read commit: %s, couldn't: %v", sha, err)
+	}
+
+	decoded, err := hex.DecodeString(tree)
+	if err != nil {
+		t.Fatalf("git/odb: expected to decode tree SHA: %s, couldn't: %v", tree, err)
+	}
+
+	assert.Equal(t, decoded, commit.TreeID, "git/odb: expected tree ID: %s (got: %x)", tree, commit.TreeID)
+}
+
 // HexDecode decodes the given ASCII hex-encoded string into []byte's, or fails
 // the test immediately if the given "sha" wasn't a valid hex-encoded sequence.
 func HexDecode(t *testing.T, sha string) []byte {
