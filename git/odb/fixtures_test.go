@@ -95,6 +95,23 @@ func AssertBlobContents(t *testing.T, db *ObjectDatabase, tree, path, contents s
 	assert.Equal(t, contents, string(got))
 }
 
+// AssertCommitParent asserts that the given commit has a parent equivalent to
+// the one provided.
+func AssertCommitParent(t *testing.T, db *ObjectDatabase, sha, parent string) {
+	commit, err := db.Commit(HexDecode(t, sha))
+	if err != nil {
+		t.Fatalf("git/odb: expected to read commit: %s, couldn't: %v", sha, err)
+	}
+
+	decoded, err := hex.DecodeString(parent)
+	if err != nil {
+		t.Fatalf("git/odb: expected to decode parent SHA: %s, couldn't: %v", parent, err)
+	}
+
+	assert.Contains(t, commit.ParentIDs, decoded,
+		"git/odb: expected parents of commit: %s to contain: %s", sha, parent)
+}
+
 // HexDecode decodes the given ASCII hex-encoded string into []byte's, or fails
 // the test immediately if the given "sha" wasn't a valid hex-encoded sequence.
 func HexDecode(t *testing.T, sha string) []byte {
