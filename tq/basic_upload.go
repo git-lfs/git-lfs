@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 )
 
@@ -117,7 +117,8 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(config.Config, toApiObject(t))
+	cli := &lfsapi.Client{}
+	return verifyUpload(cli, t)
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the

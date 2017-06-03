@@ -8,14 +8,16 @@ import (
 
 	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 )
 
 func NewTestConfig() *config.Configuration {
 	c := config.NewFrom(config.Values{})
-	c.SetManualEndpoint(config.Endpoint{Url: "https://example.com"})
+	c.SetManualEndpoint(lfsapi.Endpoint{Url: "https://example.com"})
 	return c
 }
+
 func TestHttpLifecycleMakesRequestsAgainstAbsolutePath(t *testing.T) {
 	SetupTestCredentialsFunc()
 	defer RestoreCredentialsFunc()

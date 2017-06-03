@@ -7,10 +7,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/httputil"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
@@ -155,7 +155,8 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	return api.VerifyUpload(config.Config, toApiObject(t))
+	cli := &lfsapi.Client{}
+	return verifyUpload(cli, t)
 }
 
 func configureTusAdapter(m *Manifest) {
