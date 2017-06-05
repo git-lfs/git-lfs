@@ -1,4 +1,4 @@
-package odb
+package githistory
 
 import (
 	"encoding/hex"
@@ -7,23 +7,24 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/odb"
 )
 
-// HistoryRewriter allows rewriting topologically equivalent Git histories
+// Rewriter allows rewriting topologically equivalent Git histories
 // between two revisions.
-type HistoryRewriter struct {
+type Rewriter struct {
 	// mu guards entries and commits (see below)
 	mu *sync.Mutex
 	// entries is a mapping of old tree entries to new (rewritten) ones.
 	// Since TreeEntry contains a []byte (and is therefore not a key-able
 	// type), a unique TreeEntry -> string function is used for map keys.
-	entries map[string]*TreeEntry
+	entries map[string]*odb.TreeEntry
 	// commits is a mapping of old commit SHAs to new ones, where the ASCII
 	// hex encoding of the SHA1 values are used as map keys.
 	commits map[string][]byte
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
-	db *ObjectDatabase
+	db *odb.ObjectDatabase
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -56,14 +57,13 @@ type RewriteOptions struct {
 //
 // As above, the path separators are OS specific, and equivalent to the result
 // of filepath.Join(...) or os.PathSeparator.
-type BlobRewriteFn func(path string, b *Blob) (*Blob, error)
+type BlobRewriteFn func(path string, b *odb.Blob) (*odb.Blob, error)
 
-// NewHistoryRewriter constructs a *HistoryRewriter from the given
-// *ObjectDatabase instance.
-func NewHistoryRewriter(db *ObjectDatabase) *HistoryRewriter {
-	return &HistoryRewriter{
+// NewRewriter constructs a *Rewriter from the given *ObjectDatabase instance.
+func NewRewriter(db *odb.ObjectDatabase) *Rewriter {
+	return &Rewriter{
 		mu:      new(sync.Mutex),
-		entries: make(map[string]*TreeEntry),
+		entries: make(map[string]*odb.TreeEntry),
 		commits: make(map[string][]byte),
 
 		db: db,
@@ -72,7 +72,7 @@ func NewHistoryRewriter(db *ObjectDatabase) *HistoryRewriter {
 
 // Rewrite rewrites the range of commits given by *RewriteOptions.{Left,Right}
 // using the BlobRewriteFn to rewrite the individual blobs.
-func (r *HistoryRewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
+func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	// First, construct a scanner to iterate through the range of commits to
 	// rewrite.
 	scanner, err := git.NewRevListScanner(opt.Left, opt.Right, r.scannerOpts())
@@ -112,7 +112,7 @@ func (r *HistoryRewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Construct a new commit using the original header information,
 		// but the rewritten set of parents as well as root tree.
-		rewrittenCommit, err := r.db.WriteCommit(&Commit{
+		rewrittenCommit, err := r.db.WriteCommit(&odb.Commit{
 			Author:       original.Author,
 			Committer:    original.Committer,
 			ExtraHeaders: original.ExtraHeaders,
@@ -146,13 +146,13 @@ func (r *HistoryRewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 //
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *HistoryRewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byte, error) {
+func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byte, error) {
 	tree, err := r.db.Tree(sha)
 	if err != nil {
 		return nil, err
 	}
 
-	entries := make([]*TreeEntry, 0, len(tree.Entries))
+	entries := make([]*odb.TreeEntry, 0, len(tree.Entries))
 	for _, entry := range tree.Entries {
 		if cached := r.uncacheEntry(entry); cached != nil {
 			entries = append(entries, cached)
@@ -162,9 +162,9 @@ func (r *HistoryRewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn)
 		var oid []byte
 
 		switch entry.Type {
-		case BlobObjectType:
+		case odb.BlobObjectType:
 			oid, err = r.rewriteBlob(entry.Oid, filepath.Join(path, entry.Name), fn)
-		case TreeObjectType:
+		case odb.TreeObjectType:
 			oid, err = r.rewriteTree(entry.Oid, filepath.Join(path, entry.Name), fn)
 		default:
 			oid = entry.Oid
@@ -174,7 +174,7 @@ func (r *HistoryRewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn)
 			return nil, err
 		}
 
-		entries = append(entries, r.cacheEntry(entry, &TreeEntry{
+		entries = append(entries, r.cacheEntry(entry, &odb.TreeEntry{
 			Filemode: entry.Filemode,
 			Name:     entry.Name,
 			Type:     entry.Type,
@@ -182,14 +182,14 @@ func (r *HistoryRewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn)
 		}))
 	}
 
-	return r.db.WriteTree(&Tree{Entries: entries})
+	return r.db.WriteTree(&odb.Tree{Entries: entries})
 }
 
 // rewriteBlob calls the given BlobRewriteFn "fn" on a blob given in the object
 // database by the SHA1 "from" []byte. It writes and returns the new blob SHA,
 // or an error if either the BlobRewriteFn returned one, or if the object could
 // not be loaded/saved.
-func (r *HistoryRewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]byte, error) {
+func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]byte, error) {
 	blob, err := r.db.Blob(from)
 	if err != nil {
 		return nil, err
@@ -205,9 +205,9 @@ func (r *HistoryRewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the
 // *git.RevListScanner.
 //
-// If the database this *HistoryRewriter is operating in a given root (not in
-// memory) it re-assigns the working directory to be there.
-func (r *HistoryRewriter) scannerOpts() *git.ScanRefsOptions {
+// If the database this *Rewriter is operating in a given root (not in memory)
+// it re-assigns the working directory to be there.
+func (r *Rewriter) scannerOpts() *git.ScanRefsOptions {
 	opts := &git.ScanRefsOptions{
 		Mode:        git.ScanRefsMode,
 		Order:       git.TopoRevListOrder,
@@ -227,7 +227,7 @@ func (r *HistoryRewriter) scannerOpts() *git.ScanRefsOptions {
 
 // cacheEntry caches then given "from" entry so that it is always rewritten as
 // a *TreeEntry equivalent to "to".
-func (r *HistoryRewriter) cacheEntry(from, to *TreeEntry) *TreeEntry {
+func (r *Rewriter) cacheEntry(from, to *odb.TreeEntry) *odb.TreeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -239,7 +239,7 @@ func (r *HistoryRewriter) cacheEntry(from, to *TreeEntry) *TreeEntry {
 // uncacheEntry returns a *TreeEntry that is cached from the given *TreeEntry
 // "from". That is to say, it returns the *TreeEntry that "from" should be
 // rewritten to, or nil if none could be found.
-func (r *HistoryRewriter) uncacheEntry(from *TreeEntry) *TreeEntry {
+func (r *Rewriter) uncacheEntry(from *odb.TreeEntry) *odb.TreeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -247,13 +247,13 @@ func (r *HistoryRewriter) uncacheEntry(from *TreeEntry) *TreeEntry {
 }
 
 // entryKey returns a unique key for a given *TreeEntry "e".
-func (r *HistoryRewriter) entryKey(e *TreeEntry) string {
+func (r *Rewriter) entryKey(e *odb.TreeEntry) string {
 	return fmt.Sprintf("%s:%x", e.Name, e.Oid)
 }
 
 // cacheEntry caches then given "from" commit so that it is always rewritten as
 // a *git/odb.Commit equivalent to "to".
-func (r *HistoryRewriter) cacheCommit(from, to []byte) {
+func (r *Rewriter) cacheCommit(from, to []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -263,7 +263,7 @@ func (r *HistoryRewriter) cacheCommit(from, to []byte) {
 // uncacheCommit returns a *git/odb.Commit that is cached from the given
 // *git/odb.Commit "from". That is to say, it returns the *git/odb.Commit that
 // "from" should be rewritten to, or nil if none could be found.
-func (r *HistoryRewriter) uncacheCommit(from []byte) []byte {
+func (r *Rewriter) uncacheCommit(from []byte) []byte {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
