@@ -59,15 +59,22 @@ type RewriteOptions struct {
 // of filepath.Join(...) or os.PathSeparator.
 type BlobRewriteFn func(path string, b *odb.Blob) (*odb.Blob, error)
 
+type rewriterOption func(*Rewriter)
+
 // NewRewriter constructs a *Rewriter from the given *ObjectDatabase instance.
-func NewRewriter(db *odb.ObjectDatabase) *Rewriter {
-	return &Rewriter{
+func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
+	rewriter := &Rewriter{
 		mu:      new(sync.Mutex),
 		entries: make(map[string]*odb.TreeEntry),
 		commits: make(map[string][]byte),
 
 		db: db,
 	}
+
+	for _, opt := range opts {
+		opt(rewriter)
+	}
+	return rewriter
 }
 
 // Rewrite rewrites the range of commits given by *RewriteOptions.{Left,Right}
