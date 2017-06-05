@@ -59,6 +59,9 @@ $distro_name_map = {
     ubuntu/yakkety
     ubuntu/zesty
   ),
+  "debian/9" => %w(
+    debian/stretch
+  )
 }
 
 # caches distro id lookups
