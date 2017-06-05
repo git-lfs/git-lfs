@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHistoryRewriterRewritesHistory(t *testing.T) {
+func TestRewriterRewritesHistory(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history.git")
-	r := NewHistoryRewriter(db)
+	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
@@ -74,9 +74,9 @@ func TestHistoryRewriterRewritesHistory(t *testing.T) {
 	AssertBlobContents(t, db, tree3, "hello.txt", "2")
 }
 
-func TestHistoryRewriterRewritesOctopusMerges(t *testing.T) {
+func TestRewriterRewritesOctopusMerges(t *testing.T) {
 	db := DatabaseFromFixture(t, "octopus-merge.git")
-	r := NewHistoryRewriter(db)
+	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
@@ -119,9 +119,9 @@ func TestHistoryRewriterRewritesOctopusMerges(t *testing.T) {
 	AssertCommitParent(t, db, "ca447959bdcd20253d69b227bcc7c2e1d3126d5c", "9237567f379b3c83ddf53ad9a2ae3755afb62a09")
 }
 
-func TestHistoryRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
+func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	db := DatabaseFromFixture(t, "repeated-subtrees.git")
-	r := NewHistoryRewriter(db)
+	r := NewRewriter(db)
 
 	seen := make(map[string]int)
 
@@ -139,9 +139,9 @@ func TestHistoryRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	assert.Equal(t, 1, seen[filepath.Join("subdir", "b.txt")])
 }
 
-func TestHistoryRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
+func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	db := DatabaseFromFixture(t, "identical-blobs.git")
-	r := NewHistoryRewriter(db)
+	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
