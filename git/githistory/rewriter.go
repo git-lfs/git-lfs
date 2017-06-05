@@ -50,6 +50,15 @@ type RewriteOptions struct {
 	BlobFn BlobRewriteFn
 }
 
+// blobFn returns a useable BlobRewriteFn, either the one that was given in the
+// *RewriteOptions, or a noopBlobFn.
+func (r *RewriteOptions) blobFn() BlobRewriteFn {
+	if r.BlobFn == nil {
+		return noopBlobFn
+	}
+	return r.BlobFn
+}
+
 // BlobRewriteFn is a mapping function that takes a given blob and returns a
 // new, modified blob. If it returns an error, the new blob will not be written
 // and instead the error will be returned from the Rewrite() function.
@@ -77,6 +86,10 @@ var (
 			r.filter = filter
 		}
 	}
+
+	// noopBlobFn is a no-op implementation of the BlobRewriteFn. It returns
+	// the blob that it was given, and returns no error.
+	noopBlobFn = func(path string, b *odb.Blob) (*odb.Blob, error) { return b, nil }
 )
 
 // NewRewriter constructs a *Rewriter from the given *ObjectDatabase instance.
@@ -117,7 +130,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.BlobFn)
+		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.blobFn())
 		if err != nil {
 			return nil, err
 		}
