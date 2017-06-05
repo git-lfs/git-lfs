@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/stretchr/testify/assert"
 )
@@ -170,4 +171,28 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 
 	AssertBlobContents(t, db, tree, "a.txt", "changed")
 	AssertBlobContents(t, db, tree, "b.txt", "original")
+}
+
+func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
+	include := []string{"*.txt"}
+	exclude := []string{"subdir/**/*.txt"}
+
+	filter := filepathfilter.New(include, exclude)
+
+	db := DatabaseFromFixture(t, "non-repeated-subtrees.git")
+	r := NewRewriter(db, WithFilter(filter))
+
+	seen := make(map[string]int)
+
+	_, err := r.Rewrite(&RewriteOptions{Left: "master",
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			seen[path] = seen[path] + 1
+
+			return b, nil
+		},
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, seen["a.txt"])
+	assert.Equal(t, 0, seen["subdir/b.txt"])
 }

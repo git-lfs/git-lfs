@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/odb"
 )
@@ -22,6 +23,10 @@ type Rewriter struct {
 	// commits is a mapping of old commit SHAs to new ones, where the ASCII
 	// hex encoding of the SHA1 values are used as map keys.
 	commits map[string][]byte
+	// filter is an optional value used to specify which tree entries
+	// (blobs, subtrees) are modifiable given a BlobFn. If non-nil, this
+	// filter will cull out any unmodifiable subtrees and blobs.
+	filter *filepathfilter.Filter
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
 	db *odb.ObjectDatabase
@@ -60,6 +65,17 @@ type RewriteOptions struct {
 type BlobRewriteFn func(path string, b *odb.Blob) (*odb.Blob, error)
 
 type rewriterOption func(*Rewriter)
+
+var (
+	// WithFilter is an optional argument given to the NewRewriter
+	// constructor function to limit invocations of the BlobRewriteFn to
+	// only pathspecs that match the given *filepathfilter.Filter.
+	WithFilter = func(filter *filepathfilter.Filter) rewriterOption {
+		return func(r *Rewriter) {
+			r.filter = filter
+		}
+	}
+)
 
 // NewRewriter constructs a *Rewriter from the given *ObjectDatabase instance.
 func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
@@ -162,6 +178,11 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 	entries := make([]*odb.TreeEntry, 0, len(tree.Entries))
 	for _, entry := range tree.Entries {
 		path := filepath.Join(path, entry.Name)
+
+		if !r.filter.Allows(path) {
+			entries = append(entries, entry)
+			continue
+		}
 
 		if cached := r.uncacheEntry(entry); cached != nil {
 			entries = append(entries, cached)
