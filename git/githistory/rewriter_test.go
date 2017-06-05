@@ -198,6 +198,74 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	assert.Equal(t, 0, seen[root(filepath.Join("subdir", "b.txt"))])
 }
 
+func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
+	db := DatabaseFromFixture(t, "linear-history.git")
+	r := NewRewriter(db)
+
+	extra, err := db.WriteBlob(&odb.Blob{
+		Contents: strings.NewReader("extra\n"),
+		Size:     int64(len("extra\n")),
+	})
+	assert.Nil(t, err)
+
+	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			return b, nil
+		},
+
+		TreeCallbackFn: func(path string, tr *odb.Tree) (*odb.Tree, error) {
+			return &odb.Tree{
+				Entries: append(tr.Entries, &odb.TreeEntry{
+					Name:     "extra.txt",
+					Filemode: 0100644,
+					Oid:      extra,
+				}),
+			}, nil
+		},
+	})
+
+	assert.Nil(t, err)
+
+	tree1 := "40c2eb627a3b8e84b82a47a973d32960f3898b6a"
+	tree2 := "d7a5bcb69f2cd2652a014663a948952ea603c2c0"
+	tree3 := "45b752554d128f85bf23d7c3ddf48c47cbc345c8"
+
+	// After rewriting, the HEAD state of the repository should contain a
+	// tree identical to:
+	//
+	//   100644 blob e440e5c842586965a7fb77deda2eca68612b1f53    hello.txt
+	//   100644 blob 0f2287157f7cb0dd40498c7a92f74b6975fa2d57    extra.txt
+
+	AssertCommitTree(t, db, hex.EncodeToString(tip), tree1)
+
+	AssertBlobContents(t, db, tree1, "hello.txt", "3")
+	AssertBlobContents(t, db, tree1, "extra.txt", "extra\n")
+
+	// After rewriting, the HEAD~1 state of the repository should contain a
+	// tree identical to:
+	//
+	//   100644 blob d8263ee9860594d2806b0dfd1bfd17528b0ba2a4    hello.txt
+	//   100644 blob 0f2287157f7cb0dd40498c7a92f74b6975fa2d57    extra.txt
+
+	AssertCommitParent(t, db, hex.EncodeToString(tip), "45af5deb9a25bc4069b15c1f5bdccb0340978707")
+	AssertCommitTree(t, db, "45af5deb9a25bc4069b15c1f5bdccb0340978707", tree2)
+
+	AssertBlobContents(t, db, tree2, "hello.txt", "2")
+	AssertBlobContents(t, db, tree2, "extra.txt", "extra\n")
+
+	// After rewriting, the HEAD~2 state of the repository should contain a
+	// tree identical to:
+	//
+	//   100644 blob 56a6051ca2b02b04ef92d5150c9ef600403cb1de    hello.txt
+	//   100644 blob 0f2287157f7cb0dd40498c7a92f74b6975fa2d57    extra.txt
+
+	AssertCommitParent(t, db, "45af5deb9a25bc4069b15c1f5bdccb0340978707", "99f6bd7cd69b45494afed95b026f3e450de8304f")
+	AssertCommitTree(t, db, "99f6bd7cd69b45494afed95b026f3e450de8304f", tree3)
+
+	AssertBlobContents(t, db, tree3, "hello.txt", "1")
+	AssertBlobContents(t, db, tree3, "extra.txt", "extra\n")
+}
+
 func root(path string) string {
 	if !strings.HasPrefix(path, string(os.PathSeparator)) {
 		path = string(os.PathSeparator) + path
