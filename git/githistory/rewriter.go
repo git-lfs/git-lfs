@@ -161,7 +161,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.blobFn())
+		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.blobFn(), opt.treeFn())
 		if err != nil {
 			return nil, err
 		}
@@ -213,9 +213,13 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 // within the tree, either calling that function or recurring down into subtrees
 // by re-assigning the SHA.
 //
+// Once it is done assembling the entries in a given subtree, it then calls the
+// TreeCallbackFn, "tfn" to perform a final traversal of the subtree before
+// saving it to the object database.
+//
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byte, error) {
+func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn) ([]byte, error) {
 	tree, err := r.db.Tree(sha)
 	if err != nil {
 		return nil, err
@@ -241,7 +245,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 		case odb.BlobObjectType:
 			oid, err = r.rewriteBlob(entry.Oid, path, fn)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(entry.Oid, path, fn)
+			oid, err = r.rewriteTree(entry.Oid, path, fn, tfn)
 		default:
 			oid = entry.Oid
 
@@ -258,7 +262,11 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 		}))
 	}
 
-	return r.db.WriteTree(&odb.Tree{Entries: entries})
+	rewritten, err := tfn(path, &odb.Tree{Entries: entries})
+	if err != nil {
+		return nil, err
+	}
+	return r.db.WriteTree(rewritten)
 }
 
 // rewriteBlob calls the given BlobRewriteFn "fn" on a blob given in the object
