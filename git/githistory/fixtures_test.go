@@ -1,4 +1,4 @@
-package odb
+package githistory
 
 import (
 	"encoding/hex"
@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,13 +19,13 @@ import (
 // provided it.
 //
 // If any error was encountered, it will call t.Fatalf() immediately.
-func DatabaseFromFixture(t *testing.T, name string) *ObjectDatabase {
+func DatabaseFromFixture(t *testing.T, name string) *odb.ObjectDatabase {
 	path, err := copyToTmp(filepath.Join("fixtures", name))
 	if err != nil {
 		t.Fatalf("git/odb: could not copy fixture %s: %v", name, err)
 	}
 
-	db, err := FromFilesystem(filepath.Join(path, "objects"))
+	db, err := odb.FromFilesystem(filepath.Join(path, "objects"))
 	if err != nil {
 		t.Fatalf("git/odb: could not create object database: %v", err)
 	}
@@ -33,7 +34,7 @@ func DatabaseFromFixture(t *testing.T, name string) *ObjectDatabase {
 
 // AssertBlobContents asserts that the blob contents given by loading the path
 // starting from the root tree "tree" has the given "contents".
-func AssertBlobContents(t *testing.T, db *ObjectDatabase, tree, path, contents string) {
+func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, contents string) {
 	// First, load the root tree.
 	root, err := db.Tree(HexDecode(t, tree))
 	if err != nil {
@@ -47,7 +48,7 @@ func AssertBlobContents(t *testing.T, db *ObjectDatabase, tree, path, contents s
 		part := parts[i]
 
 		// Load the subtree given by that name.
-		var subtree *Tree
+		var subtree *odb.Tree
 		for _, entry := range root.Entries {
 			if entry.Name != part {
 				continue
@@ -71,7 +72,7 @@ func AssertBlobContents(t *testing.T, db *ObjectDatabase, tree, path, contents s
 	filename := parts[len(parts)-1]
 
 	// Find the blob given by the last entry in parts (the filename).
-	var blob *Blob
+	var blob *odb.Blob
 	for _, entry := range root.Entries {
 		if entry.Name == filename {
 			blob, err = db.Blob(entry.Oid)
@@ -97,7 +98,7 @@ func AssertBlobContents(t *testing.T, db *ObjectDatabase, tree, path, contents s
 
 // AssertCommitParent asserts that the given commit has a parent equivalent to
 // the one provided.
-func AssertCommitParent(t *testing.T, db *ObjectDatabase, sha, parent string) {
+func AssertCommitParent(t *testing.T, db *odb.ObjectDatabase, sha, parent string) {
 	commit, err := db.Commit(HexDecode(t, sha))
 	if err != nil {
 		t.Fatalf("git/odb: expected to read commit: %s, couldn't: %v", sha, err)
@@ -114,7 +115,7 @@ func AssertCommitParent(t *testing.T, db *ObjectDatabase, sha, parent string) {
 
 // AssertCommitTree asserts that the given commit has a tree equivelant to the
 // one provided.
-func AssertCommitTree(t *testing.T, db *ObjectDatabase, sha, tree string) {
+func AssertCommitTree(t *testing.T, db *odb.ObjectDatabase, sha, tree string) {
 	commit, err := db.Commit(HexDecode(t, sha))
 	if err != nil {
 		t.Fatalf("git/odb: expected to read commit: %s, couldn't: %v", sha, err)

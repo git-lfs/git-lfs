@@ -1,4 +1,4 @@
-package odb
+package githistory
 
 import (
 	"encoding/hex"
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestHistoryRewriterRewritesHistory(t *testing.T) {
 	r := NewHistoryRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
-		BlobFn: func(path string, b *Blob) (*Blob, error) {
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			contents, err := ioutil.ReadAll(b.Contents)
 			if err != nil {
 				return nil, err
@@ -30,7 +31,7 @@ func TestHistoryRewriterRewritesHistory(t *testing.T) {
 
 			rewritten := strconv.Itoa(n + 1)
 
-			return &Blob{
+			return &odb.Blob{
 				Contents: strings.NewReader(rewritten),
 				Size:     int64(len(rewritten)),
 			}, nil
@@ -78,8 +79,8 @@ func TestHistoryRewriterRewritesOctopusMerges(t *testing.T) {
 	r := NewHistoryRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
-		BlobFn: func(path string, b *Blob) (*Blob, error) {
-			return &Blob{
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			return &odb.Blob{
 				Contents: io.MultiReader(b.Contents, strings.NewReader("_new")),
 				Size:     b.Size + int64(len("_new")),
 			}, nil
@@ -125,7 +126,7 @@ func TestHistoryRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	seen := make(map[string]int)
 
 	_, err := r.Rewrite(&RewriteOptions{Left: "master",
-		BlobFn: func(path string, b *Blob) (*Blob, error) {
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			seen[path] = seen[path] + 1
 
 			return b, nil
@@ -143,12 +144,12 @@ func TestHistoryRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	r := NewHistoryRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
-		BlobFn: func(path string, b *Blob) (*Blob, error) {
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if path == "b.txt" {
 				return b, nil
 			}
 
-			return &Blob{
+			return &odb.Blob{
 				Contents: strings.NewReader("changed"),
 				Size:     int64(len("changed")),
 			}, nil
