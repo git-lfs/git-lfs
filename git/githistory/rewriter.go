@@ -3,6 +3,7 @@ package githistory
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -42,9 +43,10 @@ type RewriteOptions struct {
 	// BlobFn specifies a function to rewrite blobs.
 	//
 	// It is called once per unique, unchanged path. That is to say, if
-	// a/foo and a/bar contain identical contents, the BlobFn will be called
-	// twice: once for a/foo and once for a/bar, but no more on each blob
-	// for subsequent revisions, so long as each entry remains unchanged.
+	// /a/foo and /a/bar contain identical contents, the BlobFn will be
+	// called twice: once for /a/foo and once for /a/bar, but no more on
+	// each blob for subsequent revisions, so long as each entry remains
+	// unchanged.
 	BlobFn BlobRewriteFn
 }
 
@@ -57,8 +59,8 @@ type RewriteOptions struct {
 //
 // The path argument is given to be an absolute path to the tree entry being
 // rewritten, where the repository root is the root of the path given. For
-// instance, a file "b.txt" in directory "dir" would be given as "dir/b.txt",
-// where as a file "a.txt" in the root would be given as "a.txt".
+// instance, a file "b.txt" in directory "dir" would be given as "/dir/b.txt",
+// where as a file "a.txt" in the root would be given as "/a.txt".
 //
 // As above, the path separators are OS specific, and equivalent to the result
 // of filepath.Join(...) or os.PathSeparator.
@@ -115,7 +117,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, "", opt.BlobFn)
+		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.BlobFn)
 		if err != nil {
 			return nil, err
 		}
