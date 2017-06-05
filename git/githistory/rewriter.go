@@ -161,6 +161,8 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 
 	entries := make([]*odb.TreeEntry, 0, len(tree.Entries))
 	for _, entry := range tree.Entries {
+		path := filepath.Join(path, entry.Name)
+
 		if cached := r.uncacheEntry(entry); cached != nil {
 			entries = append(entries, cached)
 			continue
@@ -170,9 +172,9 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 
 		switch entry.Type {
 		case odb.BlobObjectType:
-			oid, err = r.rewriteBlob(entry.Oid, filepath.Join(path, entry.Name), fn)
+			oid, err = r.rewriteBlob(entry.Oid, path, fn)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(entry.Oid, filepath.Join(path, entry.Name), fn)
+			oid, err = r.rewriteTree(entry.Oid, path, fn)
 		default:
 			oid = entry.Oid
 
