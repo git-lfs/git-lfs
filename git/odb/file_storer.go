@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 // fileStorer implements the storer interface by writing to the .git/objects
@@ -38,9 +38,23 @@ func (fs *fileStorer) Open(sha []byte) (f io.ReadWriteCloser, err error) {
 // written, along with any error encountered in copying the given io.Reader, "r"
 // into the object database on disk at a path given by "sha".
 //
-// If the file already exists, could not be created, or opened, an error will be
-// returned.
+// If the file could not be created, or opened, an error will be returned.
 func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
+	path := fs.path(sha)
+	dir := filepath.Dir(path)
+
+	if stat, err := os.Stat(path); stat != nil || os.IsExist(err) {
+		// If the file already exists, there is no work left for us to
+		// do, since the object already exists (or there is a SHA1
+		// collision).
+		_, err = io.Copy(ioutil.Discard, r)
+		if err != nil {
+			return 0, errors.Wrap(err, "discard pre-existing object data")
+		}
+
+		return 0, nil
+	}
+
 	tmp, err := ioutil.TempFile("", "")
 	if err != nil {
 		return 0, err
@@ -54,18 +68,11 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 		return n, err
 	}
 
-	path := fs.path(sha)
-	dir := filepath.Dir(path)
-
 	// Since .git/objects partitions objects based on the first two
 	// characters of their ASCII-encoded SHA1 object ID, ensure that
 	// the directory exists before copying a file into it.
 	if err = os.MkdirAll(dir, 0755); err != nil {
 		return n, err
-	}
-
-	if _, err := os.Stat(path); os.IsExist(err) {
-		return n, errors.Errorf("git/odb: file storer cannot copy into file %q, which already exists", path)
 	}
 
 	if err = os.Rename(tmp.Name(), path); err != nil {

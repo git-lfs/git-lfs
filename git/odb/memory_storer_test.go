@@ -3,7 +3,6 @@ package odb
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -71,7 +70,7 @@ func TestMemoryStorerStoresNewEntries(t *testing.T) {
 	assert.Equal(t, "hello", string(contents))
 }
 
-func TestMemoryStorerStoresNewEntriesExclusively(t *testing.T) {
+func TestMemoryStorerStoresExistingEntries(t *testing.T) {
 	hex, err := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(t, err)
 
@@ -83,14 +82,7 @@ func TestMemoryStorerStoresNewEntriesExclusively(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(ms.fs))
 
-	defer func() {
-		expected := fmt.Sprintf("git/odb: memory storage create %x, already exists", hex)
-		if err := recover(); err != nil {
-			assert.Equal(t, expected, err)
-		} else {
-			t.Fatal("expected panic()")
-		}
-	}()
-
-	ms.Store(hex, new(bytes.Buffer))
+	n, err := ms.Store(hex, new(bytes.Buffer))
+	assert.Nil(t, err)
+	assert.EqualValues(t, 0, n)
 }
