@@ -106,6 +106,11 @@ func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err = b.Close(); err != nil {
+		return nil, err
+	}
+
 	return sha, nil
 }
 
