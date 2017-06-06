@@ -1,6 +1,7 @@
 package odb
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"strconv"
@@ -9,6 +10,30 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestTreeDecodingShaBoundary(t *testing.T) {
+	var from bytes.Buffer
+
+	fmt.Fprintf(&from, "%s %s\x00%s",
+		strconv.FormatInt(int64(0100644), 8),
+		"a.dat", []byte("aaaaaaaaaaaaaaaaaaaa"))
+
+	flen := from.Len()
+
+	tree := new(Tree)
+	n, err := tree.Decode(bufio.NewReaderSize(&from, flen-2), int64(flen))
+
+	assert.Nil(t, err)
+	assert.Equal(t, flen, n)
+
+	require.Len(t, tree.Entries, 1)
+	assert.Equal(t, &TreeEntry{
+		Name:     "a.dat",
+		Type:     BlobObjectType,
+		Oid:      []byte("aaaaaaaaaaaaaaaaaaaa"),
+		Filemode: 0100644,
+	}, tree.Entries[0])
+}
 
 func TestTreeReturnsCorrectObjectType(t *testing.T) {
 	assert.Equal(t, TreeObjectType, new(Tree).Type())
