@@ -48,6 +48,28 @@ type RewriteOptions struct {
 	// each blob for subsequent revisions, so long as each entry remains
 	// unchanged.
 	BlobFn BlobRewriteFn
+	// TreeCallbackFn specifies a function to rewrite trees after they have
+	// been reassembled by calling the above BlobFn on all existing tree
+	// entries.
+	TreeCallbackFn TreeCallbackFn
+}
+
+// blobFn returns a useable BlobRewriteFn, either the one that was given in the
+// *RewriteOptions, or a noopBlobFn.
+func (r *RewriteOptions) blobFn() BlobRewriteFn {
+	if r.BlobFn == nil {
+		return noopBlobFn
+	}
+	return r.BlobFn
+}
+
+// treeFn returns a useable TreeRewriteFn, either the one that was given in the
+// *RewriteOptions, or a noopTreeFn.
+func (r *RewriteOptions) treeFn() TreeCallbackFn {
+	if r.TreeCallbackFn == nil {
+		return noopTreeFn
+	}
+	return r.TreeCallbackFn
 }
 
 // BlobRewriteFn is a mapping function that takes a given blob and returns a
@@ -66,6 +88,21 @@ type RewriteOptions struct {
 // of filepath.Join(...) or os.PathSeparator.
 type BlobRewriteFn func(path string, b *odb.Blob) (*odb.Blob, error)
 
+// TreeCallbackFn specifies a function to call before writing a re-written tree
+// to the object database. The TreeCallbackFn can return a modified tree to be
+// written to the object database instead of one generated from calling BlobFn
+// on all of the tree entries.
+//
+// Trees returned from a TreeCallbackFn MUST have all objects referenced in the
+// entryset already written to the object database.
+//
+// TreeCallbackFn can be nil, and will therefore exhibit behavior equivalent to
+// only calling the BlobFn on existing tree entries.
+//
+// If the TreeCallbackFn returns an error, it will be returned from the
+// Rewrite() invocation.
+type TreeCallbackFn func(path string, t *odb.Tree) (*odb.Tree, error)
+
 type rewriterOption func(*Rewriter)
 
 var (
@@ -77,6 +114,13 @@ var (
 			r.filter = filter
 		}
 	}
+
+	// noopBlobFn is a no-op implementation of the BlobRewriteFn. It returns
+	// the blob that it was given, and returns no error.
+	noopBlobFn = func(path string, b *odb.Blob) (*odb.Blob, error) { return b, nil }
+	// noopTreeFn is a no-op implementation of the TreeRewriteFn. It returns
+	// the tree that it was given, and returns no error.
+	noopTreeFn = func(path string, t *odb.Tree) (*odb.Tree, error) { return t, nil }
 )
 
 // NewRewriter constructs a *Rewriter from the given *ObjectDatabase instance.
@@ -117,7 +161,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.BlobFn)
+		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.blobFn(), opt.treeFn())
 		if err != nil {
 			return nil, err
 		}
@@ -169,9 +213,13 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 // within the tree, either calling that function or recurring down into subtrees
 // by re-assigning the SHA.
 //
+// Once it is done assembling the entries in a given subtree, it then calls the
+// TreeCallbackFn, "tfn" to perform a final traversal of the subtree before
+// saving it to the object database.
+//
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byte, error) {
+func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn) ([]byte, error) {
 	tree, err := r.db.Tree(sha)
 	if err != nil {
 		return nil, err
@@ -197,7 +245,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 		case odb.BlobObjectType:
 			oid, err = r.rewriteBlob(entry.Oid, path, fn)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(entry.Oid, path, fn)
+			oid, err = r.rewriteTree(entry.Oid, path, fn, tfn)
 		default:
 			oid = entry.Oid
 
@@ -214,7 +262,11 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn) ([]byt
 		}))
 	}
 
-	return r.db.WriteTree(&odb.Tree{Entries: entries})
+	rewritten, err := tfn(path, &odb.Tree{Entries: entries})
+	if err != nil {
+		return nil, err
+	}
+	return r.db.WriteTree(rewritten)
 }
 
 // rewriteBlob calls the given BlobRewriteFn "fn" on a blob given in the object
