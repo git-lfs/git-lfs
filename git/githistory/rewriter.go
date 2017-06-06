@@ -231,7 +231,25 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 	if err != nil {
 		return nil, err
 	}
-	return r.db.WriteBlob(b)
+
+	sha, err := r.db.WriteBlob(b)
+	if err != nil {
+		return nil, err
+	}
+
+	if blob != b {
+		// Close the source blob, so long as it is not equal to the
+		// rewritten blob. If the two are equal, as in the check above
+		// this comment, calling r.db.WriteBlob(b) will have already
+		// closed both "b" and "blob" since they are the same.
+		//
+		// Closing an *os.File twice causes an `os.ErrInvalid` to be
+		// returned.
+		if err = blob.Close(); err != nil {
+			return nil, err
+		}
+	}
+	return sha, nil
 }
 
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the
