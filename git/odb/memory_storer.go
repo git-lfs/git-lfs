@@ -43,9 +43,6 @@ func (ms *memoryStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 	defer ms.mu.Unlock()
 
 	key := fmt.Sprintf("%x", sha)
-	if _, ok := ms.fs[key]; ok {
-		panic(fmt.Sprintf("git/odb: memory storage create %x, already exists", sha))
-	}
 
 	ms.fs[key] = &bufCloser{new(bytes.Buffer)}
 	return io.Copy(ms.fs[key], r)
