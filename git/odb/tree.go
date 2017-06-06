@@ -50,7 +50,7 @@ func (t *Tree) Decode(from io.Reader, size int64) (n int, err error) {
 		fname = strings.TrimSuffix(fname, "\x00")
 
 		var sha [20]byte
-		if _, err = buf.Read(sha[:]); err != nil {
+		if _, err = io.ReadFull(buf, sha[:]); err != nil {
 			return n, err
 		}
 		n += 20
