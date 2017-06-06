@@ -265,10 +265,8 @@ func (o *ObjectDatabase) decode(sha []byte, into Object) error {
 		return err
 	}
 
-	if into.Type() != BlobObjectType {
-		if err = r.Close(); err != nil {
-			return err
-		}
+	if into.Type() == BlobObjectType {
+		return nil
 	}
-	return nil
+	return r.Close()
 }
