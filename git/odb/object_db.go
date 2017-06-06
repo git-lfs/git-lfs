@@ -106,6 +106,11 @@ func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err = b.Close(); err != nil {
+		return nil, err
+	}
+
 	return sha, nil
 }
 
@@ -237,6 +242,12 @@ func (o *ObjectDatabase) open(sha []byte) (*ObjectReader, error) {
 
 // decode decodes an object given by the sha "sha []byte" into the given object
 // "into", or returns an error if one was encountered.
+//
+// Ordinarily, it closes the object's underlying io.ReadCloser (if it implements
+// the `io.Closer` interface), but skips this if the "into" Object is of type
+// BlobObjectType. Blob's don't exhaust the buffer completely (they instead
+// maintain a handle on the blob's contents via an io.LimitedReader) and
+// therefore cannot be closed until signaled explicitly by git/odb.Blob.Close().
 func (o *ObjectDatabase) decode(sha []byte, into Object) error {
 	r, err := o.open(sha)
 	if err != nil {
@@ -254,8 +265,8 @@ func (o *ObjectDatabase) decode(sha []byte, into Object) error {
 		return err
 	}
 
-	if err = r.Close(); err != nil {
-		return err
+	if into.Type() == BlobObjectType {
+		return nil
 	}
-	return nil
+	return r.Close()
 }
