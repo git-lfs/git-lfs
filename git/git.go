@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -82,6 +83,57 @@ type CommitSummary struct {
 	CommitterName  string
 	CommitterEmail string
 	Subject        string
+}
+
+func CommitTree(tree, parent, message string) (string, error) {
+	args := []string{
+		"commit-tree", "-m", message,
+	}
+	if len(parent) > 0 {
+		args = append(args, "-p", parent)
+	}
+
+	return subprocess.SimpleExec("git", append(args, tree)...)
+}
+
+func UpdateRef(from, to string) error {
+	args := []string{
+		"update-ref", from, to,
+	}
+
+	_, err := subprocess.SimpleExec("git", args...)
+	return err
+}
+
+func ReadTree(treeish string) error {
+	_, err := subprocess.SimpleExec("git", "read-tree", treeish)
+	return err
+}
+
+func WriteTree(prefix string) (string, error) {
+	if len(prefix) == 0 {
+		prefix = "/"
+	}
+
+	args := []string{
+		"write-tree", // fmt.Sprintf("--prefix=%s", prefix),
+	}
+
+	return subprocess.SimpleExec("git", args...)
+}
+
+func HashObject(r io.Reader) (string, error) {
+	cmd := subprocess.ExecCommand("git", "hash-object", "-w", "--no-filters", "--stdin")
+
+	buf := bytes.NewBuffer(nil)
+
+	cmd.Stdout = buf
+	cmd.Stdin = r
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return buf.String()[:40], nil
 }
 
 func LsRemote(remote, remoteRef string) (string, error) {
@@ -352,7 +404,14 @@ func DefaultRemote() (string, error) {
 }
 
 func UpdateIndex(file string) error {
-	_, err := subprocess.SimpleExec("git", "update-index", "-q", "--refresh", file)
+	_, err := subprocess.SimpleExec("git", "update-index", "--add", "-q", "--refresh", file)
+	return err
+}
+
+func UpdateIndexInfo(mode, sha, path string) error {
+	_, err := subprocess.SimpleExec(
+		"git", "update-index", "--cacheinfo", fmt.Sprintf("%s,%s,%s", mode, sha, path),
+	)
 	return err
 }
 
