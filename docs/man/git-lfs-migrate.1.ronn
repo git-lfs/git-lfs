@@ -3,11 +3,11 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 
 ## SYNOPSIS
 
-`git lfs migrate` <type> [options] [--] [branch ...]
+`git lfs migrate` <mode> [options] [--] [branch ...]
 
 ## DESCRIPTION
 
-## TYPES
+## MODES
 
 * `import`
     Import existing history from Git into Git LFS by converting large objects to
