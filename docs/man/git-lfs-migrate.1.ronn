@@ -1,0 +1,46 @@
+git-lfs-migrate(1) - Migrate history to or from git-lfs
+=======================================================
+
+## SYNOPSIS
+
+`git lfs migrate` <type> [options] [--] [branch ...]
+
+## DESCRIPTION
+
+## TYPES
+
+* `import`
+    Import existing history from Git into Git LFS by converting large objects to
+    pointer files, and creating entries in .git/lfs/objects.
+
+* `export`
+    Export existing history from Git LFS into Git by converting pointer files to
+    large objects, and creating entries in .git/objects.
+
+* `info`
+    Perform no migration, instead show information about repository size.
+
+## OPTIONS
+
+* `-I` <paths> `--include=`<paths>:
+    See [INCLUDE AND EXCLUDE].
+
+* `-X` <paths> `--exclude=`<paths>:
+    See [INCLUDE AND EXCLUDE].
+
+* [branch ...]:
+    Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
+    will migrate the entire repository.
+
+## INCLUDE AND EXCLUDE
+
+You can configure Git LFS to only migrate tree entries whose pathspec matches
+the include glob and does not match the exclude glob, to reduce total migration
+time or to only migrate part of your repo.
+
+Pattern matching is done as given to be functionally equivalent to pattern
+matching as in .gitattributes.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.
