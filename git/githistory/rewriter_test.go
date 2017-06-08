@@ -19,7 +19,7 @@ func TestRewriterRewritesHistory(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history.git")
 	r := NewRewriter(db)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			contents, err := ioutil.ReadAll(b.Contents)
 			if err != nil {
@@ -80,7 +80,7 @@ func TestRewriterRewritesOctopusMerges(t *testing.T) {
 	db := DatabaseFromFixture(t, "octopus-merge.git")
 	r := NewRewriter(db)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			return &odb.Blob{
 				Contents: io.MultiReader(b.Contents, strings.NewReader("_new")),
@@ -127,7 +127,7 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 
 	seen := make(map[string]int)
 
-	_, err := r.Rewrite(&RewriteOptions{Left: "master",
+	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			seen[path] = seen[path] + 1
 
@@ -145,7 +145,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	db := DatabaseFromFixture(t, "identical-blobs.git")
 	r := NewRewriter(db)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if path == root("b.txt") {
 				return b, nil
@@ -185,7 +185,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 
 	seen := make(map[string]int)
 
-	_, err := r.Rewrite(&RewriteOptions{Left: "master",
+	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			seen[path] = seen[path] + 1
 
@@ -208,7 +208,7 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			return b, nil
 		},

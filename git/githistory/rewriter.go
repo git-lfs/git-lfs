@@ -35,10 +35,12 @@ type Rewriter struct {
 
 // RewriteOptions is an options type given to the Rewrite() function.
 type RewriteOptions struct {
-	// Left is the starting commit.
-	Left string
-	// Right is the ending commit.
-	Right string
+	// Include is the list of refs of which commits reachable by that ref
+	// will be included.
+	Include []string
+	// Exclude is the list of refs of which commits reachable by that ref
+	// will be excluded.
+	Exclude []string
 
 	// BlobFn specifies a function to rewrite blobs.
 	//
@@ -144,7 +146,7 @@ func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	// First, construct a scanner to iterate through the range of commits to
 	// rewrite.
-	scanner, err := git.NewRevListScanner(opt.Left, opt.Right, r.scannerOpts())
+	scanner, err := git.NewRevListScanner(opt.Include, opt.Exclude, r.scannerOpts())
 	if err != nil {
 		return nil, err
 	}

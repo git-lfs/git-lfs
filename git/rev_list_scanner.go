@@ -24,8 +24,8 @@ const (
 	ScanRefsMode ScanningMode = iota
 	// ScanAllMode will scan all history.
 	ScanAllMode
-	// ScanLeftToRemoteMode will scan the difference between "left" and a
-	// remote tracking ref.
+	// ScanLeftToRemoteMode will scan the difference between any included
+	// SHA1s and a remote tracking ref.
 	ScanLeftToRemoteMode
 )
 
@@ -160,15 +160,15 @@ var (
 	z40 = regexp.MustCompile(`\^?0{40}`)
 )
 
-// NewRevListScanner instantiates a new RevListScanner instance scanning between
-// the "left" and "right" commitish (commit, refspec) and scanning using the
-// *ScanRefsOptions "opt" configuration.
+// NewRevListScanner instantiates a new RevListScanner instance scanning all
+// revisions reachable by refs contained in "include" and not reachable by any
+// refs included in "excluded", using the *ScanRefsOptions "opt" configuration.
 //
 // It returns a new *RevListScanner instance, or an error if one was
 // encountered. Upon returning, the `git-rev-list(1)` instance is already
 // running, and Scan() may be called immediately.
-func NewRevListScanner(left, right string, opt *ScanRefsOptions) (*RevListScanner, error) {
-	stdin, args, err := revListArgs(left, right, opt)
+func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevListScanner, error) {
+	stdin, args, err := revListArgs(include, excluded, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -218,13 +218,13 @@ func NewRevListScanner(left, right string, opt *ScanRefsOptions) (*RevListScanne
 	}, nil
 }
 
-// revListArgs returns the arguments for a given left, right, and
-// ScanRefsOptions instance.
+// revListArgs returns the arguments for a given included and excluded set of
+// SHA1s, and ScanRefsOptions instance.
 //
 // In order, it returns the contents of stdin as an io.Reader, the args passed
 // to git as a []string, and any error encountered in generating those if one
 // occurred.
-func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error) {
+func revListArgs(include, exclude []string, opt *ScanRefsOptions) (io.Reader, []string, error) {
 	var stdin io.Reader
 	args := []string{"rev-list"}
 	if !opt.CommitsOnly {
@@ -247,25 +247,51 @@ func revListArgs(l, r string, opt *ScanRefsOptions) (io.Reader, []string, error)
 			args = append(args, "--do-walk")
 		}
 
-		args = append(args, l)
-		if len(r) > 0 && !z40.MatchString(r) {
-			args = append(args, r)
-		}
+		args = append(args, includeExcludeShas(include, exclude)...)
 	case ScanAllMode:
 		args = append(args, "--all")
 	case ScanLeftToRemoteMode:
 		if len(opt.SkippedRefs) == 0 {
-			args = append(args, l, "--not", "--remotes="+opt.Remote)
+			args = append(args, includeExcludeShas(include, exclude)...)
+			args = append(args, "--not", "--remotes="+opt.Remote)
 		} else {
 			args = append(args, "--stdin")
 			stdin = strings.NewReader(strings.Join(
-				append([]string{l}, opt.SkippedRefs...), "\n"),
+				append(includeExcludeShas(include, exclude), opt.SkippedRefs...), "\n"),
 			)
 		}
 	default:
 		return nil, nil, errors.Errorf("unknown scan type: %d", opt.Mode)
 	}
 	return stdin, append(args, "--"), nil
+}
+
+func includeExcludeShas(include, exclude []string) []string {
+	include = nonZeroShas(include)
+	exclude = nonZeroShas(exclude)
+
+	args := make([]string, 0, len(include)+len(exclude))
+
+	for _, i := range include {
+		args = append(args, i)
+	}
+
+	for _, x := range exclude {
+		args = append(args, fmt.Sprintf("^%s", x))
+	}
+
+	return args
+}
+
+func nonZeroShas(all []string) []string {
+	nz := make([]string, 0, len(all))
+
+	for _, sha := range all {
+		if len(sha) > 0 && !z40.MatchString(sha) {
+			nz = append(nz, sha)
+		}
+	}
+	return nz
 }
 
 // Name is an optional field that gives the name of the object (if the object is
