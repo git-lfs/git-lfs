@@ -174,11 +174,24 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		//
 		// This operation is safe since we are visiting the commits in
 		// reverse topological order and therefore have seen all parents
-		// before children (in other words, r.uncacheCommit(parent) will
-		// always return a value).
+		// before children (in other words, r.uncacheCommit(...) will
+		// always return a value, if the prospective parent is a part of
+		// the migration).
 		rewrittenParents := make([][]byte, 0, len(original.ParentIDs))
-		for _, parent := range original.ParentIDs {
-			rewrittenParents = append(rewrittenParents, r.uncacheCommit(parent))
+		for _, originalParent := range original.ParentIDs {
+			rewrittenParent, ok := r.uncacheCommit(originalParent)
+			if !ok {
+				// If we haven't seen the parent before, this
+				// means that we're doing a partial migration
+				// and the parent that we're looking for isn't
+				// included.
+				//
+				// Use the original parent to properly link
+				// history across the migration boundary.
+				rewrittenParent = originalParent
+			}
+
+			rewrittenParents = append(rewrittenParents, rewrittenParent)
 		}
 
 		// Construct a new commit using the original header information,
@@ -366,10 +379,12 @@ func (r *Rewriter) cacheCommit(from, to []byte) {
 
 // uncacheCommit returns a *git/odb.Commit that is cached from the given
 // *git/odb.Commit "from". That is to say, it returns the *git/odb.Commit that
-// "from" should be rewritten to, or nil if none could be found.
-func (r *Rewriter) uncacheCommit(from []byte) []byte {
+// "from" should be rewritten to and true, or nil and false if none could be
+// found.
+func (r *Rewriter) uncacheCommit(from []byte) ([]byte, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.commits[hex.EncodeToString(from)]
+	c, ok := r.commits[hex.EncodeToString(from)]
+	return c, ok
 }
