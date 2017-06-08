@@ -266,6 +266,39 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 	AssertBlobContents(t, db, tree3, "extra.txt", "extra\n")
 }
 
+func TestHistoryRewriterUseOriginalParentsForPartialMigration(t *testing.T) {
+	db := DatabaseFromFixture(t, "linear-history-with-tags.git")
+	r := NewRewriter(db)
+
+	tip, err := r.Rewrite(&RewriteOptions{
+		Include: []string{"refs/heads/master"},
+		Exclude: []string{"refs/tags/middle"},
+
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			return b, nil
+		},
+	})
+
+	// After rewriting, the rewriter should have only modified the latest
+	// commit (HEAD), and excluded the first two, both reachable by
+	// refs/tags/middle.
+	//
+	// This should modify one commit, and appropriately link the parent as
+	// follows:
+	//
+	//   tree 20ecedad3e74a113695fe5f00ab003694e2e1e9c
+	//   parent 228afe30855933151f7a88e70d9d88314fd2f191
+	//   author Taylor Blau <me@ttaylorr.com> 1496954214 -0600
+	//   committer Taylor Blau <me@ttaylorr.com> 1496954214 -0600
+	//
+	//   some.txt: c
+
+	expectedParent := "228afe30855933151f7a88e70d9d88314fd2f191"
+
+	assert.NoError(t, err)
+	AssertCommitParent(t, db, hex.EncodeToString(tip), expectedParent)
+}
+
 func root(path string) string {
 	if !strings.HasPrefix(path, string(os.PathSeparator)) {
 		path = string(os.PathSeparator) + path
