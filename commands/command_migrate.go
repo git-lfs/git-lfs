@@ -29,6 +29,64 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 	return odb.FromFilesystem(filepath.Join(dir, "objects"))
 }
 
+// includeExcludeRefs returns fully-qualified sets of references to include, and
+// exclude, or an error if those could not be determined.
+//
+// They are determined based on the following rules:
+//
+//   - Include all local refs/heads/<branch> references for each branch
+//     specified as an argument.
+//   - Include the currently checked out branch if no branches are given as
+//     arguments and the --include-ref= or --exclude-ref= flag(s) aren't given.
+//   - Include all references given in --include-ref=<ref>.
+//   - Exclude all references given in --exclude-ref=<ref>.
+func includeExcludeRefs(args []string) (include, exclude []string, err error) {
+	hardcore := len(migrateIncludeRefs) > 0 || len(migrateExcludeRefs) > 0
+
+	if len(args) == 0 && !hardcore {
+		// If no branches were given explicitly AND neither
+		// --include-ref or --exclude-ref flags were given, then add the
+		// currently checked out reference.
+		current, err := currentRefToMigrate()
+		if err != nil {
+			return nil, nil, err
+		}
+		args = append(args, current.Name)
+	}
+
+	for _, name := range args {
+		// Then, loop through each branch given, resolve that reference,
+		// and include it.
+		ref, err := git.ResolveRef(name)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		include = append(include, ref.Name)
+	}
+
+	if hardcore {
+		// If either --include-ref=<ref> or --exclude-ref=<ref> were
+		// given, append those to the include and excluded reference
+		// set, respectively.
+		include = append(include, migrateIncludeRefs...)
+		exclude = append(exclude, migrateExcludeRefs...)
+	} else {
+		// Otherwise, if neither --include-ref=<ref> or
+		// --exclude-ref=<ref> were given, include no additional
+		// references, and exclude all remote references that are remote
+		// branches or remote tags.
+		remoteRefs, err := getRemoteRefs()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		exclude = append(exclude, remoteRefs...)
+	}
+
+	return include, exclude, nil
+}
+
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
