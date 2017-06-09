@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,33 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
 	return odb.FromFilesystem(filepath.Join(dir, "objects"))
+}
+
+// rewriteOptions returns *githistory.RewriteOptions able to be passed to a
+// *githistory.Rewriter that reflect the current arguments and flags passed to
+// an invocation of git-lfs-migrate(1).?
+//
+// Repository references are included and excluded based on the following rules:
+//
+// The included and excluded references are determined based on the output of
+// includeExcludeRefs (see below for documentation and detail).
+//
+// The given "fn" githistory.BlobRewriteFn is passed as the BlobFn.
+//
+// If any of the above could not be determined without error, that error will be
+// returned immediately.
+func rewriteOptions(args []string, fn githistory.BlobRewriteFn) (*githistory.RewriteOptions, error) {
+	include, exclude, err := includeExcludeRefs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &githistory.RewriteOptions{
+		Include: include,
+		Exclude: exclude,
+
+		BlobFn: fn,
+	}, nil
 }
 
 // includeExcludeRefs returns fully-qualified sets of references to include, and
