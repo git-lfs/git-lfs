@@ -18,9 +18,18 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 * `-X` <paths> `--exclude=`<paths>:
     See [INCLUDE AND EXCLUDE].
 
+* `--include-ref`=<refname>:
+    See [INCLUDE AND EXCLUDE (REFS)].
+
+* `--exclude-ref`=<refname>:
+    See [INCLUDE AND EXCLUDE (REFS)].
+
 * [branch ...]:
     Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
     will the currently checked out branch.
+
+    If any of `--include-ref` or `--exclude-ref` are given, the checked out
+    branch will not be appended, but branches given explicitly will be appended.
 
 ## INCLUDE AND EXCLUDE
 
@@ -30,6 +39,33 @@ time or to only migrate part of your repo.
 
 Pattern matching is done as given to be functionally equivalent to pattern
 matching as in .gitattributes.
+
+## INCLUDE AND EXCLUDE (REFS)
+
+You can configure Git LFS to only migrate commits reachable by references
+include by `--include-ref` and not reachable by `--exclude-ref`.
+
+        D---E---F
+       /         \
+  A---B------C    refs/heads/my-feature
+   \          \
+    \          refs/heads/master
+     \
+      refs/remotes/origin/master
+
+In the above configuration, the following commits are reachable by each ref:
+
+refs/heads/master:         C, B, A
+refs/heads/my-feature:     F, E, D, B, A
+refs/remote/origin/master: A
+
+The following configuration:
+
+  --include-ref=refs/heads/my-feature
+  --include-ref=refs/heads/master
+  --exclude-ref=refs/remotes/origin/master
+
+Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
 
 ## SEE ALSO
 
