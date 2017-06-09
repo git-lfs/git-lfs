@@ -29,6 +29,31 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 	return odb.FromFilesystem(filepath.Join(dir, "objects"))
 }
 
+// getRemoteRefs returns a fully qualified set of references belonging to all
+// remotes known by the currently checked-out repository, or an error if those
+// references could not be determined.
+func getRemoteRefs() ([]string, error) {
+	var refs []string
+
+	remotes, err := git.RemoteList()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, remote := range remotes {
+		refsForRemote, err := git.RemoteRefs(remote)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, ref := range refsForRemote {
+			refs = append(refs, formatRefName(ref, remote))
+		}
+	}
+
+	return refs, nil
+}
+
 // formatRefName returns the fully-qualified name for the given Git reference
 // "ref".
 func formatRefName(ref *git.Ref, remote string) string {
