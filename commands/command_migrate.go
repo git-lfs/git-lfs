@@ -3,6 +3,7 @@ package commands
 import (
 	"path/filepath"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/spf13/cobra"
@@ -25,6 +26,24 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
 	return odb.FromFilesystem(filepath.Join(dir, "objects"))
+}
+
+// currentRefToMigrate returns the fully-qualified name of the currently
+// checked-out reference, or an error if the reference's type was not a local
+// branch.
+func currentRefToMigrate() (*git.Ref, error) {
+	current, err := git.CurrentRef()
+	if err != nil {
+		return nil, err
+	}
+
+	if current.Type == git.RefTypeOther ||
+		current.Type == git.RefTypeRemoteBranch ||
+		current.Type == git.RefTypeRemoteTag {
+
+		return nil, errors.Errorf("fatal: cannot migrate non-local ref: %s", current.Name)
+	}
+	return current, nil
 }
 
 func init() {
