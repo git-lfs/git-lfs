@@ -5,8 +5,6 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 
 `git lfs migrate` <mode> [options] [--] [branch ...]
 
-## DESCRIPTION
-
 ## MODES
 
 * `import`
