@@ -2,6 +2,7 @@ package commands
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
@@ -26,6 +27,23 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
 	return odb.FromFilesystem(filepath.Join(dir, "objects"))
+}
+
+// formatRefName returns the fully-qualified name for the given Git reference
+// "ref".
+func formatRefName(ref *git.Ref, remote string) string {
+	var name []string
+
+	switch ref.Type {
+	case git.RefTypeRemoteBranch:
+		name = []string{"refs", "remotes", remote, ref.Name}
+	case git.RefTypeRemoteTag:
+		name = []string{"refs", "tags", ref.Name}
+	default:
+		return ref.Name
+	}
+	return strings.Join(name, "/")
+
 }
 
 // currentRefToMigrate returns the fully-qualified name of the currently
