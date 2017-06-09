@@ -20,6 +20,27 @@ var (
 	migrateExcludeRefs []string
 )
 
+// migrate takes the given command and arguments, as well as a BlobRewriteFn to
+// apply, and performs a migration.
+func migrate(cmd *cobra.Command, args []string, fn githistory.BlobRewriteFn) {
+	requireInRepo()
+
+	db, err := getObjectDatabase()
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	opts, err := rewriteOptions(args, fn)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	_, err = getHistoryRewriter(cmd, db).Rewrite(opts)
+	if err != nil {
+		ExitWithError(err)
+	}
+}
+
 // getObjectDatabase creates a *git.ObjectDatabase from the filesystem pointed
 // at the .git directory of the currently checked-out repository.
 func getObjectDatabase() (*odb.ObjectDatabase, error) {
