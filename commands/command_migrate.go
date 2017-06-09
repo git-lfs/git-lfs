@@ -175,6 +175,15 @@ func currentRefToMigrate() (*git.Ref, error) {
 	return current, nil
 }
 
+// getHistoryRewriter returns a history rewriter that includes the filepath
+// filter given by the --include and --exclude arguments.
+func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase) *githistory.Rewriter {
+	include, exclude := getIncludeExcludeArgs(cmd)
+	filter := buildFilepathFilter(cfg, include, exclude)
+
+	return githistory.NewRewriter(db, githistory.WithFilter(filter))
+}
+
 func init() {
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		// Adding flags directly to cmd.Flags() doesn't apply those
