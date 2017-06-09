@@ -215,7 +215,9 @@ func init() {
 		// Once done, link each orphaned command to the
 		// `git-lfs-migrate(1)` command as a subcommand (child).
 
-		for _, subcommand := range []*cobra.Command{} {
+		for _, subcommand := range []*cobra.Command{
+			MigrateInfoCommand,
+		} {
 			subcommand.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 			subcommand.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 
