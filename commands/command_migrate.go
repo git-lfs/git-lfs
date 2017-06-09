@@ -1,6 +1,10 @@
 package commands
 
 import (
+	"path/filepath"
+
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/spf13/cobra"
 )
 
@@ -12,6 +16,16 @@ var (
 	// in the migration.
 	migrateExcludeRefs []string
 )
+
+// getObjectDatabase creates a *git.ObjectDatabase from the filesystem pointed
+// at the .git directory of the currently checked-out repository.
+func getObjectDatabase() (*odb.ObjectDatabase, error) {
+	dir, err := git.GitDir()
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot open root")
+	}
+	return odb.FromFilesystem(filepath.Join(dir, "objects"))
+}
 
 func init() {
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
