@@ -7,10 +7,6 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 
 ## MODES
 
-* `import`
-    Import existing history from Git into Git LFS by converting large objects to
-    pointer files, and creating entries in .git/lfs/objects.
-
 * `info`
     Perform no migration, instead show information about repository size.
 
