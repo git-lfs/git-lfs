@@ -2,6 +2,7 @@ package errors
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/pkg/errors"
 )
@@ -133,6 +134,9 @@ func IsRetriableError(err error) bool {
 		RetriableError() bool
 	}); ok {
 		return e.RetriableError()
+	}
+	if cause, ok := Cause(err).(*url.Error); ok {
+		return cause.Temporary() || cause.Timeout()
 	}
 	if parent := parentOf(err); parent != nil {
 		return IsRetriableError(parent)

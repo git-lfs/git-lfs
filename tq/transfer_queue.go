@@ -1,7 +1,6 @@
 package tq
 
 import (
-	"net/url"
 	"os"
 	"sort"
 	"sync"
@@ -634,12 +633,7 @@ func (q *TransferQueue) run() {
 
 // canRetry returns whether or not the given error "err" is retriable.
 func (q *TransferQueue) canRetry(err error) bool {
-	switch cause := errors.Cause(err).(type) {
-	case *url.Error:
-		return cause.Temporary() || cause.Timeout()
-	default:
-		return errors.IsRetriableError(err)
-	}
+	return errors.IsRetriableError(err)
 }
 
 // canRetryObject returns whether the given error is retriable for the object
