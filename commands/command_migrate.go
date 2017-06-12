@@ -206,6 +206,9 @@ func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase) *githistory.
 }
 
 func init() {
+	info := NewCommand("info", migrateInfoCommand)
+	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
+
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		// Adding flags directly to cmd.Flags() doesn't apply those
 		// flags to any subcommands of the root. Therefore, loop through
@@ -216,7 +219,7 @@ func init() {
 		// `git-lfs-migrate(1)` command as a subcommand (child).
 
 		for _, subcommand := range []*cobra.Command{
-			MigrateInfoCommand,
+			info,
 		} {
 			subcommand.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 			subcommand.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")

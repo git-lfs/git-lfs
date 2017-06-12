@@ -13,8 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var MigrateInfoCommand = NewCommand("info", migrateInfoCommand)
-
 var (
 	// migrateInfoTopN is a flag given to the git-lfs-migrate(1) subcommand
 	// 'info' which specifies how many info entries to show by default.
@@ -110,8 +108,4 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 	}
 
 	return fmt.Fprintln(to, strings.Join(output, "\n"))
-}
-
-func init() {
-	MigrateInfoCommand.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
 }
