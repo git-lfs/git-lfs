@@ -144,9 +144,8 @@ func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 // Rewrite rewrites the range of commits given by *RewriteOptions.{Left,Right}
 // using the BlobRewriteFn to rewrite the individual blobs.
 func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
-	// First, construct a scanner to iterate through the range of commits to
-	// rewrite.
-	scanner, err := git.NewRevListScanner(opt.Include, opt.Exclude, r.scannerOpts())
+	// First, obtain a list of commits to rewrite.
+	commits, err := r.commitsToMigrate(opt)
 	if err != nil {
 		return nil, err
 	}
@@ -154,10 +153,10 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
 	var tip []byte
-	for scanner.Scan() {
+	for _, oid := range commits {
 		// Load the original commit to access the data necessary in
 		// order to rewrite it.
-		original, err := r.db.Commit(scanner.OID())
+		original, err := r.db.Commit(oid)
 		if err != nil {
 			return nil, err
 		}
@@ -211,14 +210,10 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Cache that commit so that we can reassign children of this
 		// commit.
-		r.cacheCommit(scanner.OID(), rewrittenCommit)
+		r.cacheCommit(oid, rewrittenCommit)
 
 		// Move the tip forward.
 		tip = rewrittenCommit
-	}
-
-	if err = scanner.Err(); err != nil {
-		return nil, err
 	}
 	return tip, err
 }
@@ -317,6 +312,32 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 		}
 	}
 	return sha, nil
+}
+
+// commitsToMigrate returns an in-memory copy of a list of commits according to
+// the output of git-rev-list(1) (given the *RewriteOptions), where each
+// outputted commit is 20 bytes of raw SHA1.
+//
+// If any error was encountered, it will be returned.
+func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
+	scanner, err := git.NewRevListScanner(
+		opt.Include, opt.Exclude, r.scannerOpts())
+	if err != nil {
+		return nil, err
+	}
+
+	var commits [][]byte
+	for scanner.Scan() {
+		commits = append(commits, scanner.OID())
+	}
+
+	if err = scanner.Err(); err != nil {
+		return nil, err
+	}
+	if err = scanner.Close(); err != nil {
+		return nil, err
+	}
+	return commits, nil
 }
 
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the
