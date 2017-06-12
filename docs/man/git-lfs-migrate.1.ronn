@@ -8,7 +8,7 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 ## MODES
 
 * `info`
-    Perform no migration, instead show information about repository size.
+    Show information about repository size.
 
 ## OPTIONS
 
