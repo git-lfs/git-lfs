@@ -462,26 +462,6 @@ func pruneTaskGetReachableObjects(gitscanner *lfs.GitScanner, outObjectSet *tool
 	}
 }
 
-var byteUnits = []string{"B", "KB", "MB", "GB", "TB"}
-
-func humanizeBytes(bytes int64) string {
-	var output string
-	size := float64(bytes)
-
-	if bytes < 1024 {
-		return fmt.Sprintf("%d B", bytes)
-	}
-
-	for _, unit := range byteUnits {
-		if size < 1024.0 {
-			output = fmt.Sprintf("%3.1f %s", size, unit)
-			break
-		}
-		size /= 1024.0
-	}
-	return output
-}
-
 func init() {
 	RegisterCommand("prune", pruneCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&pruneDryRunArg, "dry-run", "d", false, "Don't delete anything, just report")
