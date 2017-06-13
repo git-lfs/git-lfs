@@ -155,8 +155,5 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 		output = append(output, line)
 	}
 
-	header := fmt.Sprintf("Files above %s:", humanize.FormatBytes(migrateInfoAbove))
-	output = append([]string{header}, output...)
-
 	return fmt.Fprintln(to, strings.Join(output, "\n"))
 }

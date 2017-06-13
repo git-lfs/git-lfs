@@ -12,7 +12,6 @@ begin_test "migrate info (default branch)"
   original_head="$(git rev-parse HEAD)"
 
   diff -u <(git lfs migrate info 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md 	140 B	1/1 files(s)	100%
 	*.txt	120 B	1/1 files(s)	100%
 	EOF)
@@ -33,7 +32,6 @@ begin_test "migrate info (given branch)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info my-feature 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md 	170 B	2/2 files(s)	100%
 	*.txt	120 B	1/1 files(s)	100%
 	EOF)
@@ -55,7 +53,6 @@ begin_test "migrate info (default branch with filter)"
   original_head="$(git rev-parse HEAD)"
 
   diff -u <(git lfs migrate info --include "*.md" 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md	140 B	1/1 files(s)	100%
 	EOF)
 
@@ -75,7 +72,6 @@ begin_test "migrate info (given branch with filter)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info --include "*.md" my-feature 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md	170 B	2/2 files(s)	100%
 	EOF)
 
@@ -99,7 +95,6 @@ begin_test "migrate info (default branch, exclude remote refs)"
   original_master="$(git rev-parse refs/heads/master)"
 
   diff -u <(git lfs migrate info 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md 	50 B	1/1 files(s)	100%
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
@@ -123,7 +118,6 @@ begin_test "migrate info (given branch, exclude remote refs)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info my-feature 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md 	52 B	2/2 files(s)	100%
 	*.txt	50 B	2/2 files(s)	100%
 	EOF)
@@ -150,7 +144,6 @@ begin_test "migrate info (include/exclude ref)"
   diff -u <(git lfs migrate info \
     --include-ref=refs/heads/my-feature \
     --exclude-ref=refs/heads/master 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.md 	31 B	1/1 files(s)	100%
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
@@ -176,7 +169,6 @@ begin_test "migrate info (include/exclude ref with filter)"
     --include="*.txt" \
     --include-ref=refs/heads/my-feature \
     --exclude-ref=refs/heads/master 2>&1) <(cat <<-EOF
-	Files above 0 B:
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
 
@@ -197,7 +189,6 @@ begin_test "migrate info (above threshold)"
   original_head="$(git rev-parse HEAD)"
 
   diff -u <(git lfs migrate info --above=130B 2>&1) <(cat <<-EOF
-	Files above 130 B:
 	*.md 	140 B	1/1 files(s)	100%
 	*.txt	0 B  	0/1 files(s)	  0%
 	EOF)
@@ -217,7 +208,6 @@ begin_test "migrate info (above threshold, top)"
   original_head="$(git rev-parse HEAD)"
 
   diff -u <(git lfs migrate info --above=130B --top=1 2>&1) <(cat <<-EOF
-	Files above 130 B:
 	*.md	140 B	1/1 files(s)	100%
 	EOF)
 
