@@ -118,32 +118,27 @@ func (e EntriesBySize) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 // error, if one occurred.
 func (e EntriesBySize) Print(to io.Writer) (int, error) {
 	extensions := make([]string, 0, len(e))
-	for _, entry := range e {
-		extensions = append(extensions, entry.Qualifier)
-	}
-	extensions = tools.Ljust(extensions)
-
 	files := make([]string, 0, len(e))
+	percentages := make([]string, 0, len(e))
+
 	for _, entry := range e {
 		bytes := humanize.FormatBytes(uint64(entry.BytesAbove))
 		above := entry.TotalAbove
 		total := entry.Total
+		percentAbove := 100 * (float64(above) / float64(total))
 
 		file := fmt.Sprintf("%s, %d/%d files(s)",
 			bytes, above, total)
 
-		files = append(files, file)
-	}
-	files = tools.Rjust(files)
-
-	percentages := make([]string, 0, len(e))
-	for _, entry := range e {
-		percentAbove := 100 * (float64(entry.TotalAbove) / float64(entry.Total))
-
 		percentage := fmt.Sprintf("%.0f%%", percentAbove)
 
+		extensions = append(extensions, entry.Qualifier)
+		files = append(files, file)
 		percentages = append(percentages, percentage)
 	}
+
+	extensions = tools.Ljust(extensions)
+	files = tools.Rjust(files)
 	percentages = tools.Rjust(percentages)
 
 	output := make([]string, 0, len(e))
