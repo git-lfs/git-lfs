@@ -115,47 +115,44 @@ func (e EntriesBySize) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 // error, if one occurred.
 func (e EntriesBySize) Print(to io.Writer) (int, error) {
 	extensions := make([]string, 0, len(e))
+	files := make([]string, 0, len(e))
+	percentages := make([]string, 0, len(e))
+
+	// build columns for each entry
 	for _, entry := range e {
 		extensions = append(extensions, entry.Qualifier)
+		files = append(files, fmt.Sprintf("%s, %d/%d files(s)",
+			humanize.FormatBytes(uint64(entry.BytesAbove)),
+			entry.TotalAbove,
+			entry.Total,
+		))
+		percentages = append(percentages, fmt.Sprintf("%.0f%%",
+			100*(float64(entry.TotalAbove)/float64(entry.Total)),
+		))
 	}
+
+	// pad columns so they align
 	extensions = tools.Ljust(extensions)
-
-	files := make([]string, 0, len(e))
-	for _, entry := range e {
-		bytes := humanize.FormatBytes(uint64(entry.BytesAbove))
-		above := entry.TotalAbove
-		total := entry.Total
-
-		file := fmt.Sprintf("%s, %d/%d files(s)",
-			bytes, above, total)
-
-		files = append(files, file)
-	}
 	files = tools.Rjust(files)
-
-	percentages := make([]string, 0, len(e))
-	for _, entry := range e {
-		percentAbove := 100 * (float64(entry.TotalAbove) / float64(entry.Total))
-
-		percentage := fmt.Sprintf("%.0f%%", percentAbove)
-
-		percentages = append(percentages, percentage)
-	}
 	percentages = tools.Rjust(percentages)
 
-	output := make([]string, 0, len(e))
+	// write the header
+	n, err := fmt.Fprintf(to, "Files above %s:\n", humanize.FormatBytes(migrateInfoAbove))
+	if err != nil {
+		return n, err
+	}
+
+	// write each line with aligned columns
 	for i := 0; i < len(e); i++ {
 		extension := extensions[i]
 		fileCount := files[i]
 		percentage := percentages[i]
-
-		line := strings.Join([]string{extension, fileCount, percentage}, "\t")
-
-		output = append(output, line)
+		ln, err := fmt.Fprintln(to, strings.Join([]string{extension, fileCount, percentage}, "\t"))
+		n += ln
+		if err != nil {
+			return n, err
+		}
 	}
 
-	header := fmt.Sprintf("Files above %s:", humanize.FormatBytes(migrateInfoAbove))
-	output = append([]string{header}, output...)
-
-	return fmt.Fprintln(to, strings.Join(output, "\n"))
+	return n, nil
 }
