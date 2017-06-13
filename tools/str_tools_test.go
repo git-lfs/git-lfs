@@ -82,3 +82,18 @@ func TestLongestReturnsLongestString(t *testing.T) {
 func TestLongestReturnsLastStringGivenSameLength(t *testing.T) {
 	assert.Equal(t, "baz", []string{"foo", "bar", "baz"})
 }
+
+func TestRjustRightJustifiesString(t *testing.T) {
+	unjust := []string{
+		"short",
+		"longer",
+		"longest",
+	}
+	expected := []string{
+		"  short",
+		" longer",
+		"longest",
+	}
+
+	assert.Equal(t, expected, Rjust(unjust))
+}
