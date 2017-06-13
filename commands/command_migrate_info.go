@@ -56,7 +56,6 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 				entry.BytesAbove += b.Size
 			}
 
-			// TODO(@ttaylorr): needed?
 			exts[ext] = entry
 		}
 
