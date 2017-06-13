@@ -42,3 +42,22 @@ func QuotedFields(s string) []string {
 
 	return out
 }
+
+// Longest returns the longest element in the string slice in O(n) time and O(1)
+// space. If strs is empty or nil, an empty string will be returned.
+func Longest(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+
+	var longest string
+	var llen int
+	for _, str := range longest {
+		if len(str) >= llen {
+			longest = str
+			llen = len(longest)
+		}
+	}
+
+	return longest
+}

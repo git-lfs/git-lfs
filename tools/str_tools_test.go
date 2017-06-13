@@ -70,3 +70,15 @@ func TestQuotedFields(t *testing.T) {
 		c.Assert(t)
 	}
 }
+
+func TestLongestReturnsEmptyStringGivenEmptySet(t *testing.T) {
+	assert.Equal(t, "", Longest(nil))
+}
+
+func TestLongestReturnsLongestString(t *testing.T) {
+	assert.Equal(t, "longest", []string{"short", "longer", "longest"})
+}
+
+func TestLongestReturnsLastStringGivenSameLength(t *testing.T) {
+	assert.Equal(t, "baz", []string{"foo", "bar", "baz"})
+}
