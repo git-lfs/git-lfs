@@ -118,36 +118,39 @@ func (e EntriesBySize) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 // error, if one occurred.
 func (e EntriesBySize) Print(to io.Writer) (int, error) {
 	extensions := make([]string, 0, len(e))
+	sizes := make([]string, 0, len(e))
 	stats := make([]string, 0, len(e))
 	percentages := make([]string, 0, len(e))
 
 	for _, entry := range e {
-		bytes := humanize.FormatBytes(uint64(entry.BytesAbove))
 		above := entry.TotalAbove
 		total := entry.Total
 		percentAbove := 100 * (float64(above) / float64(total))
 
-		stat := fmt.Sprintf("%s, %d/%d files(s)",
-			bytes, above, total)
+		stat := fmt.Sprintf("%d/%d files(s)",
+			above, total)
 
 		percentage := fmt.Sprintf("%.0f%%", percentAbove)
 
 		extensions = append(extensions, entry.Qualifier)
+		sizes = append(sizes, humanize.FormatBytes(uint64(entry.BytesAbove)))
 		stats = append(stats, stat)
 		percentages = append(percentages, percentage)
 	}
 
 	extensions = tools.Ljust(extensions)
+	sizes = tools.Ljust(sizes)
 	stats = tools.Rjust(stats)
 	percentages = tools.Rjust(percentages)
 
 	output := make([]string, 0, len(e))
 	for i := 0; i < len(e); i++ {
 		extension := extensions[i]
+		size := sizes[i]
 		stat := stats[i]
 		percentage := percentages[i]
 
-		line := strings.Join([]string{extension, stat, percentage}, "\t")
+		line := strings.Join([]string{extension, size, stat, percentage}, "\t")
 
 		output = append(output, line)
 	}
