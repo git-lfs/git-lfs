@@ -2,6 +2,7 @@ package commands
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +15,8 @@ import (
 )
 
 var (
-	porcelain = false
+	porcelain  = false
+	statusJson = false
 )
 
 func statusCommand(cmd *cobra.Command, args []string) {
@@ -30,6 +32,9 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	if porcelain {
 		porcelainStagedPointers(scanIndexAt)
+		return
+	} else if statusJson {
+		jsonStagedPointers(scanIndexAt)
 		return
 	}
 
@@ -224,6 +229,43 @@ func statusScanRefRange(ref *git.Ref) {
 
 }
 
+type JSONStatusEntry struct {
+	Status string `json:"status"`
+	From   string `json:"from,omitempty"`
+}
+
+type JSONStatus struct {
+	Files map[string]JSONStatusEntry `json:"files"`
+}
+
+func jsonStagedPointers(ref string) {
+	staged, unstaged, err := scanIndex(ref)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	status := JSONStatus{Files: make(map[string]JSONStatusEntry)}
+
+	for _, entry := range append(unstaged, staged...) {
+		switch entry.Status {
+		case lfs.StatusRename, lfs.StatusCopy:
+			status.Files[entry.DstName] = JSONStatusEntry{
+				Status: string(entry.Status), From: entry.SrcName,
+			}
+		default:
+			status.Files[entry.SrcName] = JSONStatusEntry{
+				Status: string(entry.Status),
+			}
+		}
+	}
+
+	ret, err := json.Marshal(status)
+	if err != nil {
+		ExitWithError(err)
+	}
+	Print(string(ret))
+}
+
 func porcelainStagedPointers(ref string) {
 	staged, unstaged, err := scanIndex(ref)
 	if err != nil {
@@ -260,5 +302,6 @@ func porcelainStatusLine(entry *lfs.DiffIndexEntry) string {
 func init() {
 	RegisterCommand("status", statusCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
+		cmd.Flags().BoolVarP(&statusJson, "json", "j", false, "Give the output in a stable json format for scripts.")
 	})
 }

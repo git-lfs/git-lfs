@@ -85,6 +85,32 @@ A  file2.dat"
 )
 end_test
 
+begin_test "status --json"
+(
+  set -e
+
+  mkdir repo-3
+  cd repo-3
+  git init
+  git lfs track "*.dat"
+  echo "some data" > file1.dat
+  git add file1.dat
+  git commit -m "file1.dat"
+
+  echo "other data" > file1.dat
+
+  expected='{"files":{"file1.dat":{"status":"M"}}}'
+  [ "$expected" = "$(git lfs status --json)" ]
+
+  git add file1.dat
+  git commit -m "file1.dat changed"
+  git mv file1.dat file2.dat
+
+  expected='{"files":{"file2.dat":{"status":"R","from":"file1.dat"}}}'
+  [ "$expected" = "$(git lfs status --json)" ]
+)
+end_test
+
 
 begin_test "status: outside git repository"
 (
