@@ -46,6 +46,24 @@ func QuotedFields(s string) []string {
 	return out
 }
 
+// Ljust returns a copied string slice where each element is left justified to
+// match the width of the longest element in the set.
+func Ljust(strs []string) []string {
+	llen := len(Longest(strs))
+
+	dup := make([]string, len(strs), cap(strs))
+	copy(dup, strs)
+
+	for i, str := range strs {
+		width := MaxInt(0, llen-len(str))
+		padding := strings.Repeat(" ", width)
+
+		dup[i] = str + padding
+	}
+
+	return dup
+}
+
 // Rjust returns a copied string slice where each element is right justified to
 // match the width of the longest element in the set.
 func Rjust(strs []string) []string {

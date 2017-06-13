@@ -97,3 +97,18 @@ func TestRjustRightJustifiesString(t *testing.T) {
 
 	assert.Equal(t, expected, Rjust(unjust))
 }
+
+func TestLjustLeftJustifiesString(t *testing.T) {
+	unjust := []string{
+		"short",
+		"longer",
+		"longest",
+	}
+	expected := []string{
+		"short  ",
+		"longer ",
+		"longest",
+	}
+
+	assert.Equal(t, expected, Ljust(unjust))
+}
