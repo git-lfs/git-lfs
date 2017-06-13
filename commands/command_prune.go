@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -142,7 +143,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 			totalSize += file.Size
 			if verbose {
 				// Save up verbose output for the end, spinner still going
-				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", file.Oid, humanizeBytes(file.Size)))
+				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", file.Oid, humanize.FormatBytes(uint64(file.Size))))
 			}
 
 			if verifyRemote {
@@ -171,12 +172,12 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 		return
 	}
 	if dryRun {
-		Print("%d files would be pruned (%v)", len(prunableObjects), humanizeBytes(totalSize))
+		Print("%d files would be pruned (%v)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
 		if verbose {
 			Print(verboseOutput.String())
 		}
 	} else {
-		Print("Pruning %d files, (%v)", len(prunableObjects), humanizeBytes(totalSize))
+		Print("Pruning %d files, (%v)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
 		if verbose {
 			Print(verboseOutput.String())
 		}
