@@ -24,6 +24,15 @@ func (c *ParseBytesTestCase) Assert(t *testing.T) {
 	}
 }
 
+type FormatBytesTestCase struct {
+	Given    uint64
+	Expected string
+}
+
+func (c *FormatBytesTestCase) Assert(t *testing.T) {
+	assert.Equal(t, c.Expected, humanize.FormatBytes(c.Given))
+}
+
 func TestParseBytes(t *testing.T) {
 	for desc, c := range map[string]*ParseBytesTestCase{
 		"parse byte":     {"10B", uint64(10 * math.Pow(2, 0)), nil},
@@ -77,6 +86,37 @@ func TestParseBytes(t *testing.T) {
 		"parse gigabyte (with space, lowercase)": {"40 gb", uint64(40 * math.Pow(10, 9)), nil},
 		"parse terabyte (with space, lowercase)": {"50 tb", uint64(50 * math.Pow(10, 12)), nil},
 		"parse petabyte (with space, lowercase)": {"60 pb", uint64(60 * math.Pow(10, 15)), nil},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+func TestFormatBytes(t *testing.T) {
+	for desc, c := range map[string]*FormatBytesTestCase{
+		"format bytes":     {uint64(1 * math.Pow(10, 0)), "1 B"},
+		"format kilobytes": {uint64(1 * math.Pow(10, 3)), "1.0 KB"},
+		"format megabytes": {uint64(1 * math.Pow(10, 6)), "1.0 MB"},
+		"format gigabytes": {uint64(1 * math.Pow(10, 9)), "1.0 GB"},
+		"format petabytes": {uint64(1 * math.Pow(10, 12)), "1.0 TB"},
+		"format terabytes": {uint64(1 * math.Pow(10, 15)), "1.0 PB"},
+
+		"format kilobytes under": {uint64(1.49 * math.Pow(10, 3)), "1.5 KB"},
+		"format megabytes under": {uint64(1.49 * math.Pow(10, 6)), "1.5 MB"},
+		"format gigabytes under": {uint64(1.49 * math.Pow(10, 9)), "1.5 GB"},
+		"format petabytes under": {uint64(1.49 * math.Pow(10, 12)), "1.5 TB"},
+		"format terabytes under": {uint64(1.49 * math.Pow(10, 15)), "1.5 PB"},
+
+		"format kilobytes over": {uint64(1.51 * math.Pow(10, 3)), "1.5 KB"},
+		"format megabytes over": {uint64(1.51 * math.Pow(10, 6)), "1.5 MB"},
+		"format gigabytes over": {uint64(1.51 * math.Pow(10, 9)), "1.5 GB"},
+		"format petabytes over": {uint64(1.51 * math.Pow(10, 12)), "1.5 TB"},
+		"format terabytes over": {uint64(1.51 * math.Pow(10, 15)), "1.5 PB"},
+
+		"format kilobytes exact": {uint64(1.3 * math.Pow(10, 3)), "1.3 KB"},
+		"format megabytes exact": {uint64(1.3 * math.Pow(10, 6)), "1.3 MB"},
+		"format gigabytes exact": {uint64(1.3 * math.Pow(10, 9)), "1.3 GB"},
+		"format petabytes exact": {uint64(1.3 * math.Pow(10, 12)), "1.3 TB"},
+		"format terabytes exact": {uint64(1.3 * math.Pow(10, 15)), "1.3 PB"},
 	} {
 		t.Run(desc, c.Assert)
 	}
