@@ -72,16 +72,20 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	entries.Print(os.Stderr)
 }
 
-// MigrateInfoEntry represents a tuple of filetype to total size taken by that
-// file type.
+// MigrateInfoEntry represents a tuple of filetype to bytes and entry count
+// above and below a threshold.
 type MigrateInfoEntry struct {
 	// Qualifier is the filepath's extension.
 	Qualifier string
 
+	// BytesAbove is total size of all files above a given threshold.
 	BytesAbove int64
+	// TotalAbove is the count of all files above a given size threshold.
 	TotalAbove int64
+	// BytesTotal is the number of bytes of all files
 	BytesTotal int64
-	Total      int64
+	// Total is the count of all files.
+	Total int64
 }
 
 // MapToEntries creates a set of `*MigrateInfoEntry`'s for a given map of
