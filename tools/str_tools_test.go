@@ -76,11 +76,11 @@ func TestLongestReturnsEmptyStringGivenEmptySet(t *testing.T) {
 }
 
 func TestLongestReturnsLongestString(t *testing.T) {
-	assert.Equal(t, "longest", []string{"short", "longer", "longest"})
+	assert.Equal(t, "longest", Longest([]string{"short", "longer", "longest"}))
 }
 
 func TestLongestReturnsLastStringGivenSameLength(t *testing.T) {
-	assert.Equal(t, "baz", []string{"foo", "bar", "baz"})
+	assert.Equal(t, "baz", Longest([]string{"foo", "bar", "baz"}))
 }
 
 func TestRjustRightJustifiesString(t *testing.T) {
