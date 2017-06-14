@@ -208,7 +208,7 @@ func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase) *githistory.
 func init() {
 	info := NewCommand("info", migrateInfoCommand)
 	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
-	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "0 B", "--above=<n>")
+	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "1mb", "--above=<n>")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		// Adding flags directly to cmd.Flags() doesn't apply those
