@@ -162,6 +162,8 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		return nil, err
 	}
 
+	p := r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
 	var tip []byte
@@ -224,9 +226,15 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		// commit.
 		r.cacheCommit(oid, rewrittenCommit)
 
+		// Increment the percentage displayed in the terminal.
+		p.Count(1)
+
 		// Move the tip forward.
 		tip = rewrittenCommit
 	}
+
+	r.l.Close()
+
 	return tip, err
 }
 
