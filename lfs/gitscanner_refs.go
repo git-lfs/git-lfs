@@ -41,7 +41,7 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLe
 		panic("no scan ref options")
 	}
 
-	revs, err := revListShas(refLeft, refRight, opt)
+	revs, err := revListShas([]string{refLeft, refRight}, nil, opt)
 	if err != nil {
 		return err
 	}
@@ -89,8 +89,8 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLe
 // revListShas uses git rev-list to return the list of object sha1s
 // for the given ref. If all is true, ref is ignored. It returns a
 // channel from which sha1 strings can be read.
-func revListShas(refLeft, refRight string, opt *ScanRefsOptions) (*StringChannelWrapper, error) {
-	scanner, err := git.NewRevListScanner(refLeft, refRight, &git.ScanRefsOptions{
+func revListShas(include, exclude []string, opt *ScanRefsOptions) (*StringChannelWrapper, error) {
+	scanner, err := git.NewRevListScanner(include, exclude, &git.ScanRefsOptions{
 		Mode:             git.ScanningMode(opt.ScanMode),
 		Remote:           opt.RemoteName,
 		SkipDeletedBlobs: opt.SkipDeletedBlobs,

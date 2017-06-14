@@ -104,13 +104,11 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 			continue
 		}
 
-		fields := strings.Fields(text)
-		if len(fields) > 0 {
+		if fields := strings.Fields(text); len(fields) > 0 && !finishedHeaders {
 			switch fields[0] {
 			case "tree":
 				id, err := hex.DecodeString(fields[1])
 				if err != nil {
-					panic(1)
 					return n, err
 				}
 				c.TreeID = id
@@ -125,15 +123,13 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 			case "committer":
 				c.Committer = strings.Join(fields[1:], " ")
 			default:
-				if finishedHeaders {
-					messageParts = append(messageParts, s.Text())
-				} else {
-					c.ExtraHeaders = append(c.ExtraHeaders, &ExtraHeader{
-						K: fields[0],
-						V: strings.Join(fields[1:], " "),
-					})
-				}
+				c.ExtraHeaders = append(c.ExtraHeaders, &ExtraHeader{
+					K: fields[0],
+					V: strings.Join(fields[1:], " "),
+				})
 			}
+		} else {
+			messageParts = append(messageParts, s.Text())
 		}
 	}
 

@@ -35,10 +35,12 @@ type Rewriter struct {
 
 // RewriteOptions is an options type given to the Rewrite() function.
 type RewriteOptions struct {
-	// Left is the starting commit.
-	Left string
-	// Right is the ending commit.
-	Right string
+	// Include is the list of refs of which commits reachable by that ref
+	// will be included.
+	Include []string
+	// Exclude is the list of refs of which commits reachable by that ref
+	// will be excluded.
+	Exclude []string
 
 	// BlobFn specifies a function to rewrite blobs.
 	//
@@ -142,9 +144,8 @@ func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 // Rewrite rewrites the range of commits given by *RewriteOptions.{Left,Right}
 // using the BlobRewriteFn to rewrite the individual blobs.
 func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
-	// First, construct a scanner to iterate through the range of commits to
-	// rewrite.
-	scanner, err := git.NewRevListScanner(opt.Left, opt.Right, r.scannerOpts())
+	// First, obtain a list of commits to rewrite.
+	commits, err := r.commitsToMigrate(opt)
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +153,10 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
 	var tip []byte
-	for scanner.Scan() {
+	for _, oid := range commits {
 		// Load the original commit to access the data necessary in
 		// order to rewrite it.
-		original, err := r.db.Commit(scanner.OID())
+		original, err := r.db.Commit(oid)
 		if err != nil {
 			return nil, err
 		}
@@ -172,11 +173,24 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		//
 		// This operation is safe since we are visiting the commits in
 		// reverse topological order and therefore have seen all parents
-		// before children (in other words, r.uncacheCommit(parent) will
-		// always return a value).
+		// before children (in other words, r.uncacheCommit(...) will
+		// always return a value, if the prospective parent is a part of
+		// the migration).
 		rewrittenParents := make([][]byte, 0, len(original.ParentIDs))
-		for _, parent := range original.ParentIDs {
-			rewrittenParents = append(rewrittenParents, r.uncacheCommit(parent))
+		for _, originalParent := range original.ParentIDs {
+			rewrittenParent, ok := r.uncacheCommit(originalParent)
+			if !ok {
+				// If we haven't seen the parent before, this
+				// means that we're doing a partial migration
+				// and the parent that we're looking for isn't
+				// included.
+				//
+				// Use the original parent to properly link
+				// history across the migration boundary.
+				rewrittenParent = originalParent
+			}
+
+			rewrittenParents = append(rewrittenParents, rewrittenParent)
 		}
 
 		// Construct a new commit using the original header information,
@@ -196,14 +210,10 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Cache that commit so that we can reassign children of this
 		// commit.
-		r.cacheCommit(scanner.OID(), rewrittenCommit)
+		r.cacheCommit(oid, rewrittenCommit)
 
 		// Move the tip forward.
 		tip = rewrittenCommit
-	}
-
-	if err = scanner.Err(); err != nil {
-		return nil, err
 	}
 	return tip, err
 }
@@ -304,6 +314,32 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 	return sha, nil
 }
 
+// commitsToMigrate returns an in-memory copy of a list of commits according to
+// the output of git-rev-list(1) (given the *RewriteOptions), where each
+// outputted commit is 20 bytes of raw SHA1.
+//
+// If any error was encountered, it will be returned.
+func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
+	scanner, err := git.NewRevListScanner(
+		opt.Include, opt.Exclude, r.scannerOpts())
+	if err != nil {
+		return nil, err
+	}
+
+	var commits [][]byte
+	for scanner.Scan() {
+		commits = append(commits, scanner.OID())
+	}
+
+	if err = scanner.Err(); err != nil {
+		return nil, err
+	}
+	if err = scanner.Close(); err != nil {
+		return nil, err
+	}
+	return commits, nil
+}
+
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the
 // *git.RevListScanner.
 //
@@ -364,10 +400,12 @@ func (r *Rewriter) cacheCommit(from, to []byte) {
 
 // uncacheCommit returns a *git/odb.Commit that is cached from the given
 // *git/odb.Commit "from". That is to say, it returns the *git/odb.Commit that
-// "from" should be rewritten to, or nil if none could be found.
-func (r *Rewriter) uncacheCommit(from []byte) []byte {
+// "from" should be rewritten to and true, or nil and false if none could be
+// found.
+func (r *Rewriter) uncacheCommit(from []byte) ([]byte, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.commits[hex.EncodeToString(from)]
+	c, ok := r.commits[hex.EncodeToString(from)]
+	return c, ok
 }

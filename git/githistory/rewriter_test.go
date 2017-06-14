@@ -19,7 +19,7 @@ func TestRewriterRewritesHistory(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history.git")
 	r := NewRewriter(db)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			contents, err := ioutil.ReadAll(b.Contents)
 			if err != nil {
@@ -80,7 +80,7 @@ func TestRewriterRewritesOctopusMerges(t *testing.T) {
 	db := DatabaseFromFixture(t, "octopus-merge.git")
 	r := NewRewriter(db)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			return &odb.Blob{
 				Contents: io.MultiReader(b.Contents, strings.NewReader("_new")),
@@ -127,7 +127,7 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 
 	seen := make(map[string]int)
 
-	_, err := r.Rewrite(&RewriteOptions{Left: "master",
+	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			seen[path] = seen[path] + 1
 
@@ -145,7 +145,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	db := DatabaseFromFixture(t, "identical-blobs.git")
 	r := NewRewriter(db)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if path == root("b.txt") {
 				return b, nil
@@ -185,7 +185,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 
 	seen := make(map[string]int)
 
-	_, err := r.Rewrite(&RewriteOptions{Left: "master",
+	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			seen[path] = seen[path] + 1
 
@@ -208,7 +208,7 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	tip, err := r.Rewrite(&RewriteOptions{Left: "master",
+	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			return b, nil
 		},
@@ -264,6 +264,39 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 
 	AssertBlobContents(t, db, tree3, "hello.txt", "1")
 	AssertBlobContents(t, db, tree3, "extra.txt", "extra\n")
+}
+
+func TestHistoryRewriterUseOriginalParentsForPartialMigration(t *testing.T) {
+	db := DatabaseFromFixture(t, "linear-history-with-tags.git")
+	r := NewRewriter(db)
+
+	tip, err := r.Rewrite(&RewriteOptions{
+		Include: []string{"refs/heads/master"},
+		Exclude: []string{"refs/tags/middle"},
+
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			return b, nil
+		},
+	})
+
+	// After rewriting, the rewriter should have only modified the latest
+	// commit (HEAD), and excluded the first two, both reachable by
+	// refs/tags/middle.
+	//
+	// This should modify one commit, and appropriately link the parent as
+	// follows:
+	//
+	//   tree 20ecedad3e74a113695fe5f00ab003694e2e1e9c
+	//   parent 228afe30855933151f7a88e70d9d88314fd2f191
+	//   author Taylor Blau <me@ttaylorr.com> 1496954214 -0600
+	//   committer Taylor Blau <me@ttaylorr.com> 1496954214 -0600
+	//
+	//   some.txt: c
+
+	expectedParent := "228afe30855933151f7a88e70d9d88314fd2f191"
+
+	assert.NoError(t, err)
+	AssertCommitParent(t, db, hex.EncodeToString(tip), expectedParent)
 }
 
 func root(path string) string {
