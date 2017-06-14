@@ -105,7 +105,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	if !success {
 		c := getAPIClient()
 		e := c.Endpoints.Endpoint("download", cfg.CurrentRemote)
-		Exit("error: failed to push some objects to '%s'", e.Url)
+		Exit("error: failed to fetch some objects from '%s'", e.Url)
 	}
 }
 
