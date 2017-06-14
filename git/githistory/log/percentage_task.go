@@ -44,7 +44,12 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 	msg := fmt.Sprintf("%s: %3.f%% (%d/%d)",
 		c.msg, percentage, new, c.total)
 
-	c.ch <- msg
+	select {
+	case c.ch <- msg:
+	default:
+		// Use a non-blocking write, since it's unimportant that callers
+		// receive all updates.
+	}
 
 	if new >= c.total {
 		close(c.ch)
