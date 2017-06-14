@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -202,7 +203,8 @@ func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase) *githistory.
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 
-	return githistory.NewRewriter(db, githistory.WithFilter(filter))
+	return githistory.NewRewriter(db,
+		githistory.WithFilter(filter), githistory.WithLogger(os.Stderr))
 }
 
 func init() {
