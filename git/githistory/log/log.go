@@ -88,11 +88,11 @@ func (l *Logger) Percentage(msg string, total uint64) *PercentageTask {
 func (l *Logger) enqueue(ts ...Task) {
 	if l == nil {
 		for _, t := range ts {
-			go func() {
+			go func(t Task) {
 				for range <-t.Updates() {
 					// Discard all updates.
 				}
-			}()
+			}(t)
 		}
 		return
 	}
