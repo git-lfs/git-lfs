@@ -59,6 +59,10 @@ func NewLogger(sink io.Writer) *Logger {
 // Close closes the queue and does not allow new Tasks to be `enqueue()`'d. It
 // waits until the currently running Task has completed.
 func (l *Logger) Close() {
+	if l == nil {
+		return
+	}
+
 	close(l.queue)
 
 	l.wg.Wait()
