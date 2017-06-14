@@ -3,12 +3,14 @@ package githistory
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
 )
 
@@ -31,6 +33,8 @@ type Rewriter struct {
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
 	db *odb.ObjectDatabase
+	// l is the *log.Logger to which updates are written.
+	l *log.Logger
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -114,6 +118,14 @@ var (
 	WithFilter = func(filter *filepathfilter.Filter) rewriterOption {
 		return func(r *Rewriter) {
 			r.filter = filter
+		}
+	}
+
+	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
+	// given io.Writer "sink".
+	WithLogger = func(sink io.Writer) rewriterOption {
+		return func(r *Rewriter) {
+			r.l = log.NewLogger(sink)
 		}
 	}
 
