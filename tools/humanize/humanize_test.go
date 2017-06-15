@@ -49,6 +49,16 @@ func (c *ParseByteUnitTestCase) Assert(t *testing.T) {
 	}
 }
 
+type FormatBytesUnitTestCase struct {
+	Given    uint64
+	Unit     uint64
+	Expected string
+}
+
+func (c *FormatBytesUnitTestCase) Assert(t *testing.T) {
+	assert.Equal(t, c.Expected, humanize.FormatBytesUnit(c.Given, c.Unit))
+}
+
 func TestParseBytes(t *testing.T) {
 	for desc, c := range map[string]*ParseBytesTestCase{
 		"parse byte":     {"10B", uint64(10 * math.Pow(2, 0)), nil},
@@ -193,6 +203,31 @@ func TestParseByteUnit(t *testing.T) {
 		"parse petabyte (with space, lowercase)": {"pb", uint64(math.Pow(10, 15)), ""},
 
 		"parse unknown unit": {"imag", 0, "unknown unit: \"imag\""},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+func TestFormatBytesUnit(t *testing.T) {
+	for desc, c := range map[string]*FormatBytesUnitTestCase{
+		"format bytes":     {uint64(1 * math.Pow(10, 0)), humanize.Byte, "1"},
+		"format kilobytes": {uint64(1 * math.Pow(10, 3)), humanize.Byte, "1000"},
+		"format megabytes": {uint64(1 * math.Pow(10, 6)), humanize.Byte, "1000000"},
+		"format gigabytes": {uint64(1 * math.Pow(10, 9)), humanize.Byte, "1000000000"},
+		"format petabytes": {uint64(1 * math.Pow(10, 12)), humanize.Byte, "1000000000000"},
+		"format terabytes": {uint64(1 * math.Pow(10, 15)), humanize.Byte, "1000000000000000"},
+
+		"format kilobytes under": {uint64(1.49 * math.Pow(10, 3)), humanize.Byte, "1490"},
+		"format megabytes under": {uint64(1.49 * math.Pow(10, 6)), humanize.Byte, "1490000"},
+		"format gigabytes under": {uint64(1.49 * math.Pow(10, 9)), humanize.Byte, "1490000000"},
+		"format petabytes under": {uint64(1.49 * math.Pow(10, 12)), humanize.Byte, "1490000000000"},
+		"format terabytes under": {uint64(1.49 * math.Pow(10, 15)), humanize.Byte, "1490000000000000"},
+
+		"format kilobytes over": {uint64(1.51 * math.Pow(10, 3)), humanize.Byte, "1510"},
+		"format megabytes over": {uint64(1.51 * math.Pow(10, 6)), humanize.Byte, "1510000"},
+		"format gigabytes over": {uint64(1.51 * math.Pow(10, 9)), humanize.Byte, "1510000000"},
+		"format petabytes over": {uint64(1.51 * math.Pow(10, 12)), humanize.Byte, "1510000000000"},
+		"format terabytes over": {uint64(1.51 * math.Pow(10, 15)), humanize.Byte, "1510000000000000"},
 	} {
 		t.Run(desc, c.Assert)
 	}
