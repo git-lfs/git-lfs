@@ -69,7 +69,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	entries = entries[:tools.MaxInt(0, migrateInfoTopN)]
 
-	entries.Print(os.Stderr)
+	entries.Print(os.Stdout)
 }
 
 // MigrateInfoEntry represents a tuple of filetype to bytes and entry count
