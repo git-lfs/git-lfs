@@ -87,20 +87,18 @@ var sizes = []string{"B", "KB", "MB", "GB", "TB", "PB"}
 // FormatBytes outputs the given number of bytes "s" as a human-readable string,
 // rounding to the nearest half within .01.
 func FormatBytes(s uint64) string {
-	if s < 10 {
-		return fmt.Sprintf("%d B", s)
+	var e float64
+	if s == 0 {
+		e = 0
+	} else {
+		e = math.Floor(log(float64(s), 1000))
 	}
 
-	e := math.Floor(log(float64(s), 1000))
+	unit := uint64(math.Pow(1000, e))
 	suffix := sizes[int(e)]
 
-	val := math.Floor(float64(s)/math.Pow(1000, e)*10+.5) / 10
-	f := "%.0f %s"
-	if val < 10 {
-		f = "%.1f %s"
-	}
-
-	return fmt.Sprintf(f, val, suffix)
+	return fmt.Sprintf("%s %s",
+		FormatBytesUnit(s, unit), suffix)
 }
 
 // FormatBytesUnit outputs the given number of bytes "s" as a quantity of the
