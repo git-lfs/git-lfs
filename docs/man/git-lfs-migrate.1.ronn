@@ -44,6 +44,15 @@ The 'info' mode has these additional options:
     Only include the top 'n' entries, ordered by how many total files match the
     given pathspec.
 
+* `--unit=<unit>`
+    Format the number of bytes in each entry as a quantity of the storage unit
+    provided. Valid units include:
+      * b, kib, mib, gib, tib, pib - for IEC storage units
+      * b, kb, mb, gb, tb, pb - for SI storage units
+
+    If a --unit is not specified, the largest unit that can fit the number of
+    counted bytes as a whole number quantity is chosen.
+
 ## INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only migrate tree entries whose pathspec matches

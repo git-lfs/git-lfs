@@ -219,3 +219,21 @@ begin_test "migrate info (above threshold, top)"
 )
 end_test
 
+begin_test "migrate info (given unit)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  original_head="$(git rev-parse HEAD)"
+
+  diff -u <(git lfs migrate info --above=0b --unit=kb 2>&1) <(cat <<-EOF
+	*.md 	0.1	1/1 files(s)	100%
+	*.txt	0.1	1/1 files(s)	100%
+	EOF)
+
+  migrated_head="$(git rev-parse HEAD)"
+
+  assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test

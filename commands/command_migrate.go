@@ -209,6 +209,7 @@ func init() {
 	info := NewCommand("info", migrateInfoCommand)
 	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
 	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "1mb", "--above=<n>")
+	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		// Adding flags directly to cmd.Flags() doesn't apply those

@@ -27,6 +27,14 @@ var (
 	// migrateInfoAbove is the number of bytes parsed from the above
 	// migrateInfoAboveFmt flag.
 	migrateInfoAbove uint64
+
+	// migrateInfoUnitFmt is a flag given to the git-lfs-migrate(1)
+	// subcommand 'info' specifying a human-readable string of units with
+	// which to display the number of bytes.
+	migrateInfoUnitFmt string
+	// migrateInfoUnit is the number of bytes in the unit given as
+	// migrateInfoUnitFmt.
+	migrateInfoUnit uint64
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
@@ -35,6 +43,15 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	above, err := humanize.ParseBytes(migrateInfoAboveFmt)
 	if err != nil {
 		ExitWithError(errors.Wrap(err, "cannot parse --above=<n>"))
+	}
+
+	if u := cmd.Flag("unit"); u.Changed {
+		unit, err := humanize.ParseByteUnit(u.Value.String())
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "cannot parse --unit=<unit>"))
+		}
+
+		migrateInfoUnit = unit
 	}
 
 	migrateInfoAbove = above
@@ -123,9 +140,17 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 	percentages := make([]string, 0, len(e))
 
 	for _, entry := range e {
+		bytesAbove := uint64(entry.BytesAbove)
 		above := entry.TotalAbove
 		total := entry.Total
 		percentAbove := 100 * (float64(above) / float64(total))
+
+		var size string
+		if migrateInfoUnit > 0 {
+			size = humanize.FormatBytesUnit(bytesAbove, migrateInfoUnit)
+		} else {
+			size = humanize.FormatBytes(bytesAbove)
+		}
 
 		stat := fmt.Sprintf("%d/%d files(s)",
 			above, total)
@@ -133,7 +158,7 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 		percentage := fmt.Sprintf("%.0f%%", percentAbove)
 
 		extensions = append(extensions, entry.Qualifier)
-		sizes = append(sizes, humanize.FormatBytes(uint64(entry.BytesAbove)))
+		sizes = append(sizes, size)
 		stats = append(stats, stat)
 		percentages = append(percentages, percentage)
 	}
