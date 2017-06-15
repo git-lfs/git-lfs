@@ -70,6 +70,18 @@ func ParseBytes(str string) (uint64, error) {
 	return 0, errors.Errorf("unknown unit: %q", unit)
 }
 
+// ParseByteUnit returns the number of bytes in a given unit of storage, or an
+// error, if that unit is unrecognized.
+func ParseByteUnit(str string) (uint64, error) {
+	str = strings.TrimSpace(str)
+	str = strings.ToLower(str)
+
+	if u, ok := bytesTable[str]; ok {
+		return u, nil
+	}
+	return 0, errors.Errorf("unknown unit: %q", str)
+}
+
 var sizes = []string{"B", "KB", "MB", "GB", "TB", "PB"}
 
 // FormatBytes outputs the given number of bytes "s" as a human-readable string,

@@ -33,6 +33,22 @@ func (c *FormatBytesTestCase) Assert(t *testing.T) {
 	assert.Equal(t, c.Expected, humanize.FormatBytes(c.Given))
 }
 
+type ParseByteUnitTestCase struct {
+	Given    string
+	Expected uint64
+	Err      string
+}
+
+func (c *ParseByteUnitTestCase) Assert(t *testing.T) {
+	got, err := humanize.ParseByteUnit(c.Given)
+	if len(c.Err) == 0 {
+		assert.NoError(t, err, "unexpected error: %s", err)
+		assert.EqualValues(t, c.Expected, got)
+	} else {
+		assert.EqualError(t, err, c.Err)
+	}
+}
+
 func TestParseBytes(t *testing.T) {
 	for desc, c := range map[string]*ParseBytesTestCase{
 		"parse byte":     {"10B", uint64(10 * math.Pow(2, 0)), nil},
@@ -117,6 +133,66 @@ func TestFormatBytes(t *testing.T) {
 		"format gigabytes exact": {uint64(1.3 * math.Pow(10, 9)), "1.3 GB"},
 		"format petabytes exact": {uint64(1.3 * math.Pow(10, 12)), "1.3 TB"},
 		"format terabytes exact": {uint64(1.3 * math.Pow(10, 15)), "1.3 PB"},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+func TestParseByteUnit(t *testing.T) {
+	for desc, c := range map[string]*ParseByteUnitTestCase{
+		"parse byte":     {"B", uint64(math.Pow(2, 0)), ""},
+		"parse kibibyte": {"KIB", uint64(math.Pow(2, 10)), ""},
+		"parse mebibyte": {"MIB", uint64(math.Pow(2, 20)), ""},
+		"parse gibibyte": {"GIB", uint64(math.Pow(2, 30)), ""},
+		"parse tebibyte": {"TIB", uint64(math.Pow(2, 40)), ""},
+		"parse pebibyte": {"PIB", uint64(math.Pow(2, 50)), ""},
+
+		"parse byte (lowercase)":     {"b", uint64(math.Pow(2, 0)), ""},
+		"parse kibibyte (lowercase)": {"kib", uint64(math.Pow(2, 10)), ""},
+		"parse mebibyte (lowercase)": {"mib", uint64(math.Pow(2, 20)), ""},
+		"parse gibibyte (lowercase)": {"gib", uint64(math.Pow(2, 30)), ""},
+		"parse tebibyte (lowercase)": {"tib", uint64(math.Pow(2, 40)), ""},
+		"parse pebibyte (lowercase)": {"pib", uint64(math.Pow(2, 50)), ""},
+
+		"parse byte (with space)":     {" B", uint64(math.Pow(2, 0)), ""},
+		"parse kibibyte (with space)": {" KIB", uint64(math.Pow(2, 10)), ""},
+		"parse mebibyte (with space)": {" MIB", uint64(math.Pow(2, 20)), ""},
+		"parse gibibyte (with space)": {" GIB", uint64(math.Pow(2, 30)), ""},
+		"parse tebibyte (with space)": {" TIB", uint64(math.Pow(2, 40)), ""},
+		"parse pebibyte (with space)": {" PIB", uint64(math.Pow(2, 50)), ""},
+
+		"parse byte (with space, lowercase)":     {" b", uint64(math.Pow(2, 0)), ""},
+		"parse kibibyte (with space, lowercase)": {" kib", uint64(math.Pow(2, 10)), ""},
+		"parse mebibyte (with space, lowercase)": {" mib", uint64(math.Pow(2, 20)), ""},
+		"parse gibibyte (with space, lowercase)": {" gib", uint64(math.Pow(2, 30)), ""},
+		"parse tebibyte (with space, lowercase)": {" tib", uint64(math.Pow(2, 40)), ""},
+		"parse pebibyte (with space, lowercase)": {" pib", uint64(math.Pow(2, 50)), ""},
+
+		"parse kilobyte": {"KB", uint64(math.Pow(10, 3)), ""},
+		"parse megabyte": {"MB", uint64(math.Pow(10, 6)), ""},
+		"parse gigabyte": {"GB", uint64(math.Pow(10, 9)), ""},
+		"parse terabyte": {"TB", uint64(math.Pow(10, 12)), ""},
+		"parse petabyte": {"PB", uint64(math.Pow(10, 15)), ""},
+
+		"parse kilobyte (lowercase)": {"kb", uint64(math.Pow(10, 3)), ""},
+		"parse megabyte (lowercase)": {"mb", uint64(math.Pow(10, 6)), ""},
+		"parse gigabyte (lowercase)": {"gb", uint64(math.Pow(10, 9)), ""},
+		"parse terabyte (lowercase)": {"tb", uint64(math.Pow(10, 12)), ""},
+		"parse petabyte (lowercase)": {"pb", uint64(math.Pow(10, 15)), ""},
+
+		"parse kilobyte (with space)": {" KB", uint64(math.Pow(10, 3)), ""},
+		"parse megabyte (with space)": {" MB", uint64(math.Pow(10, 6)), ""},
+		"parse gigabyte (with space)": {" GB", uint64(math.Pow(10, 9)), ""},
+		"parse terabyte (with space)": {" TB", uint64(math.Pow(10, 12)), ""},
+		"parse petabyte (with space)": {" PB", uint64(math.Pow(10, 15)), ""},
+
+		"parse kilobyte (with space, lowercase)": {"kb", uint64(math.Pow(10, 3)), ""},
+		"parse megabyte (with space, lowercase)": {"mb", uint64(math.Pow(10, 6)), ""},
+		"parse gigabyte (with space, lowercase)": {"gb", uint64(math.Pow(10, 9)), ""},
+		"parse terabyte (with space, lowercase)": {"tb", uint64(math.Pow(10, 12)), ""},
+		"parse petabyte (with space, lowercase)": {"pb", uint64(math.Pow(10, 15)), ""},
+
+		"parse unknown unit": {"imag", 0, "unknown unit: \"imag\""},
 	} {
 		t.Run(desc, c.Assert)
 	}
