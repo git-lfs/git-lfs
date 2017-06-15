@@ -58,16 +58,16 @@ func ParseBytes(str string) (uint64, error) {
 		return 0, err
 	}
 
-	unit := strings.ToLower(strings.TrimSpace(str[sep:]))
-
-	if m, ok := bytesTable[unit]; ok {
-		f = f * float64(m)
-		if f >= math.MaxUint64 {
-			return 0, errors.New("number of bytes too large")
-		}
-		return uint64(f), nil
+	m, err := ParseByteUnit(str[sep:])
+	if err != nil {
+		return 0, err
 	}
-	return 0, errors.Errorf("unknown unit: %q", unit)
+
+	f = f * float64(m)
+	if f >= math.MaxUint64 {
+		return 0, errors.New("number of bytes too large")
+	}
+	return uint64(f), nil
 }
 
 // ParseByteUnit returns the number of bytes in a given unit of storage, or an
