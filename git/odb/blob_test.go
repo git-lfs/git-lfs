@@ -15,6 +15,19 @@ func TestBlobReturnsCorrectObjectType(t *testing.T) {
 	assert.Equal(t, BlobObjectType, new(Blob).Type())
 }
 
+func TestBlobFromString(t *testing.T) {
+	given := []byte("example")
+	glen := len(given)
+
+	b := NewBlobFromBytes(given)
+
+	assert.EqualValues(t, glen, b.Size)
+
+	contents, err := ioutil.ReadAll(b.Contents)
+	assert.NoError(t, err)
+	assert.Equal(t, given, contents)
+}
+
 func TestBlobEncoding(t *testing.T) {
 	const contents = "Hello, world!\n"
 

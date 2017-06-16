@@ -1,6 +1,9 @@
 package odb
 
-import "io"
+import (
+	"bytes"
+	"io"
+)
 
 // Blob represents a Git object of type "blob".
 type Blob struct {
@@ -14,6 +17,14 @@ type Blob struct {
 	// the Blob.  In particular, this will close a file, if the Blob is
 	// being read from a file on disk.
 	closeFn func() error
+}
+
+// NewBlobFromBytes returns a new *Blob that yields the data given.
+func NewBlobFromBytes(contents []byte) *Blob {
+	return &Blob{
+		Contents: bytes.NewReader(contents),
+		Size:     int64(len(contents)),
+	}
 }
 
 // Type implements Object.ObjectType by returning the correct object type for
