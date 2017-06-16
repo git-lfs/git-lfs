@@ -184,7 +184,7 @@ func (l *Logger) logTask(task Task) {
 	for msg = range task.Updates() {
 		now := time.Now()
 
-		if now.After(last.Add(l.throttle)) {
+		if l.throttle == 0 || now.After(last.Add(l.throttle)) {
 			l.logLine(msg)
 			last = now
 		}
