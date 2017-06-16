@@ -60,3 +60,28 @@ func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 		"fourth, done\n",
 	}, ""), buf.String())
 }
+
+func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
+	var buf bytes.Buffer
+
+	l := NewLogger(&buf)
+	t1, t2 := make(chan string), make(chan string)
+
+	l.widthFn = func() int { return 0 }
+	l.enqueue(ChanTask(t1))
+
+	t1 <- "first"
+	l.enqueue(ChanTask(t2))
+	close(t1)
+	t2 <- "second"
+	close(t2)
+
+	l.Close()
+
+	assert.Equal(t, strings.Join([]string{
+		"first\r",
+		"first, done\n",
+		"second\r",
+		"second, done\n",
+	}, ""), buf.String())
+}
