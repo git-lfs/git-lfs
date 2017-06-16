@@ -7,3 +7,15 @@ type Task interface {
 	// complete.
 	Updates() <-chan string
 }
+
+// DurableTask is a Task sub-interface which ensures that all activity is
+// logged by disabling throttling behavior in the logger.
+type DurableTask interface {
+	Task
+
+	// Durable returns whether or not this task should be treated as
+	// Durable.
+	//
+	// It is expected to return the same value for a given Task instance.
+	Durable() bool
+}

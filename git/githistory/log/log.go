@@ -175,8 +175,20 @@ func (l *Logger) consume() {
 
 // logTask logs the set of updates from a given task to the sink, then logs a
 // "done" message, and then marks the task as done.
+//
+// By default, the *Logger throttles log entry updates to once per the duration
+// of time specified by `l.throttle time.Duration`.
+//
+// If the duration if 0, or the task is "durable" (by implementing
+// github.com/git-lfs/git-lfs/git/githistory/log#DurableTask), then all entries
+// will be logged.
 func (l *Logger) logTask(task Task) {
 	defer l.wg.Done()
+
+	var logAll bool
+	if durable, ok := task.(DurableTask); ok {
+		logAll = durable.Durable()
+	}
 
 	var last time.Time
 
@@ -184,7 +196,7 @@ func (l *Logger) logTask(task Task) {
 	for msg = range task.Updates() {
 		now := time.Now()
 
-		if l.throttle == 0 || now.After(last.Add(l.throttle)) {
+		if logAll || l.throttle == 0 || now.After(last.Add(l.throttle)) {
 			l.logLine(msg)
 			last = now
 		}
