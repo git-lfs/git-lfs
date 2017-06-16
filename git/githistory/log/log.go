@@ -114,9 +114,10 @@ func (l *Logger) consume() {
 		}
 	}()
 
+	defer close(l.tasks)
+
 	pending := make([]Task, 0)
 
-L:
 	for {
 		// If there is a pending task, "peek" it off of the set of
 		// pending tasks.
@@ -132,7 +133,7 @@ L:
 			if !ok {
 				// If the queue is closed, no more new tasks may
 				// be added.
-				break L
+				return
 			}
 
 			// Otherwise, add a new task to the set of tasks to
@@ -148,7 +149,7 @@ L:
 				if !ok {
 					// If the queue is closed, no more tasks
 					// may be added.
-					break L
+					return
 				}
 				// Otherwise, add the next task to the set of
 				// pending, active tasks.
@@ -160,8 +161,6 @@ L:
 			}
 		}
 	}
-
-	close(l.tasks)
 }
 
 // logTask logs the set of updates from a given task to the sink, then logs a
