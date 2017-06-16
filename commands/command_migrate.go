@@ -21,15 +21,10 @@ var (
 	migrateExcludeRefs []string
 )
 
-// migrate takes the given command and arguments, as well as a BlobRewriteFn to
-// apply, and performs a migration.
-func migrate(cmd *cobra.Command, args []string, fn githistory.BlobRewriteFn) {
+// migrate takes the given command and arguments, *odb.ObjectDatabase, as well
+// as a BlobRewriteFn to apply, and performs a migration.
+func migrate(cmd *cobra.Command, args []string, db *odb.ObjectDatabase, fn githistory.BlobRewriteFn) {
 	requireInRepo()
-
-	db, err := getObjectDatabase()
-	if err != nil {
-		ExitWithError(err)
-	}
 
 	opts, err := rewriteOptions(args, fn)
 	if err != nil {
@@ -211,6 +206,7 @@ func init() {
 	info := NewCommand("info", migrateInfoCommand)
 	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
 	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "1mb", "--above=<n>")
+	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		// Adding flags directly to cmd.Flags() doesn't apply those

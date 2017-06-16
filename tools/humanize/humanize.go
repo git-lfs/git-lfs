@@ -58,16 +58,28 @@ func ParseBytes(str string) (uint64, error) {
 		return 0, err
 	}
 
-	unit := strings.ToLower(strings.TrimSpace(str[sep:]))
-
-	if m, ok := bytesTable[unit]; ok {
-		f = f * float64(m)
-		if f >= math.MaxUint64 {
-			return 0, errors.New("number of bytes too large")
-		}
-		return uint64(f), nil
+	m, err := ParseByteUnit(str[sep:])
+	if err != nil {
+		return 0, err
 	}
-	return 0, errors.Errorf("unknown unit: %q", unit)
+
+	f = f * float64(m)
+	if f >= math.MaxUint64 {
+		return 0, errors.New("number of bytes too large")
+	}
+	return uint64(f), nil
+}
+
+// ParseByteUnit returns the number of bytes in a given unit of storage, or an
+// error, if that unit is unrecognized.
+func ParseByteUnit(str string) (uint64, error) {
+	str = strings.TrimSpace(str)
+	str = strings.ToLower(str)
+
+	if u, ok := bytesTable[str]; ok {
+		return u, nil
+	}
+	return 0, errors.Errorf("unknown unit: %q", str)
 }
 
 var sizes = []string{"B", "KB", "MB", "GB", "TB", "PB"}
@@ -75,20 +87,36 @@ var sizes = []string{"B", "KB", "MB", "GB", "TB", "PB"}
 // FormatBytes outputs the given number of bytes "s" as a human-readable string,
 // rounding to the nearest half within .01.
 func FormatBytes(s uint64) string {
-	if s < 10 {
-		return fmt.Sprintf("%d B", s)
+	var e float64
+	if s == 0 {
+		e = 0
+	} else {
+		e = math.Floor(log(float64(s), 1000))
 	}
 
-	e := math.Floor(log(float64(s), 1000))
+	unit := uint64(math.Pow(1000, e))
 	suffix := sizes[int(e)]
 
-	val := math.Floor(float64(s)/math.Pow(1000, e)*10+.5) / 10
-	f := "%.0f %s"
-	if val < 10 {
-		f = "%.1f %s"
+	return fmt.Sprintf("%s %s",
+		FormatBytesUnit(s, unit), suffix)
+}
+
+// FormatBytesUnit outputs the given number of bytes "s" as a quantity of the
+// given units "u" to the nearest half within .01.
+func FormatBytesUnit(s, u uint64) string {
+	var rounded float64
+	if s < 10 {
+		rounded = float64(s)
+	} else {
+		rounded = math.Floor(float64(s)/float64(u)*10+.5) / 10
 	}
 
-	return fmt.Sprintf(f, val, suffix)
+	format := "%.0f"
+	if rounded < 10 && u > 1 {
+		format = "%.1f"
+	}
+
+	return fmt.Sprintf(format, rounded)
 }
 
 // log takes the log base "b" of "n" (\log_b{n})
