@@ -30,6 +30,11 @@ var (
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
+	db, err := getObjectDatabase()
+	if err != nil {
+		ExitWithError(err)
+	}
+
 	exts := make(map[string]*MigrateInfoEntry)
 
 	above, err := humanize.ParseBytes(migrateInfoAboveFmt)
@@ -39,7 +44,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	migrateInfoAbove = above
 
-	migrate(cmd, args, func(path string, b *odb.Blob) (*odb.Blob, error) {
+	migrate(cmd, args, db, func(path string, b *odb.Blob) (*odb.Blob, error) {
 		ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
 		if len(ext) > 1 {
