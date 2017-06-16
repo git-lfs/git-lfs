@@ -70,3 +70,45 @@ func TestQuotedFields(t *testing.T) {
 		c.Assert(t)
 	}
 }
+
+func TestLongestReturnsEmptyStringGivenEmptySet(t *testing.T) {
+	assert.Equal(t, "", Longest(nil))
+}
+
+func TestLongestReturnsLongestString(t *testing.T) {
+	assert.Equal(t, "longest", Longest([]string{"short", "longer", "longest"}))
+}
+
+func TestLongestReturnsLastStringGivenSameLength(t *testing.T) {
+	assert.Equal(t, "baz", Longest([]string{"foo", "bar", "baz"}))
+}
+
+func TestRjustRightJustifiesString(t *testing.T) {
+	unjust := []string{
+		"short",
+		"longer",
+		"longest",
+	}
+	expected := []string{
+		"  short",
+		" longer",
+		"longest",
+	}
+
+	assert.Equal(t, expected, Rjust(unjust))
+}
+
+func TestLjustLeftJustifiesString(t *testing.T) {
+	unjust := []string{
+		"short",
+		"longer",
+		"longest",
+	}
+	expected := []string{
+		"short  ",
+		"longer ",
+		"longest",
+	}
+
+	assert.Equal(t, expected, Ljust(unjust))
+}
