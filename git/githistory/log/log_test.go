@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,6 +24,7 @@ func TestLoggerLogsTasks(t *testing.T) {
 	}()
 
 	l := NewLogger(&buf)
+	l.throttle = 0
 	l.widthFn = func() int { return 0 }
 	l.enqueue(ChanTask(task))
 	l.Close()
@@ -47,6 +49,7 @@ func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 	}()
 
 	l := NewLogger(&buf)
+	l.throttle = 0
 	l.widthFn = func() int { return 0 }
 	l.enqueue(ChanTask(t1), ChanTask(t2))
 	l.Close()
@@ -65,6 +68,7 @@ func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 	var buf bytes.Buffer
 
 	l := NewLogger(&buf)
+	l.throttle = 0
 	t1, t2 := make(chan string), make(chan string)
 
 	l.widthFn = func() int { return 0 }
@@ -82,6 +86,57 @@ func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 		"first\r",
 		"first, done\n",
 		"second\r",
+		"second, done\n",
+	}, ""), buf.String())
+}
+
+func TestLoggerThrottlesWrites(t *testing.T) {
+	var buf bytes.Buffer
+
+	t1 := make(chan string)
+	go func() {
+		t1 <- "first"                    // t = 0    ms, throttle was open
+		time.Sleep(3 * time.Millisecond) // t = 3    ms, throttle is closed
+		t1 <- "second"                   // t = 3+ε  ms, throttle is closed
+		time.Sleep(3 * time.Millisecond) // t = 6    ms, throttle is open
+		t1 <- "third"                    // t = 6+ε  ms, throttle was open
+		close(t1)                        // t = 6+2ε ms, throttle is closed
+	}()
+
+	l := NewLogger(&buf)
+	l.widthFn = func() int { return 0 }
+	l.throttle = 5 * time.Millisecond
+
+	l.enqueue(ChanTask(t1))
+	l.Close()
+
+	assert.Equal(t, strings.Join([]string{
+		"first\r",
+		"third\r",
+		"third, done\n",
+	}, ""), buf.String())
+}
+
+func TestLoggerThrottlesLastWrite(t *testing.T) {
+	var buf bytes.Buffer
+
+	t1 := make(chan string)
+	go func() {
+		t1 <- "first"                    // t = 0    ms, throttle was open
+		time.Sleep(3 * time.Millisecond) // t = 3    ms, throttle is closed
+		t1 <- "second"                   // t = 3+ε  ms, throttle is closed
+		close(t1)                        // t = 3+2ε ms, throttle is closed
+	}()
+
+	l := NewLogger(&buf)
+	l.widthFn = func() int { return 0 }
+	l.throttle = 5 * time.Millisecond
+
+	l.enqueue(ChanTask(t1))
+	l.Close()
+
+	assert.Equal(t, strings.Join([]string{
+		"first\r",
 		"second, done\n",
 	}, ""), buf.String())
 }

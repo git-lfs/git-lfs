@@ -6,9 +6,14 @@ import (
 	"io/ioutil"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/olekukonko/ts"
+)
+
+const (
+	DefaultLoggingThrottle = 200 * time.Millisecond
 )
 
 // Logger logs a series of tasks to an io.Writer, processing each task in order
@@ -20,6 +25,10 @@ type Logger struct {
 	// widthFn is a function that returns the width of the terminal that
 	// this logger is running within.
 	widthFn func() int
+
+	// throttle is the minimum amount of time that must pass between each
+	// instant data is logged.
+	throttle time.Duration
 
 	// queue is the incoming, unbuffered queue of tasks to enqueue.
 	queue chan Task
@@ -38,7 +47,8 @@ func NewLogger(sink io.Writer) *Logger {
 	}
 
 	l := &Logger{
-		sink: sink,
+		sink:     sink,
+		throttle: DefaultLoggingThrottle,
 		widthFn: func() int {
 			size, err := ts.GetSize()
 			if err != nil {
@@ -168,12 +178,19 @@ func (l *Logger) consume() {
 func (l *Logger) logTask(task Task) {
 	defer l.wg.Done()
 
-	var last string
-	for last = range task.Updates() {
-		l.logLine(last)
+	var last time.Time
+
+	var msg string
+	for msg = range task.Updates() {
+		now := time.Now()
+
+		if now.After(last.Add(l.throttle)) {
+			l.logLine(msg)
+			last = now
+		}
 	}
 
-	l.log(fmt.Sprintf("%s, done\n", last))
+	l.log(fmt.Sprintf("%s, done\n", msg))
 }
 
 // logLine writes a complete line and moves the cursor to the beginning of the
