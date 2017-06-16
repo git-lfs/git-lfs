@@ -95,17 +95,17 @@ func TestLoggerThrottlesWrites(t *testing.T) {
 
 	t1 := make(chan string)
 	go func() {
-		t1 <- "first"                    // t = 0    ms, throttle was open
-		time.Sleep(3 * time.Millisecond) // t = 3    ms, throttle is closed
-		t1 <- "second"                   // t = 3+ε  ms, throttle is closed
-		time.Sleep(3 * time.Millisecond) // t = 6    ms, throttle is open
-		t1 <- "third"                    // t = 6+ε  ms, throttle was open
-		close(t1)                        // t = 6+2ε ms, throttle is closed
+		t1 <- "first"                     // t = 0     ms, throttle was open
+		time.Sleep(10 * time.Millisecond) // t = 10    ms, throttle is closed
+		t1 <- "second"                    // t = 10+ε  ms, throttle is closed
+		time.Sleep(10 * time.Millisecond) // t = 20    ms, throttle is open
+		t1 <- "third"                     // t = 20+ε  ms, throttle was open
+		close(t1)                         // t = 20+2ε ms, throttle is closed
 	}()
 
 	l := NewLogger(&buf)
 	l.widthFn = func() int { return 0 }
-	l.throttle = 5 * time.Millisecond
+	l.throttle = 15 * time.Millisecond
 
 	l.enqueue(ChanTask(t1))
 	l.Close()
@@ -122,15 +122,15 @@ func TestLoggerThrottlesLastWrite(t *testing.T) {
 
 	t1 := make(chan string)
 	go func() {
-		t1 <- "first"                    // t = 0    ms, throttle was open
-		time.Sleep(3 * time.Millisecond) // t = 3    ms, throttle is closed
-		t1 <- "second"                   // t = 3+ε  ms, throttle is closed
-		close(t1)                        // t = 3+2ε ms, throttle is closed
+		t1 <- "first"                     // t = 0     ms, throttle was open
+		time.Sleep(10 * time.Millisecond) // t = 10    ms, throttle is closed
+		t1 <- "second"                    // t = 10+ε  ms, throttle is closed
+		close(t1)                         // t = 10+2ε ms, throttle is closed
 	}()
 
 	l := NewLogger(&buf)
 	l.widthFn = func() int { return 0 }
-	l.throttle = 5 * time.Millisecond
+	l.throttle = 15 * time.Millisecond
 
 	l.enqueue(ChanTask(t1))
 	l.Close()
