@@ -51,11 +51,11 @@ to match paths.
 
 * Configure Git LFS to track GIF files:
 
-    `git lfs track '*.gif'`
+    `git lfs track "*.gif"`
 
 * Configure Git LFS to track PSD files and make them read-only unless locked:
 
-    `git lfs track --lockable '*.psd'`
+    `git lfs track --lockable "*.psd"`
 
 ## SEE ALSO
 

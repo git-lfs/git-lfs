@@ -14,7 +14,7 @@ can be a glob pattern or a file path.
 
 * Configure Git LFS to stop tracking GIF files:
 
-    `git lfs untrack '*.gif'`
+    `git lfs untrack "*.gif"`
 
 ## SEE ALSO
 
