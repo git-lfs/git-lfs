@@ -3,12 +3,14 @@ package githistory
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
 )
 
@@ -31,6 +33,8 @@ type Rewriter struct {
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
 	db *odb.ObjectDatabase
+	// l is the *log.Logger to which updates are written.
+	l *log.Logger
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -117,6 +121,14 @@ var (
 		}
 	}
 
+	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
+	// given io.Writer "sink".
+	WithLogger = func(sink io.Writer) rewriterOption {
+		return func(r *Rewriter) {
+			r.l = log.NewLogger(sink)
+		}
+	}
+
 	// noopBlobFn is a no-op implementation of the BlobRewriteFn. It returns
 	// the blob that it was given, and returns no error.
 	noopBlobFn = func(path string, b *odb.Blob) (*odb.Blob, error) { return b, nil }
@@ -149,6 +161,8 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	p := r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
 
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
@@ -212,9 +226,15 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		// commit.
 		r.cacheCommit(oid, rewrittenCommit)
 
+		// Increment the percentage displayed in the terminal.
+		p.Count(1)
+
 		// Move the tip forward.
 		tip = rewrittenCommit
 	}
+
+	r.l.Close()
+
 	return tip, err
 }
 
@@ -320,6 +340,8 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 //
 // If any error was encountered, it will be returned.
 func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
+	waiter := r.l.Waiter("migrate: Sorting commits")
+
 	scanner, err := git.NewRevListScanner(
 		opt.Include, opt.Exclude, r.scannerOpts())
 	if err != nil {
@@ -328,6 +350,10 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 
 	var commits [][]byte
 	for scanner.Scan() {
+		if len(commits) == 0 {
+			waiter.Complete()
+		}
+
 		commits = append(commits, scanner.OID())
 	}
 
