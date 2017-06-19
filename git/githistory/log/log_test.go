@@ -13,13 +13,13 @@ type ChanTask chan string
 
 func (e ChanTask) Updates() <-chan string { return e }
 
-func (e ChanTask) Durable() Bool { return false }
+func (e ChanTask) Throttled() bool { return true }
 
-type DurableChanTask chan string
+type UnthrottledChanTask chan string
 
-func (e DurableChanTask) Updates() <-chan string { return e }
+func (e UnthrottledChanTask) Updates() <-chan string { return e }
 
-func (e DurableChanTask) Durable() bool { return true }
+func (e UnthrottledChanTask) Throttled() bool { return false }
 
 func TestLoggerLogsTasks(t *testing.T) {
 	var buf bytes.Buffer
@@ -163,7 +163,7 @@ func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 		close(t1)      // t = 0+3ε ms, throttle is closed
 	}()
 
-	l.enqueue(DurableChanTask(t1))
+	l.enqueue(UnthrottledChanTask(t1))
 	l.Close()
 
 	assert.Equal(t, strings.Join([]string{

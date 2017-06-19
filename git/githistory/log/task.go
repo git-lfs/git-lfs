@@ -7,9 +7,9 @@ type Task interface {
 	// complete.
 	Updates() <-chan string
 
-	// Durable returns whether or not this task should be treated as
-	// Durable.
+	// Throttled returns whether or not updates from this task should be
+	// limited when being printed to a sink via *log.Logger.
 	//
 	// It is expected to return the same value for a given Task instance.
-	Durable() bool
+	Throttled() bool
 }

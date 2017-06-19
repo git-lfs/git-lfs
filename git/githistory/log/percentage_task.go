@@ -65,6 +65,6 @@ func (c *PercentageTask) Updates() <-chan string {
 	return c.ch
 }
 
-// Durable implements Task.Durable and returns false, indicating that this task
-// is not durable.
-func (c *PercentageTask) Durable() bool { return false }
+// Throttled implements Task.Throttled and returns true, indicating that this
+// task is throttled.
+func (c *PercentageTask) Throttled() bool { return true }
