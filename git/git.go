@@ -1080,11 +1080,24 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 	return ret, cmd.Wait()
 }
 
-// AllRefs returns a slice of all references in a Git repository, or an error if
-// those references could not be loaded.
+// AllRefs returns a slice of all references in a Git repository in the current
+// working directory, or an error if those references could not be loaded.
 func AllRefs() ([]*Ref, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	return AllRefsIn(wd)
+}
+
+// AllRefs returns a slice of all references in a Git repository located in a
+// the given working directory "wd", or an error if those references could not
+// be loaded.
+func AllRefsIn(wd string) ([]*Ref, error) {
 	cmd := subprocess.ExecCommand("git",
 		"for-each-ref", "--format=%(objectname)%00%(refname)")
+	cmd.Dir = wd
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
