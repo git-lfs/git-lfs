@@ -1084,7 +1084,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // those references could not be loaded.
 func AllRefs() ([]*Ref, error) {
 	cmd := subprocess.ExecCommand("git",
-		"for-each-ref", "--format='%(objectname)%00%(refname)'")
+		"for-each-ref", "--format=%(objectname)%00%(refname)")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
