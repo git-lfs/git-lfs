@@ -299,6 +299,37 @@ func TestHistoryRewriterUseOriginalParentsForPartialMigration(t *testing.T) {
 	AssertCommitParent(t, db, hex.EncodeToString(tip), expectedParent)
 }
 
+func TestHistoryRewriterUpdatesRefs(t *testing.T) {
+	db := DatabaseFromFixture(t, "linear-history.git")
+	r := NewRewriter(db)
+
+	tip, err := r.Rewrite(&RewriteOptions{
+		Include: []string{"refs/heads/master"},
+
+		UpdateRefs: true,
+
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			suffix := strings.NewReader("_suffix")
+
+			return &odb.Blob{
+				Contents: io.MultiReader(b.Contents, suffix),
+				Size:     b.Size + int64(suffix.Len()),
+			}, nil
+		},
+	})
+
+	assert.Nil(t, err)
+
+	c1 := hex.EncodeToString(tip)
+	c2 := "66561fe3ae68651658e18e48053dcfe66a2e9da1"
+	c3 := "8268d8486c48024a871fa42fc487dbeabd6e3d86"
+
+	AssertRef(t, db, "refs/heads/master", tip)
+
+	AssertCommitParent(t, db, c1, c2)
+	AssertCommitParent(t, db, c2, c3)
+}
+
 func root(path string) string {
 	if !strings.HasPrefix(path, string(os.PathSeparator)) {
 		path = string(os.PathSeparator) + path

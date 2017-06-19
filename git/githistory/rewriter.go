@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory/log"
@@ -45,6 +46,11 @@ type RewriteOptions struct {
 	// Exclude is the list of refs of which commits reachable by that ref
 	// will be excluded.
 	Exclude []string
+
+	// UpdateRefs specifies whether the Rewriter should move refs from the
+	// original graph onto the migrated one. If true, the refs will be
+	// moved, and a reflog entry will be created.
+	UpdateRefs bool
 
 	// BlobFn specifies a function to rewrite blobs.
 	//
@@ -231,6 +237,26 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Move the tip forward.
 		tip = rewrittenCommit
+	}
+
+	if opt.UpdateRefs {
+		refs, err := r.refsToMigrate()
+		if err != nil {
+			return nil, errors.Wrap(err, "could not find refs to update")
+		}
+
+		root, _ := r.db.Root()
+
+		updater := &refUpdater{
+			CacheFn: r.uncacheCommit,
+			Logger:  r.l,
+			Refs:    refs,
+			Root:    root,
+		}
+
+		if err := updater.UpdateRefs(); err != nil {
+			return nil, errors.Wrap(err, "could not update refs")
+		}
 	}
 
 	r.l.Close()
