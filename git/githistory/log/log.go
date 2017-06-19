@@ -193,11 +193,7 @@ func (l *Logger) consume() {
 func (l *Logger) logTask(task Task) {
 	defer l.wg.Done()
 
-	var logAll bool
-	if durable, ok := task.(DurableTask); ok {
-		logAll = durable.Durable()
-	}
-
+	logAll := task.Durable()
 	var last time.Time
 
 	var msg string

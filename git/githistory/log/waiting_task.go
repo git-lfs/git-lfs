@@ -27,3 +27,7 @@ func (w *WaitingTask) Complete() {
 func (w *WaitingTask) Updates() <-chan string {
 	return w.ch
 }
+
+// Durable implements Task.Durable and returns false, indicating that this task
+// is not durable.
+func (w *WaitingTask) Durable() bool { return false }
