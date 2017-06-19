@@ -258,6 +258,13 @@ func LocalRefs() ([]*Ref, error) {
 // reflog entry, if a "reason" was provided). It returns an error if any were
 // encountered.
 func UpdateRef(ref *Ref, to []byte, reason string) error {
+	return UpdateRefIn("", ref, to, reason)
+}
+
+// UpdateRef moves the given ref to a new sha with a given reason (and creates a
+// reflog entry, if a "reason" was provided). It operates within the given
+// working directory "wd". It returns an error if any were encountered.
+func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
 	var refspec string
 	if prefix, ok := ref.Type.Prefix(); ok {
 		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
@@ -270,8 +277,10 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 		args = append(args, "-m", reason)
 	}
 
-	_, err := subprocess.SimpleExec("git", args...)
-	return err
+	cmd := subprocess.ExecCommand("git", args...)
+	cmd.Dir = wd
+
+	return cmd.Run()
 }
 
 // ValidateRemote checks that a named remote is valid for use
