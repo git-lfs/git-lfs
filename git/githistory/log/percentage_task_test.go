@@ -37,3 +37,12 @@ func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
 		t.Fatalf("expected channel to be closed")
 	}
 }
+
+func TestPercentageTaskIsThrottled(t *testing.T) {
+	task := NewPercentageTask("example", 10)
+
+	throttled := task.Throttled()
+
+	assert.True(t, throttled,
+		"git/githistory/log: expected *PercentageTask to be Throttle()-d")
+}
