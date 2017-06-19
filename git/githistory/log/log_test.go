@@ -13,6 +13,8 @@ type ChanTask chan string
 
 func (e ChanTask) Updates() <-chan string { return e }
 
+func (e ChanTask) Durable() Bool { return false }
+
 type DurableChanTask chan string
 
 func (e DurableChanTask) Updates() <-chan string { return e }
