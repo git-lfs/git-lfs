@@ -64,3 +64,7 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 func (c *PercentageTask) Updates() <-chan string {
 	return c.ch
 }
+
+// Durable implements Task.Durable and returns false, indicating that this task
+// is not durable.
+func (c *PercentageTask) Durable() bool { return false }
