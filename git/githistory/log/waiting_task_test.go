@@ -51,3 +51,12 @@ func TestWaitingTaskPanicsWithMultipleDoneCalls(t *testing.T) {
 
 	task.Complete()
 }
+
+func TestWaitingTaskIsThrottled(t *testing.T) {
+	task := NewWaitingTask("example")
+
+	throttled := task.Throttled()
+
+	assert.True(t, throttled,
+		"git/githistory/log: expected *WaitingTask to be Throttle()-d")
+}
