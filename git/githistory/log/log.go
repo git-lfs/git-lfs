@@ -94,6 +94,14 @@ func (l *Logger) Percentage(msg string, total uint64) *PercentageTask {
 	return t
 }
 
+// List creates and enqueues a new *ListTask.
+func (l *Logger) List(msg string) *ListTask {
+	t := NewListTask(msg)
+	l.enqueue(t)
+
+	return t
+}
+
 // enqueue enqueues the given Tasks "ts".
 func (l *Logger) enqueue(ts ...Task) {
 	if l == nil {
