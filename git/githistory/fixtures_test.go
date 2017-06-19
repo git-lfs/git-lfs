@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -127,6 +128,20 @@ func AssertCommitTree(t *testing.T, db *odb.ObjectDatabase, sha, tree string) {
 	}
 
 	assert.Equal(t, decoded, commit.TreeID, "git/odb: expected tree ID: %s (got: %x)", tree, commit.TreeID)
+}
+
+// AssertRef asserts that a given refname points at the expected commit.
+func AssertRef(t *testing.T, db *odb.ObjectDatabase, ref string, expected []byte) {
+	root, ok := db.Root()
+	assert.True(t, ok, "git/odb: expected *odb.ObjectDatabase to have Root()")
+
+	cmd := exec.Command("git", "rev-parse", ref)
+	cmd.Dir = root
+	out, err := cmd.Output()
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, hex.EncodeToString(expected), strings.TrimSpace(string(out)))
 }
 
 // HexDecode decodes the given ASCII hex-encoded string into []byte's, or fails
