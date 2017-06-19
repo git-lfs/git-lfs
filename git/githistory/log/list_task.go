@@ -32,9 +32,8 @@ func (l *ListTask) Complete() {
 	close(l.ch)
 }
 
-// Durable implements the DurableTask.Durable function (and therefore the
-// DurableTask interface) and ensures that all log updates are printed to the
-// sink.
+// Durable implements the Task.Durable function and ensures that all log updates
+// are printed to the sink.
 func (l *ListTask) Durable() bool { return true }
 
 // Updates implements the Task.Updates function and returns a channel of updates
