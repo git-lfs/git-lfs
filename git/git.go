@@ -1080,6 +1080,50 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 	return ret, cmd.Wait()
 }
 
+// AllRefs returns a slice of all references in a Git repository, or an error if
+// those references could not be loaded.
+func AllRefs() ([]*Ref, error) {
+	cmd := subprocess.ExecCommand("git", "for-each-ref")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, lfserrors.Wrap(err, "cannot open pipe")
+	}
+	cmd.Start()
+
+	refs := make([]*Ref, 0)
+
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), " ", 2)
+		if len(parts) != 2 {
+			return nil, lfserrors.Errorf(
+				"git: invalid for-each-ref line: %q", scanner.Text())
+		}
+
+		refParts := strings.SplitN(parts[1], "\t", 2)
+		if len(refParts) != 2 {
+			return nil, lfserrors.Errorf(
+				"git: invalid for-each-ref meta: %q", parts[1])
+		}
+
+		sha := parts[0]
+		typ, name := ParseRefToTypeAndName(refParts[1])
+
+		refs = append(refs, &Ref{
+			Name: name,
+			Type: typ,
+			Sha:  sha,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return refs, nil
+}
+
 // GetTrackedFiles returns a list of files which are tracked in Git which match
 // the pattern specified (standard wildcard form)
 // Both pattern and the results are relative to the current working directory, not
