@@ -32,9 +32,9 @@ func (l *ListTask) Complete() {
 	close(l.ch)
 }
 
-// Durable implements the Task.Durable function and ensures that all log updates
-// are printed to the sink.
-func (l *ListTask) Durable() bool { return true }
+// Throttled implements the Task.Throttled function and ensures that all log
+// updates are printed to the sink.
+func (l *ListTask) Throttled() bool { return false }
 
 // Updates implements the Task.Updates function and returns a channel of updates
 // to log to the sink.
