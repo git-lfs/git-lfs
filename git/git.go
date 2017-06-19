@@ -258,6 +258,13 @@ func LocalRefs() ([]*Ref, error) {
 // reflog entry, if a "reason" was provided). It returns an error if any were
 // encountered.
 func UpdateRef(ref *Ref, to []byte, reason string) error {
+	return UpdateRefIn("", ref, to, reason)
+}
+
+// UpdateRef moves the given ref to a new sha with a given reason (and creates a
+// reflog entry, if a "reason" was provided). It operates within the given
+// working directory "wd". It returns an error if any were encountered.
+func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
 	var refspec string
 	if prefix, ok := ref.Type.Prefix(); ok {
 		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
@@ -270,8 +277,10 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 		args = append(args, "-m", reason)
 	}
 
-	_, err := subprocess.SimpleExec("git", args...)
-	return err
+	cmd := subprocess.ExecCommand("git", args...)
+	cmd.Dir = wd
+
+	return cmd.Run()
 }
 
 // ValidateRemote checks that a named remote is valid for use
@@ -1078,6 +1087,53 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 		}
 	}
 	return ret, cmd.Wait()
+}
+
+// AllRefs returns a slice of all references in a Git repository in the current
+// working directory, or an error if those references could not be loaded.
+func AllRefs() ([]*Ref, error) {
+	return AllRefsIn("")
+}
+
+// AllRefs returns a slice of all references in a Git repository located in a
+// the given working directory "wd", or an error if those references could not
+// be loaded.
+func AllRefsIn(wd string) ([]*Ref, error) {
+	cmd := subprocess.ExecCommand("git",
+		"for-each-ref", "--format=%(objectname)%00%(refname)")
+	cmd.Dir = wd
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, lfserrors.Wrap(err, "cannot open pipe")
+	}
+	cmd.Start()
+
+	refs := make([]*Ref, 0)
+
+	scanner := bufio.NewScanner(outp)
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), "\x00", 2)
+		if len(parts) != 2 {
+			return nil, lfserrors.Errorf(
+				"git: invalid for-each-ref line: %q", scanner.Text())
+		}
+
+		sha := parts[0]
+		typ, name := ParseRefToTypeAndName(parts[1])
+
+		refs = append(refs, &Ref{
+			Name: name,
+			Type: typ,
+			Sha:  sha,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return refs, nil
 }
 
 // GetTrackedFiles returns a list of files which are tracked in Git which match
