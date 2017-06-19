@@ -13,6 +13,14 @@ type ChanTask chan string
 
 func (e ChanTask) Updates() <-chan string { return e }
 
+func (e ChanTask) Throttled() bool { return true }
+
+type UnthrottledChanTask chan string
+
+func (e UnthrottledChanTask) Updates() <-chan string { return e }
+
+func (e UnthrottledChanTask) Throttled() bool { return false }
+
 func TestLoggerLogsTasks(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -137,6 +145,30 @@ func TestLoggerThrottlesLastWrite(t *testing.T) {
 
 	assert.Equal(t, strings.Join([]string{
 		"first\r",
+		"second, done\n",
+	}, ""), buf.String())
+}
+
+func TestLoggerLogsAllDurableUpdates(t *testing.T) {
+	var buf bytes.Buffer
+
+	l := NewLogger(&buf)
+	l.widthFn = func() int { return 0 }
+	l.throttle = 15 * time.Minute
+
+	t1 := make(chan string)
+	go func() {
+		t1 <- "first"  // t = 0+ε  ms, throttle is open
+		t1 <- "second" // t = 0+2ε ms, throttle is closed
+		close(t1)      // t = 0+3ε ms, throttle is closed
+	}()
+
+	l.enqueue(UnthrottledChanTask(t1))
+	l.Close()
+
+	assert.Equal(t, strings.Join([]string{
+		"first\r",
+		"second\r",
 		"second, done\n",
 	}, ""), buf.String())
 }

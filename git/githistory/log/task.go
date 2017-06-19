@@ -6,4 +6,10 @@ type Task interface {
 	// of the Task when an update is present. It is closed when the task is
 	// complete.
 	Updates() <-chan string
+
+	// Throttled returns whether or not updates from this task should be
+	// limited when being printed to a sink via *log.Logger.
+	//
+	// It is expected to return the same value for a given Task instance.
+	Throttled() bool
 }

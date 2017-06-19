@@ -27,3 +27,7 @@ func (w *WaitingTask) Complete() {
 func (w *WaitingTask) Updates() <-chan string {
 	return w.ch
 }
+
+// Throttled implements Task.Throttled and returns true, indicating that this
+// task is Throttled.
+func (w *WaitingTask) Throttled() bool { return true }

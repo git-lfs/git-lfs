@@ -64,3 +64,7 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 func (c *PercentageTask) Updates() <-chan string {
 	return c.ch
 }
+
+// Throttled implements Task.Throttled and returns true, indicating that this
+// task is throttled.
+func (c *PercentageTask) Throttled() bool { return true }
