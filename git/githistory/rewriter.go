@@ -366,6 +366,15 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 	return commits, nil
 }
 
+// refsToMigrate returns a list of references to migrate, or an error if loading
+// those references failed.
+func (r *Rewriter) refsToMigrate() ([]*git.Ref, error) {
+	if root, ok := r.db.Root(); ok {
+		return git.AllRefsIn(root)
+	}
+	return git.AllRefs()
+}
+
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the
 // *git.RevListScanner.
 //
