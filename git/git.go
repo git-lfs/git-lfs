@@ -1083,12 +1083,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 // AllRefs returns a slice of all references in a Git repository in the current
 // working directory, or an error if those references could not be loaded.
 func AllRefs() ([]*Ref, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	return AllRefsIn(wd)
+	return AllRefsIn("")
 }
 
 // AllRefs returns a slice of all references in a Git repository located in a
