@@ -42,11 +42,11 @@ func TestListTaskWritesEntries(t *testing.T) {
 	}
 }
 
-func TestListTaskIsDurable(t *testing.T) {
+func TestListTaskIsNotThrottled(t *testing.T) {
 	task := NewListTask("example")
 
-	durable := task.Durable()
+	throttled := task.Throttled()
 
-	assert.True(t, durable,
-		"git/githistory/log: expected *ListTask to be Durable()")
+	assert.False(t, throttled,
+		"git/githistory/log: expected *ListTask to be Throttle()-d")
 }
