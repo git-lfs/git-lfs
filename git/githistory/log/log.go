@@ -185,7 +185,7 @@ func (l *Logger) consume() {
 func (l *Logger) logTask(task Task) {
 	defer l.wg.Done()
 
-	logAll := task.Durable()
+	logAll := !task.Throttled()
 	var last time.Time
 
 	var msg string
