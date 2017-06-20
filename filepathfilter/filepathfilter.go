@@ -204,6 +204,12 @@ func (p *pathlessWildcardPattern) Match(name string) bool {
 	return matched || p.wildcardRE.MatchString(filepath.Base(name))
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *pathlessWildcardPattern is matching.
+func (p *pathlessWildcardPattern) String() string {
+	return p.rawPattern
+}
+
 type doubleWildcardPattern struct {
 	rawPattern string
 	wildcardRE *regexp.Regexp
