@@ -11,6 +11,9 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history-with-tags.git")
 	root, _ := db.Root()
 
+	AssertRef(t, db,
+		"refs/tags/middle", HexDecode(t, "228afe30855933151f7a88e70d9d88314fd2f191"))
+
 	updater := &refUpdater{
 		CacheFn: func(old []byte) ([]byte, bool) {
 			return HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"), true
@@ -36,6 +39,9 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history-with-tags.git")
 	root, _ := db.Root()
+
+	AssertRef(t, db,
+		"refs/tags/middle", HexDecode(t, "228afe30855933151f7a88e70d9d88314fd2f191"))
 
 	updater := &refUpdater{
 		CacheFn: func(old []byte) ([]byte, bool) {
