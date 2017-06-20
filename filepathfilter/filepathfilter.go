@@ -223,6 +223,12 @@ func (p *doubleWildcardPattern) Match(name string) bool {
 	return matched || p.wildcardRE.MatchString(name)
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *doubleWildcardPattern is matching.
+func (p *doubleWildcardPattern) String() string {
+	return p.rawPattern
+}
+
 type noOpMatcher struct {
 }
 
