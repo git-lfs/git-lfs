@@ -236,6 +236,10 @@ func (n noOpMatcher) Match(name string) bool {
 	return true
 }
 
+func (n noOpMatcher) String() string {
+	return ""
+}
+
 var localDirSet = map[string]struct{}{
 	".":   struct{}{},
 	"./":  struct{}{},
