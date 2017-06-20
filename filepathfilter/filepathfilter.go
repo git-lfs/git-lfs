@@ -28,12 +28,24 @@ func New(include, exclude []string) *Filter {
 }
 
 func (f *Filter) Allows(filename string) bool {
+	_, allowed := f.AllowsPattern(filename)
+	return allowed
+}
+
+// AllowsPattern returns whether the given filename is permitted by the
+// inclusion/exclusion rules of this filter, as well as the pattern that either
+// allowed or disallowed that filename.
+//
+// In special cases, such as a nil `*Filter` receiver, the absence of any
+// patterns, or the given filename not being matched by any pattern, the empty
+// string "" will be returned in place of the pattern.
+func (f *Filter) AllowsPattern(filename string) (pattern string, allowed bool) {
 	if f == nil {
-		return true
+		return "", true
 	}
 
 	if len(f.include)+len(f.exclude) == 0 {
-		return true
+		return "", true
 	}
 
 	cleanedName := filepath.Clean(filename)
@@ -43,23 +55,24 @@ func (f *Filter) Allows(filename string) bool {
 		for _, inc := range f.include {
 			matched = inc.Match(cleanedName)
 			if matched {
+				pattern = inc.String()
 				break
 			}
 		}
 		if !matched {
-			return false
+			return "", false
 		}
 	}
 
 	if len(f.exclude) > 0 {
 		for _, ex := range f.exclude {
 			if ex.Match(cleanedName) {
-				return false
+				return ex.String(), false
 			}
 		}
 	}
 
-	return true
+	return pattern, true
 }
 
 func NewPattern(rawpattern string) Pattern {

@@ -105,66 +105,78 @@ func patternMatch(pattern, filename string) bool {
 }
 
 type filterTest struct {
-	expectedResult bool
-	includes       []string
-	excludes       []string
+	expectedResult  bool
+	expectedPattern string
+	includes        []string
+	excludes        []string
 }
 
 func TestFilterAllows(t *testing.T) {
 	cases := []filterTest{
 		// Null case
-		filterTest{true, nil, nil},
+		filterTest{true, "", nil, nil},
 		// Inclusion
-		filterTest{true, []string{"*.dat"}, nil},
-		filterTest{true, []string{"file*.dat"}, nil},
-		filterTest{true, []string{"file*"}, nil},
-		filterTest{true, []string{"*name.dat"}, nil},
-		filterTest{false, []string{"/*.dat"}, nil},
-		filterTest{false, []string{"otherfolder/*.dat"}, nil},
-		filterTest{false, []string{"*.nam"}, nil},
-		filterTest{true, []string{"test/filename.dat"}, nil},
-		filterTest{true, []string{"test/filename.dat"}, nil},
-		filterTest{false, []string{"blank", "something", "foo"}, nil},
-		filterTest{false, []string{"test/notfilename.dat"}, nil},
-		filterTest{true, []string{"test"}, nil},
-		filterTest{true, []string{"test/*"}, nil},
-		filterTest{false, []string{"nottest"}, nil},
-		filterTest{false, []string{"nottest/*"}, nil},
-		filterTest{true, []string{"test/fil*"}, nil},
-		filterTest{false, []string{"test/g*"}, nil},
-		filterTest{true, []string{"tes*/*"}, nil},
-		filterTest{true, []string{"[Tt]est/[Ff]ilename.dat"}, nil},
+		filterTest{true, "*.dat", []string{"*.dat"}, nil},
+		filterTest{true, "file*.dat", []string{"file*.dat"}, nil},
+		filterTest{true, "file*", []string{"file*"}, nil},
+		filterTest{true, "*name.dat", []string{"*name.dat"}, nil},
+		filterTest{false, "", []string{"/*.dat"}, nil},
+		filterTest{false, "", []string{"otherfolder/*.dat"}, nil},
+		filterTest{false, "", []string{"*.nam"}, nil},
+		filterTest{true, "test/filename.dat", []string{"test/filename.dat"}, nil},
+		filterTest{true, "test/filename.dat", []string{"test/filename.dat"}, nil},
+		filterTest{false, "", []string{"blank", "something", "foo"}, nil},
+		filterTest{false, "", []string{"test/notfilename.dat"}, nil},
+		filterTest{true, "test", []string{"test"}, nil},
+		filterTest{true, "test/*", []string{"test/*"}, nil},
+		filterTest{false, "", []string{"nottest"}, nil},
+		filterTest{false, "", []string{"nottest/*"}, nil},
+		filterTest{true, "test/fil*", []string{"test/fil*"}, nil},
+		filterTest{false, "", []string{"test/g*"}, nil},
+		filterTest{true, "tes*/*", []string{"tes*/*"}, nil},
+		filterTest{true, "[Tt]est/[Ff]ilename.dat", []string{"[Tt]est/[Ff]ilename.dat"}, nil},
 		// Exclusion
-		filterTest{false, nil, []string{"*.dat"}},
-		filterTest{false, nil, []string{"file*.dat"}},
-		filterTest{false, nil, []string{"file*"}},
-		filterTest{false, nil, []string{"*name.dat"}},
-		filterTest{true, nil, []string{"/*.dat"}},
-		filterTest{true, nil, []string{"otherfolder/*.dat"}},
-		filterTest{false, nil, []string{"test/filename.dat"}},
-		filterTest{false, nil, []string{"blank", "something", "test/filename.dat", "foo"}},
-		filterTest{true, nil, []string{"blank", "something", "foo"}},
-		filterTest{true, nil, []string{"test/notfilename.dat"}},
-		filterTest{false, nil, []string{"test"}},
-		filterTest{false, nil, []string{"test/*"}},
-		filterTest{true, nil, []string{"nottest"}},
-		filterTest{true, nil, []string{"nottest/*"}},
-		filterTest{false, nil, []string{"test/fil*"}},
-		filterTest{true, nil, []string{"test/g*"}},
-		filterTest{false, nil, []string{"tes*/*"}},
-		filterTest{false, nil, []string{"[Tt]est/[Ff]ilename.dat"}},
+		filterTest{false, "*.dat", nil, []string{"*.dat"}},
+		filterTest{false, "file*.dat", nil, []string{"file*.dat"}},
+		filterTest{false, "file*", nil, []string{"file*"}},
+		filterTest{false, "*name.dat", nil, []string{"*name.dat"}},
+		filterTest{true, "", nil, []string{"/*.dat"}},
+		filterTest{true, "", nil, []string{"otherfolder/*.dat"}},
+		filterTest{false, "test/filename.dat", nil, []string{"test/filename.dat"}},
+		filterTest{false, "test/filename.dat", nil, []string{"blank", "something", "test/filename.dat", "foo"}},
+		filterTest{true, "", nil, []string{"blank", "something", "foo"}},
+		filterTest{true, "", nil, []string{"test/notfilename.dat"}},
+		filterTest{false, "test", nil, []string{"test"}},
+		filterTest{false, "test/*", nil, []string{"test/*"}},
+		filterTest{true, "", nil, []string{"nottest"}},
+		filterTest{true, "", nil, []string{"nottest/*"}},
+		filterTest{false, "test/fil*", nil, []string{"test/fil*"}},
+		filterTest{true, "", nil, []string{"test/g*"}},
+		filterTest{false, "tes*/*", nil, []string{"tes*/*"}},
+		filterTest{false, "[Tt]est/[Ff]ilename.dat", nil, []string{"[Tt]est/[Ff]ilename.dat"}},
 
-		// Both
-		filterTest{true, []string{"test/filename.dat"}, []string{"test/notfilename.dat"}},
-		filterTest{false, []string{"test"}, []string{"test/filename.dat"}},
-		filterTest{true, []string{"test/*"}, []string{"test/notfile*"}},
-		filterTest{false, []string{"test/*"}, []string{"test/file*"}},
-		filterTest{false, []string{"another/*", "test/*"}, []string{"test/notfilename.dat", "test/filename.dat"}},
+		// // Both
+		filterTest{true, "test/filename.dat", []string{"test/filename.dat"}, []string{"test/notfilename.dat"}},
+		filterTest{false, "test/filename.dat", []string{"test"}, []string{"test/filename.dat"}},
+		filterTest{true, "test/*", []string{"test/*"}, []string{"test/notfile*"}},
+		filterTest{false, "test/file*", []string{"test/*"}, []string{"test/file*"}},
+		filterTest{false, "test/filename.dat", []string{"another/*", "test/*"}, []string{"test/notfilename.dat", "test/filename.dat"}},
 	}
 
 	for _, c := range cases {
-		result := New(c.includes, c.excludes).Allows("test/filename.dat")
-		assert.Equal(t, c.expectedResult, result, "includes: %v excludes: %v", c.includes, c.excludes)
+		filter := New(c.includes, c.excludes)
+
+		r1 := filter.Allows("test/filename.dat")
+		pattern, r2 := filter.AllowsPattern("test/filename.dat")
+
+		assert.Equal(t, r1, r2,
+			"filepathfilter: expected Allows() and AllowsPattern() to return identical result")
+
+		assert.Equal(t, c.expectedResult, r2, "includes: %v excludes: %v", c.includes, c.excludes)
+		assert.Equal(t, c.expectedPattern, pattern,
+			"filepathfilter: expected pattern match of: %q, got: %q",
+			c.expectedPattern, pattern)
+
 		if runtime.GOOS == "windows" {
 			// also test with \ path separators, tolerate mixed separators
 			for i, inc := range c.includes {
@@ -173,7 +185,19 @@ func TestFilterAllows(t *testing.T) {
 			for i, ex := range c.excludes {
 				c.excludes[i] = strings.Replace(ex, "/", "\\", -1)
 			}
-			assert.Equal(t, c.expectedResult, New(c.includes, c.excludes).Allows("test/filename.dat"), c)
+
+			filter = New(c.includes, c.excludes)
+
+			r1 = filter.Allows("test/filename.dat")
+			pattern, r2 = filter.AllowsPattern("test/filename.dat")
+
+			assert.Equal(t, r1, r2,
+				"filepathfilter: expected Allows() and AllowsPattern() to return identical result")
+
+			assert.Equal(t, c.expectedResult, r1, c)
+			assert.Equal(t, c.expectedPattern, pattern,
+				"filepathfilter: expected pattern match of: %q, got: %q",
+				c.expectedPattern, pattern)
 		}
 	}
 }
