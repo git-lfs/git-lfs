@@ -148,6 +148,12 @@ func (p *pathPrefixPattern) Match(name string) bool {
 	return matched
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *pathPrefixPattern is matching.
+func (p *pathPrefixPattern) String() string {
+	return p.rawPattern
+}
+
 type pathPattern struct {
 	rawPattern string
 	prefix     string
