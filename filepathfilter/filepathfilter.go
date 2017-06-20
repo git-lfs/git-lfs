@@ -179,6 +179,12 @@ func (p *simpleExtPattern) Match(name string) bool {
 	return strings.HasSuffix(name, p.ext)
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *simpleExtPattern is matching.
+func (p *simpleExtPattern) String() string {
+	return fmt.Sprintf("*%s", p.ext)
+}
+
 type pathlessWildcardPattern struct {
 	rawPattern string
 	wildcardRE *regexp.Regexp
