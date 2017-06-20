@@ -303,6 +303,9 @@ func TestHistoryRewriterUpdatesRefs(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history.git")
 	r := NewRewriter(db)
 
+	AssertRef(t, db,
+		"refs/heads/master", HexDecode(t, "e669b63f829bfb0b91fc52a5bcea53dd7977a0ee"))
+
 	tip, err := r.Rewrite(&RewriteOptions{
 		Include: []string{"refs/heads/master"},
 
