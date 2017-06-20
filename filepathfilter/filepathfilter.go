@@ -165,6 +165,12 @@ func (p *pathPattern) Match(name string) bool {
 	return matched
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *pathPattern is matching.
+func (p *pathPattern) String() string {
+	return p.rawPattern
+}
+
 type simpleExtPattern struct {
 	ext string
 }
