@@ -9,6 +9,9 @@ import (
 
 type Pattern interface {
 	Match(filename string) bool
+	// String returns a string representation (see: regular expressions) of
+	// the underlying pattern used to match filenames against this Pattern.
+	String() string
 }
 
 type Filter struct {
