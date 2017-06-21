@@ -18,7 +18,7 @@ assert_ref_unmoved() {
   fi
 }
 
-# setup_single_remote_branch creates a repository as follows:
+# setup_multiple_local_branches creates a repository as follows:
 #
 #     B
 #    / \
