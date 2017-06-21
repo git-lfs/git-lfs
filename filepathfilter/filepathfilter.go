@@ -9,6 +9,9 @@ import (
 
 type Pattern interface {
 	Match(filename string) bool
+	// String returns a string representation (see: regular expressions) of
+	// the underlying pattern used to match filenames against this Pattern.
+	String() string
 }
 
 type Filter struct {
@@ -25,12 +28,24 @@ func New(include, exclude []string) *Filter {
 }
 
 func (f *Filter) Allows(filename string) bool {
+	_, allowed := f.AllowsPattern(filename)
+	return allowed
+}
+
+// AllowsPattern returns whether the given filename is permitted by the
+// inclusion/exclusion rules of this filter, as well as the pattern that either
+// allowed or disallowed that filename.
+//
+// In special cases, such as a nil `*Filter` receiver, the absence of any
+// patterns, or the given filename not being matched by any pattern, the empty
+// string "" will be returned in place of the pattern.
+func (f *Filter) AllowsPattern(filename string) (pattern string, allowed bool) {
 	if f == nil {
-		return true
+		return "", true
 	}
 
 	if len(f.include)+len(f.exclude) == 0 {
-		return true
+		return "", true
 	}
 
 	cleanedName := filepath.Clean(filename)
@@ -40,23 +55,24 @@ func (f *Filter) Allows(filename string) bool {
 		for _, inc := range f.include {
 			matched = inc.Match(cleanedName)
 			if matched {
+				pattern = inc.String()
 				break
 			}
 		}
 		if !matched {
-			return false
+			return "", false
 		}
 	}
 
 	if len(f.exclude) > 0 {
 		for _, ex := range f.exclude {
 			if ex.Match(cleanedName) {
-				return false
+				return ex.String(), false
 			}
 		}
 	}
 
-	return true
+	return pattern, true
 }
 
 func NewPattern(rawpattern string) Pattern {
@@ -148,6 +164,12 @@ func (p *pathPrefixPattern) Match(name string) bool {
 	return matched
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *pathPrefixPattern is matching.
+func (p *pathPrefixPattern) String() string {
+	return p.rawPattern
+}
+
 type pathPattern struct {
 	rawPattern string
 	prefix     string
@@ -165,12 +187,24 @@ func (p *pathPattern) Match(name string) bool {
 	return matched
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *pathPattern is matching.
+func (p *pathPattern) String() string {
+	return p.rawPattern
+}
+
 type simpleExtPattern struct {
 	ext string
 }
 
 func (p *simpleExtPattern) Match(name string) bool {
 	return strings.HasSuffix(name, p.ext)
+}
+
+// String returns a string representation of the underlying pattern for which
+// this *simpleExtPattern is matching.
+func (p *simpleExtPattern) String() string {
+	return fmt.Sprintf("*%s", p.ext)
 }
 
 type pathlessWildcardPattern struct {
@@ -186,6 +220,12 @@ func (p *pathlessWildcardPattern) Match(name string) bool {
 	return matched || p.wildcardRE.MatchString(filepath.Base(name))
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *pathlessWildcardPattern is matching.
+func (p *pathlessWildcardPattern) String() string {
+	return p.rawPattern
+}
+
 type doubleWildcardPattern struct {
 	rawPattern string
 	wildcardRE *regexp.Regexp
@@ -199,11 +239,21 @@ func (p *doubleWildcardPattern) Match(name string) bool {
 	return matched || p.wildcardRE.MatchString(name)
 }
 
+// String returns a string representation of the underlying pattern for which
+// this *doubleWildcardPattern is matching.
+func (p *doubleWildcardPattern) String() string {
+	return p.rawPattern
+}
+
 type noOpMatcher struct {
 }
 
 func (n noOpMatcher) Match(name string) bool {
 	return true
+}
+
+func (n noOpMatcher) String() string {
+	return ""
 }
 
 var localDirSet = map[string]struct{}{
