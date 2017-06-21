@@ -389,6 +389,12 @@ func (r *Rewriter) scannerOpts() *git.ScanRefsOptions {
 	return opts
 }
 
+// Filter returns the filter used by this *Rewriter to filter subtrees, blobs
+// (see above).
+func (r *Rewriter) Filter() *filepathfilter.Filter {
+	return r.filter
+}
+
 // cacheEntry caches then given "from" entry so that it is always rewritten as
 // a *TreeEntry equivalent to "to".
 func (r *Rewriter) cacheEntry(from, to *odb.TreeEntry) *odb.TreeEntry {

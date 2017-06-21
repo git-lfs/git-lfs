@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -297,6 +298,17 @@ func TestHistoryRewriterUseOriginalParentsForPartialMigration(t *testing.T) {
 
 	assert.NoError(t, err)
 	AssertCommitParent(t, db, hex.EncodeToString(tip), expectedParent)
+}
+
+func TestHistoryRewriterReturnsFilter(t *testing.T) {
+	f := filepathfilter.New([]string{"a"}, []string{"b"})
+	r := NewRewriter(nil, WithFilter(f))
+
+	expected := reflect.ValueOf(f).Elem().Addr().Pointer()
+	got := reflect.ValueOf(r.Filter()).Elem().Addr().Pointer()
+
+	assert.Equal(t, expected, got,
+		"git/githistory: expected Rewriter.Filter() to return same *filepathfilter.Filter instance")
 }
 
 func root(path string) string {
