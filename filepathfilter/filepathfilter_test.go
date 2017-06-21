@@ -164,7 +164,9 @@ func TestFilterAllows(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		c.expectedPattern = strings.Replace(c.expectedPattern, "/", "\\", -1)
+		if runtime.GOOS == "windows" {
+			c.expectedPattern = strings.Replace(c.expectedPattern, "/", "\\", -1)
+		}
 
 		filter := New(c.includes, c.excludes)
 
