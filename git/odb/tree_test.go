@@ -165,11 +165,11 @@ func TestSubtreeOrder(t *testing.T) {
 	//
 	// See:
 	//   http://public-inbox.org/git/7vac6jfzem.fsf@assigned-by-dhcp.cox.net
-	e1 := &TreeEntry{Filemode: 100644, Name: "a-"}
-	e2 := &TreeEntry{Filemode: 100644, Name: "a-b"}
+	e1 := &TreeEntry{Filemode: 0100644, Name: "a-"}
+	e2 := &TreeEntry{Filemode: 0100644, Name: "a-b"}
 	e3 := &TreeEntry{Filemode: 040000, Name: "a"}
-	e4 := &TreeEntry{Filemode: 100644, Name: "a="}
-	e5 := &TreeEntry{Filemode: 100644, Name: "a=b"}
+	e4 := &TreeEntry{Filemode: 0100644, Name: "a="}
+	e5 := &TreeEntry{Filemode: 0100644, Name: "a=b"}
 
 	// Create a set of entries in the wrong order:
 	entries := []*TreeEntry{e3, e4, e1, e5, e2}
