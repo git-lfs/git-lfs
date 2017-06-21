@@ -42,6 +42,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ExitWithError(err)
 	}
+	rewriter := getHistoryRewriter(cmd, db)
 
 	exts := make(map[string]*MigrateInfoEntry)
 
@@ -61,7 +62,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	migrateInfoAbove = above
 
-	migrate(cmd, args, db, func(path string, b *odb.Blob) (*odb.Blob, error) {
+	migrate(cmd, args, rewriter, func(path string, b *odb.Blob) (*odb.Blob, error) {
 		ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
 		if len(ext) > 1 {
