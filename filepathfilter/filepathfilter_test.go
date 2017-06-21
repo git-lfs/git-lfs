@@ -164,6 +164,8 @@ func TestFilterAllows(t *testing.T) {
 	}
 
 	for _, c := range cases {
+		c.expectedPattern = filepath.Clean(c.expectedPattern)
+
 		filter := New(c.includes, c.excludes)
 
 		r1 := filter.Allows("test/filename.dat")
@@ -190,7 +192,6 @@ func TestFilterAllows(t *testing.T) {
 
 			r1 = filter.Allows("test/filename.dat")
 			pattern, r2 = filter.AllowsPattern("test/filename.dat")
-			pattern = strings.Replace(pattern, "/", "\\", -1)
 
 			assert.Equal(t, r1, r2,
 				"filepathfilter: expected Allows() and AllowsPattern() to return identical result")
