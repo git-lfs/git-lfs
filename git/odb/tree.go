@@ -126,3 +126,47 @@ func (e *TreeEntry) Type() ObjectType {
 		}
 	}
 }
+
+// SubtreeOrder is an implementation of sort.Interface that sorts a set of
+// `*TreeEntry`'s according to "subtree" order. This ordering is required to
+// write trees in a correct, readable format to the Git object database.
+//
+// The format is as follows: entries are sorted lexicographically in byte-order,
+// with subtrees (entries of Type() == git/odb.TreeObjectType) being sorted as
+// if their `Name` fields ended in a "/".
+//
+// See: https://github.com/git/git/blob/v2.13.0/fsck.c#L492-L525 for more
+// details.
+type SubtreeOrder []*TreeEntry
+
+// Len implements sort.Interface.Len() and return the length of the underlying
+// slice.
+func (s SubtreeOrder) Len() int { return len(s) }
+
+// Swap implements sort.Interface.Swap() and swaps the two elements at i and j.
+func (s SubtreeOrder) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+// Less implements sort.Interface.Less() and returns whether the element at "i"
+// is compared as "less" than the element at "j". In other words, it returns if
+// the element at "i" should be sorted ahead of that at "j".
+//
+// It performs this comparison in lexicographic byte-order according to the
+// rules above (see SubtreeOrder).
+func (s SubtreeOrder) Less(i, j int) bool {
+	return s.Name(i) < s.Name(j)
+}
+
+// Name returns the name for a given entry indexed at "i", which is a C-style
+// string ('\0' terminated unless it's a subtree), optionally terminated with
+// '/' if it's a subtree.
+//
+// This is done because '/' sorts ahead of '\0', and is compatible with the
+// tree order in upstream Git.
+func (s SubtreeOrder) Name(i int) string {
+	entry := s[i]
+
+	if entry.Type() == TreeObjectType {
+		return entry.Name + "/"
+	}
+	return entry.Name + "\x00"
+}
