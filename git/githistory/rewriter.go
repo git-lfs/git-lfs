@@ -271,7 +271,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 
 		var oid []byte
 
-		switch entry.Type {
+		switch entry.Type() {
 		case odb.BlobObjectType:
 			oid, err = r.rewriteBlob(entry.Oid, path, fn)
 		case odb.TreeObjectType:
@@ -287,7 +287,6 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 		entries = append(entries, r.cacheEntry(entry, &odb.TreeEntry{
 			Filemode: entry.Filemode,
 			Name:     entry.Name,
-			Type:     entry.Type,
 			Oid:      oid,
 		}))
 	}

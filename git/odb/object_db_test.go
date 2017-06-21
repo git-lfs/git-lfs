@@ -68,7 +68,6 @@ func TestDecodeTree(t *testing.T) {
 	require.Equal(t, 1, len(tree.Entries))
 	assert.Equal(t, &TreeEntry{
 		Name:     "hello.txt",
-		Type:     BlobObjectType,
 		Oid:      hexBlobSha,
 		Filemode: 0100644,
 	}, tree.Entries[0])
@@ -130,7 +129,6 @@ func TestWriteTree(t *testing.T) {
 	sha, err := odb.WriteTree(&Tree{Entries: []*TreeEntry{
 		{
 			Name:     "hello.txt",
-			Type:     BlobObjectType,
 			Oid:      hexBlobSha,
 			Filemode: 0100644,
 		},
