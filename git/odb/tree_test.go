@@ -119,6 +119,49 @@ func TestTreeDecodingShaBoundary(t *testing.T) {
 	}, tree.Entries[0])
 }
 
+func TestTreeMergeReplaceElements(t *testing.T) {
+	e1 := &TreeEntry{Name: "a", Filemode: 0100644, Oid: []byte{0x1}}
+	e2 := &TreeEntry{Name: "b", Filemode: 0100644, Oid: []byte{0x2}}
+	e3 := &TreeEntry{Name: "c", Filemode: 0100644, Oid: []byte{0x3}}
+
+	e4 := &TreeEntry{Name: "b", Filemode: 0100644, Oid: []byte{0x4}}
+	e5 := &TreeEntry{Name: "c", Filemode: 0100644, Oid: []byte{0x5}}
+
+	t1 := &Tree{Entries: []*TreeEntry{e1, e2, e3}}
+
+	t2 := t1.Merge(e4, e5)
+
+	require.Len(t, t1.Entries, 3)
+	assert.True(t, bytes.Equal(t1.Entries[0].Oid, []byte{0x1}))
+	assert.True(t, bytes.Equal(t1.Entries[1].Oid, []byte{0x2}))
+	assert.True(t, bytes.Equal(t1.Entries[2].Oid, []byte{0x3}))
+
+	require.Len(t, t2.Entries, 3)
+	assert.True(t, bytes.Equal(t2.Entries[0].Oid, []byte{0x1}))
+	assert.True(t, bytes.Equal(t2.Entries[1].Oid, []byte{0x4}))
+	assert.True(t, bytes.Equal(t2.Entries[2].Oid, []byte{0x5}))
+}
+
+func TestMergeInsertElementsInSubtreeOrder(t *testing.T) {
+	e1 := &TreeEntry{Name: "a-b", Filemode: 0100644, Oid: []byte{0x1}}
+	e2 := &TreeEntry{Name: "a", Filemode: 040000, Oid: []byte{0x2}}
+	e3 := &TreeEntry{Name: "a=", Filemode: 0100644, Oid: []byte{0x3}}
+	e4 := &TreeEntry{Name: "a-", Filemode: 0100644, Oid: []byte{0x4}}
+
+	t1 := &Tree{Entries: []*TreeEntry{e1, e2, e3}}
+	t2 := t1.Merge(e4)
+
+	require.Len(t, t1.Entries, 3)
+	assert.True(t, bytes.Equal(t1.Entries[0].Oid, []byte{0x1}))
+	assert.True(t, bytes.Equal(t1.Entries[1].Oid, []byte{0x2}))
+	assert.True(t, bytes.Equal(t1.Entries[2].Oid, []byte{0x3}))
+
+	assert.True(t, bytes.Equal(t2.Entries[0].Oid, []byte{0x4}))
+	assert.True(t, bytes.Equal(t2.Entries[1].Oid, []byte{0x1}))
+	assert.True(t, bytes.Equal(t2.Entries[2].Oid, []byte{0x2}))
+	assert.True(t, bytes.Equal(t2.Entries[3].Oid, []byte{0x3}))
+}
+
 type TreeEntryTypeTestCase struct {
 	Filemode int32
 	Expected ObjectType
