@@ -23,7 +23,7 @@ var (
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
-func migrate(cmd *cobra.Command, args []string, r *githistory.Rewriter, fn githistory.BlobRewriteFn) {
+func migrate(args []string, r *githistory.Rewriter, fn githistory.BlobRewriteFn) {
 	requireInRepo()
 
 	opts, err := rewriteOptions(args, fn)

@@ -62,7 +62,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	migrateInfoAbove = above
 
-	migrate(cmd, args, rewriter, func(path string, b *odb.Blob) (*odb.Blob, error) {
+	migrate(args, rewriter, func(path string, b *odb.Blob) (*odb.Blob, error) {
 		ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
 		if len(ext) > 1 {
