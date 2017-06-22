@@ -168,6 +168,9 @@ func (s SubtreeOrder) Name(i int) string {
 	}
 
 	entry := s[i]
+	if entry == nil {
+		return ""
+	}
 
 	if entry.Type() == TreeObjectType {
 		return entry.Name + "/"
