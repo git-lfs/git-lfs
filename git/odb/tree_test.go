@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"testing"
 
@@ -155,6 +156,46 @@ func TestTreeEntryTypeResolutionUnknown(t *testing.T) {
 	}()
 
 	e.Type()
+}
+
+func TestSubtreeOrder(t *testing.T) {
+	// The below list (e1, e2, ..., e5) is entered in subtree order: that
+	// is, lexicographically byte-ordered as if blobs end in a '\0', and
+	// sub-trees end in a '/'.
+	//
+	// See:
+	//   http://public-inbox.org/git/7vac6jfzem.fsf@assigned-by-dhcp.cox.net
+	e1 := &TreeEntry{Filemode: 0100644, Name: "a-"}
+	e2 := &TreeEntry{Filemode: 0100644, Name: "a-b"}
+	e3 := &TreeEntry{Filemode: 040000, Name: "a"}
+	e4 := &TreeEntry{Filemode: 0100644, Name: "a="}
+	e5 := &TreeEntry{Filemode: 0100644, Name: "a=b"}
+
+	// Create a set of entries in the wrong order:
+	entries := []*TreeEntry{e3, e4, e1, e5, e2}
+
+	sort.Sort(SubtreeOrder(entries))
+
+	// Assert that they are in the correct order after sorting in sub-tree
+	// order:
+	require.Len(t, entries, 5)
+	assert.Equal(t, "a-", entries[0].Name)
+	assert.Equal(t, "a-b", entries[1].Name)
+	assert.Equal(t, "a", entries[2].Name)
+	assert.Equal(t, "a=", entries[3].Name)
+	assert.Equal(t, "a=b", entries[4].Name)
+}
+
+func TestSubtreeOrderReturnsEmptyForOutOfBounds(t *testing.T) {
+	o := SubtreeOrder([]*TreeEntry{{Name: "a"}})
+
+	assert.Equal(t, "", o.Name(len(o)+1))
+}
+
+func TestSubtreeOrderReturnsEmptyForNilElements(t *testing.T) {
+	o := SubtreeOrder([]*TreeEntry{nil})
+
+	assert.Equal(t, "", o.Name(0))
 }
 
 func assertTreeEntry(t *testing.T, buf *bytes.Buffer,
