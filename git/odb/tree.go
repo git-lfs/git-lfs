@@ -163,6 +163,10 @@ func (s SubtreeOrder) Less(i, j int) bool {
 // This is done because '/' sorts ahead of '\0', and is compatible with the
 // tree order in upstream Git.
 func (s SubtreeOrder) Name(i int) string {
+	if i < 0 || i >= len(s) {
+		return ""
+	}
+
 	entry := s[i]
 
 	if entry.Type() == TreeObjectType {

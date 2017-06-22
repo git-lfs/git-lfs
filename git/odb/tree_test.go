@@ -186,6 +186,12 @@ func TestSubtreeOrder(t *testing.T) {
 	assert.Equal(t, "a=b", entries[4].Name)
 }
 
+func TestSubtreeOrderReturnsEmptyForOutOfBounds(t *testing.T) {
+	o := SubtreeOrder([]*TreeEntry{{Name: "a"}})
+
+	assert.Equal(t, "", o.Name(len(o)+1))
+}
+
 func assertTreeEntry(t *testing.T, buf *bytes.Buffer,
 	name string, oid []byte, mode int32) {
 
