@@ -102,7 +102,7 @@ func (t *Tree) Merge(others ...*TreeEntry) *Tree {
 
 	// Build a cache of name+filemode to *TreeEntry.
 	for _, other := range others {
-		key := fmt.Sprintf("%s%o", other.Name, other.Filemode)
+		key := fmt.Sprintf("%s\x00%o", other.Name, other.Filemode)
 
 		unseen[key] = other
 	}
@@ -111,7 +111,7 @@ func (t *Tree) Merge(others ...*TreeEntry) *Tree {
 	// copying an existing entry, or replacing it with a new one.
 	entries := make([]*TreeEntry, 0, len(t.Entries))
 	for _, entry := range t.Entries {
-		key := fmt.Sprintf("%s%o", entry.Name, entry.Filemode)
+		key := fmt.Sprintf("%s\x00%o", entry.Name, entry.Filemode)
 
 		if other, ok := unseen[key]; ok {
 			entries = append(entries, other)
