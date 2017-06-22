@@ -23,15 +23,15 @@ var (
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
-func migrate(cmd *cobra.Command, args []string, db *odb.ObjectDatabase, fn githistory.BlobRewriteFn) {
+func migrate(args []string, r *githistory.Rewriter, opts *githistory.RewriteOptions) {
 	requireInRepo()
 
-	opts, err := rewriteOptions(args, fn)
+	opts, err := rewriteOptions(args, opts)
 	if err != nil {
 		ExitWithError(err)
 	}
 
-	_, err = getHistoryRewriter(cmd, db).Rewrite(opts)
+	_, err = r.Rewrite(opts)
 	if err != nil {
 		ExitWithError(err)
 	}
@@ -49,18 +49,18 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a
 // *githistory.Rewriter that reflect the current arguments and flags passed to
-// an invocation of git-lfs-migrate(1).?
+// an invocation of git-lfs-migrate(1).
 //
-// Repository references are included and excluded based on the following rules:
+// It is merged with the given "opts". In other words, an identical "opts" is
+// returned, where the Include and Exclude fields have been filled based on the
+// following rules:
 //
 // The included and excluded references are determined based on the output of
 // includeExcludeRefs (see below for documentation and detail).
 //
-// The given "fn" githistory.BlobRewriteFn is passed as the BlobFn.
-//
 // If any of the above could not be determined without error, that error will be
 // returned immediately.
-func rewriteOptions(args []string, fn githistory.BlobRewriteFn) (*githistory.RewriteOptions, error) {
+func rewriteOptions(args []string, opts *githistory.RewriteOptions) (*githistory.RewriteOptions, error) {
 	include, exclude, err := includeExcludeRefs(args)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,8 @@ func rewriteOptions(args []string, fn githistory.BlobRewriteFn) (*githistory.Rew
 		Include: include,
 		Exclude: exclude,
 
-		BlobFn: fn,
+		BlobFn:         opts.BlobFn,
+		TreeCallbackFn: opts.TreeCallbackFn,
 	}, nil
 }
 

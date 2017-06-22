@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
@@ -42,6 +43,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ExitWithError(err)
 	}
+	rewriter := getHistoryRewriter(cmd, db)
 
 	exts := make(map[string]*MigrateInfoEntry)
 
@@ -61,27 +63,29 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	migrateInfoAbove = above
 
-	migrate(cmd, args, db, func(path string, b *odb.Blob) (*odb.Blob, error) {
-		ext := fmt.Sprintf("*%s", filepath.Ext(path))
+	migrate(args, rewriter, &githistory.RewriteOptions{
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
-		if len(ext) > 1 {
-			entry := exts[ext]
-			if entry == nil {
-				entry = &MigrateInfoEntry{Qualifier: ext}
+			if len(ext) > 1 {
+				entry := exts[ext]
+				if entry == nil {
+					entry = &MigrateInfoEntry{Qualifier: ext}
+				}
+
+				entry.Total++
+				entry.BytesTotal += b.Size
+
+				if b.Size > int64(migrateInfoAbove) {
+					entry.TotalAbove++
+					entry.BytesAbove += b.Size
+				}
+
+				exts[ext] = entry
 			}
 
-			entry.Total++
-			entry.BytesTotal += b.Size
-
-			if b.Size > int64(migrateInfoAbove) {
-				entry.TotalAbove++
-				entry.BytesAbove += b.Size
-			}
-
-			exts[ext] = entry
-		}
-
-		return b, nil
+			return b, nil
+		},
 	})
 
 	entries := EntriesBySize(MapToEntries(exts))
