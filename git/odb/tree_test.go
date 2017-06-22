@@ -20,19 +20,16 @@ func TestTreeEncoding(t *testing.T) {
 		Entries: []*TreeEntry{
 			{
 				Name:     "a.dat",
-				Type:     BlobObjectType,
 				Oid:      []byte("aaaaaaaaaaaaaaaaaaaa"),
 				Filemode: 0100644,
 			},
 			{
 				Name:     "subdir",
-				Type:     TreeObjectType,
 				Oid:      []byte("bbbbbbbbbbbbbbbbbbbb"),
 				Filemode: 040000,
 			},
 			{
 				Name:     "submodule",
-				Type:     CommitObjectType,
 				Oid:      []byte("cccccccccccccccccccc"),
 				Filemode: 0160000,
 			},
@@ -45,9 +42,9 @@ func TestTreeEncoding(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEqual(t, 0, n)
 
-	assertTreeEntry(t, buf, "a.dat", BlobObjectType, []byte("aaaaaaaaaaaaaaaaaaaa"), 0100644)
-	assertTreeEntry(t, buf, "subdir", TreeObjectType, []byte("bbbbbbbbbbbbbbbbbbbb"), 040000)
-	assertTreeEntry(t, buf, "submodule", CommitObjectType, []byte("cccccccccccccccccccc"), 0160000)
+	assertTreeEntry(t, buf, "a.dat", []byte("aaaaaaaaaaaaaaaaaaaa"), 0100644)
+	assertTreeEntry(t, buf, "subdir", []byte("bbbbbbbbbbbbbbbbbbbb"), 040000)
+	assertTreeEntry(t, buf, "submodule", []byte("cccccccccccccccccccc"), 0160000)
 
 	assert.Equal(t, 0, buf.Len())
 }
@@ -78,25 +75,21 @@ func TestTreeDecoding(t *testing.T) {
 	require.Equal(t, 4, len(tree.Entries))
 	assert.Equal(t, &TreeEntry{
 		Name:     "a.dat",
-		Type:     BlobObjectType,
 		Oid:      []byte("aaaaaaaaaaaaaaaaaaaa"),
 		Filemode: 0100644,
 	}, tree.Entries[0])
 	assert.Equal(t, &TreeEntry{
 		Name:     "subdir",
-		Type:     TreeObjectType,
 		Oid:      []byte("bbbbbbbbbbbbbbbbbbbb"),
 		Filemode: 040000,
 	}, tree.Entries[1])
 	assert.Equal(t, &TreeEntry{
 		Name:     "symlink",
-		Type:     BlobObjectType,
 		Oid:      []byte("cccccccccccccccccccc"),
 		Filemode: 0120000,
 	}, tree.Entries[2])
 	assert.Equal(t, &TreeEntry{
 		Name:     "submodule",
-		Type:     CommitObjectType,
 		Oid:      []byte("dddddddddddddddddddd"),
 		Filemode: 0160000,
 	}, tree.Entries[3])
@@ -120,14 +113,52 @@ func TestTreeDecodingShaBoundary(t *testing.T) {
 	require.Len(t, tree.Entries, 1)
 	assert.Equal(t, &TreeEntry{
 		Name:     "a.dat",
-		Type:     BlobObjectType,
 		Oid:      []byte("aaaaaaaaaaaaaaaaaaaa"),
 		Filemode: 0100644,
 	}, tree.Entries[0])
 }
 
+type TreeEntryTypeTestCase struct {
+	Filemode int32
+	Expected ObjectType
+}
+
+func (c *TreeEntryTypeTestCase) Assert(t *testing.T) {
+	e := &TreeEntry{Filemode: c.Filemode}
+
+	got := e.Type()
+
+	assert.Equal(t, c.Expected, got,
+		"git/odb: expected type: %s, got: %s", c.Expected, got)
+}
+
+func TestTreeEntryTypeResolution(t *testing.T) {
+	for desc, c := range map[string]*TreeEntryTypeTestCase{
+		"blob":    {0100644, BlobObjectType},
+		"subtree": {040000, TreeObjectType},
+		"symlink": {0120000, BlobObjectType},
+		"commit":  {0160000, CommitObjectType},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+func TestTreeEntryTypeResolutionUnknown(t *testing.T) {
+	e := &TreeEntry{Filemode: -1}
+
+	defer func() {
+		if err := recover(); err == nil {
+			t.Fatal("git/odb: expected panic(), got none")
+		} else {
+			assert.Equal(t, "git/odb: unknown object type: -1", err)
+		}
+	}()
+
+	e.Type()
+}
+
 func assertTreeEntry(t *testing.T, buf *bytes.Buffer,
-	name string, typ ObjectType, oid []byte, mode int32) {
+	name string, oid []byte, mode int32) {
 
 	fmode, err := buf.ReadBytes(' ')
 	assert.Nil(t, err)

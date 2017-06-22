@@ -55,30 +55,8 @@ func (t *Tree) Decode(from io.Reader, size int64) (n int, err error) {
 		}
 		n += 20
 
-		var typ ObjectType
-		switch mode & syscall.S_IFMT {
-		case syscall.S_IFREG:
-			typ = BlobObjectType
-		case syscall.S_IFDIR:
-			typ = TreeObjectType
-		case syscall.S_IFLNK:
-			typ = BlobObjectType
-		default:
-			if mode == 0xe000 {
-				// Mode 0xe000, or a gitlink, has no formal
-				// filesystem (`syscall.S_IF<t>`) equivalent.
-				//
-				// Safeguard that catch here, or otherwise
-				// panic.
-				typ = CommitObjectType
-			} else {
-				panic(fmt.Sprintf("git/odb: unknown object type: %q %q", modes, fname))
-			}
-		}
-
 		entries = append(entries, &TreeEntry{
 			Name:     fname,
-			Type:     typ,
 			Oid:      sha[:],
 			Filemode: int32(mode),
 		})
@@ -119,11 +97,32 @@ type TreeEntry struct {
 	// Name is the entry name relative to the tree in which this entry is
 	// contained.
 	Name string
-	// Type is the type of entry (either blob: BlobObjectType, or a
-	// sub-tree: TreeObjectType).
-	Type ObjectType
 	// Oid is the object ID for this tree entry.
 	Oid []byte
 	// Filemode is the filemode of this tree entry on disk.
 	Filemode int32
+}
+
+// Type is the type of entry (either blob: BlobObjectType, or a sub-tree:
+// TreeObjectType).
+func (e *TreeEntry) Type() ObjectType {
+	switch e.Filemode & syscall.S_IFMT {
+	case syscall.S_IFREG:
+		return BlobObjectType
+	case syscall.S_IFDIR:
+		return TreeObjectType
+	case syscall.S_IFLNK:
+		return BlobObjectType
+	default:
+		if e.Filemode == 0xe000 {
+			// Mode 0xe000, or a gitlink, has no formal filesystem
+			// (`syscall.S_IF<t>`) equivalent.
+			//
+			// Safeguard that catch here, or otherwise panic.
+			return CommitObjectType
+		} else {
+			panic(fmt.Sprintf("git/odb: unknown object type: %o",
+				e.Filemode))
+		}
+	}
 }

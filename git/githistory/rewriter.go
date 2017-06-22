@@ -297,7 +297,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 
 		var oid []byte
 
-		switch entry.Type {
+		switch entry.Type() {
 		case odb.BlobObjectType:
 			oid, err = r.rewriteBlob(entry.Oid, path, fn)
 		case odb.TreeObjectType:
@@ -313,7 +313,6 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 		entries = append(entries, r.cacheEntry(entry, &odb.TreeEntry{
 			Filemode: entry.Filemode,
 			Name:     entry.Name,
-			Type:     entry.Type,
 			Oid:      oid,
 		}))
 	}
@@ -422,6 +421,12 @@ func (r *Rewriter) scannerOpts() *git.ScanRefsOptions {
 		opts.WorkingDir = root
 	}
 	return opts
+}
+
+// Filter returns the filter used by this *Rewriter to filter subtrees, blobs
+// (see above).
+func (r *Rewriter) Filter() *filepathfilter.Filter {
+	return r.filter
 }
 
 // cacheEntry caches then given "from" entry so that it is always rewritten as

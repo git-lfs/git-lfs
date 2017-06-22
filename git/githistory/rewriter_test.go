@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -331,6 +332,17 @@ func TestHistoryRewriterUpdatesRefs(t *testing.T) {
 
 	AssertCommitParent(t, db, c1, c2)
 	AssertCommitParent(t, db, c2, c3)
+}
+
+func TestHistoryRewriterReturnsFilter(t *testing.T) {
+	f := filepathfilter.New([]string{"a"}, []string{"b"})
+	r := NewRewriter(nil, WithFilter(f))
+
+	expected := reflect.ValueOf(f).Elem().Addr().Pointer()
+	got := reflect.ValueOf(r.Filter()).Elem().Addr().Pointer()
+
+	assert.Equal(t, expected, got,
+		"git/githistory: expected Rewriter.Filter() to return same *filepathfilter.Filter instance")
 }
 
 func root(path string) string {
