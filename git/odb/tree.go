@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -89,6 +90,63 @@ func (t *Tree) Encode(to io.Writer) (n int, err error) {
 		n = n + ne
 	}
 	return
+}
+
+// Merge performs a merge operation against the given set of `*TreeEntry`'s by
+// either replacing existing tree entries of the same name, or appending new
+// entries in sub-tree order.
+//
+// It returns a copy of the tree, and performs the merge in O(n*log(n)) time.
+func (t *Tree) Merge(others ...*TreeEntry) *Tree {
+	unseen := make(map[string]*TreeEntry)
+
+	// Build a cache of name+filemode to *TreeEntry.
+	for _, other := range others {
+		key := fmt.Sprintf("%s\x00%o", other.Name, other.Filemode)
+
+		unseen[key] = other
+	}
+
+	// Map the existing entries ("t.Entries") into a new set by either
+	// copying an existing entry, or replacing it with a new one.
+	entries := make([]*TreeEntry, 0, len(t.Entries))
+	for _, entry := range t.Entries {
+		key := fmt.Sprintf("%s\x00%o", entry.Name, entry.Filemode)
+
+		if other, ok := unseen[key]; ok {
+			entries = append(entries, other)
+			delete(unseen, key)
+		} else {
+			oid := make([]byte, len(entry.Oid))
+			copy(oid, entry.Oid)
+
+			entries = append(entries, &TreeEntry{
+				Filemode: entry.Filemode,
+				Name:     entry.Name,
+				Oid:      oid,
+			})
+		}
+	}
+
+	// For all the items we haven't replaced into the new set, append them
+	// to the entries.
+	for _, remaining := range unseen {
+		entries = append(entries, remaining)
+	}
+
+	// Call sort afterwords, as a tradeoff between speed and spacial
+	// complexity. As a future point of optimization, adding new elements
+	// (see: above) could be done as a linear pass of the "entries" set.
+	//
+	// In order to do that, we must have a constant-time lookup of both
+	// entries in the existing and new sets. This requires building a
+	// map[string]*TreeEntry for the given "others" as well as "t.Entries".
+	//
+	// Trees can be potentially large, so trade this spacial complexity for
+	// an O(n*log(n)) sort.
+	sort.Sort(SubtreeOrder(entries))
+
+	return &Tree{Entries: entries}
 }
 
 // TreeEntry encapsulates information about a single tree entry in a tree
