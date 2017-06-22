@@ -70,6 +70,8 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions) (*githistory
 		Include: include,
 		Exclude: exclude,
 
+		UpdateRefs: opts.UpdateRefs,
+
 		BlobFn:         opts.BlobFn,
 		TreeCallbackFn: opts.TreeCallbackFn,
 	}, nil
