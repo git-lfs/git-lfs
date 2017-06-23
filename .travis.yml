@@ -10,7 +10,7 @@ env:
   global:
     - GIT_LFS_TEST_DIR="$HOME/git-lfs-tests"
     - GIT_SOURCE_REPO="https://github.com/git/git.git"
-    - GIT_EARLIEST_SUPPORTED_VERSION="v1.8.5"
+    - GIT_EARLIEST_SUPPORTED_VERSION="v1.9.0"
     - GIT_LATEST_SOURCE_BRANCH="master"
 
 matrix:
