@@ -16,17 +16,22 @@ import (
 // error is non-fatal, otherwise they will halt using the built in
 // `commands.Panic`.
 //
+// If fileSize is given as a non-negative (>= 0) integer, that value is used
+// with preference to os.Stat(fileName).Size(). If it is given as negative, the
+// value from the `stat(1)` call will be used instead.
+//
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
-func clean(to io.Writer, from io.Reader, fileName string) error {
+func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) error {
 	var cb progress.CopyCallback
 	var file *os.File
-	var fileSize int64
 
 	if len(fileName) > 0 {
 		stat, err := os.Stat(fileName)
 		if err == nil && stat != nil {
-			fileSize = stat.Size()
+			if fileSize < 0 {
+				fileSize = stat.Size()
+			}
 
 			localCb, localFile, err := lfs.CopyCallbackFile("clean", fileName, 1, 1)
 			if err != nil {
@@ -92,7 +97,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		fileName = args[0]
 	}
 
-	if err := clean(os.Stdout, os.Stdin, fileName); err != nil {
+	if err := clean(os.Stdout, os.Stdin, fileName, -1); err != nil {
 		Error(err.Error())
 	}
 }
