@@ -31,6 +31,18 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
     If any of `--include-ref` or `--exclude-ref` are given, the checked out
     branch will not be appended, but branches given explicitly will be appended.
 
+### IMPORT
+
+The 'import' mode migrates large objects present in the Git history to pointer
+files tracked and stored with Git LFS.
+
+If `--include` or `--exclude` (`-I`, `-X`, respectively) are given, the
+.gitattributes will be modified to include any new filepath patterns as given by
+those flags.
+
+If neither of those flags are given, the gitattributes will be incrementally
+modified to include new filepath extensions as they are rewritten in history.
+
 ### INFO
 
 The 'info' mode has these additional options:
