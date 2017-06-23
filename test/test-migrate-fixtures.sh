@@ -140,7 +140,7 @@ setup_multiple_remote_branches() {
 remove_and_create_local_repo() {
   local reponame="$1"
 
-  rm -rf "$reponame" || true
+  [ -e "$reponame" ] && rm -rf "$reponame"
 
   git init "$reponame"
   cd "$reponame"
@@ -153,7 +153,8 @@ remove_and_create_local_repo() {
 remove_and_create_remote_repo() {
   local reponame="$1"
 
-  rm -rf "$reponame" "$REMOTEDIR/$reponame.git" || true
+  [ -e "$reponame" ] && rm -rf "$reponame"
+  [ -e "$REMOTEDIR/$reponame.git" ] && rm -rf "$REMOTEDIR/$reponame.git"
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
