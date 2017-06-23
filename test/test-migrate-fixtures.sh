@@ -138,7 +138,7 @@ setup_multiple_remote_branches() {
 #
 #   remove_and_create_local_repo "$reponame"
 remove_and_create_local_repo() {
-  local reponame="$(base64 < /dev/urandom | head -c 8)-$1"
+  local reponame="$(base64 < /dev/urandom | head -c 8 | sed -e 's/\///')-$1"
 
   git init "$reponame"
   cd "$reponame"
@@ -149,7 +149,7 @@ remove_and_create_local_repo() {
 #
 #   remove_and_create_remote_repo "$reponame"
 remove_and_create_remote_repo() {
-  local reponame="$(base64 < /dev/urandom | head -c 8)-$1"
+  local reponame="$(base64 < /dev/urandom | head -c 8 | sed -e 's/\///')-$1"
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
