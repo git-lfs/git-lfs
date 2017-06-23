@@ -205,3 +205,15 @@ func TestFilterAllows(t *testing.T) {
 		}
 	}
 }
+
+func TestFilterReportsIncludePatterns(t *testing.T) {
+	filter := New([]string{"*.foo", "*.bar"}, nil)
+
+	assert.Equal(t, []string{"*.foo", "*.bar"}, filter.Include())
+}
+
+func TestFilterReportsExcludePatterns(t *testing.T) {
+	filter := New(nil, []string{"*.baz", "*.quux"})
+
+	assert.Equal(t, []string{"*.baz", "*.quux"}, filter.Exclude())
+}
