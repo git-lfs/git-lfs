@@ -18,7 +18,33 @@ assert_ref_unmoved() {
   fi
 }
 
-# setup_single_remote_branch creates a repository as follows:
+# setup_multiple_local_branches creates a repository as follows:
+#
+#   A---B
+#        \
+#         refs/heads/master
+#
+# - Commit 'A' has 120, in a.txt, and a corresponding entry in .gitattributes.
+setup_local_branch_with_gitattrs() {
+  set -e
+
+  reponame="migrate-single-remote-branch-with-attrs"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+
+  git add a.txt
+  git commit -m "initial commit"
+
+  git lfs track "*.txt"
+  git lfs track "*.other"
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
+}
+
+# setup_multiple_local_branches creates a repository as follows:
 #
 #     B
 #    / \
@@ -138,9 +164,7 @@ setup_multiple_remote_branches() {
 #
 #   remove_and_create_local_repo "$reponame"
 remove_and_create_local_repo() {
-  local reponame="$1"
-
-  rm -rf "$reponame" || true
+  local reponame="$(base64 < /dev/urandom | head -c 8 | sed -e 's/\///')-$1"
 
   git init "$reponame"
   cd "$reponame"
@@ -151,9 +175,7 @@ remove_and_create_local_repo() {
 #
 #   remove_and_create_remote_repo "$reponame"
 remove_and_create_remote_repo() {
-  local reponame="$1"
-
-  rm -rf "$reponame" "$REMOTEDIR/$reponame.git" || true
+  local reponame="$(base64 < /dev/urandom | head -c 8 | sed -e 's/\///')-$1"
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"

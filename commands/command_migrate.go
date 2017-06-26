@@ -211,6 +211,8 @@ func init() {
 	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "1mb", "--above=<n>")
 	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
 
+	importCmd := NewCommand("import", migrateImportCommand)
+
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		// Adding flags directly to cmd.Flags() doesn't apply those
 		// flags to any subcommands of the root. Therefore, loop through
@@ -221,7 +223,7 @@ func init() {
 		// `git-lfs-migrate(1)` command as a subcommand (child).
 
 		for _, subcommand := range []*cobra.Command{
-			info,
+			importCmd, info,
 		} {
 			subcommand.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 			subcommand.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")

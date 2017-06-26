@@ -59,7 +59,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		switch req.Header["command"] {
 		case "clean":
 			w = git.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
-			err = clean(w, req.Payload, req.Header["pathname"])
+			err = clean(w, req.Payload, req.Header["pathname"], -1)
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
 			err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)

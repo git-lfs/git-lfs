@@ -27,6 +27,25 @@ func New(include, exclude []string) *Filter {
 	return NewFromPatterns(convertToPatterns(include), convertToPatterns(exclude))
 }
 
+// Include returns the result of calling String() on each Pattern in the
+// include set of this *Filter.
+func (f *Filter) Include() []string { return patternsToStrings(f.include...) }
+
+// Exclude returns the result of calling String() on each Pattern in the
+// exclude set of this *Filter.
+func (f *Filter) Exclude() []string { return patternsToStrings(f.exclude...) }
+
+// patternsToStrings maps the given set of Pattern's to a string slice by
+// calling String() on each pattern.
+func patternsToStrings(ps ...Pattern) []string {
+	s := make([]string, 0, len(ps))
+	for _, p := range ps {
+		s = append(s, p.String())
+	}
+
+	return s
+}
+
 func (f *Filter) Allows(filename string) bool {
 	_, allowed := f.AllowsPattern(filename)
 	return allowed

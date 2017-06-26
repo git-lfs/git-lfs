@@ -52,7 +52,7 @@ func (r *refUpdater) UpdateRefs() error {
 			return err
 		}
 
-		list.Entry(fmt.Sprintf("%s\t%s -> %x", ref, ref.Sha, to))
+		list.Entry(fmt.Sprintf("  %s\t%s -> %x", ref.Name, ref.Sha, to))
 	}
 
 	return nil
