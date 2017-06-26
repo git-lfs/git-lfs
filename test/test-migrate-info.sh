@@ -190,9 +190,8 @@ begin_test "migrate info (above threshold)"
 
   original_head="$(git rev-parse HEAD)"
 
-  diff -u <(git lfs migrate info --above=130B 2>&1 | tail -n 2) <(cat <<-EOF
-	*.md 	140 B	1/1 files(s)	100%
-	*.txt	0 B  	0/1 files(s)	  0%
+  diff -u <(git lfs migrate info --above=130B 2>&1 | tail -n 1) <(cat <<-EOF
+	*.md	140 B	1/1 files(s)	100%
 	EOF)
 
   migrated_head="$(git rev-parse HEAD)"
@@ -231,6 +230,22 @@ begin_test "migrate info (given unit)"
 	*.md 	0.1	1/1 files(s)	100%
 	*.txt	0.1	1/1 files(s)	100%
 	EOF)
+
+  migrated_head="$(git rev-parse HEAD)"
+
+  assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test
+
+begin_test "migrate info (doesn't show empty info entries)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  original_head="$(git rev-parse HEAD)"
+
+  [ "0" -eq "$(git lfs migrate info --above=1mb 2>/dev/null | wc -l)" ]
 
   migrated_head="$(git rev-parse HEAD)"
 
