@@ -52,6 +52,10 @@ The 'info' mode has these additional options:
     may be specified as a number of bytes, or a number followed by a storage
     unit, e.g., "1b", "20 MB", "3 TiB", etc.
 
+    If a set of files sharing a common extension has no files in that set whose
+    individual size is above the given `--above` (or its default, 1mb), no files
+    no entry for that set will be shown.
+
 * `--top=<n>`
     Only include the top 'n' entries, ordered by how many total files match the
     given pathspec.

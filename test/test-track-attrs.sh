@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-ensure_git_version_isnt $VERSION_LOWER "1.9.0"
+ensure_git_version_isnt $VERSION_LOWER "2.1.0"
 
 begin_test "track (--no-modify-attrs)"
 (
