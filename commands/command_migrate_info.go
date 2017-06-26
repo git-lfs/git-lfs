@@ -89,6 +89,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	})
 
 	entries := EntriesBySize(MapToEntries(exts))
+	entries = removeEmptyEntries(entries)
 	sort.Sort(sort.Reverse(entries))
 
 	migrateInfoTopN = tools.ClampInt(migrateInfoTopN, len(entries), 0)
@@ -125,6 +126,19 @@ func MapToEntries(exts map[string]*MigrateInfoEntry) []*MigrateInfoEntry {
 	return entries
 }
 
+// removeEmptyEntries removes `*MigrateInfoEntry`'s for which no matching file
+// is above the given threshold "--above".
+func removeEmptyEntries(entries []*MigrateInfoEntry) []*MigrateInfoEntry {
+	nz := make([]*MigrateInfoEntry, 0, len(entries))
+	for _, e := range entries {
+		if e.TotalAbove > 0 {
+			nz = append(nz, e)
+		}
+	}
+
+	return nz
+}
+
 // EntriesBySize is an implementation of sort.Interface that sorts a set of
 // `*MigrateInfoEntry`'s
 type EntriesBySize []*MigrateInfoEntry
@@ -143,6 +157,10 @@ func (e EntriesBySize) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 // given io.Writer, "to", returning "n" the number of bytes written, and any
 // error, if one occurred.
 func (e EntriesBySize) Print(to io.Writer) (int, error) {
+	if len(e) == 0 {
+		return 0, nil
+	}
+
 	extensions := make([]string, 0, len(e))
 	sizes := make([]string, 0, len(e))
 	stats := make([]string, 0, len(e))
