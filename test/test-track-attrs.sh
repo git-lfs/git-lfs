@@ -16,9 +16,9 @@ begin_test "track (--no-modify-attrs)"
   git add a.dat
 
   # Git assumes that identical results from `stat(1)` between the index and
-  # working copy are stat dirty. To prevent this, wait at least two seconds to
+  # working copy are stat dirty. To prevent this, wait at least one second to
   # yield different `stat(1)` results.
-  sleep 2
+  sleep 1
 
   git commit -m "add a.dat"
 
