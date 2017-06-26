@@ -35,7 +35,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				return nil, err
 			}
 
-			if ext := filepath.Ext(path); len(ext) > 1 {
+			if ext := filepath.Ext(path); len(ext) > 0 {
 				exts.Add(fmt.Sprintf("*%s filter=lfs diff=lfs merge=lfs -text", ext))
 			}
 
