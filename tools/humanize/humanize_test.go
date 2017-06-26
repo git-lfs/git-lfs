@@ -61,12 +61,13 @@ func (c *FormatBytesUnitTestCase) Assert(t *testing.T) {
 
 func TestParseBytes(t *testing.T) {
 	for desc, c := range map[string]*ParseBytesTestCase{
-		"parse byte":     {"10B", uint64(10 * math.Pow(2, 0)), nil},
-		"parse kibibyte": {"20KIB", uint64(20 * math.Pow(2, 10)), nil},
-		"parse mebibyte": {"30MIB", uint64(30 * math.Pow(2, 20)), nil},
-		"parse gibibyte": {"40GIB", uint64(40 * math.Pow(2, 30)), nil},
-		"parse tebibyte": {"50TIB", uint64(50 * math.Pow(2, 40)), nil},
-		"parse pebibyte": {"60PIB", uint64(60 * math.Pow(2, 50)), nil},
+		"parse byte (empty)": {"10", uint64(10 * math.Pow(2, 0)), nil},
+		"parse byte":         {"10B", uint64(10 * math.Pow(2, 0)), nil},
+		"parse kibibyte":     {"20KIB", uint64(20 * math.Pow(2, 10)), nil},
+		"parse mebibyte":     {"30MIB", uint64(30 * math.Pow(2, 20)), nil},
+		"parse gibibyte":     {"40GIB", uint64(40 * math.Pow(2, 30)), nil},
+		"parse tebibyte":     {"50TIB", uint64(50 * math.Pow(2, 40)), nil},
+		"parse pebibyte":     {"60PIB", uint64(60 * math.Pow(2, 50)), nil},
 
 		"parse byte (lowercase)":     {"10b", uint64(10 * math.Pow(2, 0)), nil},
 		"parse kibibyte (lowercase)": {"20kib", uint64(20 * math.Pow(2, 10)), nil},

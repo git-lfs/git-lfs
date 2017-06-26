@@ -26,6 +26,7 @@ const (
 )
 
 var bytesTable = map[string]uint64{
+	"":  Byte,
 	"b": Byte,
 
 	"kib": Kibibyte,
