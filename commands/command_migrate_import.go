@@ -50,15 +50,16 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				return t, nil
 			}
 
-			if tracked.Cardinality() == 0 {
+			ours := tracked
+			if ours.Cardinality() == 0 {
 				// If there were no explicitly tracked
 				// --include, --exclude filters, assume that the
 				// include set is the wildcard filepath
 				// extensions of files tracked.
-				tracked = exts
+				ours = exts
 			}
 
-			attrs, err := trackedFromAttrs(db, t)
+			theirs, err := trackedFromAttrs(db, t)
 			if err != nil {
 				return nil, err
 			}
@@ -72,7 +73,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			// is present and has a diff between commits in the
 			// range of commits to migrate, those changes are
 			// preserved.
-			blob, err := trackedToBlob(db, attrs.Clone().Union(tracked))
+			blob, err := trackedToBlob(db, theirs.Clone().Union(ours))
 			if err != nil {
 				return nil, err
 			}
