@@ -20,6 +20,32 @@ assert_ref_unmoved() {
 
 # setup_multiple_local_branches creates a repository as follows:
 #
+#   A---B
+#        \
+#         refs/heads/master
+#
+# - Commit 'A' has 120, in a.txt, and a corresponding entry in .gitattributes.
+setup_local_branch_with_gitattrs() {
+  set -e
+
+  reponame="migrate-single-remote-branch-with-attrs"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+
+  git add a.txt
+  git commit -m "initial commit"
+
+  git lfs track "*.txt"
+  git lfs track "*.other"
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
+}
+
+# setup_multiple_local_branches creates a repository as follows:
+#
 #     B
 #    / \
 #   A   refs/heads/my-feature

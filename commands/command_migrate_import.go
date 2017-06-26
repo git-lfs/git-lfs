@@ -29,6 +29,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 	migrate(args, rewriter, &githistory.RewriteOptions{
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			if filepath.Base(path) == ".gitattributes" {
+				return b, nil
+			}
+
 			var buf bytes.Buffer
 
 			if err := clean(&buf, b.Contents, path, b.Size); err != nil {
@@ -115,7 +119,7 @@ func trackedFromFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 var (
 	// attrsCache maintains a cache from the hex-encoded SHA1 of a
 	// .gitattributes blob to the set of patterns parsed from that blob.
-	attrsCache map[string]*tools.OrderedSet
+	attrsCache = make(map[string]*tools.OrderedSet)
 )
 
 // trackedFromAttrs returns an ordered line-delimited set of the contents of a

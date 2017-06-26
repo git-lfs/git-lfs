@@ -281,3 +281,33 @@ begin_test "migrate import (include/exclude ref with filter)"
   echo "$feature_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
+
+begin_test "migrate import (existing .gitattributes)"
+(
+  set -e
+
+  setup_local_branch_with_gitattrs
+
+  pwd
+
+  master="$(git rev-parse refs/heads/master)"
+
+  txt_master_oid="$(calc_oid "$(git cat-file -p "$master:a.txt")")"
+
+  git lfs migrate import --include-ref=refs/heads/master --include="*.txt"
+
+  assert_local_object "$txt_master_oid" "120"
+
+  master="$(git rev-parse refs/heads/master)"
+  prev="$(git rev-parse refs/heads/master^1)"
+
+  diff -u <(git cat-file -p $master:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.other filter=lfs diff=lfs merge=lfs -text
+EOF)
+
+  diff -u <(git cat-file -p $prev:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+EOF)
+)
+end_test
