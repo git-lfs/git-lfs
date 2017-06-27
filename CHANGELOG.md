@@ -1,5 +1,93 @@
 # Git LFS Changelog
 
+## 2.2.0 (27 June, 2017)
+
+Git LFS v2.2.0 includes bug fixes, minor features, and a brand new `migrate`
+command. The `migrate` command rewrites commits, converting large files from
+Git blobs to LFS objects. The most common use case will fix a git push rejected
+for having large blobs:
+
+```
+$ git push origin master
+# ...
+remote: error: file a.psd is 1.2 gb; this exceeds github's file size limit of 100.00 mb
+to github.com:ttaylorr/demo.git
+ ! [remote rejected] master -> master (pre-receive hook declined)
+error: failed to push some refs to 'git@github.com:ttaylorr/demo.git'
+
+$ git lfs migrate info
+*.psd   1.2 GB   27/27 files(s)  100%
+
+$ git lfs migrate import --include="*.psd"
+migrate: Sorting commits: ..., done
+migrate: Rewriting commits: 100% (810/810), done
+  master        f18bb746d44e8ea5065fc779bb1acdf3cdae7ed8 -> 35b0fe0a7bf3ae6952ec9584895a7fb6ebcd498b
+migrate: Updating refs: ..., done
+
+$ git push origin
+Git LFS: (1 of 1 files) 1.2 GB / 1.2 GB
+# ...
+To github.com:ttaylorr/demo.git
+ * [new branch]      master -> master
+```
+
+The `migrate` command has detailed options described in the `git-lfs-migrate(1)`
+man page. Keep in mind that this is the first pass at such a command, so we
+expect there to be bugs and performance issues (especially on long git histories).
+Future updates to the command will be focused on improvements to allow full
+LFS transitions on large repositories.
+
+### Features
+
+* commands: add git-lfs-migrate(1) 'import' subcommand #2353 (@ttaylorr)
+* commands: add git-lfs-migrate(1) 'info' subcommand #2313 (@ttaylorr)
+* Implement status --json #2311 (@asottile)
+* commands/uploader: allow incomplete pushes #2199 (@ttaylorr)
+
+### Bugs
+
+* Retry on timeout or temporary errors #2312 (@jakub-m)
+* commands/uploader: don't verify locks if verification is disabled #2278 (@ttaylorr)
+* Fix tools.TranslateCygwinPath() on MSYS #2277 (@raleksandar)
+* commands/clone: add new flags since Git 2.9 #2251, #2252 (@ttaylorr)
+* Make pull return non-zero error code when some downloads failed #2237 (@seth2810)
+* tq/basic_download: guard against nil HTTP response #2227 (@ttaylorr)
+* Bugfix: cannot push to scp style URL #2198 (@jiangxin)
+* support lfs.<url>.* values where url does not include .git #2192 (@technoweenie)
+* commands: fix logged error not interpolating format qualifiers #2228 (@ttaylorr)
+* commands/help: print helptext to stdout for consistency with Git #2210 (@ttaylorr)
+
+### Misc
+
+* Minor cleanups in help index #2248 (@dpursehouse)
+* Add git-lfs-lock and git-lfs-unlock to help index #2232 (@dpursehouse)
+* packagecloud: add Debian 9 entry to formatted list #2211 (@ttaylorr)
+* Update Xenial is to use stretch packages #2212 (@andyneff)
+
+## 2.1.1 (19 May, 2017)
+
+Git LFS v2.1.1 ships with bug fixes and a security patch fixing a remote code
+execution vulnerability exploitable by setting a SSH remote via your
+repository's `.lfsconfig` to contain the string "-oProxyCommand". This
+vulnerability is only exploitable if an attacker has write access to your
+repository, or you clone a repository with a `.lfsconfig` file containing that
+string.
+
+### Bugs
+
+* Make pull return non-zero error code when some downloads failed #2245 (@seth2810, @technoweenie)
+* lfsapi: support cross-scheme redirection #2243 (@ttaylorr)
+* sanitize ssh options parsed from ssh:// url #2242 (@technoweenie)
+* filepathfilter: interpret as .gitignore syntax #2238 (@technoweenie)
+* tq/basic_download: guard against nil HTTP response #2229 (@ttaylorr)
+* commands: fix logged error not interpolating format qualifiers #2230 (@ttaylorr)
+
+### Misc
+
+* release: backport Debian 9-related changes #2244 (@ssgelm, @andyneff, @ttaylorr)
+* Add git-lfs-lock and git-lfs-unlock to help index #2240 (@dpursehouse)
+* config: allow multiple environments when calling config.Unmarshal #2224 (@ttaylorr)
+
 ## 2.1.0 (28 April, 2017)
 
 ### Features
