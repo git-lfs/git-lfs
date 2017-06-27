@@ -49,6 +49,8 @@ commands and low level ("plumbing") commands.
     Show errors from the git-lfs command.
 * git-lfs-ls-files(1):
     Show information about Git LFS files in the index and working tree.
+* git-lfs-migrate(1):
+    Migrate history to or from git-lfs
 * git-lfs-pull(1):
     Fetch LFS changes from the remote & checkout any required working tree files.
 * git-lfs-push(1):
