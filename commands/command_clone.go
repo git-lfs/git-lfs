@@ -153,7 +153,7 @@ func init() {
 		cmd.Flags().StringVarP(&cloneFlags.ShallowExclude, "shallow-exclude", "", "", "See 'git clone --help'")
 		cmd.Flags().BoolVarP(&cloneFlags.ShallowSubmodules, "shallow-submodules", "", false, "See 'git clone --help'")
 		cmd.Flags().BoolVarP(&cloneFlags.NoShallowSubmodules, "no-shallow-submodules", "", false, "See 'git clone --help'")
-		cmd.Flags().Int64VarP(&cloneFlags.Jobs, "jobs", "j", 1, "See 'git clone --help'")
+		cmd.Flags().Int64VarP(&cloneFlags.Jobs, "jobs", "j", -1, "See 'git clone --help'")
 
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
