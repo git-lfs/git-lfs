@@ -1,0 +1,18 @@
+git-lfs-fsck(1) -- Check GIT LFS files for consistency
+======================================================
+
+## SYNOPSIS
+
+`git lfs fsck`
+
+## DESCRIPTION
+
+Checks all GIT LFS files in the current HEAD for consistency.
+
+Corrupted files are moved to ".git/lfs/bad".
+
+## SEE ALSO
+
+git-lfs-ls-files(1), git-lfs-status(1).
+
+Part of the git-lfs(1) suite.

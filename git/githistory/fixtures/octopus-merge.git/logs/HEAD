@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 8be6d64cddab01f53381e9feafe50d95ca5e6629 Taylor Blau <me@ttaylorr.com> 1496421999 -0600	commit (initial): initial commit
+8be6d64cddab01f53381e9feafe50d95ca5e6629 8be6d64cddab01f53381e9feafe50d95ca5e6629 Taylor Blau <me@ttaylorr.com> 1496422012 -0600	checkout: moving from master to branch-a
+8be6d64cddab01f53381e9feafe50d95ca5e6629 251e6b3461a3b5adc6bab694d5ae1abc878edf85 Taylor Blau <me@ttaylorr.com> 1496422020 -0600	commit: a.txt: initial
+251e6b3461a3b5adc6bab694d5ae1abc878edf85 8be6d64cddab01f53381e9feafe50d95ca5e6629 Taylor Blau <me@ttaylorr.com> 1496422026 -0600	checkout: moving from branch-a to master
+8be6d64cddab01f53381e9feafe50d95ca5e6629 8be6d64cddab01f53381e9feafe50d95ca5e6629 Taylor Blau <me@ttaylorr.com> 1496422029 -0600	checkout: moving from master to branch-b
+8be6d64cddab01f53381e9feafe50d95ca5e6629 15805fe2044dc1a0508853e93d1a230bd94636be Taylor Blau <me@ttaylorr.com> 1496422035 -0600	commit: b.txt: initial
+15805fe2044dc1a0508853e93d1a230bd94636be 8be6d64cddab01f53381e9feafe50d95ca5e6629 Taylor Blau <me@ttaylorr.com> 1496422041 -0600	checkout: moving from branch-b to master
+8be6d64cddab01f53381e9feafe50d95ca5e6629 6c9ccaeb45446e3fa88cd5848a940fd34c18192b Taylor Blau <me@ttaylorr.com> 1496422044 -0600	merge branch-a branch-b: Merge made by the 'octopus' strategy.

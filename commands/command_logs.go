@@ -1,45 +1,13 @@
 package commands
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/spf13/cobra"
-)
-
-var (
-	logsCmd = &cobra.Command{
-		Use:   "logs",
-		Short: "View error logs",
-		Run:   logsCommand,
-	}
-
-	logsLastCmd = &cobra.Command{
-		Use:   "last",
-		Short: "View latest error log",
-		Run:   logsLastCommand,
-	}
-
-	logsShowCmd = &cobra.Command{
-		Use:   "show",
-		Short: "View a single error log",
-		Run:   logsShowCommand,
-	}
-
-	logsClearCmd = &cobra.Command{
-		Use:   "clear",
-		Short: "Clear all logs",
-		Run:   logsClearCommand,
-	}
-
-	logsBoomtownCmd = &cobra.Command{
-		Use:   "boomtown",
-		Short: "Trigger a sample error",
-		Run:   logsBoomtownCommand,
-	}
 )
 
 func logsCommand(cmd *cobra.Command, args []string) {
@@ -65,7 +33,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 	}
 
 	name := args[0]
-	by, err := ioutil.ReadFile(filepath.Join(lfs.LocalLogDir, name))
+	by, err := ioutil.ReadFile(filepath.Join(config.LocalLogDir, name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
 	}
@@ -75,36 +43,45 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 }
 
 func logsClearCommand(cmd *cobra.Command, args []string) {
-	err := os.RemoveAll(lfs.LocalLogDir)
+	err := os.RemoveAll(config.LocalLogDir)
 	if err != nil {
-		Panic(err, "Error clearing %s", lfs.LocalLogDir)
+		Panic(err, "Error clearing %s", config.LocalLogDir)
 	}
 
-	Print("Cleared %s", lfs.LocalLogDir)
+	Print("Cleared %s", config.LocalLogDir)
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	Debug("Debug message")
-	err := lfs.Errorf(errors.New("Inner error message!"), "Error!")
+	err := errors.Wrapf(errors.New("Inner error message!"), "Error")
 	Panic(err, "Welcome to Boomtown")
 	Debug("Never seen")
 }
 
 func sortedLogs() []string {
-	fileinfos, err := ioutil.ReadDir(lfs.LocalLogDir)
+	fileinfos, err := ioutil.ReadDir(config.LocalLogDir)
 	if err != nil {
 		return []string{}
 	}
 
-	names := make([]string, len(fileinfos))
-	for index, info := range fileinfos {
-		names[index] = info.Name()
+	names := make([]string, 0, len(fileinfos))
+	for _, info := range fileinfos {
+		if info.IsDir() {
+			continue
+		}
+		names = append(names, info.Name())
 	}
 
 	return names
 }
 
 func init() {
-	logsCmd.AddCommand(logsLastCmd, logsShowCmd, logsClearCmd, logsBoomtownCmd)
-	RootCmd.AddCommand(logsCmd)
+	RegisterCommand("logs", logsCommand, func(cmd *cobra.Command) {
+		cmd.AddCommand(
+			NewCommand("last", logsLastCommand),
+			NewCommand("show", logsShowCommand),
+			NewCommand("clear", logsClearCommand),
+			NewCommand("boomtown", logsBoomtownCommand),
+		)
+	})
 }

@@ -1,0 +1,39 @@
+skip_branch_with_pr: true
+
+environment:
+  GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
+  MSYSTEM: MINGW64
+
+clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
+
+install:
+  - rd C:\Go /s /q
+  - cinst golang --version 1.8.3 -y
+  - cinst InnoSetup -y
+  - refreshenv
+  - ps: |
+      echo "Go directories in machine PATH environment:"
+      [environment]::GetEnvironmentVariable("PATH","Machine").split(";") | Select-String -Pattern "\\go\\"
+      echo "Go directories in user PATH environment:"
+      [environment]::GetEnvironmentVariable("PATH","User").split(";") | Select-String -Pattern "\\go\\"
+      echo "Go directories in process PATH environment:"
+      [environment]::GetEnvironmentVariable("PATH","Process").split(";") | Select-String -Pattern "\\go\\"
+      echo "Go version information:"
+      go version
+
+build_script:
+  - bash --login -c 'GOARCH=386 script/bootstrap'
+  - mv bin\git-lfs.exe git-lfs-x86.exe
+  - bash --login -c 'GOARCH=amd64 script/bootstrap'
+  - mv bin\git-lfs.exe git-lfs-x64.exe
+
+after_build:
+  - iscc script\windows-installer\inno-setup-git-lfs-installer.iss
+
+test_script:
+  - bash --login script/cibuild
+
+artifacts:
+  - path: git-lfs-x86.exe
+  - path: git-lfs-x64.exe
+  - path: git-lfs-windows-*.exe

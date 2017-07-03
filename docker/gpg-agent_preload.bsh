@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+#Based off of https://github.com/andyneff/gpg_agent/blob/master/preload.bsh
+
+set -eu
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+IMAGE_NAME=andyneff/gpg_agent
+CONTAINER_NAME=git-lfs-gpg
+
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+
+if [[ $# > 0 ]] && [ "$1" == "-r" ]; then
+  ${CUR_DIR}/gpg-agent_stop.bsh
+  shift
+fi
+
+${CUR_DIR}/gpg-agent_start.bsh
+
+for (( x=0; x<10; x++ )); do
+  if $SUDO docker exec -it ${CONTAINER_NAME} bash -c \
+     "gpg-connect-agent --homedir="'${GNUPGHOME}'" /bye"; then
+    break
+  else
+    sleep 1
+  fi
+done
+
+if ls ${CUR_DIR}/*.key >/dev/null 2>&1; then
+  for file in ${CUR_DIR}/*.key; do
+    if [ -s $file ]; then
+      $SUDO docker cp $file ${CONTAINER_NAME}:/tmp/
+    fi
+  done
+fi
+
+$SUDO docker exec -it ${CONTAINER_NAME} script /dev/null -q -c ' \
+  for key in $(ls /tmp/*.key); do \
+    if [ -s $key ]; then \
+      gpg --import $key; \
+      gpg2 -o /dev/null -s /dev/null; \
+      rm -f /tmp/gpg-agent/*.gpg; \
+    fi \
+  done'

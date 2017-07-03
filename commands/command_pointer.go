@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -18,11 +18,6 @@ var (
 	pointerFile    string
 	pointerCompare string
 	pointerStdin   bool
-	pointerCmd     = &cobra.Command{
-		Use:   "pointer",
-		Short: "Build and compare pointers between different Git LFS implementations",
-		Run:   pointerCommand,
-	}
 )
 
 func pointerCommand(cmd *cobra.Command, args []string) {
@@ -52,14 +47,14 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size)
-		fmt.Printf("Git LFS pointer for %s\n\n", pointerFile)
+		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
+		fmt.Fprintf(os.Stderr, "Git LFS pointer for %s\n\n", pointerFile)
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
 		if comparing {
 			buildOid = gitHashObject(buf.Bytes())
-			fmt.Printf("\nGit blob OID: %s\n\n", buildOid)
+			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n\n", buildOid)
 		}
 	} else {
 		comparing = false
@@ -82,22 +77,22 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		if !pointerStdin {
 			pointerName = pointerCompare
 		}
-		fmt.Printf("Pointer from %s\n\n", pointerName)
+		fmt.Fprintf(os.Stderr, "Pointer from %s\n\n", pointerName)
 
 		if err != nil {
 			Error(err.Error())
 			os.Exit(1)
 		}
 
-		fmt.Printf(buf.String())
+		fmt.Fprintf(os.Stderr, buf.String())
 		if comparing {
 			compareOid = gitHashObject(buf.Bytes())
-			fmt.Printf("\nGit blob OID: %s\n", compareOid)
+			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n", compareOid)
 		}
 	}
 
 	if comparing && buildOid != compareOid {
-		fmt.Printf("\nPointers do not match\n")
+		fmt.Fprintf(os.Stderr, "\nPointers do not match\n")
 		os.Exit(1)
 	}
 
@@ -134,9 +129,9 @@ func gitHashObject(by []byte) string {
 }
 
 func init() {
-	flags := pointerCmd.Flags()
-	flags.StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
-	flags.StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
-	flags.BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
-	RootCmd.AddCommand(pointerCmd)
+	RegisterCommand("pointer", pointerCommand, func(cmd *cobra.Command) {
+		cmd.Flags().StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
+		cmd.Flags().StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
+		cmd.Flags().BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
+	})
 }

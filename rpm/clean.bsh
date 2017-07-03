@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -eu
+
+#Emulate the important parts of git clean -xdf for CentOS 6 full build
+
+CWD=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+
+rm -rv ${CWD}/BUILD ${CWD}/BUILDROOT ${CWD}/RPMS ${CWD}/SRPMS || :
+
+find ${CWD}/SOURCES -not -name git-lfs.repo -delete || :
+
+rm ${CWD}/SPECS/golang.spec || :
+
+rm ${CWD}/build.log || :
+

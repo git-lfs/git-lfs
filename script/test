@@ -1,19 +1,21 @@
-#!/bin/sh
-#/ Usage: script/test          # run all tests
+#!/usr/bin/env bash
+#/ Usage: script/test          # run all non-vendored tests
 #/        script/test <subdir> # run just a package's tests
 
 script/fmt
-script/bootstrap
-
-export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
-mkdir -p `dirname $LOCALSRCDIR`
-rm -f $LOCALSRCDIR
-ln -s `pwd` $LOCALSRCDIR
-
-GOPATH="`pwd`/.vendor"
-SUITE="./${1:-"lfs ./commands"}"
 if [ $# -gt 0 ]; then
-  shift
+    GO15VENDOREXPERIMENT=1 go test "./$@"
+else
+    # The following vendor test-exclusion grep-s typically need to match the same set in
+    # debian/rules variable DH_GOLANG_EXCLUDES, so update those when adding here.
+    GO15VENDOREXPERIMENT=1 go test \
+      $(GO15VENDOREXPERIMENT=1 go list ./... \
+          | grep -v "github.com/kr/pty" \
+          | grep -v "github.com/kr/text" \
+          | grep -v "github.com/olekukonko/ts" \
+          | grep -v "github.com/pkg/errors" \
+          | grep -v "github.com/stretchr/testify" \
+          | grep -v "github.com/xeipuuv/gojsonreference" \
+          | grep -v "github.com/xeipuuv/gojsonschema" \
+      )
 fi
-PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE -i "$@"
-PATH=$LOCALSRCDIR/bin:$PATH GOPATH=$GOPATH go test $SUITE "$@"

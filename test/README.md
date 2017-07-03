@@ -30,14 +30,13 @@ $ script/test lfs -run TestSuccessStatus -v
 github.com/kr/text
 github.com/cheggaaa/pb
 github.com/rubyist/tracerx
-github.com/technoweenie/go-contentaddressable
 github.com/kr/pretty
-github.com/github/git-lfs/git
-github.com/bmizerany/assert
+github.com/git-lfs/git-lfs/git
+github.com/technoweenie/assert
 === RUN TestSuccessStatus
 --- PASS: TestSuccessStatus (0.00 seconds)
 PASS
-ok  	_/Users/rick/github/git-lfs/lfs	0.011s
+ok  	_/Users/rick/git-lfs/git-lfs/lfs	0.011s
 ```
 
 [t]: http://golang.org/pkg/testing/
@@ -52,7 +51,7 @@ they run in separate OS processes.
 ```
 $ test/test-happy-path.sh
 compile git-lfs for test/test-happy-path.sh
-LFSTEST_URL=/Users/rick/github/git-lfs/test/remote/url LFSTEST_DIR=/Users/rick/github/git-lfs/test/remote lfstest-gitserver
+LFSTEST_URL=/Users/rick/git-lfs/git-lfs/test/remote/url LFSTEST_DIR=/Users/rick/git-lfs/git-lfs/test/remote lfstest-gitserver
 test: happy path ...                                               OK
 ```
 
@@ -68,8 +67,8 @@ There are a few environment variables that you can set to change the test suite
 behavior:
 
 * `GIT_LFS_TEST_DIR=path` - This sets the directory that is used as the current
-working directory of the tests. By default, this is `.tmp`. It's recommended
-that this is set to a directory outside of any Git repository.
+working directory of the tests. By default, this will be in your temp dir. It's
+recommended that this is set to a directory outside of any Git repository.
 * `GIT_LFS_TEST_MAXPROCS=N` - This tells `script/integration` how many tests to
 run in parallel.  Default: 4.
 * `KEEPTRASH=1` - This will leave the local repository data in a `tmp` directory
@@ -77,6 +76,9 @@ and the remote repository data in `test/remote`.
 * `SKIPCOMPILE=1` - This skips the Git LFS compilation step.  Speeds up the
 tests when you're running the same test script multiple times without changing
 any Go code.
+
+Also ensure that your `noproxy` environment variable contains `127.0.0.1` host,
+to allow git commands to reach the local Git server `lfstest-gitserver`.
 
 ### Test Suite
 
@@ -97,7 +99,7 @@ Tests live in this `./test` directory, and must have a unique name like:
 `test/test-happy-path.sh` for an example.
 
 ```
-#!/bin/sh
+#!/usr/bin/env bash
 
 . "test/testlib.sh"
 

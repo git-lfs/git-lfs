@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+#
+# Interactively generates a changelog over a range of commits:
+
+commit_summary() {
+  local hash=$1
+
+  pr=$(git show $hash | grep -o "#\([0-9]*\)" | cut -c 2-)
+  prjson="$(curl -n https://api.github.com/repos/git-lfs/git-lfs/pulls/$pr 2>/dev/null)"
+  title="$(echo $prjson | jq -r -e ".title")"
+  id="$(echo $prjson | jq -r -e ".number")"
+  author="$(echo $prjson | jq -r -e ".user.login")"
+
+  # If the title begins with "Backport", then strip everything until the actual
+  # pull-request title.
+  if grep -q "Backport" <(echo $title); then
+    title="$(echo $title | sed 's/^[^:]*: //g')"
+  fi
+
+  echo "* $title #$id (@$author)"
+}
+
+range=$1
+
+if [ "$range" = "" ]; then
+  echo "Usage: $0 [options] base..next"
+  exit 1
+fi
+
+features=""
+bugs=""
+misc=""
+
+for rev in $(git rev-list --merges --first-parent $range); do
+  git show $rev
+
+  processed=0
+  while [ $processed -eq 0 ]; do
+    echo "Categorize this change: [f,b,m,s,?] ?"
+    read -n 1 opt
+    echo ""
+
+    case $opt in
+      [fbms])
+        processed=1
+        ;;
+      ?)
+        echo "f - mark this merge as a feature"
+        echo "b - mark this merge as a bugfix"
+        echo "m - make this merge as a misc. change"
+        echo "s - skip this merge, excluding it from the changelog"
+        echo "? - display this help message"
+        ;;
+      *)
+        echo "Unknown option: $opt, try again."
+        ;;
+    esac
+  done
+
+  if [ $opt != "s" ]; then
+    summary="$(commit_summary $rev)"
+  fi
+
+  case $opt in
+    f)
+      features="$(printf "%s\n%s\n" "$features" "$summary")"
+      ;;
+    b)
+      bugs="$(printf "%s\n%s\n" "$bugs" "$summary")"
+      ;;
+    m)
+      misc="$(printf "%s\n%s\n" "$misc" "$summary")"
+      ;;
+  esac
+done
+
+echo "" >&2
+
+cat <<- EOF
+### Features
+$features
+
+### Bugs
+$bugs
+
+### Misc
+$misc
+EOF

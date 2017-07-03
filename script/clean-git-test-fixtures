@@ -1,9 +1,0 @@
-#!/bin/bash
-
-for p in commands/repos/*/ ; do
-  script/clean-git-test-fixture $p
-done
-
-for p in commands/repos/*/modules/*/ ; do
-  script/clean-git-test-fixture $p
-done

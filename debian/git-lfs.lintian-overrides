@@ -1,0 +1,6 @@
+# Go only produces static binaries so read-only relocations aren't possible
+hardening-no-relro usr/bin/git-lfs
+
+# strip disabled as golang upstream doesn't support it and it makes go
+# crash. See https://launchpad.net/bugs/1200255.
+unstripped-binary-or-object usr/bin/git-lfs

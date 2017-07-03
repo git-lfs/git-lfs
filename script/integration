@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 . "test/testenv.sh"
 set -e
@@ -13,7 +13,7 @@ atexit() {
     SHOW_LOGS=no
   fi
 
-  if [ "$SHOW_LOGS" = "yes" ]; then
+  if [ "$SHOW_LOGS" = "yes" ] && [ "$VERBOSE_LOGS" = "1" ]; then
     if [ -s "$REMOTEDIR/gitserver.log" ]; then
       echo ""
       echo "gitserver.log:"
@@ -41,10 +41,4 @@ fi
 
 setup
 
-parallel=${GIT_LFS_TEST_MAXPROCS:-4}
-
-echo "Running this maxprocs=$parallel"
-
-for file in test/test-*.sh; do
-  echo "0$(cat .$(basename $file).time 2>/dev/null || true) $file"
-done | sort -rnk1 | awk '{ print $2 }' | xargs -I % -P $parallel -n 1 /bin/sh -c % --batch
+GO15VENDOREXPERIMENT=1 GIT_LFS_TEST_MAXPROCS=$GIT_LFS_TEST_MAXPROCS GIT_LFS_TEST_DIR="$GIT_LFS_TEST_DIR" SHUTDOWN_LFS="no" go run script/*.go -cmd integration "$@"

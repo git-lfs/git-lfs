@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
-
-git config user.name || git config --global user.name "Git LFS Tests"
-git config user.email || git config --global user.email "git-lfs@example.com"
-
 script/test
-script/integration
+
+# re-run test to ensure GIT_TRACE output doesn't leak into the git package
+GIT_TRACE=1 script/test git
+
+VERBOSE_LOGS=1 script/integration

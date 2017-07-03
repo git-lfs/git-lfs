@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+#Based off of https://github.com/andyneff/gpg_agent/blob/master/start.bsh
+
+set -eu
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+IMAGE_NAME=andyneff/gpg_agent
+CONTAINER_NAME=git-lfs-gpg
+
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+
+if [ "$(docker inspect -f {{.State.Running}} ${CONTAINER_NAME})" != "true" ]; then
+  OTHER_OPTIONS=("-e" "GPG_DEFAULT_CACHE=${GPG_DEFAULT_CACHE:-31536000}")
+  OTHER_OPTIONS+=("-e" "GPG_MAX_CACHE=${GPG_MAX_CACHE:-31536000}")
+  
+  ${SUDO} docker run -d -t "${OTHER_OPTIONS[@]}" --name ${CONTAINER_NAME} ${IMAGE_NAME}
+fi

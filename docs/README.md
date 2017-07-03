@@ -1,7 +1,20 @@
-# Documentation TOC
+# Git LFS Documentation
 
-* The Client
-  * [Specification](spec.md)
-  * [Commands](man)
-* The Server
-  * [API](api.md)
+## Reference Manual
+
+Each Git LFS subcommand is documented in the [official man pages](man). Any of
+these can be viewed from the command also:
+
+```bash
+$ git lfs help <command>
+$ git lfs <command> -h
+```
+## Videos
+
+* [How to Work with Big Files](https://www.youtube.com/watch?v=uLR1RNqJ1Mw) -
+Quick intro to Git LFS.
+
+## Developer Docs
+
+Details of how the Git LFS client works are in the [official specification](spec.md).
+There is also an [API specification](api) that describes how the server works.

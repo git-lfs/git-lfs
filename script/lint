@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+deps=$(GO15VENDOREXPERIMENT=1 go list -f '{{join .Deps "\n"}}' . | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | grep -v "github.com/git-lfs/git-lfs")
+
+# exit 0 means non-vendored deps were found
+if [ $? -eq 0 ];
+then
+  echo "Non vendored dependencies found:"
+  for d in $deps; do echo "\t$d"; done
+  echo
+  echo "These dependencies should be tracked in 'glide.yaml'."
+  echo "Consider running "glide update" or "glide get" to vendor a new dependency."
+  exit 1
+else
+  echo "Looks good!"
+fi

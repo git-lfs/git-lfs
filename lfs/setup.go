@@ -1,126 +1,112 @@
 package lfs
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-
-	"github.com/github/git-lfs/git"
 )
 
 var (
-	valueRegexp           = regexp.MustCompile("\\Agit[\\-\\s]media")
-	NotInARepositoryError = errors.New("Not in a repository")
+	// prePushHook invokes `git lfs pre-push` at the pre-push phase.
+	prePushHook = NewStandardHook("pre-push", []string{
+		"#!/bin/sh\ngit lfs push --stdin $*",
+		"#!/bin/sh\ngit lfs push --stdin \"$@\"",
+		"#!/bin/sh\ngit lfs pre-push \"$@\"",
+		"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
+		"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
+	})
+	// postCheckoutHook invokes `git lfs post-checkout`
+	postCheckoutHook = NewStandardHook("post-checkout", []string{})
+	postCommitHook   = NewStandardHook("post-commit", []string{})
+	postMergeHook    = NewStandardHook("post-merge", []string{})
 
-	prePushHook     = "#!/bin/sh\ngit lfs pre-push \"$@\""
-	prePushUpgrades = map[string]bool{
-		"#!/bin/sh\ngit lfs push --stdin $*":     true,
-		"#!/bin/sh\ngit lfs push --stdin \"$@\"": true,
+	hooks = []*Hook{
+		prePushHook,
+		postCheckoutHook,
+		postCommitHook,
+		postMergeHook,
+	}
+
+	filters = &Attribute{
+		Section: "filter.lfs",
+		Properties: map[string]string{
+			"clean":    "git-lfs clean -- %f",
+			"smudge":   "git-lfs smudge -- %f",
+			"process":  "git-lfs filter-process",
+			"required": "true",
+		},
+		Upgradeables: map[string][]string{
+			"clean":   []string{"git-lfs clean %f"},
+			"smudge":  []string{"git-lfs smudge %f"},
+			"process": []string{"git-lfs filter"},
+		},
+	}
+
+	passFilters = &Attribute{
+		Section: "filter.lfs",
+		Properties: map[string]string{
+			"clean":    "git-lfs clean -- %f",
+			"smudge":   "git-lfs smudge --skip -- %f",
+			"process":  "git-lfs filter-process --skip",
+			"required": "true",
+		},
+		Upgradeables: map[string][]string{
+			"clean":   []string{"git-lfs clean %f"},
+			"smudge":  []string{"git-lfs smudge --skip %f"},
+			"process": []string{"git-lfs filter --skip"},
+		},
 	}
 )
 
-type HookExists struct {
-	Name     string
-	Path     string
-	Contents string
+// Get user-readable manual install steps for hooks
+func GetHookInstallSteps() string {
+	var buf bytes.Buffer
+	for _, h := range hooks {
+		buf.WriteString(fmt.Sprintf("Add the following to .git/hooks/%s :\n\n", h.Type))
+		buf.WriteString(h.Contents)
+		buf.WriteString("\n")
+	}
+	return buf.String()
 }
 
-func (e *HookExists) Error() string {
-	return fmt.Sprintf("Hook already exists: %s\n\n%s\n", e.Name, e.Contents)
-}
-
+// InstallHooks installs all hooks in the `hooks` var.
 func InstallHooks(force bool) error {
-	if !InRepo() {
-		return NotInARepositoryError
-	}
-
-	if err := os.MkdirAll(filepath.Join(LocalGitDir, "hooks"), 0755); err != nil {
-		return err
-	}
-
-	hookPath := filepath.Join(LocalGitDir, "hooks", "pre-push")
-	if _, err := os.Stat(hookPath); err == nil && !force {
-		return upgradeHookOrError(hookPath, "pre-push", prePushHook, prePushUpgrades)
-	}
-
-	return ioutil.WriteFile(hookPath, []byte(prePushHook+"\n"), 0755)
-}
-
-func upgradeHookOrError(hookPath, hookName, hook string, upgrades map[string]bool) error {
-	file, err := os.Open(hookPath)
-	if err != nil {
-		return err
-	}
-
-	by, err := ioutil.ReadAll(io.LimitReader(file, 1024))
-	file.Close()
-	if err != nil {
-		return err
-	}
-
-	contents := strings.TrimSpace(string(by))
-	if contents == hook {
-		return nil
-	}
-
-	if upgrades[contents] {
-		return ioutil.WriteFile(hookPath, []byte(hook+"\n"), 0755)
-	}
-
-	return &HookExists{hookName, hookPath, contents}
-}
-
-func InstallFilters() error {
-	if err := setFilter("clean"); err != nil {
-		return err
-	}
-	if err := setFilter("smudge"); err != nil {
-		return err
-	}
-	if err := requireFilters(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func setFilter(filterName string) error {
-	key := fmt.Sprintf("filter.lfs.%s", filterName)
-	value := fmt.Sprintf("git lfs %s %%f", filterName)
-
-	existing := git.Config.Find(key)
-	if shouldReset(existing) {
-		git.Config.UnsetGlobal(key)
-		git.Config.SetGlobal(key, value)
-	} else if existing != value {
-		return fmt.Errorf("The %s filter should be \"%s\" but is \"%s\"", filterName, value, existing)
+	for _, h := range hooks {
+		if err := h.Install(force); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func requireFilters() error {
-	key := "filter.lfs.required"
-	value := "true"
-
-	existing := git.Config.Find(key)
-	if shouldReset(existing) {
-		git.Config.UnsetGlobal(key)
-		git.Config.SetGlobal(key, value)
-	} else if existing != value {
-		return errors.New("Git LFS filters should be required but are not.")
+// UninstallHooks removes all hooks in range of the `hooks` var.
+func UninstallHooks() error {
+	for _, h := range hooks {
+		if err := h.Uninstall(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func shouldReset(value string) bool {
-	if len(value) == 0 {
-		return true
+// InstallFilters installs filters necessary for git-lfs to process normal git
+// operations. Currently, that list includes:
+//   - smudge filter
+//   - clean filter
+//
+// An error will be returned if a filter is unable to be set, or if the required
+// filters were not present.
+func InstallFilters(opt InstallOptions, passThrough bool) error {
+	if passThrough {
+		return passFilters.Install(opt)
 	}
-	return valueRegexp.MatchString(value)
+	return filters.Install(opt)
+}
+
+// UninstallFilters proxies into the Uninstall method on the Filters type to
+// remove all installed filters.
+func UninstallFilters(opt InstallOptions) error {
+	filters.Uninstall(opt)
+	return nil
 }

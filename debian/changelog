@@ -1,3 +1,189 @@
+git-lfs (2.2.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Rick Olson <technoweenie@gmail.com>  Tue, 27 Jun 2017 14:29:00 +0000
+
+git-lfs (2.1.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Taylor Blau <me@ttaylorr.com>  Fri, 19 May 2017 14:29:00 +0000
+
+git-lfs (2.1.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Taylor Blau <me@ttaylorr.com>  Fri, 28 Apr 2017 14:29:00 +0000
+
+git-lfs (2.0.2) stable; urgency=low
+
+  * New upstream version
+
+ -- Taylor Blau <me@ttaylorr.com>  Wed, 29 Mar 2017 14:29:00 +0000
+
+git-lfs (2.0.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Taylor Blau <me@ttaylorr.com>  Mon, 6 Mar 2017 14:29:00 +0000
+
+git-lfs (2.0.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Rick Olson <technoweenie@gmail.com>  Tue, 1 Mar 2017 14:29:00 +0000
+
+git-lfs (1.5.6) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 16 Feb 2017 14:29:00 +0000
+
+git-lfs (1.5.5) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 12 Jan 2017 14:29:00 +0000
+
+git-lfs (1.5.4) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Tue, 27 Dec 2016 14:29:00 +0000
+
+git-lfs (1.5.3) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Mon, 5 Dec 2016 14:29:00 +0000
+
+git-lfs (1.5.2) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Tue, 22 Nov 2016 14:29:00 +0000
+
+git-lfs (1.5.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Fri, 18 Nov 2016 14:29:00 +0000
+
+git-lfs (1.5.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 17 Nov 2016 14:29:00 +0000
+
+git-lfs (1.4.4) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Mon, 24 Oct 2016 14:29:00 +0000
+
+git-lfs (1.4.3) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Mon, 17 Oct 2016 14:29:00 +0000
+
+git-lfs (1.4.2) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Mon, 10 Oct 2016 14:29:00 +0000
+
+git-lfs (1.4.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Fri, 26 Aug 2016 14:29:00 +0000
+
+git-lfs (1.4.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Fri, 19 Aug 2016 14:29:00 +0000
+
+git-lfs (1.3.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Tue, 2 Aug 2016 14:29:00 +0000
+
+git-lfs (1.3.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 21 Jul 2016 14:29:00 +0000
+
+git-lfs (1.2.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 2 Jun 2016 14:29:00 +0000
+
+git-lfs (1.2.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 14 Apr 2016 14:29:00 +0000
+
+git-lfs (1.1.2) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Tue, 1 Mar 2016 14:29:00 +0000
+
+git-lfs (1.1.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Wed, 4 Feb 2016 14:29:00 +0000
+
+git-lfs (1.1.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Wed, 12 Nov 2015 14:29:00 +0000
+
+git-lfs (1.0.2) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Wed, 28 Oct 2015 14:29:00 +0000
+
+git-lfs (1.0.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Fri, 23 Oct 2015 14:29:00 +0000
+
+git-lfs (1.0.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 1 Oct 2015 14:29:00 +0000
+
+git-lfs (0.6.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Thu, 10 Sep 2015 14:29:00 +0000
+
+git-lfs (0.5.3) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Fri, 24 Jul 2015 20:43:00 +0000
+
+git-lfs (0.5.2) stable; urgency=low
+
+  * New upstream version
+
+ -- Stephen Gelman <gelman@getbraintree.com>  Fri, 12 Jun 2015 02:54:01 +0000
+
 git-lfs (0.5.1) stable; urgency=medium
 
   * Initial release.

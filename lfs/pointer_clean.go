@@ -6,51 +6,104 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type cleanedAsset struct {
-	File          *os.File
-	mediafilepath string
+	Filename string
 	*Pointer
 }
 
-type CleanedPointerError struct {
-	Bytes []byte
-}
-
-func (e *CleanedPointerError) Error() string {
-	return "Cannot clean a Git LFS pointer.  Skipping."
-}
-
-func PointerClean(reader io.Reader, size int64, cb CopyCallback) (*cleanedAsset, error) {
-	tmp, err := TempFile("")
+func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
+	extensions, err := config.Config.SortedExtensions()
 	if err != nil {
 		return nil, err
 	}
 
+	var oid string
+	var size int64
+	var tmp *os.File
+	var exts []*PointerExtension
+	if len(extensions) > 0 {
+		request := &pipeRequest{"clean", reader, fileName, extensions}
+
+		var response pipeResponse
+		if response, err = pipeExtensions(request); err != nil {
+			return nil, err
+		}
+
+		oid = response.results[len(response.results)-1].oidOut
+		tmp = response.file
+		var stat os.FileInfo
+		if stat, err = os.Stat(tmp.Name()); err != nil {
+			return nil, err
+		}
+		size = stat.Size()
+
+		for _, result := range response.results {
+			if result.oidIn != result.oidOut {
+				ext := NewPointerExtension(result.name, len(exts), result.oidIn)
+				exts = append(exts, ext)
+			}
+		}
+	} else {
+		oid, size, tmp, err = copyToTemp(reader, fileSize, cb)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pointer := NewPointer(oid, size, exts)
+	return &cleanedAsset{tmp.Name(), pointer}, err
+}
+
+func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
+	tmp, err = TempFile("")
+	if err != nil {
+		return
+	}
+
+	defer tmp.Close()
+
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
 
-	if size == 0 {
+	if fileSize == 0 {
 		cb = nil
 	}
 
-	by, _, err := DecodeFrom(reader)
-	if err == nil && len(by) < 512 {
-		return nil, &CleanedPointerError{by}
+	ptr, buf, err := DecodeFrom(reader)
+
+	by := make([]byte, blobSizeCutoff)
+	n, rerr := buf.Read(by)
+	by = by[:n]
+
+	if rerr != nil || (err == nil && len(by) < 512) {
+		err = errors.NewCleanPointerError(ptr, by)
+		return
 	}
 
-	multi := io.MultiReader(bytes.NewReader(by), reader)
-	written, err := CopyWithCallback(writer, multi, size, cb)
+	var from io.Reader = bytes.NewReader(by)
+	if int64(len(by)) < fileSize {
+		// If there is still more data to be read from the file, tack on
+		// the original reader and continue the read from there.
+		from = io.MultiReader(from, reader)
+	}
 
-	pointer := NewPointer(hex.EncodeToString(oidHash.Sum(nil)), written)
-	return &cleanedAsset{tmp, "", pointer}, err
-}
+	size, err = tools.CopyWithCallback(writer, from, fileSize, cb)
 
-func (a *cleanedAsset) Close() error {
-	return a.File.Close()
+	if err != nil {
+		return
+	}
+
+	oid = hex.EncodeToString(oidHash.Sum(nil))
+	return
 }
 
 func (a *cleanedAsset) Teardown() error {
-	return os.Remove(a.File.Name())
+	return os.Remove(a.Filename)
 }

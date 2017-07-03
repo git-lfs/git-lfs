@@ -1,111 +1,132 @@
-# Git Large File Storage [![Build Status](https://travis-ci.org/github/git-lfs.svg?branch=master)](https://travis-ci.org/github/git-lfs)
+# Git Large File Storage
+
+| Linux | macOS | Windows |
+| :---- | :------ | :---- |
+[ ![Linux build status][1]][2] | [![macOS build status][3]][4] | [![Windows build status][5]][6] |
+
+[1]: https://travis-ci.org/git-lfs/git-lfs.svg?branch=master
+[2]: https://travis-ci.org/git-lfs/git-lfs
+[3]: https://circleci.com/gh/git-lfs/git-lfs.svg?style=shield&circle-token=856152c2b02bfd236f54d21e1f581f3e4ebf47ad
+[4]: https://circleci.com/gh/git-lfs/git-lfs
+[5]: https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true
+[6]: https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
-binaries available for Mac, Windows, Linux, and FreeBSD.
+binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
+[Git LFS website][page] for an overview of features.
 
-## Features
-
-By design, every git repository contains every version of every file. But
-for some types of projects, this is not reasonable or even practical.
-Multiple revisions of a large file take up space quickly, slowing down
-repository operations and making fetches unwieldy.
-
-Git LFS overcomes this limitation by storing the metadata for large files in
-Git and syncing the file contents to a configurable [Git LFS
-server](docs/api.md). Some of the key features include:
-
-* Tight integration with Git means you don't have to change your workflow after
-the initial configuration.
-
-* Large files are synced separately to a configurable Git LFS server over HTTPS,
-so you are not limited in where you push your Git repository.
-
-* Large files are only synced from the server when they are checked out, so your
-local repository doesn't carry the weight of every version of every file when it
-is not needed.
-
-* The meta data stored in Git is extensible for future use. It currently
-includes a hash of the contents of the file, and the file size so clients can
-display a progress bar while downloading or opt out of a large download.
-
-* Clients and servers can make use of all the features of HTTPS, such as caching
-content locally on a CDN, resumable uploads and downloads, or performing
-requests in parallel for faster transfers.
-
-See the [ROADMAP](ROADMAP.md) for other planned and desired features.
-
-## Known Implementations
-
-- [GitHub.com](https://github.com/early_access/large_file_storage) (support coming soon!)
-- [github/lfs-test-server](https://github.com/github/lfs-test-server) (reference server implementation)
+[page]: https://git-lfs.github.com/
 
 ## Getting Started
 
-Download the [latest client][rel] and run the included install script.  The
-installer should run `git lfs init` for you, which sets up Git's global
-configuration settings for Git LFS.
+You can install Git LFS in several different ways, depending on your setup and
+preferences.
 
-[rel]: https://github.com/github/git-lfs/releases
+* Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs/install).  See the [Installation Guide](./INSTALLING.md) for details.
+* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.
+* Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs`.
+* [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
+* You can build it with Go 1.8.1+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
-### Configuration
+[rel]: https://github.com/git-lfs/git-lfs/releases
 
-Git LFS uses `.gitattributes` files to configure which are managed by Git LFS.
-Here is a sample one that saves zips and mp3s:
+Note: Git LFS requires Git v1.8.5 or higher.
 
-    $ cat .gitattributes
-    *.mp3 filter=lfs -crlf
-    *.zip filter=lfs -crlf
+Once installed, you need to setup the global Git hooks for Git LFS. This only
+needs to be done once per machine.
 
-Git LFS can manage `.gitattributes` for you:
+```bash
+$ git lfs install
+```
 
-    $ git lfs track "*.mp3"
-    Tracking *.mp3
+Now, it's time to add some large files to a repository. The first step is to
+specify file patterns to store with Git LFS. These file patterns are stored in
+`.gitattributes`.
 
-    $ git lfs track "*.zip"
-    Tracking *.zip
+```bash
+$ mkdir large-repo
+$ cd large-repo
+$ git init
 
-    $ git lfs track
-    Listing tracked paths
-        *.mp3 (.gitattributes)
-        *.zip (.gitattributes)
+# Add all zip files through Git LFS
+$ git lfs track "*.zip"
+```
 
-    $ git lfs untrack "*.zip"
-    Untracking *.zip
+Now you're ready to push some commits:
 
-    $ git lfs track
-    Listing tracked paths
-        *.mp3 (.gitattributes)
-
-### Pushing commits
-
-Once setup, you're ready to push some commits:
-
-    $ git add my.zip
-    $ git commit -m "add zip"
+```bash
+$ git add .gitattributes
+$ git add my.zip
+$ git commit -m "add zip"
+```
 
 You can confirm that Git LFS is managing your zip file:
 
-    $ git lfs ls-files
-    my.zip
+```bash
+$ git lfs ls-files
+my.zip
+```
 
 Once you've made your commits, push your files to the Git remote:
 
-    $ git push origin master
-    Sending my.zip
-    12.58 MB / 12.58 MB  100.00 %
-    Counting objects: 2, done.
-    Delta compression using up to 8 threads.
-    Compressing objects: 100% (5/5), done.
-    Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
-    Total 5 (delta 1), reused 0 (delta 0)
-    To https://github.com/github/git-lfs-test
-       67fcf6a..47b2002  master -> master
+```bash
+$ git push origin master
+Sending my.zip
+LFS: 12.58 MB / 12.58 MB  100.00 %
+Counting objects: 2, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
+Total 5 (delta 1), reused 0 (delta 0)
+To https://github.com/git-lfs/git-lfs-test
+   67fcf6a..47b2002  master -> master
+```
 
-See the [Git LFS overview](https://github.com/github/git-lfs/tree/master/docs)
-and [man pages](https://github.com/github/git-lfs/tree/master/docs/man).
+## Need Help?
+
+You can get help on specific commands directly:
+
+```bash
+$ git lfs help <subcommand>
+```
+
+The [official documentation](docs) has command references and specifications for
+the tool. You can ask questions in the [Git LFS chat room][chat], or [file a new
+issue][ish]. Be sure to include details about the problem so we can
+troubleshoot it.
+
+1. Include the output of `git lfs env`, which shows how your Git environment
+is setup.
+2. Include `GIT_TRACE=1` in any bad Git commands to enable debug messages.
+3. If the output includes a message like `Errors logged to /path/to/.git/lfs/objects/logs/*.log`,
+throw the contents in the issue, or as a link to a Gist or paste site.
+
+[chat]: https://gitter.im/git-lfs/git-lfs
+[ish]: https://github.com/git-lfs/git-lfs/issues
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
-sending patches.
+sending patches. Related projects are listed on the [Implementations wiki
+page][impl]. You can also join [the project's chat room][chat].
+
+[impl]: https://github.com/git-lfs/git-lfs/wiki/Implementations
+
+### Using LFS from other Go code
+
+At the moment git-lfs is only focussed on the stability of its command line
+interface, and the [server APIs](docs/api/README.md). The contents of the
+source packages is subject to change. We therefore currently discourage other
+Go code from depending on the git-lfs packages directly; an API to be used by
+external Go code may be provided in future.
+
+## Core Team
+
+These are the humans that form the Git LFS core team, which runs the project.
+
+In alphabetical order:
+
+| [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) | [@ttaylorr](https://github.com/ttaylorr) |
+|---|---|---|---|---|
+| [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) | [![](https://avatars3.githubusercontent.com/u/443245?v=3&s=100)](https://github.com/ttaylorr) |

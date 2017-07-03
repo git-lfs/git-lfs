@@ -1,0 +1,46 @@
+machine:
+  environment:
+    GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
+    GIT_SOURCE_REPO: https://github.com/git/git.git
+    GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
+    GIT_LATEST_SOURCE_BRANCH: master
+    XCODE_SCHEME: test
+    XCODE_WORKSPACE: test
+    XCODE_PROJECT: test
+    GOPATH: $HOME/git-lfs/.go
+    NO_OPENSSL: YesPlease
+    APPLE_COMMON_CRYPTO: YesPlease
+  xcode:
+    version: 8.2
+
+general:
+  build_dir: .go/src/github.com/git-lfs/git-lfs
+
+checkout:
+  post:
+    - mkdir -p ~/git-lfs/.go/src/github.com/git-lfs
+    - ln -s ~/git-lfs ~/git-lfs/.go/src/github.com/git-lfs
+
+dependencies:
+  pre:
+    - brew update
+    - brew prune
+    - brew upgrade go || brew install go
+    - brew upgrade git || brew install git
+    - brew upgrade gettext || brew install gettext
+    - brew link --force gettext
+    - git clone $GIT_SOURCE_REPO git-source
+  override:
+    - script/bootstrap
+
+    # needed for git-lfs-test-server-api
+    - go get -d -v github.com/spf13/cobra
+    - go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
+
+test:
+  override:
+    - script/cibuild
+    - script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
+    - PATH="$HOME/bin:$PATH" SKIPCOMPILE=1 script/integration
+    - script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
+    - PATH="$HOME/bin:$PATH" SKIPCOMPILE=1 script/integration

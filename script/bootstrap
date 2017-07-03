@@ -1,14 +1,27 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -e
+
+if uname -s | grep -q "_NT-"; then
+  # Tell Cygwin / MSYS to really create symbolic links.
+  export CYGWIN="$CYGWIN winsymlinks:nativestrict"
+  export MSYS="$MSYS winsymlinks:nativestrict"
+fi
+
+if [ -z "$GOPATH" ]; then
+  export GOPATH="$(pwd)"
+  mkdir -p src/github.com/git-lfs
+  [ -h src/github.com/git-lfs/git-lfs ] ||
+    ln -s "$GOPATH" src/github.com/git-lfs/git-lfs
+fi
+
+if uname -s | grep -q "_NT-"; then
+  echo "Installing goversioninfo to embed resources into Windows executables..."
+  go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+  export PATH=$PATH:$GOPATH/bin/windows_386
+  echo "Creating the resource.syso version information file..."
+  go generate
+fi
 
 script/fmt
-
-rm -rf `pwd`/bin/*
-rm -rf `pwd`/.vendor/pkg
-
-export LOCALSRCDIR=`pwd`/.vendor/src/github.com/github/git-lfs
-mkdir -p `dirname $LOCALSRCDIR`
-rm -f $LOCALSRCDIR
-ln -s `pwd` $LOCALSRCDIR
-
-GOPATH="`pwd`/.vendor" \
-  go run script/*.go -cmd build "$@"
+rm -rf bin/*
+GO15VENDOREXPERIMENT=1 go run script/*.go -cmd build "$@"

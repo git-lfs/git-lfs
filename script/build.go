@@ -1,22 +1,28 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 var (
-	BuildOS    = flag.String("os", "", "OS to target: darwin, freebsd, linux, windows")
+	BuildOS    = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
 	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
 	BuildAll   = flag.Bool("all", false, "Builds all architectures")
+	BuildDwarf = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
 	ShowHelp   = flag.Bool("help", false, "Shows help")
 	matrixKeys = map[string]string{
 		"darwin":  "Mac",
@@ -25,68 +31,81 @@ var (
 		"windows": "Windows",
 		"amd64":   "AMD64",
 	}
+	LdFlags []string
 )
 
 func mainBuild() {
-	cmd, err := exec.Command("script/fmt").Output()
-	if err != nil {
-		panic(err)
-	}
-
-	if len(cmd) > 0 {
-		fmt.Println(string(cmd))
-	}
-
 	if *ShowHelp {
 		fmt.Println("usage: script/bootstrap [-os] [-arch] [-all]")
 		flag.PrintDefaults()
 		return
 	}
 
-	buildMatrix := make(map[string]Release)
+	fmt.Printf("Using %s\n", runtime.Version())
 
+	genOut, err := exec.Command("go", "generate", "./commands").CombinedOutput()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "go generate failed:\n%v", string(genOut))
+		os.Exit(1)
+	}
+	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+
+	if len(cmd) > 0 {
+		LdFlags = append(LdFlags, "-X", strings.TrimSpace(
+			"github.com/git-lfs/git-lfs/config.GitCommit="+string(cmd),
+		))
+	}
+	if !*BuildDwarf {
+		LdFlags = append(LdFlags, "-s", "-w")
+	}
+
+	buildMatrix := make(map[string]Release)
 	errored := false
 
 	if *BuildAll {
-		for _, buildos := range []string{"darwin", "freebsd", "linux", "windows"} {
-			for _, buildarch := range []string{"386", "amd64"} {
+		for _, buildos := range []string{"linux", "darwin", "freebsd", "windows"} {
+			for _, buildarch := range []string{"amd64", "386"} {
 				if err := build(buildos, buildarch, buildMatrix); err != nil {
 					errored = true
 				}
 			}
 		}
 	} else {
-		build(*BuildOS, *BuildArch, buildMatrix)
-		errored = true // skip build matrix stuff
+		if err := build(*BuildOS, *BuildArch, buildMatrix); err != nil {
+			log.Fatalln(err)
+		}
+		return // skip build matrix stuff
 	}
 
-	if !errored {
-		by, err := json.Marshal(buildMatrix)
-		if err != nil {
-			log.Fatalln("Error encoding build matrix to json:", err)
-		}
+	if errored {
+		os.Exit(1)
+	}
 
-		file, err := os.Create("bin/releases/build_matrix.json")
-		if err != nil {
-			log.Fatalln("Error creating build_matrix.json:", err)
-		}
+	by, err := json.Marshal(buildMatrix)
+	if err != nil {
+		log.Fatalln("Error encoding build matrix to json:", err)
+	}
 
-		written, err := file.Write(by)
-		file.Close()
+	file, err := os.Create("bin/releases/build_matrix.json")
+	if err != nil {
+		log.Fatalln("Error creating build_matrix.json:", err)
+	}
 
-		if err != nil {
-			log.Fatalln("Error writing build_matrix.json", err)
-		}
+	written, err := file.Write(by)
+	file.Close()
 
-		if jsonSize := len(by); written != jsonSize {
-			log.Fatalf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
-		}
+	if err != nil {
+		log.Fatalln("Error writing build_matrix.json", err)
+	}
+
+	if jsonSize := len(by); written != jsonSize {
+		log.Fatalf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
 	}
 }
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := "git-lfs-" + lfs.Version
+	name := "git-lfs-" + config.Version
 	dir := "bin"
 
 	if addenv {
@@ -94,15 +113,9 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 		dir = filepath.Join(dir, "releases", buildos+"-"+buildarch, name)
 	}
 
-	filepath.Walk("cmd/git-lfs", func(path string, info os.FileInfo, err error) error {
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-
-		cmd := filepath.Base(path)
-		cmd = cmd[0 : len(cmd)-3]
-		return buildCommand(path, dir, buildos, buildarch)
-	})
+	if err := buildCommand(dir, buildos, buildarch); err != nil {
+		return err
+	}
 
 	if addenv {
 		err := os.MkdirAll(dir, 0755)
@@ -121,25 +134,25 @@ func build(buildos, buildarch string, buildMatrix map[string]Release) error {
 	return nil
 }
 
-func buildCommand(path, dir, buildos, buildarch string) error {
+func buildCommand(dir, buildos, buildarch string) error {
 	addenv := len(buildos) > 0 && len(buildarch) > 0
-	name := filepath.Base(path)
-	name = name[0 : len(name)-3]
 
-	bin := filepath.Join(dir, name)
+	bin := filepath.Join(dir, "git-lfs")
 
 	if buildos == "windows" {
 		bin = bin + ".exe"
 	}
 
-	cmd := exec.Command("go", "build", "-o", bin, path)
+	args := make([]string, 1, 6)
+	args[0] = "build"
+	if len(LdFlags) > 0 {
+		args = append(args, "-ldflags", strings.Join(LdFlags, " "))
+	}
+	args = append(args, "-o", bin, ".")
+
+	cmd := exec.Command("go", args...)
 	if addenv {
-		cmd.Env = []string{
-			"GOOS=" + buildos,
-			"GOARCH=" + buildarch,
-			"GOPATH=" + os.Getenv("GOPATH"),
-			"GOROOT=" + os.Getenv("GOROOT"),
-		}
+		cmd.Env = buildGoEnv(buildos, buildarch)
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -149,15 +162,44 @@ func buildCommand(path, dir, buildos, buildarch string) error {
 	return err
 }
 
+func buildGoEnv(buildos, buildarch string) []string {
+	env := make([]string, 6, 9)
+	env[0] = "GOOS=" + buildos
+	env[1] = "GOARCH=" + buildarch
+	env[2] = "GOPATH=" + os.Getenv("GOPATH")
+	env[3] = "GOROOT=" + os.Getenv("GOROOT")
+	env[4] = "PATH=" + os.Getenv("PATH")
+	env[5] = "GO15VENDOREXPERIMENT=" + os.Getenv("GO15VENDOREXPERIMENT")
+	for _, key := range []string{"TMP", "TEMP", "TEMPDIR"} {
+		v := os.Getenv(key)
+		if len(v) == 0 {
+			continue
+		}
+		env = append(env, key+"="+v)
+	}
+	return env
+}
+
 func setupInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	textfiles := []string{
+		"README.md", "CHANGELOG.md",
+	}
+
 	if buildos == "windows" {
-		return winInstaller(buildos, buildarch, dir, buildMatrix)
+		return winInstaller(textfiles, buildos, buildarch, dir, buildMatrix)
 	} else {
-		return unixInstaller(buildos, buildarch, dir, buildMatrix)
+		return unixInstaller(textfiles, buildos, buildarch, dir, buildMatrix)
 	}
 }
 
-func unixInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+func unixInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	for _, filename := range textfiles {
+		cmd := exec.Command("cp", filename, filepath.Join(dir, filename))
+		if err := logAndRun(cmd); err != nil {
+			return err
+		}
+	}
+
 	fullInstallPath := filepath.Join(dir, "install.sh")
 	cmd := exec.Command("cp", "script/install.sh.example", fullInstallPath)
 	if err := logAndRun(cmd); err != nil {
@@ -169,29 +211,31 @@ func unixInstaller(buildos, buildarch, dir string, buildMatrix map[string]Releas
 	}
 
 	name := zipName(buildos, buildarch) + ".tar.gz"
-
-	addToMatrix(buildMatrix, buildos, buildarch, name)
-
 	cmd = exec.Command("tar", "czf", "../"+name, filepath.Base(dir))
 	cmd.Dir = filepath.Dir(dir)
-	return logAndRun(cmd)
-}
-
-func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string) {
-	buildMatrix[fmt.Sprintf("%s-%s", buildos, buildarch)] = Release{
-		Label:    releaseLabel(buildos, buildarch),
-		Filename: name,
-	}
-}
-
-func winInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release) error {
-	cmd := exec.Command("cp", "script/install.bat.example", filepath.Join(dir, "install.bat"))
 	if err := logAndRun(cmd); err != nil {
-		return err
+		return nil
+	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+	return nil
+}
+
+func winInstaller(textfiles []string, buildos, buildarch, dir string, buildMatrix map[string]Release) error {
+	for _, filename := range textfiles {
+		by, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+
+		winEndings := strings.Replace(string(by), "\n", "\r\n", -1)
+		err = ioutil.WriteFile(filepath.Join(dir, filename), []byte(winEndings), 0644)
+		if err != nil {
+			return err
+		}
 	}
 
 	installerPath := filepath.Dir(filepath.Dir(dir))
-
 	name := zipName(buildos, buildarch) + ".zip"
 	full := filepath.Join(installerPath, name)
 	matches, err := filepath.Glob(dir + "/*")
@@ -199,15 +243,45 @@ func winInstaller(buildos, buildarch, dir string, buildMatrix map[string]Release
 		return err
 	}
 
-	addToMatrix(buildMatrix, buildos, buildarch, name)
-
 	args := make([]string, len(matches)+2)
 	args[0] = "-j" // junk the zip paths
 	args[1] = full
 	copy(args[2:], matches)
 
-	cmd = exec.Command("zip", args...)
-	return logAndRun(cmd)
+	cmd := exec.Command("zip", args...)
+	if err := logAndRun(cmd); err != nil {
+		return err
+	}
+
+	addToMatrix(buildMatrix, buildos, buildarch, name)
+	return nil
+}
+
+func addToMatrix(buildMatrix map[string]Release, buildos, buildarch, name string) {
+	buildMatrix[fmt.Sprintf("%s-%s", buildos, buildarch)] = Release{
+		Label:    releaseLabel(buildos, buildarch),
+		Filename: name,
+		SHA256:   hashRelease(name),
+	}
+}
+
+func hashRelease(name string) string {
+	full := filepath.Join("bin/releases", name)
+	file, err := os.Open(full)
+	if err != nil {
+		fmt.Printf("unable to open release %q: %+v\n", full, err)
+		os.Exit(1)
+	}
+
+	defer file.Close()
+
+	h := sha256.New()
+	if _, err = io.Copy(h, file); err != nil {
+		fmt.Printf("error reading release %q: %+v\n", full, err)
+		os.Exit(1)
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func logAndRun(cmd *exec.Cmd) error {
@@ -222,7 +296,7 @@ func logAndRun(cmd *exec.Cmd) error {
 }
 
 func zipName(os, arch string) string {
-	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, lfs.Version)
+	return fmt.Sprintf("git-lfs-%s-%s-%s", os, arch, config.Version)
 }
 
 func releaseLabel(buildos, buildarch string) string {

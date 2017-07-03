@@ -1,43 +1,52 @@
 package commands
 
 import (
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
-var (
-	envCmd = &cobra.Command{
-		Use:   "env",
-		Short: "Show the current environment",
-		Run:   envCommand,
-	}
-)
-
 func envCommand(cmd *cobra.Command, args []string) {
-	config := lfs.Config
+	config.ShowConfigWarnings = true
+	endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.CurrentRemote)
 
-	endpoint := config.Endpoint()
+	gitV, err := git.Config.Version()
+	if err != nil {
+		gitV = "Error getting git version: " + err.Error()
+	}
+
+	Print(config.VersionDesc)
+	Print(gitV)
+	Print("")
 
 	if len(endpoint.Url) > 0 {
-		Print("Endpoint=%s", endpoint.Url)
+		access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
+		Print("Endpoint=%s (auth=%s)", endpoint.Url, access)
 		if len(endpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 		}
 	}
 
-	for _, remote := range config.Remotes() {
-		remoteEndpoint := config.RemoteEndpoint(remote)
-		Print("Endpoint (%s)=%s", remote, remoteEndpoint.Url)
-		if len(endpoint.SshUserAndHost) > 0 {
-			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
+	for _, remote := range cfg.Remotes() {
+		remoteEndpoint := getAPIClient().Endpoints.RemoteEndpoint("download", remote)
+		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
+		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess)
+		if len(remoteEndpoint.SshUserAndHost) > 0 {
+			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)
 		}
 	}
 
-	for _, env := range lfs.Environ() {
+	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
 		Print(env)
+	}
+
+	for _, key := range []string{"filter.lfs.process", "filter.lfs.smudge", "filter.lfs.clean"} {
+		value, _ := cfg.Git.Get(key)
+		Print("git config %s = %q", key, value)
 	}
 }
 
 func init() {
-	RootCmd.AddCommand(envCmd)
+	RegisterCommand("env", envCommand, nil)
 }

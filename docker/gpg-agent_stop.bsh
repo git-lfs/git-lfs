@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+#Based off of https://github.com/andyneff/gpg_agent/blob/master/stop.bsh
+
+set -eu
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+CONTAINER_NAME=git-lfs-gpg
+
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+
+function docker_wait(){
+  local set loop=0
+
+  while true; do
+    if [ "$($SUDO docker inspect -f {{.State.Running}} $1)" != "true" ]; then
+      return 0
+    else
+      if (( $loop >= $2 )); then
+        return 1
+      fi
+      sleep 1
+    fi
+    loop=$(( loop + 1 ))
+  done
+}
+
+if ! docker_wait ${CONTAINER_NAME} 0; then
+  $SUDO docker exec -it ${CONTAINER_NAME} pkill gpg-agent || :
+fi
+
+docker_wait ${CONTAINER_NAME} 10 || :
+
+$SUDO docker rm -f ${CONTAINER_NAME}

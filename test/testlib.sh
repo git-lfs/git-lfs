@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Usage: . testlib.sh
 # Simple shell command language test library.
 #
@@ -20,6 +20,8 @@
 # Copyright (c) 2011-13 by Ryan Tomayko <http://tomayko.com>
 # License: MIT
 
+fullfile="$(pwd)/$0"
+
 . "test/testenv.sh"
 set -e
 
@@ -33,9 +35,9 @@ atexit () {
 
   if [ $failures -gt 0 ]; then
     exit 1
-  else
-    exit 0
   fi
+
+  exit 0
 }
 
 # create the trash dir
@@ -49,10 +51,15 @@ GITSERVER=undefined
 if [ -s $LFS_URL_FILE ]; then
   SHUTDOWN_LFS=no
 else
-  setup
+  setup || {
+    failures=$(( failures + 1 ))
+    exit $?
+  }
 fi
 
 GITSERVER=$(cat "$LFS_URL_FILE")
+SSLGITSERVER=$(cat "$LFS_SSL_URL_FILE")
+CLIENTCERTGITSERVER=$(cat "$LFS_CLIENT_CERT_URL_FILE")
 cd "$TRASHDIR"
 
 # Mark the beginning of a test. A subshell should immediately follow this
@@ -68,7 +75,22 @@ begin_test () {
     exec 3>&1 4>&2
     out="$TRASHDIR/out"
     err="$TRASHDIR/err"
+    trace="$TRASHDIR/trace"
+
     exec 1>"$out" 2>"$err"
+
+    # enabling GIT_TRACE can cause Windows git to stall, esp with fd 5
+    # other fd numbers like 8/9 don't stall but still don't work, so disable
+    if [ $IS_WINDOWS -eq 0 ]; then
+      exec 5>"$trace"
+      export GIT_TRACE=5
+    fi
+
+    # reset global git config
+    HOME="$TRASHDIR/home"
+    rm -rf "$TRASHDIR/home"
+    mkdir "$HOME"
+    cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
 
     # allow the subshell to exit non-zero without exiting this process
     set -x +e
@@ -79,6 +101,8 @@ end_test () {
     test_status="${1:-$?}"
     set +x -e
     exec 1>&3 2>&4
+    # close fd 5 (GIT_TRACE)
+    exec 5>&-
 
     if [ "$test_status" -eq 0 ]; then
         printf "test: %-60s OK\n" "$test_description ..."
@@ -91,7 +115,12 @@ end_test () {
             echo "-- stderr --"
             grep -v -e '^\+ end_test' -e '^+ set +x' <"$TRASHDIR/err" |
                 sed 's/^/    /'
+            if [ $IS_WINDOWS -eq 0 ]; then
+                echo "-- git trace --"
+                sed 's/^/   /' <"$TRASHDIR/trace"
+            fi
         ) 1>&2
+        echo
     fi
     unset test_description
 }

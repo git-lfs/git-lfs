@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+#Test to see is using the repo installs really work
+
+CUR_DIR=$(dirname "${BASH_SOURCE[0]}")
+
+${CUR_DIR}/run_dockers.bsh centos_6_test centos_7_test debian_7_test debian_8_test "${@}"

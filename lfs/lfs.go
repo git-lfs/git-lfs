@@ -1,65 +1,124 @@
+// Package lfs brings together the core LFS functionality
+// NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package lfs
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
+	"sort"
 	"strings"
 
-	"github.com/github/git-lfs/git"
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 )
 
-const Version = "0.5.1"
-
 var (
 	LargeSizeThreshold = 5 * 1024 * 1024
-	TempDir            = filepath.Join(os.TempDir(), "git-lfs")
-	UserAgent          string
-	LocalWorkingDir    string
-	LocalGitDir        string
-	LocalMediaDir      string
-	LocalLogDir        string
-	checkedTempDir     string
 )
 
+// LocalMediaDir returns the root of lfs objects
+func LocalMediaDir() string {
+	if localstorage.Objects() != nil {
+		return localstorage.Objects().RootDir
+	}
+	return ""
+}
+
+func LocalObjectTempDir() string {
+	if localstorage.Objects() != nil {
+		return localstorage.Objects().TempDir
+	}
+	return ""
+}
+
+func TempDir() string {
+	return localstorage.TempDir
+}
+
 func TempFile(prefix string) (*os.File, error) {
-	if checkedTempDir != TempDir {
-		if err := os.MkdirAll(TempDir, 0774); err != nil {
-			return nil, err
-		}
-		checkedTempDir = TempDir
+	return localstorage.TempFile(prefix)
+}
+
+func LocalMediaPath(oid string) (string, error) {
+	return localstorage.Objects().BuildObjectPath(oid)
+}
+
+func LocalMediaPathReadOnly(oid string) string {
+	return localstorage.Objects().ObjectPath(oid)
+}
+
+func LocalReferencePath(sha string) string {
+	if config.LocalReferenceDir == "" {
+		return ""
 	}
-
-	return ioutil.TempFile(TempDir, prefix)
+	return filepath.Join(config.LocalReferenceDir, sha[0:2], sha[2:4], sha)
 }
 
-func ResetTempDir() error {
-	checkedTempDir = ""
-	return os.RemoveAll(TempDir)
+func ObjectExistsOfSize(oid string, size int64) bool {
+	path := localstorage.Objects().ObjectPath(oid)
+	return tools.FileExistsOfSize(path, size)
 }
 
-func LocalMediaPath(sha string) (string, error) {
-	path := filepath.Join(LocalMediaDir, sha[0:2], sha[2:4])
-	if err := os.MkdirAll(path, 0744); err != nil {
-		return "", fmt.Errorf("Error trying to create local media directory in '%s': %s", path, err)
-	}
-
-	return filepath.Join(path, sha), nil
-}
-
-func Environ() []string {
+func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
-	env := make([]string, 4, len(osEnviron)+4)
-	env[0] = fmt.Sprintf("LocalWorkingDir=%s", LocalWorkingDir)
-	env[1] = fmt.Sprintf("LocalGitDir=%s", LocalGitDir)
-	env[2] = fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir)
-	env[3] = fmt.Sprintf("TempDir=%s", TempDir)
+	env := make([]string, 0, len(osEnviron)+7)
+
+	api, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		// TODO(@ttaylorr): don't panic
+		panic(err.Error())
+	}
+
+	download := api.Endpoints.AccessFor(api.Endpoints.Endpoint("download", cfg.CurrentRemote).Url)
+	upload := api.Endpoints.AccessFor(api.Endpoints.Endpoint("upload", cfg.CurrentRemote).Url)
+
+	dltransfers := manifest.GetDownloadAdapterNames()
+	sort.Strings(dltransfers)
+	ultransfers := manifest.GetUploadAdapterNames()
+	sort.Strings(ultransfers)
+
+	fetchPruneConfig := cfg.FetchPruneConfig()
+
+	env = append(env,
+		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),
+		fmt.Sprintf("LocalGitDir=%s", config.LocalGitDir),
+		fmt.Sprintf("LocalGitStorageDir=%s", config.LocalGitStorageDir),
+		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
+		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
+		fmt.Sprintf("TempDir=%s", TempDir()),
+		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
+		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
+		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
+		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),
+		fmt.Sprintf("FetchRecentAlways=%v", fetchPruneConfig.FetchRecentAlways),
+		fmt.Sprintf("FetchRecentRefsDays=%d", fetchPruneConfig.FetchRecentRefsDays),
+		fmt.Sprintf("FetchRecentCommitsDays=%d", fetchPruneConfig.FetchRecentCommitsDays),
+		fmt.Sprintf("FetchRecentRefsIncludeRemotes=%v", fetchPruneConfig.FetchRecentRefsIncludeRemotes),
+		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
+		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
+		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
+		fmt.Sprintf("AccessDownload=%s", download),
+		fmt.Sprintf("AccessUpload=%s", upload),
+		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
+		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
+	)
+	if len(cfg.FetchExcludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(cfg.FetchExcludePaths(), ", ")))
+	}
+	if len(cfg.FetchIncludePaths()) > 0 {
+		env = append(env, fmt.Sprintf("FetchInclude=%s", strings.Join(cfg.FetchIncludePaths(), ", ")))
+	}
+	for _, ext := range cfg.Extensions() {
+		env = append(env, fmt.Sprintf("Extension[%d]=%s", ext.Priority, ext.Name))
+	}
 
 	for _, e := range osEnviron {
-		if !strings.Contains(e, "GIT_") {
+		if !strings.Contains(strings.SplitN(e, "=", 2)[0], "GIT_") {
 			continue
 		}
 		env = append(env, e)
@@ -69,114 +128,51 @@ func Environ() []string {
 }
 
 func InRepo() bool {
-	return LocalWorkingDir != ""
+	return config.LocalGitDir != ""
+}
+
+func ClearTempObjects() error {
+	if localstorage.Objects() == nil {
+		return nil
+	}
+	return localstorage.Objects().ClearTempObjects()
+}
+
+func ScanObjectsChan() <-chan localstorage.Object {
+	return localstorage.Objects().ScanObjectsChan()
 }
 
 func init() {
-	var err error
-
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
-
-	LocalWorkingDir, LocalGitDir, err = resolveGitDir()
-	if err == nil {
-		LocalMediaDir = filepath.Join(LocalGitDir, "lfs", "objects")
-		LocalLogDir = filepath.Join(LocalMediaDir, "logs")
-		TempDir = filepath.Join(LocalGitDir, "lfs", "tmp")
-
-		if err := os.MkdirAll(LocalMediaDir, 0744); err != nil {
-			panic(fmt.Errorf("Error trying to create objects directory in '%s': %s", LocalMediaDir, err))
+	if len(os.Getenv("GIT_TRACE")) < 1 {
+		if tt := os.Getenv("GIT_TRANSFER_TRACE"); len(tt) > 0 {
+			os.Setenv("GIT_TRACE", tt)
 		}
-
-		if err := os.MkdirAll(LocalLogDir, 0744); err != nil {
-			panic(fmt.Errorf("Error trying to create log directory in '%s': %s", LocalLogDir, err))
-		}
-
-		if err := os.MkdirAll(TempDir, 0744); err != nil {
-			panic(fmt.Errorf("Error trying to create temp directory in '%s': %s", TempDir, err))
-		}
-
 	}
-
-	gitVersion, err := git.Config.Version()
-	if err != nil {
-		gitVersion = "unknown"
-	}
-
-	UserAgent = fmt.Sprintf("git-lfs/%s (GitHub; %s %s; git %s; go %s)", Version,
-		runtime.GOOS,
-		runtime.GOARCH,
-		strings.Replace(gitVersion, "git version ", "", 1),
-		strings.Replace(runtime.Version(), "go", "", 1))
-}
-
-func resolveGitDir() (string, string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", "", err
-	}
-
-	return recursiveResolveGitDir(wd)
-}
-
-func recursiveResolveGitDir(dir string) (string, string, error) {
-	var cleanDir = filepath.Clean(dir)
-	if cleanDir[len(cleanDir)-1] == os.PathSeparator {
-		return "", "", fmt.Errorf("Git repository not found")
-	}
-
-	if filepath.Base(dir) == gitExt {
-		return filepath.Dir(dir), dir, nil
-	}
-
-	gitDir := filepath.Join(dir, gitExt)
-	info, err := os.Stat(gitDir)
-	if err != nil {
-		return recursiveResolveGitDir(filepath.Dir(dir))
-	}
-
-	if info.IsDir() {
-		return dir, gitDir, nil
-	}
-
-	return processDotGitFile(gitDir)
-}
-
-func processDotGitFile(file string) (string, string, error) {
-	f, err := os.Open(file)
-	defer f.Close()
-
-	if err != nil {
-		return "", "", err
-	}
-
-	data := make([]byte, 512)
-	n, err := f.Read(data)
-	if err != nil {
-		return "", "", err
-	}
-
-	contents := string(data[0:n])
-	wd, _ := os.Getwd()
-	if strings.HasPrefix(contents, gitPtrPrefix) {
-		dir := strings.TrimSpace(strings.Split(contents, gitPtrPrefix)[1])
-
-		if filepath.IsAbs(dir) {
-			// The .git file contains an absolute path.
-			return wd, dir, nil
-		}
-
-		// The .git file contains a relative path.
-		// Create an absolute path based on the directory the .git file is located in.
-		absDir := filepath.Join(filepath.Dir(file), dir)
-
-		return wd, absDir, nil
-	}
-
-	return wd, "", nil
 }
 
 const (
 	gitExt       = ".git"
 	gitPtrPrefix = "gitdir: "
 )
+
+// only used in tests
+func AllObjects() []localstorage.Object {
+	return localstorage.Objects().AllObjects()
+}
+
+func LinkOrCopyFromReference(oid string, size int64) error {
+	if ObjectExistsOfSize(oid, size) {
+		return nil
+	}
+	altMediafile := LocalReferencePath(oid)
+	mediafile, err := LocalMediaPath(oid)
+	if err != nil {
+		return err
+	}
+	if altMediafile != "" && tools.FileExistsOfSize(altMediafile, size) {
+		return LinkOrCopy(altMediafile, mediafile)
+	}
+	return nil
+}

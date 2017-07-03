@@ -1,86 +1,117 @@
 package commands
 
 import (
-	"bytes"
+	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
-	"github.com/github/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
 var (
-	smudgeInfo = false
-	smudgeCmd  = &cobra.Command{
-		Use:   "smudge",
-		Short: "Implements the Git smudge filter",
-		Run:   smudgeCommand,
-	}
+	// smudgeSkip is a command-line flag belonging to the "git-lfs smudge"
+	// command specifying whether to skip the smudge process.
+	smudgeSkip = false
 )
 
-func smudgeCommand(cmd *cobra.Command, args []string) {
-	requireStdin("This command should be run by the Git 'smudge' filter")
-	lfs.InstallHooks(false)
-
-	b := &bytes.Buffer{}
-	r := io.TeeReader(os.Stdin, b)
-
-	ptr, err := lfs.DecodePointer(r)
-	if err != nil {
-		mr := io.MultiReader(b, os.Stdin)
-		_, err := io.Copy(os.Stdout, mr)
+// smudge smudges the given `*lfs.Pointer`, "ptr", and writes its objects
+// contents to the `io.Writer`, "to".
+//
+// If the encoded LFS pointer is not parse-able as a pointer, the contents of
+// that file will instead be spooled to a temporary location on disk and then
+// copied out back to Git. If the pointer file is empty, an empty file will be
+// written with no error.
+//
+// If the smudged object did not "pass" the include and exclude filterset, it
+// will not be downloaded, and the object will remain a pointer on disk, as if
+// the smudge filter had not been applied at all.
+//
+// Any errors encountered along the way will be returned immediately if they
+// were non-fatal, otherwise execution will halt and the process will be
+// terminated by using the `commands.Panic()` func.
+func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
+	ptr, pbuf, perr := lfs.DecodeFrom(from)
+	if perr != nil {
+		n, err := tools.Spool(to, pbuf, localstorage.Objects().TempDir)
 		if err != nil {
-			Panic(err, "Error writing data to stdout:")
+			return errors.Wrap(err, perr.Error())
 		}
-		return
+
+		if n != 0 {
+			return errors.NewNotAPointerError(errors.Errorf(
+				"Unable to parse pointer at: %q", filename,
+			))
+		}
+		return nil
 	}
 
-	if smudgeInfo {
-		localPath, err := lfs.LocalMediaPath(ptr.Oid)
-		if err != nil {
-			Exit(err.Error())
-		}
-
-		stat, err := os.Stat(localPath)
-		if err != nil {
-			Print("%d --", ptr.Size)
-		} else {
-			Print("%d %s", stat.Size(), localPath)
-		}
-		return
-	}
-
-	filename := smudgeFilename(args, err)
+	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
-		Error(err.Error())
+		return err
 	}
 
-	err = ptr.Smudge(os.Stdout, filename, cb)
+	download := !skip
+	if download {
+		download = filter.Allows(filename)
+	}
+
+	err = ptr.Smudge(to, filename, download, getTransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
 
 	if err != nil {
-		ptr.Encode(os.Stdout)
-		LoggedError(err, "Error accessing media: %s (%s)", filename, ptr.Oid)
+		ptr.Encode(to)
+		// Download declined error is ok to skip if we weren't requesting download
+		if !(errors.IsDownloadDeclinedError(err) && !download) {
+			var oid string = ptr.Oid
+			if len(oid) >= 7 {
+				oid = oid[:7]
+			}
+
+			LoggedError(err, "Error downloading object: %s (%s): %s", filename, oid, err)
+			if !cfg.SkipDownloadErrors() {
+				os.Exit(2)
+			}
+		}
+	}
+
+	return nil
+}
+
+func smudgeCommand(cmd *cobra.Command, args []string) {
+	requireStdin("This command should be run by the Git 'smudge' filter")
+	lfs.InstallHooks(false)
+
+	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
+		smudgeSkip = true
+	}
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+
+	if err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
+		if errors.IsNotAPointerError(err) {
+			fmt.Fprintln(os.Stderr, err.Error())
+		} else {
+			Error(err.Error())
+		}
 	}
 }
 
-func smudgeFilename(args []string, err error) string {
+func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-
-	if smudgeErr, ok := err.(*lfs.SmudgeError); ok {
-		return filepath.Base(smudgeErr.Filename)
-	}
-
 	return "<unknown file>"
 }
 
 func init() {
-	smudgeCmd.Flags().BoolVarP(&smudgeInfo, "info", "i", false, "Display the local path and size of the smudged file.")
-	RootCmd.AddCommand(smudgeCmd)
+	RegisterCommand("smudge", smudgeCommand, func(cmd *cobra.Command) {
+		cmd.Flags().BoolVarP(&smudgeSkip, "skip", "s", false, "")
+	})
 }

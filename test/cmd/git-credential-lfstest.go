@@ -1,10 +1,13 @@
+// +build testtools
+
 package main
 
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"regexp"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,10 +18,15 @@ var (
 		"erase": noop,
 	}
 
-	delim = '\n'
-
-	hostRE = regexp.MustCompile(`\A127.0.0.1:\d+\z`)
+	delim    = '\n'
+	credsDir = ""
 )
+
+func init() {
+	if len(credsDir) == 0 {
+		credsDir = os.Getenv("CREDSDIR")
+	}
+}
 
 func main() {
 	if argsize := len(os.Args); argsize != 2 {
@@ -48,6 +56,7 @@ func fill() {
 			os.Exit(1)
 		}
 
+		fmt.Fprintf(os.Stderr, "CREDS RECV: %s\n", line)
 		creds[parts[0]] = strings.TrimSpace(parts[1])
 	}
 
@@ -56,22 +65,50 @@ func fill() {
 		os.Exit(1)
 	}
 
-	if _, ok := creds["username"]; !ok {
-		creds["username"] = "user"
-	}
-
-	if _, ok := creds["password"]; !ok {
-		creds["password"] = "pass"
-	}
-
-	if host := creds["host"]; !hostRE.MatchString(host) {
-		fmt.Fprintf(os.Stderr, "invalid host: %s, should be '127.0.0.1:\\d+'\n", host)
+	hostPieces := strings.SplitN(creds["host"], ":", 2)
+	user, pass, err := credsForHostAndPath(hostPieces[0], creds["path"])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
+	if user != "skip" {
+		if _, ok := creds["username"]; !ok {
+			creds["username"] = user
+		}
+
+		if _, ok := creds["password"]; !ok {
+			creds["password"] = pass
+		}
+	}
+
 	for key, value := range creds {
+		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, value)
 		fmt.Fprintf(os.Stdout, "%s=%s\n", key, value)
 	}
+}
+
+func credsForHostAndPath(host, path string) (string, string, error) {
+	hostFilename := filepath.Join(credsDir, host)
+
+	if len(path) > 0 {
+		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
+		u, p, err := credsFromFilename(pathFilename)
+		if err == nil {
+			return u, p, err
+		}
+	}
+
+	return credsFromFilename(hostFilename)
+}
+
+func credsFromFilename(file string) (string, string, error) {
+	userPass, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", "", fmt.Errorf("Error opening %q: %s", file, err)
+	}
+	credsPieces := strings.SplitN(strings.TrimSpace(string(userPass)), ":", 2)
+	return credsPieces[0], credsPieces[1], nil
 }
 
 func noop() {}

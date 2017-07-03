@@ -1,10 +1,27 @@
 #!/usr/bin/make -f
 
 export DH_OPTIONS
+export GO15VENDOREXPERIMENT=1
 
-BUILD_DIR := obj-$(DEB_BUILD_GNU_TYPE)
-export DH_GOPKG := github.com/github/git-lfs
+#dh_golang doesn't do this for you
+ifeq ($(DEB_HOST_ARCH), i386)
+	export GOARCH := 386
+else ifeq ($(DEB_HOST_ARCH), amd64)
+	export GOARCH := amd64
+else ifeq ($(DEB_HOST_ARCH), armhf)
+	export GOARCH := arm
+else ifeq ($(DEB_HOST_ARCH), arm64)
+	export GOARCH := arm64
+endif
+
+BUILD_DIR := obj-$(DEB_HOST_GNU_TYPE)
+export DH_GOPKG := github.com/git-lfs/git-lfs
+# DH_GOLANG_EXCLUDES typically incorporates vendor exclusions from script/test
+export DH_GOLANG_EXCLUDES := test github.com/olekukonko/ts/* github.com/xeipuuv/* github.com/spf13/cobra/* github.com/kr/* github.com/pkg/errors
 export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
+
+# by-default, dh_golang only copies *.go and other source - this upsets a bunch of vendor test routines
+export DH_GOLANG_INSTALL_ALL := 1
 
 %:
 	dh $@ --buildsystem=golang --with=golang
@@ -15,23 +32,32 @@ override_dh_clean:
 	dh_clean
 
 override_dh_auto_build:
-	for dir in .vendor/src/github.com/*; do \
-		ln -s ../../../$$dir $(BUILD_DIR)/src/github.com/; \
-	done
 	dh_auto_build
+	#dh_golang doesn't do anything here in deb 8, and it's needed in both
+	if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
+		cp -rf $(BUILD_DIR)/bin/*/* $(BUILD_DIR)/bin/; \
+		cp -rf $(BUILD_DIR)/pkg/*/* $(BUILD_DIR)/pkg/; \
+	fi
 	rm $(BUILD_DIR)/bin/script
+	rm $(BUILD_DIR)/bin/man
 	./script/man
 
 override_dh_strip:
 	# strip disabled as golang upstream doesn't support it and it makes go
 	# crash. See https://launchpad.net/bugs/1200255.
 
+override_dh_golang:
+	# The dh_golang is used to add the Built-using field to the deb.  This is only for reference.
+	# As of https://anonscm.debian.org/cgit/collab-maint/dh-golang.git/commit/script/dh_golang?id=7c3fbec6ea92294477fa8910264fe9bd823f21c3
+	# dh_golang errors out because the go compiler used was not installed via a package.  Therefore the step is skipped
+
 override_dh_auto_install:
 	mkdir -p debian/git-lfs/usr/bin
 	cp $(BUILD_DIR)/bin/git-lfs debian/git-lfs/usr/bin/
 
 override_dh_auto_test:
-	ln -s ../../../../../../commands/repos $(BUILD_DIR)/src/github.com/github/git-lfs/commands/repos
-	ln -s ../../../../bin $(BUILD_DIR)/src/github.com/github/git-lfs/bin
-	dh_auto_test
-	rm $(BUILD_DIR)/src/github.com/github/git-lfs/commands/repos $(BUILD_DIR)/src/github.com/github/git-lfs/bin
+	ln -s ../../../../../../commands/repos $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/commands/repos
+	ln -s ../../../../bin $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/bin
+	#dh_golang uses the wrong dir to test on. This tricks everything into being happy
+	DEB_BUILD_GNU_TYPE=$(DEB_HOST_GNU_TYPE) dh_auto_test
+	rm $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/commands/repos $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/bin

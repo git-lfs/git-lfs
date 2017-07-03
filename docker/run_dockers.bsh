@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+# Usage:
+#  ./run_dockers.bsh - Run all the docker images
+#  ./run_dockers.bsh centos_6 centos_7 - Run only CentOS 6 & 7 image
+#  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker
+#
+# Special Environmet Variables
+#  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
+#  DOCKER_AUTOPULL - Default 1. If set to 0, it will not build docker images
+#                before running
+#  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
+#                docker instance when done. This can be useful for a post mortem
+#                analysis. Just make sure you clean up the docker instances
+#                manually
+
+set -eu
+
+#Mingw32 auto converts /drive/dir/blah to drive:\dir\blah ... Can't have that.
+if [[ `uname` == MINGW* ]]; then
+  MINGW_PATCH='/'
+else
+  MINGW_PATCH=''
+fi
+
+CUR_DIR=$(cd $(dirname "${BASH_SOURCE[0]}"); pwd)
+REPO_DIR=$(cd ${CUR_DIR}/..; pwd)
+PACKAGE_DIR=${REPO_DIR}/repos
+mkdir -p ${PACKAGE_DIR}/centos || :
+mkdir -p ${PACKAGE_DIR}/debian || :
+
+#If you are not in docker group and you have sudo, default value is sudo
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+
+function split_image_name()
+{ #$1 - image dockerfile
+  #sets IMAGE_NAME to the basename of the dir containing the docker file
+  #sets IMAGE_INFO to be the array name following my pattern
+  local IFS=_
+  IMAGE_INFO=($1)
+}
+
+# Parse Arguments
+IMAGES=()
+while [[ $# > 0 ]]; do
+  if [ "$1" == "--" ]; then
+    shift
+    DOCKER_CMD="${@}"
+    break
+  else
+    IMAGES+=("$1")
+  fi
+  shift
+done
+
+if [[ ${#IMAGES[@]} == 0 ]]; then
+  IMAGES=(centos_6 centos_7 debian_7 debian_8 debian_9)
+fi
+
+mkdir -p "${PACKAGE_DIR}"
+#Run docker to build pacakges
+for IMAGE_NAME in "${IMAGES[@]}"; do
+  split_image_name "${IMAGE_NAME}" #set IMAGE_NAME and IMAGE_INFO
+
+  #Auto pull docker unless DOCKER_AUTOPULL=0
+  if [[ ${DOCKER_AUTOPULL-1} != 0 ]]; then
+    $SUDO docker pull gitlfs/build-dockers:${IMAGE_NAME}
+  fi
+
+  #It CAN'T be empty () with set -u... So I put some defaults in here
+  OTHER_OPTIONS=("-it")
+
+  if [ "${AUTO_REMOVE-1}" == "1" ]; then
+    OTHER_OPTIONS+=("--rm")
+  fi
+
+  if [ -s ${CUR_DIR}/${IMAGE_NAME}.key ]; then
+    CONTAINER_NAME=git-lfs-gpg ${CUR_DIR}/gpg-agent_preload.bsh
+    OTHER_OPTIONS+=("--volumes-from" "git-lfs-gpg")
+    OTHER_OPTIONS+=("-v" "${CUR_DIR}/${IMAGE_NAME}.key:${MINGW_PATCH}/tmp/${IMAGE_NAME}.key")
+    OTHER_OPTIONS+=("-e" "$(docker exec git-lfs-gpg cat ${MINGW_PATCH}/tmp/gpg-agent/gpg_agent_info)")
+    #Do I need this? Or can I get away with hardcoding???
+    #GPG_AGENT_INFO=/tmp/gpg-agent/S.gpg-agent:1:1
+  fi
+
+  FINAL_UID=$(id -u)
+  FINAL_GID=$(id -g)
+  if [[ $FINAL_UID == 0 ]]; then
+    FINAL_UID=${SUDO_UID-}
+  fi
+  if [[ $FINAL_GID == 0 ]]; then
+    FINAL_GID=${SUDO_GID-}
+  fi
+
+  echo Compiling LFS in docker image ${IMAGE_NAME}
+  IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[0]}"/"${IMAGE_INFO[1]}"
+  $SUDO docker run "${OTHER_OPTIONS[@]}" ${DOCKER_OTHER_OPTIONS-} \
+                   -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
+                   -e FINAL_UID=${FINAL_UID} \
+                   -e FINAL_GID=${FINAL_GID} \
+                   -v "${MINGW_PATCH}${REPO_DIR}:/src" \
+                   -v "${MINGW_PATCH}${IMAGE_REPO_DIR}:/repo" \
+                   gitlfs/build-dockers:${IMAGE_NAME} ${DOCKER_CMD-}
+
+done
+
+echo "Docker run completed successfully!"
