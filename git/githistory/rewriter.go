@@ -382,6 +382,12 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 		commits = append(commits, scanner.OID())
 	}
 
+	if len(commits) == 0 {
+		// If git-rev-list(1) returned an empty set, mark the log waiter
+		// (see above) as complete.
+		waiter.Complete()
+	}
+
 	if err = scanner.Err(); err != nil {
 		return nil, err
 	}
