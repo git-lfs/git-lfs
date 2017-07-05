@@ -252,3 +252,18 @@ begin_test "migrate info (doesn't show empty info entries)"
   assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
 )
 end_test
+
+begin_test "migrate info (empty set)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  migrate="$(git lfs migrate info \
+    --include-ref=refs/heads/master \
+    --exclude-ref=refs/heads/master 2>/dev/null
+  )"
+
+  [ "0" -eq "$(echo -n "$migrate" | wc -l | awk '{ print $1 }')" ]
+)
+end_test
