@@ -316,7 +316,7 @@ begin_test "migrate import (bare repository)"
 (
   set -e
 
-  setup_multiple_local_branches_bare
+  setup_multiple_local_branches
   make_bare
 
   git lfs migrate import \
