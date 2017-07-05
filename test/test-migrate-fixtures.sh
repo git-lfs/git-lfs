@@ -159,15 +159,6 @@ setup_multiple_remote_branches() {
   git checkout master
 }
 
-# setup_multiple_local_branches_bare creates an identical setup to that of
-# setup_multiple_local_branches, save that this is a bare version.
-#
-# See: setup_multiple_local_branches.
-setup_multiple_local_branches_bare() {
-  setup_multiple_remote_branches
-  make_bare
-}
-
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {
