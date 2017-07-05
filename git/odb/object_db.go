@@ -100,7 +100,7 @@ func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer buf.Close()
+	defer os.Rename(buf.Name())
 
 	sha, _, err := o.encodeBuffer(b, buf)
 	if err != nil {
@@ -168,7 +168,7 @@ func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []b
 	if err != nil {
 		return nil, 0, err
 	}
-	defer tmp.Close()
+	defer os.Remove(tmp.Name())
 
 	to := NewObjectWriter(tmp)
 	if _, err = to.WriteHeader(object.Type(), int64(cn)); err != nil {
