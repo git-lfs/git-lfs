@@ -8,11 +8,13 @@ import (
 )
 
 const (
+	defaultBatchSize           = 100
 	defaultMaxRetries          = 8
 	defaultConcurrentTransfers = 3
 )
 
 type Manifest struct {
+	batchSize int
 	// MaxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped.
 	maxRetries           int
@@ -62,6 +64,9 @@ func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 
 	var tusAllowed bool
 	if git := apiClient.GitEnv(); git != nil {
+		if v := git.Int("lfs.batchsize", 0); v > 0 {
+			m.batchSize = v
+		}
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
 		}
@@ -71,6 +76,10 @@ func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
 		tusAllowed = git.Bool("lfs.tustransfers", false)
 		configureCustomAdapters(git, m)
+	}
+
+	if m.batchSize < 1 {
+		m.batchSize = defaultBatchSize
 	}
 
 	if m.maxRetries < 1 {

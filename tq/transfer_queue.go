@@ -11,10 +11,6 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-const (
-	defaultBatchSize = 100
-)
-
 type retryCounter struct {
 	MaxRetries int `git:"lfs.transfer.maxretries"`
 
@@ -152,6 +148,7 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 		transfers: make(map[string]*objectTuple),
 		trMutex:   &sync.Mutex{},
 		manifest:  manifest,
+		batchSize: manifest.batchSize,
 		rc:        newRetryCounter(),
 	}
 
@@ -161,9 +158,6 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 
 	q.rc.MaxRetries = q.manifest.maxRetries
 
-	if q.batchSize <= 0 {
-		q.batchSize = defaultBatchSize
-	}
 	if q.bufferDepth <= 0 {
 		q.bufferDepth = q.batchSize
 	}
