@@ -94,8 +94,12 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		UpdateRefs: true,
 	})
 
-	if err := git.Checkout("", nil, true); err != nil {
-		ExitWithError(err)
+	if bare, _ := git.IsBare(); !bare {
+		// Only perform `git-checkout(1) -f` if the repository is
+		// non-bare.
+		if err := git.Checkout("", nil, true); err != nil {
+			ExitWithError(err)
+		}
 	}
 }
 
