@@ -108,6 +108,14 @@ begin_test "status --json"
 
   expected='{"files":{"file2.dat":{"status":"R","from":"file1.dat"}}}'
   [ "$expected" = "$(git lfs status --json)" ]
+
+  git commit -m "file1.dat -> file2.dat"
+
+  # Ensure status --json does not include non-lfs files
+  echo hi > test1.txt
+  git add test1.txt
+  expected='{"files":{}}'
+  [ "$expected" = "$(git lfs status --json)" ]
 )
 end_test
 
