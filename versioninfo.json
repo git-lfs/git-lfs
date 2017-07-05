@@ -13,6 +13,6 @@
 		"FileDescription": "Git LFS",
 		"LegalCopyright": "GitHub, Inc. and Git LFS contributors",
 		"ProductName": "Git Large File Storage (LFS)",
-		"ProductVersion": "2.2.0"
+		"ProductVersion": "2.2.1-pre"
 	}
 }
