@@ -100,7 +100,7 @@ func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer os.Rename(buf.Name())
+	defer os.Remove(buf.Name())
 
 	sha, _, err := o.encodeBuffer(b, buf)
 	if err != nil {
