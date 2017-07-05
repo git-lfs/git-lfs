@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cheggaaa/pb"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/git-lfs/tq"
 
 	"github.com/git-lfs/git-lfs/config"
@@ -72,7 +72,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 }
 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) error {
-	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, pb.FormatBytes(ptr.Size))
+	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
 
 	q := tq.NewTransferQueue(tq.Download, manifest, "")
 	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
