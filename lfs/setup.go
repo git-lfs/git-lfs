@@ -3,6 +3,8 @@ package lfs
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 var (
@@ -62,7 +64,7 @@ func GetHookInstallSteps() string {
 	var buf bytes.Buffer
 	for _, h := range hooks {
 		buf.WriteString(fmt.Sprintf("Add the following to .git/hooks/%s :\n\n", h.Type))
-		buf.WriteString(h.Contents)
+		buf.WriteString(tools.Indent(h.Contents))
 		buf.WriteString("\n")
 	}
 	return buf.String()
