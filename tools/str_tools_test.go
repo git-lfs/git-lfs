@@ -112,3 +112,21 @@ func TestLjustLeftJustifiesString(t *testing.T) {
 
 	assert.Equal(t, expected, Ljust(unjust))
 }
+
+func TestIndentIndentsStrings(t *testing.T) {
+	assert.Equal(t, "\tfoo\n\tbar", Indent("foo\nbar"))
+}
+
+func TestIndentIndentsSingleLineStrings(t *testing.T) {
+	assert.Equal(t, "\tfoo", Indent("foo"))
+}
+
+func TestIndentReturnsEmptyStrings(t *testing.T) {
+	assert.Equal(t, "", Indent(""))
+}
+
+func TestUndentRemovesLeadingWhitespace(t *testing.T) {
+	assert.Equal(t, "foo", Undent("\t\t\tfoo"))
+	assert.Equal(t, "foo", Undent("foo"))
+	assert.Equal(t, "foo", Undent("    foo"))
+}
