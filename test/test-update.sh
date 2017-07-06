@@ -158,6 +158,27 @@ Add the following to .git/hooks/post-merge :
 )
 end_test
 
+begin_test "update with leading spaces"
+(
+  set -e
+
+  reponame="update-leading-spaces"
+  git init "$reponame"
+  cd "$reponame"
+
+  [ "Updated git hooks." = "$(git lfs update)" ]
+
+  # $pre_push_hook contains leading TAB '\t' characters
+  pre_push_hook="#!/bin/sh
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }
+	git lfs pre-push \"\$@\""
+
+  echo -n "$pre_push_hook" > .git/hooks/pre-push
+
+  [ "Updated git hooks." = "$(git lfs update)" ]
+)
+end_test
+
 begin_test "update lfs.{url}.access"
 (
   set -e

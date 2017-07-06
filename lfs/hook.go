@@ -136,7 +136,7 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		return false, err
 	}
 
-	contents := strings.TrimSpace(string(by))
+	contents := strings.TrimSpace(tools.Undent(string(by)))
 	if contents == h.Contents || len(contents) == 0 {
 		return true, nil
 	}
