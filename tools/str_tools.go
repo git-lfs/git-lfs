@@ -112,3 +112,11 @@ func Indent(str string) string {
 	return indented
 }
 
+var (
+	tabRe = regexp.MustCompile(`(?m)^[ \t]+`)
+)
+
+// Undent removes all leading tabs in the given string "str", line-wise.
+func Undent(str string) string {
+	return tabRe.ReplaceAllString(str, "")
+}
