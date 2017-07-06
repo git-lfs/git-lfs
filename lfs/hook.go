@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 var (
@@ -146,5 +147,5 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		}
 	}
 
-	return false, fmt.Errorf("Hook already exists: %s\n\n%s\n", string(h.Type), contents)
+	return false, fmt.Errorf("Hook already exists: %s\n\n%s\n", string(h.Type), tools.Indent(contents))
 }

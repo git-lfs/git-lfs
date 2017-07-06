@@ -89,7 +89,7 @@ git lfs pre-push \"$@\""
   echo "test" > .git/hooks/post-merge
   expected="Hook already exists: pre-push
 
-test
+	test
 
 To resolve this, either:
   1: run \`git lfs update --manual\` for instructions on how to merge hooks.
