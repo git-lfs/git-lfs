@@ -90,9 +90,15 @@ func InstallHooks(force bool) error {
 // UninstallHooks removes all hooks in range of the `hooks` var.
 func UninstallHooks() error {
 	for _, h := range hooks {
+		tfmt := "Uninstall hook: %s"
+
 		if err := h.Uninstall(); err != nil {
+			tracerx.Printf(tfmt+"; %v", h.Type, err)
+
 			return err
 		}
+
+		tracerx.Printf(tfmt, h.Type)
 	}
 
 	return nil
