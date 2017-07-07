@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -38,7 +39,10 @@ func NewStandardHook(theType string, upgradeables []string) *Hook {
 
 func (h *Hook) Exists() bool {
 	_, err := os.Stat(h.Path())
-	return err == nil
+
+	tracerx.Printf("hook %s: stat: %q (exists: %t)", h.Type, h.Path, !os.IsNotExist(err))
+
+	return !os.IsNotExist(err)
 }
 
 // Path returns the desired (or actual, if installed) location where this hook
@@ -65,7 +69,10 @@ func (h *Hook) Dir() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
+	dir := h.Dir()
+
+	tracerx.Printf("hook %s: mkdirall %q", h.Type, dir)
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
 
@@ -80,7 +87,10 @@ func (h *Hook) Install(force bool) error {
 // end, and sets the mode to octal 0755. It writes to disk unconditionally, and
 // returns at any error.
 func (h *Hook) write() error {
-	return ioutil.WriteFile(h.Path(), []byte(h.Contents+"\n"), 0755)
+	path := h.Path()
+	tracerx.Printf("hook %s: write %q", h.Type, path)
+
+	return ioutil.WriteFile(path, []byte(h.Contents+"\n"), 0755)
 }
 
 // Upgrade upgrades the (assumed to be) existing git hook to the current
@@ -116,7 +126,10 @@ func (h *Hook) Uninstall() error {
 		return nil
 	}
 
-	return os.RemoveAll(h.Path())
+	path := h.Path()
+
+	tracerx.Printf("hook %s: remove: %s", h.Type, path)
+	return os.RemoveAll(path)
 }
 
 // matchesCurrent returns whether or not an existing git hook is able to be
@@ -137,11 +150,13 @@ func (h *Hook) matchesCurrent() (bool, error) {
 
 	contents := strings.TrimSpace(string(by))
 	if contents == h.Contents || len(contents) == 0 {
+		tracerx.Printf("hook %s: matches contents", h.Type)
 		return true, nil
 	}
 
 	for _, u := range h.Upgradeables {
 		if u == contents {
+			tracerx.Printf("hook %s: matches upgradable contents", h.Type)
 			return true, nil
 		}
 	}
