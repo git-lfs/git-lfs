@@ -1,5 +1,22 @@
 # Git LFS Changelog
 
+## 2.2.1 (10 July, 2017)
+
+### Bugs
+
+* git lfs status --json only includes lfs files #2374 (@asottile)
+* git/odb: remove temporary files after migration #2388 (@ttaylorr)
+* git/githistory: fix hanging on empty set of commits #2383 (@ttaylorr)
+* migrate: don't checkout HEAD on bare repositories #2389 (@ttaylorr)
+* git/odb: prevent cross-volume link error when saving objects #2382 (@ttaylorr)
+* commands: only pass --jobs to 'git clone' if set #2369 (@technoweenie)
+
+### Misc
+
+* lfs: trace hook install, uninstall, upgrade #2393 (@ttaylorr)
+* vendor: remove github.com/cheggaaa/pb #2386 (@ttaylorr)
+* Use FormatBytes from git-lfs/tools/humanize instead of cheggaaa/pb #2377 (@ssgelm)
+
 ## 2.2.0 (27 June, 2017)
 
 Git LFS v2.2.0 includes bug fixes, minor features, and a brand new `migrate`
