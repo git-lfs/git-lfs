@@ -3,8 +3,6 @@ package lfs
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -73,15 +71,9 @@ func GetHookInstallSteps() string {
 // InstallHooks installs all hooks in the `hooks` var.
 func InstallHooks(force bool) error {
 	for _, h := range hooks {
-		tfmt := "Install hook: %s (force=%t)"
-
 		if err := h.Install(force); err != nil {
-			tracerx.Printf(tfmt+"; %v", h.Type, force, err)
-
 			return err
 		}
-
-		tracerx.Printf(tfmt, h.Type, force)
 	}
 
 	return nil
@@ -90,15 +82,9 @@ func InstallHooks(force bool) error {
 // UninstallHooks removes all hooks in range of the `hooks` var.
 func UninstallHooks() error {
 	for _, h := range hooks {
-		tfmt := "Uninstall hook: %s"
-
 		if err := h.Uninstall(); err != nil {
-			tracerx.Printf(tfmt+"; %v", h.Type, err)
-
 			return err
 		}
-
-		tracerx.Printf(tfmt, h.Type)
 	}
 
 	return nil
