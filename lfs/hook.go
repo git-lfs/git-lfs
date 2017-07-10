@@ -69,10 +69,7 @@ func (h *Hook) Dir() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	dir := h.Dir()
-
-	tracerx.Printf("hook %s: mkdirall %q", h.Type, dir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
 		return err
 	}
 
