@@ -40,8 +40,6 @@ func NewStandardHook(theType string, upgradeables []string) *Hook {
 func (h *Hook) Exists() bool {
 	_, err := os.Stat(h.Path())
 
-	tracerx.Printf("hook %s: stat: %q (exists: %t)", h.Type, h.Path, !os.IsNotExist(err))
-
 	return !os.IsNotExist(err)
 }
 
