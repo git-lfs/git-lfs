@@ -30,11 +30,18 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
+	scanner, err := lfs.NewPointerScanner()
+	if err != nil {
+		scanner.Close()
+
+		ExitWithError(err)
+	}
+
 	if porcelain {
 		porcelainStagedPointers(scanIndexAt)
 		return
 	} else if statusJson {
-		jsonStagedPointers(scanIndexAt)
+		jsonStagedPointers(scanner, scanIndexAt)
 		return
 	}
 
@@ -42,13 +49,6 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	staged, unstaged, err := scanIndex(scanIndexAt)
 	if err != nil {
-		ExitWithError(err)
-	}
-
-	scanner, err := lfs.NewPointerScanner()
-	if err != nil {
-		scanner.Close()
-
 		ExitWithError(err)
 	}
 
@@ -238,7 +238,7 @@ type JSONStatus struct {
 	Files map[string]JSONStatusEntry `json:"files"`
 }
 
-func jsonStagedPointers(ref string) {
+func jsonStagedPointers(scanner *lfs.PointerScanner, ref string) {
 	staged, unstaged, err := scanIndex(ref)
 	if err != nil {
 		ExitWithError(err)
@@ -247,6 +247,15 @@ func jsonStagedPointers(ref string) {
 	status := JSONStatus{Files: make(map[string]JSONStatusEntry)}
 
 	for _, entry := range append(unstaged, staged...) {
+		_, fromSrc, err := blobInfoFrom(scanner, entry)
+		if err != nil {
+			ExitWithError(err)
+		}
+
+		if fromSrc != "LFS" {
+			continue
+		}
+
 		switch entry.Status {
 		case lfs.StatusRename, lfs.StatusCopy:
 			status.Files[entry.DstName] = JSONStatusEntry{
