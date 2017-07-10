@@ -82,10 +82,7 @@ func (h *Hook) Install(force bool) error {
 // end, and sets the mode to octal 0755. It writes to disk unconditionally, and
 // returns at any error.
 func (h *Hook) write() error {
-	path := h.Path()
-	tracerx.Printf("hook %s: write %q", h.Type, path)
-
-	return ioutil.WriteFile(path, []byte(h.Contents+"\n"), 0755)
+	return ioutil.WriteFile(h.Path(), []byte(h.Contents+"\n"), 0755)
 }
 
 // Upgrade upgrades the (assumed to be) existing git hook to the current
