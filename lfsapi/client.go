@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -185,7 +186,7 @@ func (c *Client) httpClient(host string) *http.Client {
 
 	concurrentTransfers := c.ConcurrentTransfers
 	if concurrentTransfers < 1 {
-		concurrentTransfers = 3
+		concurrentTransfers = 3 * runtime.NumCPU()
 	}
 
 	dialtime := c.DialTimeout

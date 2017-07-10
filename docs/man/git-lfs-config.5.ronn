@@ -62,7 +62,8 @@ be scoped inside the configuration for a remote.
 
 * `lfs.concurrenttransfers`
 
-  The number of concurrent uploads/downloads. Default 3.
+  The number of concurrent uploads/downloads. Default is 3 for every logical CPU
+  core allocated to the git-lfs process.
 
 * `lfs.basictransfersonly`
 

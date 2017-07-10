@@ -1,6 +1,7 @@
 package tq
 
 import (
+	"runtime"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
@@ -78,7 +79,7 @@ func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 	}
 
 	if m.concurrentTransfers < 1 {
-		m.concurrentTransfers = defaultConcurrentTransfers
+		m.concurrentTransfers = 3 * runtime.NumCPU()
 	}
 
 	configureBasicDownloadAdapter(m)
