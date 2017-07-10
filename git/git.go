@@ -802,6 +802,22 @@ func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
 	return actual >= atleast
 }
 
+// IsBare returns whether or not a repository is bare. It requires that the
+// current working directory is a repository.
+//
+// If there was an error determining whether or not the repository is bare, it
+// will be returned.
+func IsBare() (bool, error) {
+	s, err := subprocess.SimpleExec(
+		"git", "rev-parse", "--is-bare-repository")
+
+	if err != nil {
+		return false, err
+	}
+
+	return strconv.ParseBool(s)
+}
+
 // For compatibility with git clone we must mirror all flags in CloneWithoutFilters
 type CloneFlags struct {
 	// --template <template_directory>
