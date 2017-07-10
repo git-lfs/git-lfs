@@ -67,14 +67,18 @@ func (h *Hook) Dir() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
+	msg := fmt.Sprintf("Install hook: %s, force=%s, path=%s", h.Type, force, h.Path())
+
 	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
 		return err
 	}
 
 	if h.Exists() && !force {
+		tracerx.Printf(msg + ", upgrading...")
 		return h.Upgrade()
 	}
 
+	tracerx.Printf(msg)
 	return h.write()
 }
 
@@ -109,19 +113,20 @@ func (h *Hook) Uninstall() error {
 		return errors.New("Not in a git repository")
 	}
 
+	msg := fmt.Sprintf("Uninstall hook: %s, path=%s", h.Type, h.Path())
+
 	match, err := h.matchesCurrent()
 	if err != nil {
 		return err
 	}
 
 	if !match {
+		tracerx.Printf(msg + ", doesn't match...")
 		return nil
 	}
 
-	path := h.Path()
-
-	tracerx.Printf("hook %s: remove: %s", h.Type, path)
-	return os.RemoveAll(path)
+	tracerx.Printf(msg)
+	return os.RemoveAll(h.Path())
 }
 
 // matchesCurrent returns whether or not an existing git hook is able to be
