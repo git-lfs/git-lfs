@@ -142,13 +142,11 @@ func (h *Hook) matchesCurrent() (bool, error) {
 
 	contents := strings.TrimSpace(string(by))
 	if contents == h.Contents || len(contents) == 0 {
-		tracerx.Printf("hook %s: matches contents", h.Type)
 		return true, nil
 	}
 
 	for _, u := range h.Upgradeables {
 		if u == contents {
-			tracerx.Printf("hook %s: matches upgradable contents", h.Type)
 			return true, nil
 		}
 	}
