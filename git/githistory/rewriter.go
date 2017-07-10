@@ -366,6 +366,7 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 // If any error was encountered, it will be returned.
 func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 	waiter := r.l.Waiter("migrate: Sorting commits")
+	defer waiter.Complete()
 
 	scanner, err := git.NewRevListScanner(
 		opt.Include, opt.Exclude, r.scannerOpts())
@@ -375,10 +376,6 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 
 	var commits [][]byte
 	for scanner.Scan() {
-		if len(commits) == 0 {
-			waiter.Complete()
-		}
-
 		commits = append(commits, scanner.OID())
 	}
 
