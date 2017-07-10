@@ -67,7 +67,7 @@ func (h *Hook) Dir() string {
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
 func (h *Hook) Install(force bool) error {
-	msg := fmt.Sprintf("Install hook: %s, force=%s, path=%s", h.Type, force, h.Path())
+	msg := fmt.Sprintf("Install hook: %s, force=%t, path=%s", h.Type, force, h.Path())
 
 	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
 		return err
