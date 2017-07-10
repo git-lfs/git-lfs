@@ -159,6 +159,20 @@ setup_multiple_remote_branches() {
   git checkout master
 }
 
+# make_bare converts the existing full checkout of a repository into a bare one,
+# and then `cd`'s into it.
+make_bare() {
+  reponame=$(basename "$(pwd)")
+  mv .git "../$reponame.git"
+
+  cd ..
+
+  rm -rf "$reponame"
+  cd "$reponame.git"
+
+  git config --bool core.bare true
+}
+
 # remove_and_create_local_repo removes, creates, and checks out a local
 # repository given by a particular name:
 #
