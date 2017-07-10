@@ -60,6 +60,10 @@ be scoped inside the configuration for a remote.
 
   These settings control how the upload and download of LFS content occurs.
 
+* `lfs.batchsize`
+
+  The number of objects in a batch. Default 100.
+
 * `lfs.concurrenttransfers`
 
   The number of concurrent uploads/downloads. Default 3.
