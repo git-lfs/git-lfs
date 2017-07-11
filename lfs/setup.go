@@ -64,7 +64,7 @@ func GetHookInstallSteps() string {
 	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
 		steps = append(steps, fmt.Sprintf(
-			"Add the following to .git/hooks/%s :\n%s",
+			"Add the following to .git/hooks/%s:\n\n%s",
 			h.Type, tools.Indent(h.Contents)))
 	}
 
