@@ -26,6 +26,10 @@ filters if they are not already set.
 * `--local`:
     Sets the "lfs" smudge and clean filters in the local repository's git
     config, instead of the global git config (~/.gitconfig).
+* `--manual`:
+    Print instructions for manually updating your hooks to include git-lfs
+    functionality. Use this option if `git lfs install` fails because of existing
+    hooks and you want to retain their functionality.
 * `--system`:
     Sets the "lfs" smudge and clean filters in the system git config, e.g. /etc/gitconfig
     instead of the global git config (~/.gitconfig).

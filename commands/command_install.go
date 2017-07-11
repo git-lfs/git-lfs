@@ -11,6 +11,7 @@ import (
 var (
 	forceInstall      = false
 	localInstall      = false
+	manualInstall     = false
 	systemInstall     = false
 	skipSmudgeInstall = false
 	skipRepoInstall   = false
@@ -59,6 +60,16 @@ func cmdInstallOptions() lfs.InstallOptions {
 
 func installHooksCommand(cmd *cobra.Command, args []string) {
 	updateForce = forceInstall
+
+	// TODO(@ttaylorr): this is a hack since the `git-lfs-install(1)` calls
+	// into the function that implements `git-lfs-update(1)`. Given that,
+	// there is no way to pass flags into that function, other than
+	// hijacking the flags that `git-lfs-update(1)` already owns.
+	//
+	// At a later date, extract `git-lfs-update(1)`-related logic into its
+	// own function, and translate this flag as a boolean argument to it.
+	updateManual = manualInstall
+
 	updateCommand(cmd, args)
 }
 
@@ -69,6 +80,8 @@ func init() {
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
 		cmd.Flags().BoolVarP(&skipSmudgeInstall, "skip-smudge", "s", false, "Skip automatic downloading of objects on clone or pull.")
 		cmd.Flags().BoolVarP(&skipRepoInstall, "skip-repo", "", false, "Skip repo setup, just install global filters.")
+		cmd.Flags().BoolVarP(&manualInstall, "manual", "m", false, "Print instructions for manual install.")
+
 		cmd.AddCommand(NewCommand("hooks", installHooksCommand))
 		cmd.PreRun = setupLocalStorage
 	})
