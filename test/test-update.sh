@@ -112,22 +112,21 @@ To resolve this, either:
 
   # test manual steps
   expected="Add the following to .git/hooks/pre-push :
-
 	#!/bin/sh
 	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\n\"; exit 2; }
 	git lfs pre-push \"\$@\"
-Add the following to .git/hooks/post-checkout :
 
+Add the following to .git/hooks/post-checkout :
 	#!/bin/sh
 	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-checkout.\n\"; exit 2; }
 	git lfs post-checkout \"\$@\"
-Add the following to .git/hooks/post-commit :
 
+Add the following to .git/hooks/post-commit :
 	#!/bin/sh
 	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-commit.\n\"; exit 2; }
 	git lfs post-commit \"\$@\"
-Add the following to .git/hooks/post-merge :
 
+Add the following to .git/hooks/post-merge :
 	#!/bin/sh
 	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-merge.\n\"; exit 2; }
 	git lfs post-merge \"\$@\""
