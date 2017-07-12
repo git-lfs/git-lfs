@@ -58,7 +58,13 @@ be scoped inside the configuration for a remote.
 
 * `lfs.storage`
 
-  Allow override LFS storage directory. Default: lfs in Git repository directory.
+  Allow override LFS storage directory. Non-absolute path is relativized to
+  inside of Git repository directory (usually `.git`).
+
+  Note: you should not run `git lfs prune` if you have different repositories
+  sharing the same storage directory.
+
+  Default: `lfs` in Git repository directory (usually `.git/lfs`).
 
 ### Transfer (upload / download) settings
 
