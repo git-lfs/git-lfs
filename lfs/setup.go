@@ -1,8 +1,10 @@
 package lfs
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
+
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 var (
@@ -59,13 +61,14 @@ var (
 
 // Get user-readable manual install steps for hooks
 func GetHookInstallSteps() string {
-	var buf bytes.Buffer
+	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
-		buf.WriteString(fmt.Sprintf("Add the following to .git/hooks/%s :\n\n", h.Type))
-		buf.WriteString(h.Contents)
-		buf.WriteString("\n")
+		steps = append(steps, fmt.Sprintf(
+			"Add the following to .git/hooks/%s:\n\n%s",
+			h.Type, tools.Indent(h.Contents)))
 	}
-	return buf.String()
+
+	return strings.Join(steps, "\n\n")
 }
 
 // InstallHooks installs all hooks in the `hooks` var.

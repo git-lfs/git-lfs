@@ -112,3 +112,55 @@ func TestLjustLeftJustifiesString(t *testing.T) {
 
 	assert.Equal(t, expected, Ljust(unjust))
 }
+
+func TestIndentIndentsStrings(t *testing.T) {
+	assert.Equal(t, "\tfoo\n\tbar", Indent("foo\nbar"))
+}
+
+func TestIndentIndentsSingleLineStrings(t *testing.T) {
+	assert.Equal(t, "\tfoo", Indent("foo"))
+}
+
+func TestIndentReturnsEmptyStrings(t *testing.T) {
+	assert.Equal(t, "", Indent(""))
+}
+
+func TestUndentRemovesLeadingWhitespace(t *testing.T) {
+	assert.Equal(t, "foo", Undent("\t\t\tfoo"))
+	assert.Equal(t, "foo", Undent("foo"))
+	assert.Equal(t, "foo", Undent("    foo"))
+}
+
+func TestUndentRemovesPreservesLinebreaks(t *testing.T) {
+	// No leading space
+	assert.Equal(t, "\r\nfoo", Undent("\r\nfoo"))
+	assert.Equal(t, "foo\r\n", Undent("foo\r\n"))
+	assert.Equal(t, "\r\nfoo\r\n", Undent("\r\nfoo\r\n"))
+	assert.Equal(t, "\nfoo", Undent("\nfoo"))
+	assert.Equal(t, "foo\n", Undent("foo\n"))
+	assert.Equal(t, "\nfoo\n", Undent("\nfoo\n"))
+
+	// Trim leading space
+	assert.Equal(t, "\r\nfoo", Undent("\r\n  foo"))
+	assert.Equal(t, "foo\r\n", Undent("  foo\r\n"))
+	assert.Equal(t, "\r\nfoo\r\n", Undent("\r\n  foo\r\n"))
+	assert.Equal(t, "\nfoo", Undent("\n  foo"))
+	assert.Equal(t, "foo\n", Undent("  foo\n"))
+	assert.Equal(t, "\nfoo\n", Undent("\n  foo\n"))
+
+	// Preserve trailing space
+	assert.Equal(t, "\r\nfoo  ", Undent("\r\nfoo  "))
+	assert.Equal(t, "foo  \r\n", Undent("foo  \r\n"))
+	assert.Equal(t, "\r\nfoo  \r\n", Undent("\r\nfoo  \r\n"))
+	assert.Equal(t, "\nfoo  ", Undent("\nfoo  "))
+	assert.Equal(t, "foo  \n", Undent("foo  \n"))
+	assert.Equal(t, "\nfoo  \n", Undent("\nfoo  \n"))
+
+	// Trim leading space, preserve trailing space
+	assert.Equal(t, "\r\nfoo  ", Undent("\r\n  foo  "))
+	assert.Equal(t, "foo  \r\n", Undent("  foo  \r\n"))
+	assert.Equal(t, "\r\nfoo  \r\n", Undent("\r\n  foo  \r\n"))
+	assert.Equal(t, "\nfoo  ", Undent("\n  foo  "))
+	assert.Equal(t, "foo  \n", Undent("  foo  \n"))
+	assert.Equal(t, "\nfoo  \n", Undent("\n  foo  \n"))
+}
