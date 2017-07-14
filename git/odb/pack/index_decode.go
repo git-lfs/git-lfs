@@ -7,6 +7,16 @@ import (
 	"io"
 )
 
+const (
+	// MagicWidth is the width of the magic header of packfiles version 2
+	// and newer.
+	MagicWidth = 4
+	// VersionWidth is the width of the version following the magic header.
+	VersionWidth = 4
+	// V2Width is the total width of the header in V2.
+	V2Width = MagicWidth + VersionWidth
+)
+
 var (
 	// ErrShortFanout is an error representing situations where the entire
 	// fanout table could not be read, and is thus too short.
