@@ -15,6 +15,33 @@ const (
 	VersionWidth = 4
 	// V2Width is the total width of the header in V2.
 	V2Width = MagicWidth + VersionWidth
+
+	// FanoutEntries is the number of entries in the fanout table.
+	FanoutEntries = 256
+	// FanoutEntryWidth is the width of each entry in the fanout table.
+	FanoutEntryWidth = 4
+	// FanoutWidth is the width of the entire fanout table.
+	FanoutWidth = FanoutEntries * FanoutEntryWidth
+
+	// OffsetV2Start is the location of the first object outside of the V2
+	// header.
+	OffsetV2Start = V2Width + FanoutWidth
+
+	// ObjectNameWidth is the width of a SHA1 object name.
+	ObjectNameWidth = 20
+	// ObjectCRCWidth is the width of the CRC accompanying each object in
+	// V2.
+	ObjectCRCWidth = 4
+	// ObjectSmallOffsetWidth is the width of the small offset encoded into
+	// each object.
+	ObjectSmallOffsetWidth = 4
+	// ObjectLargeOffsetWidth is the width of the optional large offset
+	// encoded into the small offset.
+	ObjectLargeOffsetWidth = 8
+
+	// ObjectEntryV2Width is the width of one non-contiguous object entry in
+	// V2.
+	ObjectEntryV2Width = ObjectNameWidth + ObjectCRCWidth + ObjectSmallOffsetWidth
 )
 
 var (
@@ -66,6 +93,10 @@ func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
 		}
 
 		version := IndexVersion(binary.BigEndian.Uint32(vb))
+		switch version {
+		case V2:
+			return version, nil
+		}
 
 		return version, &UnsupportedVersionErr{uint32(version)}
 	}
