@@ -7,6 +7,11 @@ import (
 	"io"
 )
 
+const (
+	// V1Width is the total width of the header in V1.
+	V1Width = 0
+)
+
 var (
 	// ErrShortFanout is an error representing situations where the entire
 	// fanout table could not be read, and is thus too short.
