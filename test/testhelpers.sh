@@ -324,6 +324,22 @@ clone_repo() {
   echo "$out"
 }
 
+# clone_repo_url clones a Git repository to the subdirectory $dir under $TRASHDIR.
+# setup_remote_repo() needs to be run first. Output is written to clone.log.
+clone_repo_url() {
+  cd "$TRASHDIR"
+
+  local repo="$1"
+  local dir="$2"
+  echo "clone git repository $repo to $dir"
+  out=$(git clone "$repo" "$dir" 2>&1)
+  cd "$dir"
+
+  git config credential.helper lfstest
+  echo "$out" > clone.log
+  echo "$out"
+}
+
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
 # $dir under $TRASHDIR, using the SSL endpoint.

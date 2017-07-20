@@ -8,20 +8,34 @@ returned from the LFS API for a given object. The core client also supports
 extensions to allow resuming of downloads (via `Range` headers) and uploads (via
 the [tus.io](http://tus.io) protocol).
 
-In the LFS API request the client includes a list of transfer types it can
-support. When replying, the API server will pick the best one of these it
-supports, and make any necessary adjustments to the returned object actions so
-they will work with that transfer type.
-
-## Custom Transfer Types
-
 Some people might want to be able to transfer content in other ways, however.
-To enable this, git-lfs has an option to configure Custom Transfers, which are
+To enable this, git-lfs allows configuring Custom Transfers, which are
 simply processes which must adhere to the protocol defined later in this
 document. git-lfs will invoke the process at the start of all transfers,
 and will communicate with the process via stdin/stdout for each transfer.
 
-## Configuration
+## Custom Transfer Type Selection
+
+In the LFS API request, the client includes a list of transfer types it
+supports. When replying, the API server will pick one of these and make any
+necessary adjustments to the returned object actions, in case the the picked
+transfer type needs custom details about how to do each transfer.
+
+## Using a Custom Transfer Type without the API server
+
+In some cases the transfer agent can figure out by itself how and where
+the transfers should be made, without having to query the API server.
+In this case it's possible to use the custom transfer agent directly,
+without querying the server, by using the following config option:
+
+* `lfs.standalonetransferagent`
+
+  Allows the specified custom transfer agent to be used directly
+  for transferring files, without asking the server how the transfers
+  should be made. The custom transfer agent has to be defined in a
+  `lfs.customtransfer.<name>` settings group.
+
+## Defining a Custom Transfer Type
 
 A custom transfer process is defined under a settings group called
 `lfs.customtransfer.<name>`, where `<name>` is an identifier (see

@@ -25,6 +25,7 @@ type customAdapter struct {
 	args                string
 	concurrent          bool
 	originalConcurrency int
+	standalone          bool
 }
 
 // Struct to capture stderr and write to trace
@@ -266,7 +267,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	if err != nil {
 		return err
 	}
-	if rel == nil {
+	if rel == nil && !a.standalone {
 		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 	var req *customAdapterTransferRequest
@@ -335,8 +336,8 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	return nil
 }
 
-func newCustomAdapter(name string, dir Direction, path, args string, concurrent bool) *customAdapter {
-	c := &customAdapter{newAdapterBase(name, dir, nil), path, args, concurrent, 3}
+func newCustomAdapter(name string, dir Direction, path, args string, concurrent, standalone bool) *customAdapter {
+	c := &customAdapter{newAdapterBase(name, dir, nil), path, args, concurrent, 3, standalone}
 	// self implements impl
 	c.transferImpl = c
 	return c
@@ -365,7 +366,8 @@ func configureCustomAdapters(git Env, m *Manifest) {
 
 		// Separate closure for each since we need to capture vars above
 		newfunc := func(name string, dir Direction) Adapter {
-			return newCustomAdapter(name, dir, path, args, concurrent)
+			standalone := m.standaloneTransferAgent != ""
+			return newCustomAdapter(name, dir, path, args, concurrent, standalone)
 		}
 
 		if direction == "download" || direction == "both" {
