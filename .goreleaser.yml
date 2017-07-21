@@ -1,14 +1,31 @@
 project_name: git-lfs
+release:
+  github:
+    owner: git-lfs
+    name: git-lfs
+# brew:
+#   install: bin.install "git-lfs"
 builds:
-  -
-    main: git-lfs.go
-    binary: git-lfs
-    goos:
-      - darwin
-      - freebsd
-      - linux
-      - windows
-    goarch:
-      - amd64
-      - 386
-    ldflags: -X github.com/git-lfs/git-lfs/config.GitCommit={{.Commit}} -s -w
+- goos:
+  - linux
+  - darwin
+  - windows
+  - freebsd
+  goarch:
+  - amd64
+  - "386"
+  goarm:
+  - "6"
+  main: .
+  ldflags: -s -w -X main.commit={{.Commit}}
+  binary: git-lfs
+archive:
+  format: tar.gz
+  name_template: '{{ .Binary }}_{{.Version}}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
+    .Arm }}{{ end }}'
+  files:
+  - LICENSE.md
+  - README.md
+  - CHANGELOG.md
+snapshot:
+  name_template: SNAPSHOT-{{ .Commit }}
