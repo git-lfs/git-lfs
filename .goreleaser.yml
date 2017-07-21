@@ -1,0 +1,14 @@
+project_name: git-lfs
+builds:
+  -
+    main: git-lfs.go
+    binary: git-lfs
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - 386
+    ldflags: -X github.com/git-lfs/git-lfs/config.GitCommit={{.Commit}} -s -w
