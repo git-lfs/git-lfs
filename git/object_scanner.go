@@ -211,19 +211,24 @@ func (s *ObjectScanner) scan(oid string) (*object, error) {
 	}
 
 	fields := bytes.Fields(l)
-	if len(fields) < 3 {
-		return nil, errors.Errorf("invalid line: %q", l)
+	switch len(fields) {
+	case 2:
+		if string(fields[1]) == "missing" {
+			return nil, &missingErr{oid: oid}
+		}
+		break
+	case 3:
+		oid = string(fields[0])
+		typ := string(fields[1])
+		size, _ := strconv.Atoi(string(fields[2]))
+		contents := io.LimitReader(s.from, int64(size))
+
+		return &object{
+			Contents: contents.(*io.LimitedReader),
+			Oid:      oid,
+			Size:     int64(size),
+			Type:     typ,
+		}, nil
 	}
-
-	oid = string(fields[0])
-	typ := string(fields[1])
-	size, _ := strconv.Atoi(string(fields[2]))
-	contents := io.LimitReader(s.from, int64(size))
-
-	return &object{
-		Contents: contents.(*io.LimitedReader),
-		Oid:      oid,
-		Size:     int64(size),
-		Type:     typ,
-	}, nil
+	return nil, errors.Errorf("invalid line: %q", l)
 }
