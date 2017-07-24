@@ -1,8 +1,9 @@
 package pack
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 // IndexVersion is a constant type that represents the version of encoding used

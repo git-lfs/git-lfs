@@ -3,8 +3,9 @@ package pack
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
+
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 const (
