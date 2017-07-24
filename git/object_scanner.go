@@ -186,6 +186,19 @@ func (s *ObjectScanner) reset() error {
 	return nil
 }
 
+type missingErr struct {
+	oid string
+}
+
+func (m *missingErr) Error() string {
+	return fmt.Sprintf("missing object: %s", m.oid)
+}
+
+func IsMissingObject(err error) bool {
+	_, ok := err.(*missingErr)
+	return ok
+}
+
 // scan scans for and populates a new Git object given an OID.
 func (s *ObjectScanner) scan(oid string) (*object, error) {
 	if _, err := fmt.Fprintln(s.to, oid); err != nil {
