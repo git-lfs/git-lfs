@@ -43,7 +43,11 @@ func TestDecodeIndexV2InvalidFanout(t *testing.T) {
 
 	idx, err := DecodeIndex(bytes.NewReader(buf))
 
-  func TestDecodeIndexV1(t *testing.T) {
+	assert.Nil(t, idx)
+	assert.Equal(t, ErrShortFanout, err)
+}
+
+func TestDecodeIndexV1(t *testing.T) {
 	idx, err := DecodeIndex(bytes.NewReader(make([]byte, FanoutWidth)))
 
 	assert.NoError(t, err)
