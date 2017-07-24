@@ -336,8 +336,14 @@ func NewRetriableError(err error) error {
 }
 
 func parentOf(err error) error {
-	if c, ok := err.(errorWithCause); ok {
-		return c.Cause()
+	type causer interface {
+		Cause() error
+	}
+
+	if c, ok := err.(causer); ok {
+		if innerC, innerOk := c.Cause().(causer); innerOk {
+			return innerC.Cause()
+		}
 	}
 
 	return nil

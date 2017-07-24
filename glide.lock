@@ -1,5 +1,5 @@
-hash: 53d7484e21e3a93702191bef6c0d8a0f01082c9ab9c9c81fb9884ba31f31002e
-updated: 2017-07-05T09:11:19.970140093-06:00
+hash: c96d9438238597d9a70aa231b5a1a00ac2a961154bd76c01f5dec018d60145e1
+updated: 2017-07-17T20:26:21.026348832Z
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -16,7 +16,7 @@ imports:
 - name: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - name: github.com/pkg/errors
-  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
+  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/rubyist/tracerx
   version: d7bcc0bc315bed2a841841bee5dbecc8d7d7582f
 - name: github.com/spf13/cobra

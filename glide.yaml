@@ -33,4 +33,4 @@ import:
 - package: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 - package: github.com/pkg/errors
-  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
+  version: c605e284fe17294bda444b34710735b29d1a9d90
