@@ -90,7 +90,7 @@ func init() {
 	// Since we have an even distribution of SHA1s in the generated index,
 	// each entry will increase by the number of entries per slot (see: eps
 	// above).
-	fanout := make([]uint32, FanoutEntries)
+	fanout := make([]uint32, indexFanoutEntries)
 	for i := 0; i < len(fanout); i++ {
 		// Begin the index at (i+1), since the fanout table mandates
 		// objects less than the value at index "i".

@@ -13,7 +13,7 @@ var (
 		0xff, 0x74, 0x4f, 0x63,
 		0x00, 0x00, 0x00, 0x02,
 	}
-	V2IndexFanout = make([]uint32, FanoutEntries)
+	V2IndexFanout = make([]uint32, indexFanoutEntries)
 
 	V2IndexNames = []byte{
 		0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1,
@@ -90,12 +90,12 @@ func init() {
 		V2IndexFanout[i] = 3
 	}
 
-	fanout := make([]byte, FanoutWidth)
+	fanout := make([]byte, indexFanoutWidth)
 	for i, n := range V2IndexFanout {
-		binary.BigEndian.PutUint32(fanout[i*FanoutEntryWidth:], n)
+		binary.BigEndian.PutUint32(fanout[i*indexFanoutEntryWidth:], n)
 	}
 
-	buf := make([]byte, 0, OffsetV2Start+3*(ObjectEntryV2Width)+ObjectLargeOffsetWidth)
+	buf := make([]byte, 0, indexOffsetV2Start+3*(indexObjectEntryV2Width)+indexObjectLargeOffsetWidth)
 	buf = append(buf, V2IndexHeader...)
 	buf = append(buf, fanout...)
 	buf = append(buf, V2IndexNames...)

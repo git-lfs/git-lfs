@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	V1IndexFanout = make([]uint32, FanoutEntries)
+	V1IndexFanout = make([]uint32, indexFanoutEntries)
 
 	V1IndexSmallEntry = []byte{
 		0x0, 0x0, 0x0, 0x1,
@@ -82,12 +82,12 @@ func init() {
 		V1IndexFanout[i] = 3
 	}
 
-	fanout := make([]byte, FanoutWidth)
+	fanout := make([]byte, indexFanoutWidth)
 	for i, n := range V1IndexFanout {
-		binary.BigEndian.PutUint32(fanout[i*FanoutEntryWidth:], n)
+		binary.BigEndian.PutUint32(fanout[i*indexFanoutEntryWidth:], n)
 	}
 
-	buf := make([]byte, 0, OffsetV1Start+(3*ObjectEntryV1Width))
+	buf := make([]byte, 0, indexOffsetV1Start+(3*indexObjectEntryV1Width))
 
 	buf = append(buf, fanout...)
 	buf = append(buf, V1IndexSmallEntry...)

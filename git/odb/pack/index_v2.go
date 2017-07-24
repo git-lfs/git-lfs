@@ -48,20 +48,20 @@ func v2Search(idx *Index, name []byte, at int64) (*IndexEntry, int, error) {
 // v2ShaOffset returns the offset of a SHA1 given at "at" in the V2 index file.
 func v2ShaOffset(at int64) int64 {
 	// Skip the packfile index header and the L1 fanout table.
-	return OffsetV2Start +
+	return indexOffsetV2Start +
 		// Skip until the desired name in the sorted names table.
-		(ObjectNameWidth * at)
+		(indexObjectNameWidth * at)
 }
 
 // v2SmallOffsetOffset returns the offset of an object's small (4-byte) offset
 // given by "at".
 func v2SmallOffsetOffset(at, total int64) int64 {
 	// Skip the packfile index header and the L1 fanout table.
-	return OffsetV2Start +
+	return indexOffsetV2Start +
 		// Skip the name table.
-		(ObjectNameWidth * total) +
+		(indexObjectNameWidth * total) +
 		// Skip the CRC table.
-		(ObjectCRCWidth * total) +
+		(indexObjectCRCWidth * total) +
 		// Skip until the desired index in the small offsets table.
-		(ObjectSmallOffsetWidth * at)
+		(indexObjectSmallOffsetWidth * at)
 }
