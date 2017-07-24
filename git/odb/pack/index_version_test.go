@@ -6,6 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestIndexVersionWidthV1(t *testing.T) {
+	assert.EqualValues(t, 0, V1.Width())
+}
+
 func TestIndexVersionWidthPanicsOnUnknownVersion(t *testing.T) {
 	v := IndexVersion(5)
 

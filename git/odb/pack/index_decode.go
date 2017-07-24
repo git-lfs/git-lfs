@@ -7,6 +7,31 @@ import (
 	"io"
 )
 
+const (
+	// V1Width is the total width of the header in V1.
+	V1Width = 0
+
+	// FanoutEntries is the number of entries in the fanout table.
+	FanoutEntries = 256
+	// FanoutEntryWidth is the width of each entry in the fanout table.
+	FanoutEntryWidth = 4
+	// FanoutWidth is the width of the entire fanout table.
+	FanoutWidth = FanoutEntries * FanoutEntryWidth
+
+	// OffsetV1Start is the location of the first object outside of the V1
+	// header.
+	OffsetV1Start = V1Width + FanoutWidth
+
+	// ObjectNameWidth is the width of a SHA1 object name.
+	ObjectNameWidth = 20
+	// ObjectSmallOffsetWidth is the width of the small offset encoded into
+	// each object.
+	ObjectSmallOffsetWidth = 4
+
+	// ObjectEntryV1Width is the width of one contiguous object entry in V1.
+	ObjectEntryV1Width = ObjectNameWidth + ObjectSmallOffsetWidth
+)
+
 var (
 	// ErrShortFanout is an error representing situations where the entire
 	// fanout table could not be read, and is thus too short.
@@ -56,10 +81,14 @@ func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
 		}
 
 		version := IndexVersion(binary.BigEndian.Uint32(vb))
+		switch version {
+		case V1:
+			return version, nil
+		}
 
 		return version, &UnsupportedVersionErr{uint32(version)}
 	}
-	return IndexVersion(0), nil
+	return V1, nil
 }
 
 // decodeIndexFanout decodes the fanout table given by "r" and beginning at the
