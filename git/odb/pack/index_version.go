@@ -20,6 +20,8 @@ func (v IndexVersion) Width() int64 {
 	switch v {
 	case V2:
 		return V2Width
+	case V1:
+		return V1Width
 	}
 	panic(fmt.Sprintf("git/odb/pack: width unknown for pack version %d", v))
 }
@@ -44,6 +46,8 @@ func (v IndexVersion) Search(idx *Index, name []byte, at int64) (*IndexEntry, in
 	switch v {
 	case V2:
 		return v2Search(idx, name, at)
+	case V1:
+		return v1Search(idx, name, at)
 	}
 	return nil, 0, &UnsupportedVersionErr{Got: uint32(v)}
 }
