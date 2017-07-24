@@ -37,40 +37,19 @@ var (
 
 	V1Index = &Index{
 		fanout:  V1IndexFanout,
-		version: V1,
+		version: new(V1),
 	}
 )
 
 func TestIndexV1SearchExact(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 1)
+	e, err := new(V1).Entry(V1Index, 1)
 
 	assert.NoError(t, err)
-	assert.Equal(t, 0, cmp)
 	assert.EqualValues(t, 2, e.PackOffset)
 }
 
-func TestIndexV1SearchSmall(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 0)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 1, cmp)
-	assert.Nil(t, e)
-}
-
-func TestIndexV1SearchBig(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 2)
-
-	assert.NoError(t, err)
-	assert.Equal(t, -1, cmp)
-	assert.Nil(t, e)
-}
-
-func TestIndexV1SearchOutOfBounds(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 10)
-
-	assert.Nil(t, e)
-	assert.Equal(t, 0, cmp)
-	assert.Equal(t, ErrIndexOutOfBounds, err)
+func TestIndexVersionWidthV1(t *testing.T) {
+	assert.EqualValues(t, 0, new(V1).Width())
 }
 
 func init() {

@@ -1,6 +1,7 @@
 package pack
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -71,17 +72,16 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 		// Find the midpoint between the upper and lower bounds.
 		mid := bounds.Left() + ((bounds.Right() - bounds.Left()) / 2)
 
-		// Search for the given object at that midpoint.
-		entry, cmp, err := i.version.Search(i, name, mid)
+		got, err := i.version.Name(i, mid)
 		if err != nil {
 			return nil, err
 		}
 
-		if cmp == 0 {
+		if cmp := bytes.Compare(name, got); cmp == 0 {
 			// If "cmp" is zero, that means the object at that index
 			// "at" had a SHA equal to the one given by name, and we
 			// are done.
-			return entry, nil
+			return i.version.Entry(i, mid)
 		} else if cmp < 0 {
 			// If the comparison is less than 0, we searched past
 			// the desired object, so limit the upper bound of the

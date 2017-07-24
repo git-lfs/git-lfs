@@ -45,40 +45,26 @@ var (
 
 	V2Index = &Index{
 		fanout:  V2IndexFanout,
-		version: V2,
+		version: new(V2),
 	}
 )
 
-func TestIndexV2SearchExact(t *testing.T) {
-	e, cmp, err := V2.Search(V2Index, V2IndexMediumSha, 1)
+func TestIndexV2EntryExact(t *testing.T) {
+	e, err := new(V2).Entry(V2Index, 1)
 
-	assert.Equal(t, 0, cmp)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, e.PackOffset)
 }
 
-func TestIndexV2SearchSmall(t *testing.T) {
-	e, cmp, err := V2.Search(V2Index, V2IndexMediumSha, 0)
+func TestIndexV2EntryExtendedOffset(t *testing.T) {
+	e, err := new(V2).Entry(V2Index, 2)
 
-	assert.Equal(t, 1, cmp)
-	assert.NoError(t, err)
-	assert.Nil(t, e)
-}
-
-func TestIndexV2SearchBig(t *testing.T) {
-	e, cmp, err := V2.Search(V2Index, V2IndexMediumSha, 2)
-
-	assert.Equal(t, -1, cmp)
-	assert.NoError(t, err)
-	assert.Nil(t, e)
-}
-
-func TestIndexV2SearchExtendedOffset(t *testing.T) {
-	e, cmp, err := V2.Search(V2Index, V2IndexLargeSha, 2)
-
-	assert.Equal(t, 0, cmp)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, e.PackOffset)
+}
+
+func TestIndexVersionWidthV2(t *testing.T) {
+	assert.EqualValues(t, 8, new(V2).Width())
 }
 
 func init() {
