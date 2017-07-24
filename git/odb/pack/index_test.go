@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/errors"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,6 +73,16 @@ func TestIndexCount(t *testing.T) {
 	idx := &Index{fanout: fanout}
 
 	assert.EqualValues(t, 255, idx.Count())
+}
+
+func TestIndexIsNotFound(t *testing.T) {
+	assert.True(t, IsNotFound(errNotFound),
+		"expected 'errNotFound' to satisfy 'IsNotFound()'")
+}
+
+func TestIndexIsNotFoundForOtherErrors(t *testing.T) {
+	assert.False(t, IsNotFound(errors.New("git/odb/pack: misc")),
+		"expected 'err' not to satisfy 'IsNotFound()'")
 }
 
 // init generates some fixture data and then constructs an *Index instance using
