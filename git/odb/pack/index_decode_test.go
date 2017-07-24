@@ -10,17 +10,17 @@ import (
 )
 
 func TestDecodeIndexV1InvalidFanout(t *testing.T) {
-	idx, err := DecodeIndex(bytes.NewReader(make([]byte, FanoutWidth-1)))
+	idx, err := DecodeIndex(bytes.NewReader(make([]byte, indexFanoutWidth-1)))
 
 	assert.Equal(t, ErrShortFanout, err)
 	assert.Nil(t, idx)
 }
 
 func TestDecodeIndexV2(t *testing.T) {
-	buf := make([]byte, 0, V2Width+FanoutWidth)
+	buf := make([]byte, 0, indexV2Width+indexFanoutWidth)
 	buf = append(buf, 0xff, 0x74, 0x4f, 0x63)
 	buf = append(buf, 0x0, 0x0, 0x0, 0x2)
-	for i := 0; i < FanoutEntries; i++ {
+	for i := 0; i < indexFanoutEntries; i++ {
 		x := make([]byte, 4)
 
 		binary.BigEndian.PutUint32(x, uint32(3))
@@ -36,10 +36,10 @@ func TestDecodeIndexV2(t *testing.T) {
 }
 
 func TestDecodeIndexV2InvalidFanout(t *testing.T) {
-	buf := make([]byte, 0, V2Width+FanoutWidth-FanoutEntryWidth)
+	buf := make([]byte, 0, indexV2Width+indexFanoutWidth-indexFanoutEntryWidth)
 	buf = append(buf, 0xff, 0x74, 0x4f, 0x63)
 	buf = append(buf, 0x0, 0x0, 0x0, 0x2)
-	buf = append(buf, make([]byte, FanoutWidth-1)...)
+	buf = append(buf, make([]byte, indexFanoutWidth-1)...)
 
 	idx, err := DecodeIndex(bytes.NewReader(buf))
 
@@ -48,7 +48,7 @@ func TestDecodeIndexV2InvalidFanout(t *testing.T) {
 }
 
 func TestDecodeIndexV1(t *testing.T) {
-	idx, err := DecodeIndex(bytes.NewReader(make([]byte, FanoutWidth)))
+	idx, err := DecodeIndex(bytes.NewReader(make([]byte, indexFanoutWidth)))
 
 	assert.NoError(t, err)
 	assert.Equal(t, V1, idx.version)

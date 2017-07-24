@@ -39,14 +39,14 @@ func v1ShaOffset(at int64) int64 {
 	return v1EntryOffset(at) +
 		// Skip past the 4-byte object offset in the desired entry to
 		// the SHA1.
-		ObjectSmallOffsetWidth
+		indexObjectSmallOffsetWidth
 }
 
 // v1EntryOffset returns the location of the packfile offset for the object
 // given at "at".
 func v1EntryOffset(at int64) int64 {
 	// Skip the L1 fanout table
-	return OffsetV1Start +
+	return indexOffsetV1Start +
 		// Skip the object entries before the one located at "at"
-		(ObjectEntryV1Width * at)
+		(indexObjectEntryV1Width * at)
 }

@@ -1,8 +1,9 @@
 package pack
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 // IndexVersion is a constant type that represents the version of encoding used
@@ -19,9 +20,9 @@ const (
 func (v IndexVersion) Width() int64 {
 	switch v {
 	case V2:
-		return V2Width
+		return indexV2Width
 	case V1:
-		return V1Width
+		return indexV1Width
 	}
 	panic(fmt.Sprintf("git/odb/pack: width unknown for pack version %d", v))
 }
