@@ -47,8 +47,9 @@ func IsNotFound(err error) bool {
 // Entry operates in O(log(n))-time in the worst case, where "n" is the number
 // of objects that begin with the first byte of "name".
 //
-// If the entry cannot be found, (nil, nil) will be returned. If there was an
-// error searching for or parsing an entry, it will be returned as (nil, err).
+// If the entry cannot be found, (nil, ErrNotFound) will be returned. If there
+// was an error searching for or parsing an entry, it will be returned as (nil,
+// err).
 //
 // Otherwise, (entry, nil) will be returned.
 func (i *Index) Entry(name []byte) (*IndexEntry, error) {
@@ -63,7 +64,7 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 			//
 			// Either way, we won't be able to find the object.
 			// Return immediately to prevent infinite looping.
-			return nil, nil
+			return nil, errNotFound
 		}
 		last = bounds
 
@@ -95,12 +96,7 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 
 	}
 
-	// Theoretically not possible to reach this point, since we terminate
-	// inside of the loop either if the bounds are unchanged, or the object
-	// is found.
-	//
-	// Retain this in order to compile.
-	return nil, nil
+	return nil, errNotFound
 }
 
 // readAt is a convenience method that allow reading into the underlying data
