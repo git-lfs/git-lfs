@@ -8,6 +8,13 @@ import (
 )
 
 const (
+	// MagicWidth is the width of the magic header of packfiles version 2
+	// and newer.
+	MagicWidth = 4
+	// VersionWidth is the width of the version following the magic header.
+	VersionWidth = 4
+	// V2Width is the total width of the header in V2.
+	V2Width = MagicWidth + VersionWidth
 	// V1Width is the total width of the header in V1.
 	V1Width = 0
 
@@ -21,15 +28,27 @@ const (
 	// OffsetV1Start is the location of the first object outside of the V1
 	// header.
 	OffsetV1Start = V1Width + FanoutWidth
+	// OffsetV2Start is the location of the first object outside of the V2
+	// header.
+	OffsetV2Start = V2Width + FanoutWidth
 
 	// ObjectNameWidth is the width of a SHA1 object name.
 	ObjectNameWidth = 20
+	// ObjectCRCWidth is the width of the CRC accompanying each object in
+	// V2.
+	ObjectCRCWidth = 4
 	// ObjectSmallOffsetWidth is the width of the small offset encoded into
 	// each object.
 	ObjectSmallOffsetWidth = 4
+	// ObjectLargeOffsetWidth is the width of the optional large offset
+	// encoded into the small offset.
+	ObjectLargeOffsetWidth = 8
 
 	// ObjectEntryV1Width is the width of one contiguous object entry in V1.
 	ObjectEntryV1Width = ObjectNameWidth + ObjectSmallOffsetWidth
+	// ObjectEntryV2Width is the width of one non-contiguous object entry in
+	// V2.
+	ObjectEntryV2Width = ObjectNameWidth + ObjectCRCWidth + ObjectSmallOffsetWidth
 )
 
 var (
@@ -82,7 +101,7 @@ func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
 
 		version := IndexVersion(binary.BigEndian.Uint32(vb))
 		switch version {
-		case V1:
+		case V1, V2:
 			return version, nil
 		}
 

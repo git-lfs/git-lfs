@@ -10,9 +10,10 @@ import (
 	"strings"
 	"sync"
 
+	"path/filepath"
+
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
-	"path/filepath"
 )
 
 var (

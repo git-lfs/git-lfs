@@ -10,6 +10,10 @@ func TestIndexVersionWidthV1(t *testing.T) {
 	assert.EqualValues(t, 0, V1.Width())
 }
 
+func TestIndexVersionWidthV2(t *testing.T) {
+	assert.EqualValues(t, 8, V2.Width())
+}
+
 func TestIndexVersionWidthPanicsOnUnknownVersion(t *testing.T) {
 	v := IndexVersion(5)
 
