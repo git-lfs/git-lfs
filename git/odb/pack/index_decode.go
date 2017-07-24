@@ -82,7 +82,7 @@ func DecodeIndex(r io.ReaderAt) (*Index, error) {
 		version: version,
 		fanout:  fanout,
 
-		f: r,
+		r: r,
 	}, nil
 }
 

@@ -162,6 +162,6 @@ func init() {
 		// Call (*bytes.Buffer).Bytes() to get the data, and then
 		// construct a new *bytes.Reader with it to implement
 		// io.ReaderAt.
-		f: bytes.NewReader(buf.Bytes()),
+		r: bytes.NewReader(buf.Bytes()),
 	}
 }

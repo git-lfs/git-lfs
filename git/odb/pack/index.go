@@ -19,8 +19,8 @@ type Index struct {
 	// See: https://github.com/git/git/blob/v2.13.0/Documentation/technical/pack-format.txt#L41-L45
 	fanout []uint32
 
-	// f is the underlying set of encoded data comprising this index file.
-	f io.ReaderAt
+	// r is the underlying set of encoded data comprising this index file.
+	r io.ReaderAt
 }
 
 // Count returns the number of objects in the packfile.
@@ -92,7 +92,7 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 // readAt is a convenience method that allow reading into the underlying data
 // source from other callers within this package.
 func (i *Index) readAt(p []byte, at int64) (n int, err error) {
-	return i.f.ReadAt(p, at)
+	return i.r.ReadAt(p, at)
 }
 
 // bounds returns the initial bounds for a given name using the fanout table to

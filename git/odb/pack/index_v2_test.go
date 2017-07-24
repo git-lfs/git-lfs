@@ -102,5 +102,5 @@ func init() {
 	buf = append(buf, V2IndexCRCs...)
 	buf = append(buf, V2IndexOffsets...)
 
-	V2Index.f = bytes.NewReader(buf)
+	V2Index.r = bytes.NewReader(buf)
 }

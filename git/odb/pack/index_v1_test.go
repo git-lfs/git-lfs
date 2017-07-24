@@ -94,5 +94,5 @@ func init() {
 	buf = append(buf, V1IndexMediumEntry...)
 	buf = append(buf, V1IndexLargeEntry...)
 
-	V1Index.f = bytes.NewReader(buf)
+	V1Index.r = bytes.NewReader(buf)
 }
