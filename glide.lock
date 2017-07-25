@@ -1,5 +1,5 @@
-hash: c96d9438238597d9a70aa231b5a1a00ac2a961154bd76c01f5dec018d60145e1
-updated: 2017-07-17T20:26:21.026348832Z
+hash: ed90cd0162c8564e494802d483ac3780d8671a8a27bd03a2e43a3759007e561a
+updated: 2017-07-25T09:58:55.909621732-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -39,6 +39,10 @@ imports:
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
+- name: golang.org/x/exp
+  version: be79676510e5ce293c77bb087cdab4796a461bdb
+  subpackages:
+  - mmap
 testImports:
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
