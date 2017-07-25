@@ -5,3 +5,6 @@ glide install -s -u
 rm -rf vendor/github.com/ThomsonReutersEikon/go-ntlm/utils
 rm -rf vendor/github.com/davecgh/go-spew
 rm -rf vendor/github.com/pmezard/go-difflib
+
+# Remove all subpackages of golang.org/x/exp/... which aren't 'mmap'.
+find ./vendor/golang.org/x/exp/* -type d | grep -v mmap | xargs rm -rf
