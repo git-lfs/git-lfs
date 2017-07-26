@@ -69,7 +69,7 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 		last = bounds
 
 		// Find the midpoint between the upper and lower bounds.
-		mid := (bounds.Left() + bounds.Right()) / 2
+		mid := bounds.Left() + ((bounds.Right() - bounds.Left()) / 2)
 
 		// Search for the given object at that midpoint.
 		entry, cmp, err := i.version.Search(i, name, mid)
