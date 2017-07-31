@@ -19,12 +19,13 @@ import (
 )
 
 var (
-	BuildOS    = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
-	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
-	BuildAll   = flag.Bool("all", false, "Builds all architectures")
-	BuildDwarf = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
-	ShowHelp   = flag.Bool("help", false, "Shows help")
-	matrixKeys = map[string]string{
+	BuildOS      = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
+	BuildArch    = flag.String("arch", "", "Arch to target: 386, amd64")
+	BuildAll     = flag.Bool("all", false, "Builds all architectures")
+	BuildDwarf   = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
+	BuildLdFlags = flag.String("ldflags", "", "-ldflags to pass to the compiler")
+	ShowHelp     = flag.Bool("help", false, "Shows help")
+	matrixKeys   = map[string]string{
 		"darwin":  "Mac",
 		"freebsd": "FreeBSD",
 		"linux":   "Linux",
@@ -145,7 +146,9 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	args := make([]string, 1, 6)
 	args[0] = "build"
-	if len(LdFlags) > 0 {
+	if len(*BuildLdFlags) > 0 {
+		args = append(args, "-ldflags", *BuildLdFlags)
+	} else if len(LdFlags) > 0 {
 		args = append(args, "-ldflags", strings.Join(LdFlags, " "))
 	}
 	args = append(args, "-o", bin, ".")
