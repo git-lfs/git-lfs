@@ -54,9 +54,15 @@ func ParseBytes(str string) (uint64, error) {
 		sep = sep + 1
 	}
 
-	f, err := strconv.ParseFloat(strings.Replace(str[:sep], ",", "", -1), 64)
-	if err != nil {
-		return 0, err
+	var f float64
+
+	if s := strings.Replace(str[:sep], ",", "", -1); len(s) > 0 {
+		var err error
+
+		f, err = strconv.ParseFloat(s, 64)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	m, err := ParseByteUnit(str[sep:])
