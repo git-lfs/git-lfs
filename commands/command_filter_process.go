@@ -47,8 +47,10 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	var malformed []string
+	var malformedOnWindows []string
 
 	for s.Scan() {
+		var n int64
 		var err error
 		var w *git.PktlineWriter
 
@@ -62,7 +64,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			err = clean(w, req.Payload, req.Header["pathname"], -1)
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
+			n, err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
 		default:
 			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
@@ -70,6 +72,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		if errors.IsNotAPointerError(err) {
 			malformed = append(malformed, req.Header["pathname"])
 			err = nil
+		} else if possiblyMalformedSmudge(n) {
+			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
 		var status string
@@ -87,6 +91,16 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		for _, m := range malformed {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
 		}
+	}
+
+	if len(malformedOnWindows) > 0 {
+		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n")
+
+		for _, m := range malformedOnWindows {
+			fmt.Fprintf(os.Stderr, "\t%s\n", m)
+		}
+
+		fmt.Fprintf(os.Stderr, "\nSee: `git lfs help smudge` for more details.\n")
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {
