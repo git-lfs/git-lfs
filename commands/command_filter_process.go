@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -47,8 +49,10 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
 	var malformed []string
+	var malformedOnWindows []string
 
 	for s.Scan() {
+		var n int64
 		var err error
 		var w *git.PktlineWriter
 
@@ -62,7 +66,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			err = clean(w, req.Payload, req.Header["pathname"], -1)
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			_, err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
+			n, err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
 		default:
 			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
@@ -70,6 +74,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		if errors.IsNotAPointerError(err) {
 			malformed = append(malformed, req.Header["pathname"])
 			err = nil
+		} else if n > 4*humanize.Gigabyte {
+			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
 		var status string
@@ -86,6 +92,18 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that should have been pointers, but weren't:\n", len(malformed))
 		for _, m := range malformed {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
+		}
+	}
+
+	if len(malformedOnWindows) > 0 {
+		if runtime.GOOS == "windows" {
+			fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n")
+
+			for _, m := range malformedOnWindows {
+				fmt.Fprintf(os.Stderr, "\t%s\n", m)
+			}
+
+			fmt.Fprintf(os.Stderr, "\nSee: `git lfs help smudge` for more details.\n")
 		}
 	}
 

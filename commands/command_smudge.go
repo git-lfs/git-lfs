@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +63,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 		download = filter.Allows(filename)
 	}
 
-	_, err = ptr.Smudge(to, filename, download, getTransferManifest(), cb)
+	n, err := ptr.Smudge(to, filename, download, getTransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
@@ -94,12 +96,14 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
-	if _, err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
+	if n, err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
 		if errors.IsNotAPointerError(err) {
 			fmt.Fprintln(os.Stderr, err.Error())
 		} else {
 			Error(err.Error())
 		}
+	} else if possiblyMalformedSmudge(n) {
+		fmt.Fprintln(os.Stderr, "Possibly malformed smudge on Windows: see `git lfs help smudge` for more info.")
 	}
 }
 
@@ -108,6 +112,10 @@ func smudgeFilename(args []string) string {
 		return args[0]
 	}
 	return "<unknown file>"
+}
+
+func possiblyMalformedSmudge(n int64) bool {
+	return n > 4*humanize.Gigabyte && runtime.GOOS == "windows"
 }
 
 func init() {
