@@ -23,7 +23,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest 
 		return fmt.Errorf("Could not create working directory file: %v", err)
 	}
 	defer file.Close()
-	if err := PointerSmudge(file, ptr, filename, download, manifest, cb); err != nil {
+	if _, err := PointerSmudge(file, ptr, filename, download, manifest, cb); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, os.SEEK_SET)
@@ -36,10 +36,10 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest 
 	return nil
 }
 
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
+func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	LinkOrCopyFromReference(ptr.Oid, ptr.Size)
@@ -54,24 +54,26 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 		}
 	}
 
+	var n int64
+
 	if statErr != nil || stat == nil {
 		if download {
-			err = downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
+			n, err = downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
 		} else {
-			return errors.NewDownloadDeclinedError(statErr, "smudge")
+			return 0, errors.NewDownloadDeclinedError(statErr, "smudge")
 		}
 	} else {
-		err = readLocalFile(writer, ptr, mediafile, workingfile, cb)
+		n, err = readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}
 
 	if err != nil {
-		return errors.NewSmudgeError(err, ptr.Oid, mediafile)
+		return 0, errors.NewSmudgeError(err, ptr.Oid, mediafile)
 	}
 
-	return nil
+	return n, nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) error {
+func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
 
 	q := tq.NewTransferQueue(tq.Download, manifest, "")
@@ -86,17 +88,17 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 			} else {
 				multiErr = e
 			}
-			return errors.Wrapf(multiErr, "Error downloading %s (%s)", workingfile, ptr.Oid)
+			return 0, errors.Wrapf(multiErr, "Error downloading %s (%s)", workingfile, ptr.Oid)
 		}
 	}
 
 	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) error {
+func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) (int64, error) {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return errors.Wrapf(err, "Error opening media file.")
+		return 0, errors.Wrapf(err, "Error opening media file.")
 	}
 	defer reader.Close()
 
@@ -113,14 +115,14 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
 				err := fmt.Errorf("Extension '%s' is not configured.", ptrExt.Name)
-				return errors.Wrap(err, "smudge")
+				return 0, errors.Wrap(err, "smudge")
 			}
 			ext.Priority = ptrExt.Priority
 			extensions[ext.Name] = ext
 		}
 		exts, err := config.SortExtensions(extensions)
 		if err != nil {
-			return errors.Wrap(err, "smudge")
+			return 0, errors.Wrap(err, "smudge")
 		}
 
 		// pipe extensions in reverse order
@@ -134,7 +136,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 
 		response, err := pipeExtensions(request)
 		if err != nil {
-			return errors.Wrap(err, "smudge")
+			return 0, errors.Wrap(err, "smudge")
 		}
 
 		actualExts := make(map[string]*pipeExtResult)
@@ -146,33 +148,33 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
 			err = fmt.Errorf("Actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
-			return errors.Wrap(err, "smudge")
+			return 0, errors.Wrap(err, "smudge")
 		}
 
 		for _, expected := range ptr.Extensions {
 			actual := actualExts[expected.Name]
 			if actual.name != expected.Name {
 				err = fmt.Errorf("Actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
-				return errors.Wrap(err, "smudge")
+				return 0, errors.Wrap(err, "smudge")
 			}
 			if actual.oidOut != expected.Oid {
 				err = fmt.Errorf("Actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
-				return errors.Wrap(err, "smudge")
+				return 0, errors.Wrap(err, "smudge")
 			}
 		}
 
 		// setup reader
 		reader, err = os.Open(response.file.Name())
 		if err != nil {
-			return errors.Wrapf(err, "Error opening smudged file: %s", err)
+			return 0, errors.Wrapf(err, "Error opening smudged file: %s", err)
 		}
 		defer reader.Close()
 	}
 
-	_, err = tools.CopyWithCallback(writer, reader, ptr.Size, cb)
+	n, err := tools.CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
-		return errors.Wrapf(err, "Error reading from media file: %s", err)
+		return n, errors.Wrapf(err, "Error reading from media file: %s", err)
 	}
 
-	return nil
+	return n, nil
 }

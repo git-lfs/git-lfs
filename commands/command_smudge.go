@@ -34,26 +34,26 @@ var (
 // Any errors encountered along the way will be returned immediately if they
 // were non-fatal, otherwise execution will halt and the process will be
 // terminated by using the `commands.Panic()` func.
-func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) error {
+func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) (int64, error) {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
 		n, err := tools.Spool(to, pbuf, localstorage.Objects().TempDir)
 		if err != nil {
-			return errors.Wrap(err, perr.Error())
+			return 0, errors.Wrap(err, perr.Error())
 		}
 
 		if n != 0 {
-			return errors.NewNotAPointerError(errors.Errorf(
+			return 0, errors.NewNotAPointerError(errors.Errorf(
 				"Unable to parse pointer at: %q", filename,
 			))
 		}
-		return nil
+		return 0, nil
 	}
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
 	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	download := !skip
@@ -61,7 +61,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 		download = filter.Allows(filename)
 	}
 
-	err = ptr.Smudge(to, filename, download, getTransferManifest(), cb)
+	_, err = ptr.Smudge(to, filename, download, getTransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
@@ -82,7 +82,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 		}
 	}
 
-	return nil
+	return n, nil
 }
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
@@ -94,7 +94,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	}
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
-	if err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
+	if _, err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
 		if errors.IsNotAPointerError(err) {
 			fmt.Fprintln(os.Stderr, err.Error())
 		} else {
