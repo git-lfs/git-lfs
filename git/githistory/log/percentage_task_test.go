@@ -17,6 +17,20 @@ func TestPercentageTaskCalculuatesPercentages(t *testing.T) {
 	assert.Equal(t, "example:  30% (3/10)", <-task.Updates())
 }
 
+func TestPercentageTaskCalculatesPercentWithoutTotal(t *testing.T) {
+	task := NewPercentageTask("example", 0)
+
+	select {
+	case v, ok := <-task.Updates():
+		if ok {
+			assert.Equal(t, "example: 100% (0/0)", v)
+		} else {
+			t.Fatal("expected channel to be open")
+		}
+	default:
+	}
+}
+
 func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
 	task := NewPercentageTask("example", 10)
 
