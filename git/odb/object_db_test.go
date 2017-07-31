@@ -203,6 +203,11 @@ func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
 	db, err := FromFilesystem("/tmp")
 	assert.Nil(t, err)
 
+	// Make db's objectScanner field be nil, since /tmp doesn't contain a
+	// Git repository, which will cause closing `git-cat-file(1) --batch` to
+	// fail.
+	db.objectScanner = nil
+
 	assert.Nil(t, db.Close())
 	assert.EqualError(t, db.Close(), "git/odb: *ObjectDatabase already closed")
 }
