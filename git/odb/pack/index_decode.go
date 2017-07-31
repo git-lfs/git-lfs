@@ -93,24 +93,26 @@ func DecodeIndex(r io.ReaderAt) (*Index, error) {
 func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
 	hdr := make([]byte, 4)
 	if _, err := r.ReadAt(hdr, 0); err != nil {
-		return VersionUnknown, err
+		return nil, err
 	}
 
 	if bytes.Equal(hdr, indexHeader) {
 		vb := make([]byte, 4)
 		if _, err := r.ReadAt(vb, 4); err != nil {
-			return VersionUnknown, err
+			return nil, err
 		}
 
-		version := IndexVersion(binary.BigEndian.Uint32(vb))
+		version := binary.BigEndian.Uint32(vb)
 		switch version {
-		case V1, V2:
-			return version, nil
+		case 1:
+			return new(V1), nil
+		case 2:
+			return new(V2), nil
 		}
 
-		return version, &UnsupportedVersionErr{uint32(version)}
+		return nil, &UnsupportedVersionErr{uint32(version)}
 	}
-	return V1, nil
+	return new(V1), nil
 }
 
 // decodeIndexFanout decodes the fanout table given by "r" and beginning at the

@@ -31,7 +31,6 @@ func TestDecodeIndexV2(t *testing.T) {
 	idx, err := DecodeIndex(bytes.NewReader(buf))
 
 	assert.NoError(t, err)
-	assert.Equal(t, V2, idx.version)
 	assert.EqualValues(t, 3, idx.Count())
 }
 
@@ -51,7 +50,6 @@ func TestDecodeIndexV1(t *testing.T) {
 	idx, err := DecodeIndex(bytes.NewReader(make([]byte, indexFanoutWidth)))
 
 	assert.NoError(t, err)
-	assert.Equal(t, V1, idx.version)
 	assert.EqualValues(t, 0, idx.Count())
 }
 
