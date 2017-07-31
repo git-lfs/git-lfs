@@ -24,6 +24,7 @@ var (
 	BuildAll     = flag.Bool("all", false, "Builds all architectures")
 	BuildDwarf   = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
 	BuildLdFlags = flag.String("ldflags", "", "-ldflags to pass to the compiler")
+	BuildGcFlags = flag.String("gcflags", "", "-gcflags to pass to the compiler")
 	ShowHelp     = flag.Bool("help", false, "Shows help")
 	matrixKeys   = map[string]string{
 		"darwin":  "Mac",
@@ -151,6 +152,11 @@ func buildCommand(dir, buildos, buildarch string) error {
 	} else if len(LdFlags) > 0 {
 		args = append(args, "-ldflags", strings.Join(LdFlags, " "))
 	}
+
+	if len(*BuildGcFlags) > 0 {
+		args = append(args, "-gcflags", *BuildGcFlags)
+	}
+
 	args = append(args, "-o", bin, ".")
 
 	cmd := exec.Command("go", args...)
