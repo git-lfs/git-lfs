@@ -38,9 +38,17 @@ func NewPercentageTask(msg string, total uint64) *PercentageTask {
 // Count returns the new total number of (atomically managed) elements that have
 // been completed.
 func (c *PercentageTask) Count(n uint64) (new uint64) {
-	new = atomic.AddUint64(&c.n, n)
+	if new = atomic.AddUint64(&c.n, n); new > c.total {
+		panic("git/githistory/log: counted too many items")
+	}
 
-	percentage := 100 * float64(new) / float64(c.total)
+	var percentage float64
+	if c.total == 0 {
+		percentage = 100
+	} else {
+		percentage = 100 * float64(new) / float64(c.total)
+	}
+
 	msg := fmt.Sprintf("%s: %3.f%% (%d/%d)",
 		c.msg, percentage, new, c.total)
 
