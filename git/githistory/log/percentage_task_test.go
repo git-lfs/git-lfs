@@ -60,3 +60,12 @@ func TestPercentageTaskIsThrottled(t *testing.T) {
 	assert.True(t, throttled,
 		"git/githistory/log: expected *PercentageTask to be Throttle()-d")
 }
+
+func TestPercentageTaskPanicsWhenOvercounted(t *testing.T) {
+	task := NewPercentageTask("example", 0)
+	defer func() {
+		assert.Equal(t, "git/githistory/log: counted too many items", recover())
+	}()
+
+	task.Count(1)
+}
