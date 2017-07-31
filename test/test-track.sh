@@ -463,3 +463,28 @@ begin_test "track escaped pattern"
   assert_attributes_count "\\#" "filter=lfs" 1
 )
 end_test
+
+begin_test "track (symlinked repository)"
+(
+  set -e
+
+  reponame="tracked-symlinked-repository"
+  git init "$reponame"
+  cd "$reponame"
+
+  touch a.dat
+
+  pushd .. > /dev/null
+    dir="tracked-symlinked-repository-tmp"
+
+    mkdir -p "$dir"
+
+    ln -s "../$reponame" "./$dir"
+
+    cd "$dir/$reponame"
+
+    [ "Tracking \"a.dat\"" = "$(git lfs track "a.dat")" ]
+    [ "\"a.dat\" already supported" = "$(git lfs track "a.dat")" ]
+  popd > /dev/null
+)
+end_test
