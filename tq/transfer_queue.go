@@ -283,23 +283,39 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
 	q.meter.Pause()
-	bRes, err := Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
-	if err != nil {
-		// If there was an error making the batch API call, mark all of
-		// the objects for retry, and return them along with the error
-		// that was encountered. If any of the objects couldn't be
-		// retried, they will be marked as failed.
+	var bRes *BatchResponse
+	if q.manifest.standaloneTransferAgent != "" {
+		// Trust the external transfer agent can do everything by itself.
+		objects := make([]*Transfer, 0, len(batch))
 		for _, t := range batch {
-			if q.canRetryObject(t.Oid, err) {
-				q.rc.Increment(t.Oid)
-
-				next = append(next, t)
-			} else {
-				q.wait.Done()
-			}
+			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path})
 		}
+		bRes = &BatchResponse{
+			Objects:             objects,
+			TransferAdapterName: q.manifest.standaloneTransferAgent,
+		}
+	} else {
+		// Query the Git LFS server for what transfer method to use and
+		// details such as URLs, authentication, etc.
+		var err error
+		bRes, err = Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
+		if err != nil {
+			// If there was an error making the batch API call, mark all of
+			// the objects for retry, and return them along with the error
+			// that was encountered. If any of the objects couldn't be
+			// retried, they will be marked as failed.
+			for _, t := range batch {
+				if q.canRetryObject(t.Oid, err) {
+					q.rc.Increment(t.Oid)
 
-		return next, err
+					next = append(next, t)
+				} else {
+					q.wait.Done()
+				}
+			}
+
+			return next, err
+		}
 	}
 
 	if len(bRes.Objects) == 0 {
@@ -349,7 +365,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 					q.Skip(o.Size)
 					q.wait.Done()
 				}
-			} else if a == nil {
+			} else if a == nil && q.manifest.standaloneTransferAgent == "" {
 				q.Skip(o.Size)
 				q.wait.Done()
 			} else {

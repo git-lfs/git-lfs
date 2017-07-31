@@ -91,6 +91,13 @@ be scoped inside the configuration for a remote.
   tus.io API. Once this feature is finalized, this setting will be removed,
   and tus.io uploads will be available for all clients.
 
+* `lfs.standalonetransferagent`
+
+  Allows the specified custom transfer agent to be used directly
+  for transferring files, without asking the server how the transfers
+  should be made. The custom transfer agent has to be defined in a
+  `lfs.customtransfer.<name>` settings group.
+
 * `lfs.customtransfer.<name>.path`
 
   `lfs.customtransfer.<name>` is a settings group which defines a custom

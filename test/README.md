@@ -115,8 +115,9 @@ The `set -e` command will bail on the test at the first command that returns a
 non zero exit status. Use simple shell commands like `grep` as assertions.
 
 The test suite has standard `setup` and `shutdown` functions that should be
-run only once.  If a test script is run by `script/integration`, it will skip
-the functions.  Setup does the following:
+run only once, before/after running the tests.  The `setup` and `shutdown`
+functions are run by `script/integration` and also by individual test scripts
+when they are executed directly. Setup does the following:
 
 * Resets temporary test directories.
 * Compiles git-lfs with the latest code changes.

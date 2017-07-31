@@ -13,17 +13,18 @@ const (
 )
 
 type Manifest struct {
-	// MaxRetries is the maximum number of retries a single object can
+	// maxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped.
-	maxRetries           int
-	concurrentTransfers  int
-	basicTransfersOnly   bool
-	tusTransfersAllowed  bool
-	downloadAdapterFuncs map[string]NewAdapterFunc
-	uploadAdapterFuncs   map[string]NewAdapterFunc
-	apiClient            *lfsapi.Client
-	tqClient             *tqClient
-	mu                   sync.Mutex
+	maxRetries              int
+	concurrentTransfers     int
+	basicTransfersOnly      bool
+	standaloneTransferAgent string
+	tusTransfersAllowed     bool
+	downloadAdapterFuncs    map[string]NewAdapterFunc
+	uploadAdapterFuncs      map[string]NewAdapterFunc
+	apiClient               *lfsapi.Client
+	tqClient                *tqClient
+	mu                      sync.Mutex
 }
 
 func (m *Manifest) APIClient() *lfsapi.Client {
@@ -69,6 +70,7 @@ func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
 			m.concurrentTransfers = v
 		}
 		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
+		m.standaloneTransferAgent, _ = git.Get("lfs.standalonetransferagent")
 		tusAllowed = git.Bool("lfs.tustransfers", false)
 		configureCustomAdapters(git, m)
 	}
