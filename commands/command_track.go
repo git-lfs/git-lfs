@@ -56,6 +56,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	wd, _ := tools.Getwd()
+	wd = tools.ResolveSymlinks(wd)
 	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
 	if err != nil {
 		Exit("Current directory %q outside of git working directory %q.", wd, config.LocalWorkingDir)
