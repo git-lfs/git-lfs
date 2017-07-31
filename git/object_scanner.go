@@ -132,6 +132,10 @@ func (s *ObjectScanner) Scan(oid string) bool {
 // called upon. If there were any errors in freeing that (those) resource(s), it
 // it will be returned, otherwise nil.
 func (s *ObjectScanner) Close() error {
+	if s == nil {
+		return nil
+	}
+
 	if s.closeFn != nil {
 		return s.closeFn()
 	}
