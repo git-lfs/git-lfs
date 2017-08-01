@@ -53,7 +53,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 	}
 
 	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
-	cb, file, err := lfs.CopyCallbackFile("smudge", filename, 1, 1)
+	cb, file, err := lfs.CopyCallbackFile("download", filename, 1, 1)
 	if err != nil {
 		return 0, err
 	}
