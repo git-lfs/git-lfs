@@ -583,6 +583,10 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	cb := func(name string, total, read int64, current int) error {
 		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
 		if q.cb != nil {
+			// NOTE: this is the mechanism by which the logpath
+			// specified by GIT_LFS_PROGRESS is written to.
+			//
+			// See: lfs.downloadFile() for more.
 			q.cb(total, read, current)
 		}
 		return nil

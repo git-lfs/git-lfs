@@ -76,7 +76,12 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
 
-	q := tq.NewTransferQueue(tq.Download, manifest, "")
+	// NOTE: if given, "cb" is a progress.CopyCallback which writes updates
+	// to the logpath specified by GIT_LFS_PROGRESS.
+	//
+	// Either way, forward it into the *tq.TransferQueue so that updates are
+	// sent over correctly.
+	q := tq.NewTransferQueue(tq.Download, manifest, "", tq.WithProgressCallback(cb))
 	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
 	q.Wait()
 
