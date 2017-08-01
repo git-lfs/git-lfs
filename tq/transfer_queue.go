@@ -95,6 +95,7 @@ type TransferQueue struct {
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
+	cb                progress.CopyCallback
 	meter             progress.Meter
 	errors            []error
 	transfers         map[string]*objectTuple
@@ -131,6 +132,12 @@ func DryRun(dryRun bool) Option {
 func WithProgress(m progress.Meter) Option {
 	return func(tq *TransferQueue) {
 		tq.meter = m
+	}
+}
+
+func WithProgressCallback(cb progress.CopyCallback) Option {
+	return func(tq *TransferQueue) {
+		tq.cb = cb
 	}
 }
 
@@ -575,6 +582,9 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	// Progress callback - receives byte updates
 	cb := func(name string, total, read int64, current int) error {
 		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
+		if q.cb != nil {
+			q.cb(total, read, current)
+		}
 		return nil
 	}
 
