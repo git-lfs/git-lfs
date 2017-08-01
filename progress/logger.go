@@ -11,7 +11,7 @@ type progressLogger struct {
 
 // Write will write to the file and perform a Sync() if writing succeeds.
 func (l *progressLogger) Write(b []byte) error {
-	if l.writeData {
+	if !l.writeData {
 		return nil
 	}
 	if _, err := l.log.Write(b); err != nil {
