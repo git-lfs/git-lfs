@@ -39,7 +39,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	if err := s.Init(); err != nil {
 		ExitWithError(err)
 	}
-	if err := s.NegotiateCapabilities(); err != nil {
+
+	_, err := s.NegotiateCapabilities()
+	if err != nil {
 		ExitWithError(err)
 	}
 
