@@ -4,7 +4,7 @@ machine:
     GIT_SOURCE_REPO: https://github.com/git/git.git
     GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
     GIT_LATEST_SOURCE_BRANCH: master
-    GIT_NEXT_SOURCE_BRANCH: master
+    GIT_NEXT_SOURCE_BRANCH: next
     XCODE_SCHEME: test
     XCODE_WORKSPACE: test
     XCODE_PROJECT: test
