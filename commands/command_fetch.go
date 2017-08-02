@@ -301,8 +301,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 				oidToPointers[pointer.Oid] = append(plist, pointer)
 			}
 
-			for oid := range dlwatch {
-				plist, ok := oidToPointers[oid]
+			for t := range dlwatch {
+				plist, ok := oidToPointers[t.Oid]
 				if !ok {
 					continue
 				}
