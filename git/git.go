@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -398,6 +399,18 @@ func DefaultRemote() (string, error) {
 		}
 	}
 	return "", errors.New("Unable to pick default remote, too ambiguous")
+}
+
+func StartUpdateIndexFromStdin(w io.Writer) (io.WriteCloser, error) {
+	cmd := gitNoLFS("update-index", "-q", "--refresh", "--stdin")
+	cmd.Stdout = w
+	cmd.Stderr = w
+	stdin, err := cmd.StdinPipe()
+	if err == nil {
+		err = cmd.Start()
+	}
+
+	return stdin, err
 }
 
 type gitConfig struct {
