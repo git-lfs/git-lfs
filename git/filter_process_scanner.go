@@ -95,9 +95,9 @@ func (o *FilterProcessScanner) Init() error {
 
 // NegotiateCapabilities executes the process of negotiating capabilities
 // between the filter client and server. If we don't support any of the
-// capabilities given to LFS by the parent, an error will be returned. If there
-// was an error reading or writing capabilities between the two, an error will
-// be returned.
+// capabilities given to LFS by Git, an error will be returned. If there was an
+// error reading or writing capabilities between the two, an error will be
+// returned.
 func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 	reqCaps := []string{"capability=clean", "capability=smudge"}
 
