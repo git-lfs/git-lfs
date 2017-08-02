@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,11 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
 		if comparing {
-			buildOid = gitHashObject(buf.Bytes())
+			buildOid, err = git.HashObject(buf.Bytes())
+			if err != nil {
+				Error(err.Error())
+				os.Exit(1)
+			}
 			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n\n", buildOid)
 		}
 	} else {
@@ -86,7 +90,11 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		fmt.Fprintf(os.Stderr, buf.String())
 		if comparing {
-			compareOid = gitHashObject(buf.Bytes())
+			compareOid, err = git.HashObject(buf.Bytes())
+			if err != nil {
+				Error(err.Error())
+				os.Exit(1)
+			}
 			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n", compareOid)
 		}
 	}
@@ -114,18 +122,6 @@ func pointerReader() (io.ReadCloser, error) {
 	requireStdin("The --stdin flag expects a pointer file from STDIN.")
 
 	return os.Stdin, nil
-}
-
-func gitHashObject(by []byte) string {
-	cmd := exec.Command("git", "hash-object", "--stdin")
-	cmd.Stdin = bytes.NewReader(by)
-	out, err := cmd.Output()
-	if err != nil {
-		Error("Error building Git blob OID: %s", err)
-		os.Exit(1)
-	}
-
-	return string(bytes.TrimSpace(out))
 }
 
 func init() {

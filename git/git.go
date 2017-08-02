@@ -125,6 +125,17 @@ func gitSimple(args ...string) (string, error) {
 	return subprocess.SimpleExec("git", args...)
 }
 
+func HashObject(by []byte) (string, error) {
+	cmd := gitNoLFS("hash-object", "--stdin")
+	cmd.Stdin = bytes.NewReader(by)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Error building Git blob OID: %s", err)
+	}
+
+	return string(bytes.TrimSpace(out)), nil
+}
+
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
 		return "", errors.New("remote required")
