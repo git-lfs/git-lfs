@@ -134,6 +134,16 @@ func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	assert.Nil(t, req)
 }
 
+func TestFilterProcessScannerWritesLists(t *testing.T) {
+	var to bytes.Buffer
+
+	fps := NewFilterProcessScanner(nil, &to)
+	err := fps.WriteList([]string{"hello", "goodbye"})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "000ahello\n000cgoodbye\n0000", to.String())
+}
+
 // readRequest performs a single scan operation on the given
 // `*FilterProcessScanner`, "s", and returns: an error if there was one, or a
 // request if there was one.  If neither, it returns (nil, nil).

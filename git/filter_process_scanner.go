@@ -184,6 +184,12 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 	return req, nil
 }
 
+// WriteList writes a list of strings to the underlying pktline data stream in
+// pktline format.
+func (o *FilterProcessScanner) WriteList(list []string) error {
+	return o.pl.writePacketList(list)
+}
+
 func (o *FilterProcessScanner) WriteStatus(status string) error {
 	return o.pl.writePacketList([]string{"status=" + status})
 }
