@@ -117,7 +117,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	var verifiedObjects tools.StringSet
 	var totalSize int64
 	var verboseOutput bytes.Buffer
-	var verifyc chan string
+	var verifyc chan *tq.Transfer
 	var verifywait sync.WaitGroup
 
 	if verifyRemote {
@@ -128,9 +128,9 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 		verifyc = verifyQueue.Watch()
 		verifywait.Add(1)
 		go func() {
-			for oid := range verifyc {
-				verifiedObjects.Add(oid)
-				tracerx.Printf("VERIFIED: %v", oid)
+			for t := range verifyc {
+				verifiedObjects.Add(t.Oid)
+				tracerx.Printf("VERIFIED: %v", t.Oid)
 				progressChan <- PruneProgress{PruneProgressTypeVerify, 1}
 			}
 			verifywait.Done()

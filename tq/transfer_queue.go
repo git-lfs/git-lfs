@@ -104,7 +104,7 @@ type TransferQueue struct {
 	// Channel for processing (and buffering) incoming items
 	incoming      chan *objectTuple
 	errorc        chan error // Channel for processing errors
-	watchers      []chan string
+	watchers      []chan *Transfer
 	trMutex       *sync.Mutex
 	collectorWait sync.WaitGroup
 	errorwait     sync.WaitGroup
@@ -533,7 +533,7 @@ func (q *TransferQueue) handleTransferResult(
 		// Otherwise, if the transfer was successful, notify all of the
 		// watchers, and mark it as finished.
 		for _, c := range q.watchers {
-			c <- oid
+			c <- res.Transfer
 		}
 
 		q.meter.FinishTransfer(res.Transfer.Name)
@@ -636,10 +636,11 @@ func (q *TransferQueue) Wait() {
 	q.errorwait.Wait()
 }
 
-// Watch returns a channel where the queue will write the OID of each transfer
-// as it completes. The channel will be closed when the queue finishes processing.
-func (q *TransferQueue) Watch() chan string {
-	c := make(chan string, q.batchSize)
+// Watch returns a channel where the queue will write the value of each transfer
+// as it completes. The channel will be closed when the queue finishes
+// processing.
+func (q *TransferQueue) Watch() chan *Transfer {
+	c := make(chan *Transfer, q.batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
 }
