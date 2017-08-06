@@ -306,33 +306,33 @@ func (q *TransferQueue) collectBatches() {
 	defer q.collectorWait.Done()
 
 	var closing bool
-	batch := q.makeBatch()
+	next := q.makeBatch()
 
 	for {
-		for !closing && (len(batch) < q.batchSize) {
+		for !closing && (len(next) < q.batchSize) {
 			t, ok := <-q.incoming
 			if !ok {
 				closing = true
 				break
 			}
 
-			batch = append(batch, t)
+			next = append(next, t)
 		}
 
 		// Before enqueuing the next batch, sort by descending object
 		// size.
-		sort.Sort(sort.Reverse(batch))
+		sort.Sort(sort.Reverse(next))
 
 		retries, err := q.enqueueAndCollectRetriesFor(batch)
 		if err != nil {
 			q.errorc <- err
 		}
 
-		if closing && len(retries) == 0 {
+		if closing && len(next) == 0 {
 			break
 		}
 
-		batch = retries
+		next = retries
 	}
 }
 
