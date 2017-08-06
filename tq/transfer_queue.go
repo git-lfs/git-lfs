@@ -72,6 +72,18 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // all other workers are sitting idle.
 type batch []*objectTuple
 
+// Concat concatenates two batches together, returning a single, clamped batch as
+// "left", and the remainder of elements as "right". If the union of the
+// receiver and "other" has cardinality less than "size", "right" will be
+// returned as nil.
+func (b batch) Concat(other batch, size int) (left, right batch) {
+	u := batch(append(b, other...))
+	if len(u) <= size {
+		return u, nil
+	}
+	return u[:size], u[size:]
+}
+
 func (b batch) ToTransfers() []*Transfer {
 	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
