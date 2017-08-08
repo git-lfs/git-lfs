@@ -61,6 +61,34 @@ func (f *Filter) Allows(filename string) bool {
 	return allowed
 }
 
+// HasPrefix returns whether the given prefix "prefix" is a prefix for all
+// included Patterns, and not a prefix for any excluded Patterns.
+func (f *Filter) HasPrefix(prefix string) bool {
+	if f == nil {
+		return true
+	}
+
+	parts := strings.Split(prefix, sep)
+
+L:
+	for i := len(parts); i > 0; i-- {
+		prefix := strings.Join(parts[:i], sep)
+
+		for _, p := range f.exclude {
+			if p.Match(prefix) {
+				break L
+			}
+		}
+
+		for _, p := range f.include {
+			if p.HasPrefix(prefix) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // AllowsPattern returns whether the given filename is permitted by the
 // inclusion/exclusion rules of this filter, as well as the pattern that either
 // allowed or disallowed that filename.
