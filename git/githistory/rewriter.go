@@ -325,7 +325,16 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 }
 
 func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
-	return r.Filter().Allows(abs)
+	switch typ {
+	case odb.BlobObjectType:
+		return r.Filter().Allows(abs)
+	case odb.TreeObjectType:
+		return r.Filter().HasPrefix(abs)
+	case odb.CommitObjectType:
+		return true
+	default:
+		panic(fmt.Sprintf("git/githistory: unknown entry type: %s", typ))
+	}
 }
 
 // rewriteBlob calls the given BlobRewriteFn "fn" on a blob given in the object
