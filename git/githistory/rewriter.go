@@ -285,7 +285,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 	for _, entry := range tree.Entries {
 		path := filepath.Join(path, entry.Name)
 
-		if !r.filter.Allows(path) {
+		if !r.allows(entry.Type(), path) {
 			entries = append(entries, entry)
 			continue
 		}
@@ -322,6 +322,10 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 		return nil, err
 	}
 	return r.db.WriteTree(rewritten)
+}
+
+func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
+	return r.Filter().Allows(abs)
 }
 
 // rewriteBlob calls the given BlobRewriteFn "fn" on a blob given in the object
