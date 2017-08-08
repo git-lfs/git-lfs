@@ -8,6 +8,16 @@ import (
 )
 
 type Pattern interface {
+	// HasPrefix returns whether the receiving Pattern will match a fullpath
+	// that contains the prefix "prefix".
+	//
+	// For instance, if the receiving pattern were to match 'a/b/c.txt',
+	// HasPrefix() will return true for:
+	//
+	//   - 'a', and 'a/'
+	//   - 'a/b', and 'a/b/'
+	HasPrefix(prefix string) bool
+
 	Match(filename string) bool
 	// String returns a string representation (see: regular expressions) of
 	// the underlying pattern used to match filenames against this Pattern.
@@ -94,6 +104,10 @@ func (f *Filter) AllowsPattern(filename string) (pattern string, allowed bool) {
 	return pattern, true
 }
 
+const (
+	sep = string(filepath.Separator)
+)
+
 func NewPattern(rawpattern string) Pattern {
 	cleanpattern := filepath.Clean(rawpattern)
 
@@ -102,7 +116,6 @@ func NewPattern(rawpattern string) Pattern {
 		return noOpMatcher{}
 	}
 
-	sep := string(filepath.Separator)
 	hasPathSep := strings.Contains(cleanpattern, sep)
 	ext := filepath.Ext(cleanpattern)
 	plen := len(cleanpattern)
@@ -183,6 +196,10 @@ func (p *pathPrefixPattern) Match(name string) bool {
 	return matched
 }
 
+func (p *pathPrefixPattern) HasPrefix(name string) bool {
+	return strings.HasPrefix(p.relative, name)
+}
+
 // String returns a string representation of the underlying pattern for which
 // this *pathPrefixPattern is matching.
 func (p *pathPrefixPattern) String() string {
@@ -206,6 +223,10 @@ func (p *pathPattern) Match(name string) bool {
 	return matched
 }
 
+func (p *pathPattern) HasPrefix(name string) bool {
+	return strings.HasPrefix(p.prefix, name)
+}
+
 // String returns a string representation of the underlying pattern for which
 // this *pathPattern is matching.
 func (p *pathPattern) String() string {
@@ -218,6 +239,10 @@ type simpleExtPattern struct {
 
 func (p *simpleExtPattern) Match(name string) bool {
 	return strings.HasSuffix(name, p.ext)
+}
+
+func (p *simpleExtPattern) HasPrefix(name string) bool {
+	return true
 }
 
 // String returns a string representation of the underlying pattern for which
@@ -239,6 +264,15 @@ func (p *pathlessWildcardPattern) Match(name string) bool {
 	return matched || p.wildcardRE.MatchString(filepath.Base(name))
 }
 
+func (p *pathlessWildcardPattern) HasPrefix(name string) bool {
+	lit, ok := p.wildcardRE.LiteralPrefix()
+	if !ok {
+		return true
+	}
+
+	return strings.HasPrefix(name, lit)
+}
+
 // String returns a string representation of the underlying pattern for which
 // this *pathlessWildcardPattern is matching.
 func (p *pathlessWildcardPattern) String() string {
@@ -258,6 +292,15 @@ func (p *doubleWildcardPattern) Match(name string) bool {
 	return matched || p.wildcardRE.MatchString(name)
 }
 
+func (p *doubleWildcardPattern) HasPrefix(name string) bool {
+	lit, ok := p.wildcardRE.LiteralPrefix()
+	if !ok {
+		return true
+	}
+
+	return strings.HasPrefix(name, lit)
+}
+
 // String returns a string representation of the underlying pattern for which
 // this *doubleWildcardPattern is matching.
 func (p *doubleWildcardPattern) String() string {
@@ -268,6 +311,10 @@ type noOpMatcher struct {
 }
 
 func (n noOpMatcher) Match(name string) bool {
+	return true
+}
+
+func (n noOpMatcher) HasPrefix(name string) bool {
 	return true
 }
 
