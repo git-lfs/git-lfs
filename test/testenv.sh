@@ -7,6 +7,7 @@ UNAME=$(uname -s)
 IS_WINDOWS=0
 IS_MAC=0
 SHASUM="shasum -a 256"
+PATH_SEPARATOR="/"
 
 if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]
 then
@@ -16,6 +17,7 @@ then
   # script by default, so use sha256sum directly. MacOS on the other hand
   # does not have sha256sum, so still use shasum as the default.
   SHASUM="sha256sum"
+  PATH_SEPARATOR="\\"
 elif [[ $UNAME == *Darwin* ]]
 then
   IS_MAC=1
