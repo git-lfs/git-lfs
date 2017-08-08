@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -138,8 +137,8 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, 2, seen[root("a.txt")])
-	assert.Equal(t, 1, seen[root(filepath.Join("subdir", "b.txt"))])
+	assert.Equal(t, 2, seen["a.txt"])
+	assert.Equal(t, 1, seen[filepath.Join("subdir", "b.txt")])
 }
 
 func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
@@ -148,7 +147,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
-			if path == root("b.txt") {
+			if path == "b.txt" {
 				return b, nil
 			}
 
@@ -195,8 +194,8 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, 1, seen[root("a.txt")])
-	assert.Equal(t, 0, seen[root(filepath.Join("subdir", "b.txt"))])
+	assert.Equal(t, 1, seen["a.txt"])
+	assert.Equal(t, 0, seen[filepath.Join("subdir", "b.txt")])
 }
 
 func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
@@ -343,11 +342,4 @@ func TestHistoryRewriterReturnsFilter(t *testing.T) {
 
 	assert.Equal(t, expected, got,
 		"git/githistory: expected Rewriter.Filter() to return same *filepathfilter.Filter instance")
-}
-
-func root(path string) string {
-	if !strings.HasPrefix(path, string(os.PathSeparator)) {
-		path = string(os.PathSeparator) + path
-	}
-	return path
 }
