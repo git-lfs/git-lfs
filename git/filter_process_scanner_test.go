@@ -70,8 +70,10 @@ func TestFilterProcessScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	}))
 
 	fps := NewFilterProcessScanner(&from, &to)
-	err := fps.NegotiateCapabilities()
+	caps, err := fps.NegotiateCapabilities()
 
+	assert.Contains(t, caps, "capability=clean")
+	assert.Contains(t, caps, "capability=smudge")
 	assert.Nil(t, err)
 
 	out, err := newPktline(&to, nil).readPacketList()
@@ -89,9 +91,10 @@ func TestFilterProcessScannerDoesNotNegotitatesUnsupportedCapabilities(t *testin
 	}))
 
 	fps := NewFilterProcessScanner(&from, &to)
-	err := fps.NegotiateCapabilities()
+	caps, err := fps.NegotiateCapabilities()
 
 	require.NotNil(t, err)
+	assert.Empty(t, caps)
 	assert.Equal(t, "filter 'capability=clean' not supported (your Git supports: [capability=unsupported])", err.Error())
 	assert.Empty(t, to.Bytes())
 }
@@ -132,6 +135,16 @@ func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	assert.Equal(t, "Invalid packet length.", err.Error())
 
 	assert.Nil(t, req)
+}
+
+func TestFilterProcessScannerWritesLists(t *testing.T) {
+	var to bytes.Buffer
+
+	fps := NewFilterProcessScanner(nil, &to)
+	err := fps.WriteList([]string{"hello", "goodbye"})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "000ahello\n000cgoodbye\n0000", to.String())
 }
 
 // readRequest performs a single scan operation on the given

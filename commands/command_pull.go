@@ -81,8 +81,8 @@ func pull(remote string, filter *filepathfilter.Filter) {
 	wg.Add(1)
 
 	go func() {
-		for oid := range dlwatch {
-			for _, p := range pointers.All(oid) {
+		for t := range dlwatch {
+			for _, p := range pointers.All(t.Oid) {
 				singleCheckout.Run(p)
 			}
 		}

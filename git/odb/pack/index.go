@@ -1,7 +1,10 @@
 package pack
 
 import (
+	"bytes"
 	"io"
+
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 // Index stores information about the location of objects in a corresponding
@@ -19,8 +22,8 @@ type Index struct {
 	// See: https://github.com/git/git/blob/v2.13.0/Documentation/technical/pack-format.txt#L41-L45
 	fanout []uint32
 
-	// f is the underlying set of encoded data comprising this index file.
-	f io.ReaderAt
+	// r is the underlying set of encoded data comprising this index file.
+	r io.ReaderAt
 }
 
 // Count returns the number of objects in the packfile.
@@ -28,13 +31,26 @@ func (i *Index) Count() int {
 	return int(i.fanout[255])
 }
 
+var (
+	// errNotFound is an error returned by Index.Entry() (see: below) when
+	// an object cannot be found in the index.
+	errNotFound = errors.New("git/odb/pack: object not found in index")
+)
+
+// IsNotFound returns whether a given error represents a missing object in the
+// index.
+func IsNotFound(err error) bool {
+	return err == errNotFound
+}
+
 // Entry returns an entry containing the offset of a given SHA1 "name".
 //
 // Entry operates in O(log(n))-time in the worst case, where "n" is the number
 // of objects that begin with the first byte of "name".
 //
-// If the entry cannot be found, (nil, nil) will be returned. If there was an
-// error searching for or parsing an entry, it will be returned as (nil, err).
+// If the entry cannot be found, (nil, ErrNotFound) will be returned. If there
+// was an error searching for or parsing an entry, it will be returned as (nil,
+// err).
 //
 // Otherwise, (entry, nil) will be returned.
 func (i *Index) Entry(name []byte) (*IndexEntry, error) {
@@ -49,24 +65,23 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 			//
 			// Either way, we won't be able to find the object.
 			// Return immediately to prevent infinite looping.
-			return nil, nil
+			return nil, errNotFound
 		}
 		last = bounds
 
 		// Find the midpoint between the upper and lower bounds.
-		mid := (bounds.Left() + bounds.Right()) / 2
+		mid := bounds.Left() + ((bounds.Right() - bounds.Left()) / 2)
 
-		// Search for the given object at that midpoint.
-		entry, cmp, err := i.version.Search(i, name, mid)
+		got, err := i.version.Name(i, mid)
 		if err != nil {
 			return nil, err
 		}
 
-		if cmp == 0 {
+		if cmp := bytes.Compare(name, got); cmp == 0 {
 			// If "cmp" is zero, that means the object at that index
 			// "at" had a SHA equal to the one given by name, and we
 			// are done.
-			return entry, nil
+			return i.version.Entry(i, mid)
 		} else if cmp < 0 {
 			// If the comparison is less than 0, we searched past
 			// the desired object, so limit the upper bound of the
@@ -81,18 +96,13 @@ func (i *Index) Entry(name []byte) (*IndexEntry, error) {
 
 	}
 
-	// Theoretically not possible to reach this point, since we terminate
-	// inside of the loop either if the bounds are unchanged, or the object
-	// is found.
-	//
-	// Retain this in order to compile.
-	return nil, nil
+	return nil, errNotFound
 }
 
 // readAt is a convenience method that allow reading into the underlying data
 // source from other callers within this package.
 func (i *Index) readAt(p []byte, at int64) (n int, err error) {
-	return i.f.ReadAt(p, at)
+	return i.r.ReadAt(p, at)
 }
 
 // bounds returns the initial bounds for a given name using the fanout table to

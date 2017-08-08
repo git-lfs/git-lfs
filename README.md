@@ -20,8 +20,16 @@ binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
 
 ## Getting Started
 
-You can install Git LFS in several different ways, depending on your setup and
-preferences.
+By default, the Git LFS client needs a Git LFS server to sync the large files
+it manages. This works out of the box when using popular git repository
+hosting providers like GitHub, Atlassian, etc. When you host your own
+vanilla git server, for example, you need to either use a separate
+[Git LFS server instance](https://github.com/git-lfs/git-lfs/wiki/Implementations),
+or use the [custom transfer adapter](docs/custom-transfers.md) with
+a transfer agent in blind mode, without having to use a Git LFS server instance.
+
+You can install the Git LFS client in several different ways, depending on
+your setup and preferences.
 
 * Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs/install).  See the [Installation Guide](./INSTALLING.md) for details.
 * Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.

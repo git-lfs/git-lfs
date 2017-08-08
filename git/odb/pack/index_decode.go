@@ -3,52 +3,55 @@ package pack
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
+
+	"github.com/git-lfs/git-lfs/errors"
 )
 
 const (
-	// MagicWidth is the width of the magic header of packfiles version 2
-	// and newer.
-	MagicWidth = 4
-	// VersionWidth is the width of the version following the magic header.
-	VersionWidth = 4
-	// V2Width is the total width of the header in V2.
-	V2Width = MagicWidth + VersionWidth
-	// V1Width is the total width of the header in V1.
-	V1Width = 0
-
-	// FanoutEntries is the number of entries in the fanout table.
-	FanoutEntries = 256
-	// FanoutEntryWidth is the width of each entry in the fanout table.
-	FanoutEntryWidth = 4
-	// FanoutWidth is the width of the entire fanout table.
-	FanoutWidth = FanoutEntries * FanoutEntryWidth
-
-	// OffsetV1Start is the location of the first object outside of the V1
+	// indexMagicWidth is the width of the magic header of packfiles version
+	// 2 and newer.
+	indexMagicWidth = 4
+	// indexVersionWidth is the width of the version following the magic
 	// header.
-	OffsetV1Start = V1Width + FanoutWidth
-	// OffsetV2Start is the location of the first object outside of the V2
-	// header.
-	OffsetV2Start = V2Width + FanoutWidth
+	indexVersionWidth = 4
+	// indexV2Width is the total width of the header in V2.
+	indexV2Width = indexMagicWidth + indexVersionWidth
+	// indexV1Width is the total width of the header in V1.
+	indexV1Width = 0
 
-	// ObjectNameWidth is the width of a SHA1 object name.
-	ObjectNameWidth = 20
-	// ObjectCRCWidth is the width of the CRC accompanying each object in
-	// V2.
-	ObjectCRCWidth = 4
-	// ObjectSmallOffsetWidth is the width of the small offset encoded into
-	// each object.
-	ObjectSmallOffsetWidth = 4
-	// ObjectLargeOffsetWidth is the width of the optional large offset
+	// indexFanoutEntries is the number of entries in the fanout table.
+	indexFanoutEntries = 256
+	// indexFanoutEntryWidth is the width of each entry in the fanout table.
+	indexFanoutEntryWidth = 4
+	// indexFanoutWidth is the width of the entire fanout table.
+	indexFanoutWidth = indexFanoutEntries * indexFanoutEntryWidth
+
+	// indexOffsetV1Start is the location of the first object outside of the
+	// V1 header.
+	indexOffsetV1Start = indexV1Width + indexFanoutWidth
+	// indexOffsetV2Start is the location of the first object outside of the
+	// V2 header.
+	indexOffsetV2Start = indexV2Width + indexFanoutWidth
+
+	// indexObjectNameWidth is the width of a SHA1 object name.
+	indexObjectNameWidth = 20
+	// indexObjectCRCWidth is the width of the CRC accompanying each object
+	// in V2.
+	indexObjectCRCWidth = 4
+	// indexObjectSmallOffsetWidth is the width of the small offset encoded
+	// into each object.
+	indexObjectSmallOffsetWidth = 4
+	// indexObjectLargeOffsetWidth is the width of the optional large offset
 	// encoded into the small offset.
-	ObjectLargeOffsetWidth = 8
+	indexObjectLargeOffsetWidth = 8
 
-	// ObjectEntryV1Width is the width of one contiguous object entry in V1.
-	ObjectEntryV1Width = ObjectNameWidth + ObjectSmallOffsetWidth
-	// ObjectEntryV2Width is the width of one non-contiguous object entry in
-	// V2.
-	ObjectEntryV2Width = ObjectNameWidth + ObjectCRCWidth + ObjectSmallOffsetWidth
+	// indexObjectEntryV1Width is the width of one contiguous object entry
+	// in V1.
+	indexObjectEntryV1Width = indexObjectNameWidth + indexObjectSmallOffsetWidth
+	// indexObjectEntryV2Width is the width of one non-contiguous object
+	// entry in V2.
+	indexObjectEntryV2Width = indexObjectNameWidth + indexObjectCRCWidth + indexObjectSmallOffsetWidth
 )
 
 var (
@@ -82,7 +85,7 @@ func DecodeIndex(r io.ReaderAt) (*Index, error) {
 		version: version,
 		fanout:  fanout,
 
-		f: r,
+		r: r,
 	}, nil
 }
 
@@ -90,24 +93,26 @@ func DecodeIndex(r io.ReaderAt) (*Index, error) {
 func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
 	hdr := make([]byte, 4)
 	if _, err := r.ReadAt(hdr, 0); err != nil {
-		return VersionUnknown, err
+		return nil, err
 	}
 
 	if bytes.Equal(hdr, indexHeader) {
 		vb := make([]byte, 4)
 		if _, err := r.ReadAt(vb, 4); err != nil {
-			return VersionUnknown, err
+			return nil, err
 		}
 
-		version := IndexVersion(binary.BigEndian.Uint32(vb))
+		version := binary.BigEndian.Uint32(vb)
 		switch version {
-		case V1, V2:
-			return version, nil
+		case 1:
+			return new(V1), nil
+		case 2:
+			return new(V2), nil
 		}
 
-		return version, &UnsupportedVersionErr{uint32(version)}
+		return nil, &UnsupportedVersionErr{uint32(version)}
 	}
-	return V1, nil
+	return new(V1), nil
 }
 
 // decodeIndexFanout decodes the fanout table given by "r" and beginning at the

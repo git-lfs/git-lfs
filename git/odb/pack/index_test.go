@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/errors"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +50,7 @@ func TestIndexSearchOutOfBounds(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	})
 
-	assert.NoError(t, err)
+	assert.True(t, IsNotFound(err), "expected err to be 'not found'")
 	assert.Nil(t, e)
 }
 
@@ -58,7 +60,7 @@ func TestIndexEntryNotFound(t *testing.T) {
 		0x6, 0x6, 0x6, 0x6, 0x6, 0x6, 0x6, 0x6, 0x6, 0x6,
 	})
 
-	assert.NoError(t, err)
+	assert.True(t, IsNotFound(err), "expected err to be 'not found'")
 	assert.Nil(t, e)
 }
 
@@ -71,6 +73,16 @@ func TestIndexCount(t *testing.T) {
 	idx := &Index{fanout: fanout}
 
 	assert.EqualValues(t, 255, idx.Count())
+}
+
+func TestIndexIsNotFound(t *testing.T) {
+	assert.True(t, IsNotFound(errNotFound),
+		"expected 'errNotFound' to satisfy 'IsNotFound()'")
+}
+
+func TestIndexIsNotFoundForOtherErrors(t *testing.T) {
+	assert.False(t, IsNotFound(errors.New("git/odb/pack: misc")),
+		"expected 'err' not to satisfy 'IsNotFound()'")
 }
 
 // init generates some fixture data and then constructs an *Index instance using
@@ -90,7 +102,7 @@ func init() {
 	// Since we have an even distribution of SHA1s in the generated index,
 	// each entry will increase by the number of entries per slot (see: eps
 	// above).
-	fanout := make([]uint32, FanoutEntries)
+	fanout := make([]uint32, indexFanoutEntries)
 	for i := 0; i < len(fanout); i++ {
 		// Begin the index at (i+1), since the fanout table mandates
 		// objects less than the value at index "i".
@@ -154,7 +166,7 @@ func init() {
 		fanout: fanout,
 		// version is unimportant here, use V2 since it's more common in
 		// the wild.
-		version: V2,
+		version: new(V2),
 
 		// *bytes.Buffer does not implement io.ReaderAt, but
 		// *bytes.Reader does.
@@ -162,6 +174,6 @@ func init() {
 		// Call (*bytes.Buffer).Bytes() to get the data, and then
 		// construct a new *bytes.Reader with it to implement
 		// io.ReaderAt.
-		f: bytes.NewReader(buf.Bytes()),
+		r: bytes.NewReader(buf.Bytes()),
 	}
 }

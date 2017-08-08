@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	V1IndexFanout = make([]uint32, FanoutEntries)
+	V1IndexFanout = make([]uint32, indexFanoutEntries)
 
 	V1IndexSmallEntry = []byte{
 		0x0, 0x0, 0x0, 0x1,
@@ -37,40 +37,19 @@ var (
 
 	V1Index = &Index{
 		fanout:  V1IndexFanout,
-		version: V1,
+		version: new(V1),
 	}
 )
 
 func TestIndexV1SearchExact(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 1)
+	e, err := new(V1).Entry(V1Index, 1)
 
 	assert.NoError(t, err)
-	assert.Equal(t, 0, cmp)
 	assert.EqualValues(t, 2, e.PackOffset)
 }
 
-func TestIndexV1SearchSmall(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 0)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 1, cmp)
-	assert.Nil(t, e)
-}
-
-func TestIndexV1SearchBig(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 2)
-
-	assert.NoError(t, err)
-	assert.Equal(t, -1, cmp)
-	assert.Nil(t, e)
-}
-
-func TestIndexV1SearchOutOfBounds(t *testing.T) {
-	e, cmp, err := V1.Search(V1Index, V1IndexMediumSha, 10)
-
-	assert.Nil(t, e)
-	assert.Equal(t, 0, cmp)
-	assert.Equal(t, ErrIndexOutOfBounds, err)
+func TestIndexVersionWidthV1(t *testing.T) {
+	assert.EqualValues(t, 0, new(V1).Width())
 }
 
 func init() {
@@ -82,17 +61,17 @@ func init() {
 		V1IndexFanout[i] = 3
 	}
 
-	fanout := make([]byte, FanoutWidth)
+	fanout := make([]byte, indexFanoutWidth)
 	for i, n := range V1IndexFanout {
-		binary.BigEndian.PutUint32(fanout[i*FanoutEntryWidth:], n)
+		binary.BigEndian.PutUint32(fanout[i*indexFanoutEntryWidth:], n)
 	}
 
-	buf := make([]byte, 0, OffsetV1Start+(3*ObjectEntryV1Width))
+	buf := make([]byte, 0, indexOffsetV1Start+(3*indexObjectEntryV1Width))
 
 	buf = append(buf, fanout...)
 	buf = append(buf, V1IndexSmallEntry...)
 	buf = append(buf, V1IndexMediumEntry...)
 	buf = append(buf, V1IndexLargeEntry...)
 
-	V1Index.f = bytes.NewReader(buf)
+	V1Index.r = bytes.NewReader(buf)
 }

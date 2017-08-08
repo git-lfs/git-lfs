@@ -95,28 +95,28 @@ func (o *FilterProcessScanner) Init() error {
 
 // NegotiateCapabilities executes the process of negotiating capabilities
 // between the filter client and server. If we don't support any of the
-// capabilities given to LFS by the parent, an error will be returned. If there
-// was an error reading or writing capabilities between the two, an error will
-// be returned.
-func (o *FilterProcessScanner) NegotiateCapabilities() error {
+// capabilities given to LFS by Git, an error will be returned. If there was an
+// error reading or writing capabilities between the two, an error will be
+// returned.
+func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 	reqCaps := []string{"capability=clean", "capability=smudge"}
 
 	supCaps, err := o.pl.readPacketList()
 	if err != nil {
-		return fmt.Errorf("reading filter-process capabilities failed with %s", err)
+		return nil, fmt.Errorf("reading filter-process capabilities failed with %s", err)
 	}
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
-			return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
+			return nil, fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
 		}
 	}
 
 	err = o.pl.writePacketList(reqCaps)
 	if err != nil {
-		return fmt.Errorf("writing filter-process capabilities failed with %s", err)
+		return nil, fmt.Errorf("writing filter-process capabilities failed with %s", err)
 	}
 
-	return nil
+	return supCaps, nil
 }
 
 // Request represents a single command sent to LFS from the parent Git process.
@@ -182,6 +182,12 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 	}
 
 	return req, nil
+}
+
+// WriteList writes a list of strings to the underlying pktline data stream in
+// pktline format.
+func (o *FilterProcessScanner) WriteList(list []string) error {
+	return o.pl.writePacketList(list)
 }
 
 func (o *FilterProcessScanner) WriteStatus(status string) error {

@@ -208,7 +208,7 @@ func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase) *githistory.
 func init() {
 	info := NewCommand("info", migrateInfoCommand)
 	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
-	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "1mb", "--above=<n>")
+	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "", "--above=<n>")
 	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
 
 	importCmd := NewCommand("import", migrateImportCommand)

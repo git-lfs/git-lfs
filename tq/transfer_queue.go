@@ -72,6 +72,18 @@ func (r *retryCounter) CanRetry(oid string) (int, bool) {
 // all other workers are sitting idle.
 type batch []*objectTuple
 
+// Concat concatenates two batches together, returning a single, clamped batch as
+// "left", and the remainder of elements as "right". If the union of the
+// receiver and "other" has cardinality less than "size", "right" will be
+// returned as nil.
+func (b batch) Concat(other batch, size int) (left, right batch) {
+	u := batch(append(b, other...))
+	if len(u) <= size {
+		return u, nil
+	}
+	return u[:size], u[size:]
+}
+
 func (b batch) ToTransfers() []*Transfer {
 	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
@@ -95,18 +107,18 @@ type TransferQueue struct {
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
+	cb                progress.CopyCallback
 	meter             progress.Meter
 	errors            []error
-	transfers         map[string]*objectTuple
+	transfers         map[string]*objects
 	batchSize         int
 	bufferDepth       int
-	// Channel for processing (and buffering) incoming items
-	incoming      chan *objectTuple
-	errorc        chan error // Channel for processing errors
-	watchers      []chan string
-	trMutex       *sync.Mutex
-	collectorWait sync.WaitGroup
-	errorwait     sync.WaitGroup
+	incoming          chan *objectTuple // Channel for processing incoming items
+	errorc            chan error        // Channel for processing errors
+	watchers          []chan *Transfer
+	trMutex           *sync.Mutex
+	collectorWait     sync.WaitGroup
+	errorwait         sync.WaitGroup
 	// wait is used to keep track of pending transfers. It is incremented
 	// once per unique OID on Add(), and is decremented when that transfer
 	// is marked as completed or failed, but not retried.
@@ -115,9 +127,46 @@ type TransferQueue struct {
 	rc       *retryCounter
 }
 
+// objects holds a set of objects.
+type objects struct {
+	completed bool
+	objects   []*objectTuple
+}
+
+// All returns all *objectTuple's contained in the *objects set.
+func (s *objects) All() []*objectTuple {
+	return s.objects
+}
+
+// Append returns a new *objects with the given *objectTuple(s) appended to the
+// end of the known objects.
+func (s *objects) Append(os ...*objectTuple) *objects {
+	return &objects{
+		completed: s.completed,
+		objects:   append(s.objects, os...),
+	}
+}
+
+// First returns the first *objectTuple in the chain of objects.
+func (s *objects) First() *objectTuple {
+	if len(s.objects) == 0 {
+		return nil
+	}
+	return s.objects[0]
+}
+
 type objectTuple struct {
 	Name, Path, Oid string
 	Size            int64
+}
+
+func (o *objectTuple) ToTransfer() *Transfer {
+	return &Transfer{
+		Name: o.Name,
+		Path: o.Path,
+		Oid:  o.Oid,
+		Size: o.Size,
+	}
 }
 
 type Option func(*TransferQueue)
@@ -131,6 +180,12 @@ func DryRun(dryRun bool) Option {
 func WithProgress(m progress.Meter) Option {
 	return func(tq *TransferQueue) {
 		tq.meter = m
+	}
+}
+
+func WithProgressCallback(cb progress.CopyCallback) Option {
+	return func(tq *TransferQueue) {
+		tq.cb = cb
 	}
 }
 
@@ -149,7 +204,7 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 		client:    &tqClient{Client: manifest.APIClient()},
 		remote:    remote,
 		errorc:    make(chan error),
-		transfers: make(map[string]*objectTuple),
+		transfers: make(map[string]*objects),
 		trMutex:   &sync.Mutex{},
 		manifest:  manifest,
 		rc:        newRetryCounter(),
@@ -183,6 +238,13 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 
 // Add adds a *Transfer to the transfer queue. It only increments the amount
 // of waiting the TransferQueue has to do if the *Transfer "t" is new.
+//
+// If another transfer(s) with the same OID has been added to the *TransferQueue
+// already, the given transfer will not be enqueued, but will be sent to any
+// channel created by Watch() once the oldest transfer has completed.
+//
+// Only one file will be transferred to/from the Path element of the first
+// transfer.
 func (q *TransferQueue) Add(name, path, oid string, size int64) {
 	t := &objectTuple{
 		Name: name,
@@ -191,7 +253,18 @@ func (q *TransferQueue) Add(name, path, oid string, size int64) {
 		Size: size,
 	}
 
-	if isNew := q.remember(t); !isNew {
+	if objs := q.remember(t); len(objs.objects) > 1 {
+		if objs.completed {
+			// If there is already a completed transfer chain for
+			// this OID, then this object is already "done", and can
+			// be sent through as completed to the watchers.
+			for _, w := range q.watchers {
+				w <- t.ToTransfer()
+			}
+		}
+
+		// If the chain is not done, there is no reason to enqueue this
+		// transfer into 'q.incoming'.
 		tracerx.Printf("already transferring %q, skipping duplicate", t.Oid)
 		return
 	}
@@ -203,17 +276,22 @@ func (q *TransferQueue) Add(name, path, oid string, size int64) {
 // know about a Transfer with the same OID.
 //
 // It returns if the value is new or not.
-func (q *TransferQueue) remember(t *objectTuple) bool {
+func (q *TransferQueue) remember(t *objectTuple) objects {
 	q.trMutex.Lock()
 	defer q.trMutex.Unlock()
 
 	if _, ok := q.transfers[t.Oid]; !ok {
 		q.wait.Add(1)
-		q.transfers[t.Oid] = t
+		q.transfers[t.Oid] = &objects{
+			objects: []*objectTuple{t},
+		}
 
-		return true
+		return *q.transfers[t.Oid]
 	}
-	return false
+
+	q.transfers[t.Oid] = q.transfers[t.Oid].Append(t)
+
+	return *q.transfers[t.Oid]
 }
 
 // collectBatches collects batches in a loop, prioritizing failed items from the
@@ -223,14 +301,17 @@ func (q *TransferQueue) remember(t *objectTuple) bool {
 //   2. While the batch contains less items than `q.batchSize` AND the channel
 //      is open, read one item from the `q.incoming` channel.
 //      a. If the read was a channel close, go to step 4.
-//      b. If the read was a TransferTransferable item, go to step 3.
+//      b. If the read was a transferable item, go to step 3.
 //   3. Append the item to the batch.
 //   4. Sort the batch by descending object size, make a batch API call, send
 //      the items to the `*adapterBase`.
-//   5. Process the worker results, incrementing and appending retries if
-//      possible.
-//   6. If the `q.incoming` channel is open, go to step 2.
-//   7. If the next batch is empty AND the `q.incoming` channel is closed,
+//   5. In a separate goroutine, process the worker results, incrementing and
+//      appending retries if possible. On the main goroutine, accept new items
+//      into "pending".
+//   6. Concat() the "next" and "pending" batches such that no more items than
+//      the maximum allowed per batch are in next, and the rest are in pending.
+//   7. If the `q.incoming` channel is open, go to step 2.
+//   8. If the next batch is empty AND the `q.incoming` channel is closed,
 //      terminate immediately.
 //
 // collectBatches runs in its own goroutine.
@@ -238,33 +319,76 @@ func (q *TransferQueue) collectBatches() {
 	defer q.collectorWait.Done()
 
 	var closing bool
-	batch := q.makeBatch()
+	next := q.makeBatch()
+	pending := q.makeBatch()
 
 	for {
-		for !closing && (len(batch) < q.batchSize) {
+		for !closing && (len(next) < q.batchSize) {
 			t, ok := <-q.incoming
 			if !ok {
 				closing = true
 				break
 			}
 
-			batch = append(batch, t)
+			next = append(next, t)
 		}
 
 		// Before enqueuing the next batch, sort by descending object
 		// size.
-		sort.Sort(sort.Reverse(batch))
+		sort.Sort(sort.Reverse(next))
 
-		retries, err := q.enqueueAndCollectRetriesFor(batch)
-		if err != nil {
-			q.errorc <- err
-		}
+		done := make(chan struct{})
 
-		if closing && len(retries) == 0 {
+		var retries batch
+
+		go func() {
+			var err error
+
+			retries, err = q.enqueueAndCollectRetriesFor(next)
+			if err != nil {
+				q.errorc <- err
+			}
+
+			close(done)
+		}()
+
+		var collected batch
+		collected, closing = q.collectPendingUntil(done)
+
+		// Ensure the next batch is filled with, in order:
+		//
+		// - retries from the previous batch,
+		// - new additions that were enqueued behind retries, &
+		// - items collected while the batch was processing.
+		next, pending = retries.Concat(append(pending, collected...), q.batchSize)
+
+		if closing && len(next) == 0 {
+			// If len(next) == 0, there are no items in "pending",
+			// and it is safe to exit.
 			break
 		}
+	}
+}
 
-		batch = retries
+// collectPendingUntil collects items from q.incoming into a "pending" batch
+// until the given "done" channel is written to, or is closed.
+//
+// A "pending" batch is returned, along with whether or not "q.incoming" is
+// closed.
+func (q *TransferQueue) collectPendingUntil(done <-chan struct{}) (pending batch, closing bool) {
+	for {
+		select {
+		case t, ok := <-q.incoming:
+			if !ok {
+				closing = true
+				<-done
+				return
+			}
+
+			pending = append(pending, t)
+		case <-done:
+			return
+		}
 	}
 }
 
@@ -283,23 +407,39 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
 	q.meter.Pause()
-	bRes, err := Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
-	if err != nil {
-		// If there was an error making the batch API call, mark all of
-		// the objects for retry, and return them along with the error
-		// that was encountered. If any of the objects couldn't be
-		// retried, they will be marked as failed.
+	var bRes *BatchResponse
+	if q.manifest.standaloneTransferAgent != "" {
+		// Trust the external transfer agent can do everything by itself.
+		objects := make([]*Transfer, 0, len(batch))
 		for _, t := range batch {
-			if q.canRetryObject(t.Oid, err) {
-				q.rc.Increment(t.Oid)
-
-				next = append(next, t)
-			} else {
-				q.wait.Done()
-			}
+			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path})
 		}
+		bRes = &BatchResponse{
+			Objects:             objects,
+			TransferAdapterName: q.manifest.standaloneTransferAgent,
+		}
+	} else {
+		// Query the Git LFS server for what transfer method to use and
+		// details such as URLs, authentication, etc.
+		var err error
+		bRes, err = Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
+		if err != nil {
+			// If there was an error making the batch API call, mark all of
+			// the objects for retry, and return them along with the error
+			// that was encountered. If any of the objects couldn't be
+			// retried, they will be marked as failed.
+			for _, t := range batch {
+				if q.canRetryObject(t.Oid, err) {
+					q.rc.Increment(t.Oid)
 
-		return next, err
+					next = append(next, t)
+				} else {
+					q.wait.Done()
+				}
+			}
+
+			return next, err
+		}
 	}
 
 	if len(bRes.Objects) == 0 {
@@ -321,7 +461,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		}
 
 		q.trMutex.Lock()
-		t, ok := q.transfers[o.Oid]
+		objects, ok := q.transfers[o.Oid]
 		q.trMutex.Unlock()
 		if !ok {
 			// If we couldn't find any associated
@@ -333,7 +473,9 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			q.Skip(o.Size)
 			q.wait.Done()
 		} else {
-			tr := newTransfer(o, t.Name, t.Path)
+			// Pick t[0], since it will cover all transfers with the
+			// same OID.
+			tr := newTransfer(o, objects.First().Name, objects.First().Path)
 
 			if a, err := tr.Rel(q.direction.String()); err != nil {
 				// XXX(taylor): duplication
@@ -342,18 +484,18 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 					count := q.rc.CountFor(tr.Oid)
 
 					tracerx.Printf("tq: enqueue retry #%d for %q (size: %d): %s", count, tr.Oid, tr.Size, err)
-					next = append(next, t)
+					next = append(next, objects.First())
 				} else {
 					q.errorc <- errors.Errorf("[%v] %v", tr.Name, err)
 
 					q.Skip(o.Size)
 					q.wait.Done()
 				}
-			} else if a == nil {
+			} else if a == nil && q.manifest.standaloneTransferAgent == "" {
 				q.Skip(o.Size)
 				q.wait.Done()
 			} else {
-				q.meter.StartTransfer(t.Name)
+				q.meter.StartTransfer(objects.First().Name)
 				toTransfer = append(toTransfer, tr)
 			}
 		}
@@ -490,11 +632,11 @@ func (q *TransferQueue) handleTransferResult(
 			tracerx.Printf("tq: retrying object %s: %s", oid, res.Error)
 
 			q.trMutex.Lock()
-			t, ok := q.transfers[oid]
+			objects, ok := q.transfers[oid]
 			q.trMutex.Unlock()
 
 			if ok {
-				retries <- t
+				retries <- objects.First()
 			} else {
 				q.errorc <- res.Error
 			}
@@ -507,11 +649,26 @@ func (q *TransferQueue) handleTransferResult(
 			q.wait.Done()
 		}
 	} else {
+		q.trMutex.Lock()
+		objects := q.transfers[oid]
+		objects.completed = true
+
 		// Otherwise, if the transfer was successful, notify all of the
 		// watchers, and mark it as finished.
 		for _, c := range q.watchers {
-			c <- oid
+			// Send one update for each transfer with the
+			// same OID.
+			for _, t := range objects.All() {
+				c <- &Transfer{
+					Name: t.Name,
+					Path: t.Path,
+					Oid:  t.Oid,
+					Size: t.Size,
+				}
+			}
 		}
+
+		q.trMutex.Unlock()
 
 		q.meter.FinishTransfer(res.Transfer.Name)
 		q.wait.Done()
@@ -559,6 +716,13 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	// Progress callback - receives byte updates
 	cb := func(name string, total, read int64, current int) error {
 		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
+		if q.cb != nil {
+			// NOTE: this is the mechanism by which the logpath
+			// specified by GIT_LFS_PROGRESS is written to.
+			//
+			// See: lfs.downloadFile() for more.
+			q.cb(total, read, current)
+		}
 		return nil
 	}
 
@@ -606,10 +770,12 @@ func (q *TransferQueue) Wait() {
 	q.errorwait.Wait()
 }
 
-// Watch returns a channel where the queue will write the OID of each transfer
-// as it completes. The channel will be closed when the queue finishes processing.
-func (q *TransferQueue) Watch() chan string {
-	c := make(chan string, q.batchSize)
+// Watch returns a channel where the queue will write the value of each transfer
+// as it completes. If multiple transfers exist with the same OID, they will all
+// be recorded here, even though only one actual transfer took place. The
+// channel will be closed when the queue finishes processing.
+func (q *TransferQueue) Watch() chan *Transfer {
+	c := make(chan *Transfer, q.batchSize)
 	q.watchers = append(q.watchers, c)
 	return c
 }

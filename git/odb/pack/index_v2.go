@@ -1,31 +1,29 @@
 package pack
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
-const (
-	// V2 is an instance of IndexVersion corresponding to the V2 index file
-	// format.
-	V2 IndexVersion = 2
-)
+// V2 implements IndexVersion for v2 packfiles.
+type V2 struct{}
 
-// v2Search implements the IndexVersion.Search method for V2 packfiles.
-func v2Search(idx *Index, name []byte, at int64) (*IndexEntry, int, error) {
+// Name implements IndexVersion.Name by returning the 20 byte SHA-1 object name
+// for the given entry at offset "at" in the v2 index file "idx".
+func (v *V2) Name(idx *Index, at int64) ([]byte, error) {
 	var sha [20]byte
 	if _, err := idx.readAt(sha[:], v2ShaOffset(at)); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	cmp := bytes.Compare(name, sha[:])
-	if cmp != 0 {
-		return nil, cmp, nil
-	}
+	return sha[:], nil
+}
 
+// Entry implements IndexVersion.Entry for v2 packfiles by parsing and returning
+// the IndexEntry specified at the offset "at" in the given index file.
+func (v *V2) Entry(idx *Index, at int64) (*IndexEntry, error) {
 	var offs [4]byte
 	if _, err := idx.readAt(offs[:], v2SmallOffsetOffset(at, int64(idx.Count()))); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	loc := uint64(binary.BigEndian.Uint32(offs[:]))
@@ -37,31 +35,37 @@ func v2Search(idx *Index, name []byte, at int64) (*IndexEntry, int, error) {
 		// offset.
 		var offs [8]byte
 		if _, err := idx.readAt(offs[:], int64(loc&0x7fffffff)); err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 
 		loc = binary.BigEndian.Uint64(offs[:])
 	}
-	return &IndexEntry{PackOffset: loc}, 0, nil
+	return &IndexEntry{PackOffset: loc}, nil
+}
+
+// Width implements IndexVersion.Width() by returning the number of bytes that
+// v2 packfile index header occupy.
+func (v *V2) Width() int64 {
+	return indexV2Width
 }
 
 // v2ShaOffset returns the offset of a SHA1 given at "at" in the V2 index file.
 func v2ShaOffset(at int64) int64 {
 	// Skip the packfile index header and the L1 fanout table.
-	return OffsetV2Start +
+	return indexOffsetV2Start +
 		// Skip until the desired name in the sorted names table.
-		(ObjectNameWidth * at)
+		(indexObjectNameWidth * at)
 }
 
 // v2SmallOffsetOffset returns the offset of an object's small (4-byte) offset
 // given by "at".
 func v2SmallOffsetOffset(at, total int64) int64 {
 	// Skip the packfile index header and the L1 fanout table.
-	return OffsetV2Start +
+	return indexOffsetV2Start +
 		// Skip the name table.
-		(ObjectNameWidth * total) +
+		(indexObjectNameWidth * total) +
 		// Skip the CRC table.
-		(ObjectCRCWidth * total) +
+		(indexObjectCRCWidth * total) +
 		// Skip until the desired index in the small offsets table.
-		(ObjectSmallOffsetWidth * at)
+		(indexObjectSmallOffsetWidth * at)
 }

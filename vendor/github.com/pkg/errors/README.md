@@ -2,6 +2,8 @@
 
 Package errors provides simple error handling primitives.
 
+`go get github.com/pkg/errors`
+
 The traditional error handling idiom in Go is roughly akin to
 ```go
 if err != nil {
