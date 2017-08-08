@@ -182,7 +182,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, string(os.PathSeparator), opt.blobFn(), opt.treeFn())
+		rewrittenTree, err := r.rewriteTree(original.TreeID, "", opt.blobFn(), opt.treeFn())
 		if err != nil {
 			return nil, err
 		}
@@ -285,7 +285,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 	for _, entry := range tree.Entries {
 		path := filepath.Join(path, entry.Name)
 
-		if !r.filter.Allows(path) {
+		if !r.allows(entry.Type(), path) {
 			entries = append(entries, entry)
 			continue
 		}
@@ -317,11 +317,24 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 		}))
 	}
 
-	rewritten, err := tfn(path, &odb.Tree{Entries: entries})
+	rewritten, err := tfn(string(os.PathSeparator)+path, &odb.Tree{Entries: entries})
 	if err != nil {
 		return nil, err
 	}
 	return r.db.WriteTree(rewritten)
+}
+
+func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
+	switch typ {
+	case odb.BlobObjectType:
+		return r.Filter().Allows(abs)
+	case odb.TreeObjectType:
+		return r.Filter().HasPrefix(abs)
+	case odb.CommitObjectType:
+		return true
+	default:
+		panic(fmt.Sprintf("git/githistory: unknown entry type: %s", typ))
+	}
 }
 
 // rewriteBlob calls the given BlobRewriteFn "fn" on a blob given in the object

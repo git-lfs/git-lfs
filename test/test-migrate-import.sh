@@ -323,3 +323,22 @@ begin_test "migrate import (bare repository)"
     --include-ref=master
 )
 end_test
+
+begin_test "migrate import (prefix include(s))"
+(
+  set -e
+
+  includes="foo${PATH_SEPARATOR}bar${PATH_SEPARATOR}baz ${PATH_SEPARATOR}foo foo${PATH_SEPARATOR}**${PATH_SEPARATOR}baz${PATH_SEPARATOR}a.txt *.txt"
+  for include in $includes; do
+    setup_single_local_branch_deep_trees
+
+    oid="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+
+    git lfs migrate import --include="$include"
+
+    assert_local_object "$oid" 120
+
+    cd ..
+  done
+)
+end_test

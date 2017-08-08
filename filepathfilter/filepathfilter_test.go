@@ -111,6 +111,68 @@ type filterTest struct {
 	excludes        []string
 }
 
+type filterPrefixTest struct {
+	expected bool
+	includes []string
+	excludes []string
+}
+
+func (c *filterPrefixTest) Assert(t *testing.T) {
+	f := New(c.platformIncludes(), c.platformExcludes())
+
+	prefixes := []string{"foo", "foo/", "foo/bar", "foo/bar/baz", "foo/bar/baz/"}
+	if runtime.GOOS == "windows" {
+		prefixes = toWindowsPaths(prefixes)
+	}
+
+	for _, prefix := range prefixes {
+		assert.Equal(t, c.expected, f.HasPrefix(prefix),
+			"expected=%v, prefix=%s", c.expected, prefix)
+	}
+
+}
+
+func (c *filterPrefixTest) platformIncludes() []string {
+	if runtime.GOOS == "windows" {
+		return toWindowsPaths(c.includes)
+	}
+	return c.includes
+}
+
+func (c *filterPrefixTest) platformExcludes() []string {
+	if runtime.GOOS == "windows" {
+		return toWindowsPaths(c.excludes)
+	}
+	return c.excludes
+}
+
+func toWindowsPaths(paths []string) []string {
+	var out []string
+	for _, path := range paths {
+		out = append(out, strings.Replace(path, "/", "\\", -1))
+	}
+
+	return out
+}
+
+func TestFilterHasPrefix(t *testing.T) {
+	for desc, c := range map[string]*filterPrefixTest{
+		"path prefix pattern":       {true, []string{"/foo/bar/baz"}, nil},
+		"path pattern":              {true, []string{"foo/bar/baz"}, nil},
+		"simple ext pattern":        {true, []string{"*.dat"}, nil},
+		"pathless wildcard pattern": {true, []string{"foo*.dat"}, nil},
+		"double wildcard pattern":   {true, []string{"foo/**/baz"}, nil},
+
+		"exclude path prefix pattern":       {false, nil, []string{"/foo/bar/baz"}},
+		"exclude path pattern":              {false, nil, []string{"foo/bar/baz"}},
+		"exclude simple ext pattern":        {false, nil, []string{"*.dat"}},
+		"exclude pathless wildcard pattern": {false, nil, []string{"foo*.dat"}},
+		"exclude double wildcard pattern":   {false, nil, []string{"foo/**/baz"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
 func TestFilterAllows(t *testing.T) {
 	cases := []filterTest{
 		// Null case

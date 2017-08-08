@@ -159,6 +159,26 @@ setup_multiple_remote_branches() {
   git checkout master
 }
 
+# setup_single_local_branch_deep_trees creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 120 bytes of data in 'foo/bar/baz/a.txt'.
+setup_single_local_branch_deep_trees() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-deep-trees"
+  remove_and_create_local_repo "$reponame"
+
+  mkdir -p foo/bar/baz
+  base64 < /dev/urandom | head -c 120 > foo/bar/baz/a.txt
+
+  git add foo/bar/baz/a.txt
+  git commit -m "initial commit"
+}
+
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {
