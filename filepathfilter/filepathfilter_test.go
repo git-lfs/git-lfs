@@ -117,6 +117,44 @@ type filterPrefixTest struct {
 	excludes []string
 }
 
+func (c *filterPrefixTest) Assert(t *testing.T) {
+	f := New(c.platformIncludes(), c.platformExcludes())
+
+	prefixes := []string{"foo", "foo/", "foo/bar", "foo/bar/baz", "foo/bar/baz/"}
+	if runtime.GOOS == "windows" {
+		prefixes = toWindowsPaths(prefixes)
+	}
+
+	for _, prefix := range prefixes {
+		assert.Equal(t, c.expected, f.HasPrefix(prefix),
+			"expected=%v, prefix=%s", c.expected, prefix)
+	}
+
+}
+
+func (c *filterPrefixTest) platformIncludes() []string {
+	if runtime.GOOS == "windows" {
+		return toWindowsPaths(c.includes)
+	}
+	return c.includes
+}
+
+func (c *filterPrefixTest) platformExcludes() []string {
+	if runtime.GOOS == "windows" {
+		return toWindowsPaths(c.excludes)
+	}
+	return c.excludes
+}
+
+func toWindowsPaths(paths []string) []string {
+	var out []string
+	for _, path := range paths {
+		out = append(out, strings.Replace(path, "/", "\\", -1))
+	}
+
+	return out
+}
+
 func TestFilterHasPrefix(t *testing.T) {
 	for desc, c := range map[string]*filterPrefixTest{
 		"path prefix pattern":       {true, []string{"/foo/bar/baz"}, nil},
@@ -131,36 +169,7 @@ func TestFilterHasPrefix(t *testing.T) {
 		"exclude pathless wildcard pattern": {false, nil, []string{"foo*.dat"}},
 		"exclude double wildcard pattern":   {false, nil, []string{"foo/**/baz"}},
 	} {
-		t.Run(desc, func(t *testing.T) {
-			f := New(c.includes, c.excludes)
-
-			prefixes := []string{"foo", "foo/", "foo/bar", "foo/bar/baz", "foo/bar/baz/"}
-			for _, prefix := range prefixes {
-				assert.Equal(t, c.expected, f.HasPrefix(prefix),
-					"type=%s, expected=%v, prefix=%s", desc, c.expected, prefix)
-			}
-
-			if runtime.GOOS == "windows" {
-				wpath := func(s string) string { return strings.Replace(s, "/", "\\", -1) }
-
-				includes := make([]string, 0, len(c.includes))
-				for _, include := range c.includes {
-					includes = append(includes, wpath(include))
-				}
-
-				excludes := make([]string, 0, len(c.excludes))
-				for _, exclude := range c.excludes {
-					excludes = append(excludes, wpath(exclude))
-				}
-
-				for _, prefix := range prefixes {
-					prefix = wpath(prefix)
-
-					assert.Equal(t, c.expected, f.HasPrefix, prefix,
-						"(GOOS=windows) type=%s, expected=%v, prefix=%s", desc, c.expected, prefix)
-				}
-			}
-		})
+		t.Run(desc, c.Assert)
 	}
 }
 
