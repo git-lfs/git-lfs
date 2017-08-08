@@ -337,6 +337,8 @@ begin_test "migrate import (prefix include(s))"
     git lfs migrate import --include="$include"
 
     assert_local_object "$oid" 120
+
+    cd ..
   done
 )
 end_test
