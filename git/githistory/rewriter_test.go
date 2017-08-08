@@ -176,7 +176,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 
 func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	include := []string{"*.txt"}
-	exclude := []string{"subdir/**/*.txt"}
+	exclude := []string{"subdir/*.txt"}
 
 	filter := filepathfilter.New(include, exclude)
 
