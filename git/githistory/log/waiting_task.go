@@ -1,18 +1,24 @@
 package log
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // WaitingTask represents a task for which the total number of items to do work
 // is on is unknown.
 type WaitingTask struct {
 	// ch is used to transmit task updates.
-	ch chan string
+	ch chan *Update
 }
 
 // NewWaitingTask returns a new *WaitingTask.
 func NewWaitingTask(msg string) *WaitingTask {
-	ch := make(chan string, 1)
-	ch <- fmt.Sprintf("%s: ...", msg)
+	ch := make(chan *Update, 1)
+	ch <- &Update{
+		S:  fmt.Sprintf("%s: ...", msg),
+		At: time.Now(),
+	}
 
 	return &WaitingTask{ch: ch}
 }
@@ -24,7 +30,7 @@ func (w *WaitingTask) Complete() {
 
 // Done implements Task.Done and returns a channel which is closed when
 // Complete() is called.
-func (w *WaitingTask) Updates() <-chan string {
+func (w *WaitingTask) Updates() <-chan *Update {
 	return w.ch
 }
 
