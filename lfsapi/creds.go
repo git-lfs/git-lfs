@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/rubyist/tracerx"
 )
@@ -32,12 +33,15 @@ func bufferCreds(c Creds) *bytes.Buffer {
 
 func withCredentialCache(helper CredentialHelper) CredentialHelper {
 	return &credentialCacher{
+		cmu:    new(sync.Mutex),
 		creds:  make(map[string]Creds),
 		helper: helper,
 	}
 }
 
 type credentialCacher struct {
+	// cmu guards creds
+	cmu    *sync.Mutex
 	creds  map[string]Creds
 	helper CredentialHelper
 }
@@ -53,6 +57,10 @@ func credCacheKey(creds Creds) string {
 
 func (c *credentialCacher) Fill(creds Creds) (Creds, error) {
 	key := credCacheKey(creds)
+
+	c.cmu.Lock()
+	defer c.cmu.Unlock()
+
 	if cache, ok := c.creds[key]; ok {
 		tracerx.Printf("creds: git credential cache (%q, %q, %q)",
 			creds["protocol"], creds["host"], creds["path"])
@@ -67,6 +75,9 @@ func (c *credentialCacher) Fill(creds Creds) (Creds, error) {
 }
 
 func (c *credentialCacher) Reject(creds Creds) error {
+	c.cmu.Lock()
+	defer c.cmu.Unlock()
+
 	delete(c.creds, credCacheKey(creds))
 	return c.helper.Reject(creds)
 }
@@ -74,7 +85,9 @@ func (c *credentialCacher) Reject(creds Creds) error {
 func (c *credentialCacher) Approve(creds Creds) error {
 	err := c.helper.Approve(creds)
 	if err == nil {
+		c.cmu.Lock()
 		c.creds[credCacheKey(creds)] = creds
+		c.cmu.Unlock()
 	}
 	return err
 }
