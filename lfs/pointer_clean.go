@@ -88,7 +88,7 @@ func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid
 	}
 
 	var from io.Reader = bytes.NewReader(by)
-	if int64(len(by)) < fileSize {
+	if fileSize < 0 || int64(len(by)) < fileSize {
 		// If there is still more data to be read from the file, tack on
 		// the original reader and continue the read from there.
 		from = io.MultiReader(from, reader)

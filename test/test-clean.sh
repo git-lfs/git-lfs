@@ -56,3 +56,34 @@ This is my test pointer.  There are many like it, but this one is mine.\n" | git
   [ "$(pointer c2f909f6961bf85a92e2942ef3ed80c938a3d0ebaee6e72940692581052333be 586)" = "$(cat clean.log)" ]
 )
 end_test
+
+begin_test "clean stdin"
+(
+  set -e
+
+  # git-lfs-clean(1) writes to .git/lfs/objects, and therefore must be executed
+  # within a repository.
+  reponame="clean-over-stdin"
+  git init "$reponame"
+  cd "$reponame"
+
+  base64 /dev/urandom | head -c 1024 > small.dat
+  base64 /dev/urandom | head -c 2048 > large.dat
+
+  expected_small="$(calc_oid_file "small.dat")"
+  expected_large="$(calc_oid_file "large.dat")"
+
+  actual_small="$(git lfs clean < "small.dat" | grep "oid" | cut -d ':' -f 2)"
+  actual_large="$(git lfs clean < "large.dat" | grep "oid" | cut -d ':' -f 2)"
+
+  if [ "$expected_small" != "$actual_small" ]; then
+    echo >&2 "fatal: expected small OID of: $expected_small, got: $actual_small"
+    exit 1
+  fi
+
+  if [ "$expected_large" != "$actual_large" ]; then
+    echo >&2 "fatal: expected large OID of: $expected_large, got: $actual_large"
+    exit 1
+  fi
+)
+end_test
