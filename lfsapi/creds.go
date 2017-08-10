@@ -9,12 +9,19 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
 // credsConfig supplies configuration options pertaining to the authorization
 // process in package lfsapi.
 type credsConfig struct {
+	// AskPass is a string containing an executable name as well as a
+	// program arguments.
+	//
+	// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials
+	// for more.
+	AskPass string `os:"GIT_ASKPASS" git:"core.askpass"`
 	// Cached is a boolean determining whether or not to enable the
 	// credential cacher.
 	Cached bool `git:"lfs.cachecredentials"`
@@ -34,6 +41,21 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 		return nil, err
 	}
 
+	var hs []CredentialHelper
+	if len(ccfg.AskPass) > 0 {
+		parts := tools.QuotedFields(ccfg.AskPass)
+		if len(parts) < 1 {
+			return nil, errors.Errorf(
+				"lfsapi/creds: invalid ASKPASS: %q",
+				ccfg.AskPass)
+		}
+
+		hs = append(hs, &AskPassCredentialHelper{
+			Program: parts[0],
+			Args:    parts[1:],
+		})
+	}
+
 	var h CredentialHelper
 	h = &commandCredentialHelper{
 		SkipPrompt: ccfg.SkipPrompt,
@@ -42,8 +64,15 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 	if ccfg.Cached {
 		h = withCredentialCache(h)
 	}
+	hs = append(hs, h)
 
-	return h, nil
+	switch len(hs) {
+	case 0:
+		return nil, nil
+	case 1:
+		return hs[0], nil
+	}
+	return CredentialHelpers(hs), nil
 }
 
 // getCredentialConfig parses a *credsConfig given the OS and Git
