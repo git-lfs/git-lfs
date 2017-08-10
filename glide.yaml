@@ -22,8 +22,6 @@ import:
   version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
   subpackages:
   - ntlm
-- package: github.com/xeipuuv/gojsonpointer
-  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - package: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - package: github.com/xeipuuv/gojsonschema
