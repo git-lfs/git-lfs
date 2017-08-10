@@ -171,6 +171,9 @@ begin_test "custom-transfer-standalone"
   # use PIPESTATUS otherwise we get exit code from tee
   [ ${PIPESTATUS[0]} = "0" ]
 
+  # Make sure the lock verification is not attempted.
+  grep "locks/verify$" pushcustom.log && false
+
   grep "xfer: started custom adapter process" pushcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" pushcustom.log
   grep "12 of 12 files" pushcustom.log

@@ -378,6 +378,11 @@ var (
 // given "endpoint". If no state has been explicitly set, an "unknown" state
 // will be returned instead.
 func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
+	if v, _ := cfg.Git.Get("lfs.standalonetransferagent"); len(v) > 0 {
+		// When using a standalone custom transfer agent there is no LFS server.
+		return verifyStateDisabled
+	}
+
 	uc := config.NewURLConfig(cfg.Git)
 
 	v, ok := uc.Get("lfs", endpoint.Url, "locksverify")
