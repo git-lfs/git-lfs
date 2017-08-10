@@ -13,6 +13,7 @@ env:
     - GIT_EARLIEST_SUPPORTED_VERSION="v2.0.0
     - GIT_LATEST_SOURCE_BRANCH="master"
     - GIT_NEXT_SOURCE_BRANCH="next"
+    - GIT_ASKPASS=""
 
 matrix:
   fast_finish: true
