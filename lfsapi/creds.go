@@ -56,6 +56,59 @@ func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
 	return &what, nil
 }
 
+// CredentialHelpers is a []CredentialHelper that iterates through each
+// credential helper to fill, reject, or approve credentials.
+type CredentialHelpers []CredentialHelper
+
+// Fill implements CredentialHelper.Fill by asking each CredentialHelper in
+// order to fill the credentials.
+//
+// If a fill was successful, it is returned immediately, and no other
+// `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
+// it is returned immediately.
+func (h CredentialHelpers) Fill(what Creds) (Creds, error) {
+	for _, c := range h {
+		creds, err := c.Fill(what)
+		if err != nil {
+			return nil, err
+		}
+
+		if creds != nil {
+			return creds, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// Reject implements CredentialHelper.Reject and rejects the given Creds "what"
+// amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
+// non-nil error, no further `CredentialHelper`s are notified, so as to prevent
+// inconsistent state.
+func (h CredentialHelpers) Reject(what Creds) error {
+	for _, c := range h {
+		if err := c.Reject(what); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Approve implements CredentialHelper.Approve and approves the given Creds
+// "what" amongst all knonw CredentialHelpers. If any `CredentialHelper`s
+// returned a non-nil error, no further `CredentialHelper`s are notified, so as
+// to prevent inconsistent state.
+func (h CredentialHelpers) Approve(what Creds) error {
+	for _, c := range h {
+		if err := c.Approve(what); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type CredentialHelper interface {
 	Fill(Creds) (Creds, error)
 	Reject(Creds) error
