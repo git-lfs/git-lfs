@@ -29,7 +29,6 @@ $ script/test lfs
 $ script/test lfs -run TestSuccessStatus -v
 github.com/kr/text
 github.com/rubyist/tracerx
-github.com/kr/pretty
 github.com/git-lfs/git-lfs/git
 github.com/technoweenie/assert
 === RUN TestSuccessStatus

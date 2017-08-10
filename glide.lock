@@ -1,5 +1,5 @@
-hash: ed90cd0162c8564e494802d483ac3780d8671a8a27bd03a2e43a3759007e561a
-updated: 2017-07-25T09:58:55.909621732-06:00
+hash: 3c6d2ff3f94afdaaebdfec12d9b0917f6c648b83ff4b5864982fd722a232188a
+updated: 2017-08-10T17:01:01.223155433-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -7,8 +7,6 @@ imports:
   - netrc
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
-- name: github.com/kr/pretty
-  version: 088c856450c08c03eb32f7a6c221e6eefaa10e6f
 - name: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
 - name: github.com/kr/text

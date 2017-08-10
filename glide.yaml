@@ -4,8 +4,6 @@ import:
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
   subpackages:
   - netrc
-- package: github.com/kr/pretty
-  version: 088c856450c08c03eb32f7a6c221e6eefaa10e6f
 - package: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
 - package: github.com/kr/text
