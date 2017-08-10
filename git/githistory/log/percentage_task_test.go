@@ -9,12 +9,12 @@ import (
 func TestPercentageTaskCalculuatesPercentages(t *testing.T) {
 	task := NewPercentageTask("example", 10)
 
-	assert.Equal(t, "example:   0% (0/10)", <-task.Updates())
+	assert.Equal(t, "example:   0% (0/10)", (<-task.Updates()).S)
 
 	n := task.Count(3)
 	assert.EqualValues(t, 3, n)
 
-	assert.Equal(t, "example:  30% (3/10)", <-task.Updates())
+	assert.Equal(t, "example:  30% (3/10)", (<-task.Updates()).S)
 }
 
 func TestPercentageTaskCalculatesPercentWithoutTotal(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPercentageTaskCalculatesPercentWithoutTotal(t *testing.T) {
 	select {
 	case v, ok := <-task.Updates():
 		if ok {
-			assert.Equal(t, "example: 100% (0/0)", v)
+			assert.Equal(t, "example: 100% (0/0)", v.S)
 		} else {
 			t.Fatal("expected channel to be open")
 		}
@@ -37,7 +37,7 @@ func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
 	select {
 	case v, ok := <-task.Updates():
 		if ok {
-			assert.Equal(t, "example:   0% (0/10)", v)
+			assert.Equal(t, "example:   0% (0/10)", v.S)
 		} else {
 			t.Fatal("expected channel to be open")
 		}
@@ -45,7 +45,7 @@ func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
 	}
 
 	assert.EqualValues(t, 10, task.Count(10))
-	assert.Equal(t, "example: 100% (10/10)", <-task.Updates())
+	assert.Equal(t, "example: 100% (10/10)", (<-task.Updates()).S)
 
 	if _, ok := <-task.Updates(); ok {
 		t.Fatalf("expected channel to be closed")

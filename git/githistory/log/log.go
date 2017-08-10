@@ -107,7 +107,7 @@ func (l *Logger) enqueue(ts ...Task) {
 	if l == nil {
 		for _, t := range ts {
 			go func(t Task) {
-				for range <-t.Updates() {
+				for range t.Updates() {
 					// Discard all updates.
 				}
 			}(t)
@@ -196,17 +196,15 @@ func (l *Logger) logTask(task Task) {
 	logAll := !task.Throttled()
 	var last time.Time
 
-	var msg string
-	for msg = range task.Updates() {
-		now := time.Now()
-
-		if logAll || l.throttle == 0 || now.After(last.Add(l.throttle)) {
-			l.logLine(msg)
-			last = now
+	var update *Update
+	for update = range task.Updates() {
+		if logAll || l.throttle == 0 || update.At.After(last.Add(l.throttle)) {
+			l.logLine(update.S)
+			last = update.At
 		}
 	}
 
-	l.log(fmt.Sprintf("%s, done\n", msg))
+	l.log(fmt.Sprintf("%s, done\n", update.S))
 }
 
 // logLine writes a complete line and moves the cursor to the beginning of the

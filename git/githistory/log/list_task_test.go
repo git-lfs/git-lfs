@@ -12,7 +12,7 @@ func TestListTaskCallsDoneWhenComplete(t *testing.T) {
 
 	select {
 	case update, ok := <-task.Updates():
-		assert.Equal(t, "example: ...", update)
+		assert.Equal(t, "example: ...", update.S)
 		assert.True(t, ok,
 			"git/githistory/log: expected Updates() to remain open")
 	default:
@@ -36,7 +36,7 @@ func TestListTaskWritesEntries(t *testing.T) {
 	case update, ok := <-task.Updates():
 		assert.True(t, ok,
 			"git/githistory/log: expected ListTask.Updates() to remain open")
-		assert.Equal(t, "1\n", update)
+		assert.Equal(t, "1\n", update.S)
 	default:
 		t.Fatal("git/githistory/log: expected task.Updates() to have an update")
 	}

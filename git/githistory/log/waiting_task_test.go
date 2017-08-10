@@ -9,7 +9,7 @@ import (
 func TestWaitingTaskDisplaysWaitingStatus(t *testing.T) {
 	task := NewWaitingTask("example")
 
-	assert.Equal(t, "example: ...", <-task.Updates())
+	assert.Equal(t, "example: ...", (<-task.Updates()).S)
 }
 
 func TestWaitingTaskCallsDoneWhenComplete(t *testing.T) {
@@ -18,7 +18,7 @@ func TestWaitingTaskCallsDoneWhenComplete(t *testing.T) {
 	select {
 	case v, ok := <-task.Updates():
 		if ok {
-			assert.Equal(t, "example: ...", v)
+			assert.Equal(t, "example: ...", v.S)
 		} else {
 			t.Fatal("expected channel to be open")
 		}

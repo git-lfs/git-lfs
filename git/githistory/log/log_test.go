@@ -9,25 +9,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type ChanTask chan string
+type ChanTask chan *Update
 
-func (e ChanTask) Updates() <-chan string { return e }
+func (e ChanTask) Updates() <-chan *Update { return e }
 
 func (e ChanTask) Throttled() bool { return true }
 
-type UnthrottledChanTask chan string
+type UnthrottledChanTask chan *Update
 
-func (e UnthrottledChanTask) Updates() <-chan string { return e }
+func (e UnthrottledChanTask) Updates() <-chan *Update { return e }
 
 func (e UnthrottledChanTask) Throttled() bool { return false }
 
 func TestLoggerLogsTasks(t *testing.T) {
 	var buf bytes.Buffer
 
-	task := make(chan string)
+	task := make(chan *Update)
 	go func() {
-		task <- "first"
-		task <- "second"
+		task <- &Update{"first", time.Now()}
+		task <- &Update{"second", time.Now()}
 		close(task)
 	}()
 
@@ -43,16 +43,16 @@ func TestLoggerLogsTasks(t *testing.T) {
 func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 	var buf bytes.Buffer
 
-	t1 := make(chan string)
+	t1 := make(chan *Update)
 	go func() {
-		t1 <- "first"
-		t1 <- "second"
+		t1 <- &Update{"first", time.Now()}
+		t1 <- &Update{"second", time.Now()}
 		close(t1)
 	}()
-	t2 := make(chan string)
+	t2 := make(chan *Update)
 	go func() {
-		t2 <- "third"
-		t2 <- "fourth"
+		t2 <- &Update{"third", time.Now()}
+		t2 <- &Update{"fourth", time.Now()}
 		close(t2)
 	}()
 
@@ -77,15 +77,15 @@ func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 
 	l := NewLogger(&buf)
 	l.throttle = 0
-	t1, t2 := make(chan string), make(chan string)
+	t1, t2 := make(chan *Update), make(chan *Update)
 
 	l.widthFn = func() int { return 0 }
 	l.enqueue(ChanTask(t1))
 
-	t1 <- "first"
+	t1 <- &Update{"first", time.Now()}
 	l.enqueue(ChanTask(t2))
 	close(t1)
-	t2 <- "second"
+	t2 <- &Update{"second", time.Now()}
 	close(t2)
 
 	l.Close()
@@ -101,14 +101,14 @@ func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 func TestLoggerThrottlesWrites(t *testing.T) {
 	var buf bytes.Buffer
 
-	t1 := make(chan string)
+	t1 := make(chan *Update)
 	go func() {
-		t1 <- "first"                     // t = 0     ms, throttle was open
-		time.Sleep(10 * time.Millisecond) // t = 10    ms, throttle is closed
-		t1 <- "second"                    // t = 10+ε  ms, throttle is closed
-		time.Sleep(10 * time.Millisecond) // t = 20    ms, throttle is open
-		t1 <- "third"                     // t = 20+ε  ms, throttle was open
-		close(t1)                         // t = 20+2ε ms, throttle is closed
+		start := time.Now()
+
+		t1 <- &Update{"first", start}                             // t = 0     ms, throttle was open
+		t1 <- &Update{"second", start.Add(10 * time.Millisecond)} // t = 10+ε  ms, throttle is closed
+		t1 <- &Update{"third", start.Add(20 * time.Millisecond)}  // t = 20+ε  ms, throttle was open
+		close(t1)                                                 // t = 20+2ε ms, throttle is closed
 	}()
 
 	l := NewLogger(&buf)
@@ -128,12 +128,13 @@ func TestLoggerThrottlesWrites(t *testing.T) {
 func TestLoggerThrottlesLastWrite(t *testing.T) {
 	var buf bytes.Buffer
 
-	t1 := make(chan string)
+	t1 := make(chan *Update)
 	go func() {
-		t1 <- "first"                     // t = 0     ms, throttle was open
-		time.Sleep(10 * time.Millisecond) // t = 10    ms, throttle is closed
-		t1 <- "second"                    // t = 10+ε  ms, throttle is closed
-		close(t1)                         // t = 10+2ε ms, throttle is closed
+		start := time.Now()
+
+		t1 <- &Update{"first", start}                             // t = 0     ms, throttle was open
+		t1 <- &Update{"second", start.Add(10 * time.Millisecond)} // t = 10+ε  ms, throttle is closed
+		close(t1)                                                 // t = 10+2ε ms, throttle is closed
 	}()
 
 	l := NewLogger(&buf)
@@ -156,11 +157,11 @@ func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 	l.widthFn = func() int { return 0 }
 	l.throttle = 15 * time.Minute
 
-	t1 := make(chan string)
+	t1 := make(chan *Update)
 	go func() {
-		t1 <- "first"  // t = 0+ε  ms, throttle is open
-		t1 <- "second" // t = 0+2ε ms, throttle is closed
-		close(t1)      // t = 0+3ε ms, throttle is closed
+		t1 <- &Update{"first", time.Now()}  // t = 0+ε  ms, throttle is open
+		t1 <- &Update{"second", time.Now()} // t = 0+2ε ms, throttle is closed
+		close(t1)                           // t = 0+3ε ms, throttle is closed
 	}()
 
 	l.enqueue(UnthrottledChanTask(t1))

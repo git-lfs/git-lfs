@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 )
 
 // PercentageTask is a task that is performed against a known number of
@@ -17,14 +18,14 @@ type PercentageTask struct {
 	total uint64
 	// ch is a channel which is written to when the task state changes and
 	// is closed when the task is completed.
-	ch chan string
+	ch chan *Update
 }
 
 func NewPercentageTask(msg string, total uint64) *PercentageTask {
 	p := &PercentageTask{
 		msg:   msg,
 		total: total,
-		ch:    make(chan string, 1),
+		ch:    make(chan *Update, 1),
 	}
 	p.Count(0)
 
@@ -49,11 +50,14 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 		percentage = 100 * float64(new) / float64(c.total)
 	}
 
-	msg := fmt.Sprintf("%s: %3.f%% (%d/%d)",
-		c.msg, percentage, new, c.total)
+	u := &Update{
+		S: fmt.Sprintf("%s: %3.f%% (%d/%d)",
+			c.msg, percentage, new, c.total),
+		At: time.Now(),
+	}
 
 	select {
-	case c.ch <- msg:
+	case c.ch <- u:
 	default:
 		// Use a non-blocking write, since it's unimportant that callers
 		// receive all updates.
@@ -69,7 +73,7 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 // Updates implements Task.Updates and returns a channel which is written to
 // when the state of this task changes, and closed when the task is completed.
 // has been completed.
-func (c *PercentageTask) Updates() <-chan string {
+func (c *PercentageTask) Updates() <-chan *Update {
 	return c.ch
 }
 
