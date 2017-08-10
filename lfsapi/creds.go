@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
 
@@ -107,6 +108,72 @@ func (h CredentialHelpers) Approve(what Creds) error {
 	}
 
 	return nil
+}
+
+// AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS
+// and 'core.askpass' configuration values.
+type AskPassCredentialHelper struct {
+	// Program is the executable program's absolute or relative name.
+	Program string
+	// Args are the arguments given to the program.
+	Args []string
+
+	// Prompt is an optional prompt appended to the end of the program's
+	// arguments, if given. This is implemented for consistency with the Git
+	// documentation.
+	Prompt string
+}
+
+// Fill implements fill by running the ASKPASS program and returning its output
+// as a password encoded in the Creds type given the key "password".
+//
+// It accepts the password as coming from the program's stdout, as when invoked
+// with the given arguments (see (*AskPassCredentialHelper).args() below)./
+//
+// If there was an error running the command, it is returned instead of a set of
+// filled credentials.
+func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
+	var pass bytes.Buffer
+	var err bytes.Buffer
+
+	cmd := exec.Command(a.Program, a.args()...)
+	cmd.Stderr = &err
+	cmd.Stdout = &pass
+
+	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(cmd.Args, " "))
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	if err.Len() > 0 {
+		return nil, errors.New(err.String())
+	}
+
+	creds := make(Creds)
+	creds["password"] = pass.String()
+
+	return creds, nil
+}
+
+// Approve implements CredentialHelper.Approve, and returns nil. The ASKPASS
+// credential helper does not implement credential approval.
+func (a *AskPassCredentialHelper) Approve(_ Creds) error { return nil }
+
+// Reject implements CredentialHelper.Reject, and returns nil. The ASKPASS
+// credential helper does not implement credential rejection.
+func (a *AskPassCredentialHelper) Reject(_ Creds) error { return nil }
+
+// args returns the arguments given to the ASKPASS program. If a prompt (see:
+// "Prompt string") is given, it is appended as the final argument. Otherwise,
+// the arguments are passed to the program as is.
+
+// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials for
+// more.
+func (a *AskPassCredentialHelper) args() []string {
+	if len(a.Prompt) == 0 {
+		return a.Args
+	}
+	return append(a.Args, a.Prompt)
 }
 
 type CredentialHelper interface {
