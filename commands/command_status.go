@@ -82,7 +82,7 @@ func formatBlobInfo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) string {
 		ExitWithError(err)
 	}
 
-	from := fmt.Sprintf("%s: %s", fromSrc, fromSha[:7])
+	from := fmt.Sprintf("%s: %s", fromSrc, fromSha)
 	if entry.Status == lfs.StatusAddition {
 		return from
 	}
@@ -91,7 +91,7 @@ func formatBlobInfo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) string {
 	if err != nil {
 		ExitWithError(err)
 	}
-	to := fmt.Sprintf("%s: %s", toSrc, toSha[:7])
+	to := fmt.Sprintf("%s: %s", toSrc, toSha)
 
 	return fmt.Sprintf("%s -> %s", from, to)
 }
@@ -118,6 +118,9 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 	if !z40.MatchString(blobSha) {
 		s.Scan(blobSha)
 		if err := s.Err(); err != nil {
+			if git.IsMissingObject(err) {
+				return "<missing>", "?", nil
+			}
 			return "", "", err
 		}
 
@@ -128,7 +131,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 			from = "Git"
 		}
 
-		return s.ContentsSha(), from, nil
+		return s.ContentsSha()[:7], from, nil
 	}
 
 	f, err := os.Open(name)
@@ -142,7 +145,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 		return "", "", err
 	}
 
-	return fmt.Sprintf("%x", shasum.Sum(nil)), "File", nil
+	return fmt.Sprintf("%x", shasum.Sum(nil))[:7], "File", nil
 }
 
 func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {

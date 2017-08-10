@@ -358,3 +358,30 @@ Git LFS objects not staged for commit:"
   popd > /dev/null
 )
 end_test
+
+begin_test "status (missing objects)"
+(
+  set -e
+
+  reponame="status-missing-objects"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  printf "a" > a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  # Remove the original object "a.dat" (ensure '--no-filters' is not given).
+  oid="$(git hash-object -t blob -- a.dat)"
+  rm -rf ".git/objects/${oid:0:2}/${oid:2}"
+
+  # Create an unstaged change against a source file that doesn't exist.
+  printf "b" > a.dat
+  git add a.dat
+
+  git lfs status \
+    | grep "a.dat (?: <missing> -> LFS: $(calc_oid b | head -c 7))"
+)
+end_test
