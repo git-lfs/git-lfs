@@ -7,8 +7,54 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
 )
+
+// credsConfig supplies configuration options pertaining to the authorization
+// process in package lfsapi.
+type credsConfig struct {
+	// Cached is a boolean determining whether or not to enable the
+	// credential cacher.
+	Cached bool `git:"lfs.cachecredentials"`
+	// SkipPrompt is a boolean determining whether or not to prompt the user
+	// for a password.
+	SkipPrompt bool `os:"GIT_TERMINAL_PROMPT"`
+}
+
+// getCredentialHelper parses a 'credsConfig' from the git and OS environments,
+// returning the appropriate CredentialHelper to authenticate requests with.
+//
+// It returns an error if any configuration was invalid, or otherwise
+// un-useable.
+func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
+	ccfg, err := getCredentialConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var h CredentialHelper
+	h = &commandCredentialHelper{
+		SkipPrompt: ccfg.SkipPrompt,
+	}
+
+	if ccfg.Cached {
+		h = withCredentialCache(h)
+	}
+
+	return h, nil
+}
+
+// getCredentialConfig parses a *credsConfig given the OS and Git
+// configurations.
+func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
+	var what credsConfig
+
+	if err := cfg.Unmarshal(&what); err != nil {
+		return nil, err
+	}
+	return &what, nil
+}
 
 type CredentialHelper interface {
 	Fill(Creds) (Creds, error)

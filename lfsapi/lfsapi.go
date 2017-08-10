@@ -71,13 +71,14 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 
 	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
 
-	var creds CredentialHelper = &commandCredentialHelper{
-		SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
+	creds, err := getCredentialHelper(&config.Configuration{
+		Os: osEnv, Git: gitEnv})
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot find credential helper(s)")
 	}
-	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
 
+	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
 	if gitEnv.Bool("lfs.cachecredentials", false) {
-		creds = withCredentialCache(creds)
 		sshResolver = withSSHCache(sshResolver)
 	}
 
