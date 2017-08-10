@@ -1,5 +1,5 @@
-hash: ed90cd0162c8564e494802d483ac3780d8671a8a27bd03a2e43a3759007e561a
-updated: 2017-07-25T09:58:55.909621732-06:00
+hash: f5514f65f17e413de9f48c316520c5b7f99003befccd7b89e48bd458438ab969
+updated: 2017-08-10T17:19:03.014970877-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -7,12 +7,8 @@ imports:
   - netrc
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
-- name: github.com/kr/pretty
-  version: 088c856450c08c03eb32f7a6c221e6eefaa10e6f
 - name: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
-- name: github.com/kr/text
-  version: 6807e777504f54ad073ecef66747de158294b639
 - name: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - name: github.com/pkg/errors
@@ -33,10 +29,6 @@ imports:
   subpackages:
   - ntlm
   - ntlm/md4
-- name: github.com/xeipuuv/gojsonpointer
-  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
-- name: github.com/xeipuuv/gojsonreference
-  version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 - name: golang.org/x/exp
@@ -52,3 +44,7 @@ testImports:
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
   - difflib
+- name: github.com/xeipuuv/gojsonpointer
+  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
+- name: github.com/xeipuuv/gojsonreference
+  version: e02fc20de94c78484cd5ffb007f8af96be030a45
