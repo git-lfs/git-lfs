@@ -1,5 +1,5 @@
-hash: 4efd4c09a4202c269e00e3475e01546f4493e80bbe2ca660734f913c5dad6f4f
-updated: 2017-08-10T17:18:26.876477172-06:00
+hash: f5514f65f17e413de9f48c316520c5b7f99003befccd7b89e48bd458438ab969
+updated: 2017-08-10T17:19:03.014970877-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -29,8 +29,6 @@ imports:
   subpackages:
   - ntlm
   - ntlm/md4
-- name: github.com/xeipuuv/gojsonreference
-  version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 - name: golang.org/x/exp
@@ -48,3 +46,5 @@ testImports:
   - difflib
 - name: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
+- name: github.com/xeipuuv/gojsonreference
+  version: e02fc20de94c78484cd5ffb007f8af96be030a45
