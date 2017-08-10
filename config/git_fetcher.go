@@ -30,6 +30,7 @@ func NewGitConfig(gitconfiglines string, onlysafe bool) *GitConfig {
 
 func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string][]string)
+	ignored := make([]string, 0)
 
 	extensions = make(map[string]Extension)
 	uniqRemotes = make(map[string]bool)
@@ -68,11 +69,13 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 				switch prop {
 				case "clean":
 					if gc.OnlySafeKeys {
+						ignored = append(ignored, key)
 						continue
 					}
 					ext.Clean = val
 				case "smudge":
 					if gc.OnlySafeKeys {
+						ignored = append(ignored, key)
 						continue
 					}
 					ext.Smudge = val
@@ -87,6 +90,7 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 				extensions[name] = ext
 			} else if len(parts) > 1 && parts[0] == "remote" {
 				if gc.OnlySafeKeys && (len(parts) == 3 && parts[2] != "lfsurl") {
+					ignored = append(ignored, key)
 					continue
 				}
 
@@ -98,10 +102,18 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 			}
 
 			if !allowed && keyIsUnsafe(key) {
+				ignored = append(ignored, key)
 				continue
 			}
 
 			vals[key] = append(vals[key], val)
+		}
+	}
+
+	if len(ignored) > 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: These unsafe lfsconfig keys were ignored:\n\n")
+		for _, key := range ignored {
+			fmt.Fprintf(os.Stderr, "  %s\n", key)
 		}
 	}
 

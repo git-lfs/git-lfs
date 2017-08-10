@@ -140,3 +140,21 @@ begin_test "url alias must be prefix"
   grep "Endpoint=badalias:rest (auth=none)" env.log
 )
 end_test
+
+begin_test "config: ignoring unsafe lfsconfig keys"
+(
+  set -e
+
+  reponame="config-unsafe-lfsconfig-keys"
+  git init "$reponame"
+  cd "$reponame"
+
+  # Insert an 'unsafe' key into this repository's '.lfsconfig'.
+  git config --file=./lfsconfig core.askpass unsafe
+
+  git lfs status 2>&1 | tee status.log
+
+  grep "WARNING: These unsafe lfsconfig keys were ignored:" status.log
+  grep "  core.askpass" status.log
+)
+end_test
