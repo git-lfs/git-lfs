@@ -1,5 +1,5 @@
-hash: 3c6d2ff3f94afdaaebdfec12d9b0917f6c648b83ff4b5864982fd722a232188a
-updated: 2017-08-10T17:01:01.223155433-06:00
+hash: 32930e5185b17f92a010f9aa554f342d34f40f3b23c4dc5af0fc1144ce3f7477
+updated: 2017-08-10T17:16:55.011351706-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -9,8 +9,6 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
-- name: github.com/kr/text
-  version: 6807e777504f54ad073ecef66747de158294b639
 - name: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - name: github.com/pkg/errors

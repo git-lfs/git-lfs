@@ -6,8 +6,6 @@ import:
   - netrc
 - package: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
-- package: github.com/kr/text
-  version: 6807e777504f54ad073ecef66747de158294b639
 - package: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - package: github.com/olekukonko/ts

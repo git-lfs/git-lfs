@@ -27,7 +27,6 @@ $ script/test lfs
 
 # pass other `go test` arguments
 $ script/test lfs -run TestSuccessStatus -v
-github.com/kr/text
 github.com/rubyist/tracerx
 github.com/git-lfs/git-lfs/git
 github.com/technoweenie/assert
