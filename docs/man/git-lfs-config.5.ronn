@@ -303,6 +303,23 @@ be scoped inside the configuration for a remote.
   The default is `true`; you can disable this behaviour and have all files
   writeable by setting either variable to 0, 'no' or 'false'.
 
+## LFSCONFIG
+
+The .lfsconfig file in a repository is read and interpreted in the same format
+as the file stored in .git/config. It allows a subset of keys to be used,
+including and limited to:
+
+- lfs.fetchexclude
+- lfs.fetchinclude
+- lfs.gitprotocol
+- lfs.pushurl
+- lfs.url
+- lfs.extension.{name}.clean
+- lfs.extension.{name}.smudge
+- lfs.extension.{name}.priority
+- remote.{name}.lfsurl
+- remote.{name}.{*}.access
+
 ## EXAMPLES
 
 *  Configure a custom LFS endpoint for your repository:
