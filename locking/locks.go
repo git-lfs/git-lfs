@@ -10,6 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
@@ -112,6 +113,21 @@ func (c *Client) LockFile(path string) (Lock, error) {
 	}
 
 	return lock, nil
+}
+
+// getAbsolutePath takes a repository-relative path and makes it absolute.
+//
+// For instance, given a repository in /usr/local/src/my-repo and a file called
+// dir/foo/bar.txt, getAbsolutePath will return:
+//
+//   /usr/local/src/my-repo/dir/foo/bar.txt
+func getAbsolutePath(p string) (string, error) {
+	root, err := git.RootDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, p), nil
 }
 
 // UnlockFile attempts to unlock a file on the current remote
