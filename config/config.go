@@ -119,7 +119,7 @@ func initConfig(c *Configuration) {
 //
 // Otherwise, the field will be set to the value of calling the
 // appropriately-typed method on the specified environment.
-func (c *Configuration) Unmarshal(v interface{}) error {
+func Unmarshal(git, os Enviornment, v interface{}) error {
 	into := reflect.ValueOf(v)
 	if into.Kind() != reflect.Ptr {
 		return fmt.Errorf("lfs/config: unable to parse non-pointer type of %T", v)
@@ -164,6 +164,10 @@ func (c *Configuration) Unmarshal(v interface{}) error {
 	}
 
 	return nil
+}
+
+func (c *Configuration) Unmarshal(v interface{}) error {
+	return Unmarshal(c.Git, c.Os, v)
 }
 
 var (

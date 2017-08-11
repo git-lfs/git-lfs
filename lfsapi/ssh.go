@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -69,7 +70,7 @@ func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
 }
 
 type sshAuthClient struct {
-	os Env
+	os, git Env
 }
 
 func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
@@ -111,6 +112,66 @@ func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string
 	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
 	return exe, args
+}
+
+type sshVariant uint
+
+type sshConfig struct {
+	cmd     string `os:"GIT_SSH_COMMAND" os:"GIT_SSH" git:"core.sshCommand"`
+	variant string `git:"ssh.variant"`
+}
+
+func (c *sshConfig) Command() []string {
+	if len(c.cmd) == 0 {
+		return []string{"ssh"}
+	}
+	return tools.QuotedFields(c.cmd)
+}
+
+func (c *sshConfig) Exe() string {
+	return c.Command()[0]
+}
+
+func (c *sshConfig) Args() []string {
+	return c.Command()[1:]
+}
+
+func (c *sshConfig) Variant() (plink, tortoise bool) {
+	variant := c.variant
+	if len(variant) == 0 {
+		variant = filepath.Base(c.Command()[0])
+		variant = strings.TrimSuffix(variant, filepath.Ext(variant))
+	}
+
+	return strings.EqualFold(variant, "plink"),
+		strings.EqualFold(variant, "tortoiseplink")
+}
+
+func sshGetExeAndArgs2(git, os Env, e Endpoint) (exe string, baseargs []string) {
+	var sc sshConfig
+	if err := config.Unmarshal(git, os, &sc); err != nil {
+		panic(err.Error())
+	}
+
+	args := s.Args()
+	plink, tortoise := sc.Variant()
+
+	if tortoise {
+		// TortoisePlink requires the -batch argument to behave like ssh/plink
+		args = append(args, "-batch")
+	}
+
+	if len(e.SshPort) > 0 {
+		if isPlink || isTortoise {
+			args = append(args, "-P")
+		} else {
+			args = append(args, "-p")
+		}
+		args = append(args, e.SshPort)
+	}
+	args = append(args, e.SshUserAndPort)
+
+	return sc.Exe(), args
 }
 
 // Return the executable name for ssh on this machine and the base args
