@@ -133,7 +133,7 @@ begin_test "creating a lock (within subdirectory)"
     exit 1
   fi
 
-  id=$(assert_lock lock.json a.dat)
+  id=$(assert_lock lock.json sub/a.dat)
   assert_server_lock "$reponame" "$id"
 )
 end_test
