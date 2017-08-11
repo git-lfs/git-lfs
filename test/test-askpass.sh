@@ -24,7 +24,7 @@ begin_test "askpass: push with GIT_ASKPASS"
 )
 end_test
 
-begin_test "askpass: push with core.askpass"
+begin_test "askpass: push with core.askPass"
 (
   set -e
 
@@ -40,7 +40,7 @@ begin_test "askpass: push with core.askpass"
 
   # $password is defined from test/cmd/lfstest-gitserver.go (see: skipIfBadAuth)
   password="pass"
-  git config "core.askpass" "echo $password"
+  git config "core.askPass" "echo $password"
   cat .git/config
   GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push 2>&1 | tee push.log
 
