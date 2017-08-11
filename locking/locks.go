@@ -107,8 +107,13 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, errors.Wrap(err, "lock cache")
 	}
 
+	abs, err := getAbsolutePath(path)
+	if err != nil {
+		return Lock{}, errors.Wrap(err, "make lockpath absolute")
+	}
+
 	// Ensure writeable on return
-	if err := tools.SetFileWriteFlag(path, true); err != nil {
+	if err := tools.SetFileWriteFlag(abs, true); err != nil {
 		return Lock{}, err
 	}
 
@@ -144,9 +149,14 @@ func (c *Client) UnlockFile(path string, force bool) error {
 		return err
 	}
 
+	abs, err := getAbsolutePath(path)
+	if err != nil {
+		return errors.Wrap(err, "make lockpath absolute")
+	}
+
 	// Make non-writeable if required
 	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
-		return tools.SetFileWriteFlag(path, false)
+		return tools.SetFileWriteFlag(abs, false)
 	}
 	return nil
 

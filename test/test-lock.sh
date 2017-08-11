@@ -117,3 +117,23 @@ begin_test "locking a nested file"
   grep "foo/bar/baz/a.dat" locks.log
 )
 end_test
+
+begin_test "creating a lock (within subdirectory)"
+(
+  set -e
+
+  reponame="lock_create_within_subdirectory"
+  setup_remote_repo_with_file "$reponame" "sub/a.dat"
+
+  cd sub
+
+  git lfs lock --json "a.dat" | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    exit 1
+  fi
+
+  id=$(assert_lock lock.json a.dat)
+  assert_server_lock "$reponame" "$id"
+)
+end_test
