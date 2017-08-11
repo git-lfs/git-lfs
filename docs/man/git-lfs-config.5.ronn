@@ -51,6 +51,12 @@ be scoped inside the configuration for a remote.
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
 
+* `core.askpass`, GIT_ASKPASS
+
+  Given as a program and its arguments, this is invoked when authentication is
+  needed against the LFS API. The contents of stdout are interpreted as the
+  password.
+
 * `lfs.cachecredentials`
 
   Enables in-memory SSH and Git Credential caching for a single 'git lfs'

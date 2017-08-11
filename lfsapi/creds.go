@@ -7,8 +7,203 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
+
+// credsConfig supplies configuration options pertaining to the authorization
+// process in package lfsapi.
+type credsConfig struct {
+	// AskPass is a string containing an executable name as well as a
+	// program arguments.
+	//
+	// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials
+	// for more.
+	AskPass string `os:"GIT_ASKPASS" git:"core.askpass"`
+	// Cached is a boolean determining whether or not to enable the
+	// credential cacher.
+	Cached bool `git:"lfs.cachecredentials"`
+	// SkipPrompt is a boolean determining whether or not to prompt the user
+	// for a password.
+	SkipPrompt bool `os:"GIT_TERMINAL_PROMPT"`
+}
+
+// getCredentialHelper parses a 'credsConfig' from the git and OS environments,
+// returning the appropriate CredentialHelper to authenticate requests with.
+//
+// It returns an error if any configuration was invalid, or otherwise
+// un-useable.
+func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
+	ccfg, err := getCredentialConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var hs []CredentialHelper
+	if len(ccfg.AskPass) > 0 {
+		parts := tools.QuotedFields(ccfg.AskPass)
+		if len(parts) < 1 {
+			return nil, errors.Errorf(
+				"lfsapi/creds: invalid ASKPASS: %q",
+				ccfg.AskPass)
+		}
+
+		hs = append(hs, &AskPassCredentialHelper{
+			Program: parts[0],
+			Args:    parts[1:],
+		})
+	}
+
+	var h CredentialHelper
+	h = &commandCredentialHelper{
+		SkipPrompt: ccfg.SkipPrompt,
+	}
+
+	if ccfg.Cached {
+		h = withCredentialCache(h)
+	}
+	hs = append(hs, h)
+
+	switch len(hs) {
+	case 0:
+		return nil, nil
+	case 1:
+		return hs[0], nil
+	}
+	return CredentialHelpers(hs), nil
+}
+
+// getCredentialConfig parses a *credsConfig given the OS and Git
+// configurations.
+func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
+	var what credsConfig
+
+	if err := cfg.Unmarshal(&what); err != nil {
+		return nil, err
+	}
+	return &what, nil
+}
+
+// CredentialHelpers is a []CredentialHelper that iterates through each
+// credential helper to fill, reject, or approve credentials.
+type CredentialHelpers []CredentialHelper
+
+// Fill implements CredentialHelper.Fill by asking each CredentialHelper in
+// order to fill the credentials.
+//
+// If a fill was successful, it is returned immediately, and no other
+// `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
+// it is returned immediately.
+func (h CredentialHelpers) Fill(what Creds) (Creds, error) {
+	for _, c := range h {
+		creds, err := c.Fill(what)
+		if err != nil {
+			return nil, err
+		}
+
+		if creds != nil {
+			return creds, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// Reject implements CredentialHelper.Reject and rejects the given Creds "what"
+// amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
+// non-nil error, no further `CredentialHelper`s are notified, so as to prevent
+// inconsistent state.
+func (h CredentialHelpers) Reject(what Creds) error {
+	for _, c := range h {
+		if err := c.Reject(what); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Approve implements CredentialHelper.Approve and approves the given Creds
+// "what" amongst all knonw CredentialHelpers. If any `CredentialHelper`s
+// returned a non-nil error, no further `CredentialHelper`s are notified, so as
+// to prevent inconsistent state.
+func (h CredentialHelpers) Approve(what Creds) error {
+	for _, c := range h {
+		if err := c.Approve(what); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS
+// and 'core.askpass' configuration values.
+type AskPassCredentialHelper struct {
+	// Program is the executable program's absolute or relative name.
+	Program string
+	// Args are the arguments given to the program.
+	Args []string
+
+	// Prompt is an optional prompt appended to the end of the program's
+	// arguments, if given. This is implemented for consistency with the Git
+	// documentation.
+	Prompt string
+}
+
+// Fill implements fill by running the ASKPASS program and returning its output
+// as a password encoded in the Creds type given the key "password".
+//
+// It accepts the password as coming from the program's stdout, as when invoked
+// with the given arguments (see (*AskPassCredentialHelper).args() below)./
+//
+// If there was an error running the command, it is returned instead of a set of
+// filled credentials.
+func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
+	var pass bytes.Buffer
+	var err bytes.Buffer
+
+	cmd := exec.Command(a.Program, a.args()...)
+	cmd.Stderr = &err
+	cmd.Stdout = &pass
+
+	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(cmd.Args, " "))
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	if err.Len() > 0 {
+		return nil, errors.New(err.String())
+	}
+
+	creds := make(Creds)
+	creds["password"] = pass.String()
+
+	return creds, nil
+}
+
+// Approve implements CredentialHelper.Approve, and returns nil. The ASKPASS
+// credential helper does not implement credential approval.
+func (a *AskPassCredentialHelper) Approve(_ Creds) error { return nil }
+
+// Reject implements CredentialHelper.Reject, and returns nil. The ASKPASS
+// credential helper does not implement credential rejection.
+func (a *AskPassCredentialHelper) Reject(_ Creds) error { return nil }
+
+// args returns the arguments given to the ASKPASS program. If a prompt (see:
+// "Prompt string") is given, it is appended as the final argument. Otherwise,
+// the arguments are passed to the program as is.
+
+// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials for
+// more.
+func (a *AskPassCredentialHelper) args() []string {
+	if len(a.Prompt) == 0 {
+		return a.Args
+	}
+	return append(a.Args, a.Prompt)
+}
 
 type CredentialHelper interface {
 	Fill(Creds) (Creds, error)
