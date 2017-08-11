@@ -397,9 +397,12 @@ clone_repo_clientcert() {
 setup_remote_repo_with_file() {
   local reponame="$1"
   local filename="$2"
+  local dirname="$(dirname "$filename")"
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "clone_$reponame"
+
+  mkdir -p "$dirname"
 
   git lfs track "$filename"
   echo "$filename" > "$filename"
