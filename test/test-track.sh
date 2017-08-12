@@ -29,6 +29,10 @@ begin_test "track"
 
   mkdir -p a/b
 
+  if [ ! -d .git/info ]; then
+    mkdir .git/info
+  fi
+
   echo "*.mov filter=lfs -text" > .git/info/attributes
   echo "*.gif filter=lfs -text" > a/.gitattributes
   echo "*.png filter=lfs -text" > a/b/.gitattributes

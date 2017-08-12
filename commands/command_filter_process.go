@@ -1,14 +1,18 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/spf13/cobra"
 )
 
@@ -40,25 +44,46 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	_, err := s.NegotiateCapabilities()
+	caps, err := s.NegotiateCapabilities()
 	if err != nil {
 		ExitWithError(err)
+	}
+
+	var supportsDelay bool
+	for _, cap := range caps {
+		if cap == "capability=delay" {
+			supportsDelay = true
+			break
+		}
 	}
 
 	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
 
+	ptrs := make(map[string]*lfs.Pointer)
+
+	var q *tq.TransferQueue
+	closeOnce := new(sync.Once)
+	available := make(chan *tq.Transfer)
+
+	if supportsDelay {
+		q = tq.NewTransferQueue(tq.Download, getTransferManifest(), cfg.CurrentRemote)
+		go infiniteTransferBuffer(q, available)
+	}
+
 	var malformed []string
 	var malformedOnWindows []string
-
 	for s.Scan() {
 		var n int64
 		var err error
+		var delayed bool
 		var w *git.PktlineWriter
 
 		req := s.Request()
 
-		s.WriteStatus(statusFromErr(nil))
+		if !(req.Header["command"] == "smudge" && req.Header["can-delay"] == "1") && !(req.Header["command"] == "list_available_blobs") {
+			s.WriteStatus(statusFromErr(nil))
+		}
 
 		switch req.Header["command"] {
 		case "clean":
@@ -66,7 +91,36 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			err = clean(w, req.Payload, req.Header["pathname"], -1)
 		case "smudge":
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
-			n, err = smudge(w, req.Payload, req.Header["pathname"], skip, filter)
+			if req.Header["can-delay"] == "1" {
+				var ptr *lfs.Pointer
+
+				n, delayed, ptr, err = delayedSmudge(s, w, req.Payload, q, req.Header["pathname"], skip, filter)
+
+				if delayed {
+					ptrs[req.Header["pathname"]] = ptr
+				}
+			} else {
+				from, err := incomingOrCached(req.Payload, ptrs[req.Header["pathname"]])
+				if err != nil {
+					break
+				}
+
+				n, err = smudge(w, from, req.Header["pathname"], skip, filter)
+
+				if err == nil {
+					delete(ptrs, req.Header["pathname"])
+				}
+			}
+		case "list_available_blobs":
+			closeOnce.Do(func() { go q.Wait() })
+
+			paths := pathnames(readAvailable(available))
+			if len(paths) == 0 {
+				for path, _ := range ptrs {
+					paths = append(paths, fmt.Sprintf("pathname=%s", path))
+				}
+			}
+			err = s.WriteList(paths)
 		default:
 			ExitWithError(fmt.Errorf("Unknown command %q", req.Header["command"]))
 		}
@@ -78,11 +132,19 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
+		if delayed {
+			w = nil
+		}
+
 		var status string
 		if ferr := w.Flush(); ferr != nil {
 			status = statusFromErr(ferr)
 		} else {
-			status = statusFromErr(err)
+			if delayed {
+				status = delayedStausFromErr(err)
+			} else {
+				status = statusFromErr(err)
+			}
 		}
 
 		s.WriteStatus(status)
@@ -110,6 +172,125 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
+// infiniteTransferBuffer streams the results of q.Watch() into "available" as
+// if available had an infinite channel buffer.
+func infiniteTransferBuffer(q *tq.TransferQueue, available chan<- *tq.Transfer) {
+	// Stream results from q.Watch() into chan "available" via an infinite
+	// buffer.
+
+	watch := q.Watch()
+
+	// pending is used to keep track of an ordered list of available
+	// `*tq.Transfer`'s that cannot be written to "available" without
+	// blocking.
+	var pending []*tq.Transfer
+
+	for {
+		if len(pending) > 0 {
+			select {
+			case t, ok := <-watch:
+				if !ok {
+					// If the list of pending elements is
+					// non-empty, stream them out (even if
+					// they block), and then close().
+					for _, t = range pending {
+						available <- t
+					}
+					close(available)
+					return
+				}
+				pending = append(pending, t)
+			case available <- pending[0]:
+				// Otherwise, dequeue and shift the first
+				// element from pending onto available.
+				pending = pending[1:]
+			}
+		} else {
+			t, ok := <-watch
+			if !ok {
+				// If watch is closed, the "tq" is done, and
+				// there are no items on the buffer.  Return
+				// immediately.
+				close(available)
+				return
+			}
+
+			select {
+			case available <- t:
+			// Copy an item directly from <-watch onto available<-.
+			default:
+				// Otherwise, if that would have blocked, make
+				// the new read pending.
+				pending = append(pending, t)
+			}
+		}
+	}
+}
+
+// incomingOrCached returns an io.Reader that is either the contents of the
+// given io.Reader "r", or the encoded contents of "ptr". It returns an error if
+// there was an error reading from "r".
+//
+// This is done because when a `command=smudge` with `can-delay=0` is issued,
+// the entry's contents are not sent, and must be re-encoded from the stored
+// pointer corresponding to the request's filepath.
+func incomingOrCached(r io.Reader, ptr *lfs.Pointer) (io.Reader, error) {
+	var buf bytes.Buffer
+	if _, err := io.CopyN(&buf, r, 1024); err != nil {
+		if err != io.EOF {
+			return nil, err
+		}
+	}
+
+	if buf.Len() < 1024 && ptr != nil {
+		return strings.NewReader(ptr.Encoded()), nil
+	}
+	return io.MultiReader(&buf, r), nil
+}
+
+// readAvailable satisfies the accumulation semantics for the
+// 'list_available_blobs' command. It accumulates items until:
+//
+// 1. Reading from the channel of available items blocks, or ...
+// 2. There is one item available, or ...
+// 3. The 'tq.TransferQueue' is completed.
+func readAvailable(ch <-chan *tq.Transfer) []*tq.Transfer {
+	ts := make([]*tq.Transfer, 0, 100)
+
+	for {
+		select {
+		case t, ok := <-ch:
+			if !ok {
+				return ts
+			}
+			ts = append(ts, t)
+		default:
+			if len(ts) > 0 {
+				return ts
+			}
+
+			t, ok := <-ch
+			if !ok {
+				return ts
+			}
+			return append(ts, t)
+		}
+	}
+
+	return ts
+}
+
+// pathnames formats a list of *tq.Transfers as a valid response to the
+// 'list_available_blobs' command.
+func pathnames(ts []*tq.Transfer) []string {
+	pathnames := make([]string, 0, len(ts))
+	for _, t := range ts {
+		pathnames = append(pathnames, fmt.Sprintf("pathname=%s", t.Name))
+	}
+
+	return pathnames
+}
+
 // statusFromErr returns the status code that should be sent over the filter
 // protocol based on a given error, "err".
 func statusFromErr(err error) string {
@@ -117,6 +298,16 @@ func statusFromErr(err error) string {
 		return "error"
 	}
 	return "success"
+}
+
+// delayedStausFromErr returns the status code that should be sent over the
+// filter protocol based on a given error, "err" when the blob smudge operation
+// was delayed.
+func delayedStausFromErr(err error) string {
+	if err != nil && err != io.EOF {
+		return "error"
+	}
+	return "delayed"
 }
 
 func init() {

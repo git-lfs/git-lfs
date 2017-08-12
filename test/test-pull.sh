@@ -51,9 +51,7 @@ begin_test "pull"
   cd ../clone
 
   echo "normal pull"
-  git pull 2>&1 | tee pull.log
-  grep "Downloading a.dat (1 B)" pull.log
-  grep "Downloading á.dat (1 B)" pull.log
+  git pull 2>&1
 
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]

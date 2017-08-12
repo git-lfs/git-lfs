@@ -105,6 +105,14 @@ func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading filter-process capabilities failed with %s", err)
 	}
+
+	for _, sup := range supCaps {
+		if sup == "capability=delay" {
+			reqCaps = append(reqCaps, "capability=delay")
+			break
+		}
+	}
+
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
 			return nil, fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)

@@ -27,13 +27,3 @@ begin_test "push unusually named files"
   grep "Git LFS: (1 of 1 files)" push.log
 )
 end_test
-
-begin_test "pull unusually named files"
-(
-  set -e
-
-  clone_repo "$reponame" clone
-
-  grep "Downloading $name1" clone.log
-)
-end_test
