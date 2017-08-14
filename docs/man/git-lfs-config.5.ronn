@@ -60,7 +60,7 @@ be scoped inside the configuration for a remote.
 * `lfs.cachecredentials`
 
   Enables in-memory SSH and Git Credential caching for a single 'git lfs'
-  command. Default: false. This will default to true in v2.1.0.
+  command. Default: enabled.
 
 * `lfs.storage`
 
