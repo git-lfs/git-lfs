@@ -78,7 +78,7 @@ be scoped inside the configuration for a remote.
 
 * `lfs.concurrenttransfers`
 
-  The number of concurrent uploads/downloads. Default 3.
+  The number of concurrent uploads/downloads. Default 8.
 
 * `lfs.basictransfersonly`
 

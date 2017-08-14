@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultMaxRetries          = 8
-	defaultConcurrentTransfers = 3
+	defaultConcurrentTransfers = 8
 )
 
 type Manifest struct {

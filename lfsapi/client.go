@@ -185,7 +185,7 @@ func (c *Client) httpClient(host string) *http.Client {
 
 	concurrentTransfers := c.ConcurrentTransfers
 	if concurrentTransfers < 1 {
-		concurrentTransfers = 3
+		concurrentTransfers = 8
 	}
 
 	dialtime := c.DialTimeout
