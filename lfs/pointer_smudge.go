@@ -139,7 +139,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 
 		request := &pipeRequest{"smudge", reader, workingfile, extsR}
 
-		response, err := pipeExtensions(request)
+		response, _, err := pipeExtensions(request)
 		if err != nil {
 			return 0, errors.Wrap(err, "smudge")
 		}
