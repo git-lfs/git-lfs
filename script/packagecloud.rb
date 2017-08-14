@@ -56,6 +56,7 @@ $distro_name_map = {
     debian/stretch
     linuxmint/sarah
     linuxmint/serena
+    linuxmint/sonya
     ubuntu/xenial
     ubuntu/yakkety
     ubuntu/zesty
