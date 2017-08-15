@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -115,7 +114,7 @@ func smudgeFilename(args []string) string {
 }
 
 func possiblyMalformedObjectSize(n int64) bool {
-	return n > 4*humanize.Gigabyte && runtime.GOOS == "windows"
+	return n > 4*humanize.Gigabyte
 }
 
 func init() {
