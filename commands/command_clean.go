@@ -97,8 +97,13 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		fileName = args[0]
 	}
 
-	if _, err := clean(os.Stdout, os.Stdin, fileName, -1); err != nil {
+	ptr, err := clean(os.Stdout, os.Stdin, fileName, -1)
+	if err != nil {
 		Error(err.Error())
+	}
+
+	if ptr != nil && possiblyMalformedObjectSize(ptr.Size) {
+		Error("Possibly malformed conversion on Windows, see `git lfs help smudge` for more details.")
 	}
 }
 
