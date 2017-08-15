@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -23,7 +22,7 @@ import (
 //
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
-func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (nr, nw int64, err error) {
+func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
 	var cb progress.CopyCallback
 	var file *os.File
 
@@ -44,7 +43,7 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (nr, n
 		}
 	}
 
-	cleaned, nr, err := lfs.PointerClean(from, fileName, fileSize, cb)
+	cleaned, err := lfs.PointerClean(from, fileName, fileSize, cb)
 	if file != nil {
 		file.Close()
 	}
@@ -58,8 +57,8 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (nr, n
 		// a pointer, we'll get a `CleanPointerError`, with the context
 		// containing the bytes that we should write back out to Git.
 
-		n, err := to.Write(errors.GetContext(err, "bytes").([]byte))
-		return nr, int64(n), err
+		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
+		return nil, err
 	}
 
 	if err != nil {
@@ -85,8 +84,8 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (nr, n
 		Debug("Writing %s", mediafile)
 	}
 
-	n, err := lfs.EncodePointer(to, cleaned.Pointer)
-	return nr, int64(n), err
+	_, err = lfs.EncodePointer(to, cleaned.Pointer)
+	return cleaned.Pointer, err
 }
 
 func cleanCommand(cmd *cobra.Command, args []string) {
@@ -98,10 +97,8 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		fileName = args[0]
 	}
 
-	if nr, _, err := clean(os.Stdout, os.Stdin, fileName, -1); err != nil {
+	if _, err := clean(os.Stdout, os.Stdin, fileName, -1); err != nil {
 		Error(err.Error())
-	} else if possiblyMalformedSmudge(nr) {
-		fmt.Fprintln(os.Stderr, "File may not convert properly on Windows: see `git lfs help smudge` for more info.")
 	}
 }
 

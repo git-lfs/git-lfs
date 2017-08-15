@@ -18,10 +18,10 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, int64, error) {
+func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
 	extensions, err := config.Config.SortedExtensions()
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	var oid string
@@ -32,17 +32,15 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress
 		request := &pipeRequest{"clean", reader, fileName, extensions}
 
 		var response pipeResponse
-		var n int64
-
-		if response, n, err = pipeExtensions(request); err != nil {
-			return nil, n, err
+		if response, err = pipeExtensions(request); err != nil {
+			return nil, err
 		}
 
 		oid = response.results[len(response.results)-1].oidOut
 		tmp = response.file
 		var stat os.FileInfo
 		if stat, err = os.Stat(tmp.Name()); err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		size = stat.Size()
 
@@ -55,12 +53,12 @@ func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress
 	} else {
 		oid, size, tmp, err = copyToTemp(reader, fileSize, cb)
 		if err != nil {
-			return nil, size, err
+			return nil, err
 		}
 	}
 
 	pointer := NewPointer(oid, size, exts)
-	return &cleanedAsset{tmp.Name(), pointer}, size, err
+	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
 func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {

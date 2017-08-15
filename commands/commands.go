@@ -162,7 +162,7 @@ func ensureFile(smudgePath, cleanPath string) error {
 		return err
 	}
 
-	cleaned, _, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
+	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
 	if cleaned != nil {
 		cleaned.Teardown()
 	}

@@ -40,7 +40,7 @@ type extCommand struct {
 	result *pipeExtResult
 }
 
-func pipeExtensions(request *pipeRequest) (response pipeResponse, n int64, err error) {
+func pipeExtensions(request *pipeRequest) (response pipeResponse, err error) {
 	var extcmds []*extCommand
 	defer func() {
 		// In the case of an early return before the end of this
@@ -131,7 +131,7 @@ func pipeExtensions(request *pipeRequest) (response pipeResponse, n int64, err e
 		}
 	}
 
-	if n, err = io.Copy(multiWriter, request.reader); err != nil {
+	if _, err = io.Copy(multiWriter, request.reader); err != nil {
 		return
 	}
 	if err = pipeWriter.Close(); err != nil {
