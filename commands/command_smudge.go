@@ -102,7 +102,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		} else {
 			Error(err.Error())
 		}
-	} else if possiblyMalformedSmudge(n) {
+	} else if possiblyMalformedObjectSize(n) {
 		fmt.Fprintln(os.Stderr, "Possibly malformed smudge on Windows: see `git lfs help smudge` for more info.")
 	}
 }
@@ -114,7 +114,7 @@ func smudgeFilename(args []string) string {
 	return "<unknown file>"
 }
 
-func possiblyMalformedSmudge(n int64) bool {
+func possiblyMalformedObjectSize(n int64) bool {
 	return n > 4*humanize.Gigabyte && runtime.GOOS == "windows"
 }
 

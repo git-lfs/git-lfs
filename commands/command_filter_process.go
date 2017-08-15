@@ -80,7 +80,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		if errors.IsNotAPointerError(err) {
 			malformed = append(malformed, req.Header["pathname"])
 			err = nil
-		} else if possiblyMalformedSmudge(n) {
+		} else if possiblyMalformedObjectSize(n) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
