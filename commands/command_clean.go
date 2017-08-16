@@ -22,7 +22,7 @@ import (
 //
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
-func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) error {
+func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
 	var cb progress.CopyCallback
 	var file *os.File
 
@@ -58,7 +58,7 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) error 
 		// containing the bytes that we should write back out to Git.
 
 		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
-		return err
+		return nil, err
 	}
 
 	if err != nil {
@@ -85,7 +85,7 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) error 
 	}
 
 	_, err = lfs.EncodePointer(to, cleaned.Pointer)
-	return err
+	return cleaned.Pointer, err
 }
 
 func cleanCommand(cmd *cobra.Command, args []string) {
@@ -97,8 +97,13 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		fileName = args[0]
 	}
 
-	if err := clean(os.Stdout, os.Stdin, fileName, -1); err != nil {
+	ptr, err := clean(os.Stdout, os.Stdin, fileName, -1)
+	if err != nil {
 		Error(err.Error())
+	}
+
+	if ptr != nil && possiblyMalformedObjectSize(ptr.Size) {
+		Error("Possibly malformed conversion on Windows, see `git lfs help smudge` for more details.")
 	}
 }
 
