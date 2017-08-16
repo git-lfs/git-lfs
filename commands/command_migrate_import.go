@@ -35,7 +35,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			var buf bytes.Buffer
 
-			if err := clean(&buf, b.Contents, path, b.Size); err != nil {
+			if _, err := clean(&buf, b.Contents, path, b.Size); err != nil {
 				return nil, err
 			}
 
