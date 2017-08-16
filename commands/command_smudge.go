@@ -23,13 +23,13 @@ var (
 )
 
 // delayedSmudge performs a 'delayed' smudge, adding the LFS pointer to the
-// `*tq.TransferQueue` "tq" if the file is not present locally, passes the given
+// `*tq.TransferQueue` "q" if the file is not present locally, passes the given
 // filepathfilter, and is not skipped. If the pointer is malformed, or already
 // exists, it streams the contents to be written into the working copy to "to".
 //
 // delayedSmudge returns the number of bytes written, whether the checkout was
 // delayed, the *lfs.Pointer that was smudged, and an error, if one occurred.
-func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, tq *tq.TransferQueue, filename string, skip bool, filter *filepathfilter.Filter) (int64, bool, *lfs.Pointer, error) {
+func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q *tq.TransferQueue, filename string, skip bool, filter *filepathfilter.Filter) (int64, bool, *lfs.Pointer, error) {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
 		// Write 'statusFromErr(nil)', even though 'perr != nil', since
@@ -60,7 +60,7 @@ func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, tq
 
 	if !skip && filter.Allows(filename) {
 		if _, statErr := os.Stat(path); err == nil || !os.IsNotExist(statErr) {
-			tq.Add(filename, path, ptr.Oid, ptr.Size)
+			q.Add(filename, path, ptr.Oid, ptr.Size)
 			return 0, true, ptr, nil
 		}
 	}
