@@ -112,11 +112,41 @@ func filterCommand(cmd *cobra.Command, args []string) {
 				}
 			}
 		case "list_available_blobs":
-			closeOnce.Do(func() { go q.Wait() })
+			closeOnce.Do(func() {
+				// The first time that Git sends us the
+				// 'list_available_blobs' command, it is given
+				// that no more smudge commands will be issued
+				// with _new_ checkout entries.
+				//
+				// This means that, by the time that we're here,
+				// we have seen all entries in the checkout, and
+				// should therefore instruct the transfer queue
+				// to make a batch out of whatever remaining
+				// items it has, and then close itself.
+				//
+				// This function call is wrapped in a
+				// `sync.(*Once).Do()` call so we only call
+				// `q.Wait()` once, and is called via a
+				// goroutine since `q.Wait()` is blocking.
+				go q.Wait()
+			})
 
+			// The first, and all subsequent calls to
+			// list_available_blobs, we read items from `tq.Watch()`
+			// until a read from that channel becomes blocking (in
+			// other words, we read until there are no more items
+			// immediately ready to be sent back to Git).
 			paths := pathnames(readAvailable(available))
 			if len(paths) == 0 {
+				// If `len(paths) == 0`, `tq.Watch()` has
+				// closed, indicating that all items have been
+				// completely processed, and therefore, sent
+				// back to Git for checkout.
 				for path, _ := range ptrs {
+					// If we sent a path to Git but it
+					// didn't ask for the smudge contents,
+					// that path is available and Git should
+					// accept it later.
 					paths = append(paths, fmt.Sprintf("pathname=%s", path))
 				}
 			}
