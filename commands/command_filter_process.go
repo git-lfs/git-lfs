@@ -172,7 +172,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		if delayed {
 			// If we delayed, there is no need to write a flush
 			// packet since no content was written.
-			delayedStatusFromErr(err)
+			status = delayedStatusFromErr(err)
 		} else if ferr := w.Flush(); ferr != nil {
 			// Otherwise, assume that content was written and
 			// perform a flush operation.
