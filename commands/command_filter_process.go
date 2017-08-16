@@ -162,19 +162,19 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
-		if delayed {
-			w = nil
-		}
-
 		var status string
-		if ferr := w.Flush(); ferr != nil {
+		if delayed {
+			// If we delayed, there is no need to write a flush
+			// packet since no content was written.
+			delayedStatusFromErr(err)
+		} else if ferr := w.Flush(); ferr != nil {
+			// Otherwise, assume that content was written and
+			// perform a flush operation.
 			status = statusFromErr(ferr)
 		} else {
-			if delayed {
-				status = delayedStausFromErr(err)
-			} else {
-				status = statusFromErr(err)
-			}
+			// If the flush operation succeeded, write the status of
+			// the checkout operation.
+			status = statusFromErr(err)
 		}
 
 		s.WriteStatus(status)
@@ -330,10 +330,10 @@ func statusFromErr(err error) string {
 	return "success"
 }
 
-// delayedStausFromErr returns the status code that should be sent over the
+// delayedStatusFromErr returns the status code that should be sent over the
 // filter protocol based on a given error, "err" when the blob smudge operation
 // was delayed.
-func delayedStausFromErr(err error) string {
+func delayedStatusFromErr(err error) string {
 	if err != nil && err != io.EOF {
 		return "error"
 	}
