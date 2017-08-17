@@ -106,13 +106,12 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					ptrs[req.Header["pathname"]] = ptr
 				}
 			} else {
-				from, err := incomingOrCached(req.Payload, ptrs[req.Header["pathname"]])
-				if err != nil {
+				from, ferr := incomingOrCached(req.Payload, ptrs[req.Header["pathname"]])
+				if ferr != nil {
 					break
 				}
 
 				n, err = smudge(w, from, req.Header["pathname"], skip, filter)
-
 				if err == nil {
 					delete(ptrs, req.Header["pathname"])
 				}
