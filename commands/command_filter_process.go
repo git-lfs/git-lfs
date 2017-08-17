@@ -167,26 +167,24 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
-		if delayed {
-			// If we delayed, there is no need to write a flush
-			// packet since no content was written.
-			w = nil
-		}
-
 		var status string
-		if ferr := w.Flush(); ferr != nil {
+		if delayed {
+			// If delayed, there is no need to call w.Flush() since
+			// no data was written. Calculate the status from the
+			// given error using 'delayedStatusFromErr'.
+			status = delayedStatusFromErr(err)
+		} else if ferr := w.Flush(); ferr != nil {
+			// Otherwise, we do need to call w.Flush(), since we
+			// have to assume that data was written. If the flush
+			// operation was unsuccessful, calculate the status
+			// using 'statusFromErr'.
 			status = statusFromErr(ferr)
 		} else {
-			if delayed {
-				// If the flush operation succeeded, write that
-				// we were delayed, or encountered an error.
-				// the checkout operation.
-				status = delayedStatusFromErr(err)
-			} else {
-				// If we responded with content, report the
-				// status of that operation instead.
-				status = statusFromErr(err)
-			}
+			// If the above flush was successful, we calculate the
+			// status from the above clean, smudge, or
+			// list_available_blobs command using statusFromErr,
+			// since we did not delay.
+			status = statusFromErr(err)
 		}
 
 		s.WriteStatus(status)
