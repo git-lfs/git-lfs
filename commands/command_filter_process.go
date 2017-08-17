@@ -167,19 +167,26 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
-		var status string
 		if delayed {
 			// If we delayed, there is no need to write a flush
 			// packet since no content was written.
-			status = delayedStatusFromErr(err)
-		} else if ferr := w.Flush(); ferr != nil {
-			// Otherwise, assume that content was written and
-			// perform a flush operation.
+			w = nil
+		}
+
+		var status string
+		if ferr := w.Flush(); ferr != nil {
 			status = statusFromErr(ferr)
 		} else {
-			// If the flush operation succeeded, write the status of
-			// the checkout operation.
-			status = statusFromErr(err)
+			if delayed {
+				// If the flush operation succeeded, write that
+				// we were delayed, or encountered an error.
+				// the checkout operation.
+				status = delayedStatusFromErr(err)
+			} else {
+				// If we responded with content, report the
+				// status of that operation instead.
+				status = statusFromErr(err)
+			}
 		}
 
 		s.WriteStatus(status)
