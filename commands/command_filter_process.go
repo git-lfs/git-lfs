@@ -277,17 +277,18 @@ func infiniteTransferBuffer(q *tq.TransferQueue, available chan<- *tq.Transfer) 
 // the entry's contents are not sent, and must be re-encoded from the stored
 // pointer corresponding to the request's filepath.
 func incomingOrCached(r io.Reader, ptr *lfs.Pointer) (io.Reader, error) {
-	var buf bytes.Buffer
-	if _, err := io.CopyN(&buf, r, 1024); err != nil {
-		if err != io.EOF {
-			return nil, err
-		}
-	}
+	buf := make([]byte, 1024)
+	n, err := r.Read(buf)
+	buf = buf[:n]
 
-	if buf.Len() < 1024 && ptr != nil {
+	if n == 0 {
 		return strings.NewReader(ptr.Encoded()), nil
 	}
-	return io.MultiReader(&buf, r), nil
+
+	if err == io.EOF {
+		return bytes.NewReader(buf), nil
+	}
+	return io.MultiReader(bytes.NewReader(buf), r), err
 }
 
 // readAvailable satisfies the accumulation semantics for the
