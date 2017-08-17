@@ -282,6 +282,15 @@ func incomingOrCached(r io.Reader, ptr *lfs.Pointer) (io.Reader, error) {
 	buf = buf[:n]
 
 	if n == 0 {
+		if ptr == nil {
+			// If we read no data from the given io.Reader "r" _and_
+			// there was no data to fall back on, return an empty
+			// io.Reader yielding no data.
+			return bytes.NewReader(buf), nil
+		}
+		// If we read no data from the given io.Reader "r", _and_ there
+		// is a pointer that we can fall back on, return an io.Reader
+		// that yields the encoded version of the given pointer.
 		return strings.NewReader(ptr.Encoded()), nil
 	}
 
