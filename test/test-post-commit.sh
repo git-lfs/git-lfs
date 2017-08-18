@@ -25,8 +25,8 @@ begin_test "post-commit"
   git commit -m "Committed large files"
 
   # New lockable files should have been made read-only now since not locked
-  refute_file_writable pcfile1.dat
-  refute_file_writable pcfile2.dat
+  refute_file_writeable pcfile1.dat
+  refute_file_writeable pcfile2.dat
   assert_file_writeable pcfile3.big
   assert_file_writeable pcfile4.big
 

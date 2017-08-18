@@ -69,8 +69,8 @@ begin_test "post-checkout"
   [ ! -e file5.dat ]
   [ ! -e file6.big ]
   # without the post-checkout hook, any changed files would now be writeable
-  refute_file_writable file1.dat
-  refute_file_writable file2.dat
+  refute_file_writeable file1.dat
+  refute_file_writeable file2.dat
   assert_file_writeable file3.big
   assert_file_writeable file4.big
 
@@ -78,9 +78,9 @@ begin_test "post-checkout"
   git checkout branch2
   [ -e file5.dat ]
   [ -e file6.big ]
-  refute_file_writable file1.dat
-  refute_file_writable file2.dat
-  refute_file_writable file5.dat
+  refute_file_writeable file1.dat
+  refute_file_writeable file2.dat
+  refute_file_writeable file5.dat
   assert_file_writeable file3.big
   assert_file_writeable file4.big
   assert_file_writeable file6.big
@@ -99,9 +99,9 @@ begin_test "post-checkout"
   [ "$(cat file1.dat)" == "file 1 updated commit 2" ]
   [ "$(cat file2.dat)" == "file 2 updated in branch2" ]
   [ "$(cat file5.dat)" == "file 5 creation in branch2" ]
-  refute_file_writable file1.dat
-  refute_file_writable file2.dat
-  refute_file_writable file5.dat
+  refute_file_writeable file1.dat
+  refute_file_writeable file2.dat
+  refute_file_writeable file5.dat
 
   # now lock files, then remove & restore
   git lfs lock file1.dat
@@ -112,7 +112,7 @@ begin_test "post-checkout"
   git checkout file1.dat file2.dat file5.dat
   assert_file_writeable file1.dat
   assert_file_writeable file2.dat
-  refute_file_writable file5.dat
+  refute_file_writeable file5.dat
 
 )
 end_test
