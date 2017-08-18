@@ -208,6 +208,16 @@ assert_attributes_count() {
   fi
 }
 
+# Temporarily added to avoid a large diff in this pull request.
+assert_file_writeable() {
+  assert_file_writable $@
+}
+
+# Temporarily added to avoid a large diff in this pull request.
+refute_file_writeable() {
+  refute_file_writable $@
+}
+
 assert_file_writable() {
   ls -l "$1" | grep -e "^-rw"
 }
