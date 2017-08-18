@@ -71,8 +71,8 @@ begin_test "post-checkout"
   # without the post-checkout hook, any changed files would now be writeable
   refute_file_writable file1.dat
   refute_file_writable file2.dat
-  assert_file_writable file3.big
-  assert_file_writable file4.big
+  assert_file_writeable file3.big
+  assert_file_writeable file4.big
 
   # checkout branch
   git checkout branch2
@@ -81,9 +81,9 @@ begin_test "post-checkout"
   refute_file_writable file1.dat
   refute_file_writable file2.dat
   refute_file_writable file5.dat
-  assert_file_writable file3.big
-  assert_file_writable file4.big
-  assert_file_writable file6.big
+  assert_file_writeable file3.big
+  assert_file_writeable file4.big
+  assert_file_writeable file6.big
 
   # Confirm that contents of existing files were updated even though were read-only
   [ "$(cat file2.dat)" == "file 2 updated in branch2" ]
@@ -106,12 +106,12 @@ begin_test "post-checkout"
   # now lock files, then remove & restore
   git lfs lock file1.dat
   git lfs lock file2.dat
-  assert_file_writable file1.dat
-  assert_file_writable file2.dat
+  assert_file_writeable file1.dat
+  assert_file_writeable file2.dat
   rm -f *.dat
   git checkout file1.dat file2.dat file5.dat
-  assert_file_writable file1.dat
-  assert_file_writable file2.dat
+  assert_file_writeable file1.dat
+  assert_file_writeable file2.dat
   refute_file_writable file5.dat
 
 )

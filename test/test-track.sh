@@ -411,10 +411,10 @@ begin_test "track lockable read-only/read-write"
   echo "sub blah blah" > subfolder/test.bin
   echo "sub foo bar" > subfolder/test.dat
   # should start writeable
-  assert_file_writable test.bin
-  assert_file_writable test.dat
-  assert_file_writable subfolder/test.bin
-  assert_file_writable subfolder/test.dat
+  assert_file_writeable test.bin
+  assert_file_writeable test.dat
+  assert_file_writeable subfolder/test.bin
+  assert_file_writeable subfolder/test.dat
 
   # track *.bin, not lockable yet
   git lfs track "*.bin" | grep "Tracking \"\*.bin\""
@@ -423,17 +423,17 @@ begin_test "track lockable read-only/read-write"
 
   # bin should remain writeable, dat should have been made read-only
 
-  assert_file_writable test.bin
+  assert_file_writeable test.bin
   refute_file_writable test.dat
-  assert_file_writable subfolder/test.bin
+  assert_file_writeable subfolder/test.bin
   refute_file_writable subfolder/test.dat
 
   git add .gitattributes test.bin test.dat
   git commit -m "First commit"
 
   # bin should still be writeable
-  assert_file_writable test.bin
-  assert_file_writable subfolder/test.bin
+  assert_file_writeable test.bin
+  assert_file_writeable subfolder/test.bin
   # now make bin lockable
   git lfs track --lockable "*.bin" | grep "Tracking \"\*.bin\""
   # bin should now be read-only
@@ -443,8 +443,8 @@ begin_test "track lockable read-only/read-write"
   # remove lockable again
   git lfs track --not-lockable "*.bin" | grep "Tracking \"\*.bin\""
   # bin should now be writeable again
-  assert_file_writable test.bin
-  assert_file_writable subfolder/test.bin
+  assert_file_writeable test.bin
+  assert_file_writeable subfolder/test.bin
 )
 end_test
 
