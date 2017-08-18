@@ -1,6 +1,8 @@
 package tq
 
 import (
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -49,16 +51,25 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
 	requestedAt := time.Now()
 
-	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "batch request")
-	}
+	var res *http.Response
+	for {
+		req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
+		if err != nil {
+			return nil, errors.Wrap(err, "batch request")
+		}
 
-	tracerx.Printf("api: batch %d files", len(bReq.Objects))
+		tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
-	req = c.LogRequest(req, "lfs.batch")
-	res, err := c.DoWithAuth(remote, req)
-	if err != nil {
+		req = c.LogRequest(req, "lfs.batch")
+		res, err = c.DoWithAuth(remote, req)
+
+		if err == nil {
+			break
+		} else if err == io.EOF {
+			tracerx.Printf("api: retrying batch request after io.EOF")
+			continue
+		}
+
 		tracerx.Printf("api error: %s", err)
 		return nil, errors.Wrap(err, "batch response")
 	}
