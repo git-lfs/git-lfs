@@ -59,7 +59,7 @@ func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q 
 	}
 
 	if !skip && filter.Allows(filename) {
-		if _, statErr := os.Stat(path); err == nil || !os.IsNotExist(statErr) {
+		if _, statErr := os.Stat(path); statErr != nil {
 			q.Add(filename, path, ptr.Oid, ptr.Size)
 			return 0, true, ptr, nil
 		}
