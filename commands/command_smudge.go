@@ -63,6 +63,15 @@ func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q 
 			q.Add(filename, path, ptr.Oid, ptr.Size)
 			return 0, true, ptr, nil
 		}
+
+		// Write 'statusFromErr(nil)', even though 'perr != nil', since
+		// we are about to write non-delayed smudged contents to "to".
+		if err := s.WriteStatus(statusFromErr(nil)); err != nil {
+			return 0, false, nil, err
+		}
+
+		n, err := ptr.Smudge(to, filename, false, nil, nil)
+		return n, false, ptr, err
 	}
 
 	if err := s.WriteStatus(statusFromErr(nil)); err != nil {
