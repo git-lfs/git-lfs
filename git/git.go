@@ -133,6 +133,24 @@ func gitBuffered(args ...string) (*subprocess.BufferedCmd, error) {
 	return subprocess.BufferedExec("git", args...)
 }
 
+func DiffIndex(ref string, cached bool) (*bufio.Scanner, error) {
+	args := []string{"diff-index", "-M"}
+	if cached {
+		args = append(args, "--cached")
+	}
+	args = append(args, ref)
+
+	cmd, err := gitBuffered(args...)
+	if err != nil {
+		return nil, err
+	}
+	if err = cmd.Stdin.Close(); err != nil {
+		return nil, err
+	}
+
+	return bufio.NewScanner(cmd.Stdout), nil
+}
+
 func HashObject(by []byte) (string, error) {
 	cmd := gitNoLFS("hash-object", "--stdin")
 	cmd.Stdin = bytes.NewReader(by)
