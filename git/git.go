@@ -166,6 +166,11 @@ func HashObject(by []byte) (string, error) {
 	return string(bytes.TrimSpace(out)), nil
 }
 
+func Log(args ...string) (*subprocess.BufferedCmd, error) {
+	logArgs := append([]string{"log"}, args...)
+	return gitNoLFSBuffered(logArgs...)
+}
+
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
 		return "", errors.New("remote required")
