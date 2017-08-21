@@ -182,6 +182,17 @@ func LsRemote(remote, remoteRef string) (string, error) {
 	return gitNoLFSSimple("ls-remote", remote, remoteRef)
 }
 
+func LsTree(ref string) (*subprocess.BufferedCmd, error) {
+	return gitNoLFSBuffered(
+		"ls-tree",
+		"-r",          // recurse
+		"-l",          // report object size (we'll need this)
+		"-z",          // null line termination
+		"--full-tree", // start at the root regardless of where we are in it
+		ref,
+	)
+}
+
 func ResolveRef(ref string) (*Ref, error) {
 	outp, err := gitNoLFSSimple("rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {
