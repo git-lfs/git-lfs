@@ -64,8 +64,9 @@ func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q 
 			return 0, true, ptr, nil
 		}
 
-		// Write 'statusFromErr(nil)', even though 'perr != nil', since
-		// we are about to write non-delayed smudged contents to "to".
+		// Write 'statusFromErr(nil)', since the object is already
+		// present in the local cache, we will write the object's
+		// contents without delaying.
 		if err := s.WriteStatus(statusFromErr(nil)); err != nil {
 			return 0, false, nil, err
 		}
