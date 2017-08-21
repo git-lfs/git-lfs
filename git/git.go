@@ -133,6 +133,10 @@ func gitBuffered(args ...string) (*subprocess.BufferedCmd, error) {
 	return subprocess.BufferedExec("git", args...)
 }
 
+func CatFile() (*subprocess.BufferedCmd, error) {
+	return gitNoLFSBuffered("cat-file", "--batch-check")
+}
+
 func DiffIndex(ref string, cached bool) (*bufio.Scanner, error) {
 	args := []string{"diff-index", "-M"}
 	if cached {
