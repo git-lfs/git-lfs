@@ -400,11 +400,6 @@ func DefaultRemote() (string, error) {
 	return "", errors.New("Unable to pick default remote, too ambiguous")
 }
 
-func UpdateIndex(file string) error {
-	_, err := simpleGitNoLFS("update-index", "-q", "--refresh", file)
-	return err
-}
-
 type gitConfig struct {
 	gitVersion string
 	mu         sync.Mutex
