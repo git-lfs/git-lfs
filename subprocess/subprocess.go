@@ -3,6 +3,7 @@
 package subprocess
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -12,6 +13,37 @@ import (
 
 	"github.com/rubyist/tracerx"
 )
+
+// BufferedExec starts up a command and creates a stdin pipe and a buffered
+// stdout & stderr pipes, wrapped in a BufferedCmd. The stdout buffer will be
+// of stdoutBufSize bytes.
+func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
+	cmd := ExecCommand(name, args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return &BufferedCmd{
+		cmd,
+		stdin,
+		bufio.NewReaderSize(stdout, stdoutBufSize),
+		bufio.NewReaderSize(stderr, stdoutBufSize),
+	}, nil
+}
 
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {

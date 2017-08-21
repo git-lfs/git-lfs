@@ -116,6 +116,10 @@ func gitNoLFSSimple(args ...string) (string, error) {
 	return subprocess.SimpleExec("git", gitConfigNoLFS(args...)...)
 }
 
+func gitNoLFSBuffered(args ...string) (*subprocess.BufferedCmd, error) {
+	return subprocess.BufferedExec("git", gitConfigNoLFS(args...)...)
+}
+
 // Invoke Git with enabled LFS filters
 func git(args ...string) *subprocess.Cmd {
 	return subprocess.ExecCommand("git", args...)
@@ -123,6 +127,10 @@ func git(args ...string) *subprocess.Cmd {
 
 func gitSimple(args ...string) (string, error) {
 	return subprocess.SimpleExec("git", args...)
+}
+
+func gitBuffered(args ...string) (*subprocess.BufferedCmd, error) {
+	return subprocess.BufferedExec("git", args...)
 }
 
 func HashObject(by []byte) (string, error) {
