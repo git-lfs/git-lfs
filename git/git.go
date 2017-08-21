@@ -84,6 +84,46 @@ type CommitSummary struct {
 	Subject        string
 }
 
+// Prepend Git config instructions to disable Git LFS filter
+func gitConfigNoLFS(args ...string) []string {
+	// Before git 2.8, setting filters to blank causes lots of warnings, so use cat instead (slightly slower)
+	// Also pre 2.2 it failed completely. We used to use it anyway in git 2.2-2.7 and
+	// suppress the messages in stderr, but doing that with standard StderrPipe suppresses
+	// the git clone output (git thinks it's not a terminal) and makes it look like it's
+	// not working. You can get around that with https://github.com/kr/pty but that
+	// causes difficult issues with passing through Stdin for login prompts
+	// This way is simpler & more practical.
+	filterOverride := ""
+	if !Config.IsGitVersionAtLeast("2.8.0") {
+		filterOverride = "cat"
+	}
+
+	return append([]string{
+		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
+		"-c", fmt.Sprintf("filter.lfs.clean=%v", filterOverride),
+		"-c", "filter.lfs.process=",
+		"-c", "filter.lfs.required=false",
+	}, args...)
+}
+
+// Invoke Git with disabled LFS filters
+func gitNoLFS(args ...string) *subprocess.Cmd {
+	return subprocess.ExecCommand("git", gitConfigNoLFS(args...)...)
+}
+
+func gitNoLFSSimple(args ...string) (string, error) {
+	return subprocess.SimpleExec("git", gitConfigNoLFS(args...)...)
+}
+
+// Invoke Git with enabled LFS filters
+func git(args ...string) *subprocess.Cmd {
+	return subprocess.ExecCommand("git", args...)
+}
+
+func gitSimple(args ...string) (string, error) {
+	return subprocess.SimpleExec("git", args...)
+}
+
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
 		return "", errors.New("remote required")
