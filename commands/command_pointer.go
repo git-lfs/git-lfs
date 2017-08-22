@@ -53,7 +53,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
 		if comparing {
-			buildOid, err = git.HashObject(buf.Bytes())
+			buildOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				Error(err.Error())
 				os.Exit(1)
@@ -90,7 +90,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		fmt.Fprintf(os.Stderr, buf.String())
 		if comparing {
-			compareOid, err = git.HashObject(buf.Bytes())
+			compareOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				Error(err.Error())
 				os.Exit(1)

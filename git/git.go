@@ -155,9 +155,9 @@ func DiffIndex(ref string, cached bool) (*bufio.Scanner, error) {
 	return bufio.NewScanner(cmd.Stdout), nil
 }
 
-func HashObject(by []byte) (string, error) {
+func HashObject(r io.Reader) (string, error) {
 	cmd := gitNoLFS("hash-object", "--stdin")
-	cmd.Stdin = bytes.NewReader(by)
+	cmd.Stdin = r
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("Error building Git blob OID: %s", err)
