@@ -9,6 +9,7 @@ import (
 )
 
 type tqClient struct {
+	MaxRetries int
 	*lfsapi.Client
 }
 

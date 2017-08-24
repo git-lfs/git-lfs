@@ -215,6 +215,7 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	}
 
 	q.rc.MaxRetries = q.manifest.maxRetries
+	q.client.MaxRetries = q.manifest.maxRetries
 
 	if q.batchSize <= 0 {
 		q.batchSize = defaultBatchSize
