@@ -15,6 +15,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -129,6 +130,8 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 	} else {
 		retries = defaultRequestRetries
 	}
+
+	retries = tools.MaxInt(0, retries)
 
 	var res *http.Response
 
