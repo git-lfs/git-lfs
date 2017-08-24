@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,10 +20,27 @@ var (
 	cloneFlags git.CloneFlags
 
 	cloneSkipRepoInstall bool
+
+	// cloneIsDeprecated marks whether or not the clone command is
+	// deprecated. It is false until Git v2.15.0 is released, including the
+	// 'delay' capability.
+	cloneIsDeprecated = false
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
+
+	if cloneIsDeprecated {
+		msg := []string{
+			"WARNING: 'git-lfs(1) clone' is deprecated and will not be updated",
+			"          with new flags from 'git clone'",
+			"",
+			"'git-clone(1)' has been updated in upstream Git to have comparable",
+			"speeds to 'git-lfs(1) clone'.",
+		}
+
+		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n")+"\n")
+	}
 
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)
