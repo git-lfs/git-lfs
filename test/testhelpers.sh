@@ -208,11 +208,11 @@ assert_attributes_count() {
   fi
 }
 
-assert_file_writable() {
+assert_file_writeable() {
   ls -l "$1" | grep -e "^-rw"
 }
 
-refute_file_writable() {
+refute_file_writeable() {
   ls -l "$1" | grep -e "^-r-"
 }
 

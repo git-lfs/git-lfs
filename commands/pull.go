@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tq"
 )
 
@@ -85,7 +86,7 @@ func (c *singleCheckout) Close() {
 // which can trigger entire working copy to be re-examined, which triggers clean filters
 // and which has unexpected side effects (e.g. downloading filtered-out files)
 type gitIndexer struct {
-	cmd    *exec.Cmd
+	cmd    *subprocess.Cmd
 	input  io.WriteCloser
 	output bytes.Buffer
 	mu     sync.Mutex
@@ -97,14 +98,7 @@ func (i *gitIndexer) Add(path string) error {
 
 	if i.cmd == nil {
 		// Fire up the update-index command
-		i.cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-		i.cmd.Stdout = &i.output
-		i.cmd.Stderr = &i.output
-		stdin, err := i.cmd.StdinPipe()
-		if err == nil {
-			err = i.cmd.Start()
-		}
-
+		stdin, err := git.StartUpdateIndexFromStdin(&i.output)
 		if err != nil {
 			return err
 		}
