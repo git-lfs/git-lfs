@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // An entry from ls-tree or rev-list including a blob sha and tree path
@@ -94,14 +95,7 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 // The returned channel will be sent these blobs which should be sent to catFileBatchTree
 // for final check & conversion to Pointer
 func lsTreeBlobs(ref string, filter *filepathfilter.Filter) (*TreeBlobChannelWrapper, error) {
-	cmd, err := startCommand("git", "ls-tree",
-		"-r",          // recurse
-		"-l",          // report object size (we'll need this)
-		"-z",          // null line termination
-		"--full-tree", // start at the root regardless of where we are in it
-		ref,
-	)
-
+	cmd, err := git.LsTree(ref)
 	if err != nil {
 		return nil, err
 	}
