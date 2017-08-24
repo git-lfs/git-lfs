@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
@@ -173,7 +172,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 		return nil, err
 	}
 
-	cmd := exec.Command("git", args...)
+	cmd := gitNoLFS(args...).Cmd
 	if len(opt.WorkingDir) > 0 {
 		cmd.Dir = opt.WorkingDir
 	}

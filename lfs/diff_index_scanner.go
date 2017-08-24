@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // Status represents the status of a file that appears in the output of `git
@@ -122,30 +123,13 @@ type DiffIndexScanner struct {
 // that error will be returned immediately. Otherwise, a `*DiffIndexScanner`
 // will be returned with a `nil` error.
 func NewDiffIndexScanner(ref string, cached bool) (*DiffIndexScanner, error) {
-	cmd, err := startCommand("git", diffIndexCmdArgs(ref, cached)...)
+	scanner, err := git.DiffIndex(ref, cached)
 	if err != nil {
 		return nil, err
 	}
-
-	if err = cmd.Stdin.Close(); err != nil {
-		return nil, err
-	}
-
 	return &DiffIndexScanner{
-		from: bufio.NewScanner(cmd.Stdout),
+		from: scanner,
 	}, nil
-}
-
-// diffIndexCmdArgs returns a string slice containing the arguments necessary
-// to run the diff-index command.
-func diffIndexCmdArgs(ref string, cached bool) []string {
-	args := []string{"diff-index", "-M"}
-	if cached {
-		args = append(args, "--cached")
-	}
-	args = append(args, ref)
-
-	return args
 }
 
 // Scan advances the scan line and yields either a new value for Entry(), or an

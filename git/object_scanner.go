@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"strconv"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -53,7 +52,7 @@ type ObjectScanner struct {
 //
 // Otherwise, an `*ObjectScanner` is returned with no error.
 func NewObjectScanner() (*ObjectScanner, error) {
-	cmd := exec.Command("git", "cat-file", "--batch")
+	cmd := gitNoLFS("cat-file", "--batch")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, errors.Wrap(err, "open stdout")
