@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -122,10 +123,31 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		return nil, err
 	}
 
-	res, err := cli.Do(req)
+	var retries int
+	if n, ok := Retries(req); ok {
+		retries = n
+	} else {
+		retries = defaultRequestRetries
+	}
+
+	var res *http.Response
+
+	for i := 0; i < retries; i++ {
+		res, err = cli.Do(req)
+		if err == nil {
+			break
+		}
+
+		if seek, ok := req.Body.(io.Seeker); ok {
+			seek.Seek(0, io.SeekStart)
+		}
+
+		c.traceResponse(req, tracedReq, nil)
+	}
+
 	if err != nil {
 		c.traceResponse(req, tracedReq, nil)
-		return res, err
+		return nil, err
 	}
 
 	c.traceResponse(req, tracedReq, res)

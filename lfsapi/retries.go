@@ -12,6 +12,10 @@ const (
 	// contextKeyRetries is a context.Context key for storing the desired
 	// number of retries for a given request.
 	contextKeyRetries ckey = "retries"
+
+	// defaultRequestRetries is the default number of retries to perform on
+	// a given HTTP request.
+	defaultRequestRetries = 1
 )
 
 // WithRetries stores the desired number of retries "n" on the given
