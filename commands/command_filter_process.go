@@ -81,12 +81,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 
 		req := s.Request()
 
-		if !(req.Header["command"] == "smudge" && req.Header["can-delay"] == "1") && !(req.Header["command"] == "list_available_blobs") {
-			s.WriteStatus(statusFromErr(nil))
-		}
-
 		switch req.Header["command"] {
 		case "clean":
+			s.WriteStatus(statusFromErr(nil))
 			w = git.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
 
 			var ptr *lfs.Pointer
@@ -106,6 +103,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					ptrs[req.Header["pathname"]] = ptr
 				}
 			} else {
+				s.WriteStatus(statusFromErr(nil))
 				from, ferr := incomingOrCached(req.Payload, ptrs[req.Header["pathname"]])
 				if ferr != nil {
 					break
