@@ -23,3 +23,10 @@ func WithRetries(req *http.Request, n int) *http.Request {
 
 	return req.WithContext(ctx)
 }
+
+// Retries returns the number of retries requested for a given http.Request.
+func Retries(req *http.Request) (int, bool) {
+	n, ok := req.Context().Value(contextKeyRetries).(int)
+
+	return n, ok
+}
