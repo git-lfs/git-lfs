@@ -304,6 +304,10 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	// lfsapi.Client.traceRequest().
 	newReq.Body = req.Body
 	newReq.ContentLength = req.ContentLength
+
+	// Copy the request's context.Context, if any.
+	newReq = newReq.WithContext(req.Context())
+
 	return newReq, nil
 }
 
