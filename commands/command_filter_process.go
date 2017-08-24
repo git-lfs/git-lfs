@@ -352,10 +352,14 @@ func statusFromErr(err error) string {
 // filter protocol based on a given error, "err" when the blob smudge operation
 // was delayed.
 func delayedStatusFromErr(err error) string {
-	if err != nil && err != io.EOF {
-		return "error"
+	status := statusFromErr(err)
+
+	switch status {
+	case "success":
+		return "delayed"
+	default:
+		return status
 	}
-	return "delayed"
 }
 
 func init() {
