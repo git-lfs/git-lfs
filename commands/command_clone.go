@@ -39,7 +39,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 			"speeds to 'git lfs clone'.",
 		}
 
-		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n")+"\n")
+		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n"))
 	}
 
 	// We pass all args to git clone
