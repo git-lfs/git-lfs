@@ -198,8 +198,8 @@ func (o *FilterProcessScanner) WriteList(list []string) error {
 	return o.pl.writePacketList(list)
 }
 
-func (o *FilterProcessScanner) WriteStatus(status string) error {
-	return o.pl.writePacketList([]string{"status=" + status})
+func (o *FilterProcessScanner) WriteStatus(status FilterProcessStatus) error {
+	return o.pl.writePacketList([]string{"status=" + status.String()})
 }
 
 // isStringInSlice returns whether a given string "what" is contained in a
