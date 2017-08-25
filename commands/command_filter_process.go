@@ -165,7 +165,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
-		var status string
+		var status git.FilterProcessStatus
 		if delayed {
 			// If delayed, there is no need to call w.Flush() since
 			// no data was written. Calculate the status from the
@@ -341,22 +341,22 @@ func pathnames(ts []*tq.Transfer) []string {
 
 // statusFromErr returns the status code that should be sent over the filter
 // protocol based on a given error, "err".
-func statusFromErr(err error) string {
+func statusFromErr(err error) git.FilterProcessStatus {
 	if err != nil && err != io.EOF {
-		return "error"
+		return git.StatusError
 	}
-	return "success"
+	return git.StatusSuccess
 }
 
 // delayedStatusFromErr returns the status code that should be sent over the
 // filter protocol based on a given error, "err" when the blob smudge operation
 // was delayed.
-func delayedStatusFromErr(err error) string {
+func delayedStatusFromErr(err error) git.FilterProcessStatus {
 	status := statusFromErr(err)
 
 	switch status {
-	case "success":
-		return "delayed"
+	case git.StatusSuccess:
+		return git.StatusDelay
 	default:
 		return status
 	}
