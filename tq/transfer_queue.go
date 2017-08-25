@@ -701,6 +701,12 @@ func (q *TransferQueue) finishAdapter() {
 	}
 }
 
+// BatchSize returns the batch size of the receiving *TransferQueue, or, the
+// number of transfers to accept before beginning work on them.
+func (q *TransferQueue) BatchSize() int {
+	return q.batchSize
+}
+
 func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
 }
