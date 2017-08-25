@@ -139,7 +139,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			// until a read from that channel becomes blocking (in
 			// other words, we read until there are no more items
 			// immediately ready to be sent back to Git).
-			paths := pathnames(readAvailable(available, 100))
+			paths := pathnames(readAvailable(available, q.BatchSize()))
 			if len(paths) == 0 {
 				// If `len(paths) == 0`, `tq.Watch()` has
 				// closed, indicating that all items have been
