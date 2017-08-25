@@ -32,11 +32,11 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 
 	if cloneIsDeprecated {
 		msg := []string{
-			"WARNING: 'git-lfs(1) clone' is deprecated and will not be updated",
+			"WARNING: 'git lfs clone' is deprecated and will not be updated",
 			"          with new flags from 'git clone'",
 			"",
-			"'git-clone(1)' has been updated in upstream Git to have comparable",
-			"speeds to 'git-lfs(1) clone'.",
+			"'git clone' has been updated in upstream Git to have comparable",
+			"speeds to 'git lfs clone'.",
 		}
 
 		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n")+"\n")
