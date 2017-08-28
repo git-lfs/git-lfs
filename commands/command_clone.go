@@ -20,17 +20,12 @@ var (
 	cloneFlags git.CloneFlags
 
 	cloneSkipRepoInstall bool
-
-	// cloneIsDeprecated marks whether or not the clone command is
-	// deprecated. It is false until Git v2.15.0 is released, including the
-	// 'delay' capability.
-	cloneIsDeprecated = false
 )
 
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
-	if cloneIsDeprecated {
+	if git.Config.IsGitVersionAtLeast("2.15.0") {
 		msg := []string{
 			"WARNING: 'git lfs clone' is deprecated and will not be updated",
 			"          with new flags from 'git clone'",
