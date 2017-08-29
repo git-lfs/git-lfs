@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-ensure_git_version_isnt $VERISON_LOWER "2.15.0"
+ensure_git_version_isnt $VERSION_LOWER "2.15.0"
 
 begin_test "clone (deprecated on new versions of Git)"
 (
