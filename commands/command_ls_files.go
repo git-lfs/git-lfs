@@ -47,12 +47,16 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func lsFilesMarker(p *lfs.WrappedPointer) string {
+// Returns true if a pointer appears to be properly smudge on checkout
+func fileExistsOfSize(p *lfs.WrappedPointer) bool {
 	info, err := os.Stat(p.Name)
-	if err == nil && info.Size() == p.Size {
+	return err == nil && info.Size() == p.Size
+}
+
+func lsFilesMarker(p *lfs.WrappedPointer) string {
+	if fileExistsOfSize(p) {
 		return "*"
 	}
-
 	return "-"
 }
 
