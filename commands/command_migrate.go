@@ -146,6 +146,10 @@ func getRemoteRefs() ([]string, error) {
 		return nil, err
 	}
 
+	if err := git.Fetch(remotes...); err != nil {
+		return nil, err
+	}
+
 	for _, remote := range remotes {
 		refsForRemote, err := git.RemoteRefs(remote)
 		if err != nil {
