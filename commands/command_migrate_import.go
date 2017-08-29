@@ -12,22 +12,25 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
 func migrateImportCommand(cmd *cobra.Command, args []string) {
+	l := log.NewLogger(os.Stderr)
+
 	db, err := getObjectDatabase()
 	if err != nil {
 		ExitWithError(err)
 	}
-	rewriter := getHistoryRewriter(cmd, db)
+	rewriter := getHistoryRewriter(cmd, db, l)
 
 	tracked := trackedFromFilter(rewriter.Filter())
 	exts := tools.NewOrderedSet()
 
-	migrate(args, rewriter, &githistory.RewriteOptions{
+	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
