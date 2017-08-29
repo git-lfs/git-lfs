@@ -13,7 +13,7 @@ begin_test "clone (deprecated on new versions of Git)"
 
   mkdir -p "$reponame"
   pushd "$reponame" > /dev/null
-    git lfs clone "$reponame" 2>&1 | tee clone.log
+    git lfs clone "$GITSERVER/$reponame" 2>&1 | tee clone.log
     grep "WARNING: 'git lfs clone' is deprecated and will not be updated" clone.log
   popd
 )
