@@ -26,7 +26,7 @@ var (
 func migrate(args []string, r *githistory.Rewriter, l *log.Logger, opts *githistory.RewriteOptions) {
 	requireInRepo()
 
-	opts, err := rewriteOptions(args, opts)
+	opts, err := rewriteOptions(args, opts, l)
 	if err != nil {
 		ExitWithError(err)
 	}
@@ -60,8 +60,8 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 //
 // If any of the above could not be determined without error, that error will be
 // returned immediately.
-func rewriteOptions(args []string, opts *githistory.RewriteOptions) (*githistory.RewriteOptions, error) {
-	include, exclude, err := includeExcludeRefs(args)
+func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *log.Logger) (*githistory.RewriteOptions, error) {
+	include, exclude, err := includeExcludeRefs(l, args)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions) (*githistory
 //     arguments and the --include-ref= or --exclude-ref= flag(s) aren't given.
 //   - Include all references given in --include-ref=<ref>.
 //   - Exclude all references given in --exclude-ref=<ref>.
-func includeExcludeRefs(args []string) (include, exclude []string, err error) {
+func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string, err error) {
 	hardcore := len(migrateIncludeRefs) > 0 || len(migrateExcludeRefs) > 0
 
 	if len(args) == 0 && !hardcore {
@@ -124,7 +124,7 @@ func includeExcludeRefs(args []string) (include, exclude []string, err error) {
 		// --exclude-ref=<ref> were given, include no additional
 		// references, and exclude all remote references that are remote
 		// branches or remote tags.
-		remoteRefs, err := getRemoteRefs()
+		remoteRefs, err := getRemoteRefs(l)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -138,7 +138,7 @@ func includeExcludeRefs(args []string) (include, exclude []string, err error) {
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs() ([]string, error) {
+func getRemoteRefs(l *log.Logger) ([]string, error) {
 	var refs []string
 
 	remotes, err := git.RemoteList()
@@ -146,9 +146,11 @@ func getRemoteRefs() ([]string, error) {
 		return nil, err
 	}
 
+	w := l.Waiter("migrate: Fetching remote refs")
 	if err := git.Fetch(remotes...); err != nil {
 		return nil, err
 	}
+	w.Complete()
 
 	for _, remote := range remotes {
 		refsForRemote, err := git.RemoteRefs(remote)
