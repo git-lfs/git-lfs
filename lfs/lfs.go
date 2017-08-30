@@ -17,10 +17,6 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-var (
-	LargeSizeThreshold = 5 * 1024 * 1024
-)
-
 // LocalMediaDir returns the root of lfs objects
 func LocalMediaDir() string {
 	if localstorage.Objects() != nil {

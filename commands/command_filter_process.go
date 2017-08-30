@@ -139,7 +139,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			// until a read from that channel becomes blocking (in
 			// other words, we read until there are no more items
 			// immediately ready to be sent back to Git).
-			paths := pathnames(readAvailable(available))
+			paths := pathnames(readAvailable(available, q.BatchSize()))
 			if len(paths) == 0 {
 				// If `len(paths) == 0`, `tq.Watch()` has
 				// closed, indicating that all items have been
@@ -302,8 +302,8 @@ func incomingOrCached(r io.Reader, ptr *lfs.Pointer) (io.Reader, error) {
 // 1. Reading from the channel of available items blocks, or ...
 // 2. There is one item available, or ...
 // 3. The 'tq.TransferQueue' is completed.
-func readAvailable(ch <-chan *tq.Transfer) []*tq.Transfer {
-	ts := make([]*tq.Transfer, 0, 100)
+func readAvailable(ch <-chan *tq.Transfer, cap int) []*tq.Transfer {
+	ts := make([]*tq.Transfer, 0, cap)
 
 	for {
 		select {
