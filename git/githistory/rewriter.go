@@ -356,12 +356,12 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 		return nil, err
 	}
 
-	sha, err := r.db.WriteBlob(b)
-	if err != nil {
-		return nil, err
-	}
+	if !blob.Equal(b) {
+		sha, err := r.db.WriteBlob(b)
+		if err != nil {
+			return nil, err
+		}
 
-	if blob != b {
 		// Close the source blob, so long as it is not equal to the
 		// rewritten blob. If the two are equal, as in the check above
 		// this comment, calling r.db.WriteBlob(b) will have already
@@ -372,8 +372,16 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 		if err = blob.Close(); err != nil {
 			return nil, err
 		}
+
+		return sha, nil
 	}
-	return sha, nil
+
+	// Close the source blob, since it is identical to the rewritten blob,
+	// but neither were written.
+	if err := blob.Close(); err != nil {
+		return nil, err
+	}
+	return from, nil
 }
 
 // commitsToMigrate returns an in-memory copy of a list of commits according to
