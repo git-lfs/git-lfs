@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,6 +24,18 @@ var (
 
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
+
+	if git.Config.IsGitVersionAtLeast("2.15.0") {
+		msg := []string{
+			"WARNING: 'git lfs clone' is deprecated and will not be updated",
+			"          with new flags from 'git clone'",
+			"",
+			"'git clone' has been updated in upstream Git to have comparable",
+			"speeds to 'git lfs clone'.",
+		}
+
+		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n"))
+	}
 
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)

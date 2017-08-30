@@ -1,13 +1,13 @@
 package commands
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +23,7 @@ var (
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
-func migrate(args []string, r *githistory.Rewriter, opts *githistory.RewriteOptions) {
+func migrate(args []string, r *githistory.Rewriter, l *log.Logger, opts *githistory.RewriteOptions) {
 	requireInRepo()
 
 	opts, err := rewriteOptions(args, opts)
@@ -197,12 +197,12 @@ func currentRefToMigrate() (*git.Ref, error) {
 
 // getHistoryRewriter returns a history rewriter that includes the filepath
 // filter given by the --include and --exclude arguments.
-func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase) *githistory.Rewriter {
+func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase, l *log.Logger) *githistory.Rewriter {
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 
 	return githistory.NewRewriter(db,
-		githistory.WithFilter(filter), githistory.WithLogger(os.Stderr))
+		githistory.WithFilter(filter), githistory.WithLogger(l))
 }
 
 func init() {

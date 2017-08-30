@@ -56,7 +56,7 @@ begin_test "chunked transfer encoding"
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull 2>&1
 
   [ "a" = "$(cat a.dat)" ]
 

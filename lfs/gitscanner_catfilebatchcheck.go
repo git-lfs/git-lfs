@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // runCatFileBatchCheck uses 'git cat-file --batch-check' to get the type and
@@ -13,7 +15,7 @@ import (
 // over which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
 func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
-	cmd, err := startCommand("git", "cat-file", "--batch-check")
+	cmd, err := git.CatFile()
 	if err != nil {
 		return err
 	}
