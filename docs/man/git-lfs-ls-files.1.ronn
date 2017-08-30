@@ -15,6 +15,9 @@ reference.  If no reference is given, scan the currently checked-out branch.
 * `-l` `--long`:
   Show the entire 64 character OID, instead of just first 10.
 
+* -s --size:
+  Print the size of a Git LFS file in MB.
+
 ## SEE ALSO
 
 git-lfs-status(1).
