@@ -1151,6 +1151,12 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 	return ret, cmd.Wait()
 }
 
+// Fetch performs a fetch with no arguments against the given remotes.
+func Fetch(remotes ...string) error {
+	_, err := gitNoLFSSimple(append([]string{"fetch"}, remotes...)...)
+	return err
+}
+
 // RemoteRefs returns a list of branches & tags for a remote by actually
 // accessing the remote vir git ls-remote
 func RemoteRefs(remoteName string) ([]*Ref, error) {
