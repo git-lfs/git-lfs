@@ -68,3 +68,18 @@ func (b *Blob) Close() error {
 	}
 	return b.closeFn()
 }
+
+// Equal returns whether the receiving and given blobs are equal, or in other
+// words, whether they are represented by the same SHA-1 when saved to the
+// object database.
+func (b *Blob) Equal(other *Blob) bool {
+	if (b == nil) != (other == nil) {
+		return false
+	}
+
+	if b != nil {
+		return b.Contents == other.Contents &&
+			b.Size == other.Size
+	}
+	return true
+}
