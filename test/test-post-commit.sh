@@ -48,3 +48,29 @@ begin_test "post-commit"
 
 )
 end_test
+
+begin_test "post-commit (locked file outside of LFS)"
+(
+  set -e
+
+  reponame="post-commit-external"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs install
+
+  # This step is intentionally done in two commits, due to a known bug bug in
+  # the post-checkout process LFS performs. It compares changed files from HEAD,
+  # which is an invalid previous state for the initial commit of a repository.
+  echo "*.dat lockable" > .gitattributes
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  echo "hello" > a.dat
+  git add a.dat
+  assert_file_writeable a.dat
+  git commit -m "add a.dat"
+
+  refute_file_writeable a.dat
+)
+end_test

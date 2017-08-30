@@ -1153,6 +1153,10 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 // Fetch performs a fetch with no arguments against the given remotes.
 func Fetch(remotes ...string) error {
+	if len(remotes) == 0 {
+		return nil
+	}
+
 	_, err := gitNoLFSSimple(append([]string{"fetch"}, remotes...)...)
 	return err
 }
