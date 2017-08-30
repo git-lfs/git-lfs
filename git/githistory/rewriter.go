@@ -321,6 +321,10 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 	if err != nil {
 		return nil, err
 	}
+
+	if tree.Equal(rewritten) {
+		return sha, nil
+	}
 	return r.db.WriteTree(rewritten)
 }
 
