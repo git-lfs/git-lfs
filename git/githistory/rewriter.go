@@ -215,7 +215,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Construct a new commit using the original header information,
 		// but the rewritten set of parents as well as root tree.
-		rewrittenCommit, err := r.db.WriteCommit(&odb.Commit{
+		rewrittenCommit := &odb.Commit{
 			Author:       original.Author,
 			Committer:    original.Committer,
 			ExtraHeaders: original.ExtraHeaders,
@@ -223,20 +223,29 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 			ParentIDs: rewrittenParents,
 			TreeID:    rewrittenTree,
-		})
-		if err != nil {
-			return nil, err
+		}
+
+		var newSha []byte
+
+		if original.Equal(rewrittenCommit) {
+			newSha = make([]byte, len(oid))
+			copy(newSha, oid)
+		} else {
+			newSha, err = r.db.WriteCommit(rewrittenCommit)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Cache that commit so that we can reassign children of this
 		// commit.
-		r.cacheCommit(oid, rewrittenCommit)
+		r.cacheCommit(oid, newSha)
 
 		// Increment the percentage displayed in the terminal.
 		p.Count(1)
 
 		// Move the tip forward.
-		tip = rewrittenCommit
+		tip = newSha
 	}
 
 	if opt.UpdateRefs {
