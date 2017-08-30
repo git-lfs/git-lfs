@@ -29,12 +29,14 @@ func (v *V2) Entry(idx *Index, at int64) (*IndexEntry, error) {
 	loc := uint64(binary.BigEndian.Uint32(offs[:]))
 	if loc&0x80000000 > 0 {
 		// If the most significant bit (MSB) of the offset is set, then
-		// the offset encodes the location for an 8-byte offset.
+		// the offset encodes the indexed location for an 8-byte offset.
 		//
-		// Mask away (offs&0x7fffffff) the MSB to return the remaining
-		// offset.
+		// Mask away (offs&0x7fffffff) the MSB to use as an index to
+		// find the offset of the 8-byte pack offset.
+		lo := v2LargeOffsetOffset(int64(loc&0x7fffffff), int64(idx.Count()))
+
 		var offs [8]byte
-		if _, err := idx.readAt(offs[:], int64(loc&0x7fffffff)); err != nil {
+		if _, err := idx.readAt(offs[:], lo); err != nil {
 			return nil, err
 		}
 
@@ -68,4 +70,19 @@ func v2SmallOffsetOffset(at, total int64) int64 {
 		(indexObjectCRCWidth * total) +
 		// Skip until the desired index in the small offsets table.
 		(indexObjectSmallOffsetWidth * at)
+}
+
+// v2LargeOffsetOffset returns the offset of an object's large (4-byte) offset,
+// given by the index "at".
+func v2LargeOffsetOffset(at, total int64) int64 {
+	// Skip the packfile index header and the L1 fanout table.
+	return indexOffsetV2Start +
+		// Skip the name table.
+		(indexObjectNameWidth * total) +
+		// Skip the CRC table.
+		(indexObjectCRCWidth * total) +
+		// Skip the small offsets table.
+		(indexObjectSmallOffsetWidth * total) +
+		// Seek to the large offset within the large offset(s) table.
+		(indexObjectLargeOffsetWidth * at)
 }

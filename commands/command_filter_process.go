@@ -139,7 +139,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			// until a read from that channel becomes blocking (in
 			// other words, we read until there are no more items
 			// immediately ready to be sent back to Git).
-			paths := pathnames(readAvailable(available))
+			paths := pathnames(readAvailable(available, q.BatchSize()))
 			if len(paths) == 0 {
 				// If `len(paths) == 0`, `tq.Watch()` has
 				// closed, indicating that all items have been
@@ -165,7 +165,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			malformedOnWindows = append(malformedOnWindows, req.Header["pathname"])
 		}
 
-		var status string
+		var status git.FilterProcessStatus
 		if delayed {
 			// If delayed, there is no need to call w.Flush() since
 			// no data was written. Calculate the status from the
@@ -302,8 +302,8 @@ func incomingOrCached(r io.Reader, ptr *lfs.Pointer) (io.Reader, error) {
 // 1. Reading from the channel of available items blocks, or ...
 // 2. There is one item available, or ...
 // 3. The 'tq.TransferQueue' is completed.
-func readAvailable(ch <-chan *tq.Transfer) []*tq.Transfer {
-	ts := make([]*tq.Transfer, 0, 100)
+func readAvailable(ch <-chan *tq.Transfer, cap int) []*tq.Transfer {
+	ts := make([]*tq.Transfer, 0, cap)
 
 	for {
 		select {
@@ -341,22 +341,22 @@ func pathnames(ts []*tq.Transfer) []string {
 
 // statusFromErr returns the status code that should be sent over the filter
 // protocol based on a given error, "err".
-func statusFromErr(err error) string {
+func statusFromErr(err error) git.FilterProcessStatus {
 	if err != nil && err != io.EOF {
-		return "error"
+		return git.StatusError
 	}
-	return "success"
+	return git.StatusSuccess
 }
 
 // delayedStatusFromErr returns the status code that should be sent over the
 // filter protocol based on a given error, "err" when the blob smudge operation
 // was delayed.
-func delayedStatusFromErr(err error) string {
+func delayedStatusFromErr(err error) git.FilterProcessStatus {
 	status := statusFromErr(err)
 
 	switch status {
-	case "success":
-		return "delayed"
+	case git.StatusSuccess:
+		return git.StatusDelay
 	default:
 		return status
 	}

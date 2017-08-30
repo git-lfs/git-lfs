@@ -127,11 +127,17 @@ var (
 		}
 	}
 
+	// WithLoggerto logs updates caused by the *git/githistory.Rewriter to
+	// the given io.Writer "sink".
+	WithLoggerTo = func(sink io.Writer) rewriterOption {
+		return WithLogger(log.NewLogger(sink))
+	}
+
 	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
-	// given io.Writer "sink".
-	WithLogger = func(sink io.Writer) rewriterOption {
+	// be given to the provided logger, "l".
+	WithLogger = func(l *log.Logger) rewriterOption {
 		return func(r *Rewriter) {
-			r.l = log.NewLogger(sink)
+			r.l = l
 		}
 	}
 

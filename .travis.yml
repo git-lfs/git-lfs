@@ -12,7 +12,6 @@ env:
     - GIT_SOURCE_REPO="https://github.com/git/git.git"
     - GIT_EARLIEST_SUPPORTED_VERSION="v2.0.0
     - GIT_LATEST_SOURCE_BRANCH="master"
-    - GIT_NEXT_SOURCE_BRANCH="next"
     - GIT_ASKPASS=""
 
 matrix:
@@ -25,16 +24,6 @@ matrix:
           git clone $GIT_SOURCE_REPO git-source;
           cd git-source;
           git checkout $GIT_LATEST_SOURCE_BRANCH;
-          make --jobs=2;
-          make install;
-          cd ..;
-    - env: git-latest-next-from-source
-      os: linux
-      before_script:
-        - >
-          git clone $GIT_SOURCE_REPO git-source;
-          cd git-source;
-          git checkout $GIT_NEXT_SOURCE_BRANCH;
           make --jobs=2;
           make install;
           cd ..;

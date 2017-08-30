@@ -10,6 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git/githistory"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
@@ -39,11 +40,13 @@ var (
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
+	l := log.NewLogger(os.Stderr)
+
 	db, err := getObjectDatabase()
 	if err != nil {
 		ExitWithError(err)
 	}
-	rewriter := getHistoryRewriter(cmd, db)
+	rewriter := getHistoryRewriter(cmd, db, l)
 
 	exts := make(map[string]*MigrateInfoEntry)
 
@@ -63,7 +66,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	migrateInfoAbove = above
 
-	migrate(args, rewriter, &githistory.RewriteOptions{
+	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
