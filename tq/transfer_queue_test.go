@@ -30,3 +30,10 @@ func TestRetryCounterCanNotRetryAfterExceedingRetryCount(t *testing.T) {
 	assert.Equal(t, 1, count)
 	assert.False(t, canRetry)
 }
+
+func TestBatchSizeReturnsBatchSize(t *testing.T) {
+	q := NewTransferQueue(
+		Upload, NewManifest(), "origin", WithBatchSize(3))
+
+	assert.Equal(t, 3, q.BatchSize())
+}
