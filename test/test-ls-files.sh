@@ -24,6 +24,16 @@ begin_test "ls-files"
   git lfs ls-files | tee ls.log
   grep some.dat ls.log
   [ `wc -l < ls.log` = 1 ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: some.dat
+    size: 10
+checkout: true
+download: true
+     oid: sha256 5aa03f96c77536579166fba147929626cc3a97960e994057a9d80271a736d10f
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
 )
 end_test
 
