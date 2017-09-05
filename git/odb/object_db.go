@@ -2,7 +2,6 @@ package odb
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -10,7 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/odb/pack"
 	"github.com/git-lfs/git-lfs/lfs"
 )
 
@@ -19,14 +18,14 @@ import (
 type ObjectDatabase struct {
 	// s is the storage backend which opens/creates/reads/writes.
 	s storer
+	// packs are the set of packfiles which contain all packed objects
+	// within this repository.
+	packs *pack.Set
 
 	// closed is a uint32 managed by sync/atomic's <X>Uint32 methods. It
 	// yields a value of 0 if the *ObjectDatabase it is stored upon is open,
 	// and a value of 1 if it is closed.
 	closed uint32
-	// objectScanner is the running instance of `*git.ObjectScanner` used to
-	// scan packed objects not found in .git/objects/xx/... directly.
-	objectScanner *git.ObjectScanner
 }
 
 // FromFilesystem constructs an *ObjectDatabase instance that is backed by a
@@ -34,14 +33,14 @@ type ObjectDatabase struct {
 //
 //  /absolute/repo/path/.git/objects
 func FromFilesystem(root string) (*ObjectDatabase, error) {
-	os, err := git.NewObjectScanner()
+	packs, err := pack.NewSet(root)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ObjectDatabase{
-		s:             newFileStorer(root),
-		objectScanner: os,
+		s:     newFileStorer(root),
+		packs: packs,
 	}, nil
 }
 
@@ -55,7 +54,7 @@ func (o *ObjectDatabase) Close() error {
 		return errors.New("git/odb: *ObjectDatabase already closed")
 	}
 
-	if err := o.objectScanner.Close(); err != nil {
+	if err := o.packs.Close(); err != nil {
 		return err
 	}
 	return nil
@@ -219,21 +218,27 @@ func (o *ObjectDatabase) open(sha []byte) (*ObjectReader, error) {
 		// load its contents from the *git.ObjectScanner by leveraging
 		// `git-cat-file --batch`.
 		if atomic.LoadUint32(&o.closed) == 1 {
-			return nil, errors.New("git/odb: cannot use closed *git.ObjectScanner")
+			return nil, errors.New("git/odb: cannot use closed *pack.Set")
 		}
 
-		if !o.objectScanner.Scan(hex.EncodeToString(sha)) {
-			return nil, o.objectScanner.Err()
+		packed, err := o.packs.Object(sha)
+		if err != nil {
+			return nil, err
+		}
+
+		unpacked, err := packed.Unpack()
+		if err != nil {
+			return nil, err
 		}
 
 		return NewUncompressedObjectReader(io.MultiReader(
 			// Git object header:
 			strings.NewReader(fmt.Sprintf("%s %d\x00",
-				o.objectScanner.Type(), o.objectScanner.Size(),
+				packed.Type(), len(unpacked),
 			)),
 
 			// Git object (uncompressed) contents:
-			o.objectScanner.Contents(),
+			bytes.NewReader(unpacked),
 		))
 	}
 
