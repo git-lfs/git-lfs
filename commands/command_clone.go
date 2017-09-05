@@ -92,6 +92,14 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		cfg.CurrentRemote = remote
 		fetchRef("HEAD", filter)
 	} else {
+		if fetchAllArg {
+			if includeArg != nil || excludeArg != nil {
+				Exit("Cannot combine --all with --include or --exclude")
+			}
+			cfg.CurrentRemote = remote
+			fetchAll()
+		}
+
 		pull(remote, filter)
 		err := postCloneSubmodules(args)
 		if err != nil {
@@ -168,6 +176,7 @@ func init() {
 		cmd.Flags().BoolVarP(&cloneFlags.NoShallowSubmodules, "no-shallow-submodules", "", false, "See 'git clone --help'")
 		cmd.Flags().Int64VarP(&cloneFlags.Jobs, "jobs", "j", -1, "See 'git clone --help'")
 
+		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced after the git clone")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 

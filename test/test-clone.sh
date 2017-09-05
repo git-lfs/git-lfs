@@ -350,6 +350,54 @@ begin_test "clone (with include/exclude args)"
 )
 end_test
 
+begin_test "clone with --all"
+(
+  set -e
+
+  reponame="clone_include_exclude_remote"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  contents_a="a"
+  contents_a_oid=$(calc_oid "$contents_a")
+  printf "$contents_a" > "a.dat"
+
+  git add a.dat .gitattributes
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+  grep "2 files changed" commit.log
+  grep "create mode 100644 a.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  contents_b="aa"
+  contents_b_oid=$(calc_oid "$contents_b")
+  printf "$contents_b" > "a.dat"
+
+  git add a.dat
+  git commit -m "update a.dat" 2>&1 | tee commit.log
+  grep "master" commit.log
+  grep "1 file changed" commit.log
+
+  git push origin master 2>&1 | tee push.log
+  grep "master -> master" push.log
+  grep "Git LFS: (2 of 2 files)" push.log
+
+  cd "$TRASHDIR"
+
+  local_reponame="clone_with_all"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" --all
+  pushd "$local_reponame"
+  assert_local_object "$contents_a_oid" 1
+  assert_local_object "$contents_b_oid" 2
+  [ "aa" = "$(cat a.dat)" ]
+  assert_hooks "$(dot_git_dir)"
+  popd
+)
+end_test
+
 begin_test "clone (with .lfsconfig)"
 (
   set -e
@@ -368,8 +416,6 @@ begin_test "clone (with .lfsconfig)"
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
   printf "$contents_b" > "b.dat"
-
-
 
   git add a.dat b.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
@@ -530,10 +576,7 @@ begin_test "clone with submodules"
   assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
   [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ]
 
-
   popd
-
-
 )
 end_test
 
