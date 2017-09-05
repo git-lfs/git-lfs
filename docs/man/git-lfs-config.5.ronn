@@ -259,7 +259,7 @@ be scoped inside the configuration for a remote.
 
   Supports URL config lookup as described in:
   https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this value
-  per-host: `git config lfs.https://github.com/.locksverify 0`.
+  per-host: `git config --global lfs.https://github.com/.locksverify [true|false]`.
 
 * `lfs.skipdownloaderrors`
 
