@@ -23,6 +23,8 @@ export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
 # by-default, dh_golang only copies *.go and other source - this upsets a bunch of vendor test routines
 export DH_GOLANG_INSTALL_ALL := 1
 
+COMMIT=$(shell git rev-parse --short HEAD)
+
 %:
 	dh $@ --buildsystem=golang --with=golang
 
@@ -32,7 +34,7 @@ override_dh_clean:
 	dh_clean
 
 override_dh_auto_build:
-	dh_auto_build
+	dh_auto_build -- -ldflags="-X github.com/github/git-lfs/lfs.GitCommit=$(COMMIT)"
 	#dh_golang doesn't do anything here in deb 8, and it's needed in both
 	if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
 		cp -rf $(BUILD_DIR)/bin/*/* $(BUILD_DIR)/bin/; \
