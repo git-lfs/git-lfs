@@ -47,7 +47,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		}
 	})
 
-	if err := gitscanner.ScanRefWithDeleted(ref.Sha, nil); err != nil {
+	if err := gitscanner.ScanRef(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
 
