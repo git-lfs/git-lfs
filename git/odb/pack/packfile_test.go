@@ -80,9 +80,23 @@ func TestPackObjectReturnsObjectWithDeltaBaseOffset(t *testing.T) {
 	const original = "Hello"
 	compressed, _ := compress(original)
 
+	delta, err := compress(string([]byte{
+		0x05, // Source size: 5.
+		0x0e, // Destination size: 14.
+
+		0x91, // (1000 0001) (instruction=copy, bitmask=0001)
+		0x00, // (0000 0000) (offset=0)
+		0x05, // (0000 0101) (size=5)
+
+		0x09, // (0000 0111) (instruction=add, size=7)
+
+		// Contents: ...
+		',', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\n',
+	}))
+
 	p := &Packfile{
 		idx: IndexWith(map[string]uint32{
-			"cccccccccccccccccccccccccccccccccccccccc": 32,
+			"cccccccccccccccccccccccccccccccccccccccc": uint32(32 + 1 + len(compressed)),
 		}),
 		r: bytes.NewReader(append(append([]byte{
 			0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -91,14 +105,10 @@ func TestPackObjectReturnsObjectWithDeltaBaseOffset(t *testing.T) {
 			0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 
 			0x35, // (0011 0101) (msb=0, type=blob, size=5)
-		}, compressed...), []byte{
-			0x6a, // (0110 1010) (msb=0, type=obj_ofs_delta, size=10)
-			0x11, // (0001 0001) (ofs_delta=-17, len(compressed))
-			0x7,  // (0000 0111) (instruction=add, size=7)
-
-			// Contents: ...
-			',', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\n',
-		}...)),
+		}, compressed...), append([]byte{
+			0x6e, // (0110 1010) (msb=0, type=obj_ofs_delta, size=10)
+			0x12, // (0001 0001) (ofs_delta=-17, len(compressed))
+		}, delta...)...)),
 	}
 
 	o, err := p.Object(DecodeHex(t, "cccccccccccccccccccccccccccccccccccccccc"))
@@ -107,13 +117,29 @@ func TestPackObjectReturnsObjectWithDeltaBaseOffset(t *testing.T) {
 	assert.Equal(t, TypeBlob, o.Type())
 
 	unpacked, err := o.Unpack()
-	assert.Equal(t, []byte(original), unpacked)
+	assert.Equal(t, []byte(original+", world!\n"), unpacked)
 	assert.NoError(t, err)
 }
 
 func TestPackfileObjectReturnsObjectWithDeltaBaseReference(t *testing.T) {
 	const original = "Hello!\n"
 	compressed, _ := compress(original)
+
+	delta, _ := compress(string([]byte{
+		0x07, // Source size: 7.
+		0x0e, // Destination size: 14.
+
+		0x91, // (1001 0001) (copy, smask=0001, omask=0001)
+		0x00, // (0000 0000) (offset=0)
+		0x05, // (0000 0101) (size=5)
+
+		0x7,                               // (0000 0111) (add, length=6)
+		',', ' ', 'w', 'o', 'r', 'l', 'd', // (data ...)
+
+		0x91, // (1001 0001) (copy, smask=0001, omask=0001)
+		0x05, // (0000 0101) (offset=5)
+		0x02, // (0000 0010) (size=2)
+	}))
 
 	p := &Packfile{
 		idx: IndexWith(map[string]uint32{
@@ -127,30 +153,14 @@ func TestPackfileObjectReturnsObjectWithDeltaBaseReference(t *testing.T) {
 			0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 
 			0x37, // (0011 0101) (msb=0, type=blob, size=7)
-		}, compressed...), []byte{
-			0x7f, // (0111 1111) (msb=0, type=obj_ref_delta, size=16)
+		}, compressed...), append([]byte{
+			0x7f, // (0111 1111) (msb=0, type=obj_ref_delta, size=15)
 
 			// SHA-1 "cccccccccccccccccccccccccccccccccccccccc",
 			// original blob contents is "Hello!\n"
 			0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
 			0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
-
-			// BEGIN OBJECT:
-			//   "dddddddddddddddddddddddddddddddddddddddd":
-			0x07, // Source size: 7.
-			0x0d, // Destination size: 13.
-
-			0x91, // (1001 0001) (copy, smask=0001, omask=0001)
-			0x00, // (0000 0000) (offset=0)
-			0x05, // (0000 0101) (size=5)
-
-			0x6,                          // (0000 0111) (add, length=6)
-			' ', 'w', 'o', 'r', 'l', 'd', // (data ...)
-
-			0x91, // (1001 0001) (copy, smask=0001, omask=0001)
-			0x05, // (0000 0101) (offset=5)
-			0x02, // (0000 0010) (size=2)
-		}...)),
+		}, delta...)...)),
 	}
 
 	o, err := p.Object(DecodeHex(t, "dddddddddddddddddddddddddddddddddddddddd"))
@@ -159,7 +169,7 @@ func TestPackfileObjectReturnsObjectWithDeltaBaseReference(t *testing.T) {
 	assert.Equal(t, TypeBlob, o.Type())
 
 	unpacked, err := o.Unpack()
-	assert.Equal(t, []byte("Hello world!\n"), unpacked)
+	assert.Equal(t, []byte("Hello, world!\n"), unpacked)
 	assert.NoError(t, err)
 }
 
