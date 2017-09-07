@@ -85,3 +85,37 @@ func TestBlobCanCloseWithoutCloseFn(t *testing.T) {
 
 	assert.Nil(t, b.Close())
 }
+
+func TestBlobEqualReturnsTrueWithUnchangedContents(t *testing.T) {
+	c := strings.NewReader("Hello, world!")
+
+	b1 := &Blob{Size: int64(c.Len()), Contents: c}
+	b2 := &Blob{Size: int64(c.Len()), Contents: c}
+
+	assert.True(t, b1.Equal(b2))
+}
+
+func TestBlobEqualReturnsFalseWithChangedContents(t *testing.T) {
+	c1 := strings.NewReader("Hello, world!")
+	c2 := strings.NewReader("Goodbye, world!")
+
+	b1 := &Blob{Size: int64(c1.Len()), Contents: c1}
+	b2 := &Blob{Size: int64(c2.Len()), Contents: c2}
+
+	assert.False(t, b1.Equal(b2))
+}
+
+func TestBlobEqualReturnsTrueWhenOneBlobIsNil(t *testing.T) {
+	b1 := &Blob{Size: 1, Contents: bytes.NewReader([]byte{0xa})}
+	b2 := (*Blob)(nil)
+
+	assert.False(t, b1.Equal(b2))
+	assert.False(t, b2.Equal(b1))
+}
+
+func TestBlobEqualReturnsTrueWhenBothBlobsAreNil(t *testing.T) {
+	b1 := (*Blob)(nil)
+	b2 := (*Blob)(nil)
+
+	assert.True(t, b1.Equal(b2))
+}
