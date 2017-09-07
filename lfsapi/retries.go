@@ -15,7 +15,7 @@ const (
 
 	// defaultRequestRetries is the default number of retries to perform on
 	// a given HTTP request.
-	defaultRequestRetries = 1
+	defaultRequestRetries = 0
 )
 
 // WithRetries stores the desired number of retries "n" on the given

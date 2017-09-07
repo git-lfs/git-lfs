@@ -131,11 +131,10 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		retries = defaultRequestRetries
 	}
 
-	retries = tools.MaxInt(0, retries)
-
 	var res *http.Response
 
-	for i := 0; i < retries; i++ {
+	requests := tools.MaxInt(0, retries) + 1
+	for i := 0; i < requests; i++ {
 		res, err = cli.Do(req)
 		if err == nil {
 			break
@@ -151,6 +150,10 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 	if err != nil {
 		c.traceResponse(req, tracedReq, nil)
 		return nil, err
+	}
+
+	if res == nil {
+		return nil, nil
 	}
 
 	c.traceResponse(req, tracedReq, res)
