@@ -52,12 +52,12 @@ func patch(base, delta []byte) ([]byte, error) {
 		return nil, errors.New("git/odb/pack: invalid delta data")
 	}
 
-	var dest []byte
-
 	// The remainder of the delta header contains the destination size, and
 	// moves the "pos" offset to the correct position to begin the set of
 	// delta instructions.
 	destSize, pos := patchDeltaHeader(delta, pos)
+
+	dest := make([]byte, 0, destSize)
 
 	for pos < len(delta) {
 		c := int(delta[pos])
