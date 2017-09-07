@@ -458,16 +458,8 @@ func DefaultRemote() (string, error) {
 	return "", errors.New("Unable to pick default remote, too ambiguous")
 }
 
-func StartUpdateIndexFromStdin(w io.Writer) (io.WriteCloser, error) {
-	cmd := gitNoLFS("update-index", "-q", "--refresh", "--stdin")
-	cmd.Stdout = w
-	cmd.Stderr = w
-	stdin, err := cmd.StdinPipe()
-	if err == nil {
-		err = cmd.Start()
-	}
-
-	return stdin, err
+func UpdateIndexFromStdin() *subprocess.Cmd {
+	return gitNoLFS("update-index", "-q", "--refresh", "--stdin")
 }
 
 type gitConfig struct {
@@ -1157,6 +1149,16 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 		}
 	}
 	return ret, cmd.Wait()
+}
+
+// Fetch performs a fetch with no arguments against the given remotes.
+func Fetch(remotes ...string) error {
+	if len(remotes) == 0 {
+		return nil
+	}
+
+	_, err := gitNoLFSSimple(append([]string{"fetch"}, remotes...)...)
+	return err
 }
 
 // RemoteRefs returns a list of branches & tags for a remote by actually

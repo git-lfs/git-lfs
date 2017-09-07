@@ -57,7 +57,14 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.Contains(line, "filter=lfs") {
+
+			// Check for filter=lfs (signifying that LFS is tracking
+			// this file) or "lockable", which indicates that the
+			// file is lockable (and may or may not be tracked by
+			// Git LFS).
+			if strings.Contains(line, "filter=lfs") ||
+				strings.HasSuffix(line, "lockable") {
+
 				fields := strings.Fields(line)
 				pattern := fields[0]
 				if len(reldir) > 0 {

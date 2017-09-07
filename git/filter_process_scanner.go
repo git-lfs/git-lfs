@@ -105,6 +105,14 @@ func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading filter-process capabilities failed with %s", err)
 	}
+
+	for _, sup := range supCaps {
+		if sup == "capability=delay" {
+			reqCaps = append(reqCaps, "capability=delay")
+			break
+		}
+	}
+
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
 			return nil, fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
@@ -190,8 +198,8 @@ func (o *FilterProcessScanner) WriteList(list []string) error {
 	return o.pl.writePacketList(list)
 }
 
-func (o *FilterProcessScanner) WriteStatus(status string) error {
-	return o.pl.writePacketList([]string{"status=" + status})
+func (o *FilterProcessScanner) WriteStatus(status FilterProcessStatus) error {
+	return o.pl.writePacketList([]string{"status=" + status.String()})
 }
 
 // isStringInSlice returns whether a given string "what" is contained in a

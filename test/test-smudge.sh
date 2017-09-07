@@ -115,7 +115,6 @@ begin_test "smudge with skip"
   env | grep LFS_SKIP
   clone_repo "$reponame" "skip-clone-env"
   [ "$pointer" = "$(cat a.dat)" ]
-  [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   git lfs pull
   [ "smudge a" = "$(cat a.dat)" ]
@@ -125,13 +124,11 @@ begin_test "smudge with skip"
   [ "$(env | grep LFS_SKIP)" == "" ]
   clone_repo "$reponame" "no-skip"
   [ "smudge a" = "$(cat a.dat)" ]
-  [ "1" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   echo "test clone with init --skip-smudge"
   git lfs install --skip-smudge
   clone_repo "$reponame" "skip-clone-init"
   [ "$pointer" = "$(cat a.dat)" ]
-  [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   git lfs install --force
 )

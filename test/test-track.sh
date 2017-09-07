@@ -27,7 +27,7 @@ begin_test "track"
   git lfs track "*.jpg" | grep "\"*.jpg\" already supported"
   assert_attributes_count "jpg" "filter=lfs" 1
 
-  mkdir -p a/b
+  mkdir -p a/b .git/info
 
   echo "*.mov filter=lfs -text" > .git/info/attributes
   echo "*.gif filter=lfs -text" > a/.gitattributes
