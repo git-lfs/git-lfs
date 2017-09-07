@@ -19,6 +19,10 @@ var (
 	// migrateExcludeRefs is a set of Git references to explicitly exclude
 	// in the migration.
 	migrateExcludeRefs []string
+
+	// migrateEverything indicates the presence of the --everything flag,
+	// and instructs 'git lfs migrate' to migrate all local references.
+	migrateEverything bool
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -91,7 +95,7 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *log.Logge
 func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string, err error) {
 	hardcore := len(migrateIncludeRefs) > 0 || len(migrateExcludeRefs) > 0
 
-	if len(args) == 0 && !hardcore {
+	if len(args) == 0 && !hardcore && !migrateEverything {
 		// If no branches were given explicitly AND neither
 		// --include-ref or --exclude-ref flags were given, then add the
 		// currently checked out reference.
@@ -100,6 +104,10 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 		args = append(args, current.Name)
+	}
+
+	if migrateEverything && len(args) > 0 {
+		return nil, nil, errors.New("fatal: cannot use --everything with explicit reference arguments")
 	}
 
 	for _, name := range args {
@@ -114,11 +122,24 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 	}
 
 	if hardcore {
+		if migrateEverything {
+			return nil, nil, errors.New("fatal: cannot use --everything with --include-ref or --exclude-ref")
+		}
+
 		// If either --include-ref=<ref> or --exclude-ref=<ref> were
 		// given, append those to the include and excluded reference
 		// set, respectively.
 		include = append(include, migrateIncludeRefs...)
 		exclude = append(exclude, migrateExcludeRefs...)
+	} else if migrateEverything {
+		localRefs, err := git.LocalRefs()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, ref := range localRefs {
+			include = append(include, ref.Name)
+		}
 	} else {
 		// Otherwise, if neither --include-ref=<ref> or
 		// --exclude-ref=<ref> were given, include no additional
@@ -236,6 +257,7 @@ func init() {
 
 			subcommand.Flags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
 			subcommand.Flags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
+			subcommand.Flags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 
 			cmd.AddCommand(subcommand)
 		}

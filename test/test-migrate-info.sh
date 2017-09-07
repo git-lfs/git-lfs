@@ -265,3 +265,61 @@ begin_test "migrate info (empty set)"
   [ "0" -eq "$(echo -n "$migrate" | wc -l | awk '{ print $1 }')" ]
 )
 end_test
+
+begin_test "migrate info (--everything)"
+(
+  set -e
+
+  setup_multiple_local_branches
+  git checkout master
+
+  original_master="$(git rev-parse refs/heads/master)"
+  original_feature="$(git rev-parse refs/heads/my-feature)"
+
+  diff -u <(git lfs migrate info --everything 2>&1 | tail -n 2) <(cat <<-EOF
+	*.md 	170 B	2/2 files(s)	100%
+	*.txt	120 B	1/1 files(s)	100%
+	EOF)
+
+  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_feature="$(git rev-parse refs/heads/my-feature)"
+
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
+begin_test "migrate info (--everything with args)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate info --everything master 2>&1)" = \
+    "fatal: cannot use --everything with explicit reference arguments" ]
+)
+end_test
+
+begin_test "migrate info (--everything with --include-ref)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate info --everything --include-ref=refs/heads/master 2>&1)" = \
+    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+)
+end_test
+
+exit 0
+
+begin_test "migrate info (--everything with --exclude-ref)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate info --everything --exclude-ref=refs/heads/master 2>&1)" = \
+    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+)
+end_test

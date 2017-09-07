@@ -342,3 +342,61 @@ begin_test "migrate import (prefix include(s))"
   done
 )
 end_test
+
+begin_test "migrate import (--everything)"
+(
+  set -e
+
+  setup_multiple_local_branches
+  git checkout master
+
+  master_txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  master_md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
+  feature_md_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
+  master_txt_size="$(git cat-file -p :a.txt | wc -c | awk '{ print $1 }')"
+  master_md_size="$(git cat-file -p :a.md | wc -c | awk '{ print $1 }')"
+  feature_md_size="$(git cat-file -p my-feature:a.md | wc -c | awk '{ print $1 }')"
+
+  git lfs migrate import --everything
+
+  assert_pointer "master" "a.txt" "$master_txt_oid" "$master_txt_size"
+  assert_pointer "master" "a.md" "$master_md_oid" "$master_md_size"
+  assert_pointer "my-feature" "a.md" "$feature_md_oid" "$feature_md_size"
+)
+end_test
+
+
+begin_test "migrate import (--everything with args)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate import --everything master 2>&1)" = \
+    "fatal: cannot use --everything with explicit reference arguments" ]
+)
+end_test
+
+begin_test "migrate import (--everything with --include-ref)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate import --everything --include-ref=refs/heads/master 2>&1)" = \
+    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+)
+end_test
+
+exit 0
+
+begin_test "migrate import (--everything with --exclude-ref)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate import --everything --exclude-ref=refs/heads/master 2>&1)" = \
+    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+)
+end_test
