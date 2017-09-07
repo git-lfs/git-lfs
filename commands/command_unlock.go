@@ -40,8 +40,11 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 	if hasPath {
 		path, err := lockPath(args[0])
-		if err != nil && !unlockCmdFlags.Force {
-			Exit("Unable to determine path: %v", err.Error())
+		if err != nil {
+			if !unlockCmdFlags.Force {
+				Exit("Unable to determine path: %v", err.Error())
+			}
+			path = args[0]
 		}
 
 		// This call can early-out
