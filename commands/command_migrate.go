@@ -242,7 +242,14 @@ func init() {
 	importCmd := NewCommand("import", migrateImportCommand)
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
-		cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
+		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.PersistentFlags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+
+		cmd.PersistentFlags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
+		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
+		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
+
+    cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
 			// Initialize local storage before running any child
 			// subcommands, since migrations require lfs.TempDir to
 			// be initialized within ".git/lfs/objects".
@@ -253,25 +260,6 @@ func init() {
 			localstorage.InitStorageOrFail()
 		}
 
-		// Adding flags directly to cmd.Flags() doesn't apply those
-		// flags to any subcommands of the root. Therefore, loop through
-		// each subcommand specifically, and include common arguments to
-		// each.
-		//
-		// Once done, link each orphaned command to the
-		// `git-lfs-migrate(1)` command as a subcommand (child).
-
-		for _, subcommand := range []*cobra.Command{
-			importCmd, info,
-		} {
-			subcommand.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
-			subcommand.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-
-			subcommand.Flags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
-			subcommand.Flags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
-			subcommand.Flags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
-
-			cmd.AddCommand(subcommand)
-		}
+    cmd.AddCommand(importCmd, info)
 	})
 }
