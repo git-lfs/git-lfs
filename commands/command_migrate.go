@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -248,6 +249,17 @@ func init() {
 		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 
-		cmd.AddCommand(importCmd, info)
+    cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
+			// Initialize local storage before running any child
+			// subcommands, since migrations require lfs.TempDir to
+			// be initialized within ".git/lfs/objects".
+			//
+			// When lfs.TempDir is initialized to "/tmp",
+			// hard-linking can fail when another filesystem is
+			// mounted at "/tmp" (such as tmpfs).
+			localstorage.InitStorageOrFail()
+		}
+
+    cmd.AddCommand(importCmd, info)
 	})
 }
