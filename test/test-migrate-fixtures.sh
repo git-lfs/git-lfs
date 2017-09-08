@@ -179,6 +179,22 @@ setup_single_local_branch_deep_trees() {
   git commit -m "initial commit"
 }
 
+# setup_single_local_branch_empty creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' is empty.
+setup_single_local_branch_empty() {
+  set -e
+
+  reponame="migrate-single-local-branch-empty"
+  remove_and_create_local_repo "$reponame"
+
+  git commit --allow-empty -m "initial commit"
+}
+
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {

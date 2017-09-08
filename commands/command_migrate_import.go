@@ -80,7 +80,12 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			// is present and has a diff between commits in the
 			// range of commits to migrate, those changes are
 			// preserved.
-			blob, err := trackedToBlob(db, theirs.Clone().Union(ours))
+			attrs := theirs.Clone().Union(ours)
+			if attrs.Cardinality() == 0 {
+				return t, nil
+			}
+
+			blob, err := trackedToBlob(db, attrs)
 			if err != nil {
 				return nil, err
 			}

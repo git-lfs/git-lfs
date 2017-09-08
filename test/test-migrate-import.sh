@@ -312,6 +312,26 @@ EOF)
 )
 end_test
 
+begin_test "migrate import (empty commits)"
+(
+  set -e
+
+  setup_single_local_branch_empty
+
+  original_master="$(git rev-parse HEAD)"
+  original_tree="$(git ls-tree -l -r HEAD)"
+
+  git lfs migrate import --everything
+
+  migrated_master="$(git rev-parse HEAD)"
+  migrated_tree="$(git ls-tree -l -r HEAD)"
+
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  [ "0" -eq "$(printf "$original_tree" | wc -l | awk '{ print $1 }')" ]
+  [ "0" -eq "$(printf "$migrated_tree" | wc -l | awk '{ print $1 }')" ]
+)
+end_test
+
 begin_test "migrate import (bare repository)"
 (
   set -e
