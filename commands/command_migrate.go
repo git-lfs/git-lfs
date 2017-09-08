@@ -248,10 +248,6 @@ func init() {
 		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 
-		for _, subcommand := range []*cobra.Command{
-			importCmd, info,
-		} {
-			cmd.AddCommand(subcommand)
-		}
+		cmd.AddCommand(importCmd, info)
 	})
 }
