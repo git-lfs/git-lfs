@@ -32,7 +32,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
-			if filepath.Base(path) == ".gitattributes" {
+			if !canMigrate(path) {
 				return b, nil
 			}
 
@@ -195,4 +195,14 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 		Contents: &attrs,
 		Size:     int64(attrs.Len()),
 	})
+}
+
+// canMigrate returns whether a file at a given path "path" can be migrated as
+// above.
+func canMigrate(path string) bool {
+	switch strings.ToLower(filepath.Base(path)) {
+	case ".gitignore", ".gitattributes", ".gitmodules":
+		return false
+	}
+	return true
 }

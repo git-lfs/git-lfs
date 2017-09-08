@@ -195,6 +195,25 @@ setup_single_local_branch_empty() {
   git commit --allow-empty -m "initial commit"
 }
 
+# setup_single_local_branch_gitignore creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has a .gitignore file containing the contents '*\n!.gitignore'.
+setup_single_local_branch_gitignore() {
+  set -e
+
+  reponame="migrate-single-local-branch-gitignore"
+  remove_and_create_local_repo "$reponame"
+
+  printf "*\n!.gitignore" > .gitignore
+
+  git add .gitignore
+  git commit -m "initial commit"
+}
+
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {

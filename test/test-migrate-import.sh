@@ -332,6 +332,32 @@ begin_test "migrate import (empty commits)"
 )
 end_test
 
+begin_test "migrate import (ignores special files)"
+(
+  set -e
+
+  setup_single_local_branch_gitignore
+
+  original_master="$(git rev-parse HEAD)"
+  original_gitignore="$(git cat-file -p :.gitignore)"
+
+  git ls-tree -l -r HEAD
+
+  git lfs migrate import --everything
+
+  git ls-tree -l -r HEAD
+
+  migrated_master="$(git rev-parse HEAD)"
+  migrated_gitignore="$(git cat-file -p :.gitignore)"
+
+  echo "$original_gitignore"
+  echo "$migrated_gitignore"
+
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  [ "$original_gitignore" = "$migrated_gitignore" ]
+)
+end_test
+
 begin_test "migrate import (bare repository)"
 (
   set -e
