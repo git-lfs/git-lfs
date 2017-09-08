@@ -15,7 +15,7 @@ const (
 
 var (
 	oidRE                = regexp.MustCompile(`\A[[:alnum:]]{64}`)
-	dirPerms os.FileMode = 0755
+	dirPerms os.FileMode = 0666
 )
 
 // LocalStorage manages the locally stored LFS objects for a repository.
