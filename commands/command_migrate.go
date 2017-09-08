@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -241,6 +242,17 @@ func init() {
 	importCmd := NewCommand("import", migrateImportCommand)
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
+		cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
+			// Initialize local storage before running any child
+			// subcommands, since migrations require lfs.TempDir to
+			// be initialized within ".git/lfs/objects".
+			//
+			// When lfs.TempDir is initialized to "/tmp",
+			// hard-linking can fail when another filesystem is
+			// mounted at "/tmp" (such as tmpfs).
+			localstorage.InitStorageOrFail()
+		}
+
 		// Adding flags directly to cmd.Flags() doesn't apply those
 		// flags to any subcommands of the root. Therefore, loop through
 		// each subcommand specifically, and include common arguments to
