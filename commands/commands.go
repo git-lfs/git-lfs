@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -231,7 +232,7 @@ func Debug(format string, args ...interface{}) {
 }
 
 // LoggedError prints the given message formatted with its arguments (if any) to
-// Stderr. If an empty string is passed as the "format" arguemnt, only the
+// Stderr. If an empty string is passed as the "format" argument, only the
 // standard error logging message will be printed, and the error's body will be
 // omitted.
 //
@@ -334,6 +335,46 @@ func logPanic(loggedError error) string {
 	return full
 }
 
+func ipAddresses() []string {
+	ips := make([]string, 0, 1)
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		ips = append(ips, "Error getting network interface: "+err.Error())
+		return ips
+	}
+	for _, i := range ifaces {
+		if i.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if i.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, _ := i.Addrs()
+		l := make([]string, 0, 1)
+		if err != nil {
+			ips = append(ips, "Error getting IP address: "+err.Error())
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			l = append(l, ip.String())
+		}
+		if len(l) > 0 {
+			ips = append(ips, strings.Join(l, " "))
+		}
+	}
+	return ips
+}
+
 func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
 	gitV, err := git.Config.Version()
@@ -370,6 +411,12 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the environment
 	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
 		fmt.Fprint(w, env+le)
+	}
+
+	fmt.Fprint(w, le+"Client IP addresses:"+le)
+
+	for _, ip := range ipAddresses() {
+		fmt.Fprint(w, ip+le)
 	}
 }
 
