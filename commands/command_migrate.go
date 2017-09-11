@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +20,10 @@ var (
 	// migrateExcludeRefs is a set of Git references to explicitly exclude
 	// in the migration.
 	migrateExcludeRefs []string
+
+	// migrateEverything indicates the presence of the --everything flag,
+	// and instructs 'git lfs migrate' to migrate all local references.
+	migrateEverything bool
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -91,7 +96,7 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *log.Logge
 func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string, err error) {
 	hardcore := len(migrateIncludeRefs) > 0 || len(migrateExcludeRefs) > 0
 
-	if len(args) == 0 && !hardcore {
+	if len(args) == 0 && !hardcore && !migrateEverything {
 		// If no branches were given explicitly AND neither
 		// --include-ref or --exclude-ref flags were given, then add the
 		// currently checked out reference.
@@ -100,6 +105,10 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 		args = append(args, current.Name)
+	}
+
+	if migrateEverything && len(args) > 0 {
+		return nil, nil, errors.New("fatal: cannot use --everything with explicit reference arguments")
 	}
 
 	for _, name := range args {
@@ -114,11 +123,24 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 	}
 
 	if hardcore {
+		if migrateEverything {
+			return nil, nil, errors.New("fatal: cannot use --everything with --include-ref or --exclude-ref")
+		}
+
 		// If either --include-ref=<ref> or --exclude-ref=<ref> were
 		// given, append those to the include and excluded reference
 		// set, respectively.
 		include = append(include, migrateIncludeRefs...)
 		exclude = append(exclude, migrateExcludeRefs...)
+	} else if migrateEverything {
+		localRefs, err := git.LocalRefs()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, ref := range localRefs {
+			include = append(include, ref.Name)
+		}
 	} else {
 		// Otherwise, if neither --include-ref=<ref> or
 		// --exclude-ref=<ref> were given, include no additional
@@ -220,24 +242,24 @@ func init() {
 	importCmd := NewCommand("import", migrateImportCommand)
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
-		// Adding flags directly to cmd.Flags() doesn't apply those
-		// flags to any subcommands of the root. Therefore, loop through
-		// each subcommand specifically, and include common arguments to
-		// each.
-		//
-		// Once done, link each orphaned command to the
-		// `git-lfs-migrate(1)` command as a subcommand (child).
+		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.PersistentFlags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 
-		for _, subcommand := range []*cobra.Command{
-			importCmd, info,
-		} {
-			subcommand.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
-			subcommand.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+		cmd.PersistentFlags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
+		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
+		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 
-			subcommand.Flags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
-			subcommand.Flags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
-
-			cmd.AddCommand(subcommand)
+    cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
+			// Initialize local storage before running any child
+			// subcommands, since migrations require lfs.TempDir to
+			// be initialized within ".git/lfs/objects".
+			//
+			// When lfs.TempDir is initialized to "/tmp",
+			// hard-linking can fail when another filesystem is
+			// mounted at "/tmp" (such as tmpfs).
+			localstorage.InitStorageOrFail()
 		}
+
+    cmd.AddCommand(importCmd, info)
 	})
 }

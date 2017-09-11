@@ -19,6 +19,36 @@ begin_test "unlocking a lock by path"
 )
 end_test
 
+begin_test "unlocking a file makes it readonly"
+(
+  set -e
+
+  reponame="unlock_set_readonly"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+
+  git lfs lock --json "c.dat"
+  assert_file_writeable c.dat
+
+  git lfs unlock "c.dat"
+  refute_file_writeable c.dat
+)
+end_test
+
+begin_test "unlocking a file makes ignores readonly"
+(
+  set -e
+
+  reponame="unlock_set_readonly_ignore"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+
+  git lfs lock --json "c.dat"
+  assert_file_writeable c.dat
+
+  git -c lfs.setlockablereadonly=false lfs unlock "c.dat"
+  assert_file_writeable c.dat
+)
+end_test
+
 begin_test "force unlocking lock with missing file"
 (
   set -e

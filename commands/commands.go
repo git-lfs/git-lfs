@@ -86,6 +86,7 @@ func newLockClient(remote string) *locking.Client {
 	// Configure dirs
 	lockClient.LocalWorkingDir = config.LocalWorkingDir
 	lockClient.LocalGitDir = config.LocalGitDir
+	lockClient.SetLockableFilesReadOnly = cfg.SetLockableFilesReadOnly()
 
 	return lockClient
 }

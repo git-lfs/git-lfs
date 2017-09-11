@@ -24,6 +24,9 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 * `--exclude-ref`=<refname>:
     See [INCLUDE AND EXCLUDE (REFS)].
 
+* `--everything`:
+    See [INCLUDE AND EXCLUDE (REFS)].
+
 * [branch ...]:
     Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
     will migrate the currently checked out branch.
@@ -104,6 +107,9 @@ The following configuration:
   --exclude-ref=refs/remotes/origin/master
 
 Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
+
+The presence of flag --everything indicates that all local references should be
+migrated.
 
 ## SEE ALSO
 
