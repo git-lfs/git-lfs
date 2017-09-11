@@ -249,7 +249,7 @@ func init() {
 		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 
-    cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
+		cmd.PersistentPreRun = func(_ *cobra.Command, args []string) {
 			// Initialize local storage before running any child
 			// subcommands, since migrations require lfs.TempDir to
 			// be initialized within ".git/lfs/objects".
@@ -260,6 +260,6 @@ func init() {
 			localstorage.InitStorageOrFail()
 		}
 
-    cmd.AddCommand(importCmd, info)
+		cmd.AddCommand(importCmd, info)
 	})
 }
