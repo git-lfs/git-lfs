@@ -362,6 +362,9 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 		fmt.Fprintf(w, "%s=%v"+le, key, val)
 	}
 
+	fmt.Fprint(w, le+"Current time in UTC: "+le)
+	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05")+le)
+
 	fmt.Fprint(w, le+"ENV:"+le)
 
 	// log the environment
