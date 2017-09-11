@@ -231,7 +231,7 @@ func Debug(format string, args ...interface{}) {
 }
 
 // LoggedError prints the given message formatted with its arguments (if any) to
-// Stderr. If an empty string is passed as the "format" arguemnt, only the
+// Stderr. If an empty string is passed as the "format" argument, only the
 // standard error logging message will be printed, and the error's body will be
 // omitted.
 //
