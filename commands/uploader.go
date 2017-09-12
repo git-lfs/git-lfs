@@ -282,7 +282,7 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 
 	q, pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
-		t, err := uploadTransfer(p)
+		t, err := uploadTransfer(p, c.allowMissing)
 		if err != nil && !errors.IsCleanPointerError(err) {
 			ExitWithError(err)
 		}
@@ -375,7 +375,7 @@ var (
 	}
 )
 
-func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
+func uploadTransfer(p *lfs.WrappedPointer, allowMissing bool) (*tq.Transfer, error) {
 	filename := p.Name
 	oid := p.Oid
 
@@ -385,7 +385,7 @@ func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
 	}
 
 	if len(filename) > 0 {
-		if err = ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
+		if err = ensureFile(filename, localMediaPath, allowMissing); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err
 		}
 	}
@@ -400,7 +400,7 @@ func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
 // does not exist, it attempts to clean it by reading the file at smudgePath.
-func ensureFile(smudgePath, cleanPath string) error {
+func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
 	if _, err := os.Stat(cleanPath); err == nil {
 		return nil
 	}
@@ -408,6 +408,9 @@ func ensureFile(smudgePath, cleanPath string) error {
 	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
+		if allowMissing {
+			return nil
+		}
 		return err
 	}
 
