@@ -649,7 +649,6 @@ begin_test "push with missing objects (lfs.allowincompletepush=t)"
     exit 1
   fi
 
-
   grep "LFS upload missing objects" push.log
   grep "  (missing) missing.dat ($missing_oid)" push.log
 
