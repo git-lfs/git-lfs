@@ -101,7 +101,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		ourLocks:       make(map[string]locking.Lock),
 		theirLocks:     make(map[string]locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
-		allowMissing:   cfg.Git.Bool("lfs.allowincompletepush", false),
+		allowMissing:   cfg.Git.Bool("lfs.allowincompletepush", true),
 	}
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)

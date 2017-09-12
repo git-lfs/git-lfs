@@ -273,8 +273,6 @@ begin_test "pre-push with missing and present pointers"
   missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
   rm "$missing_oid_path"
 
-  git config "lfs.allowincompletepush" "true"
-
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
@@ -288,6 +286,56 @@ begin_test "pre-push with missing and present pointers"
   grep "  (missing) missing.dat ($missing_oid)" push.log
 
   assert_server_object "$reponame" "$present_oid"
+  refute_server_object "$reponame" "$missing_oid"
+)
+end_test
+
+begin_test "pre-push allowincompletepush=f reject missing pointers"
+(
+  set -e
+
+  reponame="pre-push-reject-missing-and-present"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  present="present"
+  present_oid="$(calc_oid "$present")"
+  printf "$present" > present.dat
+
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "$missing" > missing.dat
+
+  git add present.dat missing.dat
+  git commit -m "add present.dat and missing.dat"
+
+  git rm missing.dat
+  git commit -m "remove missing"
+
+  # :fire: the "missing" object
+  missing_oid_part_1="$(echo "$missing_oid" | cut -b 1-2)"
+  missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"
+  missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
+  rm "$missing_oid_path"
+
+  git config "lfs.allowincompletepush" "false"
+
+  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    tee push.log
+
+  if [ "2" -ne "${PIPESTATUS[1]}" ]; then
+    echo >&2 "fatal: expected \`git lfs pre-push origin $GITSERVER/$reponame\` to fail..."
+    exit 1
+  fi
+
+  grep "no such file or directory" push.log
+
+  refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"
 )
 end_test
