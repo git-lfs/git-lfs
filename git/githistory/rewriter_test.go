@@ -1,6 +1,7 @@
 package githistory
 
 import (
+	"bytes"
 	"encoding/hex"
 	"io"
 	"io/ioutil"
@@ -119,6 +120,32 @@ func TestRewriterRewritesOctopusMerges(t *testing.T) {
 
 	AssertCommitParent(t, db, "1fe2b9577d5610e8d8fb2c3030534036fb648393", "9237567f379b3c83ddf53ad9a2ae3755afb62a09")
 	AssertCommitParent(t, db, "ca447959bdcd20253d69b227bcc7c2e1d3126d5c", "9237567f379b3c83ddf53ad9a2ae3755afb62a09")
+}
+
+func TestRewriterVisitsPackedObjects(t *testing.T) {
+	db := DatabaseFromFixture(t, "packed-objects.git")
+	r := NewRewriter(db)
+
+	var contents []byte
+
+	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			var err error
+
+			contents, err = ioutil.ReadAll(b.Contents)
+			if err != nil {
+				return nil, err
+			}
+
+			return &odb.Blob{
+				Contents: bytes.NewReader(contents),
+				Size:     int64(len(contents)),
+			}, nil
+		},
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, string(contents), "Hello, world!\n")
 }
 
 func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {

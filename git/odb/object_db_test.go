@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -167,25 +166,6 @@ func TestWriteCommit(t *testing.T) {
 	assert.NotNil(t, fs.fs[hex.EncodeToString(sha)])
 }
 
-func TestReadingAMissingObject(t *testing.T) {
-	sha, _ := hex.DecodeString("af5626b4a114abcb82d63db7c8082c3c4756e51b")
-	out := strings.NewReader(fmt.Sprintf("%x blob 14\nHello, world!\n", sha))
-
-	db := &ObjectDatabase{
-		s:             newMemoryStorer(nil),
-		objectScanner: git.NewObjectScannerFrom(out),
-	}
-
-	blob, err := db.Blob(sha)
-
-	assert.Nil(t, err)
-	assert.EqualValues(t, 14, blob.Size)
-
-	contents, err := ioutil.ReadAll(blob.Contents)
-	assert.Nil(t, err)
-	assert.Equal(t, "Hello, world!\n", string(contents))
-}
-
 func TestReadingAMissingObjectAfterClose(t *testing.T) {
 	sha, _ := hex.DecodeString("af5626b4a114abcb82d63db7c8082c3c4756e51b")
 
@@ -195,18 +175,13 @@ func TestReadingAMissingObjectAfterClose(t *testing.T) {
 	}
 
 	blob, err := db.Blob(sha)
-	assert.EqualError(t, err, "git/odb: cannot use closed *git.ObjectScanner")
+	assert.EqualError(t, err, "git/odb: cannot use closed *pack.Set")
 	assert.Nil(t, blob)
 }
 
 func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
 	db, err := FromFilesystem("/tmp")
 	assert.Nil(t, err)
-
-	// Make db's objectScanner field be nil, since /tmp doesn't contain a
-	// Git repository, which will cause closing `git-cat-file(1) --batch` to
-	// fail.
-	db.objectScanner = nil
 
 	assert.Nil(t, db.Close())
 	assert.EqualError(t, db.Close(), "git/odb: *ObjectDatabase already closed")
