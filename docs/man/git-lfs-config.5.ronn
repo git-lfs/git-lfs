@@ -156,7 +156,7 @@ be scoped inside the configuration for a remote.
 * `lfs.allowincompletepush`
 
   When pushing, allow objects to be missing from the local cache without halting
-  a Git push.
+  a Git push. Default: true.
 
 ### Fetch settings
 

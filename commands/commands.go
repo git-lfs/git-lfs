@@ -121,60 +121,6 @@ func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64
 	return p.Name, path, p.Oid, p.Size
 }
 
-func uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
-	filename := p.Name
-	oid := p.Oid
-
-	localMediaPath, err := lfs.LocalMediaPath(oid)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
-	}
-
-	if len(filename) > 0 {
-		if err = ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
-			return nil, err
-		}
-	}
-
-	return &tq.Transfer{
-		Name: filename,
-		Path: localMediaPath,
-		Oid:  oid,
-		Size: p.Size,
-	}, nil
-}
-
-// ensureFile makes sure that the cleanPath exists before pushing it.  If it
-// does not exist, it attempts to clean it by reading the file at smudgePath.
-func ensureFile(smudgePath, cleanPath string) error {
-	if _, err := os.Stat(cleanPath); err == nil {
-		return nil
-	}
-
-	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
-	file, err := os.Open(localPath)
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
-	if cleaned != nil {
-		cleaned.Teardown()
-	}
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {

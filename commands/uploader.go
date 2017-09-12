@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,7 +101,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		ourLocks:       make(map[string]locking.Lock),
 		theirLocks:     make(map[string]locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
-		allowMissing:   cfg.Git.Bool("lfs.allowincompletepush", false),
+		allowMissing:   cfg.Git.Bool("lfs.allowincompletepush", true),
 	}
 
 	ctx.meter = buildProgressMeter(ctx.DryRun)
@@ -281,7 +282,7 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 
 	q, pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
-		t, err := uploadTransfer(p)
+		t, err := uploadTransfer(p, c.allowMissing)
 		if err != nil && !errors.IsCleanPointerError(err) {
 			ExitWithError(err)
 		}
@@ -373,6 +374,63 @@ var (
 		githubHttps, githubSsh,
 	}
 )
+
+func uploadTransfer(p *lfs.WrappedPointer, allowMissing bool) (*tq.Transfer, error) {
+	filename := p.Name
+	oid := p.Oid
+
+	localMediaPath, err := lfs.LocalMediaPath(oid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+	}
+
+	if len(filename) > 0 {
+		if err = ensureFile(filename, localMediaPath, allowMissing); err != nil && !errors.IsCleanPointerError(err) {
+			return nil, err
+		}
+	}
+
+	return &tq.Transfer{
+		Name: filename,
+		Path: localMediaPath,
+		Oid:  oid,
+		Size: p.Size,
+	}, nil
+}
+
+// ensureFile makes sure that the cleanPath exists before pushing it.  If it
+// does not exist, it attempts to clean it by reading the file at smudgePath.
+func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
+	if _, err := os.Stat(cleanPath); err == nil {
+		return nil
+	}
+
+	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
+	file, err := os.Open(localPath)
+	if err != nil {
+		if allowMissing {
+			return nil
+		}
+		return err
+	}
+
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
+	if cleaned != nil {
+		cleaned.Teardown()
+	}
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // getVerifyStateFor returns whether or not lock verification is enabled for the
 // given "endpoint". If no state has been explicitly set, an "unknown" state
