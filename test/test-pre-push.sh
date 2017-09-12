@@ -264,6 +264,9 @@ begin_test "pre-push with missing and present pointers"
   git add present.dat missing.dat
   git commit -m "add present.dat and missing.dat"
 
+  git rm missing.dat
+  git commit -m "remove missing"
+
   # :fire: the "missing" object
   missing_oid_part_1="$(echo "$missing_oid" | cut -b 1-2)"
   missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"

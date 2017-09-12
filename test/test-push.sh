@@ -634,6 +634,9 @@ begin_test "push with missing objects (lfs.allowincompletepush)"
   git add missing.dat present.dat
   git commit -m "add objects"
 
+  git rm missing.dat
+  git commit -m "remove missing"
+
   # :fire: the "missing" object
   missing_oid_part_1="$(echo "$missing_oid" | cut -b 1-2)"
   missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"
