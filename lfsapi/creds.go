@@ -9,7 +9,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -43,16 +42,8 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 
 	var hs []CredentialHelper
 	if len(ccfg.AskPass) > 0 {
-		parts := tools.QuotedFields(ccfg.AskPass)
-		if len(parts) < 1 {
-			return nil, errors.Errorf(
-				"lfsapi/creds: invalid ASKPASS: %q",
-				ccfg.AskPass)
-		}
-
 		hs = append(hs, &AskPassCredentialHelper{
-			Program: parts[0],
-			Args:    parts[1:],
+			Program: ccfg.AskPass,
 		})
 	}
 
@@ -144,8 +135,6 @@ func (h CredentialHelpers) Approve(what Creds) error {
 type AskPassCredentialHelper struct {
 	// Program is the executable program's absolute or relative name.
 	Program string
-	// Args are the arguments given to the program.
-	Args []string
 
 	// Prompt is an optional prompt appended to the end of the program's
 	// arguments, if given. This is implemented for consistency with the Git
@@ -192,17 +181,16 @@ func (a *AskPassCredentialHelper) Approve(_ Creds) error { return nil }
 // credential helper does not implement credential rejection.
 func (a *AskPassCredentialHelper) Reject(_ Creds) error { return nil }
 
-// args returns the arguments given to the ASKPASS program. If a prompt (see:
-// "Prompt string") is given, it is appended as the final argument. Otherwise,
-// the arguments are passed to the program as is.
+// args returns the arguments given to the ASKPASS program, if a prompt was
+// given.
 
 // See: https://git-scm.com/docs/gitcredentials#_requesting_credentials for
 // more.
 func (a *AskPassCredentialHelper) args() []string {
 	if len(a.Prompt) == 0 {
-		return a.Args
+		return nil
 	}
-	return append(a.Args, a.Prompt)
+	return []string{a.Prompt}
 }
 
 type CredentialHelper interface {
