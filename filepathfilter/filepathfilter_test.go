@@ -183,7 +183,7 @@ func TestFilterHasPrefix(t *testing.T) {
 		t.Run(desc, c.Assert)
 	}
 
-	prefixes = []string{"foo/bar/baz"} //, "foo/bar/baz/"}
+	prefixes = []string{"foo/bar/baz", "foo/bar/baz/"}
 	for desc, c := range map[string]*filterPrefixTest{
 		"exclude path prefix pattern": {false, prefixes, nil, []string{"/foo/bar/baz"}},
 		"exclude path pattern":        {false, prefixes, nil, []string{"foo/bar/baz"}},
