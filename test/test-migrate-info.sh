@@ -180,6 +180,24 @@ begin_test "migrate info (include/exclude ref with filter)"
 )
 end_test
 
+begin_test "migrate info (nested sub-trees, no filter)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  original_master="$(git rev-parse refs/heads/master)"
+
+  diff -u <(git lfs migrate info 2>/dev/null) <(cat <<-EOF
+	*.txt	120 B	1/1 files(s)	100%
+	EOF)
+
+  migrated_master="$(git rev-parse refs/heads/master)"
+
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+)
+end_test
+
 begin_test "migrate info (above threshold)"
 (
   set -e
