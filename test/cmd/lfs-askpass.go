@@ -5,13 +5,25 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
-	var password string = "pass"
-	if env, ok := os.LookupEnv("LFS_ASKPASS_PASSWORD"); ok {
-		password = env
+	prompt := strings.Join(os.Args[1:], " ")
+
+	var answer string
+
+	if strings.Contains(prompt, "Username") {
+		answer = "user"
+		if env, ok := os.LookupEnv("LFS_ASKPASS_USERNAME"); ok {
+			answer = env
+		}
+	} else if strings.Contains(prompt, "Password") {
+		answer = "pass"
+		if env, ok := os.LookupEnv("LFS_ASKPASS_PASSWORD"); ok {
+			answer = env
+		}
 	}
 
-	fmt.Println(password)
+	fmt.Print(answer)
 }

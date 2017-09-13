@@ -17,10 +17,14 @@ begin_test "askpass: push with GIT_ASKPASS"
   git commit -m "initial commit"
 
   # $password is defined from test/cmd/lfstest-gitserver.go (see: skipIfBadAuth)
+  export LFS_ASKPASS_USERNAME="user"
   export LFS_ASKPASS_PASSWORD="pass"
   GIT_ASKPASS="lfs-askpass" GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push 2>&1 | tee push.log
 
-  grep "filling with GIT_ASKPASS: lfs-askpass" push.log
+  GITSERVER_USER="$(printf $GITSERVER | sed -e 's/http:\/\//http:\/\/user@/')"
+
+  grep "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log
+  grep "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log
 )
 end_test
 
@@ -52,6 +56,9 @@ begin_test "askpass: push with core.askPass"
   cat .git/config
   GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push 2>&1 | tee push.log
 
-  grep "filling with GIT_ASKPASS: lfs-askpass" push.log
+  GITSERVER_USER="$(printf $GITSERVER | sed -e 's/http:\/\//http:\/\/user@/')"
+
+  grep "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log
+  grep "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log
 )
 end_test
