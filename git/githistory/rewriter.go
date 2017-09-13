@@ -174,7 +174,12 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	p := r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+	var p *log.PercentageTask
+	if opt.UpdateRefs {
+		p = r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+	} else {
+		p = r.l.Percentage("migrate: Examining commits", uint64(len(commits)))
+	}
 
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
