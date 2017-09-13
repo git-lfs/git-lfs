@@ -3,13 +3,13 @@ package lfsapi
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -43,16 +43,8 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 
 	var hs []CredentialHelper
 	if len(ccfg.AskPass) > 0 {
-		parts := tools.QuotedFields(ccfg.AskPass)
-		if len(parts) < 1 {
-			return nil, errors.Errorf(
-				"lfsapi/creds: invalid ASKPASS: %q",
-				ccfg.AskPass)
-		}
-
 		hs = append(hs, &AskPassCredentialHelper{
-			Program: parts[0],
-			Args:    parts[1:],
+			Program: ccfg.AskPass,
 		})
 	}
 
@@ -144,13 +136,6 @@ func (h CredentialHelpers) Approve(what Creds) error {
 type AskPassCredentialHelper struct {
 	// Program is the executable program's absolute or relative name.
 	Program string
-	// Args are the arguments given to the program.
-	Args []string
-
-	// Prompt is an optional prompt appended to the end of the program's
-	// arguments, if given. This is implemented for consistency with the Git
-	// documentation.
-	Prompt string
 }
 
 // Fill implements fill by running the ASKPASS program and returning its output
@@ -162,15 +147,24 @@ type AskPassCredentialHelper struct {
 // If there was an error running the command, it is returned instead of a set of
 // filled credentials.
 func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
+	var user bytes.Buffer
 	var pass bytes.Buffer
 	var err bytes.Buffer
 
-	cmd := exec.Command(a.Program, a.args()...)
-	cmd.Stderr = &err
-	cmd.Stdout = &pass
+	u := &url.URL{
+		Scheme: what["protocol"],
+		Host:   what["host"],
+		Path:   what["path"],
+	}
 
-	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(cmd.Args, " "))
-	if err := cmd.Run(); err != nil {
+	// 'ucmd' will run the GIT_ASKPASS (or core.askpass) command prompting
+	// for a username.
+	ucmd := exec.Command(a.Program, a.args(fmt.Sprintf("Username for %q", u))...)
+	ucmd.Stderr = &err
+	ucmd.Stdout = &user
+
+	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(ucmd.Args, " "))
+	if err := ucmd.Run(); err != nil {
 		return nil, err
 	}
 
@@ -178,7 +172,31 @@ func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
 		return nil, errors.New(err.String())
 	}
 
+	if username := strings.TrimSpace(user.String()); len(username) > 0 {
+		// If a non-empty username was given, add it to the URL via func
+		// 'net/url.User()'.
+		u.User = url.User(username)
+	}
+
+	// Regardless, create 'pcmd' to run the GIT_ASKPASS (or core.askpass)
+	// command prompting for a password.
+	pcmd := exec.Command(a.Program, a.args(fmt.Sprintf("Password for %q", u))...)
+	pcmd.Stderr = &err
+	pcmd.Stdout = &pass
+
+	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(pcmd.Args, " "))
+	if err := pcmd.Run(); err != nil {
+		return nil, err
+	}
+
+	if err.Len() > 0 {
+		return nil, errors.New(err.String())
+	}
+
+	// Finally, now that we have the username and password information,
+	// store it in the creds instance that we will return to the caller.
 	creds := make(Creds)
+	creds["username"] = strings.TrimSpace(user.String())
 	creds["password"] = pass.String()
 
 	return creds, nil
@@ -192,17 +210,16 @@ func (a *AskPassCredentialHelper) Approve(_ Creds) error { return nil }
 // credential helper does not implement credential rejection.
 func (a *AskPassCredentialHelper) Reject(_ Creds) error { return nil }
 
-// args returns the arguments given to the ASKPASS program. If a prompt (see:
-// "Prompt string") is given, it is appended as the final argument. Otherwise,
-// the arguments are passed to the program as is.
+// args returns the arguments given to the ASKPASS program, if a prompt was
+// given.
 
 // See: https://git-scm.com/docs/gitcredentials#_requesting_credentials for
 // more.
-func (a *AskPassCredentialHelper) args() []string {
-	if len(a.Prompt) == 0 {
-		return a.Args
+func (a *AskPassCredentialHelper) args(prompt string) []string {
+	if len(prompt) == 0 {
+		return nil
 	}
-	return append(a.Args, a.Prompt)
+	return []string{prompt}
 }
 
 type CredentialHelper interface {
