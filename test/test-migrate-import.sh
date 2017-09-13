@@ -324,6 +324,21 @@ begin_test "migrate import (bare repository)"
 )
 end_test
 
+begin_test "migrate import (nested sub-trees, no filter)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  oid="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+  size="$(git cat-file -p :foo/bar/baz/a.txt | wc -c | awk '{ print $1 }')"
+
+  git lfs migrate import --everything
+
+  assert_local_object "$oid" "$size"
+)
+end_test
+
 begin_test "migrate import (prefix include(s))"
 (
   set -e
