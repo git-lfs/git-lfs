@@ -40,6 +40,9 @@ func (m *Manifest) ConcurrentTransfers() int {
 }
 
 func (m *Manifest) batchClient() *tqClient {
+	if r := m.MaxRetries(); r > 0 {
+		m.tqClient.MaxRetries = r
+	}
 	return m.tqClient
 }
 

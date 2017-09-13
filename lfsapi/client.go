@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -122,10 +124,36 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		return nil, err
 	}
 
-	res, err := cli.Do(req)
+	var retries int
+	if n, ok := Retries(req); ok {
+		retries = n
+	} else {
+		retries = defaultRequestRetries
+	}
+
+	var res *http.Response
+
+	requests := tools.MaxInt(0, retries) + 1
+	for i := 0; i < requests; i++ {
+		res, err = cli.Do(req)
+		if err == nil {
+			break
+		}
+
+		if seek, ok := req.Body.(io.Seeker); ok {
+			seek.Seek(0, io.SeekStart)
+		}
+
+		c.traceResponse(req, tracedReq, nil)
+	}
+
 	if err != nil {
 		c.traceResponse(req, tracedReq, nil)
-		return res, err
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, nil
 	}
 
 	c.traceResponse(req, tracedReq, res)
@@ -304,6 +332,10 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	// lfsapi.Client.traceRequest().
 	newReq.Body = req.Body
 	newReq.ContentLength = req.ContentLength
+
+	// Copy the request's context.Context, if any.
+	newReq = newReq.WithContext(req.Context())
+
 	return newReq, nil
 }
 
