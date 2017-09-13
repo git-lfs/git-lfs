@@ -80,6 +80,10 @@ L:
 			}
 		}
 
+		if len(f.include) == 0 {
+			return true
+		}
+
 		for _, p := range f.include {
 			if p.HasPrefix(prefix) {
 				return true
