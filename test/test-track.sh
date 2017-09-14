@@ -488,3 +488,25 @@ begin_test "track (symlinked repository)"
   popd > /dev/null
 )
 end_test
+
+begin_test "track (\$GIT_LFS_TRACK_NO_INSTALL_HOOKS)"
+(
+  set -e
+
+  reponame="track-no-setup-hooks"
+  git init "$reponame"
+  cd "$reponame"
+
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-commit ]
+  [ ! -f .git/hooks/post-merge ]
+
+  GIT_LFS_TRACK_NO_INSTALL_HOOKS=1 git lfs track
+
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-commit ]
+  [ ! -f .git/hooks/post-merge ]
+)
+end_test
