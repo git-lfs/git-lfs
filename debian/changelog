@@ -1,3 +1,15 @@
+git-lfs (2.3.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Taylor Blau <me@ttaylorr.com>  Thu, 14 Sep 2017 14:29:00 +0000
+
+git-lfs (2.2.1) stable; urgency=low
+
+  * New upstream version
+
+ -- Taylor Blau <me@ttaylorr.com>  Mon, 10 Jul 2017 14:29:00 +0000
+
 git-lfs (2.2.0) stable; urgency=low
 
   * New upstream version
