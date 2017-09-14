@@ -42,7 +42,9 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		os.Exit(128)
 	}
 
-	lfs.InstallHooks(false)
+	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
+		lfs.InstallHooks(false)
+	}
 
 	if len(args) == 0 {
 		listPatterns()
