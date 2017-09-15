@@ -1,7 +1,17 @@
 #define MyAppName "Git LFS"
 
+#define PathToX86Binary "..\..\git-lfs-x86.exe"
+#ifnexist PathToX86Binary
+  #pragma error PathToX86Binary + " does not exist, please build it first."
+#endif
+
+#define PathToX64Binary "..\..\git-lfs-x64.exe"
+#ifnexist PathToX64Binary
+  #pragma error PathToX64Binary + " does not exist, please build it first."
+#endif
+
 ; Arbitrarily choose the x86 executable here as both have the version embedded.
-#define MyVersionInfoVersion GetFileVersion("..\..\git-lfs-x86.exe")
+#define MyVersionInfoVersion GetFileVersion(PathToX86Binary)
 
 ; Misuse RemoveFileExt to strip the 4th patch-level version number.
 #define MyAppVersion RemoveFileExt(MyVersionInfoVersion)
@@ -48,8 +58,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Filename: "{code:GetExistingGitInstallation}\git-lfs-uninstaller.exe"; Parameters: "/S"; Flags: skipifdoesntexist
 
 [Files]
-Source: ..\..\git-lfs-x64.exe; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: Is64BitInstallMode
-Source: ..\..\git-lfs-x86.exe; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: not Is64BitInstallMode
+Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: not Is64BitInstallMode
+Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: Is64BitInstallMode
 
 [Registry]
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: IsAdminLoggedOn and NeedsAddPath('{app}')
