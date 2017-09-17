@@ -62,12 +62,15 @@ type customAdapterWorkerContext struct {
 type customAdapterInitRequest struct {
 	Event               string `json:"event"`
 	Operation           string `json:"operation"`
+	Remote              string `json:"remote"`
 	Concurrent          bool   `json:"concurrent"`
 	ConcurrentTransfers int    `json:"concurrenttransfers"`
 }
 
-func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers int) *customAdapterInitRequest {
-	return &customAdapterInitRequest{"init", op, concurrent, concurrentTransfers}
+func NewCustomAdapterInitRequest(
+	op string, remote string, concurrent bool, concurrentTransfers int,
+) *customAdapterInitRequest {
+	return &customAdapterInitRequest{"init", op, remote, concurrent, concurrentTransfers}
 }
 
 type customAdapterTransferRequest struct {
@@ -146,7 +149,9 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	ctx := &customAdapterWorkerContext{workerNum, cmd, outp, bufio.NewReader(outp), inp, tracer}
 
 	// send initiate message
-	initReq := NewCustomAdapterInitRequest(a.getOperationName(), a.concurrent, a.originalConcurrency)
+	initReq := NewCustomAdapterInitRequest(
+		a.getOperationName(), a.remote, a.concurrent, a.originalConcurrency,
+	)
 	resp, err := a.exchangeMessage(ctx, initReq)
 	if err != nil {
 		a.abortWorkerProcess(ctx)

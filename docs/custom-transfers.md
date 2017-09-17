@@ -118,11 +118,14 @@ the configuration.
 The message will look like this:
 
 ```json
-{ "event": "init", "operation": "download", "concurrent": true, "concurrenttransfers": 3 }
+{ "event": "init", "operation": "download", "remote": "origin", "concurrent": true, "concurrenttransfers": 3 }
 ```
 
 * `event`: Always `init` to identify this message
 * `operation`: will be `upload` or `download` depending on transfer direction
+* `remote`: The Git remote.  It can be a remote name like `origin` or an URL
+  like `ssh://git.example.com//path/to/repo`.  A standalone transfer agent can
+  use it to determine the location of remote files.
 * `concurrent`: reflects the value of `lfs.customtransfer.<name>.concurrent`, in
   case the process needs to know
 * `concurrenttransfers`: reflects the value of `lfs.concurrenttransfers`, for if
