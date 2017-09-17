@@ -57,6 +57,12 @@ func NewManifest() *Manifest {
 }
 
 func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
+	return NewManifestClientOperationRemote(apiClient, "", "")
+}
+
+func NewManifestClientOperationRemote(
+	apiClient *lfsapi.Client, operation, remote string,
+) *Manifest {
 	m := &Manifest{
 		apiClient:            apiClient,
 		tqClient:             &tqClient{Client: apiClient},

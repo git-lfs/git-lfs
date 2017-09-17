@@ -95,7 +95,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 
 	ctx := &uploadContext{
 		Remote:         remote,
-		Manifest:       getTransferManifest(),
+		Manifest:       getTransferManifestOperationRemote("upload", remote),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
 		ourLocks:       make(map[string]locking.Lock),
