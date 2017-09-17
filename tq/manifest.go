@@ -3,6 +3,7 @@ package tq
 import (
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
@@ -83,7 +84,9 @@ func NewManifestClientOperationRemote(
 			m.concurrentTransfers = v
 		}
 		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
-		m.standaloneTransferAgent, _ = git.Get("lfs.standalonetransferagent")
+		m.standaloneTransferAgent = findStandaloneTransfer(
+			apiClient, operation, remote,
+		)
 		tusAllowed = git.Bool("lfs.tustransfers", false)
 		configureCustomAdapters(git, m)
 	}
@@ -102,6 +105,22 @@ func NewManifestClientOperationRemote(
 		configureTusAdapter(m)
 	}
 	return m
+}
+
+func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) string {
+	if operation == "" || remote == "" {
+		v, _ := client.GitEnv().Get("lfs.standalonetransferagent")
+		return v
+	}
+
+	ep := client.Endpoints.RemoteEndpoint(operation, remote)
+	uc := config.NewURLConfig(client.GitEnv())
+	v, ok := uc.Get("lfs", ep.Url, "standalonetransferagent")
+	if !ok {
+		return ""
+	}
+
+	return v
 }
 
 // GetAdapterNames returns a list of the names of adapters available to be created

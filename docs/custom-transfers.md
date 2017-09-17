@@ -28,12 +28,16 @@ the transfers should be made, without having to query the API server.
 In this case it's possible to use the custom transfer agent directly,
 without querying the server, by using the following config option:
 
-* `lfs.standalonetransferagent`
+* `lfs.standalonetransferagent`, `lfs.<url>.standalonetransferagent`
 
-  Allows the specified custom transfer agent to be used directly
-  for transferring files, without asking the server how the transfers
-  should be made. The custom transfer agent has to be defined in a
-  `lfs.customtransfer.<name>` settings group.
+  Specifies a custom transfer agent to be used if the API server URL matches as
+  in `git config --get-urlmatch lfs.standalonetransferagent <apiurl>`.
+  `git-lfs` will not contact the API server.  It instead sets stage 2 transfer
+  actions to `null`.  `lfs.<url>.standalonetransferagent` can be used to
+  configure a custom transfer agent for individual remotes.
+  `lfs.standalonetransferagent` unconditionally configures a custom transfer
+  agent for all remotes.  The custom transfer agent must be specified in
+  a `lfs.customtransfer.<name>` settings group.
 
 ## Defining a Custom Transfer Type
 
@@ -171,7 +175,8 @@ like this:
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
   `href` will give the primary connection details, with `header` containing any
-  miscellaneous information needed.
+  miscellaneous information needed.  `action` is `null` for standalone transfer
+  agents.
 
 The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
@@ -210,7 +215,8 @@ like this:
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
   `href` will give the primary connection details, with `header` containing any
-  miscellaneous information needed.
+  miscellaneous information needed.  `action` is `null` for standalone transfer
+  agents.
 
 Note there is no file path included in the download request; the transfer
 process should create a file itself and return the path in the final response
