@@ -168,7 +168,7 @@ The same flags will work in `import` mode:
 $ git lfs migrate import --include-ref=master --include="*.zip"
 
 # Convert all zip files in every local branch
-$ git lfs migrate info --everything --include="*.zip"
+$ git lfs migrate import --everything --include="*.zip"
 ```
 
 Note: This will require a force push to any existing Git remotes.
