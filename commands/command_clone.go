@@ -93,7 +93,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		if cloneFlags.NoCheckout || cloneFlags.Bare {
 			// If --no-checkout or --bare then we shouldn't check out, just fetch instead
 			cfg.CurrentRemote = remote
-			fetchRef("HEAD", filter)
+			fetchRef(ref.Name, filter)
 		} else {
 			pull(remote, filter)
 			err := postCloneSubmodules(args)
