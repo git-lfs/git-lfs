@@ -46,6 +46,8 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ExitWithError(err)
 	}
+	defer db.Close()
+
 	rewriter := getHistoryRewriter(cmd, db, l)
 
 	exts := make(map[string]*MigrateInfoEntry)

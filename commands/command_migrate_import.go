@@ -25,6 +25,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ExitWithError(err)
 	}
+	defer db.Close()
+
 	rewriter := getHistoryRewriter(cmd, db, l)
 
 	tracked := trackedFromFilter(rewriter.Filter())
