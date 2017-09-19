@@ -26,6 +26,3 @@ import:
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 - package: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
-- package: golang.org/x/exp
-  subpackages:
-  - mmap
