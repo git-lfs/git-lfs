@@ -101,8 +101,6 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 				Exit("Error performing 'git lfs pull' for submodules: %v", err)
 			}
 		}
-	} else {
-		Print("Repository is unborn, unable to fetch any LFS assets")
 	}
 
 	if !cloneSkipRepoInstall {
