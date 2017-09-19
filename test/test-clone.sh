@@ -605,6 +605,5 @@ begin_test "clone bare empty repository"
     echo >&2 "fatal: expected clone to succeed ..."
     exit 1
   fi
-  exit 1
 )
 end_test
