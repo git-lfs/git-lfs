@@ -2,11 +2,10 @@ package pack
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
-
-	"golang.org/x/exp/mmap"
 )
 
 // Set allows access of objects stored across a set of packfiles.
@@ -54,12 +53,12 @@ func NewSet(db string) (*Set, error) {
 
 		name := submatch[1]
 
-		packf, err := mmap.Open(filepath.Join(pd, fmt.Sprintf("pack-%s.pack", name)))
+		packf, err := os.Open(filepath.Join(pd, fmt.Sprintf("pack-%s.pack", name)))
 		if err != nil {
 			return nil, err
 		}
 
-		idxf, err := mmap.Open(filepath.Join(pd, fmt.Sprintf("pack-%s.idx", name)))
+		idxf, err := os.Open(filepath.Join(pd, fmt.Sprintf("pack-%s.idx", name)))
 		if err != nil {
 			return nil, err
 		}

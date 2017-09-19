@@ -8,8 +8,8 @@ type Chain interface {
 	// delta-base chain successively to itself.
 	//
 	// If there was an error in the delta-base resolution, i.e., the chain
-	// is malformed, has a bad instruction, or there was an mmap-related
-	// read error, this function is expected to return that error.
+	// is malformed, has a bad instruction, or there was a file read error, this
+	// function is expected to return that error.
 	//
 	// In the event that a non-nil error is returned, it is assumed that the
 	// unpacked data this function returns is malformed, or otherwise
