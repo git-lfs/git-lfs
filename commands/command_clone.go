@@ -85,9 +85,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		remote = "origin"
 	}
 
-	ref, err := git.CurrentRef()
-
-	if ref != nil {
+	if ref, err := git.CurrentRef(); err == nil {
 		includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 		filter := buildFilepathFilter(cfg, includeArg, excludeArg)
 		if cloneFlags.NoCheckout || cloneFlags.Bare {
