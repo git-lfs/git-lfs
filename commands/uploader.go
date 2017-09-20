@@ -108,6 +108,13 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 
+	// Do not check locks for standalone transfer, because there is no LFS
+	// server to ask.
+	if ctx.Manifest.IsStandaloneTransfer() {
+		ctx.lockVerifyState = verifyStateDisabled
+		return ctx
+	}
+
 	ourLocks, theirLocks, verifyState := verifyLocks(remote)
 	ctx.lockVerifyState = verifyState
 	for _, l := range theirLocks {
@@ -436,11 +443,6 @@ func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
 // given "endpoint". If no state has been explicitly set, an "unknown" state
 // will be returned instead.
 func getVerifyStateFor(endpoint lfsapi.Endpoint) verifyState {
-	if v, _ := cfg.Git.Get("lfs.standalonetransferagent"); len(v) > 0 {
-		// When using a standalone custom transfer agent there is no LFS server.
-		return verifyStateDisabled
-	}
-
 	uc := config.NewURLConfig(cfg.Git)
 
 	v, ok := uc.Get("lfs", endpoint.Url, "locksverify")

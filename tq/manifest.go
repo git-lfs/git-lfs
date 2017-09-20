@@ -39,6 +39,10 @@ func (m *Manifest) ConcurrentTransfers() int {
 	return m.concurrentTransfers
 }
 
+func (m *Manifest) IsStandaloneTransfer() bool {
+	return m.standaloneTransferAgent != ""
+}
+
 func (m *Manifest) batchClient() *tqClient {
 	if r := m.MaxRetries(); r > 0 {
 		m.tqClient.MaxRetries = r
