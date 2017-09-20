@@ -26,10 +26,15 @@ type Packfile struct {
 // Close closes the packfile if the underlying data stream is closeable. If so,
 // it returns any error involved in closing.
 func (p *Packfile) Close() error {
+	var iErr error
+	if p.idx != nil {
+		iErr = p.idx.Close()
+	}
+
 	if close, ok := p.r.(io.Closer); ok {
 		return close.Close()
 	}
-	return nil
+	return iErr
 }
 
 // Object returns a reference to an object packed in the receiving *Packfile. It
