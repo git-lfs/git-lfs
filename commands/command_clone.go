@@ -85,17 +85,19 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		remote = "origin"
 	}
 
-	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
-	if cloneFlags.NoCheckout || cloneFlags.Bare {
-		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		cfg.CurrentRemote = remote
-		fetchRef("HEAD", filter)
-	} else {
-		pull(remote, filter)
-		err := postCloneSubmodules(args)
-		if err != nil {
-			Exit("Error performing 'git lfs pull' for submodules: %v", err)
+	if ref, err := git.CurrentRef(); err == nil {
+		includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+		filter := buildFilepathFilter(cfg, includeArg, excludeArg)
+		if cloneFlags.NoCheckout || cloneFlags.Bare {
+			// If --no-checkout or --bare then we shouldn't check out, just fetch instead
+			cfg.CurrentRemote = remote
+			fetchRef(ref.Name, filter)
+		} else {
+			pull(remote, filter)
+			err := postCloneSubmodules(args)
+			if err != nil {
+				Exit("Error performing 'git lfs pull' for submodules: %v", err)
+			}
 		}
 	}
 

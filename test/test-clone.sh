@@ -575,3 +575,35 @@ begin_test "clone in current directory"
   popd
 )
 end_test
+
+begin_test "clone empty repository"
+(
+  set -e
+
+  reponame="clone_empty"
+  setup_remote_repo "$reponame"
+
+  cd "$TRASHDIR"
+  git lfs clone "$GITSERVER/$reponame" "$reponame" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+)
+end_test
+
+begin_test "clone bare empty repository"
+(
+  set -e
+
+  reponame="clone_bare_empty"
+  setup_remote_repo "$reponame"
+
+  cd "$TRASHDIR"
+  git lfs clone "$GITSERVER/$reponame" "$reponame" --bare 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+)
+end_test
