@@ -25,6 +25,7 @@ begin_test "askpass: push with GIT_ASKPASS"
 
   grep "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log
   grep "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log
+  grep "master -> master" push.log
 )
 end_test
 
@@ -60,5 +61,6 @@ begin_test "askpass: push with core.askPass"
 
   grep "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log
   grep "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log
+  grep "master -> master" push.log
 )
 end_test

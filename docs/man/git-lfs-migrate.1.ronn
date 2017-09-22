@@ -79,7 +79,8 @@ modified to include new filepath extensions as they are rewritten in history.
 
 You can configure Git LFS to only migrate tree entries whose pathspec matches
 the include glob and does not match the exclude glob, to reduce total migration
-time or to only migrate part of your repo.
+time or to only migrate part of your repo. Specify multiple patterns using the
+comma as the delimiter.
 
 Pattern matching is done as given to be functionally equivalent to pattern
 matching as in .gitattributes.
@@ -140,7 +141,7 @@ migrate: Examining commits: 100% (1/1), done
 Now, you can run `git lfs migrate import` to convert some file types to LFS:
 
 ```
-$ git lfs migrate import --include="*.mp3" --include="*.psd"
+$ git lfs migrate import --include="*.mp3,*.psd"
 migrate: Fetching remote refs: ..., done
 migrate: Sorting commits: ..., done
 migrate: Rewriting commits: 100% (1/1), done
@@ -167,7 +168,7 @@ The same flags will work in `import` mode:
 $ git lfs migrate import --include-ref=master --include="*.zip"
 
 # Convert all zip files in every local branch
-$ git lfs migrate info --everything --include="*.zip"
+$ git lfs migrate import --everything --include="*.zip"
 ```
 
 Note: This will require a force push to any existing Git remotes.
