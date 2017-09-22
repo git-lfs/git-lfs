@@ -24,11 +24,11 @@ begin_test "GIT_LFS_PROGRESS"
   cd ..
   GIT_LFS_PROGRESS="$TRASHDIR/progress.log" git lfs clone "$GITSERVER/$reponame" clone
   cat progress.log
-  grep "download 6/5" progress.log
-  grep "download 7/5" progress.log
-  grep "download 8/5" progress.log
-  grep "download 9/5" progress.log
-  grep "download 10/5" progress.log
+  grep "download 1/5" progress.log
+  grep "download 2/5" progress.log
+  grep "download 3/5" progress.log
+  grep "download 4/5" progress.log
+  grep "download 5/5" progress.log
 
   GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" clone2
   cd clone2
