@@ -22,4 +22,14 @@ type Update struct {
 	S string
 	// At is the time that this update was sent.
 	At time.Time
+
+	// Force determines if this update should not be throttled.
+	Force bool
+}
+
+// Throttled determines whether this update should be throttled, based on the
+// given earliest time of the next update. The caller should determine how often
+// updates should be throttled. An Update with Force=true is never throttled.
+func (u *Update) Throttled(next time.Time) bool {
+	return !(u.Force || u.At.After(next))
 }
