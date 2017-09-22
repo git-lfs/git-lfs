@@ -1,5 +1,5 @@
-hash: f5514f65f17e413de9f48c316520c5b7f99003befccd7b89e48bd458438ab969
-updated: 2017-08-10T17:19:03.014970877-06:00
+hash: 7ac0f055e06001b80cc9cfc40de07c103b3b59abec0f3be0fca7cce49b71eec7
+updated: 2017-09-19T15:38:52.833333079-06:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -31,10 +31,6 @@ imports:
   - ntlm/md4
 - name: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
-- name: golang.org/x/exp
-  version: be79676510e5ce293c77bb087cdab4796a461bdb
-  subpackages:
-  - mmap
 testImports:
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
@@ -45,6 +41,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/xeipuuv/gojsonpointer
-  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
+  version: 6fe8760cad3569743d51ddbb243b26f8456742dc
 - name: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45

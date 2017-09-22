@@ -31,6 +31,15 @@ func (i *Index) Count() int {
 	return int(i.fanout[255])
 }
 
+// Close closes the packfile index if the underlying data stream is closeable.
+// If so, it returns any error involved in closing.
+func (i *Index) Close() error {
+	if close, ok := i.r.(io.Closer); ok {
+		return close.Close()
+	}
+	return nil
+}
+
 var (
 	// errNotFound is an error returned by Index.Entry() (see: below) when
 	// an object cannot be found in the index.
