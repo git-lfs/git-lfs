@@ -33,6 +33,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	exts := tools.NewOrderedSet()
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
+		Verbose: migrateVerbose,
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil

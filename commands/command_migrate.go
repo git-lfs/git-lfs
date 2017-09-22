@@ -24,6 +24,9 @@ var (
 	// migrateEverything indicates the presence of the --everything flag,
 	// and instructs 'git lfs migrate' to migrate all local references.
 	migrateEverything bool
+
+	// migrateVerbose enables verbose logging
+	migrateVerbose bool
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -76,6 +79,7 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *log.Logge
 		Exclude: exclude,
 
 		UpdateRefs: opts.UpdateRefs,
+		Verbose:    opts.Verbose,
 
 		BlobFn:         opts.BlobFn,
 		TreeCallbackFn: opts.TreeCallbackFn,
@@ -240,6 +244,7 @@ func init() {
 	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
 
 	importCmd := NewCommand("import", migrateImportCommand)
+	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
