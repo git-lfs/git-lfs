@@ -20,6 +20,7 @@ import (
 
 func migrateImportCommand(cmd *cobra.Command, args []string) {
 	l := log.NewLogger(os.Stderr)
+	defer l.Close()
 
 	db, err := getObjectDatabase()
 	if err != nil {

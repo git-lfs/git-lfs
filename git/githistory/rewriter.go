@@ -287,8 +287,6 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 	}
 
-	r.l.Close()
-
 	return tip, err
 }
 
