@@ -41,7 +41,6 @@ var (
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	l := log.NewLogger(os.Stderr)
-	defer l.Close()
 
 	db, err := getObjectDatabase()
 	if err != nil {
@@ -93,6 +92,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			return b, nil
 		},
 	})
+	l.Close()
 
 	entries := EntriesBySize(MapToEntries(exts))
 	entries = removeEmptyEntries(entries)
