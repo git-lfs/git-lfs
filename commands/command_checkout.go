@@ -16,8 +16,8 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 
 	var totalBytes int64
+	var pointers []*lfs.WrappedPointer
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	singleCheckout := newSingleCheckout()
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error: %s", err)
@@ -27,13 +27,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		totalBytes += p.Size
 		meter.Add(p.Size)
 		meter.StartTransfer(p.Name)
-
-		singleCheckout.Run(p)
-
-		// not strictly correct (parallel) but we don't have a callback & it's just local
-		// plus only 1 slot in channel so it'll block & be close
-		meter.TransferBytes("checkout", p.Name, p.Size, totalBytes, int(p.Size))
-		meter.FinishTransfer(p.Name)
+		pointers = append(pointers, p)
 	})
 
 	chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil)
@@ -41,9 +35,19 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
 	}
-
-	meter.Start()
 	chgitscanner.Close()
+
+	singleCheckout := newSingleCheckout()
+	meter.Start()
+	for _, p := range pointers {
+		singleCheckout.Run(p)
+
+		// not strictly correct (parallel) but we don't have a callback & it's just local
+		// plus only 1 slot in channel so it'll block & be close
+		meter.TransferBytes("checkout", p.Name, p.Size, totalBytes, int(p.Size))
+		meter.FinishTransfer(p.Name)
+	}
+
 	meter.Finish()
 	singleCheckout.Close()
 }
