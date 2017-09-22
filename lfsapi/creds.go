@@ -197,7 +197,7 @@ func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
 	// store it in the creds instance that we will return to the caller.
 	creds := make(Creds)
 	creds["username"] = strings.TrimSpace(user.String())
-	creds["password"] = pass.String()
+	creds["password"] = strings.TrimSpace(pass.String())
 
 	return creds, nil
 }
