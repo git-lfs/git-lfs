@@ -52,6 +52,9 @@ type RewriteOptions struct {
 	// moved, and a reflog entry will be created.
 	UpdateRefs bool
 
+	// Verbose mode prints migrated objects.
+	Verbose bool
+
 	// BlobFn specifies a function to rewrite blobs.
 	//
 	// It is called once per unique, unchanged path. That is to say, if
@@ -174,11 +177,16 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	var p *log.PercentageTask
+	var perc *log.PercentageTask
 	if opt.UpdateRefs {
-		p = r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+		perc = r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
 	} else {
-		p = r.l.Percentage("migrate: Examining commits", uint64(len(commits)))
+		perc = r.l.Percentage("migrate: Examining commits", uint64(len(commits)))
+	}
+
+	var vPerc *log.PercentageTask
+	if opt.Verbose {
+		vPerc = perc
 	}
 
 	// Keep track of the last commit that we rewrote. Callers often want
@@ -193,7 +201,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, "", opt.blobFn(), opt.treeFn())
+		rewrittenTree, err := r.rewriteTree(oid, original.TreeID, "", opt.blobFn(), opt.treeFn(), vPerc)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +261,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		r.cacheCommit(oid, newSha)
 
 		// Increment the percentage displayed in the terminal.
-		p.Count(1)
+		perc.Count(1)
 
 		// Move the tip forward.
 		tip = newSha
@@ -279,8 +287,6 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 	}
 
-	r.l.Close()
-
 	return tip, err
 }
 
@@ -295,8 +301,8 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 //
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn) ([]byte, error) {
-	tree, err := r.db.Tree(sha)
+func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn, perc *log.PercentageTask) ([]byte, error) {
+	tree, err := r.db.Tree(treeOID)
 	if err != nil {
 		return nil, err
 	}
@@ -319,9 +325,9 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 
 		switch entry.Type() {
 		case odb.BlobObjectType:
-			oid, err = r.rewriteBlob(entry.Oid, path, fn)
+			oid, err = r.rewriteBlob(commitOID, entry.Oid, path, fn, perc)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(entry.Oid, path, fn, tfn)
+			oid, err = r.rewriteTree(commitOID, entry.Oid, path, fn, tfn, perc)
 		default:
 			oid = entry.Oid
 
@@ -343,7 +349,7 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 	}
 
 	if tree.Equal(rewritten) {
-		return sha, nil
+		return treeOID, nil
 	}
 	return r.db.WriteTree(rewritten)
 }
@@ -365,7 +371,7 @@ func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
 // database by the SHA1 "from" []byte. It writes and returns the new blob SHA,
 // or an error if either the BlobRewriteFn returned one, or if the object could
 // not be loaded/saved.
-func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]byte, error) {
+func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewriteFn, perc *log.PercentageTask) ([]byte, error) {
 	blob, err := r.db.Blob(from)
 	if err != nil {
 		return nil, err
@@ -391,6 +397,10 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 		// returned.
 		if err = blob.Close(); err != nil {
 			return nil, err
+		}
+
+		if perc != nil {
+			perc.Entry(fmt.Sprintf("migrate: commit %s: %s", hex.EncodeToString(commitOID), path))
 		}
 
 		return sha, nil

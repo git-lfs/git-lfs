@@ -66,7 +66,11 @@ The 'info' mode has these additional options:
 ### IMPORT
 
 The 'import' mode migrates large objects present in the Git history to pointer
-files tracked and stored with Git LFS.
+files tracked and stored with Git LFS. It supports all the core 'migrate'
+options and these additional ones:
+
+* `--verbose`
+    Print the commit oid and filename of migrated files to STDOUT.
 
 If `--include` or `--exclude` (`-I`, `-X`, respectively) are given, the
 .gitattributes will be modified to include any new filepath patterns as given by

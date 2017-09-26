@@ -20,6 +20,7 @@ import (
 
 func migrateImportCommand(cmd *cobra.Command, args []string) {
 	l := log.NewLogger(os.Stderr)
+	defer l.Close()
 
 	db, err := getObjectDatabase()
 	if err != nil {
@@ -33,6 +34,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	exts := tools.NewOrderedSet()
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
+		Verbose: migrateVerbose,
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
@@ -99,10 +101,14 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		UpdateRefs: true,
 	})
 
+	// Only perform `git-checkout(1) -f` if the repository is
+	// non-bare.
 	if bare, _ := git.IsBare(); !bare {
-		// Only perform `git-checkout(1) -f` if the repository is
-		// non-bare.
-		if err := git.Checkout("", nil, true); err != nil {
+		t := l.Waiter("migrate: checkout")
+		err := git.Checkout("", nil, true)
+		t.Complete()
+
+		if err != nil {
 			ExitWithError(err)
 		}
 	}

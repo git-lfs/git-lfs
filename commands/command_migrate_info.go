@@ -92,6 +92,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			return b, nil
 		},
 	})
+	l.Close()
 
 	entries := EntriesBySize(MapToEntries(exts))
 	entries = removeEmptyEntries(entries)
