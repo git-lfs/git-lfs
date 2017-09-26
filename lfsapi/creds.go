@@ -21,7 +21,7 @@ type credsConfig struct {
 	//
 	// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials
 	// for more.
-	AskPass string `os:"GIT_ASKPASS" git:"core.askpass"`
+	AskPass string `os:"GIT_ASKPASS" git:"core.askpass" os:"SSH_ASKPASS"`
 	// Cached is a boolean determining whether or not to enable the
 	// credential cacher.
 	Cached bool `git:"lfs.cachecredentials"`
