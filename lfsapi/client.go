@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,9 +20,12 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-var UserAgent = "git-lfs"
-
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
+
+var (
+	UserAgent = "git-lfs"
+	httpRE    = regexp.MustCompile(`\Ahttps?://`)
+)
 
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
 	sshRes, err := c.SSH.Resolve(e, method)
@@ -39,6 +43,11 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 	prefix := e.Url
 	if len(sshRes.Href) > 0 {
 		prefix = sshRes.Href
+	}
+
+	if !httpRE.MatchString(prefix) {
+		urlfragment := strings.SplitN(prefix, "?", 2)[0]
+		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
 	}
 
 	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)

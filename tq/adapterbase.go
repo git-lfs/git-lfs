@@ -3,6 +3,8 @@ package tq
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
@@ -185,7 +187,14 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 	a.workerWait.Done()
 }
 
+var httpRE = regexp.MustCompile(`\Ahttps?://`)
+
 func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
+	if !httpRE.MatchString(rel.Href) {
+		urlfragment := strings.SplitN(rel.Href, "?", 2)[0]
+		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
+	}
+
 	req, err := http.NewRequest(method, rel.Href, nil)
 	if err != nil {
 		return nil, err
