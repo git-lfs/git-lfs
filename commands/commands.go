@@ -36,7 +36,7 @@ var (
 	ManPages     = make(map[string]string, 20)
 	cfg          = config.Config
 
-	tqManifest *tq.Manifest
+	tqManifest = make(map[string]*tq.Manifest)
 	apiClient  *lfsapi.Client
 	global     sync.Mutex
 
@@ -47,16 +47,24 @@ var (
 // getTransferManifest builds a tq.Manifest from the global os and git
 // environments.
 func getTransferManifest() *tq.Manifest {
+	return getTransferManifestOperationRemote("", "")
+}
+
+// getTransferManifestOperationRemote builds a tq.Manifest from the global os
+// and git environments and operation-specific and remote-specific settings.
+// Operation must be "download", "upload", or the empty string.
+func getTransferManifestOperationRemote(operation, remote string) *tq.Manifest {
 	c := getAPIClient()
 
 	global.Lock()
 	defer global.Unlock()
 
-	if tqManifest == nil {
-		tqManifest = tq.NewManifestWithClient(c)
+	k := fmt.Sprintf("%s.%s", operation, remote)
+	if tqManifest[k] == nil {
+		tqManifest[k] = tq.NewManifestClientOperationRemote(c, operation, remote)
 	}
 
-	return tqManifest
+	return tqManifest[k]
 }
 
 func getAPIClient() *lfsapi.Client {

@@ -44,6 +44,7 @@ OutputDir=..\..\
 PrivilegesRequired=none
 SetupIconFile=git-lfs-logo.ico
 SolidCompression=yes
+UninstallDisplayIcon={app}\git-lfs.exe
 UsePreviousAppDir=no
 VersionInfoVersion={#MyVersionInfoVersion}
 WizardImageFile=git-lfs-wizard-image.bmp
