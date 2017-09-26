@@ -20,11 +20,12 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-var UserAgent = "git-lfs"
-
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 
-var httpRE = regexp.MustCompile(`\Ahttps?://`)
+var (
+	UserAgent = "git-lfs"
+	httpRE    = regexp.MustCompile(`\Ahttps?://`)
+)
 
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
 	sshRes, err := c.SSH.Resolve(e, method)
