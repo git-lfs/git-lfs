@@ -68,7 +68,6 @@ func pull(remote string, filter *filepathfilter.Filter) {
 		}
 
 		meter.Add(p.Size)
-		meter.StartTransfer(p.Name)
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 		pointers.Add(p)
 		q.Add(downloadTransfer(p))
