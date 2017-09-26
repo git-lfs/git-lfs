@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"math"
 	"sync/atomic"
 	"time"
 )
@@ -52,7 +53,7 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 
 	u := &Update{
 		S: fmt.Sprintf("%s: %3.f%% (%d/%d)",
-			c.msg, percentage, new, c.total),
+			c.msg, math.Floor(percentage), new, c.total),
 		At: time.Now(),
 	}
 
@@ -68,6 +69,15 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 	}
 
 	return new
+}
+
+// Entry logs a line-delimited task entry.
+func (t *PercentageTask) Entry(update string) {
+	t.ch <- &Update{
+		S:     fmt.Sprintf("%s\n", update),
+		At:    time.Now(),
+		Force: true,
+	}
 }
 
 // Updates implements Task.Updates and returns a channel which is written to

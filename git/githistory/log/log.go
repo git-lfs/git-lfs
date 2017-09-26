@@ -198,7 +198,7 @@ func (l *Logger) logTask(task Task) {
 
 	var update *Update
 	for update = range task.Updates() {
-		if logAll || l.throttle == 0 || update.At.After(last.Add(l.throttle)) {
+		if logAll || l.throttle == 0 || !update.Throttled(last.Add(l.throttle)) {
 			l.logLine(update.S)
 			last = update.At
 		}
