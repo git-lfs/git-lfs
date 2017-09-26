@@ -46,7 +46,8 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 	}
 
 	if !httpRE.MatchString(prefix) {
-		return nil, fmt.Errorf("missing protocol: %q", prefix)
+		urlfragment := strings.SplitN(prefix, "?", 2)[0]
+		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
 	}
 
 	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
@@ -190,7 +191,8 @@ var httpRE = regexp.MustCompile(`\Ahttps?://`)
 
 func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
 	if !httpRE.MatchString(rel.Href) {
-		return nil, fmt.Errorf("missing protocol: %q", rel.Href)
+		urlfragment := strings.SplitN(rel.Href, "?", 2)[0]
+		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
 	}
 
 	req, err := http.NewRequest(method, rel.Href, nil)
