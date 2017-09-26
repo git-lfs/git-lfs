@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,8 @@ import (
 var UserAgent = "git-lfs"
 
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
+
+var httpRE = regexp.MustCompile(`\Ahttps?://`)
 
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
 	sshRes, err := c.SSH.Resolve(e, method)
@@ -39,6 +42,10 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 	prefix := e.Url
 	if len(sshRes.Href) > 0 {
 		prefix = sshRes.Href
+	}
+
+	if !httpRE.MatchString(prefix) {
+		return nil, fmt.Errorf("missing protocol: %q", prefix)
 	}
 
 	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)
