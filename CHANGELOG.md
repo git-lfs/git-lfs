@@ -1,5 +1,29 @@
 # Git LFS Changelog
 
+## 2.3.1 (27 September, 2017)
+
+### Features
+
+* add support for SSH_ASKPASS #2609 (@technoweenie)
+* `git lfs migrate --verbose` option #2610 (@technoweenie)
+* Support standalone custom transfer based on API URL prefix match #2590 (@sprohaska)
+
+### Bugs
+
+* Improve invalid URL error messages #2614 (@technoweenie)
+* Fix double counting progress bug #2608 (@technoweenie)
+* trim whitespace from GIT_ASKPASS provided passwords #2607 (@technoweenie)
+* remove mmap usage in Packfile reader #2600 (@technoweenie)
+* `git lfs clone`: don't fetch for unborn repositories #2598 (@shiftkey)
+
+### Misc
+
+* Windows Installer fixes:
+  * Show proper icon in add/remove programs list #2585 (@shiftkey)
+  * Make the Inno Setup installer script explicitly check for the binaries #2588 (@sschuberth)
+  * Improve compile-win-installer-unsigned.bat a bit #2586 (@sschuberth)
+* Update migrate docs example for multiple file types #2596 (@technoweenie)
+
 ## 2.3.0 (14 September, 2017)
 
 Git LFS v2.3.0 includes performance optimizations for the `git-lfs-migrate(1)`
