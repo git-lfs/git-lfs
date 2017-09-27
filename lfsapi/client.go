@@ -97,12 +97,17 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) extraHeadersFor(req *http.Request) http.Header {
+	extraHeaders := c.extraHeaders(req.URL)
+	if len(extraHeaders) == 0 {
+		return req.Header
+	}
+
 	copy := make(http.Header, len(req.Header))
 	for k, vs := range req.Header {
 		copy[k] = vs
 	}
 
-	for k, vs := range c.extraHeaders(req.URL) {
+	for k, vs := range extraHeaders {
 		for _, v := range vs {
 			copy[k] = append(copy[k], v)
 		}
