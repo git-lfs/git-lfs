@@ -11,7 +11,7 @@ import:
 - package: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - package: github.com/rubyist/tracerx
-  version: d7bcc0bc315bed2a841841bee5dbecc8d7d7582f
+  version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - package: github.com/spf13/cobra
   version: c55cdf33856a08e4822738728b41783292812889
 - package: github.com/spf13/pflag
