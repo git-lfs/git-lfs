@@ -108,6 +108,51 @@ begin_test "pull"
 )
 end_test
 
+begin_test "pull without clean filter"
+(
+  set -e
+
+  GIT_LFS_SKIP_SMUDGE=1 git clone $GITSERVER/test-pull no-clean
+  cd no-clean
+  git lfs uninstall
+  git config --list > config.txt
+  grep "filter.lfs.clean" config.txt && {
+    echo "clean filter still configured:"
+    cat config.txt
+    exit 1
+  }
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  # LFS object not downloaded, pointer in working directory
+  grep "$contents_oid" a.dat || {
+    echo "a.dat not $contents_oid"
+    ls -al
+    cat a.dat
+    exit 1
+  }
+  assert_local_object "$contents_oid"
+
+  git lfs pull | tee pull.txt
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep "Git LFS is not installed" pull.txt
+  echo "pulled!"
+
+  # LFS object downloaded, pointer unchanged
+  grep "$contents_oid" a.dat || {
+    echo "a.dat not $contents_oid"
+    ls -al
+    cat a.dat
+    exit 1
+  }
+  assert_local_object "$contents_oid" 1
+)
+end_test
+
 begin_test "pull with raw remote url"
 (
   set -e
