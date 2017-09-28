@@ -2,6 +2,34 @@
 
 . "test/testlib.sh"
 
+begin_test "askpass: push with invalid GIT_ASKPASS"
+(
+  set -e
+
+  reponame="askpass-with-git-environ"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "hello" > a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  # $password is defined from test/cmd/lfstest-gitserver.go (see: skipIfBadAuth)
+  export LFS_ASKPASS_USERNAME="user"
+  export LFS_ASKPASS_PASSWORD="pass"
+  GIT_ASKPASS="nobody-belongs-anywhere" SSH_ASKPASS="dont-call-me" GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+
+  GITSERVER_USER="$(printf $GITSERVER | sed -e 's/http:\/\//http:\/\/user@/')"
+
+  grep "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log
+  grep "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log
+  grep "master -> master" push.log
+)
+end_test
+exit 0
+
 begin_test "askpass: push with GIT_ASKPASS"
 (
   set -e
