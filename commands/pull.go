@@ -20,12 +20,10 @@ import (
 func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckout {
 	manifest := getTransferManifestOperationRemote("download", remote)
 
-	//
 	clean, ok := gitEnv.Get("filter.lfs.clean")
 	if !ok || len(clean) == 0 {
 		return &noOpCheckout{manifest: manifest}
 	}
-	// */
 
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
