@@ -93,7 +93,9 @@ begin_test "track directory"
   cd dir
   git init
 
-  git lfs track "foo bar/*"
+  git lfs track "foo bar\\*" | tee track.txt
+  [ "foo[[:space:]]bar/* filter=lfs diff=lfs merge=lfs -text" = "$(cat .gitattributes)" ]
+  [ "Tracking \"foo bar/*\"" = "$(cat track.txt)" ]
 
   mkdir "foo bar"
   echo "a" > "foo bar/a"
@@ -104,6 +106,7 @@ begin_test "track directory"
   assert_pointer "master" "foo bar/a" "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7" 2
   assert_pointer "master" "foo bar/b" "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f" 2
 )
+end_test
 
 begin_test "track without trailing linebreak"
 (
