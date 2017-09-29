@@ -64,9 +64,9 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		gitEnv = make(TestEnv)
 	}
 
-	netrc, err := ParseNetrc(osEnv)
+	netrc, netrcfile, err := ParseNetrc(osEnv)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
 	}
 
 	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
