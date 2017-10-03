@@ -1,5 +1,5 @@
-hash: 7ac0f055e06001b80cc9cfc40de07c103b3b59abec0f3be0fca7cce49b71eec7
-updated: 2017-09-19T15:38:52.833333079-06:00
+hash: e19b925b9eaca9a10a7742b4a4b1dc8047bff437584538dda59f4f10e69fa6ca
+updated: 2017-09-27T12:34:48.032089491-04:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -14,7 +14,7 @@ imports:
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/rubyist/tracerx
-  version: d7bcc0bc315bed2a841841bee5dbecc8d7d7582f
+  version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - name: github.com/spf13/cobra
   version: c55cdf33856a08e4822738728b41783292812889
 - name: github.com/spf13/pflag

@@ -97,7 +97,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %q", pattern)
+		Print("Tracking %q", unescapeTrackPattern(encodedArg))
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -261,7 +261,7 @@ var (
 )
 
 func escapeTrackPattern(unescaped string) string {
-	var escaped string = unescaped
+	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
 
 	for from, to := range trackEscapePatterns {
 		escaped = strings.Replace(escaped, from, to, -1)
