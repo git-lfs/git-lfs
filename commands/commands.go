@@ -81,6 +81,15 @@ func getAPIClient() *lfsapi.Client {
 	return apiClient
 }
 
+func closeAPIClient() error {
+	global.Lock()
+	defer global.Unlock()
+	if apiClient == nil {
+		return nil
+	}
+	return apiClient.Close()
+}
+
 func newLockClient(remote string) *locking.Client {
 	storageConfig := config.Config.StorageConfig()
 	lockClient, err := locking.NewClient(remote, getAPIClient())
