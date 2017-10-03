@@ -238,6 +238,14 @@ assert_hooks() {
   [ -x "$git_root/hooks/pre-push" ]
 }
 
+assert_clean_status() {
+  status="$(git status)"
+  echo "$status" | grep "working tree clean" || {
+    echo $status
+    git lfs status
+  }
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123 <version>
@@ -339,7 +347,6 @@ clone_repo_url() {
   echo "$out" > clone.log
   echo "$out"
 }
-
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
 # $dir under $TRASHDIR, using the SSL endpoint.

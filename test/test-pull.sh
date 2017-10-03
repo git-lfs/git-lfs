@@ -19,33 +19,42 @@ begin_test "pull"
   contents_oid=$(calc_oid "$contents")
   contents2="A"
   contents2_oid=$(calc_oid "$contents2")
+  contents3="dir"
+  contents3_oid=$(calc_oid "$contents3")
 
+  mkdir dir
+  echo "*.log" > .gitignore
   printf "$contents" > a.dat
   printf "$contents2" > á.dat
-  git add a.dat á.dat .gitattributes
+  printf "$contents3" > dir/dir.dat
+  git add .
   git commit -m "add files" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
-  grep "3 files changed" commit.log
+  grep "5 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
   ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
   assert_pointer "master" "á.dat" "$contents2_oid" 1
+  assert_pointer "master" "dir/dir.dat" "$contents3_oid" 3
 
   refute_server_object "$reponame" "$contents_oid"
   refute_server_object "$reponame" "$contents2_oid"
+  refute_server_object "$reponame" "$contents33oid"
 
   echo "initial push"
   git push origin master 2>&1 | tee push.log
-  grep "(2 of 2 files)" push.log
+  grep "(3 of 3 files)" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
   assert_server_object "$reponame" "$contents2_oid"
+  assert_server_object "$reponame" "$contents3_oid"
 
   # change to the clone's working directory
   cd ../clone
@@ -58,11 +67,12 @@ begin_test "pull"
 
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_clean_status
 
   echo "lfs pull"
-  rm a.dat á.dat
+  rm -r a.dat á.dat dir # removing files makes the status dirty
   rm -rf .git/lfs/objects
-  git lfs pull 2>&1 | grep "(2 of 2 files)"
+  git lfs pull 2>&1 | grep "(3 of 3 files)"
   ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
@@ -70,9 +80,9 @@ begin_test "pull"
   assert_local_object "$contents2_oid" 1
 
   echo "lfs pull with remote"
-  rm a.dat á.dat
+  rm -r a.dat á.dat dir
   rm -rf .git/lfs/objects
-  git lfs pull origin 2>&1 | grep "(2 of 2 files)"
+  git lfs pull origin 2>&1 | grep "(3 of 3 files)"
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
@@ -105,6 +115,27 @@ begin_test "pull"
   rm -rf .git/lfs/objects
   git lfs pull --exclude="a*"
   refute_local_object "$contents_oid"
+
+  echo "resetting to test status"
+  git reset --hard
+  assert_clean_status
+
+  echo "lfs pull clean status"
+  git lfs pull
+  assert_clean_status
+
+  echo "lfs pull with -I"
+  git lfs pull -I "*.dat"
+  assert_clean_status
+
+  echo "lfs pull in subdir"
+  cd dir
+  git lfs pull
+  assert_clean_status
+
+  echo "lfs pull in subdir with -I"
+  git lfs pull -I "*.dat"
+  assert_clean_status
 )
 end_test
 
