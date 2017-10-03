@@ -34,7 +34,7 @@ begin_test "unlocking a file makes it readonly"
 )
 end_test
 
-begin_test "unlocking a file makes ignores readonly"
+begin_test "unlocking a file ignores readonly"
 (
   set -e
 
@@ -99,15 +99,16 @@ begin_test "unlocking a lock by id"
   set -e
 
   reponame="unlock_by_id"
-  setup_remote_repo_with_file "unlock_by_id" "d.dat"
+  setup_remote_repo_with_file "$reponame" "d.dat"
 
   git lfs lock --json "d.dat" | tee lock.log
+  assert_file_writeable d.dat
 
   id=$(assert_lock lock.log d.dat)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock --id="$id"
-  refute_server_lock "$reponame" "$id"
+  refute_file_writeable d.dat
 )
 end_test
 
