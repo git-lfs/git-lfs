@@ -246,7 +246,7 @@ func (c *Client) httpClient(host string) *http.Client {
 		MaxIdleConnsPerHost: concurrentTransfers,
 	}
 
-	activityTimeout := 10
+	activityTimeout := 30
 	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
 		if i, err := strconv.Atoi(v); err == nil {
 			activityTimeout = i
