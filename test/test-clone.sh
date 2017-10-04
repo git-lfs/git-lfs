@@ -55,12 +55,14 @@ begin_test "clone"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 110 ]
-  [ $(wc -c < "file2.dat") -eq 75 ]
-  [ $(wc -c < "file3.dat") -eq 66 ]
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
+
   # Now check clone with implied dir
   rm -rf "$reponame"
   git lfs clone "$GITSERVER/$reponame" 2>&1 | tee lfsclone.log
@@ -71,12 +73,14 @@ begin_test "clone"
   [ ! $(grep "error" lfsclone.log) ]
   # clone location should be implied
   [ -d "$reponame" ]
+
   pushd "$reponame"
-  [ $(wc -c < "file1.dat") -eq 110 ]
-  [ $(wc -c < "file2.dat") -eq 75 ]
-  [ $(wc -c < "file3.dat") -eq 66 ]
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
 
 )
@@ -119,6 +123,7 @@ begin_test "cloneSSL"
 
   newclonedir="testcloneSSL1"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  #assert_clean_status
   grep "Cloning into" lfsclone.log
   grep "Git LFS:" lfsclone.log
   # should be no filter errors
@@ -188,10 +193,11 @@ begin_test "clone ClientCert"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 100 ]
-  [ $(wc -c < "file2.dat") -eq 75 ]
-  [ $(wc -c < "file3.dat") -eq 30 ]
-  assert_hooks "$(dot_git_dir)"
+    [ $(wc -c < "file1.dat") -eq 100 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 30 ]
+    assert_hooks "$(dot_git_dir)"
+    assert_clean_status
   popd
 
 
