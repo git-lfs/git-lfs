@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProxyFromGitConfig(t *testing.T) {
+func TestHttpsProxyFromGitConfig(t *testing.T) {
 	c, err := NewClient(UniqTestEnv(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
 	}), UniqTestEnv(map[string]string{
@@ -24,6 +24,21 @@ func TestProxyFromGitConfig(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestProxyForURL(t *testing.T) {
+	c, err := NewClient(nil, UniqTestEnv(map[string]string{
+		"http.proxy":                           "https://proxy-for-everyone:8080",
+		"http.https://some-host.com:123.proxy": "https://proxy-for-some-host:8080",
+	}))
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
+	require.Nil(t, err)
+
+	proxyURL, err := proxyFromClient(c)(req)
+	assert.Equal(t, "proxy-for-some-host:8080", proxyURL.Host)
+	assert.Nil(t, err)
+}
+
 func TestHttpProxyFromGitConfig(t *testing.T) {
 	c, err := NewClient(UniqTestEnv(map[string]string{
 		"HTTPS_PROXY": "https://proxy-from-env:8080",
@@ -32,11 +47,11 @@ func TestHttpProxyFromGitConfig(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
+	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
 	require.Nil(t, err)
 
 	proxyURL, err := proxyFromClient(c)(req)
-	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
+	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
 	assert.Nil(t, err)
 }
 
