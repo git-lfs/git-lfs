@@ -87,34 +87,40 @@ begin_test "pull"
   [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_clean_status
 
   echo "lfs pull with local storage"
   rm a.dat á.dat
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  assert_clean_status
 
   echo "lfs pull with include/exclude filters in gitconfig"
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "a*"
   git lfs pull
   assert_local_object "$contents_oid" 1
+  assert_clean_status
 
   rm -rf .git/lfs/objects
   git config --unset "lfs.fetchinclude"
   git config "lfs.fetchexclude" "a*"
   git lfs pull
   refute_local_object "$contents_oid"
+  assert_clean_status
 
   echo "lfs pull with include/exclude filters in command line"
   git config --unset "lfs.fetchexclude"
   rm -rf .git/lfs/objects
   git lfs pull --include="a*"
   assert_local_object "$contents_oid" 1
+  assert_clean_status
 
   rm -rf .git/lfs/objects
   git lfs pull --exclude="a*"
   refute_local_object "$contents_oid"
+  assert_clean_status
 
   echo "resetting to test status"
   git reset --hard
