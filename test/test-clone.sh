@@ -123,7 +123,7 @@ begin_test "cloneSSL"
 
   newclonedir="testcloneSSL1"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
-  #assert_clean_status
+  assert_clean_status
   grep "Cloning into" lfsclone.log
   grep "Git LFS:" lfsclone.log
   # should be no filter errors
