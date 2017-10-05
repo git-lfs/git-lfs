@@ -459,7 +459,7 @@ func DefaultRemote() (string, error) {
 }
 
 func UpdateIndexFromStdin() *subprocess.Cmd {
-	return gitNoLFS("update-index", "-q", "--refresh", "--stdin")
+	return git("update-index", "-q", "--refresh", "--stdin")
 }
 
 type gitConfig struct {
