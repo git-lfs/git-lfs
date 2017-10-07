@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	BuildOS      = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
-	BuildArch    = flag.String("arch", "", "Arch to target: 386, amd64")
+	BuildOS      = flag.String("os", "", "OS to target: darwin,freebsd,linux,windows")
+	BuildArch    = flag.String("arch", "", "Arch to target: 386,amd64")
 	BuildAll     = flag.Bool("all", false, "Builds all architectures")
 	BuildDwarf   = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
 	BuildLdFlags = flag.String("ldflags", "", "-ldflags to pass to the compiler")
@@ -64,19 +64,32 @@ func mainBuild() {
 	buildMatrix := make(map[string]Release)
 	errored := false
 
+	var platforms, arches []string
+	if len(*BuildOS) > 0 {
+		platforms = strings.Split(*BuildOS, ",")
+	}
+	if len(*BuildArch) > 0 {
+		arches = strings.Split(*BuildArch, ",")
+	}
 	if *BuildAll {
-		for _, buildos := range []string{"linux", "darwin", "freebsd", "windows"} {
-			for _, buildarch := range []string{"amd64", "386"} {
-				if err := build(buildos, buildarch, buildMatrix); err != nil {
-					errored = true
-				}
-			}
-		}
-	} else {
-		if err := build(*BuildOS, *BuildArch, buildMatrix); err != nil {
+		platforms = []string{"linux", "darwin", "freebsd", "windows"}
+		arches = []string{"amd64", "386"}
+	}
+
+	if len(platforms) < 1 || len(arches) < 1 {
+		if err := build("", "", buildMatrix); err != nil {
 			log.Fatalln(err)
 		}
 		return // skip build matrix stuff
+	}
+
+	for _, buildos := range platforms {
+		for _, buildarch := range arches {
+			err := build(strings.TrimSpace(buildos), strings.TrimSpace(buildarch), buildMatrix)
+			if err != nil {
+				errored = true
+			}
+		}
 	}
 
 	if errored {
