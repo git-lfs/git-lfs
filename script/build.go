@@ -154,7 +154,11 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	bin := filepath.Join(dir, "git-lfs")
 
-	if buildos == "windows" {
+	cmdOS := runtime.GOOS
+	if len(buildos) > 0 {
+		cmdOS = buildos
+	}
+	if cmdOS == "windows" {
 		bin = bin + ".exe"
 	}
 
