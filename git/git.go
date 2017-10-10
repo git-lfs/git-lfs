@@ -536,7 +536,7 @@ func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *gitConfig) SetLocal(file, key, val string, replaceAll bool) (string, error) {
-	args := make([]string, 1, 5)
+	args := make([]string, 1, 6)
 	args[0] = "config"
 	if replaceAll {
 		args = append(args, "--replace-all")
