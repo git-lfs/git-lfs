@@ -80,15 +80,15 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOpt
 		if opt.Local {
 			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetLocalKey("", key)
-			_, err = git.Config.SetLocal("", key, value, opt.Force)
+			_, err = git.Config.SetLocal("", key, value)
 		} else if opt.System {
 			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetSystem(key)
-			_, err = git.Config.SetSystem(key, value, opt.Force)
+			_, err = git.Config.SetSystem(key, value)
 		} else {
 			// ignore error for unset, git returns non-zero if missing
 			git.Config.UnsetGlobal(key)
-			_, err = git.Config.SetGlobal(key, value, opt.Force)
+			_, err = git.Config.SetGlobal(key, value)
 		}
 		return err
 	} else if currentValue != value {

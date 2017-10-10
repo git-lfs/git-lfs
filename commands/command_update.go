@@ -31,7 +31,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 		switch value {
 		case "basic":
 		case "private":
-			git.Config.SetLocal("", key, "basic", false)
+			git.Config.SetLocal("", key, "basic")
 			Print("Updated %s access from %s to %s.", matches[1], value, "basic")
 		default:
 			git.Config.UnsetLocalKey("", key)
