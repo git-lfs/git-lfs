@@ -217,7 +217,7 @@ func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
 		git.Config.UnsetLocalKey("", key)
 		e.urlAccess[accessurl] = NoneAccess
 	default:
-		git.Config.SetLocal("", key, string(access))
+		git.Config.SetLocal("", key, string(access), false)
 		e.urlAccess[accessurl] = access
 	}
 }

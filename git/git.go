@@ -494,12 +494,18 @@ func (c *gitConfig) FindLocal(val string) string {
 }
 
 // SetGlobal sets the git config value for the key in the global config
-func (c *gitConfig) SetGlobal(key, val string) (string, error) {
+func (c *gitConfig) SetGlobal(key, val string, replaceAll bool) (string, error) {
+	if replaceAll {
+		return gitSimple("config", "--global", "--replace-all", key, val)
+	}
 	return gitSimple("config", "--global", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
-func (c *gitConfig) SetSystem(key, val string) (string, error) {
+func (c *gitConfig) SetSystem(key, val string, replaceAll bool) (string, error) {
+	if replaceAll {
+		return gitSimple("config", "--system", "--replace-all", key, val)
+	}
 	return gitSimple("config", "--system", key, val)
 }
 
@@ -529,9 +535,13 @@ func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
 }
 
 // SetLocal sets the git config value for the key in the specified config file
-func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
+func (c *gitConfig) SetLocal(file, key, val string, replaceAll bool) (string, error) {
 	args := make([]string, 1, 5)
 	args[0] = "config"
+	if replaceAll {
+		args = append(args, "--replace-all")
+	}
+
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
