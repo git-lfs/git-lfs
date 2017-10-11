@@ -283,3 +283,15 @@ begin_test "install in repo without changing hooks"
   [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 )
 end_test
+
+
+begin_test "can install when multiple global values registered"
+(
+  set -e
+
+  git config --global filter.lfs.smudge "git-lfs smudge --something %f"
+  git config --global --add filter.lfs.smudge "git-lfs smudge --something-else %f"
+
+  git lfs install --force
+)
+end_test
