@@ -187,7 +187,7 @@ func fastWalkFromRoot(rootDir string, excludeFilename string,
 
 	// This waitgroup will be incremented for each nested goroutine
 	var waitg sync.WaitGroup
-	fastWalkFileOrDir(true, rootDir, "", dirFi, excludeFilename, excludePaths, fiChan, &waitg)
+	fastWalkFileOrDir(0, rootDir, "", dirFi, excludeFilename, excludePaths, fiChan, &waitg)
 	waitg.Wait()
 	close(fiChan)
 }
@@ -201,12 +201,12 @@ func fastWalkFromRoot(rootDir string, excludeFilename string,
 //
 // rootDir - Absolute path to the top of the repository working directory
 // workDir - Relative path inside the repository
-func fastWalkFileOrDir(isRoot bool, rootDir, workDir string, itemFi os.FileInfo, excludeFilename string,
+func fastWalkFileOrDir(depth int, rootDir, workDir string, itemFi os.FileInfo, excludeFilename string,
 	excludePaths []filepathfilter.Pattern, fiChan chan<- fastWalkInfo, waitg *sync.WaitGroup) {
 
 	var fullPath string      // Absolute path to the current file or dir
 	var parentWorkDir string // Absolute path to the workDir inside the repository
-	if isRoot {
+	if depth == 0 {
 		fullPath = rootDir
 	} else {
 		parentWorkDir = filepath.Join(rootDir, workDir)
@@ -226,7 +226,7 @@ func fastWalkFileOrDir(isRoot bool, rootDir, workDir string, itemFi os.FileInfo,
 	}
 
 	var childWorkDir string
-	if !isRoot {
+	if depth > 0 {
 		childWorkDir = filepath.Join(workDir, itemFi.Name())
 	}
 
@@ -253,15 +253,16 @@ func fastWalkFileOrDir(isRoot bool, rootDir, workDir string, itemFi os.FileInfo,
 	// The number of items in a dir we process in each goroutine
 	jobSize := 100
 
+	childDepth := depth + 1
 	for children, err := df.Readdir(jobSize); err == nil; children, err = df.Readdir(jobSize) {
 		// Parallelise all dirs, and chop large dirs into batches
 		waitg.Add(1)
-		go func(subitems []os.FileInfo) {
+		go func(depth int, subitems []os.FileInfo) {
 			for _, childFi := range subitems {
-				fastWalkFileOrDir(false, rootDir, childWorkDir, childFi, excludeFilename, excludePaths, fiChan, waitg)
+				fastWalkFileOrDir(depth, rootDir, childWorkDir, childFi, excludeFilename, excludePaths, fiChan, waitg)
 			}
 			waitg.Done()
-		}(children)
+		}(childDepth, children)
 
 	}
 	if err != nil && err != io.EOF {
