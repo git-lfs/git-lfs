@@ -28,6 +28,22 @@ var (
 		postMergeHook,
 	}
 
+	upgradeables = map[string][]string{
+		"clean": []string{"git-lfs clean %f"},
+		"smudge": []string{
+			"git-lfs smudge %f",
+			"git-lfs smudge --skip %f",
+			"git-lfs smudge -- %f",
+			"git-lfs smudge --skip -- %f",
+		},
+		"process": []string{
+			"git-lfs filter",
+			"git-lfs filter --skip",
+			"git-lfs filter-process",
+			"git-lfs filter-process --skip",
+		},
+	}
+
 	filters = &Attribute{
 		Section: "filter.lfs",
 		Properties: map[string]string{
@@ -36,11 +52,7 @@ var (
 			"process":  "git-lfs filter-process",
 			"required": "true",
 		},
-		Upgradeables: map[string][]string{
-			"clean":   []string{"git-lfs clean %f"},
-			"smudge":  []string{"git-lfs smudge %f"},
-			"process": []string{"git-lfs filter"},
-		},
+		Upgradeables: upgradeables,
 	}
 
 	passFilters = &Attribute{
@@ -51,11 +63,7 @@ var (
 			"process":  "git-lfs filter-process --skip",
 			"required": "true",
 		},
-		Upgradeables: map[string][]string{
-			"clean":   []string{"git-lfs clean %f"},
-			"smudge":  []string{"git-lfs smudge --skip %f"},
-			"process": []string{"git-lfs filter --skip"},
-		},
+		Upgradeables: upgradeables,
 	}
 )
 
