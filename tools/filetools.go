@@ -10,8 +10,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 )
@@ -177,9 +180,17 @@ func fastWalkWithExcludeFiles(rootDir, excludeFilename string) *fastWalker {
 		filepathfilter.NewPattern(filepath.Join("**", ".git")),
 	}
 
+	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))
+	if limit < 1 {
+		limit = runtime.GOMAXPROCS(-1) * 20
+	}
+
+	c := int32(0)
 	w := &fastWalker{
 		rootDir:         rootDir,
 		excludeFilename: excludeFilename,
+		limit:           int32(limit),
+		cur:             &c,
 		ch:              make(chan fastWalkInfo, 256),
 		wg:              &sync.WaitGroup{},
 	}
@@ -271,10 +282,18 @@ func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
 }
 
 func (w *fastWalker) walk(children []os.FileInfo, fn func([]os.FileInfo)) {
+	cur := atomic.AddInt32(w.cur, 1)
+	if cur > w.limit {
+		fn(children)
+		atomic.AddInt32(w.cur, -1)
+		return
+	}
+
 	w.wg.Add(1)
 	go func() {
 		fn(children)
 		w.wg.Done()
+		atomic.AddInt32(w.cur, -1)
 	}()
 }
 
