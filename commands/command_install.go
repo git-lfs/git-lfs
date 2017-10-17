@@ -25,8 +25,9 @@ func installCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if err := lfs.InstallFilters(opt, skipSmudgeInstall); err != nil {
-		Error(err.Error())
-		Exit("Run `git lfs install --force` to reset git config.")
+		Print("WARNING: %s", err.Error())
+		Print("Run `git lfs install --force` to reset git config.")
+		return
 	}
 
 	if !skipRepoInstall && (localInstall || lfs.InRepo()) {
