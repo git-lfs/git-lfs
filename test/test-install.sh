@@ -29,15 +29,10 @@ begin_test "install with old (non-upgradeable) settings"
   git config --global filter.lfs.smudge "git-lfs smudge --something %f"
   git config --global filter.lfs.clean "git-lfs clean --something %f"
 
-  set +e
-  git lfs install 2> install.log
-  res=$?
-  set -e
+  git lfs install | tee install.log
+  [ "${PIPESTATUS[0]}" = 0 ]
 
-  [ "$res" = 2 ]
-
-  cat install.log
-  grep -E "(clean|smudge) attribute should be" install.log
+  grep -E "(clean|smudge)\" attribute should be" install.log
   [ `grep -c "(MISSING)" install.log` = "0" ]
 
   [ "git-lfs smudge --something %f" = "$(git config --global filter.lfs.smudge)" ]
