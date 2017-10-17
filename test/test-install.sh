@@ -194,7 +194,7 @@ begin_test "install --skip-smudge"
   [ "git-lfs smudge --skip -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process --skip" = "$(git config --global filter.lfs.process)" ]
 
-  git lfs install --force
+  git lfs install
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
