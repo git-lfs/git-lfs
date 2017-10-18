@@ -39,7 +39,6 @@ func (c *Client) ensureLockablesLoaded() {
 // Internal function to repopulate lockable patterns
 // You must have locked the c.lockableMutex in the caller
 func (c *Client) refreshLockablePatterns() {
-
 	paths := git.GetAttributePaths(c.LocalWorkingDir, c.LocalGitDir)
 	// Always make non-nil even if empty
 	c.lockablePatterns = make([]string, 0, len(paths))

@@ -61,8 +61,10 @@ func (c *singleCheckout) Skip() bool {
 }
 
 func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
+	cwdfilepath := c.pathConverter.Convert(p.Name)
+
 	// Check the content - either missing or still this pointer (not exist is ok)
-	filepointer, err := lfs.DecodePointerFromFile(p.Name)
+	filepointer, err := lfs.DecodePointerFromFile(cwdfilepath)
 	if err != nil && !os.IsNotExist(err) {
 		if errors.IsNotAPointerError(err) {
 			// File has non-pointer content, leave it alone
@@ -78,8 +80,6 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		// while leaving it a pointer; don't mess with this
 		return
 	}
-
-	cwdfilepath := c.pathConverter.Convert(p.Name)
 
 	err = lfs.PointerSmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
 	if err != nil {

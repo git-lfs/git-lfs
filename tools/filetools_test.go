@@ -15,13 +15,11 @@ import (
 
 func TestCleanPathsCleansPaths(t *testing.T) {
 	cleaned := CleanPaths("/foo/bar/,/foo/bar/baz", ",")
-
 	assert.Equal(t, []string{"/foo/bar", "/foo/bar/baz"}, cleaned)
 }
 
 func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 	cleaned := CleanPaths("", ",")
-
 	assert.Empty(t, cleaned)
 }
 
@@ -35,15 +33,14 @@ func TestFastWalkBasic(t *testing.T) {
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	fchan := fastWalkWithExcludeFiles(expectedEntries[0], "", nil)
-	gotEntries, gotErrors := collectFastWalkResults(fchan)
+	walker := fastWalkWithExcludeFiles(expectedEntries[0], "")
+	gotEntries, gotErrors := collectFastWalkResults(walker.ch)
 
 	assert.Empty(t, gotErrors)
 
 	sort.Strings(expectedEntries)
 	sort.Strings(gotEntries)
 	assert.Equal(t, expectedEntries, gotEntries)
-
 }
 
 func BenchmarkFastWalkGitRepoChannels(b *testing.B) {
@@ -229,7 +226,6 @@ func getFileMode(filename string) os.FileMode {
 }
 
 func TestSetWriteFlag(t *testing.T) {
-
 	f, err := ioutil.TempFile("", "lfstestwriteflag")
 	assert.Nil(t, err)
 	filename := f.Name()
@@ -272,5 +268,4 @@ func TestSetWriteFlag(t *testing.T) {
 		// should only add back user write
 		assert.EqualValues(t, 0640, getFileMode(filename))
 	}
-
 }

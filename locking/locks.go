@@ -144,22 +144,7 @@ func (c *Client) UnlockFile(path string, force bool) error {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	err = c.UnlockFileById(id, force)
-	if err != nil {
-		return err
-	}
-
-	abs, err := getAbsolutePath(path)
-	if err != nil {
-		return errors.Wrap(err, "make lockpath absolute")
-	}
-
-	// Make non-writeable if required
-	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
-		return tools.SetFileWriteFlag(abs, false)
-	}
-	return nil
-
+	return c.UnlockFileById(id, force)
 }
 
 // UnlockFileById attempts to unlock a lock with a given id on the current remote
@@ -179,6 +164,18 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 
 	if err := c.cache.RemoveById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
+	}
+
+	if unlockRes.Lock != nil {
+		abs, err := getAbsolutePath(unlockRes.Lock.Path)
+		if err != nil {
+			return errors.Wrap(err, "make lockpath absolute")
+		}
+
+		// Make non-writeable if required
+		if c.SetLockableFilesReadOnly && c.IsFileLockable(unlockRes.Lock.Path) {
+			return tools.SetFileWriteFlag(abs, false)
+		}
 	}
 
 	return nil

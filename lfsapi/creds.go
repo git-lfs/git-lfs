@@ -22,9 +22,11 @@ type credsConfig struct {
 	// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials
 	// for more.
 	AskPass string `os:"GIT_ASKPASS" git:"core.askpass" os:"SSH_ASKPASS"`
+	// Helper is a string defining the credential helper that Git should use.
+	Helper string `git:"credential.helper"`
 	// Cached is a boolean determining whether or not to enable the
 	// credential cacher.
-	Cached bool `git:"lfs.cachecredentials"`
+	Cached bool
 	// SkipPrompt is a boolean determining whether or not to prompt the user
 	// for a password.
 	SkipPrompt bool `os:"GIT_TERMINAL_PROMPT"`
@@ -42,7 +44,7 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 	}
 
 	var hs []CredentialHelper
-	if len(ccfg.AskPass) > 0 {
+	if len(ccfg.Helper) == 0 && len(ccfg.AskPass) > 0 {
 		hs = append(hs, &AskPassCredentialHelper{
 			Program: ccfg.AskPass,
 		})
@@ -70,12 +72,15 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 // getCredentialConfig parses a *credsConfig given the OS and Git
 // configurations.
 func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
-	var what credsConfig
+	what := &credsConfig{
+		Cached: cfg.Git.Bool("lfs.cachecredentials", true),
+	}
 
-	if err := cfg.Unmarshal(&what); err != nil {
+	if err := cfg.Unmarshal(what); err != nil {
 		return nil, err
 	}
-	return &what, nil
+
+	return what, nil
 }
 
 // CredentialHelpers is a []CredentialHelper that iterates through each
@@ -118,7 +123,7 @@ func (h CredentialHelpers) Reject(what Creds) error {
 }
 
 // Approve implements CredentialHelper.Approve and approves the given Creds
-// "what" amongst all knonw CredentialHelpers. If any `CredentialHelper`s
+// "what" amongst all known CredentialHelpers. If any `CredentialHelper`s
 // returned a non-nil error, no further `CredentialHelper`s are notified, so as
 // to prevent inconsistent state.
 func (h CredentialHelpers) Approve(what Creds) error {

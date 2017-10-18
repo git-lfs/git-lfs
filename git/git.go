@@ -459,7 +459,7 @@ func DefaultRemote() (string, error) {
 }
 
 func UpdateIndexFromStdin() *subprocess.Cmd {
-	return gitNoLFS("update-index", "-q", "--refresh", "--stdin")
+	return git("update-index", "-q", "--refresh", "--stdin")
 }
 
 type gitConfig struct {
@@ -495,12 +495,12 @@ func (c *gitConfig) FindLocal(val string) string {
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *gitConfig) SetGlobal(key, val string) (string, error) {
-	return gitSimple("config", "--global", key, val)
+	return gitSimple("config", "--global", "--replace-all", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
 func (c *gitConfig) SetSystem(key, val string) (string, error) {
-	return gitSimple("config", "--system", key, val)
+	return gitSimple("config", "--system", "--replace-all", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
@@ -530,12 +530,12 @@ func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
-	args := make([]string, 1, 5)
+	args := make([]string, 1, 6)
 	args[0] = "config"
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
-	args = append(args, key, val)
+	args = append(args, "--replace-all", key, val)
 	return gitSimple(args...)
 }
 
