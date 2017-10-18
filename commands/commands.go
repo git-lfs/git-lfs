@@ -140,7 +140,7 @@ func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64
 
 // Get user-readable manual install steps for hooks
 func getHookInstallSteps() string {
-	hooks := lfs.LoadHooks()
+	hooks := lfs.LoadHooks(cfg.HookDir())
 	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
 		steps = append(steps, fmt.Sprintf(
@@ -152,7 +152,7 @@ func getHookInstallSteps() string {
 }
 
 func installHooks(force bool) error {
-	hooks := lfs.LoadHooks()
+	hooks := lfs.LoadHooks(cfg.HookDir())
 	for _, h := range hooks {
 		if err := h.Install(force); err != nil {
 			return err
@@ -164,7 +164,7 @@ func installHooks(force bool) error {
 
 // uninstallHooks removes all hooks in range of the `hooks` var.
 func uninstallHooks() error {
-	hooks := lfs.LoadHooks()
+	hooks := lfs.LoadHooks(cfg.HookDir())
 	for _, h := range hooks {
 		if err := h.Uninstall(); err != nil {
 			return err

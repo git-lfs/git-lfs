@@ -158,6 +158,16 @@ func (c *Configuration) SetLockableFilesReadOnly() bool {
 	return c.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) && c.Git.Bool("lfs.setlockablereadonly", true)
 }
 
+func (c *Configuration) HookDir() string {
+	if c.gitConfig.IsGitVersionAtLeast("2.9.0") {
+		hp, ok := c.Git.Get("core.hooksPath")
+		if ok {
+			return hp
+		}
+	}
+	return filepath.Join(LocalGitDir, "hooks")
+}
+
 func (c *Configuration) GitConfig() *git.Configuration {
 	return c.gitConfig
 }

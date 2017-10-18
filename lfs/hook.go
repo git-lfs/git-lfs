@@ -8,9 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -26,29 +24,31 @@ var (
 type Hook struct {
 	Type         string
 	Contents     string
+	Dir          string
 	upgradeables []string
 }
 
-func LoadHooks() []*Hook {
+func LoadHooks(hookDir string) []*Hook {
 	return []*Hook{
-		NewStandardHook("pre-push", []string{
+		NewStandardHook("pre-push", hookDir, []string{
 			"#!/bin/sh\ngit lfs push --stdin $*",
 			"#!/bin/sh\ngit lfs push --stdin \"$@\"",
 			"#!/bin/sh\ngit lfs pre-push \"$@\"",
 			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
 			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
 		}),
-		NewStandardHook("post-checkout", []string{}),
-		NewStandardHook("post-commit", []string{}),
-		NewStandardHook("post-merge", []string{}),
+		NewStandardHook("post-checkout", hookDir, []string{}),
+		NewStandardHook("post-commit", hookDir, []string{}),
+		NewStandardHook("post-merge", hookDir, []string{}),
 	}
 }
 
 // NewStandardHook creates a new hook using the template script calling 'git lfs theType'
-func NewStandardHook(theType string, upgradeables []string) *Hook {
+func NewStandardHook(theType, hookDir string, upgradeables []string) *Hook {
 	return &Hook{
 		Type:         theType,
 		Contents:     strings.Replace(hookBaseContent, "{{Command}}", theType, -1),
+		Dir:          hookDir,
 		upgradeables: upgradeables,
 	}
 }
@@ -62,20 +62,7 @@ func (h *Hook) Exists() bool {
 // Path returns the desired (or actual, if installed) location where this hook
 // should be installed. It returns an absolute path in all cases.
 func (h *Hook) Path() string {
-	return filepath.Join(h.Dir(), h.Type)
-}
-
-// Dir returns the directory used by LFS for storing Git hooks. By default, it
-// will return the hooks/ sub-directory of the local repository's .git
-// directory. If `core.hooksPath` is configured and supported (Git verison is
-// greater than "2.9.0"), it will return that instead.
-func (h *Hook) Dir() string {
-	customHooksSupported := git.Config.IsGitVersionAtLeast("2.9.0")
-	if hp, ok := config.Config.Git.Get("core.hooksPath"); ok && customHooksSupported {
-		return hp
-	}
-
-	return filepath.Join(config.LocalGitDir, "hooks")
+	return filepath.Join(h.Dir, h.Type)
 }
 
 // Install installs this Git hook on disk, or upgrades it if it does exist, and
@@ -85,7 +72,7 @@ func (h *Hook) Dir() string {
 func (h *Hook) Install(force bool) error {
 	msg := fmt.Sprintf("Install hook: %s, force=%t, path=%s", h.Type, force, h.Path())
 
-	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
+	if err := os.MkdirAll(h.Dir, 0755); err != nil {
 		return err
 	}
 
