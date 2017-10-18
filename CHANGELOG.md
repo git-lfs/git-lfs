@@ -1,5 +1,42 @@
 # Git LFS Changelog
 
+## 2.3.4 (18 October, 2017)
+
+### Features
+
+* 'git lfs install' updates filters with 'skip-smudge' option #2673 (@technoweenie)
+
+### Bugs
+
+* FastWalkGitRepo: limit number of concurrent goroutines #2672 (@technoweenie)
+* handle scenario where multiple configuration values exist in ~/.gitconfig #2659 (@shiftkey)
+
+## 2.3.3 (9 October, 2017)
+
+### Bugs
+
+* invoke lfs for 'git update-index', fixing 'status' issues #2647 (@technoweenie)
+* cache http credential helper output by default #2648 (@technoweenie)
+
+## 2.3.2 (3 October, 2017)
+
+### Features
+
+* bump default activity timeout from 10s -> 30s #2632 (@technoweenie)
+
+### Bugs
+
+* ensure files are marked readonly after unlocking by ID #2642 (@technoweenie)
+* add files to index with path relative to current dir #2641 (@technoweenie)
+* better Netrc errors #2633 (@technoweenie)
+* only use askpass if credential.helper is not configured #2637 (@technoweenie)
+* convert backslash to slash when writing to .gitattributes #2625 (@technoweenie)
+
+### Misc
+
+* only copy req headers if there are git-configured extra headers #2622 (@technoweenie)
+* update tracerx to add timestamps #2620 (@rubyist)
+
 ## 2.3.1 (27 September, 2017)
 
 ### Features
