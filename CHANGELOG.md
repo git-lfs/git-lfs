@@ -1,5 +1,23 @@
 # Git LFS Changelog
 
+## 2.3.4 (18 October, 2017)
+
+### Features
+
+* 'git lfs install' updates filters with 'skip-smudge' option #2673 (@technoweenie)
+
+### Bugs
+
+* FastWalkGitRepo: limit number of concurrent goroutines #2672 (@technoweenie)
+* handle scenario where multiple configuration values exist in ~/.gitconfig #2659 (@shiftkey)
+
+## 2.3.3 (9 October, 2017)
+
+### Bugs
+
+* invoke lfs for 'git update-index', fixing 'status' issues #2647 (@technoweenie)
+* cache http credential helper output by default #2648 (@technoweenie)
+
 ## 2.3.2 (3 October, 2017)
 
 ### Features

@@ -1,3 +1,15 @@
+git-lfs (2.3.4) stable; urgency=low
+
+  * New upstream version
+
+ -- Rick Olson <technoweenie@gmail.com>  Wed, 18 Oct 2017 14:29:00 +0000
+
+git-lfs (2.3.3) stable; urgency=low
+
+  * New upstream version
+
+ -- Rick Olson <technoweenie@gmail.com>  Mon, 9 Oct 2017 14:29:00 +0000
+
 git-lfs (2.3.2) stable; urgency=low
 
   * New upstream version

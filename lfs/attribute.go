@@ -78,21 +78,15 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOpt
 	if opt.Force || shouldReset(currentValue, upgradeables) {
 		var err error
 		if opt.Local {
-			// ignore error for unset, git returns non-zero if missing
-			git.Config.UnsetLocalKey("", key)
 			_, err = git.Config.SetLocal("", key, value)
 		} else if opt.System {
-			// ignore error for unset, git returns non-zero if missing
-			git.Config.UnsetSystem(key)
 			_, err = git.Config.SetSystem(key, value)
 		} else {
-			// ignore error for unset, git returns non-zero if missing
-			git.Config.UnsetGlobal(key)
 			_, err = git.Config.SetGlobal(key, value)
 		}
 		return err
 	} else if currentValue != value {
-		return fmt.Errorf("The %s attribute should be %q but is %q",
+		return fmt.Errorf("The %q attribute should be %q but is %q",
 			key, value, currentValue)
 	}
 

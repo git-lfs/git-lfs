@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -13,6 +15,12 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
+	}
+
+	singleCheckout := newSingleCheckout(cfg.Git, "")
+	if singleCheckout.Skip() {
+		fmt.Println("Cannot checkout LFS objects, Git LFS is not installed.")
+		return
 	}
 
 	var totalBytes int64
@@ -37,7 +45,6 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 	chgitscanner.Close()
 
-	singleCheckout := newSingleCheckout()
 	meter.Start()
 	for _, p := range pointers {
 		singleCheckout.Run(p)
