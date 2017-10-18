@@ -79,7 +79,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	sort.Strings(ultransfers)
 
 	fetchPruneConfig := cfg.FetchPruneConfig()
-	storageConfig := cfg.StorageConfig()
+	storageConfig := localstorage.NewConfig(cfg.Git)
 
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),

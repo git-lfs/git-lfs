@@ -9,6 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -65,7 +66,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageConfig := cfg.StorageConfig()
+	storageConfig := localstorage.NewConfig(cfg.Git)
 	badDir := filepath.Join(storageConfig.LfsStorageDir, "bad")
 	Print("Moving corrupt objects to %s", badDir)
 

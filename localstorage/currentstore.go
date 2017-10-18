@@ -32,8 +32,7 @@ func InitStorage() error {
 		return notInRepoErr
 	}
 
-	cfg := config.Config.StorageConfig()
-
+	cfg := NewConfig(config.Config.Git)
 	TempDir = filepath.Join(cfg.LfsStorageDir, "tmp") // temp files per worktree
 	objs, err := NewStorage(
 		filepath.Join(cfg.LfsStorageDir, "objects"),

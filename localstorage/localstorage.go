@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/git-lfs/git-lfs/config"
 )
 
 const (
@@ -53,6 +55,25 @@ func (s *LocalStorage) BuildObjectPath(oid string) (string, error) {
 	}
 
 	return filepath.Join(dir, oid), nil
+}
+
+// Storage configuration
+type Configuration struct {
+	LfsStorageDir string
+}
+
+func NewConfig(git config.Environment) (c Configuration) {
+	dir, _ := git.Get("lfs.storage")
+	if len(dir) == 0 {
+		dir = "lfs"
+	}
+
+	if filepath.IsAbs(dir) {
+		c.LfsStorageDir = dir
+	} else {
+		c.LfsStorageDir = filepath.Join(config.LocalGitStorageDir, dir)
+	}
+	return
 }
 
 func localObjectDir(s *LocalStorage, oid string) string {
