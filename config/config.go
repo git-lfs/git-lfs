@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -60,6 +61,10 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
+	// GitConfig can fetch or modify the current Git config and track the Git
+	// version.
+	GitConfig *git.Configuration
+
 	CurrentRemote string
 
 	loading    sync.Mutex // guards initialization of gitConfig and remotes
@@ -68,9 +73,15 @@ type Configuration struct {
 }
 
 func New() *Configuration {
-	c := &Configuration{Os: EnvironmentOf(NewOsFetcher())}
-	c.Git = &gitEnvironment{config: c}
-	initConfig(c)
+	c := &Configuration{
+		CurrentRemote: defaultRemote,
+		Os:            EnvironmentOf(NewOsFetcher()),
+		GitConfig:     git.Config,
+	}
+	c.Git = &gitEnvironment{
+		config:    c,
+		gitConfig: git.Config,
+	}
 	return c
 }
 
@@ -89,16 +100,12 @@ type Values struct {
 //
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
-	c := &Configuration{
-		Os:  EnvironmentOf(mapFetcher(v.Os)),
-		Git: EnvironmentOf(mapFetcher(v.Git)),
+	return &Configuration{
+		CurrentRemote: defaultRemote,
+		Os:            EnvironmentOf(mapFetcher(v.Os)),
+		Git:           EnvironmentOf(mapFetcher(v.Git)),
+		GitConfig:     git.Config,
 	}
-	initConfig(c)
-	return c
-}
-
-func initConfig(c *Configuration) {
-	c.CurrentRemote = defaultRemote
 }
 
 // Unmarshal unmarshals the *Configuration in context into all of `v`'s fields,

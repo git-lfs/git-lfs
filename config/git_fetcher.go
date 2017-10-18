@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -147,15 +146,6 @@ func (g *GitFetcher) All() map[string][]string {
 	}
 
 	return newmap
-}
-
-func getGitConfigs() (sources []*git.ConfigurationSource) {
-	sources, err := git.Config.Sources(filepath.Join(LocalWorkingDir, ".lfsconfig"))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
-		return nil
-	}
-	return sources
 }
 
 func keyIsUnsafe(key string) bool {

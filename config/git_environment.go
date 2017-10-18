@@ -1,5 +1,13 @@
 package config
 
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/git-lfs/git-lfs/git"
+)
+
 // gitEnvironment is an implementation of the Environment which wraps the legacy
 // behavior or `*config.Configuration.loadGitConfig()`.
 //
@@ -8,6 +16,11 @@ package config
 type gitEnvironment struct {
 	// git is the Environment which gitEnvironment wraps.
 	git Environment
+
+	// gitConfig can fetch or modify the current Git config and track the Git
+	// version.
+	gitConfig *git.Configuration
+
 	// config is the *Configuration instance which is mutated by
 	// `loadGitConfig`.
 	config *Configuration
@@ -67,7 +80,12 @@ func (g *gitEnvironment) loadGitConfig() bool {
 		return false
 	}
 
-	gf, extensions, uniqRemotes := ReadGitConfig(getGitConfigs()...)
+	sources, err := g.gitConfig.Sources(filepath.Join(LocalWorkingDir, ".lfsconfig"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
+	}
+
+	gf, extensions, uniqRemotes := ReadGitConfig(sources...)
 
 	g.git = EnvironmentOf(gf)
 
