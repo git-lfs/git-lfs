@@ -18,13 +18,7 @@ var (
 )
 
 func installCommand(cmd *cobra.Command, args []string) {
-	opt := cmdInstallOptions()
-	if skipSmudgeInstall {
-		// assume the user is changing their smudge mode, so enable force implicitly
-		opt.Force = true
-	}
-
-	if err := lfs.InstallFilters(opt, skipSmudgeInstall); err != nil {
+	if err := cmdInstallOptions().Install(); err != nil {
 		Print("WARNING: %s", err.Error())
 		Print("Run `git lfs install --force` to reset git config.")
 		return
@@ -38,7 +32,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 	Print("Git LFS initialized.")
 }
 
-func cmdInstallOptions() lfs.InstallOptions {
+func cmdInstallOptions() *lfs.FilterOptions {
 	requireGitVersion()
 
 	if localInstall {
@@ -52,10 +46,12 @@ func cmdInstallOptions() lfs.InstallOptions {
 	if systemInstall && os.Geteuid() != 0 {
 		Print("WARNING: current user is not root/admin, system install is likely to fail.")
 	}
-	return lfs.InstallOptions{
-		Force:  forceInstall,
-		Local:  localInstall,
-		System: systemInstall,
+
+	return &lfs.FilterOptions{
+		Force:      forceInstall,
+		Local:      localInstall,
+		System:     systemInstall,
+		SkipSmudge: skipSmudgeInstall,
 	}
 }
 

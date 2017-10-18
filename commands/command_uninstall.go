@@ -8,8 +8,7 @@ import (
 
 // uninstallCmd removes any configuration and hooks set by Git LFS.
 func uninstallCommand(cmd *cobra.Command, args []string) {
-	opt := cmdInstallOptions()
-	if err := lfs.UninstallFilters(opt); err != nil {
+	if err := cmdInstallOptions().Uninstall(); err != nil {
 		Error(err.Error())
 	}
 

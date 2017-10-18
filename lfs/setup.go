@@ -27,44 +27,6 @@ var (
 		postCommitHook,
 		postMergeHook,
 	}
-
-	upgradeables = map[string][]string{
-		"clean": []string{"git-lfs clean %f"},
-		"smudge": []string{
-			"git-lfs smudge %f",
-			"git-lfs smudge --skip %f",
-			"git-lfs smudge -- %f",
-			"git-lfs smudge --skip -- %f",
-		},
-		"process": []string{
-			"git-lfs filter",
-			"git-lfs filter --skip",
-			"git-lfs filter-process",
-			"git-lfs filter-process --skip",
-		},
-	}
-
-	filters = &Attribute{
-		Section: "filter.lfs",
-		Properties: map[string]string{
-			"clean":    "git-lfs clean -- %f",
-			"smudge":   "git-lfs smudge -- %f",
-			"process":  "git-lfs filter-process",
-			"required": "true",
-		},
-		Upgradeables: upgradeables,
-	}
-
-	passFilters = &Attribute{
-		Section: "filter.lfs",
-		Properties: map[string]string{
-			"clean":    "git-lfs clean -- %f",
-			"smudge":   "git-lfs smudge --skip -- %f",
-			"process":  "git-lfs filter-process --skip",
-			"required": "true",
-		},
-		Upgradeables: upgradeables,
-	}
 )
 
 // Get user-readable manual install steps for hooks
@@ -98,26 +60,5 @@ func UninstallHooks() error {
 		}
 	}
 
-	return nil
-}
-
-// InstallFilters installs filters necessary for git-lfs to process normal git
-// operations. Currently, that list includes:
-//   - smudge filter
-//   - clean filter
-//
-// An error will be returned if a filter is unable to be set, or if the required
-// filters were not present.
-func InstallFilters(opt InstallOptions, passThrough bool) error {
-	if passThrough {
-		return passFilters.Install(opt)
-	}
-	return filters.Install(opt)
-}
-
-// UninstallFilters proxies into the Uninstall method on the Filters type to
-// remove all installed filters.
-func UninstallFilters(opt InstallOptions) error {
-	filters.Uninstall(opt)
 	return nil
 }
