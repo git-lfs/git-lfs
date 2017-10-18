@@ -97,40 +97,6 @@ func TestLoadInvalidExtension(t *testing.T) {
 	assert.Equal(t, 0, ext.Priority)
 }
 
-func TestFetchPruneConfigDefault(t *testing.T) {
-	cfg := NewFrom(Values{})
-	fp := cfg.FetchPruneConfig()
-
-	assert.Equal(t, 7, fp.FetchRecentRefsDays)
-	assert.Equal(t, 0, fp.FetchRecentCommitsDays)
-	assert.Equal(t, 3, fp.PruneOffsetDays)
-	assert.True(t, fp.FetchRecentRefsIncludeRemotes)
-	assert.Equal(t, 3, fp.PruneOffsetDays)
-	assert.Equal(t, "origin", fp.PruneRemoteName)
-	assert.False(t, fp.PruneVerifyRemoteAlways)
-
-}
-func TestFetchPruneConfigCustom(t *testing.T) {
-	cfg := NewFrom(Values{
-		Git: map[string][]string{
-			"lfs.fetchrecentrefsdays":     []string{"12"},
-			"lfs.fetchrecentremoterefs":   []string{"false"},
-			"lfs.fetchrecentcommitsdays":  []string{"9"},
-			"lfs.pruneoffsetdays":         []string{"30"},
-			"lfs.pruneverifyremotealways": []string{"true"},
-			"lfs.pruneremotetocheck":      []string{"upstream"},
-		},
-	})
-	fp := cfg.FetchPruneConfig()
-
-	assert.Equal(t, 12, fp.FetchRecentRefsDays)
-	assert.Equal(t, 9, fp.FetchRecentCommitsDays)
-	assert.False(t, fp.FetchRecentRefsIncludeRemotes)
-	assert.Equal(t, 30, fp.PruneOffsetDays)
-	assert.Equal(t, "upstream", fp.PruneRemoteName)
-	assert.True(t, fp.PruneVerifyRemoteAlways)
-}
-
 func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{

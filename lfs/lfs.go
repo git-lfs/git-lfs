@@ -78,7 +78,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	ultransfers := manifest.GetUploadAdapterNames()
 	sort.Strings(ultransfers)
 
-	fetchPruneConfig := cfg.FetchPruneConfig()
+	fetchPruneConfig := NewFetchPruneConfig(cfg.Git)
 	storageConfig := localstorage.NewConfig(cfg.Git)
 
 	env = append(env,

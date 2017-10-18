@@ -22,27 +22,6 @@ var (
 	gitConfigWarningPrefix = "lfs."
 )
 
-// FetchPruneConfig collects together the config options that control fetching and pruning
-type FetchPruneConfig struct {
-	// The number of days prior to current date for which (local) refs other than HEAD
-	// will be fetched with --recent (default 7, 0 = only fetch HEAD)
-	FetchRecentRefsDays int `git:"lfs.fetchrecentrefsdays"`
-	// Makes the FetchRecentRefsDays option apply to remote refs from fetch source as well (default true)
-	FetchRecentRefsIncludeRemotes bool `git:"lfs.fetchrecentremoterefs"`
-	// number of days prior to latest commit on a ref that we'll fetch previous
-	// LFS changes too (default 0 = only fetch at ref)
-	FetchRecentCommitsDays int `git:"lfs.fetchrecentcommitsdays"`
-	// Whether to always fetch recent even without --recent
-	FetchRecentAlways bool `git:"lfs.fetchrecentalways"`
-	// Number of days added to FetchRecent*; data outside combined window will be
-	// deleted when prune is run. (default 3)
-	PruneOffsetDays int `git:"lfs.pruneoffsetdays"`
-	// Always verify with remote before pruning
-	PruneVerifyRemoteAlways bool `git:"lfs.pruneverifyremotealways"`
-	// Name of remote to check for unpushed and verify checks
-	PruneRemoteName string `git:"lfs.pruneremotetocheck"`
-}
-
 type Configuration struct {
 	// Os provides a `*Environment` used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
@@ -257,20 +236,6 @@ func (c *Configuration) Extensions() map[string]Extension {
 // SortedExtensions gets the list of extensions ordered by Priority
 func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
-}
-
-func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
-	f := &FetchPruneConfig{
-		FetchRecentRefsDays:           7,
-		FetchRecentRefsIncludeRemotes: true,
-		PruneOffsetDays:               3,
-		PruneRemoteName:               "origin",
-	}
-
-	if err := c.Unmarshal(f); err != nil {
-		panic(err.Error())
-	}
-	return *f
 }
 
 func (c *Configuration) SkipDownloadErrors() bool {
