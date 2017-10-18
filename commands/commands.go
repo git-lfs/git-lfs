@@ -91,7 +91,7 @@ func closeAPIClient() error {
 }
 
 func newLockClient(remote string) *locking.Client {
-	storageConfig := config.Config.StorageConfig()
+	storageConfig := cfg.StorageConfig()
 	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
 		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
