@@ -15,7 +15,7 @@ type GitFetcher struct {
 	vals map[string][]string
 }
 
-func ReadGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
+func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string][]string)
 	ignored := make([]string, 0)
 

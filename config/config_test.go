@@ -66,17 +66,12 @@ func TestTusTransfersAllowedInvalidValue(t *testing.T) {
 
 func TestLoadValidExtension(t *testing.T) {
 	cfg := NewFrom(Values{
-		Git: map[string][]string{},
-	})
-
-	cfg.extensions = map[string]Extension{
-		"foo": Extension{
-			"foo",
-			"foo-clean %f",
-			"foo-smudge %f",
-			2,
+		Git: map[string][]string{
+			"lfs.extension.foo.clean":    []string{"foo-clean %f"},
+			"lfs.extension.foo.smudge":   []string{"foo-smudge %f"},
+			"lfs.extension.foo.priority": []string{"2"},
 		},
-	}
+	})
 
 	ext := cfg.Extensions()["foo"]
 

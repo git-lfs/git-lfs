@@ -3,6 +3,9 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -39,16 +42,36 @@ type Configuration struct {
 }
 
 func New() *Configuration {
+	gitConf := git.Config
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
-		gitConfig:     git.Config,
+		gitConfig:     gitConf,
 	}
-	c.Git = &gitEnvironment{
-		config:    c,
-		gitConfig: git.Config,
+	c.Git = &delayedEnvironment{
+		callback: func() Environment {
+			sources, err := gitConf.Sources(filepath.Join(LocalWorkingDir, ".lfsconfig"))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
+			}
+			return c.readGitConfig(sources...)
+		},
 	}
 	return c
+}
+
+func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) Environment {
+	gf, extensions, uniqRemotes := readGitConfig(gitconfigs...)
+	c.extensions = extensions
+	c.remotes = make([]string, 0, len(uniqRemotes))
+	for remote, isOrigin := range uniqRemotes {
+		if isOrigin {
+			continue
+		}
+		c.remotes = append(c.remotes, remote)
+	}
+
+	return EnvironmentOf(gf)
 }
 
 // Values is a convenience type used to call the NewFromValues function. It
@@ -66,12 +89,28 @@ type Values struct {
 //
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
-	return &Configuration{
+	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(mapFetcher(v.Os)),
-		Git:           EnvironmentOf(mapFetcher(v.Git)),
 		gitConfig:     git.Config,
 	}
+	c.Git = &delayedEnvironment{
+		callback: func() Environment {
+			source := &git.ConfigurationSource{
+				Lines: make([]string, 0, len(v.Git)),
+			}
+
+			for key, values := range v.Git {
+				for _, value := range values {
+					fmt.Printf("Config: %s=%s\n", key, value)
+					source.Lines = append(source.Lines, fmt.Sprintf("%s=%s", key, value))
+				}
+			}
+
+			return c.readGitConfig(source)
+		},
+	}
+	return c
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
@@ -98,7 +137,6 @@ func (c *Configuration) FetchExcludePaths() []string {
 
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
-
 	return c.remotes
 }
 
@@ -183,12 +221,10 @@ func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
 //
 // loadGitConfig returns a bool returning whether or not `loadGitConfig` was
 // called AND the method did not return early.
-func (c *Configuration) loadGitConfig() bool {
-	if g, ok := c.Git.(*gitEnvironment); ok {
-		return g.loadGitConfig()
+func (c *Configuration) loadGitConfig() {
+	if g, ok := c.Git.(*delayedEnvironment); ok {
+		g.Load()
 	}
-
-	return false
 }
 
 // CurrentCommitter returns the name/email that would be used to author a commit
