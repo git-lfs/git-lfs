@@ -462,74 +462,76 @@ func UpdateIndexFromStdin() *subprocess.Cmd {
 	return git("update-index", "-q", "--refresh", "--stdin")
 }
 
-type gitConfig struct {
-	gitVersion string
-	mu         sync.Mutex
+// Configuration can fetch or modify the current Git config and track the Git
+// version.
+type Configuration struct {
+	version string
+	mu      sync.Mutex
 }
 
-var Config = &gitConfig{}
+var Config = &Configuration{}
 
 // Find returns the git config value for the key
-func (c *gitConfig) Find(val string) string {
+func (c *Configuration) Find(val string) string {
 	output, _ := gitSimple("config", val)
 	return output
 }
 
 // FindGlobal returns the git config value global scope for the key
-func (c *gitConfig) FindGlobal(val string) string {
+func (c *Configuration) FindGlobal(val string) string {
 	output, _ := gitSimple("config", "--global", val)
 	return output
 }
 
 // FindSystem returns the git config value in system scope for the key
-func (c *gitConfig) FindSystem(val string) string {
+func (c *Configuration) FindSystem(val string) string {
 	output, _ := gitSimple("config", "--system", val)
 	return output
 }
 
 // Find returns the git config value for the key
-func (c *gitConfig) FindLocal(val string) string {
+func (c *Configuration) FindLocal(val string) string {
 	output, _ := gitSimple("config", "--local", val)
 	return output
 }
 
 // SetGlobal sets the git config value for the key in the global config
-func (c *gitConfig) SetGlobal(key, val string) (string, error) {
+func (c *Configuration) SetGlobal(key, val string) (string, error) {
 	return gitSimple("config", "--global", "--replace-all", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
-func (c *gitConfig) SetSystem(key, val string) (string, error) {
+func (c *Configuration) SetSystem(key, val string) (string, error) {
 	return gitSimple("config", "--system", "--replace-all", key, val)
 }
 
 // UnsetGlobal removes the git config value for the key from the global config
-func (c *gitConfig) UnsetGlobal(key string) (string, error) {
+func (c *Configuration) UnsetGlobal(key string) (string, error) {
 	return gitSimple("config", "--global", "--unset", key)
 }
 
 // UnsetSystem removes the git config value for the key from the system config
-func (c *gitConfig) UnsetSystem(key string) (string, error) {
+func (c *Configuration) UnsetSystem(key string) (string, error) {
 	return gitSimple("config", "--system", "--unset", key)
 }
 
 // UnsetGlobalSection removes the entire named section from the global config
-func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
+func (c *Configuration) UnsetGlobalSection(key string) (string, error) {
 	return gitSimple("config", "--global", "--remove-section", key)
 }
 
 // UnsetSystemSection removes the entire named section from the system config
-func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
+func (c *Configuration) UnsetSystemSection(key string) (string, error) {
 	return gitSimple("config", "--system", "--remove-section", key)
 }
 
 // UnsetLocalSection removes the entire named section from the system config
-func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
+func (c *Configuration) UnsetLocalSection(key string) (string, error) {
 	return gitSimple("config", "--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
-func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
+func (c *Configuration) SetLocal(file, key, val string) (string, error) {
 	args := make([]string, 1, 6)
 	args[0] = "config"
 	if len(file) > 0 {
@@ -540,7 +542,7 @@ func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
-func (c *gitConfig) UnsetLocalKey(file, key string) (string, error) {
+func (c *Configuration) UnsetLocalKey(file, key string) (string, error) {
 	args := make([]string, 1, 5)
 	args[0] = "config"
 	if len(file) > 0 {
@@ -551,34 +553,34 @@ func (c *gitConfig) UnsetLocalKey(file, key string) (string, error) {
 }
 
 // List lists all of the git config values
-func (c *gitConfig) List() (string, error) {
+func (c *Configuration) List() (string, error) {
 	return gitSimple("config", "-l")
 }
 
 // ListFromFile lists all of the git config values in the given config file
-func (c *gitConfig) ListFromFile(f string) (string, error) {
+func (c *Configuration) ListFromFile(f string) (string, error) {
 	return gitSimple("config", "-l", "-f", f)
 }
 
 // Version returns the git version
-func (c *gitConfig) Version() (string, error) {
+func (c *Configuration) Version() (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if len(c.gitVersion) == 0 {
+	if len(c.version) == 0 {
 		v, err := gitSimple("version")
 		if err != nil {
 			return v, err
 		}
-		c.gitVersion = v
+		c.version = v
 	}
 
-	return c.gitVersion, nil
+	return c.version, nil
 }
 
 // IsVersionAtLeast returns whether the git version is the one specified or higher
 // argument is plain version string separated by '.' e.g. "2.3.1" but can omit minor/patch
-func (c *gitConfig) IsGitVersionAtLeast(ver string) bool {
+func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
 	gitver, err := c.Version()
 	if err != nil {
 		tracerx.Printf("Error getting git version: %v", err)
