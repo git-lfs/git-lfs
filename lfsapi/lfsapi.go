@@ -30,9 +30,6 @@ type Client struct {
 	KeepaliveTimeout    int
 	TLSTimeout          int
 	ConcurrentTransfers int
-	HTTPSProxy          string
-	HTTPProxy           string
-	NoProxy             string
 	SkipSSLVerify       bool
 
 	Verbose          bool
@@ -69,8 +66,6 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
 	}
 
-	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
-
 	creds, err := getCredentialHelper(&config.Configuration{
 		Os: osEnv, Git: gitEnv})
 	if err != nil {
@@ -94,9 +89,6 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
-		HTTPSProxy:          httpsProxy,
-		HTTPProxy:           httpProxy,
-		NoProxy:             noProxy,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
 		uc:                  config.NewURLConfig(gitEnv),
