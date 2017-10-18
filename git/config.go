@@ -36,20 +36,20 @@ func (c *Configuration) Find(val string) string {
 }
 
 // FindGlobal returns the git config value global scope for the key
-func (c *Configuration) FindGlobal(val string) string {
-	output, _ := gitSimple("config", "--global", val)
+func (c *Configuration) FindGlobal(key string) string {
+	output, _ := gitSimple("config", "--global", key)
 	return output
 }
 
 // FindSystem returns the git config value in system scope for the key
-func (c *Configuration) FindSystem(val string) string {
-	output, _ := gitSimple("config", "--system", val)
+func (c *Configuration) FindSystem(key string) string {
+	output, _ := gitSimple("config", "--system", key)
 	return output
 }
 
 // Find returns the git config value for the key
-func (c *Configuration) FindLocal(val string) string {
-	output, _ := gitSimple("config", "--local", val)
+func (c *Configuration) FindLocal(key string) string {
+	output, _ := gitSimple("config", "--local", key)
 	return output
 }
 
@@ -61,16 +61,6 @@ func (c *Configuration) SetGlobal(key, val string) (string, error) {
 // SetSystem sets the git config value for the key in the system config
 func (c *Configuration) SetSystem(key, val string) (string, error) {
 	return gitSimple("config", "--system", "--replace-all", key, val)
-}
-
-// UnsetGlobal removes the git config value for the key from the global config
-func (c *Configuration) UnsetGlobal(key string) (string, error) {
-	return gitSimple("config", "--global", "--unset", key)
-}
-
-// UnsetSystem removes the git config value for the key from the system config
-func (c *Configuration) UnsetSystem(key string) (string, error) {
-	return gitSimple("config", "--system", "--unset", key)
 }
 
 // UnsetGlobalSection removes the entire named section from the global config

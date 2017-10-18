@@ -11,7 +11,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
@@ -486,6 +485,6 @@ func disableFor(endpoint lfsapi.Endpoint) error {
 
 	key := strings.Join([]string{"lfs", endpoint.Url, "locksverify"}, ".")
 
-	_, err := git.Config.SetLocal("", key, "false")
+	_, err := cfg.SetGitLocalKey("", key, "false")
 	return err
 }

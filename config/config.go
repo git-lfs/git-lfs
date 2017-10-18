@@ -61,9 +61,9 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
-	// GitConfig can fetch or modify the current Git config and track the Git
+	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
-	GitConfig *git.Configuration
+	gitConfig *git.Configuration
 
 	CurrentRemote string
 
@@ -76,7 +76,7 @@ func New() *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
-		GitConfig:     git.Config,
+		gitConfig:     git.Config,
 	}
 	c.Git = &gitEnvironment{
 		config:    c,
@@ -104,7 +104,7 @@ func NewFrom(v Values) *Configuration {
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(mapFetcher(v.Os)),
 		Git:           EnvironmentOf(mapFetcher(v.Git)),
-		GitConfig:     git.Config,
+		gitConfig:     git.Config,
 	}
 }
 
@@ -300,6 +300,58 @@ func (c *Configuration) SkipDownloadErrors() bool {
 
 func (c *Configuration) SetLockableFilesReadOnly() bool {
 	return c.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) && c.Git.Bool("lfs.setlockablereadonly", true)
+}
+
+func (c *Configuration) GitConfig() *git.Configuration {
+	return c.gitConfig
+}
+
+func (c *Configuration) GitVersion() (string, error) {
+	return c.gitConfig.Version()
+}
+
+func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
+	return c.gitConfig.IsGitVersionAtLeast(ver)
+}
+
+func (c *Configuration) FindGitGlobalKey(key string) string {
+	return c.gitConfig.FindGlobal(key)
+}
+
+func (c *Configuration) FindGitSystemKey(key string) string {
+	return c.gitConfig.FindSystem(key)
+}
+
+func (c *Configuration) FindGitLocalKey(key string) string {
+	return c.gitConfig.FindLocal(key)
+}
+
+func (c *Configuration) SetGitGlobalKey(key, val string) (string, error) {
+	return c.gitConfig.SetGlobal(key, val)
+}
+
+func (c *Configuration) SetGitSystemKey(key, val string) (string, error) {
+	return c.gitConfig.SetSystem(key, val)
+}
+
+func (c *Configuration) SetGitLocalKey(file, key, val string) (string, error) {
+	return c.gitConfig.SetLocal(file, key, val)
+}
+
+func (c *Configuration) UnsetGitGlobalSection(key string) (string, error) {
+	return c.gitConfig.UnsetGlobalSection(key)
+}
+
+func (c *Configuration) UnsetGitSystemSection(key string) (string, error) {
+	return c.gitConfig.UnsetSystemSection(key)
+}
+
+func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
+	return c.gitConfig.UnsetLocalSection(key)
+}
+
+func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
+	return c.gitConfig.UnsetLocalKey(file, key)
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on

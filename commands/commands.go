@@ -16,7 +16,6 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
@@ -340,7 +339,7 @@ func ipAddresses() []string {
 
 func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
-	gitV, err := git.Config.Version()
+	gitV, err := cfg.GitVersion()
 	if err != nil {
 		gitV = "Error getting git version: " + err.Error()
 	}
@@ -407,8 +406,8 @@ func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
 func requireGitVersion() {
 	minimumGit := "1.8.2"
 
-	if !git.Config.IsGitVersionAtLeast(minimumGit) {
-		gitver, err := git.Config.Version()
+	if !cfg.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := cfg.GitVersion()
 		if err != nil {
 			Exit("Error getting git version: %s", err)
 		}

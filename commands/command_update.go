@@ -3,7 +3,6 @@ package commands
 import (
 	"regexp"
 
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
@@ -31,10 +30,10 @@ func updateCommand(cmd *cobra.Command, args []string) {
 		switch value {
 		case "basic":
 		case "private":
-			git.Config.SetLocal("", key, "basic")
+			cfg.SetGitLocalKey("", key, "basic")
 			Print("Updated %s access from %s to %s.", matches[1], value, "basic")
 		default:
-			git.Config.UnsetLocalKey("", key)
+			cfg.UnsetGitLocalKey("", key)
 			Print("Removed invalid %s access of %s.", matches[1], value)
 		}
 	}
