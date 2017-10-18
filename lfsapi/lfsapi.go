@@ -66,8 +66,7 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
 	}
 
-	creds, err := getCredentialHelper(&config.Configuration{
-		Os: osEnv, Git: gitEnv})
+	creds, err := getCredentialHelper(osEnv, gitEnv)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot find credential helper(s)")
 	}

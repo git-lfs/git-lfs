@@ -37,8 +37,8 @@ type credsConfig struct {
 //
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
-func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
-	ccfg, err := getCredentialConfig(cfg)
+func getCredentialHelper(osEnv, gitEnv config.Environment) (CredentialHelper, error) {
+	ccfg, err := getCredentialConfig(osEnv, gitEnv)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +71,7 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 
 // getCredentialConfig parses a *credsConfig given the OS and Git
 // configurations.
-func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
-	g := cfg.Git
-	o := cfg.Os
+func getCredentialConfig(o, g config.Environment) (*credsConfig, error) {
 	askpass, ok := o.Get("GIT_ASKPASS")
 	if !ok {
 		askpass, ok = g.Get("core.askpass")
