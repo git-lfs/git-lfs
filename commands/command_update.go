@@ -3,7 +3,6 @@ package commands
 import (
 	"regexp"
 
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -43,9 +42,9 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if updateManual {
-		Print(lfs.GetHookInstallSteps())
+		Print(getHookInstallSteps())
 	} else {
-		if err := lfs.InstallHooks(updateForce); err != nil {
+		if err := installHooks(updateForce); err != nil {
 			Error(err.Error())
 			Exit("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook.")
 		} else {

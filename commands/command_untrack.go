@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +22,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 		os.Exit(128)
 	}
 
-	lfs.InstallHooks(false)
+	installHooks(false)
 
 	if len(args) < 1 {
 		Print("git lfs untrack <path> [path]*")

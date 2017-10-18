@@ -26,7 +26,22 @@ var (
 type Hook struct {
 	Type         string
 	Contents     string
-	Upgradeables []string
+	upgradeables []string
+}
+
+func LoadHooks() []*Hook {
+	return []*Hook{
+		NewStandardHook("pre-push", []string{
+			"#!/bin/sh\ngit lfs push --stdin $*",
+			"#!/bin/sh\ngit lfs push --stdin \"$@\"",
+			"#!/bin/sh\ngit lfs pre-push \"$@\"",
+			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
+			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
+		}),
+		NewStandardHook("post-checkout", []string{}),
+		NewStandardHook("post-commit", []string{}),
+		NewStandardHook("post-merge", []string{}),
+	}
 }
 
 // NewStandardHook creates a new hook using the template script calling 'git lfs theType'
@@ -34,7 +49,7 @@ func NewStandardHook(theType string, upgradeables []string) *Hook {
 	return &Hook{
 		Type:         theType,
 		Contents:     strings.Replace(hookBaseContent, "{{Command}}", theType, -1),
-		Upgradeables: upgradeables,
+		upgradeables: upgradeables,
 	}
 }
 
@@ -151,7 +166,7 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		return true, nil
 	}
 
-	for _, u := range h.Upgradeables {
+	for _, u := range h.upgradeables {
 		if u == contents {
 			return true, nil
 		}

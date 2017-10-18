@@ -90,7 +90,7 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.
 
 func cleanCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'clean' filter")
-	lfs.InstallHooks(false)
+	installHooks(false)
 
 	var fileName string
 	if len(args) > 0 {

@@ -138,6 +138,42 @@ func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64
 	return p.Name, path, p.Oid, p.Size
 }
 
+// Get user-readable manual install steps for hooks
+func getHookInstallSteps() string {
+	hooks := lfs.LoadHooks()
+	steps := make([]string, 0, len(hooks))
+	for _, h := range hooks {
+		steps = append(steps, fmt.Sprintf(
+			"Add the following to .git/hooks/%s:\n\n%s",
+			h.Type, tools.Indent(h.Contents)))
+	}
+
+	return strings.Join(steps, "\n\n")
+}
+
+func installHooks(force bool) error {
+	hooks := lfs.LoadHooks()
+	for _, h := range hooks {
+		if err := h.Install(force); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// uninstallHooks removes all hooks in range of the `hooks` var.
+func uninstallHooks() error {
+	hooks := lfs.LoadHooks()
+	for _, h := range hooks {
+		if err := h.Uninstall(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {

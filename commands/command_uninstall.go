@@ -22,7 +22,7 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 
 // uninstallHooksCmd removes any hooks created by Git LFS.
 func uninstallHooksCommand(cmd *cobra.Command, args []string) {
-	if err := lfs.UninstallHooks(); err != nil {
+	if err := uninstallHooks(); err != nil {
 		Error(err.Error())
 	}
 

@@ -12,7 +12,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +42,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
-		lfs.InstallHooks(false)
+		installHooks(false)
 	}
 
 	if len(args) == 0 {

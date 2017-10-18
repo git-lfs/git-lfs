@@ -24,7 +24,7 @@ var (
 // NOTE(zeroshirts): Ideally git would have hooks for fsck such that we could
 // chain a lfs-fsck, but I don't think it does.
 func fsckCommand(cmd *cobra.Command, args []string) {
-	lfs.InstallHooks(false)
+	installHooks(false)
 	requireInRepo()
 
 	ref, err := git.CurrentRef()
