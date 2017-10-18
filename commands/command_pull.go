@@ -48,8 +48,8 @@ func pull(remote string, filter *filepathfilter.Filter) {
 
 	pointers := newPointerMap()
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	singleCheckout := newSingleCheckout()
-	q := newDownloadQueue(singleCheckout.manifest, remote, tq.WithProgress(meter))
+	singleCheckout := newSingleCheckout(cfg.Git, remote)
+	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error: %s", err)
@@ -91,7 +91,6 @@ func pull(remote string, filter *filepathfilter.Filter) {
 	processQueue := time.Now()
 	if err := gitscanner.ScanTree(ref.Sha); err != nil {
 		singleCheckout.Close()
-
 		ExitWithError(err)
 	}
 
@@ -113,6 +112,10 @@ func pull(remote string, filter *filepathfilter.Filter) {
 		c := getAPIClient()
 		e := c.Endpoints.Endpoint("download", remote)
 		Exit("error: failed to fetch some objects from '%s'", e.Url)
+	}
+
+	if singleCheckout.Skip() {
+		fmt.Println("Skipping object checkout, Git LFS is not installed.")
 	}
 }
 
