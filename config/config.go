@@ -3,14 +3,8 @@
 package config
 
 import (
-	"fmt"
-	"reflect"
-	"regexp"
-	"strconv"
-	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -78,126 +72,6 @@ func NewFrom(v Values) *Configuration {
 		Git:           EnvironmentOf(mapFetcher(v.Git)),
 		gitConfig:     git.Config,
 	}
-}
-
-// Unmarshal unmarshals the *Configuration in context into all of `v`'s fields,
-// according to the following rules:
-//
-// Values are marshaled according to the given key and environment, as follows:
-//	type T struct {
-//		Field string `git:"key"`
-//		Other string `os:"key"`
-//	}
-//
-// If an unknown environment is given, an error will be returned. If there is no
-// method supporting conversion into a field's type, an error will be returned.
-// If no value is associated with the given key and environment, the field will
-// // only be modified if there is a config value present matching the given
-// key. If the field is already set to a non-zero value of that field's type,
-// then it will be left alone.
-//
-// Otherwise, the field will be set to the value of calling the
-// appropriately-typed method on the specified environment.
-func (c *Configuration) Unmarshal(v interface{}) error {
-	into := reflect.ValueOf(v)
-	if into.Kind() != reflect.Ptr {
-		return fmt.Errorf("lfs/config: unable to parse non-pointer type of %T", v)
-	}
-	into = into.Elem()
-
-	for i := 0; i < into.Type().NumField(); i++ {
-		field := into.Field(i)
-		sfield := into.Type().Field(i)
-
-		lookups, err := c.parseTag(sfield.Tag)
-		if err != nil {
-			return err
-		}
-
-		var val interface{}
-		for _, lookup := range lookups {
-			if _, ok := lookup.Get(); !ok {
-				continue
-			}
-
-			switch sfield.Type.Kind() {
-			case reflect.String:
-				val, _ = lookup.Get()
-			case reflect.Int:
-				val = lookup.Int(int(field.Int()))
-			case reflect.Bool:
-				val = lookup.Bool(field.Bool())
-			default:
-				return fmt.Errorf("lfs/config: unsupported target type for field %q: %v",
-					sfield.Name, sfield.Type.String())
-			}
-
-			if val != nil {
-				break
-			}
-		}
-
-		if val != nil {
-			into.Field(i).Set(reflect.ValueOf(val))
-		}
-	}
-
-	return nil
-}
-
-var (
-	tagRe    = regexp.MustCompile("((\\w+:\"[^\"]*\")\\b?)+")
-	emptyEnv = EnvironmentOf(MapFetcher(nil))
-)
-
-type lookup struct {
-	key string
-	env Environment
-}
-
-func (l *lookup) Get() (interface{}, bool) { return l.env.Get(l.key) }
-func (l *lookup) Int(or int) int           { return l.env.Int(l.key, or) }
-func (l *lookup) Bool(or bool) bool        { return l.env.Bool(l.key, or) }
-
-// parseTag returns the key, environment, and optional error assosciated with a
-// given tag. It will return the XOR of either the `git` or `os` tag. That is to
-// say, a field tagged with EITHER `git` OR `os` is valid, but pone tagged with
-// both is not.
-//
-// If neither field was found, then a nil environment will be returned.
-func (c *Configuration) parseTag(tag reflect.StructTag) ([]*lookup, error) {
-	var lookups []*lookup
-
-	parts := tagRe.FindAllString(string(tag), -1)
-	for _, part := range parts {
-		sep := strings.SplitN(part, ":", 2)
-		if len(sep) != 2 {
-			return nil, errors.Errorf("config: invalid struct tag %q", tag)
-		}
-
-		var env Environment
-		switch strings.ToLower(sep[0]) {
-		case "git":
-			env = c.Git
-		case "os":
-			env = c.Os
-		default:
-			// ignore other struct tags, like `json:""`, etc.
-			env = emptyEnv
-		}
-
-		uq, err := strconv.Unquote(sep[1])
-		if err != nil {
-			return nil, err
-		}
-
-		lookups = append(lookups, &lookup{
-			key: uq,
-			env: env,
-		})
-	}
-
-	return lookups, nil
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
