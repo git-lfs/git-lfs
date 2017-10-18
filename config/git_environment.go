@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/git"
 )
@@ -23,7 +24,8 @@ type gitEnvironment struct {
 
 	// config is the *Configuration instance which is mutated by
 	// `loadGitConfig`.
-	config *Configuration
+	config  *Configuration
+	loading sync.Mutex // guards initialization of gitConfig and remotes
 }
 
 // Get is shorthand for calling the loadGitConfig, and then returning
@@ -73,8 +75,8 @@ func (g *gitEnvironment) All() map[string][]string {
 //
 // loadGitConfig is safe to call across multiple goroutines.
 func (g *gitEnvironment) loadGitConfig() bool {
-	g.config.loading.Lock()
-	defer g.config.loading.Unlock()
+	g.loading.Lock()
+	defer g.loading.Unlock()
 
 	if g.git != nil {
 		return false
