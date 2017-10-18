@@ -72,12 +72,21 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 // getCredentialConfig parses a *credsConfig given the OS and Git
 // configurations.
 func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
-	what := &credsConfig{
-		Cached: cfg.Git.Bool("lfs.cachecredentials", true),
+	g := cfg.Git
+	o := cfg.Os
+	askpass, ok := o.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = g.Get("core.askpass")
 	}
-
-	if err := cfg.Unmarshal(what); err != nil {
-		return nil, err
+	if !ok {
+		askpass, ok = o.Get("SSH_ASKPASS")
+	}
+	helper, _ := g.Get("credential.helper")
+	what := &credsConfig{
+		AskPass:    askpass,
+		Helper:     helper,
+		Cached:     g.Bool("lfs.cachecredentials", true),
+		SkipPrompt: o.Bool("GIT_TERMINAL_PROMPT", false),
 	}
 
 	return what, nil
