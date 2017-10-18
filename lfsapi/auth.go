@@ -49,10 +49,10 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 				c.Endpoints.SetAccess(apiEndpoint.Url, newAccess)
 			}
 
-			if access == NoneAccess || creds != nil {
+			if creds != nil || (access == NoneAccess && len(req.Header.Get("Authorization")) == 0) {
 				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess)
-				req.Header.Del("Authorization")
 				if creds != nil {
+					req.Header.Del("Authorization")
 					credHelper.Reject(creds)
 				}
 				return c.DoWithAuth(remote, req)
