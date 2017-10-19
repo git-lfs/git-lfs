@@ -34,6 +34,8 @@ type Configuration struct {
 	// version.
 	gitConfig *git.Configuration
 
+	fs *fs
+
 	CurrentRemote string
 
 	loading    sync.Mutex // guards initialization of gitConfig and remotes
@@ -242,6 +244,15 @@ func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
 
 func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
 	return c.gitConfig.UnsetLocalKey(file, key)
+}
+
+func (c *Configuration) ResolveGitBasicDirs() {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.fs == nil {
+		c.fs = resolveGitBasicDirs()
+	}
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on

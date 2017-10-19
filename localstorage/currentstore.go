@@ -64,7 +64,7 @@ func InitStorageOrFail(cfg *config.Configuration) {
 }
 
 func ResolveDirs(cfg *config.Configuration) {
-	config.ResolveGitBasicDirs()
+	cfg.ResolveGitBasicDirs()
 	InitStorageOrFail(cfg)
 }
 

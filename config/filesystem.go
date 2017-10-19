@@ -20,8 +20,16 @@ var (
 	LocalLogDir        string
 )
 
+type fs struct {
+	WorkingDir    string
+	GitDir        string // parent of index / config / hooks etc
+	GitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
+	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
+	LogDir        string
+}
+
 // Determins the LocalWorkingDir, LocalGitDir etc
-func ResolveGitBasicDirs() {
+func resolveGitBasicDirs() *fs {
 	var err error
 	LocalGitDir, localWorkingDir, err = git.GitAndRootDirs()
 	if err == nil {
@@ -33,12 +41,19 @@ func ResolveGitBasicDirs() {
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		LocalReferenceDir = resolveReferenceDir(LocalGitStorageDir)
 
+		return &fs{
+			GitDir:        LocalGitDir,
+			WorkingDir:    localWorkingDir,
+			GitStorageDir: LocalGitStorageDir,
+			ReferenceDir:  LocalReferenceDir,
+		}
 	} else {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
 		if !strings.Contains(errMsg, "Not a git repository") {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
+		return nil
 	}
 }
 
