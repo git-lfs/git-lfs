@@ -200,7 +200,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(malformedOnWindows) > 0 {
-		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n")
+		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n", len(malformedOnWindows))
 
 		for _, m := range malformedOnWindows {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
