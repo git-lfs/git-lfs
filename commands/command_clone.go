@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/subprocess"
 
@@ -25,7 +24,7 @@ var (
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
-	if git.Config.IsGitVersionAtLeast("2.15.0") {
+	if cfg.IsGitVersionAtLeast("2.15.0") {
 		msg := []string{
 			"WARNING: 'git lfs clone' is deprecated and will not be updated",
 			"          with new flags from 'git clone'",
@@ -73,7 +72,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	defer os.Chdir(cwd)
 
 	// Also need to derive dirs now
-	localstorage.ResolveDirs()
+	localstorage.ResolveDirs(cfg)
 	requireInRepo()
 
 	// Now just call pull with default args
@@ -105,7 +104,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		// If --skip-repo wasn't given, install repo-level hooks while
 		// we're still in the checkout directory.
 
-		if err := lfs.InstallHooks(false); err != nil {
+		if err := installHooks(false); err != nil {
 			ExitWithError(err)
 		}
 	}
@@ -114,7 +113,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 func postCloneSubmodules(args []string) error {
 	// In git 2.9+ the filter option will have been passed through to submodules
 	// So we need to lfs pull inside each
-	if !git.Config.IsGitVersionAtLeast("2.9.0") {
+	if !cfg.IsGitVersionAtLeast("2.9.0") {
 		// In earlier versions submodules would have used smudge filter
 		return nil
 	}

@@ -4,15 +4,11 @@ package config
 
 import (
 	"fmt"
-	"reflect"
-	"regexp"
-	"strconv"
-	"strings"
+	"os"
+	"path/filepath"
 	"sync"
 
-	"path/filepath"
-
-	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -22,32 +18,6 @@ var (
 	defaultRemote          = "origin"
 	gitConfigWarningPrefix = "lfs."
 )
-
-// FetchPruneConfig collects together the config options that control fetching and pruning
-type FetchPruneConfig struct {
-	// The number of days prior to current date for which (local) refs other than HEAD
-	// will be fetched with --recent (default 7, 0 = only fetch HEAD)
-	FetchRecentRefsDays int `git:"lfs.fetchrecentrefsdays"`
-	// Makes the FetchRecentRefsDays option apply to remote refs from fetch source as well (default true)
-	FetchRecentRefsIncludeRemotes bool `git:"lfs.fetchrecentremoterefs"`
-	// number of days prior to latest commit on a ref that we'll fetch previous
-	// LFS changes too (default 0 = only fetch at ref)
-	FetchRecentCommitsDays int `git:"lfs.fetchrecentcommitsdays"`
-	// Whether to always fetch recent even without --recent
-	FetchRecentAlways bool `git:"lfs.fetchrecentalways"`
-	// Number of days added to FetchRecent*; data outside combined window will be
-	// deleted when prune is run. (default 3)
-	PruneOffsetDays int `git:"lfs.pruneoffsetdays"`
-	// Always verify with remote before pruning
-	PruneVerifyRemoteAlways bool `git:"lfs.pruneverifyremotealways"`
-	// Name of remote to check for unpushed and verify checks
-	PruneRemoteName string `git:"lfs.pruneremotetocheck"`
-}
-
-// Storage configuration
-type StorageConfig struct {
-	LfsStorageDir string `git:"lfs.storage"`
-}
 
 type Configuration struct {
 	// Os provides a `*Environment` used to access to the system's
@@ -60,6 +30,12 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
+	// gitConfig can fetch or modify the current Git config and track the Git
+	// version.
+	gitConfig *git.Configuration
+
+	fs *fs
+
 	CurrentRemote string
 
 	loading    sync.Mutex // guards initialization of gitConfig and remotes
@@ -68,10 +44,36 @@ type Configuration struct {
 }
 
 func New() *Configuration {
-	c := &Configuration{Os: EnvironmentOf(NewOsFetcher())}
-	c.Git = &gitEnvironment{config: c}
-	initConfig(c)
+	gitConf := git.Config
+	c := &Configuration{
+		CurrentRemote: defaultRemote,
+		Os:            EnvironmentOf(NewOsFetcher()),
+		gitConfig:     gitConf,
+	}
+	c.Git = &delayedEnvironment{
+		callback: func() Environment {
+			sources, err := gitConf.Sources(filepath.Join(c.LocalWorkingDir(), ".lfsconfig"))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
+			}
+			return c.readGitConfig(sources...)
+		},
+	}
 	return c
+}
+
+func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) Environment {
+	gf, extensions, uniqRemotes := readGitConfig(gitconfigs...)
+	c.extensions = extensions
+	c.remotes = make([]string, 0, len(uniqRemotes))
+	for remote, isOrigin := range uniqRemotes {
+		if isOrigin {
+			continue
+		}
+		c.remotes = append(c.remotes, remote)
+	}
+
+	return EnvironmentOf(gf)
 }
 
 // Values is a convenience type used to call the NewFromValues function. It
@@ -90,135 +92,27 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	c := &Configuration{
-		Os:  EnvironmentOf(mapFetcher(v.Os)),
-		Git: EnvironmentOf(mapFetcher(v.Git)),
+		CurrentRemote: defaultRemote,
+		Os:            EnvironmentOf(mapFetcher(v.Os)),
+		gitConfig:     git.Config,
 	}
-	initConfig(c)
+	c.Git = &delayedEnvironment{
+		callback: func() Environment {
+			source := &git.ConfigurationSource{
+				Lines: make([]string, 0, len(v.Git)),
+			}
+
+			for key, values := range v.Git {
+				for _, value := range values {
+					fmt.Printf("Config: %s=%s\n", key, value)
+					source.Lines = append(source.Lines, fmt.Sprintf("%s=%s", key, value))
+				}
+			}
+
+			return c.readGitConfig(source)
+		},
+	}
 	return c
-}
-
-func initConfig(c *Configuration) {
-	c.CurrentRemote = defaultRemote
-}
-
-// Unmarshal unmarshals the *Configuration in context into all of `v`'s fields,
-// according to the following rules:
-//
-// Values are marshaled according to the given key and environment, as follows:
-//	type T struct {
-//		Field string `git:"key"`
-//		Other string `os:"key"`
-//	}
-//
-// If an unknown environment is given, an error will be returned. If there is no
-// method supporting conversion into a field's type, an error will be returned.
-// If no value is associated with the given key and environment, the field will
-// // only be modified if there is a config value present matching the given
-// key. If the field is already set to a non-zero value of that field's type,
-// then it will be left alone.
-//
-// Otherwise, the field will be set to the value of calling the
-// appropriately-typed method on the specified environment.
-func (c *Configuration) Unmarshal(v interface{}) error {
-	into := reflect.ValueOf(v)
-	if into.Kind() != reflect.Ptr {
-		return fmt.Errorf("lfs/config: unable to parse non-pointer type of %T", v)
-	}
-	into = into.Elem()
-
-	for i := 0; i < into.Type().NumField(); i++ {
-		field := into.Field(i)
-		sfield := into.Type().Field(i)
-
-		lookups, err := c.parseTag(sfield.Tag)
-		if err != nil {
-			return err
-		}
-
-		var val interface{}
-		for _, lookup := range lookups {
-			if _, ok := lookup.Get(); !ok {
-				continue
-			}
-
-			switch sfield.Type.Kind() {
-			case reflect.String:
-				val, _ = lookup.Get()
-			case reflect.Int:
-				val = lookup.Int(int(field.Int()))
-			case reflect.Bool:
-				val = lookup.Bool(field.Bool())
-			default:
-				return fmt.Errorf("lfs/config: unsupported target type for field %q: %v",
-					sfield.Name, sfield.Type.String())
-			}
-
-			if val != nil {
-				break
-			}
-		}
-
-		if val != nil {
-			into.Field(i).Set(reflect.ValueOf(val))
-		}
-	}
-
-	return nil
-}
-
-var (
-	tagRe    = regexp.MustCompile("((\\w+:\"[^\"]*\")\\b?)+")
-	emptyEnv = EnvironmentOf(MapFetcher(nil))
-)
-
-type lookup struct {
-	key string
-	env Environment
-}
-
-func (l *lookup) Get() (interface{}, bool) { return l.env.Get(l.key) }
-func (l *lookup) Int(or int) int           { return l.env.Int(l.key, or) }
-func (l *lookup) Bool(or bool) bool        { return l.env.Bool(l.key, or) }
-
-// parseTag returns the key, environment, and optional error assosciated with a
-// given tag. It will return the XOR of either the `git` or `os` tag. That is to
-// say, a field tagged with EITHER `git` OR `os` is valid, but pone tagged with
-// both is not.
-//
-// If neither field was found, then a nil environment will be returned.
-func (c *Configuration) parseTag(tag reflect.StructTag) ([]*lookup, error) {
-	var lookups []*lookup
-
-	parts := tagRe.FindAllString(string(tag), -1)
-	for _, part := range parts {
-		sep := strings.SplitN(part, ":", 2)
-		if len(sep) != 2 {
-			return nil, errors.Errorf("config: invalid struct tag %q", tag)
-		}
-
-		var env Environment
-		switch strings.ToLower(sep[0]) {
-		case "git":
-			env = c.Git
-		case "os":
-			env = c.Os
-		default:
-			// ignore other struct tags, like `json:""`, etc.
-			env = emptyEnv
-		}
-
-		uq, err := strconv.Unquote(sep[1])
-		if err != nil {
-			return nil, err
-		}
-
-		lookups = append(lookups, &lookup{
-			key: uq,
-			env: env,
-		})
-	}
-
-	return lookups, nil
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.
@@ -245,7 +139,6 @@ func (c *Configuration) FetchExcludePaths() []string {
 
 func (c *Configuration) Remotes() []string {
 	c.loadGitConfig()
-
 	return c.remotes
 }
 
@@ -259,40 +152,116 @@ func (c *Configuration) SortedExtensions() ([]Extension, error) {
 	return SortExtensions(c.Extensions())
 }
 
-func (c *Configuration) FetchPruneConfig() FetchPruneConfig {
-	f := &FetchPruneConfig{
-		FetchRecentRefsDays:           7,
-		FetchRecentRefsIncludeRemotes: true,
-		PruneOffsetDays:               3,
-		PruneRemoteName:               "origin",
-	}
-
-	if err := c.Unmarshal(f); err != nil {
-		panic(err.Error())
-	}
-	return *f
-}
-
-func (c *Configuration) StorageConfig() StorageConfig {
-	s := &StorageConfig{
-		LfsStorageDir: "lfs",
-	}
-
-	if err := c.Unmarshal(s); err != nil {
-		panic(err.Error())
-	}
-	if !filepath.IsAbs(s.LfsStorageDir) {
-		s.LfsStorageDir = filepath.Join(LocalGitStorageDir, s.LfsStorageDir)
-	}
-	return *s
-}
-
 func (c *Configuration) SkipDownloadErrors() bool {
 	return c.Os.Bool("GIT_LFS_SKIP_DOWNLOAD_ERRORS", false) || c.Git.Bool("lfs.skipdownloaderrors", false)
 }
 
 func (c *Configuration) SetLockableFilesReadOnly() bool {
 	return c.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) && c.Git.Bool("lfs.setlockablereadonly", true)
+}
+
+func (c *Configuration) HookDir() string {
+	if c.gitConfig.IsGitVersionAtLeast("2.9.0") {
+		hp, ok := c.Git.Get("core.hooksPath")
+		if ok {
+			return hp
+		}
+	}
+	return filepath.Join(c.LocalGitDir(), "hooks")
+}
+
+func (c *Configuration) InRepo() bool {
+	return c.fs.InRepo()
+}
+
+func (c *Configuration) LocalWorkingDir() string {
+	c.ResolveGitBasicDirs()
+	return c.fs.WorkingDir
+}
+
+func (c *Configuration) LocalGitDir() string {
+	c.ResolveGitBasicDirs()
+	return c.fs.GitDir
+}
+
+func (c *Configuration) LocalGitStorageDir() string {
+	c.ResolveGitBasicDirs()
+	return c.fs.GitStorageDir
+}
+
+func (c *Configuration) LocalReferenceDir() string {
+	return LocalReferenceDir
+}
+
+func (c *Configuration) LocalLogDir() string {
+	c.ResolveGitBasicDirs()
+	return c.fs.LogDir
+}
+
+func (c *Configuration) SetLocalLogDir(s string) {
+	c.ResolveGitBasicDirs()
+	c.fs.LogDir = s
+}
+
+func (c *Configuration) GitConfig() *git.Configuration {
+	return c.gitConfig
+}
+
+func (c *Configuration) GitVersion() (string, error) {
+	return c.gitConfig.Version()
+}
+
+func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
+	return c.gitConfig.IsGitVersionAtLeast(ver)
+}
+
+func (c *Configuration) FindGitGlobalKey(key string) string {
+	return c.gitConfig.FindGlobal(key)
+}
+
+func (c *Configuration) FindGitSystemKey(key string) string {
+	return c.gitConfig.FindSystem(key)
+}
+
+func (c *Configuration) FindGitLocalKey(key string) string {
+	return c.gitConfig.FindLocal(key)
+}
+
+func (c *Configuration) SetGitGlobalKey(key, val string) (string, error) {
+	return c.gitConfig.SetGlobal(key, val)
+}
+
+func (c *Configuration) SetGitSystemKey(key, val string) (string, error) {
+	return c.gitConfig.SetSystem(key, val)
+}
+
+func (c *Configuration) SetGitLocalKey(file, key, val string) (string, error) {
+	return c.gitConfig.SetLocal(file, key, val)
+}
+
+func (c *Configuration) UnsetGitGlobalSection(key string) (string, error) {
+	return c.gitConfig.UnsetGlobalSection(key)
+}
+
+func (c *Configuration) UnsetGitSystemSection(key string) (string, error) {
+	return c.gitConfig.UnsetSystemSection(key)
+}
+
+func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
+	return c.gitConfig.UnsetLocalSection(key)
+}
+
+func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
+	return c.gitConfig.UnsetLocalKey(file, key)
+}
+
+func (c *Configuration) ResolveGitBasicDirs() {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.fs == nil {
+		c.fs = resolveGitBasicDirs()
+	}
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
@@ -306,12 +275,10 @@ func (c *Configuration) SetLockableFilesReadOnly() bool {
 //
 // loadGitConfig returns a bool returning whether or not `loadGitConfig` was
 // called AND the method did not return early.
-func (c *Configuration) loadGitConfig() bool {
-	if g, ok := c.Git.(*gitEnvironment); ok {
-		return g.loadGitConfig()
+func (c *Configuration) loadGitConfig() {
+	if g, ok := c.Git.(*delayedEnvironment); ok {
+		g.Load()
 	}
-
-	return false
 }
 
 // CurrentCommitter returns the name/email that would be used to author a commit

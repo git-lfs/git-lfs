@@ -10,9 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
@@ -32,18 +30,18 @@ var (
 func trackCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
-	if config.LocalGitDir == "" {
+	if cfg.LocalGitDir() == "" {
 		Print("Not a git repository.")
 		os.Exit(128)
 	}
 
-	if config.LocalWorkingDir == "" {
+	if cfg.LocalWorkingDir() == "" {
 		Print("This operation must be run in a work tree.")
 		os.Exit(128)
 	}
 
 	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
-		lfs.InstallHooks(false)
+		installHooks(false)
 	}
 
 	if len(args) == 0 {
@@ -51,7 +49,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
 		lineEnd = gitLineEnding(cfg.Git)
@@ -59,9 +57,9 @@ func trackCommand(cmd *cobra.Command, args []string) {
 
 	wd, _ := tools.Getwd()
 	wd = tools.ResolveSymlinks(wd)
-	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
+	relpath, err := filepath.Rel(cfg.LocalWorkingDir(), wd)
 	if err != nil {
-		Exit("Current directory %q outside of git working directory %q.", wd, config.LocalWorkingDir)
+		Exit("Current directory %q outside of git working directory %q.", wd, cfg.LocalWorkingDir())
 	}
 
 	changedAttribLines := make(map[string]string)
@@ -215,7 +213,7 @@ ArgsLoop:
 }
 
 func listPatterns() {
-	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	if len(knownPatterns) < 1 {
 		return
 	}

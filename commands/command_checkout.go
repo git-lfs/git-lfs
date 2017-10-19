@@ -63,7 +63,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 // firstly convert any pathspecs to the root of the repo, in case this is being
 // executed in a sub-folder
 func rootedPaths(args []string) []string {
-	pathConverter, err := lfs.NewCurrentToRepoPathConverter()
+	pathConverter, err := lfs.NewCurrentToRepoPathConverter(cfg)
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}

@@ -66,6 +66,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	defer gitscanner.Close()
 
 	include, exclude := getIncludeExcludeArgs(cmd)
+	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
 	if fetchAllArg {
 		if fetchRecentArg || len(args) > 1 {
@@ -89,17 +90,16 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			success = success && s
 		}
 
-		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(refs, filter)
+		if fetchRecentArg || fetchPruneCfg.FetchRecentAlways {
+			s := fetchRecent(fetchPruneCfg, refs, filter)
 			success = success && s
 		}
 	}
 
 	if fetchPruneArg {
-		fetchconf := cfg.FetchPruneConfig()
-		verify := fetchconf.PruneVerifyRemoteAlways
+		verify := fetchPruneCfg.PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
-		prune(fetchconf, verify, false, false)
+		prune(fetchPruneCfg, verify, false, false)
 	}
 
 	if !success {
@@ -169,9 +169,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 }
 
 // Fetch recent objects based on config
-func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
-	fetchconf := cfg.FetchPruneConfig()
-
+func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
 	}

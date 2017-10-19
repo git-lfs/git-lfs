@@ -151,7 +151,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'smudge' filter")
-	lfs.InstallHooks(false)
+	installHooks(false)
 
 	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		smudgeSkip = true

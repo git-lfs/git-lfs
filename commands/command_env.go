@@ -2,7 +2,6 @@ package commands
 
 import (
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
@@ -11,7 +10,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
 	endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.CurrentRemote)
 
-	gitV, err := git.Config.Version()
+	gitV, err := cfg.GitVersion()
 	if err != nil {
 		gitV = "Error getting git version: " + err.Error()
 	}
