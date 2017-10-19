@@ -6,18 +6,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/spf13/cobra"
 )
 
 // untrackCommand takes a list of paths as an argument, and removes each path from the
 // default attributes file (.gitattributes), if it exists.
 func untrackCommand(cmd *cobra.Command, args []string) {
-	if config.LocalGitDir == "" {
+	if cfg.LocalGitDir() == "" {
 		Print("Not a git repository.")
 		os.Exit(128)
 	}
-	if config.LocalWorkingDir == "" {
+	if cfg.LocalWorkingDir() == "" {
 		Print("This operation must be run in a work tree.")
 		os.Exit(128)
 	}

@@ -13,7 +13,7 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if localInstall || lfs.InRepo() {
-		localstorage.InitStorageOrFail()
+		localstorage.InitStorageOrFail(cfg)
 		uninstallHooksCommand(cmd, args)
 	}
 

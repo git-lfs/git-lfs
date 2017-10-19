@@ -34,11 +34,11 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	ManPages     = make(map[string]string, 20)
-	cfg          = config.Config
+	tqManifest   = make(map[string]*tq.Manifest)
 
-	tqManifest = make(map[string]*tq.Manifest)
-	apiClient  *lfsapi.Client
-	global     sync.Mutex
+	cfg       *config.Configuration
+	apiClient *lfsapi.Client
+	global    sync.Mutex
 
 	includeArg string
 	excludeArg string
@@ -91,7 +91,7 @@ func closeAPIClient() error {
 }
 
 func newLockClient(remote string) *locking.Client {
-	storageConfig := localstorage.NewConfig(cfg.Git)
+	storageConfig := localstorage.NewConfig(cfg)
 	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
 		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
@@ -102,8 +102,8 @@ func newLockClient(remote string) *locking.Client {
 	}
 
 	// Configure dirs
-	lockClient.LocalWorkingDir = config.LocalWorkingDir
-	lockClient.LocalGitDir = config.LocalGitDir
+	lockClient.LocalWorkingDir = cfg.LocalWorkingDir()
+	lockClient.LocalGitDir = cfg.LocalGitDir()
 	lockClient.SetLockableFilesReadOnly = cfg.SetLockableFilesReadOnly()
 
 	return lockClient
@@ -311,11 +311,11 @@ func logPanic(loggedError error) string {
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(config.LocalLogDir, name+".log")
+	full := filepath.Join(cfg.LocalLogDir(), name+".log")
 
-	if err := os.MkdirAll(config.LocalLogDir, 0755); err != nil {
+	if err := os.MkdirAll(cfg.LocalLogDir(), 0755); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", cfg.LocalLogDir(), err.Error())
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
@@ -450,8 +450,4 @@ func requireGitVersion() {
 		}
 		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
-}
-
-func init() {
-	log.SetOutput(ErrorWriter)
 }

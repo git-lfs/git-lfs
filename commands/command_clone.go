@@ -72,7 +72,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	defer os.Chdir(cwd)
 
 	// Also need to derive dirs now
-	localstorage.ResolveDirs()
+	localstorage.ResolveDirs(cfg)
 	requireInRepo()
 
 	// Now just call pull with default args

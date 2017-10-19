@@ -25,7 +25,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !skipRepoInstall && (localInstall || lfs.InRepo()) {
-		localstorage.InitStorageOrFail()
+		localstorage.InitStorageOrFail(cfg)
 		installHooksCommand(cmd, args)
 	}
 

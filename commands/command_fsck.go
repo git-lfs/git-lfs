@@ -66,7 +66,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageConfig := localstorage.NewConfig(cfg.Git)
+	storageConfig := localstorage.NewConfig(cfg)
 	badDir := filepath.Join(storageConfig.LfsStorageDir, "bad")
 	Print("Moving corrupt objects to %s", badDir)
 

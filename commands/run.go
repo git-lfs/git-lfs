@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,6 +52,8 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 // Run initializes the 'git-lfs' command and runs it with the given stdin and
 // command line args.
 func Run() {
+	log.SetOutput(ErrorWriter)
+
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
 
@@ -58,6 +61,8 @@ func Run() {
 	root.SetHelpTemplate("{{.UsageString}}")
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
+
+	cfg = config.Config
 
 	for _, f := range commandFuncs {
 		if cmd := f(); cmd != nil {
@@ -78,7 +83,7 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 // necessary to wire it up via `cobra.Command.PreRun`. When run, this function
 // will resolve the localstorage directories.
 func resolveLocalStorage(cmd *cobra.Command, args []string) {
-	localstorage.ResolveDirs()
+	localstorage.ResolveDirs(cfg)
 	setupHTTPLogger(getAPIClient())
 }
 
@@ -113,7 +118,7 @@ func setupHTTPLogger(c *lfsapi.Client) {
 		return
 	}
 
-	logBase := filepath.Join(config.LocalLogDir, "http")
+	logBase := filepath.Join(cfg.LocalLogDir(), "http")
 	if err := os.MkdirAll(logBase, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 		return

@@ -262,7 +262,7 @@ func init() {
 			// When lfs.TempDir is initialized to "/tmp",
 			// hard-linking can fail when another filesystem is
 			// mounted at "/tmp" (such as tmpfs).
-			localstorage.InitStorageOrFail()
+			localstorage.InitStorageOrFail(cfg)
 		}
 
 		cmd.AddCommand(importCmd, info)

@@ -62,8 +62,8 @@ type Configuration struct {
 	LfsStorageDir string
 }
 
-func NewConfig(git config.Environment) (c Configuration) {
-	dir, _ := git.Get("lfs.storage")
+func NewConfig(cfg *config.Configuration) (c Configuration) {
+	dir, _ := cfg.Git.Get("lfs.storage")
 	if len(dir) == 0 {
 		dir = "lfs"
 	}
@@ -71,7 +71,7 @@ func NewConfig(git config.Environment) (c Configuration) {
 	if filepath.IsAbs(dir) {
 		c.LfsStorageDir = dir
 	} else {
-		c.LfsStorageDir = filepath.Join(config.LocalGitStorageDir, dir)
+		c.LfsStorageDir = filepath.Join(cfg.LocalGitStorageDir(), dir)
 	}
 	return
 }

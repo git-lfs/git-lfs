@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	LocalWorkingDir    string
+	localWorkingDir    string
 	LocalGitDir        string // parent of index / config / hooks etc
 	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalReferenceDir  string // alternative local media dir (relative to clone reference repo)
@@ -23,12 +23,12 @@ var (
 // Determins the LocalWorkingDir, LocalGitDir etc
 func ResolveGitBasicDirs() {
 	var err error
-	LocalGitDir, LocalWorkingDir, err = git.GitAndRootDirs()
+	LocalGitDir, localWorkingDir, err = git.GitAndRootDirs()
 	if err == nil {
 		// Make sure we've fully evaluated symlinks, failure to do consistently
 		// can cause discrepancies
 		LocalGitDir = tools.ResolveSymlinks(LocalGitDir)
-		LocalWorkingDir = tools.ResolveSymlinks(LocalWorkingDir)
+		localWorkingDir = tools.ResolveSymlinks(localWorkingDir)
 
 		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
 		LocalReferenceDir = resolveReferenceDir(LocalGitStorageDir)

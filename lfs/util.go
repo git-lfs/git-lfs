@@ -95,8 +95,8 @@ type PathConverter interface {
 // current working dir. Useful when needing to calling git with results from a rooted command,
 // but the user is in a subdir of their repo
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
-func NewRepoToCurrentPathConverter() (PathConverter, error) {
-	r, c, p, err := pathConverterArgs()
+func NewRepoToCurrentPathConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +133,8 @@ func (p *repoToCurrentPathConverter) Convert(filename string) string {
 // relative to the repo root. Useful when calling git with arguments that requires them
 // to be rooted but the user is in a subdir of their repo & expects to use relative args
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
-func NewCurrentToRepoPathConverter() (PathConverter, error) {
-	r, c, p, err := pathConverterArgs()
+func NewCurrentToRepoPathConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -172,13 +172,13 @@ func (p *currentToRepoPathConverter) Convert(filename string) string {
 	}
 }
 
-func pathConverterArgs() (string, string, bool, error) {
+func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {
 	currDir, err := os.Getwd()
 	if err != nil {
 		return "", "", false, fmt.Errorf("Unable to get working dir: %v", err)
 	}
 	currDir = tools.ResolveSymlinks(currDir)
-	return config.LocalWorkingDir, currDir, config.LocalWorkingDir == currDir, nil
+	return cfg.LocalWorkingDir(), currDir, cfg.LocalWorkingDir() == currDir, nil
 }
 
 // Are we running on Windows? Need to handle some extra path shenanigans

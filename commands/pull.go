@@ -27,7 +27,7 @@ func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckou
 
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
-	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
+	pathConverter, err := lfs.NewRepoToCurrentPathConverter(cfg)
 	if err != nil {
 		Panic(err, "Could not convert file paths")
 	}

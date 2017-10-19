@@ -411,7 +411,7 @@ func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
 		return nil
 	}
 
-	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
+	localPath := filepath.Join(cfg.LocalWorkingDir(), smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
 		if allowMissing {
