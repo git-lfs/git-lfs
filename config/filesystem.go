@@ -40,7 +40,7 @@ func resolveGitBasicDirs() *fs {
 		if !strings.Contains(errMsg, "Not a git repository") {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
-		return nil
+		return &fs{}
 	}
 
 	// Make sure we've fully evaluated symlinks, failure to do consistently
