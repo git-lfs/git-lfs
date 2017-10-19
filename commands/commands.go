@@ -164,6 +164,10 @@ func installHooks(force bool) error {
 
 // uninstallHooks removes all hooks in range of the `hooks` var.
 func uninstallHooks() error {
+	if !cfg.InRepo() {
+		return errors.New("Not in a git repository")
+	}
+
 	hooks := lfs.LoadHooks(cfg.HookDir())
 	for _, h := range hooks {
 		if err := h.Uninstall(); err != nil {
@@ -289,7 +293,7 @@ func requireStdin(msg string) {
 }
 
 func requireInRepo() {
-	if !lfs.InRepo() {
+	if !cfg.InRepo() {
 		Print("Not in a git repository.")
 		os.Exit(128)
 	}

@@ -167,7 +167,11 @@ func (c *Configuration) HookDir() string {
 			return hp
 		}
 	}
-	return filepath.Join(LocalGitDir, "hooks")
+	return filepath.Join(localGitDir, "hooks")
+}
+
+func (c *Configuration) InRepo() bool {
+	return c.fs.InRepo()
 }
 
 func (c *Configuration) LocalWorkingDir() string {
@@ -175,11 +179,11 @@ func (c *Configuration) LocalWorkingDir() string {
 }
 
 func (c *Configuration) LocalGitDir() string {
-	return LocalGitDir
+	return localGitDir
 }
 
 func (c *Configuration) LocalGitStorageDir() string {
-	return LocalGitStorageDir
+	return localGitStorageDir
 }
 
 func (c *Configuration) LocalReferenceDir() string {
@@ -187,11 +191,11 @@ func (c *Configuration) LocalReferenceDir() string {
 }
 
 func (c *Configuration) LocalLogDir() string {
-	return LocalLogDir
+	return localLogDir
 }
 
 func (c *Configuration) SetLocalLogDir(s string) {
-	LocalLogDir = s
+	localLogDir = s
 }
 
 func (c *Configuration) GitConfig() *git.Configuration {

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -112,10 +111,6 @@ func (h *Hook) Upgrade() error {
 // Uninstall removes the hook on disk so long as it matches the current version,
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
-	if !InRepo() {
-		return errors.New("Not in a git repository")
-	}
-
 	msg := fmt.Sprintf("Uninstall hook: %s, path=%s", h.Type, h.Path())
 
 	match, err := h.matchesCurrent()

@@ -14,10 +14,10 @@ import (
 
 var (
 	localWorkingDir    string
-	LocalGitDir        string // parent of index / config / hooks etc
-	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
+	localGitDir        string // parent of index / config / hooks etc
+	localGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
 	LocalReferenceDir  string // alternative local media dir (relative to clone reference repo)
-	LocalLogDir        string
+	localLogDir        string
 )
 
 type fs struct {
@@ -28,23 +28,30 @@ type fs struct {
 	LogDir        string
 }
 
+func (f *fs) InRepo() bool {
+	if f == nil {
+		return false
+	}
+	return len(f.GitDir) > 0
+}
+
 // Determins the LocalWorkingDir, LocalGitDir etc
 func resolveGitBasicDirs() *fs {
 	var err error
-	LocalGitDir, localWorkingDir, err = git.GitAndRootDirs()
+	localGitDir, localWorkingDir, err = git.GitAndRootDirs()
 	if err == nil {
 		// Make sure we've fully evaluated symlinks, failure to do consistently
 		// can cause discrepancies
-		LocalGitDir = tools.ResolveSymlinks(LocalGitDir)
+		localGitDir = tools.ResolveSymlinks(localGitDir)
 		localWorkingDir = tools.ResolveSymlinks(localWorkingDir)
 
-		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
-		LocalReferenceDir = resolveReferenceDir(LocalGitStorageDir)
+		localGitStorageDir = resolveGitStorageDir(localGitDir)
+		LocalReferenceDir = resolveReferenceDir(localGitStorageDir)
 
 		return &fs{
-			GitDir:        LocalGitDir,
+			GitDir:        localGitDir,
 			WorkingDir:    localWorkingDir,
-			GitStorageDir: LocalGitStorageDir,
+			GitStorageDir: localGitStorageDir,
 			ReferenceDir:  LocalReferenceDir,
 		}
 	} else {

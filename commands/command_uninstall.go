@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +11,7 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	if localInstall || lfs.InRepo() {
+	if localInstall || cfg.InRepo() {
 		localstorage.InitStorageOrFail(cfg)
 		uninstallHooksCommand(cmd, args)
 	}

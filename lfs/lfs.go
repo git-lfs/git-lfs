@@ -125,10 +125,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	return env
 }
 
-func InRepo() bool {
-	return config.LocalGitDir != ""
-}
-
 func ClearTempObjects() error {
 	if localstorage.Objects() == nil {
 		return nil
