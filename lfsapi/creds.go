@@ -37,8 +37,8 @@ type credsConfig struct {
 //
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
-func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
-	ccfg, err := getCredentialConfig(cfg)
+func getCredentialHelper(osEnv, gitEnv config.Environment) (CredentialHelper, error) {
+	ccfg, err := getCredentialConfig(osEnv, gitEnv)
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +71,20 @@ func getCredentialHelper(cfg *config.Configuration) (CredentialHelper, error) {
 
 // getCredentialConfig parses a *credsConfig given the OS and Git
 // configurations.
-func getCredentialConfig(cfg *config.Configuration) (*credsConfig, error) {
-	what := &credsConfig{
-		Cached: cfg.Git.Bool("lfs.cachecredentials", true),
+func getCredentialConfig(o, g config.Environment) (*credsConfig, error) {
+	askpass, ok := o.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = g.Get("core.askpass")
 	}
-
-	if err := cfg.Unmarshal(what); err != nil {
-		return nil, err
+	if !ok {
+		askpass, ok = o.Get("SSH_ASKPASS")
+	}
+	helper, _ := g.Get("credential.helper")
+	what := &credsConfig{
+		AskPass:    askpass,
+		Helper:     helper,
+		Cached:     g.Bool("lfs.cachecredentials", true),
+		SkipPrompt: o.Bool("GIT_TERMINAL_PROMPT", false),
 	}
 
 	return what, nil

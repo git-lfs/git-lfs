@@ -11,7 +11,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
@@ -412,7 +411,7 @@ func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
 		return nil
 	}
 
-	localPath := filepath.Join(config.LocalWorkingDir, smudgePath)
+	localPath := filepath.Join(cfg.LocalWorkingDir(), smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
 		if allowMissing {
@@ -486,6 +485,6 @@ func disableFor(endpoint lfsapi.Endpoint) error {
 
 	key := strings.Join([]string{"lfs", endpoint.Url, "locksverify"}, ".")
 
-	_, err := git.Config.SetLocal("", key, "false")
+	_, err := cfg.SetGitLocalKey("", key, "false")
 	return err
 }

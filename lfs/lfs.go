@@ -78,15 +78,15 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	ultransfers := manifest.GetUploadAdapterNames()
 	sort.Strings(ultransfers)
 
-	fetchPruneConfig := cfg.FetchPruneConfig()
-	storageConfig := cfg.StorageConfig()
+	fetchPruneConfig := NewFetchPruneConfig(cfg.Git)
+	storageConfig := localstorage.NewConfig(cfg)
 
 	env = append(env,
-		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),
-		fmt.Sprintf("LocalGitDir=%s", config.LocalGitDir),
-		fmt.Sprintf("LocalGitStorageDir=%s", config.LocalGitStorageDir),
+		fmt.Sprintf("LocalWorkingDir=%s", cfg.LocalWorkingDir()),
+		fmt.Sprintf("LocalGitDir=%s", cfg.LocalGitDir()),
+		fmt.Sprintf("LocalGitStorageDir=%s", cfg.LocalGitStorageDir()),
 		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
-		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
+		fmt.Sprintf("LocalReferenceDir=%s", cfg.LocalReferenceDir()),
 		fmt.Sprintf("TempDir=%s", TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
@@ -123,10 +123,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	}
 
 	return env
-}
-
-func InRepo() bool {
-	return config.LocalGitDir != ""
 }
 
 func ClearTempObjects() error {

@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +32,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 	}
 
 	name := args[0]
-	by, err := ioutil.ReadFile(filepath.Join(config.LocalLogDir, name))
+	by, err := ioutil.ReadFile(filepath.Join(cfg.LocalLogDir(), name))
 	if err != nil {
 		Exit("Error reading log: %s", name)
 	}
@@ -43,12 +42,12 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 }
 
 func logsClearCommand(cmd *cobra.Command, args []string) {
-	err := os.RemoveAll(config.LocalLogDir)
+	err := os.RemoveAll(cfg.LocalLogDir())
 	if err != nil {
-		Panic(err, "Error clearing %s", config.LocalLogDir)
+		Panic(err, "Error clearing %s", cfg.LocalLogDir())
 	}
 
-	Print("Cleared %s", config.LocalLogDir)
+	Print("Cleared %s", cfg.LocalLogDir())
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
@@ -59,7 +58,7 @@ func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 }
 
 func sortedLogs() []string {
-	fileinfos, err := ioutil.ReadDir(config.LocalLogDir)
+	fileinfos, err := ioutil.ReadDir(cfg.LocalLogDir())
 	if err != nil {
 		return []string{}
 	}

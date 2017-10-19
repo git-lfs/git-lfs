@@ -16,9 +16,9 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -34,11 +34,11 @@ var (
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	ManPages     = make(map[string]string, 20)
-	cfg          = config.Config
+	tqManifest   = make(map[string]*tq.Manifest)
 
-	tqManifest = make(map[string]*tq.Manifest)
-	apiClient  *lfsapi.Client
-	global     sync.Mutex
+	cfg       *config.Configuration
+	apiClient *lfsapi.Client
+	global    sync.Mutex
 
 	includeArg string
 	excludeArg string
@@ -91,7 +91,7 @@ func closeAPIClient() error {
 }
 
 func newLockClient(remote string) *locking.Client {
-	storageConfig := config.Config.StorageConfig()
+	storageConfig := localstorage.NewConfig(cfg)
 	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
 		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
@@ -102,8 +102,8 @@ func newLockClient(remote string) *locking.Client {
 	}
 
 	// Configure dirs
-	lockClient.LocalWorkingDir = config.LocalWorkingDir
-	lockClient.LocalGitDir = config.LocalGitDir
+	lockClient.LocalWorkingDir = cfg.LocalWorkingDir()
+	lockClient.LocalGitDir = cfg.LocalGitDir()
 	lockClient.SetLockableFilesReadOnly = cfg.SetLockableFilesReadOnly()
 
 	return lockClient
@@ -136,6 +136,46 @@ func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64
 	path, _ = lfs.LocalMediaPath(p.Oid)
 
 	return p.Name, path, p.Oid, p.Size
+}
+
+// Get user-readable manual install steps for hooks
+func getHookInstallSteps() string {
+	hooks := lfs.LoadHooks(cfg.HookDir())
+	steps := make([]string, 0, len(hooks))
+	for _, h := range hooks {
+		steps = append(steps, fmt.Sprintf(
+			"Add the following to .git/hooks/%s:\n\n%s",
+			h.Type, tools.Indent(h.Contents)))
+	}
+
+	return strings.Join(steps, "\n\n")
+}
+
+func installHooks(force bool) error {
+	hooks := lfs.LoadHooks(cfg.HookDir())
+	for _, h := range hooks {
+		if err := h.Install(force); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// uninstallHooks removes all hooks in range of the `hooks` var.
+func uninstallHooks() error {
+	if !cfg.InRepo() {
+		return errors.New("Not in a git repository")
+	}
+
+	hooks := lfs.LoadHooks(cfg.HookDir())
+	for _, h := range hooks {
+		if err := h.Uninstall(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -253,7 +293,7 @@ func requireStdin(msg string) {
 }
 
 func requireInRepo() {
-	if !lfs.InRepo() {
+	if !cfg.InRepo() {
 		Print("Not in a git repository.")
 		os.Exit(128)
 	}
@@ -275,11 +315,11 @@ func logPanic(loggedError error) string {
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(config.LocalLogDir, name+".log")
+	full := filepath.Join(cfg.LocalLogDir(), name+".log")
 
-	if err := os.MkdirAll(config.LocalLogDir, 0755); err != nil {
+	if err := os.MkdirAll(cfg.LocalLogDir(), 0755); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", cfg.LocalLogDir(), err.Error())
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
@@ -340,7 +380,7 @@ func ipAddresses() []string {
 
 func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
-	gitV, err := git.Config.Version()
+	gitV, err := cfg.GitVersion()
 	if err != nil {
 		gitV = "Error getting git version: " + err.Error()
 	}
@@ -407,15 +447,11 @@ func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
 func requireGitVersion() {
 	minimumGit := "1.8.2"
 
-	if !git.Config.IsGitVersionAtLeast(minimumGit) {
-		gitver, err := git.Config.Version()
+	if !cfg.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := cfg.GitVersion()
 		if err != nil {
 			Exit("Error getting git version: %s", err)
 		}
 		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
-}
-
-func init() {
-	log.SetOutput(ErrorWriter)
 }

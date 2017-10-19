@@ -26,11 +26,68 @@ type Attribute struct {
 	Upgradeables map[string][]string
 }
 
-// InstallOptions serves as an argument to Install().
-type InstallOptions struct {
-	Force  bool
-	Local  bool
-	System bool
+// FilterOptions serves as an argument to Install().
+type FilterOptions struct {
+	Force      bool
+	Local      bool
+	System     bool
+	SkipSmudge bool
+}
+
+func (o *FilterOptions) Install() error {
+	if o.SkipSmudge {
+		return skipSmudgeFilterAttribute().Install(o)
+	}
+	return filterAttribute().Install(o)
+}
+
+func (o *FilterOptions) Uninstall() error {
+	filterAttribute().Uninstall(o)
+	return nil
+}
+
+func filterAttribute() *Attribute {
+	return &Attribute{
+		Section: "filter.lfs",
+		Properties: map[string]string{
+			"clean":    "git-lfs clean -- %f",
+			"smudge":   "git-lfs smudge -- %f",
+			"process":  "git-lfs filter-process",
+			"required": "true",
+		},
+		Upgradeables: upgradeables(),
+	}
+}
+
+func skipSmudgeFilterAttribute() *Attribute {
+	return &Attribute{
+		Section: "filter.lfs",
+		Properties: map[string]string{
+			"clean":    "git-lfs clean -- %f",
+			"smudge":   "git-lfs smudge --skip -- %f",
+			"process":  "git-lfs filter-process --skip",
+			"required": "true",
+		},
+		Upgradeables: upgradeables(),
+	}
+}
+
+func upgradeables() map[string][]string {
+	return map[string][]string{
+		"clean": []string{"git-lfs clean %f"},
+		"smudge": []string{
+			"git-lfs smudge %f",
+			"git-lfs smudge --skip %f",
+			"git-lfs smudge -- %f",
+			"git-lfs smudge --skip -- %f",
+		},
+		"process": []string{
+			"git-lfs filter",
+			"git-lfs filter --skip",
+			"git-lfs filter-process",
+			"git-lfs filter-process --skip",
+		},
+	}
 }
 
 // Install instructs Git to set all keys and values relative to the root
@@ -39,7 +96,7 @@ type InstallOptions struct {
 // `force` argument is passed as true. If an attribute is already set to a
 // different value than what is given, and force is false, an error will be
 // returned immediately, and the rest of the attributes will not be set.
-func (a *Attribute) Install(opt InstallOptions) error {
+func (a *Attribute) Install(opt *FilterOptions) error {
 	for k, v := range a.Properties {
 		var upgradeables []string
 		if a.Upgradeables != nil {
@@ -65,7 +122,7 @@ func (a *Attribute) normalizeKey(relative string) string {
 // matching key already exists and the value is not equal to the desired value,
 // an error will be thrown if force is set to false. If force is true, the value
 // will be overridden.
-func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOptions) error {
+func (a *Attribute) set(key, value string, upgradeables []string, opt *FilterOptions) error {
 	var currentValue string
 	if opt.Local {
 		currentValue = git.Config.FindLocal(key)
@@ -94,7 +151,7 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt InstallOpt
 }
 
 // Uninstall removes all properties in the path of this property.
-func (a *Attribute) Uninstall(opt InstallOptions) {
+func (a *Attribute) Uninstall(opt *FilterOptions) {
 	if opt.Local {
 		git.Config.UnsetLocalSection(a.Section)
 	} else if opt.System {
