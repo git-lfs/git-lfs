@@ -52,7 +52,7 @@ func New() *Configuration {
 	}
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
-			sources, err := gitConf.Sources(filepath.Join(localWorkingDir, ".lfsconfig"))
+			sources, err := gitConf.Sources(filepath.Join(c.LocalWorkingDir(), ".lfsconfig"))
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
 			}
@@ -167,7 +167,7 @@ func (c *Configuration) HookDir() string {
 			return hp
 		}
 	}
-	return filepath.Join(localGitDir, "hooks")
+	return filepath.Join(c.LocalGitDir(), "hooks")
 }
 
 func (c *Configuration) InRepo() bool {
@@ -175,15 +175,18 @@ func (c *Configuration) InRepo() bool {
 }
 
 func (c *Configuration) LocalWorkingDir() string {
-	return localWorkingDir
+	c.ResolveGitBasicDirs()
+	return c.fs.WorkingDir
 }
 
 func (c *Configuration) LocalGitDir() string {
-	return localGitDir
+	c.ResolveGitBasicDirs()
+	return c.fs.GitDir
 }
 
 func (c *Configuration) LocalGitStorageDir() string {
-	return localGitStorageDir
+	c.ResolveGitBasicDirs()
+	return c.fs.GitStorageDir
 }
 
 func (c *Configuration) LocalReferenceDir() string {
@@ -191,11 +194,13 @@ func (c *Configuration) LocalReferenceDir() string {
 }
 
 func (c *Configuration) LocalLogDir() string {
-	return localLogDir
+	c.ResolveGitBasicDirs()
+	return c.fs.LogDir
 }
 
 func (c *Configuration) SetLocalLogDir(s string) {
-	localLogDir = s
+	c.ResolveGitBasicDirs()
+	c.fs.LogDir = s
 }
 
 func (c *Configuration) GitConfig() *git.Configuration {

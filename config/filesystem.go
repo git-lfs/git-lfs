@@ -13,11 +13,7 @@ import (
 )
 
 var (
-	localWorkingDir    string
-	localGitDir        string // parent of index / config / hooks etc
-	localGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
-	LocalReferenceDir  string // alternative local media dir (relative to clone reference repo)
-	localLogDir        string
+	LocalReferenceDir string // alternative local media dir (relative to clone reference repo)
 )
 
 type fs struct {
@@ -37,30 +33,28 @@ func (f *fs) InRepo() bool {
 
 // Determins the LocalWorkingDir, LocalGitDir etc
 func resolveGitBasicDirs() *fs {
-	var err error
-	localGitDir, localWorkingDir, err = git.GitAndRootDirs()
-	if err == nil {
-		// Make sure we've fully evaluated symlinks, failure to do consistently
-		// can cause discrepancies
-		localGitDir = tools.ResolveSymlinks(localGitDir)
-		localWorkingDir = tools.ResolveSymlinks(localWorkingDir)
-
-		localGitStorageDir = resolveGitStorageDir(localGitDir)
-		LocalReferenceDir = resolveReferenceDir(localGitStorageDir)
-
-		return &fs{
-			GitDir:        localGitDir,
-			WorkingDir:    localWorkingDir,
-			GitStorageDir: localGitStorageDir,
-			ReferenceDir:  LocalReferenceDir,
-		}
-	} else {
+	localGitDir, localWorkingDir, err := git.GitAndRootDirs()
+	if err != nil {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
 		if !strings.Contains(errMsg, "Not a git repository") {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
 		return nil
+	}
+
+	// Make sure we've fully evaluated symlinks, failure to do consistently
+	// can cause discrepancies
+	localGitDir = tools.ResolveSymlinks(localGitDir)
+	localWorkingDir = tools.ResolveSymlinks(localWorkingDir)
+	localGitStorageDir := resolveGitStorageDir(localGitDir)
+	LocalReferenceDir = resolveReferenceDir(localGitStorageDir)
+
+	return &fs{
+		GitDir:        localGitDir,
+		WorkingDir:    localWorkingDir,
+		GitStorageDir: localGitStorageDir,
+		ReferenceDir:  LocalReferenceDir,
 	}
 }
 
