@@ -62,7 +62,7 @@ func Run() {
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
 
-	cfg = config.Config
+	cfg = config.New()
 
 	for _, f := range commandFuncs {
 		if cmd := f(); cmd != nil {

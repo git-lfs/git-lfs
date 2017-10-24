@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	Config                 = New()
 	ShowConfigWarnings     = false
 	defaultRemote          = "origin"
 	gitConfigWarningPrefix = "lfs."
