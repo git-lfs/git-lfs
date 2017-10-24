@@ -18,8 +18,8 @@ begin_test "logs"
 
   [ "$boomtownExit" = "2" ]
 
-  logname=`ls .git/lfs/objects/logs`
-  logfile=".git/lfs/objects/logs/$logname"
+  logname=`ls .git/lfs/logs`
+  logfile=".git/lfs/logs/$logname"
   cat "$logfile"
   echo "... grep ..."
   grep "$ git-lfs logs boomtown" "$logfile"

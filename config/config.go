@@ -224,12 +224,7 @@ func (c *Configuration) LFSStorageDir() string {
 }
 
 func (c *Configuration) LocalLogDir() string {
-	return c.Filesystem().LogDir
-}
-
-func (c *Configuration) SetLocalLogDir(s string) {
-	c.ResolveGitBasicDirs()
-	c.fs.LogDir = s
+	return c.Filesystem().LogDir()
 }
 
 func (c *Configuration) GitConfig() *git.Configuration {

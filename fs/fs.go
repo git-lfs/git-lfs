@@ -2,8 +2,10 @@ package fs
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -12,7 +14,8 @@ type Filesystem struct {
 	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
 	LFSStorageDir string // parent of lfs objects and tmp dirs. Default: ".git/lfs"
 	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
-	LogDir        string
+	logdir        string
+	mu            sync.Mutex
 }
 
 func (f *Filesystem) ObjectReferencePath(oid string) string {
@@ -21,6 +24,18 @@ func (f *Filesystem) ObjectReferencePath(oid string) string {
 	}
 
 	return filepath.Join(f.ReferenceDir, oid[0:2], oid[2:4], oid)
+}
+
+func (f *Filesystem) LogDir() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if len(f.logdir) == 0 {
+		f.logdir = filepath.Join(f.LFSStorageDir, "logs")
+		os.MkdirAll(f.logdir, 0755)
+	}
+
+	return f.logdir
 }
 
 // New initializes a new *Filesystem with the given directories. gitdir is the

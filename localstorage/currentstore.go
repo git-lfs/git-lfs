@@ -44,7 +44,6 @@ func InitStorage(cfg *config.Configuration) error {
 	}
 
 	objects = objs
-	cfg.SetLocalLogDir(filepath.Join(objs.RootDir, "logs"))
 	if err := os.MkdirAll(cfg.LocalLogDir(), localLogDirPerms); err != nil {
 		return errors.Wrap(err, "create log dir")
 	}
