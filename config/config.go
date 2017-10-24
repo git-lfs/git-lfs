@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/rubyist/tracerx"
 )
 
 var (
 	ShowConfigWarnings     = false
+	LocalReferenceDir      string // alternative local media dir (relative to clone reference repo)
 	defaultRemote          = "origin"
 	gitConfigWarningPrefix = "lfs."
 )
@@ -33,7 +37,7 @@ type Configuration struct {
 	// version.
 	gitConfig *git.Configuration
 
-	fs *fs
+	fs *fs.Filesystem
 
 	CurrentRemote string
 
@@ -174,18 +178,15 @@ func (c *Configuration) InRepo() bool {
 }
 
 func (c *Configuration) LocalWorkingDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.WorkingDir
+	return c.Filesystem().WorkingDir
 }
 
 func (c *Configuration) LocalGitDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.GitDir
+	return c.Filesystem().GitDir
 }
 
 func (c *Configuration) LocalGitStorageDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.GitStorageDir
+	return c.Filesystem().GitStorageDir
 }
 
 func (c *Configuration) LocalReferenceDir() string {
@@ -193,8 +194,7 @@ func (c *Configuration) LocalReferenceDir() string {
 }
 
 func (c *Configuration) LocalLogDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.LogDir
+	return c.Filesystem().LogDir
 }
 
 func (c *Configuration) SetLocalLogDir(s string) {
@@ -254,13 +254,30 @@ func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
 	return c.gitConfig.UnsetLocalKey(file, key)
 }
 
-func (c *Configuration) ResolveGitBasicDirs() {
+func (c *Configuration) Filesystem() *fs.Filesystem {
 	c.loading.Lock()
 	defer c.loading.Unlock()
 
 	if c.fs == nil {
-		c.fs = resolveGitBasicDirs()
+		gitdir, workdir, err := git.GitAndRootDirs()
+		if err != nil {
+			errMsg := err.Error()
+			tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
+			if !strings.Contains(errMsg, "Not a git repository") {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
+			}
+			c.fs = &fs.Filesystem{}
+		} else {
+			c.fs = fs.New(gitdir, workdir, "")
+			LocalReferenceDir = c.fs.ReferenceDir
+		}
 	}
+
+	return c.fs
+}
+
+func (c *Configuration) ResolveGitBasicDirs() {
+	c.Filesystem()
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on

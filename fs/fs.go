@@ -1,61 +1,44 @@
-package config
+package fs
 
 import (
-	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/rubyist/tracerx"
 )
 
-var (
-	LocalReferenceDir string // alternative local media dir (relative to clone reference repo)
-)
-
-type fs struct {
+type Filesystem struct {
 	WorkingDir    string
-	GitDir        string // parent of index / config / hooks etc
-	GitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
+	GitDir        string // parent of index / config / hooks etc. Default: ".git"
+	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
+	LFSStorageDir string // parent of lfs objects and tmp dirs. Default: ".git/lfs"
 	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
 	LogDir        string
 }
 
-func (f *fs) InRepo() bool {
+func (f *Filesystem) InRepo() bool {
 	if f == nil {
 		return false
 	}
 	return len(f.GitDir) > 0
 }
 
-// Determins the LocalWorkingDir, LocalGitDir etc
-func resolveGitBasicDirs() *fs {
-	localGitDir, localWorkingDir, err := git.GitAndRootDirs()
-	if err != nil {
-		errMsg := err.Error()
-		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
-		if !strings.Contains(errMsg, "Not a git repository") {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
-		}
-		return &fs{}
-	}
-
+// New initializes a new *Filesystem with the given directories. gitdir is the
+// path to the bare repo, workdir is the path to the repository working
+// directory, and lfsdir is the optional path to the `.git/lfs` directory.
+func New(gitdir, workdir, lfsdir string) *Filesystem {
 	// Make sure we've fully evaluated symlinks, failure to do consistently
 	// can cause discrepancies
-	localGitDir = tools.ResolveSymlinks(localGitDir)
-	localWorkingDir = tools.ResolveSymlinks(localWorkingDir)
-	localGitStorageDir := resolveGitStorageDir(localGitDir)
-	LocalReferenceDir = resolveReferenceDir(localGitStorageDir)
-
-	return &fs{
-		GitDir:        localGitDir,
-		WorkingDir:    localWorkingDir,
-		GitStorageDir: localGitStorageDir,
-		ReferenceDir:  LocalReferenceDir,
+	fs := &Filesystem{
+		GitDir:     tools.ResolveSymlinks(gitdir),
+		WorkingDir: tools.ResolveSymlinks(workdir),
 	}
+
+	fs.GitStorageDir = resolveGitStorageDir(fs.GitDir)
+	fs.ReferenceDir = resolveReferenceDir(fs.GitStorageDir)
+
+	return fs
 }
 
 func resolveReferenceDir(gitStorageDir string) string {
