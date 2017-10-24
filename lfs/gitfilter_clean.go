@@ -19,7 +19,11 @@ type cleanedAsset struct {
 }
 
 func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
-	extensions, err := config.Config.SortedExtensions()
+	return NewGitFilter(config.Config).Clean(reader, fileName, fileSize, cb)
+}
+
+func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
+	extensions, err := f.cfg.SortedExtensions()
 	if err != nil {
 		return nil, err
 	}
