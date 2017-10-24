@@ -32,15 +32,17 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
+	CurrentRemote string
+
 	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
 	gitConfig *git.Configuration
 
-	fs *fs.Filesystem
-
-	CurrentRemote string
-
+	fs         *fs.Filesystem
+	gitDir     *string
+	workDir    string
 	loading    sync.Mutex // guards initialization of gitConfig and remotes
+	loadingGit sync.Mutex // guards initialization of local git and working dirs
 	remotes    []string
 	extensions map[string]Extension
 }
@@ -173,15 +175,40 @@ func (c *Configuration) HookDir() string {
 }
 
 func (c *Configuration) InRepo() bool {
-	return c.fs.InRepo()
+	return len(c.LocalGitDir()) > 0
 }
 
 func (c *Configuration) LocalWorkingDir() string {
-	return c.Filesystem().WorkingDir
+	c.loadGitDirs()
+	return c.workDir
 }
 
 func (c *Configuration) LocalGitDir() string {
-	return c.Filesystem().GitDir
+	c.loadGitDirs()
+	return *c.gitDir
+}
+
+func (c *Configuration) loadGitDirs() {
+	c.loadingGit.Lock()
+	defer c.loadingGit.Unlock()
+
+	if c.gitDir != nil {
+		return
+	}
+
+	gitdir, workdir, err := git.GitAndRootDirs()
+	if err != nil {
+		errMsg := err.Error()
+		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
+		if !strings.Contains(errMsg, "Not a git repository") {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
+		}
+		c.gitDir = &gitdir
+	}
+
+	gitdir = tools.ResolveSymlinks(gitdir)
+	c.gitDir = &gitdir
+	c.workDir = tools.ResolveSymlinks(workdir)
 }
 
 func (c *Configuration) LocalGitStorageDir() string {
@@ -190,6 +217,10 @@ func (c *Configuration) LocalGitStorageDir() string {
 
 func (c *Configuration) LocalReferenceDir() string {
 	return c.Filesystem().ReferenceDir
+}
+
+func (c *Configuration) LFSStorageDir() string {
+	return c.Filesystem().LFSStorageDir
 }
 
 func (c *Configuration) LocalLogDir() string {
@@ -254,21 +285,13 @@ func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
 }
 
 func (c *Configuration) Filesystem() *fs.Filesystem {
+	c.loadGitDirs()
 	c.loading.Lock()
 	defer c.loading.Unlock()
 
 	if c.fs == nil {
-		gitdir, workdir, err := git.GitAndRootDirs()
-		if err != nil {
-			errMsg := err.Error()
-			tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
-			if !strings.Contains(errMsg, "Not a git repository") {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
-			}
-			c.fs = &fs.Filesystem{}
-		} else {
-			c.fs = fs.New(gitdir, workdir, "")
-		}
+		lfsdir, _ := c.Git.Get("lfs.storage")
+		c.fs = fs.New(c.LocalGitDir(), c.LocalWorkingDir(), lfsdir)
 	}
 
 	return c.fs

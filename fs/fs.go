@@ -9,19 +9,10 @@ import (
 )
 
 type Filesystem struct {
-	WorkingDir    string
-	GitDir        string // parent of index / config / hooks etc. Default: ".git"
 	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
 	LFSStorageDir string // parent of lfs objects and tmp dirs. Default: ".git/lfs"
 	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
 	LogDir        string
-}
-
-func (f *Filesystem) InRepo() bool {
-	if f == nil {
-		return false
-	}
-	return len(f.GitDir) > 0
 }
 
 func (f *Filesystem) ObjectReferencePath(oid string) string {
@@ -36,15 +27,21 @@ func (f *Filesystem) ObjectReferencePath(oid string) string {
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
 func New(gitdir, workdir, lfsdir string) *Filesystem {
-	// Make sure we've fully evaluated symlinks, failure to do consistently
-	// can cause discrepancies
 	fs := &Filesystem{
-		GitDir:     tools.ResolveSymlinks(gitdir),
-		WorkingDir: tools.ResolveSymlinks(workdir),
+		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
 
-	fs.GitStorageDir = resolveGitStorageDir(fs.GitDir)
 	fs.ReferenceDir = resolveReferenceDir(fs.GitStorageDir)
+
+	if len(lfsdir) == 0 {
+		lfsdir = "lfs"
+	}
+
+	if filepath.IsAbs(lfsdir) {
+		fs.LFSStorageDir = lfsdir
+	} else {
+		fs.LFSStorageDir = filepath.Join(fs.GitStorageDir, lfsdir)
+	}
 
 	return fs
 }

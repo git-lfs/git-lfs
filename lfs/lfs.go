@@ -71,7 +71,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	sort.Strings(ultransfers)
 
 	fetchPruneConfig := NewFetchPruneConfig(cfg.Git)
-	storageConfig := localstorage.NewConfig(cfg)
 
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", cfg.LocalWorkingDir()),
@@ -91,7 +90,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
 		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
 		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
-		fmt.Sprintf("LfsStorageDir=%s", storageConfig.LfsStorageDir),
+		fmt.Sprintf("LfsStorageDir=%s", cfg.LFSStorageDir()),
 		fmt.Sprintf("AccessDownload=%s", download),
 		fmt.Sprintf("AccessUpload=%s", upload),
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),

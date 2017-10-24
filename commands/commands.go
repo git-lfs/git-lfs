@@ -18,7 +18,6 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -91,10 +90,9 @@ func closeAPIClient() error {
 }
 
 func newLockClient(remote string) *locking.Client {
-	storageConfig := localstorage.NewConfig(cfg)
 	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
-		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
+		err = lockClient.SetupFileCache(cfg.LFSStorageDir())
 	}
 
 	if err != nil {
