@@ -29,7 +29,7 @@ var (
 //
 // delayedSmudge returns the number of bytes written, whether the checkout was
 // delayed, the *lfs.Pointer that was smudged, and an error, if one occurred.
-func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q *tq.TransferQueue, filename string, skip bool, filter *filepathfilter.Filter) (int64, bool, *lfs.Pointer, error) {
+func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer, from io.Reader, q *tq.TransferQueue, filename string, skip bool, filter *filepathfilter.Filter) (int64, bool, *lfs.Pointer, error) {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
 		// Write 'statusFromErr(nil)', even though 'perr != nil', since
@@ -71,7 +71,7 @@ func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q 
 			return 0, false, nil, err
 		}
 
-		n, err := ptr.Smudge(to, filename, false, nil, nil)
+		n, err := gf.Smudge(to, ptr, filename, false, nil, nil)
 		return n, false, ptr, err
 	}
 
@@ -98,7 +98,7 @@ func delayedSmudge(s *git.FilterProcessScanner, to io.Writer, from io.Reader, q 
 // Any errors encountered along the way will be returned immediately if they
 // were non-fatal, otherwise execution will halt and the process will be
 // terminated by using the `commands.Panic()` func.
-func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) (int64, error) {
+func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) (int64, error) {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
 		n, err := tools.Spool(to, pbuf, localstorage.Objects().TempDir)
@@ -125,7 +125,7 @@ func smudge(to io.Writer, from io.Reader, filename string, skip bool, filter *fi
 		download = filter.Allows(filename)
 	}
 
-	n, err := ptr.Smudge(to, filename, download, getTransferManifest(), cb)
+	n, err := gf.Smudge(to, ptr, filename, download, getTransferManifest(), cb)
 	if file != nil {
 		file.Close()
 	}
@@ -157,8 +157,9 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 		smudgeSkip = true
 	}
 	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	gitfilter := lfs.NewGitFilter(cfg)
 
-	if n, err := smudge(os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
+	if n, err := smudge(gitfilter, os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {
 		if errors.IsNotAPointerError(err) {
 			fmt.Fprintln(os.Stderr, err.Error())
 		} else {

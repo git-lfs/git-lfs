@@ -81,7 +81,8 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		return
 	}
 
-	err = lfs.PointerSmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
+	gitfilter := lfs.NewGitFilter(cfg)
+	err = gitfilter.SmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
 	if err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// acceptable error, data not local (fetch not run or include/exclude)

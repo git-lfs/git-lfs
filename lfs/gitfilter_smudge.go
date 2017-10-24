@@ -16,14 +16,6 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
-	return NewGitFilter(config.Config).SmudgeToFile(filename, ptr, download, manifest, cb)
-}
-
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
-	return NewGitFilter(config.Config).Smudge(writer, ptr, workingfile, download, manifest, cb)
-}
-
 func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)

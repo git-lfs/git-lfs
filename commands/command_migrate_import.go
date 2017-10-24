@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +33,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 	tracked := trackedFromFilter(rewriter.Filter())
 	exts := tools.NewOrderedSet()
+	gitfilter := lfs.NewGitFilter(cfg)
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose: migrateVerbose,
@@ -42,7 +44,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			var buf bytes.Buffer
 
-			if _, err := clean(&buf, b.Contents, path, b.Size); err != nil {
+			if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
 				return nil, err
 			}
 

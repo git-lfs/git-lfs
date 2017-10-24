@@ -98,7 +98,6 @@ func (r *Repo) Popd() {
 }
 
 func (r *Repo) Cleanup() {
-
 	// pop out if necessary
 	r.Popd()
 
@@ -135,7 +134,8 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret := &Repo{
 		Settings: settings,
 		Remotes:  make(map[string]*Repo),
-		callback: callback}
+		callback: callback,
+	}
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
@@ -177,7 +177,11 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 
 // WrapRepo creates a new Repo instance for an existing git repo
 func WrapRepo(c RepoCallback, path string) *Repo {
-	return &Repo{Path: path, callback: c, Settings: &RepoCreateSettings{RepoType: RepoTypeNormal}}
+	return &Repo{
+		Path:     path,
+		Settings: &RepoCreateSettings{RepoType: RepoTypeNormal},
+		callback: c,
+	}
 }
 
 // Simplistic fire & forget running of git command - returns combined output
@@ -202,9 +206,9 @@ type FileInput struct {
 	Data string
 }
 
-func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
+func (infile *FileInput) AddToIndex(gitfilter *lfs.GitFilter, output *CommitOutput, repo *Repo) {
 	inputData := infile.getFileInputReader()
-	pointer, err := infile.writeLFSPointer(inputData)
+	pointer, err := infile.writeLFSPointer(gitfilter, inputData)
 	if err != nil {
 		repo.callback.Errorf("%+v", err)
 		return
@@ -213,8 +217,8 @@ func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
 	RunGitCommand(repo.callback, true, "add", infile.Filename)
 }
 
-func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, error) {
-	cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
+func (infile *FileInput) writeLFSPointer(gitfilter *lfs.GitFilter, inputData io.Reader) (*lfs.Pointer, error) {
+	cleaned, err := gitfilter.Clean(inputData, infile.Filename, infile.Size, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating pointer file")
 	}
@@ -329,6 +333,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 	// Used to check whether we need to checkout another commit before
 	lastBranch := "master"
 	outputs := make([]*CommitOutput, 0, len(inputs))
+	gitfilter := lfs.NewGitFilter(config.Config)
 
 	for i, input := range inputs {
 		output := &CommitOutput{}
@@ -352,7 +357,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 		}
 		// Any files to write?
 		for _, infile := range input.Files {
-			infile.AddToIndex(output, repo)
+			infile.AddToIndex(gitfilter, output, repo)
 		}
 		// Now commit
 		err = commitAtDate(input.CommitDate, input.CommitterName, input.CommitterEmail,

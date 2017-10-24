@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -16,10 +15,6 @@ import (
 type cleanedAsset struct {
 	Filename string
 	*Pointer
-}
-
-func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
-	return NewGitFilter(config.Config).Clean(reader, fileName, fileSize, cb)
 }
 
 func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
