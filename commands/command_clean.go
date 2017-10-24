@@ -33,7 +33,7 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 				fileSize = stat.Size()
 			}
 
-			localCb, localFile, err := lfs.CopyCallbackFile("clean", fileName, 1, 1)
+			localCb, localFile, err := gf.CopyCallbackFile("clean", fileName, 1, 1)
 			if err != nil {
 				Error(err.Error())
 			} else {
