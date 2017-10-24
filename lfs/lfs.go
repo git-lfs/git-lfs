@@ -5,7 +5,6 @@ package lfs
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -46,13 +45,6 @@ func LocalMediaPath(oid string) (string, error) {
 
 func LocalMediaPathReadOnly(oid string) string {
 	return localstorage.Objects().ObjectPath(oid)
-}
-
-func LocalReferencePath(sha string) string {
-	if config.LocalReferenceDir == "" {
-		return ""
-	}
-	return filepath.Join(config.LocalReferenceDir, sha[0:2], sha[2:4], sha)
 }
 
 func ObjectExistsOfSize(oid string, size int64) bool {
@@ -156,11 +148,11 @@ func AllObjects() []localstorage.Object {
 	return localstorage.Objects().AllObjects()
 }
 
-func LinkOrCopyFromReference(oid string, size int64) error {
+func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) error {
 	if ObjectExistsOfSize(oid, size) {
 		return nil
 	}
-	altMediafile := LocalReferencePath(oid)
+	altMediafile := cfg.Filesystem().ObjectReferencePath(oid)
 	mediafile, err := LocalMediaPath(oid)
 	if err != nil {
 		return err

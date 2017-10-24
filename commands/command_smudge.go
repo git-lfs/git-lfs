@@ -51,7 +51,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 		return 0, false, nil, nil
 	}
 
-	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+	lfs.LinkOrCopyFromReference(cfg, ptr.Oid, ptr.Size)
 
 	path, err := lfs.LocalMediaPath(ptr.Oid)
 	if err != nil {
@@ -114,7 +114,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 		return 0, nil
 	}
 
-	lfs.LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+	lfs.LinkOrCopyFromReference(cfg, ptr.Oid, ptr.Size)
 	cb, file, err := gf.CopyCallbackFile("download", filename, 1, 1)
 	if err != nil {
 		return 0, err

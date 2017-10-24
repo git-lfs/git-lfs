@@ -42,7 +42,7 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 		return 0, err
 	}
 
-	LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+	LinkOrCopyFromReference(f.cfg, ptr.Oid, ptr.Size)
 
 	stat, statErr := os.Stat(mediafile)
 	if statErr == nil && stat != nil {

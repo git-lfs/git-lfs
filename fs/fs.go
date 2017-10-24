@@ -24,6 +24,14 @@ func (f *Filesystem) InRepo() bool {
 	return len(f.GitDir) > 0
 }
 
+func (f *Filesystem) ObjectReferencePath(oid string) string {
+	if len(f.ReferenceDir) == 0 {
+		return f.ReferenceDir
+	}
+
+	return filepath.Join(f.ReferenceDir, oid[0:2], oid[2:4], oid)
+}
+
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.

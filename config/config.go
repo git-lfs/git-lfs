@@ -17,7 +17,6 @@ import (
 
 var (
 	ShowConfigWarnings     = false
-	LocalReferenceDir      string // alternative local media dir (relative to clone reference repo)
 	defaultRemote          = "origin"
 	gitConfigWarningPrefix = "lfs."
 )
@@ -190,7 +189,7 @@ func (c *Configuration) LocalGitStorageDir() string {
 }
 
 func (c *Configuration) LocalReferenceDir() string {
-	return LocalReferenceDir
+	return c.Filesystem().ReferenceDir
 }
 
 func (c *Configuration) LocalLogDir() string {
@@ -269,7 +268,6 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 			c.fs = &fs.Filesystem{}
 		} else {
 			c.fs = fs.New(gitdir, workdir, "")
-			LocalReferenceDir = c.fs.ReferenceDir
 		}
 	}
 
