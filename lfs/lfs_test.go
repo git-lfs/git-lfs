@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/stretchr/testify/assert"
@@ -19,11 +20,13 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 		repo.Cleanup()
 	}()
 
-	actual := lfs.AllObjects()
-	if len(actual) > 0 {
-		for _, file := range actual {
-			t.Logf("Found: %v", file)
-		}
+	empty := true
+	testCfg.EachLFSObject(func(obj fs.Object) error {
+		empty = false
+		t.Logf("Found: %+v", obj)
+		return nil
+	})
+	if !empty {
 		t.Error("Should be no objects")
 	}
 }
@@ -56,11 +59,11 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 		expected = append(expected, f)
 	}
 
-	actualObjects := lfs.AllObjects()
-	actual := make([]*lfs.Pointer, len(actualObjects))
-	for idx, f := range actualObjects {
-		actual[idx] = lfs.NewPointer(f.Oid, f.Size, nil)
-	}
+	actual := make([]*lfs.Pointer, 0)
+	testCfg.EachLFSObject(func(obj fs.Object) error {
+		actual = append(actual, lfs.NewPointer(obj.Oid, obj.Size, nil))
+		return nil
+	})
 
 	// sort to ensure comparison is equal
 	sort.Sort(test.PointersByOid(expected))

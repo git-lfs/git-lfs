@@ -88,10 +88,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	return env
 }
 
-func ScanObjectsChan() <-chan localstorage.Object {
-	return localstorage.Objects().ScanObjectsChan()
-}
-
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
@@ -106,11 +102,6 @@ const (
 	gitExt       = ".git"
 	gitPtrPrefix = "gitdir: "
 )
-
-// only used in tests
-func AllObjects() []localstorage.Object {
-	return localstorage.Objects().AllObjects()
-}
 
 func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) error {
 	if cfg.LFSObjectExists(oid, size) {

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
@@ -297,11 +298,14 @@ func pruneDeleteFiles(prunableObjects []string) {
 func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	localObjectsChan := lfs.ScanObjectsChan()
-	for f := range localObjectsChan {
-		*outLocalObjects = append(*outLocalObjects, f)
+	cfg.EachLFSObject(func(obj fs.Object) error {
+		*outLocalObjects = append(*outLocalObjects, localstorage.Object{
+			Oid:  obj.Oid,
+			Size: obj.Size,
+		})
 		progChan <- PruneProgress{PruneProgressTypeLocal, 1}
-	}
+		return nil
+	})
 }
 
 // Background task, must call waitg.Done() once at end

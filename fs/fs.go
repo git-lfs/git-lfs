@@ -4,11 +4,20 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/tools"
 )
+
+var oidRE = regexp.MustCompile(`\A[[:alnum:]]{64}`)
+
+// Object represents a locally stored LFS object.
+type Object struct {
+	Oid  string
+	Size int64
+}
 
 type Filesystem struct {
 	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
@@ -18,6 +27,23 @@ type Filesystem struct {
 	tmpdir        string
 	logdir        string
 	mu            sync.Mutex
+}
+
+func (f *Filesystem) EachObject(fn func(Object) error) error {
+	var eachErr error
+	tools.FastWalkGitRepo(f.LFSObjectDir(), func(parentDir string, info os.FileInfo, err error) {
+		if err != nil {
+			eachErr = err
+			return
+		}
+		if eachErr != nil || info.IsDir() {
+			return
+		}
+		if oidRE.MatchString(info.Name()) {
+			fn(Object{Oid: info.Name(), Size: info.Size()})
+		}
+	})
+	return eachErr
 }
 
 func (f *Filesystem) ObjectExists(oid string, size int64) bool {

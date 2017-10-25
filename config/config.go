@@ -231,12 +231,35 @@ func (c *Configuration) LFSObjectExists(oid string, size int64) bool {
 	return c.Filesystem().ObjectExists(oid, size)
 }
 
+func (c *Configuration) EachLFSObject(fn func(fs.Object) error) error {
+	return c.Filesystem().EachObject(fn)
+}
+
 func (c *Configuration) LocalLogDir() string {
 	return c.Filesystem().LogDir()
 }
 
 func (c *Configuration) TempDir() string {
 	return c.Filesystem().TempDir()
+}
+
+func (c *Configuration) Filesystem() *fs.Filesystem {
+	c.loadGitDirs()
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.fs == nil {
+		lfsdir, _ := c.Git.Get("lfs.storage")
+		c.fs = fs.New(c.LocalGitDir(), c.LocalWorkingDir(), lfsdir)
+	}
+
+	return c.fs
+}
+
+func (c *Configuration) Cleanup() error {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+	return c.fs.Cleanup()
 }
 
 func (c *Configuration) GitConfig() *git.Configuration {
@@ -289,25 +312,6 @@ func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
 
 func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
 	return c.gitConfig.UnsetLocalKey(file, key)
-}
-
-func (c *Configuration) Filesystem() *fs.Filesystem {
-	c.loadGitDirs()
-	c.loading.Lock()
-	defer c.loading.Unlock()
-
-	if c.fs == nil {
-		lfsdir, _ := c.Git.Get("lfs.storage")
-		c.fs = fs.New(c.LocalGitDir(), c.LocalWorkingDir(), lfsdir)
-	}
-
-	return c.fs
-}
-
-func (c *Configuration) Cleanup() error {
-	c.loading.Lock()
-	defer c.loading.Unlock()
-	return c.fs.Cleanup()
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
