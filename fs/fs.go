@@ -20,6 +20,10 @@ type Filesystem struct {
 	mu            sync.Mutex
 }
 
+func (f *Filesystem) ObjectExists(oid string, size int64) bool {
+	return tools.FileExistsOfSize(f.ObjectPath(oid), size)
+}
+
 func (f *Filesystem) ObjectPath(oid string) string {
 	return filepath.Join(f.localObjectDir(oid), oid)
 }

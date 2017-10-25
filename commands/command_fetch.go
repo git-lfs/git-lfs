@@ -349,7 +349,7 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 
 		// no need to download objects that exist locally already
 		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
-		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+		if cfg.LFSObjectExists(p.Oid, p.Size) {
 			ready = append(ready, p)
 			continue
 		}

@@ -24,11 +24,6 @@ func LocalMediaPathReadOnly(oid string) string {
 	return localstorage.Objects().ObjectPath(oid)
 }
 
-func ObjectExistsOfSize(oid string, size int64) bool {
-	path := localstorage.Objects().ObjectPath(oid)
-	return tools.FileExistsOfSize(path, size)
-}
-
 func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
@@ -118,7 +113,7 @@ func AllObjects() []localstorage.Object {
 }
 
 func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) error {
-	if ObjectExistsOfSize(oid, size) {
+	if cfg.LFSObjectExists(oid, size) {
 		return nil
 	}
 	altMediafile := cfg.Filesystem().ObjectReferencePath(oid)

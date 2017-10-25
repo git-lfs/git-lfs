@@ -227,6 +227,10 @@ func (c *Configuration) LFSObjectDir() string {
 	return c.Filesystem().LFSObjectDir()
 }
 
+func (c *Configuration) LFSObjectExists(oid string, size int64) bool {
+	return c.Filesystem().ObjectExists(oid, size)
+}
+
 func (c *Configuration) LocalLogDir() string {
 	return c.Filesystem().LogDir()
 }

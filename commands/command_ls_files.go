@@ -50,7 +50,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 				p.Name,
 				p.Size,
 				fileExistsOfSize(p),
-				lfs.ObjectExistsOfSize(p.Oid, p.Size),
+				cfg.LFSObjectExists(p.Oid, p.Size),
 				p.OidType,
 				p.Oid,
 				p.Version)
