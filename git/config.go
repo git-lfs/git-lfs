@@ -2,6 +2,7 @@ package git
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -13,8 +14,17 @@ var Config = &Configuration{}
 // Configuration can fetch or modify the current Git config and track the Git
 // version.
 type Configuration struct {
+	WorkDir string
+	GitDir  string
 	version string
 	mu      sync.Mutex
+}
+
+func NewConfig(workdir, gitdir string) *Configuration {
+	if len(gitdir) == 0 && len(workdir) > 0 {
+		gitdir = filepath.Join(workdir, ".git")
+	}
+	return &Configuration{WorkDir: workdir, GitDir: gitdir}
 }
 
 func ParseConfigLines(lines string, onlySafeKeys bool) *ConfigurationSource {
@@ -31,73 +41,69 @@ type ConfigurationSource struct {
 
 // Find returns the git config value for the key
 func (c *Configuration) Find(val string) string {
-	output, _ := gitSimple("config", val)
+	output, _ := c.git("config", val)
 	return output
 }
 
 // FindGlobal returns the git config value global scope for the key
 func (c *Configuration) FindGlobal(key string) string {
-	output, _ := gitSimple("config", "--global", key)
+	output, _ := c.git("config", "--global", key)
 	return output
 }
 
 // FindSystem returns the git config value in system scope for the key
 func (c *Configuration) FindSystem(key string) string {
-	output, _ := gitSimple("config", "--system", key)
+	output, _ := c.git("config", "--system", key)
 	return output
 }
 
 // Find returns the git config value for the key
 func (c *Configuration) FindLocal(key string) string {
-	output, _ := gitSimple("config", "--local", key)
+	output, _ := c.git("config", "--local", key)
 	return output
 }
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *Configuration) SetGlobal(key, val string) (string, error) {
-	return gitSimple("config", "--global", "--replace-all", key, val)
+	return c.git("config", "--global", "--replace-all", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
 func (c *Configuration) SetSystem(key, val string) (string, error) {
-	return gitSimple("config", "--system", "--replace-all", key, val)
+	return c.git("config", "--system", "--replace-all", key, val)
 }
 
 // UnsetGlobalSection removes the entire named section from the global config
 func (c *Configuration) UnsetGlobalSection(key string) (string, error) {
-	return gitSimple("config", "--global", "--remove-section", key)
+	return c.git("config", "--global", "--remove-section", key)
 }
 
 // UnsetSystemSection removes the entire named section from the system config
 func (c *Configuration) UnsetSystemSection(key string) (string, error) {
-	return gitSimple("config", "--system", "--remove-section", key)
+	return c.git("config", "--system", "--remove-section", key)
 }
 
 // UnsetLocalSection removes the entire named section from the system config
 func (c *Configuration) UnsetLocalSection(key string) (string, error) {
-	return gitSimple("config", "--local", "--remove-section", key)
+	return c.git("config", "--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *Configuration) SetLocal(file, key, val string) (string, error) {
-	args := make([]string, 1, 6)
-	args[0] = "config"
+	args := make([]string, 0, 5)
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
-	args = append(args, "--replace-all", key, val)
-	return gitSimple(args...)
+	return c.git("config", append(args, "--replace-all", key, val)...)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
 func (c *Configuration) UnsetLocalKey(file, key string) (string, error) {
-	args := make([]string, 1, 5)
-	args[0] = "config"
+	args := make([]string, 0, 4)
 	if len(file) > 0 {
 		args = append(args, "--file", file)
 	}
-	args = append(args, "--unset", key)
-	return gitSimple(args...)
+	return c.git("config", append(args, "--unset", key)...)
 }
 
 func (c *Configuration) Sources(optionalFilename string) ([]*ConfigurationSource, error) {
@@ -124,7 +130,7 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 		return nil, err
 	}
 
-	out, err := gitSimple("config", "-l", "-f", filename)
+	out, err := c.git("config", "-l", "-f", filename)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +138,7 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 }
 
 func (c *Configuration) Source() (*ConfigurationSource, error) {
-	out, err := gitSimple("config", "-l")
+	out, err := c.git("config", "-l")
 	if err != nil {
 		return nil, err
 	}
@@ -164,4 +170,18 @@ func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
 		return false
 	}
 	return IsVersionAtLeast(gitver, ver)
+}
+
+func (c *Configuration) git(subcmd string, args ...string) (string, error) {
+	cmd := make([]string, 1, len(args)+3)
+	cmd[0] = subcmd
+
+	if len(c.GitDir) > 0 {
+		cmd = append(cmd, "--git-dir", c.GitDir)
+	}
+	if len(c.WorkDir) > 0 {
+		cmd = append(cmd, "--work-tree", c.WorkDir)
+	}
+
+	return gitSimple(append(cmd, args...)...)
 }

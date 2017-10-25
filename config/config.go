@@ -52,19 +52,16 @@ func New() *Configuration {
 }
 
 func NewIn(workdir, gitdir string) *Configuration {
-	gitConf := git.Config
+	gitConf := git.NewConfig(workdir, gitdir)
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
 		gitConfig:     gitConf,
 	}
 
-	if len(workdir) > 0 {
-		if len(gitdir) == 0 {
-			gitdir = filepath.Join(workdir, ".git")
-		}
-		c.gitDir = &gitdir
-		c.workDir = workdir
+	if len(gitConf.WorkDir) > 0 {
+		c.gitDir = &gitConf.GitDir
+		c.workDir = gitConf.WorkDir
 	}
 
 	c.Git = &delayedEnvironment{
