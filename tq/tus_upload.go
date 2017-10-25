@@ -165,7 +165,7 @@ func configureTusAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
-			bu := &tusUploadAdapter{newAdapterBase(name, dir, nil)}
+			bu := &tusUploadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bu.transferImpl = bu
 			return bu

@@ -22,10 +22,6 @@ var (
 	checkedTempDir string
 )
 
-func Objects() *LocalStorage {
-	return objects
-}
-
 func InitStorage(cfg *config.Configuration) error {
 	if len(cfg.LocalGitStorageDir()) == 0 || len(cfg.LocalGitDir()) == 0 {
 		return notInRepoErr
