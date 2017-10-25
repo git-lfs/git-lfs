@@ -77,7 +77,7 @@ func TestNTLMAuth(t *testing.T) {
 	require.Nil(t, err)
 
 	credHelper := newMockCredentialHelper()
-	cli, err := NewClient(nil, UniqTestEnv(map[string]string{
+	cli, err := NewClient(NewContext(nil, map[string]string{
 		"lfs.url":                         srv.URL + "/ntlm",
 		"lfs." + srv.URL + "/ntlm.access": "ntlm",
 	}))
@@ -103,7 +103,7 @@ func TestNTLMAuth(t *testing.T) {
 }
 
 func TestNtlmClientSession(t *testing.T) {
-	cli, err := NewClient(nil, nil)
+	cli, err := NewClient(nil)
 	require.Nil(t, err)
 
 	creds := Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
@@ -120,7 +120,7 @@ func TestNtlmClientSession(t *testing.T) {
 }
 
 func TestNtlmClientSessionBadCreds(t *testing.T) {
-	cli, err := NewClient(nil, nil)
+	cli, err := NewClient(nil)
 	require.Nil(t, err)
 	creds := Creds{"username": "badusername", "password": "MooseAntlersYeah"}
 	_, err = cli.ntlmClientSession(creds)

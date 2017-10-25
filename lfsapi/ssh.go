@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -69,7 +70,7 @@ func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
 }
 
 type sshAuthClient struct {
-	os Env
+	os config.Environment
 }
 
 func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
@@ -105,7 +106,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	return res, err
 }
 
-func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string) {
+func sshGetLFSExeAndArgs(osEnv config.Environment, e Endpoint, method string) (string, []string) {
 	exe, args := sshGetExeAndArgs(osEnv, e)
 	operation := endpointOperation(e, method)
 	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
@@ -115,7 +116,7 @@ func sshGetLFSExeAndArgs(osEnv Env, e Endpoint, method string) (string, []string
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(osEnv Env, e Endpoint) (exe string, baseargs []string) {
+func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, baseargs []string) {
 	isPlink := false
 	isTortoise := false
 

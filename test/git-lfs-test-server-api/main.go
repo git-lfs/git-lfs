@@ -148,7 +148,7 @@ func buildManifest(r *test.Repo) (*tq.Manifest, error) {
 		endp = finder.NewEndpoint(apiUrl)
 	}
 
-	apiClient, err := lfsapi.NewClient(r.OSEnv(), r.GitEnv())
+	apiClient, err := lfsapi.NewClient(r)
 	apiClient.Endpoints = &constantEndpoint{
 		e:              endp,
 		EndpointFinder: apiClient.Endpoints,

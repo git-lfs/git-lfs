@@ -37,7 +37,7 @@ type EndpointFinder interface {
 }
 
 type endpointGitFinder struct {
-	git         Env
+	git         config.Environment
 	gitProtocol string
 
 	aliasMu sync.Mutex
@@ -48,7 +48,7 @@ type endpointGitFinder struct {
 	urlConfig *config.URLConfig
 }
 
-func NewEndpointFinder(git Env) EndpointFinder {
+func NewEndpointFinder(git config.Environment) EndpointFinder {
 	e := &endpointGitFinder{
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
@@ -277,7 +277,7 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	return rawurl
 }
 
-func initAliases(e *endpointGitFinder, git Env) {
+func initAliases(e *endpointGitFinder, git config.Environment) {
 	prefix := "url."
 	suffix := ".insteadof"
 	for gitkey, gitval := range git.All() {

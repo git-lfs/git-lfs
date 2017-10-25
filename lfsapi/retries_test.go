@@ -60,7 +60,7 @@ func TestRequestWithRetries(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := NewClient(nil, nil)
+	c, err := NewClient(nil)
 	require.NoError(t, err)
 
 	req, err := http.NewRequest("POST", srv.URL, nil)

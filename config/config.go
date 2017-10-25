@@ -272,6 +272,14 @@ func (c *Configuration) Cleanup() error {
 	return c.fs.Cleanup()
 }
 
+func (c *Configuration) OSEnv() Environment {
+	return c.Os
+}
+
+func (c *Configuration) GitEnv() Environment {
+	return c.Git
+}
+
 func (c *Configuration) GitConfig() *git.Configuration {
 	return c.gitConfig
 }

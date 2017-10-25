@@ -13,7 +13,7 @@ import (
 )
 
 func TestVerifyWithoutAction(t *testing.T) {
-	c := &lfsapi.Client{}
+	c, _ := lfsapi.NewClient(nil)
 	tr := &Transfer{
 		Oid:  "abc",
 		Size: 123,
@@ -44,9 +44,9 @@ func TestVerifySuccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, map[string]string{
 		"lfs.transfer.maxverifies": "1",
-	})
+	}))
 	require.Nil(t, err)
 	tr := &Transfer{
 		Oid:  "abcd1234",

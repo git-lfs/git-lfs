@@ -47,18 +47,29 @@ type Client struct {
 	LoggingStats bool // DEPRECATED
 
 	// only used for per-host ssl certs
-	gitEnv Env
-	osEnv  Env
+	gitEnv config.Environment
+	osEnv  config.Environment
 	uc     *config.URLConfig
 }
 
-func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
-	if osEnv == nil {
-		osEnv = make(TestEnv)
-	}
+type Context interface {
+	OSEnv() config.Environment
+	GitEnv() config.Environment
+}
 
+func NewClient(ctx Context) (*Client, error) {
+	if ctx == nil {
+		return newClient(nil, nil)
+	}
+	return newClient(ctx.OSEnv(), ctx.GitEnv())
+}
+
+func newClient(osEnv, gitEnv config.Environment) (*Client, error) {
+	if osEnv == nil {
+		osEnv = make(testEnv)
+	}
 	if gitEnv == nil {
-		gitEnv = make(TestEnv)
+		gitEnv = make(testEnv)
 	}
 
 	netrc, netrcfile, err := ParseNetrc(osEnv)
@@ -96,11 +107,11 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) GitEnv() Env {
+func (c *Client) GitEnv() config.Environment {
 	return c.gitEnv
 }
 
-func (c *Client) OSEnv() Env {
+func (c *Client) OSEnv() config.Environment {
 	return c.osEnv
 }
 
@@ -135,31 +146,45 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	return nil
 }
 
-// Env is an interface for the config.Environment methods that this package
-// relies on.
-type Env interface {
-	Get(string) (string, bool)
-	GetAll(string) []string
-	Int(string, int) int
-	Bool(string, bool) bool
-	All() map[string][]string
+type testContext struct {
+	osEnv  config.Environment
+	gitEnv config.Environment
 }
 
-type UniqTestEnv map[string]string
+func (c *testContext) OSEnv() config.Environment {
+	return c.osEnv
+}
 
-func (e UniqTestEnv) Get(key string) (v string, ok bool) {
+func (c *testContext) GitEnv() config.Environment {
+	return c.gitEnv
+}
+
+func NewContext(osEnv, gitEnv map[string]string) Context {
+	c := &testContext{}
+	if osEnv != nil {
+		c.osEnv = testEnv(osEnv)
+	}
+	if gitEnv != nil {
+		c.gitEnv = testEnv(gitEnv)
+	}
+	return c
+}
+
+type testEnv map[string]string
+
+func (e testEnv) Get(key string) (v string, ok bool) {
 	v, ok = e[key]
 	return
 }
 
-func (e UniqTestEnv) GetAll(key string) []string {
+func (e testEnv) GetAll(key string) []string {
 	if v, ok := e.Get(key); ok {
 		return []string{v}
 	}
 	return make([]string, 0)
 }
 
-func (e UniqTestEnv) Int(key string, def int) (val int) {
+func (e testEnv) Int(key string, def int) (val int) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -173,7 +198,7 @@ func (e UniqTestEnv) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e UniqTestEnv) Bool(key string, def bool) (val bool) {
+func (e testEnv) Bool(key string, def bool) (val bool) {
 	s, _ := e.Get(key)
 	if len(s) == 0 {
 		return def
@@ -189,61 +214,10 @@ func (e UniqTestEnv) Bool(key string, def bool) (val bool) {
 	}
 }
 
-func (e UniqTestEnv) All() map[string][]string {
+func (e testEnv) All() map[string][]string {
 	m := make(map[string][]string)
 	for k, _ := range e {
 		m[k] = e.GetAll(k)
 	}
 	return m
-}
-
-// TestEnv is a basic config.Environment implementation. Only used in tests, or
-// as a zero value to NewClient().
-type TestEnv map[string][]string
-
-func (e TestEnv) Get(key string) (string, bool) {
-	all := e.GetAll(key)
-
-	if len(all) == 0 {
-		return "", false
-	}
-	return all[len(all)-1], true
-}
-
-func (e TestEnv) GetAll(key string) []string {
-	return e[key]
-}
-
-func (e TestEnv) Int(key string, def int) (val int) {
-	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-
-	return i
-}
-
-func (e TestEnv) Bool(key string, def bool) (val bool) {
-	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
-}
-
-func (e TestEnv) All() map[string][]string {
-	return e
 }
