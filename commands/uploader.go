@@ -38,6 +38,7 @@ type uploadContext struct {
 	DryRun       bool
 	Manifest     *tq.Manifest
 	uploadedOids tools.StringSet
+	gitfilter    *lfs.GitFilter
 
 	meter progress.Meter
 	tq    *tq.TransferQueue
@@ -97,6 +98,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		Manifest:       getTransferManifestOperationRemote("upload", remote),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
+		gitfilter:      lfs.NewGitFilter(cfg),
 		ourLocks:       make(map[string]locking.Lock),
 		theirLocks:     make(map[string]locking.Lock),
 		trackedLocksMu: new(sync.Mutex),
@@ -288,7 +290,7 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 
 	q, pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
-		t, err := uploadTransfer(p, c.allowMissing)
+		t, err := c.uploadTransfer(p)
 		if err != nil && !errors.IsCleanPointerError(err) {
 			ExitWithError(err)
 		}
@@ -381,7 +383,7 @@ var (
 	}
 )
 
-func uploadTransfer(p *lfs.WrappedPointer, allowMissing bool) (*tq.Transfer, error) {
+func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
 	filename := p.Name
 	oid := p.Oid
 
@@ -391,7 +393,7 @@ func uploadTransfer(p *lfs.WrappedPointer, allowMissing bool) (*tq.Transfer, err
 	}
 
 	if len(filename) > 0 {
-		if err = ensureFile(filename, localMediaPath, allowMissing); err != nil && !errors.IsCleanPointerError(err) {
+		if err = c.ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err
 		}
 	}
@@ -406,7 +408,7 @@ func uploadTransfer(p *lfs.WrappedPointer, allowMissing bool) (*tq.Transfer, err
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
 // does not exist, it attempts to clean it by reading the file at smudgePath.
-func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
+func (c *uploadContext) ensureFile(smudgePath, cleanPath string) error {
 	if _, err := os.Stat(cleanPath); err == nil {
 		return nil
 	}
@@ -414,7 +416,7 @@ func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
 	localPath := filepath.Join(cfg.LocalWorkingDir(), smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
-		if allowMissing {
+		if c.allowMissing {
 			return nil
 		}
 		return err
@@ -427,7 +429,7 @@ func ensureFile(smudgePath, cleanPath string, allowMissing bool) error {
 		return err
 	}
 
-	cleaned, err := lfs.PointerClean(file, file.Name(), stat.Size(), nil)
+	cleaned, err := c.gitfilter.Clean(file, file.Name(), stat.Size(), nil)
 	if cleaned != nil {
 		cleaned.Teardown()
 	}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/test"
 )
 
@@ -23,7 +24,6 @@ func (*TestUtilRepoCallback) Errorf(format string, args ...interface{}) {
 }
 
 func main() {
-
 	commandMap := map[string]func(*test.Repo){
 		"addcommits": AddCommits,
 	}
@@ -52,7 +52,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	repo := test.WrapRepo(&TestUtilRepoCallback{}, wd)
+	repo := test.WrapRepo(config.New(), &TestUtilRepoCallback{}, wd)
 	f(repo)
 }
 

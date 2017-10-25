@@ -22,7 +22,7 @@ import (
 //
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
-func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
+func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
 	var cb progress.CopyCallback
 	var file *os.File
 
@@ -33,7 +33,7 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.
 				fileSize = stat.Size()
 			}
 
-			localCb, localFile, err := lfs.CopyCallbackFile("clean", fileName, 1, 1)
+			localCb, localFile, err := gf.CopyCallbackFile("clean", fileName, 1, 1)
 			if err != nil {
 				Error(err.Error())
 			} else {
@@ -43,7 +43,7 @@ func clean(to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.
 		}
 	}
 
-	cleaned, err := lfs.PointerClean(from, fileName, fileSize, cb)
+	cleaned, err := gf.Clean(from, fileName, fileSize, cb)
 	if file != nil {
 		file.Close()
 	}
@@ -97,7 +97,8 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 		fileName = args[0]
 	}
 
-	ptr, err := clean(os.Stdout, os.Stdin, fileName, -1)
+	gitfilter := lfs.NewGitFilter(cfg)
+	ptr, err := clean(gitfilter, os.Stdout, os.Stdin, fileName, -1)
 	if err != nil {
 		Error(err.Error())
 	}

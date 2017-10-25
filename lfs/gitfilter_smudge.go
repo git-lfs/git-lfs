@@ -16,14 +16,14 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
+func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
 	}
 	defer file.Close()
-	if _, err := PointerSmudge(file, ptr, filename, download, manifest, cb); err != nil {
+	if _, err := f.Smudge(file, ptr, filename, download, manifest, cb); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, os.SEEK_SET)
@@ -36,7 +36,7 @@ func PointerSmudgeToFile(filename string, ptr *Pointer, download bool, manifest 
 	return nil
 }
 
-func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
+func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
 	mediafile, err := LocalMediaPath(ptr.Oid)
 	if err != nil {
 		return 0, err
@@ -58,12 +58,12 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 
 	if statErr != nil || stat == nil {
 		if download {
-			n, err = downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
+			n, err = f.downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
 		} else {
 			return 0, errors.NewDownloadDeclinedError(statErr, "smudge")
 		}
 	} else {
-		n, err = readLocalFile(writer, ptr, mediafile, workingfile, cb)
+		n, err = f.readLocalFile(writer, ptr, mediafile, workingfile, cb)
 	}
 
 	if err != nil {
@@ -73,7 +73,7 @@ func PointerSmudge(writer io.Writer, ptr *Pointer, workingfile string, download 
 	return n, nil
 }
 
-func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
+func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
 
 	// NOTE: if given, "cb" is a progress.CopyCallback which writes updates
@@ -97,10 +97,10 @@ func downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string,
 		}
 	}
 
-	return readLocalFile(writer, ptr, mediafile, workingfile, nil)
+	return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
-func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) (int64, error) {
+func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) (int64, error) {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Error opening media file.")
@@ -114,7 +114,7 @@ func readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile
 	}
 
 	if len(ptr.Extensions) > 0 {
-		registeredExts := config.Config.Extensions()
+		registeredExts := f.cfg.Extensions()
 		extensions := make(map[string]config.Extension)
 		for _, ptrExt := range ptr.Extensions {
 			ext, ok := registeredExts[ptrExt.Name]

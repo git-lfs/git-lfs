@@ -62,9 +62,10 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	}
 
 	// Force loading of config before we alter it
-	config.Config.Git.All()
+	cfg := config.New()
+	cfg.Git.All()
 
-	manifest, err := buildManifest()
+	manifest, err := buildManifest(cfg)
 	if err != nil {
 		exit("error building tq.Manifest: " + err.Error())
 	}
@@ -77,7 +78,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Creating test data (will upload to server)\n")
 		var err error
-		oidsExist, oidsMissing, err = buildTestData(manifest)
+		oidsExist, oidsMissing, err = buildTestData(cfg, manifest)
 		if err != nil {
 			exit("Failed to set up test data, aborting")
 		}
@@ -130,11 +131,9 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-func buildManifest() (*tq.Manifest, error) {
-	cfg := config.Config
-
+func buildManifest(cfg *config.Configuration) (*tq.Manifest, error) {
 	// Configure the endpoint manually
-	finder := lfsapi.NewEndpointFinder(config.Config.Git)
+	finder := lfsapi.NewEndpointFinder(cfg.Git)
 
 	var endp lfsapi.Endpoint
 	if len(cloneUrl) > 0 {
@@ -168,17 +167,17 @@ func (c *constantEndpoint) Endpoint(operation, remote string) lfsapi.Endpoint { 
 
 func (c *constantEndpoint) RemoteEndpoint(operation, remote string) lfsapi.Endpoint { return c.e }
 
-func buildTestData(manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
+func buildTestData(cfg *config.Configuration, manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
-	meter := progress.NewMeter(progress.WithOSEnv(config.Config.Os))
+	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
 
 	// Build test data for existing files & upload
 	// Use test repo for this to simplify the process of making sure data matches oid
 	// We're not performing a real test at this point (although an upload fail will break it)
 	var callback testDataCallback
-	repo := test.NewRepo(&callback)
+	repo := test.NewRepo(cfg, &callback)
 	repo.Pushd()
 	defer repo.Cleanup()
 	// just one commit

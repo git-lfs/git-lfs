@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/tq"
 )
 
 var (
@@ -58,10 +56,6 @@ func NewPointer(oid string, size int64, exts []*PointerExtension) *Pointer {
 
 func NewPointerExtension(name string, priority int, oid string) *PointerExtension {
 	return &PointerExtension{name, priority, oid, oidType}
-}
-
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
-	return PointerSmudge(writer, p, workingfile, download, manifest, cb)
 }
 
 func (p *Pointer) Encode(writer io.Writer) (int, error) {

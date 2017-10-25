@@ -46,6 +46,7 @@ var (
 
 type RepoCreateSettings struct {
 	RepoType RepoType
+	Config   *config.Configuration
 }
 
 // Callback interface (testing.T compatible)
@@ -55,6 +56,7 @@ type RepoCallback interface {
 	// Errorf reports error and continues
 	Errorf(format string, args ...interface{})
 }
+
 type Repo struct {
 	// Path to the repo, working copy if non-bare
 	Path string
@@ -67,7 +69,9 @@ type Repo struct {
 	// Previous dir for pushd
 	popDir string
 	// Test callback
-	callback RepoCallback
+	callback  RepoCallback
+	cfg       *config.Configuration
+	gitfilter *lfs.GitFilter
 }
 
 // Change to repo dir but save current dir
@@ -84,7 +88,7 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	localstorage.ResolveDirs(config.Config)
+	localstorage.ResolveDirs(r.cfg)
 }
 
 func (r *Repo) Popd() {
@@ -98,7 +102,6 @@ func (r *Repo) Popd() {
 }
 
 func (r *Repo) Cleanup() {
-
 	// pop out if necessary
 	r.Popd()
 
@@ -126,8 +129,11 @@ func (r *Repo) Cleanup() {
 }
 
 // NewRepo creates a new git repo in a new temp dir
-func NewRepo(callback RepoCallback) *Repo {
-	return NewCustomRepo(callback, &RepoCreateSettings{RepoType: RepoTypeNormal})
+func NewRepo(cfg *config.Configuration, callback RepoCallback) *Repo {
+	return NewCustomRepo(callback, &RepoCreateSettings{
+		RepoType: RepoTypeNormal,
+		Config:   cfg,
+	})
 }
 
 // NewCustomRepo creates a new git repo in a new temp dir with more control over settings
@@ -135,7 +141,10 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret := &Repo{
 		Settings: settings,
 		Remotes:  make(map[string]*Repo),
-		callback: callback}
+		callback: callback,
+	}
+	ret.cfg = settings.Config
+	ret.gitfilter = lfs.NewGitFilter(ret.cfg)
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
@@ -176,8 +185,17 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 }
 
 // WrapRepo creates a new Repo instance for an existing git repo
-func WrapRepo(c RepoCallback, path string) *Repo {
-	return &Repo{Path: path, callback: c, Settings: &RepoCreateSettings{RepoType: RepoTypeNormal}}
+func WrapRepo(cfg *config.Configuration, c RepoCallback, path string) *Repo {
+	return &Repo{
+		Path: path,
+		Settings: &RepoCreateSettings{
+			RepoType: RepoTypeNormal,
+			Config:   cfg,
+		},
+		callback:  c,
+		cfg:       cfg,
+		gitfilter: lfs.NewGitFilter(cfg),
+	}
 }
 
 // Simplistic fire & forget running of git command - returns combined output
@@ -204,7 +222,7 @@ type FileInput struct {
 
 func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
 	inputData := infile.getFileInputReader()
-	pointer, err := infile.writeLFSPointer(inputData)
+	pointer, err := infile.writeLFSPointer(repo, inputData)
 	if err != nil {
 		repo.callback.Errorf("%+v", err)
 		return
@@ -213,15 +231,15 @@ func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
 	RunGitCommand(repo.callback, true, "add", infile.Filename)
 }
 
-func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, error) {
-	cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
+func (infile *FileInput) writeLFSPointer(repo *Repo, inputData io.Reader) (*lfs.Pointer, error) {
+	cleaned, err := repo.gitfilter.Clean(inputData, infile.Filename, infile.Size, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating pointer file")
 	}
 
 	// this only created the temp file, move to final location
 	tmpfile := cleaned.Filename
-	storageOnce.Do(func() { localstorage.ResolveDirs(config.Config) })
+	storageOnce.Do(func() { localstorage.ResolveDirs(repo.cfg) })
 	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
 	if err != nil {
 		return nil, errors.Wrap(err, "local media path")
@@ -391,7 +409,10 @@ func (r *Repo) AddRemote(name string) *Repo {
 	if _, exists := r.Remotes[name]; exists {
 		r.callback.Fatalf("Remote %v already exists", name)
 	}
-	remote := NewCustomRepo(r.callback, &RepoCreateSettings{RepoTypeBare})
+	remote := NewCustomRepo(r.callback, &RepoCreateSettings{
+		RepoType: RepoTypeBare,
+		Config:   r.cfg,
+	})
 	r.Remotes[name] = remote
 	RunGitCommand(r.callback, true, "remote", "add", name, remote.Path)
 	return remote

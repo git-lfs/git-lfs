@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -18,8 +17,8 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-func PointerClean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
-	extensions, err := config.Config.SortedExtensions()
+func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
+	extensions, err := f.cfg.SortedExtensions()
 	if err != nil {
 		return nil, err
 	}
