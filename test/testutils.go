@@ -102,10 +102,6 @@ func (r *Repo) Popd() {
 	}
 }
 
-func (r *Repo) EachLFSObject(fn func(fs.Object) error) error {
-	return r.fs.EachObject(fn)
-}
-
 func (r *Repo) Filesystem() *fs.Filesystem {
 	return r.fs
 }
