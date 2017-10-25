@@ -28,6 +28,7 @@ type Attribute struct {
 
 // FilterOptions serves as an argument to Install().
 type FilterOptions struct {
+	GitConfig  *git.Configuration
 	Force      bool
 	Local      bool
 	System     bool
@@ -104,7 +105,7 @@ func (a *Attribute) Install(opt *FilterOptions) error {
 			upgradeables = a.Upgradeables[k]
 		}
 		key := a.normalizeKey(k)
-		if err := a.set(key, v, upgradeables, opt); err != nil {
+		if err := a.set(opt.GitConfig, key, v, upgradeables, opt); err != nil {
 			return err
 		}
 	}
@@ -122,24 +123,24 @@ func (a *Attribute) normalizeKey(relative string) string {
 // matching key already exists and the value is not equal to the desired value,
 // an error will be thrown if force is set to false. If force is true, the value
 // will be overridden.
-func (a *Attribute) set(key, value string, upgradeables []string, opt *FilterOptions) error {
+func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgradeables []string, opt *FilterOptions) error {
 	var currentValue string
 	if opt.Local {
-		currentValue = git.Config.FindLocal(key)
+		currentValue = gitConfig.FindLocal(key)
 	} else if opt.System {
-		currentValue = git.Config.FindSystem(key)
+		currentValue = gitConfig.FindSystem(key)
 	} else {
-		currentValue = git.Config.FindGlobal(key)
+		currentValue = gitConfig.FindGlobal(key)
 	}
 
 	if opt.Force || shouldReset(currentValue, upgradeables) {
 		var err error
 		if opt.Local {
-			_, err = git.Config.SetLocal("", key, value)
+			_, err = gitConfig.SetLocal("", key, value)
 		} else if opt.System {
-			_, err = git.Config.SetSystem(key, value)
+			_, err = gitConfig.SetSystem(key, value)
 		} else {
-			_, err = git.Config.SetGlobal(key, value)
+			_, err = gitConfig.SetGlobal(key, value)
 		}
 		return err
 	} else if currentValue != value {
@@ -153,11 +154,11 @@ func (a *Attribute) set(key, value string, upgradeables []string, opt *FilterOpt
 // Uninstall removes all properties in the path of this property.
 func (a *Attribute) Uninstall(opt *FilterOptions) {
 	if opt.Local {
-		git.Config.UnsetLocalSection(a.Section)
+		opt.GitConfig.UnsetLocalSection(a.Section)
 	} else if opt.System {
-		git.Config.UnsetSystemSection(a.Section)
+		opt.GitConfig.UnsetSystemSection(a.Section)
 	} else {
-		git.Config.UnsetGlobalSection(a.Section)
+		opt.GitConfig.UnsetGlobalSection(a.Section)
 	}
 }
 
