@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,10 +48,18 @@ func (f *Filesystem) EachObject(fn func(Object) error) error {
 }
 
 func (f *Filesystem) ObjectExists(oid string, size int64) bool {
-	return tools.FileExistsOfSize(f.ObjectPath(oid), size)
+	return tools.FileExistsOfSize(f.ObjectPathname(oid), size)
 }
 
-func (f *Filesystem) ObjectPath(oid string) string {
+func (f *Filesystem) ObjectPath(oid string) (string, error) {
+	dir := f.localObjectDir(oid)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("Error trying to create local storage directory in %q: %s", dir, err)
+	}
+	return filepath.Join(dir, oid), nil
+}
+
+func (f *Filesystem) ObjectPathname(oid string) string {
 	return filepath.Join(f.localObjectDir(oid), oid)
 }
 

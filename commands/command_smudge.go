@@ -52,7 +52,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 
 	lfs.LinkOrCopyFromReference(cfg, ptr.Oid, ptr.Size)
 
-	path, err := lfs.LocalMediaPath(ptr.Oid)
+	path, err := cfg.Filesystem().ObjectPath(ptr.Oid)
 	if err != nil {
 		return 0, false, nil, err
 	}

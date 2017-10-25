@@ -21,7 +21,7 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 	}()
 
 	empty := true
-	testCfg.EachLFSObject(func(obj fs.Object) error {
+	repo.EachLFSObject(func(obj fs.Object) error {
 		empty = false
 		t.Logf("Found: %+v", obj)
 		return nil
@@ -60,7 +60,7 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 	}
 
 	actual := make([]*lfs.Pointer, 0)
-	testCfg.EachLFSObject(func(obj fs.Object) error {
+	repo.EachLFSObject(func(obj fs.Object) error {
 		actual = append(actual, lfs.NewPointer(obj.Oid, obj.Size, nil))
 		return nil
 	})

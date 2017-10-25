@@ -12,7 +12,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
@@ -195,7 +194,7 @@ func buildTestData(cfg *config.Configuration, manifest *tq.Manifest) (oidsExist,
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
-		t, err := uploadTransfer(f.Oid, "Test file")
+		t, err := uploadTransfer(cfg, f.Oid, "Test file")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -316,8 +315,8 @@ func interleaveTestData(slice1, slice2 []TestObject) []TestObject {
 	return ret
 }
 
-func uploadTransfer(oid, filename string) (*tq.Transfer, error) {
-	localMediaPath, err := lfs.LocalMediaPath(oid)
+func uploadTransfer(cfg *config.Configuration, oid, filename string) (*tq.Transfer, error) {
+	localMediaPath, err := cfg.Filesystem().ObjectPath(oid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}

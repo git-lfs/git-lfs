@@ -33,7 +33,7 @@ func (f *Filesystem) cleanupTmp() error {
 			return
 		}
 
-		fi, err := os.Stat(f.ObjectPath(oid))
+		fi, err := os.Stat(f.ObjectPathname(oid))
 		if err == nil && !fi.IsDir() {
 			tracerx.Printf("Removing existing tmp object file: %s", path)
 			os.RemoveAll(path)

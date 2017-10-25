@@ -16,10 +16,6 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func LocalMediaPath(oid string) (string, error) {
-	return localstorage.Objects().BuildObjectPath(oid)
-}
-
 func LocalMediaPathReadOnly(oid string) string {
 	return localstorage.Objects().ObjectPath(oid)
 }
@@ -108,7 +104,7 @@ func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) 
 		return nil
 	}
 	altMediafile := cfg.Filesystem().ObjectReferencePath(oid)
-	mediafile, err := LocalMediaPath(oid)
+	mediafile, err := cfg.Filesystem().ObjectPath(oid)
 	if err != nil {
 		return err
 	}

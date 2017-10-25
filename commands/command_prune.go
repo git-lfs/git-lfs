@@ -275,7 +275,7 @@ func pruneDeleteFiles(prunableObjects []string) {
 	var deletedFiles int
 	for i, oid := range prunableObjects {
 		spinner.Print(OutputWriter, fmt.Sprintf("Deleting object %d/%d", i, len(prunableObjects)))
-		mediaFile, err := lfs.LocalMediaPath(oid)
+		mediaFile, err := cfg.Filesystem().ObjectPath(oid)
 		if err != nil {
 			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
 			continue

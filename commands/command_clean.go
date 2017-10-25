@@ -66,7 +66,7 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 	}
 
 	tmpfile := cleaned.Filename
-	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+	mediafile, err := gf.ObjectPath(cleaned.Oid)
 	if err != nil {
 		Panic(err, "Unable to get local media path.")
 	}

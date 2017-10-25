@@ -131,8 +131,7 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64) {
-	path, _ = lfs.LocalMediaPath(p.Oid)
-
+	path, _ = cfg.Filesystem().ObjectPath(p.Oid)
 	return p.Name, path, p.Oid, p.Size
 }
 

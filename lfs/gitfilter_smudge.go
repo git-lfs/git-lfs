@@ -37,7 +37,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 }
 
 func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
-	mediafile, err := LocalMediaPath(ptr.Oid)
+	mediafile, err := f.ObjectPath(ptr.Oid)
 	if err != nil {
 		return 0, err
 	}

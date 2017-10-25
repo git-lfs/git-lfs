@@ -22,6 +22,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/localstorage"
@@ -72,6 +73,7 @@ type Repo struct {
 	callback  RepoCallback
 	cfg       *config.Configuration
 	gitfilter *lfs.GitFilter
+	fs        *fs.Filesystem
 }
 
 // Change to repo dir but save current dir
@@ -99,6 +101,10 @@ func (r *Repo) Popd() {
 		}
 		r.popDir = ""
 	}
+}
+
+func (r *Repo) EachLFSObject(fn func(fs.Object) error) error {
+	return r.fs.EachObject(fn)
 }
 
 func (r *Repo) Cleanup() {
@@ -167,6 +173,7 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	default:
 		ret.GitDir = filepath.Join(ret.Path, ".git")
 	}
+	ret.fs = fs.New(ret.GitDir, ret.Path, "")
 	args = append(args, path)
 	cmd := exec.Command("git", args...)
 	err = cmd.Run()
@@ -240,7 +247,7 @@ func (infile *FileInput) writeLFSPointer(repo *Repo, inputData io.Reader) (*lfs.
 	// this only created the temp file, move to final location
 	tmpfile := cleaned.Filename
 	storageOnce.Do(func() { localstorage.ResolveDirs(repo.cfg) })
-	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+	mediafile, err := repo.fs.ObjectPath(cleaned.Oid)
 	if err != nil {
 		return nil, errors.Wrap(err, "local media path")
 	}
