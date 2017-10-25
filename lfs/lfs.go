@@ -16,14 +16,6 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-// LocalMediaDir returns the root of lfs objects
-func LocalMediaDir() string {
-	if localstorage.Objects() != nil {
-		return localstorage.Objects().RootDir
-	}
-	return ""
-}
-
 func LocalMediaPath(oid string) (string, error) {
 	return localstorage.Objects().BuildObjectPath(oid)
 }
@@ -61,7 +53,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("LocalWorkingDir=%s", cfg.LocalWorkingDir()),
 		fmt.Sprintf("LocalGitDir=%s", cfg.LocalGitDir()),
 		fmt.Sprintf("LocalGitStorageDir=%s", cfg.LocalGitStorageDir()),
-		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
+		fmt.Sprintf("LocalMediaDir=%s", cfg.LFSObjectDir()),
 		fmt.Sprintf("LocalReferenceDir=%s", cfg.LocalReferenceDir()),
 		fmt.Sprintf("TempDir=%s", cfg.TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
@@ -99,13 +91,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	}
 
 	return env
-}
-
-func ClearTempObjects() error {
-	if localstorage.Objects() == nil {
-		return nil
-	}
-	return localstorage.Objects().ClearTempObjects()
 }
 
 func ScanObjectsChan() <-chan localstorage.Object {

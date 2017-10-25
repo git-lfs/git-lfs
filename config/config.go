@@ -223,6 +223,10 @@ func (c *Configuration) LFSStorageDir() string {
 	return c.Filesystem().LFSStorageDir
 }
 
+func (c *Configuration) LFSObjectDir() string {
+	return c.Filesystem().LFSObjectDir()
+}
+
 func (c *Configuration) LocalLogDir() string {
 	return c.Filesystem().LogDir()
 }
@@ -294,6 +298,12 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 	}
 
 	return c.fs
+}
+
+func (c *Configuration) Cleanup() error {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+	return c.fs.Cleanup()
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on

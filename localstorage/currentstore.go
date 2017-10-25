@@ -64,8 +64,3 @@ func InitStorageOrFail(cfg *config.Configuration) {
 func ResolveDirs(cfg *config.Configuration) {
 	InitStorageOrFail(cfg)
 }
-
-func ResetTempDir() error {
-	checkedTempDir = ""
-	return os.RemoveAll(TempDir)
-}

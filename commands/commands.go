@@ -257,7 +257,7 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Cleanup() {
-	if err := lfs.ClearTempObjects(); err != nil {
+	if err := cfg.Cleanup(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
 	}
 }

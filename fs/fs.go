@@ -13,11 +13,19 @@ import (
 type Filesystem struct {
 	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
 	LFSStorageDir string // parent of lfs objects and tmp dirs. Default: ".git/lfs"
-	lfsobjdir     string
 	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
+	lfsobjdir     string
 	tmpdir        string
 	logdir        string
 	mu            sync.Mutex
+}
+
+func (f *Filesystem) ObjectPath(oid string) string {
+	return filepath.Join(f.localObjectDir(oid), oid)
+}
+
+func (f *Filesystem) localObjectDir(oid string) string {
+	return filepath.Join(f.LFSObjectDir(), oid[0:2], oid[2:4])
 }
 
 func (f *Filesystem) ObjectReferencePath(oid string) string {
@@ -26,6 +34,18 @@ func (f *Filesystem) ObjectReferencePath(oid string) string {
 	}
 
 	return filepath.Join(f.ReferenceDir, oid[0:2], oid[2:4], oid)
+}
+
+func (f *Filesystem) LFSObjectDir() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if len(f.lfsobjdir) == 0 {
+		f.lfsobjdir = filepath.Join(f.LFSStorageDir, "objects")
+		os.MkdirAll(f.lfsobjdir, 0755)
+	}
+
+	return f.lfsobjdir
 }
 
 func (f *Filesystem) LogDir() string {
@@ -52,6 +72,13 @@ func (f *Filesystem) TempDir() string {
 	return f.tmpdir
 }
 
+func (f *Filesystem) Cleanup() error {
+	if f == nil {
+		return nil
+	}
+	return f.cleanupTmp()
+}
+
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
@@ -71,8 +98,6 @@ func New(gitdir, workdir, lfsdir string) *Filesystem {
 	} else {
 		fs.LFSStorageDir = filepath.Join(fs.GitStorageDir, lfsdir)
 	}
-
-	fs.lfsobjdir = filepath.Join(fs.LFSStorageDir, "objects")
 
 	return fs
 }
