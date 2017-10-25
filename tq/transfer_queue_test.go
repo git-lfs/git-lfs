@@ -7,7 +7,7 @@ import (
 )
 
 func TestManifestDefaultsToFixedRetries(t *testing.T) {
-	assert.Equal(t, 8, NewManifest().MaxRetries())
+	assert.Equal(t, 8, NewManifest(nil, nil, "", "").MaxRetries())
 }
 
 func TestRetryCounterDefaultsToFixedRetries(t *testing.T) {
@@ -33,7 +33,7 @@ func TestRetryCounterCanNotRetryAfterExceedingRetryCount(t *testing.T) {
 
 func TestBatchSizeReturnsBatchSize(t *testing.T) {
 	q := NewTransferQueue(
-		Upload, NewManifest(), "origin", WithBatchSize(3))
+		Upload, NewManifest(nil, nil, "", ""), "origin", WithBatchSize(3))
 
 	assert.Equal(t, 3, q.BatchSize())
 }

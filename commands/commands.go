@@ -60,7 +60,7 @@ func getTransferManifestOperationRemote(operation, remote string) *tq.Manifest {
 
 	k := fmt.Sprintf("%s.%s", operation, remote)
 	if tqManifest[k] == nil {
-		tqManifest[k] = tq.NewManifestClientOperationRemote(c, operation, remote)
+		tqManifest[k] = tq.NewManifest(cfg.Filesystem(), c, operation, remote)
 	}
 
 	return tqManifest[k]

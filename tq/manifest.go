@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
@@ -23,6 +24,7 @@ type Manifest struct {
 	tusTransfersAllowed     bool
 	downloadAdapterFuncs    map[string]NewAdapterFunc
 	uploadAdapterFuncs      map[string]NewAdapterFunc
+	fs                      *fs.Filesystem
 	apiClient               *lfsapi.Client
 	tqClient                *tqClient
 	mu                      sync.Mutex
@@ -51,24 +53,18 @@ func (m *Manifest) batchClient() *tqClient {
 	return m.tqClient
 }
 
-func NewManifest() *Manifest {
-	cli, err := lfsapi.NewClient(nil, nil)
-	if err != nil {
-		tracerx.Printf("unable to init tq.Manifest: %s", err)
-		return nil
+func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *Manifest {
+	if apiClient == nil {
+		cli, err := lfsapi.NewClient(nil, nil)
+		if err != nil {
+			tracerx.Printf("unable to init tq.Manifest: %s", err)
+			return nil
+		}
+		apiClient = cli
 	}
 
-	return NewManifestWithClient(cli)
-}
-
-func NewManifestWithClient(apiClient *lfsapi.Client) *Manifest {
-	return NewManifestClientOperationRemote(apiClient, "", "")
-}
-
-func NewManifestClientOperationRemote(
-	apiClient *lfsapi.Client, operation, remote string,
-) *Manifest {
 	m := &Manifest{
+		fs:                   f,
 		apiClient:            apiClient,
 		tqClient:             &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),

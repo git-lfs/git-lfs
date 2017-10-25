@@ -156,7 +156,7 @@ func buildManifest(r *test.Repo) (*tq.Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tq.NewManifestWithClient(apiClient), nil
+	return tq.NewManifest(r.Filesystem(), apiClient, "", ""), nil
 }
 
 type constantEndpoint struct {

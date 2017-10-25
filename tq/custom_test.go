@@ -15,7 +15,7 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	u := m.NewUploadAdapter("testsimple")
 	assert.NotNil(t, u, "Upload adapter should be present")
 	cu, _ := u.(*customAdapter)
@@ -44,7 +44,7 @@ func TestCustomTransferDownloadConfig(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	u := m.NewUploadAdapter("testdownload")
 	assert.NotNil(t, u, "Upload adapter should always be created")
 	cu, _ := u.(*customAdapter)
@@ -70,7 +70,7 @@ func TestCustomTransferUploadConfig(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	d := m.NewDownloadAdapter("testupload")
 	assert.NotNil(t, d, "Download adapter should always be created")
 	cd, _ := d.(*customAdapter)
@@ -96,7 +96,7 @@ func TestCustomTransferBothConfig(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	d := m.NewDownloadAdapter("testboth")
 	assert.NotNil(t, d, "Download adapter should be present")
 	cd, _ := d.(*customAdapter)
