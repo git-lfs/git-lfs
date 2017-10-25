@@ -180,7 +180,7 @@ func TestReadingAMissingObjectAfterClose(t *testing.T) {
 }
 
 func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
-	db, err := FromFilesystem("/tmp")
+	db, err := FromFilesystem("/tmp", "")
 	assert.Nil(t, err)
 
 	assert.Nil(t, db.Close())
@@ -188,7 +188,7 @@ func TestClosingAnObjectDatabaseMoreThanOnce(t *testing.T) {
 }
 
 func TestObjectDatabaseRootWithRoot(t *testing.T) {
-	db, err := FromFilesystem("/foo/bar/baz")
+	db, err := FromFilesystem("/foo/bar/baz", "")
 	assert.Nil(t, err)
 
 	root, ok := db.Root()

@@ -139,7 +139,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 
 		request := &pipeRequest{"smudge", reader, workingfile, extsR}
 
-		response, err := pipeExtensions(request)
+		response, err := pipeExtensions(f.cfg, request)
 		if err != nil {
 			return 0, errors.Wrap(err, "smudge")
 		}

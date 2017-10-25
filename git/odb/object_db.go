@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git/odb/pack"
-	"github.com/git-lfs/git-lfs/lfs"
 )
 
 // ObjectDatabase enables the reading and writing of objects against a storage
@@ -26,20 +26,24 @@ type ObjectDatabase struct {
 	// yields a value of 0 if the *ObjectDatabase it is stored upon is open,
 	// and a value of 1 if it is closed.
 	closed uint32
+
+	// temp directory, defaults to os.TempDir
+	tmp string
 }
 
 // FromFilesystem constructs an *ObjectDatabase instance that is backed by a
 // directory on the filesystem. Specifically, this should point to:
 //
 //  /absolute/repo/path/.git/objects
-func FromFilesystem(root string) (*ObjectDatabase, error) {
+func FromFilesystem(root, tmp string) (*ObjectDatabase, error) {
 	packs, err := pack.NewSet(root)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ObjectDatabase{
-		s:     newFileStorer(root),
+		tmp:   tmp,
+		s:     newFileStorer(root, tmp),
 		packs: packs,
 	}, nil
 }
@@ -95,7 +99,7 @@ func (o *ObjectDatabase) Commit(sha []byte) (*Commit, error) {
 // WriteBlob stores a *Blob on disk and returns the SHA it is uniquely
 // identified by, or an error if one was encountered.
 func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
-	buf, err := lfs.TempFile("")
+	buf, err := ioutil.TempFile(o.tmp, "")
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +167,7 @@ func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []b
 		return nil, 0, err
 	}
 
-	tmp, err := lfs.TempFile("")
+	tmp, err := ioutil.TempFile(d.tmp, "")
 	if err != nil {
 		return nil, 0, err
 	}

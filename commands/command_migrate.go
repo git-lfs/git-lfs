@@ -52,7 +52,7 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
-	return odb.FromFilesystem(filepath.Join(dir, "objects"))
+	return odb.FromFilesystem(filepath.Join(dir, "objects"), cfg.TempDir())
 }
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a

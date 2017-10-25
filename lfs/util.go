@@ -186,8 +186,8 @@ func IsWindows() bool {
 	return GetPlatform() == PlatformWindows
 }
 
-func CopyFileContents(src string, dst string) error {
-	tmp, err := ioutil.TempFile(TempDir(), filepath.Base(dst))
+func CopyFileContents(cfg *config.Configuration, src string, dst string) error {
+	tmp, err := ioutil.TempFile(cfg.TempDir(), filepath.Base(dst))
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func CopyFileContents(src string, dst string) error {
 	return os.Rename(tmp.Name(), dst)
 }
 
-func LinkOrCopy(src string, dst string) error {
+func LinkOrCopy(cfg *config.Configuration, src string, dst string) error {
 	if src == dst {
 		return nil
 	}
@@ -219,5 +219,5 @@ func LinkOrCopy(src string, dst string) error {
 	if err == nil {
 		return err
 	}
-	return CopyFileContents(src, dst)
+	return CopyFileContents(cfg, src, dst)
 }

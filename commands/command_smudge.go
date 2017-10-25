@@ -9,7 +9,6 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/git-lfs/tq"
@@ -38,7 +37,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 			return 0, false, nil, err
 		}
 
-		n, err := tools.Spool(to, pbuf, localstorage.Objects().TempDir)
+		n, err := tools.Spool(to, pbuf, cfg.TempDir())
 		if err != nil {
 			return n, false, nil, errors.Wrap(err, perr.Error())
 		}
@@ -101,7 +100,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, skip bool, filter *filepathfilter.Filter) (int64, error) {
 	ptr, pbuf, perr := lfs.DecodeFrom(from)
 	if perr != nil {
-		n, err := tools.Spool(to, pbuf, localstorage.Objects().TempDir)
+		n, err := tools.Spool(to, pbuf, cfg.TempDir())
 		if err != nil {
 			return 0, errors.Wrap(err, perr.Error())
 		}

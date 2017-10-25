@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -40,7 +41,7 @@ type extCommand struct {
 	result *pipeExtResult
 }
 
-func pipeExtensions(request *pipeRequest) (response pipeResponse, err error) {
+func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response pipeResponse, err error) {
 	var extcmds []*extCommand
 	defer func() {
 		// In the case of an early return before the end of this
@@ -88,7 +89,7 @@ func pipeExtensions(request *pipeRequest) (response pipeResponse, err error) {
 	var output io.WriteCloser
 	input = pipeReader
 	extcmds[0].cmd.Stdin = input
-	if response.file, err = TempFile(""); err != nil {
+	if response.file, err = ioutil.TempFile(cfg.TempDir(), ""); err != nil {
 		return
 	}
 	defer response.file.Close()

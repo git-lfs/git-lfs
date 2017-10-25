@@ -227,6 +227,10 @@ func (c *Configuration) LocalLogDir() string {
 	return c.Filesystem().LogDir()
 }
 
+func (c *Configuration) TempDir() string {
+	return c.Filesystem().TempDir()
+}
+
 func (c *Configuration) GitConfig() *git.Configuration {
 	return c.gitConfig
 }

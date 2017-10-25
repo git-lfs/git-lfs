@@ -13,7 +13,9 @@ import (
 type Filesystem struct {
 	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
 	LFSStorageDir string // parent of lfs objects and tmp dirs. Default: ".git/lfs"
+	lfsobjdir     string
 	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
+	tmpdir        string
 	logdir        string
 	mu            sync.Mutex
 }
@@ -38,6 +40,18 @@ func (f *Filesystem) LogDir() string {
 	return f.logdir
 }
 
+func (f *Filesystem) TempDir() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if len(f.tmpdir) == 0 {
+		f.tmpdir = filepath.Join(f.LFSStorageDir, "tmp")
+		os.MkdirAll(f.tmpdir, 0755)
+	}
+
+	return f.tmpdir
+}
+
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
@@ -57,6 +71,8 @@ func New(gitdir, workdir, lfsdir string) *Filesystem {
 	} else {
 		fs.LFSStorageDir = filepath.Join(fs.GitStorageDir, lfsdir)
 	}
+
+	fs.lfsobjdir = filepath.Join(fs.LFSStorageDir, "objects")
 
 	return fs
 }

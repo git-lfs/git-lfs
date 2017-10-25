@@ -2,7 +2,6 @@ package localstorage
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -64,17 +63,6 @@ func InitStorageOrFail(cfg *config.Configuration) {
 
 func ResolveDirs(cfg *config.Configuration) {
 	InitStorageOrFail(cfg)
-}
-
-func TempFile(prefix string) (*os.File, error) {
-	if checkedTempDir != TempDir {
-		if err := os.MkdirAll(TempDir, tempDirPerms); err != nil {
-			return nil, err
-		}
-		checkedTempDir = TempDir
-	}
-
-	return ioutil.TempFile(TempDir, prefix)
 }
 
 func ResetTempDir() error {

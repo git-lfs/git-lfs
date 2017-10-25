@@ -24,21 +24,6 @@ func LocalMediaDir() string {
 	return ""
 }
 
-func LocalObjectTempDir() string {
-	if localstorage.Objects() != nil {
-		return localstorage.Objects().TempDir
-	}
-	return ""
-}
-
-func TempDir() string {
-	return localstorage.TempDir
-}
-
-func TempFile(prefix string) (*os.File, error) {
-	return localstorage.TempFile(prefix)
-}
-
 func LocalMediaPath(oid string) (string, error) {
 	return localstorage.Objects().BuildObjectPath(oid)
 }
@@ -78,7 +63,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("LocalGitStorageDir=%s", cfg.LocalGitStorageDir()),
 		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
 		fmt.Sprintf("LocalReferenceDir=%s", cfg.LocalReferenceDir()),
-		fmt.Sprintf("TempDir=%s", TempDir()),
+		fmt.Sprintf("TempDir=%s", cfg.TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
@@ -157,7 +142,7 @@ func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) 
 		return err
 	}
 	if altMediafile != "" && tools.FileExistsOfSize(altMediafile, size) {
-		return LinkOrCopy(altMediafile, mediafile)
+		return LinkOrCopy(cfg, altMediafile, mediafile)
 	}
 	return nil
 }
