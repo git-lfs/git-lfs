@@ -72,7 +72,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	creds := newMockCredentialHelper()
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/repo/lfs",
 	}))
 	require.Nil(t, err)

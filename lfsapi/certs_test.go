@@ -60,7 +60,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	// Test http.<url>.sslcainfo
 	for _, hostName := range sslCAInfoConfigHostNames {
 		hostKey := fmt.Sprintf("http.https://%v.sslcainfo", hostName)
-		c, err := NewClient(NewContext(nil, map[string]string{
+		c, err := NewClient(NewContext(nil, nil, map[string]string{
 			hostKey: tempfile.Name(),
 		}))
 		assert.Nil(t, err)
@@ -82,7 +82,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	}
 
 	// Test http.sslcainfo
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"http.sslcainfo": tempfile.Name(),
 	}))
 	assert.Nil(t, err)
@@ -103,7 +103,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	c, err := NewClient(NewContext(map[string]string{
+	c, err := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAINFO": tempfile.Name(),
 	}, nil))
 	assert.Nil(t, err)
@@ -123,7 +123,7 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"http.sslcapath": tempdir,
 	}))
 
@@ -144,7 +144,7 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	c, err := NewClient(NewContext(map[string]string{
+	c, err := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAPATH": tempdir,
 	}, nil))
 	assert.Nil(t, err)
@@ -164,7 +164,7 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	c, err := NewClient(NewContext(map[string]string{
+	c, err := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_NO_VERIFY": "1",
 	}, nil))
 
@@ -185,7 +185,7 @@ func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"http.sslverify": "false",
 	}))
 	assert.Nil(t, err)
@@ -211,7 +211,7 @@ func TestCertVerifyDisabledHostConfig(t *testing.T) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"http.https://specifichost.com/.sslverify": "false",
 	}))
 	assert.Nil(t, err)

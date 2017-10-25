@@ -118,7 +118,7 @@ func testAdapterRegAndOverride(t *testing.T) {
 }
 
 func testAdapterRegButBasicOnly(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, map[string]string{
+	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.basictransfersonly": "yes",
 	}))
 	require.Nil(t, err)

@@ -13,6 +13,7 @@ import (
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 var (
@@ -42,6 +43,8 @@ type Client struct {
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
 
+	gitConfig *git.Configuration
+
 	httpLogger *syncLogger
 
 	LoggingStats bool // DEPRECATED
@@ -53,18 +56,22 @@ type Client struct {
 }
 
 type Context interface {
+	GitConfig() *git.Configuration
 	OSEnv() config.Environment
 	GitEnv() config.Environment
 }
 
 func NewClient(ctx Context) (*Client, error) {
 	if ctx == nil {
-		return newClient(nil, nil)
+		return newClient(nil, nil, nil)
 	}
-	return newClient(ctx.OSEnv(), ctx.GitEnv())
+	return newClient(ctx.GitConfig(), ctx.OSEnv(), ctx.GitEnv())
 }
 
-func newClient(osEnv, gitEnv config.Environment) (*Client, error) {
+func newClient(gitConf *git.Configuration, osEnv, gitEnv config.Environment) (*Client, error) {
+	if gitConf == nil {
+		gitConf = git.NewConfig("", "")
+	}
 	if osEnv == nil {
 		osEnv = make(testEnv)
 	}
@@ -99,6 +106,7 @@ func newClient(osEnv, gitEnv config.Environment) (*Client, error) {
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
+		gitConfig:           gitConf,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
 		uc:                  config.NewURLConfig(gitEnv),
@@ -147,8 +155,13 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 }
 
 type testContext struct {
-	osEnv  config.Environment
-	gitEnv config.Environment
+	gitConfig *git.Configuration
+	osEnv     config.Environment
+	gitEnv    config.Environment
+}
+
+func (c *testContext) GitConfig() *git.Configuration {
+	return c.gitConfig
 }
 
 func (c *testContext) OSEnv() config.Environment {
@@ -159,8 +172,8 @@ func (c *testContext) GitEnv() config.Environment {
 	return c.gitEnv
 }
 
-func NewContext(osEnv, gitEnv map[string]string) Context {
-	c := &testContext{}
+func NewContext(gitConf *git.Configuration, osEnv, gitEnv map[string]string) Context {
+	c := &testContext{gitConfig: gitConf}
 	if osEnv != nil {
 		c.osEnv = testEnv(osEnv)
 	}

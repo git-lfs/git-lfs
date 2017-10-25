@@ -111,7 +111,7 @@ func TestClientRedirect(t *testing.T) {
 	srv3Https = srv3.URL
 	srv3Http = fmt.Sprintf("http://%s", srv3InsecureListener.Addr().String())
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		fmt.Sprintf("http.%s.sslverify", srv3Https):  "false",
 		fmt.Sprintf("http.%s/.sslverify", srv3Https): "false",
 		fmt.Sprintf("http.%s.sslverify", srv3Http):   "false",
@@ -176,7 +176,7 @@ func TestClientRedirect(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.dialtimeout":         "151",
 		"lfs.keepalive":           "152",
 		"lfs.tlstimeout":          "153",
@@ -196,7 +196,7 @@ func TestNewClientWithGitSSLVerify(t *testing.T) {
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(NewContext(nil, map[string]string{
+		c, err = NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
@@ -205,7 +205,7 @@ func TestNewClientWithGitSSLVerify(t *testing.T) {
 	}
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(NewContext(nil, map[string]string{
+		c, err = NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
@@ -220,7 +220,7 @@ func TestNewClientWithOSSSLVerify(t *testing.T) {
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(NewContext(map[string]string{
+		c, err = NewClient(NewContext(nil, map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
 		}, nil))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
@@ -229,7 +229,7 @@ func TestNewClientWithOSSSLVerify(t *testing.T) {
 	}
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(NewContext(map[string]string{
+		c, err = NewClient(NewContext(nil, map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
 		}, nil))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
@@ -247,7 +247,7 @@ func TestNewRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := NewClient(NewContext(nil, map[string]string{
+		c, err := NewClient(NewContext(nil, nil, map[string]string{
 			"lfs.url": test[0],
 		}))
 		require.Nil(t, err)
@@ -260,7 +260,7 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequestWithBody(t *testing.T) {
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.url": "https://example.com",
 	}))
 	require.Nil(t, err)
