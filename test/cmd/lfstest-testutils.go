@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/test"
 )
 
@@ -52,7 +51,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	repo := test.WrapRepo(config.New(), &TestUtilRepoCallback{}, wd)
+	repo := test.WrapRepo(&TestUtilRepoCallback{}, wd)
 	f(repo)
 }
 

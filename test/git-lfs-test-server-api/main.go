@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
@@ -60,11 +60,18 @@ func testServerApi(cmd *cobra.Command, args []string) {
 		exit("Cannot combine input files and --save option")
 	}
 
-	// Force loading of config before we alter it
-	cfg := config.New()
-	cfg.Git.All()
+	// Build test data for existing files & upload
+	// Use test repo for this to simplify the process of making sure data matches oid
+	// We're not performing a real test at this point (although an upload fail will break it)
+	var callback testDataCallback
+	repo := test.NewRepo(&callback)
 
-	manifest, err := buildManifest(cfg)
+	// Force loading of config before we alter it
+	repo.GitEnv().All()
+	repo.Pushd()
+	defer repo.Popd()
+
+	manifest, err := buildManifest(repo)
 	if err != nil {
 		exit("error building tq.Manifest: " + err.Error())
 	}
@@ -77,7 +84,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Creating test data (will upload to server)\n")
 		var err error
-		oidsExist, oidsMissing, err = buildTestData(cfg, manifest)
+		oidsExist, oidsMissing, err = buildTestData(repo, manifest)
 		if err != nil {
 			exit("Failed to set up test data, aborting")
 		}
@@ -130,9 +137,9 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-func buildManifest(cfg *config.Configuration) (*tq.Manifest, error) {
+func buildManifest(r *test.Repo) (*tq.Manifest, error) {
 	// Configure the endpoint manually
-	finder := lfsapi.NewEndpointFinder(cfg.Git)
+	finder := lfsapi.NewEndpointFinder(r.GitEnv())
 
 	var endp lfsapi.Endpoint
 	if len(cloneUrl) > 0 {
@@ -141,7 +148,7 @@ func buildManifest(cfg *config.Configuration) (*tq.Manifest, error) {
 		endp = finder.NewEndpoint(apiUrl)
 	}
 
-	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	apiClient, err := lfsapi.NewClient(r.OSEnv(), r.GitEnv())
 	apiClient.Endpoints = &constantEndpoint{
 		e:              endp,
 		EndpointFinder: apiClient.Endpoints,
@@ -166,20 +173,13 @@ func (c *constantEndpoint) Endpoint(operation, remote string) lfsapi.Endpoint { 
 
 func (c *constantEndpoint) RemoteEndpoint(operation, remote string) lfsapi.Endpoint { return c.e }
 
-func buildTestData(cfg *config.Configuration, manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
+func buildTestData(repo *test.Repo, manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
-	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
 
-	// Build test data for existing files & upload
-	// Use test repo for this to simplify the process of making sure data matches oid
-	// We're not performing a real test at this point (although an upload fail will break it)
-	var callback testDataCallback
-	repo := test.NewRepo(cfg, &callback)
-	repo.Pushd()
-	defer repo.Cleanup()
 	// just one commit
+	meter := progress.NewMeter(progress.WithOSEnv(repo.OSEnv()))
 	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
 	for i := 0; i < oidCount; i++ {
 		filename := fmt.Sprintf("file%d.dat", i)
@@ -194,7 +194,7 @@ func buildTestData(cfg *config.Configuration, manifest *tq.Manifest) (oidsExist,
 	for _, f := range outputs[0].Files {
 		oidsExist = append(oidsExist, TestObject{Oid: f.Oid, Size: f.Size})
 
-		t, err := uploadTransfer(cfg, f.Oid, "Test file")
+		t, err := uploadTransfer(repo.Filesystem(), f.Oid, "Test file")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -315,8 +315,8 @@ func interleaveTestData(slice1, slice2 []TestObject) []TestObject {
 	return ret
 }
 
-func uploadTransfer(cfg *config.Configuration, oid, filename string) (*tq.Transfer, error) {
-	localMediaPath, err := cfg.Filesystem().ObjectPath(oid)
+func uploadTransfer(fs *fs.Filesystem, oid, filename string) (*tq.Transfer, error) {
+	localMediaPath, err := fs.ObjectPath(oid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}

@@ -48,12 +48,25 @@ type Configuration struct {
 }
 
 func New() *Configuration {
+	return NewIn("", "")
+}
+
+func NewIn(workdir, gitdir string) *Configuration {
 	gitConf := git.Config
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
 		gitConfig:     gitConf,
 	}
+
+	if len(workdir) > 0 {
+		if len(gitdir) == 0 {
+			gitdir = filepath.Join(workdir, ".git")
+		}
+		c.gitDir = &gitdir
+		c.workDir = workdir
+	}
+
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
 			sources, err := gitConf.Sources(filepath.Join(c.LocalWorkingDir(), ".lfsconfig"))

@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
 	. "github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -79,7 +78,7 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 }
 
 func TestRecentBranches(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -189,7 +188,7 @@ func TestRecentBranches(t *testing.T) {
 }
 
 func TestResolveEmptyCurrentRef(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -206,7 +205,7 @@ func TestWorkTrees(t *testing.T) {
 		return
 	}
 
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -279,7 +278,7 @@ func TestVersionCompare(t *testing.T) {
 }
 
 func TestGitAndRootDirs(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -305,7 +304,7 @@ func TestGitAndRootDirs(t *testing.T) {
 }
 
 func TestGetTrackedFiles(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -407,7 +406,7 @@ func TestGetTrackedFiles(t *testing.T) {
 }
 
 func TestLocalRefs(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -467,7 +466,7 @@ func TestLocalRefs(t *testing.T) {
 }
 
 func TestGetFilesChanges(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -573,10 +572,4 @@ func TestRefTypeUnknownPrefix(t *testing.T) {
 
 	unknown := RefType(-1)
 	unknown.Prefix()
-}
-
-var testCfg *config.Configuration
-
-func init() {
-	testCfg = config.New()
 }

@@ -47,7 +47,6 @@ var (
 
 type RepoCreateSettings struct {
 	RepoType RepoType
-	Config   *config.Configuration
 }
 
 // Callback interface (testing.T compatible)
@@ -107,6 +106,18 @@ func (r *Repo) EachLFSObject(fn func(fs.Object) error) error {
 	return r.fs.EachObject(fn)
 }
 
+func (r *Repo) Filesystem() *fs.Filesystem {
+	return r.fs
+}
+
+func (r *Repo) GitEnv() config.Environment {
+	return r.cfg.Git
+}
+
+func (r *Repo) OSEnv() config.Environment {
+	return r.cfg.Os
+}
+
 func (r *Repo) Cleanup() {
 	// pop out if necessary
 	r.Popd()
@@ -135,22 +146,19 @@ func (r *Repo) Cleanup() {
 }
 
 // NewRepo creates a new git repo in a new temp dir
-func NewRepo(cfg *config.Configuration, callback RepoCallback) *Repo {
-	return NewCustomRepo(callback, &RepoCreateSettings{
+func NewRepo(callback RepoCallback) *Repo {
+	return newRepo(callback, &RepoCreateSettings{
 		RepoType: RepoTypeNormal,
-		Config:   cfg,
 	})
 }
 
-// NewCustomRepo creates a new git repo in a new temp dir with more control over settings
-func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
+// newRepo creates a new git repo in a new temp dir with more control over settings
+func newRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret := &Repo{
 		Settings: settings,
 		Remotes:  make(map[string]*Repo),
 		callback: callback,
 	}
-	ret.cfg = settings.Config
-	ret.gitfilter = lfs.NewGitFilter(ret.cfg)
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
@@ -173,7 +181,11 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	default:
 		ret.GitDir = filepath.Join(ret.Path, ".git")
 	}
-	ret.fs = fs.New(ret.GitDir, ret.Path, "")
+
+	ret.cfg = config.NewIn(ret.Path, ret.GitDir)
+	ret.fs = ret.cfg.Filesystem()
+	ret.gitfilter = lfs.NewGitFilter(ret.cfg)
+
 	args = append(args, path)
 	cmd := exec.Command("git", args...)
 	err = cmd.Run()
@@ -192,16 +204,18 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 }
 
 // WrapRepo creates a new Repo instance for an existing git repo
-func WrapRepo(cfg *config.Configuration, c RepoCallback, path string) *Repo {
+func WrapRepo(c RepoCallback, path string) *Repo {
+	cfg := config.NewIn(path, "")
 	return &Repo{
-		Path: path,
+		Path:   path,
+		GitDir: cfg.LocalGitDir(),
 		Settings: &RepoCreateSettings{
 			RepoType: RepoTypeNormal,
-			Config:   cfg,
 		},
 		callback:  c,
 		cfg:       cfg,
 		gitfilter: lfs.NewGitFilter(cfg),
+		fs:        cfg.Filesystem(),
 	}
 }
 
@@ -416,9 +430,8 @@ func (r *Repo) AddRemote(name string) *Repo {
 	if _, exists := r.Remotes[name]; exists {
 		r.callback.Fatalf("Remote %v already exists", name)
 	}
-	remote := NewCustomRepo(r.callback, &RepoCreateSettings{
+	remote := newRepo(r.callback, &RepoCreateSettings{
 		RepoType: RepoTypeBare,
-		Config:   r.cfg,
 	})
 	r.Remotes[name] = remote
 	RunGitCommand(r.callback, true, "remote", "add", name, remote.Path)

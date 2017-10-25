@@ -5,7 +5,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/test"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestAllCurrentObjectsNone(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -32,7 +31,7 @@ func TestAllCurrentObjectsNone(t *testing.T) {
 }
 
 func TestAllCurrentObjectsSome(t *testing.T) {
-	repo := test.NewRepo(testCfg, t)
+	repo := test.NewRepo(t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -69,10 +68,4 @@ func TestAllCurrentObjectsSome(t *testing.T) {
 	sort.Sort(test.PointersByOid(expected))
 	sort.Sort(test.PointersByOid(actual))
 	assert.Equal(t, expected, actual, "Oids from disk should be the same as in commits")
-}
-
-var testCfg *config.Configuration
-
-func init() {
-	testCfg = config.New()
 }
