@@ -139,7 +139,7 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 
 func buildManifest(r *test.Repo) (*tq.Manifest, error) {
 	// Configure the endpoint manually
-	finder := lfsapi.NewEndpointFinder(r.GitEnv())
+	finder := lfsapi.NewEndpointFinder(r)
 
 	var endp lfsapi.Endpoint
 	if len(cloneUrl) > 0 {

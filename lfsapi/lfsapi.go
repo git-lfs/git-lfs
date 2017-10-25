@@ -43,8 +43,6 @@ type Client struct {
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
 
-	gitConfig *git.Configuration
-
 	httpLogger *syncLogger
 
 	LoggingStats bool // DEPRECATED
@@ -63,22 +61,11 @@ type Context interface {
 
 func NewClient(ctx Context) (*Client, error) {
 	if ctx == nil {
-		return newClient(nil, nil, nil)
-	}
-	return newClient(ctx.GitConfig(), ctx.OSEnv(), ctx.GitEnv())
-}
-
-func newClient(gitConf *git.Configuration, osEnv, gitEnv config.Environment) (*Client, error) {
-	if gitConf == nil {
-		gitConf = git.NewConfig("", "")
-	}
-	if osEnv == nil {
-		osEnv = make(testEnv)
-	}
-	if gitEnv == nil {
-		gitEnv = make(testEnv)
+		ctx = NewContext(nil, nil, nil)
 	}
 
+	gitEnv := ctx.GitEnv()
+	osEnv := ctx.OSEnv()
 	netrc, netrcfile, err := ParseNetrc(osEnv)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
@@ -95,7 +82,7 @@ func newClient(gitConf *git.Configuration, osEnv, gitEnv config.Environment) (*C
 	}
 
 	c := &Client{
-		Endpoints:           NewEndpointFinder(gitEnv),
+		Endpoints:           NewEndpointFinder(ctx),
 		Credentials:         creds,
 		SSH:                 sshResolver,
 		Netrc:               netrc,
@@ -106,7 +93,6 @@ func newClient(gitConf *git.Configuration, osEnv, gitEnv config.Environment) (*C
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
-		gitConfig:           gitConf,
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
 		uc:                  config.NewURLConfig(gitEnv),
@@ -174,11 +160,19 @@ func (c *testContext) GitEnv() config.Environment {
 
 func NewContext(gitConf *git.Configuration, osEnv, gitEnv map[string]string) Context {
 	c := &testContext{gitConfig: gitConf}
+	if c.gitConfig == nil {
+		c.gitConfig = git.NewConfig("", "")
+	}
 	if osEnv != nil {
 		c.osEnv = testEnv(osEnv)
+	} else {
+		c.osEnv = make(testEnv)
 	}
+
 	if gitEnv != nil {
 		c.gitEnv = testEnv(gitEnv)
+	} else {
+		c.gitEnv = make(testEnv)
 	}
 	return c
 }

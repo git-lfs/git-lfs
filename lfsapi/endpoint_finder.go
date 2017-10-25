@@ -37,7 +37,8 @@ type EndpointFinder interface {
 }
 
 type endpointGitFinder struct {
-	git         config.Environment
+	gitConfig   *git.Configuration
+	gitEnv      config.Environment
 	gitProtocol string
 
 	aliasMu sync.Mutex
@@ -48,21 +49,24 @@ type endpointGitFinder struct {
 	urlConfig *config.URLConfig
 }
 
-func NewEndpointFinder(git config.Environment) EndpointFinder {
+func NewEndpointFinder(ctx Context) EndpointFinder {
+	if ctx == nil {
+		ctx = NewContext(nil, nil, nil)
+	}
+
 	e := &endpointGitFinder{
+		gitConfig:   ctx.GitConfig(),
+		gitEnv:      ctx.GitEnv(),
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
 		urlAccess:   make(map[string]Access),
 	}
 
-	if git != nil {
-		e.git = git
-		e.urlConfig = config.NewURLConfig(e.git)
-		if v, ok := git.Get("lfs.gitprotocol"); ok {
-			e.gitProtocol = v
-		}
-		initAliases(e, git)
+	e.urlConfig = config.NewURLConfig(e.gitEnv)
+	if v, ok := e.gitEnv.Get("lfs.gitprotocol"); ok {
+		e.gitProtocol = v
 	}
+	initAliases(e, e.gitEnv)
 
 	return e
 }
@@ -74,17 +78,17 @@ func (e *endpointGitFinder) Endpoint(operation, remote string) Endpoint {
 }
 
 func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
-	if e.git == nil {
+	if e.gitEnv == nil {
 		return Endpoint{}
 	}
 
 	if operation == "upload" {
-		if url, ok := e.git.Get("lfs.pushurl"); ok {
+		if url, ok := e.gitEnv.Get("lfs.pushurl"); ok {
 			return e.NewEndpoint(url)
 		}
 	}
 
-	if url, ok := e.git.Get("lfs.url"); ok {
+	if url, ok := e.gitEnv.Get("lfs.url"); ok {
 		return e.NewEndpoint(url)
 	}
 
@@ -98,7 +102,7 @@ func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
 }
 
 func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
-	if e.git == nil {
+	if e.gitEnv == nil {
 		return Endpoint{}
 	}
 
@@ -108,11 +112,11 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
 
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
-		if url, ok := e.git.Get("remote." + remote + ".lfspushurl"); ok {
+		if url, ok := e.gitEnv.Get("remote." + remote + ".lfspushurl"); ok {
 			return e.NewEndpoint(url)
 		}
 	}
-	if url, ok := e.git.Get("remote." + remote + ".lfsurl"); ok {
+	if url, ok := e.gitEnv.Get("remote." + remote + ".lfsurl"); ok {
 		return e.NewEndpoint(url)
 	}
 
@@ -125,14 +129,14 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
 }
 
 func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
-	if e.git != nil {
+	if e.gitEnv != nil {
 		if forpush {
-			if u, ok := e.git.Get("remote." + remote + ".pushurl"); ok {
+			if u, ok := e.gitEnv.Get("remote." + remote + ".pushurl"); ok {
 				return u
 			}
 		}
 
-		if u, ok := e.git.Get("remote." + remote + ".url"); ok {
+		if u, ok := e.gitEnv.Get("remote." + remote + ".url"); ok {
 			return u
 		}
 	}
@@ -187,7 +191,7 @@ func (e *endpointGitFinder) NewEndpoint(rawurl string) Endpoint {
 }
 
 func (e *endpointGitFinder) AccessFor(rawurl string) Access {
-	if e.git == nil {
+	if e.gitEnv == nil {
 		return NoneAccess
 	}
 
@@ -214,10 +218,10 @@ func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
 
 	switch access {
 	case emptyAccess, NoneAccess:
-		git.Config.UnsetLocalKey("", key)
+		e.gitConfig.UnsetLocalKey("", key)
 		e.urlAccess[accessurl] = NoneAccess
 	default:
-		git.Config.SetLocal("", key, string(access))
+		e.gitConfig.SetLocal("", key, string(access))
 		e.urlAccess[accessurl] = access
 	}
 }

@@ -143,7 +143,7 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	c, _ := NewClient(nil)
 	c.Credentials = creds
-	c.Endpoints = NewEndpointFinder(testEnv(map[string]string{
+	c.Endpoints = NewEndpointFinder(NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL,
 	}))
 
@@ -531,7 +531,7 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ef := NewEndpointFinder(testEnv(test.Config))
+		ef := NewEndpointFinder(NewContext(nil, nil, test.Config))
 		endpoint, access, creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue
