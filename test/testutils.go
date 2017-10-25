@@ -25,7 +25,6 @@ import (
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 )
 
 type RepoType int
@@ -89,7 +88,6 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	localstorage.ResolveDirs(r.cfg)
 }
 
 func (r *Repo) Popd() {
@@ -256,7 +254,6 @@ func (infile *FileInput) writeLFSPointer(repo *Repo, inputData io.Reader) (*lfs.
 
 	// this only created the temp file, move to final location
 	tmpfile := cleaned.Filename
-	storageOnce.Do(func() { localstorage.ResolveDirs(repo.cfg) })
 	mediafile, err := repo.fs.ObjectPath(cleaned.Oid)
 	if err != nil {
 		return nil, errors.Wrap(err, "local media path")

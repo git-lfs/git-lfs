@@ -10,7 +10,6 @@ import (
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
@@ -54,7 +53,7 @@ type PruneProgress struct {
 type PruneProgressChan chan PruneProgress
 
 func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
-	localObjects := make([]localstorage.Object, 0, 100)
+	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
 	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
@@ -295,14 +294,11 @@ func pruneDeleteFiles(prunableObjects []string) {
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
+func pruneTaskGetLocalObjects(outLocalObjects *[]fs.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	cfg.EachLFSObject(func(obj fs.Object) error {
-		*outLocalObjects = append(*outLocalObjects, localstorage.Object{
-			Oid:  obj.Oid,
-			Size: obj.Size,
-		})
+		*outLocalObjects = append(*outLocalObjects, obj)
 		progChan <- PruneProgress{PruneProgressTypeLocal, 1}
 		return nil
 	})
