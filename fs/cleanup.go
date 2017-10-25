@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -15,50 +16,36 @@ func (f *Filesystem) cleanupTmp() error {
 		return nil
 	}
 
-	d, err := os.Open(tmpdir)
-	if err != nil {
-		return err
-	}
-
-	filenames, _ := d.Readdirnames(-1)
-	for _, filename := range filenames {
-		path := filepath.Join(tmpdir, filename)
-		if f.shouldDeleteTempObject(path) {
-			os.RemoveAll(path)
+	var walkErr error
+	tools.FastWalkGitRepo(tmpdir, func(parentDir string, info os.FileInfo, err error) {
+		if err != nil {
+			walkErr = err
 		}
-	}
+		if walkErr != nil || info.IsDir() {
+			return
+		}
+		path := filepath.Join(parentDir, info.Name())
+		parts := strings.SplitN(info.Name(), "-", 2)
+		oid := parts[0]
+		if len(parts) < 2 || len(oid) != 64 {
+			tracerx.Printf("Removing invalid tmp object file: %s", path)
+			os.RemoveAll(path)
+			return
+		}
 
-	return nil
-}
+		fi, err := os.Stat(f.ObjectPath(oid))
+		if err == nil && !fi.IsDir() {
+			tracerx.Printf("Removing existing tmp object file: %s", path)
+			os.RemoveAll(path)
+			return
+		}
 
-func (f *Filesystem) shouldDeleteTempObject(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
+		if time.Since(info.ModTime()) > time.Hour {
+			tracerx.Printf("Removing old tmp object file: %s", path)
+			os.RemoveAll(path)
+			return
+		}
+	})
 
-	if info.IsDir() {
-		return false
-	}
-
-	base := filepath.Base(path)
-	parts := strings.SplitN(base, "-", 2)
-	oid := parts[0]
-	if len(parts) < 2 || len(oid) != 64 {
-		tracerx.Printf("Removing invalid tmp object file: %s", path)
-		return true
-	}
-
-	fi, err := os.Stat(f.ObjectPath(oid))
-	if err == nil && !fi.IsDir() {
-		tracerx.Printf("Removing existing tmp object file: %s", path)
-		return true
-	}
-
-	if time.Since(info.ModTime()) > time.Hour {
-		tracerx.Printf("Removing old tmp object file: %s", path)
-		return true
-	}
-
-	return false
+	return walkErr
 }

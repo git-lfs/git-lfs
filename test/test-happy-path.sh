@@ -82,6 +82,8 @@ begin_test "clears local temp objects"
   touch .git/lfs/tmp/objects/badabcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxy-rand123
   touch .git/lfs/tmp/objects/badabcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxy-rand456
 
+  tree .git/lfs/tmp/objects
+
   GIT_TRACE=5 git lfs env
 
   # object file exists
