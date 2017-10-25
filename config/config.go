@@ -292,10 +292,6 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 	return c.fs
 }
 
-func (c *Configuration) ResolveGitBasicDirs() {
-	c.Filesystem()
-}
-
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
 // accessing properties set by ReadGitConfig, namely:
 //  - `c.extensions`

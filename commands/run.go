@@ -88,7 +88,6 @@ func resolveLocalStorage(cmd *cobra.Command, args []string) {
 }
 
 func setupLocalStorage(cmd *cobra.Command, args []string) {
-	cfg.ResolveGitBasicDirs()
 	setupHTTPLogger(getAPIClient())
 }
 
