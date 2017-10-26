@@ -108,7 +108,7 @@ func NewFrom(v Values) *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(mapFetcher(v.Os)),
-		gitConfig:     git.Config,
+		gitConfig:     git.NewConfig("", ""),
 	}
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
@@ -175,7 +175,7 @@ func (c *Configuration) SetLockableFilesReadOnly() bool {
 }
 
 func (c *Configuration) HookDir() string {
-	if c.gitConfig.IsGitVersionAtLeast("2.9.0") {
+	if git.IsGitVersionAtLeast("2.9.0") {
 		hp, ok := c.Git.Get("core.hooksPath")
 		if ok {
 			return hp
@@ -282,14 +282,6 @@ func (c *Configuration) GitEnv() Environment {
 
 func (c *Configuration) GitConfig() *git.Configuration {
 	return c.gitConfig
-}
-
-func (c *Configuration) GitVersion() (string, error) {
-	return c.gitConfig.Version()
-}
-
-func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
-	return c.gitConfig.IsGitVersionAtLeast(ver)
 }
 
 func (c *Configuration) FindGitGlobalKey(key string) string {

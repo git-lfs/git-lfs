@@ -48,8 +48,11 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 			},
 		},
 	}
+
 	outputs := repo.AddCommits(inputs)
+
 	// last commit was on branch3
+	gitConf := repo.GitConfig()
 	ref, err := CurrentRef()
 	assert.Nil(t, err)
 	assert.Equal(t, &Ref{"branch3", RefTypeLocalBranch, outputs[3].Sha}, ref)
@@ -60,15 +63,15 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	// Check remote
 	repo.AddRemote("origin")
 	test.RunGitCommand(t, true, "push", "-u", "origin", "master:someremotebranch")
-	ref, err = CurrentRemoteRef()
+	ref, err = gitConf.CurrentRemoteRef()
 	assert.Nil(t, err)
 	assert.Equal(t, &Ref{"origin/someremotebranch", RefTypeRemoteBranch, outputs[2].Sha}, ref)
 
-	refname, err := RemoteRefNameForCurrentBranch()
+	refname, err := gitConf.RemoteRefNameForCurrentBranch()
 	assert.Nil(t, err)
 	assert.Equal(t, "refs/remotes/origin/someremotebranch", refname)
 
-	remote, err := RemoteForCurrentBranch()
+	remote, err := gitConf.RemoteForCurrentBranch()
 	assert.Nil(t, err)
 	assert.Equal(t, "origin", remote)
 
@@ -201,7 +204,7 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 
 func TestWorkTrees(t *testing.T) {
 	// Only git 2.5+
-	if !Config.IsGitVersionAtLeast("2.5.0") {
+	if !IsGitVersionAtLeast("2.5.0") {
 		return
 	}
 

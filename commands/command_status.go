@@ -210,7 +210,7 @@ func statusScanRefRange(ref *git.Ref) {
 
 	Print("On branch %s", ref.Name)
 
-	remoteRef, err := git.CurrentRemoteRef()
+	remoteRef, err := cfg.GitConfig().CurrentRemoteRef()
 	if err != nil {
 		return
 	}

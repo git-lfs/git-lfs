@@ -23,7 +23,7 @@ var (
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
-	if cfg.IsGitVersionAtLeast("2.15.0") {
+	if git.IsGitVersionAtLeast("2.15.0") {
 		msg := []string{
 			"WARNING: 'git lfs clone' is deprecated and will not be updated",
 			"          with new flags from 'git clone'",
@@ -110,7 +110,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 func postCloneSubmodules(args []string) error {
 	// In git 2.9+ the filter option will have been passed through to submodules
 	// So we need to lfs pull inside each
-	if !cfg.IsGitVersionAtLeast("2.9.0") {
+	if !git.IsGitVersionAtLeast("2.9.0") {
 		// In earlier versions submodules would have used smudge filter
 		return nil
 	}

@@ -94,7 +94,7 @@ func gitConfigNoLFS(args ...string) []string {
 	// causes difficult issues with passing through Stdin for login prompts
 	// This way is simpler & more practical.
 	filterOverride := ""
-	if !Config.IsGitVersionAtLeast("2.8.0") {
+	if !IsGitVersionAtLeast("2.8.0") {
 		filterOverride = "cat"
 	}
 
@@ -233,8 +233,8 @@ func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
-func CurrentRemoteRef() (*Ref, error) {
-	remoteref, err := RemoteRefNameForCurrentBranch()
+func (c *Configuration) CurrentRemoteRef() (*Ref, error) {
+	remoteref, err := c.RemoteRefNameForCurrentBranch()
 	if err != nil {
 		return nil, err
 	}
@@ -243,12 +243,12 @@ func CurrentRemoteRef() (*Ref, error) {
 }
 
 // RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
-func RemoteForCurrentBranch() (string, error) {
+func (c *Configuration) RemoteForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
 	}
-	remote := RemoteForBranch(ref.Name)
+	remote := c.RemoteForBranch(ref.Name)
 	if remote == "" {
 		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
@@ -257,7 +257,7 @@ func RemoteForCurrentBranch() (string, error) {
 
 // RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
 // that the current branch is tracking.
-func RemoteRefNameForCurrentBranch() (string, error) {
+func (c *Configuration) RemoteRefNameForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
@@ -267,26 +267,26 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := RemoteForBranch(ref.Name)
+	remote := c.RemoteForBranch(ref.Name)
 	if remote == "" {
 		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 
-	remotebranch := RemoteBranchForLocalBranch(ref.Name)
+	remotebranch := c.RemoteBranchForLocalBranch(ref.Name)
 
 	return fmt.Sprintf("refs/remotes/%s/%s", remote, remotebranch), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
-func RemoteForBranch(localBranch string) string {
-	return Config.Find(fmt.Sprintf("branch.%s.remote", localBranch))
+func (c *Configuration) RemoteForBranch(localBranch string) string {
+	return c.Find(fmt.Sprintf("branch.%s.remote", localBranch))
 }
 
 // RemoteBranchForLocalBranch returns the name (only) of the remote branch that the local branch is tracking
 // If no specific branch is configured, returns local branch name
-func RemoteBranchForLocalBranch(localBranch string) string {
+func (c *Configuration) RemoteBranchForLocalBranch(localBranch string) string {
 	// get remote ref to track, may not be same name
-	merge := Config.Find(fmt.Sprintf("branch.%s.merge", localBranch))
+	merge := c.Find(fmt.Sprintf("branch.%s.merge", localBranch))
 	if strings.HasPrefix(merge, "refs/heads/") {
 		return merge[11:]
 	} else {
@@ -429,8 +429,8 @@ func ValidateRemoteURL(remote string) error {
 // 3. Any other SINGLE remote defined in .git/config
 // Returns an error if all of these fail, i.e. no tracked remote branch, no
 // "origin", and either no remotes defined or 2+ non-"origin" remotes
-func DefaultRemote() (string, error) {
-	tracked, err := RemoteForCurrentBranch()
+func (c *Configuration) DefaultRemote() (string, error) {
+	tracked, err := c.RemoteForCurrentBranch()
 	if err == nil {
 		return tracked, nil
 	}
@@ -728,48 +728,6 @@ func parseRefFile(filename string) (*Ref, error) {
 		contents = strings.TrimSpace(contents[4:])
 	}
 	return ResolveRef(contents)
-}
-
-// IsVersionAtLeast compares 2 version strings (ok to be prefixed with 'git version', ignores)
-func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
-	// Capture 1-3 version digits, optionally prefixed with 'git version' and possibly
-	// with suffixes which we'll ignore (e.g. unstable builds, MinGW versions)
-	verregex := regexp.MustCompile(`(?:git version\s+)?(\d+)(?:.(\d+))?(?:.(\d+))?.*`)
-
-	var atleast uint64
-	// Support up to 1000 in major/minor/patch digits
-	const majorscale = 1000 * 1000
-	const minorscale = 1000
-
-	if match := verregex.FindStringSubmatch(desiredVersion); match != nil {
-		// Ignore errors as regex won't match anything other than digits
-		major, _ := strconv.Atoi(match[1])
-		atleast += uint64(major * majorscale)
-		if len(match) > 2 {
-			minor, _ := strconv.Atoi(match[2])
-			atleast += uint64(minor * minorscale)
-		}
-		if len(match) > 3 {
-			patch, _ := strconv.Atoi(match[3])
-			atleast += uint64(patch)
-		}
-	}
-
-	var actual uint64
-	if match := verregex.FindStringSubmatch(actualVersion); match != nil {
-		major, _ := strconv.Atoi(match[1])
-		actual += uint64(major * majorscale)
-		if len(match) > 2 {
-			minor, _ := strconv.Atoi(match[2])
-			actual += uint64(minor * minorscale)
-		}
-		if len(match) > 3 {
-			patch, _ := strconv.Atoi(match[3])
-			actual += uint64(patch)
-		}
-	}
-
-	return actual >= atleast
 }
 
 // IsBare returns whether or not a repository is bare. It requires that the

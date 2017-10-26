@@ -7,10 +7,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/subprocess"
-	"github.com/rubyist/tracerx"
 )
-
-var Config = &Configuration{}
 
 // Configuration can fetch or modify the current Git config and track the Git
 // version.
@@ -136,33 +133,6 @@ func (c *Configuration) Source() (*ConfigurationSource, error) {
 		return nil, err
 	}
 	return ParseConfigLines(out, false), nil
-}
-
-// Version returns the git version
-func (c *Configuration) Version() (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.version == nil {
-		v, err := gitSimple("version")
-		c.version = &v
-		if err != nil {
-			return v, err
-		}
-	}
-
-	return *c.version, nil
-}
-
-// IsVersionAtLeast returns whether the git version is the one specified or higher
-// argument is plain version string separated by '.' e.g. "2.3.1" but can omit minor/patch
-func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
-	gitver, err := c.Version()
-	if err != nil {
-		tracerx.Printf("Error getting git version: %v", err)
-		return false
-	}
-	return IsVersionAtLeast(gitver, ver)
 }
 
 func (c *Configuration) gitConfig(args ...string) (string, error) {
