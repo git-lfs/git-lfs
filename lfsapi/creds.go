@@ -18,10 +18,12 @@ import (
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
 func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
-	path := strings.TrimPrefix(u.Path, "/")
-	input := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
+	input := Creds{"protocol": u.Scheme, "host": u.Host}
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
+	}
+	if c.gitEnv.Bool("credential.usehttppath", false) {
+		input["path"] = strings.TrimPrefix(u.Path, "/")
 	}
 
 	if c.Credentials != nil {

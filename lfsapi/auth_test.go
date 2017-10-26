@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,7 +94,6 @@ func TestDoWithAuthApprove(t *testing.T) {
 	assert.True(t, creds.IsApproved(Creds(map[string]string{
 		"username": "user",
 		"password": "pass",
-		"path":     "repo/lfs",
 		"protocol": "http",
 		"host":     srv.Listener.Addr().String(),
 	})))
@@ -274,6 +274,28 @@ func TestGetCreds(t *testing.T) {
 					"host":     "git-server.com",
 					"username": "git-server.com",
 					"password": "monkey",
+				},
+			},
+		},
+		"basic access with usehttppath": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://git-server.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com/repo/lfs",
+				"lfs.https://git-server.com/repo/lfs.access": "basic",
+				"credential.usehttppath":                     "true",
+			},
+			Expected: getCredsExpected{
+				Access:        BasicAccess,
+				Endpoint:      "https://git-server.com/repo/lfs",
+				Authorization: basicAuth("git-server.com", "monkey"),
+				CredsURL:      "https://git-server.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "git-server.com",
+					"username": "git-server.com",
+					"password": "monkey",
 					"path":     "repo/lfs",
 				},
 			},
@@ -295,7 +317,6 @@ func TestGetCreds(t *testing.T) {
 					"host":     "git-server.com",
 					"username": "git-server.com",
 					"password": "monkey",
-					"path":     "repo/lfs",
 				},
 			},
 		},
@@ -369,7 +390,6 @@ func TestGetCreds(t *testing.T) {
 					"host":     "git-server.com",
 					"username": "user",
 					"password": "monkey",
-					"path":     "repo/lfs",
 				},
 			},
 		},
@@ -392,7 +412,6 @@ func TestGetCreds(t *testing.T) {
 					"host":     "git-server.com",
 					"username": "git-server.com",
 					"password": "monkey",
-					"path":     "repo",
 				},
 			},
 		},
@@ -443,7 +462,6 @@ func TestGetCreds(t *testing.T) {
 					"host":     "git-server.com",
 					"username": "git-server.com",
 					"password": "monkey",
-					"path":     "repo/lfs/locks",
 				},
 			},
 		},
@@ -465,7 +483,6 @@ func TestGetCreds(t *testing.T) {
 					"host":     "lfs-server.com",
 					"username": "lfs-server.com",
 					"password": "monkey",
-					"path":     "repo/lfs/locks",
 				},
 			},
 		},
@@ -487,7 +504,6 @@ func TestGetCreds(t *testing.T) {
 					"host":     "git-server.com:8080",
 					"username": "git-server.com:8080",
 					"password": "monkey",
-					"path":     "repo/lfs/locks",
 				},
 			},
 		},
@@ -509,7 +525,6 @@ func TestGetCreds(t *testing.T) {
 				Creds: map[string]string{
 					"host":     "git-server.com",
 					"password": "monkey",
-					"path":     "repo/lfs",
 					"protocol": "https",
 					"username": "git-server.com",
 				},
@@ -517,10 +532,6 @@ func TestGetCreds(t *testing.T) {
 		},
 	}
 
-	client := &Client{
-		Credentials: &fakeCredentialFiller{},
-		Netrc:       &fakeNetrc{},
-	}
 	for desc, test := range tests {
 		t.Log(desc)
 		req, err := http.NewRequest(test.Method, test.Href, nil)
@@ -533,7 +544,11 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		client.Endpoints = NewEndpointFinder(NewContext(nil, nil, test.Config))
+		ctx := NewContext(git.NewConfig("", ""), nil, test.Config)
+		client, _ := NewClient(ctx)
+		client.Credentials = &fakeCredentialFiller{}
+		client.Netrc = &fakeNetrc{}
+		client.Endpoints = NewEndpointFinder(ctx)
 		endpoint, access, _, credsURL, creds, err := client.getCreds(test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue
