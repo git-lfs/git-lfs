@@ -517,8 +517,10 @@ func TestGetCreds(t *testing.T) {
 		},
 	}
 
-	credHelper := &fakeCredentialFiller{}
-	netrcFinder := &fakeNetrc{}
+	client := &Client{
+		Credentials: &fakeCredentialFiller{},
+		Netrc:       &fakeNetrc{},
+	}
 	for desc, test := range tests {
 		t.Log(desc)
 		req, err := http.NewRequest(test.Method, test.Href, nil)
@@ -531,8 +533,8 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ef := NewEndpointFinder(NewContext(nil, nil, test.Config))
-		endpoint, access, creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, test.Remote, req)
+		client.Endpoints = NewEndpointFinder(NewContext(nil, nil, test.Config))
+		endpoint, access, _, credsURL, creds, err := client.getCreds(test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue
 		}

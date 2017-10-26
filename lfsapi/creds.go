@@ -8,86 +8,61 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
-
-// credsConfig supplies configuration options pertaining to the authorization
-// process in package lfsapi.
-type credsConfig struct {
-	// AskPass is a string containing an executable name as well as a
-	// program arguments.
-	//
-	// See: https://git-scm.com/docs/gitcredentials#_requesting_credentials
-	// for more.
-	AskPass string `os:"GIT_ASKPASS" git:"core.askpass" os:"SSH_ASKPASS"`
-	// Helper is a string defining the credential helper that Git should use.
-	Helper string `git:"credential.helper"`
-	// Cached is a boolean determining whether or not to enable the
-	// credential cacher.
-	Cached bool
-	// SkipPrompt is a boolean determining whether or not to prompt the user
-	// for a password.
-	SkipPrompt bool `os:"GIT_TERMINAL_PROMPT"`
-}
 
 // getCredentialHelper parses a 'credsConfig' from the git and OS environments,
 // returning the appropriate CredentialHelper to authenticate requests with.
 //
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
-func getCredentialHelper(osEnv, gitEnv config.Environment) (CredentialHelper, error) {
-	ccfg, err := getCredentialConfig(osEnv, gitEnv)
-	if err != nil {
-		return nil, err
+func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
+	path := strings.TrimPrefix(u.Path, "/")
+	input := Creds{"protocol": u.Scheme, "host": u.Host, "path": path}
+	if u.User != nil && u.User.Username() != "" {
+		input["username"] = u.User.Username()
 	}
 
+	if c.Credentials != nil {
+		return c.Credentials, input
+	}
+
+	askpass, ok := c.osEnv.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = c.gitEnv.Get("core.askpass")
+	}
+	if !ok {
+		askpass, ok = c.osEnv.Get("SSH_ASKPASS")
+	}
+	helper, _ := c.gitEnv.Get("credential.helper")
+	cached := c.gitEnv.Bool("lfs.cachecredentials", true)
+	skipPrompt := c.osEnv.Bool("GIT_TERMINAL_PROMPT", false)
+
 	var hs []CredentialHelper
-	if len(ccfg.Helper) == 0 && len(ccfg.AskPass) > 0 {
+	if len(helper) == 0 && len(askpass) > 0 {
 		hs = append(hs, &AskPassCredentialHelper{
-			Program: ccfg.AskPass,
+			Program: askpass,
 		})
 	}
 
 	var h CredentialHelper
 	h = &commandCredentialHelper{
-		SkipPrompt: ccfg.SkipPrompt,
+		SkipPrompt: skipPrompt,
 	}
 
-	if ccfg.Cached {
+	if cached {
 		h = withCredentialCache(h)
 	}
 	hs = append(hs, h)
 
 	switch len(hs) {
 	case 0:
-		return nil, nil
+		return defaultCredentialHelper, input
 	case 1:
-		return hs[0], nil
+		return hs[0], input
 	}
-	return CredentialHelpers(hs), nil
-}
-
-// getCredentialConfig parses a *credsConfig given the OS and Git
-// configurations.
-func getCredentialConfig(o, g config.Environment) (*credsConfig, error) {
-	askpass, ok := o.Get("GIT_ASKPASS")
-	if !ok {
-		askpass, ok = g.Get("core.askpass")
-	}
-	if !ok {
-		askpass, ok = o.Get("SSH_ASKPASS")
-	}
-	helper, _ := g.Get("credential.helper")
-	what := &credsConfig{
-		AskPass:    askpass,
-		Helper:     helper,
-		Cached:     g.Bool("lfs.cachecredentials", true),
-		SkipPrompt: o.Bool("GIT_TERMINAL_PROMPT", false),
-	}
-
-	return what, nil
+	return CredentialHelpers(hs), input
 }
 
 // CredentialHelpers is a []CredentialHelper that iterates through each
@@ -332,6 +307,8 @@ func (h *commandCredentialHelper) Reject(creds Creds) error {
 }
 
 func (h *commandCredentialHelper) Approve(creds Creds) error {
+	tracerx.Printf("creds: git credential approve (%q, %q, %q)",
+		creds["protocol"], creds["host"], creds["path"])
 	_, err := h.exec("approve", creds)
 	return err
 }
@@ -382,4 +359,23 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	}
 
 	return creds, nil
+}
+
+type nullCredentialHelper struct{}
+
+var (
+	nullCredError = errors.New("No credential helper configured")
+	nullCreds     = &nullCredentialHelper{}
+)
+
+func (h *nullCredentialHelper) Fill(input Creds) (Creds, error) {
+	return nil, nullCredError
+}
+
+func (h *nullCredentialHelper) Approve(creds Creds) error {
+	return nil
+}
+
+func (h *nullCredentialHelper) Reject(creds Creds) error {
+	return nil
 }
