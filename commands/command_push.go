@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/rubyist/tracerx"
@@ -20,10 +20,10 @@ var (
 )
 
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
-	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
+	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
 
-	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+	gitscanner, err := ctx.buildGitScanner()
+	if err != nil {
 		ExitWithError(err)
 	}
 	defer gitscanner.Close()
@@ -35,48 +35,37 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		pointers, err := scanLeftOrAll(gitscanner, ref.Name)
-		if err != nil {
+		if err = uploadLeftOrAll(gitscanner, ctx, ref.Name); err != nil {
 			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
 			ExitWithError(err)
 		}
-		uploadPointers(ctx, pointers)
-	}
-}
-
-func scanLeftOrAll(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
-	var pointers []*lfs.WrappedPointer
-	var multiErr error
-	cb := func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
-			return
-		}
-
-		pointers = append(pointers, p)
 	}
 
-	if pushAll {
-		if err := g.ScanRefWithDeleted(ref, cb); err != nil {
-			return pointers, err
-		}
-	}
-	if err := g.ScanLeftToRemote(ref, cb); err != nil {
-		return pointers, err
-	}
-	return pointers, multiErr
+	ctx.Await()
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
-	pointers := make([]*lfs.WrappedPointer, len(oids))
-	for idx, oid := range oids {
-		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
+	for _, oid := range oids {
+		mp, err := lfs.LocalMediaPath(oid)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
+		}
+
+		stat, err := os.Stat(mp)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
+		}
+
+		uploadPointers(ctx, &lfs.WrappedPointer{
+			Name: mp,
+			Pointer: &lfs.Pointer{
+				Oid:  oid,
+				Size: stat.Size(),
+			},
+		})
 	}
-	uploadPointers(ctx, pointers)
+
+	ctx.Await()
 }
 
 func refsByNames(refnames []string) ([]*git.Ref, error) {
@@ -113,7 +102,7 @@ func refsByNames(refnames []string) ([]*git.Ref, error) {
 //
 // Remote must be a remote name, not a URL
 //
-// pushCommand calculates the git objects to send by looking comparing the range
+// pushCommand calculates the git objects to send by comparing the range
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
@@ -128,8 +117,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	cfg.CurrentRemote = args[0]
-	ctx := newUploadContext(pushDryRun)
+	ctx := newUploadContext(args[0], pushDryRun)
 
 	if pushObjectIDs {
 		if len(args) < 2 {

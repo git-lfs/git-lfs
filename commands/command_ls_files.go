@@ -10,6 +10,7 @@ import (
 
 var (
 	longOIDs = false
+	debug    = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
@@ -38,26 +39,48 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+		if debug {
+			Print(
+				"filepath: %s\n"+
+					"    size: %d\n"+
+					"checkout: %v\n"+
+					"download: %v\n"+
+					"     oid: %s %s\n"+
+					" version: %s\n",
+				p.Name,
+				p.Size,
+				fileExistsOfSize(p),
+				lfs.ObjectExistsOfSize(p.Oid, p.Size),
+				p.OidType,
+				p.Oid,
+				p.Version)
+		} else {
+			Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+		}
 	})
 	defer gitscanner.Close()
 
-	if err := gitscanner.ScanTree(ref, nil); err != nil {
+	if err := gitscanner.ScanTree(ref); err != nil {
 		Exit("Could not scan for Git LFS tree: %s", err)
 	}
 }
 
-func lsFilesMarker(p *lfs.WrappedPointer) string {
+// Returns true if a pointer appears to be properly smudge on checkout
+func fileExistsOfSize(p *lfs.WrappedPointer) bool {
 	info, err := os.Stat(p.Name)
-	if err == nil && info.Size() == p.Size {
+	return err == nil && info.Size() == p.Size
+}
+
+func lsFilesMarker(p *lfs.WrappedPointer) string {
+	if fileExistsOfSize(p) {
 		return "*"
 	}
-
 	return "-"
 }
 
 func init() {
 	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
+		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 	})
 }

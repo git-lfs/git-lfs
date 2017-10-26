@@ -1,20 +1,16 @@
 package commands
 
 import (
-	"errors"
+	"encoding/json"
+	"os"
 
-	"github.com/git-lfs/git-lfs/api"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
 var (
-	// errNoMatchingLocks is an error returned when no matching locks were
-	// able to be resolved
-	errNoMatchingLocks = errors.New("lfs: no matching locks found")
-	// errLockAmbiguous is an error returned when multiple matching locks
-	// were found
-	errLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
-
 	unlockCmdFlags unlockFlags
 )
 
@@ -28,78 +24,116 @@ type unlockFlags struct {
 	Force bool
 }
 
-func unlockCommand(cmd *cobra.Command, args []string) {
-	setLockRemoteFor(cfg)
+var unlockUsage = "Usage: git lfs unlock (--id my-lock-id | <path>)"
 
-	var id string
-	if len(args) != 0 {
+func unlockCommand(cmd *cobra.Command, args []string) {
+	hasPath := len(args) > 0
+	hasId := len(unlockCmdFlags.Id) > 0
+	if hasPath == hasId {
+		// If there is both an `--id` AND a `<path>`, or there is
+		// neither, print the usage and quit.
+		Exit(unlockUsage)
+	}
+
+	lockClient := newLockClient(lockRemote)
+	defer lockClient.Close()
+
+	if hasPath {
 		path, err := lockPath(args[0])
 		if err != nil {
-			Error(err.Error())
+			if !unlockCmdFlags.Force {
+				Exit("Unable to determine path: %v", err.Error())
+			}
+			path = args[0]
 		}
 
-		if id, err = lockIdFromPath(path); err != nil {
-			Error(err.Error())
+		// This call can early-out
+		unlockAbortIfFileModified(path, !os.IsNotExist(err))
+
+		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
+		if err != nil {
+			Exit("%s", errors.Cause(err))
+		}
+
+		if !locksCmdFlags.JSON {
+			Print("Unlocked %s", path)
+			return
 		}
 	} else if unlockCmdFlags.Id != "" {
-		id = unlockCmdFlags.Id
+		// This call can early-out
+		unlockAbortIfFileModifiedById(unlockCmdFlags.Id, lockClient)
+
+		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
+		if err != nil {
+			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err))
+		}
+
+		if !locksCmdFlags.JSON {
+			Print("Unlocked Lock %s", unlockCmdFlags.Id)
+			return
+		}
 	} else {
-		Error("Usage: git lfs unlock (--id my-lock-id | <path>)")
+		Error(unlockUsage)
 	}
 
-	s, resp := API.Locks.Unlock(id, unlockCmdFlags.Force)
-
-	if _, err := API.Do(s); err != nil {
+	if err := json.NewEncoder(os.Stdout).Encode(struct {
+		Unlocked bool `json:"unlocked"`
+	}{true}); err != nil {
 		Error(err.Error())
-		Exit("Error communicating with LFS API.")
 	}
-
-	if len(resp.Err) > 0 {
-		Error(resp.Err)
-		Exit("Server unable to unlock lock.")
-	}
-
-	Print("'%s' was unlocked (%s)", args[0], resp.Lock.Id)
+	return
 }
 
-// lockIdFromPath makes a call to the LFS API and resolves the ID for the locked
-// locked at the given path.
-//
-// If the API call failed, an error will be returned. If multiple locks matched
-// the given path (should not happen during real-world usage), an error will be
-// returnd. If no locks matched the given path, an error will be returned.
-//
-// If the API call is successful, and only one lock matches the given filepath,
-// then its ID will be returned, along with a value of "nil" for the error.
-func lockIdFromPath(path string) (string, error) {
-	s, resp := API.Locks.Search(&api.LockSearchRequest{
-		Filters: []api.Filter{
-			{"path", path},
-		},
-	})
+func unlockAbortIfFileModified(path string, exists bool) {
+	modified, err := git.IsFileModified(path)
 
-	if _, err := API.Do(s); err != nil {
-		return "", err
+	if err != nil {
+		if !exists && unlockCmdFlags.Force {
+			// Since git/git@b9a7d55, `git-status(1)` causes an
+			// error when asked about files that don't exist,
+			// causing `err != nil`, as above.
+			//
+			// Unlocking a files that does not exist with
+			// --force is OK.
+			return
+		}
+		Exit(err.Error())
 	}
 
-	switch len(resp.Locks) {
-	case 0:
-		return "", errNoMatchingLocks
-	case 1:
-		return resp.Locks[0].Id, nil
-	default:
-		return "", errLockAmbiguous
+	if modified {
+		if unlockCmdFlags.Force {
+			// Only a warning
+			Error("Warning: unlocking with uncommitted changes because --force")
+		} else {
+			Exit("Cannot unlock file with uncommitted changes")
+		}
+
 	}
 }
 
-func init() {
-	if !isCommandEnabled(cfg, "locks") {
+func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
+	// Get the path so we can check the status
+	filter := map[string]string{"id": id}
+	// try local cache first
+	locks, _ := lockClient.SearchLocks(filter, 0, true)
+	if len(locks) == 0 {
+		// Fall back on calling server
+		locks, _ = lockClient.SearchLocks(filter, 0, false)
+	}
+
+	if len(locks) == 0 {
+		// Don't block if we can't determine the path, may be cleaning up old data
 		return
 	}
 
+	unlockAbortIfFileModified(locks[0].Path, true)
+}
+
+func init() {
 	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

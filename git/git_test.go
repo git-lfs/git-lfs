@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	. "github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -78,7 +79,7 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 }
 
 func TestRecentBranches(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -188,7 +189,7 @@ func TestRecentBranches(t *testing.T) {
 }
 
 func TestResolveEmptyCurrentRef(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -200,13 +201,12 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 }
 
 func TestWorkTrees(t *testing.T) {
-
 	// Only git 2.5+
 	if !Config.IsGitVersionAtLeast("2.5.0") {
 		return
 	}
 
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -279,7 +279,7 @@ func TestVersionCompare(t *testing.T) {
 }
 
 func TestGitAndRootDirs(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -305,7 +305,7 @@ func TestGitAndRootDirs(t *testing.T) {
 }
 
 func TestGetTrackedFiles(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -407,7 +407,7 @@ func TestGetTrackedFiles(t *testing.T) {
 }
 
 func TestLocalRefs(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -464,4 +464,119 @@ func TestLocalRefs(t *testing.T) {
 	if found != len(expected) {
 		t.Errorf("Unexpected local refs: %v", actual)
 	}
+}
+
+func TestGetFilesChanges(t *testing.T) {
+	repo := test.NewRepo(testCfg, t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	commits := repo.AddCommits([]*test.CommitInput{
+		{
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+			},
+		},
+		{
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 25},
+				{Filename: "file2.txt", Size: 20},
+				{Filename: "folder/file3.txt", Size: 10},
+			},
+			Tags: []string{"tag1"},
+		},
+		{
+			NewBranch:      "abranch",
+			ParentBranches: []string{"master"},
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 30},
+				{Filename: "file4.txt", Size: 40},
+			},
+		},
+	})
+
+	expected0to1 := []string{"file1.txt", "file2.txt", "folder/file3.txt"}
+	expected1to2 := []string{"file1.txt", "file4.txt"}
+	expected0to2 := []string{"file1.txt", "file2.txt", "file4.txt", "folder/file3.txt"}
+	// Test 2 SHAs
+	changes, err := GetFilesChanged(commits[0].Sha, commits[1].Sha)
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	// Test SHA & tag
+	changes, err = GetFilesChanged(commits[0].Sha, "tag1")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	// Test SHA & branch
+	changes, err = GetFilesChanged(commits[0].Sha, "abranch")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to2, changes)
+	// Test tag & branch
+	changes, err = GetFilesChanged("tag1", "abranch")
+	assert.Nil(t, err)
+	assert.Equal(t, expected1to2, changes)
+	// Test fail
+	_, err = GetFilesChanged("tag1", "nonexisting")
+	assert.NotNil(t, err)
+	_, err = GetFilesChanged("nonexisting", "tag1")
+	assert.NotNil(t, err)
+	// Test Single arg version
+	changes, err = GetFilesChanged(commits[1].Sha, "")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	changes, err = GetFilesChanged("abranch", "")
+	assert.Nil(t, err)
+	assert.Equal(t, expected1to2, changes)
+
+}
+
+func TestValidateRemoteURL(t *testing.T) {
+	assert.Nil(t, ValidateRemoteURL("https://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("http://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("ssh://git@github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("ssh://git@github.com:22/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git@github.com:git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git@server:/absolute/path.git"))
+	assert.NotNil(t, ValidateRemoteURL("ftp://git@github.com/git-lfs/git-lfs"))
+}
+
+func TestRefTypeKnownPrefixes(t *testing.T) {
+	for typ, expected := range map[RefType]struct {
+		Prefix string
+		Ok     bool
+	}{
+		RefTypeLocalBranch:  {"refs/heads", true},
+		RefTypeRemoteBranch: {"refs/remotes", true},
+		RefTypeLocalTag:     {"refs/tags", true},
+		RefTypeRemoteTag:    {"refs/remotes/tags", true},
+		RefTypeHEAD:         {"", false},
+		RefTypeOther:        {"", false},
+	} {
+		prefix, ok := typ.Prefix()
+
+		assert.Equal(t, expected.Prefix, prefix)
+		assert.Equal(t, expected.Ok, ok)
+	}
+}
+
+func TestRefTypeUnknownPrefix(t *testing.T) {
+	defer func() {
+		if err := recover(); err != nil {
+			assert.Equal(t, "git: unknown RefType -1", err)
+		} else {
+			t.Fatal("git: expected panic() from RefType.Prefix()")
+		}
+	}()
+
+	unknown := RefType(-1)
+	unknown.Prefix()
+}
+
+var testCfg *config.Configuration
+
+func init() {
+	testCfg = config.New()
 }

@@ -1,0 +1,182 @@
+git-lfs-migrate(1) - Migrate history to or from git-lfs
+=======================================================
+
+## SYNOPSIS
+
+`git lfs migrate` <mode> [options] [--] [branch ...]
+
+## MODES
+
+* `info`
+    Show information about repository size.
+
+* `import`
+    Convert large Git objects to LFS pointers.
+
+## OPTIONS
+
+* `-I` <paths> `--include=`<paths>:
+    See [INCLUDE AND EXCLUDE].
+
+* `-X` <paths> `--exclude=`<paths>:
+    See [INCLUDE AND EXCLUDE].
+
+* `--include-ref`=<refname>:
+    See [INCLUDE AND EXCLUDE (REFS)].
+
+* `--exclude-ref`=<refname>:
+    See [INCLUDE AND EXCLUDE (REFS)].
+
+* `--everything`:
+    See [INCLUDE AND EXCLUDE (REFS)].
+
+* [branch ...]:
+    Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
+    will migrate the currently checked out branch.
+
+    If any of `--include-ref` or `--exclude-ref` are given, the checked out
+    branch will not be appended, but branches given explicitly will be appended.
+
+### INFO
+
+The 'info' mode has these additional options:
+
+* `--above=<size>`
+    Only count files whose individual filesize is above the given size. 'size'
+    may be specified as a number of bytes, or a number followed by a storage
+    unit, e.g., "1b", "20 MB", "3 TiB", etc.
+
+    If a set of files sharing a common extension has no files in that set whose
+    individual size is above the given `--above` no files no entry for that set
+    will be shown.
+
+* `--top=<n>`
+    Only include the top 'n' entries, ordered by how many total files match the
+    given pathspec.
+
+* `--unit=<unit>`
+    Format the number of bytes in each entry as a quantity of the storage unit
+    provided. Valid units include:
+      * b, kib, mib, gib, tib, pib - for IEC storage units
+      * b, kb, mb, gb, tb, pb - for SI storage units
+
+    If a --unit is not specified, the largest unit that can fit the number of
+    counted bytes as a whole number quantity is chosen.
+
+### IMPORT
+
+The 'import' mode migrates large objects present in the Git history to pointer
+files tracked and stored with Git LFS. It supports all the core 'migrate'
+options and these additional ones:
+
+* `--verbose`
+    Print the commit oid and filename of migrated files to STDOUT.
+
+If `--include` or `--exclude` (`-I`, `-X`, respectively) are given, the
+.gitattributes will be modified to include any new filepath patterns as given by
+those flags.
+
+If neither of those flags are given, the gitattributes will be incrementally
+modified to include new filepath extensions as they are rewritten in history.
+
+## INCLUDE AND EXCLUDE
+
+You can configure Git LFS to only migrate tree entries whose pathspec matches
+the include glob and does not match the exclude glob, to reduce total migration
+time or to only migrate part of your repo. Specify multiple patterns using the
+comma as the delimiter.
+
+Pattern matching is done as given to be functionally equivalent to pattern
+matching as in .gitattributes.
+
+## INCLUDE AND EXCLUDE (REFS)
+
+You can configure Git LFS to only migrate commits reachable by references
+include by `--include-ref` and not reachable by `--exclude-ref`.
+
+        D---E---F
+       /         \
+  A---B------C    refs/heads/my-feature
+   \          \
+    \          refs/heads/master
+     \
+      refs/remotes/origin/master
+
+In the above configuration, the following commits are reachable by each ref:
+
+refs/heads/master:         C, B, A
+refs/heads/my-feature:     F, E, D, B, A
+refs/remote/origin/master: A
+
+The following configuration:
+
+  --include-ref=refs/heads/my-feature
+  --include-ref=refs/heads/master
+  --exclude-ref=refs/remotes/origin/master
+
+Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
+
+The presence of flag `--everything` indicates that all local references should be
+migrated.
+
+## EXAMPLES
+
+### Migrate unpushed commits
+
+The migrate command's most common use case is to convert large git objects to
+LFS before pushing your commits. By default, it only scans commits that don't
+exist on any remote.
+
+First, run `git lfs migrate info` to list the file types taking up the most
+space in your repository.
+
+```
+$ git lfs migrate info
+migrate: Fetching remote refs: ..., done
+migrate: Sorting commits: ..., done
+migrate: Examining commits: 100% (1/1), done
+*.mp3  	284 MB	  1/1 files(s)	100%
+*.pdf  	42 MB 	  8/8 files(s)	100%
+*.psd  	9.8 MB	15/15 files(s)	100%
+*.ipynb	6.9 MB	  6/6 files(s)	100%
+*.csv  	5.8 MB	  2/2 files(s)	100%
+```
+
+Now, you can run `git lfs migrate import` to convert some file types to LFS:
+
+```
+$ git lfs migrate import --include="*.mp3,*.psd"
+migrate: Fetching remote refs: ..., done
+migrate: Sorting commits: ..., done
+migrate: Rewriting commits: 100% (1/1), done
+  master	d2b959babd099fe70da1c1512e2475e8a24de163 -> 136e706bf1ae79643915c134e17a6c933fd53c61
+migrate: Updating refs: ..., done
+```
+
+### Migrate local history
+
+You can also migrate the entire history of your repository:
+
+```
+# Check for large files in your local master branch
+$ git lfs migrate info --include-ref=master
+
+# Check for large files in every branch
+$ git lfs migrate info --everything
+```
+
+The same flags will work in `import` mode:
+
+```
+# Convert all zip files in your master branch
+$ git lfs migrate import --include-ref=master --include="*.zip"
+
+# Convert all zip files in every local branch
+$ git lfs migrate import --everything --include="*.zip"
+```
+
+Note: This will require a force push to any existing Git remotes.
+
+## SEE ALSO
+
+Part of the git-lfs(1) suite.

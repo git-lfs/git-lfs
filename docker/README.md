@@ -232,7 +232,7 @@ cache your signing key. This is done automatically for you, whenever you call
 be manually preloaded by calling `./docker/gpg-agent_preload.bsh`. It will ask 
 you for your passphrase, once for each unique key out of all the dockers. So if
 you use the same key for every docker, it will only prompt once. If you have 5
-different keys, you'll have prompts, with only the the key ID to tell you which
+different keys, you'll have prompts, with only the key ID to tell you which
 is which.
 
 The gpg agent TTL is set to 1 year. If this is not acceptable for you, set the 

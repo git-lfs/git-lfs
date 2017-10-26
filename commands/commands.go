@@ -5,45 +5,177 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/localstorage"
+	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Populate man pages
 //go:generate go run ../docs/man/mangen.go
 
 var (
-	// API is a package-local instance of the API client for use within
-	// various command implementations.
-	API = api.NewClient(nil)
-
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
 	ManPages     = make(map[string]string, 20)
-	cfg          = config.Config
+	tqManifest   = make(map[string]*tq.Manifest)
+
+	cfg       *config.Configuration
+	apiClient *lfsapi.Client
+	global    sync.Mutex
 
 	includeArg string
 	excludeArg string
 )
 
-// TransferManifest builds a transfer.Manifest from the commands package global
-// cfg var.
-func TransferManifest() *transfer.Manifest {
-	return transfer.ConfigureManifest(transfer.NewManifest(), cfg)
+// getTransferManifest builds a tq.Manifest from the global os and git
+// environments.
+func getTransferManifest() *tq.Manifest {
+	return getTransferManifestOperationRemote("", "")
+}
+
+// getTransferManifestOperationRemote builds a tq.Manifest from the global os
+// and git environments and operation-specific and remote-specific settings.
+// Operation must be "download", "upload", or the empty string.
+func getTransferManifestOperationRemote(operation, remote string) *tq.Manifest {
+	c := getAPIClient()
+
+	global.Lock()
+	defer global.Unlock()
+
+	k := fmt.Sprintf("%s.%s", operation, remote)
+	if tqManifest[k] == nil {
+		tqManifest[k] = tq.NewManifestClientOperationRemote(c, operation, remote)
+	}
+
+	return tqManifest[k]
+}
+
+func getAPIClient() *lfsapi.Client {
+	global.Lock()
+	defer global.Unlock()
+
+	if apiClient == nil {
+		c, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+		if err != nil {
+			ExitWithError(err)
+		}
+		apiClient = c
+	}
+	return apiClient
+}
+
+func closeAPIClient() error {
+	global.Lock()
+	defer global.Unlock()
+	if apiClient == nil {
+		return nil
+	}
+	return apiClient.Close()
+}
+
+func newLockClient(remote string) *locking.Client {
+	storageConfig := localstorage.NewConfig(cfg)
+	lockClient, err := locking.NewClient(remote, getAPIClient())
+	if err == nil {
+		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
+	}
+
+	if err != nil {
+		Exit("Unable to create lock system: %v", err.Error())
+	}
+
+	// Configure dirs
+	lockClient.LocalWorkingDir = cfg.LocalWorkingDir()
+	lockClient.LocalGitDir = cfg.LocalGitDir()
+	lockClient.SetLockableFilesReadOnly = cfg.SetLockableFilesReadOnly()
+
+	return lockClient
+}
+
+// newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
+func newDownloadCheckQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	allOptions := make([]tq.Option, 0, len(options)+1)
+	allOptions = append(allOptions, options...)
+	allOptions = append(allOptions, tq.DryRun(true))
+	return newDownloadQueue(manifest, remote, allOptions...)
+}
+
+// newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
+func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Download, manifest, remote, options...)
+}
+
+// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
+func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
+}
+
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+	return filepathfilter.New(inc, exc)
+}
+
+func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64) {
+	path, _ = lfs.LocalMediaPath(p.Oid)
+
+	return p.Name, path, p.Oid, p.Size
+}
+
+// Get user-readable manual install steps for hooks
+func getHookInstallSteps() string {
+	hooks := lfs.LoadHooks(cfg.HookDir())
+	steps := make([]string, 0, len(hooks))
+	for _, h := range hooks {
+		steps = append(steps, fmt.Sprintf(
+			"Add the following to .git/hooks/%s:\n\n%s",
+			h.Type, tools.Indent(h.Contents)))
+	}
+
+	return strings.Join(steps, "\n\n")
+}
+
+func installHooks(force bool) error {
+	hooks := lfs.LoadHooks(cfg.HookDir())
+	for _, h := range hooks {
+		if err := h.Install(force); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// uninstallHooks removes all hooks in range of the `hooks` var.
+func uninstallHooks() error {
+	if !cfg.InRepo() {
+		return errors.New("Not in a git repository")
+	}
+
+	hooks := lfs.LoadHooks(cfg.HookDir())
+	for _, h := range hooks {
+		if err := h.Uninstall(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Error prints a formatted message to Stderr.  It also gets printed to the
@@ -103,7 +235,7 @@ func Debug(format string, args ...interface{}) {
 }
 
 // LoggedError prints the given message formatted with its arguments (if any) to
-// Stderr. If an empty string is passed as the "format" arguemnt, only the
+// Stderr. If an empty string is passed as the "format" argument, only the
 // standard error logging message will be printed, and the error's body will be
 // omitted.
 //
@@ -161,7 +293,7 @@ func requireStdin(msg string) {
 }
 
 func requireInRepo() {
-	if !lfs.InRepo() {
+	if !cfg.InRepo() {
 		Print("Not in a git repository.")
 		os.Exit(128)
 	}
@@ -176,74 +308,119 @@ func handlePanic(err error) string {
 }
 
 func logPanic(loggedError error) string {
-	var fmtWriter io.Writer = os.Stderr
+	var (
+		fmtWriter  io.Writer = os.Stderr
+		lineEnding string    = "\n"
+	)
 
 	now := time.Now()
 	name := now.Format("20060102T150405.999999999")
-	full := filepath.Join(config.LocalLogDir, name+".log")
+	full := filepath.Join(cfg.LocalLogDir(), name+".log")
 
-	if err := os.MkdirAll(config.LocalLogDir, 0755); err != nil {
+	if err := os.MkdirAll(cfg.LocalLogDir(), 0755); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", config.LocalLogDir, err.Error())
+		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", cfg.LocalLogDir(), err.Error())
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
 		defer func() {
 			fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
-			logPanicToWriter(fmtWriter, err)
+			logPanicToWriter(fmtWriter, err, lineEnding)
 		}()
 	} else {
 		fmtWriter = file
+		lineEnding = gitLineEnding(cfg.Git)
 		defer file.Close()
 	}
 
-	logPanicToWriter(fmtWriter, loggedError)
+	logPanicToWriter(fmtWriter, loggedError, lineEnding)
 
 	return full
 }
 
-func logPanicToWriter(w io.Writer, loggedError error) {
+func ipAddresses() []string {
+	ips := make([]string, 0, 1)
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		ips = append(ips, "Error getting network interface: "+err.Error())
+		return ips
+	}
+	for _, i := range ifaces {
+		if i.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if i.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, _ := i.Addrs()
+		l := make([]string, 0, 1)
+		if err != nil {
+			ips = append(ips, "Error getting IP address: "+err.Error())
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			l = append(l, ip.String())
+		}
+		if len(l) > 0 {
+			ips = append(ips, strings.Join(l, " "))
+		}
+	}
+	return ips
+}
+
+func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
-	gitV, err := git.Config.Version()
+	gitV, err := cfg.GitVersion()
 	if err != nil {
 		gitV = "Error getting git version: " + err.Error()
 	}
 
-	fmt.Fprintln(w, config.VersionDesc)
-	fmt.Fprintln(w, gitV)
+	fmt.Fprint(w, config.VersionDesc+le)
+	fmt.Fprint(w, gitV+le)
 
 	// log the command that was run
-	fmt.Fprintln(w)
+	fmt.Fprint(w, le)
 	fmt.Fprintf(w, "$ %s", filepath.Base(os.Args[0]))
 	if len(os.Args) > 0 {
 		fmt.Fprintf(w, " %s", strings.Join(os.Args[1:], " "))
 	}
-	fmt.Fprintln(w)
+	fmt.Fprint(w, le)
 
 	// log the error message and stack trace
 	w.Write(ErrorBuffer.Bytes())
-	fmt.Fprintln(w)
+	fmt.Fprint(w, le)
 
-	fmt.Fprintf(w, "%s\n", loggedError)
-	for _, stackline := range errors.StackTrace(loggedError) {
-		fmt.Fprintln(w, stackline)
-	}
+	fmt.Fprintf(w, "%+v"+le, loggedError)
 
 	for key, val := range errors.Context(err) {
-		fmt.Fprintf(w, "%s=%v\n", key, val)
+		fmt.Fprintf(w, "%s=%v"+le, key, val)
 	}
 
-	fmt.Fprintln(w, "\nENV:")
+	fmt.Fprint(w, le+"Current time in UTC: "+le)
+	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05")+le)
+
+	fmt.Fprint(w, le+"ENV:"+le)
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, TransferManifest()) {
-		fmt.Fprintln(w, env)
+	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
+		fmt.Fprint(w, env+le)
 	}
-}
 
-func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
-	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
-	return filepathfilter.New(inc, exc)
+	fmt.Fprint(w, le+"Client IP addresses:"+le)
+
+	for _, ip := range ipAddresses() {
+		fmt.Fprint(w, ip+le)
+	}
 }
 
 func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
@@ -260,29 +437,21 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-// isCommandEnabled returns whether the environment variable GITLFS<CMD>ENABLED
-// is "truthy" according to config.Os.Bool (see
-// github.com/git-lfs/git-lfs/config#Configuration.Env.Os), returning false
-// by default if the enviornment variable is not specified.
-//
-// This function call should only guard commands that do not yet have stable
-// APIs or solid server implementations.
-func isCommandEnabled(cfg *config.Configuration, cmd string) bool {
-	return cfg.Os.Bool(fmt.Sprintf("GITLFS%sENABLED", strings.ToUpper(cmd)), false)
+func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
+	return progress.NewMeter(
+		progress.WithOSEnv(cfg.Os),
+		progress.DryRun(dryRun),
+	)
 }
 
 func requireGitVersion() {
 	minimumGit := "1.8.2"
 
-	if !git.Config.IsGitVersionAtLeast(minimumGit) {
-		gitver, err := git.Config.Version()
+	if !cfg.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := cfg.GitVersion()
 		if err != nil {
 			Exit("Error getting git version: %s", err)
 		}
 		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
 	}
-}
-
-func init() {
-	log.SetOutput(ErrorWriter)
 }

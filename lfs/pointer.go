@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/progress"
-	"github.com/git-lfs/git-lfs/transfer"
 )
 
 var (
@@ -60,10 +58,6 @@ func NewPointerExtension(name string, priority int, oid string) *PointerExtensio
 	return &PointerExtension{name, priority, oid, oidType}
 }
 
-func (p *Pointer) Smudge(writer io.Writer, workingfile string, download bool, manifest *transfer.Manifest, cb progress.CopyCallback) error {
-	return PointerSmudge(writer, p, workingfile, download, manifest, cb)
-}
-
 func (p *Pointer) Encode(writer io.Writer) (int, error) {
 	return EncodePointer(writer, p)
 }
@@ -104,21 +98,32 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 	return DecodePointer(f)
 }
 func DecodePointer(reader io.Reader) (*Pointer, error) {
-	_, p, err := DecodeFrom(reader)
+	p, _, err := DecodeFrom(reader)
 	return p, err
 }
 
-func DecodeFrom(reader io.Reader) ([]byte, *Pointer, error) {
+// DecodeFrom decodes an *lfs.Pointer from the given io.Reader, "reader".
+// If the pointer encoded in the reader could successfully be read and decoded,
+// it will be returned with a nil error.
+//
+// If the pointer could not be decoded, an io.Reader containing the entire
+// blob's data will be returned, along with a parse error.
+func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 	buf := make([]byte, blobSizeCutoff)
-	written, err := reader.Read(buf)
-	output := buf[0:written]
+	n, err := reader.Read(buf)
+	buf = buf[:n]
 
-	if err != nil && err != io.EOF {
-		return output, nil, err
+	var contents io.Reader = bytes.NewReader(buf)
+	if err != io.EOF {
+		contents = io.MultiReader(contents, reader)
 	}
 
-	p, err := decodeKV(bytes.TrimSpace(output))
-	return output, p, err
+	if err != nil && err != io.EOF {
+		return nil, contents, err
+	}
+
+	p, err := decodeKV(bytes.TrimSpace(buf))
+	return p, contents, err
 }
 
 func verifyVersion(version string) error {

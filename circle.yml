@@ -2,7 +2,7 @@ machine:
   environment:
     GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
     GIT_SOURCE_REPO: https://github.com/git/git.git
-    GIT_EARLIEST_SUPPORTED_VERSION: v1.8.5
+    GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
     GIT_LATEST_SOURCE_BRANCH: master
     XCODE_SCHEME: test
     XCODE_WORKSPACE: test
@@ -10,6 +10,8 @@ machine:
     GOPATH: $HOME/git-lfs/.go
     NO_OPENSSL: YesPlease
     APPLE_COMMON_CRYPTO: YesPlease
+  xcode:
+    version: 8.2
 
 general:
   build_dir: .go/src/github.com/git-lfs/git-lfs
@@ -33,6 +35,7 @@ dependencies:
 
     # needed for git-lfs-test-server-api
     - go get -d -v github.com/spf13/cobra
+    - go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
 
 test:
   override:

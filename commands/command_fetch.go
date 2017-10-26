@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -65,6 +66,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	defer gitscanner.Close()
 
 	include, exclude := getIncludeExcludeArgs(cmd)
+	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
 	if fetchAllArg {
 		if fetchRecentArg || len(args) > 1 {
@@ -88,21 +90,22 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			success = success && s
 		}
 
-		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(refs, filter)
+		if fetchRecentArg || fetchPruneCfg.FetchRecentAlways {
+			s := fetchRecent(fetchPruneCfg, refs, filter)
 			success = success && s
 		}
 	}
 
 	if fetchPruneArg {
-		fetchconf := cfg.FetchPruneConfig()
-		verify := fetchconf.PruneVerifyRemoteAlways
+		verify := fetchPruneCfg.PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
-		prune(fetchconf, verify, false, false)
+		prune(fetchPruneCfg, verify, false, false)
 	}
 
 	if !success {
-		Exit("Warning: errors occurred")
+		c := getAPIClient()
+		e := c.Endpoints.Endpoint("download", cfg.CurrentRemote)
+		Exit("error: failed to fetch some objects from '%s'", e.Url)
 	}
 }
 
@@ -124,24 +127,12 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 
 	tempgitscanner.Filter = filter
 
-	if err := tempgitscanner.ScanTree(ref, nil); err != nil {
+	if err := tempgitscanner.ScanTree(ref); err != nil {
 		return nil, err
 	}
 
 	tempgitscanner.Close()
 	return pointers, multiErr
-}
-
-func fetchRefToChan(ref string, filter *filepathfilter.Filter) chan *lfs.WrappedPointer {
-	c := make(chan *lfs.WrappedPointer)
-	pointers, err := pointersToFetchForRef(ref, filter)
-	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
-	}
-
-	go fetchAndReportToChan(pointers, filter, c)
-
-	return c
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
@@ -178,9 +169,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 }
 
 // Fetch recent objects based on config
-func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
-	fetchconf := cfg.FetchPruneConfig()
-
+func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
 	}
@@ -289,8 +278,11 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 		cfg.CurrentRemote = defaultRemote
 	}
 
-	ready, pointers, totalSize := readyAndMissingPointers(allpointers, filter)
-	q := lfs.NewDownloadQueue(len(pointers), totalSize, false)
+	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
+	q := newDownloadQueue(
+		getTransferManifestOperationRemote("download", cfg.CurrentRemote),
+		cfg.CurrentRemote, tq.WithProgress(meter),
+	)
 
 	if out != nil {
 		// If we already have it, or it won't be fetched
@@ -310,8 +302,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 				oidToPointers[pointer.Oid] = append(plist, pointer)
 			}
 
-			for oid := range dlwatch {
-				plist, ok := oidToPointers[oid]
+			for t := range dlwatch {
+				plist, ok := oidToPointers[t.Oid]
 				if !ok {
 					continue
 				}
@@ -325,7 +317,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 
 	for _, p := range pointers {
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
-		q.Add(lfs.NewDownloadable(p))
+
+		q.Add(downloadTransfer(p))
 	}
 
 	processQueue := time.Now()
@@ -340,8 +333,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, int64) {
-	size := int64(0)
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.ProgressMeter) {
+	meter := buildProgressMeter(false)
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
 	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -362,10 +355,10 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 		}
 
 		missing = append(missing, p)
-		size += p.Size
+		meter.Add(p.Size)
 	}
 
-	return ready, missing, size
+	return ready, missing, meter
 }
 
 func init() {

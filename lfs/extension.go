@@ -42,6 +42,22 @@ type extCommand struct {
 
 func pipeExtensions(request *pipeRequest) (response pipeResponse, err error) {
 	var extcmds []*extCommand
+	defer func() {
+		// In the case of an early return before the end of this
+		// function (in response to an error, etc), kill all running
+		// processes. Errors are ignored since the function has already
+		// returned.
+		//
+		// In the happy path, the commands will have already been
+		// `Wait()`-ed upon and e.cmd.Process.Kill() will return an
+		// error, but we can ignore it.
+		for _, e := range extcmds {
+			if e.cmd.Process != nil {
+				e.cmd.Process.Kill()
+			}
+		}
+	}()
+
 	for _, e := range request.extensions {
 		var pieces []string
 		switch request.action {

@@ -23,14 +23,15 @@ func TestCatFileBatchCheckScannerWithValidOutput(t *testing.T) {
 		limit: 1024,
 	}
 
-	assertNextOID(t, s, "")
-	assertNextOID(t, s, "")
-	assertNextOID(t, s, "")
-	assertNextOID(t, s, "0000000000000000000000000000000000000002")
-	assertNextOID(t, s, "")
-	assertNextOID(t, s, "")
+	assertNextOID(t, s, "", "")
+	assertNextOID(t, s, "", "")
+	assertNextOID(t, s, "", "")
+	assertNextOID(t, s, "0000000000000000000000000000000000000002", "")
+	assertNextOID(t, s, "", "")
+	assertNextOID(t, s, "", "0000000000000000000000000000000000000004")
 	assertScannerDone(t, s)
-	assert.Equal(t, "", s.BlobOID())
+	assert.Equal(t, "", s.LFSBlobOID())
+	assert.Equal(t, "", s.GitBlobOID())
 }
 
 type stringScanner interface {
@@ -49,9 +50,10 @@ func assertNextScan(t *testing.T, scanner genericScanner) {
 	assert.Nil(t, scanner.Err())
 }
 
-func assertNextOID(t *testing.T, scanner *catFileBatchCheckScanner, oid string) {
+func assertNextOID(t *testing.T, scanner *catFileBatchCheckScanner, lfsBlobOID, gitBlobOID string) {
 	assertNextScan(t, scanner)
-	assert.Equal(t, oid, scanner.BlobOID())
+	assert.Equal(t, lfsBlobOID, scanner.LFSBlobOID())
+	assert.Equal(t, gitBlobOID, scanner.GitBlobOID())
 }
 
 func assertScannerDone(t *testing.T, scanner genericScanner) {

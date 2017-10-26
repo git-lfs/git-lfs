@@ -87,6 +87,10 @@ func (w *PktlineWriter) Write(p []byte) (int, error) {
 // writes the pkt-line's FLUSH packet, to signal that it is done writing this
 // chunk of data.
 func (w *PktlineWriter) Flush() error {
+	if w == nil {
+		return nil
+	}
+
 	if _, err := w.flush(); err != nil {
 		return err
 	}

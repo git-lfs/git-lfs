@@ -6,16 +6,22 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"math"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
@@ -27,13 +33,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
 var (
-	repoDir      string
-	largeObjects = newLfsStorage()
-	server       *httptest.Server
-	serverTLS    *httptest.Server
+	repoDir          string
+	largeObjects     = newLfsStorage()
+	server           *httptest.Server
+	serverTLS        *httptest.Server
+	serverClientCert *httptest.Server
 
 	// maps OIDs to content strings. Both the LFS and Storage test servers below
 	// see OIDs.
@@ -49,7 +58,8 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "storage-download-retry", "storage-upload-retry",
+		"object-authenticated", "storage-download-retry", "storage-upload-retry", "unknown-oid",
+		"send-verify-action", "send-deprecated-links",
 	}
 )
 
@@ -59,6 +69,28 @@ func main() {
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
 	serverTLS = httptest.NewTLSServer(mux)
+	serverClientCert = httptest.NewUnstartedServer(mux)
+
+	//setup Client Cert server
+	rootKey, rootCert := generateCARootCertificates()
+	_, clientCertPEM, clientKeyPEM := generateClientCertificates(rootCert, rootKey)
+
+	certPool := x509.NewCertPool()
+	certPool.AddCert(rootCert)
+
+	serverClientCert.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverTLS.TLS.Certificates[0]},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    certPool,
+	}
+	serverClientCert.StartTLS()
+
+	ntlmSession, err := ntlm.CreateServerSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
+	if err != nil {
+		fmt.Println("Error creating ntlm session:", err)
+		os.Exit(1)
+	}
+	ntlmSession.SetUserInfo("ntlmuser", "ntlmpass", "NTLMDOMAIN")
 
 	stopch := make(chan bool)
 
@@ -67,9 +99,8 @@ func main() {
 	})
 
 	mux.HandleFunc("/storage/", storageHandler)
+	mux.HandleFunc("/verify", verifyHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
-	mux.HandleFunc("/locks", locksHandler)
-	mux.HandleFunc("/locks/", locksHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, ok := reqId(w)
 		if !ok {
@@ -77,7 +108,7 @@ func main() {
 		}
 
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if !skipIfBadAuth(w, r, id) {
+			if !skipIfBadAuth(w, r, id, ntlmSession) {
 				lfsHandler(w, r, id)
 			}
 
@@ -94,15 +125,26 @@ func main() {
 	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
+	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-ssl")
+	defer os.RemoveAll(clientCertUrlname)
+
 	block := &pem.Block{}
 	block.Type = "CERTIFICATE"
 	block.Bytes = serverTLS.TLS.Certificates[0].Certificate[0]
 	pembytes := pem.EncodeToMemory(block)
+
 	certname := writeTestStateFile(pembytes, "LFSTEST_CERT", "lfstest-gitserver-cert")
 	defer os.RemoveAll(certname)
 
+	cccertname := writeTestStateFile(clientCertPEM, "LFSTEST_CLIENT_CERT", "lfstest-gitserver-client-cert")
+	defer os.RemoveAll(cccertname)
+
+	ckcertname := writeTestStateFile(clientKeyPEM, "LFSTEST_CLIENT_KEY", "lfstest-gitserver-client-key")
+	defer os.RemoveAll(ckcertname)
+
 	debug("init", "server url: %s", server.URL)
 	debug("init", "server tls url: %s", serverTLS.URL)
+	debug("init", "server client cert url: %s", serverClientCert.URL)
 
 	<-stopch
 	debug("init", "git server done")
@@ -126,22 +168,36 @@ func writeTestStateFile(contents []byte, envVar, defaultFilename string) string 
 }
 
 type lfsObject struct {
-	Oid           string             `json:"oid,omitempty"`
-	Size          int64              `json:"size,omitempty"`
-	Authenticated bool               `json:"authenticated,omitempty"`
-	Actions       map[string]lfsLink `json:"actions,omitempty"`
-	Err           *lfsError          `json:"error,omitempty"`
+	Oid           string              `json:"oid,omitempty"`
+	Size          int64               `json:"size,omitempty"`
+	Authenticated bool                `json:"authenticated,omitempty"`
+	Actions       map[string]*lfsLink `json:"actions,omitempty"`
+	Links         map[string]*lfsLink `json:"_links,omitempty"`
+	Err           *lfsError           `json:"error,omitempty"`
 }
 
 type lfsLink struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+	ExpiresIn int               `json:"expires_in,omitempty"`
 }
 
 type lfsError struct {
-	Code    int    `json:"code"`
+	Code    int    `json:"code,omitempty"`
 	Message string `json:"message"`
+}
+
+func writeLFSError(w http.ResponseWriter, code int, msg string) {
+	by, err := json.Marshal(&lfsError{Message: msg})
+	if err != nil {
+		http.Error(w, "json encoding error: "+err.Error(), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
+	w.WriteHeader(code)
+	w.Write(by)
 }
 
 // handles any requests with "{name}.server.git/info/lfs" in the path
@@ -160,12 +216,17 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if strings.HasSuffix(r.URL.String(), "batch") {
 			lfsBatchHandler(w, r, id, repo)
 		} else {
-			w.WriteHeader(404)
+			locksHandler(w, r, repo)
 		}
 	case "DELETE":
 		lfsDeleteHandler(w, r, id, repo)
 	case "GET":
-		w.WriteHeader(404)
+		if strings.Contains(r.URL.String(), "/locks") {
+			locksHandler(w, r, repo)
+		} else {
+			w.WriteHeader(404)
+			w.Write([]byte("lock request"))
+		}
 	default:
 		w.WriteHeader(405)
 	}
@@ -284,12 +345,19 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		}
 	}
 	for _, obj := range objs.Objects {
+		handler := oidHandlers[obj.Oid]
 		action := objs.Operation
 
 		o := lfsObject{
-			Oid:     obj.Oid,
 			Size:    obj.Size,
-			Actions: make(map[string]lfsLink),
+			Actions: make(map[string]*lfsLink),
+		}
+
+		// Clobber the OID if told to do so.
+		if handler == "unknown-oid" {
+			o.Oid = "unknown-oid"
+		} else {
+			o.Oid = obj.Oid
 		}
 
 		exists := largeObjects.Has(repo, obj.Oid)
@@ -305,8 +373,6 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 				addAction = false
 			}
 		}
-
-		handler := oidHandlers[obj.Oid]
 
 		if handler == "object-authenticated" {
 			o.Authenticated = true
@@ -328,25 +394,47 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 				o.Size = -1
 			}
 
+			if handler == "send-deprecated-links" {
+				o.Links = make(map[string]*lfsLink)
+			}
+
 			if addAction {
-				a := lfsLink{
+				a := &lfsLink{
 					Href:   lfsUrl(repo, obj.Oid),
 					Header: map[string]string{},
 				}
+				a = serveExpired(a, repo, handler)
 
-				if handler == "return-expired-action-forever" || (handler == "return-expired-action" && canServeExpired(repo)) {
-					a.ExpiresAt = time.Now().Add(-5 * time.Minute)
-					serveExpired(repo)
+				if handler == "send-deprecated-links" {
+					o.Links[action] = a
+				} else {
+					o.Actions[action] = a
 				}
-				o.Actions[action] = a
+			}
+
+			if handler == "send-verify-action" {
+				o.Actions["verify"] = &lfsLink{
+					Href: server.URL + "/verify",
+					Header: map[string]string{
+						"repo": repo,
+					},
+				}
 			}
 		}
 
 		if testingChunked && addAction {
-			o.Actions[action].Header["Transfer-Encoding"] = "chunked"
+			if handler == "send-deprecated-links" {
+				o.Links[action].Header["Transfer-Encoding"] = "chunked"
+			} else {
+				o.Actions[action].Header["Transfer-Encoding"] = "chunked"
+			}
 		}
 		if testingTusInterrupt && addAction {
-			o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
+			if handler == "send-deprecated-links" {
+				o.Links[action].Header["Lfs-Tus-Interrupt"] = "true"
+			} else {
+				o.Actions[action].Header["Lfs-Tus-Interrupt"] = "true"
+			}
 		}
 
 		res = append(res, o)
@@ -373,6 +461,38 @@ var emu sync.Mutex
 // has yet served an expired object.
 var expiredRepos = map[string]bool{}
 
+// serveExpired marks the given repo as having served an expired object, making
+// it unable for that same repository to return an expired object in the future,
+func serveExpired(a *lfsLink, repo, handler string) *lfsLink {
+	var (
+		dur = -5 * time.Minute
+		at  = time.Now().Add(dur)
+	)
+
+	if handler == "return-expired-action-forever" ||
+		(handler == "return-expired-action" && canServeExpired(repo)) {
+
+		emu.Lock()
+		expiredRepos[repo] = true
+		emu.Unlock()
+
+		a.ExpiresAt = at
+		return a
+	}
+
+	switch repo {
+	case "expired-absolute":
+		a.ExpiresAt = at
+	case "expired-relative":
+		a.ExpiresIn = -5
+	case "expired-both":
+		a.ExpiresAt = at
+		a.ExpiresIn = -5
+	}
+
+	return a
+}
+
 // canServeExpired returns whether or not a repository is capable of serving an
 // expired object. In other words, canServeExpired returns whether or not the
 // given repo has yet served an expired object.
@@ -383,18 +503,49 @@ func canServeExpired(repo string) bool {
 	return !expiredRepos[repo]
 }
 
-// serveExpired marks the given repo as having served an expired object, making
-// it unable for that same repository to return an expired object in the future
-func serveExpired(repo string) {
-	emu.Lock()
-	defer emu.Unlock()
-
-	expiredRepos[repo] = true
-}
-
 // Persistent state across requests
 var batchResumeFailFallbackStorageAttempts = 0
 var tusStorageAttempts = 0
+
+var (
+	vmu           sync.Mutex
+	verifyCounts  = make(map[string]int)
+	verifyRetryRe = regexp.MustCompile(`verify-fail-(\d+)-times?$`)
+)
+
+func verifyHandler(w http.ResponseWriter, r *http.Request) {
+	repo := r.Header.Get("repo")
+	var payload struct {
+		Oid  string `json:"oid"`
+		Size int64  `json:"size"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeLFSError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	var max int
+	if matches := verifyRetryRe.FindStringSubmatch(repo); len(matches) < 2 {
+		return
+	} else {
+		max, _ = strconv.Atoi(matches[1])
+	}
+
+	key := strings.Join([]string{repo, payload.Oid}, ":")
+
+	vmu.Lock()
+	verifyCounts[key] = verifyCounts[key] + 1
+	count := verifyCounts[key]
+	vmu.Unlock()
+
+	if count < max {
+		writeLFSError(w, http.StatusServiceUnavailable, fmt.Sprintf(
+			"intentionally failing verify request %d (out of %d)", count, max,
+		))
+		return
+	}
+}
 
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
@@ -430,13 +581,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			return
 		case "status-storage-503":
-			w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
-			w.WriteHeader(503)
-
-			json.NewEncoder(w).Encode(&struct {
-				Message string `json:"message"`
-			}{"LFS is temporarily unavailable"})
-
+			writeLFSError(w, 503, "LFS is temporarily unavailable")
 			return
 		case "object-authenticated":
 			if len(r.Header.Get("Authorization")) > 0 {
@@ -701,67 +846,141 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(307)
 }
 
-type Committer struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+type User struct {
+	Name string `json:"name"`
 }
 
 type Lock struct {
-	Id         string    `json:"id"`
-	Path       string    `json:"path"`
-	Committer  Committer `json:"committer"`
-	CommitSHA  string    `json:"commit_sha"`
-	LockedAt   time.Time `json:"locked_at"`
-	UnlockedAt time.Time `json:"unlocked_at,omitempty"`
+	Id       string    `json:"id"`
+	Path     string    `json:"path"`
+	Owner    User      `json:"owner"`
+	LockedAt time.Time `json:"locked_at"`
 }
 
 type LockRequest struct {
-	Path               string    `json:"path"`
-	LatestRemoteCommit string    `json:"latest_remote_commit"`
-	Committer          Committer `json:"committer"`
+	Path string `json:"path"`
 }
 
 type LockResponse struct {
-	Lock         *Lock  `json:"lock"`
-	CommitNeeded string `json:"commit_needed,omitempty"`
-	Err          string `json:"error,omitempty"`
+	Lock    *Lock  `json:"lock"`
+	Message string `json:"message,omitempty"`
 }
 
 type UnlockRequest struct {
-	Id    string `json:"id"`
-	Force bool   `json:"force"`
+	Force bool `json:"force"`
 }
 
 type UnlockResponse struct {
-	Lock *Lock  `json:"lock"`
-	Err  string `json:"error,omitempty"`
+	Lock    *Lock  `json:"lock"`
+	Message string `json:"message,omitempty"`
 }
 
 type LockList struct {
 	Locks      []Lock `json:"locks"`
 	NextCursor string `json:"next_cursor,omitempty"`
-	Err        string `json:"error,omitempty"`
+	Message    string `json:"message,omitempty"`
+}
+
+type VerifiableLockRequest struct {
+	Cursor string `json:"cursor,omitempty"`
+	Limit  int    `json:"limit,omitempty"`
+}
+
+type VerifiableLockList struct {
+	Ours       []Lock `json:"ours"`
+	Theirs     []Lock `json:"theirs"`
+	NextCursor string `json:"next_cursor,omitempty"`
+	Message    string `json:"message,omitempty"`
 }
 
 var (
-	lmu   sync.RWMutex
-	locks = []Lock{}
+	lmu       sync.RWMutex
+	repoLocks = map[string][]Lock{}
 )
 
-func addLocks(l ...Lock) {
+func addLocks(repo string, l ...Lock) {
 	lmu.Lock()
 	defer lmu.Unlock()
-
-	locks = append(locks, l...)
-
-	sort.Sort(LocksByCreatedAt(locks))
+	repoLocks[repo] = append(repoLocks[repo], l...)
+	sort.Sort(LocksByCreatedAt(repoLocks[repo]))
 }
 
-func getLocks() []Lock {
+func getLocks(repo string) []Lock {
 	lmu.RLock()
 	defer lmu.RUnlock()
 
-	return locks
+	locks := repoLocks[repo]
+	cp := make([]Lock, len(locks))
+	for i, l := range locks {
+		cp[i] = l
+	}
+
+	return cp
+}
+
+func getFilteredLocks(repo, path, cursor, limit string) ([]Lock, string, error) {
+	locks := getLocks(repo)
+	if cursor != "" {
+		lastSeen := -1
+		for i, l := range locks {
+			if l.Id == cursor {
+				lastSeen = i
+				break
+			}
+		}
+
+		if lastSeen > -1 {
+			locks = locks[lastSeen:]
+		} else {
+			return nil, "", fmt.Errorf("cursor (%s) not found", cursor)
+		}
+	}
+
+	if path != "" {
+		var filtered []Lock
+		for _, l := range locks {
+			if l.Path == path {
+				filtered = append(filtered, l)
+			}
+		}
+
+		locks = filtered
+	}
+
+	if limit != "" {
+		size, err := strconv.Atoi(limit)
+		if err != nil {
+			return nil, "", errors.New("unable to parse limit amount")
+		}
+
+		size = int(math.Min(float64(len(locks)), 3))
+		if size < 0 {
+			return nil, "", nil
+		}
+
+		if size+1 < len(locks) {
+			return locks[:size], locks[size+1].Id, nil
+		}
+	}
+
+	return locks, "", nil
+}
+
+func delLock(repo string, id string) *Lock {
+	lmu.RLock()
+	defer lmu.RUnlock()
+
+	var deleted *Lock
+	locks := make([]Lock, 0, len(repoLocks[repo]))
+	for _, l := range repoLocks[repo] {
+		if l.Id == id {
+			deleted = &l
+			continue
+		}
+		locks = append(locks, l)
+	}
+	repoLocks[repo] = locks
+	return deleted
 }
 
 type LocksByCreatedAt []Lock
@@ -770,119 +989,137 @@ func (c LocksByCreatedAt) Len() int           { return len(c) }
 func (c LocksByCreatedAt) Less(i, j int) bool { return c[i].LockedAt.Before(c[j].LockedAt) }
 func (c LocksByCreatedAt) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
-var lockRe = regexp.MustCompile(`/locks/?$`)
+var (
+	lockRe   = regexp.MustCompile(`/locks/?$`)
+	unlockRe = regexp.MustCompile(`locks/([^/]+)/unlock\z`)
+)
 
-func locksHandler(w http.ResponseWriter, r *http.Request) {
+func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
 	switch r.Method {
 	case "GET":
 		if !lockRe.MatchString(r.URL.Path) {
-			http.NotFound(w, r)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"unknown path: ` + r.URL.Path + `"}`))
+			return
+		}
+
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "could not parse form values", http.StatusInternalServerError)
+			return
+		}
+
+		ll := &LockList{}
+		w.Header().Set("Content-Type", "application/json")
+		locks, nextCursor, err := getFilteredLocks(repo,
+			r.FormValue("path"),
+			r.FormValue("cursor"),
+			r.FormValue("limit"))
+
+		if err != nil {
+			ll.Message = err.Error()
 		} else {
-			if err := r.ParseForm(); err != nil {
-				http.Error(w, "could not parse form values", http.StatusInternalServerError)
+			ll.Locks = locks
+			ll.NextCursor = nextCursor
+		}
+
+		enc.Encode(ll)
+		return
+	case "POST":
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "unlock") {
+			var unlockRequest UnlockRequest
+
+			var lockId string
+			if matches := unlockRe.FindStringSubmatch(r.URL.Path); len(matches) > 1 {
+				lockId = matches[1]
+			}
+
+			if len(lockId) == 0 {
+				enc.Encode(&UnlockResponse{Message: "Invalid lock"})
+			}
+
+			if err := dec.Decode(&unlockRequest); err != nil {
+				enc.Encode(&UnlockResponse{Message: err.Error()})
 				return
 			}
 
-			ll := &LockList{}
-			locks := getLocks()
+			if l := delLock(repo, lockId); l != nil {
+				enc.Encode(&UnlockResponse{Lock: l})
+			} else {
+				enc.Encode(&UnlockResponse{Message: "unable to find lock"})
+			}
+			return
+		}
 
-			if cursor := r.FormValue("cursor"); cursor != "" {
-				lastSeen := -1
-				for i, l := range locks {
-					if l.Id == cursor {
-						lastSeen = i
-						break
-					}
-				}
-
-				if lastSeen > -1 {
-					locks = locks[lastSeen:]
-				} else {
-					enc.Encode(&LockList{
-						Err: fmt.Sprintf("cursor (%s) not found", cursor),
-					})
-				}
+		if strings.HasSuffix(r.URL.Path, "/locks/verify") {
+			if strings.HasSuffix(repo, "verify-5xx") {
+				w.WriteHeader(500)
+				return
+			}
+			if strings.HasSuffix(repo, "verify-501") {
+				w.WriteHeader(501)
+				return
+			}
+			if strings.HasSuffix(repo, "verify-403") {
+				w.WriteHeader(403)
+				return
 			}
 
-			if path := r.FormValue("path"); path != "" {
-				var filtered []Lock
+			switch repo {
+			case "pre_push_locks_verify_404":
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{"message":"pre_push_locks_verify_404"}`))
+				return
+			case "pre_push_locks_verify_410":
+				w.WriteHeader(http.StatusGone)
+				w.Write([]byte(`{"message":"pre_push_locks_verify_410"}`))
+				return
+			}
+
+			reqBody := &VerifiableLockRequest{}
+			if err := dec.Decode(reqBody); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				enc.Encode(struct {
+					Message string `json:"message"`
+				}{"json decode error: " + err.Error()})
+				return
+			}
+
+			ll := &VerifiableLockList{}
+			locks, nextCursor, err := getFilteredLocks(repo, "",
+				reqBody.Cursor,
+				strconv.Itoa(reqBody.Limit))
+			if err != nil {
+				ll.Message = err.Error()
+			} else {
+				ll.NextCursor = nextCursor
+
 				for _, l := range locks {
-					if l.Path == path {
-						filtered = append(filtered, l)
-					}
-				}
-
-				locks = filtered
-			}
-
-			if limit := r.FormValue("limit"); limit != "" {
-				size, err := strconv.Atoi(r.FormValue("limit"))
-				if err != nil {
-					enc.Encode(&LockList{
-						Err: "unable to parse limit amount",
-					})
-				} else {
-					size = int(math.Min(float64(len(locks)), 3))
-					if size < 0 {
-						locks = []Lock{}
+					if strings.Contains(l.Path, "theirs") {
+						ll.Theirs = append(ll.Theirs, l)
 					} else {
-						locks = locks[:size]
-						if size+1 < len(locks) {
-							ll.NextCursor = locks[size+1].Id
-						}
+						ll.Ours = append(ll.Ours, l)
 					}
-
 				}
 			}
-
-			ll.Locks = locks
 
 			enc.Encode(ll)
+			return
 		}
-	case "POST":
-		if strings.HasSuffix(r.URL.Path, "unlock") {
-			var unlockRequest UnlockRequest
-			if err := dec.Decode(&unlockRequest); err != nil {
-				enc.Encode(&UnlockResponse{
-					Err: err.Error(),
-				})
-			}
 
-			lockIndex := -1
-			for i, l := range locks {
-				if l.Id == unlockRequest.Id {
-					lockIndex = i
-					break
-				}
-			}
-
-			if lockIndex > -1 {
-				enc.Encode(&UnlockResponse{
-					Lock: &locks[lockIndex],
-				})
-
-				locks = append(locks[:lockIndex], locks[lockIndex+1:]...)
-			} else {
-				enc.Encode(&UnlockResponse{
-					Err: "unable to find lock",
-				})
-			}
-		} else {
+		if strings.HasSuffix(r.URL.Path, "/locks") {
 			var lockRequest LockRequest
 			if err := dec.Decode(&lockRequest); err != nil {
-				enc.Encode(&LockResponse{
-					Err: err.Error(),
-				})
+				enc.Encode(&LockResponse{Message: err.Error()})
 			}
 
-			for _, l := range getLocks() {
+			for _, l := range getLocks(repo) {
 				if l.Path == lockRequest.Path {
-					enc.Encode(&LockResponse{
-						Err: "lock already created",
-					})
+					enc.Encode(&LockResponse{Message: "lock already created"})
 					return
 				}
 			}
@@ -891,14 +1128,13 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			rand.Read(id[:])
 
 			lock := &Lock{
-				Id:        fmt.Sprintf("%x", id[:]),
-				Path:      lockRequest.Path,
-				Committer: lockRequest.Committer,
-				CommitSHA: lockRequest.LatestRemoteCommit,
-				LockedAt:  time.Now(),
+				Id:       fmt.Sprintf("%x", id[:]),
+				Path:     lockRequest.Path,
+				Owner:    User{Name: "Git LFS Tests"},
+				LockedAt: time.Now(),
 			}
 
-			addLocks(*lock)
+			addLocks(repo, *lock)
 
 			// TODO(taylor): commit_needed case
 			// TODO(taylor): err case
@@ -906,10 +1142,11 @@ func locksHandler(w http.ResponseWriter, r *http.Request) {
 			enc.Encode(&LockResponse{
 				Lock: lock,
 			})
+			return
 		}
-	default:
-		http.NotFound(w, r)
 	}
+
+	http.NotFound(w, r)
 }
 
 func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
@@ -920,15 +1157,12 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	auth := r.Header.Get("Authorization")
 	user, pass, err := extractAuth(auth)
 	if err != nil {
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + err.Error() + `"}`))
+		writeLFSError(w, 403, err.Error())
 		return true
 	}
 
 	if user != "requirecreds" || pass != "pass" {
-		errmsg := fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass)
-		w.WriteHeader(403)
-		w.Write([]byte(`{"message":"` + errmsg + `"}`))
+		writeLFSError(w, 403, fmt.Sprintf("Got: '%s' => '%s' : '%s'", auth, user, pass))
 		return true
 	}
 
@@ -1073,8 +1307,12 @@ func extractAuth(auth string) (string, string, error) {
 	return "", "", nil
 }
 
-func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
+func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string, ntlmSession ntlm.ServerSession) bool {
 	auth := r.Header.Get("Authorization")
+	if strings.Contains(r.URL.Path, "ntlm") {
+		return false
+	}
+
 	if auth == "" {
 		w.WriteHeader(401)
 		return true
@@ -1106,6 +1344,49 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 	return true
 }
 
+func handleNTLM(w http.ResponseWriter, r *http.Request, authHeader string, session ntlm.ServerSession) {
+	if strings.HasPrefix(strings.ToUpper(authHeader), "BASIC ") {
+		authHeader = ""
+	}
+
+	switch authHeader {
+	case "":
+		w.Header().Set("Www-Authenticate", "ntlm")
+		w.WriteHeader(401)
+
+	// ntlmNegotiateMessage from httputil pkg
+	case "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB":
+		ch, err := session.GenerateChallengeMessage()
+		if err != nil {
+			writeLFSError(w, 500, err.Error())
+			return
+		}
+
+		chMsg := base64.StdEncoding.EncodeToString(ch.Bytes())
+		w.Header().Set("Www-Authenticate", "ntlm "+chMsg)
+		w.WriteHeader(401)
+
+	default:
+		if !strings.HasPrefix(strings.ToUpper(authHeader), "NTLM ") {
+			writeLFSError(w, 500, "bad authorization header: "+authHeader)
+			return
+		}
+
+		auth := authHeader[5:] // strip "ntlm " prefix
+		val, err := base64.StdEncoding.DecodeString(auth)
+		if err != nil {
+			writeLFSError(w, 500, "base64 decode error: "+err.Error())
+			return
+		}
+
+		_, err = ntlm.ParseAuthenticateMessage(val, 2)
+		if err != nil {
+			writeLFSError(w, 500, "auth parse error: "+err.Error())
+			return
+		}
+	}
+}
+
 func init() {
 	oidHandlers = make(map[string]string)
 	for _, content := range contentHandlers {
@@ -1132,4 +1413,96 @@ func reqId(w http.ResponseWriter) (string, bool) {
 		return "", false
 	}
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), true
+}
+
+// https://ericchiang.github.io/post/go-tls/
+func generateCARootCertificates() (rootKey *rsa.PrivateKey, rootCert *x509.Certificate) {
+
+	// generate a new key-pair
+	rootKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatalf("generating random key: %v", err)
+	}
+
+	rootCertTmpl, err := CertTemplate()
+	if err != nil {
+		log.Fatalf("creating cert template: %v", err)
+	}
+	// describe what the certificate will be used for
+	rootCertTmpl.IsCA = true
+	rootCertTmpl.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature
+	rootCertTmpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
+	//	rootCertTmpl.IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
+
+	rootCert, _, err = CreateCert(rootCertTmpl, rootCertTmpl, &rootKey.PublicKey, rootKey)
+
+	return
+}
+
+func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{}) (clientKey *rsa.PrivateKey, clientCertPEM []byte, clientKeyPEM []byte) {
+
+	// create a key-pair for the client
+	clientKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatalf("generating random key: %v", err)
+	}
+
+	// create a template for the client
+	clientCertTmpl, err1 := CertTemplate()
+	if err1 != nil {
+		log.Fatalf("creating cert template: %v", err1)
+	}
+	clientCertTmpl.KeyUsage = x509.KeyUsageDigitalSignature
+	clientCertTmpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	// the root cert signs the cert by again providing its private key
+	_, clientCertPEM, err2 := CreateCert(clientCertTmpl, rootCert, &clientKey.PublicKey, rootKey)
+	if err2 != nil {
+		log.Fatalf("error creating cert: %v", err2)
+	}
+
+	// encode and load the cert and private key for the client
+	clientKeyPEM = pem.EncodeToMemory(&pem.Block{
+		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientKey),
+	})
+
+	return
+}
+
+// helper function to create a cert template with a serial number and other required fields
+func CertTemplate() (*x509.Certificate, error) {
+	// generate a random serial number (a real cert authority would have some logic behind this)
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return nil, errors.New("failed to generate serial number: " + err.Error())
+	}
+
+	tmpl := x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               pkix.Name{Organization: []string{"Yhat, Inc."}},
+		SignatureAlgorithm:    x509.SHA256WithRSA,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour), // valid for an hour
+		BasicConstraintsValid: true,
+	}
+	return &tmpl, nil
+}
+
+func CreateCert(template, parent *x509.Certificate, pub interface{}, parentPriv interface{}) (
+	cert *x509.Certificate, certPEM []byte, err error) {
+
+	certDER, err := x509.CreateCertificate(rand.Reader, template, parent, pub, parentPriv)
+	if err != nil {
+		return
+	}
+	// parse the resulting certificate so we can use it again
+	cert, err = x509.ParseCertificate(certDER)
+	if err != nil {
+		return
+	}
+	// PEM encode the certificate (this is a standard TLS encoding)
+	b := pem.Block{Type: "CERTIFICATE", Bytes: certDER}
+	certPEM = pem.EncodeToMemory(&b)
+	return
 }

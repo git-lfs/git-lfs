@@ -17,7 +17,7 @@ begin_test "init for fetch tests"
   clone_repo "$reponame" repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
 
   printf "$contents" > a.dat
@@ -254,7 +254,7 @@ begin_test "fetch-all"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   NUMFILES=12
   # generate content we'll use
@@ -395,7 +395,7 @@ begin_test "fetch with no origin remote"
   clone_repo "$reponame" no-remote-repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -424,7 +424,7 @@ begin_test "fetch with no origin remote"
   cd ../no-remote-clone
 
   # pull commits & lfs
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull 2>&1
   assert_local_object "$contents_oid" 1
 
   # now checkout detached HEAD so we're not tracking anything on remote
@@ -459,7 +459,7 @@ begin_test "fetch --prune"
   clone_repo "remote_$reponame" "clone_$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   content_head="HEAD content"
   content_commit2="Content for commit 2 (prune)"

@@ -27,14 +27,15 @@ func Objects() *LocalStorage {
 	return objects
 }
 
-func InitStorage() error {
-	if len(config.LocalGitStorageDir) == 0 || len(config.LocalGitDir) == 0 {
+func InitStorage(cfg *config.Configuration) error {
+	if len(cfg.LocalGitStorageDir()) == 0 || len(cfg.LocalGitDir()) == 0 {
 		return notInRepoErr
 	}
 
-	TempDir = filepath.Join(config.LocalGitDir, "lfs", "tmp") // temp files per worktree
+	storCfg := NewConfig(cfg)
+	TempDir = filepath.Join(storCfg.LfsStorageDir, "tmp") // temp files per worktree
 	objs, err := NewStorage(
-		filepath.Join(config.LocalGitStorageDir, "lfs", "objects"),
+		filepath.Join(storCfg.LfsStorageDir, "objects"),
 		filepath.Join(TempDir, "objects"),
 	)
 
@@ -43,16 +44,16 @@ func InitStorage() error {
 	}
 
 	objects = objs
-	config.LocalLogDir = filepath.Join(objs.RootDir, "logs")
-	if err := os.MkdirAll(config.LocalLogDir, localLogDirPerms); err != nil {
+	cfg.SetLocalLogDir(filepath.Join(objs.RootDir, "logs"))
+	if err := os.MkdirAll(cfg.LocalLogDir(), localLogDirPerms); err != nil {
 		return errors.Wrap(err, "create log dir")
 	}
 
 	return nil
 }
 
-func InitStorageOrFail() {
-	if err := InitStorage(); err != nil {
+func InitStorageOrFail(cfg *config.Configuration) {
+	if err := InitStorage(cfg); err != nil {
 		if err == notInRepoErr {
 			return
 		}
@@ -62,9 +63,9 @@ func InitStorageOrFail() {
 	}
 }
 
-func ResolveDirs() {
-	config.ResolveGitBasicDirs()
-	InitStorageOrFail()
+func ResolveDirs(cfg *config.Configuration) {
+	cfg.ResolveGitBasicDirs()
+	InitStorageOrFail(cfg)
 }
 
 func TempFile(prefix string) (*os.File, error) {

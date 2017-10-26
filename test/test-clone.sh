@@ -13,7 +13,7 @@ begin_test "clone"
   clone_repo "$reponame" repo
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -55,11 +55,14 @@ begin_test "clone"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 110 ]
-  [ $(wc -c < "file2.dat") -eq 75 ]
-  [ $(wc -c < "file3.dat") -eq 66 ]
-  [ ! -e "lfs" ]
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
+
   # Now check clone with implied dir
   rm -rf "$reponame"
   git lfs clone "$GITSERVER/$reponame" 2>&1 | tee lfsclone.log
@@ -70,11 +73,14 @@ begin_test "clone"
   [ ! $(grep "error" lfsclone.log) ]
   # clone location should be implied
   [ -d "$reponame" ]
+
   pushd "$reponame"
-  [ $(wc -c < "file1.dat") -eq 110 ]
-  [ $(wc -c < "file2.dat") -eq 75 ]
-  [ $(wc -c < "file3.dat") -eq 66 ]
-  [ ! -e "lfs" ]
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
 
 )
@@ -93,7 +99,7 @@ begin_test "cloneSSL"
   clone_repo_ssl "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -117,6 +123,7 @@ begin_test "cloneSSL"
 
   newclonedir="testcloneSSL1"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  assert_clean_status
   grep "Cloning into" lfsclone.log
   grep "Git LFS:" lfsclone.log
   # should be no filter errors
@@ -130,16 +137,76 @@ begin_test "cloneSSL"
   [ $(wc -c < "file1.dat") -eq 100 ]
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 30 ]
+  assert_hooks "$(dot_git_dir)"
   popd
 
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
   git clone "$SSLGITSERVER/$reponame"
-
 )
 end_test
 
+begin_test "clone ClientCert"
+(
+  set -e
+  reponame="test-cloneClientCert"
+  setup_remote_repo "$reponame"
+  clone_repo_clientcert "$reponame" "$reponame"
+  if [ $(grep -c "client-cert-mac-openssl" clone_client_cert.log) -gt 0 ]; then
+    echo "Skipping due to SSL client cert bug in Git"
+    exit 0
+  fi
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":100},
+      {\"Filename\":\"file2.dat\",\"Size\":75}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":30}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now clone again with 'git lfs clone', test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="testcloneClietCert1"
+  git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Git LFS:" lfsclone.log
+  # should be no filter errors
+  [ ! $(grep "filter" lfsclone.log) ]
+  [ ! $(grep "error" lfsclone.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+    [ $(wc -c < "file1.dat") -eq 100 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 30 ]
+    assert_hooks "$(dot_git_dir)"
+    assert_clean_status
+  popd
+
+
+  # Now check SSL clone with standard 'git clone' and smudge download
+  rm -rf "$reponame"
+  git clone "$CLIENTCERTGITSERVER/$reponame"
+
+)
+end_test
 
 begin_test "clone with flags"
 (
@@ -150,7 +217,7 @@ begin_test "clone with flags"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -200,6 +267,7 @@ begin_test "clone with flags"
   [ -e "fileonbranch2.dat" ]
   # confirm remote is called differentorigin
   git remote get-url differentorigin
+  assert_hooks "$(dot_git_dir)"
   popd
   rm -rf "$newclonedir"
 
@@ -212,17 +280,18 @@ begin_test "clone with flags"
   fi
   [ -e "$newclonedir/.git" ]
   [ -d "$gitdir/objects" ]
+  assert_hooks "$gitdir"
   rm -rf "$newclonedir"
   rm -rf "$gitdir"
 
   # specific test for --bare
   git lfs clone --bare "$GITSERVER/$reponame" "$newclonedir"
   [ -d "$newclonedir/objects" ]
+  rm -rf "$newclonedir"
 
   # short flags
   git lfs clone -l -v -n -s -b branch2 "$GITSERVER/$reponame" "$newclonedir"
   rm -rf "$newclonedir"
-
 )
 end_test
 
@@ -235,7 +304,7 @@ begin_test "clone (with include/exclude args)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
@@ -272,6 +341,7 @@ begin_test "clone (with include/exclude args)"
   [ "a" = "$(cat a-dupe.dat)" ]
   [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
   [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
+  assert_hooks "$(dot_git_dir)"
   popd
 
   local_reponame="clone_with_excludes"
@@ -281,6 +351,7 @@ begin_test "clone (with include/exclude args)"
   refute_local_object "$contents_a_oid"
   [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
   [ "b" = "$(cat b.dat)" ]
+  assert_hooks "$(dot_git_dir)"
   popd
 )
 end_test
@@ -294,7 +365,7 @@ begin_test "clone (with .lfsconfig)"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
@@ -303,8 +374,6 @@ begin_test "clone (with .lfsconfig)"
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
   printf "$contents_b" > "b.dat"
-
-
 
   git add a.dat b.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
@@ -329,10 +398,22 @@ begin_test "clone (with .lfsconfig)"
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig"
   local_reponame="clone_with_config_include"
+  set +x
   git lfs clone "$GITSERVER/$reponame" "$local_reponame"
+  ok="$?"
+  set -x
+  if [ "0" -ne "$ok" ]; then
+    # TEMP: used to catch transient failure from above `clone` command, as in:
+    # https://github.com/git-lfs/git-lfs/pull/1782#issuecomment-267678319
+    echo >&2 "[!] \`git lfs clone $GITSERVER/$reponame $local_reponame\` failed"
+    git lfs logs last
+
+    exit 1
+  fi
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
+  assert_hooks "$(dot_git_dir)"
   popd
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig, and args"
@@ -341,6 +422,7 @@ begin_test "clone (with .lfsconfig)"
   pushd "$local_reponame"
   refute_local_object "$contents_a_oid"
   assert_local_object "$contents_b_oid" 1
+  assert_hooks "$(dot_git_dir)"
   popd
 
   popd
@@ -363,6 +445,7 @@ begin_test "clone (with .lfsconfig)"
   cat ".lfsconfig"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
+  assert_hooks "$(dot_git_dir)"
   popd
 
   echo "test: clone with lfs.fetchexclude in .lfsconfig, and args"
@@ -371,9 +454,57 @@ begin_test "clone (with .lfsconfig)"
   pushd "$local_reponame"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
+  assert_hooks "$(dot_git_dir)"
   popd
 
   popd
+)
+end_test
+
+begin_test "clone (without clean filter)"
+(
+  set -e
+
+  reponame="clone_with_clean"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  contents_a="a"
+  contents_a_oid=$(calc_oid "$contents_a")
+  printf "$contents_a" > "a.dat"
+
+  git add *.dat .gitattributes
+  git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
+  grep "master (root-commit)" commit.log
+
+  git push origin master 2>&1 | tee push.log
+  grep "master -> master" push.log
+  grep "Git LFS: (1 of 1 files)" push.log
+
+  cd "$TRASHDIR"
+
+  git lfs uninstall
+  git config --list > config.txt
+  grep "filter.lfs.clean" config.txt && {
+    echo "clean filter still configured:"
+    cat config.txt
+    exit 1
+  }
+
+  local_reponame="clone_without_clean"
+  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a*.dat" | tee clone.txt
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+  grep "Git LFS is not installed" clone.txt
+
+  cd "$local_reponame"
+  assert_local_object "$contents_a_oid" 1
+  [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
 )
 end_test
 
@@ -392,7 +523,7 @@ begin_test "clone with submodules"
 
   clone_repo "$submodname2" submod2
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_sub2="Inception. Now, before you bother telling me it's impossible..."
   contents_sub2_oid=$(calc_oid "$contents_sub2")
@@ -401,10 +532,9 @@ begin_test "clone with submodules"
   git commit -m "Nested submodule level 2"
   git push origin master
 
-
   clone_repo "$submodname1" submod1
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_sub1="We're dreaming?"
   contents_sub1_oid=$(calc_oid "$contents_sub1")
@@ -416,10 +546,9 @@ begin_test "clone with submodules"
   git commit -m "Nested submodule level 1"
   git push origin master
 
-
   clone_repo "$reponame" rootrepo
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents_root="Downwards is the only way forwards."
   contents_root_oid=$(calc_oid "$contents_root")
@@ -438,6 +567,7 @@ begin_test "clone with submodules"
 
   # check everything is where it should be
   cd $local_reponame
+  assert_hooks "$(dot_git_dir)"
   # check LFS store and working copy
   assert_local_object "$contents_root_oid" "${#contents_root}"
   [ $(wc -c < "root.dat") -eq ${#contents_root} ]
@@ -449,10 +579,7 @@ begin_test "clone with submodules"
   assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
   [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ]
 
-
   popd
-
-
 )
 end_test
 
@@ -465,7 +592,7 @@ begin_test "clone in current directory"
   clone_repo "$reponame" $reponame
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="contents"
   contents_oid="$(calc_oid "$contents")"
@@ -489,7 +616,40 @@ begin_test "clone in current directory"
     git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Git LFS"
 
     assert_local_object "$contents_oid" 8
+    assert_hooks "$(dot_git_dir)"
     [ ! -f ./lfs ]
   popd
+)
+end_test
+
+begin_test "clone empty repository"
+(
+  set -e
+
+  reponame="clone_empty"
+  setup_remote_repo "$reponame"
+
+  cd "$TRASHDIR"
+  git lfs clone "$GITSERVER/$reponame" "$reponame" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+)
+end_test
+
+begin_test "clone bare empty repository"
+(
+  set -e
+
+  reponame="clone_bare_empty"
+  setup_remote_repo "$reponame"
+
+  cd "$TRASHDIR"
+  git lfs clone "$GITSERVER/$reponame" "$reponame" --bare 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
 )
 end_test

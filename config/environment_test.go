@@ -8,15 +8,26 @@ import (
 )
 
 func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
-	fetcher := MapFetcher(map[string]string{
-		"foo": "bar",
+	fetcher := MapFetcher(map[string][]string{
+		"foo": []string{"bar", "baz"},
 	})
 
 	env := EnvironmentOf(fetcher)
 	val, ok := env.Get("foo")
 
 	assert.True(t, ok)
-	assert.Equal(t, "bar", val)
+	assert.Equal(t, "baz", val)
+}
+
+func TestEnvironmentGetAllDelegatesToFetcher(t *testing.T) {
+	fetcher := MapFetcher(map[string][]string{
+		"foo": []string{"bar", "baz"},
+	})
+
+	env := EnvironmentOf(fetcher)
+	vals := env.GetAll("foo")
+
+	assert.Equal(t, []string{"bar", "baz"}, vals)
 }
 
 func TestEnvironmentUnsetBoolDefault(t *testing.T) {
@@ -79,8 +90,8 @@ var (
 )
 
 func (c *EnvironmentConversionTestCase) Assert(t *testing.T) {
-	fetcher := MapFetcher(map[string]string{
-		c.Val: c.Val,
+	fetcher := MapFetcher(map[string][]string{
+		c.Val: []string{c.Val},
 	})
 
 	env := EnvironmentOf(fetcher)

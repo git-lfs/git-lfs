@@ -10,18 +10,11 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/git-lfs/transfer"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
-)
-
-const (
-	Version = "1.5.0"
-)
-
-var (
-	LargeSizeThreshold = 5 * 1024 * 1024
 )
 
 // LocalMediaDir returns the root of lfs objects
@@ -67,28 +60,37 @@ func ObjectExistsOfSize(oid string, size int64) bool {
 	return tools.FileExistsOfSize(path, size)
 }
 
-func Environ(cfg *config.Configuration, manifest *transfer.Manifest) []string {
+func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
+
+	api, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	if err != nil {
+		// TODO(@ttaylorr): don't panic
+		panic(err.Error())
+	}
+
+	download := api.Endpoints.AccessFor(api.Endpoints.Endpoint("download", cfg.CurrentRemote).Url)
+	upload := api.Endpoints.AccessFor(api.Endpoints.Endpoint("upload", cfg.CurrentRemote).Url)
 
 	dltransfers := manifest.GetDownloadAdapterNames()
 	sort.Strings(dltransfers)
 	ultransfers := manifest.GetUploadAdapterNames()
 	sort.Strings(ultransfers)
 
-	fetchPruneConfig := cfg.FetchPruneConfig()
+	fetchPruneConfig := NewFetchPruneConfig(cfg.Git)
+	storageConfig := localstorage.NewConfig(cfg)
 
 	env = append(env,
-		fmt.Sprintf("LocalWorkingDir=%s", config.LocalWorkingDir),
-		fmt.Sprintf("LocalGitDir=%s", config.LocalGitDir),
-		fmt.Sprintf("LocalGitStorageDir=%s", config.LocalGitStorageDir),
+		fmt.Sprintf("LocalWorkingDir=%s", cfg.LocalWorkingDir()),
+		fmt.Sprintf("LocalGitDir=%s", cfg.LocalGitDir()),
+		fmt.Sprintf("LocalGitStorageDir=%s", cfg.LocalGitStorageDir()),
 		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
-		fmt.Sprintf("LocalReferenceDir=%s", config.LocalReferenceDir),
+		fmt.Sprintf("LocalReferenceDir=%s", cfg.LocalReferenceDir()),
 		fmt.Sprintf("TempDir=%s", TempDir()),
-		fmt.Sprintf("ConcurrentTransfers=%d", cfg.ConcurrentTransfers()),
+		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
-		fmt.Sprintf("BatchTransfer=%v", cfg.BatchTransfer()),
 		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),
 		fmt.Sprintf("FetchRecentAlways=%v", fetchPruneConfig.FetchRecentAlways),
 		fmt.Sprintf("FetchRecentRefsDays=%d", fetchPruneConfig.FetchRecentRefsDays),
@@ -97,8 +99,9 @@ func Environ(cfg *config.Configuration, manifest *transfer.Manifest) []string {
 		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
 		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
 		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
-		fmt.Sprintf("AccessDownload=%s", cfg.Access("download")),
-		fmt.Sprintf("AccessUpload=%s", cfg.Access("upload")),
+		fmt.Sprintf("LfsStorageDir=%s", storageConfig.LfsStorageDir),
+		fmt.Sprintf("AccessDownload=%s", download),
+		fmt.Sprintf("AccessUpload=%s", upload),
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
 		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
 	)
@@ -113,17 +116,13 @@ func Environ(cfg *config.Configuration, manifest *transfer.Manifest) []string {
 	}
 
 	for _, e := range osEnviron {
-		if !strings.Contains(e, "GIT_") {
+		if !strings.Contains(strings.SplitN(e, "=", 2)[0], "GIT_") {
 			continue
 		}
 		env = append(env, e)
 	}
 
 	return env
-}
-
-func InRepo() bool {
-	return config.LocalGitDir != ""
 }
 
 func ClearTempObjects() error {
@@ -140,6 +139,11 @@ func ScanObjectsChan() <-chan localstorage.Object {
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
+	if len(os.Getenv("GIT_TRACE")) < 1 {
+		if tt := os.Getenv("GIT_TRANSFER_TRACE"); len(tt) > 0 {
+			os.Setenv("GIT_TRACE", tt)
+		}
+	}
 }
 
 const (

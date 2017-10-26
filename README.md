@@ -1,7 +1,15 @@
 # Git Large File Storage
 
-[![Build Status](https://travis-ci.org/git-lfs/git-lfs.svg?branch=master)](https://travis-ci.org/git-lfs/git-lfs)
-[![Build status](https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true)](https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master)
+| Linux | macOS | Windows |
+| :---- | :------ | :---- |
+[ ![Linux build status][1]][2] | [![macOS build status][3]][4] | [![Windows build status][5]][6] |
+
+[1]: https://travis-ci.org/git-lfs/git-lfs.svg?branch=master
+[2]: https://travis-ci.org/git-lfs/git-lfs
+[3]: https://circleci.com/gh/git-lfs/git-lfs.svg?style=shield&circle-token=856152c2b02bfd236f54d21e1f581f3e4ebf47ad
+[4]: https://circleci.com/gh/git-lfs/git-lfs
+[5]: https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true
+[6]: https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master
 
 Git LFS is a command line extension and [specification](docs/spec.md) for
 managing large files with Git. The client is written in Go, with pre-compiled
@@ -12,14 +20,22 @@ binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
 
 ## Getting Started
 
-You can install Git LFS in several different ways, depending on your setup and
-preferences.
+By default, the Git LFS client needs a Git LFS server to sync the large files
+it manages. This works out of the box when using popular git repository
+hosting providers like GitHub, Atlassian, etc. When you host your own
+vanilla git server, for example, you need to either use a separate
+[Git LFS server instance](https://github.com/git-lfs/git-lfs/wiki/Implementations),
+or use the [custom transfer adapter](docs/custom-transfers.md) with
+a transfer agent in blind mode, without having to use a Git LFS server instance.
+
+You can install the Git LFS client in several different ways, depending on
+your setup and preferences.
 
 * Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs/install).  See the [Installation Guide](./INSTALLING.md) for details.
 * Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.
 * Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs`.
 * [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
-* You can build it with Go 1.7.3+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
+* You can build it with Go 1.8.1+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
 
 [rel]: https://github.com/git-lfs/git-lfs/releases
 
@@ -120,5 +136,5 @@ These are the humans that form the Git LFS core team, which runs the project.
 In alphabetical order:
 
 | [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) | [@ttaylorr](https://github.com/ttaylorr) |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 | [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) | [![](https://avatars3.githubusercontent.com/u/443245?v=3&s=100)](https://github.com/ttaylorr) |

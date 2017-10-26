@@ -20,6 +20,9 @@ only a pointer file is written.
 * Pointer files MUST be stored in Git with their executable bit matching that
 of the replaced file.
 
+An empty file is the pointer for an empty file. That is, empty files are
+passed through LFS without any change.
+
 The required keys are:
 
 * `version` is a URL that identifies the pointer file spec.  Parsers MUST use

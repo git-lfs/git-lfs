@@ -1,6 +1,7 @@
 bin/
 benchmark/
 out/
+resource.syso
 
 # only allow man/*.\d.ronn files
 man/*
@@ -13,6 +14,9 @@ debian/git-lfs/
 debian/*.log
 debian/files
 debian/*.substvars
+debian/debhelper-build-stamp
+debian/.debhelper
+/.pc
 obj-*
 
 rpm/BUILD*

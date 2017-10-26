@@ -8,7 +8,8 @@ can come from the following places:
 
 Git LFS will add any HTTP headers returned from the `git-lfs-authenticate`
 command to any Batch API requests. If servers are returning expiring tokens,
-they can add an `expires_at` property to hint when the token will expire.
+they can add an `expires_in` (or `expires_at`) property to hint when the token
+will expire.
 
 ```bash
 # Called for remotes like:
@@ -19,6 +20,9 @@ $ ssh git@git-server.com git-lfs-authenticate foo/bar.git download
   "header": {
     "Authorization": "RemoteAuth some-token"
   },
+
+  # optional, for expiring tokens, preferred over expires_at
+  "expires_in": 86400
 
   # optional, for expiring tokens
   "expires_at": "2016-11-10T15:29:07Z"

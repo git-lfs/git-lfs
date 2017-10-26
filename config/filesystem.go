@@ -13,32 +13,48 @@ import (
 )
 
 var (
-	LocalWorkingDir    string
-	LocalGitDir        string // parent of index / config / hooks etc
-	LocalGitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
-	LocalReferenceDir  string // alternative local media dir (relative to clone reference repo)
-	LocalLogDir        string
+	LocalReferenceDir string // alternative local media dir (relative to clone reference repo)
 )
 
+type fs struct {
+	WorkingDir    string
+	GitDir        string // parent of index / config / hooks etc
+	GitStorageDir string // parent of objects/lfs (may be same as LocalGitDir but may not)
+	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
+	LogDir        string
+}
+
+func (f *fs) InRepo() bool {
+	if f == nil {
+		return false
+	}
+	return len(f.GitDir) > 0
+}
+
 // Determins the LocalWorkingDir, LocalGitDir etc
-func ResolveGitBasicDirs() {
-	var err error
-	LocalGitDir, LocalWorkingDir, err = git.GitAndRootDirs()
-	if err == nil {
-		// Make sure we've fully evaluated symlinks, failure to do consistently
-		// can cause discrepancies
-		LocalGitDir = tools.ResolveSymlinks(LocalGitDir)
-		LocalWorkingDir = tools.ResolveSymlinks(LocalWorkingDir)
-
-		LocalGitStorageDir = resolveGitStorageDir(LocalGitDir)
-		LocalReferenceDir = resolveReferenceDir(LocalGitStorageDir)
-
-	} else {
+func resolveGitBasicDirs() *fs {
+	localGitDir, localWorkingDir, err := git.GitAndRootDirs()
+	if err != nil {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
 		if !strings.Contains(errMsg, "Not a git repository") {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
+		return &fs{}
+	}
+
+	// Make sure we've fully evaluated symlinks, failure to do consistently
+	// can cause discrepancies
+	localGitDir = tools.ResolveSymlinks(localGitDir)
+	localWorkingDir = tools.ResolveSymlinks(localWorkingDir)
+	localGitStorageDir := resolveGitStorageDir(localGitDir)
+	LocalReferenceDir = resolveReferenceDir(localGitStorageDir)
+
+	return &fs{
+		GitDir:        localGitDir,
+		WorkingDir:    localWorkingDir,
+		GitStorageDir: localGitStorageDir,
+		ReferenceDir:  LocalReferenceDir,
 	}
 }
 

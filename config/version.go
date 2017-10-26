@@ -8,8 +8,11 @@ import (
 
 var (
 	GitCommit   string
-	Version     = "1.5.0"
 	VersionDesc string
+)
+
+const (
+	Version = "2.3.4"
 )
 
 func init() {
@@ -24,5 +27,4 @@ func init() {
 		strings.Replace(runtime.Version(), "go", "", 1),
 		gitCommit,
 	)
-
 }

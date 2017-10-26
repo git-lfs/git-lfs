@@ -16,7 +16,7 @@ import (
 )
 
 func TestScanUnpushed(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()
@@ -113,7 +113,7 @@ func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 }
 
 func TestScanPreviousVersions(t *testing.T) {
-	repo := test.NewRepo(t)
+	repo := test.NewRepo(testCfg, t)
 	repo.Pushd()
 	defer func() {
 		repo.Popd()

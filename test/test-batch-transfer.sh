@@ -26,7 +26,7 @@ begin_test "batch transfer"
 
   # This executes Git LFS from the local repo that was just cloned.
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -57,10 +57,91 @@ begin_test "batch transfer"
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull
 
   [ "a" = "$(cat a.dat)" ]
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
+)
+end_test
+
+begin_test "batch transfers occur in reverse order by size"
+(
+  set -e
+
+  reponame="batch-order-test"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  small_contents="small"
+  small_oid="$(calc_oid "$small_contents")"
+  printf "$small_contents" > small.dat
+
+  bigger_contents="bigger"
+  bigger_oid="$(calc_oid "$bigger_contents")"
+  printf "$bigger_contents" > bigger.dat
+
+  git add *.dat
+  git commit -m "add small and large objects"
+
+  GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+
+  batch="$(grep "{\"operation\":\"upload\"" push.log | head -1)"
+
+  pos_small="$(substring_position "$batch" "$small_oid")"
+  pos_large="$(substring_position "$batch" "$bigger_oid")"
+
+  # Assert that the the larger object shows up earlier in the batch than the
+  # smaller object
+  [ "$pos_large" -lt "$pos_small" ]
+)
+end_test
+
+begin_test "batch transfers with ssh endpoint"
+(
+  set -e
+
+  reponame="batch-ssh"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+  git config lfs.url "$sshurl"
+  git lfs env
+
+  contents="test"
+  oid="$(calc_oid "$contents")"
+  git lfs track "*.dat"
+  printf "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  git push origin master 2>&1
+)
+end_test
+
+begin_test "batch transfers with ntlm server"
+(
+  set -e
+
+  reponame="ntlmtest"
+  setup_remote_repo "$reponame"
+
+  printf "ntlmdomain\\\ntlmuser:ntlmpass" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+
+  contents="test"
+  oid="$(calc_oid "$contents")"
+  git lfs track "*.dat"
+  printf "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  GIT_CURL_VERBOSE=1 git push origin master 2>&1
 )
 end_test

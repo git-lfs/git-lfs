@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // An entry from ls-tree or rev-list including a blob sha and tree path
@@ -18,7 +19,7 @@ type TreeBlob struct {
 	Filename string
 }
 
-func runScanTree(cb GitScannerCallback, ref string, filter *filepathfilter.Filter) error {
+func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter) error {
 	// We don't use the nameMap approach here since that's imprecise when >1 file
 	// can be using the same content
 	treeShas, err := lsTreeBlobs(ref, filter)
@@ -46,8 +47,10 @@ func runScanTree(cb GitScannerCallback, ref string, filter *filepathfilter.Filte
 // a Git LFS pointer. treeblobs is a channel over which blob entries
 // will be sent. It returns a channel from which point.Pointers can be read.
 func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper, error) {
-	cmd, err := startCommand("git", "cat-file", "--batch")
+	scanner, err := NewPointerScanner()
 	if err != nil {
+		scanner.Close()
+
 		return nil, err
 	}
 
@@ -55,11 +58,8 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 	errchan := make(chan error, 10) // Multiple errors possible
 
 	go func() {
-		scanner := &catFileBatchScanner{r: cmd.Stdout}
 		for t := range treeblobs.Results {
-			cmd.Stdin.Write([]byte(t.Sha1 + "\n"))
-
-			hasNext := scanner.Scan()
+			hasNext := scanner.Scan(t.Sha1)
 			if p := scanner.Pointer(); p != nil {
 				p.Name = t.Filename
 				pointers <- p
@@ -80,14 +80,10 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 			errchan <- err
 		}
 
-		cmd.Stdin.Close()
-
-		// also errors from our command
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
-		err = cmd.Wait()
-		if err != nil {
-			errchan <- fmt.Errorf("Error in git cat-file: %v %v", err, string(stderr))
+		if err = scanner.Close(); err != nil {
+			errchan <- err
 		}
+
 		close(pointers)
 		close(errchan)
 	}()
@@ -99,14 +95,7 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 // The returned channel will be sent these blobs which should be sent to catFileBatchTree
 // for final check & conversion to Pointer
 func lsTreeBlobs(ref string, filter *filepathfilter.Filter) (*TreeBlobChannelWrapper, error) {
-	cmd, err := startCommand("git", "ls-tree",
-		"-r",          // recurse
-		"-l",          // report object size (we'll need this)
-		"-z",          // null line termination
-		"--full-tree", // start at the root regardless of where we are in it
-		ref,
-	)
-
+	cmd, err := git.LsTree(ref)
 	if err != nil {
 		return nil, err
 	}

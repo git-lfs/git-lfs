@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ var (
 // NOTE(zeroshirts): Ideally git would have hooks for fsck such that we could
 // chain a lfs-fsck, but I don't think it does.
 func fsckCommand(cmd *cobra.Command, args []string) {
-	lfs.InstallHooks(false)
+	installHooks(false)
 	requireInRepo()
 
 	ref, err := git.CurrentRef()
@@ -47,7 +47,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		}
 	})
 
-	if err := gitscanner.ScanRefWithDeleted(ref.Sha, nil); err != nil {
+	if err := gitscanner.ScanRef(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
 
@@ -66,7 +66,8 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	badDir := filepath.Join(config.LocalGitStorageDir, "lfs", "bad")
+	storageConfig := localstorage.NewConfig(cfg)
+	badDir := filepath.Join(storageConfig.LfsStorageDir, "bad")
 	Print("Moving corrupt objects to %s", badDir)
 
 	if err := os.MkdirAll(badDir, 0755); err != nil {

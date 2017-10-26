@@ -1,3 +1,5 @@
+//go:generate goversioninfo -icon=script/windows-installer/git-lfs-logo.ico
+
 package main
 
 import (

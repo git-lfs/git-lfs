@@ -25,8 +25,8 @@ const (
 
 var currentPlatform = PlatformUndetermined
 
-func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
-	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
+func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
+	logPath, _ := f.cfg.Os.Get("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}
@@ -87,90 +87,98 @@ func GetPlatform() Platform {
 	return currentPlatform
 }
 
+type PathConverter interface {
+	Convert(string) string
+}
+
 // Convert filenames expressed relative to the root of the repo relative to the
 // current working dir. Useful when needing to calling git with results from a rooted command,
 // but the user is in a subdir of their repo
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
-func ConvertRepoFilesRelativeToCwd(repochan <-chan string) (<-chan string, error) {
-	wd, err := os.Getwd()
+func NewRepoToCurrentPathConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get working dir: %v", err)
-	}
-	wd = tools.ResolveSymlinks(wd)
-
-	// Early-out if working dir is root dir, same result
-	passthrough := false
-	if config.LocalWorkingDir == wd {
-		passthrough = true
+		return nil, err
 	}
 
-	outchan := make(chan string, 1)
+	return &repoToCurrentPathConverter{
+		repoDir:     r,
+		currDir:     c,
+		passthrough: p,
+	}, nil
+}
 
-	go func() {
-		for f := range repochan {
-			if passthrough {
-				outchan <- f
-				continue
-			}
-			abs := filepath.Join(config.LocalWorkingDir, f)
-			rel, err := filepath.Rel(wd, abs)
-			if err != nil {
-				// Use absolute file instead
-				outchan <- abs
-			} else {
-				outchan <- rel
-			}
-		}
-		close(outchan)
-	}()
+type repoToCurrentPathConverter struct {
+	repoDir     string
+	currDir     string
+	passthrough bool
+}
 
-	return outchan, nil
+func (p *repoToCurrentPathConverter) Convert(filename string) string {
+	if p.passthrough {
+		return filename
+	}
+
+	abs := filepath.Join(p.repoDir, filename)
+	rel, err := filepath.Rel(p.currDir, abs)
+	if err != nil {
+		// Use absolute file instead
+		return abs
+	} else {
+		return rel
+	}
 }
 
 // Convert filenames expressed relative to the current directory to be
 // relative to the repo root. Useful when calling git with arguments that requires them
 // to be rooted but the user is in a subdir of their repo & expects to use relative args
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
-func ConvertCwdFilesRelativeToRepo(cwdchan <-chan string) (<-chan string, error) {
-	curdir, err := os.Getwd()
+func NewCurrentToRepoPathConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("Could not retrieve current directory: %v", err)
-	}
-	// Make sure to resolve symlinks
-	curdir = tools.ResolveSymlinks(curdir)
-
-	// Early-out if working dir is root dir, same result
-	passthrough := false
-	if config.LocalWorkingDir == curdir {
-		passthrough = true
+		return nil, err
 	}
 
-	outchan := make(chan string, 1)
-	go func() {
-		for p := range cwdchan {
-			if passthrough {
-				outchan <- p
-				continue
-			}
-			var abs string
-			if filepath.IsAbs(p) {
-				abs = tools.ResolveSymlinks(p)
-			} else {
-				abs = filepath.Join(curdir, p)
-			}
-			reltoroot, err := filepath.Rel(config.LocalWorkingDir, abs)
-			if err != nil {
-				// Can't do this, use absolute as best fallback
-				outchan <- abs
-			} else {
-				outchan <- reltoroot
-			}
-		}
-		close(outchan)
-	}()
+	return &currentToRepoPathConverter{
+		repoDir:     r,
+		currDir:     c,
+		passthrough: p,
+	}, nil
+}
 
-	return outchan, nil
+type currentToRepoPathConverter struct {
+	repoDir     string
+	currDir     string
+	passthrough bool
+}
 
+func (p *currentToRepoPathConverter) Convert(filename string) string {
+	if p.passthrough {
+		return filename
+	}
+
+	var abs string
+	if filepath.IsAbs(filename) {
+		abs = tools.ResolveSymlinks(filename)
+	} else {
+		abs = filepath.Join(p.currDir, filename)
+	}
+	reltoroot, err := filepath.Rel(p.repoDir, abs)
+	if err != nil {
+		// Can't do this, use absolute as best fallback
+		return abs
+	} else {
+		return reltoroot
+	}
+}
+
+func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {
+	currDir, err := os.Getwd()
+	if err != nil {
+		return "", "", false, fmt.Errorf("Unable to get working dir: %v", err)
+	}
+	currDir = tools.ResolveSymlinks(currDir)
+	return cfg.LocalWorkingDir(), currDir, cfg.LocalWorkingDir() == currDir, nil
 }
 
 // Are we running on Windows? Need to handle some extra path shenanigans
