@@ -23,7 +23,14 @@ var (
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
 	credHelper := c.Credentials
 	if credHelper == nil {
-		credHelper = defaultCredentialHelper
+		var err error
+		credHelper, err = getCredentialHelper(c.osEnv, c.gitEnv)
+		if err != nil {
+			tracerx.Printf("error getting credential helper: %s", err)
+		}
+		if credHelper == nil {
+			credHelper = defaultCredentialHelper
+		}
 	}
 
 	netrcFinder := c.Netrc

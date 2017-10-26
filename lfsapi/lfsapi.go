@@ -71,11 +71,6 @@ func NewClient(ctx Context) (*Client, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
 	}
 
-	creds, err := getCredentialHelper(osEnv, gitEnv)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot find credential helper(s)")
-	}
-
 	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
 	if gitEnv.Bool("lfs.cachecredentials", true) {
 		sshResolver = withSSHCache(sshResolver)
@@ -83,7 +78,6 @@ func NewClient(ctx Context) (*Client, error) {
 
 	c := &Client{
 		Endpoints:           NewEndpointFinder(ctx),
-		Credentials:         creds,
 		SSH:                 sshResolver,
 		Netrc:               netrc,
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
