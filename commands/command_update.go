@@ -29,10 +29,10 @@ func updateCommand(cmd *cobra.Command, args []string) {
 		switch value {
 		case "basic":
 		case "private":
-			cfg.SetGitLocalKey("", key, "basic")
+			cfg.SetGitLocalKey(key, "basic")
 			Print("Updated %s access from %s to %s.", matches[1], value, "basic")
 		default:
-			cfg.UnsetGitLocalKey("", key)
+			cfg.UnsetGitLocalKey(key)
 			Print("Removed invalid %s access of %s.", matches[1], value)
 		}
 	}

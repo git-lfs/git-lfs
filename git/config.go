@@ -89,21 +89,13 @@ func (c *Configuration) UnsetLocalSection(key string) (string, error) {
 }
 
 // SetLocal sets the git config value for the key in the specified config file
-func (c *Configuration) SetLocal(file, key, val string) (string, error) {
-	args := make([]string, 0, 5)
-	if len(file) > 0 {
-		args = append(args, "--file", file)
-	}
-	return c.git("config", append(args, "--replace-all", key, val)...)
+func (c *Configuration) SetLocal(key, val string) (string, error) {
+	return c.git("config", "--replace-all", key, val)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
-func (c *Configuration) UnsetLocalKey(file, key string) (string, error) {
-	args := make([]string, 0, 4)
-	if len(file) > 0 {
-		args = append(args, "--file", file)
-	}
-	return c.git("config", append(args, "--unset", key)...)
+func (c *Configuration) UnsetLocalKey(key string) (string, error) {
+	return c.git("config", "--unset", key)
 }
 
 func (c *Configuration) Sources(optionalFilename string) ([]*ConfigurationSource, error) {

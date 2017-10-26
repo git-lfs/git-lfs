@@ -487,6 +487,6 @@ func disableFor(endpoint lfsapi.Endpoint) error {
 
 	key := strings.Join([]string{"lfs", endpoint.Url, "locksverify"}, ".")
 
-	_, err := cfg.SetGitLocalKey("", key, "false")
+	_, err := cfg.SetGitLocalKey(key, "false")
 	return err
 }

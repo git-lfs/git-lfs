@@ -136,7 +136,7 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 	if opt.Force || shouldReset(currentValue, upgradeables) {
 		var err error
 		if opt.Local {
-			_, err = gitConfig.SetLocal("", key, value)
+			_, err = gitConfig.SetLocal(key, value)
 		} else if opt.System {
 			_, err = gitConfig.SetSystem(key, value)
 		} else {

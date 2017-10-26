@@ -218,10 +218,10 @@ func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
 
 	switch access {
 	case emptyAccess, NoneAccess:
-		e.gitConfig.UnsetLocalKey("", key)
+		e.gitConfig.UnsetLocalKey(key)
 		e.urlAccess[accessurl] = NoneAccess
 	default:
-		e.gitConfig.SetLocal("", key, string(access))
+		e.gitConfig.SetLocal(key, string(access))
 		e.urlAccess[accessurl] = access
 	}
 }

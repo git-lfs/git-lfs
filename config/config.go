@@ -312,8 +312,8 @@ func (c *Configuration) SetGitSystemKey(key, val string) (string, error) {
 	return c.gitConfig.SetSystem(key, val)
 }
 
-func (c *Configuration) SetGitLocalKey(file, key, val string) (string, error) {
-	return c.gitConfig.SetLocal(file, key, val)
+func (c *Configuration) SetGitLocalKey(key, val string) (string, error) {
+	return c.gitConfig.SetLocal(key, val)
 }
 
 func (c *Configuration) UnsetGitGlobalSection(key string) (string, error) {
@@ -328,8 +328,8 @@ func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
 	return c.gitConfig.UnsetLocalSection(key)
 }
 
-func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
-	return c.gitConfig.UnsetLocalKey(file, key)
+func (c *Configuration) UnsetGitLocalKey(key string) (string, error) {
+	return c.gitConfig.UnsetLocalKey(key)
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
