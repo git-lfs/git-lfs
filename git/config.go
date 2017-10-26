@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
 
@@ -16,7 +17,7 @@ var Config = &Configuration{}
 type Configuration struct {
 	WorkDir string
 	GitDir  string
-	version string
+	version *string
 	mu      sync.Mutex
 }
 
@@ -41,61 +42,61 @@ type ConfigurationSource struct {
 
 // Find returns the git config value for the key
 func (c *Configuration) Find(val string) string {
-	output, _ := c.git("config", val)
+	output, _ := c.gitConfig(val)
 	return output
 }
 
 // FindGlobal returns the git config value global scope for the key
 func (c *Configuration) FindGlobal(key string) string {
-	output, _ := c.git("config", "--global", key)
+	output, _ := c.gitConfig("--global", key)
 	return output
 }
 
 // FindSystem returns the git config value in system scope for the key
 func (c *Configuration) FindSystem(key string) string {
-	output, _ := c.git("config", "--system", key)
+	output, _ := c.gitConfig("--system", key)
 	return output
 }
 
 // Find returns the git config value for the key
 func (c *Configuration) FindLocal(key string) string {
-	output, _ := c.git("config", "--local", key)
+	output, _ := c.gitConfig("--local", key)
 	return output
 }
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *Configuration) SetGlobal(key, val string) (string, error) {
-	return c.git("config", "--global", "--replace-all", key, val)
+	return c.gitConfig("--global", "--replace-all", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
 func (c *Configuration) SetSystem(key, val string) (string, error) {
-	return c.git("config", "--system", "--replace-all", key, val)
+	return c.gitConfig("--system", "--replace-all", key, val)
 }
 
 // UnsetGlobalSection removes the entire named section from the global config
 func (c *Configuration) UnsetGlobalSection(key string) (string, error) {
-	return c.git("config", "--global", "--remove-section", key)
+	return c.gitConfig("--global", "--remove-section", key)
 }
 
 // UnsetSystemSection removes the entire named section from the system config
 func (c *Configuration) UnsetSystemSection(key string) (string, error) {
-	return c.git("config", "--system", "--remove-section", key)
+	return c.gitConfig("--system", "--remove-section", key)
 }
 
 // UnsetLocalSection removes the entire named section from the system config
 func (c *Configuration) UnsetLocalSection(key string) (string, error) {
-	return c.git("config", "--local", "--remove-section", key)
+	return c.gitConfig("--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *Configuration) SetLocal(key, val string) (string, error) {
-	return c.git("config", "--replace-all", key, val)
+	return c.gitConfig("--replace-all", key, val)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
 func (c *Configuration) UnsetLocalKey(key string) (string, error) {
-	return c.git("config", "--unset", key)
+	return c.gitConfig("--unset", key)
 }
 
 func (c *Configuration) Sources(optionalFilename string) ([]*ConfigurationSource, error) {
@@ -122,7 +123,7 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 		return nil, err
 	}
 
-	out, err := c.git("config", "-l", "-f", filename)
+	out, err := c.gitConfig("-l", "-f", filename)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 }
 
 func (c *Configuration) Source() (*ConfigurationSource, error) {
-	out, err := c.git("config", "-l")
+	out, err := c.gitConfig("-l")
 	if err != nil {
 		return nil, err
 	}
@@ -142,15 +143,15 @@ func (c *Configuration) Version() (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if len(c.version) == 0 {
+	if c.version == nil {
 		v, err := gitSimple("version")
+		c.version = &v
 		if err != nil {
 			return v, err
 		}
-		c.version = v
 	}
 
-	return c.version, nil
+	return *c.version, nil
 }
 
 // IsVersionAtLeast returns whether the git version is the one specified or higher
@@ -164,16 +165,12 @@ func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
 	return IsVersionAtLeast(gitver, ver)
 }
 
-func (c *Configuration) git(subcmd string, args ...string) (string, error) {
-	cmd := make([]string, 1, len(args)+3)
-	cmd[0] = subcmd
-
+func (c *Configuration) gitConfig(args ...string) (string, error) {
+	args = append([]string{"config"}, args...)
+	subprocess.Trace("git", args...)
+	cmd := subprocess.ExecCommand("git", args...)
 	if len(c.GitDir) > 0 {
-		cmd = append(cmd, "--git-dir", c.GitDir)
+		cmd.Dir = c.GitDir
 	}
-	if len(c.WorkDir) > 0 {
-		cmd = append(cmd, "--work-tree", c.WorkDir)
-	}
-
-	return gitSimple(append(cmd, args...)...)
+	return subprocess.Output(cmd)
 }
