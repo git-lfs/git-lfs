@@ -45,9 +45,17 @@ func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
 	}, nil
 }
 
+func Trace(name string, args ...string) {
+	quoted := make([]string, len(args))
+	for i, arg := range args {
+		quoted[i] = fmt.Sprintf("'%s'", arg)
+	}
+	tracerx.Printf("exec: %s %s", name, strings.Join(quoted, " "))
+}
+
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {
-	tracerx.Printf("run_command: '%s' %s", name, strings.Join(args, " "))
+	Trace(name, args...)
 	cmd := ExecCommand(name, args...)
 
 	//start copied from Go 1.6 exec.go
